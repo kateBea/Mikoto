@@ -47,6 +47,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(FetchContent)
 
 # ======================================
+# GLI
+# ======================================
+set(GLI_TEST_ENABLE OFF CACHE BOOL "No build unit tests" FORCE)
+
+# ======================================
 # MeshOptimizer
 # ======================================
 set(MESHOPT_BUILD_DEMO OFF CACHE BOOL "" FORCE)
@@ -502,6 +507,17 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(tinygltf)
 
+# -------------------------------------------------------
+# GLI
+# -------------------------------------------------------
+FetchContent_Declare(
+        gli
+        GIT_REPOSITORY https://github.com/g-truc/gli.git
+        GIT_TAG        master
+)
+
+FetchContent_MakeAvailable(gli)
+
 # ======================================
 # Project sources
 # ======================================
@@ -582,6 +598,7 @@ set(LIBRARIES
         ozz_animation_offline
         meshoptimizer
         tinygltf
+        gli
 )
 
 # ======================================
@@ -665,6 +682,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include
         ${ozz_SOURCE_DIR}/include
+        ${gli_SOURCE_DIR}
         ${meshoptimizer_SOURCE_DIR}/src
         ${tinygltf_SOURCE_DIR}
         ${IMGUI_NO_EDITOR_INCLUDE_DIR}

@@ -40,6 +40,6 @@ namespace Mikoto {
 
         UInt32 m_MipLevels{ 1 };
     };
-}// namespace Mikoto
+}
 
 #endif//MIKOTO_TEXTURE_CUBE_MAP_HH

@@ -112,19 +112,19 @@ namespace Mikoto {
 
     auto SceneRenderer::UpdateEquirectangularMapAsync( std::string_view path ) -> void {
         TaskService::Get()->Submit( [path = Filesystem::GetGetAbsolutePath(path), this]() -> void {
-            m_HDRTexture = AssetsService::Get()->LoadAsset<Texture>( path, true );
-            m_LDRTexture = AssetsService::Get()->LoadAsset<TextureCube>( path );
+            m_Equirectangular = AssetsService::Get()->LoadAsset<Texture>( path, true );
+            m_CubeMap = AssetsService::Get()->LoadAsset<TextureCube>( path );
 
             m_LoadedHDR = true;
         } );
     }
 
     auto SceneRenderer::SetUseConvolutedCube( bool enable ) -> void {
-        m_IBLPasses.SetUseConvolutedCube( enable );
+        m_IBLPasses.UseConvolutedCube( enable );
     }
 
     auto SceneRenderer::UseLDRCubeMap( bool enable ) -> void {
-        m_IBLPasses.UseLDRCubeMap( enable );
+        m_IBLPasses.UseCubeMap( enable );
     }
 
     auto SceneRenderer::IsUsingConvolutedCube() const -> bool {
@@ -132,11 +132,11 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::GetEquirectangularMap() -> TextureHandle {
-        return m_HDRTexture;
+        return m_Equirectangular;
     }
 
     auto SceneRenderer::IsUsingPrecomputedLDRCubeMap() -> bool {
-        return m_IBLPasses.IsUsingPrecomputedLDRCubeMap();
+        return m_IBLPasses.IsUsingCubeMap();
     }
 
     auto SceneRenderer::SetEnableSSAO( bool enable ) -> void {
@@ -206,9 +206,9 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetEquirectangularMap() -> void {
-        m_CameraPass.SetEquirectangularMap( m_HDRTexture );
-        m_IBLPasses.SetEquirectangularMap( m_HDRTexture );
-        m_IBLPasses.SetLDRCubeMap( m_LDRTexture );
+        m_CameraPass.SetEquirectangularMap( m_Equirectangular );
+        m_IBLPasses.SetEquirectangularMap( m_Equirectangular );
+        m_IBLPasses.SetCubeMap( m_CubeMap );
     }
 
     auto SceneRenderer::OnPreRender() -> void {

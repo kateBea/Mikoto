@@ -37,24 +37,25 @@ namespace Mikoto {
 
         auto SetScene( Scene* scene ) -> void;
         auto SetCamera( const Camera *camera ) -> void;
+        auto SetMeshCulling(MeshCulling& cullingPass) -> void;
 
         // HDR
-        auto SetUseConvolutedCube(bool enable)-> void;
-        MKT_NODISCARD auto IsUsingConvolutedCube() const -> bool;
         auto SetEquirectangularMap(TextureHandle texture2D) -> void;
 
         // LDR
-        auto UseLDRCubeMap(bool value) -> void;
-        auto SetLDRCubeMap( TextureHandle cubeMap ) -> void;
-        MKT_NODISCARD auto IsUsingPrecomputedLDRCubeMap() const -> bool;
+        auto UseCubeMap(bool value) -> void;
+        auto SetCubeMap( TextureHandle cubeMap ) -> void;
+
+        MKT_NODISCARD auto IsUsingCubeMap() const -> bool;
 
         // IBL
         auto SetExposure( float value ) -> void;
         auto SetGamma( float value ) -> void;
         auto EnableSkybox(bool enable) -> void;
         auto SetMaxReflectionLOD( float value ) -> void;
+        auto UseConvolutedCube(bool enable)-> void;
 
-        auto SetMeshCulling(MeshCulling& cullingPass) -> void;
+        MKT_NODISCARD auto IsUsingConvolutedCube() const -> bool;
 
     private:
         auto RegisterSkyboxRender( FrameGraph& graph ) -> void;
@@ -71,18 +72,12 @@ namespace Mikoto {
 
     private:
         inline static const std::vector<glm::mat4> s_Matrices{
-            // POSITIVE_X
-            glm::rotate(glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
-            // NEGATIVE_X
-            glm::rotate(glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
-            // POSITIVE_Y
-            glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
-            // NEGATIVE_Y
-            glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
-            // POSITIVE_Z
-            glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
-            // NEGATIVE_Z
-            glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+            glm::lookAt(glm::vec3(0), glm::vec3( 1,  0,  0), glm::vec3(0, -1,  0)), // +X
+            glm::lookAt(glm::vec3(0), glm::vec3(-1,  0,  0), glm::vec3(0, -1,  0)), // -X
+            glm::lookAt(glm::vec3(0), glm::vec3( 0, -1,  0), glm::vec3(0,  0, -1)), // +Y
+            glm::lookAt(glm::vec3(0), glm::vec3( 0,  1,  0), glm::vec3(0,  0,  1)), // -Y
+            glm::lookAt(glm::vec3(0), glm::vec3( 0,  0,  1), glm::vec3(0, -1,  0)), // +Z
+            glm::lookAt(glm::vec3(0), glm::vec3( 0,  0, -1), glm::vec3(0, -1,  0)), // -Z
         };
 
     private:
@@ -112,6 +107,8 @@ namespace Mikoto {
             float Gamma{};
 
             float MaxReflectionLOD{ 9.0 };
+            float MaxMipLevel{ 1.0 };
+
             Int32 IsSkyboxActive{ MKT_SHADER_FALSE };
         };
 
@@ -129,7 +126,6 @@ namespace Mikoto {
     private:
         // Skybox
         IBLParameters m_IBLParameters{};
-        TextureHandle m_CubeMap{};
         bool m_UseSkybox{ false };
 
         UInt32 m_IrradianceMipLevels{ 1 };
@@ -142,9 +138,11 @@ namespace Mikoto {
 
         IrradianceParameters m_IrradianceParameters{};
 
-        TextureHandle m_Skybox2D{};
+        TextureHandle m_CubeMap{};
+        TextureHandle m_Equirectangular{};
+
         bool m_RequestUpdateSkybox{ false };
-        bool m_UsePrecomputedLDRCubeMap{ false };
+        bool m_UseCubeMap{ false };
         SkyboxRenderParams m_SkyboxRenderParameters{};
 
         bool m_UseConvolutedCubeMap{ false };

@@ -18,9 +18,7 @@
 #include <filesystem>
 
 #include <volk.h>
-#include <vk_mem_alloc.h>
 
-// Project Headers
 #include <Common/Common.hh>
 
 #include <Library/IO/File.hh>
@@ -29,17 +27,10 @@
 #include <Material/Texture2D.hh>
 #include <Material/TextureCube.hh>
 
-#include <Renderer/Core/Buffer.hh>
 #include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
 namespace Mikoto {
 
-    /**
-    * @brief Represents a sampler object used for texture sampling.
-    *
-    * This class encapsulates the functionality of a sampler, allowing for
-    * texture sampling with various filtering and wrapping modes.
-    */
     class VulkanSampler final : public Sampler {
     public:
         explicit VulkanSampler( const SamplerDescription& desc );
@@ -57,13 +48,7 @@ namespace Mikoto {
         VkSamplerCreateInfo m_CreateInfo{};
     };
 
-    /**
-     * @class VulkanTexture
-     * @brief Represents a 2D texture used in Vulkan renderer.
-     *
-     * Extends the Texture2D class for Vulkan-specific texture functionality. It manages loading and handling
-     * 2D textures for Vulkan rendering, including creating images, image views, samplers, and descriptor sets.
-     * */
+
     class VulkanTexture final : public Texture2D {
     public:
         explicit VulkanTexture( const TextureDescription& data );
@@ -86,12 +71,12 @@ namespace Mikoto {
 
         ~VulkanTexture() override;
 
-
     private:
         auto Initialize() -> void override;
         auto Release() -> void override;
 
         auto SetDebugInfo() -> void;
+        auto SetupNonSwapChainImage() -> void;
 
     private:
         // Optional
@@ -131,6 +116,7 @@ namespace Mikoto {
         auto Release() -> void override;
 
         auto LoadCubeFaces() -> void;
+        auto LoadWithImageLoader() -> void;
         auto CreateImageResource() -> void;
 
         auto SetDebugInfo() -> void;
@@ -146,6 +132,8 @@ namespace Mikoto {
         VkImageLayout m_CurrentLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
 
         std::vector<const File*> m_TextureFaces{};
+
+        bool m_UseImageLoader{ false };
     };
 
     struct VulkanSwapChainCreateInfo {

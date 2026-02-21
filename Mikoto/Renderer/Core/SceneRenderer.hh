@@ -131,8 +131,8 @@ namespace Mikoto {
 
         // Async load HDR
         std::atomic_bool m_LoadedHDR{ false };
-        TextureHandle m_HDRTexture{};
-        TextureHandle m_LDRTexture{};
+        TextureHandle m_Equirectangular{};
+        TextureHandle m_CubeMap{};
     };
 }// namespace Mikoto
 

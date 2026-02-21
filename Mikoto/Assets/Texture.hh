@@ -122,7 +122,7 @@ namespace Mikoto {
             return !m_Sampler.IsEmpty();
         }
 
-        MKT_NODISCARD auto IsHDR() const -> bool { return m_IsHDR; }
+        MKT_NODISCARD auto IsHDR() const -> bool { return m_IsLDR; }
 
         MKT_NODISCARD auto GetSizeBytes() const -> Size { return m_SizeBytes; }
 
@@ -207,7 +207,9 @@ namespace Mikoto {
         Int32 m_Height{};
         Int32 m_Channels{};
 
-        bool m_IsHDR{ false };
+        Byte* m_Data{ nullptr };
+
+        bool m_IsLDR{ false };
 
         Size m_SizeBytes{};
 
@@ -215,7 +217,6 @@ namespace Mikoto {
 
         std::string m_TextureUri{ "" };
         std::string m_TextureName{ "" };
-
     };
 
     using TextureHandle = Ref<Texture>;

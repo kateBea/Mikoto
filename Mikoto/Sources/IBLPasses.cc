@@ -51,7 +51,7 @@ namespace Mikoto {
         // TODO: investigate. Start by first integrating shadows for one dir light and proceed with atlas integration
         //https://www.adriancourreges.com/blog/2016/09/09/doom-2016-graphics-study/
 
-        // Shadowmapping
+        // Shadow mapping
         RegisterDirShadowMap( graph );
         RegisterSpotShadowMap( graph );
         RegisterPointShadowMap( graph );
@@ -73,7 +73,7 @@ namespace Mikoto {
         RegisterDebugViewsPass( graph );
     }
 
-    auto IBLPasses::SetUseConvolutedCube( bool enable ) -> void {
+    auto IBLPasses::UseConvolutedCube( bool enable ) -> void {
         m_UseConvolutedCubeMap = enable;
     }
 
@@ -92,20 +92,20 @@ namespace Mikoto {
     }
 
     auto IBLPasses::SetEquirectangularMap( TextureHandle texture2D ) -> void {
-        if (m_Skybox2D == texture2D) {
+        if (m_Equirectangular == texture2D) {
             return;
         }
 
-        m_Skybox2D = texture2D;
+        m_Equirectangular = texture2D;
         m_RequestUpdateSkybox = true;
     }
 
-    auto IBLPasses::UseLDRCubeMap( bool value ) -> void {
-        m_UsePrecomputedLDRCubeMap = value;
+    auto IBLPasses::UseCubeMap( bool value ) -> void {
+        m_UseCubeMap = value;
     }
 
-    auto IBLPasses::IsUsingPrecomputedLDRCubeMap() const -> bool {
-        return m_UsePrecomputedLDRCubeMap;
+    auto IBLPasses::IsUsingCubeMap() const -> bool {
+        return m_UseCubeMap;
     }
 
     auto IBLPasses::RegisterIrradiance( FrameGraph &graph ) -> void {
@@ -141,7 +141,7 @@ namespace Mikoto {
                         return;
                     }
 
-                    if (m_UsePrecomputedLDRCubeMap && !m_CubeMap.IsEmpty()) {
+                    if (m_UseCubeMap && !m_CubeMap.IsEmpty()) {
                         ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
                     } else {
                         ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 0 );
@@ -212,7 +212,7 @@ namespace Mikoto {
                         return;
                     }
 
-                    if (m_UsePrecomputedLDRCubeMap && !m_CubeMap.IsEmpty()) {
+                    if (m_UseCubeMap && !m_CubeMap.IsEmpty()) {
                         ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
                     } else {
                         ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 0 );
@@ -314,7 +314,7 @@ namespace Mikoto {
         m_MeshCullingPass = std::addressof( cullingPass );
     }
 
-    auto IBLPasses::SetLDRCubeMap( TextureHandle cubeMap ) -> void {
+    auto IBLPasses::SetCubeMap( TextureHandle cubeMap ) -> void {
         if (m_CubeMap == cubeMap) {
             return;
         }
@@ -358,7 +358,7 @@ namespace Mikoto {
                         return;
                     }
 
-                    if (m_Skybox2D.IsEmpty()) {
+                    if (m_Equirectangular.IsEmpty()) {
                         return;
                     }
 
@@ -366,7 +366,7 @@ namespace Mikoto {
                         m_Skybox2DSampler = ctx.CreateSampler( SamplerDescription{ } );
                     }
 
-                    ctx.BindImage( m_Skybox2D, m_Skybox2DSampler, 0 );
+                    ctx.BindImage( m_Equirectangular, m_Skybox2DSampler, 0 );
 
                     for ( Size mipLevel{}; mipLevel < 1; mipLevel++ ) {
                         for ( UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face ) {
@@ -446,9 +446,10 @@ namespace Mikoto {
                     // Use the prefiltered map for convoluted background, in the shader you can specify the mip level as third parameter of texture() function
                     // play around to see what fits best for the scene, remember to pass the max mip level as a push constant to avoid sampling beyond the available mip levels in the shader
                     if ( m_UseConvolutedCubeMap ) {
+                        m_IBLParameters.MaxMipLevel = m_PrefilterMipLevels;
                         ctx.BindImage( "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, bindSlot );
                     } else {
-                        if ( m_UsePrecomputedLDRCubeMap && !m_CubeMap.IsEmpty()) {
+                        if ( m_UseCubeMap && !m_CubeMap.IsEmpty()) {
                             ctx.BindImage( m_CubeMap, m_CubeMapSampler, bindSlot );
                         } else {
                             ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, bindSlot );

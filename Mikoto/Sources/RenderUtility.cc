@@ -15,6 +15,10 @@
 // Implementation provided by tinygltf
 #include <stb_image.h>
 
+// TODO: required by gli
+#define GLM_STATIC_ASSERT(x, message) static_assert(x, message)
+#include <gli/gli.hpp>
+
 #include <Assets/Texture.hh>
 #include <Common/Common.hh>
 #include <Core/Exception.hh>
@@ -138,22 +142,26 @@ namespace Mikoto {
         return *this;
     }
 
-    StbImage::StbImage( const File* textureFile ) {
-        m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
+    ImageLoader2D::ImageLoader2D( const File* textureFile ) {
+        try {
+            m_Data = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
+        } catch (const std::exception& e) {
+            MKT_CORE_LOGGER_ERROR( "Failed to load ImageLoader2D. e.what(): {}", e.what() );
+        }
     }
 
-    StbImage::StbImage( const Byte* data, Size sizeBytes) {
+    ImageLoader2D::ImageLoader2D( const Byte* data, Size sizeBytes) {
         m_Data = LoadImageFromMemory( data, sizeBytes, m_Width, m_Height, m_Channels );
     }
 
-    StbImage::~StbImage() {
+    ImageLoader2D::~ImageLoader2D() {
         if ( m_Data ) {
             stbi_image_free( m_Data );
             m_Data = nullptr;
         }
     }
 
-    StbImage::StbImage( StbImage&& other ) noexcept
+    ImageLoader2D::ImageLoader2D( ImageLoader2D&& other ) noexcept
         : m_Width( other.m_Width ),
           m_Height( other.m_Height ),
           m_Channels( other.m_Channels ),
@@ -164,7 +172,7 @@ namespace Mikoto {
         other.m_Channels = 0;
     }
 
-    auto StbImage::operator=( StbImage&& other ) noexcept -> StbImage& {
+    auto ImageLoader2D::operator=( ImageLoader2D&& other ) noexcept -> ImageLoader2D& {
         if ( this != &other ) {
             if ( m_Data ) {
                 stbi_image_free( m_Data );
@@ -179,6 +187,53 @@ namespace Mikoto {
             other.m_Width = 0;
             other.m_Height = 0;
             other.m_Channels = 0;
+        }
+
+        return *this;
+    }
+
+    ImageLoaderCube::ImageLoaderCube( const Path& fileName ) {
+        gli::texture_cube texCube(gli::load(fileName.string()));
+
+        m_Data = new Byte[texCube.size()];
+        memcpy(m_Data, texCube.data(), texCube.size());
+
+        m_Width = texCube.extent().x;
+        m_Height = texCube.extent().y;
+        m_Size = texCube.size();
+        m_MipLevels = static_cast<Int32>(texCube.levels());
+    }
+
+    ImageLoaderCube::~ImageLoaderCube() {
+        delete[] m_Data;
+    }
+
+    ImageLoaderCube::ImageLoaderCube( ImageLoaderCube&& other ) noexcept
+    : m_Width( other.m_Width ),
+          m_Height( other.m_Height ),
+          m_MipLevels( other.m_MipLevels ),
+          m_Data( other.m_Data ) {
+        other.m_Data = nullptr;
+        other.m_Width = 0;
+        other.m_Height = 0;
+        other.m_MipLevels = 0;
+    }
+
+    auto ImageLoaderCube::operator=( ImageLoaderCube&& other ) noexcept -> ImageLoaderCube& {
+        if ( this != &other ) {
+            if ( m_Data ) {
+                stbi_image_free( m_Data );
+            }
+
+            m_Data = other.m_Data;
+            m_Width = other.m_Width;
+            m_Height = other.m_Height;
+            m_MipLevels = other.m_MipLevels;
+
+            other.m_Data = nullptr;
+            other.m_Width = 0;
+            other.m_Height = 0;
+            other.m_MipLevels = 0;
         }
 
         return *this;
@@ -412,8 +467,8 @@ namespace Mikoto {
         return *this;
     }
 
-    auto TextureCubeLoadDescription::IsHDR( const bool value ) -> TextureCubeLoadDescription& {
-        this->IsHdrMap = value;
+    auto TextureCubeLoadDescription::LoadLDR( const bool value ) -> TextureCubeLoadDescription& {
+        this->WantLDR = value;
         return *this;
     }
 
@@ -442,8 +497,27 @@ namespace Mikoto {
         return *this;
     }
 
-    auto TextureCubeCreateDescription::IsHDR( bool value ) -> TextureCubeCreateDescription& {
-        this->IsHdrMap = value;
+    auto TextureCubeCreateDescription::LoadLDR( bool value ) -> TextureCubeCreateDescription& {
+        this->WantLDR = value;
+        return *this;
+    }
+
+    auto TextureCubeCreateDescription::WidthSize( Size size ) -> TextureCubeCreateDescription& {
+        this->SizeBytes = size;
+        return *this;
+    }
+    auto TextureCubeCreateDescription::WithWidth( Int32 width ) -> TextureCubeCreateDescription& {
+        this->Width = width;
+        return *this;
+    }
+
+    auto TextureCubeCreateDescription::WithHeight( Int32 height ) -> TextureCubeCreateDescription& {
+        this->Height = Height;
+        return *this;
+    }
+
+    auto TextureCubeCreateDescription::WithData( Byte* data ) -> TextureCubeCreateDescription& {
+        this->Data = data;
         return *this;
     }
 

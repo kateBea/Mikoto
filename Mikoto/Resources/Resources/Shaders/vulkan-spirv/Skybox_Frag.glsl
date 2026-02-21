@@ -33,8 +33,25 @@ layout (location = 0) out vec4 o_Color;
 
 layout (set = STATIC_SETINDEX, binding = 1) uniform samplerCube u_Skybox;
 
+layout(scalar, push_constant) uniform SkyBoxParameters {
+    float Exposure;
+    float Gamma;
+
+    float MaxReflectionLOD;
+    float MaxMipLevel;
+
+    int IsSkyboxActive;
+} u_IBLParams;
+
 void main() {
-    vec3 color = texture(u_Skybox, v_Direction).rgb;
+    const float blur = 4.5f;
+    vec3 color = vec3(0.0f);
+
+    if (u_IBLParams.MaxMipLevel > blur) {
+        color = texture(u_Skybox, v_Direction, blur).rgb;
+    } else {
+        color = texture(u_Skybox, v_Direction).rgb;
+    }
 
     // Tone mapping
     color = Uncharted2Tonemap(color * v_Exposure);

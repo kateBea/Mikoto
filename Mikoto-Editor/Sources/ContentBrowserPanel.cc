@@ -416,7 +416,7 @@ namespace Mikoto {
                     fileType = "File";
                 }
 
-                const auto pannelsBgColor{ ImGui::GetStyleColorVec4( ImGuiCol_WindowBg ) };
+                const auto pannelBgColor{ ImGui::GetStyleColorVec4( ImGuiCol_WindowBg ) };
                 const auto buttonColor{ m_SelectedItem == entry ? ImGui::GetStyleColorVec4( ImGuiCol_ButtonActive ) : ImVec4( 0, 0, 0, 0 ) };
 
                 ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );

@@ -189,7 +189,14 @@ namespace Mikoto {
     auto AssetsService::LoadTexture( const TextureDescription& description ) -> TextureHandle {
         std::string path{ description.TextureFile ? description.TextureFile->GetPath() : description.Name };
 
-        TextureHandle texture{ m_GpuDevice->CreateTexture( description ) };
+        TextureHandle texture{};
+
+        try {
+           texture = m_GpuDevice->CreateTexture( description );
+        } catch (std::exception& e) {
+            MKT_CORE_LOGGER_ERROR( "Failed to load 2D texture. e.what(): {}", e.what() );
+        }
+
         if (!texture.IsEmpty()) {
             std::lock_guard lock{ m_Texture2DPoolMutex };
 
@@ -198,11 +205,11 @@ namespace Mikoto {
             };
 
             if (success) {
-                return m_Textures2D[path];
+                texture = m_Textures2D[path];
             }
         }
 
-        return TextureHandle::CreateEmpty();
+        return texture;
     }
 
     auto AssetsService::LoadTexture( const TextureLoadDescription& description) -> TextureHandle {
@@ -218,7 +225,7 @@ namespace Mikoto {
             return itFind->second;
         }
 
-        const StbImage image{ textureFile };
+        const ImageLoader2D image{ textureFile };
 
         if ( !image.IsValid() ) {
             return TextureHandle::CreateEmpty();
@@ -247,26 +254,28 @@ namespace Mikoto {
     auto AssetsService::LoadCubeMap( const Path &uri ) -> TextureHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // Traverse all faces for simplicity fetch the first 6 images
-        // LoadCubeMap( const TextureCubeLoadDescription &description );
+        TextureCubeLoadDescription desc{ .BasePath{ uri } };
 
-        return TextureHandle::CreateEmpty();
+        return LoadCubeMap(desc);
     }
 
     auto AssetsService::LoadCubeMap( const TextureCubeLoadDescription &description ) -> TextureHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // Return cached texture
         const std::string baseAbsolute{ Filesystem::GetGetAbsolutePathString( description.BasePath ) };
         if (const auto itFind{ m_TexturesCubes.find( baseAbsolute ) }; itFind != m_TexturesCubes.end() ) {
             return itFind->second;
         }
 
+        TextureHandle texture{ TextureHandle::CreateEmpty() };
+
         TextureCubeCreateDescription textureDesc{};
         textureDesc
-            .IsHDR( description.IsHdrMap )
+            .LoadLDR( description.WantLDR )
             .WithResourceUsage( description.ResourceUsage );
 
-        if (!textureDesc.IsHdrMap) {
+        if (textureDesc.IsFacesSplit) {
             for (const auto& path : description.FacesRelativePaths ) {
                 PathBuilder pathBuilder{};
                 pathBuilder.WithPath( baseAbsolute )
@@ -277,13 +286,23 @@ namespace Mikoto {
                 }
             }
         } else {
-            // TODO: Review. Can you store cubemaps directly in a file and load them at runtime?
+
+            if (StringUtil::Contains( baseAbsolute, ".ktx" )) {
+                textureDesc.UseCubeImageLoader = true;
+            }
+
             if (const File* file{ FileService::Get()->LoadFile( baseAbsolute ) }) {
                 textureDesc.WithFacePath( file );
             }
         }
 
-        TextureHandle texture{ m_GpuDevice->CreateTexture( textureDesc ) };
+        // Because ImageLoader is RAII
+        try {
+            texture = m_GpuDevice->CreateTexture( textureDesc );
+        } catch (std::exception& e) {
+            MKT_CORE_LOGGER_ERROR( "Failed to load cube texture. e.what(): {}", e.what() );
+        }
+
         if (!texture.IsEmpty()) {
             std::lock_guard lock{ m_Texture2DPoolMutex };
 
@@ -292,11 +311,11 @@ namespace Mikoto {
             };
 
             if (success) {
-                return m_TexturesCubes[baseAbsolute];
+                texture = m_TexturesCubes[baseAbsolute];
             }
         }
 
-        return TextureHandle::CreateEmpty();
+        return texture;
     }
 
     auto AssetsService::LoadAudio( const AudioLoadDescription& description) -> AudioHandle {

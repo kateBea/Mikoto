@@ -1,9 +1,19 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 4/7/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef RENDERUTILITY_HH
-#define RENDERUTILITY_HH
+#ifndef MIKOTO_RENDER_UTILITY_HH
+#define MIKOTO_RENDER_UTILITY_HH
 
 #include <stb_image.h>
 
@@ -12,7 +22,6 @@
 
 namespace Mikoto {
 
-    // If the texture2D represents a type of Map for pbr materials
     enum class MapType {
         ALBEDO_TEXTURE,
         NORMAL_TEXTURE,
@@ -58,14 +67,6 @@ namespace Mikoto {
         WRAP_CLAMP_TO_BORDER,
     };
 
-    /**
-     * @enum ShaderStage
-     * @brief Enum representing the different stages of the shader pipeline.
-     *
-     * This enum defines the various stages a shader can belong to in the graphics pipeline.
-     * Each stage corresponds to a specific step in the rendering process, such as vertex processing, fragment
-     * (pixel) processing, or compute shaders.
-     */
     enum class ShaderStage : UInt32 {
         STAGE_UNKNOWN,
         VERTEX,
@@ -73,14 +74,6 @@ namespace Mikoto {
         COMPUTE,
     };
 
-    /**
-     * @enum TextureType
-     * @brief Enum representing various texture types.
-     *
-     * This enum defines the different types of textures that can be used in a graphics pipeline.
-     * Each texture type corresponds to a specific role or purpose in rendering, such as diffuse, specular,
-     * normal, and other material properties.
-     */
     enum class TextureType {
         TEXTURE_UNKNOWN = -1,
         TEXTURE_2D,
@@ -93,18 +86,11 @@ namespace Mikoto {
         STENCIL,
         DEPTH_STENCIL,
         NORMAL,
-        STORAGE,      // compute shader writable
-        CUBE,         // for environment maps
-        RENDER_TARGET,// render target attachments
+        STORAGE,
+        CUBE,
+        RENDER_TARGET,
     };
 
-    /**
-     * @enum TextureFormat
-     * @brief Enum representing various texture formats.
-     *
-     * This enum defines the format of the texture, determining how the texture data is stored in memory.
-     * It includes formats such as RGBA and RGB, which describe how color data is represented per pixel.
-     */
     enum class TextureFormat {
         INVALID = -1,
 
@@ -237,14 +223,6 @@ namespace Mikoto {
         auto WithResourceType( ResourceUsageType type ) -> TextureDescription&;
     };
 
-    /**
-    * @struct TextureLoadDescription
-    * @brief Holds information for loading a texture.
-    *
-    * The `TextureLoadInfo` structure stores metadata required to load a texture,
-    * including the file path and texture type. It provides a fluent interface
-    * for setting its properties.
-    */
     struct TextureLoadDescription {
         bool IsHDR{ false };
         const File* TextureFile{};
@@ -258,23 +236,28 @@ namespace Mikoto {
     };
 
     struct TextureCubeLoadDescription {
-        // +X -> right.jpg
-        // -X -> left.jpg
-        // +Y -> top.jpg      // might need vertical flip for vulkan
-        // -Y -> bottom.jpg   // might need vertical flip for vulkan
-        // -Z -> front.jpg
-        // +Z -> back.jpg
+        Int32 Width{};
+        Int32 Height{};
+        Int32 MipLevels{ 4 };
 
+        Byte* Data{ nullptr };
+
+        // Base address of 6 cube faces
+        // or path to the single cube image
         Path BasePath{};
+
+        // Used when the cube is split in 6 faces
         std::vector<Path> FacesRelativePaths{};
-        TextureType Type{ TextureType::TEXTURE_UNKNOWN };
 
         TextureUsage Usage{ TextureUsage::CUBE };
+        TextureType Type{ TextureType::TEXTURE_UNKNOWN };
         ResourceUsageType ResourceUsage{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
-        bool IsHdrMap{ false };
+        // Load as LDR. If we specify a path to
+        // an Equirectangular image
+        bool WantLDR{ false };
 
-        auto IsHDR( bool value ) -> TextureCubeLoadDescription&;
+        auto LoadLDR( bool value ) -> TextureCubeLoadDescription&;
 
         auto WithResourceUsage( ResourceUsageType usage ) -> TextureCubeLoadDescription&;
         auto WithTextureUsage( TextureUsage usage ) -> TextureCubeLoadDescription&;
@@ -289,19 +272,34 @@ namespace Mikoto {
         std::vector<const File*> Faces{};
         ResourceUsageType ResourceUsage{ ResourceUsageType::RESOURCE_USAGE_STATIC };
 
+        Byte* Data{ nullptr };
+        Size SizeBytes{};
+
+        bool UseCubeImageLoader{ false };
+
+        Int32 Width{};
+        Int32 Height{};
         UInt32 MipLevels{ 1 };
         UInt32 Dimensions{ 1024 };
+
         TextureFormat Format{ TextureFormat::RGBA8_UNORM };
         TextureUsage Usage{ TextureUsage::CUBE };
 
         Multisampling MSAA{ Multisampling::MSAA_X1 };
 
-        // Deprecated flag, used when cube map is split in 6 faces
-        bool IsHdrMap{ false };
+        // If set the cube is loaded as an LDR
+        bool WantLDR{ false };
 
-        auto IsHDR( bool value ) -> TextureCubeCreateDescription&;
+        bool IsFacesSplit{ false };
 
+        auto LoadLDR( bool value ) -> TextureCubeCreateDescription&;
+
+        auto WidthSize( Size size ) -> TextureCubeCreateDescription&;
+        auto WithWidth( Int32 width ) -> TextureCubeCreateDescription&;
+        auto WithHeight( Int32 height ) -> TextureCubeCreateDescription&;
+        auto WithData( Byte* data ) -> TextureCubeCreateDescription&;
         auto WithMipLevels( UInt32 levels ) -> TextureCubeCreateDescription&;
+
         auto WithTextureFormat( TextureFormat format ) -> TextureCubeCreateDescription&;
         auto WithDimensions( UInt32 dimensions ) -> TextureCubeCreateDescription&;
         auto WithUsageType( TextureUsage usage ) -> TextureCubeCreateDescription&;
@@ -401,15 +399,15 @@ namespace Mikoto {
     MKT_NODISCARD auto GetTextureFormatString( TextureFormat format ) -> std::string_view;
 
     MKT_NODISCARD auto InferAPI( std::string_view apiName ) -> GraphicsAPI;
-
     MKT_NODISCARD auto InferElementCount(BufferDataType dataType, Size blockSize) -> Size;
-
     MKT_NODISCARD auto InferDimensions(RenderResolution resolution) -> std::pair<float, float>;
 
-    auto FreeImageData( Byte* data ) -> void;
     MKT_NODISCARD auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
-    MKT_NODISCARD auto LoadImageFromMemory( const Byte* buffer, Size sizeBytes, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
     MKT_NODISCARD auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
+    MKT_NODISCARD auto LoadImageFromMemory( const Byte* buffer, Size sizeBytes, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
+    MKT_NODISCARD auto LoadImageFromMemory( const Byte* buffer, Size sizeBytes, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
+
+    auto FreeImageData( Byte* data ) -> void;
 
     class STBImageHDR final {
     public:
@@ -438,19 +436,19 @@ namespace Mikoto {
         Byte* m_Data{ nullptr };
     };
 
-    class StbImage final {
+    class ImageLoader2D final {
     public:
-        explicit StbImage( const File* textureFile );
+        explicit ImageLoader2D( const File* textureFile );
 
-        explicit StbImage( const Byte* data, Size sizeBytes );
+        explicit ImageLoader2D( const Byte* data, Size sizeBytes );
 
-        ~StbImage();
+        ~ImageLoader2D();
 
-        DISABLE_COPY_FOR( StbImage );
+        DISABLE_COPY_FOR( ImageLoader2D );
 
-        StbImage( StbImage&& other ) noexcept;
+        ImageLoader2D( ImageLoader2D&& other ) noexcept;
 
-        auto operator=( StbImage&& other ) noexcept -> StbImage&;
+        auto operator=( ImageLoader2D&& other ) noexcept -> ImageLoader2D&;
 
         MKT_NODISCARD auto GetData() const -> Byte* { return m_Data; }
         MKT_NODISCARD auto GetWidth() const -> Int32 { return m_Width; }
@@ -465,5 +463,34 @@ namespace Mikoto {
         Int32 m_Channels{};
         Byte* m_Data{ nullptr };
     };
-}// namespace Mikoto
-#endif//RENDERUTILITY_HH
+
+    class ImageLoaderCube final {
+    public:
+        explicit ImageLoaderCube( const Path& fileName );
+
+        ImageLoaderCube( ImageLoaderCube&& other ) noexcept;
+        auto operator=( ImageLoaderCube&& other ) noexcept -> ImageLoaderCube&;
+
+        MKT_NODISCARD auto GetData() const -> Byte* { return m_Data; }
+        MKT_NODISCARD auto GetSize() const -> Size { return m_Size; }
+        MKT_NODISCARD auto GetWidth() const -> Int32 { return m_Width; }
+        MKT_NODISCARD auto GetHeight() const -> Int32 { return m_Height; }
+        MKT_NODISCARD auto GetMipLevels() const -> Int32 { return m_MipLevels; }
+
+        MKT_NODISCARD auto IsValid() const -> bool { return m_Data != nullptr; }
+
+        ~ImageLoaderCube();
+
+    public:
+        DISABLE_COPY_FOR( ImageLoaderCube );
+
+    private:
+        Int32 m_Width{};
+        Int32 m_Height{};
+        Size m_MipLevels{};
+        Size m_Size{};
+        Byte* m_Data{ nullptr };
+    };
+}
+
+#endif//MIKOTO_RENDER_UTILITY_HH

@@ -1,14 +1,27 @@
-/**
- * VulkanTexture2D.cc
- * Created by kate on 7/5/2023.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 
 #include <filesystem>
 #include <memory>
 #include <stdexcept>
 
 #include <volk.h>
-#include <backends/imgui_impl_vulkan.h>
+
+// TODO: required by gli
+#define GLM_STATIC_ASSERT(x, message) static_assert(x, message)
+#include <gli/gli.hpp>
 
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
@@ -17,8 +30,7 @@
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanTexture.hh>
-
-#include "Filesystem/FileService.hh"
+#include <Filesystem/FileService.hh>
 
 namespace Mikoto {
 
@@ -103,7 +115,7 @@ namespace Mikoto {
 
         m_Multisampling = data.MSAA;
 
-        m_IsHDR = data.IsHDR;
+        m_IsLDR = data.IsHDR;
 
         if ( data.TextureFile ) {
             m_DebugName = fmt::format( "Mikoto Texture. Id: {}, Loaded from {}", GetHandle(), data.TextureFile->GetPathCStr() );
@@ -156,11 +168,86 @@ namespace Mikoto {
         VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<UInt64>( m_ImageView ), m_DebugName.c_str() );
     }
 
+    auto VulkanTexture::SetupNonSwapChainImage() -> void {
+        m_ImageAllocation.ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
+
+        const VkExtent3D extent{
+            static_cast<UInt32>( m_Width ),
+            static_cast<UInt32>( m_Height ),
+            1
+        };
+
+        m_ImageAllocation.ImageCreateInfo.format = VulkanHelpers::ToVkFormat( m_Format );
+        m_ImageAllocation.ImageCreateInfo.extent = extent;
+
+        // This texture is a 2D image always
+        m_ImageAllocation.ImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+        m_ImageAllocation.ImageCreateInfo.usage = VulkanHelpers::ToVkImageUsage( m_TextureUsage );
+
+        m_ImageAllocation.ImageCreateInfo.mipLevels = 1;
+        m_ImageAllocation.ImageCreateInfo.arrayLayers = 1;
+        m_ImageAllocation.ImageCreateInfo.samples = VulkanHelpers::ToVkRasterSamples( m_Multisampling );
+        ;
+        m_ImageAllocation.ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        m_ImageAllocation.ImageCreateInfo.initialLayout = m_CurrentLayout;
+
+        // The image will only be used by one queue family:
+        // the one that supports transfer operations, often graphics one suffices.
+        m_ImageAllocation.ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        m_ImageAllocation.ImageCreateInfo.flags = 0;
+
+        m_ImageAllocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        m_ImageAllocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        m_ImageAllocation.AllocationCreateInfo.priority = 1.0f;
+
+        auto* allocator{ MKT_VMA_ALLOC_PTR( m_Device ) };
+        if ( const VkResult result{ allocator->AllocateImage( m_ImageAllocation ) }; result != VK_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Initialize - Failed to allocate Vulkan image!" );
+        }
+
+        m_SizeBytes = m_ImageSize;
+
+        // This could be a texture that we want to fill from
+        // an image loaded from disc or a texture we will write to as a color image
+        // for the later we do not want to copy anything to it
+        if ( m_Data ) {
+            CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
+            cmd->Begin();
+
+            cmd->FillTexture( m_Data, m_ExternalBufferSize == 0 ? m_ImageSize : m_ExternalBufferSize, this );
+
+            cmd->End();
+            m_Device->SubmitCommands( cmd );
+        }
+
+        // Prepare for view creation
+        m_ImageViewCreateInfo = VulkanHelpers::Initializers::ImageViewCreateInfo();
+        m_ImageViewCreateInfo.pNext = nullptr;
+        m_ImageViewCreateInfo.flags = 0;
+        m_ImageViewCreateInfo.image = m_ImageAllocation.Image;
+        m_ImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        m_ImageViewCreateInfo.format = m_ImageAllocation.ImageCreateInfo.format;
+
+        VkImageAspectFlags aspectFlags{ VK_IMAGE_ASPECT_COLOR_BIT };
+        if ( m_TextureUsage == TextureUsage::DEPTH ) {
+            aspectFlags =
+                    m_ImageAllocation.ImageCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT : ( VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT );
+        }
+
+        m_ImageViewCreateInfo.subresourceRange.aspectMask = aspectFlags;
+        m_ImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+        m_ImageViewCreateInfo.subresourceRange.levelCount = 1;
+        m_ImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        m_ImageViewCreateInfo.subresourceRange.layerCount = 1;
+    }
+
     VulkanTextureCube::VulkanTextureCube( const TextureCubeCreateDescription& data )
         : TextureCube{ data.ResourceUsage, data.MipLevels } {
 
+        m_UseImageLoader = data.UseCubeImageLoader;
+
         m_TextureFaces = data.Faces;
-        m_IsHDR = data.IsHdrMap;
+        m_IsLDR = data.WantLDR;
 
         m_Format = data.Format;
 
@@ -170,8 +257,6 @@ namespace Mikoto {
         m_Multisampling = data.MSAA;
 
         m_TextureUsage = data.Usage;
-
-        m_IsHDR = data.IsHdrMap;
 
         if (!data.Faces.empty() && data.Faces[0]) {
             SetTextureUri( data.Faces[0]->GetPathCStr() );
@@ -354,13 +439,18 @@ namespace Mikoto {
     }
 
     auto VulkanTextureCube::Initialize() -> void {
-        if (IsTextureUsage( TextureUsage::RENDER_TARGET )) {
+        // If the cube is not used as a render target we can attempt loading the resource
+        if (IsTextureUsage( TextureUsage::RENDER_TARGET )
+            || IsTextureUsage( TextureUsage::COLOR )
+            || IsTextureUsage( TextureUsage::DEPTH )) {
             CreateImageResource();
-        }
 
-        if (IsTextureUsage( TextureUsage::CUBE )) {
-            LoadCubeFaces();
-            CreateImageResource();
+        } else {
+            if (m_UseImageLoader) {
+                LoadWithImageLoader();
+            } else {
+                LoadCubeFaces();
+            }
         }
 
         SetDebugInfo();
@@ -437,9 +527,11 @@ namespace Mikoto {
     }
 
     auto VulkanTextureCube::LoadCubeFaces() -> void {
-        std::vector<StbImage> images{};
+        CreateImageResource();
 
-        if ( m_IsHDR ) {
+        std::vector<ImageLoader2D> images{};
+
+        if ( m_IsLDR ) {
             constexpr bool linearFilter{ true };
             const Int32 cubeMapResolution{ m_Width };
 
@@ -466,6 +558,7 @@ namespace Mikoto {
                 images.emplace_back( file );
             }
         } else {
+            // 6 faces
             for ( const File* file: m_TextureFaces ) {
                 images.emplace_back( file );
             }
@@ -473,7 +566,7 @@ namespace Mikoto {
 
         // Calculate the image size and the layer size.
         // CubeMaps share dimensions
-        const StbImage& frontImage{ images.front() };
+        const ImageLoader2D& frontImage{ images.front() };
         m_Width = frontImage.GetWidth();
         m_Height = frontImage.GetHeight();
 
@@ -488,7 +581,7 @@ namespace Mikoto {
         BufferHandle staging{ TO_VK_DEVICE( m_Device )->CreateStaging( nullptr, m_ImageSize ) };
 
         Size layerIndex{};
-        for ( StbImage& image: images ) {
+        for ( ImageLoader2D& image: images ) {
             const Size offset{ layerIndex * layerSize };
 
             staging->CopyToDevice( image.GetData(), layerSize, offset );
@@ -502,6 +595,59 @@ namespace Mikoto {
 
         cmd->End();
         m_Device->SubmitCommands( cmd );
+    }
+
+    auto VulkanTextureCube::LoadWithImageLoader() -> void {
+        gli::texture_cube texCube(gli::load(m_TextureFaces[0]->GetPath()));
+
+        m_Width = static_cast<UInt32>(texCube.extent().x);
+        m_Height = static_cast<UInt32>(texCube.extent().y);
+        m_MipLevels = static_cast<UInt32>(texCube.levels());
+
+        BufferHandle staging{ TO_VK_DEVICE( m_Device )->CreateStaging( texCube.data(), texCube.size() ) };
+
+        Size offset{};
+        std::vector<VkBufferImageCopy> bufferCopyRegions{};
+
+        for (UInt32 face{}; face < MAX_CUBE_MAP_FACES; face++) {
+            for (UInt32 level{}; level < m_MipLevels; level++) {
+                VkBufferImageCopy bufferCopyRegion = {};
+                bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                bufferCopyRegion.imageSubresource.mipLevel = level;
+                bufferCopyRegion.imageSubresource.baseArrayLayer = face;
+                bufferCopyRegion.imageSubresource.layerCount = 1;
+                bufferCopyRegion.imageExtent.width = static_cast<UInt32>(texCube[face][level].extent().x);
+                bufferCopyRegion.imageExtent.height = static_cast<UInt32>(texCube[face][level].extent().y);
+                bufferCopyRegion.imageExtent.depth = 1;
+                bufferCopyRegion.bufferOffset = offset;
+
+                bufferCopyRegions.push_back(bufferCopyRegion);
+
+                // Increase offset into staging buffer for next level / face
+                offset += texCube[face][level].size();
+            }
+        }
+
+        CreateImageResource();
+
+        CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
+        cmd->Begin();
+
+        SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
+
+        vkCmdCopyBufferToImage(
+            cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+            staging->GetNativeHandle( ObjectType::Vk_Buffer ),
+            GetNativeHandle( ObjectType::Vk_Image ),
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            static_cast<UInt32>(bufferCopyRegions.size()),
+            bufferCopyRegions.data());
+
+        SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
+
+        cmd->End();
+        m_Device->SubmitCommands( cmd );
+
     }
 
     auto VulkanTextureCube::SetDebugInfo() -> void {
@@ -698,82 +844,11 @@ namespace Mikoto {
     }
 
     auto VulkanTexture::Initialize() -> void {
-        // The case for non-swap chain images
         if ( m_ImageAllocation.Image == VK_NULL_HANDLE ) {
-
-            m_ImageAllocation.ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
-
-            const VkExtent3D extent{
-                static_cast<UInt32>( m_Width ),
-                static_cast<UInt32>( m_Height ),
-                1
-            };
-
-            m_ImageAllocation.ImageCreateInfo.format = VulkanHelpers::ToVkFormat( m_Format );
-            m_ImageAllocation.ImageCreateInfo.extent = extent;
-
-            // This texture is a 2D image always
-            m_ImageAllocation.ImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-            m_ImageAllocation.ImageCreateInfo.usage = VulkanHelpers::ToVkImageUsage( m_TextureUsage );
-
-            m_ImageAllocation.ImageCreateInfo.mipLevels = 1;
-            m_ImageAllocation.ImageCreateInfo.arrayLayers = 1;
-            m_ImageAllocation.ImageCreateInfo.samples = VulkanHelpers::ToVkRasterSamples( m_Multisampling );;
-            m_ImageAllocation.ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-            m_ImageAllocation.ImageCreateInfo.initialLayout = m_CurrentLayout;
-
-            // The image will only be used by one queue family:
-            // the one that supports transfer operations, often graphics one suffices.
-            m_ImageAllocation.ImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            m_ImageAllocation.ImageCreateInfo.flags = 0;
-
-            m_ImageAllocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-            m_ImageAllocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-            m_ImageAllocation.AllocationCreateInfo.priority = 1.0f;
-
-            auto* allocator{ MKT_VMA_ALLOC_PTR(m_Device) };
-            if ( const VkResult result{ allocator->AllocateImage( m_ImageAllocation ) }; result != VK_SUCCESS ) {
-                MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Initialize - Failed to allocate Vulkan image!" );
-            }
-
-            m_SizeBytes = m_ImageSize;
-
-            // This could be a texture that we want to fill from
-            // an image loaded from disc or a texture we will write to as a color image
-            // for the later we do not want to copy anything to it
-            if ( m_Data ) {
-                CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
-                cmd->Begin();
-
-                cmd->FillTexture( m_Data, m_ExternalBufferSize == 0 ? m_ImageSize : m_ExternalBufferSize, this );
-
-                cmd->End();
-                m_Device->SubmitCommands( cmd );
-            }
-
-            // Prepare for view creation
-            m_ImageViewCreateInfo = VulkanHelpers::Initializers::ImageViewCreateInfo();
-            m_ImageViewCreateInfo.pNext = nullptr;
-            m_ImageViewCreateInfo.flags = 0;
-            m_ImageViewCreateInfo.image = m_ImageAllocation.Image;
-            m_ImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            m_ImageViewCreateInfo.format = m_ImageAllocation.ImageCreateInfo.format;
-
-            VkImageAspectFlags aspectFlags{ VK_IMAGE_ASPECT_COLOR_BIT };
-            if ( m_TextureUsage == TextureUsage::DEPTH ) {
-                aspectFlags = m_ImageAllocation.ImageCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT : ( VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT );
-            }
-
-            m_ImageViewCreateInfo.subresourceRange.aspectMask = aspectFlags;
-            m_ImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-            m_ImageViewCreateInfo.subresourceRange.levelCount = 1;
-            m_ImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-            m_ImageViewCreateInfo.subresourceRange.layerCount = 1;
+            SetupNonSwapChainImage();
         }
 
-        // the caller can optionally pass a valid image because this VulkanTexture is supposed be
-        // usable for the swapchain as well, however, if the latter is the case,
-        // we are responsible for releasing the image views, not the actual images.
+        // External images have their image views provided on construction
         if ( vkCreateImageView( VK_DEVICE( m_Device ), std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Allocate - Failed to create the Vulkan Image View!" );
         }

@@ -202,6 +202,6 @@ namespace Mikoto {
         ankerl::unordered_dense::map<std::string, TextureHandle> m_Textures2D{};
         ankerl::unordered_dense::map<std::string, TextureHandle> m_TexturesCubes{};
     };
-}// namespace Mikoto
+}
 
 #endif//MIKOTO_ASSETS_SERVICE_HH

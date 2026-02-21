@@ -355,7 +355,7 @@ namespace Mikoto {
                         //If mHeight value is zero, pcData points to an
                         //compressed texture in any format (e.g. JPEG). (see texture.h in Assimp)
                         if ( tex->mHeight == 0 ) {
-                            const StbImage image{ reinterpret_cast<Byte *>( tex->pcData ), tex->mWidth };
+                            const ImageLoader2D image{ reinterpret_cast<Byte *>( tex->pcData ), tex->mWidth };
 
                             loadInfo.WithWidth( image.GetWidth() )
                                     .WithHeight( image.GetHeight() )

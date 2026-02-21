@@ -96,6 +96,9 @@ namespace Mikoto {
 
         LoadResources();
 
+        // DEBUG. Load KTX
+        m_EditorState->EditorSceneRenderer->UpdateEquirectangularMapAsync("Resources/HDR/papermill.ktx");
+
         m_EditorState->PassesCompositions.try_emplace( "Triangle", m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
@@ -178,7 +181,7 @@ namespace Mikoto {
 
         // For Debug, move to scene properties panel
         const File* textureFile{ FileService::Get()->LoadFile( "Resources/HDR/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr" )  };
-        const StbImage image{ textureFile };
+        const ImageLoader2D image{ textureFile };
         TextureDescription textureDesc{};
         textureDesc.WithWidth( image.GetWidth() )
             .WithHeight( image.GetHeight() )
@@ -884,12 +887,12 @@ namespace Mikoto {
 
         m_ActiveScene = SceneManager::Get()->CreateScene( name );
 
-        //SimpleScene();
+        SimpleScene();
         //DebugInstancingTest();
-        //DebugManyLightsTest();
+        DebugManyLightsTest();
         //DebugDamagedHelmet();
 
-        DebugSpheresProperties();
+        //DebugSpheresProperties();
     }
 
     auto EditorLayer::PrepareRenderer( double ) -> void {

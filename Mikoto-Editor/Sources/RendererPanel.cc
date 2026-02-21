@@ -313,7 +313,7 @@ namespace Mikoto {
 
         ImGuiUtils::CheckBox( "##RendererPanel::DrawRendererConfig::LDR", m_EnableSkyboxLDR );
         ImGui::SameLine();
-        ImGui::TextUnformatted( "Use CubeMap LDR" );
+        ImGui::TextUnformatted( "Use Precomputed Cubemap" );
 
         auto hdrDropTarget{
             [this]() -> void {

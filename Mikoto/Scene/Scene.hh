@@ -181,8 +181,8 @@ namespace Mikoto {
         ankerl::unordered_dense::map<Size, Unique<Entity>> m_Entities{};
 
         // Entities with no parent
-        // used to calculate hierarchical trasnform
-        std::vector<Entity*> m_RootEntities{};
+        // used to calculate hierarchical transform
+        ankerl::unordered_dense::set<Entity*> m_RootEntities{};
 
         // Stats
         UInt32 m_TotalLightCount{ 0 };

@@ -32,7 +32,7 @@
 
 namespace Mikoto {
 
-    static auto UpdateWorldTrasnform( Entity& e, Mat4F parentWorld, Scene* scene ) -> void {
+    static auto UpdateWorldTransform( Entity& e, Mat4F parentWorld, Scene* scene ) -> void {
         auto& t{ e.GetComponent<TransformComponent>() };
 
         t.SetWorldTransform( parentWorld * t.GetTransform() );
@@ -45,7 +45,7 @@ namespace Mikoto {
                 continue;
             }
 
-            UpdateWorldTrasnform( *childEntity, t.GetWorldTransform(), scene );
+            UpdateWorldTransform( *childEntity, t.GetWorldTransform(), scene );
         }
     }
 
@@ -187,7 +187,7 @@ namespace Mikoto {
         Mat4F Identity{ 1.0f };
 
         for ( Entity* rootEntity : m_RootEntities ) {
-            UpdateWorldTrasnform( *rootEntity, Identity, this );
+            UpdateWorldTransform( *rootEntity, Identity, this );
         }
     }
 
@@ -195,7 +195,6 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         ProcessPendingCommands();
-
 
         switch ( m_SceneState ) {
 
@@ -274,7 +273,7 @@ namespace Mikoto {
         entity->AddComponent<TransformComponent>( initialPosition, initialSize, initialRotation );
 
         if ( info.Root == nullptr ) {
-            m_RootEntities.push_back( entity );
+            m_RootEntities.emplace( entity );
         }
 
         return entity;
@@ -497,7 +496,14 @@ namespace Mikoto {
         }
 
         m_Registry.destroy( m_Entities[entityID]->m_Handle );
-        m_Entities.erase( entityID );
+
+        const auto it{ m_Entities.find( entityID ) };
+        // Use iterator because we want to remove the pointer from root entities set
+        // it is an entity that exists so we do not check against .end()
+        if (m_RootEntities.contains( it->second.get() )) {
+            m_RootEntities.erase( it->second.get() );
+        }
+        m_Entities.erase( it );
 
         return m_Entities.erase( entityID ) != 0;
     }

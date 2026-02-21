@@ -1,19 +1,22 @@
 struct ShaderMaterial {
-    vec4 baseColorFactor;
-    vec4 emissiveFactor;
-    vec4 diffuseFactor;
-    vec4 specularFactor;
-    float workflow;
-    int baseColorTextureSet;
-    int physicalDescriptorTextureSet;
-    int normalTextureSet;
-    int occlusionTextureSet;
-    int emissiveTextureSet;
-    float metallicFactor;
-    float roughnessFactor;
-    float alphaMask;
-    float alphaMaskCutoff;
-    float emissiveStrength;
+    vec4 BaseColorFactor;
+    vec4 EmissiveFactor;
+    vec4 DiffuseFactor;
+    vec4 SpecularFactor;
+
+    float Workflow;
+
+    float MetallicFactor;
+    float RoughnessFactor;
+    float AlphaMask;
+    float AlphaMaskCutoff;
+    float EmissiveStrength;
+
+    int BaseColorTextureSet;
+    int PhysicalDescriptorTextureSet;
+    int NormalTextureSet;
+    int OcclusionTextureSet;
+    int EmissiveTextureSet;
 
     // Texture indices
     int NormalIndex;

@@ -49,8 +49,6 @@ namespace Mikoto {
         std::vector<UInt32> m_MeshInfoIndices{};
         std::vector<MeshParameters> m_MeshInfo{};
 
-        std::vector<MaterialParameters> m_Materials{};
-
         std::vector<std::array<Mat4F, MAX_BONES_PER_MESH>> m_SkinnedMeshes{};
         ankerl::unordered_dense::map<MeshNode*, Size> m_MeshDrawInstanceCount{};
         ankerl::unordered_dense::map<MeshNode*, DrawIndexedState> m_DrawIndexedState{};

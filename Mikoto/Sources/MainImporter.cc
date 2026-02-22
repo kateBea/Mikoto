@@ -781,11 +781,10 @@ namespace Mikoto {
 
     auto MainImporter::Import( ImporterInfo &loaderData, const ModelLoadDescription &description, ModelData& modelData ) -> void {
         // UVs appear messed UP for vulkan if we specify aiProcess_FlipUVs flag
-        auto importerFlags{ static_cast<aiPostProcessSteps>( aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices ) };
-
-        if (description.TargetAPI != GraphicsAPI::VULKAN_API ) {
-            importerFlags = static_cast<aiPostProcessSteps>( aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices );
-        }
+        auto importerFlags{ static_cast<aiPostProcessSteps>( aiProcess_Triangulate | 
+            aiProcess_GenNormals | 
+            aiProcess_FlipUVs | 
+            aiProcess_JoinIdenticalVertices ) };
 
         const File *file{ description.ModelFile };
         const std::string absolutePath{ file->GetPath() };

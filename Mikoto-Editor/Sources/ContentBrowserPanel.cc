@@ -421,13 +421,13 @@ namespace Mikoto {
 
                 ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );
                 if (m_Thumbnail.IsEmpty()) {
-                    if ( ImGui::ImageButton( entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 }, buttonColor ) ) {
+                    if ( ImGui::ImageButton( entry.path().string().c_str(), icon, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, buttonColor ) ) {
                         // empty
                     }
                 } else {
                     static ImTextureID imguiTextID{};
                     imguiTextID = ImGuiService::Get()->GetTextureID( m_Thumbnail );
-                    if ( ImGui::ImageButton( entry.path().string().c_str(), imguiTextID, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 }, buttonColor ) ) {
+                    if ( ImGui::ImageButton( entry.path().string().c_str(), imguiTextID, ImVec2{ m_ThumbnailSize, m_ThumbnailSize }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, buttonColor ) ) {
                         // empty
                     }
 
@@ -441,7 +441,7 @@ namespace Mikoto {
 
                             // Preview
                             constexpr float previewDimensions{ 48.0f };
-                            ImGui::Image(imguiTextID, ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+                            ImGui::Image(imguiTextID, ImVec2(previewDimensions, previewDimensions));
                             ImGuiUtils::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
 
                             ImGui::EndDragDropSource();

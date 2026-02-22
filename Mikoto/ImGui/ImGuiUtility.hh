@@ -83,7 +83,7 @@ namespace Mikoto::ImGuiUtils {
     };
 
     MKT_NODISCARD inline auto PushImageButton( UInt64 textureId, ImTextureID textureHandle, const ImVec2 size ) -> bool { 
-        return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), textureHandle, size, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ); 
+        return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), textureHandle, size ); 
     }
 
 
@@ -445,7 +445,7 @@ namespace Mikoto::ImGuiUtils {
         }
     }
 
-    MKT_NODISCARD inline auto ImImageVK( const ImTextureID image, const ImVec2 dim ) { return ImGui::Image( image, dim, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } ); }
+    MKT_NODISCARD inline auto ImImageVK( const ImTextureID image, const ImVec2 dim ) { return ImGui::Image( image, dim ); }
 
     inline auto GetStringFromUnicode( UInt32 codePoint ) -> std::string {
         std::array<char, 5> utf8{};

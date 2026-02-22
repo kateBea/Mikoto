@@ -130,7 +130,7 @@ namespace Mikoto {
 
         emitter << YAML::EndMap;
     }
-
+    
     static auto SerializeComponent( const MaterialComponent& materialComponent, YAML::Emitter& emitter ) -> void {
         emitter << YAML::BeginMap;
 

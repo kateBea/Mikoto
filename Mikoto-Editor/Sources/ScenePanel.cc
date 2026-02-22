@@ -190,15 +190,13 @@ namespace Mikoto {
         }
 
         TransformComponent &transformComponent{ currentSelection->GetComponent<TransformComponent>() };
-        Vec3F oldTranslation{ transformComponent.GetTranslation() };
-        Vec3F oldRotation{ transformComponent.GetRotation() };
 
         const Mat4F &cameraView{ m_EditorState->EditorCamera->GetViewMatrix() };
         const Mat4F &cameraProjection{ m_EditorState->EditorCamera->GetProjection() };
 
         Mat4F objectTransform{ transformComponent.GetTransform() };
 
-        auto operation{ InferManipulationMode( m_EditorState->Manipulation ) };
+        ImGuizmo::OPERATION operation{ InferManipulationMode( m_EditorState->Manipulation ) };
         ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), operation, ImGuizmo::MODE::LOCAL, glm::value_ptr( objectTransform ) );
 
         if (ImGuizmo::IsUsing()) {

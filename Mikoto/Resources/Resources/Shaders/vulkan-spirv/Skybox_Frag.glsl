@@ -46,7 +46,7 @@ layout(scalar, push_constant) uniform SkyBoxParameters {
 } u_IBLParams;
 
 void main() {
-    const float blur = 3.5f;
+    const float blur = 4.5f;
     vec3 color = vec3(0.0f);
 
     if (u_IBLParams.MaxMipLevel > blur) {

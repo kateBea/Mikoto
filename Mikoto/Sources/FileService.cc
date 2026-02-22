@@ -179,7 +179,7 @@ namespace Mikoto {
         File* result{ nullptr };
 
         // File does not exist
-        auto newFile{ File::Load( path, MKT_FILE_OPEN_MODE_TRUNCATE ) };
+        auto newFile{ File::Create( path, MKT_FILE_OPEN_MODE_TRUNCATE ) };
         if ( newFile ) {
             result = newFile.get();
 

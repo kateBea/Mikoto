@@ -22,21 +22,31 @@
 namespace Mikoto {
 
     auto File::Load( const Path &path, FileMode openMode ) -> Unique<File> {
-        if (openMode == MKT_FILE_OPEN_MODE_TRUNCATE ) {
+        if (openMode & MKT_FILE_OPEN_MODE_TRUNCATE ) {
             if ( std::fstream stream{ path, std::ios::trunc | std::ios::in | std::ios::out } ) {
                 return Unique<File>( new File(path, std::move(stream), openMode) ) ;
             }
         }
 
-
         // Open the file once to import metadata and its contents
-        if (openMode == MKT_FILE_OPEN_MODE_BINARY ) {
+        if (openMode & MKT_FILE_OPEN_MODE_BINARY ) {
             if ( std::fstream stream{ path, std::ios::binary | std::ios::in | std::ios::out } ) {
                 return Unique<File>( new File(path, std::move(stream), openMode) ) ;
             }
         }
 
         return nullptr;
+    }
+
+    auto File::Create( const Path &path, FileMode openMode ) -> Unique<File> {
+        std::filesystem::path dir{ path };
+        dir.remove_filename();
+
+        if (!std::filesystem::exists(dir)) {
+            std::filesystem::create_directories( dir );
+        }
+
+        return Load( path ,openMode );
     }
 
     File::File( const Path& path, std::fstream&& stream, const FileMode openMode )

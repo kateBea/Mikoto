@@ -94,6 +94,7 @@ namespace Mikoto {
         auto UpdateContents() -> void;
 
         static auto Load( const Path& path, FileMode openMode = MKT_FILE_OPEN_MODE_NONE ) -> Unique<File>;
+        static auto Create( const Path& path, FileMode openMode = MKT_FILE_OPEN_MODE_NONE ) -> Unique<File>;
 
     private:
         File( const Path& path, std::fstream&& stream, FileMode openMode = MKT_FILE_OPEN_MODE_NONE );

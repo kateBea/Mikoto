@@ -12,23 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <algorithm>
 #include <memory>
-#include <optional>
-#include <string_view>
 #include <utility>
+#include <optional>
+#include <algorithm>
+#include <string_view>
 
 #include <entt/entt.hpp>
 
 #include <Core/Profiler.hh>
+
 #include <Library/Random/Random.hh>
 #include <Physics/PhysicService.hh>
-#include <Renderer/Core/RenderService.hh>
-#include <Scene/Component.hh>
-#include <Scene/Scene.hh>
-#include <Animation/AnimationSystem.hh>
 
-#include "Scripting/ScriptingService.hh"
+#include <Animation/AnimationSystem.hh>
+#include <Scripting/ScriptingService.hh>
+#include <Renderer/Core/RenderService.hh>
+
+#include <Scene/Scene.hh>
+#include <Scene/Component.hh>
 
 namespace Mikoto {
 
@@ -78,8 +80,8 @@ namespace Mikoto {
         : m_Name{ name } {
 
         m_Registry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
-        m_Registry.on_construct<SkinnedMeshRenderer>().connect<&OnSkinnedMeshRendererAdded>();
         m_Registry.on_construct<AnimatorComponent>().connect<&OnAnimatorAdded>();
+        m_Registry.on_construct<SkinnedMeshRenderer>().connect<&OnSkinnedMeshRendererAdded>();
 
         m_Registry.on_construct<ScriptComponent>().connect<&Scene::OnScriptAdded>(this);
 
@@ -142,7 +144,12 @@ namespace Mikoto {
         ScriptComponent& script{ reg.get<ScriptComponent>(e) };
 
         if (Entity* entity{ FindByID( tag.GetGUID() ) }) {
-            ScriptHandle scriptHandle{ ScriptingService::Get()->LoadScript( script.GetFilePath(), entity ) };
+            ScriptHandle scriptHandle{};
+            if (script.GetFilePath().empty()) {
+                scriptHandle = ScriptingService::Get()->LoadScript( script.GetFilePath(), entity );
+            } else {
+                scriptHandle = ScriptingService::Get()->CreateScript( entity );
+            }
             script.SetScript( scriptHandle );
         }
 

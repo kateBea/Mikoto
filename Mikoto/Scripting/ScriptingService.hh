@@ -42,6 +42,7 @@ namespace Mikoto {
 
         auto Update(float timeStep) -> void override;
 
+        auto CreateScript( Entity* entity ) -> ScriptHandle;
         auto LoadScript(const Path& path, Entity* entity) -> ScriptHandle;
 
     private:
@@ -51,6 +52,8 @@ namespace Mikoto {
 
     private:
         sol::state m_LuaState{};
+
+        const Path m_ScriptsDirectory{ "Assets/Scripts" };
 
         Registry<ScriptingBinding> m_Bindings{};
         ResourcePoolTyped<Script> m_ScriptPool{};

@@ -326,11 +326,11 @@ namespace Mikoto {
     auto IBLPasses::SetExposure( float value ) -> void {
         m_IBLParameters.Exposure = value;
     }
-
+    
     auto IBLPasses::SetGamma( float value ) -> void {
         m_IBLParameters.Gamma = value;
     }
-
+    
     auto IBLPasses::RegisterSkyboxRender( FrameGraph &graph ) -> void {
         graph.RegisterPass(
                 "SkyboxRender",

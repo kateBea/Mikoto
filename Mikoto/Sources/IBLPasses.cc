@@ -130,7 +130,7 @@ namespace Mikoto {
                     b.Write( "IrradiancePass_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "IrradiancePass_ColorTargetCUBE", FrameResourceState::TransferDst );
 
-                    b.Write( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                 },
                 [&]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -199,7 +199,7 @@ namespace Mikoto {
                     b.Write( "PrefilterPass_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "PrefilterPass_ColorTargetCUBE", FrameResourceState::TransferDst );
 
-                    b.Write( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
+                    b.Read( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                 },
 
                 [&]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) {

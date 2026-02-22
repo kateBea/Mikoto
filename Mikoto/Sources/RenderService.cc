@@ -63,8 +63,6 @@ namespace Mikoto {
             m_ImguiService.reset();
         }
 
-        m_SlangCurrentSession = nullptr;
-        m_SlangGlobalSession = nullptr;
 
         // TODO(kate): Test with memkory leaks reports
         slang::shutdown();
@@ -74,6 +72,10 @@ namespace Mikoto {
 
         m_Context->Shutdown();
         m_Context = nullptr;
+
+        // ComPtr will may outlive the context
+        m_SlangCurrentSession = nullptr;
+        m_SlangGlobalSession = nullptr;
 
         m_IsInitialized = false;
     }

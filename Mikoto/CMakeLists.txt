@@ -47,6 +47,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(FetchContent)
 
 # ======================================
+# SLANG
+# ======================================
+
+# ======================================
 # GLI
 # ======================================
 set(GLI_TEST_ENABLE OFF CACHE BOOL "No build unit tests" FORCE)
@@ -470,8 +474,7 @@ FetchContent_Declare(
 )
 
 #FetchContent_MakeAvailable(slang)
-find_library(Slang_LIBRARY NAMES slang slang-compiler HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
-# TODO: Build from source if not available?
+FetchContent_MakeAvailable(slang)
 
 #Filewatch
 # Using https://github.com/ThomasMonkman/filewatch/tree/feature/fix-filesystem (currently working branch)
@@ -618,7 +621,8 @@ set(LIBRARIES
         meshoptimizer
         tinygltf
         gli
-        ${Slang_LIBRARY} #TODO: See slang pull comment
+        slang
+        slang-glslang
 )
 
 # ======================================
@@ -706,6 +710,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${meshoptimizer_SOURCE_DIR}/src
         ${tinygltf_SOURCE_DIR}
         ${IMGUI_NO_EDITOR_INCLUDE_DIR}
+        ${slang_SOURCE_DIR}
 )
 
 # ======================================

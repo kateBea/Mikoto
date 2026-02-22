@@ -14,19 +14,6 @@
 
 #include <array>
 #include <cstdlib>
-
-#include "ozz/base/log.h"
-
-// Provides files abstraction.
-#include "ozz/base/io/stream.h"
-
-// Provides serialization/deserialization mechanism.
-#include "ozz/base/io/archive.h"
-
-// Uses the skeleton as an example of object to read.
-#include "ozz/animation/runtime/skeleton.h"
-
-#include <cstdlib>
 #include <ranges>
 
 #include <Logging/Logger.hh>

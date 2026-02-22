@@ -369,7 +369,7 @@ namespace Mikoto {
             .Name{ "" },
             .Model{ box }
         };
-
+        
         for ( UInt32 x{}; x < gridSize; ++x ) {
             for ( UInt32 y{}; y < gridSize; ++y ) {
                 for ( UInt32 z{}; z < gridSize; ++z ) {

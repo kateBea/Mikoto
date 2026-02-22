@@ -125,7 +125,6 @@ namespace Mikoto {
                     b.Create<Pipeline>( "IrradiancePass_Pipeline",
                                         GraphicsPipelineDescription{
                                                 .PrimitiveTopology{ Topology::TRIANGLE_LIST },
-                                                .VertexAttributesSpec{},
                                                 .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT } } );
 
                     b.Write( "IrradiancePass_ColorTarget", FrameResourceState::RenderTarget );
@@ -166,7 +165,7 @@ namespace Mikoto {
 
                             ctx.PushConstants( std::addressof( m_IrradianceParameters ), sizeof( m_IrradianceParameters ) );
 
-                            ctx.Draw( 36 );
+                            ctx.DrawIndexed( m_DrawBoxIndexedState );
 
                             ctx.EndRender();
 
@@ -195,7 +194,6 @@ namespace Mikoto {
                     b.UseShader( "Resources/Shaders/vulkan-spirv/Prefilter_Frag.sprv", ShaderStage::FRAGMENT );
                     b.Create<Pipeline>( "Prefilter_Pipeline", GraphicsPipelineDescription{
                                                                       .PrimitiveTopology{ Topology::TRIANGLE_LIST },
-                                                                      .VertexAttributesSpec{},
                                                                       .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT } } );
 
                     b.Write( "PrefilterPass_ColorTarget", FrameResourceState::RenderTarget );
@@ -219,7 +217,7 @@ namespace Mikoto {
                     }
 
                     // Tweak
-                    m_PrefilterParameters.NumSamples = 32;
+                    m_PrefilterParameters.NumSamples = 1024;
 
                     for ( UInt32 mipLevel{}; mipLevel < m_PrefilterMipLevels; ++mipLevel ) {
                         m_PrefilterParameters.Roughness = static_cast<float>( mipLevel ) / static_cast<float>( m_PrefilterMipLevels - 1 );
@@ -240,7 +238,7 @@ namespace Mikoto {
 
                             ctx.PushConstants( std::addressof( m_PrefilterParameters ), sizeof( m_PrefilterParameters ) );
 
-                            ctx.Draw( 36 );
+                            ctx.DrawIndexed( m_DrawBoxIndexedState );
 
                             ctx.EndRender();
 
@@ -345,7 +343,6 @@ namespace Mikoto {
                     b.Create<Pipeline>( "SkyboxRender_Pipeline",
                                         GraphicsPipelineDescription{
                                                 .PrimitiveTopology{ Topology::TRIANGLE_LIST },
-                                                .VertexAttributesSpec{},
                                                 .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT } } );
 
                     b.Write( "SkyboxRender_ColorTarget", FrameResourceState::RenderTarget );
@@ -381,7 +378,7 @@ namespace Mikoto {
                             m_SkyboxRenderParameters.MVP = glm::perspective( static_cast<float>( Math::Constants::PI / 2.0 ), 1.0f, 0.1f, 512.0f ) * s_Matrices[face];
                             ctx.PushConstants( std::addressof( m_SkyboxRenderParameters ), sizeof( m_SkyboxRenderParameters ) );
 
-                            ctx.Draw( 36 );
+                            ctx.DrawIndexed( m_DrawBoxIndexedState );
 
                             ctx.EndRender();
 
@@ -402,6 +399,8 @@ namespace Mikoto {
 
     auto IBLPasses::RegisterSkybox( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        m_BoxModel = AssetsService::Get()->LoadAsset<Model>( "Resources/Models/1 - Box texture/Box.gltf" );
 
         graph.RegisterPass(
                 "Skybox",
@@ -429,6 +428,18 @@ namespace Mikoto {
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
                     b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
+
+                    // The first mesh of the box model should be the only one,
+                    // we get the index and vertex buffers from it
+                    // the draw state is cached as it doesn't change between frames,
+                    // and can be reused in other passes like irradiance and prefilter
+                    MeshNode &boxMeshNode { m_BoxModel->GetMeshNode( 0 ) };
+
+                    m_DrawBoxIndexedState.IndexBuffer = boxMeshNode.GetIndexBuffer();
+                    m_DrawBoxIndexedState.VertexBuffers.emplace_back( boxMeshNode.GetVertexBuffer(), 0 );
+
+                    m_DrawBoxIndexedState.IndicesCount = boxMeshNode.GetIndexBuffer()->GetCount();
+                    m_DrawBoxIndexedState.InstancesCount = 1;
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -465,7 +476,8 @@ namespace Mikoto {
                     ctx.BeginRender();
 
                     ctx.BindPipeline( "SkyboxPass_Pipeline" );
-                    ctx.Draw( 36 );
+
+                    ctx.DrawIndexed( m_DrawBoxIndexedState );
 
                     ctx.EndRender();
                 } );

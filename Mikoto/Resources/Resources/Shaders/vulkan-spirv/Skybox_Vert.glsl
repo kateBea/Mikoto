@@ -18,6 +18,8 @@
 
 #include "ShaderBase.glsl"
 
+layout(location = 0) in vec3 a_Pos;
+
 layout(location = 0) out vec3 v_Direction;
 layout(location = 1) flat out float v_Exposure;
 layout(location = 2) flat out float v_Gamma;
@@ -40,56 +42,11 @@ layout(scalar, set = PERPASS_SETINDEX, binding = 0) uniform CameraUBO {
     vec2 ScreenDimensions;
 } u_Camera;
 
-// https://learnopengl.com/code_viewer.php?code=advanced/cubemaps_skybox_data
-const vec3 boxPositions[36] = vec3[](
-    vec3(-1.0,  1.0, -1.0),
-    vec3(-1.0, -1.0, -1.0),
-    vec3( 1.0, -1.0, -1.0),
-    vec3( 1.0, -1.0, -1.0),
-    vec3( 1.0,  1.0, -1.0),
-    vec3(-1.0,  1.0, -1.0),
-
-    vec3(-1.0, -1.0,  1.0),
-    vec3(-1.0, -1.0, -1.0),
-    vec3(-1.0,  1.0, -1.0),
-    vec3(-1.0,  1.0, -1.0),
-    vec3(-1.0,  1.0,  1.0),
-    vec3(-1.0, -1.0,  1.0),
-
-    vec3( 1.0, -1.0, -1.0),
-    vec3( 1.0, -1.0,  1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3( 1.0,  1.0, -1.0),
-    vec3( 1.0, -1.0, -1.0),
-
-    vec3(-1.0, -1.0,  1.0),
-    vec3(-1.0,  1.0,  1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3( 1.0, -1.0,  1.0),
-    vec3(-1.0, -1.0,  1.0),
-
-    vec3(-1.0,  1.0, -1.0),
-    vec3( 1.0,  1.0, -1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3(-1.0,  1.0,  1.0),
-    vec3(-1.0,  1.0, -1.0),
-
-    vec3(-1.0, -1.0, -1.0),
-    vec3(-1.0, -1.0,  1.0),
-    vec3( 1.0, -1.0, -1.0),
-    vec3( 1.0, -1.0, -1.0),
-    vec3(-1.0, -1.0,  1.0),
-    vec3( 1.0, -1.0,  1.0)
-);
-
 void main() {
     v_Exposure = u_IBLParams.Exposure;
     v_Gamma = u_IBLParams.Gamma;
 
-    vec3 pos = vec3(boxPositions[gl_VertexIndex]);
+    vec3 pos = vec3(a_Pos);
 
     // Remove translation from view matrix
     mat4 view = mat4(mat3(u_Camera.ViewMatrix));

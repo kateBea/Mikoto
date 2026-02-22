@@ -18,60 +18,15 @@
 
 #include "ShaderBase.glsl"
 
+layout(location = 0) in vec3 a_Pos;
+
 layout(location = 0) out vec3 o_Pos;
 
 layout(scalar, push_constant) uniform SkyboxRenderConstants {
     mat4 MVP;
 } u_Parameters;
 
-// https://learnopengl.com/code_viewer.php?code=advanced/cubemaps_skybox_data
-const vec3 boxPositions[36] = vec3[](
-    vec3(-1.0,  1.0, -1.0),
-    vec3(-1.0, -1.0, -1.0),
-    vec3( 1.0, -1.0, -1.0),
-    vec3( 1.0, -1.0, -1.0),
-    vec3( 1.0,  1.0, -1.0),
-    vec3(-1.0,  1.0, -1.0),
-
-    vec3(-1.0, -1.0,  1.0),
-    vec3(-1.0, -1.0, -1.0),
-    vec3(-1.0,  1.0, -1.0),
-    vec3(-1.0,  1.0, -1.0),
-    vec3(-1.0,  1.0,  1.0),
-    vec3(-1.0, -1.0,  1.0),
-
-    vec3( 1.0, -1.0, -1.0),
-    vec3( 1.0, -1.0,  1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3( 1.0,  1.0, -1.0),
-    vec3( 1.0, -1.0, -1.0),
-
-    vec3(-1.0, -1.0,  1.0),
-    vec3(-1.0,  1.0,  1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3( 1.0, -1.0,  1.0),
-    vec3(-1.0, -1.0,  1.0),
-
-    vec3(-1.0,  1.0, -1.0),
-    vec3( 1.0,  1.0, -1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3( 1.0,  1.0,  1.0),
-    vec3(-1.0,  1.0,  1.0),
-    vec3(-1.0,  1.0, -1.0),
-
-    vec3(-1.0, -1.0, -1.0),
-    vec3(-1.0, -1.0,  1.0),
-    vec3( 1.0, -1.0, -1.0),
-    vec3( 1.0, -1.0, -1.0),
-    vec3(-1.0, -1.0,  1.0),
-    vec3( 1.0, -1.0,  1.0)
-);
-
 void main() {
-    vec3 pos = vec3(boxPositions[gl_VertexIndex]);
-
-    o_Pos = pos;
-    gl_Position = u_Parameters.MVP * vec4(pos, 1.0);
+    o_Pos = a_Pos;
+    gl_Position = u_Parameters.MVP * vec4(a_Pos, 1.0);
 }

@@ -77,9 +77,9 @@ namespace Mikoto {
             // -X
             glm::lookAt( glm::vec3( 0 ), glm::vec3( -1, 0, 0 ), glm::vec3( 0, -1, 0 ) ),
             // +Y
-            glm::lookAt( glm::vec3( 0 ), glm::vec3( 0, 1, 0 ), glm::vec3( 0, 0, 1 ) ),
-            // -Y
             glm::lookAt( glm::vec3( 0 ), glm::vec3( 0, -1, 0 ), glm::vec3( 0, 0, -1 ) ),
+            // -Y
+            glm::lookAt( glm::vec3( 0 ), glm::vec3( 0, 1, 0 ), glm::vec3( 0, 0, 1 ) ),
             // +Z
             glm::lookAt( glm::vec3( 0 ), glm::vec3( 0, 0, 1 ), glm::vec3( 0, -1, 0 ) ),
             // -Z
@@ -138,11 +138,14 @@ namespace Mikoto {
         UInt32 m_PrefilterMipLevels{};
 
         UInt32 m_IrradianceDimensions{ 64 };
-        UInt32 m_PrefilterDimensions{ 512 };
+        UInt32 m_PrefilterDimensions{ 1024 };
 
         PrefilterParameters m_PrefilterParameters{};
 
         IrradianceParameters m_IrradianceParameters{};
+
+        ModelHandle m_BoxModel{};
+        DrawIndexedState m_DrawBoxIndexedState{};
 
         TextureHandle m_CubeMap{};
         TextureHandle m_Equirectangular{};

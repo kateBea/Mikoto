@@ -15,8 +15,8 @@
 #ifndef MIKOTO_SHADER_LIBRARY_HH
 #define MIKOTO_SHADER_LIBRARY_HH
 
-#include <slang/slang.h>
-#include <slang/slang-com-ptr.h>
+#include <slang.h>
+#include <slang-com-ptr.h>
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Service.hh>

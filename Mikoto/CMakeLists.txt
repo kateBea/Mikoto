@@ -378,28 +378,36 @@ FetchContent_Declare(msdf_atlas_gen
 )
 FetchContent_MakeAvailable(msdf_atlas_gen)
 
+# -------------------------------------------------------
 # spdlog
+# -------------------------------------------------------
 FetchContent_Declare(spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
         GIT_TAG v1.12.0  # latest stable release
 )
 FetchContent_MakeAvailable(spdlog)
 
-# stb (header-only)
+# -------------------------------------------------------
+# STB_Image
+# -------------------------------------------------------
 FetchContent_Declare(stb
         GIT_REPOSITORY https://github.com/nothings/stb.git
         GIT_TAG master  # stable is usually master for stb
 )
 FetchContent_MakeAvailable(stb)
 
-# Tom plus plus
+# -------------------------------------------------------
+# Toml++
+# -------------------------------------------------------
 fetchcontent_declare(tomlplusplus
         GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
         GIT_TAG v3.4.0
 )
 FetchContent_MakeAvailable(tomlplusplus)
 
+# -------------------------------------------------------
 # GLM
+# -------------------------------------------------------
 FetchContent_Declare(
         glm
         GIT_REPOSITORY https://github.com/g-truc/glm.git
@@ -408,7 +416,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glm)
 
+# -------------------------------------------------------
 # Taskflow
+# -------------------------------------------------------
 FetchContent_Declare(
         taskflow
         GIT_REPOSITORY https://github.com/taskflow/taskflow.git
@@ -428,6 +438,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(sol2)
 
+# -------------------------------------------------------
+# Asio
+# -------------------------------------------------------
 FetchContent_Declare(
         asio
         GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
@@ -463,15 +476,30 @@ FetchContent_MakeAvailable(ozz-animation)
 # -------------------------------------------------------
 # Slang
 # -------------------------------------------------------
-FetchContent_Declare(
-        slang
-        GIT_REPOSITORY https://github.com/shader-slang/slang.git
-        GIT_TAG master
-)
+if (MSVC)
+    set(SLANG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Slang/slang-2026.3.1-windows-x86_64")
+    message(STATUS "Setup slang for MSVC x86_64. SlangRoot is ${SLANG_ROOT}")
 
-#FetchContent_MakeAvailable(slang)
-find_library(Slang_LIBRARY NAMES slang slang-compiler HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
-# TODO: Build from source if not available?
+    set(SLANG_LIB_DIR "${SLANG_ROOT}/lib")
+    set(SLANG_INCLUDE_DIR "${SLANG_ROOT}/include")
+
+    set(SLANG_LIBS
+        "${SLANG_LIB_DIR}/slang.lib"
+        "${SLANG_LIB_DIR}/slang-compiler.lib"
+    )
+elseif(UNIX)
+    set(SLANG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Slang/slang-2026.3.1-linux-x86_64")
+    message(STATUS "Setup slang for Unix x86_64. SlangRoot is ${SLANG_ROOT}")
+
+    set(SLANG_LIB_DIR "${SLANG_ROOT}/lib")
+    set(SLANG_INCLUDE_DIR "${SLANG_ROOT}/include")
+
+    set(SLANG_LIBS
+        "${SLANG_LIB_DIR}/libslang.a"
+        "${SLANG_LIB_DIR}/libslang-compiler.a"
+    )
+endif()
+
 
 #Filewatch
 # Using https://github.com/ThomasMonkman/filewatch/tree/feature/fix-filesystem (currently working branch)
@@ -618,7 +646,7 @@ set(LIBRARIES
         meshoptimizer
         tinygltf
         gli
-        ${Slang_LIBRARY} #TODO: See slang pull comment
+        ${SLANG_LIBS}
 )
 
 # ======================================
@@ -706,6 +734,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${meshoptimizer_SOURCE_DIR}/src
         ${tinygltf_SOURCE_DIR}
         ${IMGUI_NO_EDITOR_INCLUDE_DIR}
+        ${SLANG_INCLUDE_DIR}
 )
 
 # ======================================

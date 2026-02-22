@@ -219,6 +219,18 @@ If the profiler is not connected, Tracy will continue to run internally, which c
 > User will need to run Mikoto with latest Tracy's Profiler build or, more specifically the Profiler from the version used to build
 > the engine.
 
+## Slang in Mikoto
+
+Mikoto uses the **Slang shading language** for runtima shader compilation and reflection.  
+The engine ships with **precompiled Slang binaries**, so no manual setup is required to use Slang with Mikoto.
+
+If you prefer to download or update Slang manually, you can find the official releases here:
+
+- **Slang GitHub Repository:** https://github.com/shader-slang/slang  
+- **Latest Slang Release Used by Mikoto (v2026.3.1):** https://github.com/shader-slang/slang/releases/tag/v2026.3.1
+
+Mikoto will automatically use the bundled version, but replacing it with another official release is supported as long as the Slang directory structure remains unchanged.
+
 ## Goals
 
 The primary goal of Mikoto Engine is to serve as a learning platform for exploring modern graphics programming techniques. Features are implemented progressively as new concepts and ideas are explored.

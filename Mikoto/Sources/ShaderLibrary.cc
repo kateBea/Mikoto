@@ -16,8 +16,8 @@
 #include <array>
 #include <string_view>
 
-#include <slang/slang.h>
-#include <slang/slang-com-ptr.h>
+#include <slang.h>
+#include <slang-com-ptr.h>
 
 #include <Core/Profiler.hh>
 

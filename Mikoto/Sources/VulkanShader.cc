@@ -10,8 +10,8 @@
 // Third-Party Libraries
 #include "volk.h"
 #include <spirv_reflect.h>
-#include <slang/slang.h>
-#include <slang/slang-com-ptr.h>
+#include <slang.h>
+#include <slang-com-ptr.h>
 
 // Project Headers
 #include <Common/Common.hh>

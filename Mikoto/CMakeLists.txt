@@ -47,40 +47,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(FetchContent)
 
 # ======================================
-# SLANG
-# ======================================
-set(SLANG_ENABLE_SLANGC            OFF CACHE BOOL "")
-set(SLANG_ENABLE_SLANGI            OFF CACHE BOOL "")
-set(SLANG_ENABLE_SLANG_GLSLANG     ON CACHE BOOL "")
-set(SLANG_ENABLE_SLANGRT           ON CACHE BOOL "")
-
-set(SLANG_ENABLE_TESTS             OFF CACHE BOOL "")
-set(SLANG_ENABLE_EXAMPLES          OFF CACHE BOOL "")
-set(SLANG_ENABLE_REPLAYER          OFF CACHE BOOL "")
-set(SLANG_STANDARD_MODULE_DEVELOP_BUILD OFF CACHE BOOL "") # Optional
-
-set(SLANG_SLANG_LLVM_FLAVOR DEFAULT CACHE STRING "")
-
-set(SLANG_EXCLUDE_DAWN             OFF CACHE BOOL "")
-set(SLANG_EXCLUDE_TINT             OFF CACHE BOOL "")
-set(SLANG_ENABLE_SLANG_RHI         OFF CACHE BOOL "")
-
-# Speed up builds / avoid unused components
-set(SLANG_ENABLE_CUDA              OFF CACHE BOOL "")
-set(SLANG_ENABLE_OPTIX             OFF CACHE BOOL "")
-set(SLANG_ENABLE_NVAPI             OFF CACHE BOOL "")
-set(SLANG_ENABLE_XLIB              OFF CACHE BOOL "")
-set(SLANG_ENABLE_AFTERMATH         OFF CACHE BOOL "")
-
-set(SLANG_USE_SYSTEM_UNORDERED_DENSE ON CACHE BOOL "")
-set(SLANG_USE_SYSTEM_MINIZ           ON CACHE BOOL "")
-set(SLANG_USE_SYSTEM_LZ4             ON CACHE BOOL "")
-set(SLANG_USE_SYSTEM_SPIRV_HEADERS   ON CACHE BOOL "")
-set(SLANG_USE_SYSTEM_VULKAN_HEADERS  ON CACHE BOOL "")
-set(SLANG_USE_SYSTEM_GLSLANG         ON CACHE BOOL "")
-set(SLANG_USE_SYSTEM_SPIRV_TOOLS     ON CACHE BOOL "")
-
-# ======================================
 # GLI
 # ======================================
 set(GLI_TEST_ENABLE OFF CACHE BOOL "No build unit tests" FORCE)
@@ -312,6 +278,13 @@ FetchContent_Declare(cpptrace
 )
 FetchContent_MakeAvailable(cpptrace)
 
+# unordered_dense (header-only)
+FetchContent_Declare(unordered_dense
+        GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
+        GIT_TAG v4.4.0
+)
+FetchContent_MakeAvailable(unordered_dense)
+
 # EnTT
 FetchContent_Declare(entt
         GIT_REPOSITORY https://github.com/skypjack/entt.git
@@ -496,21 +469,9 @@ FetchContent_Declare(
         GIT_TAG master
 )
 
-FetchContent_MakeAvailable(slang)
-
-# -------------------------------------------------------
-# Unordered Dense
-# -------------------------------------------------------
-# Because slang pulls unordered_dense as a dependency
-if (NOT TARGET unordered_dense)
-    FetchContent_Declare(
-        unordered_dense
-        GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
-        GIT_TAG v4.5.0
-    )
-    FetchContent_MakeAvailable(unordered_dense)
-endif()
-
+#FetchContent_MakeAvailable(slang)
+find_library(Slang_LIBRARY NAMES slang slang-compiler HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
+# TODO: Build from source if not available?
 
 #Filewatch
 # Using https://github.com/ThomasMonkman/filewatch/tree/feature/fix-filesystem (currently working branch)
@@ -657,9 +618,7 @@ set(LIBRARIES
         meshoptimizer
         tinygltf
         gli
-        slang
-        slang-glslang
-        slang-compiler
+        ${Slang_LIBRARY} #TODO: See slang pull comment
 )
 
 # ======================================
@@ -747,7 +706,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${meshoptimizer_SOURCE_DIR}/src
         ${tinygltf_SOURCE_DIR}
         ${IMGUI_NO_EDITOR_INCLUDE_DIR}
-        ${slang_SOURCE_DIR}
 )
 
 # ======================================

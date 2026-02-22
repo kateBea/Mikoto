@@ -16,9 +16,6 @@
 #include <array>
 #include <string_view>
 
-#include <slang.h>
-#include <slang-com-ptr.h>
-
 #include <Core/Profiler.hh>
 
 #include <Renderer/Core/GpuDevice.hh>
@@ -36,7 +33,6 @@ namespace Mikoto {
 
     auto ShaderLibrary::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();
-        slang::createGlobalSession( m_SlangGlobalSession.writeRef() );
 
         m_IsInitialized = true;
     }
@@ -60,10 +56,6 @@ namespace Mikoto {
         }
 
         return ShaderModuleHandle::CreateEmpty();
-    }
-
-    auto ShaderLibrary::GetSlangGlobalSession() const -> Slang::ComPtr<slang::IGlobalSession> {
-        return m_SlangGlobalSession;
     }
 
     auto ShaderLibrary::LoadShader( const Path &path, ShaderStage stage ) -> ShaderModuleHandle {

@@ -15,8 +15,8 @@
 #ifndef MIKOTO_SHADER_LIBRARY_HH
 #define MIKOTO_SHADER_LIBRARY_HH
 
-#include <slang.h>
-#include <slang-com-ptr.h>
+#include <string_view>
+
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Service.hh>
@@ -25,12 +25,15 @@
 
 namespace Mikoto {
 
+    inline constexpr std::string_view SLANG_FILE_EXTENSION{ ".slang" };
+
     struct ShaderLibraryDescription {
         Path RootPath{};
         GpuDevice* Device{ nullptr };
     };
 
-    // The shader library keeps track of the shaders loaded from the disk
+    // Caches shaders loaded from disk files for a given GPU device
+    // It is a singleton for now as Mikoto only manages one GPU device across the entire application
     class ShaderLibrary final : public IService, public Singleton<ShaderLibrary> {
     public:
         explicit ShaderLibrary( const ShaderLibraryDescription &options );
@@ -42,16 +45,12 @@ namespace Mikoto {
         auto LoadShader( const ShaderModuleDescription &loadInfo ) -> ShaderModuleHandle;
         auto LoadShader( const Path &path, ShaderStage stage ) -> ShaderModuleHandle;
 
-        auto GetSlangGlobalSession() const -> Slang::ComPtr<slang::IGlobalSession>;
-
         ~ShaderLibrary() override = default;
 
     private:
         Path m_RootPath{};
         GpuDevice *m_Device{ nullptr };
         ankerl::unordered_dense::map<std::string, ShaderModuleHandle> m_Shaders{};
-
-        Slang::ComPtr<slang::IGlobalSession> m_SlangGlobalSession{};
     };
 
 }// namespace Mikoto

@@ -15,6 +15,9 @@
 #ifndef MIKOTO_RENDER_SERVICE_HH
 #define MIKOTO_RENDER_SERVICE_HH
 
+#include <slang.h>
+#include <slang-com-ptr.h>
+
 #include <Common/Common.hh>
 #include <Common/Subsystem.hh>
 #include <Material/ShaderLibrary.hh>
@@ -97,6 +100,8 @@ namespace Mikoto {
         // Must be called once per frame for now
         auto SetPresentTarget(TextureHandle texture) -> void;
 
+        auto GetSlangCurrentSession() const -> Slang::ComPtr<slang::ISession>;
+
         MKT_NODISCARD auto GetContext() -> RenderContext* { return m_Context.get(); }
         MKT_NODISCARD auto GetContext() const -> const RenderContext* { return m_Context.get(); }
 
@@ -108,6 +113,8 @@ namespace Mikoto {
 
     private:
         auto InitContext() -> void;
+
+        auto InitializeSlang() -> void; 
         auto InitShaderLibrary() -> void;
 
         auto InitGuiService() -> void;
@@ -123,6 +130,12 @@ namespace Mikoto {
         Unique<ImGuiService> m_ImguiService{};
 
         GraphicsAPI m_ActiveAPI{ GraphicsAPI::VULKAN_API };
+
+        
+        // Stores specific configuration, like target
+        // configuration (SPIR-V, DXIL, CPU, etc.)
+        Slang::ComPtr<slang::ISession> m_SlangCurrentSession{};
+        Slang::ComPtr<slang::IGlobalSession> m_SlangGlobalSession{};
     };
 }
 #endif //MIKOTO_RENDER_SERVICE_HH

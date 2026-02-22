@@ -32,7 +32,10 @@ namespace Mikoto {
               createInfo.ShaderFile->GetSizeBytes()
           },
           m_Path{ createInfo.ShaderFile ? createInfo.ShaderFile->GetPath() : "" } {
-        m_DebugName = createInfo.ShaderFile->GetName();
+
+        if (createInfo.ShaderFile) {
+            m_DebugName = createInfo.ShaderFile->GetName();
+        }
     }
 
     auto VulkanShader::GetNativeHandle( ObjectType object ) -> Object {
@@ -46,7 +49,7 @@ namespace Mikoto {
         }
 
         // [DEBUG]. Test slang integration to slowly migrate to it
-        if ( !m_Path.empty() ) {
+        if ( m_Path.ends_with( SLANG_FILE_EXTENSION ) ) {
             LoadSlang( m_Path );
         }
 
@@ -93,30 +96,16 @@ namespace Mikoto {
         Path glslFile{ path };
         glslFile.replace_extension();
         
-        const std::string moduelPath{ StringUtil::Format( "{}.glsl", glslFile.string() ) };
+        const std::string moduelPath{ path.string() };
         const std::string moduelName{ path.filename().string() };
 
-        auto globalSession{ ShaderLibrary::Get()->GetSlangGlobalSession() };
-        auto slangTargets{ std::to_array<slang::TargetDesc>( { { .format{ SLANG_SPIRV },
-                                                                 .profile{ globalSession->findProfile( "spirv_1_4" ) } } } ) };
-        auto slangOptions{ std::to_array<slang::CompilerOptionEntry>( { { slang::CompilerOptionName::EmitSpirvDirectly,
-                                                                          { slang::CompilerOptionValueKind::Int, 1 } } } ) };
-        
-        slang::SessionDesc slangSessionDesc{
-            .targets{ slangTargets.data() },
-            .targetCount{ SlangInt( slangTargets.size() ) },
-            .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
-            .compilerOptionEntries{ slangOptions.data() },
-            .compilerOptionEntryCount{ ( UInt32 )slangOptions.size() }
-        };
+        auto session{ RenderService::Get()->GetSlangCurrentSession() };
 
-        Slang::ComPtr<slang::ISession> slangSession{};
-        globalSession->createSession( slangSessionDesc, slangSession.writeRef() );
+        m_SlangModule = session->loadModuleFromSource( moduelName.c_str(), moduelPath.c_str(), nullptr, nullptr );
+        m_SlangModule->getTargetCode( 0, m_SlangSpirv.writeRef() );
 
-        Slang::ComPtr<slang::IModule> slangModule{ slangSession->loadModuleFromSource( "Test", "Resources/Shaders/slang/HelloTriangle_Frag.slang", nullptr, nullptr ) };
-
-        Slang::ComPtr<ISlangBlob> spirv{};
-        slangModule->getTargetCode( 0, spirv.writeRef() );
+        m_ContentsSize = m_SlangSpirv->getBufferSize();
+        m_Contents = static_cast<const Byte*>( m_SlangSpirv->getBufferPointer() );
     }
 
     auto VulkanShader::Release() -> void {

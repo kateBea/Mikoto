@@ -137,8 +137,8 @@ namespace Mikoto {
                     b.Create<Texture>( "HelloTriangle_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                     b.Create<Texture>( "HelloTriangle_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/HelloTriangle_Frag.sprv", ShaderStage::FRAGMENT );
+                    b.UseShader( "Resources/Shaders/slang/HelloTriangle_Vert.slang", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/slang/HelloTriangle_Frag.slang", ShaderStage::FRAGMENT );
 
                     b.Create<Pipeline>( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
 

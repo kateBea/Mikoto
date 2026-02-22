@@ -380,46 +380,53 @@ namespace Mikoto {
         const auto presentQueueFamilyIndex{ m_Queues.Present->FamilyIndex };
         const auto queueCreateInfos{ VulkanHelpers::SetupDeviceQueueCreateInfo( { graphicsQueueFamilyIndex, presentQueueFamilyIndex } ) };
 
-        // Requested device features
-        VkPhysicalDeviceFeatures deviceFeatures{};
-        deviceFeatures.samplerAnisotropy = VK_TRUE;
-        deviceFeatures.wideLines = VK_TRUE; // for wireframe
-        deviceFeatures.sampleRateShading = VK_TRUE; // sample rate shading
-
-        // required for wireframe mode
-        deviceFeatures.fillModeNonSolid = VK_TRUE;
-
-        VkPhysicalDeviceVulkan13Features vulkan13Features{ VulkanHelpers::Initializers::PhysicalDeviceVulkan13Features() };
-
-        // required for vkCmdPipelineBarrier2 used when image transitions
-        vulkan13Features.synchronization2 = VK_TRUE;
-
+        // --- Vulkan 1.3 Features ---
+        VkPhysicalDeviceVulkan13Features vulkan13Features{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .synchronization2 = VK_TRUE,
 #if defined( MKT_USE_VULKAN_DYNAMIC_RENDERING )
-        vulkan13Features.dynamicRendering = VK_TRUE;
+            .dynamicRendering = VK_TRUE,
 #endif
+        };
 
-        VkPhysicalDeviceVulkan12Features enabled12Features{ VulkanHelpers::Initializers::PhysicalDeviceVulkan12Features() };
+        // --- Vulkan 1.2 Features ---
+        VkPhysicalDeviceVulkan12Features vulkan12Features{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .pNext = &vulkan13Features,
+            .descriptorIndexing = VK_TRUE,
+            .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+            .descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE,
+            .descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
+            .descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE,
+            .descriptorBindingPartiallyBound = VK_TRUE,
+            .descriptorBindingVariableDescriptorCount = VK_TRUE,
+            .runtimeDescriptorArray = VK_TRUE,
+            .scalarBlockLayout = VK_TRUE,
+        };
 
-        // Non padded structs (VK_EXT_scalar_block_layout)
-        enabled12Features.scalarBlockLayout = VK_TRUE;
+        // --- Vulkan 1.1 Features 
+        VkPhysicalDeviceVulkan11Features vulkan11Features{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
+            .shaderDrawParameters = VK_TRUE // Because Slang requires it
+        };
 
-        // Enable bind-less
-        enabled12Features.descriptorIndexing = VK_TRUE;
-        enabled12Features.runtimeDescriptorArray = VK_TRUE;
-        enabled12Features.descriptorBindingPartiallyBound = VK_TRUE;
-        enabled12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
-        enabled12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-        enabled12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-        enabled12Features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
-        enabled12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
-        enabled12Features.pNext = std::addressof( vulkan13Features );
+        // Link 1.1 to 1.2
+        vulkan11Features.pNext = &vulkan12Features;
 
-        // For feature enabled check
-        m_Vulkan12EnabledFeatures = enabled12Features;
+        // --- Core device features ---
+        VkPhysicalDeviceFeatures deviceFeatures{
+            .sampleRateShading = VK_TRUE,
+            .fillModeNonSolid = VK_TRUE,
+            .wideLines = VK_TRUE,
+            .samplerAnisotropy = VK_TRUE,
+        };
 
-        VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{ VulkanHelpers::Initializers::PhysicalDeviceFeatures2() };
-        physicalDeviceFeatures2.features = deviceFeatures;
-        physicalDeviceFeatures2.pNext = std::addressof( enabled12Features );
+        // --- Final root features struct ---
+        VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+            .pNext = &vulkan11Features,
+            .features = deviceFeatures,
+        };
 
         VkDeviceCreateInfo createInfo{ VulkanHelpers::Initializers::DeviceCreateInfo() };
         createInfo.queueCreateInfoCount = static_cast<UInt32>( queueCreateInfos.size() );
@@ -428,6 +435,9 @@ namespace Mikoto {
         createInfo.enabledExtensionCount = static_cast<UInt32>( m_RequestedExtensions.size() );
         createInfo.ppEnabledExtensionNames = m_RequestedExtensions.data();
         createInfo.pNext = std::addressof( physicalDeviceFeatures2 );
+
+        // Store currently enabled 1.2 features to query them later
+        m_Vulkan12EnabledFeatures = vulkan12Features;
 
         // might not be necessary anymore because device-specific validation layers have been deprecated
         // even tho recommended for some backwards compatibility as they are required for some Vulkan implementations

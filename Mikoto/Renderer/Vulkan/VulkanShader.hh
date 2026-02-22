@@ -24,11 +24,10 @@ namespace Mikoto {
     public:
         explicit VulkanShader(const ShaderModuleDescription& createInfo);
 
-        MKT_NODISCARD auto GetNativeHandle( ObjectType ) -> Object override;
-
-        MKT_NODISCARD auto GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo&;
 
         MKT_NODISCARD auto GetVulkanStage() const -> VkShaderStageFlags;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType ) -> Object override;
+        MKT_NODISCARD auto GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo&;
 
         ~VulkanShader() override;
 
@@ -40,9 +39,11 @@ namespace Mikoto {
         auto Initialize() -> void override;
 
     private:
+        std::string m_Path{};
         std::string m_EntryPoint{ "main" };
 
-        std::string m_Path{};
+        Slang::ComPtr<ISlangBlob> m_SlangSpirv{};
+        Slang::ComPtr<slang::IModule> m_SlangModule{};
 
         VkShaderModule m_Module{};
         VkPipelineShaderStageCreateInfo m_StageCreateInfo{};

@@ -15,6 +15,9 @@
 #include <memory>
 #include <utility>
 
+#include <slang.h>
+#include <slang-com-ptr.h>
+
 #include <Common/Common.hh>
 #include <Core/Profiler.hh>
 #include <Core/Exception.hh>
@@ -60,6 +63,12 @@ namespace Mikoto {
             m_ImguiService.reset();
         }
 
+        m_SlangCurrentSession = nullptr;
+        m_SlangGlobalSession = nullptr;
+
+        // TODO(kate): Test with memkory leaks reports
+        slang::shutdown();
+
         m_ShaderLibrary->Shutdown();
         m_ShaderLibrary.reset();
 
@@ -97,6 +106,33 @@ namespace Mikoto {
         return m_Context->SetPresentTarget( texture );
     }
 
+    auto RenderService::GetSlangCurrentSession() const -> Slang::ComPtr<slang::ISession> {
+        return m_SlangCurrentSession;
+    }
+
+    auto RenderService::InitializeSlang() -> void {
+        if ( m_ActiveAPI != GraphicsAPI::VULKAN_API ) {
+            MKT_CORE_LOGGER_WARN( "RenderService::InitializeSlang - Slang works with vulkan for now." );
+            return;
+        }
+
+        slang::createGlobalSession( m_SlangGlobalSession.writeRef() );
+
+        static auto slangTargets{ std::to_array<slang::TargetDesc>( { { .format{ SLANG_SPIRV },
+                                                                 .profile{ m_SlangGlobalSession->findProfile( "spirv_1_4" ) } } } ) };
+        static auto slangOptions{ std::to_array<slang::CompilerOptionEntry>( { { slang::CompilerOptionName::EmitSpirvDirectly,
+                                                                          { slang::CompilerOptionValueKind::Int, 1 } } } ) };
+
+        static slang::SessionDesc slangSessionDesc{
+            .targets{ slangTargets.data() },
+            .targetCount{ SlangInt( slangTargets.size() ) },
+            .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+            .compilerOptionEntries{ slangOptions.data() },
+            .compilerOptionEntryCount{ ( UInt32 )slangOptions.size() }
+        };
+        m_SlangGlobalSession->createSession( slangSessionDesc, m_SlangCurrentSession.writeRef() );
+    }
+
     auto RenderService::IsGraphicsActive( const GraphicsAPI api ) const -> bool {
         return m_ActiveAPI == api;
     }
@@ -115,6 +151,11 @@ namespace Mikoto {
 
     auto RenderService::InitShaderLibrary() -> void {
         MKT_CORE_LOGGER_INFO( "Initializing ShaderLibrary..." );
+
+        // Still need to decide whether this will also be available for HLSL
+        // right is being used mostly for Vulkan, but it is also possible to use it for DX12, DX11, etc
+        // https://github.com/shader-slang/slang
+        InitializeSlang();
 
         const ShaderLibraryDescription description{
             .RootPath{ "Resources/Shaders/vulkan-spirv" },

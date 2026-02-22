@@ -87,6 +87,13 @@ namespace Mikoto {
         m_Commands->SetViewport( x, y, width, height );
     }
 
+    auto CommandContext::SetViewport( Int32 x, Int32 y, Int32 width, Int32 height, bool flip ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
+        m_Commands->SetViewport( x, y, width, height, flip );
+    }
+
     auto CommandContext::SetScissor( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 

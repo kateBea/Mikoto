@@ -151,7 +151,8 @@ namespace Mikoto {
                             float viewPortWidth{  static_cast<float>(m_IrradianceDimensions * std::pow(0.5f, mipLevel)) };
                             float viewPortHeight{  static_cast<float>(m_IrradianceDimensions * std::pow(0.5f, mipLevel)) };
 
-                            ctx.SetViewport( 0, 0, viewPortWidth, viewPortHeight );
+                            constexpr bool flip{ false };
+                            ctx.SetViewport( 0, 0, viewPortWidth, viewPortHeight, flip );
                             ctx.SetScissor( 0, 0, viewPortWidth, viewPortHeight );
 
                             m_IrradianceParameters.DeltaTheta = 0.5f * Math::Constants::PI / 64.0;
@@ -226,7 +227,8 @@ namespace Mikoto {
                             float viewPortWidth{  static_cast<float>(m_PrefilterDimensions * std::pow(0.5f, mipLevel)) };
                             float viewPortHeight{   static_cast<float>(m_PrefilterDimensions * std::pow(0.5f, mipLevel)) };
 
-                            ctx.SetViewport( 0, 0, viewPortWidth, viewPortHeight );
+                            constexpr bool flip{ false };
+                            ctx.SetViewport( 0, 0, viewPortWidth, viewPortHeight, flip );
                             ctx.SetScissor( 0, 0, viewPortWidth, viewPortHeight );
 
                             m_PrefilterParameters.MVP = glm::perspective( static_cast<float>( Math::Constants::PI / 2.0 ), 1.0f, 0.1f, 512.0f ) * s_Matrices[face];
@@ -367,7 +369,8 @@ namespace Mikoto {
 
                     for ( Size mipLevel{}; mipLevel < 1; mipLevel++ ) {
                         for ( UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face ) {
-                            ctx.SetViewport( 0, 0, 2540, 2540 );
+                            constexpr bool flip{ false };
+                            ctx.SetViewport( 0, 0, 2540, 2540, flip );
                             ctx.SetScissor( 0, 0, 2540, 2540 );
 
                             ctx.SetColorRenderTarget( "SkyboxRender_ColorTarget" );
@@ -449,6 +452,7 @@ namespace Mikoto {
                     }
 
                     const auto dimensions{ InferDimensions( m_Resolution ) };
+
                     ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
                     ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 

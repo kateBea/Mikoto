@@ -64,7 +64,8 @@ namespace Mikoto {
         auto SetColorRenderTarget(std::string_view color) -> void;
         auto SetDepthRenderTarget(std::string_view depth) -> void;
 
-        auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void ;
+        auto SetViewport( Int32 x, Int32 y, Int32 width, Int32 height) -> void;
+        auto SetViewport( Int32 x, Int32 y, Int32 width, Int32 height, bool flip ) -> void;
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void;
 
         auto CopyToCube(std::string_view texture2DName, std::string_view cubeMapName, Size mipLevel, UInt32 face ) -> void;

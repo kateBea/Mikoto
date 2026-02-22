@@ -15,7 +15,7 @@ namespace Mikoto {
         this->AudioFile = source;
         return *this;
     }
-
+    
     AudioLoadDescription& AudioLoadDescription::SetVolume( const float volume ) {
         Volume = volume;
         return *this;

@@ -1293,6 +1293,26 @@ namespace Mikoto {
         vkCmdSetViewport( m_CmdBuffer, 0, 1, std::addressof( viewport ) );
     }
 
+    auto VulkanCmdList::SetViewport( Int32 x, Int32 y, Int32 width, Int32 height, bool flip ) -> void {
+        VkViewport viewport{};
+
+        if (flip) {
+            SetViewport(x, y, width, height);
+        } else {
+            viewport.x = x;
+            viewport.y = y;
+            viewport.width = width;
+            viewport.height = height;
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+
+            std::array viewports{ viewport };
+
+            vkCmdSetViewport( m_CmdBuffer, 0, ( UInt32 )viewports.size(), viewports.data() );
+        }
+
+    }
+
     auto VulkanCmdList::SetScissor( Int32 x, Int32 y, Int32 width, Int32 height ) -> void {
         VkRect2D scissor{};
         scissor.offset = { x, x };

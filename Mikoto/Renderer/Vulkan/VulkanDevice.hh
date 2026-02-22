@@ -61,7 +61,8 @@ namespace Mikoto {
         auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void override;
         auto WriteTexture(Texture* target, Byte* data, Size size) -> void override;
 
-        auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void override;
+        auto SetViewport( Int32 x, Int32 y, Int32 width, Int32 height) -> void override;
+        auto SetViewport( Int32 x, Int32 y, Int32 width, Int32 height, bool flip) -> void override;
         auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void override;
 
         auto Dispatch(UInt32 x, UInt32 y, UInt32 z) -> void  override;

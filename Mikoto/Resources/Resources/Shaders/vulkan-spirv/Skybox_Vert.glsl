@@ -53,7 +53,7 @@ void main() {
 
     // Vulkan cubemap convention fix
     v_Direction = pos;
-    //v_Direction.xy *= -1;
+    v_Direction.xy *= -1;
 
     // Force skybox to far plane
     vec4 clip = u_Camera.Projection * view * vec4(pos, 1.0);

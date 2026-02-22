@@ -69,6 +69,8 @@ namespace Mikoto {
         virtual auto WriteTexture(Texture* target, Byte* data, Size size) -> void = 0;
 
         virtual auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
+        virtual auto SetViewport( Int32 x, Int32 y, Int32 width, Int32 height, bool flip ) -> void = 0;
+
         virtual auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
 
         virtual auto BindIndexBuffer( BufferHandle indexBuffer)-> void = 0;

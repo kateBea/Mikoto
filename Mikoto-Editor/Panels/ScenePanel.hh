@@ -15,11 +15,9 @@
 #ifndef MIKOTO_SCENE_PANEL_HH
 #define MIKOTO_SCENE_PANEL_HH
 
-#include <memory>
-
 #include <Library/Utility/Types.hh>
 
-#include <ImGui/ImguiUtility.hh>
+#include <ImGui/ImGuiUtility.hh>
 #include <Assets/Texture.hh>
 #include <Panels/Panel.hh>
 

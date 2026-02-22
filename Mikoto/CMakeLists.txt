@@ -474,7 +474,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(ozz-animation)
 
 # -------------------------------------------------------
-# Slang
+# Slang ( Target AMD64 architectures by default, see how to change this later)
 # -------------------------------------------------------
 if (MSVC)
     set(SLANG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Slang/slang-2026.3.1-windows-x86_64")
@@ -488,15 +488,15 @@ if (MSVC)
         "${SLANG_LIB_DIR}/slang-compiler.lib"
     )
 elseif(UNIX)
-    set(SLANG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Slang/slang-2026.3.1-linux-x86_64")
+    set(SLANG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Slang/slang-2026.3.1-linux-x86_64-glibc-2.27")
     message(STATUS "Setup slang for Unix x86_64. SlangRoot is ${SLANG_ROOT}")
 
     set(SLANG_LIB_DIR "${SLANG_ROOT}/lib")
     set(SLANG_INCLUDE_DIR "${SLANG_ROOT}/include")
 
     set(SLANG_LIBS
-        "${SLANG_LIB_DIR}/libslang.a"
-        "${SLANG_LIB_DIR}/libslang-compiler.a"
+        "${SLANG_LIB_DIR}/libslang.so"
+        "${SLANG_LIB_DIR}/libslang-compiler.so"
     )
 endif()
 

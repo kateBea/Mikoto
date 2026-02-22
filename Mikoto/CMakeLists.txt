@@ -49,6 +49,36 @@ include(FetchContent)
 # ======================================
 # SLANG
 # ======================================
+set(SLANG_ENABLE_SLANGC            ON CACHE BOOL "")
+set(SLANG_ENABLE_SLANGI            OFF CACHE BOOL "")
+set(SLANG_ENABLE_SLANG_GLSLANG     ON CACHE BOOL "")
+set(SLANG_ENABLE_SLANGRT           OFF CACHE BOOL "")
+
+set(SLANG_ENABLE_TESTS             OFF CACHE BOOL "")
+set(SLANG_ENABLE_EXAMPLES          OFF CACHE BOOL "")
+set(SLANG_ENABLE_REPLAYER          OFF CACHE BOOL "")
+set(SLANG_STANDARD_MODULE_DEVELOP_BUILD OFF CACHE BOOL "") # Optional
+
+set(SLANG_EXCLUDE_DAWN             OFF CACHE BOOL "")
+set(SLANG_EXCLUDE_TINT             OFF CACHE BOOL "")
+set(SLANG_ENABLE_SLANG_RHI         OFF CACHE BOOL "")
+
+# Speed up builds / avoid unused components
+set(SLANG_ENABLE_CUDA              OFF CACHE BOOL "")
+set(SLANG_ENABLE_OPTIX             OFF CACHE BOOL "")
+set(SLANG_ENABLE_NVAPI             OFF CACHE BOOL "")
+set(SLANG_ENABLE_XLIB              OFF CACHE BOOL "")
+set(SLANG_ENABLE_AFTERMATH         OFF CACHE BOOL "")
+
+set(SLANG_SLANG_LLVM_FLAVOR        DISABLE CACHE STRING "")
+
+set(SLANG_USE_SYSTEM_UNORDERED_DENSE ON CACHE BOOL "")
+set(SLANG_USE_SYSTEM_MINIZ           ON CACHE BOOL "")
+set(SLANG_USE_SYSTEM_LZ4             ON CACHE BOOL "")
+set(SLANG_USE_SYSTEM_SPIRV_HEADERS   ON CACHE BOOL "")
+set(SLANG_USE_SYSTEM_VULKAN_HEADERS  ON CACHE BOOL "")
+set(SLANG_USE_SYSTEM_GLSLANG         ON CACHE BOOL "")
+set(SLANG_USE_SYSTEM_SPIRV_TOOLS     ON CACHE BOOL "")
 
 # ======================================
 # GLI
@@ -282,7 +312,7 @@ FetchContent_Declare(cpptrace
 )
 FetchContent_MakeAvailable(cpptrace)
 
-# unordered_dense (header-only)
+# unordered_dense
 FetchContent_Declare(unordered_dense
         GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
         GIT_TAG v4.4.0
@@ -622,7 +652,6 @@ set(LIBRARIES
         tinygltf
         gli
         slang
-        slang-glslang
 )
 
 # ======================================

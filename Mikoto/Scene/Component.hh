@@ -48,8 +48,8 @@ namespace Mikoto {
     public:
         explicit TagComponent() = default;
 
-        explicit TagComponent( const std::string_view tag )
-            : m_Tag{ tag }, m_IsActive{ true } {}
+        explicit TagComponent( const std::string_view tag, bool active = true )
+            : m_Tag{ tag }, m_IsActive{ active } {}
 
         TagComponent( const TagComponent& other ) = default;
         TagComponent( TagComponent&& other ) noexcept = default;
@@ -66,8 +66,9 @@ namespace Mikoto {
 
     private:
         std::string m_Tag{};
-        bool m_IsActive{};
         GlobalUniqueID m_GUID{};
+        
+        bool m_IsActive{};
     };
 
     class TransformComponent {
@@ -238,7 +239,11 @@ namespace Mikoto {
     class MeshComponent {
     public:
         explicit MeshComponent( ModelHandle model = ModelHandle::CreateEmpty(), Int32 meshIndex = {} )
-            : m_Model{ model }, m_MeshIndex{ meshIndex } {};
+            : m_Model{ model }, m_MeshIndex{ meshIndex } 
+        {
+            SetPath( model->GetDirectory() );
+            SetName( model->GetName() );
+        }
 
         ~MeshComponent() = default;
 
@@ -246,8 +251,14 @@ namespace Mikoto {
             if ( !model.IsEmpty() ) {
                 m_Model = model;
                 m_MeshIndex = meshIndex;
+
+                SetPath( model->GetDirectory() );
+                SetName( model->GetName() );
             }
         }
+
+        MKT_NODISCARD auto GetMeshIndex() const -> Int32 { return m_MeshIndex; }
+        MKT_NODISCARD auto GetModelPath() const -> const Path& { return m_Path; }
 
         MKT_NODISCARD auto HasMesh() const -> bool { return !m_Model.IsEmpty(); }
         MKT_NODISCARD auto GetMesh() const -> const MeshNode* {
@@ -266,7 +277,6 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Model->GetName(); }
 
-        // Skinning
         auto IsSkinned() const -> bool {
             return m_Model->IsSkinned();
         }
@@ -278,6 +288,10 @@ namespace Mikoto {
         MKT_NODISCARD auto HasAnimations() const -> bool { return m_Model->HasAnimations(); }
 
     private:
+        auto SetPath( const Path& path ) -> void { m_Path = path; }
+        auto SetName( const std::string& name ) -> void { m_Name = name; }
+
+    private:
         Int32 m_MeshIndex{ -1 };
 
         ModelHandle m_Model{};
@@ -285,17 +299,11 @@ namespace Mikoto {
         Path m_Path{};
         std::string m_Name{};
 
-        // Parent joint
-        UInt32 m_ParentJoin{};
-
         // Animator Controlling this mesh
         // We need to make sure the passed animation
         // uses an skeleton that is compatible with the bone IDs of this mesh
         UInt64 m_AnimatorID{};
         bool m_IsSkinned{ false };
-
-        // List of joints that influence this mesh
-        // Are stored in the vertex buffer, it is the Joint vertex attribute
     };
 
     class LightComponent {

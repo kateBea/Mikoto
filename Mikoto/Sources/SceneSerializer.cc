@@ -83,6 +83,12 @@ namespace YAML {
 }// namespace YAML
 
 namespace Mikoto {
+#define MKT_SERIALIZE_COMPONENT_IF_PRESENT( TYPE, KEY_NAME )           \
+    if ( root->HasComponent<TYPE>() ) {                            \
+        emitter << YAML::Key << KEY_NAME << YAML::Value;           \
+        SerializeComponent( root->GetComponent<TYPE>(), emitter ); \
+    }
+
     static auto operator<<( YAML::Emitter& out, const glm::vec4& v ) -> YAML::Emitter& {
         out << YAML::Flow;
         out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
@@ -116,16 +122,11 @@ namespace Mikoto {
         emitter << YAML::EndMap;
     }
 
-    static auto SerializeComponent( const RelationComponent& relation, YAML::Emitter& emitter ) -> void {
+    static auto SerializeComponent( const MeshComponent& meshComponent, YAML::Emitter& emitter ) -> void {
         emitter << YAML::BeginMap;
 
-
-        emitter << YAML::EndMap;
-    }
-
-    static auto SerializeComponent( const MeshComponent& renderComponent, YAML::Emitter& emitter ) -> void {
-        emitter << YAML::BeginMap;
-
+        emitter << YAML::Key << "MeshIndex" << YAML::Value << meshComponent.GetMeshIndex();
+        emitter << YAML::Key << "ModelPath" << YAML::Value << meshComponent.GetModelPath().string();
 
         emitter << YAML::EndMap;
     }
@@ -169,6 +170,12 @@ namespace Mikoto {
     static auto SerializeComponent( const TextComponent& textComponent, YAML::Emitter& emitter ) -> void {
         emitter << YAML::BeginMap;
 
+        emitter << YAML::Key << "Contents" << YAML::Value << textComponent.GetContents();
+        emitter << YAML::Key << "Color" << YAML::Value << textComponent.GetColor();
+        emitter << YAML::Key << "IsWorldText" << YAML::Value << textComponent.IsWorldText();
+        emitter << YAML::Key << "Size" << YAML::Value << textComponent.GetSize();
+        emitter << YAML::Key << "Spacing" << YAML::Value << textComponent.GetSpacing();
+
         emitter << YAML::EndMap;
     }
 
@@ -178,64 +185,32 @@ namespace Mikoto {
         emitter << YAML::EndMap;
     }
 
-    static auto SerializeNode( YAML::Emitter& emitter, const Entity* rootEntity ) -> void {
-        emitter << YAML::BeginMap;
+    static auto SerializeNode( YAML::Emitter& emitter, const Entity* root, const Scene& secene ) -> void {
+        if ( root == nullptr ) {
+            return;
+        }
 
+        emitter << YAML::BeginMap;
         emitter << YAML::Key << "Game Object";
 
-        // Game object name
-        emitter << YAML::Value << StringUtils::ToString( rootEntity->GetComponent<TagComponent>().GetTag() );
-
-        // Serialize TagComponent and TransformComponent (all entities have it by default)
         emitter << YAML::Key << "TagComponent" << YAML::Value;
-        SerializeComponent( rootEntity->GetComponent<TagComponent>(), emitter );
+        SerializeComponent( root->GetComponent<TagComponent>(), emitter );
 
         emitter << YAML::Key << "TransformComponent" << YAML::Value;
-        SerializeComponent( rootEntity->GetComponent<TransformComponent>(), emitter );
+        SerializeComponent( root->GetComponent<TransformComponent>(), emitter );
 
-        emitter << YAML::Key << "RelationComponent" << YAML::Value;
-        SerializeComponent( rootEntity->GetComponent<RelationComponent>(), emitter );
+        MKT_SERIALIZE_COMPONENT_IF_PRESENT( MeshComponent, "MeshComponent" );
+        MKT_SERIALIZE_COMPONENT_IF_PRESENT( MaterialComponent, "MaterialComponent" );
+        MKT_SERIALIZE_COMPONENT_IF_PRESENT( LightComponent, "LightComponent" );
+        MKT_SERIALIZE_COMPONENT_IF_PRESENT( AudioSourceComponent, "AudioSourceComponent" );
+        MKT_SERIALIZE_COMPONENT_IF_PRESENT( CameraComponent, "CameraComponent" );
+        MKT_SERIALIZE_COMPONENT_IF_PRESENT( TextComponent, "TextComponent" );
+        MKT_SERIALIZE_COMPONENT_IF_PRESENT( ScriptComponent, "ScriptComponent" );
 
-        // Serialize Render Component
-        if ( rootEntity->HasComponent<MeshComponent>() ) {
-            emitter << YAML::Key << "RenderComponent" << YAML::Value;
-            SerializeComponent( rootEntity->GetComponent<MeshComponent>(), emitter );
-        }
-
-        // Serialize Material Component
-        if ( rootEntity->HasComponent<MaterialComponent>() ) {
-            emitter << YAML::Key << "MaterialComponent" << YAML::Value;
-            SerializeComponent( rootEntity->GetComponent<MaterialComponent>(), emitter );
-        }
-
-        // Serialize Light Component
-        if ( rootEntity->HasComponent<LightComponent>() ) {
-            emitter << YAML::Key << "LightComponent" << YAML::Value;
-            SerializeComponent( rootEntity->GetComponent<LightComponent>(), emitter );
-        }
-
-        // Serialize Audio Component
-        if ( rootEntity->HasComponent<AudioSourceComponent>() ) {
-            emitter << YAML::Key << "AudioComponent" << YAML::Value;
-            SerializeComponent( rootEntity->GetComponent<AudioSourceComponent>(), emitter );
-        }
-
-        // Serialize Camera Component
-        if ( rootEntity->HasComponent<CameraComponent>() ) {
-            emitter << YAML::Key << "CameraComponent" << YAML::Value;
-            SerializeComponent( rootEntity->GetComponent<CameraComponent>(), emitter );
-        }
-
-        // Serialize Text Component
-        if ( rootEntity->HasComponent<TextComponent>() ) {
-            emitter << YAML::Key << "TextComponent" << YAML::Value;
-            SerializeComponent( rootEntity->GetComponent<TextComponent>(), emitter );
-        }
-
-        // Serialize Script Component
-        if ( rootEntity->HasComponent<ScriptComponent>() ) {
-            emitter << YAML::Key << "ScriptComponent" << YAML::Value;
-            SerializeComponent( rootEntity->GetComponent<ScriptComponent>(), emitter );
+        // I do not serialize the relationship component the hierarchy is stored splicitly by the nesting of the nodes in the yaml file. 
+        // So if an entity has children they will be nested under it in the yaml file and if it does not have children it will just be a leaf node.
+        for ( const auto& childID: root->GetComponent<RelationComponent>().GetChildren() ) {
+            SerializeNode( emitter, secene.FindByID( childID ), secene );
         }
 
         emitter << YAML::EndMap;
@@ -255,8 +230,8 @@ namespace Mikoto {
         emitter << YAML::Key << "Scene" << YAML::Value << scene.GetName();
         emitter << YAML::Key << "Objects" << YAML::Value << YAML::BeginSeq;
 
-        for ( const auto& childEntity: scene.GetEntities() | std::views::values ) {
-            SerializeNode( emitter, childEntity.get()  );
+        for ( const auto& root: scene.GetRootEntities() ) {
+            SerializeNode( emitter, root, scene );
         }
 
         emitter << YAML::EndSeq;

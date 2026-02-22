@@ -28,5 +28,7 @@ layout(scalar, push_constant) uniform SkyboxRenderConstants {
 
 void main() {
     o_Pos = a_Pos;
+    o_Pos.y *= -1;
+
     gl_Position = u_Parameters.MVP * vec4(a_Pos, 1.0);
 }

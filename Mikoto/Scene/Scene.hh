@@ -78,6 +78,9 @@ namespace Mikoto {
         MKT_NODISCARD auto FindByID( UInt64 uniqueID ) -> Entity*;
         MKT_NODISCARD auto FindFirstByName( std::string_view name ) -> Entity*;
 
+        MKT_NODISCARD auto FindByID( UInt64 uniqueID ) const -> const Entity*;
+        MKT_NODISCARD auto FindFirstByName( std::string_view name ) const -> const Entity*;
+
         MKT_NODISCARD auto ExistsByID( UInt64 uniqueID ) -> bool;
         MKT_NODISCARD auto ExistsByName( std::string_view name ) -> bool;
 
@@ -86,6 +89,8 @@ namespace Mikoto {
         MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
 
         MKT_NODISCARD auto GetPhysicsWorld() -> PhysicsWorld*;
+
+        MKT_NODISCARD auto GetRootEntities() const -> const ankerl::unordered_dense::set<Entity*>&;
 
         template<typename EntityFunction>
         auto ApplyToChildren(Entity* parent, const EntityFunction& callable) -> void;

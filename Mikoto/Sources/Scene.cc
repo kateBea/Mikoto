@@ -240,6 +240,25 @@ namespace Mikoto {
         return it != m_Entities.end() ? it->second.get() : nullptr;
     }
 
+    auto Scene::FindByID( const UInt64 uniqueID ) const -> const Entity* {
+        const auto it{ m_Entities.find( uniqueID ) };
+
+        return it != m_Entities.end() ? it->second.get() : nullptr;
+    }
+
+    auto Scene::FindFirstByName( const std::string_view name ) const -> const Entity* {
+        const auto it{ std::ranges::find_if( m_Entities, [&]( auto& pair ) -> bool {
+            const auto& entity{ pair.second };
+
+            // All entities have tag component you can only create
+            // them from the CreateEntity method
+            const auto& tag{ entity->template GetComponent<TagComponent>() };
+            return tag.GetTag() == name;
+        } ) };
+
+        return it != m_Entities.end() ? it->second.get() : nullptr;
+    }
+
     auto Scene::ExistsByID( const UInt64 uniqueID ) -> bool {
         return FindByID( uniqueID ) != nullptr;
     }
@@ -341,13 +360,17 @@ namespace Mikoto {
 
         return result;
     }
-
+    
     auto Scene::CreateEntity( const EntityCreateInfo& createInfo ) -> Entity* {
         return CreateEntitySingle( createInfo );
     }
 
     auto Scene::GetPhysicsWorld() -> PhysicsWorld* {
         return m_PhysicsWorld;
+    }
+
+    auto Scene::GetRootEntities() const -> const ankerl::unordered_dense::set<Entity*>& {
+        return m_RootEntities;
     }
 
     auto Scene::SetSceneBackground( SceneBackground background ) -> void {

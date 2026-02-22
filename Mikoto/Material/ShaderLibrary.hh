@@ -15,6 +15,8 @@
 #ifndef MIKOTO_SHADER_LIBRARY_HH
 #define MIKOTO_SHADER_LIBRARY_HH
 
+#include <slang/slang.h>
+#include <slang/slang-com-ptr.h>
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Service.hh>
@@ -40,12 +42,16 @@ namespace Mikoto {
         auto LoadShader( const ShaderModuleDescription &loadInfo ) -> ShaderModuleHandle;
         auto LoadShader( const Path &path, ShaderStage stage ) -> ShaderModuleHandle;
 
+        auto GetSlangGlobalSession() const -> Slang::ComPtr<slang::IGlobalSession>;
+
         ~ShaderLibrary() override = default;
 
     private:
         Path m_RootPath{};
         GpuDevice *m_Device{ nullptr };
         ankerl::unordered_dense::map<std::string, ShaderModuleHandle> m_Shaders{};
+
+        Slang::ComPtr<slang::IGlobalSession> m_SlangGlobalSession{};
     };
 
 }// namespace Mikoto

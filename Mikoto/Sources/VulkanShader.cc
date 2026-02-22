@@ -10,11 +10,16 @@
 // Third-Party Libraries
 #include "volk.h"
 #include <spirv_reflect.h>
+#include <slang/slang.h>
+#include <slang/slang-com-ptr.h>
 
 // Project Headers
 #include <Common/Common.hh>
+#include <Common/String.hh>
 #include <Library/Utility/Types.hh>
 #include <Logging/Logger.hh>
+
+#include <Core/Profiler.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
@@ -25,7 +30,8 @@ namespace Mikoto {
               createInfo.Stage,
               reinterpret_cast<const void*>( createInfo.ShaderFile->GetFileContents().data() ),
               createInfo.ShaderFile->GetSizeBytes()
-          } {
+          },
+          m_Path{ createInfo.ShaderFile ? createInfo.ShaderFile->GetPath() : "" } {
         m_DebugName = createInfo.ShaderFile->GetName();
     }
 
@@ -37,6 +43,11 @@ namespace Mikoto {
         if (!HasContents()) {
             MKT_CORE_LOGGER_ERROR( "VulkanShader::Initialize - Shader has no contents." );
             return;
+        }
+
+        // [DEBUG]. Test slang integration to slowly migrate to it
+        if ( !m_Path.empty() ) {
+            LoadSlang( m_Path );
         }
 
         // Check client specified correctly the stage
@@ -74,6 +85,38 @@ namespace Mikoto {
         m_StageCreateInfo.pSpecializationInfo = nullptr;
 
         m_IsAllocated = true;
+    }
+
+    auto VulkanShader::LoadSlang( const Path& path ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        Path glslFile{ path };
+        glslFile.replace_extension();
+        
+        const std::string moduelPath{ StringUtil::Format( "{}.glsl", glslFile.string() ) };
+        const std::string moduelName{ path.filename().string() };
+
+        auto globalSession{ ShaderLibrary::Get()->GetSlangGlobalSession() };
+        auto slangTargets{ std::to_array<slang::TargetDesc>( { { .format{ SLANG_SPIRV },
+                                                                 .profile{ globalSession->findProfile( "spirv_1_4" ) } } } ) };
+        auto slangOptions{ std::to_array<slang::CompilerOptionEntry>( { { slang::CompilerOptionName::EmitSpirvDirectly,
+                                                                          { slang::CompilerOptionValueKind::Int, 1 } } } ) };
+        
+        slang::SessionDesc slangSessionDesc{
+            .targets{ slangTargets.data() },
+            .targetCount{ SlangInt( slangTargets.size() ) },
+            .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+            .compilerOptionEntries{ slangOptions.data() },
+            .compilerOptionEntryCount{ ( UInt32 )slangOptions.size() }
+        };
+
+        Slang::ComPtr<slang::ISession> slangSession{};
+        globalSession->createSession( slangSessionDesc, slangSession.writeRef() );
+
+        Slang::ComPtr<slang::IModule> slangModule{ slangSession->loadModuleFromSource( "Test", "Resources/Shaders/slang/HelloTriangle_Frag.slang", nullptr, nullptr ) };
+
+        Slang::ComPtr<ISlangBlob> spirv{};
+        slangModule->getTargetCode( 0, spirv.writeRef() );
     }
 
     auto VulkanShader::Release() -> void {

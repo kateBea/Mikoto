@@ -417,7 +417,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(taskflow)
 
-# Sol2
+# -------------------------------------------------------
+# Tracy
+# -------------------------------------------------------
 FetchContent_Declare(
         sol2
         GIT_REPOSITORY https://github.com/ThePhD/sol2.git
@@ -434,7 +436,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(asio)
 
+# -------------------------------------------------------
 # Tracy
+# -------------------------------------------------------
 FetchContent_Declare(
         tracy
         GIT_REPOSITORY https://github.com/wolfpld/tracy.git
@@ -445,7 +449,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(tracy)
 
+# -------------------------------------------------------
 # Ozz
+# -------------------------------------------------------
 FetchContent_Declare(
         ozz-animation
         GIT_REPOSITORY https://github.com/guillaumeblanc/ozz-animation.git
@@ -453,6 +459,19 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(ozz-animation)
+
+# -------------------------------------------------------
+# Slang
+# -------------------------------------------------------
+FetchContent_Declare(
+        slang
+        GIT_REPOSITORY https://github.com/shader-slang/slang.git
+        GIT_TAG master
+)
+
+#FetchContent_MakeAvailable(slang)
+find_library(Slang_LIBRARY NAMES slang slang-compiler HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
+# TODO: Build from source if not available?
 
 #Filewatch
 # Using https://github.com/ThomasMonkman/filewatch/tree/feature/fix-filesystem (currently working branch)
@@ -599,6 +618,7 @@ set(LIBRARIES
         meshoptimizer
         tinygltf
         gli
+        ${Slang_LIBRARY} #TODO: See slang pull comment
 )
 
 # ======================================

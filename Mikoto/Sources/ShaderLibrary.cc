@@ -13,7 +13,11 @@
 // limitations under the License.
 
 #include <string>
+#include <array>
 #include <string_view>
+
+#include <slang/slang.h>
+#include <slang/slang-com-ptr.h>
 
 #include <Core/Profiler.hh>
 
@@ -28,11 +32,11 @@
 namespace Mikoto {
 
     ShaderLibrary::ShaderLibrary( const ShaderLibraryDescription &options )
-        : m_Device{ options.Device }, m_RootPath{ options.RootPath }
-    {}
+        : m_Device{ options.Device }, m_RootPath{ options.RootPath } {}
 
     auto ShaderLibrary::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();
+        slang::createGlobalSession( m_SlangGlobalSession.writeRef() );
 
         m_IsInitialized = true;
     }
@@ -40,7 +44,7 @@ namespace Mikoto {
     auto ShaderLibrary::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if (!m_IsInitialized) {
+        if ( !m_IsInitialized ) {
             return;
         }
 
@@ -51,11 +55,15 @@ namespace Mikoto {
 
     auto ShaderLibrary::GetShader( const std::string_view uri ) -> ShaderModuleHandle {
         const std::string fullPath{ Filesystem::GetGetAbsolutePathString( uri ) };
-        if (auto it{ m_Shaders.find( fullPath ) }; it != m_Shaders.end() ) {
+        if ( auto it{ m_Shaders.find( fullPath ) }; it != m_Shaders.end() ) {
             return it->second;
         }
 
         return ShaderModuleHandle::CreateEmpty();
+    }
+
+    auto ShaderLibrary::GetSlangGlobalSession() const -> Slang::ComPtr<slang::IGlobalSession> {
+        return m_SlangGlobalSession;
     }
 
     auto ShaderLibrary::LoadShader( const Path &path, ShaderStage stage ) -> ShaderModuleHandle {
@@ -68,7 +76,7 @@ namespace Mikoto {
         }
 
         ShaderModuleHandle shaderModuleHandle{ m_Device->LoadShader( path, stage ) };
-        if (!shaderModuleHandle.IsEmpty()) {
+        if ( !shaderModuleHandle.IsEmpty() ) {
             m_Shaders.try_emplace( fullPath, shaderModuleHandle );
             return m_Shaders.at( fullPath );
         }
@@ -79,4 +87,4 @@ namespace Mikoto {
     auto ShaderLibrary::LoadShader( const ShaderModuleDescription &description ) -> ShaderModuleHandle {
         return this->LoadShader( description.ShaderFile->GetPath(), description.Stage );
     }
-}
+}// namespace Mikoto

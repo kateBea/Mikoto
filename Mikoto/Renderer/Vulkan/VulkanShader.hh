@@ -11,6 +11,8 @@
 
 // Third-Party Libraries
 #include <volk.h>
+#include <slang/slang.h>
+#include <slang/slang-com-ptr.h>
 
 // Project Headers
 #include <Common/Common.hh>
@@ -31,11 +33,16 @@ namespace Mikoto {
         ~VulkanShader() override;
 
     private:
+        auto LoadSlang( const Path& path ) -> void;
+
+    private:
         auto Release() -> void override;
         auto Initialize() -> void override;
 
     private:
         std::string m_EntryPoint{ "main" };
+
+        std::string m_Path{};
 
         VkShaderModule m_Module{};
         VkPipelineShaderStageCreateInfo m_StageCreateInfo{};

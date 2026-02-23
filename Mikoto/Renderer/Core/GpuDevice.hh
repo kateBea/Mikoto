@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,9 +25,9 @@
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/RenderUtility.hh>
 
-#include "Renderer/Core/DeviceObject.hh"
-#include "Renderer/Core/Framebuffer.hh"
-#include "Renderer/Core/Pipeline.hh"
+#include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Core/Framebuffer.hh>
+#include <Renderer/Core/DeviceObject.hh>
 
 namespace Mikoto {
 
@@ -35,8 +35,8 @@ namespace Mikoto {
         LoadOp ColorLoadOp{ LoadOp::CLEAR };
         LoadOp DephtLoadOp{ LoadOp::CLEAR };
 
-        Vec4F ClearColor{ 0.0f, 0.0f, 0.0f, 1.0f };
         TextureHandle DepthRenderTarget{};
+        Vec4F ClearColor{ 0.0f, 0.0f, 0.0f, 1.0f };
         std::vector<TextureHandle> ColorRenderTargets{};
 
         auto Clear() -> void;

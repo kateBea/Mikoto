@@ -49,10 +49,11 @@ namespace Mikoto {
     }
 
     auto DebugPasses::RegisterPasses( FrameGraph &graph ) -> void {
+        RegisterWireFrame( graph );
+
         RegisterHelloTexture( graph );
         RegisterSimpleCompute( graph );
         RegisterHelloTriangle( graph );
-        RegisterWireFrame( graph );
 
         RegisterDebugViewsPass( graph );
     }
@@ -177,7 +178,8 @@ namespace Mikoto {
                 []( FramePassBuilder &b, SimpleCompute& data ) {
                     b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), data.LocalSize );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/BasicCompute_Comp.sprv", ShaderStage::COMPUTE );
+                    b.UseShader( "Resources/Shaders/slang/BasicCompute_Comp.slang", ShaderStage::COMPUTE );
+                    
                     b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
 
                     b.Write( "SimpleCompute_Results", FrameResourceState::UnorderedAccess );
@@ -213,8 +215,8 @@ namespace Mikoto {
                     b.Create<Texture>( "HelloTexture_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                     b.Create<Texture>( "HelloTexture_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/FullscreenTriangle_Frag.sprv", ShaderStage::FRAGMENT );
+                    b.UseShader( "Resources/Shaders/slang/HelloTexture_Vert.slang", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/slang/HelloTriangle_Frag.slang", ShaderStage::FRAGMENT );
 
                     b.Create<Pipeline>( "HelloTexture_Pipeline", GraphicsPipelineDescription{
                                             .PrimitiveTopology{ Topology::TRIANGLE_STRIP },

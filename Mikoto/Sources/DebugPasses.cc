@@ -216,7 +216,7 @@ namespace Mikoto {
                     b.Create<Texture>( "HelloTexture_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
                     b.UseShader( "Resources/Shaders/slang/HelloTexture_Vert.slang", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/slang/HelloTriangle_Frag.slang", ShaderStage::FRAGMENT );
+                    b.UseShader( "Resources/Shaders/slang/HelloTexture_Frag.slang", ShaderStage::FRAGMENT );
 
                     b.Create<Pipeline>( "HelloTexture_Pipeline", GraphicsPipelineDescription{
                                             .PrimitiveTopology{ Topology::TRIANGLE_STRIP },

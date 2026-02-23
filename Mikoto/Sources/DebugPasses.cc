@@ -237,8 +237,9 @@ namespace Mikoto {
 
                     ctx.BindPipeline( "HelloTexture_Pipeline" );
 
-                    ctx.SetViewport( 0, 0, 1920, 1080 );
-                    ctx.SetScissor( 0, 0, 1920, 1080 );
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
                     ctx.SetClearColor( { 0.5f, 0.2f, 0.3f, 1.0f } );
                     ctx.SetColorRenderTarget( "HelloTexture_ColorTarget" );

@@ -724,7 +724,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
                     bool isBindless{ IsBindlessEnabled() && ( bindingName.find( bindlessPrefix ) != std::string_view::npos ) };
 
                     // IMPORTANT: bindless textures need to be the last binding if they are sharing a SET with other bindings
-                    bindingInfo.descriptorCount = std::max(1u, isBindless ? SRGTextures::GetMaxTextureCount() : reflectedBinding->count );
+                    bindingInfo.descriptorCount = std::max(1u, isBindless ? GlobalTextures::GetMaxTextureCount() : reflectedBinding->count );
 
                     bindingInfo.stageFlags = stage;
                     bindingMap[bindingInfo.binding] = bindingInfo;
@@ -858,7 +858,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
             // Right now we have set 2 for dynamic buffers exclusively for dynamic offsets in descriptor sets which require not to have update after bind flags
             // Set 3 is used for rest of resources that do not change that often and can benefit from update after bind
             std::vector<VkDescriptorBindingFlags> bindingFlags(layoutBindings.size(), VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
-            if (setIndex == PER_PASS_DESCRIPTOR_SET_INDEX) {
+            if (setIndex == DYNAMIC_DESCRIPTOR_SET_INDEX) {
                 for (auto& flag : bindingFlags) {
                     flag = VK_FLAGS_NONE;
                 }

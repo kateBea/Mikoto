@@ -113,8 +113,8 @@ namespace Mikoto {
 
                     b.Read( "ScatteredWrites_FinalTextInfo", FrameResourceState::UniformBuffer );
 
-                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_FinalTextInfo", 0 );
-                    b.Use( SRGType::SRG_Textures );
+                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_FinalTextInfo", 0 );
+                    b.Use( ResourceGroup::GlobalTextures );
                 },
                 [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -188,9 +188,9 @@ namespace Mikoto {
                     b.Write( "ScatteredWrites_TextDataIndices", FrameResourceState::UnorderedAccess );
                     b.Write( "ScatteredWrites_FinalTextInfo", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_FinalTextInfo", 0 );
-                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_TextData", 1 );
-                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_TextDataIndices", 2 );
+                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_FinalTextInfo", 0 );
+                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_TextData", 1 );
+                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_TextDataIndices", 2 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -282,7 +282,7 @@ namespace Mikoto {
                     b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
                     b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
 
-                    b.Use( SRGType::SRG_PerPass, "SSAO_Parameters", 0 );
+                    b.Use( ResourceGroup::Dynamic, "SSAO_Parameters", 0 );
                 },
                 [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -412,7 +412,7 @@ namespace Mikoto {
 
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
+                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
                 },
                 [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();

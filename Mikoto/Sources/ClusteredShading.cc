@@ -74,8 +74,8 @@ namespace Mikoto {
 
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
-                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
-                    b.Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
+                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                    b.Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 1 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -108,9 +108,9 @@ namespace Mikoto {
 
                     b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
-                    b.Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 1 );
-                    b.Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 2 );
+                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                    b.Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 1 );
+                    b.Use( ResourceGroup::Dynamic, "LightCullingComp_LightsBuffer", 2 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -172,9 +172,9 @@ namespace Mikoto {
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
                     b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
-                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 );
-                    b.Use( SRGType::SRG_Textures );
+                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                    b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
+                    b.Use( ResourceGroup::GlobalTextures );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -228,8 +228,8 @@ namespace Mikoto {
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
                     b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
-                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 );
+                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                    b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
                 },
 
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {

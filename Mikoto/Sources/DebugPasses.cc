@@ -99,8 +99,8 @@ namespace Mikoto {
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
                     b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
-                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 );
+                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                    b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -184,7 +184,7 @@ namespace Mikoto {
 
                     b.Write( "SimpleCompute_Results", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "SimpleCompute_Results", 0 );
+                    b.Use( ResourceGroup::Dynamic, "SimpleCompute_Results", 0 );
                 },
                 []( CommandContext &ctx, FrameGraphBlackboard& blackboard ) -> void {
                     auto& data{ blackboard.Get<SimpleCompute>() };
@@ -205,7 +205,7 @@ namespace Mikoto {
 
     auto DebugPasses::RegisterHelloTexture( FrameGraph &graph ) -> void {
         struct HelloTextureData {
-            Int32 TextureIndex{ SRGTextures::INVALID_TEXTURE_INDEX };
+            Int32 TextureIndex{ GlobalTextures::INVALID_TEXTURE_INDEX };
         };
 
         // Example with pass data
@@ -225,7 +225,7 @@ namespace Mikoto {
                     b.Write( "HelloTexture_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "HelloTexture_DepthTarget", FrameResourceState::DepthWrite );
 
-                    b.Use( SRGType::SRG_Textures );
+                    b.Use( ResourceGroup::GlobalTextures );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
                     m_TextureHandle = AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Models/1 - Box texture/CatStare.png" } );

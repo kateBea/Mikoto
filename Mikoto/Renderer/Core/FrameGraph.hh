@@ -15,21 +15,24 @@
 #ifndef MIKOTO_FRAME_GRAPH_HH
 #define MIKOTO_FRAME_GRAPH_HH
 
-#include <ankerl/unordered_dense.h>
-
-#include <Assets//Texture.hh>
-#include <Assets/AssetsService.hh>
-#include <Material/TextureCube.hh>
-#include <Renderer/Core/FrameGraphBlackboard.hh>
-#include <Renderer/Core/FramePassResource.hh>
-#include <Renderer/Core/Pipeline.hh>
-#include <Renderer/Core/RenderUtility.hh>
-#include <Renderer/Core/SRGBase.hh>
 #include <string>
 #include <variant>
 #include <vector>
 
-#include "Core/TimeService.hh"
+#include <ankerl/unordered_dense.h>
+
+#include <Core/TimeService.hh>
+
+#include <Assets//Texture.hh>
+#include <Assets/AssetsService.hh>
+
+#include <Material/TextureCube.hh>
+
+#include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Core/FramePassResource.hh>
+#include <Renderer/Core/ResourceGroupBase.hh>
+#include <Renderer/Core/FrameGraphBlackboard.hh>
 
 namespace Mikoto {
     class CommandContext;
@@ -67,13 +70,14 @@ namespace Mikoto {
         std::vector<ResourceNode> Reads{};
         std::vector<ResourceNode> Writes{};
 
-        SRGPerPass PerPassShaderResources{};
-        SRGConstants ConstantsShaderResources{};
-
-        std::function<void( CommandContext &, FrameGraphBlackboard & )> ExecuteCallback{};
+        ConstantsGroup ConstantsShaderResources{};
+        CommonResourceGroup StaticResourceGroup{ ResourceGroup::Static };
+        CommonResourceGroup DynamicResourceGroup{ ResourceGroup::Dynamic };
 
         FramePassNodeStatus Status{ FramePassNodeStatus::ACTIVE };
         FramePassExecutionPolicy ExecutionPolicy{ FramePassExecutionPolicy::PER_FRAME };
+
+        std::function<void( CommandContext &, FrameGraphBlackboard & )> ExecuteCallback{};
 
         bool IsDirty{ true };
         bool HasExecuted{ false };
@@ -110,15 +114,14 @@ namespace Mikoto {
     private:
         friend class FramePassBuilder;
         bool IsBuilt{ false };
-
     };
 
     class FramePassBuilder final {
     public:
         explicit FramePassBuilder( FramePassNode &node );
 
-        auto Use( SRGType type ) -> FramePassBuilder&;
-        auto Use( SRGType type, std::string_view name, UInt32 bindSlot ) -> FramePassBuilder&;
+        auto Use( ResourceGroup type ) -> FramePassBuilder&;
+        auto Use( ResourceGroup type, std::string_view name, UInt32 bindSlot ) -> FramePassBuilder&;
 
         // state indicates the state the resource needs to be in for this pass, this may imply setting
         // a barrier for transition on the resource before the pass starts (only if needed)

@@ -430,7 +430,7 @@ namespace Mikoto {
 
                     b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
-                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 );
+                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
 
                     // The first mesh of the box model should be the only one,
                     // we get the index and vertex buffers from it
@@ -517,7 +517,7 @@ namespace Mikoto {
                     b.Write( "DirectionalShadowMapPass_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::DepthWrite );
 
-                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 0 );
+                    b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 0 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
@@ -659,12 +659,12 @@ namespace Mikoto {
                     // Create dependency between this pass and debug view pass
                     b.Write( "FinalShading_Params", FrameResourceState::UniformBuffer );
 
-                    b.Use( SRGType::SRG_PerPass, "CameraInfoPass_CameraData", 0 )
-                        .Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 1 )
-                        .Use( SRGType::SRG_PerPass, "AABBGenComp_Clusters", 2 )
-                        .Use( SRGType::SRG_PerPass, "LightCullingComp_LightsBuffer", 3 )
-                        .Use( SRGType::SRG_PerPass, "ScatteredWrites_MeshSkinnedMatrices", 7 )
-                        .Use( SRGType::SRG_Textures );
+                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 )
+                        .Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 )
+                        .Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 2 )
+                        .Use( ResourceGroup::Dynamic, "LightCullingComp_LightsBuffer", 3 )
+                        .Use( ResourceGroup::Dynamic, "ScatteredWrites_MeshSkinnedMatrices", 7 )
+                        .Use( ResourceGroup::GlobalTextures );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();

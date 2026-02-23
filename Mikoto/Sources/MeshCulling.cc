@@ -78,9 +78,9 @@ namespace Mikoto {
                     // This pass goes after mesh culling
                     b.Read( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
 
-                    b.Use( SRGType::SRG_PerPass, "FinalBuffer_ObjectInfo", 0 );
-                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_MeshData", 1 );
-                    b.Use( SRGType::SRG_PerPass, "ScatteredWrites_MeshDataIndices", 2 );
+                    b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 0 );
+                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_MeshData", 1 );
+                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_MeshDataIndices", 2 );
                 },
                 [this]( CommandContext &ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();

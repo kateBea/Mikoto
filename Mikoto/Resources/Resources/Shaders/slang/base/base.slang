@@ -15,10 +15,9 @@
 // ============================================================================
 // Descriptor Set Indices
 // ============================================================================
-static const int TEXTURES_SETINDEX  = 0;
-static const int PERFRAME_SETINDEX  = 1;
-static const int PERPASS_SETINDEX   = 2;
-static const int STATIC_SETINDEX    = 3;
+static const int TEXTURES_SET_INDEX  = 0;
+static const int DYNAMIC_SET_INDEX   = 2;
+static const int STATIC_SET_INDEX    = 3;
 
 static const int INVALID_TEXTURE_INDEX = -1;
 

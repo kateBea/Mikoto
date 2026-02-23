@@ -25,23 +25,18 @@
 
 namespace  Mikoto {
 
-    enum class SRGType {
-        SRG_Textures, // Global list of textures visible to all passes
-        SRG_PerFrame, // Block of data that can be shared between passes
-        SRG_PerPass, // Block of data unique to a pass
-        SRG_Constants, // Small data that can be sent per draw call
+    enum class ResourceGroup {
+        GlobalTextures,
+        Dynamic,
+        Static,
+        Constants,
     };
 
-    // return true if lhs == rhs
-    constexpr auto IsSRGType(SRGType lhs, SRGType rhs) -> bool {
-        return lhs == rhs;
-    }
-
-    class SRGBase {
+    class ResourceGroupBase {
     public:
-        virtual ~SRGBase() = default;
+        virtual ~ResourceGroupBase() = default;
 
-        MKT_NODISCARD auto GetType() const -> SRGType { return m_Type; }
+        MKT_NODISCARD auto GetType() const -> ResourceGroup { return m_Type; }
 
         MKT_NODISCARD auto IsDirty() const -> bool { return m_IsDirty; }
 
@@ -49,20 +44,20 @@ namespace  Mikoto {
         auto ClearDirty() -> void { m_IsDirty = false; }
 
     protected:
-        explicit SRGBase( const SRGType type) : m_Type{ type } {}
+        explicit ResourceGroupBase( const ResourceGroup type) : m_Type{ type } {}
 
-        SRGType m_Type{};
+        ResourceGroup m_Type{};
 
         bool m_IsDirty{ true };
     };
 
-    class SRGTextures : public SRGBase {
+    class GlobalTextures : public ResourceGroupBase {
     public:
         static constexpr Int32 INVALID_TEXTURE_INDEX{ -1 };
 
     public:
 
-        explicit SRGTextures() : SRGBase{ SRGType::SRG_Textures } {}
+        explicit GlobalTextures() : ResourceGroupBase{ ResourceGroup::GlobalTextures } {}
 
         MKT_NODISCARD auto Bind(TextureHandle texture, SamplerHandle sampler) -> Int32;
         MKT_NODISCARD auto Contains(TextureHandle texture, SamplerHandle sampler) -> bool;
@@ -80,11 +75,10 @@ namespace  Mikoto {
         ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, Size> m_Resources{};
     };
 
-    // Represents block of data that is passes before every draw call
-    class SRGConstants final : public SRGBase {
+    class ConstantsGroup final : public ResourceGroupBase {
     public:
 
-        explicit SRGConstants() : SRGBase{ SRGType::SRG_Constants } {}
+        explicit ConstantsGroup() : ResourceGroupBase{ ResourceGroup::Constants } {}
 
         auto SetData(const void* ptr, Size size) -> void;
 
@@ -100,9 +94,9 @@ namespace  Mikoto {
         Size m_SizeBytes{};
     };
 
-    class SRGPerPass : public SRGBase {
+    class CommonResourceGroup final : public ResourceGroupBase {
     public:
-        explicit SRGPerPass() : SRGBase{ SRGType::SRG_PerPass } {}
+        explicit CommonResourceGroup( ResourceGroup type = ResourceGroup::Dynamic ) : ResourceGroupBase{ type } {}
 
         auto SetBuffer(std::string_view name, UInt32 binding) -> void;
         auto SetTexture(std::string_view textureName, std::string_view samplerName, UInt32 binding) -> void;
@@ -125,13 +119,6 @@ namespace  Mikoto {
         };
 
         ankerl::unordered_dense::map<std::string, Entry> m_Resources{};
-
-    };
-
-    class SRGPerFrame : public SRGBase {
-    public:
-
-        explicit SRGPerFrame() : SRGBase{ SRGType::SRG_PerFrame } {}
 
     };
 }

@@ -23,7 +23,7 @@ struct FSOutput {
     float4 color : SV_Target;
 };
 
-[[vk::binding(0, TEXTURES_SETINDEX)]]
+[[vk::binding(0, TEXTURES_SET_INDEX)]]
 Sampler2D g_BindlessTextures[];
 
 struct HelloTextureUniformBuffer {

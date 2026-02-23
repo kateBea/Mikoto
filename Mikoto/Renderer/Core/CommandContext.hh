@@ -15,25 +15,22 @@
 #ifndef MIKOTO_COMMAND_CONTEXT_HH
 #define MIKOTO_COMMAND_CONTEXT_HH
 
-#include <string_view>
-#include <vector>
-#include <initializer_list>
-
 #include <ankerl/unordered_dense.h>
 
-#include <Assets/Model.hh>
 #include <Assets//Texture.hh>
-#include <Material/Material.hh>
-
+#include <Assets/Model.hh>
 #include <Library/Utility/Types.hh>
-
+#include <Material/Material.hh>
 #include <Renderer/Core/Buffer.hh>
-#include <Renderer/Core/Light.hh>
-#include <Renderer/Core/Pipeline.hh>
-#include <Renderer/Core/SRGBase.hh>
+#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/GraphicsContext.hh>
-#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/Light.hh>
+#include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Core/ResourceGroupBase.hh>
+#include <initializer_list>
+#include <string_view>
+#include <vector>
 
 namespace Mikoto {
 
@@ -83,6 +80,8 @@ namespace Mikoto {
         auto Draw(UInt32 vertexCount, UInt32 instanceCount = 1, UInt32 firstVertex = 0, UInt32 firstInstance = 0 ) -> void;
         auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
 
+        auto PushConstants(const void* ptr, Size size) -> void;
+
         auto UploadBufferData(std::string_view bufferName, const void* buffer, Size elementSize, Size elementCount) const -> void;
 
         template<typename T>
@@ -97,13 +96,6 @@ namespace Mikoto {
 
         auto UploadBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
 
-        template<typename Container>
-       auto UploadData(std::string_view bufferName, const Container& data, Size elementCount ) -> void {
-            UploadContainer( bufferName, data.data(), elementCount * sizeof(Container::value_type) );
-        }
-
-        auto PushConstants(const void* ptr, Size size) -> void;
-
         MKT_NODISCARD auto PushTexture(TextureHandle texture ) const -> Int32;
         MKT_NODISCARD auto GetNamedBuffer( std::string_view ) const -> BufferHandle;
 
@@ -113,11 +105,6 @@ namespace Mikoto {
         auto RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void;
 
         auto CreateSampler( SamplerDescription samplerDescription ) -> SamplerHandle;
-
-    private:
-        auto UploadContainer( std::string_view dstBuffer, const void* ptrSrc, Size size) -> void;
-
-    private:
 
         CommandListHandle m_Commands{};
 

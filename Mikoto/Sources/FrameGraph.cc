@@ -69,7 +69,7 @@ namespace Mikoto {
     }
 
     auto FramePassNode::HasResources() const -> bool {
-        return !this->PerPassShaderResources.IsEmpty();
+        return !this->DynamicResourceGroup.IsEmpty();
     }
 
     auto BufferBuilder::ForElement( Size size, Size count ) -> BufferBuilder & {
@@ -130,9 +130,9 @@ namespace Mikoto {
         return *this;
     }
 
-    auto FramePassBuilder::Use( SRGType type ) -> FramePassBuilder& {
+    auto FramePassBuilder::Use( ResourceGroup type ) -> FramePassBuilder& {
         switch (type) {
-            case SRGType::SRG_Textures:
+            case ResourceGroup::GlobalTextures:
                 m_UsesTextures = true;
                 break;
             default: ;
@@ -141,10 +141,10 @@ namespace Mikoto {
         return *this;
     }
 
-    auto FramePassBuilder::Use( SRGType type, std::string_view name, UInt32 bindSlot ) -> FramePassBuilder& {
+    auto FramePassBuilder::Use( ResourceGroup type, std::string_view name, UInt32 bindSlot ) -> FramePassBuilder& {
         switch (type) {
-            case SRGType::SRG_PerPass:
-                m_Node->PerPassShaderResources.SetBuffer( name, bindSlot );
+            case ResourceGroup::Dynamic:
+                m_Node->DynamicResourceGroup.SetBuffer( name, bindSlot );
                 break;
             default: ;
         }
@@ -277,7 +277,7 @@ namespace Mikoto {
 
     auto FrameGraph::Compile() -> void {
         for (auto& node : m_Passes | std::views::values) {
-            m_GraphicsContex->UpdateResourceBindings( node.Name, node.PerPassShaderResources );
+            m_GraphicsContex->UpdateResourceBindings( node.Name, node.DynamicResourceGroup );
         }
 
         SortPassExecution();

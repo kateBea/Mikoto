@@ -57,9 +57,7 @@ namespace Mikoto {
         auto CreateSampler( SamplerDescription& description ) -> SamplerHandle  override;
         auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void override;
 
-        auto CopyToDevice(const void* ptr, Size size, BufferHandle dst,  CommandListHandle cmd) -> void override;
-
-        auto UpdateResourceBindings( std::string_view passName, SRGPerPass& passData ) -> void override;
+        auto UpdateResourceBindings( std::string_view passName, CommonResourceGroup& passData ) -> void override;
         auto PrepareResourceBindings( std::string_view passName, PipelineDescription& desc ) -> void override;
         auto BindShaderResources( std::string_view passName, CommandListHandle cmdList ) -> void override;
 
@@ -68,7 +66,7 @@ namespace Mikoto {
 
         auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void  override;
         auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void  override;
-        auto PushConstants( std::string_view passName, const SRGConstants& constants, CommandListHandle cmd ) -> void override;
+        auto PushConstants( std::string_view passName, const ConstantsGroup& constants, CommandListHandle cmd ) -> void override;
 
         auto InsertResourceBarrier(BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
         auto InsertResourceBarrier(TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
@@ -76,7 +74,7 @@ namespace Mikoto {
         ~VulkanGraphicsContext() override = default;
 
     private:
-        auto UpdatePassDescriptors(std::string_view passName, SRGPerPass& passData) -> void;
+        auto UpdatePassDescriptors(std::string_view passName, CommonResourceGroup& passData) -> void;
         auto CreatePassDescriptors(std::string_view passName, PipelineDescription& desc) -> void;
         auto CreatePipeline( PipelineDescription& description ) -> PipelineHandle;
 
@@ -129,7 +127,7 @@ namespace Mikoto {
         std::vector<SamplerHandle> m_Samplers{};
 
         // Global list of sampled textures
-        SRGTextures m_SrgTextures{};
+        GlobalTextures m_SrgTextures{};
 
         // Cached dynamic buffers. These will be staging buffers that we copy data to and upload to GPU
         // Staging -> Actual Device only GPU

@@ -248,9 +248,4 @@ namespace Mikoto {
 
         return m_Context->CreateSampler( samplerDescription );
     }
-
-    auto CommandContext::UploadContainer( std::string_view dstBuffer, const void *ptrSrc, Size size ) -> void {
-        BufferHandle buffer{ m_Context->GetBuffer( dstBuffer ) };
-        m_Context->CopyToDevice( ptrSrc, size, buffer, m_Commands );
-    }
 }

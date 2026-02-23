@@ -192,7 +192,7 @@ namespace Mikoto {
                         continue;
                     }
 
-                    if (PER_PASS_DESCRIPTOR_SET_INDEX == setIndex) {
+                    if (DYNAMIC_DESCRIPTOR_SET_INDEX == setIndex) {
                         if (it->second.DynamicOffsets.size() != it->second.BuffersBindings.size()) {
                             it->second.DynamicOffsets.clear();
                             for ( const auto &val: it->second.BuffersBindings | std::views::values ) {
@@ -262,7 +262,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanGraphicsContext::UpdatePassDescriptors(  std::string_view passName, SRGPerPass& passData ) -> void {
+    auto VulkanGraphicsContext::UpdatePassDescriptors(  std::string_view passName, CommonResourceGroup& passData ) -> void {
         const auto it{ m_PassInfo.find( std::string{ passName } ) };
 
         if (it != m_PassInfo.end() && passData.IsDirty()) {
@@ -333,7 +333,7 @@ namespace Mikoto {
         // https://www.reddit.com/r/vulkan/comments/1l53wth/does_vkcmdbinddescriptorsets_invalidate_sets_with/
 
         // There was an Issue with the GBuffer pass which used a push constant but this pipeline layout declares none
-        const UInt32 maxBindlessTextures{ SRGTextures::GetMaxTextureCount() };
+        const UInt32 maxBindlessTextures{ GlobalTextures::GetMaxTextureCount() };
 
         VkDescriptorSetLayoutBinding binding{};
         binding.binding = TEXTURES_DESCRIPTOR_SET_INDEX;
@@ -428,7 +428,7 @@ namespace Mikoto {
 
         // If the combined buffer does not exist
         auto setIndex{ handle->IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) ? 
-            PER_PASS_DESCRIPTOR_SET_INDEX : STATIC_DESCRIPTOR_SET_INDEX };
+            DYNAMIC_DESCRIPTOR_SET_INDEX : STATIC_DESCRIPTOR_SET_INDEX };
         if (!it->second.Buffers.contains( handle.GetRaw() )) {
 
             PushBuffer( handle, bindingSlot, it->second.DescriptorSets[setIndex] );
@@ -468,7 +468,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanGraphicsContext::PushConstants( std::string_view passName, const SRGConstants &constants, CommandListHandle cmd ) -> void {
+    auto VulkanGraphicsContext::PushConstants( std::string_view passName, const ConstantsGroup &constants, CommandListHandle cmd ) -> void {
         const auto it{ m_PassInfo.find( StringUtil::From( passName ) ) };
         if (it == m_PassInfo.end()) {
             return;
@@ -540,7 +540,7 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void {
-        MKT_ASSERT(setIndex < SRGTextures::GetMaxTextureCount(), "Set index must be smaller than max bindless textures");
+        MKT_ASSERT(setIndex < GlobalTextures::GetMaxTextureCount(), "Set index must be smaller than max bindless textures");
 
         VkSampler vkSampler{ sampler->GetNativeHandle( ObjectType::Vk_Sampler ) };
         VkImageView vkImageView{ texture->GetNativeHandle( ObjectType::Vk_ImageView ) };
@@ -552,7 +552,7 @@ namespace Mikoto {
 
     auto VulkanGraphicsContext::PushGlobalTexture( TextureHandle texture ) -> Int32 {
         if (texture.IsEmpty()) {
-            return SRGTextures::INVALID_TEXTURE_INDEX;
+            return GlobalTextures::INVALID_TEXTURE_INDEX;
         }
 
         SamplerHandle sampler{ m_Device->GetDummySampler() };
@@ -560,13 +560,13 @@ namespace Mikoto {
 
         // If combined sampler has already been registered return its index
         Int32 index{ m_SrgTextures.GetIndex(texture, sampler) };
-        if (index != SRGTextures::INVALID_TEXTURE_INDEX) {
+        if (index != GlobalTextures::INVALID_TEXTURE_INDEX) {
             return index;
         }
 
         // If combined sampler does not exist, register it
         Int32 result{ m_SrgTextures.Bind( texture, sampler ) };
-        if (result != SRGTextures::INVALID_TEXTURE_INDEX) {
+        if (result != GlobalTextures::INVALID_TEXTURE_INDEX) {
             UpdateBindlessTexturesSet( texture.GetRaw(), sampler.GetRaw(), result );
         }
 
@@ -721,16 +721,7 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanGraphicsContext::CopyToDevice( const void *ptr, Size size, BufferHandle dst, CommandListHandle cmd ) -> void {
-        if (m_DeviceLocalBuffers[dst.GetRaw()].IsEmpty()) {
-            m_DeviceLocalBuffers[dst.GetRaw()] = m_Device->CreateStaging( nullptr, dst->GetSizeBytes() );
-        }
-
-        m_DeviceLocalBuffers[dst.GetRaw()]->CopyToDevice( ptr, size );
-        cmd->CopyBuffer( m_DeviceLocalBuffers[dst.GetRaw()].GetRaw(), dst.GetRaw() );
-    }
-
-    auto VulkanGraphicsContext::UpdateResourceBindings( std::string_view passName, SRGPerPass& passData ) -> void {
+    auto VulkanGraphicsContext::UpdateResourceBindings( std::string_view passName, CommonResourceGroup& passData ) -> void {
         UpdatePassDescriptors( passName, passData );
     }
  }

@@ -329,6 +329,16 @@ namespace Mikoto {
                                .WithPath( assimpTexturePath.C_Str() )
                                .Build() };
 
+                    constexpr std::string_view tifExt{ ".tif" };
+                    constexpr std::string_view pngExt{ ".png" };
+
+                    // FIXME:
+                    // Some models use TIF extension, if they offer a PNG variant use PNG instead
+                    // as we do not have a TIF decoder for the time being
+                    if (StringUtil::Equal( path.extension().string(), tifExt )) {
+                        path.replace_extension(pngExt);
+                    }
+
                     TextureLoadDescription loadInfo{};
                     loadInfo.WithFile( FileService::Get()->LoadFile( path ) )
                             .WithType( InferMikotoTextureType( type ) )

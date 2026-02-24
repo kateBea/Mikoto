@@ -34,7 +34,7 @@ Sampler2D g_BindlessTextures[];
 HelloTextureUniformBuffer u_MetaData;
 
 [shader("fragment")]
-FSOutput fragMain(FSInput input) {
+FSOutput main(FSInput input) {
     FSOutput o;
     if (u_MetaData.TextureIndex != INVALID_TEXTURE_INDEX) {
         o.color = g_BindlessTextures[u_MetaData.TextureIndex].Sample(input.texCoord);

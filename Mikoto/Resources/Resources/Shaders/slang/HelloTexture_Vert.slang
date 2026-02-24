@@ -39,7 +39,7 @@ static const float3 colors[3] = {
 };
 
 [shader("vertex")]
-VSOutput vertMain(uint vid: SV_VertexID) {
+VSOutput main(uint vid: SV_VertexID) {
     VSOutput o;
     o.position = float4(positions[vid], 0.0, 1.0);
     o.texCoord = texCoords[vid];

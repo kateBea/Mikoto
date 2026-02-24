@@ -17,8 +17,7 @@
 [[vk::binding(0, DYNAMIC_SET_INDEX)]]
 RWStructuredBuffer<uint> OutputBuffer;
 
-bool isPrime(uint n)
-{
+bool IsPrime(uint n) {
     if (n < 2) return false;
     if (n == 2) return true;
     if ((n & 1) == 0) return false;
@@ -33,11 +32,10 @@ bool isPrime(uint n)
 
 [numthreads(64, 1, 1)]
 [shader("compute")]
-void computeMain(uint3 gid: SV_DispatchThreadID)
-{
+void main(uint3 gid: SV_DispatchThreadID) {
     uint idx = gid.x;
 
-    if (isPrime(idx))
+    if (IsPrime(idx))
         OutputBuffer[idx] = idx;
     else
         OutputBuffer[idx] = 0;

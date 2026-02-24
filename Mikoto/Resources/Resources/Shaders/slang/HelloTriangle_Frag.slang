@@ -13,6 +13,6 @@
 // limitations under the License.
 
 [shader("fragment")]
-float4 fragMain(float3 col : COLOR0) : SV_Target {
+float4 main(float3 col : COLOR0) : SV_Target {
     return float4(col, 1.0);
 }

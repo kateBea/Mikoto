@@ -31,7 +31,7 @@ struct VSOutput {
 };
 
 [shader("vertex")]
-VSOutput vertMain(uint vid : SV_VertexID) {
+VSOutput main(uint vid : SV_VertexID) {
     VSOutput result;
     // look up the position and color by index
     result.sv_position = float4(positions[vid], 0.0, 1.0);

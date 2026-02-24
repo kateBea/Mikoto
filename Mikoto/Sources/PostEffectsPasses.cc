@@ -50,7 +50,6 @@ namespace Mikoto {
 
         RegisterTextRender( graph, device );
         RegisterTextRenderScatterWrites( graph );
-        RegisterInfiniteGrid( graph );
         //RegisterSSAO( graph );
         RegisterBloom( graph );
     }
@@ -382,61 +381,6 @@ namespace Mikoto {
                 },
                 []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
-                } );
-    }
-
-    auto PostEffectsPass::RegisterInfiniteGrid( FrameGraph& graph ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        graph.RegisterPass(
-                "InfiniteGrid",
-                [this]( FramePassBuilder& b ) {
-                    MKT_BEGIN_PROFILER_NAMED();
-
-                    b.Create<Texture>( "InfiniteGrid_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/InfiniteGrid_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/InfiniteGrid_Frag.sprv", ShaderStage::FRAGMENT );
-
-                    b.Create<Pipeline>( "InfiniteGrid_Pipeline", GraphicsPipelineDescription{
-                                                                         .DepthTest{ true },
-                                                                         .DepthWrite{ false },
-                                                                         .PipelinePolygonMode{ PolygonMode::LINES },
-                                                                         .PrimitiveTopology{ Topology::TRIANGLE_LIST },
-                                                                         .VertexAttributesSpec{} } );
-
-                    b.Write( "InfiniteGrid_ColorTarget", FrameResourceState::RenderTarget );
-
-                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
-                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
-
-                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess );
-
-                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                },
-                [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
-
-                    const auto dimensions{ InferDimensions( m_Resolution ) };
-
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
-                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
-
-                    ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
-
-                    ctx.SetColorRenderTarget( "InfiniteGrid_ColorTarget" );
-
-                    PassRenderInfo renderInfo{
-                        .ColorLoadOp{ LoadOp::CLEAR },
-                        .DephtLoadOp{ LoadOp::CLEAR },
-                    };
-                    ctx.BeginRender( renderInfo );
-
-                    ctx.BindPipeline( "InfiniteGrid_Pipeline" );
-
-                    ctx.Draw( 4 );
-
-                    ctx.EndRender();
                 } );
     }
 

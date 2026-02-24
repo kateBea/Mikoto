@@ -54,6 +54,7 @@ namespace Mikoto {
         RegisterHelloTexture( graph );
         RegisterSimpleCompute( graph );
         RegisterHelloTriangle( graph );
+        RegisterInfiniteGrid( graph );
 
         RegisterDebugViewsPass( graph );
     }
@@ -146,18 +147,20 @@ namespace Mikoto {
                     b.Write( "HelloTriangle_ColorTarget", FrameResourceState::RenderTarget );
                     b.Write( "HelloTriangle_DepthTarget", FrameResourceState::DepthWrite );
                 },
-                []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                     ctx.BindPipeline( "HelloTriangle_Pipeline" );
 
-                    ctx.SetViewport( 0, 0, 1920, 1080 );
-                    ctx.SetScissor( 0, 0, 1920, 1080 );
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
                     ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
                     ctx.SetColorRenderTarget( "HelloTriangle_ColorTarget" );
                     ctx.SetDepthRenderTarget( "HelloTriangle_DepthTarget" );
                     ctx.BeginRender();
 
-                    ctx.Draw( 3, 1, 0, 0 );
+                    ctx.Draw( 3 );
 
                     ctx.EndRender();
                 } );
@@ -196,7 +199,59 @@ namespace Mikoto {
     }
 
     auto DebugPasses::RegisterInfiniteGrid( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
+        graph.RegisterPass(
+                "InfiniteGrid",
+                [this]( FramePassBuilder &b ) {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    b.Create<Texture>( "InfiniteGrid_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/InfiniteGrid_Vert.sprv", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/vulkan-spirv/InfiniteGrid_Frag.sprv", ShaderStage::FRAGMENT );
+
+                    b.Create<Pipeline>( "InfiniteGrid_Pipeline", 
+                        GraphicsPipelineDescription{
+                            .DepthTest{ true },
+                            .DepthWrite{ false },
+                            .PipelinePolygonMode{ PolygonMode::LINES },
+                            .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                            .VertexAttributesSpec{} } );
+
+                    b.Write( "InfiniteGrid_ColorTarget", FrameResourceState::RenderTarget );
+
+                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
+                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
+
+                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess );
+
+                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                },
+                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                    MKT_BEGIN_PROFILER_NAMED();
+
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
+
+                    ctx.SetColorRenderTarget( "InfiniteGrid_ColorTarget" );
+
+                    PassRenderInfo renderInfo{
+                        .ColorLoadOp{ LoadOp::CLEAR },
+                        .DephtLoadOp{ LoadOp::CLEAR },
+                    };
+                    ctx.BeginRender( renderInfo );
+
+                    ctx.BindPipeline( "InfiniteGrid_Pipeline" );
+
+                    ctx.Draw( 4 );
+
+                    ctx.EndRender();
+                } );
     }
 
     auto DebugPasses::RegisterHelloCube( FrameGraph &graph ) -> void {
@@ -237,8 +292,9 @@ namespace Mikoto {
 
                     ctx.BindPipeline( "HelloTexture_Pipeline" );
 
+                    const auto flip{ false };
                     const auto dimensions{ InferDimensions( m_Resolution ) };
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, flip );
                     ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
                     ctx.SetClearColor( { 0.5f, 0.2f, 0.3f, 1.0f } );
@@ -254,13 +310,14 @@ namespace Mikoto {
 
     auto DebugPasses::RegisterDebugViewsPass( FrameGraph &graph ) -> void {
         graph.RegisterPass(
-                "DebugViewsForDebugPasses",
-                []( FramePassBuilder &b ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
-                    b.Read( "Wireframe_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
-                },
-                []( CommandContext &, FrameGraphBlackboard & ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
-                } );
+            "DebugViewsForDebugPasses",
+            []( FramePassBuilder &b ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+                b.Read( "Wireframe_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "InfiniteGrid_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+            },
+            []( CommandContext &, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
     }
 }

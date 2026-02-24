@@ -12,18 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include <filesystem>
 #include <memory>
 #include <stdexcept>
 
 #include <volk.h>
 
-// TODO: required by gli
-#define GLM_STATIC_ASSERT(x, message) static_assert(x, message)
-#include <gli/gli.hpp>
+#include <ktx.h>
 
 #include <Common/Common.hh>
+#include <Common/String.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/HdriToCubemap.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
@@ -598,56 +596,99 @@ namespace Mikoto {
     }
 
     auto VulkanTextureCube::LoadWithImageLoader() -> void {
-        gli::texture_cube texCube(gli::load(m_TextureFaces[0]->GetPath()));
+        ktxTexture* kTexture{};
+        KTX_error_code result = ktxTexture_CreateFromNamedFile(
+                m_TextureFaces[0]->GetPath().c_str(),
+                KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                &kTexture );
 
-        m_Width = static_cast<UInt32>(texCube.extent().x);
-        m_Height = static_cast<UInt32>(texCube.extent().y);
-        m_MipLevels = static_cast<UInt32>(texCube.levels());
+        if ( result != KTX_SUCCESS ) {
+            MKT_THROW_RUNTIME_ERROR( "Failed to load KTX texture cube" );
+        }
 
-        BufferHandle staging{ TO_VK_DEVICE( m_Device )->CreateStaging( texCube.data(), texCube.size() ) };
+        // Make sure it's a cube map
+        if ( !kTexture->isCubemap || kTexture->numFaces != 6 ) {
+            ktxTexture_Destroy( kTexture );
+            MKT_THROW_RUNTIME_ERROR( "KTX texture is not a cubemap!" );
+        }
 
-        Size offset{};
-        std::vector<VkBufferImageCopy> bufferCopyRegions{};
+        // Cast to ktxTexture2 for easier access
+        const ktxTexture2* tex{ reinterpret_cast<ktxTexture2*>( kTexture ) };
 
-        for (UInt32 face{}; face < MAX_CUBE_MAP_FACES; face++) {
-            for (UInt32 level{}; level < m_MipLevels; level++) {
-                VkBufferImageCopy bufferCopyRegion = {};
-                bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                bufferCopyRegion.imageSubresource.mipLevel = level;
-                bufferCopyRegion.imageSubresource.baseArrayLayer = face;
-                bufferCopyRegion.imageSubresource.layerCount = 1;
-                bufferCopyRegion.imageExtent.width = static_cast<UInt32>(texCube[face][level].extent().x);
-                bufferCopyRegion.imageExtent.height = static_cast<UInt32>(texCube[face][level].extent().y);
-                bufferCopyRegion.imageExtent.depth = 1;
-                bufferCopyRegion.bufferOffset = offset;
+        m_Width = tex->baseWidth;
+        m_Height = tex->baseHeight;
+        m_MipLevels = tex->numLevels;
 
-                bufferCopyRegions.push_back(bufferCopyRegion);
+        UInt32 faceCount{ tex->numFaces };
 
-                // Increase offset into staging buffer for next level / face
-                offset += texCube[face][level].size();
+        MKT_ASSERT( faceCount == MAX_CUBE_MAP_FACES, StringUtil::Format( "Image contains unexpected number of faces. Face count {}", faceCount) );
+
+        // Raw texture data pointer
+        const Size rawSize{ ktxTexture_GetDataSize( kTexture ) };
+        const auto* rawData{ ktxTexture_GetData( kTexture ) };
+
+        BufferHandle staging{ TO_VK_DEVICE( m_Device )->CreateStaging( rawData, rawSize ) };
+
+        std::vector<VkBufferImageCopy> copyRegions{};
+        copyRegions.reserve( faceCount * m_MipLevels );
+
+        for ( UInt32 face{}; face < faceCount; face++ ) {
+            for ( UInt32 level{}; level < m_MipLevels; level++ ) {
+                // Query size + offset from KTX
+                ktx_size_t offset{};
+                KTX_error_code err{ ktxTexture_GetImageOffset( kTexture, level, 0, face, &offset ) };
+
+                if ( err != KTX_SUCCESS ) {
+                    ktxTexture_Destroy( kTexture );
+                    MKT_THROW_RUNTIME_ERROR( "Failed to get KTX image offset" );
+                }
+
+                //ktx_size_t levelSize{ ktxTexture_GetImageSize( kTexture, level ) };
+
+                // Level dimensions
+                // KTX does not store size for each mip, each mip level is half the previous size.
+                UInt32 w{ std::max( 1u, tex->baseWidth >> level ) };
+                UInt32 h{ std::max( 1u, tex->baseHeight >> level ) };
+
+                VkBufferImageCopy region{};
+                region.bufferOffset = offset;
+
+                region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                region.imageSubresource.mipLevel = level;
+                region.imageSubresource.baseArrayLayer = face;
+                region.imageSubresource.layerCount = 1;
+
+                region.imageExtent.width = w;
+                region.imageExtent.height = h;
+                region.imageExtent.depth = 1;
+
+                copyRegions.push_back( region );
             }
         }
 
         CreateImageResource();
 
-        CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
+        CommandListHandle cmd = m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true );
         cmd->Begin();
 
-        SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
+        SubmitLayoutTransition( VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
 
         vkCmdCopyBufferToImage(
-            cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
-            staging->GetNativeHandle( ObjectType::Vk_Buffer ),
-            GetNativeHandle( ObjectType::Vk_Image ),
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            static_cast<UInt32>(bufferCopyRegions.size()),
-            bufferCopyRegions.data());
+                cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                staging->GetNativeHandle( ObjectType::Vk_Buffer ),
+                GetNativeHandle( ObjectType::Vk_Image ),
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                static_cast<uint32_t>( copyRegions.size() ),
+                copyRegions.data() );
 
-        SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
+        SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) );
 
         cmd->End();
         m_Device->SubmitCommands( cmd );
 
+        ktxTexture_Destroy( kTexture );
     }
 
     auto VulkanTextureCube::SetDebugInfo() -> void {

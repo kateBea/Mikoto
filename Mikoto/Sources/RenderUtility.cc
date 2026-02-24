@@ -15,10 +15,6 @@
 // Implementation provided by tinygltf
 #include <stb_image.h>
 
-// TODO: required by gli
-#define GLM_STATIC_ASSERT(x, message) static_assert(x, message)
-#include <gli/gli.hpp>
-
 #include <Assets/Texture.hh>
 #include <Common/Common.hh>
 #include <Core/Exception.hh>
@@ -187,15 +183,7 @@ namespace Mikoto {
     }
 
     ImageLoaderCube::ImageLoaderCube( const Path& fileName ) {
-        gli::texture_cube texCube(gli::load(fileName.string()));
 
-        m_Data = new Byte[texCube.size()];
-        memcpy(m_Data, texCube.data(), texCube.size());
-
-        m_Width = texCube.extent().x;
-        m_Height = texCube.extent().y;
-        m_Size = texCube.size();
-        m_MipLevels = static_cast<Int32>(texCube.levels());
     }
 
     ImageLoaderCube::~ImageLoaderCube() {

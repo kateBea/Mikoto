@@ -47,9 +47,19 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(FetchContent)
 
 # ======================================
-# GLI
+# KTX
 # ======================================
-set(GLI_TEST_ENABLE OFF CACHE BOOL "No build unit tests" FORCE)
+set(KTX_FEATURE_TESTS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_DOC OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_JNI OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_PY OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_JS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TOOLS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TOOLS_CTS OFF CACHE BOOL "" FORCE)
+
+set(KTX_FEATURE_KTX2 ON CACHE BOOL "" FORCE)
+set(KTX_FEATURE_WRITE ON CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TRANSCODE ON CACHE BOOL "" FORCE)
 
 # ======================================
 # MeshOptimizer
@@ -555,15 +565,15 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(tinygltf)
 
 # -------------------------------------------------------
-# GLI
+# KTX-Software
 # -------------------------------------------------------
 FetchContent_Declare(
-        gli
-        GIT_REPOSITORY https://github.com/g-truc/gli.git
-        GIT_TAG        master
+        ktx
+        GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software.git
+        GIT_TAG        v4.4.2
 )
 
-FetchContent_MakeAvailable(gli)
+FetchContent_MakeAvailable(ktx)
 
 # ======================================
 # Project sources
@@ -645,7 +655,7 @@ set(LIBRARIES
         ozz_animation_offline
         meshoptimizer
         tinygltf
-        gli
+        ktx
         ${SLANG_LIBS}
 )
 
@@ -730,7 +740,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
         ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include
         ${ozz_SOURCE_DIR}/include
-        ${gli_SOURCE_DIR}
+        ${ktx_SOURCE_DIR}
         ${meshoptimizer_SOURCE_DIR}/src
         ${tinygltf_SOURCE_DIR}
         ${IMGUI_NO_EDITOR_INCLUDE_DIR}

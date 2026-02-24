@@ -12,8 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <assimp/postprocess.h>
+#include <cstdlib>
+#include <memory>
+#include <vector>
+#include <array>
+
 #include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <assimp/GltfMaterial.h>
+#include <assimp/DefaultLogger.hpp>
 
 #include <Assets/AssetsService.hh>
 #include <Assets/MainImporter.hh>
@@ -28,14 +35,8 @@
 #include <Renderer/Core/RenderService.hh>
 #include <Renderer/Core/RenderUtility.hh>
 #include <Threading/ThreadUtility.hh>
-#include <array>
-#include <assimp/DefaultLogger.hpp>
-#include <cstdlib>
-#include <memory>
-#include <vector>
 
-#include "Renderer/Passes/ShaderParameteres.hh"
-#include "assimp/GltfMaterial.h"
+#include <Renderer/Passes/ShaderParameteres.hh>
 
 namespace Mikoto {
 
@@ -75,7 +76,7 @@ namespace Mikoto {
         
         Mat4F to{};
         // The a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
-        // We are basically doing a traspose oporation
+        // We are basically doing a transpose operation
 
         to[0][0] = from.a1;
         to[1][0] = from.a2;
@@ -212,15 +213,12 @@ namespace Mikoto {
     }
 
     static auto LoadBoneWeights( const aiMesh *mesh, MeshNodeData &meshNodeData, Skeleton& skeleton ) -> void {
-        // We load all bones and weights from this mesh once
-        Int32 boneCount{ static_cast<Int32>( skeleton.GetBoneCount() ) };
-
         MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_AQUA, "Mesh {} has [{}] bones\n", mesh->mName.C_Str(), mesh->mNumBones );
 
         for ( Int32 boneIndex{}; boneIndex < mesh->mNumBones; ++boneIndex ) {
             std::string boneName{ mesh->mBones[boneIndex]->mName.C_Str() };
 
-            // This should not happen because we first load the skeleton and then we load the meshes
+            // This should not happen because we first load the skeleton, and then we load the meshes
             MKT_ASSERT( skeleton.HasJoint( boneName ), StringUtil::Format( "Bone {} not found in skeleton", boneName ) );
 
             Joint* joint{ skeleton.FindJoint( boneName ) };

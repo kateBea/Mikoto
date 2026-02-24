@@ -410,8 +410,8 @@ namespace Mikoto {
                 [this]( FramePassBuilder &b ) {
                     MKT_BEGIN_PROFILER_NAMED();
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/Skybox_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/Skybox_Frag.sprv", ShaderStage::FRAGMENT );
+                    b.UseShader( "Resources/Shaders/slang/Skybox_Vert.slang", ShaderStage::VERTEX );
+                    b.UseShader( "Resources/Shaders/slang/Skybox_Frag.slang", ShaderStage::FRAGMENT );
 
                     GraphicsPipelineDescription graphicsDesc{
                         .DepthTest{ false },

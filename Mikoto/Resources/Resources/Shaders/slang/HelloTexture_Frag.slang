@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "base/base.slang"
+#include "base/Base.slang"
 
 struct FSInput {
     float2 texCoord : TEXCOORD0;

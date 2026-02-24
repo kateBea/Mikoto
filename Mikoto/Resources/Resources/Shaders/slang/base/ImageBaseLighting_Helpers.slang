@@ -12,31 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "base/Base.slang"
+struct SkyBoxParameters {
+    float Exposure;
+    float Gamma;
+    float MaxReflectionLOD;
+    float MaxMipLevel;
+    int IsSkyboxActive;
+};
 
-[[vk::binding(0, DYNAMIC_SET_INDEX)]]
-RWStructuredBuffer<uint> OutputBuffer;
+// From http://filmicworlds.com/blog/filmic-tonemapping-operators/
+float3 Uncharted2Tonemap(float3 color) {
+    const float A = 0.15;
+    const float B = 0.50;
+    const float C = 0.10;
+    const float D = 0.20;
+    const float E = 0.02;
+    const float F = 0.30;
 
-bool IsPrime(uint n) {
-    if (n < 2) return false;
-    if (n == 2) return true;
-    if ((n & 1) == 0) return false;
-
-    uint limit = uint(floor(sqrt(float(n))));
-
-    for (uint d = 3; d <= limit; d += 2) {
-        if (n % d == 0) return false;
-    }
-    return true;
-}
-
-[numthreads(64, 1, 1)]
-[shader("compute")]
-void main(uint3 gid: SV_DispatchThreadID) {
-    uint idx = gid.x;
-
-    if (IsPrime(idx))
-        OutputBuffer[idx] = idx;
-    else
-        OutputBuffer[idx] = 0;
+    return ((color * (A * color + C * B) + D * E) /
+            (color * (A * color + B) + D * F)) - (E / F);
 }

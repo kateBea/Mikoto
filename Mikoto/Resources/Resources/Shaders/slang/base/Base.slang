@@ -12,6 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Reference types
+// https://docs.shader-slang.org/en/latest/coming-from-glsl.html#option-2-glsl-style-layout-syntax
+
+// Command validate slang offline (Example)
+// slangc Skybox_Vert.slang -profile glsl_450 -target spirv -entry main -stage vertex
+
 // ============================================================================
 // Descriptor Set Indices
 // ============================================================================
@@ -54,3 +60,21 @@ struct MeshInfo {
     int      AoIndex;
     int      EmissiveIndex;
 };
+
+// ============================================================================
+// Helper functions
+// ============================================================================
+float4x4 RemoveTranslation(float4x4 m) {
+    float3x3 r = float3x3(
+        m[0].xyz,
+        m[1].xyz,
+        m[2].xyz
+    );
+
+    return float4x4(
+        float4(r[0], 0.0),
+        float4(r[1], 0.0),
+        float4(r[2], 0.0),
+        float4(0.0, 0.0, 0.0, 1.0)
+    );
+}

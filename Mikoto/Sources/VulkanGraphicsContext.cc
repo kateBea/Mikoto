@@ -248,8 +248,7 @@ namespace Mikoto {
         VulkanPipeline* vulkanPipeline{ MKT_TO_VK_PIPELINE(passInfo.Pipeline) };
 
         for (const auto& setIndex: vulkanPipeline->GetDescriptorSetIndices()) {
-            // These sets are managed separately, they are global and do not belong to the passes
-            if (setIndex == TEXTURES_DESCRIPTOR_SET_INDEX || setIndex == PER_FRAME_DESCRIPTOR_SET_INDEX) {
+            if (setIndex == TEXTURES_DESCRIPTOR_SET_INDEX ) {
                 continue;
             }
 

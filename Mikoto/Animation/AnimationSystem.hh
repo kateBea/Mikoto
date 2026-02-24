@@ -25,7 +25,6 @@
 
 #include <Assets/Model.hh>
 #include <Animation/Animator.hh>
-#include <Animation/SkinnedAnimation.hh>
 
 namespace Mikoto {
 

@@ -15,8 +15,9 @@
 #ifndef MIKOTO_VULKAN_GRAPHIC_CONTEXT_HH
 #define MIKOTO_VULKAN_GRAPHIC_CONTEXT_HH
 
-#include <utility>
 #include <map>
+#include <array>
+#include <utility>
 
 #include <volk.h>
 #include <ankerl/unordered_dense.h>
@@ -32,9 +33,20 @@
 
 namespace Mikoto {
 
-    // TODO:
-    // Descriptor indexing
-    // Remove render passes, Mikoto defaults to Vulkan 1.3 where dynamic rendering is baseline
+    struct BarrierManager {
+        static constexpr UInt32 MAX_BARRIERS{ 10 };
+
+        UInt32 ImageBarrierCount{};
+        UInt32 BufferBarrierCount{};
+
+        std::array<VkImageMemoryBarrier2, MAX_BARRIERS> ImageBarriers{};
+        std::array<VkBufferMemoryBarrier2, MAX_BARRIERS> BufferBarriers{};
+
+        auto InsertBufferBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState) -> bool;
+        auto InsertTextureBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState) -> bool;
+
+        auto FlushBarriers( CommandListHandle cmd ) -> void;
+    };
 
     class VulkanGraphicsContext final : public GraphicsContext {
     public:
@@ -85,11 +97,11 @@ namespace Mikoto {
         auto UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void;
 
     private:
-        // Information I store for each pass
         struct FramePassInfo {
+            PipelineHandle Pipeline{};
+
             // Set index -> Descriptor Set handle. Allocate as many as max frames in flight
             ankerl::unordered_dense::map<UInt32, VkDescriptorSet> DescriptorSets{};
-            PipelineHandle Pipeline{};
 
             // Buffers this pass is using
             ankerl::unordered_dense::set<Buffer*> Buffers{};
@@ -101,6 +113,8 @@ namespace Mikoto {
             std::vector<UInt32> DynamicOffsets{};
 
             ankerl::unordered_dense::map<UInt32, std::pair<Texture*, Sampler*>> CombinedImageSamplerBinding{};
+
+            BarrierManager BarrierManager{};
         };
 
     private:

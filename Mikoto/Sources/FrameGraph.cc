@@ -357,30 +357,6 @@ namespace Mikoto {
         return CreateScope<FrameGraph>( context, device );
     }
 
-    auto FrameGraph::TransitionWrites( FramePassNode &node, CommandListHandle cmd ) -> void {
-        for (const auto &resourceNode : node.Writes) {
-            const auto it{ m_ResourcesByNames.find( resourceNode.Name ) };
-            if (it != m_ResourcesByNames.end()) {
-                // This is temporary because these texture might used somewhere else for sampling from shaders (like ImGui viewports)
-                // But the passes should either ask this explicitly in the Write method from the builder where
-                // they would specify the state they leave the resource as
-                if (it->second.IsResource( FrameResourceType::TEXTURE )) {
-                    TextureHandle textureHandle{ it->second.Handle.As<Texture>() };
-
-                    // if its cube
-                    if (textureHandle.IsEmpty()) {
-                        textureHandle = it->second.Handle.As<TextureCube>();
-                    }
-
-                    if (m_GraphicsContex->InsertResourceBarrier( textureHandle,
-                        it->second.CurrentState, resourceNode.OutState, cmd )) {
-                        it->second.CurrentState = resourceNode.OutState;
-                    }
-                }
-            }
-        }
-    }
-
     auto FrameGraph::InsertBarrier( FramePassResource& resource, FrameResourceState newState, CommandListHandle cmd ) -> void {
         if (resource.IsResource( FrameResourceType::BUFFER )) {
             m_GraphicsContex->InsertResourceBarrier( resource.Handle.As<Buffer>(), resource.CurrentState, newState, cmd );

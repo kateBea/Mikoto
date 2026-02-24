@@ -234,7 +234,6 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create( GraphicsContext *context, GpuDevice *device ) -> Unique<FrameGraph>;
 
     private:
-        auto TransitionWrites(FramePassNode& node, CommandListHandle cmd) -> void;
         auto InsertBarrier(FramePassResource& resource, FrameResourceState newState, CommandListHandle cmd) -> void;
         auto InsertResourceBarriers(FramePassNode& node, CommandListHandle cmd) -> void;
 

@@ -243,8 +243,7 @@ namespace Mikoto {
                 // We might later want to pick the highest contributions
                 for ( Size i{}; i < MAX_BONE_INFLUENCE; ++i ) {
                     if ( vertex.Weights[i] == 0 ) {
-                        vertex.Joints[i] = joint->GetID(); // TODO: this ID will be used as index to index the final matrices 
-                        // array right now join ID does not account for that
+                        vertex.Joints[i] = joint->GetID();
                         vertex.Weights[i] = weight;
                         break;
                     }

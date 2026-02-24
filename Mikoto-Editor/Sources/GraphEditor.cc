@@ -56,7 +56,7 @@ namespace Mikoto {
         m_Context = ed::CreateEditor( std::addressof( m_Config ) );
     }
 
-    auto GraphEditor::Build( const GraphEditorBuilder& builder ) -> void {
+    auto GraphEditor::Build( GraphEditorBuilder& builder ) -> void {
         namespace ed = ax::NodeEditor;
 
         m_Nodes = std::move( builder.m_Nodes );

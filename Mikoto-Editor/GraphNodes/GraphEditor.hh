@@ -54,7 +54,7 @@ namespace Mikoto {
 
         auto Render() -> void;
 
-        auto Build( const GraphEditorBuilder& builder ) -> void;
+        auto Build( GraphEditorBuilder& builder ) -> void;
 
         MKT_NODISCARD auto GetName() const -> const std::string&;
 

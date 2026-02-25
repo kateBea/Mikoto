@@ -28,3 +28,33 @@ struct FontRenderParams {
 
     uint   TextureIndex;
 };
+
+float Median(float3 v) {
+    return max(min(v.r, v.g), min(max(v.r, v.g), v.b));
+}
+
+float ScreenPxRange3D(Sampler2D msdf, float2 uv) {
+    float pxRange = 6.0;
+
+    float textureWidth;
+    float textureHeight;
+    float levelCount;
+    msdf.GetDimensions(0, textureWidth, textureHeight, levelCount);
+
+    float2 unitRange = float2(pxRange) / float2(textureWidth, textureHeight);
+    float2 screenTexSize = float2(1.0) / fwidth(uv);
+
+    return max(0.5 * dot(unitRange, screenTexSize), 1.0);
+}
+
+float ScreenPxRange(Sampler2D msdf, float2 uv) {
+    float textureWidth;
+    float textureHeight;
+    float levelCount;
+    msdf.GetDimensions(0, textureWidth, textureHeight, levelCount);
+
+    float2 unitRange = float2(2.0) / float2(textureWidth, textureHeight);
+    float2 screenTexSize = float2(1.0) / fwidth(uv);
+
+    return max(0.5 * dot(unitRange, screenTexSize), 1.0);
+}

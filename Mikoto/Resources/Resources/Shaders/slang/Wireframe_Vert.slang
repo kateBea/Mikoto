@@ -13,7 +13,8 @@
 // limitations under the License.
 
 #include "base/Base.slang"
-#include "base/Camera_Helpers.slang"
+#include "base/Camera_Helpers.slang"
+
 struct VSInput {
     float3 Position : ATTRIBUTE0;
     uint InstanceIndex : SV_InstanceID;
@@ -24,10 +25,10 @@ struct VSOutput{
 };
 
 [[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
-ConstantBuffer<CameraInfo> u_Camera;
+ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
 [[vk::binding(1, DYNAMIC_RESOURCE_SET_INDEX)]]
-StructuredBuffer<MeshInfo> Meshes;
+StructuredBuffer<MeshInfo, ScalarDataLayout> Meshes;
 
 [shader("vertex")]
 VSOutput main(VSInput input) {

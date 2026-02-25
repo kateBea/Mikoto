@@ -41,11 +41,10 @@ namespace Mikoto {
         auto RegisterPasses(FrameGraph& graph, GpuDevice* device) -> void;
 
     private:
-        auto RegisterTextRender( FrameGraph& graph, GpuDevice* device) -> void;
-        auto RegisterTextRenderScatterWrites( FrameGraph& graph) -> void;
-        auto RegisterObjectOutline( FrameGraph& graph, GpuDevice* device) -> void;
         auto RegisterSSAO( FrameGraph& graph ) -> void;
         auto RegisterBloom( FrameGraph& graph ) -> void;
+        auto RegisterTextRender( FrameGraph& graph, GpuDevice* device) -> void;
+        auto RegisterObjectOutline( FrameGraph& graph, GpuDevice* device) -> void;
 
         auto TraverseTextList( CommandContext& ctx ) -> void;
 
@@ -107,7 +106,6 @@ namespace Mikoto {
         const Camera* m_Camera{};
 
         Size m_GlyphCount{};
-        std::vector<UInt32> m_TextInfoIndices{};
         std::vector<TextRenderParams> m_TextInfo{};
 
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };

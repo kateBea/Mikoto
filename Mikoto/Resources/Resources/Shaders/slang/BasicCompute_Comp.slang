@@ -15,7 +15,7 @@
 #include "base/Base.slang"
 
 [[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
-RWStructuredBuffer<uint> OutputBuffer;
+RWStructuredBuffer<uint, ScalarDataLayout> OutputBuffer;
 
 bool IsPrime(uint n) {
     if (n < 2) return false;

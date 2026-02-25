@@ -11,3 +11,43 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#include "base/Base.slang"
+#include "base/FontRender_Helpers.slang"
+
+struct VSInput {
+    float3 Position : ATTRIBUTE0;
+    uint TexCoordIndex : ATTRIBUTE1;
+    uint InstanceIndex : SV_InstanceID;
+};
+
+struct VSOutput {
+    float2 TexCoord : TEXCOORD0;
+    uint AtlasIndex : TEXCOORD1;
+    float4 Color : TEXCOORD2;
+
+    float4 PositionH : SV_Position;
+};
+
+[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
+StructuredBuffer<FontRenderParams, ScalarDataLayout> Params;
+
+[shader("vertex")]
+VSOutput main(VSInput input) {
+    VSOutput o;
+
+    FontRenderParams p = Params[input.InstanceIndex];
+
+    o.TexCoord = p.TextureCoords[input.TexCoordIndex];
+    o.AtlasIndex = p.TextureIndex;
+    o.Color = p.Color;
+
+    float3 pos = input.Position * p.Size.xyz + p.Position.xyz;
+
+    o.PositionH =
+        mul(p.Projection,
+        mul(p.View,
+        mul(p.Model, float4(pos, 1.0))));
+
+    return o;
+}

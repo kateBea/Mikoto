@@ -29,7 +29,7 @@ struct VSOutput {
 };
 
 [[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
-ConstantBuffer<CameraInfo> u_Camera;
+ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
 [[vk::push_constant]]
 SkyBoxParameters u_IBLParams;

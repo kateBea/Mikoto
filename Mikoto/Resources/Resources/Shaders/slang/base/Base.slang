@@ -46,21 +46,26 @@ static const float PI = 3.1415926535897932384626433832795;
 // [DEPRECATED]
 struct MeshInfo {
     float4x4 Transform;
+    uint MaterialIndex;
 
-    float4   Albedo;
-    float4   Factors;
+    int BonesID;
 
-    float3   EmissiveFactors;
-    float    EmissiveIntensity;
+    float4 Albedo;
+    int AlbedoIndex;
 
-    float    Alpha;
+    float AlphaCutoff;
+    float MetallicFactor;
+    float RoughnessFactor;
+    float OcclusionStrength;
 
-    int      AlbedoIndex;
-    int      NormalIndex;
-    int      MetallicIndex;
-    int      RoughnessIndex;
-    int      AoIndex;
-    int      EmissiveIndex;
+    float3 EmissiveFactors;
+    float EmissiveIntensity;
+
+    int NormalIndex;
+    int MetallicIndex;
+    int RoughnessIndex;
+    int AoIndex;
+    int EmissiveIndex;
 };
 
 // ============================================================================

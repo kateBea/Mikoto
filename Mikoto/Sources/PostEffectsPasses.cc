@@ -48,10 +48,9 @@ namespace Mikoto {
     auto PostEffectsPass::RegisterPasses( FrameGraph& graph, GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        RegisterTextRender( graph, device );
-        RegisterTextRenderScatterWrites( graph );
-        //RegisterSSAO( graph );
         RegisterBloom( graph );
+        //RegisterSSAO( graph );
+        RegisterTextRender( graph, device );
     }
 
     auto PostEffectsPass::SetMeshCulling( MeshCulling& culling ) -> void {
@@ -60,6 +59,8 @@ namespace Mikoto {
 
     auto PostEffectsPass::RegisterTextRender( FrameGraph& graph, GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        m_TextInfo.resize( MAX_GLYPHS );
 
         // Vertex buffer and index buffer for the quads
         BufferDescription vertexDesc{};
@@ -76,144 +77,87 @@ namespace Mikoto {
                 .WithBufferDataType( BufferDataType::BUFFER_DATA_UINT32 )
                 .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
         m_TextIndexBuffer = device->CreateBuffer( indexDesc );
-
+        
         graph.RegisterPass(
-                "3DTextRenderingPass",
-                []( FramePassBuilder& b ) {
-                    MKT_BEGIN_PROFILER_NAMED();
+            "MSDFTextPass",
+            []( FramePassBuilder& b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+                
+                b.Create<Buffer>( "MSDFTextPass_TextData", BufferUsage::SHADER_STORAGE, sizeof( TextRenderParams ), MAX_GLYPHS );
+               
+                b.UseShader( "Resources/Shaders/slang/MSDFText_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/MSDFText_Frag.slang", ShaderStage::FRAGMENT );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/Text_Frag.sprv", ShaderStage::FRAGMENT );
+                GraphicsPipelineDescription graphicsDesc{
+                    .DepthTest{ true },
+                    .DepthWrite{ true },
+                    .AlphaBlending{ true },
+                };
+                
+                // we're providing none as the shader expects none
+                const BufferLayout layout{
+                    { ShaderDataType::FLOAT3_TYPE, "a_Position" },
+                    { ShaderDataType::UINT_TYPE, "a_TexCoordIndex" },
+                };
+                graphicsDesc.VertexAttributesSpec = { AttributesSpec{
+                        .DefaultVertexLayout{ layout },
+                        .InputRateSpec{ .BindingIndex = { 0 }, .AttributeRate{ InputRate::PER_VERTEX } } } };
+                graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
+                b.Create<Pipeline>( "TextRenderPass_Pipeline", graphicsDesc );
 
-                    GraphicsPipelineDescription graphicsDesc{};
+                b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
+                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
 
-                    graphicsDesc.DepthTest = true;
-                    graphicsDesc.DepthWrite = true;
-                    graphicsDesc.AlphaBlending = true;
+                // Force it go after the final composition
+                b.Read( "FinalShading_Params", FrameResourceState::UniformBuffer );
 
-                    // we're providing none as the shader expects none
-                    const BufferLayout layout{
-                        { ShaderDataType::FLOAT3_TYPE, "a_Position" },
-                        { ShaderDataType::UINT_TYPE, "a_TexCoordIndex" },
-                    };
-                    graphicsDesc.VertexAttributesSpec = { AttributesSpec{
-                            .DefaultVertexLayout{ layout },
-                            .InputRateSpec{ .BindingIndex = { 0 }, .AttributeRate{ InputRate::PER_VERTEX } } } };
-                    graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
-                    b.Create<Pipeline>( "TextRenderPass_Pipeline", graphicsDesc );
+                b.Write( "3DRenderTextEdge", FrameResourceState::UniformBuffer );
+                b.Write( "MSDFTextPass_TextData", FrameResourceState::UniformBuffer );
 
-                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
-                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
+                b.Use( ResourceGroup::Dynamic, "MSDFTextPass_TextData", 0 );
+                b.Use( ResourceGroup::GlobalTextures );
+            },
+            [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    // Force it go after the final composition
-                    b.Read( "FinalShading_Params", FrameResourceState::UniformBuffer );
+                TraverseTextList( ctx );
 
-                    b.Write( "3DRenderTRextEdge", FrameResourceState::UniformBuffer );
+                if (m_GlyphCount == 0) {
+                    return;
+                }
 
-                    b.Read( "ScatteredWrites_FinalTextInfo", FrameResourceState::UniformBuffer );
+                ctx.UploadBufferData( "MSDFTextPass_TextData", m_TextInfo.data(), sizeof( TextRenderParams ), m_GlyphCount );
 
-                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_FinalTextInfo", 0 );
-                    b.Use( ResourceGroup::GlobalTextures );
-                },
-                [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
+                MKT_ASSERT( m_Scene != nullptr, "Scene cannot be NULL" );
 
-                    if (m_GlyphCount == 0) {
-                        return;
-                    }
+                ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
+                ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
 
-                    MKT_ASSERT( m_Scene != nullptr, "Scene cannot be NULL" );
+                PassRenderInfo renderInfo{
+                    .ColorLoadOp{ LoadOp::LOAD },
+                    .DephtLoadOp{ LoadOp::LOAD }
+                };
 
-                    ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
-                    ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
+                ctx.BeginRender( renderInfo );
+                ctx.BindPipeline( "TextRenderPass_Pipeline" );
 
-                    PassRenderInfo renderInfo{
-                        .ColorLoadOp{ LoadOp::LOAD },
-                        .DephtLoadOp{ LoadOp::LOAD }
-                    };
+                const auto dimensions{ InferDimensions( m_Resolution ) };
 
-                    ctx.BeginRender( renderInfo );
-                    ctx.BindPipeline( "TextRenderPass_Pipeline" );
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                DrawIndexedState drawIndexedState{};
 
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
-                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+                drawIndexedState.IndexBuffer = m_TextIndexBuffer;
+                drawIndexedState.VertexBuffers.emplace_back( m_TextVertexBuffer, 0 );
 
-                    DrawIndexedState drawIndexedState{};
+                drawIndexedState.IndicesCount = m_TextIndexBuffer->GetCount();
+                drawIndexedState.InstancesCount = m_GlyphCount;
 
-                    drawIndexedState.IndexBuffer = m_TextIndexBuffer;
-                    drawIndexedState.VertexBuffers.emplace_back( m_TextVertexBuffer, 0 );
+                ctx.DrawIndexed( drawIndexedState );
 
-                    drawIndexedState.IndicesCount = m_TextIndexBuffer->GetCount();
-                    drawIndexedState.InstancesCount = m_GlyphCount;
-
-                    ctx.DrawIndexed( drawIndexedState );
-
-                    ctx.EndRender();
-                } );
-    }
-
-    auto PostEffectsPass::RegisterTextRenderScatterWrites( FrameGraph& graph) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        struct ScatterWriteTextPushConstant {
-            UInt32 UpdateCount{};
-        };
-
-        m_TextInfo.resize( MAX_GLYPHS );
-        m_TextInfoIndices.resize( MAX_GLYPHS );
-
-        graph.RegisterPass(
-                "ScatteredWritesTextPass",
-                []( FramePassBuilder &b) {
-                    MKT_BEGIN_PROFILER_NAMED();
-
-                    b.Create<Buffer>( "ScatteredWrites_TextData", BufferUsage::SHADER_STORAGE, sizeof( TextRenderParams ), MAX_GLYPHS );
-                    b.Create<Buffer>( "ScatteredWrites_TextDataIndices", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), MAX_GLYPHS );
-
-                    auto finalBuffer{ BufferBuilder{} };
-                    finalBuffer.WithUsage( BufferUsage::SHADER_STORAGE )
-                        .ForElement( sizeof(TextRenderParams), MAX_GLYPHS )
-                        .IsDynamic( false )
-                        .Build( "ScatteredWrites_FinalTextInfo" );
-
-                    b.CreateBuffer( finalBuffer );
-
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/ScatteredWritesText_Comp.sprv", ShaderStage::COMPUTE );
-                    b.Create<Pipeline>( "ScatteredWritesTextPass_Pipeline", ComputePipelineDescription{} );
-
-                    b.Write( "ScatteredWrites_TextData", FrameResourceState::UnorderedAccess );
-                    b.Write( "ScatteredWrites_TextDataIndices", FrameResourceState::UnorderedAccess );
-                    b.Write( "ScatteredWrites_FinalTextInfo", FrameResourceState::UnorderedAccess );
-
-                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_FinalTextInfo", 0 );
-                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_TextData", 1 );
-                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_TextDataIndices", 2 );
-                },
-                [this]( CommandContext &ctx, FrameGraphBlackboard& ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
-
-                    TraverseTextList( ctx );
-
-                    // Need at least m_ObjectUpdateCount threads.
-                    // But dispatch works in groups, not individual threads.
-                    Size dispatchCount{ (m_GlyphCount + 64 - 1) };
-                    if (dispatchCount == 0) {
-                        return;
-                    }
-
-                    ScatterWriteTextPushConstant pushConstants{};
-                    pushConstants.UpdateCount = m_GlyphCount;
-
-                    ctx.BindPipeline( "ScatteredWritesTextPass_Pipeline" );
-
-                    ctx.PushConstants( std::addressof( pushConstants ), sizeof( ScatterWriteTextPushConstant ) );
-                    ctx.UploadBufferData( "ScatteredWrites_TextData", m_TextInfo.data(), sizeof( TextRenderParams ), m_GlyphCount );
-                    ctx.UploadBufferData( "ScatteredWrites_TextDataIndices", m_TextInfoIndices.data(), sizeof( UInt32 ), m_GlyphCount );
-
-                    ctx.Dispatch( dispatchCount / 64, 1, 1 );
-                } );
+                ctx.EndRender();
+            } );
     }
 
     auto PostEffectsPass::RegisterObjectOutline( FrameGraph& graph, GpuDevice* device ) -> void {
@@ -468,11 +412,10 @@ namespace Mikoto {
                         view = m_Camera->GetProjection();
                         projection = m_Camera->GetViewMatrix();
                     }
-
+                    
                     fontParams.Proj = view;
                     fontParams.View = projection;
-
-                    m_TextInfoIndices[m_GlyphCount] = m_GlyphCount;
+                    
                     m_TextInfo[m_GlyphCount++] = fontParams;
                 }
 

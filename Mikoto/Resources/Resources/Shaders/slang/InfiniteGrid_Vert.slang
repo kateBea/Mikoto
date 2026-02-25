@@ -26,7 +26,7 @@ struct VSOutput {
 };
 
 [[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
-ConstantBuffer<CameraInfo> u_Camera;
+ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
 static const float gridSize = 100.0;
 static const float3 positions[4] = {

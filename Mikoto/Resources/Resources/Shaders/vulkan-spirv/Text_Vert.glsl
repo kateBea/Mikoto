@@ -19,7 +19,7 @@
 #include "ShaderBase.glsl"
 #include "text_render/TextMaterial.glsl"
 
-layout(std430, scalar, set = STATIC_SETINDEX, binding = 0) readonly buffer FontRenderParamsBuffer {
+layout(std430, scalar, set = PERPASS_SETINDEX, binding = 0) readonly buffer FontRenderParamsBuffer {
     FontRenderParams params[];
 };
 

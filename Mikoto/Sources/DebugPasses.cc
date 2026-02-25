@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Profiler.hh>
+
+#include <Scene/Scene.hh>
+#include <Scene/Component.hh>
+
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/FramePassResource.hh>
 #include <Renderer/Passes/DebugPasses.hh>
-#include <Scene/Component.hh>
-#include <Scene/Scene.hh>
 
-#include "Core/Profiler.hh"
 
 namespace Mikoto {
 
@@ -75,61 +77,62 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         graph.RegisterPass(
-                "Wireframe",
-                [this]( FramePassBuilder &b ) {
-                    MKT_BEGIN_PROFILER_NAMED();
+            "Wireframe",
+            [this]( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Texture>( "Wireframe_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                    b.Create<Texture>( "Wireframe_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                b.Create<Texture>( "Wireframe_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.Create<Texture>( "Wireframe_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/Wireframe_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/Wireframe_Frag.sprv", ShaderStage::FRAGMENT );
+                b.UseShader( "Resources/Shaders/slang/Wireframe_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/Wireframe_Frag.slang", ShaderStage::FRAGMENT );
 
-                    GraphicsPipelineDescription graphicsDesc{};
-                    graphicsDesc.DepthTest = true;
-                    graphicsDesc.DepthWrite = true;
-                    graphicsDesc.AlphaBlending = true;
-                    graphicsDesc.Wireframe = true;
-                    graphicsDesc.PipelinePolygonMode = PolygonMode::LINES;
-                    graphicsDesc.PipelineCullMode = CullMode::NONE;
-                    b.Create<Pipeline>( "Wireframe_Pipeline", graphicsDesc );
+                GraphicsPipelineDescription graphicsDesc{
+                    .DepthTest{ true },
+                    .DepthWrite{ true },
+                    .AlphaBlending{ true },
+                    .Wireframe{ true },
+                    .PipelineCullMode{ CullMode::NONE },
+                    .PipelinePolygonMode{ PolygonMode::LINES },
+                };
+                b.Create<Pipeline>( "Wireframe_Pipeline", graphicsDesc );
 
-                    b.Write( "Wireframe_ColorTarget", FrameResourceState::RenderTarget );
-                    b.Write( "Wireframe_DepthTarget", FrameResourceState::DepthWrite );
+                b.Write( "Wireframe_ColorTarget", FrameResourceState::RenderTarget );
+                b.Write( "Wireframe_DepthTarget", FrameResourceState::DepthWrite );
 
-                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                    b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
 
-                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                    b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
-                },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
-                    if ( !m_RunWireframe ) {
-                        return;
-                    }
+                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+                if ( !m_RunWireframe ) {
+                    return;
+                }
 
-                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                const auto dimensions{ InferDimensions( m_Resolution ) };
 
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
-                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                    ctx.SetClearColor( m_WireframeClearColor );
-                    ctx.SetColorRenderTarget( "Wireframe_ColorTarget" );
-                    ctx.SetDepthRenderTarget( "Wireframe_DepthTarget" );
+                ctx.SetClearColor( m_WireframeClearColor );
+                ctx.SetColorRenderTarget( "Wireframe_ColorTarget" );
+                ctx.SetDepthRenderTarget( "Wireframe_DepthTarget" );
 
-                    ctx.PushConstants( std::addressof( m_WireframeParams ), sizeof( m_WireframeParams ) );
+                ctx.PushConstants( std::addressof( m_WireframeParams ), sizeof( m_WireframeParams ) );
 
-                    ctx.BeginRender();
+                ctx.BeginRender();
 
-                    ctx.BindPipeline( "Wireframe_Pipeline" );
+                ctx.BindPipeline( "Wireframe_Pipeline" );
 
-                    ctx.SetPolygonLineWidth( m_WireframeLineWidth );
+                ctx.SetPolygonLineWidth( m_WireframeLineWidth );
 
-                    m_Culling->DrawInstances( ctx );
+                m_Culling->DrawInstances( ctx );
 
-                    ctx.EndRender();
-                } );
+                ctx.EndRender();
+            } );
     }
 
     auto DebugPasses::RegisterHelloTriangle( FrameGraph &graph ) -> void {
@@ -177,24 +180,21 @@ namespace Mikoto {
         };
 
         graph.RegisterPass<SimpleCompute>(
-                "SimpleCompute",
-                []( FramePassBuilder &b, SimpleCompute& data ) {
-                    b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), data.LocalSize );
-
-                    b.UseShader( "Resources/Shaders/slang/BasicCompute_Comp.slang", ShaderStage::COMPUTE );
+            "SimpleCompute",
+            []( FramePassBuilder &b, SimpleCompute& data ) {
+                b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), data.LocalSize );
                     
-                    b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
+                b.UseShader( "Resources/Shaders/slang/BasicCompute_Comp.slang", ShaderStage::COMPUTE );
+                b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
 
-                    b.Write( "SimpleCompute_Results", FrameResourceState::UnorderedAccess );
-
-                    b.Use( ResourceGroup::Dynamic, "SimpleCompute_Results", 0 );
-                },
-                []( CommandContext &ctx, FrameGraphBlackboard& blackboard ) -> void {
-                    auto& data{ blackboard.Get<SimpleCompute>() };
-                    ctx.BindPipeline( "SimpleCompute_Pipeline" );
-
-                    ctx.Dispatch( data.GroupCount, 1, 1 );
-                } );
+                b.Write( "SimpleCompute_Results", FrameResourceState::UnorderedAccess );
+                b.Use( ResourceGroup::Dynamic, "SimpleCompute_Results", 0 );
+            },
+            []( CommandContext &ctx, FrameGraphBlackboard& blackboard ) -> void {
+                auto& data{ blackboard.Get<SimpleCompute>() };
+                ctx.BindPipeline( "SimpleCompute_Pipeline" );
+                ctx.Dispatch( data.GroupCount, 1, 1 );
+            } );
 
     }
 
@@ -202,56 +202,56 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         graph.RegisterPass(
-                "InfiniteGrid",
-                [this]( FramePassBuilder &b ) {
-                    MKT_BEGIN_PROFILER_NAMED();
+            "InfiniteGrid",
+            [this]( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Texture>( "InfiniteGrid_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.Create<Texture>( "InfiniteGrid_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/InfiniteGrid_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/InfiniteGrid_Frag.sprv", ShaderStage::FRAGMENT );
+                b.UseShader( "Resources/Shaders/slang/InfiniteGrid_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/InfiniteGrid_Frag.slang", ShaderStage::FRAGMENT );
 
-                    b.Create<Pipeline>( "InfiniteGrid_Pipeline", 
-                        GraphicsPipelineDescription{
-                            .DepthTest{ true },
-                            .DepthWrite{ false },
-                            .PipelinePolygonMode{ PolygonMode::LINES },
-                            .PrimitiveTopology{ Topology::TRIANGLE_LIST },
-                            .VertexAttributesSpec{} } );
+                b.Create<Pipeline>( "InfiniteGrid_Pipeline", 
+                    GraphicsPipelineDescription{
+                        .DepthTest{ true },
+                        .DepthWrite{ false },
+                        .PipelinePolygonMode{ PolygonMode::LINES },
+                        .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                        .VertexAttributesSpec{} } );
 
-                    b.Write( "InfiniteGrid_ColorTarget", FrameResourceState::RenderTarget );
+                b.Write( "InfiniteGrid_ColorTarget", FrameResourceState::RenderTarget );
 
-                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
-                    b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
+                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
+                b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
 
-                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess );
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess );
 
-                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
+                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                const auto dimensions{ InferDimensions( m_Resolution ) };
 
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
-                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                    ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
+                ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
 
-                    ctx.SetColorRenderTarget( "InfiniteGrid_ColorTarget" );
+                ctx.SetColorRenderTarget( "InfiniteGrid_ColorTarget" );
 
-                    PassRenderInfo renderInfo{
-                        .ColorLoadOp{ LoadOp::CLEAR },
-                        .DephtLoadOp{ LoadOp::CLEAR },
-                    };
-                    ctx.BeginRender( renderInfo );
+                PassRenderInfo renderInfo{
+                    .ColorLoadOp{ LoadOp::CLEAR },
+                    .DephtLoadOp{ LoadOp::CLEAR },
+                };
+                ctx.BeginRender( renderInfo );
 
-                    ctx.BindPipeline( "InfiniteGrid_Pipeline" );
+                ctx.BindPipeline( "InfiniteGrid_Pipeline" );
 
-                    ctx.Draw( 4 );
+                ctx.Draw( 4 );
 
-                    ctx.EndRender();
-                } );
+                ctx.EndRender();
+            } );
     }
 
     auto DebugPasses::RegisterHelloCube( FrameGraph &graph ) -> void {
@@ -260,52 +260,60 @@ namespace Mikoto {
 
     auto DebugPasses::RegisterHelloTexture( FrameGraph &graph ) -> void {
         struct HelloTextureData {
-            Int32 TextureIndex{ GlobalTextures::INVALID_TEXTURE_INDEX };
+            TextureHandle TargetTexture{};
+
+            struct PushConstantData {
+                Int32 TextureIndex{ GlobalTextures::INVALID_TEXTURE_INDEX };
+            } PushConstants{};
         };
 
         // Example with pass data
         graph.RegisterPass<HelloTextureData>(
-                "HelloTexture",
-                [this]( FramePassBuilder &b, HelloTextureData& ) -> void {
-                    b.Create<Texture>( "HelloTexture_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                    b.Create<Texture>( "HelloTexture_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+            "HelloTexture",
+            [this]( FramePassBuilder &b, HelloTextureData& data ) -> void {
+                b.Create<Texture>( "HelloTexture_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.Create<Texture>( "HelloTexture_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
-                    b.UseShader( "Resources/Shaders/slang/HelloTexture_Vert.slang", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/slang/HelloTexture_Frag.slang", ShaderStage::FRAGMENT );
+                b.UseShader( "Resources/Shaders/slang/HelloTexture_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/HelloTexture_Frag.slang", ShaderStage::FRAGMENT );
 
-                    b.Create<Pipeline>( "HelloTexture_Pipeline", GraphicsPipelineDescription{
-                                            .PrimitiveTopology{ Topology::TRIANGLE_STRIP },
-                                            .VertexAttributesSpec{},} );
+                b.Create<Pipeline>( "HelloTexture_Pipeline", GraphicsPipelineDescription{
+                                        .PrimitiveTopology{ Topology::TRIANGLE_STRIP },
+                                        .VertexAttributesSpec{} } );
 
-                    b.Write( "HelloTexture_ColorTarget", FrameResourceState::RenderTarget );
-                    b.Write( "HelloTexture_DepthTarget", FrameResourceState::DepthWrite );
+                b.Write( "HelloTexture_ColorTarget", FrameResourceState::RenderTarget );
+                b.Write( "HelloTexture_DepthTarget", FrameResourceState::DepthWrite );
 
-                    b.Use( ResourceGroup::GlobalTextures );
-                },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
-                    m_TextureHandle = AssetsService::Get()->LoadAsset<Texture>( Path{ "Resources/Models/1 - Box texture/CatStare.png" } );
+                b.Use( ResourceGroup::GlobalTextures );
 
-                    auto& data{ blackboard.Get<HelloTextureData>() };
-                    data.TextureIndex = ctx.PushTexture( m_TextureHandle );
+                // Load example texture
+                data.TargetTexture = AssetsService::Get()->LoadAsset<Texture>( 
+                    Path{ "Resources/Models/1 - Box texture/CatStare.png" } 
+                );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
 
-                    ctx.PushConstants( std::addressof( data ), sizeof( data ) );
+                auto& data{ blackboard.Get<HelloTextureData>() };
+                data.PushConstants.TextureIndex = ctx.PushTexture( data.TargetTexture );
 
-                    ctx.BindPipeline( "HelloTexture_Pipeline" );
+                ctx.PushConstants( std::addressof( data.PushConstants ), sizeof( data.PushConstants ) );
 
-                    const auto flip{ false };
-                    const auto dimensions{ InferDimensions( m_Resolution ) };
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, flip );
-                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+                ctx.BindPipeline( "HelloTexture_Pipeline" );
 
-                    ctx.SetClearColor( { 0.5f, 0.2f, 0.3f, 1.0f } );
-                    ctx.SetColorRenderTarget( "HelloTexture_ColorTarget" );
-                    ctx.SetDepthRenderTarget( "HelloTexture_DepthTarget" );
-                    ctx.BeginRender();
+                const auto flip{ false };
+                const auto dimensions{ InferDimensions( m_Resolution ) };
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, flip );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                    ctx.Draw( 4, 1, 0, 0 );
+                ctx.SetClearColor( { 0.5f, 0.2f, 0.3f, 1.0f } );
+                ctx.SetColorRenderTarget( "HelloTexture_ColorTarget" );
+                ctx.SetDepthRenderTarget( "HelloTexture_DepthTarget" );
+                ctx.BeginRender();
 
-                    ctx.EndRender();
-                } );
+                ctx.Draw( 4 );
+
+                ctx.EndRender();
+            } );
     }
 
     auto DebugPasses::RegisterDebugViewsPass( FrameGraph &graph ) -> void {

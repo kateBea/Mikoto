@@ -15,7 +15,6 @@
 #ifndef MIKOTO_DEBUG_PASSES_HH
 #define MIKOTO_DEBUG_PASSES_HH
 
-
 #include <Scene/Scene.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/FrameGraph.hh>
@@ -54,21 +53,18 @@ namespace Mikoto {
         struct WireframeParams {
             Vec4F WireframeLineColor{ 0.0f, 0.0f, 0.0f, 1.0f };
         };
+
     private:
-
-        // Texture to be displayed in the Texture debug pass
-        TextureHandle m_TextureHandle{};
-
         Vec4F m_ClearColor{ 1.0f, 1.0f, 1.0f, 1.0f };
         Vec4F m_LinesColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 
         MeshCulling* m_Culling{};
 
         // Wireframe
+        bool m_RunWireframe{ false };
+        float m_WireframeLineWidth{ 1.0f };
         WireframeParams m_WireframeParams{};
         Vec4F m_WireframeClearColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-        float m_WireframeLineWidth{ 1.0f };
-        bool m_RunWireframe{ false };
 
         bool m_ShowColorImageWireframe{ false };
         RenderResolution m_Resolution{ RenderResolution::FHD_1080 };

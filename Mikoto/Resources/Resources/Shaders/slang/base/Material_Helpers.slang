@@ -41,4 +41,5 @@ struct MaterialParameters {
 
 struct MeshParameters {
     float4x4 Transform;
+    float4x4 InverseModelView;
 };

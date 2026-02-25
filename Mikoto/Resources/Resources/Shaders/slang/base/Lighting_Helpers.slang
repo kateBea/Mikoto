@@ -32,3 +32,25 @@ float3 Uncharted2Tonemap(float3 color) {
     return ((color * (A * color + C * B) + D * E) /
             (color * (A * color + B) + D * F)) - (E / F);
 }
+
+float3 GetNormalFromMap(Sampler2D normalMap, float2 uv, float3 N, float3 worldPos) {
+    float3 tangentNormal = normalMap.Sample(uv).xyz * 2.0 - 1.0;
+
+    float3 Q1 = ddx(worldPos);
+    float3 Q2 = ddy(worldPos);
+    float2 st1 = ddx(uv);
+    float2 st2 = ddy(uv);
+
+    float3 T = normalize(Q1 * st2.y - Q2 * st1.y);
+    float3 B = -normalize(cross(N, T));
+    float3x3 TBN = float3x3(T, B, normalize(N));
+
+    return normalize(mul(TBN, tangentNormal));
+}
+
+float LinearDepth(float depth, float2 planes) {
+    float z = depth * 2.0 - 1.0;
+
+    return (2.0 * planes.x * planes.y) /
+           (planes.y + planes.x - z * (planes.y - planes.x));
+}

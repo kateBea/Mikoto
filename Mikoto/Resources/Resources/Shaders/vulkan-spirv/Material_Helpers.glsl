@@ -22,6 +22,7 @@ struct MaterialParameters {
 
 struct MeshParameters {
     mat4 Transform;
+    mat4 InverseModelView;
     uint MaterialIndex;
 
     int BonesID;

@@ -61,6 +61,7 @@ namespace Mikoto {
 
     struct MeshParameters {
         Mat4F Transform{};
+        Mat4F InverseModelView{};
         UInt32 MaterialIndex{};
         Int32 BonesID{ -1 }; // If it has bones its != -1
 
@@ -108,6 +109,11 @@ namespace Mikoto {
         Int32 RoughnessIndex{ INVALID_TEXTURE_INDEX };
         Int32 AoIndex{ INVALID_TEXTURE_INDEX };
         Int32 EmissiveIndex{ INVALID_TEXTURE_INDEX };
+    };
+
+    struct ShaderMesh {
+        Mat4F Transform{};
+        Mat4F InverseModelView{};
     };
 
     struct EnvironmentConstants {

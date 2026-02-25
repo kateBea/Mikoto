@@ -145,8 +145,8 @@ namespace Mikoto {
 
                 b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
 
-                b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Vert.sprv", ShaderStage::VERTEX );
-                b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Frag.sprv", ShaderStage::FRAGMENT );
+                b.UseShader( "Resources/Shaders/slang/Gbuffer_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/Gbuffer_Frag.slang", ShaderStage::FRAGMENT );
 
                 GraphicsPipelineDescription graphicsDesc{
                     .DepthTest{ true },
@@ -166,8 +166,6 @@ namespace Mikoto {
                 b.Write( "GBuffer_Normal", FrameResourceState::RenderTarget );
                 b.Write( "GBuffer_Color", FrameResourceState::RenderTarget );
                 b.Write( "GBuffer_Depth", FrameResourceState::DepthWrite );
-
-                b.Write( "GBuffer_Params", FrameResourceState::UniformBuffer );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
                 b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
@@ -210,8 +208,8 @@ namespace Mikoto {
                 b.Create<Texture>("DepthPrePass_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                 b.Create<Texture>("DepthPrePass_Depth", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
-                b.UseShader("Resources/Shaders/vulkan-spirv/DepthPrePass_Vert.sprv", ShaderStage::VERTEX );
-                b.UseShader("Resources/Shaders/vulkan-spirv/DepthPrePass_Frag.sprv", ShaderStage::FRAGMENT );
+                b.UseShader("Resources/Shaders/slang/ZPass_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader("Resources/Shaders/slang/ZPass_Frag.slang", ShaderStage::FRAGMENT );
 
                 GraphicsPipelineDescription graphicsDesc{
                     .DepthTest{ true },

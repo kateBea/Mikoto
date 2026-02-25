@@ -46,6 +46,7 @@ static const float PI = 3.1415926535897932384626433832795;
 // [DEPRECATED]
 struct MeshInfo {
     float4x4 Transform;
+    float4x4 InverseModelView;
     uint MaterialIndex;
 
     int BonesID;

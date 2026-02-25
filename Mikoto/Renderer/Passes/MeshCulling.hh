@@ -30,6 +30,7 @@ namespace Mikoto {
     class MeshCulling final {
     public:
         auto SetScene( Scene* scene) -> void;
+        auto SetCamera( const Camera* camera ) -> void;
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
         auto DrawInstances( CommandContext& context ) -> void;
@@ -42,6 +43,7 @@ namespace Mikoto {
 
     private:
         Scene* m_Scene{};
+        const Camera* m_Camera{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
         Size m_ObjectUpdateCount{};

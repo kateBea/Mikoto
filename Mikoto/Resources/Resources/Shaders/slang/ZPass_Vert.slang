@@ -11,3 +11,38 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#include "base/Base.slang"
+#include "base/Camera_Helpers.slang"
+#include "base/Material_Helpers.slang"
+
+struct VSInput {
+    float3 Position : ATTRIBUTE0;
+    uint InstanceID : SV_InstanceID;
+};
+
+struct VSOutput {
+    float4 PositionH : SV_Position;
+};
+
+[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
+ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
+
+[[vk::binding(1, DYNAMIC_RESOURCE_SET_INDEX)]]
+StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
+
+[shader("vertex")]
+VSOutput main(VSInput input) {
+    VSOutput o;
+
+    MeshParameters mesh = Meshes[input.InstanceID];
+
+    float4x4 model = mesh.Transform;
+
+    o.PositionH =
+        mul(u_Camera.Projection,
+        mul(u_Camera.ViewMatrix,
+        mul(model, float4(input.Position, 1.0))));
+
+    return o;
+}

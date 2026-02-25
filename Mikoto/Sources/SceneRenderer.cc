@@ -72,6 +72,8 @@ namespace Mikoto {
         m_IBLPasses.SetCamera( camera );
         m_PostEffectsPasses.SetCamera( camera );
 
+        m_MeshCulling.SetCamera( camera );
+
         m_ClusteredShadingPasses.SetCameraPass( m_CameraPass );
     }
 

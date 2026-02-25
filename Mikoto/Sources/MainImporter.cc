@@ -659,6 +659,7 @@ namespace Mikoto {
         MKT_CORE_LOGGER_DEBUG( "Using Assimp importer at index: {}", ( *iter )->Index );
 
         Import( *( *iter ), description, out );
+        ( *iter )->MeshImporter.FreeScene();
         ( *iter )->IsFree.store( true, std::memory_order_release );
     }
 

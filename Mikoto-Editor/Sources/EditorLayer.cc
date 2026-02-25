@@ -97,7 +97,7 @@ namespace Mikoto {
         LoadResources();
 
         // DEBUG. Load KTX
-        m_EditorState->EditorSceneRenderer->UpdateEquirectangularMapAsync("Resources/HDR/papermill.ktx");
+        //m_EditorState->EditorSceneRenderer->UpdateEquirectangularMapAsync("Resources/HDR/papermill.ktx");
 
         m_EditorState->PassesCompositions.try_emplace( "Triangle", m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
@@ -292,7 +292,7 @@ namespace Mikoto {
     auto EditorLayer::DebugManyLightsTest() -> void {
         // This is just to test clustered forward shading
         // We generate an empty object and 'lightCount' lights in random positions attached to it
-        constexpr UInt32 lightCount{ 12 };
+        constexpr UInt32 lightCount{ 1500 };
         Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
         for (UInt32 count{}; count < lightCount; count++) {
             if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {

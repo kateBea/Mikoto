@@ -82,27 +82,27 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         graph.RegisterPass(
-                "CameraInfoPass",
-                []( FramePassBuilder &b ) {
-                    MKT_BEGIN_PROFILER_NAMED();
+            "CameraInfoPass",
+            []( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "CameraInfoPass_CameraData", BufferUsage::UNIFORM, sizeof( CameraParameters ), 1 );
-                    b.Write( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
+                b.Create<Buffer>( "CameraInfoPass_CameraData", BufferUsage::UNIFORM, sizeof( CameraParameters ), 1 );
+                b.Write( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    auto dimensions{ GetDimensions() };
+                auto dimensions{ GetDimensions() };
 
-                    m_CameraParameters.Projection = m_Camera->GetProjection();
-                    m_CameraParameters.ViewMatrix = m_Camera->GetViewMatrix();
-                    m_CameraParameters.InverseProjection = glm::inverse( m_Camera->GetProjection() );
+                m_CameraParameters.Projection = m_Camera->GetProjection();
+                m_CameraParameters.ViewMatrix = m_Camera->GetViewMatrix();
+                m_CameraParameters.InverseProjection = glm::inverse( m_Camera->GetProjection() );
 
-                    m_CameraParameters.PlaneBounds = Vec2F{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane() };
-                    m_CameraParameters.ScreenDimensions = Vec2F{ dimensions.first, dimensions.second };
-                    m_CameraParameters.ViewPosition = Vec4F{ m_Camera->GetPosition(), 0.0f };
+                m_CameraParameters.PlaneBounds = Vec2F{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane() };
+                m_CameraParameters.ScreenDimensions = Vec2F{ dimensions.first, dimensions.second };
+                m_CameraParameters.ViewPosition = Vec4F{ m_Camera->GetPosition(), 0.0f };
 
-                    ctx.UploadBuffer( "CameraInfoPass_CameraData", m_CameraParameters );
+                ctx.UploadBuffer( "CameraInfoPass_CameraData", m_CameraParameters );
                 } );
     }
 

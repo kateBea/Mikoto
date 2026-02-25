@@ -12,17 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Core/Profiler.hh>
-#include <Core/Timer.hh>
 #include <Math/Math.hh>
+
+#include <Core/Timer.hh>
+#include <Core/Profiler.hh>
+
+#include <Renderer/Passes/MeshCulling.hh>
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/FramePassResource.hh>
-#include <Renderer/Passes/MeshCulling.hh>
-#include <Scene/Component.hh>
-#include <Scene/Scene.hh>
 
-#include "Animation/AnimationSystem.hh"
+#include <Scene/Scene.hh>
+#include <Scene/Component.hh>
+
 #include "Animation/Animator.hh"
+#include "Animation/AnimationSystem.hh"
 
 namespace Mikoto {
 
@@ -30,6 +33,12 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         m_Scene = scene;
+    }
+
+    auto MeshCulling::SetCamera( const Camera *camera ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        m_Camera = camera;
     }
 
     auto MeshCulling::RegisterPasses( FrameGraph &graph ) -> void {
@@ -220,8 +229,9 @@ namespace Mikoto {
                 auto& info{ m_MeshInfo[meshIndex] };
 
                 info.Transform = instance.Transform;
+                info.InverseModelView = glm::inverse(glm::mat3(m_Camera->GetViewMatrix() * instance.Transform));
                 info.MaterialIndex = meshIndex;
-
+                
                 info.Albedo = instance.Albedo;
                 info.AlbedoIndex = instance.AlbedoIndex;
 

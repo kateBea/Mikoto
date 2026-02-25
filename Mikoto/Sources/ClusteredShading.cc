@@ -40,219 +40,219 @@ namespace Mikoto {
     auto ClusteredShading::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_Lights.resize( MAX_LIGHTS );
+        RegisterAABB( graph );
+        RegisterLightCulling( graph );
 
-        BuildAABB( graph );
-        BuildLightCulling( graph );
-
-        BuildGBuffer( graph );
-        BuildDepthPrepass( graph );
+        RegisterGBuffer( graph );
+        RegisterDepthPrepass( graph );
     }
 
     auto ClusteredShading::SetMeshCulling( MeshCulling &cullingPass ) -> void {
         m_MeshCullingPass = std::addressof( cullingPass );
     }
 
-    auto ClusteredShading::BuildAABB( FrameGraph &graph ) -> void {
+    auto ClusteredShading::RegisterAABB( FrameGraph &graph ) -> void {
         graph.RegisterPass(
-                "GenerateAABB",
-                [this]( FramePassBuilder &b ) {
-                    MKT_BEGIN_PROFILER_NAMED();
+            "GenerateAABB",
+            [this]( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    auto aabbClusters{ BufferBuilder{} };
-                    aabbClusters.WithUsage( BufferUsage::SHADER_STORAGE )
-                        .ForElement( sizeof( Cluster ), m_NumClusters )
-                        .IsDynamic( false )
-                        .Build( "AABBGenComp_Clusters" );
+                auto aabbClusters{ BufferBuilder{} };
+                aabbClusters.WithUsage( BufferUsage::SHADER_STORAGE )
+                    .ForElement( sizeof( Cluster ), m_NumClusters )
+                    .IsDynamic( false )
+                    .Build( "AABBGenComp_Clusters" );
 
-                    b.CreateBuffer( aabbClusters );
+                b.CreateBuffer( aabbClusters );
+                
+                b.UseShader( "Resources/Shaders/slang/AABBGen_Comp.slang", ShaderStage::COMPUTE );
+                b.Create<Pipeline>( "AABBGenComp_Pipeline", ComputePipelineDescription{} );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/AABBGen_Comp.sprv", ShaderStage::COMPUTE );
-                    b.Create<Pipeline>( "AABBGenComp_Pipeline", ComputePipelineDescription{} );
+                b.Write( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
-                    b.Write( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
+                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                b.Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 1 );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+                auto& data{ blackboard.Get<EnvironmentConstants>() };
+                data.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };
 
-                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                    b.Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 1 );
-                },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
-                    ctx.BindPipeline( "AABBGenComp_Pipeline" );
+                m_ClusterShadingParams.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };
+                m_ClusterShadingParams.ShowHeatMap = MKT_SHADER_FALSE;
 
-                    auto& data{ blackboard.Get<EnvironmentConstants>() };
-                    data.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };
-
-                    m_ClusterShadingParams.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };
-                    m_ClusterShadingParams.ShowHeatMap = MKT_SHADER_FALSE;
-
-                    ctx.PushConstants( std::addressof( m_ClusterShadingParams ), sizeof(m_ClusterShadingParams) );
-                    ctx.Dispatch( m_GridSizeX, m_GridSizeY, m_GridSizeZ );
-                } );
+                ctx.PushConstants( std::addressof( m_ClusterShadingParams ), sizeof(m_ClusterShadingParams) );
+                
+                ctx.BindPipeline( "AABBGenComp_Pipeline" );
+                ctx.Dispatch( m_GridSizeX, m_GridSizeY, m_GridSizeZ );
+            } );
     }
 
-    auto ClusteredShading::BuildLightCulling( FrameGraph &graph ) -> void {
+    auto ClusteredShading::RegisterLightCulling( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        m_Lights.resize( MAX_LIGHTS );
+
         graph.RegisterPass(
-                "LightCulling",
-                [this]( FramePassBuilder &b ) {
-                    MKT_BEGIN_PROFILER_NAMED();
+            "LightCulling",
+            [this]( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Buffer>( "LightCullingComp_LightsBuffer", BufferUsage::SHADER_STORAGE, sizeof( ShaderLightTypeParams ), m_Lights.size() );
+                b.Create<Buffer>( "LightCullingComp_LightsBuffer", BufferUsage::SHADER_STORAGE, sizeof( ShaderLightTypeParams ), m_Lights.size() );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/LightCulling_Comp.sprv", ShaderStage::COMPUTE );
-                    b.Create<Pipeline>( "LightCullingComp_Pipeline", ComputePipelineDescription{} );
+                b.UseShader( "Resources/Shaders/slang/LightCulling_Comp.slang", ShaderStage::COMPUTE );
+                b.Create<Pipeline>( "LightCullingComp_Pipeline", ComputePipelineDescription{} );
 
-                    b.Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
-                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+                b.Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
-                    b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess );
+                b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess );
 
-                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                    b.Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 1 );
-                    b.Use( ResourceGroup::Dynamic, "LightCullingComp_LightsBuffer", 2 );
-                },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
+                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                b.Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 1 );
+                b.Use( ResourceGroup::Dynamic, "LightCullingComp_LightsBuffer", 2 );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    ctx.BindPipeline( "LightCullingComp_Pipeline" );
+                SetupLightList( ctx );
 
-                    SetupLightList( ctx );
+                if (m_ClusterShadingParams.ActiveLightCount == 0) {
+                    return;
+                }
 
-                    if (m_ClusterShadingParams.ActiveLightCount == 0) {
-                        return;
-                    }
+                ctx.PushConstants( std::addressof( m_ClusterShadingParams ), sizeof(m_ClusterShadingParams) );
+                const auto numWorkGroupsX{ ( m_NumClusters + m_LocalSize - 1 ) / m_LocalSize };
 
-                    ctx.PushConstants( std::addressof( m_ClusterShadingParams ), sizeof(m_ClusterShadingParams) );
-                    const auto numWorkGroupsX{ ( m_NumClusters + m_LocalSize - 1 ) / m_LocalSize };
-
-                    ctx.Dispatch( numWorkGroupsX, 1, 1 );
-                } );
+                ctx.BindPipeline( "LightCullingComp_Pipeline" );
+                ctx.Dispatch( numWorkGroupsX, 1, 1 );
+            } );
     }
 
-
-    auto ClusteredShading::BuildGBuffer( FrameGraph &graph ) -> void {
+    auto ClusteredShading::RegisterGBuffer( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         graph.RegisterPass(
-                "GBuffer",
-                [this]( FramePassBuilder &b ) {
-                    MKT_BEGIN_PROFILER_NAMED();
-                    b.Create<Texture>( "GBuffer_Position", m_Resolution, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
-                    b.Create<Texture>( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                    b.Create<Texture>( "GBuffer_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                    b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
+            "GBuffer",
+            [this]( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+                b.Create<Texture>( "GBuffer_Position", m_Resolution, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
+                b.Create<Texture>( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.Create<Texture>( "GBuffer_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
 
-                    b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
+                b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Frag.sprv", ShaderStage::FRAGMENT );
+                b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Vert.sprv", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/vulkan-spirv/GBuffer_Frag.sprv", ShaderStage::FRAGMENT );
 
-                    GraphicsPipelineDescription graphicsDesc{
-                        .DepthTest{ true },
-                        .DepthWrite{ true },
-                        .AlphaBlending{ false },
-                        .PipelineCullMode{ CullMode::NONE },
-                        .ColorAttachmentFormats{
-                            TextureFormat::RGBA32_FLOAT,
-                            TextureFormat::RGBA8_UNORM,
-                            TextureFormat::RGBA8_UNORM
-                        },
-                        .DepthAttachmentFormat{ TextureFormat::D32_FLOAT }
-                    };
-                    b.Create<Pipeline>( "GBuffer_Pipeline", graphicsDesc );
+                GraphicsPipelineDescription graphicsDesc{
+                    .DepthTest{ true },
+                    .DepthWrite{ true },
+                    .AlphaBlending{ false },
+                    .PipelineCullMode{ CullMode::NONE },
+                    .ColorAttachmentFormats{
+                        TextureFormat::RGBA32_FLOAT,
+                        TextureFormat::RGBA8_UNORM,
+                        TextureFormat::RGBA8_UNORM
+                    },
+                    .DepthAttachmentFormat{ TextureFormat::D32_FLOAT }
+                };
+                b.Create<Pipeline>( "GBuffer_Pipeline", graphicsDesc );
 
-                    b.Write( "GBuffer_Position", FrameResourceState::RenderTarget );
-                    b.Write( "GBuffer_Normal", FrameResourceState::RenderTarget );
-                    b.Write( "GBuffer_Color", FrameResourceState::RenderTarget );
-                    b.Write( "GBuffer_Depth", FrameResourceState::DepthWrite );
+                b.Write( "GBuffer_Position", FrameResourceState::RenderTarget );
+                b.Write( "GBuffer_Normal", FrameResourceState::RenderTarget );
+                b.Write( "GBuffer_Color", FrameResourceState::RenderTarget );
+                b.Write( "GBuffer_Depth", FrameResourceState::DepthWrite );
 
-                    b.Write( "GBuffer_Params", FrameResourceState::UniformBuffer );
+                b.Write( "GBuffer_Params", FrameResourceState::UniformBuffer );
 
-                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                    b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
 
-                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                    b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
-                    b.Use( ResourceGroup::GlobalTextures );
-                },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
+                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
+                b.Use( ResourceGroup::GlobalTextures );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    ctx.SetColorRenderTarget( "GBuffer_Position" );
-                    ctx.SetColorRenderTarget( "GBuffer_Normal" );
-                    ctx.SetColorRenderTarget( "GBuffer_Color" );
-                    ctx.SetDepthRenderTarget( "GBuffer_Depth" );
+                ctx.SetColorRenderTarget( "GBuffer_Position" );
+                ctx.SetColorRenderTarget( "GBuffer_Normal" );
+                ctx.SetColorRenderTarget( "GBuffer_Color" );
+                ctx.SetDepthRenderTarget( "GBuffer_Depth" );
 
-                    ctx.BeginRender();
+                ctx.BeginRender();
 
-                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                const auto dimensions{ InferDimensions( m_Resolution ) };
 
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
-                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                    ctx.BindPipeline( "GBuffer_Pipeline" );
+                ctx.BindPipeline( "GBuffer_Pipeline" );
 
-                    m_MeshCullingPass->DrawInstances( ctx );
+                m_MeshCullingPass->DrawInstances( ctx );
 
-                    ctx.EndRender();
-                } );
+                ctx.EndRender();
+            } );
     }
 
-    auto ClusteredShading::BuildDepthPrepass( FrameGraph &graph ) -> void {
+    auto ClusteredShading::RegisterDepthPrepass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         graph.RegisterPass(
-                "DepthPrePass",
-                [this]( FramePassBuilder &b ) {
-                    MKT_BEGIN_PROFILER_NAMED();
+            "DepthPrePass",
+            [this]( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    b.Create<Texture>("DepthPrePass_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                    b.Create<Texture>("DepthPrePass_Depth", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                b.Create<Texture>("DepthPrePass_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.Create<Texture>("DepthPrePass_Depth", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
-                    b.UseShader("Resources/Shaders/vulkan-spirv/DepthPrePass_Vert.sprv", ShaderStage::VERTEX );
-                    b.UseShader("Resources/Shaders/vulkan-spirv/DepthPrePass_Frag.sprv", ShaderStage::FRAGMENT );
+                b.UseShader("Resources/Shaders/vulkan-spirv/DepthPrePass_Vert.sprv", ShaderStage::VERTEX );
+                b.UseShader("Resources/Shaders/vulkan-spirv/DepthPrePass_Frag.sprv", ShaderStage::FRAGMENT );
 
-                    GraphicsPipelineDescription graphicsDesc{
-                        .DepthTest{ true },
-                        .DepthWrite{ true },
-                        .AlphaBlending{ false },
-                        .PipelineCullMode{ CullMode::NONE },
-                    };
+                GraphicsPipelineDescription graphicsDesc{
+                    .DepthTest{ true },
+                    .DepthWrite{ true },
+                    .AlphaBlending{ false },
+                    .PipelineCullMode{ CullMode::NONE },
+                };
 
-                    b.Create<Pipeline>( "DepthPrePass_Pipeline", graphicsDesc );
+                b.Create<Pipeline>( "DepthPrePass_Pipeline", graphicsDesc );
 
-                    b.Write( "DepthPrePass_Color", FrameResourceState::RenderTarget );
-                    b.Write( "DepthPrePass_Depth", FrameResourceState::DepthWrite );
+                b.Write( "DepthPrePass_Color", FrameResourceState::RenderTarget );
+                b.Write( "DepthPrePass_Depth", FrameResourceState::DepthWrite );
 
-                    b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                    b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
 
-                    b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                    b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
-                },
+                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
+            },
 
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
+            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    ctx.BindPipeline( "DepthPrePass_Pipeline" );
+                ctx.BindPipeline( "DepthPrePass_Pipeline" );
 
-                    ctx.SetColorRenderTarget( "DepthPrePass_Color" );
-                    ctx.SetDepthRenderTarget( "DepthPrePass_Depth" );
+                ctx.SetColorRenderTarget( "DepthPrePass_Color" );
+                ctx.SetDepthRenderTarget( "DepthPrePass_Depth" );
 
-                    ctx.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
+                ctx.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
 
-                    ctx.BeginRender();
+                ctx.BeginRender();
 
-                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                const auto dimensions{ InferDimensions( m_Resolution ) };
 
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
-                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                    m_MeshCullingPass->DrawInstances( ctx );
+                m_MeshCullingPass->DrawInstances( ctx );
 
-                    ctx.EndRender();
-                } );
+                ctx.EndRender();
+            } );
     }
 
     auto ClusteredShading::SetupLightList( CommandContext &ctx ) -> void {

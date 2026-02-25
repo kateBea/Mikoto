@@ -229,18 +229,12 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
         m_Context->PushTexture( handle, sampler, m_ActivePass->Name, bindingSlot );
     }
-
+    
     auto CommandContext::BindImage( std::string_view name, SamplerHandle sampler, UInt32 bindingSlot ) -> void {
         TextureHandle texture{ m_Context->GetTexture( name ) };
         MKT_ASSERT( !texture.IsEmpty(), "Texture cannot be empty" );
 
         m_Context->PushTexture( texture, sampler, m_ActivePass->Name, bindingSlot );
-    }
-
-    auto CommandContext::RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        //m_Blackboard->RegisterTexture( name, handle );
     }
 
     auto CommandContext::CreateSampler( SamplerDescription samplerDescription ) -> SamplerHandle {

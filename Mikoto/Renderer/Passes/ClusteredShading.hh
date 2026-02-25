@@ -38,10 +38,10 @@ namespace Mikoto {
         auto SetMeshCulling(MeshCulling& cullingPass) -> void;
 
     private:
-        auto BuildAABB( FrameGraph& graph ) -> void;
-        auto BuildGBuffer( FrameGraph& graph ) -> void;
-        auto BuildDepthPrepass( FrameGraph& graph ) -> void;
-        auto BuildLightCulling( FrameGraph& graph ) -> void;
+        auto RegisterAABB( FrameGraph& graph ) -> void;
+        auto RegisterGBuffer( FrameGraph& graph ) -> void;
+        auto RegisterDepthPrepass( FrameGraph& graph ) -> void;
+        auto RegisterLightCulling( FrameGraph& graph ) -> void;
 
         auto SetupLightList(CommandContext& ctx) -> void;
 

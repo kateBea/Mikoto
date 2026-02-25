@@ -102,10 +102,9 @@ namespace Mikoto {
         auto BindImage(TextureHandle handle, SamplerHandle sampler, UInt32 bindingSlot) -> void;
         auto BindImage(std::string_view name, SamplerHandle sampler, UInt32 bindingSlot) -> void;
 
-        auto RegisterNamedTexture( std::string_view name, TextureHandle handle ) const -> void;
-
         auto CreateSampler( SamplerDescription samplerDescription ) -> SamplerHandle;
 
+     private:
         CommandListHandle m_Commands{};
 
         GraphicsContext* m_Context{};

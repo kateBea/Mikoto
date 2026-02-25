@@ -14,7 +14,7 @@
 
 #include "base/Base.slang"
 
-[[vk::binding(0, DYNAMIC_SET_INDEX)]]
+[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
 RWStructuredBuffer<uint> OutputBuffer;
 
 bool IsPrime(uint n) {

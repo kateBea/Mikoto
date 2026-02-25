@@ -14,7 +14,7 @@
 
 #include "base/Base.slang"
 #include "base/Camera_Helpers.slang"
-#include "base/ImageBaseLighting_Helpers.slang"
+#include "base/Lighting_Helpers.slang"
 
 struct VSInput {
     float3 Position : ATTRIBUTE0;
@@ -28,7 +28,7 @@ struct VSOutput {
     float4 PositionH : SV_Position;
 };
 
-[[vk::binding(0, DYNAMIC_SET_INDEX)]]
+[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
 ConstantBuffer<CameraInfo> u_Camera;
 
 [[vk::push_constant]]

@@ -73,8 +73,9 @@ namespace Mikoto {
     };
 
     static constexpr UInt32 TEXTURES_DESCRIPTOR_SET_INDEX{ 0 };
-    static constexpr UInt32 DYNAMIC_DESCRIPTOR_SET_INDEX{ 2 };
-    static constexpr UInt32 STATIC_DESCRIPTOR_SET_INDEX{ 3 };
+    static constexpr UInt32 DYNAMIC_BUFFERS_SET_INDEX{ 2 };
+    static constexpr UInt32 DYNAMIC_RESOURCE_SET_INDEX{ 3 };
+    static constexpr UInt32 STATIC_RESOURCE_SET_INDEX{ 4 };
 
     static constexpr UInt32 MINIMUM_REQUIRED_PUSH_CONSTANTS_SIZE{ 128 };
 

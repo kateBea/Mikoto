@@ -709,11 +709,11 @@ namespace Mikoto::VulkanHelpers::Reflection {
                     bindingInfo.descriptorType = ToVkDescriptorType(reflectedBinding->descriptor_type);
 
                     // because STATIC_DESCRIPTOR_SET_INDEX uses non-dynamic buffers, PER_PASS_DESCRIPTOR_SET_INDEX is reserved for dynamic buffers
-                    if (setIndex == STATIC_DESCRIPTOR_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+                    if (setIndex == DYNAMIC_RESOURCE_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
                         bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                     }
 
-                    if (setIndex == STATIC_DESCRIPTOR_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER) {
+                    if (setIndex == DYNAMIC_RESOURCE_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER) {
                         bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                     }
 
@@ -858,7 +858,7 @@ namespace Mikoto::VulkanHelpers::Reflection {
             // Right now we have set 2 for dynamic buffers exclusively for dynamic offsets in descriptor sets which require not to have update after bind flags
             // Set 3 is used for rest of resources that do not change that often and can benefit from update after bind
             std::vector<VkDescriptorBindingFlags> bindingFlags(layoutBindings.size(), VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
-            if (setIndex == DYNAMIC_DESCRIPTOR_SET_INDEX) {
+            if (setIndex == DYNAMIC_BUFFERS_SET_INDEX) {
                 for (auto& flag : bindingFlags) {
                     flag = VK_FLAGS_NONE;
                 }

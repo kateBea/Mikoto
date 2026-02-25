@@ -14,7 +14,7 @@
 
 #include "base/Base.slang"
 #include "base/Camera_Helpers.slang"
-#include "base/ImageBaseLighting_Helpers.slang"
+#include "base/Lighting_Helpers.slang"
 
 struct FSInput {
     float3 Direction : TEXCOORD0;
@@ -26,7 +26,7 @@ struct FSOutput {
     float4 Color : SV_Target0;
 };
 
-[[vk::binding(1, STATIC_SET_INDEX)]]
+[[vk::binding(1, DYNAMIC_RESOURCE_SET_INDEX)]]
 SamplerCube<float4> g_SkyboxTex;
 
 [[vk::push_constant]]

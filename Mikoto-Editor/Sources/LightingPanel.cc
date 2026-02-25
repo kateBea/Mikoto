@@ -37,23 +37,53 @@ namespace Mikoto {
 
         ImGui::Begin( m_PanelHeaderName.c_str(), &m_PanelIsVisible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize );
 
-        ImGuiUtils::DrawNode( "Background", [this] () -> void {
-            DrawBackgroundSettings();
-        });
+        ImGuiTabBarFlags tabFlags{ ImGuiTabBarFlags_None };
+        if ( ImGui::BeginTabBar( "LightingTabBar", tabFlags ) ) {
+            if ( ImGui::BeginTabItem( "Scene" ) ) {
+                DrawSceneSettings();
+                ImGui::EndTabItem();
+            }
 
-        ImGuiUtils::DrawNode( "Shadows", [this]() -> void {
-            
-        } );
+            if ( ImGui::BeginTabItem( "Shadows" ) ) {
+                DrawShadowsSettings();
+                ImGui::EndTabItem();
+            }
+
+            if ( ImGui::BeginTabItem( "Lights" ) ) {
+                DrawLightsSettings();
+                ImGui::EndTabItem();
+            }
+
+            if ( ImGui::BeginTabItem( "Environment" ) ) {
+                DrawEnvironmentSettings();
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
 
         ImGui::End();
     }
 
-    auto LightingPanel::DrawBackgroundSettings() -> void {
+    auto LightingPanel::DrawShadowsSettings() -> void {
+
+    }
+
+    auto LightingPanel::DrawLightsSettings() -> void {
+    }
+
+    auto LightingPanel::DrawEnvironmentSettings() -> void {
+    }
+
+    auto LightingPanel::DrawSceneSettings() -> void {
         static  std::array<std::string, 2> backgroundTypes{
             "Skybox", "Clear color"
         };
 
-        ImGui::TextUnformatted( "Background" );
+        ImGui::SeparatorText( "Sky light" );
+
+        ImGui::Text( "Skybox Texture" );
+        ImGui::SameLine();
+
         const SceneBackground current{ m_EditorState->ActiveEditorScene->GetSceneBackground() };
         const SceneBackground selection{ ImGuiUtils::Combo( backgroundTypes, current ) };
 
@@ -83,5 +113,16 @@ namespace Mikoto {
             default:
                 break;
         }
+
+        ImGui::Text( "Default ambient" );
+        ImGui::SameLine();
+
+        static float ambientIntensity{ 1.0f };
+        ImGuiUtils::Slider( "##AmbientSlider", ambientIntensity, { 0.0f, 10.0f } );
+        ImGui::Spacing();
+
+        ImGui::Text( "Default reflection" );
+        ImGui::SameLine();
+        ImGui::Spacing();
     }
 }

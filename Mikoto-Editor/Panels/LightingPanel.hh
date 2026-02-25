@@ -36,7 +36,10 @@ namespace Mikoto {
         ~LightingPanel() override = default;
 
     private:
-        auto DrawBackgroundSettings() -> void;
+        auto DrawSceneSettings() -> void;
+        auto DrawShadowsSettings() -> void;
+        auto DrawLightsSettings() -> void;
+        auto DrawEnvironmentSettings() -> void;
 
     private:
         EditorState* m_EditorState{};

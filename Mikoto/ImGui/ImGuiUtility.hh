@@ -685,7 +685,8 @@ namespace Mikoto::ImGuiUtils {
 
     // Returns -1 if nothing was selected
     MKT_NODISCARD inline auto Combo(std::string* choices, Size count, const std::string& currentSelection) -> Int32 {
-        Int32 selectionIndex{ -1 };
+        const auto it{ std::find( choices, choices + count, currentSelection ) };
+        Int32 selectionIndex{ static_cast<Int32>( it - choices ) };
 
         const std::string labelName{ fmt::format( "##{}{}", __PRETTY_FUNCTION__, currentSelection ) };
 

@@ -192,7 +192,7 @@ namespace Mikoto {
                         continue;
                     }
 
-                    if (DYNAMIC_DESCRIPTOR_SET_INDEX == setIndex) {
+                    if (DYNAMIC_BUFFERS_SET_INDEX == setIndex) {
                         if (it->second.DynamicOffsets.size() != it->second.BuffersBindings.size()) {
                             it->second.DynamicOffsets.clear();
                             for ( const auto &val: it->second.BuffersBindings | std::views::values ) {
@@ -216,7 +216,7 @@ namespace Mikoto {
                         }
                     }
 
-                    if (STATIC_DESCRIPTOR_SET_INDEX == setIndex) {
+                    if (DYNAMIC_RESOURCE_SET_INDEX == setIndex) {
                         switch ( it->second.Pipeline->GetPipelineType() ) {
                             case PipelineType::GRAPHICS_PIPELINE:
                                 vkCmdBindDescriptorSets( vkCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setIndex, 1,
@@ -427,7 +427,7 @@ namespace Mikoto {
 
         // If the combined buffer does not exist
         auto setIndex{ handle->IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) ? 
-            DYNAMIC_DESCRIPTOR_SET_INDEX : STATIC_DESCRIPTOR_SET_INDEX };
+            DYNAMIC_BUFFERS_SET_INDEX : DYNAMIC_RESOURCE_SET_INDEX };
         if (!it->second.Buffers.contains( handle.GetRaw() )) {
 
             PushBuffer( handle, bindingSlot, it->second.DescriptorSets[setIndex] );
@@ -454,14 +454,14 @@ namespace Mikoto {
 
         // Individual textures go to the static resources set
         if (itCombinedImageSampler == it->second.CombinedImageSampler.end()) {
-            PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[STATIC_DESCRIPTOR_SET_INDEX] );
+            PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[DYNAMIC_RESOURCE_SET_INDEX] );
             it->second.CombinedImageSampler.emplace( std::make_pair( handle.GetRaw(), sampler.GetRaw() ) );
 
             it->second.CombinedImageSamplerBinding[bindingSlot] = std::make_pair( handle.GetRaw(), sampler.GetRaw() );
         } else {
             // Update if there is a different pair of image and sampler
             if (it->second.CombinedImageSamplerBinding[bindingSlot] != std::make_pair( handle.GetRaw(), sampler.GetRaw() )) {
-                PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[STATIC_DESCRIPTOR_SET_INDEX] );
+                PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[DYNAMIC_RESOURCE_SET_INDEX] );
                 it->second.CombinedImageSamplerBinding[bindingSlot] = std::make_pair( handle.GetRaw(), sampler.GetRaw() );
             }
         }

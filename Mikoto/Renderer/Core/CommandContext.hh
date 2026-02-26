@@ -56,17 +56,17 @@ namespace Mikoto {
         UInt32 FirstInstance{};
     };
 
+    // Still need to figure out how to specify vertex buffers for indirect draw calls.
+    // As far as I know, I can either specify one mega vertex buffer and index buffer and issue a single draw indirect draw call
+    // or I can specify multiple vertex buffers and index buffers and issue multiple draw indirect calls. 
+    // The first option is more efficient but less flexible, while the second option is more flexible but might perform similar to DrawIndexed??.
     struct DrawIndirectIndexedState {
         BufferHandle IndexBuffer{};
         std::vector<std::pair<BufferHandle, UInt32>> VertexBuffers{};
 
-        // GPU buffer containing the Commands[] above.
         BufferHandle IndirectCommandsBuffer{};
 
-        // The count of commands (same as Commands.size())
         UInt32 DrawCount{};
-
-        // All indirect commands for this material/mesh group.
         std::vector<DrawIndexedIndirectCommand> Commands{};
     };
 

@@ -175,6 +175,35 @@ namespace Mikoto {
         m_Commands->DrawIndexed( info.IndexBuffer->GetCount(), info.InstancesCount, info.FirstIndex, info.VertexOffset, info.FirstInstance );
     }
 
+    auto CommandContext::DrawIndexedIndirect( const DrawIndirectIndexedState &info ) -> void {
+        if ( info.Commands.empty() ) {
+            return;
+        }
+
+        if ( !m_HasSetConstantData ) {
+            m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
+
+            m_HasSetConstantData = true;
+        }
+
+        MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
+
+        // Bind vertex buffers
+        for (auto& [vb, binding] : info.VertexBuffers) {
+            m_Commands->BindVertexBuffer( vb, binding );
+        }
+
+        // Bind index buffer
+        m_Commands->BindIndexBuffer( info.IndexBuffer );
+
+        // Multi-draw in one call
+        m_Commands->DrawIndexedIndirect(
+                info.IndirectCommandsBuffer,
+                0,
+                info.DrawCount,
+                sizeof( DrawIndexedIndirectCommand ) );
+    }
+
     auto CommandContext::Dispatch( UInt32 invX, UInt32 invY, UInt32 invZ ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 

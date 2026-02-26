@@ -78,6 +78,7 @@ namespace Mikoto {
 
         virtual auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void = 0;
         virtual auto DrawIndexed( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance)-> void = 0;
+        virtual auto DrawIndexedIndirect( BufferHandle indexBuffer, UInt32 offset, UInt32 drawCount, UInt32 stride ) -> void = 0;
 
         virtual auto Dispatch(UInt32 x, UInt32 y, UInt32 z) -> void = 0;
 

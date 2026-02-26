@@ -34,6 +34,7 @@ namespace Mikoto {
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
         auto DrawInstances( CommandContext& context ) -> void;
+        auto DrawInstancesIndirect( CommandContext& context ) -> void;
 
     private:
         auto SetupInstanceData( CommandContext& context ) -> void;

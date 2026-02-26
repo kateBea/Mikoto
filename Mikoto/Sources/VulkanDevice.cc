@@ -1355,6 +1355,10 @@ namespace Mikoto {
         vkCmdDrawIndexed( m_CmdBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
     }
 
+    auto VulkanCmdList::DrawIndexedIndirect(BufferHandle indexBuffer, UInt32 offset, UInt32 drawCount, UInt32 stride) -> void {
+        vkCmdDrawIndexedIndirect( m_CmdBuffer, indexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), offset, drawCount, stride );
+    }
+
     auto VulkanCmdList::BindPipeline( PipelineHandle pipeline ) -> void {
         VkPipelineBindPoint bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
 

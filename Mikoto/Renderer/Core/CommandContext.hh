@@ -48,6 +48,28 @@ namespace Mikoto {
         UInt32 FirstInstance{};
     };
 
+    struct DrawIndexedIndirectCommand {
+        UInt32 IndexCount{};
+        UInt32 InstanceCount{};
+        UInt32 FirstIndex{};
+        Int32 VertexOffset{};
+        UInt32 FirstInstance{};
+    };
+
+    struct DrawIndirectIndexedState {
+        BufferHandle IndexBuffer{};
+        std::vector<std::pair<BufferHandle, UInt32>> VertexBuffers{};
+
+        // GPU buffer containing the Commands[] above.
+        BufferHandle IndirectCommandsBuffer{};
+
+        // The count of commands (same as Commands.size())
+        UInt32 DrawCount{};
+
+        // All indirect commands for this material/mesh group.
+        std::vector<DrawIndexedIndirectCommand> Commands{};
+    };
+
     class CommandContext final {
     public:
         explicit CommandContext(GraphicsContext *context, CommandListHandle cmd);
@@ -77,6 +99,8 @@ namespace Mikoto {
         auto SetPolygonLineWidth(float value) -> void;
 
         auto DrawIndexed(const DrawIndexedState& info) -> void;
+        auto DrawIndexedIndirect( const DrawIndirectIndexedState& info ) -> void;
+
         auto Draw(UInt32 vertexCount, UInt32 instanceCount = 1, UInt32 firstVertex = 0, UInt32 firstInstance = 0 ) -> void;
         auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
 

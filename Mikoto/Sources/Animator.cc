@@ -34,20 +34,12 @@ namespace Mikoto {
     }
 
     auto Animator::UpdateAnimation( float deltaTime ) -> void {
-        if ( m_CurrentAnimation ) {
+        if ( m_IsPlaying && m_CurrentAnimation ) {
             m_CurrentTime += m_CurrentAnimation->GetTicksPerSecond() * deltaTime;
             m_CurrentTime = std::fmod( m_CurrentTime, m_CurrentAnimation->GetDuration() ); // std::fmod is used to loop the animation
 
             const Skeleton& skeleton{ m_Model->GetSkeleton() };
             CalculateTransform( skeleton.GetHierarchy(), Mat4F{ 1.0f }, m_CurrentTime, skeleton );
-        }
-
-        // DEBUG if it has any set to first one
-        if ( !m_CurrentAnimation ) {
-            for (auto& animation : m_Model->GetAnimations()) {
-                m_CurrentAnimation = std::addressof( animation.second );
-                break;
-            }
         }
 	}
 
@@ -83,19 +75,50 @@ namespace Mikoto {
     }
 
     auto Animator::SetCurrentAnimation( std::string_view name ) -> void {
-        m_CurrentAnimationName = name;
-
-        auto result{ m_Model->FindAnimation( name ) };
-
-        if (!result) {
-            const std::string resultMessage{ m_CurrentAnimation ? m_CurrentAnimation->GetName() : "NULL" };
-            MKT_CORE_LOGGER_ERROR( "Animation does not exist {}. Current animation is {}", name, resultMessage );
-        } else {
-            m_CurrentAnimation = result;
+        SkinnedAnimation* animation{ m_Model->FindAnimation( name ) };
+        if ( !animation ) {
+            MKT_CORE_LOGGER_ERROR( "Animation {} does not exist. Cannot set current animation.", name );
+            return;
         }
+        // Reset time to start the animation from the beginning
+        m_CurrentTime = 0.0f;
+
+        m_CurrentAnimation = animation;
+
+        m_IsPlaying = false;
     }
 
     auto Animator::GetCurrentAnimation() const -> const SkinnedAnimation* {
         return m_CurrentAnimation;
+    }
+
+    auto Animator::PlayCurrentAnimation() -> void {
+        if ( m_CurrentAnimation ) {
+             m_IsPlaying = true;
+         } else {
+             MKT_CORE_LOGGER_ERROR( "No animation is currently set. Cannot play." );
+         }
+    }
+    auto Animator::PlayAnimation( std::string_view name ) -> void {
+        SkinnedAnimation* animation{ m_Model->FindAnimation( name ) };
+        if (animation) {
+            m_CurrentAnimation = animation;
+
+            // Reset time to start the animation from the beginning
+            m_CurrentTime = 0.0f;
+
+            m_IsPlaying = true;
+        } else {
+            MKT_CORE_LOGGER_ERROR( "Animation {} does not exist. Cannot play.", name );
+        }
+    }
+
+    auto Animator::StopCurrentAnimation() -> void {
+        m_CurrentTime = 0.0f;
+        m_IsPlaying = false;
+    }
+
+    auto Animator::IsPlaying() const -> bool {
+        return m_IsPlaying;
     }
 }

@@ -36,6 +36,13 @@ namespace Mikoto {
         auto GetFinalBoneMatrices() -> auto& { return m_FinalMatrices; }
         auto GetAnimationList() const -> const auto& { return m_Model->GetAnimations(); }
 
+        auto StopCurrentAnimation() -> void;
+
+        auto PlayCurrentAnimation() -> void;
+        auto PlayAnimation( std::string_view name ) -> void;
+
+        MKT_NODISCARD auto IsPlaying() const -> bool;
+
     private:
 
         auto UpdateLocalTransform( const Joint& joint, float animationTime, Mat4F& localTransform ) -> void;
@@ -47,7 +54,7 @@ namespace Mikoto {
 
         ModelHandle m_Model{};
 
-        std::string m_CurrentAnimationName{};
+        bool m_IsPlaying{ false };
         SkinnedAnimation* m_CurrentAnimation{};
 
         std::vector<Mat4F> m_LocalTransform{};

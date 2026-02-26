@@ -71,6 +71,8 @@ namespace Mikoto {
         auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding) -> void  override;
 
         auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void  override;
+
+        auto DrawIndexedIndirect( BufferHandle indexBuffer, UInt32 offset, UInt32 drawCount, UInt32 stride ) -> void override;
         auto DrawIndexed( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance)-> void  override;
 
         auto BindPipeline(PipelineHandle pipeline) -> void override;

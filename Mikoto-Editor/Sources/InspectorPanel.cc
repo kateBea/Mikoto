@@ -1095,37 +1095,60 @@ namespace Mikoto {
     static auto SetupAnimatorComponentTab( Entity& entity ) -> void {
         AnimatorComponent& animatorComponent{ entity.GetComponent<AnimatorComponent>() };
 
+        std::string animationName{};
         Animator* animator{ AnimationSystem::Get()->GetAnimator( animatorComponent.GetAnimatorID() ) };
         if ( animator ) {
             // Show list of animations
+
+            animationName = animator->GetCurrentAnimation() ? animator->GetCurrentAnimation()->GetName() : "";
         }
 
+
         ImGuiUtils::UnindentScoped und{};
-        ImGuiUtils::DrawNode( "Animation List", [animator]() -> void {
+        ImGuiUtils::DrawNode( "Animation List", [&animationName, animator]() -> void {
             ImGuiUtils::UnindentScoped und{};
 
             if ( animator ) {
                 constexpr UInt32 maxAnimationDisplay{ 10 };
                 std::array<std::string, maxAnimationDisplay> animationNames{};
 
+                // Set all the animation names in the array so we can display them in the combo box
                 UInt32 index{ 0 };
                 for ( const auto& animationName: animator->GetAnimationList() | std::ranges::views::keys ) {
                     animationNames[index++] = animationName;
-                }
 
-                std::string animationName{};
+                    if ( index == maxAnimationDisplay ) {
+                        break;
+                    }
+                }
 
                 auto currentAnimation{ animator->GetCurrentAnimation() };
                 if (currentAnimation) {
                     animationName = currentAnimation->GetName();
                 }
 
-                auto selectionIndex{ ImGuiUtils::Combo( animationNames.data(), animator->GetAnimationList().size(), animationName ) };
-                if (selectionIndex != -1) {
+                const UInt32 availableAnimationCount{ static_cast<UInt32>( animator->GetAnimationList().size() ) };
+                auto selectionIndex{ ImGuiUtils::Combo( animationNames.data(), availableAnimationCount, animationName ) };
+
+                if ( selectionIndex != -1 ) {
                     animator->SetCurrentAnimation( animationNames[selectionIndex] );
                 }
             }
         } );
+
+        bool play{ false };
+
+        if ( animator ) {
+            play = animator->IsPlaying();
+        }
+
+        if ( ImGuiUtils::CheckBox( "Play selected animation", play ) ) {
+            if ( play ) {
+                animator->PlayAnimation( animationName );
+            } else {
+                animator->StopCurrentAnimation();
+            }
+        }
     }
 
     static auto SetupSkinMeshComponentTab( Entity& entity ) -> void {

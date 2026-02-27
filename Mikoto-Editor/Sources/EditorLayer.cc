@@ -353,14 +353,14 @@ namespace Mikoto {
     auto EditorLayer::DebugInstancingTest() -> void {
         ModelLoadDescription desc{
             .ModelFile{ FileService::Get()->LoadFile(
-                    "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
+                    "Resources/Models/1 - Box texture/Box.gltf" ) },
             .WantTextures{ true }
         };
 
         ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( desc ) };
 
-        constexpr UInt32 gridSize{ 5 }; // gridSize * gridSize cubes
-        constexpr float spacing{ 7.0f }; // Distance between cubes
+        constexpr UInt32 gridSize{ 40 }; // gridSize * gridSize cubes
+        constexpr float spacing{ 15.0f }; // Distance between cubes
 
         Entity *root{ m_ActiveScene->CreateEntity( "InstancingGridBoxes" ) };
 
@@ -382,7 +382,15 @@ namespace Mikoto {
                                 { static_cast<float>( x ) * spacing,
                                   static_cast<float>( y ) * spacing,
                                   static_cast<float>( z ) * spacing } );
+
+                        auto &pbr{ e->GetComponent<MaterialComponent>() };
+                        PBRMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PBRMaterial>() };
+                        if ( pbrMat ) {
+                            pbrMat->SetAlphaMaskCutoff( 1.0f );
+                            pbrMat->SetColor( Vec4F{ GetRandomizedVec3F( 0.0f, 1.0f ), 1.0f } );
+                        }
                     }
+
                 }
             }
         }

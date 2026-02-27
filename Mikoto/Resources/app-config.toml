@@ -25,7 +25,7 @@ api = "vulkan"                     # Rendering API (vulkan)
 vsync = true                       # Enable/disable VSync
 
 [application]
-title = "Mikoto - Engine Vulkan"         # Window title
+title = "Mikoto - Engine"         # Window title
 width = 1920                       # Window width in pixels
 height = 1080                       # Window height in pixels
 resizable = true                   # Allow resizing the window (true/false)

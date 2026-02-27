@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
+
 #include <Math/Math.hh>
 
 #include <Core/Timer.hh>
@@ -28,6 +30,101 @@
 #include "Animation/AnimationSystem.hh"
 
 namespace Mikoto {
+
+    GeometryBufferAllocator::GeometryBufferAllocator(
+            UInt64 vertexBufferSize,
+            UInt64 indexBufferSize ) {
+        m_VertexFreeList.push_back( FreeRange{ .Offset = 0, .Size = vertexBufferSize } );
+        m_IndexFreeList.push_back( FreeRange{ .Offset = 0, .Size = indexBufferSize } );
+    }
+
+    auto GeometryBufferAllocator::AllocateFrom( std::vector<FreeRange> &freeList, UInt64 size ) -> std::optional<UInt64> {
+        for ( auto it{ freeList.begin() }; it != freeList.end(); ++it ) {
+            if ( it->Size >= size ) {
+                UInt64 allocOffset = it->Offset;
+
+                it->Offset += size;
+                it->Size -= size;
+
+                if ( it->Size == 0 ) {
+                    freeList.erase( it );
+                }
+
+                return allocOffset;
+            }
+        }
+
+        return std::nullopt;// Out of space
+    }
+
+    auto GeometryBufferAllocator::Allocate( UInt64 vertexBytes, UInt64 indexBytes ) -> std::optional<GeometryAllocation> {
+        auto v{ AllocateFrom( m_VertexFreeList, vertexBytes ) };
+
+        if ( !v.has_value() ) { 
+            return std::nullopt; 
+        }
+
+        auto i{ AllocateFrom( m_IndexFreeList, indexBytes ) };
+        if ( !i.has_value() ) {
+            // Roll back vertex alloc
+            m_VertexFreeList.push_back( FreeRange{
+                    .Offset = v.value(),
+                    .Size = vertexBytes } );
+
+            return std::nullopt;
+        }
+
+        return GeometryAllocation{
+            .VertexOffset = v.value(),
+            .VertexSize = vertexBytes,
+            .IndexOffset = i.value(),
+            .IndexSize = indexBytes
+        };
+    }
+
+    auto GeometryBufferAllocator::Free( const GeometryAllocation &alloc ) -> void {
+        // Simple approach: push back free ranges.
+        // Optional: merge/compact free blocks.
+        m_VertexFreeList.push_back( FreeRange{
+                .Offset = alloc.VertexOffset,
+                .Size = alloc.VertexSize } );
+
+        m_IndexFreeList.push_back( FreeRange{
+                .Offset = alloc.IndexOffset,
+                .Size = alloc.IndexSize } );
+    }
+
+    auto GeometryManager::UploadMeshData( const MeshNode *node ) -> GeometryAllocation {
+        const UInt64 vertexBytes = node->GetVertexBuffer()->GetSizeBytes();
+        const UInt64 indexBytes = node->GetIndexBuffer()->GetSizeBytes();
+
+        auto alloc{ m_Allocator.Allocate( vertexBytes, indexBytes ) };
+        MKT_ASSERT( alloc.has_value(), "Allocation is empty" );
+
+        //auto stagingVB{ m_Device->CreateBuffer( vertexBytes ) };
+        //auto stagingIB{ m_Device->CreateBuffer( indexBytes ) };
+
+        //CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
+
+        //cmd->CopyBuffer( stagingVB.GetRaw(), node->GetVertexBuffer().GetRaw() );
+        //cmd->CopyBuffer( stagingIB.GetRaw(), node->GetIndexBuffer().GetRaw() );
+
+        //// Issue copy commands (subrange copies)
+        //m_Device->CopyBuffer( stagingVB, m_VertexBuffers, alloc->VertexOffset );
+        //m_Device->CopyBuffer( stagingIB, m_IndexBuffers, alloc->IndexOffset );
+
+        //// Save allocation for FreeMeshData()
+        //m_RegisteredMeshes[node] = *alloc;
+
+        //cmd->End();
+        //m_Device->SubmitCommands( cmd );
+
+        return *alloc;
+    }
+
+    auto GeometryManager::FreeMeshData( const MeshNode *node ) -> void {
+
+    }
 
     auto MeshCulling::SetScene( Scene *scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
@@ -118,16 +215,16 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         graph.RegisterPass(
-                "MeshCulling",
-                []( FramePassBuilder &b ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
-                    // To force this pass to go before ScatteredWritesMeshPass
-                    b.Write( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
-                },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
-                    SetupInstanceData( ctx );
-                } );
+            "MeshCulling",
+            []( FramePassBuilder &b ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+                // To force this pass to go before ScatteredWritesMeshPass
+                b.Write( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+                SetupInstanceData( ctx );
+            } );
     }
 
     auto MeshCulling::DrawInstances( CommandContext &context ) -> void {

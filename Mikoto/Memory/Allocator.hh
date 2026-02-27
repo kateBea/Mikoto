@@ -20,17 +20,13 @@
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 
-// Macro for bytes
 #define MKT_BYTES( X ) ( X )
 
-// Macro for kilobytes
-#define MKT_KILOBYTES( X ) ( ( X ) * 1024 )
+#define MKT_KIBIBYTES( X ) ( ( X ) * 1024 )
+#define MKT_KILOBYTES( X ) ( ( X ) * 1000 )
 
-// Macro for megabytes
-#define MKT_MEGABYTES( X ) ( ( X ) * 1024 * 1024 )
-
-// Macro for gigabytes
-#define MKT_GIGABYTES( X ) ( ( X ) * 1024 * 1024 * 1024 )
+#define MKT_MIBIBYTES( X ) ( ( X ) * 1024 * 1024 )
+#define MKT_MEGABYTES( X ) ( ( X ) * 1000 * 1000 )
 
 #define MKT_SIZEOF( X ) sizeof( X )
 

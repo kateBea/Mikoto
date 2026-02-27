@@ -83,6 +83,9 @@ namespace Mikoto {
         MKT_NODISCARD auto GetVertexBuffer() -> BufferHandle { return  m_Vertices; }
         MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return m_Indices; }
 
+        MKT_NODISCARD auto GetVertexBuffer() const -> BufferHandle { return m_Vertices; }
+        MKT_NODISCARD auto GetIndexBuffer() const -> BufferHandle { return m_Indices; }
+
         MKT_NODISCARD auto GetProperties() const -> const MaterialProperties& { return m_Properties; }
 
         DISABLE_COPY_FOR( MeshNode );

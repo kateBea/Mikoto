@@ -60,9 +60,9 @@ namespace Mikoto {
         RegisterSkybox( graph );
         RegisterBRDFLut( graph );
 
-        RegisterSkyboxRender( graph );
-        RegisterIrradiance( graph );
         RegisterPrefilter( graph );
+        RegisterIrradiance( graph );
+        RegisterSkyboxRender( graph );
 
         RegisterShading( graph );
 
@@ -114,25 +114,25 @@ namespace Mikoto {
         graph.RegisterPass<IrradiancePassData>(
             "IrradiancePass",
 
-            [&]( FramePassBuilder &b, IrradiancePassData& p ) {
+            [this]( FramePassBuilder &b, IrradiancePassData& p ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 b.Create<TextureCube>( "IrradiancePass_ColorTargetCUBE", m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, m_IrradianceMipLevels );
                 b.Create<Texture>( "IrradiancePass_ColorTarget", m_IrradianceDimensions, m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
 
-                b.UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Vert.sprv", ShaderStage::VERTEX );
-                b.UseShader( "Resources/Shaders/vulkan-spirv/Irradiance_Frag.sprv", ShaderStage::FRAGMENT );
+                b.UseShader( "Resources/Shaders/slang/Irradiance_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/Irradiance_Frag.slang", ShaderStage::FRAGMENT );
                 b.Create<Pipeline>( "IrradiancePass_Pipeline",
-                                    GraphicsPipelineDescription{
-                                            .PrimitiveTopology{ Topology::TRIANGLE_LIST },
-                                            .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT } } );
+                    GraphicsPipelineDescription{
+                        .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                        .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT } } );
 
                 b.Write( "IrradiancePass_ColorTarget", FrameResourceState::RenderTarget );
                 b.Write( "IrradiancePass_ColorTargetCUBE", FrameResourceState::TransferDst );
 
                 b.Read( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
-            [&]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) {
+            [this]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 auto& irradianceFlags{ blackboard.Get<IrradiancePassData>() };
@@ -183,18 +183,19 @@ namespace Mikoto {
 
         graph.RegisterPass<PrefilterPassData>(
             "PrefilterPass",
-            [&]( FramePassBuilder &b, PrefilterPassData& ) {
+            [this]( FramePassBuilder &b, PrefilterPassData& ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 m_PrefilterMipLevels = static_cast<UInt32>( Math::Floor( Math::Log2( m_PrefilterDimensions ) ) ) + 1;
                 b.Create<TextureCube>( "PrefilterPass_ColorTargetCUBE", m_PrefilterDimensions, TextureFormat::RGBA16_FLOAT, m_PrefilterMipLevels );
                 b.Create<Texture>( "PrefilterPass_ColorTarget", m_PrefilterDimensions, m_PrefilterDimensions, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
 
-                b.UseShader( "Resources/Shaders/vulkan-spirv/Prefilter_Vert.sprv", ShaderStage::VERTEX );
-                b.UseShader( "Resources/Shaders/vulkan-spirv/Prefilter_Frag.sprv", ShaderStage::FRAGMENT );
-                b.Create<Pipeline>( "Prefilter_Pipeline", GraphicsPipelineDescription{
-                                                                    .PrimitiveTopology{ Topology::TRIANGLE_LIST },
-                                                                    .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT } } );
+                b.UseShader( "Resources/Shaders/slang/Prefilter_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/Prefilter_Frag.slang", ShaderStage::FRAGMENT );
+                b.Create<Pipeline>( "Prefilter_Pipeline", 
+                    GraphicsPipelineDescription{
+                        .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                        .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT } } );
 
                 b.Write( "PrefilterPass_ColorTarget", FrameResourceState::RenderTarget );
                 b.Write( "PrefilterPass_ColorTargetCUBE", FrameResourceState::TransferDst );
@@ -202,7 +203,7 @@ namespace Mikoto {
                 b.Read( "SkyboxRender_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
 
-            [&]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) {
+            [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 auto& prefilterInfo{ blackboard.Get<PrefilterPassData>() };
@@ -259,16 +260,16 @@ namespace Mikoto {
             []( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                // R16G16 is supported commonly
                 b.Create<Texture>( "BRDFLutPass_ColorTarget", 512, 512 , TextureFormat::RG16_FLOAT, TextureUsage::COLOR );
 
-                b.UseShader( "Resources/Shaders/vulkan-spirv/BRDFLut_Vert.sprv", ShaderStage::VERTEX );
-                b.UseShader( "Resources/Shaders/vulkan-spirv/BRDFLut_Frag.sprv", ShaderStage::FRAGMENT );
+                b.UseShader( "Resources/Shaders/slang/BRDFLut_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/BRDFLut_Frag.slang", ShaderStage::FRAGMENT );
 
-                b.Create<Pipeline>( "BRDFLutPass_Pipeline", GraphicsPipelineDescription{
-                                        .VertexAttributesSpec{},
-                                        .ColorAttachmentFormats{ TextureFormat::RG16_FLOAT }
-                                    } );
+                b.Create<Pipeline>( "BRDFLutPass_Pipeline", 
+                    GraphicsPipelineDescription{
+                    .VertexAttributesSpec{},
+                    .ColorAttachmentFormats{ TextureFormat::RG16_FLOAT }
+                } );
 
                 b.Write( "BRDFLutPass_ColorTarget", FrameResourceState::RenderTarget );
             },
@@ -339,12 +340,13 @@ namespace Mikoto {
                 b.Create<TextureCube>( "SkyboxRender_ColorTargetCUBE", 2540, TextureFormat::RGBA32_FLOAT, 1 );
                 b.Create<Texture>( "SkyboxRender_ColorTarget", 2540, 2540, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
 
-                b.UseShader( "Resources/Shaders/vulkan-spirv/SkyboxRender_Vert.sprv", ShaderStage::VERTEX );
-                b.UseShader( "Resources/Shaders/vulkan-spirv/SkyboxRender_Frag.sprv", ShaderStage::FRAGMENT );
+                b.UseShader( "Resources/Shaders/slang/SkyboxGen_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/SkyboxGen_Frag.slang", ShaderStage::FRAGMENT );
                 b.Create<Pipeline>( "SkyboxRender_Pipeline",
-                                    GraphicsPipelineDescription{
-                                            .PrimitiveTopology{ Topology::TRIANGLE_LIST },
-                                            .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT } } );
+                    GraphicsPipelineDescription{
+                    .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                    .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT 
+                } } );
 
                 b.Write( "SkyboxRender_ColorTarget", FrameResourceState::RenderTarget );
                 b.Write( "SkyboxRender_ColorTargetCUBE", FrameResourceState::TransferDst );
@@ -489,7 +491,7 @@ namespace Mikoto {
     auto IBLPasses::SetCamera( const Camera *camera ) -> void {
 
     }
-
+    
     auto IBLPasses::RegisterDirShadowMap( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -497,14 +499,14 @@ namespace Mikoto {
             "DirectionalShadowMapPass",
             [this]( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
-
+                
                 b.Create<Texture>( "DirectionalShadowMapPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                 b.Create<Texture>( "DirectionalShadowMapPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
 
                 b.Create<Buffer>( "DirectionalShadowMapPass_CameraInfo", BufferUsage::UNIFORM, sizeof( LightCameraInfo ), 1 );
 
-                b.UseShader( "Resources/Shaders/vulkan-spirv/DirectionalShadowMap_Frag.sprv", ShaderStage::FRAGMENT );
-                b.UseShader( "Resources/Shaders/vulkan-spirv/DirectionalShadowMap_Vert.sprv", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/DirLighShadows_Frag.slang", ShaderStage::FRAGMENT );
+                b.UseShader( "Resources/Shaders/slang/DirLighShadows_Vert.slang", ShaderStage::VERTEX );
 
                 GraphicsPipelineDescription graphicsDesc{
                     .DepthTest{ true },
@@ -530,7 +532,7 @@ namespace Mikoto {
 
                 ctx.SetColorRenderTarget( "DirectionalShadowMapPass_ColorTarget" );
                 ctx.SetDepthRenderTarget( "DirectionalShadowMapPass_DepthTarget" );
-
+                
                 ctx.BeginRender();
 
                 ctx.BindPipeline( "DirectionalShadowMapPass_Pipeline" );
@@ -561,7 +563,7 @@ namespace Mikoto {
                 ctx.EndRender();
             } );
     }
-
+    
     auto IBLPasses::RegisterPointShadowMap( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -574,10 +576,10 @@ namespace Mikoto {
                 MKT_BEGIN_PROFILER_NAMED();
             } );
     }
-
+    
     auto IBLPasses::RegisterSpotShadowMap( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
+        
         graph.RegisterPass(
             "SpotLightShadowMapPass",
             []( FramePassBuilder &b ) {
@@ -590,7 +592,7 @@ namespace Mikoto {
 
     auto IBLPasses::RegisterShading( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
+        
         graph.RegisterPass<EnvironmentConstants>(
             "FinalShading",
             [this]( FramePassBuilder &b, EnvironmentConstants& ) -> void {
@@ -605,12 +607,13 @@ namespace Mikoto {
                     .AlphaBlending{ true },
                     .EnableSampleRateShading{ true },
                     .MSAA{ Multisampling::MSAA_X1 },
-                    .PipelineCullMode{ CullMode::NONE }, // We probably need to organize models by material some models like the just_a_girl require cull_back to be properly visulized
+                    .PipelineCullMode{ CullMode::NONE }, // We probably need to organize models by material some 
+                                                         // models like the just_a_girl require cull_back to be properly visulized
                 };
 
-                b.UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX )
-                    .UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv", ShaderStage::FRAGMENT )
-                    .Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );
+                b.UseShader( "Resources/Shaders/slang/PBR_Basic_Vert.slang", ShaderStage::VERTEX )
+                        .UseShader( "Resources/Shaders/slang/PBR_Basic_Frag.slang", ShaderStage::FRAGMENT )
+                        .Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer )
                     .Read( "FinalBuffer_ObjectInfo", FrameResourceState::ShaderRead_GraphicsPipeline )
@@ -625,7 +628,7 @@ namespace Mikoto {
                 b.Read( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
 
                 b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
-
+                
                 // Create dependency between this pass and debug view pass
                 b.Write( "FinalShading_Params", FrameResourceState::UniformBuffer );
 

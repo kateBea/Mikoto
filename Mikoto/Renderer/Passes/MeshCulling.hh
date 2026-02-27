@@ -43,6 +43,11 @@ namespace Mikoto {
         auto RegisterMeshCullingPass(FrameGraph &graph) -> void;
 
     private:
+        struct SkinningInfo {
+            std::array<Mat4F, MAX_BONES_PER_MESH> BoneTransforms{};
+        };
+
+    private:
         Scene* m_Scene{};
         const Camera* m_Camera{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
@@ -52,7 +57,7 @@ namespace Mikoto {
         std::vector<UInt32> m_MeshInfoIndices{};
         std::vector<MeshParameters> m_MeshInfo{};
 
-        std::vector<std::array<Mat4F, MAX_BONES_PER_MESH>> m_SkinnedMeshes{};
+        std::vector<SkinningInfo> m_SkinningInfo{};
         ankerl::unordered_dense::map<MeshNode*, Size> m_MeshDrawInstanceCount{};
         ankerl::unordered_dense::map<MeshNode*, DrawIndexedState> m_DrawIndexedState{};
         ankerl::unordered_dense::map<MeshNode*, std::vector<ShaderMaterialParams>> m_InstanceInfos{};

@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
+#include "LightInfo.slang"
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -34,19 +38,6 @@ struct ClusteredShadingParams {
     float4 GridSize;
     uint ShowHeatMap;
     uint ActiveLightCount;
-};
-
-struct LightInfo {
-    float4 Position; 
-    float4 Direction;
-    float3 Diffuse;
-
-    float CutOff;
-    float OuterCutOff;
-    float Intensity;
-    float Radius;
-
-    int ActiveLightType;
 };
 
 struct Cluster {

@@ -50,16 +50,16 @@ namespace Mikoto {
 
         m_IsAllocated = false;
     }
-
+    
     auto VulkanBuffer::Initialize() -> void {
         ComputeAllocationSize();
-
+        
         // Allocate memory
         auto* allocator{ MKT_VMA_ALLOC_PTR(m_Device) };
         if ( const VkResult result{ allocator->AllocateBuffer( m_Allocation ) }; result != VK_SUCCESS) {
             MKT_THROW_RUNTIME_ERROR("VulkanBuffer::InitBuffer - Failed to allocate Vulkan buffer!");
         }
-
+        
         // Staging
         if (IsUsage( BufferUsage::UNDEFINED )) {
             if (m_Data) {

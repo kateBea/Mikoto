@@ -15,8 +15,8 @@
 #ifndef MIKOTO_SHADER_RESOURCE_GROUP_HH
 #define MIKOTO_SHADER_RESOURCE_GROUP_HH
 
-#include <string_view>
 #include <vector>
+#include <string_view>
 
 #include <ankerl/unordered_dense.h>
 
@@ -26,10 +26,14 @@
 namespace  Mikoto {
 
     enum class ResourceGroup {
+        Frame,// Resources that persist accross frames but are updated every frame, like per frame constants, or per frame textures
+        Constants,// Small constant data passed every draw or dispatch call
+
+
+
         GlobalTextures,
         Dynamic,
         Static,
-        Constants,
     };
 
     class ResourceGroupBase {

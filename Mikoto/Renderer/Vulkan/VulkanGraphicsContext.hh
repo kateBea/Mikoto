@@ -33,6 +33,13 @@
 
 namespace Mikoto {
 
+    // For resources that can be update every frame I will handle them like so:
+    // A resource can be marked and either stream, dynamic, or stream
+    // if a resource is static it means it will never be modified like vertex buffers, static textures, index buffers
+    // if a resource is dynamic it means it can be updated every frame, like dynamic uniform buffers, or streaming textures
+    // in this case what i will do is to have a cpu staging buffer i write to and then copy to the gpu buffer every frame via a copy command, this way I properly handle synchronization and avoid hazards while the actual resource the gpu reads from is device local
+    // if the resource is marked as streaming it means that it can be updated every frame but I will not use a staging buffer, instead I will write directly to the mapped memory of the gpu buffer, this is useful for resources that are updated every frame but are small
+    // In the vulkan buffer when a resource is marked as dynamic I will need to vcreate it with VK_BUFFER_USAGE_TRANSFER_DST_BIT to be able to copy to it,
     struct BarrierManager {
         static constexpr UInt32 MAX_BARRIERS{ 10 };
 

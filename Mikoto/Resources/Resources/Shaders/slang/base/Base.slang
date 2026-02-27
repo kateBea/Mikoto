@@ -18,6 +18,8 @@
 // Command validate slang offline (Example)
 // slangc Skybox_Vert.slang -profile glsl_450 -target spirv -entry main -stage vertex
 
+#pragma once
+
 // ============================================================================
 // Descriptor Set Indices
 // ============================================================================
@@ -49,7 +51,7 @@ struct MeshInfo {
     float4x4 InverseModelView;
     uint MaterialIndex;
 
-    int BonesID;
+    int AnimatorID;
 
     float4 Albedo;
     int AlbedoIndex;

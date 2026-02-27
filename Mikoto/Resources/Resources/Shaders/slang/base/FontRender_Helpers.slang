@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 struct FontRenderParams {
     float4x4 Projection;
     float4x4 View;

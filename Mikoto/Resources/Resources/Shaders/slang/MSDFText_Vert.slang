@@ -15,6 +15,28 @@
 #include "base/Base.slang"
 #include "base/FontRender_Helpers.slang"
 
+// NOTE (Migration from GLSL): https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/a2-01-spirv-target-specific.html
+
+/*
+    Note that SV_DrawIndex, SV_FragInvocationCount, SV_FragSize, SV_PointSize, SV_PointCoord and SV_VulkanSamplePosition are
+    Slang-specific semantics that are not defined in HLSL. Also Note that SV_InstanceID/SV_VertexID counts all
+    instances/vertices in a draw call, unlike how InstanceIndex/VertexIndex is relative to BaseInstance/BaseVertex.
+    See Using SV_InstanceID/SV_VertexID with SPIR-V target
+
+    Using SV_InstanceID and SV_VertexID with SPIR-V target
+    When using SV_InstanceID and SV_VertexID with SPIR-V target, it is 
+    equivalent to the difference between the index and base builtins. This matches 
+    the behavior of D3D where SV_InstanceID and SV_VertexID starts from zero for each 
+    draw call, while in SPIR-V, InstanceIndex and VertexIndex includes the base instance.
+
+    If you need direct access to InstanceIndex and VertexIndex values, use SV_VulkanInstanceID 
+    and SV_VulkanVertexID semantic names. These are supported for all targets except HLSL.
+     Alternatively you can use parameters with SV_InstanceID(or SV_VertexID) and 
+     SV_StartInstanceLocation(or SV_StartVertexLocation) semantics:
+*/
+
+// At the moment it is valid to acces glyph data via instance ID
+// because we submit one draw call that has all the instances IDs
 struct VSInput {
     float3 Position : ATTRIBUTE0;
     uint TexCoordIndex : ATTRIBUTE1;

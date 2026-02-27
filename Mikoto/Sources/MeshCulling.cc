@@ -44,7 +44,7 @@ namespace Mikoto {
     auto MeshCulling::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_SkinnedMeshes.resize( MAX_SKINNED_MESHES );
+        m_SkinningInfo.resize( MAX_SKINNED_MESHES );
         m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
         m_MeshInfoIndices.resize( MAX_RENDERABLE_ENTITIES );
 
@@ -58,60 +58,60 @@ namespace Mikoto {
         struct ScatterPushConstant {
             UInt32 UpdateCount{};
         };
-
+        
         graph.RegisterPass(
-                "ScatteredWritesMeshPass",
-                []( FramePassBuilder &b) {
-                    MKT_BEGIN_PROFILER_NAMED();
+            "ScatteredWritesMeshPass",
+            []( FramePassBuilder &b) {
+                MKT_BEGIN_PROFILER_NAMED();
+                    
+                b.Create<Buffer>( "ScatteredWrites_MeshSkinnedMatrices", BufferUsage::SHADER_STORAGE, sizeof( decltype( m_SkinningInfo )::value_type ), MAX_SKINNED_MESHES );
+                b.Create<Buffer>( "ScatteredWrites_MeshData", BufferUsage::SHADER_STORAGE, sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES );
+                b.Create<Buffer>( "ScatteredWrites_MeshDataIndices", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), MAX_RENDERABLE_ENTITIES );
 
-                    b.Create<Buffer>( "ScatteredWrites_MeshSkinnedMatrices", BufferUsage::SHADER_STORAGE, sizeof(decltype(m_SkinnedMeshes)::value_type), MAX_SKINNED_MESHES );
-                    b.Create<Buffer>( "ScatteredWrites_MeshData", BufferUsage::SHADER_STORAGE, sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES );
-                    b.Create<Buffer>( "ScatteredWrites_MeshDataIndices", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), MAX_RENDERABLE_ENTITIES );
+                auto finalBuffer{ BufferBuilder{} };
+                finalBuffer.WithUsage( BufferUsage::SHADER_STORAGE )
+                    .ForElement( sizeof(MeshParameters), MAX_RENDERABLE_ENTITIES )
+                    .IsDynamic( false )
+                    .Build( "FinalBuffer_ObjectInfo" );
 
-                    auto finalBuffer{ BufferBuilder{} };
-                    finalBuffer.WithUsage( BufferUsage::SHADER_STORAGE )
-                        .ForElement( sizeof(MeshParameters), MAX_RENDERABLE_ENTITIES )
-                        .IsDynamic( false )
-                        .Build( "FinalBuffer_ObjectInfo" );
+                b.CreateBuffer( finalBuffer );
+                    
+                b.UseShader( "Resources/Shaders/vulkan-spirv/ScatteredWritesMesh_Comp.sprv", ShaderStage::COMPUTE );
+                b.Create<Pipeline>( "ScatteredWritesMeshPass_Pipeline", ComputePipelineDescription{} );
 
-                    b.CreateBuffer( finalBuffer );
+                b.Write( "ScatteredWrites_MeshData", FrameResourceState::UnorderedAccess );
+                b.Write( "ScatteredWrites_MeshDataIndices", FrameResourceState::UnorderedAccess );
+                b.Write( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+                b.Write( "ScatteredWrites_MeshSkinnedMatrices", FrameResourceState::UnorderedAccess );
 
-                    b.UseShader( "Resources/Shaders/vulkan-spirv/ScatteredWritesMesh_Comp.sprv", ShaderStage::COMPUTE );
-                    b.Create<Pipeline>( "ScatteredWritesMeshPass_Pipeline", ComputePipelineDescription{} );
+                // This pass goes after mesh culling
+                b.Read( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
 
-                    b.Write( "ScatteredWrites_MeshData", FrameResourceState::UnorderedAccess );
-                    b.Write( "ScatteredWrites_MeshDataIndices", FrameResourceState::UnorderedAccess );
-                    b.Write( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
-                    b.Write( "ScatteredWrites_MeshSkinnedMatrices", FrameResourceState::UnorderedAccess );
+                b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 0 );
+                b.Use( ResourceGroup::Dynamic, "ScatteredWrites_MeshData", 1 );
+                b.Use( ResourceGroup::Dynamic, "ScatteredWrites_MeshDataIndices", 2 );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard& ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    // This pass goes after mesh culling
-                    b.Read( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
+                // Need at least m_ObjectUpdateCount threads.
+                // But dispatch works in groups, not individual threads.
+                Size dispatchCount{ (m_ObjectUpdateCount + 64 - 1) };
+                if (dispatchCount == 0) {
+                    return;
+                }
 
-                    b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 0 );
-                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_MeshData", 1 );
-                    b.Use( ResourceGroup::Dynamic, "ScatteredWrites_MeshDataIndices", 2 );
-                },
-                [this]( CommandContext &ctx, FrameGraphBlackboard& ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
+                ScatterPushConstant pushConstants{};
+                pushConstants.UpdateCount = m_ObjectUpdateCount;
 
-                    // Need at least m_ObjectUpdateCount threads.
-                    // But dispatch works in groups, not individual threads.
-                    Size dispatchCount{ (m_ObjectUpdateCount + 64 - 1) };
-                    if (dispatchCount == 0) {
-                        return;
-                    }
+                ctx.BindPipeline( "ScatteredWritesMeshPass_Pipeline" );
 
-                    ScatterPushConstant pushConstants{};
-                    pushConstants.UpdateCount = m_ObjectUpdateCount;
+                ctx.PushConstants( std::addressof( pushConstants ), sizeof( ScatterPushConstant ) );
+                ctx.UploadBufferData( "ScatteredWrites_MeshData", m_MeshInfo.data(), sizeof( MeshParameters ), m_ObjectUpdateCount );
+                ctx.UploadBufferData( "ScatteredWrites_MeshDataIndices", m_MeshInfoIndices.data(), sizeof( UInt32 ), m_ObjectUpdateCount );
 
-                    ctx.BindPipeline( "ScatteredWritesMeshPass_Pipeline" );
-
-                    ctx.PushConstants( std::addressof( pushConstants ), sizeof( ScatterPushConstant ) );
-                    ctx.UploadBufferData( "ScatteredWrites_MeshData", m_MeshInfo.data(), sizeof( MeshParameters ), m_ObjectUpdateCount );
-                    ctx.UploadBufferData( "ScatteredWrites_MeshDataIndices", m_MeshInfoIndices.data(), sizeof( UInt32 ), m_ObjectUpdateCount );
-
-                    ctx.Dispatch( dispatchCount / 64, 1, 1 );
-                } );
+                ctx.Dispatch( dispatchCount / 64, 1, 1 );
+            } );
     }
 
     auto MeshCulling::RegisterMeshCullingPass(FrameGraph &graph) -> void {
@@ -265,7 +265,7 @@ namespace Mikoto {
                     // final matrices of a given animation into the global list of final matrices
                     info.BonesID = instance.AnimatorID - 1;
 
-                    auto& matrices{ m_SkinnedMeshes[info.BonesID] };
+                    auto &matrices{ m_SkinningInfo[info.BonesID].BoneTransforms };
                     Animator* animator{ AnimationSystem::Get()->GetAnimator( instance.AnimatorID ) };
                     MKT_ASSERT( animator != nullptr, "Skinned mesh animator is null" );
 
@@ -287,7 +287,7 @@ namespace Mikoto {
             activeMeshCount += meshDrawState.InstancesCount;
         }
 
-        context.UploadBufferData( "ScatteredWrites_MeshSkinnedMatrices", m_SkinnedMeshes.data(), sizeof( decltype( m_SkinnedMeshes )::value_type ), m_SkinnedMeshes.size() );
+        context.UploadBufferData( "ScatteredWrites_MeshSkinnedMatrices", m_SkinningInfo.data(), sizeof( decltype( m_SkinningInfo )::value_type ), m_SkinningInfo.size() );
 
         MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );
 

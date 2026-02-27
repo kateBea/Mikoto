@@ -18,6 +18,7 @@
 struct VSInput {
     float3 Position : ATTRIBUTE0;
     uint InstanceIndex : SV_InstanceID;
+    uint BaseInstanceIndex : SV_StartInstanceLocation;
 };
 
 struct VSOutput{
@@ -34,7 +35,7 @@ StructuredBuffer<MeshInfo, ScalarDataLayout> Meshes;
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    MeshInfo meshInfo = Meshes[input.InstanceIndex];
+    MeshInfo meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
     float4x4 model = meshInfo.Transform;
 
     float4 position = float4(input.Position, 1.0);

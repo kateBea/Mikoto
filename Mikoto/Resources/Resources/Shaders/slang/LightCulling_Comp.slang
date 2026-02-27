@@ -13,8 +13,12 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/LightInfo.slang"
 #include "base/Camera_Helpers.slang"
-#include "base/ClusteringLights_Helpers.slang"static const uint LOCAL_SIZE = 128;
+#include "base/Lighting_Helpers.slang"
+#include "base/ClusteringLights_Helpers.slang"
+
+static const uint LOCAL_SIZE = 128;
 
 [[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;

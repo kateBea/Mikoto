@@ -1,4 +1,4 @@
-//    Copyright 2026 ケイト
+//    Copyright 2025 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,3 +13,9 @@
 // limitations under the License.
 
 #pragma once
+
+// ============================================================================
+// Constants
+// ============================================================================
+static const float2 invAtan = float2(0.1591f, 0.3183f);
+static const float PI_Value = 3.1415926535897932384626433832795;

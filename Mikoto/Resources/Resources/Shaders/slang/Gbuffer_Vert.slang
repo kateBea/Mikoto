@@ -20,7 +20,9 @@ struct VSInput {
     float3 Normal : ATTRIBUTE1;
     float3 Color : ATTRIBUTE2;
     float2 TexCoord : ATTRIBUTE3;
-    uint InstanceID : SV_InstanceID;
+
+    uint InstanceIndex : SV_InstanceID;
+    uint BaseInstanceIndex : SV_StartInstanceLocation;
 };
 
 struct VSOutput {
@@ -47,7 +49,7 @@ StructuredBuffer<MeshInfo, ScalarDataLayout> Meshes;
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    MeshInfo mp = Meshes[input.InstanceID];
+    MeshInfo mp = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
     float4x4 model = mp.Transform;
 
     float4 worldPos = mul(model, float4(input.Position, 1.0));

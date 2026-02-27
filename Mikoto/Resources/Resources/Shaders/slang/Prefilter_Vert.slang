@@ -11,3 +11,31 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#include "base/Base.slang"
+
+struct PrefilterConstants {
+    float4x4 MVP;
+    float Roughness;
+    uint NumSamples;
+};
+
+struct VSInput {
+    float3 Position : ATTRIBUTE0;
+};
+
+struct VSOutput {
+    float3 Pos : TEXCOORD0;
+    float4 PositionH : SV_Position;
+};
+
+[[vk::push_constant]]
+PrefilterConstants u_Parameters;
+
+[shader("vertex")]
+VSOutput main(VSInput input) {
+    VSOutput o;
+    o.Pos = input.Position;
+    o.PositionH = mul(u_Parameters.MVP, float4(input.Position, 1.0));
+    return o;
+}

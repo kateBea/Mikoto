@@ -89,7 +89,7 @@ namespace Mikoto {
 
         m_IsAllocated = true;
     }
-
+    
     auto VulkanShader::LoadSlang( const Path& path ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -107,13 +107,13 @@ namespace Mikoto {
         m_ContentsSize = m_SlangSpirv->getBufferSize();
         m_Contents = static_cast<const Byte*>( m_SlangSpirv->getBufferPointer() );
     }
-
+    
     auto VulkanShader::Release() -> void {
         vkDestroyShaderModule( VK_DEVICE( m_Device ), m_Module, nullptr );
 
         m_IsAllocated = false;
     }
-
+    
     auto VulkanShader::GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo& {
         return m_StageCreateInfo;
     }

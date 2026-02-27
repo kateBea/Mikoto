@@ -134,6 +134,8 @@ namespace Mikoto {
 
         // Resource can be updated while GPU is reading from it
         RESOURCE_USAGE_DYNAMIC,
+
+        RESOURCE_USAGE_STREAMING,
     };
 
     enum class BufferDataType {

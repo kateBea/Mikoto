@@ -47,6 +47,11 @@ namespace Mikoto {
         LoadOp DephtLoadOp{ LoadOp::CLEAR };
     };
 
+    struct ResourceBarrierInfo {
+        std::string Name{};
+
+    };
+
     class GraphicsContext {
     public:
         virtual ~GraphicsContext() = default;

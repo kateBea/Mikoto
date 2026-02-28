@@ -292,31 +292,34 @@ namespace Mikoto {
 
         m_GraphicsContex->BeginFrame();
 
-        for (auto & node: m_Passes | std::views::values) {
-            if (node.ShouldRun()) {
-                auto cmd{ InitializeCommandList( node.Type ) };
-
-                CommandContext commandContext{ m_GraphicsContex, node };
-                commandContext.BeginPass( cmd );
-
-                m_GraphicsContex->BindShaderResources( node.Name, cmd );
-
-                // Make sure the resources this pass consumes are in proper state
-                InsertResourceBarriers(node, cmd);
-
-                Timer passTimer{ false };
-                node.ExecuteCallback( commandContext, m_GraphBlackboard );
-
-                // Read pass elapsed time
-                double currentTime{ TimeService::Get()->GetTime( TimeUnit::MILLISECONDS ) };
-                if ( currentTime - m_ElapsedTime > m_ElapsedTimeUpdatedInterval || node.IsExecutionPolicy( FramePassExecutionPolicy::ON_CHANGE)
-                    || node.IsExecutionPolicy( FramePassExecutionPolicy::ONCE)) {
-                    node.LastExecutionTime.Value = passTimer.GetCurrentProgress(node.LastExecutionTime.Unit);
-                    m_ElapsedTime = currentTime;
-                }
-
-                commandContext.EndPass();
+        for (auto& [name, node]: m_Passes) {
+            if (!node.ShouldRun()) {
+                continue;
             }
+
+            CommandListHandle cmd{ InitializeCommandList( node.Type ) };
+
+            InsertResourceBarriers( node, cmd );
+
+            CommandContext commandContext{ m_GraphicsContex, node };
+            commandContext.BeginPass( cmd );
+
+            m_GraphicsContex->BindShaderResources( name, cmd );
+
+            Timer passTimer{ false };
+            node.ExecuteCallback( commandContext, m_GraphBlackboard );
+
+            // Read pass elapsed time
+            double currentTime{ TimeService::Get()->GetTime( TimeUnit::MILLISECONDS ) };
+            if ( currentTime - m_ElapsedTime > m_ElapsedTimeUpdatedInterval || 
+                node.IsExecutionPolicy( FramePassExecutionPolicy::ON_CHANGE ) || 
+                node.IsExecutionPolicy( FramePassExecutionPolicy::ONCE ) ) 
+            {
+                node.LastExecutionTime.Value = passTimer.GetCurrentProgress( node.LastExecutionTime.Unit );
+                m_ElapsedTime = currentTime;
+            }
+
+            commandContext.EndPass();
         }
 
         SubmitCommandLists();
@@ -431,6 +434,11 @@ namespace Mikoto {
                 InsertBarrier( it->second, resourceNode.OutState, cmd );
             }
         }
+
+        // Instead of calling insert barrrier we call InsertBarrioerBatch with batched barriers
+        // change resource to instead store the type of resource (texture or buffer) the context will store the actuall handle
+        // the batch will just be 
+        // resource name, resource type (texture or buffer), old state, new stage
     }
 
     auto FrameGraph::UsesTextureList(std::string_view nodeName) const -> bool {

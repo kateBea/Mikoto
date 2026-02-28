@@ -166,8 +166,7 @@ namespace Mikoto {
                 ctx.Draw( 3 );
 
                 ctx.EndRender();
-            },
-            FramePassNodeType::GRAPHICS );
+            }, FramePassNodeType::GRAPHICS );
     }
 
     auto DebugPasses::RegisterSimpleCompute( FrameGraph &graph ) -> void {

@@ -193,6 +193,8 @@ namespace Mikoto {
             VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
         m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+         m_Context = MKT_VK_CTX( RenderService::Get()->GetContext() );
     }
 
     VulkanBuffer::VulkanBuffer( const BufferDescription& createInfo )
@@ -227,6 +229,8 @@ namespace Mikoto {
                 break;
             default:;
         }
+
+        m_Context = MKT_VK_CTX( RenderService::Get()->GetContext() );
     }
 
     auto VulkanBuffer::CopyToHost( void* ptr, const Size size ) -> void {
@@ -252,7 +256,8 @@ namespace Mikoto {
 
         if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )) {
             if (m_UsesScalarBlockLayout) {
-                const UInt32 currentFrame{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetCurrentFrameIndex() };
+                const UInt32 currentFrame{ m_Context->GetCurrentFrameIndex() };
+
                 std::memcpy(static_cast<std::byte*>(
                     m_Allocation.AllocationInfo.pMappedData ) + // Base address of this buffer
                     (currentFrame * m_AlignedSizeBytes) + // Offset that "selects" the slice for the current frame

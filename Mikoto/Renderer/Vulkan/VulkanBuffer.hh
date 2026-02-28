@@ -26,6 +26,8 @@
 
 namespace Mikoto {
 
+    class VulkanContext;
+
     class VulkanBuffer final : public Buffer {
     public:
         explicit VulkanBuffer( const BufferDescription& createInfo );
@@ -67,6 +69,8 @@ namespace Mikoto {
         // S o basically store the size of the element individually and the count, this information is to be used later in the initialization
         Size m_ElementSize{};
         Size m_ElementCount{};
+
+        VulkanContext* m_Context{};
 
         // If the buffer is dynamic this value contains
         // the size of each frame in flight slice

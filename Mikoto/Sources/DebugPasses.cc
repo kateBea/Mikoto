@@ -51,14 +51,14 @@ namespace Mikoto {
     }
 
     auto DebugPasses::RegisterPasses( FrameGraph &graph ) -> void {
-        RegisterWireFrame( graph );
+        //RegisterWireFrame( graph );
 
-        RegisterHelloTexture( graph );
-        RegisterSimpleCompute( graph );
-        RegisterHelloTriangle( graph );
-        RegisterInfiniteGrid( graph );
+        //RegisterHelloTexture( graph );
+        //RegisterSimpleCompute( graph );
+        //RegisterHelloTriangle( graph );
+        //RegisterInfiniteGrid( graph );
 
-        RegisterDebugViewsPass( graph );
+        //RegisterDebugViewsPass( graph );
     }
 
     auto DebugPasses::SetWireframeLineLineWidth( float value ) -> void {
@@ -137,36 +137,37 @@ namespace Mikoto {
 
     auto DebugPasses::RegisterHelloTriangle( FrameGraph &graph ) -> void {
         graph.RegisterPass(
-                "HelloTriangle",
-                [this]( FramePassBuilder &b ) {
-                    b.Create<Texture>( "HelloTriangle_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                    b.Create<Texture>( "HelloTriangle_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+            "HelloTriangle",
+            [this]( FramePassBuilder &b ) {
+                b.Create<Texture>( "HelloTriangle_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.Create<Texture>( "HelloTriangle_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
-                    b.UseShader( "Resources/Shaders/slang/HelloTriangle_Vert.slang", ShaderStage::VERTEX );
-                    b.UseShader( "Resources/Shaders/slang/HelloTriangle_Frag.slang", ShaderStage::FRAGMENT );
+                b.UseShader( "Resources/Shaders/slang/HelloTriangle_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/HelloTriangle_Frag.slang", ShaderStage::FRAGMENT );
 
-                    b.Create<Pipeline>( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
+                b.Create<Pipeline>( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
 
-                    b.Write( "HelloTriangle_ColorTarget", FrameResourceState::RenderTarget );
-                    b.Write( "HelloTriangle_DepthTarget", FrameResourceState::DepthWrite );
-                },
-                [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                    ctx.BindPipeline( "HelloTriangle_Pipeline" );
+                b.Write( "HelloTriangle_ColorTarget", FrameResourceState::RenderTarget );
+                b.Write( "HelloTriangle_DepthTarget", FrameResourceState::DepthWrite );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                const auto dimensions{ InferDimensions( m_Resolution ) };
 
-                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
-                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
+                ctx.SetColorRenderTarget( "HelloTriangle_ColorTarget" );
+                ctx.SetDepthRenderTarget( "HelloTriangle_DepthTarget" );
+                
+                ctx.BeginRender();
 
-                    ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
-                    ctx.SetColorRenderTarget( "HelloTriangle_ColorTarget" );
-                    ctx.SetDepthRenderTarget( "HelloTriangle_DepthTarget" );
-                    ctx.BeginRender();
+                ctx.BindPipeline( "HelloTriangle_Pipeline" );
+                ctx.Draw( 3 );
 
-                    ctx.Draw( 3 );
-
-                    ctx.EndRender();
-                } );
+                ctx.EndRender();
+            },
+            FramePassNodeType::GRAPHICS );
     }
 
     auto DebugPasses::RegisterSimpleCompute( FrameGraph &graph ) -> void {
@@ -188,14 +189,14 @@ namespace Mikoto {
                 b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
 
                 b.Write( "SimpleCompute_Results", FrameResourceState::UnorderedAccess );
-                b.Use( ResourceGroup::Dynamic, "SimpleCompute_Results", 0 );
             },
             []( CommandContext &ctx, FrameGraphBlackboard& blackboard ) -> void {
+                ctx.Bind( ResourceGroup::BufferViews, "SimpleCompute_Results", ResourceSlot::Slot_0 );
+
                 auto& data{ blackboard.Get<SimpleCompute>() };
                 ctx.BindPipeline( "SimpleCompute_Pipeline" );
                 ctx.Dispatch( data.GroupCount, 1, 1 );
-            } );
-
+            }, FramePassNodeType::COMPUTE );
     }
 
     auto DebugPasses::RegisterInfiniteGrid( FrameGraph &graph ) -> void {

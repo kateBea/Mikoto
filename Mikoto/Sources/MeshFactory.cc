@@ -72,6 +72,9 @@ namespace Mikoto {
 
             // TODO: automate with the provided vertex buffer layout
             for (const auto& vertex : meshNode.Vertices) {
+                if (meshNode.Indices.size() == 576) {
+                    break;
+                }
                 // Positions
                 vertices.emplace_back( vertex.Position.x );
                 vertices.emplace_back( vertex.Position.y );

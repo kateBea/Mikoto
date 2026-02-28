@@ -15,6 +15,7 @@
 #ifndef MIKOTO_RENDER_UTILITY_HH
 #define MIKOTO_RENDER_UTILITY_HH
 
+#include <ktx.h>
 #include <stb_image.h>
 
 #include <Common/Common.hh>

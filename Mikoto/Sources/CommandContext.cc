@@ -13,17 +13,20 @@
 // limitations under the License.
 
 #include <Core/Profiler.hh>
+#include <Memory/Allocator.hh>
 #include <Renderer/Core/CommandContext.hh>
 
 namespace Mikoto {
-    CommandContext::CommandContext( GraphicsContext *context, CommandListHandle cmd )
-        : m_Context{ context }, m_Commands{ cmd } {
-        MKT_ASSERT( !m_Commands.IsEmpty(), "Command context must have a valid command list handle" );
+    CommandContext::CommandContext( GraphicsContext *context, FramePassNode &pass )
+        : m_Context{ context }, m_ActivePass{ MKT_ADDRESSOF( pass ) } {
+        
     }
 
-    auto CommandContext::BeginPass( FramePassNode& pass ) -> void {
+    auto CommandContext::BeginPass( CommandListHandle cmd ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-        m_ActivePass = std::addressof( pass );
+        m_Commands = cmd;
+
+        MKT_ASSERT( !m_Commands.IsEmpty(), "Command context must have a valid command list handle" );
     }
 
     auto CommandContext::EndPass() -> void {
@@ -52,6 +55,10 @@ namespace Mikoto {
         m_RenderInfo.DephtLoadOp = renderInfo.DephtLoadOp;
 
         m_Commands->BeginRender( m_RenderInfo );
+    }
+
+    auto CommandContext::Bind( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void {
+
     }
 
     auto CommandContext::EndRender() -> void {

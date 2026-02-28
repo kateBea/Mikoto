@@ -26,14 +26,36 @@
 namespace  Mikoto {
 
     enum class ResourceGroup {
-        Frame,// Resources that persist accross frames but are updated every frame, like per frame constants, or per frame textures
-        Constants,// Small constant data passed every draw or dispatch call
+        Constants, // Uniform buffers (does not require frequent change)
 
+        ImageViews, // Storage images (storage image, unused for now, can be used in compute)
+        BufferViews,  // Uniform buffers/ Storage (Is updated frequently every frame)
+        
+        UnorderedAccessViews, // Storage buffer (does not require frequent change, usually changed via copy command)
+
+        StaticSamplers, // It is always the same image
+        DynamicSamplers, // Can change sometimes
+
+        UnboundedBufferViews, // For descriptor indexing with buffers
+        UnboundedImageViews,  // For descriptor indexing with images (like bindless textures
 
 
         GlobalTextures,
         Dynamic,
         Static,
+    };
+
+    enum class ResourceSlot {
+        Slot_0,
+        Slot_1,
+        Slot_2,
+        Slot_3,
+        Slot_4,
+        Slot_5,
+        Slot_6,
+        Slot_7,
+        Slot_8,
+        Slot_Max,
     };
 
     class ResourceGroupBase {

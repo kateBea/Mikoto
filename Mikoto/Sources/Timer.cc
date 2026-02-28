@@ -28,7 +28,7 @@ namespace Mikoto {
     }
 
     Timer::Timer(bool printOnExit)
-        : m_PrintOnExit{ printOnExit }
+        : m_TimeSinceStart{ Clock::now() }, m_PrintOnExit{ printOnExit }
     {}
 
     Timer::Timer(std::string_view scopeName, std::string_view startMessage, bool showStartMessage)

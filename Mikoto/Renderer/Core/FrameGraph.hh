@@ -74,6 +74,7 @@ namespace Mikoto {
         CommonResourceGroup StaticResourceGroup{ ResourceGroup::Static };
         CommonResourceGroup DynamicResourceGroup{ ResourceGroup::Dynamic };
 
+        FramePassNodeType Type{ FramePassNodeType::GRAPHICS };
         FramePassNodeStatus Status{ FramePassNodeStatus::ACTIVE };
         FramePassExecutionPolicy ExecutionPolicy{ FramePassExecutionPolicy::PER_FRAME };
 
@@ -196,7 +197,7 @@ namespace Mikoto {
         explicit FrameGraph( GraphicsContext *context, GpuDevice *device );
 
         template<typename PassData, typename SetupFn, typename ExecuteFn>
-        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute, FramePassNodeType nodeType = FramePassNodeType::GENERIC ) -> void {
+        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute, FramePassNodeType nodeType = FramePassNodeType::GRAPHICS ) -> void {
             FramePassNode &node{ CreatePassNode( name ) };
 
             PassData &data{ m_GraphBlackboard.Add<PassData>() };
@@ -209,7 +210,7 @@ namespace Mikoto {
         }
 
         template<typename SetupFn, typename ExecuteFn>
-        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute, FramePassNodeType nodeType = FramePassNodeType::GENERIC ) -> void {
+        auto RegisterPass( const std::string_view name, SetupFn &&setup, ExecuteFn &&execute, FramePassNodeType nodeType = FramePassNodeType::GRAPHICS ) -> void {
             FramePassNode &node{ CreatePassNode( name ) };
 
             FramePassBuilder builder{ node };
@@ -249,6 +250,9 @@ namespace Mikoto {
 
         auto DebugDumpResources() -> void;
 
+        auto SubmitCommandLists() -> void;
+        auto InitializeCommandList( FramePassNodeType type ) -> CommandListHandle;
+
     private:
         // Backend resource creation and control
         GpuDevice *m_Device{};
@@ -263,6 +267,10 @@ namespace Mikoto {
 
         // Resources by names to be used for resource transition and barriers
         ankerl::unordered_dense::map<std::string, FramePassResource> m_ResourcesByNames{};
+
+        CommandListHandle m_ComputeCommandList{};
+        CommandListHandle m_GraphicsCommandList{};
+        CommandListHandle m_TransferCommandList{};
 
         // Compile flag
         bool m_Compiled{ false };

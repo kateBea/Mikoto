@@ -294,28 +294,21 @@ namespace Mikoto {
 
         for (auto & node: m_Passes | std::views::values) {
             if (node.ShouldRun()) {
-                CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE, false ) };
-                cmd->Begin();
+                auto cmd{ InitializeCommandList( node.Type ) };
 
-                CommandContext commandContext{ m_GraphicsContex, cmd };
-                commandContext.BeginPass(node);
+                CommandContext commandContext{ m_GraphicsContex, node };
+                commandContext.BeginPass( cmd );
 
-                // Bindless textures bound once and active
-                // for the entire recording of the command buffer
-                if (UsesTextureList( node.Name )) {
-                    commandContext.BindGlobalTextures();
-                }
                 m_GraphicsContex->BindShaderResources( node.Name, cmd );
 
                 // Make sure the resources this pass consumes are in proper state
                 InsertResourceBarriers(node, cmd);
 
                 Timer passTimer{ false };
-                passTimer.Restart();
                 node.ExecuteCallback( commandContext, m_GraphBlackboard );
 
+                // Read pass elapsed time
                 double currentTime{ TimeService::Get()->GetTime( TimeUnit::MILLISECONDS ) };
-
                 if ( currentTime - m_ElapsedTime > m_ElapsedTimeUpdatedInterval || node.IsExecutionPolicy( FramePassExecutionPolicy::ON_CHANGE)
                     || node.IsExecutionPolicy( FramePassExecutionPolicy::ONCE)) {
                     node.LastExecutionTime.Value = passTimer.GetCurrentProgress(node.LastExecutionTime.Unit);
@@ -323,13 +316,68 @@ namespace Mikoto {
                 }
 
                 commandContext.EndPass();
-
-                cmd->End();
-                m_Device->SubmitCommands( cmd );
             }
         }
 
+        SubmitCommandLists();
         m_GraphicsContex->EndFrame();
+    }
+
+    auto FrameGraph::SubmitCommandLists() -> void {
+        if (!m_GraphicsCommandList.IsEmpty()) {
+            m_Device->SubmitCommands( m_GraphicsCommandList );
+            m_GraphicsCommandList.Reset();
+        }
+
+        if ( !m_ComputeCommandList.IsEmpty() ) {
+            m_Device->SubmitCommands( m_ComputeCommandList );
+            m_ComputeCommandList.Reset();
+        }
+
+        if ( !m_TransferCommandList.IsEmpty() ) {
+            m_Device->SubmitCommands( m_TransferCommandList );
+            m_TransferCommandList.Reset();
+        }
+    }
+
+    auto FrameGraph::InitializeCommandList( FramePassNodeType type ) -> CommandListHandle {
+        CommandListHandle cmd{ CommandListHandle::CreateEmpty() };
+
+        switch (type) {
+            case FramePassNodeType::GRAPHICS:
+                if ( m_GraphicsCommandList.IsEmpty() ) {
+                    m_GraphicsCommandList = m_Device->CreateCommandList( QueueType::GRAPHICS_QUEUE, false );
+                    m_GraphicsCommandList->Begin();
+
+                }
+                   
+                cmd = m_GraphicsCommandList;
+                break;
+
+            case FramePassNodeType::COMPUTE:
+                if ( m_ComputeCommandList.IsEmpty() ) {
+                    m_ComputeCommandList = m_Device->CreateCommandList( QueueType::COMPUTE_QUEUE, false );
+                    m_ComputeCommandList->Begin();
+
+
+                }
+                cmd = m_ComputeCommandList;
+                break;
+
+            case FramePassNodeType::TRANSFER:
+                if ( m_TransferCommandList.IsEmpty() ) {
+                    m_TransferCommandList = m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, false );
+                    m_TransferCommandList->Begin();
+                }
+
+                cmd = m_TransferCommandList;
+                break;
+
+            default:
+                break;
+        }
+
+        return cmd;
     }
 
     auto FrameGraph::SetNodeExecutionPolicy( std::string_view name, FramePassExecutionPolicy policy ) -> void {

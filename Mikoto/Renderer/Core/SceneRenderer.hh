@@ -59,7 +59,6 @@ namespace Mikoto {
         auto Render( Scene* scene ) -> void override;
 
         auto SetCamera( SceneCamera* camera ) -> void;
-
         auto SetClearColor(const Vec4F& color) -> void;
 
         // IBL

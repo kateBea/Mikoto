@@ -72,9 +72,9 @@ namespace Mikoto {
 
     class CommandContext final {
     public:
-        explicit CommandContext(GraphicsContext *context, CommandListHandle cmd);
+        explicit CommandContext( GraphicsContext* context, FramePassNode& pass);
 
-        auto BeginPass(FramePassNode& pass) -> void;
+        auto BeginPass( CommandListHandle cmd ) -> void;
         auto EndPass() -> void;
 
         auto BeginRender( const PassRenderInfo& renderInfo = PassRenderInfo{}) -> void;
@@ -93,6 +93,8 @@ namespace Mikoto {
 
         // Need to bind pipeline before specifying resources
         auto BindPipeline(std::string_view pipelineName ) -> void;
+
+        auto Bind( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void;
 
         auto SetClearColor(const Vec4F& color) -> void;
 

@@ -6,6 +6,7 @@
 #define RESOURCEPOOL_HH
 
 #include <ranges>
+#include <atomic>
 #include <type_traits>
 #include <unordered_map>
 
@@ -150,7 +151,7 @@ namespace Mikoto {
 
 #if !defined(NDEBUG)
     public:
-        static inline Size s_ResourceCount{ 0 };
+        static inline std::atomic_uint64_t s_ResourceCount{ 0 };
 #endif
 
     };

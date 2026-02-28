@@ -23,13 +23,16 @@
 namespace Mikoto {
 
     enum class MapType {
-        ALBEDO_TEXTURE,
+        DIFFUSE_TEXTURE,
+
+        BASE_COLOR_TEXTURE,
         NORMAL_TEXTURE,
         METALLIC_TEXTURE,
         ROUGHNESS_TEXTURE,
         METALLIC_ROUGHNESS_TEXTURE,
         AMBIENT_OCCLUSION_TEXTURE,
         EMISSIVE_TEXTURE,
+
         UNDEFINED_TEXTURE,
     };
 

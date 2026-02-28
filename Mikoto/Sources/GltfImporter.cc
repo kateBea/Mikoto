@@ -12,16 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <algorithm>
 #include <ranges>
+#include <algorithm>
 
 #include <tiny_gltf.h>
 
+#include <Logging/Logger.hh>
+
 #include <Assets/GltfImporter.hh>
+
 #include <Filesystem/FileService.hh>
 #include <Filesystem/FileSystem.hh>
-#include <Logging/Logger.hh>
+
 #include <Material/PBRMaterial.hh>
+
 #include <Threading/ThreadUtility.hh>
 
 #include <Assets/AssetsService.hh>
@@ -61,14 +65,14 @@ namespace Mikoto {
     static auto ReadAccessorAsFloat(
             const tinygltf::Model& model,
             const tinygltf::Accessor& accessor ) -> std::vector<float> {
-        const auto& view = model.bufferViews[accessor.bufferView];
-        const auto& buffer = model.buffers[view.buffer];
+        const auto& view{ model.bufferViews[accessor.bufferView] };
+        const auto& buffer{ model.buffers[view.buffer] };
 
-        const auto compSize = ComponentSize( accessor.componentType );
-        const auto elemSize = TypeCount( accessor.type );
-        const auto stride = accessor.ByteStride( view );
+        const auto compSize{ ComponentSize( accessor.componentType ) };
+        const auto elemSize{ TypeCount( accessor.type ) };
+        const auto stride{ accessor.ByteStride( view ) };
 
-        const auto* dataPtr = buffer.data.data() + view.byteOffset + accessor.byteOffset;
+        const auto* dataPtr{ buffer.data.data() + view.byteOffset + accessor.byteOffset };
 
         std::vector<float> result{};
         result.resize( accessor.count * elemSize );
@@ -122,13 +126,12 @@ namespace Mikoto {
             return;
         }
 
-        const auto& accessor = model.accessors[primitive.attributes.at( attributeName )];
+        const auto& accessor{ model.accessors[primitive.attributes.at( attributeName )] };
+        auto data{ ReadAccessorAsFloat( model, accessor ) };
 
-        auto data = ReadAccessorAsFloat( model, accessor );
+        const Size vertexCount{ vertices.size() };
 
-        const Size vertexCount = vertices.size();
-
-        for ( size_t i{}; i < vertexCount; ++i ) {
+        for ( Size i{}; i < vertexCount; ++i ) {
             TVec value{};
 
             if constexpr ( std::is_same_v<TVec, Vec2F> ) {
@@ -181,9 +184,9 @@ namespace Mikoto {
                 node.Name = mesh.name;
                 node.MaterialIndex = primitive.material;
 
-                const auto& posAccessor = model.accessors[primitive.attributes.at( "POSITION" )];
+                const auto& posAccessor{ model.accessors[primitive.attributes.at( "POSITION" )] };
 
-                const Size vertexCount = posAccessor.count;
+                const Size vertexCount{ posAccessor.count };
                 node.Vertices.resize( vertexCount );
 
                 // POSITION (required)
@@ -257,10 +260,10 @@ namespace Mikoto {
                         4 );
 
                 if ( primitive.indices >= 0 ) {
-                    const auto& accessor = model.accessors[primitive.indices];
-                    const auto& view = model.bufferViews[accessor.bufferView];
-                    const auto& buffer = model.buffers[view.buffer];
-                    const auto* dataPtr = buffer.data.data() + view.byteOffset + accessor.byteOffset;
+                    const auto& accessor{ model.accessors[primitive.indices] };
+                    const auto& view{ model.bufferViews[accessor.bufferView] };
+                    const auto& buffer{ model.buffers[view.buffer] };
+                    const auto* dataPtr{ buffer.data.data() + view.byteOffset + accessor.byteOffset };
 
                     node.Indices.resize( accessor.count );
 
@@ -282,8 +285,7 @@ namespace Mikoto {
         modelData.Materials.reserve( model.materials.size() );
 
         TextureLoadDescription loadInfo{};
-        loadInfo.WithType( TextureType::TEXTURE_2D )
-                .WithMapType( MapType::ALBEDO_TEXTURE );
+        loadInfo.WithType( TextureType::TEXTURE_2D );
 
         for ( const auto& mat: model.materials ) {
             MaterialProperties props{};
@@ -301,11 +303,12 @@ namespace Mikoto {
             props.MetallicFactor = static_cast<float>( pbr.metallicFactor );
             props.RoughnessFactor = static_cast<float>( pbr.roughnessFactor );
 
+            // Albedo
             if ( pbr.baseColorTexture.index >= 0 ) {
-                const auto& tex = model.textures[pbr.baseColorTexture.index];
+                const auto& tex{ model.textures[pbr.baseColorTexture.index] };
                 props.BaseColorTextureSet = pbr.baseColorTexture.texCoord;
-
-                loadInfo.WithMapType( MapType::ALBEDO_TEXTURE );
+                
+                loadInfo.WithMapType( MapType::BASE_COLOR_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
                            .WithPath( rootPath )
                            .WithPath( model.images[tex.source].uri )
@@ -317,8 +320,9 @@ namespace Mikoto {
                 }
             }
 
+            // Metall roughness
             if ( pbr.metallicRoughnessTexture.index >= 0 ) {
-                const auto& tex = model.textures[pbr.metallicRoughnessTexture.index];
+                const auto& tex{ model.textures[pbr.metallicRoughnessTexture.index] };
                 props.BaseColorTextureSet =
                         pbr.metallicRoughnessTexture.texCoord;
 
@@ -336,7 +340,7 @@ namespace Mikoto {
 
             // Normal
             if ( mat.normalTexture.index >= 0 ) {
-                const auto& tex = model.textures[mat.normalTexture.index];
+                const auto& tex{ model.textures[mat.normalTexture.index] };
                 props.NormalTextureSet = mat.normalTexture.texCoord;
                 props.NormalScale =
                         static_cast<float>( mat.normalTexture.scale );
@@ -355,7 +359,7 @@ namespace Mikoto {
 
             // Occlusion
             if ( mat.occlusionTexture.index >= 0 ) {
-                const auto& tex = model.textures[mat.occlusionTexture.index];
+                const auto& tex{ model.textures[mat.occlusionTexture.index] };
                 props.OcclusionStrength = mat.occlusionTexture.texCoord;
                 props.OcclusionStrength =
                         static_cast<float>( mat.occlusionTexture.strength );
@@ -374,7 +378,7 @@ namespace Mikoto {
 
             // Emissive
             if ( mat.emissiveTexture.index >= 0 ) {
-                const auto& tex = model.textures[mat.emissiveTexture.index];
+                const auto& tex{ model.textures[mat.emissiveTexture.index] };
                 props.EmissiveTextureSet = mat.emissiveTexture.texCoord;
 
                 loadInfo.WithMapType( MapType::EMISSIVE_TEXTURE );
@@ -396,22 +400,80 @@ namespace Mikoto {
             };
 
             // Alpha
-            if ( mat.alphaMode == "BLEND" )
+            if (mat.alphaMode == "BLEND") {
                 props.AlphaMask = PBR_AlphaMode::Blend;
-            else if ( mat.alphaMode == "MASK" )
+            } else if ( mat.alphaMode == "MASK" ) {
                 props.AlphaMask = PBR_AlphaMode::Mask;
+            }
 
             props.AlphaMaskCutoff = static_cast<float>( mat.alphaCutoff );
+
+            // Extensions
+            auto ext{ mat.extensions.find( "KHR_materials_pbrSpecularGlossiness" ) };
+            if ( mat.extensions.find( KHR_PBR_SpecularGlossiness.data() ) != mat.extensions.end() ) {
+
+                if ( ext->second.Has( "specularGlossinessTexture" ) ) {
+                    auto index{ ext->second.Get( "specularGlossinessTexture" ).Get( "index" ) };
+
+                    //material.extension.specularGlossinessTexture = &textures[index.Get<int>()];
+
+                    /*auto texCoordSet = ext->second.Get( "specularGlossinessTexture" ).Get( "texCoord" );
+                    material.texCoordSets.specularGlossiness = texCoordSet.Get<int>();
+                    material.pbrWorkflows.specularGlossiness = true;
+                    material.pbrWorkflows.metallicRoughness = false;*/
+                }
+
+                if ( ext->second.Has( "diffuseTexture" ) ) {
+                    auto index{ ext->second.Get( "diffuseTexture" ).Get( "index" ) };
+                    //material.extension.diffuseTexture = &textures[index.Get<int>()];
+
+                    loadInfo.WithMapType( MapType::DIFFUSE_TEXTURE );
+                    loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
+                            .WithPath( rootPath )
+                            .WithPath( model.images[index.Get<int>()].uri )
+                            .Build() } ) );
+
+                    TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
+                    if ( !texture.IsEmpty() ) {
+                        props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
+                    }
+                }
+
+                if ( ext->second.Has( "diffuseFactor" ) ) {
+                    auto factor{ ext->second.Get( "diffuseFactor" ) };
+                    for ( UInt32 i{}; i < factor.ArrayLen(); i++ ) {
+                        auto val{ factor.Get( i ) };
+                        //material.extension.diffuseFactor[i] = val.IsNumber() ? ( float )val.Get<double>() : ( float )val.Get<int>();
+                    }
+                }
+
+                if ( ext->second.Has( "specularFactor" ) ) {
+                    auto factor{ ext->second.Get( "specularFactor" ) };
+                    for ( UInt32 i{}; i < factor.ArrayLen(); i++ ) {
+                        auto val{ factor.Get( i ) };
+                        //material.extension.specularFactor[i] = val.IsNumber() ? ( float )val.Get<double>() : ( float )val.Get<int>();
+                    }
+                }
+            }
+
+            if ( mat.extensions.find( KHR_PBR_Unlit.data() ) != mat.extensions.end() ) {
+                props.Unlit = true;
+            }
+
+            if ( mat.extensions.find( KHR_Emissive_Strength.data() ) != mat.extensions.end() ) {
+                auto ext = mat.extensions.find( KHR_Emissive_Strength.data() );
+                if ( ext->second.Has( "emissiveStrength" ) ) {
+                    auto value{ ext->second.Get( "emissiveStrength" ) };
+                    props.EmissiveStrength = ( float )value.Get<double>();
+                }
+            }
 
             modelData.Materials.push_back( std::move( props ) );
         }
     }
 
     auto GLTFImporter::LoadAnimations( tinygltf::Model& model, ModelData& modelData ) -> void {
-    }
-
-    auto GLTFImporter::LoadTextures( tinygltf::Model& model, ModelData& modelData ) -> void {
-
+    
     }
 
     auto GLTFImporter::TryAcquireImporter() -> std::vector<Unique<LoaderData>>::iterator {
@@ -443,7 +505,7 @@ namespace Mikoto {
         } else {
             MKT_CORE_LOGGER_DEBUG( "Loaded glTF: {}", description.ModelFile->GetPath() );
 
-            // Load textures
+            // Reference root path for loading textures
             const std::string root{ Filesystem::StripFileName( description.ModelFile->GetPath() ) };
 
             LoadMaterials( model, out, root );

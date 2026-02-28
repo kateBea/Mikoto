@@ -17,6 +17,7 @@
 
 #include <string>
 #include <atomic>
+#include <string_view>
 
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
@@ -39,19 +40,24 @@ namespace Mikoto {
         struct LoaderData {
             Int32 Index{ -1 };
 
-            tinygltf::TinyGLTF Loader{};
             std::string Err{};
             std::string Warn{};
+            tinygltf::TinyGLTF Loader{};
 
             std::atomic_bool IsFree{ true };
         };
+
+    private:
+        // Extension names
+        static constexpr std::string_view KHR_PBR_Unlit{ "KHR_materials_unlit" };
+        static constexpr std::string_view KHR_Emissive_Strength{ "KHR_materials_emissive_strength" };
+        static constexpr std::string_view KHR_PBR_SpecularGlossiness{ "KHR_materials_pbrSpecularGlossiness" };
 
     private:
 
         auto LoadPrimitives(tinygltf::Model& model, ModelData& modelData) -> void;
         auto LoadMaterials(tinygltf::Model& model, ModelData& modelData, const std::string& rootPath) -> void;
         auto LoadAnimations(tinygltf::Model& model, ModelData& modelData) -> void;
-        auto LoadTextures(tinygltf::Model& model, ModelData& modelData) -> void;
 
         MKT_NODISCARD auto TryAcquireImporter() -> std::vector<Unique<LoaderData>>::iterator;
         auto Import(LoaderData& loaderData,const ModelLoadDescription& description, ModelData& out) -> void;

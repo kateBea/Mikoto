@@ -145,7 +145,7 @@ namespace Mikoto {
         switch ( type ) {
             case aiTextureType_DIFFUSE:
             case aiTextureType_BASE_COLOR:
-                return MapType::ALBEDO_TEXTURE;
+                return MapType::BASE_COLOR_TEXTURE;
 
             case aiTextureType_NORMALS:
             case aiTextureType_NORMAL_CAMERA:

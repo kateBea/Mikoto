@@ -123,7 +123,7 @@ namespace Mikoto {
 
         SHUTDOWN_SERVICE(WindowsService);
 
-        MKT_CORE_LOGGER_DEBUG( "Final shutdown at Root and resource count is {}", IResource::s_ResourceCount );
+        MKT_CORE_LOGGER_DEBUG( "Final shutdown at Root and resource count is {}", IResource::s_ResourceCount.load() );
     }
 
     auto Root::UpdateSubsystems(double timeStep) -> void {

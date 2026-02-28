@@ -28,6 +28,11 @@ static const int DYNAMIC_BUFFERS_SET_INDEX = 2;
 static const int DYNAMIC_RESOURCE_SET_INDEX = 3;
 static const int STATIC_RESOURCE_SET_INDEX = 4;
 
+static const int PER_PASS_SET_INDEX = 5;
+static const int PER_FRAME_SET_INDEX = 6;
+static const int PER_MATERIAL_SET_INDEX = 7;
+static const int PER_MESH_INFO_SET_INDEX = 8;
+
 static const int INVALID_TEXTURE_INDEX = -1;
 
 // ============================================================================

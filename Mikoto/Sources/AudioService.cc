@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <Core/Profiler.hh>
+#include <Memory/Allocator.hh>
 #include <Audio/AudioService.hh>
 
 namespace Mikoto {
@@ -41,7 +42,17 @@ namespace Mikoto {
             m_Device->Init();
         }
 
+        // Initialize default listeners
+        for ( Size index{}; index < description.MaxListenersCount; ++index ) {
+            m_Listeners.emplace_back( index, 0, 0, 0 );
+        }
+
         m_IsInitialized = true;
+    }
+
+    auto AudioService::CreateListener() -> AudioListener * {
+        MKT_ASSERT( m_CurrentAllocationCount < m_Listeners.size(), "Reached max number of listeners" );
+        return MKT_ADDRESSOF( m_Listeners[m_CurrentAllocationCount++] );
     }
 
     auto AudioService::Shutdown() -> void {

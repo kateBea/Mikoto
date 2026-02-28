@@ -45,7 +45,7 @@ namespace Mikoto {
 
         m_EquirectangularMap = texture2D;
     }
-
+    
     auto CameraPass::SetScene( const Scene *scene ) -> void {
         m_Scene = scene;
     }

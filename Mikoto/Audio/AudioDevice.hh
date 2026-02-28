@@ -96,6 +96,8 @@ namespace Mikoto {
         ma_engine_config m_EngineConfig{};
 
         ResourcePoolTyped<Audio> m_LoadedAudios{};
+
+        // Is this needed here, or should it be in the AssetsService?
         ankerl::unordered_dense::map<std::string, Handle> m_CachedAudios{};
     };
 }

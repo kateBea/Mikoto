@@ -410,11 +410,21 @@ namespace Mikoto {
 
         ~AudioListenerComponent() = default;
 
-        MKT_NODISCARD auto GetListener() -> AudioListener& { return m_Listener; }
-        MKT_NODISCARD auto GetListener() const -> const AudioListener& { return m_Listener; }
+        auto SetListener( AudioListener* listener) -> void {
+            if (listener) {
+                m_Listener = listener;
+            }
+        }
+
+        auto Disable() -> void { m_Listener = nullptr; }
+
+        MKT_NODISCARD auto IsActive() -> bool { return m_Listener != nullptr; }
+
+        MKT_NODISCARD auto GetListener() -> AudioListener& { return *m_Listener; }
+        MKT_NODISCARD auto GetListener() const -> const AudioListener& { return *m_Listener; }
 
     private:
-        AudioListener m_Listener{};
+        AudioListener* m_Listener{};
     };
 
     class RigidBodyComponent {

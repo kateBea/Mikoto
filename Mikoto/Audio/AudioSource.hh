@@ -1,6 +1,16 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 4/7/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef AUDIOSOURCE_HH
 #define AUDIOSOURCE_HH
@@ -10,12 +20,14 @@
 #include <miniaudio.h>
 
 #include <Common/Common.hh>
-#include <Library/Data/ResourcePool.hh>
+
 #include <Library/Utility/Types.hh>
+#include <Library/Data/ResourcePool.hh>
 
 namespace Mikoto {
 
     class AudioDevice;
+    class AudioListener;
 
     /**
    * @class AudioSource
@@ -83,6 +95,13 @@ namespace Mikoto {
          */
         auto SetLooping( bool value ) -> void;
 
+        // By default sounds will be spatialized based on the closest listener. If a sound should always be 
+        // spatialized relative to a specific listener we call this method
+        auto SetListener( AudioListener* listener) -> void;
+
+        // Back to default behaviour
+        auto ResetListener() -> void;
+
         /**
          * @brief Starts audio playback from the beginning.
          */
@@ -138,6 +157,10 @@ namespace Mikoto {
        */
         auto SetPosition( float x, float y, float z ) -> void;
 
+        auto SetPosition( const Vec3F& pos ) -> void;
+
+        auto SetDopplerFactor(float value) -> float;
+
         /**
         * @brief Checks if spatialization is enabled.
         * @return True if spatialization is active, false otherwise.
@@ -146,14 +169,17 @@ namespace Mikoto {
 
         // audio duration in seconds
         MKT_NODISCARD auto GetAudioDuration() const -> float;
+
         // current progress in seconds
         MKT_NODISCARD auto GetCurrentProgress() const -> float;
 
         MKT_NODISCARD auto IsSameSource( const AudioSource* source ) const -> bool;
         MKT_NODISCARD auto IsSameAudio( const AudioSource* source ) const -> bool;
 
-        auto SetDopplerFactor(float value) -> float;
         MKT_NODISCARD auto GetDopplerFactor() const -> float;
+
+        MKT_NODISCARD static auto GetMaxVolume() -> float;
+
 
     private:
 
@@ -168,7 +194,7 @@ namespace Mikoto {
         Path m_Path{};
 
         float m_DopplerEffect{ 1.0f };
-        float m_Volume{ 5.0f };
+        float m_Volume{ 2.0f };
         bool m_Muted{ false };
         float m_Pitch{ 1.0f };
         float m_CurrentProgress{ 0.0f };

@@ -21,6 +21,9 @@
 #include <entt/entt.hpp>
 
 #include <Core/Profiler.hh>
+#include <Core/RuntimeConsole.hh>
+
+#include <Audio/AudioService.hh>
 
 #include <Library/Random/Random.hh>
 #include <Physics/PhysicService.hh>
@@ -72,6 +75,21 @@ namespace Mikoto {
 
     }
 
+    static auto OnAudioListenerAdded( entt::registry& reg, entt::entity e ) -> void {
+        static bool listenerActive{ false };
+
+        auto& listenerComponent{ reg.get<AudioListenerComponent>( e ) };
+        listenerComponent.SetListener(AudioService::Get()->CreateListener());
+
+        // Generally we need one listener, if we switch scenes we might want 
+        // to disable the listener for the active scene
+        if ( !listenerActive ) {
+            listenerActive = true;
+        } else {
+            RuntimeConsole::Get()->Warning( "There is already an active listener. Consider reusing it." );
+        }
+    }
+
     static auto OnAnimatorAdded( entt::registry& reg, entt::entity e ) -> void {
         auto& animator{ reg.get<AnimatorComponent>( e ) };
     }
@@ -82,6 +100,8 @@ namespace Mikoto {
         m_Registry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
         m_Registry.on_construct<AnimatorComponent>().connect<&OnAnimatorAdded>();
         m_Registry.on_construct<SkinnedMeshRenderer>().connect<&OnSkinnedMeshRendererAdded>();
+
+        m_Registry.on_construct<AudioListenerComponent>().connect<&OnAudioListenerAdded>();
 
         m_Registry.on_construct<ScriptComponent>().connect<&Scene::OnScriptAdded>(this);
 
@@ -198,6 +218,32 @@ namespace Mikoto {
         }
     }
 
+    auto Scene::UpdateAudioListenerAndSources() -> void {
+        // Update listeners
+        auto viewListeners{ m_Registry.view<TransformComponent, AudioListenerComponent>() };
+        for ( const auto& entity: viewListeners ) {
+            TransformComponent& transformComponent{ m_Registry.get<TransformComponent>( entity ) };
+            AudioListenerComponent& audioListenerComponent{ m_Registry.get<AudioListenerComponent>( entity ) };
+
+            if (audioListenerComponent.IsActive()) {
+                audioListenerComponent.GetListener().SetPosition( transformComponent.GetTranslation() );
+                audioListenerComponent.GetListener().Apply();
+            }
+        }
+
+        // Update sources
+        auto viewSources{ m_Registry.view<TransformComponent, AudioSourceComponent>() };
+        for ( const auto& entity: viewSources ) {
+            TransformComponent& transformComponent{ m_Registry.get<TransformComponent>( entity ) };
+            AudioSourceComponent& audioSourceComponent{ m_Registry.get<AudioSourceComponent>( entity ) };
+
+            AudioSourceHandle source{ audioSourceComponent.GetSource() };
+            if (!source.IsEmpty()) {
+                source->SetPosition( transformComponent.GetTranslation() );
+            }
+        }
+    }
+
     auto Scene::Update( const float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -218,6 +264,8 @@ namespace Mikoto {
 
         // Important note that this assumes there is no entity that is children from more than one parent
         UpdateWorldTransformations();
+
+        UpdateAudioListenerAndSources();
 
 #if !defined(NDEBUG)
         ComputeStats();

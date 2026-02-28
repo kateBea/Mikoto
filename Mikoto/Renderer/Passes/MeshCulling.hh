@@ -47,7 +47,6 @@ namespace Mikoto {
         auto Free( const GeometryAllocation& alloc ) -> void;
         auto Allocate( UInt64 vertexBytes, UInt64 indexBytes ) -> std::optional<GeometryAllocation>;
 
-
     private:
         struct FreeRange {
             UInt64 Offset{};
@@ -65,7 +64,7 @@ namespace Mikoto {
     // It uses a First-Fit allocation strategy to manage buffers for mesh data.
     class GeometryManager {
     public:
-        explicit GeometryManager( GpuDevice* device, Size initialSize );
+        auto Initialize( GpuDevice* device ) -> void;
 
         auto FreeMeshData( const MeshNode* node ) -> void;
 
@@ -81,14 +80,14 @@ namespace Mikoto {
 
         GeometryBufferAllocator m_Allocator{ MKT_MIBIBYTES( 512 ), MKT_MIBIBYTES( 512 ) };
 
-        ankerl::unordered_dense::map<const MeshNode*, GeometryAllocation> m_RegisteredMeshes{};
+        ankerl::unordered_dense::map<const MeshNode*, GeometryAllocation> m_Allocations{};
     };
 
     class MeshCulling final {
     public:
         auto SetScene( Scene* scene) -> void;
         auto SetCamera( const Camera* camera ) -> void;
-        auto RegisterPasses( FrameGraph& graph ) -> void;
+        auto RegisterPasses( FrameGraph& graph, GpuDevice* device ) -> void;
 
         auto DrawInstances( CommandContext& context ) -> void;
         auto DrawInstancesIndirect( CommandContext& context ) -> void;
@@ -109,10 +108,14 @@ namespace Mikoto {
         const Camera* m_Camera{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
+        GeometryManager m_GeometryManager{};
+
         Size m_ObjectUpdateCount{};
 
         std::vector<UInt32> m_MeshInfoIndices{};
         std::vector<MeshParameters> m_MeshInfo{};
+
+        ankerl::unordered_dense::map<MeshNode*, GeometryAllocation> m_IndirectDrawInfo{};
 
         std::vector<SkinningInfo> m_SkinningInfo{};
         ankerl::unordered_dense::map<MeshNode*, Size> m_MeshDrawInstanceCount{};

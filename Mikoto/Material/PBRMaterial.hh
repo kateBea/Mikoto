@@ -64,6 +64,10 @@ namespace Mikoto {
         Int32 OcclusionTextureSet{};
         Int32 EmissiveTextureSet{};
 
+        // GLTF Extensions
+        bool Unlit{ false };
+
+
         ankerl::unordered_dense::map<std::string, TextureHandle> TexturesByUri{};
     };
 

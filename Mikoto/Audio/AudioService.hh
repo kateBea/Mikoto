@@ -15,12 +15,15 @@
 #ifndef MIKOTO_AUDIO_SERVICE_HH
 #define MIKOTO_AUDIO_SERVICE_HH
 
+#include <vector>
+
 #include <Common/Service.hh>
 
 #include <Library/Utility/Types.hh>
 
 #include <Assets/AudioClip.hh>
 #include <Audio/AudioDevice.hh>
+#include <Audio/AudioListener.hh>
 
 namespace Mikoto {
     struct AudioServiceCreateInfo {
@@ -37,10 +40,17 @@ namespace Mikoto {
         MKT_NODISCARD auto GetDevice() -> AudioDevice*;
         MKT_NODISCARD auto GetDevice() const -> const AudioDevice*;
 
+        MKT_NODISCARD auto CreateListener() -> AudioListener*;
+
         ~AudioService() override = default;
 
     private:
         Unique<AudioDevice> m_Device{};
+
+        // On Audio Service initialization we create the fixed amount of listeners
+        // and send one at a time whenever CreateListener() is called
+        Size m_CurrentAllocationCount{};
+        std::vector<AudioListener> m_Listeners{};
     };
 }
 

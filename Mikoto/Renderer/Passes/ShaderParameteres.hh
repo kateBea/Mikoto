@@ -33,7 +33,7 @@ namespace Mikoto {
     static constexpr Int32 INVALID_TEXTURE_INDEX{ -1 };
     static constexpr UInt32 MAX_LIGHTS{ 10000 };
     static constexpr UInt32 MAX_CUBE_MAP_FACES{ 6 };
-    static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 100'000 };
+    static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 500'000 };
     static constexpr UInt32 MAX_NUM_JOINTS{ 128 };
 
     // Deprecated

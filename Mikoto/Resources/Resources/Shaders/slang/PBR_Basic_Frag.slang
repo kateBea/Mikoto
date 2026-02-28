@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// ------------------------------------------------------------
-// Forward PBR Fragment Shader (Slang)
-// ------------------------------------------------------------
-
 #include "base/Base.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Lighting_Helpers.slang"

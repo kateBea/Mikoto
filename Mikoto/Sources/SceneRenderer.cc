@@ -195,9 +195,10 @@ namespace Mikoto {
         m_FrameGraph = FrameGraph::Create( m_GraphicsContext.get(), m_Device );
 
         m_DebugPasses.RegisterPasses( *m_FrameGraph );
-        m_MeshCulling.RegisterPasses( *m_FrameGraph );
         m_CameraPass.RegisterPasses( *m_FrameGraph );
         m_MaterialDebug.RegisterPasses( *m_FrameGraph );
+
+        m_MeshCulling.RegisterPasses( *m_FrameGraph, m_Device );
 
         m_ClusteredShadingPasses.RegisterPasses( *m_FrameGraph );
 

@@ -161,6 +161,7 @@ namespace Mikoto {
         auto CreateEntityDefault(const EntityCreateInfo& info ) -> Entity*;
 
         auto UpdateWorldTransformations() -> void;
+        auto UpdateAudioListenerAndSources() -> void;
 
     private:
         auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index, UInt64 animatorID = 0 ) -> void;

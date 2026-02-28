@@ -168,23 +168,26 @@ float DistributionGGX(float3 N, float3 H, float roughness) {
 }
 
 float3 F_SchlickR(float cosTheta, float3 F0, float roughness) {
-    float3 oneMinusR = float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness);
-    float3 fBase = max(oneMinusR, F0);
-    return F0 + (fBase - F0) * pow(1.0 - cosTheta, 5.0);
+    return F0 + (max(float3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
-    float r = roughness + 1.0;
-    float k = (r * r) * 0.125; // (r*r)/8
-    return NdotV / (NdotV * (1.0 - k) + k);
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+
+    float nom = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+
+    return nom / denom;
 }
 
 float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
-    float g1 = GeometrySchlickGGX(NdotV, roughness);
-    float g2 = GeometrySchlickGGX(NdotL, roughness);
-    return g1 * g2;
+    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+
+    return ggx1 * ggx2;
 }
 
 float ComputeAttenuation(float distance) {
@@ -198,7 +201,7 @@ float ComputeAttenuation(float distance, float radius) {
 }
 
 float3 FresnelSchlick(float cosTheta, float3 F0) {
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 float3 ComputeDirectionalLight(float3 N, float3 V, float3 F0, float roughness, float metallic, float3 albedo, LightInfo lightInfo) {

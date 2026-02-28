@@ -1,9 +1,19 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 3/28/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef AUDIORESOURCE_HH
-#define AUDIORESOURCE_HH
+#ifndef MIKOTO_AUDIO_UTILITY_HH
+#define MIKOTO_AUDIO_UTILITY_HH
 
 #include <Library/IO/File.hh>
 #include <Library/Utility/Types.hh>
@@ -37,4 +47,4 @@ namespace Mikoto {
         auto SetVolume( float volume ) -> AudioLoadDescription&;
     };
 }
-#endif //AUDIORESOURCE_HH
+#endif //MIKOTO_AUDIO_UTILITY_HH

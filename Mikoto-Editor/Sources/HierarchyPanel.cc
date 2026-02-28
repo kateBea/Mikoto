@@ -251,6 +251,11 @@ namespace Mikoto {
                     ImGui::CloseCurrentPopup();
                 }
 
+                if ( ImGui::MenuItem( "Audio listener", menuItemShortcut, menuItemSelected, !IsPresent<AudioListenerComponent>( entity ) ) ) {
+                    entity->AddComponent<AudioListenerComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
+
                 if ( ImGui::MenuItem( "Text", menuItemShortcut, menuItemSelected, !IsPresent<TextComponent>( entity ) ) ) {
                     TextComponent& textComponent{ entity->AddComponent<TextComponent>() };
 

@@ -610,6 +610,10 @@ namespace Mikoto {
                     .PipelineCullMode{ CullMode::NONE }, // We probably need to organize models by material some 
                                                          // models like the just_a_girl require cull_back to be properly visulized
                 };
+                
+                /*b.UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX )
+                        .UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv", ShaderStage::FRAGMENT )
+                        .Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );*/
 
                 b.UseShader( "Resources/Shaders/slang/PBR_Basic_Vert.slang", ShaderStage::VERTEX )
                         .UseShader( "Resources/Shaders/slang/PBR_Basic_Frag.slang", ShaderStage::FRAGMENT )

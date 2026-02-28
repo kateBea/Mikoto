@@ -211,36 +211,36 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Albedo" );
 
-        TextureHandle diffuseMap{ material.GetTexture( MapType::ALBEDO_TEXTURE ) };
+        TextureHandle diffuseMap{ material.GetTexture( MapType::BASE_COLOR_TEXTURE ) };
         if ( diffuseMap.IsEmpty() ) {
             diffuseMap = AssetsService::Get()->GetDummyTexture();
         }
 
         if ( ImGuiUtils::PushImageButton( diffuseMap->GetHandle(), ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
-            UpdateMaterialTexture( material, MapType::ALBEDO_TEXTURE );
+            UpdateMaterialTexture( material, MapType::BASE_COLOR_TEXTURE );
         }
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstAlbedoMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTexture( MapType::ALBEDO_TEXTURE, dstAlbedoMap );
+                material.SetTexture( MapType::BASE_COLOR_TEXTURE, dstAlbedoMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTexture( MapType::ALBEDO_TEXTURE ) ) {
+        if ( material.HasTexture( MapType::BASE_COLOR_TEXTURE ) ) {
             ImGuiUtils::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( material.GetTexture( MapType::ALBEDO_TEXTURE ).GetRaw() );
+                ShowTextureHoverTooltip( material.GetTexture( MapType::BASE_COLOR_TEXTURE ).GetRaw() );
             },
                                  ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTexture( MapType::ALBEDO_TEXTURE ) ) {
+            if ( !material.HasTexture( MapType::BASE_COLOR_TEXTURE ) ) {
                 ImGuiUtils::ToolTip( "Click me to load a texture." );
             }
 
@@ -290,7 +290,7 @@ namespace Mikoto {
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTexture( MapType::ALBEDO_TEXTURE );
+                material.RemoveTexture( MapType::BASE_COLOR_TEXTURE );
             }
 
             ImGui::EndTable();
@@ -747,6 +747,11 @@ namespace Mikoto {
 
             if ( ImGui::MenuItem( "Audio", menuItemShortcut, menuItemSelected, !IsPresent<AudioSourceComponent>( entity ) ) ) {
                 entity->AddComponent<AudioSourceComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Audio listener", menuItemShortcut, menuItemSelected, !IsPresent<AudioListenerComponent>( entity ) ) ) {
+                entity->AddComponent<AudioListenerComponent>();
                 ImGui::CloseCurrentPopup();
             }
 
@@ -1708,6 +1713,69 @@ namespace Mikoto {
         }
     }
 
+    static auto SetupAudioListenerComponentTab( Entity& entity ) -> void {
+        AudioListenerComponent& alc{ entity.GetComponent<AudioListenerComponent>() };
+
+        if ( !alc.IsActive() ) {
+            ImGui::TextDisabled( "Audio Listener is not active." );
+            return;
+        }
+
+        AudioListener& listener{ alc.GetListener() };
+
+        ImGui::SeparatorText( "Audio Listener" );
+
+        //
+        // Forward Vector
+        //
+        {
+            Vec3F forward{ listener.GetForward() };
+
+            ImGui::Text( "Forward" );
+            ImGui::SameLine();
+            if ( ImGui::DragFloat3( "##ForwardVec", glm::value_ptr( forward ), 0.05f ) ) {
+                listener.SetForward( forward );
+            }
+        }
+
+        //
+        // Up Vector
+        //
+        {
+            Vec3F up{ listener.GetUp() };
+
+            ImGui::Text( "Up" );
+            ImGui::SameLine();
+            if ( ImGui::DragFloat3( "##UpVec", glm::value_ptr( up ), 0.05f ) ) {
+                listener.SetUp( up );
+            }
+        }
+
+        //
+        // Velocity Vector
+        //
+        {
+            Vec3F vel{ listener.GetVelocity() };
+
+            ImGui::Text( "Velocity" );
+            ImGui::SameLine();
+            if ( ImGui::DragFloat3( "##VelVec", glm::value_ptr( vel ), 0.05f ) ) {
+                listener.SetVelocity( vel );
+            }
+        }
+
+        ImGui::Separator();
+
+        //
+        // Reset Button
+        //
+        if ( ImGui::Button( "Reset Listener Orientation" ) ) {
+            listener.SetForward( Vec3F{ 0.0f, 0.0f, -1.0f } );
+            listener.SetUp( Vec3F{ 0.0f, 1.0f, 0.0f } );
+            listener.SetVelocity( Vec3F{ 0.0f, 0.0f, 0.0f } );
+        }
+    }
+
     static auto SetupAudioComponentTab( Entity& entity ) -> void {
         AudioSourceComponent& audioComponent{ entity.GetComponent<AudioSourceComponent>() };
 
@@ -1753,16 +1821,27 @@ namespace Mikoto {
             }
         }
 
+        // --- Spatialize ---
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex( 0 );
+        ImGui::TextUnformatted( "Spatizlized" );
+        ImGui::TableSetColumnIndex( 1 );
+        bool isSpatialized{ source ? source->IsSpatialized() : false };
+        if ( ImGui::Checkbox( "##IsSpatizlizedAudio", MKT_ADDRESSOF( isSpatialized ) ) ) {
+            if ( source ) source->SetSpatialization( isSpatialized );
+        }
+        ImGuiUtils::SetCursorHandOnLastItemHovered();
+
         // --- Muted ---
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex( 0 );
         ImGui::TextUnformatted( "Muted" );
         ImGui::TableSetColumnIndex( 1 );
-        bool isMuted = source ? source->IsMuted() : false;
+        bool isMuted{ source ? source->IsMuted() : false };
         if ( ImGui::Checkbox( "##IsMutedAudio", &isMuted ) ) {
             if ( source ) source->Mute( isMuted );
         }
-        if ( ImGui::IsItemHovered() ) ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        ImGuiUtils::SetCursorHandOnLastItemHovered();
 
         // --- Loop ---
         ImGui::TableNextRow();
@@ -1773,7 +1852,7 @@ namespace Mikoto {
         if ( ImGui::Checkbox( "##IsLoopingAudio", &isLooping ) ) {
             if ( source ) source->SetLooping( isLooping );
         }
-        if ( ImGui::IsItemHovered() ) ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        ImGuiUtils::SetCursorHandOnLastItemHovered();
 
         // --- Volume ---
         ImGui::TableNextRow();
@@ -1781,11 +1860,12 @@ namespace Mikoto {
         ImGui::TextUnformatted( "Volume" );
         ImGui::TableSetColumnIndex( 1 );
         float volume{ source ? source->IsMuted() ? 0.0f : source->GetVolume() : 1.0f };
-        if ( ImGui::SliderFloat( "##VolumeAudio", &volume, 0.0f, 1.0f ) ) {
+        if ( ImGui::SliderFloat( "##VolumeAudio", &volume, 0.0f, AudioSource::GetMaxVolume() ) ) {
             if ( source ) {
                 source->SetVolume( volume );
             }
         }
+        ImGuiUtils::SetCursorHandOnLastItemHovered();
 
         // --- Playback controls ---
         if (!source.IsEmpty()) {
@@ -1798,16 +1878,19 @@ namespace Mikoto {
             if ( ImGui::Button( StringUtils::Concat( ICON_MD_PLAY_ARROW, " Play" ).c_str() ) ) {
                 source->Play();
             }
+            ImGuiUtils::SetCursorHandOnLastItemHovered();
 
             ImGui::SameLine();
             if ( ImGui::Button( StringUtils::Concat( ICON_MD_PAUSE, " Pause" ).c_str() ) ) {
                 source->Pause();
             }
+            ImGuiUtils::SetCursorHandOnLastItemHovered();
 
             ImGui::SameLine();
             if ( ImGui::Button( StringUtils::Concat( ICON_MD_STOP, " Stop" ).c_str() ) ) {
                 source->Stop();
             }
+            ImGuiUtils::SetCursorHandOnLastItemHovered();
 
             // --- Progress bar ---
             ImGui::TableNextRow();
@@ -1915,7 +1998,6 @@ namespace Mikoto {
         }
         }
     }
-
 
     static auto SetupCameraComponentTab( Entity& entity ) -> void {
         CameraComponent& cameraComponent{ entity.GetComponent<CameraComponent>() };
@@ -2051,6 +2133,7 @@ namespace Mikoto {
         DrawComponent<MeshComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), *entity, [&]( Entity& target ) -> void { SetupRenderComponentTab( target, m_State->ActiveEditorScene ); } );
         DrawComponent<RigidBodyComponent>( fmt::format( "{} Physics", ICON_MD_FITNESS_CENTER ), *entity, SetupPhysicsComponentTab );
         DrawComponent<LightComponent>( fmt::format( "{} Light", ICON_MD_LIGHT ), *entity, SetupLightComponentTab );
+        DrawComponent<AudioListenerComponent>( fmt::format( "{} Audio Listener", ICON_MD_AUTO_GRAPH ), *entity, SetupAudioListenerComponentTab );
         DrawComponent<AudioSourceComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), *entity, SetupAudioComponentTab );
         DrawComponent<TextComponent>( fmt::format( "{} Text", ICON_MD_MESSAGE ), *entity, SetupTextComponentTab );
         DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), *entity, SetupCameraComponentTab );

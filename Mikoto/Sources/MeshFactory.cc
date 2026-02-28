@@ -40,11 +40,16 @@ namespace Mikoto {
     }
 
     auto MeshFactory::ImportModel( const ModelLoadDescription &loadInfo ) -> ModelHandle {
-        //ModelData resultGLTF{};
-        //m_GLTFImporter->Import( loadInfo, resultGLTF );
-
         ModelData resultMain{};
-        m_MainImporter->Import( loadInfo, resultMain );
+
+        if ( loadInfo.ModelFile->GetPath().ends_with( "gltf" ) || loadInfo.ModelFile->GetPath().ends_with( "glb" ) ) {
+            MKT_CORE_LOGGER_DEBUG( "Using GLTF Importer for {}", loadInfo.ModelFile->GetPath() );
+            m_GLTFImporter->Import( loadInfo, resultMain );
+        } else {
+            MKT_CORE_LOGGER_DEBUG( "Using Assimp Importer for {}", loadInfo.ModelFile->GetPath() );
+            m_MainImporter->Import( loadInfo, resultMain );
+        }
+
 
         Model *result{ ConstructModel( resultMain, loadInfo ) };
 

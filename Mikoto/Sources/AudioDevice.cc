@@ -15,6 +15,9 @@
 #include <miniaudio.h>
 
 #include <Core/Exception.hh>
+
+#include <Memory/Allocator.hh>
+
 #include <Assets/AudioClip.hh>
 #include <Audio/AudioDevice.hh>
 #include <Library/Data/ResourcePool.hh>
@@ -27,7 +30,7 @@ namespace Mikoto {
     }
 
     auto AudioDevice::Init() -> void {
-        ma_result result{ ma_engine_init( nullptr, &m_AudioEngine ) };
+        ma_result result{ ma_engine_init( nullptr, MKT_ADDRESSOF( m_AudioEngine ) ) };
         if( result != MA_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "AudioDevice::Init - Failed to initialize audio device" );
         }
@@ -36,7 +39,7 @@ namespace Mikoto {
     }
 
     auto AudioDevice::Shutdown() -> void {
-        ma_engine_uninit( &m_AudioEngine );
+        ma_engine_uninit( MKT_ADDRESSOF( m_AudioEngine ) );
         m_LoadedAudios.Shutdown();
     }
 
@@ -71,5 +74,4 @@ namespace Mikoto {
     auto AudioDevice::Create( const AudioDeviceDescription& description ) -> Unique<AudioDevice> {
         return CreateScope<AudioDevice>( description );
     }
-
 }

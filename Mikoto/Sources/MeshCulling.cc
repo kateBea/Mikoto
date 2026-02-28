@@ -41,7 +41,7 @@ namespace Mikoto {
     auto GeometryBufferAllocator::AllocateFrom( std::vector<FreeRange> &freeList, UInt64 size ) -> std::optional<UInt64> {
         for ( auto it{ freeList.begin() }; it != freeList.end(); ++it ) {
             if ( it->Size >= size ) {
-                UInt64 allocOffset = it->Offset;
+                UInt64 allocOffset{ it->Offset };
 
                 it->Offset += size;
                 it->Size -= size;
@@ -50,41 +50,42 @@ namespace Mikoto {
                     freeList.erase( it );
                 }
 
-                return allocOffset;
+                return std::make_optional( allocOffset );
             }
         }
 
-        return std::nullopt;// Out of space
+        return {};// Out of space
     }
 
     auto GeometryBufferAllocator::Allocate( UInt64 vertexBytes, UInt64 indexBytes ) -> std::optional<GeometryAllocation> {
         auto v{ AllocateFrom( m_VertexFreeList, vertexBytes ) };
 
         if ( !v.has_value() ) { 
-            return std::nullopt; 
+            return {}; 
         }
 
         auto i{ AllocateFrom( m_IndexFreeList, indexBytes ) };
         if ( !i.has_value() ) {
-            // Roll back vertex alloc
+            //  Since vertex allocation did not fail but index 
+            // one did we roll back vertex allocation
             m_VertexFreeList.push_back( FreeRange{
                     .Offset = v.value(),
                     .Size = vertexBytes } );
 
-            return std::nullopt;
+            return {};
         }
 
-        return GeometryAllocation{
+        return std::make_optional( GeometryAllocation{
             .VertexOffset = v.value(),
             .VertexSize = vertexBytes,
             .IndexOffset = i.value(),
             .IndexSize = indexBytes
-        };
+        });
     }
 
     auto GeometryBufferAllocator::Free( const GeometryAllocation &alloc ) -> void {
         // Simple approach: push back free ranges.
-        // Optional: merge/compact free blocks.
+        // Later we will handle merging consecutive blocks
         m_VertexFreeList.push_back( FreeRange{
                 .Offset = alloc.VertexOffset,
                 .Size = alloc.VertexSize } );
@@ -95,12 +96,19 @@ namespace Mikoto {
     }
 
     auto GeometryManager::UploadMeshData( const MeshNode *node ) -> GeometryAllocation {
-        const UInt64 vertexBytes = node->GetVertexBuffer()->GetSizeBytes();
-        const UInt64 indexBytes = node->GetIndexBuffer()->GetSizeBytes();
+        const auto it{ m_Allocations.find( node ) };
+        if (it != m_Allocations.end()) {
+            return it->second;
+        }
+
+        const UInt64 vertexBytes{ node->GetVertexBuffer()->GetSizeBytes() };
+        const UInt64 indexBytes{ node->GetIndexBuffer()->GetSizeBytes() };
 
         auto alloc{ m_Allocator.Allocate( vertexBytes, indexBytes ) };
         MKT_ASSERT( alloc.has_value(), "Allocation is empty" );
 
+        // Upload contents to the GPU
+        // 
         //auto stagingVB{ m_Device->CreateBuffer( vertexBytes ) };
         //auto stagingIB{ m_Device->CreateBuffer( indexBytes ) };
 
@@ -119,11 +127,25 @@ namespace Mikoto {
         //cmd->End();
         //m_Device->SubmitCommands( cmd );
 
-        return *alloc;
+        const auto [itInser, success]{ m_Allocations.try_emplace( node, *alloc ) };
+
+        return itInser->second;
+    }
+
+    auto GeometryManager::Initialize( GpuDevice *device ) -> void {
+        m_Device = device;
+
+        // Allocate big index buffer and vertex buffer
     }
 
     auto GeometryManager::FreeMeshData( const MeshNode *node ) -> void {
+        const auto it{ m_Allocations.find( node ) };
+        if ( it == m_Allocations.end() ) {
+            return;
+        }
 
+        m_Allocator.Free( it->second );
+        m_Allocations.erase( it );
     }
 
     auto MeshCulling::SetScene( Scene *scene ) -> void {
@@ -138,8 +160,10 @@ namespace Mikoto {
         m_Camera = camera;
     }
 
-    auto MeshCulling::RegisterPasses( FrameGraph &graph ) -> void {
+    auto MeshCulling::RegisterPasses( FrameGraph &graph, GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        m_GeometryManager.Initialize( device );
 
         m_SkinningInfo.resize( MAX_SKINNED_MESHES );
         m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
@@ -218,8 +242,27 @@ namespace Mikoto {
             "MeshCulling",
             []( FramePassBuilder &b ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
+
+                // Create the buffers containing the materials and the information about the meshes
+                auto finalBufferMaterials{ BufferBuilder{} };
+                finalBufferMaterials.WithUsage( BufferUsage::SHADER_STORAGE )
+                        .ForElement( sizeof( ShaderMaterial ), MAX_RENDERABLE_ENTITIES )
+                        .IsDynamic( false )
+                        .Build( "MaterialhInfo_Buffer" );
+                b.CreateBuffer( finalBufferMaterials );
+
+                auto finalBufferMeshInfo{ BufferBuilder{} };
+                finalBufferMeshInfo.WithUsage( BufferUsage::SHADER_STORAGE )
+                        .ForElement( sizeof( ShaderMesh ), MAX_RENDERABLE_ENTITIES )
+                        .IsDynamic( false )
+                        .Build( "MeshInfo_Buffer" );
+                b.CreateBuffer( finalBufferMeshInfo );
+
                 // To force this pass to go before ScatteredWritesMeshPass
                 b.Write( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
+
+                b.Write( "MeshInfo_Buffer", FrameResourceState::UnorderedAccess );
+                b.Write( "MaterialhInfo_Buffer", FrameResourceState::UnorderedAccess );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
@@ -306,7 +349,7 @@ namespace Mikoto {
 
                 ubo.Alpha = pbrMat->GetAlphaMaskCutoff();
 
-                ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTexture( MapType::ALBEDO_TEXTURE ) );
+                ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTexture( MapType::BASE_COLOR_TEXTURE ) );
                 ubo.NormalIndex = context.PushTexture( pbrMat->GetTexture( MapType::NORMAL_TEXTURE ) );
                 ubo.MetallicIndex = context.PushTexture( pbrMat->GetTexture( MapType::METALLIC_TEXTURE ) );
                 ubo.RoughnessIndex = context.PushTexture( pbrMat->GetTexture( MapType::ROUGHNESS_TEXTURE ) );
@@ -323,6 +366,11 @@ namespace Mikoto {
 
                 instanceCount += 1;
             }
+        }
+
+        // Upload indirect draw contents
+        for (const auto& [node, meshCount] : m_MeshDrawInstanceCount) {
+            m_IndirectDrawInfo[node] = m_GeometryManager.UploadMeshData( node );
         }
 
         // Prepare render data

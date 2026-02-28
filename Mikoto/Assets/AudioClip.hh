@@ -1,17 +1,28 @@
+//    Copyright 2025 ケイト
 //
-// Created by zanet on 1/28/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef AUDIO_HH
-#define AUDIO_HH
+#ifndef MIKOTO_AUDIO_HH
+#define MIKOTO_AUDIO_HH
 
 #include <miniaudio.h>
 
-#include <Audio/AudioDeviceObject.hh>
-#include <Audio/AudioSource.hh>
-#include <Audio/AudioUtility.hh>
 #include <Library/IO/File.hh>
 #include <Library/Utility/Types.hh>
+
+#include <Audio/AudioSource.hh>
+#include <Audio/AudioUtility.hh>
+#include <Audio/AudioDeviceObject.hh>
 
 namespace Mikoto {
 
@@ -32,32 +43,23 @@ namespace Mikoto {
          */
         explicit Audio( const AudioLoadDescription& description );
 
-        auto GetFile() const -> const File* { return m_FileSource; }
-
-        auto CreateSource() -> AudioSourceHandle;
-
+        MKT_NODISCARD auto GetFile() const -> const File*;
+        MKT_NODISCARD auto CreateSource() -> AudioSourceHandle;
         MKT_NODISCARD auto GetTrackName() const -> const std::string&;
 
     private:
-        /**
-        * @brief Releases system resources associated with the audio.
-        *
-        * This function is called when the audio resource is removed from the resource pool.
-        */
         auto Release() -> void override;
-
         auto Initialize() -> void override;
 
-        const File* m_FileSource{};
-
+    private:
         std::string m_TrackName{};
+        const File* m_FileSource{};
 
         ResourcePoolTyped<AudioSource> m_Sources{};
     };
 
     using AudioHandle = Ref<Audio>;
 
-}// namespace Mikoto
+}
 
-
-#endif//AUDIO_HH
+#endif //MIKOTO_AUDIO_HH

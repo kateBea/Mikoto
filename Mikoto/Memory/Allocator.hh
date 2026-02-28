@@ -29,6 +29,7 @@
 #define MKT_MEGABYTES( X ) ( ( X ) * 1000 * 1000 )
 
 #define MKT_SIZEOF( X ) sizeof( X )
+#define MKT_ADDRESSOF( OBJECT_REF ) std::addressof( OBJECT_REF )
 
 #define MKT_NOTHROW_PLACEMENT_NEW( SIZE ) ::operator new( 1 * SIZE, std::nothrow )
 #define MKT_NOTHROW_PLACEMENT_DELETE( PTR ) ::operator delete(PTR)

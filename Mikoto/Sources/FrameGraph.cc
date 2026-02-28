@@ -327,6 +327,7 @@ namespace Mikoto {
     }
 
     auto FrameGraph::SubmitCommandLists() -> void {
+        // Before we submit the buffers we will submit the barriers created for each type of command buffer
         if (!m_GraphicsCommandList.IsEmpty()) {
             m_Device->SubmitCommands( m_GraphicsCommandList );
             m_GraphicsCommandList.Reset();

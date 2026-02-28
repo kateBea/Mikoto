@@ -129,6 +129,7 @@ namespace Mikoto {
         auto Write( std::string_view name, FrameResourceState state) -> FramePassBuilder&;
         auto Read( std::string_view name, FrameResourceState state) -> FramePassBuilder&;
 
+        // Deprecated
         template<typename ResourceType, typename... Args>
         auto Create( Args &&... args ) -> FramePassBuilder& {
             if constexpr (std::is_same_v<ResourceType, Buffer>) {
@@ -157,7 +158,6 @@ namespace Mikoto {
         // e.g: auto SetDepthTest(bool enable) -> PipelineDesc&;
         // e.g: auto SetDepthWrite(bool enable) -> PipelineDesc&;
 
-    private:
         auto CreateBuffer( std::string_view name, BufferDescription description ) -> void;
         auto CreateBuffer( std::string_view name, BufferUsage usage, Size sizeBytes ) -> void;
         auto CreateBuffer( std::string_view name, BufferUsage usage, Size size, Size elementCount ) -> void;

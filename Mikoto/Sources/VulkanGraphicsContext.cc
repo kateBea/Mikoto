@@ -490,6 +490,10 @@ namespace Mikoto {
             byteCode.data());
     }
 
+    auto VulkanGraphicsContext::InsertResourceBarrierBatch( std::span<ResourceBarrierInfo> barriers, CommandListHandle cmd ) -> void {
+
+    }
+
     auto VulkanGraphicsContext::InsertResourceBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd ) -> bool {
         if (previousState == newState) {
             return false;

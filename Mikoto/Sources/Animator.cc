@@ -16,6 +16,9 @@
 #include <ranges>
 #include <cmath>
 
+// TODO: use ozz
+#include <ozz/animation/runtime/animation.h>
+
 #include <Common/String.hh>
 
 #include <Logging/Assert.hh>

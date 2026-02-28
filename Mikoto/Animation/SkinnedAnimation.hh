@@ -17,10 +17,14 @@
 
 #include <ankerl/unordered_dense.h>
 
+#include <Animation/Skeleton.hh>
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 
-#include <Animation/Skeleton.hh>
+#include "ozz/animation/offline/animation_builder.h"
+#include "ozz/animation/offline/raw_animation.h"
+#include "ozz/animation/runtime/animation.h"
+#include "ozz/base/memory/unique_ptr.h"
 
 namespace  Mikoto {
 
@@ -37,8 +41,14 @@ namespace  Mikoto {
         // Duration of the animation in ticks
         float m_Duration{};
         UInt32 m_TicksPerSecond{};
-
         std::string m_Name{};
+
+        // To construct the animation
+        ozz::animation::offline::RawAnimation m_RawAnimation{};
+        ozz::animation::offline::AnimationBuilder m_AnimationBuilder{};
+
+        // Final runtime animation
+        ozz::unique_ptr<ozz::animation::Animation> m_Animation{};
     };
 }
 

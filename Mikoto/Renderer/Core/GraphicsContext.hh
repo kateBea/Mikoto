@@ -50,6 +50,10 @@ namespace Mikoto {
     struct ResourceBarrierInfo {
         std::string Name{};
 
+        FrameResourceType Type{ FrameResourceType::INVALID };
+
+        FrameResourceState PreState{ FrameResourceState::Undefined };
+        FrameResourceState PostState{ FrameResourceState::Undefined };
     };
 
     class GraphicsContext {
@@ -86,6 +90,8 @@ namespace Mikoto {
         virtual auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void = 0;
         virtual auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void = 0;
         virtual auto PushConstants( std::string_view passName, const ConstantsGroup& srg_constants, CommandListHandle cmd ) -> void = 0;
+
+        virtual auto InsertResourceBarrierBatch(std::span<ResourceBarrierInfo> barriers, CommandListHandle cmd) -> void = 0;
 
         virtual auto InsertResourceBarrier(BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool = 0;
         virtual auto InsertResourceBarrier(TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool = 0;

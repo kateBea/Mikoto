@@ -15,14 +15,21 @@
 #ifndef MIKOTO_SKELETON_HH
 #define MIKOTO_SKELETON_HH
 
-#include <string>
-#include <vector>
-#include <string_view>
-
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Common.hh>
 #include <Animation/Joint.hh>
+#include <Common/Common.hh>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include "ozz/animation/offline/raw_skeleton.h"
+#include "ozz/animation/offline/skeleton_builder.h"
+#include "ozz/animation/runtime/animation.h"
+#include "ozz/animation/runtime/local_to_model_job.h"
+#include "ozz/animation/runtime/sampling_job.h"
+#include "ozz/animation/runtime/skeleton.h"
+#include "ozz/base/memory/unique_ptr.h"
 
 namespace Mikoto {
 
@@ -88,6 +95,13 @@ namespace Mikoto {
 
         JointsMap m_Joints{};
         JointsMapID m_JointsByID{};
+
+        // To construct the skeleton
+        ozz::animation::offline::SkeletonBuilder m_Builder{};
+        ozz::animation::offline::RawSkeleton m_RawSkeleton{};
+
+        // Run time skeleton
+        ozz::unique_ptr<ozz::animation::Skeleton> m_Skeleton{};
     };
 }
 

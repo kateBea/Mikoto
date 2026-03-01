@@ -14,6 +14,7 @@
 
 #include "base/Base.slang"
 #include "base/Camera_Helpers.slang"
+#include "base/Material_Helpers.slang"
 
 struct VSInput {
     float3 Position : ATTRIBUTE0;
@@ -39,18 +40,23 @@ struct VSOutput {
     float4 PositionH : SV_Position;
 };
 
-[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
+[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
-[[vk::binding(1, DYNAMIC_RESOURCE_SET_INDEX)]]
-StructuredBuffer<MeshInfo, ScalarDataLayout> Meshes;
+[[vk::binding(Slot_0, UAV_SET_INDEX)]]
+StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
+
+[[vk::binding(Slot_1, UAV_SET_INDEX)]]
+StructuredBuffer<MaterialParameters, ScalarDataLayout> Materials;
 
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    MeshInfo mp = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
-    float4x4 model = mp.Transform;
+    MeshParameters meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
+    MaterialParameters materialInfo = Materials[input.BaseInstanceIndex + input.InstanceIndex];
+
+    float4x4 model = meshInfo.Transform;
 
     float4 worldPos = mul(model, float4(input.Position, 1.0));
     float4 viewPos = mul(u_Camera.ViewMatrix, mul(model, float4(input.Position, 1.0)));
@@ -59,7 +65,7 @@ VSOutput main(VSInput input) {
     o.FragmentViewPos = viewPos.xyz;
 
     // Normal transform
-    float3x3 normalMat = float3x3((float3x3)transpose(mp.InverseModelView));
+    float3x3 normalMat = float3x3((float3x3)transpose(meshInfo.InverseModelView));
 
     o.VertexNormal = normalize(mul(normalMat, input.Normal));
 
@@ -68,9 +74,9 @@ VSOutput main(VSInput input) {
     o.UV = input.TexCoord;
 
     // Material
-    o.AlbedoIndex = mp.AlbedoIndex;
-    o.NormalIndex = mp.NormalIndex;
-    o.Albedo = mp.Albedo;
+    o.AlbedoIndex = materialInfo.AlbedoIndex;
+    o.NormalIndex = materialInfo.NormalIndex;
+    o.Albedo = materialInfo.BaseColorFactor;
 
     // Final clip position
     o.PositionH =

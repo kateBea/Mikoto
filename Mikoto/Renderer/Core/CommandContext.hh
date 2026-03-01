@@ -94,11 +94,14 @@ namespace Mikoto {
 
         auto BindBuffer( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void;
 
+        auto BindGroup( ResourceGroup group, std::string_view groupName ) -> void;
         auto BindImageSampler( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void;
         auto BindImageSampler( ResourceGroup group, std::string_view name, SamplerHandle sampler, ResourceSlot slot ) -> void;
+        auto BindImageSampler( ResourceGroup group, TextureHandle texture, SamplerHandle sampler, ResourceSlot slot ) -> void;
 
         // Unbounded resource groups have arbitrary size
-        auto BindImageSampler( ResourceGroup group, std::string_view groupName, TextureHandle texture, ResourceSlot slot ) -> Int32;
+        auto PushImageSampler( ResourceGroup group, std::string_view groupName, TextureHandle texture ) -> Int32;
+        auto BindImageSampler( ResourceGroup group, std::string_view groupName, TextureHandle texture ) -> Int32;
 
         auto SetClearColor(const Vec4F& color) -> void;
 
@@ -125,6 +128,8 @@ namespace Mikoto {
         }
 
         auto UploadBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
+
+        auto CopyBuffer( std::string_view bufferName, const void* ptrSrc, Size size ) -> void;
 
         MKT_NODISCARD auto PushTexture(TextureHandle texture ) const -> Int32;
         MKT_NODISCARD auto GetNamedBuffer( std::string_view ) const -> BufferHandle;

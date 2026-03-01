@@ -22,6 +22,7 @@
 
 #include <Common/Common.hh>
 #include <Renderer/Core/Buffer.hh>
+#include <Renderer/Core/DeviceObjectHandle.hh>
 #include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
 namespace Mikoto {
@@ -36,6 +37,9 @@ namespace Mikoto {
         auto CopyToHost( void* ptr, Size size ) -> void override;
         auto CopyToDevice(const void* ptr, Size size) -> void override;
         auto CopyToDevice( const void* ptr, Size size, Size offset ) -> void override;
+
+        // Copy from device to device
+        auto Copy( const void* ptr, Size size, CommandListHandle cmd ) -> void override;
 
         auto PersistentMap() -> void;
         auto PersistentUnmap() -> void;
@@ -54,6 +58,8 @@ namespace Mikoto {
         auto Initialize() -> void override;
 
         auto InitializeAttributesBuffers() -> void;
+
+        auto CompuetAlignedSizeMaxFrames( Size sliceSize, Size bufferOffsetAligment ) -> Size;
 
         auto SetDebugInfo() -> void;
 
@@ -77,6 +83,9 @@ namespace Mikoto {
         Size m_AlignedSizeBytes{};
 
         BufferAllocation m_Allocation{};
+
+        Size m_StagingSliceSize{};
+        BufferHandle m_StagingForCopies{};
 
         bool m_UsesScalarBlockLayout{ false };
     };

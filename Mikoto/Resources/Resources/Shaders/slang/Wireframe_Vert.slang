@@ -14,6 +14,7 @@
 
 #include "base/Base.slang"
 #include "base/Camera_Helpers.slang"
+#include "base/Material_Helpers.slang"
 
 struct VSInput {
     float3 Position : ATTRIBUTE0;
@@ -25,17 +26,17 @@ struct VSOutput{
     float4 PositionH : SV_Position;
 };
 
-[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
+[[vk::binding(0, BUFFER_VIEWS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
-[[vk::binding(1, DYNAMIC_RESOURCE_SET_INDEX)]]
-StructuredBuffer<MeshInfo, ScalarDataLayout> Meshes;
+[[vk::binding(0, UAV_SET_INDEX)]]
+StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
 
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    MeshInfo meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
+    MeshParameters meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
     float4x4 model = meshInfo.Transform;
 
     float4 position = float4(input.Position, 1.0);

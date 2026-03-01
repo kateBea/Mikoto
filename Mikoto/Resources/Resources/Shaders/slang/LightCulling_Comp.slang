@@ -20,13 +20,13 @@
 
 static const uint LOCAL_SIZE = 128;
 
-[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
+[[vk::binding(0, BUFFER_VIEWS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
-[[vk::binding(1, DYNAMIC_RESOURCE_SET_INDEX)]]
+[[vk::binding(0, UAV_SET_INDEX)]]
 RWStructuredBuffer<Cluster, ScalarDataLayout> Clusters;
 
-[[vk::binding(2, DYNAMIC_BUFFERS_SET_INDEX)]]
+[[vk::binding(1, UAV_SET_INDEX)]]
 StructuredBuffer<LightInfo, ScalarDataLayout> Lights;
 
 [[vk::push_constant]]

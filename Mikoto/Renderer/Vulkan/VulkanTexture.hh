@@ -67,7 +67,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto IsSwapChainImage() const -> bool;
 
-        auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
+        auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd, bool insertBarrier = true ) -> void;
 
         ~VulkanTexture() override;
 
@@ -107,7 +107,7 @@ namespace Mikoto {
 
         auto SetDebugName(std::string_view name) -> void override;
 
-        auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd ) -> void;
+        auto SubmitLayoutTransition( VkImageLayout newLayout, VkCommandBuffer cmd, bool insertBarrier = true ) -> void;
 
         ~VulkanTextureCube() override;
 

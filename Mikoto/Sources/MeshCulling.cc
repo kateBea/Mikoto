@@ -167,10 +167,163 @@ namespace Mikoto {
 
         m_SkinningInfo.resize( MAX_SKINNED_MESHES );
         m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
-        m_MeshInfoIndices.resize( MAX_RENDERABLE_ENTITIES );
+        m_MaterialInfo.resize( MAX_RENDERABLE_ENTITIES );
 
         RegisterMeshCullingPass( graph );
-        RegisterScatteredWrites( graph );
+        RegisterGeometryFilterPass( graph );
+    }
+
+    auto MeshCulling::RegisterGeometryFilterPass(FrameGraph& graph) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+            "GeometryFilter",
+            []( FramePassBuilder &b ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+
+                // Create Buffers
+                b.CreateBuffer( "MeshCulling_GeometryInfo", BufferUsage::SHADER_STORAGE,
+                                MKT_SIZEOF( ShaderMesh ), MAX_RENDERABLE_ENTITIES, ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
+
+                b.CreateBuffer( "MeshCulling_MaterialsInfo", BufferUsage::SHADER_STORAGE,
+                                MKT_SIZEOF( ShaderMaterial ), MAX_RENDERABLE_ENTITIES, ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
+
+                b.CreateBuffer( "MeshCulling_SkinningInfo", BufferUsage::SHADER_STORAGE,
+                                MKT_SIZEOF( SkinningInfo ), MAX_SKINNED_MESHES, ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
+
+                b.Write( "MeshCulling_GeometryInfo", FrameResourceState::TransferDst );
+                b.Write( "MeshCulling_MaterialsInfo", FrameResourceState::TransferDst );
+                b.Write( "MeshCulling_SkinningInfo", FrameResourceState::TransferDst );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+                SetupInstanceData( ctx );
+            },
+            FramePassNodeType::TRANSFER );
+    }
+
+    auto MeshCulling::RegisterMeshCullingPass( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+            "MeshCulling",
+            []( FramePassBuilder &b ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+
+                b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_MaterialsInfo", FrameResourceState::UnorderedAccessView );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            }, FramePassNodeType::COMPUTE );
+    }
+
+     auto MeshCulling::SetupInstanceData( CommandContext &context ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        auto &registry{ m_Scene->GetRegistry() };
+        auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
+
+        for ( auto [entity, tag, transform, materialComp, meshComponent]: renderables.each() ) {
+            if ( !tag.IsActive() ) {
+                continue;
+            }
+
+            if ( meshComponent.HasMesh() && materialComp.HasMaterial() ) {
+                MeshNode *meshNode{ meshComponent.GetMesh() };
+                PBRMaterial *pbrMat{ materialComp.GetMaterial().Dynamic<PBRMaterial>() };
+
+                auto& [geometry, material]{ m_IndexedGeometryManager.RegisterInstance( meshNode ) };
+
+                // Geometry
+                geometry.Transform = transform.GetWorldTransform();
+                geometry.InverseModelView = glm::inverse( glm::mat3( m_Camera->GetViewMatrix() * geometry.Transform ) );
+                if (meshComponent.IsSkinned()) {
+
+                    if (registry.any_of<SkinnedMeshRenderer>( entity )) {
+                        auto& sm{ registry.get<SkinnedMeshRenderer>( entity ) };
+                        auto animator{ AnimationSystem::Get()->GetAnimator( sm.GetAnimatorID() ) };
+                        if ( animator != nullptr && animator->IsPlaying() ) {
+                            geometry.AnimatorID = sm.GetAnimatorID();
+                        }
+                    }
+                }
+
+                // Materials
+                material.Workflow = static_cast<float>( pbrMat->GetWorkflow() );
+
+                material.BaseColorFactor = pbrMat->GetBaseColorFactor();
+                material.DiffuseFactor = pbrMat->GetDiffuseFactor();
+                material.SpecularFactor = pbrMat->GetSpecularFactor();
+
+                material.EmissiveFactor = Vec4F{ pbrMat->GetEmissiveFactor(), 1.0f };
+
+                material.MetallicFactor = pbrMat->GetMetallicFactor();
+                material.RoughnessFactor = pbrMat->GetRoughnessFactor();
+                material.EmissiveStrength = pbrMat->GetEmissiveStrength();
+                material.AlphaMask = static_cast<float>( pbrMat->GetAlphaMask() );
+                material.AlphaMaskCutoff = pbrMat->GetAlphaMaskCutoff();
+
+                // UV Sets
+                material.BaseColorTextureSet = pbrMat->GetBaseColorTextureSet();
+                material.PhysicalDescriptorTextureSet = pbrMat->GetPhysicalDescriptorTextureSet();
+                material.NormalTextureSet = pbrMat->GetNormalTextureSet();
+                material.OcclusionTextureSet = pbrMat->GetOcclusionTextureSet();
+                material.EmissiveTextureSet = pbrMat->GetEmissiveTextureSet();
+
+                // Bindless texture indices
+                material.AlbedoIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::BASE_COLOR_TEXTURE ) );
+                material.NormalIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::NORMAL_TEXTURE ) );
+                material.MetallicIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::METALLIC_TEXTURE ) );
+                material.RoughnessIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::ROUGHNESS_TEXTURE ) );
+                material.AoIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+                material.EmissiveIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::EMISSIVE_TEXTURE ) );
+                material.PhysicalDescriptorTextureIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::METALLIC_ROUGHNESS_TEXTURE ) );
+            }
+        }
+
+        // Flaten
+        Size activeMeshCount{};
+        for (auto& [node, data] : m_IndexedGeometryManager.GetData()) {
+            DrawIndexedState &drawState{ m_DrawIndexedState[node] };
+
+            drawState.IndexBuffer = node->GetIndexBuffer();
+            drawState.IndicesCount = node->GetIndexBuffer()->GetCount();
+
+            if ( drawState.VertexBuffers.empty() ) {
+                drawState.VertexBuffers.emplace_back( node->GetVertexBuffer(), 0 );
+            }
+
+            drawState.InstancesCount = data.size();
+            drawState.FirstInstance = activeMeshCount;
+
+            Size meshIndex{};
+            for (auto& item : data) {
+                m_MeshInfo[activeMeshCount + meshIndex] = item.first;
+                m_MaterialInfo[activeMeshCount + meshIndex] = item.second;
+
+                ++meshIndex;
+            }
+
+            activeMeshCount += data.size();
+        }
+
+        context.CopyBuffer( "MeshCulling_GeometryInfo", m_MeshInfo.data(), activeMeshCount * MKT_SIZEOF( ShaderMesh ) );
+        context.CopyBuffer( "MeshCulling_MaterialsInfo", m_MaterialInfo.data(), activeMeshCount * MKT_SIZEOF( ShaderMaterial ) );
+
+        // Clear after everything has been uploaded
+        m_IndexedGeometryManager.Clear();
+    }
+
+    auto IndexedGeometryManager::Clear() -> void {
+        for (auto& instances : m_InstanceMeshInfo | std::ranges::views::values) {
+            instances.clear();
+        }
+    }
+
+    auto IndexedGeometryManager::RegisterInstance(MeshNode* mesh) -> std::pair<ShaderMesh, ShaderMaterial>& {
+        MKT_ASSERT( mesh, "Mesh node cannot be empty" );
+        return m_InstanceMeshInfo[mesh].emplace_back();
     }
 
     auto MeshCulling::RegisterScatteredWrites( FrameGraph &graph ) -> void {
@@ -185,88 +338,10 @@ namespace Mikoto {
             []( FramePassBuilder &b) {
                 MKT_BEGIN_PROFILER_NAMED();
                     
-                b.Create<Buffer>( "ScatteredWrites_MeshSkinnedMatrices", BufferUsage::SHADER_STORAGE, sizeof( decltype( m_SkinningInfo )::value_type ), MAX_SKINNED_MESHES );
-                b.Create<Buffer>( "ScatteredWrites_MeshData", BufferUsage::SHADER_STORAGE, sizeof( MeshParameters ), MAX_RENDERABLE_ENTITIES );
-                b.Create<Buffer>( "ScatteredWrites_MeshDataIndices", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), MAX_RENDERABLE_ENTITIES );
-
-                auto finalBuffer{ BufferBuilder{} };
-                finalBuffer.WithUsage( BufferUsage::SHADER_STORAGE )
-                    .ForElement( sizeof(MeshParameters), MAX_RENDERABLE_ENTITIES )
-                    .IsDynamic( false )
-                    .Build( "FinalBuffer_ObjectInfo" );
-
-                b.CreateBuffer( finalBuffer );
-                    
-                b.UseShader( "Resources/Shaders/vulkan-spirv/ScatteredWritesMesh_Comp.sprv", ShaderStage::COMPUTE );
-                b.Create<Pipeline>( "ScatteredWritesMeshPass_Pipeline", ComputePipelineDescription{} );
-
-                b.Write( "ScatteredWrites_MeshData", FrameResourceState::UnorderedAccessView );
-                b.Write( "ScatteredWrites_MeshDataIndices", FrameResourceState::UnorderedAccessView );
-                b.Write( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccessView );
-                b.Write( "ScatteredWrites_MeshSkinnedMatrices", FrameResourceState::UnorderedAccessView );
-
-                // This pass goes after mesh culling
-                b.Read( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccessView );
-
-                b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 0 );
-                b.Use( ResourceGroup::Dynamic, "ScatteredWrites_MeshData", 1 );
-                b.Use( ResourceGroup::Dynamic, "ScatteredWrites_MeshDataIndices", 2 );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard& ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                // Need at least m_ObjectUpdateCount threads.
-                // But dispatch works in groups, not individual threads.
-                Size dispatchCount{ (m_ObjectUpdateCount + 64 - 1) };
-                if (dispatchCount == 0) {
-                    return;
-                }
-
-                ScatterPushConstant pushConstants{};
-                pushConstants.UpdateCount = m_ObjectUpdateCount;
-
-                ctx.BindPipeline( "ScatteredWritesMeshPass_Pipeline" );
-
-                ctx.PushConstants( std::addressof( pushConstants ), sizeof( ScatterPushConstant ) );
-                ctx.UploadBufferData( "ScatteredWrites_MeshData", m_MeshInfo.data(), sizeof( MeshParameters ), m_ObjectUpdateCount );
-                ctx.UploadBufferData( "ScatteredWrites_MeshDataIndices", m_MeshInfoIndices.data(), sizeof( UInt32 ), m_ObjectUpdateCount );
-
-                ctx.Dispatch( dispatchCount / 64, 1, 1 );
-            } );
-    }
-
-    auto MeshCulling::RegisterMeshCullingPass(FrameGraph &graph) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        graph.RegisterPass(
-            "MeshCulling",
-            []( FramePassBuilder &b ) -> void {
-                MKT_BEGIN_PROFILER_NAMED();
-
-                // Create the buffers containing the materials and the information about the meshes
-                auto finalBufferMaterials{ BufferBuilder{} };
-                finalBufferMaterials.WithUsage( BufferUsage::SHADER_STORAGE )
-                        .ForElement( sizeof( ShaderMaterial ), MAX_RENDERABLE_ENTITIES )
-                        .IsDynamic( false )
-                        .Build( "MaterialhInfo_Buffer" );
-                b.CreateBuffer( finalBufferMaterials );
-
-                auto finalBufferMeshInfo{ BufferBuilder{} };
-                finalBufferMeshInfo.WithUsage( BufferUsage::SHADER_STORAGE )
-                        .ForElement( sizeof( ShaderMesh ), MAX_RENDERABLE_ENTITIES )
-                        .IsDynamic( false )
-                        .Build( "MeshInfo_Buffer" );
-                b.CreateBuffer( finalBufferMeshInfo );
-
-                // To force this pass to go before ScatteredWritesMeshPass
-                b.Write( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccessView );
-
-                b.Write( "MeshInfo_Buffer", FrameResourceState::UnorderedAccessView );
-                b.Write( "MaterialhInfo_Buffer", FrameResourceState::UnorderedAccessView );
-            },
-            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
-                MKT_BEGIN_PROFILER_NAMED();
-                SetupInstanceData( ctx );
             } );
     }
 
@@ -288,154 +363,5 @@ namespace Mikoto {
         // TODO: Implement indirect draw
         // Prepare indirect commands first, then draw
         
-    }
-
-    auto MeshCulling::SetupInstanceData( CommandContext &context ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-        // Prepare for draw
-        for ( auto &[meshNode, meshNodeCount]: m_MeshDrawInstanceCount ) {
-            // assume no instances and populate accordingly later
-            meshNodeCount = 0;
-
-            if ( m_InstanceInfos[meshNode].empty() ) {
-                constexpr UInt32 mindObjectInfo{ 5 };
-                m_InstanceInfos[meshNode].resize( mindObjectInfo );
-            }
-        }
-
-        auto &registry{ m_Scene->GetRegistry() };
-
-        // already created owned group using one of the same components.
-        // Cannot create another group that owns the same components
-        auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
-
-        for ( auto [entity, tag, transform, materialComp, meshComponent]: renderables.each() ) {
-            if ( !tag.IsActive() ) {
-                continue;
-            }
-
-            if ( meshComponent.HasMesh() && materialComp.HasMaterial() ) {
-                MeshNode *meshNode{ meshComponent.GetMesh() };
-                PBRMaterial *pbrMat{ materialComp.GetMaterial().Dynamic<PBRMaterial>() };
-
-                // Resize if we need more space for more objects of this meshNode
-                Size &instanceCount{ m_MeshDrawInstanceCount[meshNode] };
-                if ( m_InstanceInfos[meshNode].size() <= instanceCount ) {
-                    m_InstanceInfos[meshNode].emplace_back();
-                }
-
-                ShaderMaterialParams &ubo{ m_InstanceInfos[meshNode][instanceCount] };
-                DrawIndexedState &drawState{ m_DrawIndexedState[meshNode] };
-
-                ubo.Transform = transform.GetWorldTransform();
-                ubo.Albedo = pbrMat->GetColor();
-                ubo.Factors.x = pbrMat->GetMetallicFactor();
-                ubo.Factors.y = pbrMat->GetRoughnessFactor();
-                ubo.Factors.z = pbrMat->GetAoFactor();
-
-                if (meshComponent.IsSkinned()) {
-
-                    if (registry.any_of<SkinnedMeshRenderer>( entity )) {
-                        auto& sm{ registry.get<SkinnedMeshRenderer>( entity ) };
-                        auto animator{ AnimationSystem::Get()->GetAnimator( sm.GetAnimatorID() ) };
-                        if ( animator != nullptr && animator->IsPlaying() ) {
-                            ubo.AnimatorID = sm.GetAnimatorID();
-                        }
-                    }
-                }
-
-                ubo.EmissiveFactors = pbrMat->GetEmissiveFactor();
-                ubo.EmissiveIntensity = pbrMat->GetEmissiveStrength();
-
-                ubo.Alpha = pbrMat->GetAlphaMaskCutoff();
-
-                ubo.AlbedoIndex = context.PushTexture( pbrMat->GetTexture( MapType::BASE_COLOR_TEXTURE ) );
-                ubo.NormalIndex = context.PushTexture( pbrMat->GetTexture( MapType::NORMAL_TEXTURE ) );
-                ubo.MetallicIndex = context.PushTexture( pbrMat->GetTexture( MapType::METALLIC_TEXTURE ) );
-                ubo.RoughnessIndex = context.PushTexture( pbrMat->GetTexture( MapType::ROUGHNESS_TEXTURE ) );
-                ubo.AoIndex = context.PushTexture( pbrMat->GetTexture( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
-                ubo.EmissiveIndex = context.PushTexture( pbrMat->GetTexture( MapType::EMISSIVE_TEXTURE ) );
-
-                // Set buffers
-                drawState.IndexBuffer = meshNode->GetIndexBuffer();
-                drawState.IndicesCount = meshNode->GetIndexBuffer()->GetCount();
-
-                if ( drawState.VertexBuffers.empty() ) {
-                    drawState.VertexBuffers.emplace_back( meshNode->GetVertexBuffer(), 0 );
-                }
-
-                instanceCount += 1;
-            }
-        }
-
-        // Upload indirect draw contents
-        for (const auto& [node, meshCount] : m_MeshDrawInstanceCount) {
-            m_IndirectDrawInfo[node] = m_GeometryManager.UploadMeshData( node );
-        }
-
-        // Prepare render data
-        Size meshIndex{};
-        Size activeMeshCount{};
-
-        for ( auto &[meshNode, meshDrawState]: m_DrawIndexedState ) {
-            meshDrawState.InstancesCount = m_MeshDrawInstanceCount[meshNode];
-
-            for (Size index{}; index < meshDrawState.InstancesCount; ++index) {
-                auto& instance{ m_InstanceInfos[meshNode][index] };
-                auto& info{ m_MeshInfo[meshIndex] };
-
-                info.Transform = instance.Transform;
-                info.InverseModelView = glm::inverse(glm::mat3(m_Camera->GetViewMatrix() * instance.Transform));
-                info.MaterialIndex = meshIndex;
-                
-                info.Albedo = instance.Albedo;
-                info.AlbedoIndex = instance.AlbedoIndex;
-
-                info.AlphaCutoff = instance.Alpha;
-                info.MetallicFactor = instance.Factors.x;
-                info.RoughnessFactor = instance.Factors.y;
-                info.OcclusionStrength = instance.Factors.z;
-                info.EmissiveFactors = instance.EmissiveFactors;
-                info.EmissiveIntensity = instance.EmissiveIntensity;
-
-                info.NormalIndex = instance.NormalIndex;
-                info.MetallicIndex = instance.MetallicIndex;
-                info.RoughnessIndex = instance.RoughnessIndex;
-                info.AoIndex = instance.AoIndex;
-                info.EmissiveIndex = instance.EmissiveIndex;
-
-               // Copy matrices if skinned
-                if (instance.AnimatorID != 0) {
-                    // AnimatorID starts from 1, this is an index to the list of 
-                    // final matrices of a given animation into the global list of final matrices
-                    info.BonesID = instance.AnimatorID - 1;
-
-                    auto &matrices{ m_SkinningInfo[info.BonesID].BoneTransforms };
-                    Animator* animator{ AnimationSystem::Get()->GetAnimator( instance.AnimatorID ) };
-                    MKT_ASSERT( animator != nullptr, "Skinned mesh animator is null" );
-
-                    auto& joinMatrices{ animator->GetFinalBoneMatrices() };
-
-                    MKT_ASSERT( joinMatrices.size() == matrices.size() && joinMatrices.size() == MAX_BONES_PER_MESH, "Matrices must be same sized" );
-                    for (Size matrixIndex{}; matrixIndex < matrices.size(); ++matrixIndex) {
-                        matrices[matrixIndex] = joinMatrices[matrixIndex];
-                    }
-                }
-
-                m_MeshInfoIndices[meshIndex] = meshIndex;
-
-                ++meshIndex;
-            }
-
-            meshDrawState.FirstInstance = activeMeshCount;
-
-            activeMeshCount += meshDrawState.InstancesCount;
-        }
-
-        context.UploadBufferData( "ScatteredWrites_MeshSkinnedMatrices", m_SkinningInfo.data(), sizeof( decltype( m_SkinningInfo )::value_type ), m_SkinningInfo.size() );
-
-        MKT_ASSERT( activeMeshCount <= MAX_RENDERABLE_ENTITIES, "Exceeded limit of renderable entities" );
-
-        m_ObjectUpdateCount = activeMeshCount;
     }
 }

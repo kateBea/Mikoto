@@ -76,6 +76,14 @@ namespace Mikoto {
         }
     }
 
+    auto CommandContext::BindGroup( ResourceGroup group, std::string_view groupName ) -> void {
+        std::string name{ groupName };
+        if ( !m_ActiveUnoundedResourceGroups[name] ) {
+            m_Context->BindImageSamplerUndoundedGroup( groupName, m_Commands );
+            m_ActiveUnoundedResourceGroups[name] = true;
+        }
+    }
+
     auto CommandContext::BindImageSampler( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void {
         const auto it{ m_ResourcesByNames->Resources.find( std::string{ name } ) };
         if (it != m_ResourcesByNames->Resources.end()) {
@@ -84,7 +92,7 @@ namespace Mikoto {
             TextureHandle texture{ m_Context->GetTexture( name ) };
             MKT_ASSERT( !texture.IsEmpty(), "Texture cannot be empty" );
 
-            if (resource.IsResource( FrameResourceType::BUFFER )) {
+            if (resource.IsResource( FrameResourceType::TEXTURE )) {
                 m_Context->PushTexture( group, texture, m_ActivePass->Name, slot );
             }
         }
@@ -98,14 +106,26 @@ namespace Mikoto {
             TextureHandle texture{ m_Context->GetTexture( name ) };
             MKT_ASSERT( !texture.IsEmpty(), "Texture cannot be empty" );
 
-            if (resource.IsResource( FrameResourceType::BUFFER )) {
+            if ( resource.IsResource( FrameResourceType::TEXTURE ) ) {
                 m_Context->PushTexture( group, texture, sampler, m_ActivePass->Name, slot );
             }
         }
     }
 
-    auto CommandContext::BindImageSampler( ResourceGroup group, std::string_view groupName, TextureHandle texture, ResourceSlot slot ) -> Int32 {
-        Int32 index{};
+    auto CommandContext::BindImageSampler( ResourceGroup group, TextureHandle texture, SamplerHandle sampler, ResourceSlot slot ) -> void {
+        if (texture.IsEmpty()) {
+            return;
+        }
+
+        m_Context->PushTexture( group, texture, sampler, m_ActivePass->Name, slot );
+    }
+
+    auto CommandContext::BindImageSampler( ResourceGroup group, std::string_view groupName, TextureHandle texture ) -> Int32 {
+        Int32 index{ -1 };
+
+        if (texture.IsEmpty()) {
+            return index;
+        }
 
         std::string name{ groupName };
         if (!m_ActiveUnoundedResourceGroups[name]) {
@@ -115,9 +135,26 @@ namespace Mikoto {
 
         switch ( group ) {
             case ResourceGroup::UnboundedImageViews:
-                index = m_Context->RegisterImageSamplerUndoundedGroup( groupName, slot, texture, SamplerHandle::CreateEmpty() );
+                index = m_Context->RegisterImageSamplerUndoundedGroup( groupName, texture, SamplerHandle::CreateEmpty() );
+                break;
         }
          
+        return index;
+    }
+
+    auto CommandContext::PushImageSampler( ResourceGroup group, std::string_view groupName, TextureHandle texture ) -> Int32 {
+        Int32 index{ -1 };
+
+        if ( texture.IsEmpty() ) {
+            return index;
+        }
+
+        switch ( group ) {
+            case ResourceGroup::UnboundedImageViews:
+                index = m_Context->RegisterImageSamplerUndoundedGroup( groupName, texture, SamplerHandle::CreateEmpty() );
+                break;
+        }
+
         return index;
     }
 
@@ -317,6 +354,21 @@ namespace Mikoto {
         MKT_ASSERT( size < buffer->GetSizeBytes(), "Size is bigger than expected" );
 
         buffer->CopyToDevice( ptrSrc, size, offset ); 
+    }
+
+    auto CommandContext::CopyBuffer( std::string_view bufferName, const void *ptrSrc, Size size ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        if (size == 0) {
+            return;
+        }
+
+        BufferHandle buffer{ m_Context->GetBuffer( bufferName ) };
+
+        MKT_ASSERT( !buffer.IsEmpty(), "Buffer does not exist" );
+        MKT_ASSERT( size < buffer->GetSizeBytes(), "Size is bigger than expected" );
+
+        buffer->Copy( ptrSrc, size, m_Commands ); 
     }
 
     auto CommandContext::PushConstants( const void *ptr, Size size ) -> void {

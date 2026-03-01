@@ -417,7 +417,10 @@ namespace Mikoto {
                 };
 
                 barrierList.emplace_back( info );
+                
+                it->second.CurrentState = resourceNode.OutState;
             }
+
         }
 
         for (const auto &resourceNode : node.Writes) {
@@ -431,6 +434,8 @@ namespace Mikoto {
                 };
 
                 barrierList.emplace_back( info );
+
+                it->second.CurrentState = resourceNode.OutState;
             }
         }
 

@@ -28,7 +28,7 @@ struct VSOutput {
     float4 PositionH : SV_Position;
 };
 
-[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
+[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
 [[vk::push_constant]]

@@ -89,7 +89,7 @@ namespace Mikoto {
         virtual auto PushTexture(ResourceGroup group, TextureHandle texture, SamplerHandle sampler, std::string_view pass, ResourceSlot slot ) -> void = 0;
 
         virtual auto BindImageSamplerUndoundedGroup( std::string_view groupName, CommandListHandle cmd ) -> void = 0;
-        virtual auto RegisterImageSamplerUndoundedGroup( std::string_view groupName, ResourceSlot slot, TextureHandle texture, SamplerHandle sampler ) -> UInt32 = 0;
+        virtual auto RegisterImageSamplerUndoundedGroup( std::string_view groupName, TextureHandle texture, SamplerHandle sampler ) -> Int32 = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 

@@ -50,7 +50,7 @@ namespace Mikoto {
 
         RegisterBloom( graph );
         //RegisterSSAO( graph );
-        RegisterTextRender( graph, device );
+        //RegisterTextRender( graph, device );
     }
 
     auto PostEffectsPass::SetMeshCulling( MeshCulling& culling ) -> void {
@@ -319,13 +319,13 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         graph.RegisterPass(
-                "Bloom",
-                []( FramePassBuilder& b ) {
-                    MKT_BEGIN_PROFILER_NAMED();
-                },
-                []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
-                } );
+            "Bloom",
+            []( FramePassBuilder& b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
     }
 
     auto PostEffectsPass::TraverseTextList( CommandContext& ctx ) -> void {

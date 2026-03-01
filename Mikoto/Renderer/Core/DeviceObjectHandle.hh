@@ -12,29 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "base/Base.slang"
-#include "base/Lighting_Helpers.slang"
-
-struct FSInput {
-    float3 Pos : TEXCOORD0;
-};
-
-struct FSOutput {
-    float4 Color : SV_Target0;
-};
-
-[[vk::binding(Slot_0, DYNAMIC_SAMPLERS_SET_INDEX)]]
-Sampler2D<float4> u_EquirectangularMap;
-
-[shader("fragment")]
-FSOutput main(FSInput input) {
-    FSOutput o;
-
-    float3 dir = normalize(input.Pos);
-
-    float2 uv = SampleSphericalMap(dir);
-    float3 color = u_EquirectangularMap.Sample(uv).rgb;
-
-    o.Color = float4(color, 1.0);
-    return o;
+namespace Mikoto {
+    class ICommandList;
+    using CommandListHandle = Ref<ICommandList>;
 }

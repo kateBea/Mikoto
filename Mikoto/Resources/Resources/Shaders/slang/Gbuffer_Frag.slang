@@ -36,10 +36,10 @@ struct FSOutput {
     float4 Color : SV_Target2;
 };
 
-[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
+[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
-[[vk::binding(0, TEXTURES_SET_INDEX)]]
+[[vk::binding(Slot_0, UNBOUNDED_IV_SAMPLERS_SET_INDEX)]]
 Sampler2D g_BindlessTextures[];
 
 [shader("fragment")]

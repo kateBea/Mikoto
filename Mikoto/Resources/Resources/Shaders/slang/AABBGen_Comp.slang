@@ -16,10 +16,10 @@
 #include "base/Camera_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
 
-[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
+[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
-[[vk::binding(1, DYNAMIC_RESOURCE_SET_INDEX)]]
+[[vk::binding(Slot_0, UAV_SET_INDEX)]]
 RWStructuredBuffer<Cluster, ScalarDataLayout> Clusters;
 
 [[vk::push_constant]]

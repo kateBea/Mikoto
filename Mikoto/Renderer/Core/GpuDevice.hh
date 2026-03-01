@@ -28,6 +28,7 @@
 #include <Renderer/Core/Pipeline.hh>
 #include <Renderer/Core/Framebuffer.hh>
 #include <Renderer/Core/DeviceObject.hh>
+#include <Renderer/Core/DeviceObjectHandle.hh>
 
 namespace Mikoto {
 
@@ -103,8 +104,6 @@ namespace Mikoto {
     private:
         QueueType m_Type{ QueueType::INVALID_QUEUE };
     };
-
-    using CommandListHandle = Ref<ICommandList>;
 
     struct GpuDeviceCreateInfo {
         GraphicsAPI Api{ GraphicsAPI::VULKAN_API };

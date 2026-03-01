@@ -57,13 +57,15 @@ struct MaterialParameters {
     int    MetallicIndex;
     int    RoughnessIndex;
     int    AoIndex;
-    int EmissiveIndex;
-    int PhysicalDescriptorTextureIndex;
+    int    EmissiveIndex;
+    int    PhysicalDescriptorTextureIndex;
 };
 
 struct MeshParameters {
     float4x4 Transform;
     float4x4 InverseModelView;
+
+    int AnimatorID;
 };
 
 // ============================================================================

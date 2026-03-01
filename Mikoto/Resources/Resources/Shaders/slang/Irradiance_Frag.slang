@@ -31,7 +31,7 @@ struct FSOutput {
 [[vk::push_constant]]
 IrradianceConstants u_Parameters;
 
-[[vk::binding(0, DYNAMIC_RESOURCE_SET_INDEX)]]
+[[vk::binding(Slot_0, DYNAMIC_SAMPLERS_SET_INDEX)]]
 SamplerCube u_SamplerEnv;
 
 [shader("fragment")]

@@ -117,12 +117,12 @@ namespace Mikoto {
             [this]( FramePassBuilder &b, IrradiancePassData& p ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                b.Create<TextureCube>( "IrradiancePass_ColorTargetCUBE", m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, m_IrradianceMipLevels );
-                b.Create<Texture>( "IrradiancePass_ColorTarget", m_IrradianceDimensions, m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
+                b.CreateTexture( "IrradiancePass_ColorTargetCUBE", m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, m_IrradianceMipLevels );
+                b.CreateTexture( "IrradiancePass_ColorTarget", m_IrradianceDimensions, m_IrradianceDimensions, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
 
                 b.UseShader( "Resources/Shaders/slang/Irradiance_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/Irradiance_Frag.slang", ShaderStage::FRAGMENT );
-                b.Create<Pipeline>( "IrradiancePass_Pipeline",
+                b.CreatePipeline( "IrradiancePass_Pipeline",
                     GraphicsPipelineDescription{
                         .PrimitiveTopology{ Topology::TRIANGLE_LIST },
                         .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT } } );
@@ -140,10 +140,10 @@ namespace Mikoto {
                     return;
                 }
 
-                if (m_UseCubeMap && !m_CubeMap.IsEmpty()) {
-                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
+                 if ( m_UseCubeMap && !m_CubeMap.IsEmpty() ) {
+                    ctx.BindImageSampler( ResourceGroup::DynamicSamplers, m_CubeMap, m_CubeMapSampler, ResourceSlot::Slot_0 );
                 } else {
-                    ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 0 );
+                     ctx.BindImageSampler( ResourceGroup::DynamicSamplers, "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_0 );
                 }
 
                 for ( Size mipLevel{}; mipLevel < m_IrradianceMipLevels; mipLevel++ ) {
@@ -187,12 +187,12 @@ namespace Mikoto {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 m_PrefilterMipLevels = static_cast<UInt32>( Math::Floor( Math::Log2( m_PrefilterDimensions ) ) ) + 1;
-                b.Create<TextureCube>( "PrefilterPass_ColorTargetCUBE", m_PrefilterDimensions, TextureFormat::RGBA16_FLOAT, m_PrefilterMipLevels );
-                b.Create<Texture>( "PrefilterPass_ColorTarget", m_PrefilterDimensions, m_PrefilterDimensions, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
+                b.CreateTexture( "PrefilterPass_ColorTargetCUBE", m_PrefilterDimensions, TextureFormat::RGBA16_FLOAT, m_PrefilterMipLevels );
+                b.CreateTexture( "PrefilterPass_ColorTarget", m_PrefilterDimensions, m_PrefilterDimensions, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
 
                 b.UseShader( "Resources/Shaders/slang/Prefilter_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/Prefilter_Frag.slang", ShaderStage::FRAGMENT );
-                b.Create<Pipeline>( "Prefilter_Pipeline", 
+                b.CreatePipeline( "Prefilter_Pipeline", 
                     GraphicsPipelineDescription{
                         .PrimitiveTopology{ Topology::TRIANGLE_LIST },
                         .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT } } );
@@ -212,9 +212,9 @@ namespace Mikoto {
                 }
 
                 if (m_UseCubeMap && !m_CubeMap.IsEmpty()) {
-                    ctx.BindImage( m_CubeMap, m_CubeMapSampler, 0 );
+                    ctx.BindImageSampler( ResourceGroup::DynamicSamplers, m_CubeMap, m_CubeMapSampler, ResourceSlot::Slot_0 );
                 } else {
-                    ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, 0 );
+                    ctx.BindImageSampler( ResourceGroup::DynamicSamplers, "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_0 );
                 }
 
                 // Tweak
@@ -260,12 +260,12 @@ namespace Mikoto {
             []( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                b.Create<Texture>( "BRDFLutPass_ColorTarget", 512, 512 , TextureFormat::RG16_FLOAT, TextureUsage::COLOR );
+                b.CreateTexture( "BRDFLutPass_ColorTarget", 512, 512 , TextureFormat::RG16_FLOAT, TextureUsage::COLOR );
 
                 b.UseShader( "Resources/Shaders/slang/BRDFLut_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/BRDFLut_Frag.slang", ShaderStage::FRAGMENT );
 
-                b.Create<Pipeline>( "BRDFLutPass_Pipeline", 
+                b.CreatePipeline( "BRDFLutPass_Pipeline", 
                     GraphicsPipelineDescription{
                     .VertexAttributesSpec{},
                     .ColorAttachmentFormats{ TextureFormat::RG16_FLOAT }
@@ -275,8 +275,6 @@ namespace Mikoto {
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
-
-                ctx.BindPipeline( "BRDFLutPass_Pipeline" );
 
                 ctx.SetViewport( 0, 0, 512, 512 );
                 ctx.SetScissor( 0, 0, 512, 512 );
@@ -289,6 +287,8 @@ namespace Mikoto {
 
                 ctx.BeginRender();
 
+                ctx.BindPipeline( "BRDFLutPass_Pipeline" );
+                
                 ctx.Draw( 3 );
 
                 ctx.EndRender();
@@ -335,14 +335,14 @@ namespace Mikoto {
         graph.RegisterPass(
             "SkyboxRender",
 
-            [&]( FramePassBuilder &b ) {
+            [this]( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
-                b.Create<TextureCube>( "SkyboxRender_ColorTargetCUBE", 2540, TextureFormat::RGBA32_FLOAT, 1 );
-                b.Create<Texture>( "SkyboxRender_ColorTarget", 2540, 2540, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
+                b.CreateTexture( "SkyboxRender_ColorTargetCUBE", 2540, TextureFormat::RGBA32_FLOAT, 1 );
+                b.CreateTexture( "SkyboxRender_ColorTarget", 2540, 2540, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
 
                 b.UseShader( "Resources/Shaders/slang/SkyboxGen_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/SkyboxGen_Frag.slang", ShaderStage::FRAGMENT );
-                b.Create<Pipeline>( "SkyboxRender_Pipeline",
+                b.CreatePipeline( "SkyboxRender_Pipeline",
                     GraphicsPipelineDescription{
                     .PrimitiveTopology{ Topology::TRIANGLE_LIST },
                     .ColorAttachmentFormats{ TextureFormat::RGBA32_FLOAT 
@@ -351,7 +351,7 @@ namespace Mikoto {
                 b.Write( "SkyboxRender_ColorTarget", FrameResourceState::RenderTarget );
                 b.Write( "SkyboxRender_ColorTargetCUBE", FrameResourceState::TransferDst );
             },
-            [&]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) {
+            [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 if (!m_RequestUpdateSkybox) {
@@ -366,7 +366,7 @@ namespace Mikoto {
                     m_Skybox2DSampler = ctx.CreateSampler( SamplerDescription{ } );
                 }
 
-                ctx.BindImage( m_Equirectangular, m_Skybox2DSampler, 0 );
+                ctx.BindImageSampler( ResourceGroup::DynamicSamplers, m_Equirectangular, m_Skybox2DSampler, ResourceSlot::Slot_0 );
 
                 for ( Size mipLevel{}; mipLevel < 1; mipLevel++ ) {
                     for ( UInt32 face{}; face < MAX_CUBE_MAP_FACES; ++face ) {
@@ -421,7 +421,7 @@ namespace Mikoto {
                     .PipelineCullMode{ CullMode::NONE },
                     .PrimitiveTopology{ Topology::TRIANGLE_LIST },
                 };
-                b.Create<Pipeline>( "SkyboxPass_Pipeline", graphicsDesc );
+                b.CreatePipeline( "SkyboxPass_Pipeline", graphicsDesc );
 
                 b.Write( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
                 b.Write( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
@@ -430,8 +430,6 @@ namespace Mikoto {
                 b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-
-                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
 
                 // The first mesh of the box model should be the only one,
                 // we get the index and vertex buffers from it
@@ -463,15 +461,16 @@ namespace Mikoto {
                 // play around to see what fits best for the scene, remember to pass the max mip level as a push constant to avoid sampling beyond the available mip levels in the shader
                 if ( m_UseConvolutedCubeMap ) {
                     m_IBLParameters.MaxMipLevel = m_PrefilterMipLevels;
-                    ctx.BindImage( "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, bindSlot );
+                    ctx.BindImageSampler( ResourceGroup::DynamicSamplers, "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_0 );
                 } else {
                     if ( m_UseCubeMap && !m_CubeMap.IsEmpty()) {
-                        ctx.BindImage( m_CubeMap, m_CubeMapSampler, bindSlot );
+                        ctx.BindImageSampler( ResourceGroup::DynamicSamplers, m_CubeMap, m_CubeMapSampler, ResourceSlot::Slot_0 );
                     } else {
-                        ctx.BindImage( "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, bindSlot );
+                        ctx.BindImageSampler( ResourceGroup::DynamicSamplers, "SkyboxRender_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_0 );
                     }
                 }
 
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
                 ctx.PushConstants( std::addressof( m_IBLParameters ), sizeof( m_IBLParameters ) );
 
                 ctx.SetClearColor( { 0.3f, 0.4f, 0.8f, 1.0f } );
@@ -500,10 +499,10 @@ namespace Mikoto {
             [this]( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
                 
-                b.Create<Texture>( "DirectionalShadowMapPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                b.Create<Texture>( "DirectionalShadowMapPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
+                b.CreateTexture( "DirectionalShadowMapPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.CreateTexture( "DirectionalShadowMapPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
 
-                b.Create<Buffer>( "DirectionalShadowMapPass_CameraInfo", BufferUsage::UNIFORM, sizeof( LightCameraInfo ), 1 );
+                b.CreateBuffer( "DirectionalShadowMapPass_CameraInfo", BufferUsage::UNIFORM, MKT_SIZEOF( LightCameraInfo ), 1 );
 
                 b.UseShader( "Resources/Shaders/slang/DirLighShadows_Frag.slang", ShaderStage::FRAGMENT );
                 b.UseShader( "Resources/Shaders/slang/DirLighShadows_Vert.slang", ShaderStage::VERTEX );
@@ -513,38 +512,38 @@ namespace Mikoto {
                     .DepthWrite{ true },
                     .DepthAttachmentFormat{ TextureFormat::D32_FLOAT }
                 };
-                b.Create<Pipeline>( "DirectionalShadowMapPass_Pipeline", graphicsDesc );
+
+                b.CreatePipeline( "DirectionalShadowMapPass_Pipeline", graphicsDesc );
 
                 b.Write( "DirectionalShadowMapPass_ColorTarget", FrameResourceState::RenderTarget );
                 b.Write( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::DepthWrite );
 
-                b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 0 );
+                b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 MKT_ASSERT( m_MeshCullingPass, "Mesh culling must be valid" );
 
-                const auto dimensions{ InferDimensions( m_Resolution ) };
-
-                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
-                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
-
-                ctx.SetColorRenderTarget( "DirectionalShadowMapPass_ColorTarget" );
-                ctx.SetDepthRenderTarget( "DirectionalShadowMapPass_DepthTarget" );
-                
-                ctx.BeginRender();
-
-                ctx.BindPipeline( "DirectionalShadowMapPass_Pipeline" );
-
                 auto &registry{ m_Scene->GetRegistry() };
                 auto lights{ registry.view<TransformComponent, LightComponent>() };
+
+                if (lights.size_hint() == 0) {
+                    return;
+                }
+
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
 
                 for (const auto &light : lights) {
                     auto &lightComp{ registry.get<LightComponent>( light ) };
 
                     if (lightComp.IsTypeActive( LightType::DIRECTIONAL_LIGHT_TYPE )) {
                         auto &transform{ registry.get<TransformComponent>( light ) };
+                        
+                        ctx.SetColorRenderTarget( "DirectionalShadowMapPass_ColorTarget" );
+                        ctx.SetDepthRenderTarget( "DirectionalShadowMapPass_DepthTarget" );
+                        
+                        ctx.BeginRender();
 
                         constexpr float zNear{ 0.01f };
                         constexpr float zFar{ 2000.0f };
@@ -555,12 +554,16 @@ namespace Mikoto {
 
                         ctx.PushConstants( std::addressof( m_DirectionalShadowMapCameraInfo ), sizeof(m_DirectionalShadowMapCameraInfo ) );
 
+                        const auto dimensions{ InferDimensions( m_Resolution ) };
+                        ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                        ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                        ctx.BindPipeline( "DirectionalShadowMapPass_Pipeline" );
                         m_MeshCullingPass->DrawInstances( ctx );
-                        break;
+                        
+                        ctx.EndRender();
                     }
                 }
-
-                ctx.EndRender();
             } );
     }
     
@@ -598,8 +601,8 @@ namespace Mikoto {
             [this]( FramePassBuilder &b, EnvironmentConstants& ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                b.Create<Texture>( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
-                b.Create<Texture>( "FinalShadingPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, Multisampling::MSAA_X1, TextureUsage::DEPTH );
+                b.CreateTexture( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
+                b.CreateTexture( "FinalShadingPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, Multisampling::MSAA_X1, TextureUsage::DEPTH );
 
                 GraphicsPipelineDescription graphicsDesc{
                     .DepthTest{ true },
@@ -611,48 +614,34 @@ namespace Mikoto {
                                                          // models like the just_a_girl require cull_back to be properly visulized
                 };
                 
-                /*b.UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Vert.sprv", ShaderStage::VERTEX )
-                        .UseShader( "Resources/Shaders/vulkan-spirv/PBR_Instanced_Frag.sprv", ShaderStage::FRAGMENT )
-                        .Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );*/
+                b.UseShader( "Resources/Shaders/slang/PBR_Basic_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/PBR_Basic_Frag.slang", ShaderStage::FRAGMENT );
+                b.CreatePipeline( "FinalCompositionPass_Pipeline", graphicsDesc );
 
-                b.UseShader( "Resources/Shaders/slang/PBR_Basic_Vert.slang", ShaderStage::VERTEX )
-                        .UseShader( "Resources/Shaders/slang/PBR_Basic_Frag.slang", ShaderStage::FRAGMENT )
-                        .Create<Pipeline>( "FinalCompositionPass_Pipeline", graphicsDesc );
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
-                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer )
-                    .Read( "FinalBuffer_ObjectInfo", FrameResourceState::ShaderRead_GraphicsPipeline )
-                    .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccessView )
-                    .Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite)
-                    .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
-                    .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UniformBuffer )
-                    .Read( "ScatteredWrites_MeshSkinnedMatrices", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_MaterialsInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_SkinningInfo", FrameResourceState::UnorderedAccessView );
 
+                b.Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccessView );
+                b.Read( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccessView );
+
+                b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
+                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
+
+                b.Read( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
-                b.Read( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
-
-                b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccessView );
-                
-                // Create dependency between this pass and debug view pass
-                b.Write( "FinalShading_Params", FrameResourceState::UniformBuffer );
-
-                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 )
-                    .Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 )
-                    .Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 2 )
-                    .Use( ResourceGroup::Dynamic, "LightCullingComp_LightsBuffer", 3 )
-                    .Use( ResourceGroup::Dynamic, "ScatteredWrites_MeshSkinnedMatrices", 7 )
-                    .Use( ResourceGroup::GlobalTextures );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 MKT_ASSERT( m_MeshCullingPass, "Mesh culling must be valid" );
 
-                ctx.BindPipeline( "FinalCompositionPass_Pipeline" );
-
                 ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
                 ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
-
+                
                 LoadOp colorTargetLoadOP{ LoadOp::LOAD };
                 if (!m_UseSkybox) {
                     colorTargetLoadOP = LoadOp::CLEAR;
@@ -663,10 +652,6 @@ namespace Mikoto {
                     .ColorLoadOp{ colorTargetLoadOP },
                 };
 
-                ctx.BindImage( "BRDFLutPass_ColorTarget", m_BRDFLutSampler, 4 );
-                ctx.BindImage( "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, 5 );
-                ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, 6 );
-
                 ctx.BeginRender( renderInfo );
 
                 auto& data{ blackboard.Get<EnvironmentConstants>() };
@@ -675,6 +660,21 @@ namespace Mikoto {
                 data.Gamma = m_IBLParameters.Gamma;
                 data.IsSkyboxActive = m_IBLParameters.IsSkyboxActive;
 
+                // Bind resources
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_MaterialsInfo", ResourceSlot::Slot_1 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_2 );
+
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "AABBGenComp_Clusters", ResourceSlot::Slot_3 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "LightCullingComp_LightsBuffer", ResourceSlot::Slot_4 );
+
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "BRDFLutPass_ColorTarget", m_BRDFLutSampler, ResourceSlot::Slot_0 );
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_1 );
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_2 );
+
+                ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
+
                 ctx.PushConstants( std::addressof( data ), sizeof( data ) );
 
                 const auto dimensions{ InferDimensions( m_Resolution ) };
@@ -682,6 +682,7 @@ namespace Mikoto {
                 ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
                 ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
+                ctx.BindPipeline( "FinalCompositionPass_Pipeline" );
                 m_MeshCullingPass->DrawInstances( ctx );
 
                 ctx.EndRender();
@@ -769,29 +770,28 @@ namespace Mikoto {
     auto IBLPasses::RegisterDebugViewsPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // TODO: Find a way to force thuis pass to go at the veryy end to
-        // transition resources in the way it suits the editor
+        // Transition resources for presentation
         graph.RegisterPass(
-                "DebugViewsPass",
-                []( FramePassBuilder &b ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
+            "DebugViewsPass",
+            []( FramePassBuilder &b ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
 
-                    // Force it go after the final composition
-                    b.Read( "3DRenderTextEdge", FrameResourceState::UniformBuffer );
+                // Force it go after the final composition
+                //b.Read( "3DRenderTextEdge", FrameResourceState::UniformBuffer );
 
-                    // To have this pas transition the final convert the final image into a layout imgui likes
-                    b.Read( "FinalShading_Params", FrameResourceState::ShaderRead_GraphicsPipeline );
-                    b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                // To have this pas transition the final convert the final image into a layout imgui likes
+                //b.Read( "FinalShading_Params", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
 
-                    b.Read( "HelloTriangle_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
-                    b.Read( "HelloTexture_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                //b.Read( "HelloTriangle_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                //b.Read( "HelloTexture_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
 
-                    b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
-                    b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
-                    b.Read( "GBuffer_Color", FrameResourceState::ShaderRead_GraphicsPipeline );
-                },
-                []( CommandContext &, FrameGraphBlackboard & ) -> void {
-                    MKT_BEGIN_PROFILER_NAMED();
-                } );
+                //b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
+                //b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
+                //b.Read( "GBuffer_Color", FrameResourceState::ShaderRead_GraphicsPipeline );
+            },
+            []( CommandContext &, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
     }
 }

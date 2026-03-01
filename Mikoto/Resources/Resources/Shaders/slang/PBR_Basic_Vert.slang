@@ -23,13 +23,16 @@ struct BoneData {
     float4x4 Bone[MAX_BONES];
 };
 
-[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
+[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
-[[vk::binding(1, DYNAMIC_RESOURCE_SET_INDEX)]]
-StructuredBuffer<MeshInfo, ScalarDataLayout> Meshes;
+[[vk::binding(Slot_0, UAV_SET_INDEX)]]
+StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
 
-[[vk::binding(7, DYNAMIC_BUFFERS_SET_INDEX)]]
+[[vk::binding(Slot_1, UAV_SET_INDEX)]]
+StructuredBuffer<MaterialParameters, ScalarDataLayout> Materials;
+
+[[vk::binding(Slot_2, UAV_SET_INDEX)]]
 StructuredBuffer<BoneData, ScalarDataLayout> Bones;
 
 struct VSInput {
@@ -78,15 +81,16 @@ struct VSOutput {
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    MeshInfo p = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
+    MeshParameters meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
+    MaterialParameters meshMaterial = Materials[input.BaseInstanceIndex + input.InstanceIndex];
 
-    float4x4 model = p.Transform;
+    float4x4 model = meshInfo.Transform;
 
     float4 skinnedPos = float4(0, 0, 0, 0);
     float3 skinnedNormal = float3(0, 0, 0);
 
-    if (p.AnimatorID != -1) {
-        uint baseIndex = p.AnimatorID;
+    if (meshInfo.AnimatorID != -1) {
+        uint baseIndex = meshInfo.AnimatorID;
 
         for (uint i = 0; i < MAX_BONE_INFLUENCE; i++) {
             int joint = uint(input.Joint[i]);
@@ -125,22 +129,22 @@ VSOutput main(VSInput input) {
     o.FragmentViewPos = mul(u_Camera.ViewMatrix, worldPos).xyz;
     o.Normal = worldNormal;
 
-    o.AlbedoIndex = p.AlbedoIndex;
-    o.NormalIndex = p.NormalIndex;
-    o.MetallicIndex = p.MetallicIndex;
-    o.RoughnessIndex = p.RoughnessIndex;
-    o.AoIndex = p.AoIndex;
+    o.AlbedoIndex = meshMaterial.AlbedoIndex;
+    o.NormalIndex = meshMaterial.NormalIndex;
+    o.MetallicIndex = meshMaterial.MetallicIndex;
+    o.RoughnessIndex = meshMaterial.RoughnessIndex;
+    o.AoIndex = meshMaterial.AoIndex;
 
-    o.Albedo = p.Albedo;
-    o.MetallicFactor = p.MetallicFactor;
-    o.RoughnessFactor = p.RoughnessFactor;
-    o.OcclusionStrength = p.OcclusionStrength;
+    o.Albedo = meshMaterial.BaseColorFactor;
+    o.MetallicFactor = meshMaterial.MetallicFactor;
+    o.RoughnessFactor = meshMaterial.RoughnessFactor;
+    o.OcclusionStrength = 1.0f; // TODO
 
-    o.EmissiveFactors = p.EmissiveFactors;
-    o.EmissionIntensity = p.EmissiveIntensity;
-    o.EmissionIndex = p.EmissiveIndex;
+    o.EmissiveFactors = float3(0, 0, 0); //  // TODO
+    o.EmissionIntensity = meshMaterial.EmissiveStrength;
+    o.EmissionIndex = meshMaterial.EmissiveIndex;
 
-    o.AlphaCutoff = p.AlphaCutoff;
+    o.AlphaCutoff = meshMaterial.AlphaMaskCutoff;
 
     o.PositionH =
         mul(u_Camera.Projection,

@@ -21,6 +21,7 @@
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/DeviceObject.hh>
+#include <Renderer/Core/DeviceObjectHandle.hh>
 #include <Renderer/Core/RenderUtility.hh>
 
 namespace Mikoto {
@@ -214,6 +215,8 @@ namespace Mikoto {
         // Copy from CPU to GPU ( this buffer must be writable from CPU )
         virtual auto CopyToDevice(const void* ptr, Size size) -> void = 0;
         virtual auto CopyToDevice(const void* ptr, Size size, Size offset) -> void = 0;
+
+        virtual auto Copy( const void* ptr, Size size, CommandListHandle cmd ) -> void = 0;
 
         MKT_NODISCARD auto GetCount() const -> Size {
             return InferElementCount(m_DataType, m_SizeBytes);

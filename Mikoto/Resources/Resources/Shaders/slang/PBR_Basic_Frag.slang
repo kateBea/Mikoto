@@ -26,16 +26,18 @@ struct LightingParameters {
     int IsSkyboxActive;
 };
 
-[[vk::binding(0, TEXTURES_SET_INDEX)]] Sampler2D g_BindlessTextures[];
+[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
+ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
-[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]] ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
+[[vk::binding(Slot_0, UNBOUNDED_IV_SAMPLERS_SET_INDEX)]]
+Sampler2D g_BindlessTextures[];
 
-[[vk::binding(2, DYNAMIC_RESOURCE_SET_INDEX)]] StructuredBuffer<Cluster, ScalarDataLayout> Clusters;
-[[vk::binding(3, DYNAMIC_BUFFERS_SET_INDEX)]] StructuredBuffer<LightInfo, ScalarDataLayout> Lights;
+[[vk::binding(Slot_3, UAV_SET_INDEX)]] StructuredBuffer<Cluster, ScalarDataLayout> Clusters;
+[[vk::binding(Slot_4, UAV_SET_INDEX)]] StructuredBuffer<LightInfo, ScalarDataLayout> Lights;
 
-[[vk::binding(4, DYNAMIC_RESOURCE_SET_INDEX)]] Sampler2D u_SamplerBRDFLUT;
-[[vk::binding(5, DYNAMIC_RESOURCE_SET_INDEX)]] SamplerCube u_PrefilteredMap;
-[[vk::binding(6, DYNAMIC_RESOURCE_SET_INDEX)]] SamplerCube u_SamplerIrradiance;
+[[vk::binding(Slot_0, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SamplerBRDFLUT;
+[[vk::binding(Slot_1, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_PrefilteredMap;
+[[vk::binding(Slot_2, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_SamplerIrradiance;
 
 [[vk::push_constant]]
 LightingParameters u_Constants;

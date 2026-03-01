@@ -78,14 +78,14 @@ namespace Mikoto {
     static constexpr UInt32 STATIC_RESOURCE_SET_INDEX{ 4 };
 
 
-    static const int CONSTANTS_SET_INDEX = 0;
+    static const int CONSTANTS_SET_INDEX = 7;
     static const int IMAGE_VIEWS_SET_INDEX = 1;
     static const int BUFFER_VIEWS_SET_INDEX = 2;
     static const int UAV_SET_INDEX = 3;
     static const int STATIC_SAMPLERS_SET_INDEX = 4;
     static const int DYNAMIC_SAMPLERS_SET_INDEX = 5;
     static const int UNBOUNDED_BV_SET_INDEX = 6;
-    static const int UNBOUNDED_IV_SAMPLERS_SET_INDEX = 7;
+    static const int UNBOUNDED_IV_SAMPLERS_SET_INDEX = 0;
 
     static constexpr Int32 INVALID_BINDLESS_GROUP_INDEX{ -1 };
     static constexpr Int32 MAX_BINDLESS_GROUP_INDEX{ 4096 };

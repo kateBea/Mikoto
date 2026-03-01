@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Material_Helpers.slang"
 
 struct DirectionalShadowMapUBO {
     float4x4 LightView;
@@ -32,14 +33,14 @@ struct VSOutput {
 [[vk::push_constant]]
 DirectionalShadowMapUBO u_CamerasInfo;
 
-[[vk::binding(0, DYNAMIC_RESOURCE_SET_INDEX)]]
-StructuredBuffer<MeshInfo, ScalarDataLayout> Meshes;
+[[vk::binding(Slot_0, UAV_SET_INDEX)]]
+StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
 
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    MeshInfo mesh = Meshes[input.InstanceIndex + input.BaseInstanceIndex];
+    MeshParameters mesh = Meshes[input.InstanceIndex + input.BaseInstanceIndex];
     float4x4 model = mesh.Transform;
 
     o.PositionH =

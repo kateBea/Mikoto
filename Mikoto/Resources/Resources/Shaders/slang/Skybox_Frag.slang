@@ -26,8 +26,8 @@ struct FSOutput {
     float4 Color : SV_Target0;
 };
 
-[[vk::binding(1, DYNAMIC_RESOURCE_SET_INDEX)]]
-SamplerCube<float4> g_SkyboxTex;
+[[vk::binding(Slot_0, DYNAMIC_SAMPLERS_SET_INDEX)]]
+SamplerCube g_SkyboxTex;
 
 [[vk::push_constant]]
 SkyBoxParameters u_IBLParams;

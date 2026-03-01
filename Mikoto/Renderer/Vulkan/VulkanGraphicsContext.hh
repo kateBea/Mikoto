@@ -117,7 +117,7 @@ namespace Mikoto {
         auto PushTexture(ResourceGroup group, TextureHandle texture, SamplerHandle sampler, std::string_view pass, ResourceSlot slot ) -> void override;
 
         auto BindImageSamplerUndoundedGroup( std::string_view groupName, CommandListHandle cmd ) -> void override;
-        auto RegisterImageSamplerUndoundedGroup( std::string_view groupName, ResourceSlot slot, TextureHandle texture, SamplerHandle sampler ) -> UInt32 override;
+        auto RegisterImageSamplerUndoundedGroup( std::string_view groupName, TextureHandle texture, SamplerHandle sampler ) -> Int32 override;
 
         ~VulkanGraphicsContext() override = default;
 
@@ -134,7 +134,12 @@ namespace Mikoto {
 
             // Set index -> Descriptor Set handle. Allocate as many as max frames in flight
             ankerl::unordered_dense::map<UInt32, VkDescriptorSet> DescriptorSets{};
-            ankerl::unordered_dense::map<ResourceGroup, ResourceBinding> ResourceBindings{};
+            ankerl::unordered_dense::map <ResourceGroup, 
+                ankerl::unordered_dense::map<ResourceSlot, Buffer*>> BufferResourceBindings{};
+
+             ankerl::unordered_dense::map <ResourceGroup, 
+                ankerl::unordered_dense::map<ResourceSlot, std::pair<Texture*, Sampler*>>> ImageSamplersResourceBindings{};
+
 
             // Buffers this pass is using
             ankerl::unordered_dense::set<Buffer*> Buffers{};

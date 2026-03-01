@@ -55,10 +55,10 @@ namespace Mikoto {
         RegisterHelloTriangle( graph );
         RegisterHelloTexture( graph );
 
-        //RegisterWireFrame( graph );
-        //RegisterInfiniteGrid( graph );
+        RegisterWireFrame( graph );
+        RegisterInfiniteGrid( graph );
 
-        //RegisterDebugViewsPass( graph );
+        RegisterDebugViewsPass( graph );
     }
 
     auto DebugPasses::SetWireframeLineLineWidth( float value ) -> void {
@@ -81,8 +81,8 @@ namespace Mikoto {
             [this]( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                b.Create<Texture>( "Wireframe_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                b.Create<Texture>( "Wireframe_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                b.CreateTexture( "Wireframe_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.CreateTexture( "Wireframe_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
                 b.UseShader( "Resources/Shaders/slang/Wireframe_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/Wireframe_Frag.slang", ShaderStage::FRAGMENT );
@@ -95,22 +95,22 @@ namespace Mikoto {
                     .PipelineCullMode{ CullMode::NONE },
                     .PipelinePolygonMode{ PolygonMode::LINES },
                 };
-                b.Create<Pipeline>( "Wireframe_Pipeline", graphicsDesc );
+                b.CreatePipeline( "Wireframe_Pipeline", graphicsDesc );
 
                 b.Write( "Wireframe_ColorTarget", FrameResourceState::RenderTarget );
                 b.Write( "Wireframe_DepthTarget", FrameResourceState::DepthWrite );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
                 b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccessView );
-
-                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
                 if ( !m_RunWireframe ) {
                     return;
                 }
+
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
 
                 const auto dimensions{ InferDimensions( m_Resolution ) };
 
@@ -222,16 +222,14 @@ namespace Mikoto {
                         .VertexAttributesSpec{} } );
 
                 b.Write( "InfiniteGrid_ColorTarget", FrameResourceState::RenderTarget );
-
-                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
-                b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
-
-                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccessView );
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
                 b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
+
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
 
                 const auto dimensions{ InferDimensions( m_Resolution ) };
 
@@ -294,7 +292,7 @@ namespace Mikoto {
             [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
 
                 auto& data{ blackboard.Get<HelloTextureData>() };
-                data.PushConstants.TextureIndex = ctx.BindImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", data.TargetTexture, ResourceSlot::Slot_0 );
+                data.PushConstants.TextureIndex = ctx.BindImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", data.TargetTexture );
 
                 ctx.PushConstants( std::addressof( data.PushConstants ), sizeof( data.PushConstants ) );
 

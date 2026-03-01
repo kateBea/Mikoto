@@ -26,7 +26,7 @@
 namespace  Mikoto {
 
     enum class ResourceGroup {
-        Constants, // Uniform buffers (does not require frequent change)
+        UnboundedImageViews,  // For descriptor indexing with images (like bindless textures
 
         ImageViews, // Storage images (storage image, unused for now, can be used in compute)
         BufferViews,  // Uniform buffers/ Storage (Is updated frequently every frame)
@@ -37,8 +37,8 @@ namespace  Mikoto {
         DynamicSamplers, // Can change sometimes
 
         UnboundedBufferViews, // For descriptor indexing with buffers
-        UnboundedImageViews,  // For descriptor indexing with images (like bindless textures
 
+        Constants, // Uniform buffers (does not require frequent change)
 
         GlobalTextures,
         Dynamic,

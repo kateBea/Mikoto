@@ -83,6 +83,18 @@ namespace Mikoto {
         ankerl::unordered_dense::map<const MeshNode*, GeometryAllocation> m_Allocations{};
     };
 
+    class IndexedGeometryManager {
+    public:
+
+        auto GetData() -> auto& { return m_InstanceMeshInfo; }
+
+        auto Clear() -> void;
+        auto RegisterInstance( MeshNode* mesh ) -> std::pair<ShaderMesh, ShaderMaterial>&;
+
+    private: 
+        ankerl::unordered_dense::map<MeshNode*, std::vector<std::pair<ShaderMesh, ShaderMaterial>>> m_InstanceMeshInfo {};
+    };
+
     class MeshCulling final {
     public:
         auto SetScene( Scene* scene) -> void;
@@ -97,6 +109,7 @@ namespace Mikoto {
 
         auto RegisterScatteredWrites(FrameGraph &graph) -> void;
         auto RegisterMeshCullingPass(FrameGraph &graph) -> void;
+        auto RegisterGeometryFilterPass(FrameGraph &graph) -> void;
 
     private:
         struct SkinningInfo {
@@ -110,21 +123,25 @@ namespace Mikoto {
 
         GeometryManager m_GeometryManager{};
 
-        Size m_ObjectUpdateCount{};
+        // Main geometry
+        IndexedGeometryManager m_IndexedGeometryManager{};
 
-        std::vector<UInt32> m_MeshInfoIndices{};
-        std::vector<MeshParameters> m_MeshInfo{};
+        // This is a 1:1 map (mesh[i] == material[i]
+        std::vector<ShaderMesh> m_MeshInfo{};
+        std::vector<ShaderMaterial> m_MaterialInfo{};
+
+        ankerl::unordered_dense::map<MeshNode*, DrawIndexedState> m_DrawIndexedState{};
+
+        // Skinning information
+        UInt32 m_AnimationCount{};
+        std::vector<SkinningInfo> m_SkinningInfo{};
+
+
+        Size m_ObjectUpdateCount{};
 
         ankerl::unordered_dense::map<MeshNode*, GeometryAllocation> m_IndirectDrawInfo{};
 
-        std::vector<SkinningInfo> m_SkinningInfo{};
         ankerl::unordered_dense::map<MeshNode*, Size> m_MeshDrawInstanceCount{};
-        ankerl::unordered_dense::map<MeshNode*, DrawIndexedState> m_DrawIndexedState{};
-        ankerl::unordered_dense::map<MeshNode*, std::vector<ShaderMaterialParams>> m_InstanceInfos{};
-
-        // Refactor material upload
-        std::vector<ShaderMaterial> m_ShaderMaterialList{};
-        ankerl::unordered_dense::map<UInt32, ShaderMaterial> m_ShaderMaterialPerDrawObject{};
     };
 
 }

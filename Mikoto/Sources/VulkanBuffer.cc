@@ -141,6 +141,13 @@ namespace Mikoto {
         m_Allocation.BufferCreateInfo.size = static_cast<VkDeviceSize>( m_SizeBytes );
     }
 
+    auto VulkanBuffer::CompuetAlignedSizeMaxFrames( Size sliceSize, Size bufferOffsetAligment ) -> Size {
+        VkDeviceSize alignment{ bufferOffsetAligment };
+        sliceSize = ( sliceSize + alignment - 1 ) & ~( alignment - 1 );
+
+        return sliceSize * m_Context->GetMaxFramesInFlight();
+    }
+
     auto VulkanBuffer::SetupUniformBuffer(const BufferDescription& createInfo) -> void {
         m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -240,6 +247,65 @@ namespace Mikoto {
 
         const Size copySize{ Math::Min(size, m_Allocation.AllocationInfo.size) };
         std::memcpy( ptr, m_Allocation.AllocationInfo.pMappedData, copySize );
+    }
+
+    auto VulkanBuffer::Copy( const void* ptr, Size size, CommandListHandle cmd ) -> void {
+        auto& physicalProperties{ TO_VK_DEVICE( m_Device )->GetPhysicalDeviceProperties() };
+
+        Size offsetAligment{};
+        if ( m_Usage == BufferUsage::UNIFORM ) {
+            offsetAligment = physicalProperties.limits.minUniformBufferOffsetAlignment;
+        } else {
+            offsetAligment = physicalProperties.limits.minStorageBufferOffsetAlignment;
+        }
+
+        Size bufferSize{ CompuetAlignedSizeMaxFrames( size, offsetAligment ) };
+
+        bool needsResizing { m_StagingSliceSize != 0 && bufferSize > m_StagingForCopies->GetSizeBytes() };
+        if ( m_StagingForCopies.IsEmpty() || needsResizing ) {
+            // To avoid frequent allocations
+            bufferSize *= 1.5f;
+
+            m_StagingSliceSize = bufferSize / m_Context->GetMaxFramesInFlight();
+            m_StagingForCopies = TO_VK_DEVICE( m_Device )->CreateStaging( nullptr, bufferSize );
+        }
+
+        VkDeviceSize offset{ m_StagingSliceSize * m_Context->GetCurrentFrameIndex() };
+
+        m_StagingForCopies->CopyToDevice( ptr, size, offset );
+
+        // Copy region
+        VkBufferCopy region{
+            .srcOffset = offset,
+            .dstOffset = 0,
+            .size = size
+        };
+
+        std::array regions{ region };
+
+        vkCmdCopyBuffer( cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ), 
+            m_StagingForCopies->GetNativeHandle( ObjectType::Vk_Buffer ), 
+            GetNativeHandle( ObjectType::Vk_Buffer ), 
+            static_cast<UInt32>( regions.size() ), regions.data() );
+
+        VkBufferMemoryBarrier2 barrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+            .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            .dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT,
+            .buffer = GetNativeHandle( ObjectType::Vk_Buffer ),
+            .offset = 0,
+            .size = VK_WHOLE_SIZE
+        };
+
+        VkDependencyInfo depInfo{
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .bufferMemoryBarrierCount = 1,
+            .pBufferMemoryBarriers = &barrier,
+        };
+
+        vkCmdPipelineBarrier2( cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ), &depInfo );
     }
 
     auto VulkanBuffer::CopyToDevice( const void* ptr, const Size size ) -> void {

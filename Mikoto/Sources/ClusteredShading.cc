@@ -44,7 +44,7 @@ namespace Mikoto {
         RegisterLightCulling( graph );
 
         RegisterGBuffer( graph );
-        RegisterDepthPrepass( graph );
+        //RegisterDepthPrepass( graph );
     }
 
     auto ClusteredShading::SetMeshCulling( MeshCulling &cullingPass ) -> void {
@@ -57,25 +57,20 @@ namespace Mikoto {
             [this]( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                auto aabbClusters{ BufferBuilder{} };
-                aabbClusters.WithUsage( BufferUsage::SHADER_STORAGE )
-                    .ForElement( sizeof( Cluster ), m_NumClusters )
-                    .IsDynamic( false )
-                    .Build( "AABBGenComp_Clusters" );
-
-                b.CreateBuffer( aabbClusters );
+                b.CreateBuffer( "AABBGenComp_Clusters", BufferUsage::SHADER_STORAGE,
+                                MKT_SIZEOF( Cluster ), m_NumClusters, ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
                 
                 b.UseShader( "Resources/Shaders/slang/AABBGen_Comp.slang", ShaderStage::COMPUTE );
-                b.Create<Pipeline>( "AABBGenComp_Pipeline", ComputePipelineDescription{} );
+                b.CreatePipeline( "AABBGenComp_Pipeline", ComputePipelineDescription{} );
 
                 b.Write( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccessView );
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-
-                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                b.Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 1 );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
+
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "AABBGenComp_Clusters", ResourceSlot::Slot_0 );
 
                 auto& data{ blackboard.Get<EnvironmentConstants>() };
                 data.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };
@@ -100,10 +95,11 @@ namespace Mikoto {
             [this]( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                b.Create<Buffer>( "LightCullingComp_LightsBuffer", BufferUsage::SHADER_STORAGE, sizeof( ShaderLightTypeParams ), m_Lights.size() );
+                b.CreateBuffer( "LightCullingComp_LightsBuffer", BufferUsage::SHADER_STORAGE,
+                                MKT_SIZEOF( ShaderLightTypeParams ), MAX_LIGHTS, ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
 
                 b.UseShader( "Resources/Shaders/slang/LightCulling_Comp.slang", ShaderStage::COMPUTE );
-                b.Create<Pipeline>( "LightCullingComp_Pipeline", ComputePipelineDescription{} );
+                b.CreatePipeline( "LightCullingComp_Pipeline", ComputePipelineDescription{} );
 
                 b.Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccessView );
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
@@ -123,6 +119,10 @@ namespace Mikoto {
                     return;
                 }
 
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "AABBGenComp_Clusters", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "LightCullingComp_LightsBuffer", ResourceSlot::Slot_1 );
+
                 ctx.PushConstants( std::addressof( m_ClusterShadingParams ), sizeof(m_ClusterShadingParams) );
                 const auto numWorkGroupsX{ ( m_NumClusters + m_LocalSize - 1 ) / m_LocalSize };
 
@@ -138,12 +138,12 @@ namespace Mikoto {
             "GBuffer",
             [this]( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
-                b.Create<Texture>( "GBuffer_Position", m_Resolution, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
-                b.Create<Texture>( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                b.Create<Texture>( "GBuffer_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
+                b.CreateTexture( "GBuffer_Position", m_Resolution, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
+                b.CreateTexture( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.CreateTexture( "GBuffer_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.CreateTexture( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
 
-                b.Create<Texture>( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
+                b.CreateTexture( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
 
                 b.UseShader( "Resources/Shaders/slang/Gbuffer_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/Gbuffer_Frag.slang", ShaderStage::FRAGMENT );
@@ -160,7 +160,7 @@ namespace Mikoto {
                     },
                     .DepthAttachmentFormat{ TextureFormat::D32_FLOAT }
                 };
-                b.Create<Pipeline>( "GBuffer_Pipeline", graphicsDesc );
+                b.CreatePipeline( "GBuffer_Pipeline", graphicsDesc );
 
                 b.Write( "GBuffer_Position", FrameResourceState::RenderTarget );
                 b.Write( "GBuffer_Normal", FrameResourceState::RenderTarget );
@@ -169,13 +169,15 @@ namespace Mikoto {
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
                 b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccessView );
-
-                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
-                b.Use( ResourceGroup::GlobalTextures );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
+
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_MaterialsInfo", ResourceSlot::Slot_1 );
+
+                ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
 
                 ctx.SetColorRenderTarget( "GBuffer_Position" );
                 ctx.SetColorRenderTarget( "GBuffer_Normal" );
@@ -328,6 +330,6 @@ namespace Mikoto {
 
         m_ClusterShadingParams.ActiveLightCount = lightsCount;
 
-        ctx.UploadBuffer( "LightCullingComp_LightsBuffer", m_Lights.data(), lightsCount * sizeof( ShaderLightTypeParams ) );
+        ctx.CopyBuffer( "LightCullingComp_LightsBuffer", m_Lights.data(), lightsCount * MKT_SIZEOF( ShaderLightTypeParams ) );
     }
 }

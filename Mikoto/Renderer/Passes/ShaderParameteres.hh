@@ -36,66 +36,19 @@ namespace Mikoto {
     static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 500'000 };
     static constexpr UInt32 MAX_NUM_JOINTS{ 128 };
 
-    // Deprecated
-    struct ShaderMaterialParams {
-        Mat4F Transform{};
-
-        Vec4F Albedo{};
-        Vec4F Factors{}; // Metallness, Roughness, AO
-
-        Int32 BonesID{ -1 }; // If it has bones its != -1
-        UInt64 AnimatorID{}; // If it has bones its != -1
-
-        Vec3F EmissiveFactors{ 1.0f, 1.0f, 1.0f };
-        float EmissiveIntensity{ 1.0 }; // 1.0 default
-
-        float Alpha{ 1.0 };
-
-        Int32 AlbedoIndex{INVALID_TEXTURE_INDEX };
-        Int32 NormalIndex{ INVALID_TEXTURE_INDEX };
-        Int32 MetallicIndex{ INVALID_TEXTURE_INDEX };
-        Int32 RoughnessIndex{ INVALID_TEXTURE_INDEX };
-        Int32 AoIndex{ INVALID_TEXTURE_INDEX };
-        Int32 EmissiveIndex{ INVALID_TEXTURE_INDEX };
-    };
-
-    struct MeshParameters {
-        Mat4F Transform{};
-        Mat4F InverseModelView{};
-        UInt32 MaterialIndex{};
-        Int32 BonesID{ -1 }; // If it has bones its != -1
-
-        Vec4F Albedo{};
-        Int32 AlbedoIndex{INVALID_TEXTURE_INDEX };
-
-        float AlphaCutoff{ 0.5f };
-        float MetallicFactor{ 1.0f };
-        float RoughnessFactor{ 1.0f };
-        float OcclusionStrength{ 1.0f };
-
-        Vec3F EmissiveFactors{ 1.0f, 1.0f, 1.0f };
-        float EmissiveIntensity{ 1.0 };
-
-        Int32 NormalIndex{ INVALID_TEXTURE_INDEX };
-        Int32 MetallicIndex{ INVALID_TEXTURE_INDEX };
-        Int32 RoughnessIndex{ INVALID_TEXTURE_INDEX };
-        Int32 AoIndex{ INVALID_TEXTURE_INDEX };
-        Int32 EmissiveIndex{ INVALID_TEXTURE_INDEX };
-    };
-
     struct ShaderMaterial {
         Vec4F BaseColorFactor{};
         Vec4F EmissiveFactor{};
         Vec4F DiffuseFactor{};
         Vec4F SpecularFactor{};
 
-        float Workflow{};
+        int Workflow{};
 
-        float MetallicFactor;
-        float RoughnessFactor;
-        float AlphaMask;
-        float AlphaMaskCutoff;
-        float EmissiveStrength;
+        float MetallicFactor{};
+        float RoughnessFactor{};
+        float AlphaMask{};
+        float AlphaMaskCutoff{};
+        float EmissiveStrength{};
 
         Int32 BaseColorTextureSet{};
         Int32 PhysicalDescriptorTextureSet{};
@@ -104,16 +57,20 @@ namespace Mikoto {
         Int32 EmissiveTextureSet{};
 
         // Texture indices
+        Int32 AlbedoIndex{ INVALID_TEXTURE_INDEX };
         Int32 NormalIndex{ INVALID_TEXTURE_INDEX };
         Int32 MetallicIndex{ INVALID_TEXTURE_INDEX };
         Int32 RoughnessIndex{ INVALID_TEXTURE_INDEX };
         Int32 AoIndex{ INVALID_TEXTURE_INDEX };
         Int32 EmissiveIndex{ INVALID_TEXTURE_INDEX };
+        Int32 PhysicalDescriptorTextureIndex{ INVALID_TEXTURE_INDEX };
     };
 
     struct ShaderMesh {
         Mat4F Transform{};
         Mat4F InverseModelView{};
+
+        Int32 AnimatorID{ -1 };
     };
 
     struct EnvironmentConstants {

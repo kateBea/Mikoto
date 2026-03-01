@@ -311,16 +311,12 @@ namespace Mikoto {
 
         std::array pushConstants{ psRange };
 
+        // TODO: this is done like this because if I made unbounded image views setIndex = 7
+        // I need to fill previous sets with empty sets which later is not compatible with other descriptor sets
+        // if they dont have those same empty sets
         DescriptorSetLayoutHandle emptyLayout{ m_Device->GetDummyDescriptorLayout() };
-        std::array<VkDescriptorSetLayout, 8> setLayouts{
-            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),                                        // set 0
-            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 1
-            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 2
-            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 3
-            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 4
-            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 5
-            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 6
-            layoutTextures                                                     // set 7
+        std::array<VkDescriptorSetLayout, 1> setLayouts{
+            layoutTextures                                                     // set 0
         };
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{
@@ -344,9 +340,9 @@ namespace Mikoto {
     }
 
     auto BarrierManager::InsertBufferBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState ) -> void {
-        if ( previousState == newState ) {
+        /*if ( previousState == newState ) {
             return;
-        }
+        }*/
 
         if ( BufferBarrierCount >= MAX_BARRIERS ) {
             // Should never happen; assert or log
@@ -371,9 +367,9 @@ namespace Mikoto {
     }
 
     auto BarrierManager::InsertTextureBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState ) -> void {
-        if ( previousState == newState ) {
+        /*if ( previousState == newState ) {
             return;
-        }
+        }*/
 
         if ( ImageBarrierCount >= MAX_BARRIERS ) {
             return;
@@ -511,6 +507,12 @@ namespace Mikoto {
             .imageMemoryBarrierCount = 1,
             .pImageMemoryBarriers = &barrier
         };
+
+        if (auto vktTexture2D{ dynamic_cast<VulkanTexture*>(texture.GetRaw()) }) {
+            vktTexture2D->SubmitLayoutTransition( newLayout, VK_NULL_HANDLE, false );
+        } else if ( auto vktTextureCube{ dynamic_cast<VulkanTextureCube*>( texture.GetRaw() ) } ) {
+            vktTextureCube->SubmitLayoutTransition( newLayout, VK_NULL_HANDLE, false );
+        }
 
         ImageBarriers[ImageBarrierCount++] = barrier;
     }
@@ -828,22 +830,17 @@ namespace Mikoto {
         auto setIndex{ GetSetIndex(group) };
 
         // If the combined buffer does not exist
-        if (!info.Buffers.contains( buffer.GetRaw() )) {
+        if ( info.BufferResourceBindings[group][slot] == nullptr) {
             PushBuffer( buffer, bindingSlot, it->second.DescriptorSets[setIndex] );
 
-            it->second.Buffers.emplace( buffer.GetRaw() );
-            it->second.BuffersBindings[bindingSlot] = buffer.GetRaw();
+            info.BufferResourceBindings[group][slot] = buffer.GetRaw();
         } else {
             // Update the binding if it is a new buffer
-            if (it->second.BuffersBindings[bindingSlot] != buffer.GetRaw()) {
+            if ( info.BufferResourceBindings[group][slot] != buffer.GetRaw() ) {
                 PushBuffer( buffer, bindingSlot, it->second.DescriptorSets[setIndex] );
-                it->second.BuffersBindings[bindingSlot] = buffer.GetRaw();
+                info.BufferResourceBindings[group][slot] = buffer.GetRaw();
             }
         }
-    }
-
-    auto VulkanGraphicsContext::PushTexture( ResourceGroup group, TextureHandle texture, std::string_view pass, ResourceSlot slot ) -> void {
-
     }
 
     auto VulkanGraphicsContext::PushTexture( ResourceGroup group, TextureHandle texture, SamplerHandle sampler, std::string_view pass, ResourceSlot slot ) -> void {
@@ -851,6 +848,27 @@ namespace Mikoto {
         if (it == m_PassInfo.end()) {
             return;
         }
+
+
+        FramePassInfo& info{ it->second };
+
+        auto bindingSlot{ ( UInt32 )slot };
+        auto setIndex{ GetSetIndex( group ) };
+
+        // I only test if the texture is null as it is enough
+        if ( info.ImageSamplersResourceBindings[group][slot].first == nullptr ) {
+            PushImage( texture, sampler, bindingSlot, it->second.DescriptorSets[setIndex] );
+            info.ImageSamplersResourceBindings[group][slot] = std::make_pair( texture.GetRaw(), sampler.GetRaw() );
+        } else {
+            // Update if image and sampler are new
+            if ( info.ImageSamplersResourceBindings[group][slot] != std::make_pair( texture.GetRaw(), sampler.GetRaw() ) ) {
+                PushImage( texture, sampler, bindingSlot, it->second.DescriptorSets[setIndex] );
+                info.ImageSamplersResourceBindings[group][slot] = std::make_pair( texture.GetRaw(), sampler.GetRaw() );
+            }
+        }
+    }
+
+    auto VulkanGraphicsContext::PushTexture( ResourceGroup group, TextureHandle texture, std::string_view pass, ResourceSlot slot ) -> void {
     }
 
     auto VulkanGraphicsContext::BindImageSamplerUndoundedGroup(std::string_view groupName, CommandListHandle cmd) -> void {
@@ -864,7 +882,7 @@ namespace Mikoto {
         manager.Bind( cmd );
     }
 
-    auto VulkanGraphicsContext::RegisterImageSamplerUndoundedGroup( std::string_view groupName, ResourceSlot slot, TextureHandle texture, SamplerHandle sampler ) -> UInt32 {
+    auto VulkanGraphicsContext::RegisterImageSamplerUndoundedGroup( std::string_view groupName, TextureHandle texture, SamplerHandle sampler ) -> Int32 {
         if ( texture.IsEmpty() ) {
             return INVALID_BINDLESS_GROUP_INDEX;
         }

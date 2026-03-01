@@ -86,7 +86,8 @@ namespace Mikoto {
             []( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                b.Create<Buffer>( "CameraInfoPass_CameraData", BufferUsage::UNIFORM, sizeof( CameraParameters ), 1 );
+                b.CreateBuffer( "CameraInfoPass_CameraData", BufferUsage::UNIFORM,
+                    sizeof( CameraParameters ), 1, ResourceUsageType::RESOURCE_USAGE_STREAMING );
                 b.Write( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
@@ -100,10 +101,10 @@ namespace Mikoto {
 
                 m_CameraParameters.PlaneBounds = Vec2F{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane() };
                 m_CameraParameters.ScreenDimensions = Vec2F{ dimensions.first, dimensions.second };
-                m_CameraParameters.ViewPosition = Vec4F{ m_Camera->GetPosition(), 0.0f };
+                m_CameraParameters.ViewPosition = Vec4F{ m_Camera->GetPosition(), 1.0f };
 
                 ctx.UploadBuffer( "CameraInfoPass_CameraData", m_CameraParameters );
-                } );
+            }, FramePassNodeType::GENERIC );
     }
 
     auto CameraPass::GetCamera() const -> const Camera * {

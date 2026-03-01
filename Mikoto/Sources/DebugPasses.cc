@@ -51,11 +51,11 @@ namespace Mikoto {
     }
 
     auto DebugPasses::RegisterPasses( FrameGraph &graph ) -> void {
-        //RegisterWireFrame( graph );
-
-        //RegisterHelloTexture( graph );
         RegisterSimpleCompute( graph );
-        //RegisterHelloTriangle( graph );
+        RegisterHelloTriangle( graph );
+        //RegisterHelloTexture( graph );
+
+        //RegisterWireFrame( graph );
         //RegisterInfiniteGrid( graph );
 
         //RegisterDebugViewsPass( graph );
@@ -139,13 +139,13 @@ namespace Mikoto {
         graph.RegisterPass(
             "HelloTriangle",
             [this]( FramePassBuilder &b ) {
-                b.Create<Texture>( "HelloTriangle_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                b.Create<Texture>( "HelloTriangle_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                b.CreateTexture( "HelloTriangle_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.CreateTexture( "HelloTriangle_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
                 b.UseShader( "Resources/Shaders/slang/HelloTriangle_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/HelloTriangle_Frag.slang", ShaderStage::FRAGMENT );
 
-                b.Create<Pipeline>( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
+                b.CreatePipeline( "HelloTriangle_Pipeline", GraphicsPipelineDescription{ .VertexAttributesSpec{} } );
 
                 b.Write( "HelloTriangle_ColorTarget", FrameResourceState::RenderTarget );
                 b.Write( "HelloTriangle_DepthTarget", FrameResourceState::DepthWrite );
@@ -273,20 +273,18 @@ namespace Mikoto {
         graph.RegisterPass<HelloTextureData>(
             "HelloTexture",
             [this]( FramePassBuilder &b, HelloTextureData& data ) -> void {
-                b.Create<Texture>( "HelloTexture_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                b.Create<Texture>( "HelloTexture_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                b.CreateTexture( "HelloTexture_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.CreateTexture( "HelloTexture_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
                 b.UseShader( "Resources/Shaders/slang/HelloTexture_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/HelloTexture_Frag.slang", ShaderStage::FRAGMENT );
 
-                b.Create<Pipeline>( "HelloTexture_Pipeline", GraphicsPipelineDescription{
+                b.CreatePipeline( "HelloTexture_Pipeline", GraphicsPipelineDescription{
                                         .PrimitiveTopology{ Topology::TRIANGLE_STRIP },
                                         .VertexAttributesSpec{} } );
 
                 b.Write( "HelloTexture_ColorTarget", FrameResourceState::RenderTarget );
                 b.Write( "HelloTexture_DepthTarget", FrameResourceState::DepthWrite );
-
-                b.Use( ResourceGroup::GlobalTextures );
 
                 // Load example texture
                 data.TargetTexture = AssetsService::Get()->LoadAsset<Texture>( 
@@ -296,11 +294,9 @@ namespace Mikoto {
             [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
 
                 auto& data{ blackboard.Get<HelloTextureData>() };
-                data.PushConstants.TextureIndex = ctx.PushTexture( data.TargetTexture );
+                data.PushConstants.TextureIndex = ctx.BindImage( ResourceGroup::UnboundedImageViews, "Texture2D_List", data.TargetTexture );
 
                 ctx.PushConstants( std::addressof( data.PushConstants ), sizeof( data.PushConstants ) );
-
-                ctx.BindPipeline( "HelloTexture_Pipeline" );
 
                 const auto flip{ false };
                 const auto dimensions{ InferDimensions( m_Resolution ) };
@@ -311,6 +307,8 @@ namespace Mikoto {
                 ctx.SetColorRenderTarget( "HelloTexture_ColorTarget" );
                 ctx.SetDepthRenderTarget( "HelloTexture_DepthTarget" );
                 ctx.BeginRender();
+
+                ctx.BindPipeline( "HelloTexture_Pipeline" );
 
                 ctx.Draw( 4 );
 

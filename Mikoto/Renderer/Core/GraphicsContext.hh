@@ -74,10 +74,6 @@ namespace Mikoto {
         virtual auto BindShaderResources(std::string_view passName, CommandListHandle cmdList  ) -> void = 0;
 
         // [DEPRECATED] To be removed
-        virtual auto BindGlobalTextures(std::string_view passName, CommandListHandle cmdList) -> void = 0;
-        virtual auto PushGlobalTexture( TextureHandle texture ) -> Int32 = 0;
-
-        // [DEPRECATED] To be removed
         virtual auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void = 0;
         virtual auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void = 0;
         virtual auto PushConstants( std::string_view passName, const ConstantsGroup& srg_constants, CommandListHandle cmd ) -> void = 0;
@@ -89,6 +85,7 @@ namespace Mikoto {
         virtual auto InsertResourceBarrierBatch(std::span<ResourceBarrierInfo> barriers, CommandListHandle cmd) -> void = 0;
 
         virtual auto PushBuffer(ResourceGroup group, BufferHandle buffer, std::string_view pass, ResourceSlot slot ) -> void = 0;
+        virtual auto PushTexture(ResourceGroup group, TextureHandle texture, std::string_view pass, ResourceSlot slot ) -> void = 0;
         virtual auto PushTexture(ResourceGroup group, TextureHandle texture, SamplerHandle sampler, std::string_view pass, ResourceSlot slot ) -> void = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;

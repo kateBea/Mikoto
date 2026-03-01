@@ -89,13 +89,16 @@ namespace Mikoto {
 
         auto CopyToCube(std::string_view texture2DName, std::string_view cubeMapName, Size mipLevel, UInt32 face ) -> void;
 
-        auto BindGlobalTextures() -> void;
-
         // Need to bind pipeline before specifying resources
         auto BindPipeline(std::string_view pipelineName ) -> void;
 
         auto BindBuffer( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void;
+
+        auto BindImage( ResourceGroup group, std::string_view name, ResourceSlot slot) -> void;
         auto BindImage( ResourceGroup group, std::string_view name, SamplerHandle sampler, ResourceSlot slot ) -> void;
+
+        // Unbounded resource groups have arbitrary size
+        auto BindImage( ResourceGroup group, std::string_view groupName, TextureHandle texture) -> UInt32;
 
         auto SetClearColor(const Vec4F& color) -> void;
 

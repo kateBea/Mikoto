@@ -393,22 +393,6 @@ namespace Mikoto {
         );
     }
 
-    auto VulkanGraphicsContext::BindGlobalTextures(std::string_view passName, CommandListHandle cmdList) -> void {
-        const auto it{ m_PassInfo.find( std::string{ passName } ) };
-        MKT_ASSERT( it != m_PassInfo.end(), "Attempting to bind textures for pass that does not exist" );
-
-        vkCmdBindDescriptorSets(
-            cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_TexturesPipelineLayout,
-            TEXTURES_DESCRIPTOR_SET_INDEX,
-            1,
-            &m_BindlessTexturesSet,
-            0,
-            nullptr
-        );
-    }
-
     auto VulkanGraphicsContext::PushBuffer( BufferHandle handle, std::string_view passName, UInt32 bindingSlot ) -> void {
         // Verify the pass exists and is not already using that buffer
 
@@ -562,7 +546,16 @@ namespace Mikoto {
         }
     }
 
+    auto VulkanGraphicsContext::PushTexture( ResourceGroup group, TextureHandle texture, std::string_view pass, ResourceSlot slot ) -> void {
+
+    }
+
     auto VulkanGraphicsContext::PushTexture( ResourceGroup group, TextureHandle texture, SamplerHandle sampler, std::string_view pass, ResourceSlot slot ) -> void {
+        const auto it{ m_PassInfo.find( std::string{ pass } ) };
+        if (it == m_PassInfo.end()) {
+            return;
+        }
+
 
     }
 
@@ -577,29 +570,29 @@ namespace Mikoto {
             .UpdateSet( m_Device->GetLogicalDevice(), m_BindlessTexturesSet );
     }
 
-    auto VulkanGraphicsContext::PushGlobalTexture( TextureHandle texture ) -> Int32 {
-        if (texture.IsEmpty()) {
-            return GlobalTextures::INVALID_TEXTURE_INDEX;
-        }
-
-        SamplerHandle sampler{ m_Device->GetDummySampler() };
-        MKT_ASSERT( !sampler.IsEmpty(), "Dummy sampler cannot be empty" );
-
-        // If combined sampler has already been registered return its index
-        Int32 index{ m_SrgTextures.GetIndex(texture, sampler) };
-        if (index != GlobalTextures::INVALID_TEXTURE_INDEX) {
-            return index;
-        }
-
-        // If combined sampler does not exist, register it
-        Int32 result{ m_SrgTextures.Bind( texture, sampler ) };
-        if (result != GlobalTextures::INVALID_TEXTURE_INDEX) {
-            UpdateBindlessTexturesSet( texture.GetRaw(), sampler.GetRaw(), result );
-        }
-
-        return result;
-
-    }
+    // auto VulkanGraphicsContext::PushGlobalTexture( TextureHandle texture ) -> Int32 {
+    //     if (texture.IsEmpty()) {
+    //         return GlobalTextures::INVALID_TEXTURE_INDEX;
+    //     }
+    //
+    //     SamplerHandle sampler{ m_Device->GetDummySampler() };
+    //     MKT_ASSERT( !sampler.IsEmpty(), "Dummy sampler cannot be empty" );
+    //
+    //     // If combined sampler has already been registered return its index
+    //     Int32 index{ m_SrgTextures.GetIndex(texture, sampler) };
+    //     if (index != GlobalTextures::INVALID_TEXTURE_INDEX) {
+    //         return index;
+    //     }
+    //
+    //     // If combined sampler does not exist, register it
+    //     Int32 result{ m_SrgTextures.Bind( texture, sampler ) };
+    //     if (result != GlobalTextures::INVALID_TEXTURE_INDEX) {
+    //         UpdateBindlessTexturesSet( texture.GetRaw(), sampler.GetRaw(), result );
+    //     }
+    //
+    //     return result;
+    //
+    // }
 
     auto VulkanGraphicsContext::GetTexture( std::string_view name ) -> TextureHandle {
         const auto it{ m_TexturesByNames.find( std::string{ name } ) };

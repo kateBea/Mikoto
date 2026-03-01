@@ -55,6 +55,29 @@ namespace Mikoto {
         auto FlushBarriers( CommandListHandle cmd ) -> void;
     };
 
+    template<typename ResourceHandleType>
+    struct UnboundedResourcesManager {
+
+        MKT_NODISCARD auto ContainsResource( ResourceHandleType* ptr) const -> bool {
+            return m_Textures.contains( ptr );
+        }
+
+        MKT_NODISCARD auto RegisterResource( ResourceHandleType* ptr) -> UInt32 {
+            UInt32 index{ m_Textures.size() };
+            if (!ContainsResource( ptr )) {
+                m_Textures.try_emplace( index, ptr );
+                m_ResourcePtrs.try_emplace( ptr );
+            }
+
+            return index;
+        }
+
+        // Index -> Resource
+        ankerl::unordered_dense::map<UInt32, ResourceHandleType*> m_Textures{};
+        ankerl::unordered_dense::set<ResourceHandleType*> m_ResourcePtrs{};
+    };
+
+
     class VulkanGraphicsContext final : public GraphicsContext {
     public:
         explicit  VulkanGraphicsContext(GpuDevice* device);
@@ -79,9 +102,6 @@ namespace Mikoto {
         auto PrepareResourceBindings( std::string_view pass, PipelineDescription& desc ) -> void override;
         auto BindShaderResources( std::string_view passName, CommandListHandle cmdList ) -> void override;
 
-        auto PushGlobalTexture( TextureHandle texture ) -> Int32  override;
-        auto BindGlobalTextures(std::string_view passName, CommandListHandle cmdList) -> void override;
-
         auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void  override;
         auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void  override;
         auto PushConstants( std::string_view passName, const ConstantsGroup& constants, CommandListHandle cmd ) -> void override;
@@ -91,6 +111,8 @@ namespace Mikoto {
         auto InsertResourceBarrier(TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
 
         auto PushBuffer(ResourceGroup group, BufferHandle buffer, std::string_view pass, ResourceSlot slot ) -> void override;
+
+        auto PushTexture(ResourceGroup group, TextureHandle texture, std::string_view pass, ResourceSlot slot ) -> void override;
         auto PushTexture(ResourceGroup group, TextureHandle texture, SamplerHandle sampler, std::string_view pass, ResourceSlot slot ) -> void override;
 
         ~VulkanGraphicsContext() override = default;
@@ -147,6 +169,11 @@ namespace Mikoto {
         ankerl::unordered_dense::map<std::string, PipelineHandle> m_PipelinesByNames{};
         ankerl::unordered_dense::map<std::string, BufferHandle> m_BuffersByNames{};
         ankerl::unordered_dense::map<std::string, SamplerHandle> m_SamplersByNames{};
+
+        // Bindless sets
+        UnboundedResourcesManager<Sampler> m_UnboundedSamplers{};
+        UnboundedResourcesManager<Texture> m_UnboundedTextures{};
+        UnboundedResourcesManager<Buffer> m_UnboundedBuffers{};
 
         std::vector<SamplerHandle> m_Samplers{};
 

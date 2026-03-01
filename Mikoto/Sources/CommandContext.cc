@@ -73,6 +73,20 @@ namespace Mikoto {
         }
     }
 
+    auto CommandContext::BindImage( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void {
+        const auto it{ m_ResourcesByNames->Resources.find( std::string{ name } ) };
+        if (it != m_ResourcesByNames->Resources.end()) {
+            FramePassResource& resource{ it->second };
+
+            TextureHandle texture{ m_Context->GetTexture( name ) };
+            MKT_ASSERT( !texture.IsEmpty(), "Texture cannot be empty" );
+
+            if (resource.IsResource( FrameResourceType::BUFFER )) {
+                m_Context->PushTexture( group, texture, m_ActivePass->Name, slot );
+            }
+        }
+    }
+
     auto CommandContext::BindImage( ResourceGroup group, std::string_view name, SamplerHandle sampler, ResourceSlot slot ) -> void {
         const auto it{ m_ResourcesByNames->Resources.find( std::string{ name } ) };
         if (it != m_ResourcesByNames->Resources.end()) {
@@ -85,6 +99,10 @@ namespace Mikoto {
                 m_Context->PushTexture( group, texture, sampler, m_ActivePass->Name, slot );
             }
         }
+    }
+
+    auto CommandContext::BindImage( ResourceGroup group, std::string_view groupName, TextureHandle texture ) -> UInt32 {
+        return 0;
     }
 
     auto CommandContext::EndRender() -> void {
@@ -139,13 +157,6 @@ namespace Mikoto {
         auto textureCube{ m_Context->GetTexture( cubeMapName ).As<TextureCube>() };
 
         m_Commands->CopyTexture( texture2D.GetRaw(), textureCube.GetRaw(), mipLevel, face );
-    }
-
-    auto CommandContext::BindGlobalTextures() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
-        m_Context->BindGlobalTextures( m_ActivePass->Name, m_Commands );
     }
 
     auto CommandContext::BindPipeline( std::string_view pipelineName ) -> void {
@@ -301,7 +312,7 @@ namespace Mikoto {
     auto CommandContext::PushTexture( TextureHandle texture ) const -> Int32 {
         MKT_BEGIN_PROFILER_NAMED();
 
-        return m_Context->PushGlobalTexture( texture );
+        return -1;
     }
 
     auto CommandContext::GetNamedBuffer( std::string_view name ) const -> BufferHandle {

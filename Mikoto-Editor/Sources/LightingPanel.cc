@@ -113,16 +113,5 @@ namespace Mikoto {
             default:
                 break;
         }
-
-        ImGui::Text( "Default ambient" );
-        ImGui::SameLine();
-
-        static float ambientIntensity{ 1.0f };
-        ImGuiUtils::Slider( "##AmbientSlider", ambientIntensity, { 0.0f, 10.0f } );
-        ImGui::Spacing();
-
-        ImGui::Text( "Default reflection" );
-        ImGui::SameLine();
-        ImGui::Spacing();
     }
 }

@@ -68,7 +68,7 @@ namespace Mikoto {
                 b.UseShader( "Resources/Shaders/slang/AABBGen_Comp.slang", ShaderStage::COMPUTE );
                 b.Create<Pipeline>( "AABBGenComp_Pipeline", ComputePipelineDescription{} );
 
-                b.Write( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
+                b.Write( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccessView );
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
                 b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
@@ -105,10 +105,10 @@ namespace Mikoto {
                 b.UseShader( "Resources/Shaders/slang/LightCulling_Comp.slang", ShaderStage::COMPUTE );
                 b.Create<Pipeline>( "LightCullingComp_Pipeline", ComputePipelineDescription{} );
 
-                b.Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess );
+                b.Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccessView );
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
-                b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess );
+                b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccessView );
 
                 b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
                 b.Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 1 );
@@ -168,7 +168,7 @@ namespace Mikoto {
                 b.Write( "GBuffer_Depth", FrameResourceState::DepthWrite );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccessView );
 
                 b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
                 b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
@@ -224,7 +224,7 @@ namespace Mikoto {
                 b.Write( "DepthPrePass_Depth", FrameResourceState::DepthWrite );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccessView );
 
                 b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
                 b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );

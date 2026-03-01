@@ -195,6 +195,14 @@ namespace Mikoto {
         return m_ReflectionData.pipelineLayout;
     }
 
+    auto VulkanPipeline::HasDynamicBuffersSet() const -> bool {
+        return m_ReflectionData.DynamicBuffersBindingCount != 0;
+    }
+
+    auto VulkanPipeline::GetDynamicBuffersSetBindingCount() const -> UInt32 {
+        return m_ReflectionData.DynamicBuffersBindingCount;
+    }
+
     auto VulkanPipeline::HasPushConstants() const -> bool {
         return !m_ReflectionData.pushConstantRanges.empty();
     }

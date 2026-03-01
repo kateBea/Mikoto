@@ -54,7 +54,7 @@ namespace Mikoto {
         //RegisterWireFrame( graph );
 
         //RegisterHelloTexture( graph );
-        //RegisterSimpleCompute( graph );
+        RegisterSimpleCompute( graph );
         //RegisterHelloTriangle( graph );
         //RegisterInfiniteGrid( graph );
 
@@ -101,7 +101,7 @@ namespace Mikoto {
                 b.Write( "Wireframe_DepthTarget", FrameResourceState::DepthWrite );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
+                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccessView );
 
                 b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
                 b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
@@ -182,17 +182,19 @@ namespace Mikoto {
         graph.RegisterPass<SimpleCompute>(
             "SimpleCompute",
             []( FramePassBuilder &b, SimpleCompute& data ) {
-                b.Create<Buffer>( "SimpleCompute_Results", BufferUsage::SHADER_STORAGE, sizeof( UInt32 ), data.LocalSize );
-                    
-                b.UseShader( "Resources/Shaders/slang/BasicCompute_Comp.slang", ShaderStage::COMPUTE );
-                b.Create<Pipeline>( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
+                b.CreateBuffer( "SimpleCompute_Results", BufferUsage::SHADER_STORAGE,
+                    MKT_SIZEOF( UInt32 ), data.LocalSize, ResourceUsageType::RESOURCE_USAGE_STREAMING );
 
-                b.Write( "SimpleCompute_Results", FrameResourceState::UnorderedAccess );
+                b.UseShader( "Resources/Shaders/slang/BasicCompute_Comp.slang", ShaderStage::COMPUTE );
+                b.CreatePipeline( "SimpleCompute_Pipeline", ComputePipelineDescription{} );
+
+                b.Write( "SimpleCompute_Results", FrameResourceState::UnorderedAccessView );
             },
             []( CommandContext &ctx, FrameGraphBlackboard& blackboard ) -> void {
-                ctx.Bind( ResourceGroup::BufferViews, "SimpleCompute_Results", ResourceSlot::Slot_0 );
 
-                auto& data{ blackboard.Get<SimpleCompute>() };
+                ctx.BindBuffer( ResourceGroup::BufferViews, "SimpleCompute_Results", ResourceSlot::Slot_0 );
+
+                const auto & data{ blackboard.Get<SimpleCompute>() };
                 ctx.BindPipeline( "SimpleCompute_Pipeline" );
                 ctx.Dispatch( data.GroupCount, 1, 1 );
             }, FramePassNodeType::COMPUTE );
@@ -224,7 +226,7 @@ namespace Mikoto {
                 b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
                 b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
 
-                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess );
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccessView );
 
                 b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
             },

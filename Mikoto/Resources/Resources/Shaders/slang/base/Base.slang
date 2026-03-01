@@ -23,6 +23,7 @@
 // ============================================================================
 // Descriptor Set Indices
 // ============================================================================
+// Deprecated
 static const int TEXTURES_SET_INDEX = 0;
 static const int DYNAMIC_BUFFERS_SET_INDEX = 2;
 static const int DYNAMIC_RESOURCE_SET_INDEX = 3;
@@ -32,6 +33,28 @@ static const int PER_PASS_SET_INDEX = 5;
 static const int PER_FRAME_SET_INDEX = 6;
 static const int PER_MATERIAL_SET_INDEX = 7;
 static const int PER_MESH_INFO_SET_INDEX = 8;
+
+static const int CONSTANTS_SET_INDEX = 0;
+static const int IMAGE_VIEWS_SET_INDEX = 1;
+static const int BUFFER_VIEWS_SET_INDEX = 2;
+static const int UAV_SET_INDEX = 3;
+static const int STATIC_SAMPLERS_SET_INDEX = 4;
+static const int DYNAMIC_SAMPLERS_SET_INDEX = 5;
+static const int UNBOUNDED_BV_SAMPLERS_SET_INDEX = 6;
+static const int UNBOUNDED_IV_SAMPLERS_SET_INDEX = 7;
+
+static const int Slot_0 = 0;
+static const int Slot_1 = 1;
+static const int Slot_2 = 2;
+static const int Slot_3 = 3;
+static const int Slot_4 = 4;
+static const int Slot_5 = 5;
+static const int Slot_6 = 6;
+static const int Slot_7 = 7;
+static const int Slot_8 = 8;
+
+
+
 
 static const int INVALID_TEXTURE_INDEX = -1;
 

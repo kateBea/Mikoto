@@ -708,15 +708,19 @@ namespace Mikoto::VulkanHelpers::Reflection {
                     bindingInfo.binding = reflectedBinding->binding;
                     bindingInfo.descriptorType = ToVkDescriptorType(reflectedBinding->descriptor_type);
 
-                    // because STATIC_DESCRIPTOR_SET_INDEX uses non-dynamic buffers, PER_PASS_DESCRIPTOR_SET_INDEX is reserved for dynamic buffers
-                    if (setIndex == DYNAMIC_RESOURCE_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
-                        bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                    // BUFFER_VIEWS_SET_INDEX set uses uniform and storage dynamics
+                    if (setIndex == BUFFER_VIEWS_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+                        bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+
+                        out.DynamicBuffersBindingCount++;
+                    }
+                    if (setIndex == BUFFER_VIEWS_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER) {
+                        bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+
+                        out.DynamicBuffersBindingCount++;
                     }
 
-                    if (setIndex == DYNAMIC_RESOURCE_SET_INDEX && reflectedBinding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER) {
-                        bindingInfo.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                    }
-
+                    // TODO: review I am not sure if names are guaranteed to persist in the compiled code
                     constexpr std::string_view bindlessPrefix{ "Bindless" };
 
                     std::string_view bindingName{ reflectedBinding->name };
@@ -855,10 +859,10 @@ namespace Mikoto::VulkanHelpers::Reflection {
             layoutInfo.bindingCount = static_cast<UInt32>( layoutBindings.size() );
             layoutInfo.pBindings = layoutBindings.data();
 
-            // Right now we have set 2 for dynamic buffers exclusively for dynamic offsets in descriptor sets which require not to have update after bind flags
-            // Set 3 is used for rest of resources that do not change that often and can benefit from update after bind
             std::vector<VkDescriptorBindingFlags> bindingFlags(layoutBindings.size(), VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
-            if (setIndex == DYNAMIC_BUFFERS_SET_INDEX) {
+
+            // BUFFER_VIEWS_SET_INDEX need no flags, dynamic Storage buffers and dynamic uniforms cannot have update after bind bit
+            if (setIndex == BUFFER_VIEWS_SET_INDEX) {
                 for (auto& flag : bindingFlags) {
                     flag = VK_FLAGS_NONE;
                 }

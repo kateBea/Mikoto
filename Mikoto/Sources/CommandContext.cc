@@ -15,10 +15,11 @@
 #include <Core/Profiler.hh>
 #include <Memory/Allocator.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
 
 namespace Mikoto {
-    CommandContext::CommandContext( GraphicsContext *context, FramePassNode &pass )
-        : m_Context{ context }, m_ActivePass{ MKT_ADDRESSOF( pass ) } {
+    CommandContext::CommandContext( GraphicsContext *context, FramePassNode &pass, ResourceContainer& container)
+        : m_Context{ context }, m_ActivePass{ MKT_ADDRESSOF( pass ) }, m_ResourcesByNames{ MKT_ADDRESSOF( container ) } {
         
     }
 
@@ -57,8 +58,33 @@ namespace Mikoto {
         m_Commands->BeginRender( m_RenderInfo );
     }
 
-    auto CommandContext::Bind( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void {
+    auto CommandContext::BindBuffer( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void {
+        const auto it{ m_ResourcesByNames->Resources.find( std::string{ name } ) };
 
+        if (it != m_ResourcesByNames->Resources.end()) {
+            FramePassResource& resource{ it->second };
+
+            BufferHandle buffer{ m_Context->GetBuffer( name ) };
+            MKT_ASSERT( !buffer.IsEmpty(), "Texture cannot be empty" );
+
+            if (resource.IsResource( FrameResourceType::BUFFER )) {
+                m_Context->PushBuffer( group, buffer, m_ActivePass->Name, slot );
+            }
+        }
+    }
+
+    auto CommandContext::BindImage( ResourceGroup group, std::string_view name, SamplerHandle sampler, ResourceSlot slot ) -> void {
+        const auto it{ m_ResourcesByNames->Resources.find( std::string{ name } ) };
+        if (it != m_ResourcesByNames->Resources.end()) {
+            FramePassResource& resource{ it->second };
+
+            TextureHandle texture{ m_Context->GetTexture( name ) };
+            MKT_ASSERT( !texture.IsEmpty(), "Texture cannot be empty" );
+
+            if (resource.IsResource( FrameResourceType::BUFFER )) {
+                m_Context->PushTexture( group, texture, sampler, m_ActivePass->Name, slot );
+            }
+        }
     }
 
     auto CommandContext::EndRender() -> void {
@@ -156,6 +182,12 @@ namespace Mikoto {
             m_HasSetConstantData = true;
         }
 
+        // If pass hasn't bound its resources do it once
+        if (!m_HasResourcesBound) {
+            m_Context->BindShaderResources( m_ActivePass->Name, m_Commands );
+            m_HasResourcesBound = true;
+        }
+
         m_Commands->Draw( vertexCount, instanceCount, firstVertex, firstInstance );
     }
 
@@ -170,6 +202,12 @@ namespace Mikoto {
             m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
 
             m_HasSetConstantData = true;
+        }
+
+        // If pass hasn't bound its resources do it once
+        if (!m_HasResourcesBound) {
+            m_Context->BindShaderResources( m_ActivePass->Name, m_Commands );
+            m_HasResourcesBound = true;
         }
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
@@ -191,6 +229,12 @@ namespace Mikoto {
             m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
 
             m_HasSetConstantData = true;
+        }
+
+        // If pass hasn't bound its resources do it once
+        if (!m_HasResourcesBound) {
+            m_Context->BindShaderResources( m_ActivePass->Name, m_Commands );
+            m_HasResourcesBound = true;
         }
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
@@ -216,8 +260,13 @@ namespace Mikoto {
 
         if ( !m_HasSetConstantData ) {
             m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
-
             m_HasSetConstantData = true;
+        }
+
+        // If pass hasn't bound its resources do it once
+        if (!m_HasResourcesBound) {
+            m_Context->BindShaderResources( m_ActivePass->Name, m_Commands );
+            m_HasResourcesBound = true;
         }
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );

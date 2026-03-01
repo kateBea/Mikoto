@@ -621,17 +621,17 @@ namespace Mikoto {
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer )
                     .Read( "FinalBuffer_ObjectInfo", FrameResourceState::ShaderRead_GraphicsPipeline )
-                    .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess )
+                    .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccessView )
                     .Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite)
                     .Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget )
                     .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UniformBuffer )
-                    .Read( "ScatteredWrites_MeshSkinnedMatrices", FrameResourceState::UnorderedAccess );
+                    .Read( "ScatteredWrites_MeshSkinnedMatrices", FrameResourceState::UnorderedAccessView );
 
                 b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
 
-                b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccess );
+                b.Read( "FinalCompositionPass_MeshInfo", FrameResourceState::UnorderedAccessView );
                 
                 // Create dependency between this pass and debug view pass
                 b.Write( "FinalShading_Params", FrameResourceState::UniformBuffer );
@@ -715,9 +715,9 @@ namespace Mikoto {
                     .UseShader( "Resources/Shaders/slang/PBR_MetallicRoughness_Frag.slang", ShaderStage::FRAGMENT )
                     .Create<Pipeline>( "MetalRoughnessPBR_Pipeline", graphicsDesc );
 
-                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccess )
-                    .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccess )
-                    .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccess )
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccessView )
+                    .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccessView )
+                    .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccessView )
                     .Read( "MetalRoughnessPBR_ColorTarget", FrameResourceState::RenderTarget)
                     .Read( "MetalRoughnessPBR_DepthTarget", FrameResourceState::RenderTarget )
                     .Read( "ClusteredShading_Parameters", FrameResourceState::UniformBuffer );
@@ -726,7 +726,7 @@ namespace Mikoto {
                 b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
 
-                b.Read( "MeshCulling_MeshInfo", FrameResourceState::UnorderedAccess );
+                b.Read( "MeshCulling_MeshInfo", FrameResourceState::UnorderedAccessView );
                 b.Read( "MeshCulling_MaterialInfo", FrameResourceState::UniformBuffer );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {

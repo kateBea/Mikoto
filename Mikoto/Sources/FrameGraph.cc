@@ -131,12 +131,6 @@ namespace Mikoto {
     }
 
     auto FramePassBuilder::Use( ResourceGroup type ) -> FramePassBuilder& {
-        switch (type) {
-            case ResourceGroup::GlobalTextures:
-                m_UsesTextures = true;
-                break;
-            default: ;
-        }
 
         return *this;
     }
@@ -156,29 +150,28 @@ namespace Mikoto {
         return m_Node;
     }
 
-    auto FramePassBuilder::CreateBuffer( std::string_view name, BufferDescription description ) -> void {
-        // SSBOs and Uniforms are often updated better to mark them as such
-        if (description.Usage == BufferUsage::SHADER_STORAGE || description.Usage == BufferUsage::UNIFORM) {
-            description.UsageType = ResourceUsageType::RESOURCE_USAGE_DYNAMIC;
-        }
-
+    auto FramePassBuilder::CreateBuffer( std::string_view name, BufferDescription description) -> void {
         m_Creates[std::string{ name }].Type = FrameResourceType::BUFFER;
         m_Creates[std::string{ name }].Description = description;
     }
 
-    auto FramePassBuilder::CreateBuffer( std::string_view name, BufferUsage usage, Size sizeBytes ) -> void {
+    auto FramePassBuilder::CreateBuffer( std::string_view name, BufferUsage usage, Size sizeBytes, ResourceUsageType usageType ) -> void {
         BufferDescription description{};
         description
-                .WithUsage( usage )
-                .WithSizeBytes( sizeBytes );
+            .WithUsage( usage )
+            .WithSizeBytes( sizeBytes )
+            .WithResourceUsageType( usageType );
+
         CreateBuffer( name, description );
     }
 
-    auto FramePassBuilder::CreateBuffer( std::string_view name, BufferUsage usage, Size size, Size elementCount ) -> void {
+    auto FramePassBuilder::CreateBuffer( std::string_view name, BufferUsage usage, Size size, Size elementCount, ResourceUsageType usageType ) -> void {
         BufferDescription description{};
         description
-                .WithUsage( usage )
-                .ForElement( size, elementCount );
+            .WithUsage( usage )
+            .WithResourceUsageType( usageType )
+            .ForElement( size, elementCount );
+
         CreateBuffer( name, description );
     }
 
@@ -272,14 +265,14 @@ namespace Mikoto {
         CreateTexture( name, depthDesc );
     }
 
+    auto FramePassBuilder::HasPipeline() const -> bool {
+        return m_HasActivePipeline;
+    }
+
     FrameGraph::FrameGraph( GraphicsContext *context, GpuDevice *device )
         : m_GraphicsContex{ context }, m_Device{ device } {}
 
     auto FrameGraph::Compile() -> void {
-        for (auto& node : m_Passes | std::views::values) {
-            m_GraphicsContex->UpdateResourceBindings( node.Name, node.DynamicResourceGroup );
-        }
-
         SortPassExecution();
     }
 
@@ -301,10 +294,8 @@ namespace Mikoto {
 
             InsertResourceBarriers( node, cmd );
 
-            CommandContext commandContext{ m_GraphicsContex, node };
+            CommandContext commandContext{ m_GraphicsContex, node, m_ResourcesByNames };
             commandContext.BeginPass( cmd );
-
-            m_GraphicsContex->BindShaderResources( name, cmd );
 
             Timer passTimer{ false };
             node.ExecuteCallback( commandContext, m_GraphBlackboard );
@@ -329,17 +320,26 @@ namespace Mikoto {
     auto FrameGraph::SubmitCommandLists() -> void {
         // Before we submit the buffers we will submit the barriers created for each type of command buffer
         if (!m_GraphicsCommandList.IsEmpty()) {
+            //m_GraphicsContex->InsertResourceBarrierBatch( m_GraphicsBarriers, m_GraphicsCommandList );
+
             m_Device->SubmitCommands( m_GraphicsCommandList );
+            m_GraphicsCommandList->End();
             m_GraphicsCommandList.Reset();
         }
 
         if ( !m_ComputeCommandList.IsEmpty() ) {
+            //m_GraphicsContex->InsertResourceBarrierBatch( m_ComputeBarriers, m_ComputeCommandList );
+
             m_Device->SubmitCommands( m_ComputeCommandList );
+            m_ComputeCommandList->End();
             m_ComputeCommandList.Reset();
         }
 
         if ( !m_TransferCommandList.IsEmpty() ) {
+            //m_GraphicsContex->InsertResourceBarrierBatch( m_TransferBarriers, m_TransferCommandList );
+
             m_Device->SubmitCommands( m_TransferCommandList );
+            m_TransferCommandList->End();
             m_TransferCommandList.Reset();
         }
     }
@@ -423,15 +423,15 @@ namespace Mikoto {
 
     auto FrameGraph::InsertResourceBarriers( FramePassNode& node, CommandListHandle cmd ) -> void {
         for (const auto &resourceNode : node.Reads) {
-            const auto it{ m_ResourcesByNames.find( resourceNode.Name ) };
-            if (it != m_ResourcesByNames.end()) {
+            const auto it{ m_ResourcesByNames.Resources.find( resourceNode.Name ) };
+            if (it != m_ResourcesByNames.Resources.end()) {
                 InsertBarrier( it->second, resourceNode.OutState, cmd );
             }
         }
 
         for (const auto &resourceNode : node.Writes) {
-            const auto it{ m_ResourcesByNames.find( resourceNode.Name ) };
-            if (it != m_ResourcesByNames.end()) {
+            const auto it{ m_ResourcesByNames.Resources.find( resourceNode.Name ) };
+            if (it != m_ResourcesByNames.Resources.end()) {
                 InsertBarrier( it->second, resourceNode.OutState, cmd );
             }
         }
@@ -442,17 +442,17 @@ namespace Mikoto {
         // resource name, resource type (texture or buffer), old state, new stage
     }
 
-    auto FrameGraph::UsesTextureList(std::string_view nodeName) const -> bool {
-        return m_TexturePasses.contains( StringUtil::From( nodeName ) );
-    }
-
     auto FrameGraph::IsFramePassPresent( const std::string_view name ) const -> bool {
         return m_Passes.contains( std::string{ name } );
     }
 
-    auto FrameGraph::CreatePassNode( std::string_view name ) -> FramePassNode & {
+    auto FrameGraph::CreatePassNode( std::string_view name, FramePassNodeType type ) -> FramePassNode & {
         MKT_ASSERT( !IsFramePassPresent( name ), StringUtil::Format("Cannot register pass {} more than once", name) );
-        return m_Passes.emplace( StringUtil::From( name ), FramePassNode{ .Name{ name }} ).first->second;
+        auto& node{ m_Passes.emplace( StringUtil::From( name ), FramePassNode{ .Name{ name }} ).first->second };
+
+        node.Type = type;
+
+        return node;
     }
 
     auto FrameGraph::CreateCommitedResources( FramePassBuilder &builder ) -> void {
@@ -460,11 +460,7 @@ namespace Mikoto {
             CreateResource( resourceName, resourceDescription );
         }
 
-        if (builder.m_UsesTextures) {
-            m_TexturePasses.emplace( builder.GetPass()->Name );
-        }
-
-        if (builder.m_HasActivePipeline) {
+        if (builder.HasPipeline()) {
             m_GraphicsContex->PrepareResourceBindings(builder.GetPass()->Name, builder.m_PipelineDescription);
         }
     }
@@ -583,7 +579,7 @@ namespace Mikoto {
 
         // The resource can either be a texture or a buffer
         if (!texture.IsEmpty()) {
-            m_ResourcesByNames.emplace( name, FramePassResource{
+            m_ResourcesByNames.Resources.emplace( name, FramePassResource{
                 .Handle{ texture },
                 .Type{ FrameResourceType::TEXTURE },
                 .CurrentState{ FrameResourceState::Undefined }
@@ -591,7 +587,7 @@ namespace Mikoto {
         }
 
         if (!buffer.IsEmpty()) {
-            m_ResourcesByNames.emplace( name,  FramePassResource{
+            m_ResourcesByNames.Resources.emplace( name,  FramePassResource{
                 .Handle{ buffer },
                 .Type{ FrameResourceType::BUFFER },
                 .CurrentState{ FrameResourceState::Undefined }

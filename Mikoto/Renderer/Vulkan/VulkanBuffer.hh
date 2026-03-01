@@ -82,6 +82,7 @@ namespace Mikoto {
     };
 
 #define MKT_VK_BUFFER(BUFFER_HANDLE) dynamic_cast<VulkanBuffer*>(BUFFER_HANDLE.GetRaw())
+#define MKT_VK_BUFFER_PTR(BUFFER_PTR) dynamic_cast<VulkanBuffer*>(BUFFER_PTR)
 }
 
 #endif // MIKOTO_VULKAN_BUFFER_HH

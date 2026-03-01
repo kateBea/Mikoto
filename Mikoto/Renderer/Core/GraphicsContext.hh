@@ -29,6 +29,7 @@
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/Light.hh>
 #include <Renderer/Core/Pipeline.hh>
+#include <Renderer/Core/Barrier.hh>
 #include <Renderer/Core/ResourceGroupBase.hh>
 
 namespace Mikoto {
@@ -45,15 +46,6 @@ namespace Mikoto {
     struct PassRenderInfo {
         LoadOp ColorLoadOp{ LoadOp::CLEAR };
         LoadOp DephtLoadOp{ LoadOp::CLEAR };
-    };
-
-    struct ResourceBarrierInfo {
-        std::string Name{};
-
-        FrameResourceType Type{ FrameResourceType::INVALID };
-
-        FrameResourceState PreState{ FrameResourceState::Undefined };
-        FrameResourceState PostState{ FrameResourceState::Undefined };
     };
 
     class GraphicsContext {
@@ -78,23 +70,26 @@ namespace Mikoto {
         virtual auto CreateSampler( SamplerDescription& description ) -> SamplerHandle = 0;
         virtual auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void = 0;
 
-        virtual auto UpdateResourceBindings(std::string_view passName, CommonResourceGroup& passData ) -> void = 0;
         virtual auto PrepareResourceBindings(std::string_view passName, PipelineDescription& desc) -> void = 0;
         virtual auto BindShaderResources(std::string_view passName, CommandListHandle cmdList  ) -> void = 0;
 
-        // Managing global sampler 2D images
+        // [DEPRECATED] To be removed
         virtual auto BindGlobalTextures(std::string_view passName, CommandListHandle cmdList) -> void = 0;
         virtual auto PushGlobalTexture( TextureHandle texture ) -> Int32 = 0;
 
-        // Make visible a buffer as shader resource to a specific pass
+        // [DEPRECATED] To be removed
         virtual auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void = 0;
         virtual auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void = 0;
         virtual auto PushConstants( std::string_view passName, const ConstantsGroup& srg_constants, CommandListHandle cmd ) -> void = 0;
 
-        virtual auto InsertResourceBarrierBatch(std::span<ResourceBarrierInfo> barriers, CommandListHandle cmd) -> void = 0;
-
+        // [DEPRECATED] To be removed
         virtual auto InsertResourceBarrier(BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool = 0;
         virtual auto InsertResourceBarrier(TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool = 0;
+
+        virtual auto InsertResourceBarrierBatch(std::span<ResourceBarrierInfo> barriers, CommandListHandle cmd) -> void = 0;
+
+        virtual auto PushBuffer(ResourceGroup group, BufferHandle buffer, std::string_view pass, ResourceSlot slot ) -> void = 0;
+        virtual auto PushTexture(ResourceGroup group, TextureHandle texture, SamplerHandle sampler, std::string_view pass, ResourceSlot slot ) -> void = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 

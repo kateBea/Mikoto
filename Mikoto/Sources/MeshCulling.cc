@@ -200,13 +200,13 @@ namespace Mikoto {
                 b.UseShader( "Resources/Shaders/vulkan-spirv/ScatteredWritesMesh_Comp.sprv", ShaderStage::COMPUTE );
                 b.Create<Pipeline>( "ScatteredWritesMeshPass_Pipeline", ComputePipelineDescription{} );
 
-                b.Write( "ScatteredWrites_MeshData", FrameResourceState::UnorderedAccess );
-                b.Write( "ScatteredWrites_MeshDataIndices", FrameResourceState::UnorderedAccess );
-                b.Write( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccess );
-                b.Write( "ScatteredWrites_MeshSkinnedMatrices", FrameResourceState::UnorderedAccess );
+                b.Write( "ScatteredWrites_MeshData", FrameResourceState::UnorderedAccessView );
+                b.Write( "ScatteredWrites_MeshDataIndices", FrameResourceState::UnorderedAccessView );
+                b.Write( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccessView );
+                b.Write( "ScatteredWrites_MeshSkinnedMatrices", FrameResourceState::UnorderedAccessView );
 
                 // This pass goes after mesh culling
-                b.Read( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
+                b.Read( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccessView );
 
                 b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 0 );
                 b.Use( ResourceGroup::Dynamic, "ScatteredWrites_MeshData", 1 );
@@ -259,10 +259,10 @@ namespace Mikoto {
                 b.CreateBuffer( finalBufferMeshInfo );
 
                 // To force this pass to go before ScatteredWritesMeshPass
-                b.Write( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccess );
+                b.Write( "MeshCulling_MeshCullingNode", FrameResourceState::UnorderedAccessView );
 
-                b.Write( "MeshInfo_Buffer", FrameResourceState::UnorderedAccess );
-                b.Write( "MaterialhInfo_Buffer", FrameResourceState::UnorderedAccess );
+                b.Write( "MeshInfo_Buffer", FrameResourceState::UnorderedAccessView );
+                b.Write( "MaterialhInfo_Buffer", FrameResourceState::UnorderedAccessView );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();

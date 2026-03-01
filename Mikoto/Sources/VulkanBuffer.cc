@@ -113,7 +113,7 @@ namespace Mikoto {
             }
         }
 
-        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )) {
+        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAMING )) {
             auto& physicalProperties{ TO_VK_DEVICE( m_Device )->GetPhysicalDeviceProperties() };
 
             UInt32 alignment{};
@@ -145,7 +145,7 @@ namespace Mikoto {
         m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     }
 
     auto VulkanBuffer::SetupStorageBuffer(const BufferDescription& createInfo) -> void {
@@ -254,7 +254,7 @@ namespace Mikoto {
 
         PersistentMap();
 
-        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC )) {
+        if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAMING )) {
             if (m_UsesScalarBlockLayout) {
                 const UInt32 currentFrame{ m_Context->GetCurrentFrameIndex() };
 

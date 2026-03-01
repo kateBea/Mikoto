@@ -76,8 +76,7 @@ namespace Mikoto {
         auto CreateSampler( SamplerDescription& description ) -> SamplerHandle  override;
         auto CreateSampler( std::string_view name, const SamplerDescription& description ) -> void override;
 
-        auto UpdateResourceBindings( std::string_view passName, CommonResourceGroup& passData ) -> void override;
-        auto PrepareResourceBindings( std::string_view passName, PipelineDescription& desc ) -> void override;
+        auto PrepareResourceBindings( std::string_view pass, PipelineDescription& desc ) -> void override;
         auto BindShaderResources( std::string_view passName, CommandListHandle cmdList ) -> void override;
 
         auto PushGlobalTexture( TextureHandle texture ) -> Int32  override;
@@ -91,11 +90,13 @@ namespace Mikoto {
         auto InsertResourceBarrier(BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
         auto InsertResourceBarrier(TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
 
+        auto PushBuffer(ResourceGroup group, BufferHandle buffer, std::string_view pass, ResourceSlot slot ) -> void override;
+        auto PushTexture(ResourceGroup group, TextureHandle texture, SamplerHandle sampler, std::string_view pass, ResourceSlot slot ) -> void override;
+
         ~VulkanGraphicsContext() override = default;
 
     private:
-        auto UpdatePassDescriptors(std::string_view passName, CommonResourceGroup& passData) -> void;
-        auto CreatePassDescriptors(std::string_view passName, PipelineDescription& desc) -> void;
+        auto CreatePassDescriptors(std::string_view pass, PipelineDescription& desc) -> void;
         auto CreatePipeline( PipelineDescription& description ) -> PipelineHandle;
 
         auto PushBuffer( BufferHandle handle, UInt32 groupBinding, VkDescriptorSet& sets) -> void;
@@ -110,6 +111,7 @@ namespace Mikoto {
 
             // Set index -> Descriptor Set handle. Allocate as many as max frames in flight
             ankerl::unordered_dense::map<UInt32, VkDescriptorSet> DescriptorSets{};
+            ankerl::unordered_dense::map<ResourceGroup, ResourceBinding> ResourceBindings{};
 
             // Buffers this pass is using
             ankerl::unordered_dense::set<Buffer*> Buffers{};

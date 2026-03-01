@@ -33,7 +33,6 @@ namespace Mikoto {
         RenderTarget,                 // color attachment write
         DepthWrite,                   // depth/stencil write
         DepthRead,                    // depth read (sampling or read-only)
-        UnorderedAccess,              // RWTexture / storage image/buffer
 
         // Transfer / copies
         TransferSrc,                  // copy src
@@ -41,6 +40,10 @@ namespace Mikoto {
 
         // Presentable state (swapchain images)
         Present,
+
+
+        // Rework states ===========================
+        UnorderedAccessView,
 
         // Unknown / initial
         Undefined,

@@ -596,6 +596,10 @@ namespace Mikoto {
             cmds.emplace_back( cmdInfo );
         }
 
+        if (cmds.empty()) {
+            return;
+        }
+
         VkSubmitInfo2 submitInfo{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
             .pNext = nullptr,

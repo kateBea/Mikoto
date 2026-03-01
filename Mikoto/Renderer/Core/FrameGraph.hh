@@ -160,7 +160,6 @@ namespace Mikoto {
         MKT_NODISCARD static auto Create( GraphicsContext *context, GpuDevice *device ) -> Unique<FrameGraph>;
 
     private:
-        auto InsertBarrier(FramePassResource& resource, FrameResourceState newState, CommandListHandle cmd) -> void;
         auto InsertResourceBarriers(FramePassNode& node, CommandListHandle cmd) -> void;
 
         MKT_NODISCARD auto IsFramePassPresent( std::string_view name ) const -> bool;
@@ -190,9 +189,7 @@ namespace Mikoto {
         CommandListHandle m_GraphicsCommandList{};
         CommandListHandle m_TransferCommandList{};
 
-        std::vector<ResourceBarrierInfo> m_GraphicsBarriers{};
-        std::vector<ResourceBarrierInfo> m_ComputeBarriers{};
-        std::vector<ResourceBarrierInfo> m_TransferBarriers{};
+        ankerl::unordered_dense::map<ICommandList *, std::vector<ResourceBarrierInfo>> m_CommandBarriers{}; 
 
         ResourceContainer m_ResourcesByNames{};
 

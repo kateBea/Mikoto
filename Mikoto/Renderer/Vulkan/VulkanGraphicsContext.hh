@@ -41,7 +41,7 @@ namespace Mikoto {
     // if the resource is marked as streaming it means that it can be updated every frame but I will not use a staging buffer, instead I will write directly to the mapped memory of the gpu buffer, this is useful for resources that are updated every frame but are small
     // In the vulkan buffer when a resource is marked as dynamic I will need to vcreate it with VK_BUFFER_USAGE_TRANSFER_DST_BIT to be able to copy to it,
     struct BarrierManager {
-        static constexpr UInt32 MAX_BARRIERS{ 10 };
+        static constexpr UInt32 MAX_BARRIERS{ 32 };
 
         UInt32 ImageBarrierCount{};
         UInt32 BufferBarrierCount{};
@@ -49,8 +49,8 @@ namespace Mikoto {
         std::array<VkImageMemoryBarrier2, MAX_BARRIERS> ImageBarriers{};
         std::array<VkBufferMemoryBarrier2, MAX_BARRIERS> BufferBarriers{};
 
-        auto InsertBufferBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState) -> bool;
-        auto InsertTextureBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState) -> bool;
+        auto InsertBufferBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState ) -> void;
+        auto InsertTextureBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState ) -> void;
 
         auto FlushBarriers( CommandListHandle cmd ) -> void;
     };

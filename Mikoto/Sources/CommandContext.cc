@@ -27,7 +27,10 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
         m_Commands = cmd;
 
-        MKT_ASSERT( !m_Commands.IsEmpty(), "Command context must have a valid command list handle" );
+        // We do not validate if the command list is empty
+        // because generic passes do not need a command list
+        // Validations are ran later though if a generic pass attempts to 
+        // run operations it is not allowed to
     }
 
     auto CommandContext::EndPass() -> void {
@@ -308,11 +311,12 @@ namespace Mikoto {
     auto CommandContext::UploadBuffer( std::string_view bufferName, const void *ptrSrc, Size size, Size offset ) const -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if (BufferHandle buffer{ m_Context->GetBuffer( bufferName ) }; !buffer.IsEmpty()) {
-            if (size > buffer->GetSizeBytes()) {
-                MKT_CORE_LOGGER_WARN( "PassCommandList::FillBuffer - [{}] size is [{}]. Trying to copy [{}] bytes", bufferName, buffer->GetSizeBytes(), size );
-            } else { buffer->CopyToDevice( ptrSrc, size, offset ); }
-        }
+        BufferHandle buffer{ m_Context->GetBuffer( bufferName ) };
+
+        MKT_ASSERT( !buffer.IsEmpty(), "Buffer does not exist" );
+        MKT_ASSERT( size < buffer->GetSizeBytes(), "Size is bigger than expected" );
+
+        buffer->CopyToDevice( ptrSrc, size, offset ); 
     }
 
     auto CommandContext::PushConstants( const void *ptr, Size size ) -> void {

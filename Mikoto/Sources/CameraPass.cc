@@ -36,6 +36,16 @@ namespace Mikoto {
     auto CameraPass::SetCamera( const Camera *camera ) -> void {
         m_Camera = camera;
 
+        auto dimensions{ GetDimensions() };
+
+        m_CameraParameters.Projection = m_Camera->GetProjection();
+        m_CameraParameters.ViewMatrix = m_Camera->GetViewMatrix();
+        m_CameraParameters.InverseProjection = glm::inverse( m_Camera->GetProjection() );
+
+        m_CameraParameters.PlaneBounds = Vec2F{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane() };
+        m_CameraParameters.ScreenDimensions = Vec2F{ dimensions.first, dimensions.second };
+        m_CameraParameters.ViewPosition = Vec4F{ m_Camera->GetPosition(), 1.0f };
+
     }
 
     auto CameraPass::SetEquirectangularMap( TextureHandle texture2D ) -> void {
@@ -87,24 +97,14 @@ namespace Mikoto {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 b.CreateBuffer( "CameraInfoPass_CameraData", BufferUsage::UNIFORM,
-                    sizeof( CameraParameters ), 1, ResourceUsageType::RESOURCE_USAGE_STREAMING );
+                    MKT_SIZEOF( CameraParameters ), 1, ResourceUsageType::RESOURCE_USAGE_STREAMING );
+
                 b.Write( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
-
-                auto dimensions{ GetDimensions() };
-
-                m_CameraParameters.Projection = m_Camera->GetProjection();
-                m_CameraParameters.ViewMatrix = m_Camera->GetViewMatrix();
-                m_CameraParameters.InverseProjection = glm::inverse( m_Camera->GetProjection() );
-
-                m_CameraParameters.PlaneBounds = Vec2F{ m_Camera->GetNearPlane(), m_Camera->GetFarPlane() };
-                m_CameraParameters.ScreenDimensions = Vec2F{ dimensions.first, dimensions.second };
-                m_CameraParameters.ViewPosition = Vec4F{ m_Camera->GetPosition(), 1.0f };
-
                 ctx.UploadBuffer( "CameraInfoPass_CameraData", m_CameraParameters );
-            }, FramePassNodeType::GENERIC );
+            },  FramePassNodeType::GENERIC );
     }
 
     auto CameraPass::GetCamera() const -> const Camera * {

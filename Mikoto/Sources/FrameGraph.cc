@@ -22,6 +22,7 @@
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/GraphicsContext.hh>
 #include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Core/Barrier.hh>
 
 #include "Core/Profiler.hh"
 #include "Core/Timer.hh"
@@ -291,7 +292,6 @@ namespace Mikoto {
             }
 
             CommandListHandle cmd{ InitializeCommandList( node.Type ) };
-
             InsertResourceBarriers( node, cmd );
 
             CommandContext commandContext{ m_GraphicsContex, node, m_ResourcesByNames };
@@ -320,24 +320,18 @@ namespace Mikoto {
     auto FrameGraph::SubmitCommandLists() -> void {
         // Before we submit the buffers we will submit the barriers created for each type of command buffer
         if (!m_GraphicsCommandList.IsEmpty()) {
-            //m_GraphicsContex->InsertResourceBarrierBatch( m_GraphicsBarriers, m_GraphicsCommandList );
-
             m_Device->SubmitCommands( m_GraphicsCommandList );
             m_GraphicsCommandList->End();
             m_GraphicsCommandList.Reset();
         }
 
         if ( !m_ComputeCommandList.IsEmpty() ) {
-            //m_GraphicsContex->InsertResourceBarrierBatch( m_ComputeBarriers, m_ComputeCommandList );
-
             m_Device->SubmitCommands( m_ComputeCommandList );
             m_ComputeCommandList->End();
             m_ComputeCommandList.Reset();
         }
 
         if ( !m_TransferCommandList.IsEmpty() ) {
-            //m_GraphicsContex->InsertResourceBarrierBatch( m_TransferBarriers, m_TransferCommandList );
-
             m_Device->SubmitCommands( m_TransferCommandList );
             m_TransferCommandList->End();
             m_TransferCommandList.Reset();
@@ -409,37 +403,39 @@ namespace Mikoto {
         return CreateScope<FrameGraph>( context, device );
     }
 
-    auto FrameGraph::InsertBarrier( FramePassResource& resource, FrameResourceState newState, CommandListHandle cmd ) -> void {
-        if (resource.IsResource( FrameResourceType::BUFFER )) {
-            m_GraphicsContex->InsertResourceBarrier( resource.Handle.As<Buffer>(), resource.CurrentState, newState, cmd );
-        }
-
-        if (resource.IsResource( FrameResourceType::TEXTURE )) {
-            m_GraphicsContex->InsertResourceBarrier( resource.Handle.As<Texture>(), resource.CurrentState, newState, cmd );
-        }
-
-        resource.CurrentState = newState;
-    }
-
     auto FrameGraph::InsertResourceBarriers( FramePassNode& node, CommandListHandle cmd ) -> void {
+        auto &barrierList{ m_CommandBarriers[cmd.GetRaw()] };
+
         for (const auto &resourceNode : node.Reads) {
             const auto it{ m_ResourcesByNames.Resources.find( resourceNode.Name ) };
             if (it != m_ResourcesByNames.Resources.end()) {
-                InsertBarrier( it->second, resourceNode.OutState, cmd );
+                ResourceBarrierInfo info{
+                    .Name{ resourceNode.Name },
+                    .Type{ it->second.Type },
+                    .PreState{ it->second.CurrentState },
+                    .PostState{ resourceNode.OutState },
+                };
+
+                barrierList.emplace_back( info );
             }
         }
 
         for (const auto &resourceNode : node.Writes) {
             const auto it{ m_ResourcesByNames.Resources.find( resourceNode.Name ) };
             if (it != m_ResourcesByNames.Resources.end()) {
-                InsertBarrier( it->second, resourceNode.OutState, cmd );
+                ResourceBarrierInfo info{
+                    .Name{ resourceNode.Name },
+                    .Type{ it->second.Type },
+                    .PreState{ it->second.CurrentState },
+                    .PostState{ resourceNode.OutState },
+                };
+
+                barrierList.emplace_back( info );
             }
         }
 
-        // Instead of calling insert barrrier we call InsertBarrioerBatch with batched barriers
-        // change resource to instead store the type of resource (texture or buffer) the context will store the actuall handle
-        // the batch will just be 
-        // resource name, resource type (texture or buffer), old state, new stage
+        m_GraphicsContex->InsertResourceBarrierBatch( barrierList, cmd );
+        barrierList.clear();
     }
 
     auto FrameGraph::IsFramePassPresent( const std::string_view name ) const -> bool {

@@ -343,6 +343,199 @@ namespace Mikoto {
         vkDestroyPipelineLayout( m_Device->GetLogicalDevice(), m_TexturesPipelineLayout, nullptr );
     }
 
+    auto BarrierManager::InsertBufferBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState ) -> void {
+        if ( previousState == newState ) {
+            return;
+        }
+
+        if ( BufferBarrierCount >= MAX_BARRIERS ) {
+            // Should never happen; assert or log
+            return;
+        }
+
+        auto oldInfo{ GetVulkanState( previousState ) };
+        auto newInfo{ GetVulkanState( newState ) };
+
+        VkBufferMemoryBarrier2 barrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+            .srcStageMask = oldInfo.Stages,
+            .srcAccessMask = oldInfo.Access,
+            .dstStageMask = newInfo.Stages,
+            .dstAccessMask = newInfo.Access,
+            .buffer = buffer->GetNativeHandle( ObjectType::Vk_Buffer ),
+            .offset = 0,
+            .size = VK_WHOLE_SIZE
+        };
+
+        BufferBarriers[BufferBarrierCount++] = barrier;
+    }
+
+    auto BarrierManager::InsertTextureBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState ) -> void {
+        if ( previousState == newState ) {
+            return;
+        }
+
+        if ( ImageBarrierCount >= MAX_BARRIERS ) {
+            return;
+        }
+        
+        auto oldInfo{ GetVulkanState( previousState ) };
+        auto newInfo{ GetVulkanState( newState ) };
+
+
+        auto currentLayout{ oldInfo.Layout };
+        auto newLayout{ newInfo.Layout };
+        
+
+        if ( currentLayout == newLayout ) {
+            return;
+        }
+
+        UInt32 levelCount{ 1 };
+        UInt32 layerCount{ 1 };
+
+        if (texture->IsTextureType(TextureType::TEXTURE_CUBE)) {
+            layerCount = 6;
+            levelCount = dynamic_cast<VulkanTextureCube*>(texture.GetRaw())->GetMipLevels();
+        }
+
+        VkImageSubresourceRange subresourceRange{
+            .aspectMask = VulkanHelpers::GetAspectMask(
+                    VulkanHelpers::ToVkFormat( texture->GetFormat() ) ),
+            .baseMipLevel = 0,
+            .levelCount = levelCount,
+            .baseArrayLayer = 0,
+            .layerCount = layerCount
+        };
+
+        // Barrier2 version — replaces VkImageMemoryBarrier
+        VkImageMemoryBarrier2 barrier{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            .oldLayout = currentLayout,
+            .newLayout = newLayout,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = texture->GetNativeHandle(ObjectType::Vk_Image),
+            .subresourceRange = subresourceRange,
+        };
+
+        switch ( currentLayout ) {
+            case VK_IMAGE_LAYOUT_UNDEFINED:
+                barrier.srcAccessMask = 0;
+                barrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_PREINITIALIZED:
+                barrier.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT;
+                barrier.srcStageMask = VK_PIPELINE_STAGE_2_HOST_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+                barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+                barrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                barrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                                       VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+                barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+                barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                barrier.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+                barrier.srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                       VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT |
+                                       VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+                break;
+
+            default:
+                barrier.srcAccessMask = 0;
+                barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+                break;
+        }
+
+        switch ( newLayout ) {
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+                barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+                barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+                barrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+                barrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                barrier.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                                       VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+                barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+                                       VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT |
+                                       VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+
+                if ( barrier.srcAccessMask == 0 ) {
+                    barrier.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT |
+                                            VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                    barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT |
+                                           VK_PIPELINE_STAGE_2_HOST_BIT;
+                }
+                break;
+
+            default:
+                barrier.dstAccessMask = 0;
+                barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+                break;
+        }
+
+        VkDependencyInfo depInfo{
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .imageMemoryBarrierCount = 1,
+            .pImageMemoryBarriers = &barrier
+        };
+
+        ImageBarriers[ImageBarrierCount++] = barrier;
+    }
+
+    auto BarrierManager::FlushBarriers(CommandListHandle cmd) -> void {
+        if ( ImageBarrierCount == 0 && BufferBarrierCount == 0 ) {
+            return;
+        }
+
+        VkDependencyInfo depInfo{
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .bufferMemoryBarrierCount = BufferBarrierCount,
+            .pBufferMemoryBarriers = BufferBarrierCount ? BufferBarriers.data() : nullptr,
+            .imageMemoryBarrierCount = ImageBarrierCount,
+            .pImageMemoryBarriers = ImageBarrierCount ? ImageBarriers.data() : nullptr
+        };
+
+        vkCmdPipelineBarrier2(
+                cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                &depInfo );
+
+        ImageBarrierCount = 0;
+        BufferBarrierCount = 0;
+    }
+
     VulkanGraphicsContext::VulkanGraphicsContext( GpuDevice *device )
         : GraphicsContext{}, m_Device{ TO_VK_DEVICE( device ) } {}
 
@@ -551,7 +744,26 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::InsertResourceBarrierBatch( std::span<ResourceBarrierInfo> barriers, CommandListHandle cmd ) -> void {
+        if (cmd.IsEmpty()) {
+            return;
+        }
 
+        BarrierManager manager{};
+
+        for (const auto& info : barriers) {
+            switch ( info.Type ) {
+                case FrameResourceType::BUFFER:
+                    manager.InsertBufferBarrier( GetBuffer(info.Name), info.PreState, info.PostState );
+                    break;
+                case FrameResourceType::TEXTURE:
+                    manager.InsertTextureBarrier( GetTexture( info.Name ), info.PreState, info.PostState );
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        manager.FlushBarriers( cmd );
     }
 
     auto VulkanGraphicsContext::InsertResourceBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd ) -> bool {

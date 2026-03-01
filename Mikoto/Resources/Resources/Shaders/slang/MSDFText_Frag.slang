@@ -25,7 +25,7 @@ struct FSOutput {
     float4 Color : SV_Target0;
 };
 
-[[vk::binding(0, TEXTURES_SET_INDEX)]]
+[[vk::binding(Slot_0, UNBOUNDED_IV_SAMPLERS_SET_INDEX)]]
 Sampler2D g_BindlessTextures[];
 
 [shader("fragment")]

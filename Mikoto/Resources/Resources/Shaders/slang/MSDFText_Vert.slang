@@ -37,6 +37,7 @@
 
 // At the moment it is valid to acces glyph data via instance ID
 // because we submit one draw call that has all the instances IDs
+
 struct VSInput {
     float3 Position : ATTRIBUTE0;
     uint TexCoordIndex : ATTRIBUTE1;
@@ -51,7 +52,7 @@ struct VSOutput {
     float4 PositionH : SV_Position;
 };
 
-[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]]
+[[vk::binding(Slot_0, UAV_SET_INDEX)]]
 StructuredBuffer<FontRenderParams, ScalarDataLayout> Params;
 
 [shader("vertex")]

@@ -50,7 +50,7 @@ namespace Mikoto {
 
         RegisterBloom( graph );
         //RegisterSSAO( graph );
-        //RegisterTextRender( graph, device );
+        RegisterTextRender( graph, device );
     }
 
     auto PostEffectsPass::SetMeshCulling( MeshCulling& culling ) -> void {
@@ -83,7 +83,8 @@ namespace Mikoto {
             []( FramePassBuilder& b ) {
                 MKT_BEGIN_PROFILER_NAMED();
                 
-                b.Create<Buffer>( "MSDFTextPass_TextData", BufferUsage::SHADER_STORAGE, sizeof( TextRenderParams ), MAX_GLYPHS );
+                b.CreateBuffer( "MSDFTextPass_TextData", BufferUsage::SHADER_STORAGE, 
+                    MKT_SIZEOF( TextRenderParams ), MAX_GLYPHS, ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
                
                 b.UseShader( "Resources/Shaders/slang/MSDFText_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/MSDFText_Frag.slang", ShaderStage::FRAGMENT );
@@ -103,22 +104,18 @@ namespace Mikoto {
                         .DefaultVertexLayout{ layout },
                         .InputRateSpec{ .BindingIndex = { 0 }, .AttributeRate{ InputRate::PER_VERTEX } } } };
                 graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
-                b.Create<Pipeline>( "TextRenderPass_Pipeline", graphicsDesc );
+                b.CreatePipeline( "TextRenderPass_Pipeline", graphicsDesc );
 
                 b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
                 b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
 
-                // Force it go after the final composition
-                b.Read( "FinalShading_Params", FrameResourceState::UniformBuffer );
-
                 b.Write( "3DRenderTextEdge", FrameResourceState::UniformBuffer );
-                b.Write( "MSDFTextPass_TextData", FrameResourceState::UniformBuffer );
-
-                b.Use( ResourceGroup::Dynamic, "MSDFTextPass_TextData", 0 );
-                b.Use( ResourceGroup::GlobalTextures );
+                b.Write( "MSDFTextPass_TextData", FrameResourceState::UnorderedAccessView );
             },
             [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
+
+                MKT_ASSERT( m_Scene != nullptr, "Scene cannot be NULL" );
 
                 TraverseTextList( ctx );
 
@@ -126,9 +123,7 @@ namespace Mikoto {
                     return;
                 }
 
-                ctx.UploadBufferData( "MSDFTextPass_TextData", m_TextInfo.data(), sizeof( TextRenderParams ), m_GlyphCount );
-
-                MKT_ASSERT( m_Scene != nullptr, "Scene cannot be NULL" );
+                ctx.CopyBuffer( "MSDFTextPass_TextData", m_TextInfo.data(), sizeof( TextRenderParams ) * m_GlyphCount );
 
                 ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
                 ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
@@ -139,6 +134,10 @@ namespace Mikoto {
                 };
 
                 ctx.BeginRender( renderInfo );
+
+                ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MSDFTextPass_TextData", ResourceSlot::Slot_0 );
+
                 ctx.BindPipeline( "TextRenderPass_Pipeline" );
 
                 const auto dimensions{ InferDimensions( m_Resolution ) };
@@ -393,7 +392,7 @@ namespace Mikoto {
                         .Size{ glyph.m_Width * scale, glyph.m_Height * scale, 0.0f, 0.0f },
                         .Color{ color },
                         .TexCoords{ { s0, t0 }, { s1, t0 }, { s1, t1 }, { s0, t1 } },
-                        .TexIndex{ static_cast<UInt32>( context.PushTexture( atlas ) ) }
+                        .TexIndex{ static_cast<UInt32>( context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", atlas ) ) }
                     };
 
                     Mat4F view{};

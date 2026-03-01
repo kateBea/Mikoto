@@ -777,7 +777,7 @@ namespace Mikoto {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 // Force it go after the final composition
-                //b.Read( "3DRenderTextEdge", FrameResourceState::UniformBuffer );
+                b.Read( "3DRenderTextEdge", FrameResourceState::UniformBuffer );
 
                 // To have this pas transition the final convert the final image into a layout imgui likes
                 //b.Read( "FinalShading_Params", FrameResourceState::ShaderRead_GraphicsPipeline );

@@ -37,9 +37,11 @@
 
 namespace Mikoto {
 
+    class VulkanContext;
+
     class VulkanCmdList final : public ICommandList {
     public:
-        explicit VulkanCmdList(const VkCommandBufferAllocateInfo& createInfo, bool immediate);
+        explicit VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo, QueueType type, bool immediate );
 
         auto Begin() -> void override;
         auto End() -> void override;
@@ -155,6 +157,8 @@ namespace Mikoto {
         GpuDevice* m_Device{};
 
         std::mutex m_PushMutex{};
+
+        VulkanContext* m_Context{};
 
         // Frame index -> Deletion tasks
         ankerl::unordered_dense::map<UInt32, std::deque<std::function<void(GpuDevice*)>>> m_Callbacks{};

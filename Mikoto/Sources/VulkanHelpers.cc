@@ -720,15 +720,14 @@ namespace Mikoto::VulkanHelpers::Reflection {
                         out.DynamicBuffersBindingCount++;
                     }
 
-                    // TODO: review I am not sure if names are guaranteed to persist in the compiled code
-                    constexpr std::string_view bindlessPrefix{ "Bindless" };
+                    bool isBindless{ false };
 
-                    std::string_view bindingName{ reflectedBinding->name };
-
-                    bool isBindless{ IsBindlessEnabled() && ( bindingName.find( bindlessPrefix ) != std::string_view::npos ) };
+                    if ( setIndex == UNBOUNDED_IV_SAMPLERS_SET_INDEX || setIndex == UNBOUNDED_BV_SET_INDEX ) {
+                        isBindless = true;
+                    }
 
                     // IMPORTANT: bindless textures need to be the last binding if they are sharing a SET with other bindings
-                    bindingInfo.descriptorCount = std::max(1u, isBindless ? GlobalTextures::GetMaxTextureCount() : reflectedBinding->count );
+                    bindingInfo.descriptorCount = std::max( 1u, isBindless ? MAX_BINDLESS_GROUP_INDEX : reflectedBinding->count );
 
                     bindingInfo.stageFlags = stage;
                     bindingMap[bindingInfo.binding] = bindingInfo;

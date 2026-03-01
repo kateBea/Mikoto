@@ -174,13 +174,14 @@ namespace Mikoto {
 
     VulkanDeletionQueue::VulkanDeletionQueue( GpuDevice* device ) {
         m_Device = TO_VK_DEVICE( device );
+        m_Context = MKT_VK_CTX( RenderService::Get()->GetContext() );
     }
 
     auto VulkanDeletionQueue::Flush() -> void {
-        // TODO: Disabled for now, needs redesign
+        // Disabled for now
         return;
 
-        const UInt32 currentFrame{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetCurrentFrameIndex() };
+        const UInt32 currentFrame{ m_Context->GetCurrentFrameIndex() };
         for (const auto& callback : m_Callbacks[currentFrame] ) {
             callback( m_Device );
         }
@@ -191,7 +192,7 @@ namespace Mikoto {
     auto VulkanDeletionQueue::Push( std::function<void(GpuDevice*)>&& callback ) -> void {
         std::lock_guard lock{ m_PushMutex };
 
-        const UInt32 currentFrame{ MKT_VK_CTX(RenderService::Get()->GetContext())->GetCurrentFrameIndex() };
+        const UInt32 currentFrame{ m_Context->GetCurrentFrameIndex() };
         m_Callbacks[currentFrame].emplace_back( std::move( callback ) );
     }
 
@@ -566,10 +567,6 @@ namespace Mikoto {
     auto VulkanDevice::SetCurrentFrameIndex( const UInt32 frameIndex ) -> void {
         m_CurrentFrameIndex = frameIndex;
 
-        /*for (auto& cmdList : m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex]) {
-            vkResetCommandBuffer(cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ), 0);
-        }*/
-
         std::ranges::move(
             m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex],
             std::back_inserter(m_AvailableGraphicsCommandLists[m_CurrentFrameIndex]));
@@ -577,7 +574,6 @@ namespace Mikoto {
         m_SubmittedGraphicsCommandLists[m_CurrentFrameIndex].clear();
 
         m_DeletionQueue->Flush();
-
     }
 
     auto VulkanDevice::SubmitDeletion( std::function<void(GpuDevice*)> &&callback ) -> void {
@@ -585,8 +581,14 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::FlushImmediateCommands() -> void {
+        std::vector<CommandListHandle> submisionList{};
+        {
+            std::lock_guard lock{ m_OneTimeSubmitMutex };
+            submisionList.swap( m_ImmediateSubmitCmds );
+        }
+
         std::vector<VkCommandBufferSubmitInfo> cmds{};
-        for (const auto& cmd : m_ImmediateSubmitCmds) {
+        for ( const auto& cmd: submisionList ) {
             VkCommandBufferSubmitInfo cmdInfo{
                 .sType{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO },
                 .commandBuffer{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) },
@@ -609,8 +611,6 @@ namespace Mikoto {
         };
 
         MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, VK_NULL_HANDLE ) );
-
-        m_ImmediateSubmitCmds.clear();
     }
 
     auto VulkanDevice::CreateTexture( const TextureDescription& description ) -> TextureHandle {
@@ -999,8 +999,8 @@ namespace Mikoto {
         m_PendingGraphicsCommandLists[m_CurrentFrameIndex].clear();
     }
 
-    VulkanCmdList::VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo, bool immediate )
-        : ICommandList{ immediate }, m_AllocInfo{ createInfo } {
+    VulkanCmdList::VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo, QueueType type, bool immediate )
+        : ICommandList{ immediate, type }, m_AllocInfo{ createInfo } {
     }
 
     auto VulkanCmdList::Begin() -> void {
@@ -1494,7 +1494,7 @@ namespace Mikoto {
         allocInfo.commandPool = m_Pool;
         allocInfo.commandBufferCount = 1;
 
-        CommandListHandle handle{ m_CmdLists.Allocate( allocInfo, immediate ) };
+        CommandListHandle handle{ m_CmdLists.Allocate( allocInfo, m_QueueType, immediate ) };
         if ( handle.IsEmpty() ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanCommandPool::AllocateCmdList - Failed to allocate  command list." );
         } 

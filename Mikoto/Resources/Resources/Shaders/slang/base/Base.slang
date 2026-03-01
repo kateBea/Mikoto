@@ -40,7 +40,7 @@ static const int BUFFER_VIEWS_SET_INDEX = 2;
 static const int UAV_SET_INDEX = 3;
 static const int STATIC_SAMPLERS_SET_INDEX = 4;
 static const int DYNAMIC_SAMPLERS_SET_INDEX = 5;
-static const int UNBOUNDED_BV_SAMPLERS_SET_INDEX = 6;
+static const int UNBOUNDED_BV_SET_INDEX = 6;
 static const int UNBOUNDED_IV_SAMPLERS_SET_INDEX = 7;
 
 static const int Slot_0 = 0;

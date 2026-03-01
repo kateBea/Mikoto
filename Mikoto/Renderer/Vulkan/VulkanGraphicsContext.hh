@@ -55,26 +55,27 @@ namespace Mikoto {
         auto FlushBarriers( CommandListHandle cmd ) -> void;
     };
 
-    template<typename ResourceHandleType>
-    struct UnboundedResourcesManager {
+    struct UnboundedImageSamplersManager {
 
-        MKT_NODISCARD auto ContainsResource( ResourceHandleType* ptr) const -> bool {
-            return m_Textures.contains( ptr );
-        }
+        explicit UnboundedImageSamplersManager( VulkanDevice* device );
 
-        MKT_NODISCARD auto RegisterResource( ResourceHandleType* ptr) -> UInt32 {
-            UInt32 index{ m_Textures.size() };
-            if (!ContainsResource( ptr )) {
-                m_Textures.try_emplace( index, ptr );
-                m_ResourcePtrs.try_emplace( ptr );
-            }
+        auto Bind( CommandListHandle cmd ) -> void;
 
-            return index;
-        }
+        MKT_NODISCARD auto GetIndex( Texture* texture, Sampler* sampler ) -> Int32;
+        MKT_NODISCARD auto RegisterResource( Texture* texture, Sampler* sampler ) -> Int32;
+        MKT_NODISCARD auto ContainsResource( Texture* texture, Sampler* sampler ) const -> bool;
 
-        // Index -> Resource
-        ankerl::unordered_dense::map<UInt32, ResourceHandleType*> m_Textures{};
-        ankerl::unordered_dense::set<ResourceHandleType*> m_ResourcePtrs{};
+        auto CreateBindlessTexturesSet( ) -> void;
+        auto UpdateBindlessTexturesSet( Texture* texture, Sampler* sampler, Int32 setIndex ) -> void;
+
+        ~UnboundedImageSamplersManager();
+
+        VulkanDevice* m_Device{};
+        VkDescriptorSet m_BindlessTexturesSet{};
+        VkPipelineLayout m_TexturesPipelineLayout{};
+        DescriptorSetLayoutHandle m_LayoutTextures{};
+
+        ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, Int32> m_ImageSamplers{};
     };
 
 
@@ -115,6 +116,9 @@ namespace Mikoto {
         auto PushTexture(ResourceGroup group, TextureHandle texture, std::string_view pass, ResourceSlot slot ) -> void override;
         auto PushTexture(ResourceGroup group, TextureHandle texture, SamplerHandle sampler, std::string_view pass, ResourceSlot slot ) -> void override;
 
+        auto BindImageSamplerUndoundedGroup( std::string_view groupName, CommandListHandle cmd ) -> void override;
+        auto RegisterImageSamplerUndoundedGroup( std::string_view groupName, ResourceSlot slot, TextureHandle texture, SamplerHandle sampler ) -> UInt32 override;
+
         ~VulkanGraphicsContext() override = default;
 
     private:
@@ -123,9 +127,6 @@ namespace Mikoto {
 
         auto PushBuffer( BufferHandle handle, UInt32 groupBinding, VkDescriptorSet& sets) -> void;
         auto PushImage( TextureHandle textureHandle, SamplerHandle samplerHandle, UInt32 groupBinding, VkDescriptorSet& sets) -> void;
-
-        auto CreateBindlessTexturesSet() -> void;
-        auto UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void;
 
     private:
         struct FramePassInfo {
@@ -171,9 +172,7 @@ namespace Mikoto {
         ankerl::unordered_dense::map<std::string, SamplerHandle> m_SamplersByNames{};
 
         // Bindless sets
-        UnboundedResourcesManager<Sampler> m_UnboundedSamplers{};
-        UnboundedResourcesManager<Texture> m_UnboundedTextures{};
-        UnboundedResourcesManager<Buffer> m_UnboundedBuffers{};
+        ankerl::unordered_dense::map<std::string, UnboundedImageSamplersManager> m_CombinedImageSamplersGroupManager{};
 
         std::vector<SamplerHandle> m_Samplers{};
 

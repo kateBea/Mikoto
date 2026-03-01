@@ -73,7 +73,7 @@ namespace Mikoto {
         }
     }
 
-    auto CommandContext::BindImage( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void {
+    auto CommandContext::BindImageSampler( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void {
         const auto it{ m_ResourcesByNames->Resources.find( std::string{ name } ) };
         if (it != m_ResourcesByNames->Resources.end()) {
             FramePassResource& resource{ it->second };
@@ -87,7 +87,7 @@ namespace Mikoto {
         }
     }
 
-    auto CommandContext::BindImage( ResourceGroup group, std::string_view name, SamplerHandle sampler, ResourceSlot slot ) -> void {
+    auto CommandContext::BindImageSampler( ResourceGroup group, std::string_view name, SamplerHandle sampler, ResourceSlot slot ) -> void {
         const auto it{ m_ResourcesByNames->Resources.find( std::string{ name } ) };
         if (it != m_ResourcesByNames->Resources.end()) {
             FramePassResource& resource{ it->second };
@@ -101,8 +101,21 @@ namespace Mikoto {
         }
     }
 
-    auto CommandContext::BindImage( ResourceGroup group, std::string_view groupName, TextureHandle texture ) -> UInt32 {
-        return 0;
+    auto CommandContext::BindImageSampler( ResourceGroup group, std::string_view groupName, TextureHandle texture, ResourceSlot slot ) -> Int32 {
+        Int32 index{};
+
+        std::string name{ groupName };
+        if (!m_ActiveUnoundedResourceGroups[name]) {
+            m_Context->BindImageSamplerUndoundedGroup( groupName, m_Commands) ;
+            m_ActiveUnoundedResourceGroups[name] = true;
+        }
+
+        switch ( group ) {
+            case ResourceGroup::UnboundedImageViews:
+                index = m_Context->RegisterImageSamplerUndoundedGroup( groupName, slot, texture, SamplerHandle::CreateEmpty() );
+        }
+         
+        return index;
     }
 
     auto CommandContext::EndRender() -> void {
@@ -188,7 +201,7 @@ namespace Mikoto {
         // Constants are static data at command level that we only need to pass once, only updated if 
         // the block is update from CPU side (i.e previous call to PushConstants(...)
         if (!m_HasSetConstantData) {
-            m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
+            m_Context->PushConstants( m_ActivePass->Name, m_PushConstants, m_Commands );
 
             m_HasSetConstantData = true;
         }
@@ -210,7 +223,7 @@ namespace Mikoto {
         }
 
         if ( !m_HasSetConstantData ) {
-            m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
+            m_Context->PushConstants( m_ActivePass->Name, m_PushConstants, m_Commands );
 
             m_HasSetConstantData = true;
         }
@@ -237,7 +250,7 @@ namespace Mikoto {
         }
 
         if ( !m_HasSetConstantData ) {
-            m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
+            m_Context->PushConstants( m_ActivePass->Name, m_PushConstants, m_Commands );
 
             m_HasSetConstantData = true;
         }
@@ -270,7 +283,7 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( !m_HasSetConstantData ) {
-            m_Context->PushConstants( m_ActivePass->Name, m_ActivePass->ConstantsShaderResources, m_Commands );
+            m_Context->PushConstants( m_ActivePass->Name, m_PushConstants, m_Commands );
             m_HasSetConstantData = true;
         }
 
@@ -303,7 +316,7 @@ namespace Mikoto {
     }
 
     auto CommandContext::PushConstants( const void *ptr, Size size ) -> void {
-        m_ActivePass->ConstantsShaderResources.SetData( ptr, size );
+        m_PushConstants.SetData( ptr, size );
 
         // To update constants once in the next call to draw or dispatch
         m_HasSetConstantData = false;

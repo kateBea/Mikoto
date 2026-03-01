@@ -53,7 +53,7 @@ namespace Mikoto {
     auto DebugPasses::RegisterPasses( FrameGraph &graph ) -> void {
         RegisterSimpleCompute( graph );
         RegisterHelloTriangle( graph );
-        //RegisterHelloTexture( graph );
+        RegisterHelloTexture( graph );
 
         //RegisterWireFrame( graph );
         //RegisterInfiniteGrid( graph );
@@ -294,7 +294,7 @@ namespace Mikoto {
             [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard) -> void {
 
                 auto& data{ blackboard.Get<HelloTextureData>() };
-                data.PushConstants.TextureIndex = ctx.BindImage( ResourceGroup::UnboundedImageViews, "Texture2D_List", data.TargetTexture );
+                data.PushConstants.TextureIndex = ctx.BindImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", data.TargetTexture, ResourceSlot::Slot_0 );
 
                 ctx.PushConstants( std::addressof( data.PushConstants ), sizeof( data.PushConstants ) );
 

@@ -94,11 +94,11 @@ namespace Mikoto {
 
         auto BindBuffer( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void;
 
-        auto BindImage( ResourceGroup group, std::string_view name, ResourceSlot slot) -> void;
-        auto BindImage( ResourceGroup group, std::string_view name, SamplerHandle sampler, ResourceSlot slot ) -> void;
+        auto BindImageSampler( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void;
+        auto BindImageSampler( ResourceGroup group, std::string_view name, SamplerHandle sampler, ResourceSlot slot ) -> void;
 
         // Unbounded resource groups have arbitrary size
-        auto BindImage( ResourceGroup group, std::string_view groupName, TextureHandle texture) -> UInt32;
+        auto BindImageSampler( ResourceGroup group, std::string_view groupName, TextureHandle texture, ResourceSlot slot ) -> Int32;
 
         auto SetClearColor(const Vec4F& color) -> void;
 
@@ -142,13 +142,19 @@ namespace Mikoto {
 
         FramePassNode* m_ActivePass{ nullptr };
 
+        ConstantsGroup m_PushConstants{};
+
         RenderInfo m_RenderInfo{};
 
-        ResourceContainer* m_ResourcesByNames{};
 
         bool m_HasSetConstantData{ false };
 
+        // Control bound resources
         bool m_HasResourcesBound{ false };
+        ResourceContainer* m_ResourcesByNames{};
+
+        // Unbounded resources are bound once
+        ankerl::unordered_dense::map<std::string, bool> m_ActiveUnoundedResourceGroups{};
     };
 }
 

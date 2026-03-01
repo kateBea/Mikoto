@@ -27,7 +27,7 @@ struct HelloTextureUniformBuffer {
     int TextureIndex;
 };
 
-[[vk::binding(0, TEXTURES_SET_INDEX)]]
+[[vk::binding(Slot_0, UNBOUNDED_IV_SAMPLERS_SET_INDEX)]]
 Sampler2D g_BindlessTextures[];
 
 [[vk::push_constant]] 

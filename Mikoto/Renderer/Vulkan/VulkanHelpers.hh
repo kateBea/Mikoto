@@ -84,8 +84,11 @@ namespace Mikoto {
     static const int UAV_SET_INDEX = 3;
     static const int STATIC_SAMPLERS_SET_INDEX = 4;
     static const int DYNAMIC_SAMPLERS_SET_INDEX = 5;
-    static const int UNBOUNDED_BV_SAMPLERS_SET_INDEX = 6;
+    static const int UNBOUNDED_BV_SET_INDEX = 6;
     static const int UNBOUNDED_IV_SAMPLERS_SET_INDEX = 7;
+
+    static constexpr Int32 INVALID_BINDLESS_GROUP_INDEX{ -1 };
+    static constexpr Int32 MAX_BINDLESS_GROUP_INDEX{ 4096 };
 
     static constexpr UInt32 MINIMUM_REQUIRED_PUSH_CONSTANTS_SIZE{ 128 };
 

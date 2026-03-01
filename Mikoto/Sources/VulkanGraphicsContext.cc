@@ -63,7 +63,7 @@ namespace Mikoto {
             case ResourceGroup::DynamicSamplers:
                 return DYNAMIC_SAMPLERS_SET_INDEX;;
             case ResourceGroup::UnboundedBufferViews:
-                return UNBOUNDED_BV_SAMPLERS_SET_INDEX;;
+                return UNBOUNDED_BV_SET_INDEX;;
             case ResourceGroup::UnboundedImageViews:
                 return UNBOUNDED_IV_SAMPLERS_SET_INDEX;;
         }
@@ -183,15 +183,170 @@ namespace Mikoto {
                 .Access = 0,
                 .Layout = VK_IMAGE_LAYOUT_UNDEFINED
             };
+        }
     }
-}
+     
+    UnboundedImageSamplersManager::UnboundedImageSamplersManager( VulkanDevice* device )
+        : m_Device{ device } {
+        CreateBindlessTexturesSet();
+    }
+
+    auto UnboundedImageSamplersManager::GetIndex( Texture* texture, Sampler* sampler ) -> Int32 {
+        MKT_ASSERT( ContainsResource( texture, sampler ), "Pair of texture and sampler do not exist" );
+        return m_ImageSamplers.at( std::make_pair( texture, sampler ) );
+    }
+
+    auto UnboundedImageSamplersManager::Bind( CommandListHandle cmd ) -> void {
+        VkPipelineBindPoint bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM  };
+        switch ( cmd->GetQueueType() ) {
+            case QueueType::GRAPHICS_QUEUE:
+                bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+                break;
+            case QueueType::COMPUTE_QUEUE:
+                bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+                break;
+            default:
+                break;
+        }
+
+        std::array sets{ m_BindlessTexturesSet };
+
+        vkCmdBindDescriptorSets(
+            cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                bindPoint,
+            m_TexturesPipelineLayout,
+            UNBOUNDED_IV_SAMPLERS_SET_INDEX,
+            static_cast<UInt32>(sets.size()),
+            sets.data(),
+            0,
+            nullptr );
+    }
+
+    auto UnboundedImageSamplersManager::ContainsResource( Texture* texture, Sampler* sampler ) const -> bool {
+        return m_ImageSamplers.contains( std::make_pair( texture, sampler ) );
+    }
+
+    auto UnboundedImageSamplersManager::RegisterResource( Texture* texture, Sampler* sampler ) -> Int32 {
+        Int32 index{ ( Int32 )m_ImageSamplers.size() };
+
+        if ( !ContainsResource( texture, sampler ) ) {
+            m_ImageSamplers.try_emplace( std::make_pair( texture, sampler ), index );
+        } else {
+            const auto it{ m_ImageSamplers.find( std::make_pair( texture, sampler ) ) };
+            index = it->second;
+        }
+
+        return index;
+    }
+
+    auto UnboundedImageSamplersManager::UpdateBindlessTexturesSet( Texture* texture, Sampler* sampler, Int32 setIndex ) -> void {
+
+
+        MKT_ASSERT( setIndex < MAX_BINDLESS_GROUP_INDEX, "Set index must be smaller than max bindless textures" );
+
+        VkSampler vkSampler{ sampler->GetNativeHandle( ObjectType::Vk_Sampler ) };
+        VkImageView vkImageView{ texture->GetNativeHandle( ObjectType::Vk_ImageView ) };
+
+        DescriptorWriter writer{};
+        writer.WriteImage( 0, vkImageView, vkSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, setIndex )
+                .UpdateSet( m_Device->GetLogicalDevice(), m_BindlessTexturesSet );
+    }
+
+    auto UnboundedImageSamplersManager::CreateBindlessTexturesSet( ) -> void {
+        // TODO: Review below, could not figure out yet a way to use push constants with GBuffer which used push constants AND bindless textures array
+        // NOTES: https://docs.vulkan.org/spec/latest/chapters/descriptorsets.html#descriptorsets-compatibility
+        // https://www.reddit.com/r/vulkan/comments/1l53wth/does_vkcmdbinddescriptorsets_invalidate_sets_with/
+
+        // There was an Issue with the GBuffer pass which used a push constant but this pipeline layout declares none
+        const UInt32 maxBindlessTextures{ (UInt32)MAX_BINDLESS_GROUP_INDEX };
+
+        VkDescriptorSetLayoutBinding binding{};
+        binding.binding = TEXTURES_DESCRIPTOR_SET_INDEX;
+        binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        binding.descriptorCount = maxBindlessTextures;
+        binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        binding.pImmutableSamplers = nullptr;
+
+        VkDescriptorBindingFlags bindingFlags =
+                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+
+        VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+            .bindingCount = 1,
+            .pBindingFlags = &bindingFlags
+        };
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext = &flagsInfo,
+            .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+            .bindingCount = 1,
+            .pBindings = &binding
+        };
+
+        m_LayoutTextures = m_Device->AllocateDescriptorSetLayout( layoutInfo );
+        m_LayoutTextures->SetDebugName( "DescriptorSetLayout for VulkanGraphicsContext bindless textures" );
+
+        std::array variableCount{ maxBindlessTextures };
+        VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
+        variableCountInfo.descriptorSetCount = static_cast<UInt32>( variableCount.size() );
+        variableCountInfo.pDescriptorCounts = variableCount.data();
+
+        VkDescriptorSetLayout layoutTextures{ m_LayoutTextures->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) };
+        m_BindlessTexturesSet = m_Device->AllocateDescriptorSet( std::addressof( layoutTextures ), std::addressof( variableCountInfo ) );
+
+        // For Passes that use push constants
+        // This PS is declared the same way as in the pipeline reflection
+        // This allows for descriptor sets compatibility as otherwise it would lead to this
+        // descriptor set ot get unbound if we bind a non-compatible set after it,
+        // We declare by default in the pipeline layouts here and in the reflected pipeline
+        // the global push_constants even if they are later not used by the pass
+        VkPushConstantRange psRange{
+            .stageFlags = VK_SHADER_STAGE_ALL,
+            .offset = 0,
+            .size = MINIMUM_REQUIRED_PUSH_CONSTANTS_SIZE
+        };
+
+        std::array pushConstants{ psRange };
+
+        DescriptorSetLayoutHandle emptyLayout{ m_Device->GetDummyDescriptorLayout() };
+        std::array<VkDescriptorSetLayout, 8> setLayouts{
+            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),                                        // set 0
+            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 1
+            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 2
+            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 3
+            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 4
+            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 5
+            emptyLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),    // set 6
+            layoutTextures                                                     // set 7
+        };
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount = static_cast<UInt32>(setLayouts.size()),
+            .pSetLayouts = setLayouts.data(),
+            .pushConstantRangeCount = static_cast<UInt32>( pushConstants.size() ),
+            .pPushConstantRanges = pushConstants.data()
+        };
+
+        vkCreatePipelineLayout(
+                m_Device->GetLogicalDevice(),
+                std::addressof( pipelineLayoutInfo ),
+                nullptr,
+                std::addressof( m_TexturesPipelineLayout ) );
+    }
+
+    UnboundedImageSamplersManager::~UnboundedImageSamplersManager() {
+        m_LayoutTextures.Reset();
+        vkDestroyPipelineLayout( m_Device->GetLogicalDevice(), m_TexturesPipelineLayout, nullptr );
+    }
 
     VulkanGraphicsContext::VulkanGraphicsContext( GpuDevice *device )
         : GraphicsContext{}, m_Device{ TO_VK_DEVICE( device ) } {}
 
     auto VulkanGraphicsContext::Init() -> void {
-        CreateBindlessTexturesSet();
-
         m_MaxFramesInFlight = MKT_VK_CTX( RenderService::Get()->GetContext() )->GetMaxFramesInFlight();
     }
 
@@ -203,8 +358,7 @@ namespace Mikoto {
         m_SamplersByNames.clear();
         m_Samplers.clear();
 
-        m_LayoutTextures.Reset();
-        vkDestroyPipelineLayout( m_Device->GetLogicalDevice(), m_TexturesPipelineLayout, nullptr );
+        m_CombinedImageSamplersGroupManager.clear();
     }
 
     auto VulkanGraphicsContext::BeginFrame() -> void {
@@ -263,8 +417,13 @@ namespace Mikoto {
         VulkanPipeline* vulkanPipeline{ MKT_TO_VK_PIPELINE(passInfo.Pipeline) };
 
         for (const auto& setIndex: vulkanPipeline->GetDescriptorSetIndices()) {
+            if (setIndex == UNBOUNDED_BV_SET_INDEX || setIndex == UNBOUNDED_IV_SAMPLERS_SET_INDEX) {
+                continue;
+            }
+
             const VkDescriptorSetLayout &layout{ vulkanPipeline->GetDescriptorSetLayout( setIndex ) };
             VkDescriptorSet descriptorSet{ m_Device->AllocateDescriptorSet( std::addressof( layout ) ) };
+
 
             if ( descriptorSet != VK_NULL_HANDLE ) {
                 passInfo.DescriptorSets[setIndex] = descriptorSet;
@@ -316,81 +475,6 @@ namespace Mikoto {
         writer.WriteImage( groupBinding, textureHandle->GetNativeHandle( ObjectType::Vk_ImageView ), sampler, layout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER );
 
         writer.UpdateSet( m_Device->GetLogicalDevice(), sets );
-    }
-
-    auto VulkanGraphicsContext::CreateBindlessTexturesSet() -> void {
-        // TODO: Review below, could not figure out yet a way to use push constants with GBuffer which used push constants AND bindless textures array
-        // NOTES: https://docs.vulkan.org/spec/latest/chapters/descriptorsets.html#descriptorsets-compatibility
-        // https://www.reddit.com/r/vulkan/comments/1l53wth/does_vkcmdbinddescriptorsets_invalidate_sets_with/
-
-        // There was an Issue with the GBuffer pass which used a push constant but this pipeline layout declares none
-        const UInt32 maxBindlessTextures{ GlobalTextures::GetMaxTextureCount() };
-
-        VkDescriptorSetLayoutBinding binding{};
-        binding.binding = TEXTURES_DESCRIPTOR_SET_INDEX;
-        binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        binding.descriptorCount = maxBindlessTextures;
-        binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        binding.pImmutableSamplers = nullptr;
-
-        VkDescriptorBindingFlags bindingFlags =
-            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-
-        VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
-            .bindingCount = 1,
-            .pBindingFlags = &bindingFlags
-        };
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .pNext = &flagsInfo,
-            .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
-            .bindingCount = 1,
-            .pBindings = &binding
-        };
-
-        m_LayoutTextures = m_Device->AllocateDescriptorSetLayout(  layoutInfo );
-        m_LayoutTextures->SetDebugName( "DescriptorSetLayout for VulkanGraphicsContext bindless textures" );
-
-        std::array variableCount{ maxBindlessTextures };
-        VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
-        variableCountInfo.descriptorSetCount = static_cast<UInt32>( variableCount.size() );
-        variableCountInfo.pDescriptorCounts = variableCount.data();
-
-        VkDescriptorSetLayout layoutTextures{ m_LayoutTextures->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) };
-        m_BindlessTexturesSet = m_Device->AllocateDescriptorSet( std::addressof( layoutTextures ), std::addressof( variableCountInfo ) );
-
-        // For Passes that use push constants
-        // This PS is declared the same way as in the pipeline reflection
-        // This allows for descriptor sets compatibility as otherwise it would lead to this
-        // descriptor set ot get unbound if we bind a non-compatible set after it,
-        // We declare by default in the pipeline layouts here and in the reflected pipeline
-        // the global push_constants even if they are later not used by the pass
-        VkPushConstantRange psRange{
-            .stageFlags = VK_SHADER_STAGE_ALL,
-            .offset     = 0,
-            .size       = MINIMUM_REQUIRED_PUSH_CONSTANTS_SIZE
-        };
-
-        std::array pushConstants{ psRange };
-
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 1,
-            .pSetLayouts = std::addressof( layoutTextures ),
-            .pushConstantRangeCount = static_cast<UInt32>( pushConstants.size() ),
-            .pPushConstantRanges = pushConstants.data()
-        };
-
-        vkCreatePipelineLayout(
-            m_Device->GetLogicalDevice(),
-            std::addressof( pipelineLayoutInfo ),
-            nullptr,
-            std::addressof( m_TexturesPipelineLayout )
-        );
     }
 
     auto VulkanGraphicsContext::PushBuffer( BufferHandle handle, std::string_view passName, UInt32 bindingSlot ) -> void {
@@ -555,44 +639,43 @@ namespace Mikoto {
         if (it == m_PassInfo.end()) {
             return;
         }
-
-
     }
 
-    auto VulkanGraphicsContext::UpdateBindlessTexturesSet(Texture* texture, Sampler* sampler, Size setIndex ) const -> void {
-        MKT_ASSERT(setIndex < GlobalTextures::GetMaxTextureCount(), "Set index must be smaller than max bindless textures");
+    auto VulkanGraphicsContext::BindImageSamplerUndoundedGroup(std::string_view groupName, CommandListHandle cmd) -> void {
+        const auto it{ m_CombinedImageSamplersGroupManager.find( StringUtil::From( groupName ) ) };
 
-        VkSampler vkSampler{ sampler->GetNativeHandle( ObjectType::Vk_Sampler ) };
-        VkImageView vkImageView{ texture->GetNativeHandle( ObjectType::Vk_ImageView ) };
+        if ( it == m_CombinedImageSamplersGroupManager.end() ) {
+            m_CombinedImageSamplersGroupManager.try_emplace( StringUtil::From( groupName ), m_Device );
+        }
 
-        DescriptorWriter writer{};
-        writer.WriteImage( 0, vkImageView, vkSampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, setIndex )
-            .UpdateSet( m_Device->GetLogicalDevice(), m_BindlessTexturesSet );
+        UnboundedImageSamplersManager& manager{ m_CombinedImageSamplersGroupManager.at(StringUtil::From( groupName )) };
+        manager.Bind( cmd );
     }
 
-    // auto VulkanGraphicsContext::PushGlobalTexture( TextureHandle texture ) -> Int32 {
-    //     if (texture.IsEmpty()) {
-    //         return GlobalTextures::INVALID_TEXTURE_INDEX;
-    //     }
-    //
-    //     SamplerHandle sampler{ m_Device->GetDummySampler() };
-    //     MKT_ASSERT( !sampler.IsEmpty(), "Dummy sampler cannot be empty" );
-    //
-    //     // If combined sampler has already been registered return its index
-    //     Int32 index{ m_SrgTextures.GetIndex(texture, sampler) };
-    //     if (index != GlobalTextures::INVALID_TEXTURE_INDEX) {
-    //         return index;
-    //     }
-    //
-    //     // If combined sampler does not exist, register it
-    //     Int32 result{ m_SrgTextures.Bind( texture, sampler ) };
-    //     if (result != GlobalTextures::INVALID_TEXTURE_INDEX) {
-    //         UpdateBindlessTexturesSet( texture.GetRaw(), sampler.GetRaw(), result );
-    //     }
-    //
-    //     return result;
-    //
-    // }
+    auto VulkanGraphicsContext::RegisterImageSamplerUndoundedGroup( std::string_view groupName, ResourceSlot slot, TextureHandle texture, SamplerHandle sampler ) -> UInt32 {
+        if ( texture.IsEmpty() ) {
+            return INVALID_BINDLESS_GROUP_INDEX;
+        }
+
+        Int32 index{ INVALID_BINDLESS_GROUP_INDEX };
+        std::string group{ StringUtil::From( groupName ) };
+
+        MKT_ASSERT( m_CombinedImageSamplersGroupManager.contains( group ), "Unbounded resource group not initialized" );
+
+        UnboundedImageSamplersManager& manager{ m_CombinedImageSamplersGroupManager.at( group ) };
+
+        SamplerHandle newSampler{ sampler.IsEmpty() ? m_Device->GetDummySampler() : sampler };
+        MKT_ASSERT( !newSampler.IsEmpty(), "Dummy sampler cannot be empty" );
+
+        if (manager.ContainsResource(texture.GetRaw(), newSampler.GetRaw())) {
+            return manager.GetIndex( texture.GetRaw(), newSampler.GetRaw() );
+        }
+
+        index = manager.RegisterResource( texture.GetRaw(), newSampler.GetRaw() );
+        manager.UpdateBindlessTexturesSet( texture.GetRaw(), newSampler.GetRaw(), index );
+
+        return index;
+    }
 
     auto VulkanGraphicsContext::GetTexture( std::string_view name ) -> TextureHandle {
         const auto it{ m_TexturesByNames.find( std::string{ name } ) };

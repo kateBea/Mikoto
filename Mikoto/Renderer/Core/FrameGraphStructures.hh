@@ -77,7 +77,6 @@ namespace Mikoto {
         std::vector<ResourceNode> Reads{};
         std::vector<ResourceNode> Writes{};
 
-        ConstantsGroup ConstantsShaderResources{};
         CommonResourceGroup StaticResourceGroup{ ResourceGroup::Static };
         CommonResourceGroup DynamicResourceGroup{ ResourceGroup::Dynamic };
 

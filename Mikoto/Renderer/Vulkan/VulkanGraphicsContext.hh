@@ -73,7 +73,6 @@ namespace Mikoto {
         VulkanDevice* m_Device{};
         VkDescriptorSet m_BindlessTexturesSet{};
         VkPipelineLayout m_TexturesPipelineLayout{};
-        DescriptorSetLayoutHandle m_LayoutTextures{};
 
         ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, Int32> m_ImageSamplers{};
     };

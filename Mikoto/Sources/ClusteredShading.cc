@@ -141,9 +141,7 @@ namespace Mikoto {
                 b.CreateTexture( "GBuffer_Position", m_Resolution, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
                 b.CreateTexture( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                 b.CreateTexture( "GBuffer_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                b.CreateTexture( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
-
-                b.CreateTexture( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
+                b.CreateTexture( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
                 b.UseShader( "Resources/Shaders/slang/Gbuffer_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/Gbuffer_Frag.slang", ShaderStage::FRAGMENT );
@@ -158,7 +156,7 @@ namespace Mikoto {
                         TextureFormat::RGBA8_UNORM,
                         TextureFormat::RGBA8_UNORM
                     },
-                    .DepthAttachmentFormat{ TextureFormat::D32_FLOAT }
+                    .DepthAttachmentFormat{ TextureFormat::D32_FLOAT_S8_UINT }
                 };
                 b.CreatePipeline( "GBuffer_Pipeline", graphicsDesc );
 
@@ -168,7 +166,8 @@ namespace Mikoto {
                 b.Write( "GBuffer_Depth", FrameResourceState::DepthWrite );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_MaterialsInfo", FrameResourceState::UnorderedAccessView );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();

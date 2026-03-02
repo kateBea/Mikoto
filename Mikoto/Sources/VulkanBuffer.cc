@@ -153,11 +153,19 @@ namespace Mikoto {
         m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
         m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+        // For now Uniforms always filled from CPUI
     }
 
     auto VulkanBuffer::SetupStorageBuffer(const BufferDescription& createInfo) -> void {
         m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+        // Large SSBO may be updated via copy commands if marked as dynamic
+        // if marked as streaming they can be updated directly from CPU
+        if (IsResourceUsage(ResourceUsageType::RESOURCE_USAGE_DYNAMIC)) {
+            m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        }
 
         m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     }

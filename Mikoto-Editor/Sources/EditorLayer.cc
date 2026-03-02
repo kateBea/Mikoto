@@ -96,9 +96,6 @@ namespace Mikoto {
 
         LoadResources();
 
-        // DEBUG. Load KTX
-        //m_EditorState->EditorSceneRenderer->UpdateEquirectangularMapAsync("Resources/HDR/papermill.ktx");
-
         m_EditorState->PassesCompositions.try_emplace( "Triangle", m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );

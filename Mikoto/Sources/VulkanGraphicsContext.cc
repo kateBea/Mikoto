@@ -69,7 +69,7 @@ namespace Mikoto {
         }
 
         // Should not happen
-        return CONSTANTS_SET_INDEX;
+        return INVALID_SET_INDEX;
     }
 
     constexpr auto GetBufferDescriptorType( BufferUsage type, ResourceUsageType usage ) noexcept -> VkDescriptorType {
@@ -97,92 +97,92 @@ namespace Mikoto {
     }
 
     MKT_NODISCARD constexpr auto GetVulkanState(FrameResourceState state) -> VulkanResourceStateInfo {
-    switch (state) {
+        switch (state) {
 
-        case FrameResourceState::ShaderRead_GraphicsPipeline:
-            return {
-                .Stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                .Access = VK_ACCESS_SHADER_READ_BIT,
-                .Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-            };
+            case FrameResourceState::ShaderRead_GraphicsPipeline:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    .Access = VK_ACCESS_SHADER_READ_BIT,
+                    .Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                };
 
-        case FrameResourceState::ShaderRead_ComputePipeline:
-            return {
-                .Stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                .Access = VK_ACCESS_SHADER_READ_BIT,
-                .Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-            };
+            case FrameResourceState::ShaderRead_ComputePipeline:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    .Access = VK_ACCESS_SHADER_READ_BIT,
+                    .Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                };
 
-        case FrameResourceState::UniformBuffer:
-            return {
-                .Stages = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                .Access = VK_ACCESS_UNIFORM_READ_BIT,
-                .Layout = VK_IMAGE_LAYOUT_UNDEFINED // N/A for buffers
-            };
+            case FrameResourceState::UniformBuffer:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    .Access = VK_ACCESS_UNIFORM_READ_BIT,
+                    .Layout = VK_IMAGE_LAYOUT_UNDEFINED // N/A for buffers
+                };
 
-        case FrameResourceState::VertexIndexBuffer:
-            return {
-                .Stages = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-                .Access = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_INDEX_READ_BIT,
-                .Layout = VK_IMAGE_LAYOUT_UNDEFINED
-            };
+            case FrameResourceState::VertexIndexBuffer:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                    .Access = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_INDEX_READ_BIT,
+                    .Layout = VK_IMAGE_LAYOUT_UNDEFINED
+                };
 
-        case FrameResourceState::UnorderedAccessView:
-            return {
-                .Stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                .Access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
-                .Layout = VK_IMAGE_LAYOUT_GENERAL
-            };
+            case FrameResourceState::UnorderedAccessView:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    .Access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                    .Layout = VK_IMAGE_LAYOUT_GENERAL
+                };
 
-        case FrameResourceState::DepthWrite:
-            return {
-                .Stages = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-                .Access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                .Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-            };
+            case FrameResourceState::DepthWrite:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                    .Access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                    .Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+                };
 
-        case FrameResourceState::DepthRead:
-            return {
-                .Stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                .Access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
-                .Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
-            };
+            case FrameResourceState::DepthRead:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                    .Access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+                    .Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                };
 
-        case FrameResourceState::TransferSrc:
-            return {
-                .Stages = VK_PIPELINE_STAGE_TRANSFER_BIT,
-                .Access = VK_ACCESS_TRANSFER_READ_BIT,
-                .Layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-            };
+            case FrameResourceState::TransferSrc:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    .Access = VK_ACCESS_TRANSFER_READ_BIT,
+                    .Layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+                };
 
-        case FrameResourceState::TransferDst:
-            return {
-                .Stages = VK_PIPELINE_STAGE_TRANSFER_BIT,
-                .Access = VK_ACCESS_TRANSFER_WRITE_BIT,
-                .Layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-            };
+            case FrameResourceState::TransferDst:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    .Access = VK_ACCESS_TRANSFER_WRITE_BIT,
+                    .Layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+                };
 
-        case FrameResourceState::Present:
-            return {
-                .Stages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                .Access = 0,
-                .Layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-            };
+            case FrameResourceState::Present:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                    .Access = 0,
+                    .Layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+                };
 
-        case FrameResourceState::RenderTarget:
-            return {
-                .Stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                .Access = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                .Layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-            };
+            case FrameResourceState::RenderTarget:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .Access = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .Layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+                };
 
-        case FrameResourceState::Undefined:
-        default:
-            return {
-                .Stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                .Access = 0,
-                .Layout = VK_IMAGE_LAYOUT_UNDEFINED
-            };
+            case FrameResourceState::Undefined:
+            default:
+                return {
+                    .Stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    .Access = 0,
+                    .Layout = VK_IMAGE_LAYOUT_UNDEFINED
+                };
         }
     }
      
@@ -240,8 +240,6 @@ namespace Mikoto {
     }
 
     auto UnboundedImageSamplersManager::UpdateBindlessTexturesSet( Texture* texture, Sampler* sampler, Int32 setIndex ) -> void {
-
-
         MKT_ASSERT( setIndex < MAX_BINDLESS_GROUP_INDEX, "Set index must be smaller than max bindless textures" );
 
         VkSampler vkSampler{ sampler->GetNativeHandle( ObjectType::Vk_Sampler ) };
@@ -286,15 +284,15 @@ namespace Mikoto {
             .pBindings = &binding
         };
 
-        m_LayoutTextures = m_Device->AllocateDescriptorSetLayout( layoutInfo );
-        m_LayoutTextures->SetDebugName( "DescriptorSetLayout for VulkanGraphicsContext bindless textures" );
+        DescriptorSetLayoutHandle layout{ m_Device->AllocateDescriptorSetLayout( layoutInfo ) };
+        layout->SetDebugName( "DescriptorSetLayout for VulkanGraphicsContext bindless textures" );
 
         std::array variableCount{ maxBindlessTextures };
         VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
         variableCountInfo.descriptorSetCount = static_cast<UInt32>( variableCount.size() );
         variableCountInfo.pDescriptorCounts = variableCount.data();
 
-        VkDescriptorSetLayout layoutTextures{ m_LayoutTextures->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) };
+        VkDescriptorSetLayout layoutTextures{ layout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) };
         m_BindlessTexturesSet = m_Device->AllocateDescriptorSet( std::addressof( layoutTextures ), std::addressof( variableCountInfo ) );
 
         // For Passes that use push constants
@@ -335,17 +333,15 @@ namespace Mikoto {
     }
 
     UnboundedImageSamplersManager::~UnboundedImageSamplersManager() {
-        m_LayoutTextures.Reset();
         vkDestroyPipelineLayout( m_Device->GetLogicalDevice(), m_TexturesPipelineLayout, nullptr );
     }
 
     auto BarrierManager::InsertBufferBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState ) -> void {
-        /*if ( previousState == newState ) {
+        if ( previousState == newState ) {
             return;
-        }*/
+        }
 
         if ( BufferBarrierCount >= MAX_BARRIERS ) {
-            // Should never happen; assert or log
             return;
         }
 
@@ -367,9 +363,9 @@ namespace Mikoto {
     }
 
     auto BarrierManager::InsertTextureBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState ) -> void {
-        /*if ( previousState == newState ) {
+        if ( previousState == newState ) {
             return;
-        }*/
+        }
 
         if ( ImageBarrierCount >= MAX_BARRIERS ) {
             return;
@@ -378,10 +374,8 @@ namespace Mikoto {
         auto oldInfo{ GetVulkanState( previousState ) };
         auto newInfo{ GetVulkanState( newState ) };
 
-
         auto currentLayout{ oldInfo.Layout };
         auto newLayout{ newInfo.Layout };
-        
 
         if ( currentLayout == newLayout ) {
             return;

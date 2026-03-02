@@ -11,3 +11,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+struct VSOutput {
+    float2 UV : TEXCOORD0;
+    float4 Position : SV_Position;
+};
+
+[shader("vertex")]
+VSOutput main(uint vertexID: SV_VertexID) {
+    VSOutput o;
+
+    float2 uv = float2((vertexID << 1) & 2, (vertexID) & 2);
+
+    o.UV = uv;
+    o.Position = float4(uv * 2.0f - 1.0f, 0.0f, 1.0f);
+    return o;
+}

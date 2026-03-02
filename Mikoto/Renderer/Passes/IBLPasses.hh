@@ -39,6 +39,10 @@ namespace Mikoto {
         auto SetCamera( const Camera *camera ) -> void;
         auto SetMeshCulling(MeshCulling& cullingPass) -> void;
 
+        // SSAO
+        auto SetEnableSSAO( bool enable ) -> void;
+        auto SetSSAOIntensity( float value ) -> void;
+
         // HDR
         auto SetEquirectangularMap(TextureHandle texture2D) -> void;
 
@@ -163,6 +167,10 @@ namespace Mikoto {
         ShaderLightListParams m_LightsInfo{};
 
         LightCameraInfo m_DirectionalShadowMapCameraInfo{};
+
+        // SSAO
+        bool m_EnableSSAO{ false };
+        float m_SSAOIntensity{ 1.f };
 
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };

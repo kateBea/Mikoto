@@ -58,7 +58,7 @@ FSOutput main(FSInput input)
     o.Normal = float4(normalize(N) * 0.5 + 0.5, 1.0);
 
     // POSITION (view-space + depth)
-    o.Position = float4(input.ViewPos, LinearDepth(input.ScreenPos.z, u_Camera.Planes));
+    o.Position = normalize(float4(input.ViewPos, LinearDepth(input.ScreenPos.z, u_Camera.Planes)));
 
     // ALBEDO
     float4 albedo =

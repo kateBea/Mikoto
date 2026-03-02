@@ -260,7 +260,7 @@ namespace Mikoto {
             auto& blendAttachmentInfo{ m_PipelineConfig.ColorBlendAttachment.emplace_back() };
             // Blending enabled by default
             blendAttachmentInfo.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-            blendAttachmentInfo.blendEnable = VK_TRUE;
+            blendAttachmentInfo.blendEnable = m_AlphaBlending ? VK_TRUE : VK_FALSE;
             blendAttachmentInfo.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
             blendAttachmentInfo.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
             blendAttachmentInfo.colorBlendOp = VK_BLEND_OP_ADD;

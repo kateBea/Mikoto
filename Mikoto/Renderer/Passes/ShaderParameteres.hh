@@ -73,11 +73,14 @@ namespace Mikoto {
         Int32 AnimatorID{ -1 };
     };
 
-    struct EnvironmentConstants {
+    struct FinalShadingConstants {
         Vec4F GridSize{};
         float Exposure{};
         float Gamma{};
         float MaxReflectionLOD{};
+
+        Int32 EnableSSAO{ MKT_SHADER_FALSE };
+        float SSAOIntensity{ 1.f };
 
         Int32 IsSkyboxActive{};
     };

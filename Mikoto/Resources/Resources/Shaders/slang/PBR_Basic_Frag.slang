@@ -17,11 +17,14 @@
 #include "base/Lighting_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
 
-struct LightingParameters {
+struct FinalShadingParameters {
     float4 GridSize;
     float Exposure;
     float Gamma;
     float MaxReflectionLOD;
+
+    int EnableSSAO;
+    float SSAOIntensity;
 
     int IsSkyboxActive;
 };
@@ -39,8 +42,11 @@ Sampler2D g_BindlessTextures[];
 [[vk::binding(Slot_1, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_PrefilteredMap;
 [[vk::binding(Slot_2, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_SamplerIrradiance;
 
+[[vk::binding(Slot_3, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAOBlur;
+//[[vk::binding(Slot_4, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAO;
+
 [[vk::push_constant]]
-LightingParameters u_Constants;
+FinalShadingParameters u_Constants;
 
 struct FSInput {
     float3 FragmentViewPos : TEXCOORD0;
@@ -153,11 +159,28 @@ FSOutput main(FSInput input) {
         irradiance = u_SamplerIrradiance.Sample(N).rgb;
     }
 
+    // SSAO
+    float2 uv = input.ScreenPos.xy / u_Camera.ScreenDimensions;
+
+    // TODO
+    // Read blurred SSAO
+    float ssao = u_SSAOBlur.Sample(uv).r;
+
+    float ssaoStrength = u_Constants.SSAOIntensity;
+    ssao = pow(ssao, ssaoStrength);
+
+    if (u_Constants.EnableSSAO == MKT_SHADER_FALSE) {
+        ssao = 1.0f;
+    }
+
+    // Raw:
+    // float ssao = u_SSAO.Sample(uv).r;
+
     float3 diffuse = irradiance * albedo.xyz;
     float3 specular = reflection * (F * brdf.x + brdf.y);
 
     float3 kD = (1.0 - F) * (1.0 - metallic);
-    float3 ambient = (kD * diffuse + specular) * ao;
+    float3 ambient = (kD * diffuse + specular) * float3(ssao, ssao, ssao);
 
     float3 color = ambient + Lo;
 

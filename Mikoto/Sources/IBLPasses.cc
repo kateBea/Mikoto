@@ -59,7 +59,7 @@ namespace Mikoto {
         // IBL
         RegisterSkybox( graph );
         RegisterBRDFLut( graph );
-
+        
         RegisterPrefilter( graph );
         RegisterIrradiance( graph );
         RegisterSkyboxRender( graph );
@@ -87,8 +87,6 @@ namespace Mikoto {
 
     auto IBLPasses::SetResolution( RenderResolution resolution ) -> void {
         m_Resolution = resolution;
-
-        // Update passes
     }
 
     auto IBLPasses::SetEquirectangularMap( TextureHandle texture2D ) -> void {
@@ -98,6 +96,14 @@ namespace Mikoto {
 
         m_Equirectangular = texture2D;
         m_RequestUpdateSkybox = true;
+    }
+
+    auto IBLPasses::SetEnableSSAO( bool enable ) -> void {
+        m_EnableSSAO = enable;
+    }
+
+    auto IBLPasses::SetSSAOIntensity( float value ) -> void {
+        m_SSAOIntensity = value;
     }
 
     auto IBLPasses::UseCubeMap( bool value ) -> void {
@@ -596,9 +602,9 @@ namespace Mikoto {
     auto IBLPasses::RegisterShading( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
         
-        graph.RegisterPass<EnvironmentConstants>(
+        graph.RegisterPass<FinalShadingConstants>(
             "FinalShading",
-            [this]( FramePassBuilder &b, EnvironmentConstants& ) -> void {
+            [this]( FramePassBuilder &b, FinalShadingConstants& ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 b.CreateTexture( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
@@ -633,6 +639,9 @@ namespace Mikoto {
                 b.Read( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
+
+                b.Read( "SSAO_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "SSAOBlur_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
@@ -651,15 +660,18 @@ namespace Mikoto {
                 PassRenderInfo renderInfo{
                     .ColorLoadOp{ colorTargetLoadOP },
                 };
-
+                
                 ctx.BeginRender( renderInfo );
 
-                auto& data{ blackboard.Get<EnvironmentConstants>() };
+                auto& data{ blackboard.Get<FinalShadingConstants>() };
                 data.MaxReflectionLOD = m_IBLParameters.MaxReflectionLOD;
                 data.Exposure = m_IBLParameters.Exposure;
                 data.Gamma = m_IBLParameters.Gamma;
                 data.IsSkyboxActive = m_IBLParameters.IsSkyboxActive;
 
+                data.EnableSSAO = m_EnableSSAO ? MKT_SHADER_TRUE : MKT_SHADER_FALSE;
+                data.SSAOIntensity = m_SSAOIntensity;
+                
                 // Bind resources
                 ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
@@ -672,6 +684,9 @@ namespace Mikoto {
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "BRDFLutPass_ColorTarget", m_BRDFLutSampler, ResourceSlot::Slot_0 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_1 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_2 );
+
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAOBlur_ColorTarget", ResourceSlot::Slot_3 );
+                //ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", ResourceSlot::Slot_4 );
 
                 ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
 

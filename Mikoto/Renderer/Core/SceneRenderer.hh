@@ -78,6 +78,7 @@ namespace Mikoto {
 
         // SSAO
         auto SetEnableSSAO(bool enable) -> void;
+        auto SetSSAOIntensity(float value) -> void;
 
         // Wireframe
         auto SetWireframeEnable(bool enable) -> void;

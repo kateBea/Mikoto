@@ -142,7 +142,11 @@ namespace Mikoto {
     }
 
     auto SceneRenderer::SetEnableSSAO( bool enable ) -> void {
+        m_IBLPasses.SetEnableSSAO( enable );
+    }
 
+    auto SceneRenderer::SetSSAOIntensity( float value ) -> void {
+        m_IBLPasses.SetSSAOIntensity( value );
     }
 
     auto SceneRenderer::SetWireframeEnable( bool enable ) -> void {

@@ -294,11 +294,16 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( "Enable SSAO" );
 
+
+
         ImGui::Spacing();
 
         ImGuiUtils::Slider( "Radius", m_SSAORadius, { 0.05f, 5.0f } );
         ImGuiUtils::Slider( "Bias", m_SSAOBias, { 0.0f,  0.1f } );
-        ImGuiUtils::Slider( "Power", m_SSAOStrength, { 0.1f,  3.0f } );
+
+        if (ImGuiUtils::Slider("Power", m_SSAOStrength, { 0.1f, 5.0f })) {
+            m_EditorState->EditorSceneRenderer->SetSSAOIntensity( m_SSAOStrength );
+        }
     }
 
     auto RendererPanel::DrawIBLSettings() -> void {

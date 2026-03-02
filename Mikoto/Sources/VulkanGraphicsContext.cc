@@ -843,7 +843,6 @@ namespace Mikoto {
             return;
         }
 
-
         FramePassInfo& info{ it->second };
 
         auto bindingSlot{ ( UInt32 )slot };
@@ -863,6 +862,8 @@ namespace Mikoto {
     }
 
     auto VulkanGraphicsContext::PushTexture( ResourceGroup group, TextureHandle texture, std::string_view pass, ResourceSlot slot ) -> void {
+        SamplerHandle sampler{ m_Device->GetDummySampler() };
+        PushTexture( group, texture, sampler, pass, slot);
     }
 
     auto VulkanGraphicsContext::BindImageSamplerUndoundedGroup(std::string_view groupName, CommandListHandle cmd) -> void {

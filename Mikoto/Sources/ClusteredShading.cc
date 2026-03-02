@@ -72,7 +72,7 @@ namespace Mikoto {
                 ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "AABBGenComp_Clusters", ResourceSlot::Slot_0 );
 
-                auto& data{ blackboard.Get<EnvironmentConstants>() };
+                auto& data{ blackboard.Get<FinalShadingConstants>() };
                 data.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };
 
                 m_ClusterShadingParams.GridSize = glm::vec4{ m_GridSizeX, m_GridSizeY, m_GridSizeZ, 0.0f };

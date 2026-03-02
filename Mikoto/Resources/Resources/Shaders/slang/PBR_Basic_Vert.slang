@@ -65,14 +65,13 @@ struct VSOutput {
 
     float MetallicFactor : TEXCOORD11;
     float RoughnessFactor : TEXCOORD12;
-    float OcclusionStrength : TEXCOORD13;
 
-    float3 EmissiveFactors : TEXCOORD14;
-    float EmissionIntensity : TEXCOORD15;
-    int EmissionIndex : TEXCOORD16;
-    float AlphaCutoff : TEXCOORD17;
+    float3 EmissiveFactors : TEXCOORD13;
+    float EmissionIntensity : TEXCOORD14;
+    int EmissionIndex : TEXCOORD15;
+    float AlphaCutoff : TEXCOORD16;
 
-    float2 TexCoord1 : TEXCOORD18;
+    float2 TexCoord1 : TEXCOORD17;
 
     float4 PositionH : SV_Position;
 };
@@ -138,7 +137,6 @@ VSOutput main(VSInput input) {
     o.Albedo = meshMaterial.BaseColorFactor;
     o.MetallicFactor = meshMaterial.MetallicFactor;
     o.RoughnessFactor = meshMaterial.RoughnessFactor;
-    o.OcclusionStrength = 1.0f; // TODO
 
     o.EmissiveFactors = float3(0, 0, 0); //  // TODO
     o.EmissionIntensity = meshMaterial.EmissiveStrength;

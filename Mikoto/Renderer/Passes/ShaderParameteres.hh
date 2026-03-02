@@ -80,6 +80,7 @@ namespace Mikoto {
         float MaxReflectionLOD{};
 
         Int32 EnableSSAO{ MKT_SHADER_FALSE };
+        Int32 UseBlurred{ MKT_SHADER_FALSE };
         float SSAOIntensity{ 1.f };
 
         Int32 IsSkyboxActive{};

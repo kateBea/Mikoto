@@ -24,6 +24,7 @@ struct FinalShadingParameters {
     float MaxReflectionLOD;
 
     int EnableSSAO;
+    int UseBlurred;
     float SSAOIntensity;
 
     int IsSkyboxActive;
@@ -42,8 +43,8 @@ Sampler2D g_BindlessTextures[];
 [[vk::binding(Slot_1, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_PrefilteredMap;
 [[vk::binding(Slot_2, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_SamplerIrradiance;
 
-[[vk::binding(Slot_3, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAOBlur;
-//[[vk::binding(Slot_4, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAO;
+[[vk::binding(Slot_3, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAO;
+[[vk::binding(Slot_4, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAOBlur;
 
 [[vk::push_constant]]
 FinalShadingParameters u_Constants;
@@ -64,14 +65,13 @@ struct FSInput {
 
     float MetallicFactor : TEXCOORD11;
     float RoughnessFactor : TEXCOORD12;
-    float OcclusionStrength : TEXCOORD13;
 
-    float3 EmissiveFactors : TEXCOORD14;
-    float EmissionIntensity : TEXCOORD15;
-    int EmissionIndex : TEXCOORD16;
-    float AlphaCutoff : TEXCOORD17;
+    float3 EmissiveFactors : TEXCOORD13;
+    float EmissionIntensity : TEXCOORD14;
+    int EmissionIndex : TEXCOORD15;
+    float AlphaCutoff : TEXCOORD16;
 
-    float2 TexCoord1 : TEXCOORD18;
+    float2 TexCoord1 : TEXCOORD17;
 
     float4 ScreenPos : SV_Position;
 };
@@ -95,10 +95,6 @@ FSOutput main(FSInput input) {
     float roughness = (input.RoughnessIndex != INVALID_TEXTURE_INDEX)
         ? g_BindlessTextures[input.RoughnessIndex].Sample(input.TexCoord).r
                                                    : input.RoughnessFactor;
-
-    float ao = (input.AoIndex != INVALID_TEXTURE_INDEX)
-        ? g_BindlessTextures[input.AoIndex].Sample(input.TexCoord).r
-        : input.OcclusionStrength;
 
     float3 N = (input.NormalIndex != INVALID_TEXTURE_INDEX)
         ? GetNormalFromMap(g_BindlessTextures[input.NormalIndex], input.TexCoord, input.FragmentWorldPos, input.Normal)
@@ -160,22 +156,23 @@ FSOutput main(FSInput input) {
     }
 
     // SSAO
-    float2 uv = input.ScreenPos.xy / u_Camera.ScreenDimensions;
-
-    // TODO
+    
+    
     // Read blurred SSAO
-    float ssao = u_SSAOBlur.Sample(uv).r;
+    float ssao = 1.0f;
+    
+    
+    if (u_Constants.EnableSSAO != MKT_SHADER_FALSE) {
+        float2 uv = input.ScreenPos.xy / u_Camera.ScreenDimensions;
 
-    float ssaoStrength = u_Constants.SSAOIntensity;
-    ssao = pow(ssao, ssaoStrength);
+        ssao = (input.AoIndex != INVALID_TEXTURE_INDEX)
+            ? g_BindlessTextures[input.AoIndex].Sample(input.TexCoord).r
+            : (u_Constants.UseBlurred == MKT_SHADER_TRUE ? u_SSAOBlur.Sample(uv).r : u_SSAO.Sample(uv).r);
 
-    if (u_Constants.EnableSSAO == MKT_SHADER_FALSE) {
-        ssao = 1.0f;
+        float ssaoStrength = u_Constants.SSAOIntensity;
+        ssao = pow(ssao, ssaoStrength);
     }
-
-    // Raw:
-    // float ssao = u_SSAO.Sample(uv).r;
-
+    
     float3 diffuse = irradiance * albedo.xyz;
     float3 specular = reflection * (F * brdf.x + brdf.y);
 

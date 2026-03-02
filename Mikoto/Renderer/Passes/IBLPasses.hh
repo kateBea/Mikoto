@@ -41,6 +41,7 @@ namespace Mikoto {
 
         // SSAO
         auto SetEnableSSAO( bool enable ) -> void;
+        auto SetEnableSSAOBlur( bool enable ) -> void;
         auto SetSSAOIntensity( float value ) -> void;
 
         // HDR
@@ -170,6 +171,7 @@ namespace Mikoto {
 
         // SSAO
         bool m_EnableSSAO{ false };
+        bool m_UseBlurredSSAO{ false };
         float m_SSAOIntensity{ 1.f };
 
         Scene* m_Scene{};

@@ -145,6 +145,10 @@ namespace Mikoto {
         m_IBLPasses.SetEnableSSAO( enable );
     }
 
+    auto SceneRenderer::SetEnableSSAOBlurred( bool enable ) -> void {
+        m_IBLPasses.SetEnableSSAOBlur( enable );
+    }
+
     auto SceneRenderer::SetSSAOIntensity( float value ) -> void {
         m_IBLPasses.SetSSAOIntensity( value );
     }

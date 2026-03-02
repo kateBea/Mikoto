@@ -294,7 +294,12 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( "Enable SSAO" );
 
-
+        // Enable blurr toggle
+        if ( ImGuiUtils::CheckBox( "##RendererPanel::DrawSSAOSettings::EnableSSAOBlurr", m_EnableSSAOBlur ) ) {
+            m_EditorState->EditorSceneRenderer->SetEnableSSAOBlurred( m_EnableSSAOBlur );
+        }
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "Enable SSAO blur" );
 
         ImGui::Spacing();
 

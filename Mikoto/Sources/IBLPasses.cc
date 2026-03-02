@@ -77,6 +77,9 @@ namespace Mikoto {
         m_UseConvolutedCubeMap = enable;
     }
 
+    auto IBLPasses::SetCamera( const Camera *camera ) -> void {
+    }
+
     auto IBLPasses::IsUsingConvolutedCube() const -> bool {
         return m_UseConvolutedCubeMap;
     }
@@ -97,9 +100,12 @@ namespace Mikoto {
         m_Equirectangular = texture2D;
         m_RequestUpdateSkybox = true;
     }
-
     auto IBLPasses::SetEnableSSAO( bool enable ) -> void {
         m_EnableSSAO = enable;
+    }
+
+    auto IBLPasses::SetEnableSSAOBlur( bool enable ) -> void {
+        m_UseBlurredSSAO = enable;
     }
 
     auto IBLPasses::SetSSAOIntensity( float value ) -> void {
@@ -492,10 +498,6 @@ namespace Mikoto {
                 ctx.EndRender();
             } );
     }
-
-    auto IBLPasses::SetCamera( const Camera *camera ) -> void {
-
-    }
     
     auto IBLPasses::RegisterDirShadowMap( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
@@ -670,6 +672,7 @@ namespace Mikoto {
                 data.IsSkyboxActive = m_IBLParameters.IsSkyboxActive;
 
                 data.EnableSSAO = m_EnableSSAO ? MKT_SHADER_TRUE : MKT_SHADER_FALSE;
+                data.UseBlurred = m_UseBlurredSSAO ? MKT_SHADER_TRUE : MKT_SHADER_FALSE;
                 data.SSAOIntensity = m_SSAOIntensity;
                 
                 // Bind resources
@@ -685,8 +688,8 @@ namespace Mikoto {
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_1 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_2 );
 
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAOBlur_ColorTarget", ResourceSlot::Slot_3 );
-                //ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", ResourceSlot::Slot_4 );
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", ResourceSlot::Slot_3 );
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAOBlur_ColorTarget", ResourceSlot::Slot_4 );
 
                 ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
 
@@ -798,12 +801,12 @@ namespace Mikoto {
                 //b.Read( "FinalShading_Params", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
 
-                //b.Read( "HelloTriangle_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
-                //b.Read( "HelloTexture_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "HelloTriangle_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "HelloTexture_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
 
-                //b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
-                //b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
-                //b.Read( "GBuffer_Color", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "GBuffer_Color", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
             []( CommandContext &, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();

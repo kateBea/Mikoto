@@ -151,7 +151,7 @@ namespace Mikoto {
 
             ankerl::unordered_dense::map<UInt32, std::pair<Texture*, Sampler*>> CombinedImageSamplerBinding{};
 
-            BarrierManager BarrierManager{};
+            BarrierManager PassBarrierManager{};
         };
 
     private:

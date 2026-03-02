@@ -18,7 +18,6 @@
 
 #include <volk.h>
 
-#include <ktx.h>
 
 #include <Common/Common.hh>
 #include <Common/String.hh>
@@ -598,6 +597,7 @@ namespace Mikoto {
     }
 
     auto VulkanTextureCube::LoadWithImageLoader() -> void {
+#if false
         ktxTexture* kTexture{};
         KTX_error_code result = ktxTexture_CreateFromNamedFile(
                 m_TextureFaces[0]->GetPath().c_str(),
@@ -691,6 +691,7 @@ namespace Mikoto {
         m_Device->SubmitCommands( cmd );
 
         ktxTexture_Destroy( kTexture );
+#endif
     }
 
     auto VulkanTextureCube::SetDebugInfo() -> void {

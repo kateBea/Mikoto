@@ -29,6 +29,9 @@ static const int INVALID_UV_SET = -1;
 
 static const float MIN_ROUGHNESS = 0.04;
 
+static const uint MAX_BONES = 100;
+static const uint MAX_BONE_INFLUENCE = 4;
+
 // ============================================================================
 // Structs
 // ============================================================================
@@ -47,18 +50,21 @@ struct MaterialParameters {
     float  EmissiveStrength;
 
     int    BaseColorTextureSet;
-    int    PhysicalDescriptorTextureSet;
+    int    MetallicRoughnessTextureSet;
+    int    SpecularGlossinessSet;
     int    NormalTextureSet;
     int    OcclusionTextureSet;
     int    EmissiveTextureSet;
 
     int    AlbedoIndex;
+    int    DiffuseIndex;
     int    NormalIndex;
     int    MetallicIndex;
     int    RoughnessIndex;
     int    AoIndex;
     int    EmissiveIndex;
-    int    PhysicalDescriptorTextureIndex;
+    int    MetallicRoughnessIndex;
+    int    SpecularGlossinessIndex;
 };
 
 struct MeshParameters {
@@ -66,6 +72,25 @@ struct MeshParameters {
     float4x4 InverseModelView;
 
     int AnimatorID;
+};
+
+struct BoneData {
+    float4x4 Bone[MAX_BONES];
+};
+
+struct VertexData {
+    float3 Position;
+    float3 Normal;
+    float3 Color;
+    float2 TexCoord0;
+    float2 TexCoord1;
+
+    float4 Joint;
+    float4 Weight;
+};
+
+struct IndexData {
+    uint Index;
 };
 
 // ============================================================================

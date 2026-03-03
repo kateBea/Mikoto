@@ -66,7 +66,7 @@ namespace Mikoto {
         bool m_EnableVSync{ false };
 
         // SSAO
-        bool m_EnableSSAO{ true };
+        bool m_EnableSSAO{ false };
         bool m_EnableSSAOBlur{ true };
         UInt32 m_SSAODimensions{ 8 }; // m_SSAODimensions * m_SSAODimensions
         float m_KernelSize{ 0.5f };

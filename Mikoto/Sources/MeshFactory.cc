@@ -125,6 +125,9 @@ namespace Mikoto {
             BufferHandle vertexBuffer{ m_Device->CreateBuffer( vertexDesc ) };
             BufferHandle indexBuffer{ m_Device->CreateBuffer( indexDesc ) };
 
+            vertexBuffer->SetDebugName( StringUtil::Format("Vertices for: {}", meshNode.Name) );
+            indexBuffer->SetDebugName( StringUtil::Format( "Indices for: {}", meshNode.Name ) );
+
             // If it does not have any material construct one by default
             MaterialProperties material{ data.Materials[meshNode.MaterialIndex]  };
             MeshNode node{ meshIndex,vertexBuffer, indexBuffer, meshNode.Name, std::move( material) };

@@ -248,15 +248,15 @@ namespace Mikoto {
                         }
                     }
                 }
-
+                
                 // Materials
-                material.Workflow = static_cast<float>( pbrMat->GetWorkflow() );
 
                 material.BaseColorFactor = pbrMat->GetBaseColorFactor();
+                material.EmissiveFactor = Vec4F{ pbrMat->GetEmissiveFactor(), 1.0f };
                 material.DiffuseFactor = pbrMat->GetDiffuseFactor();
                 material.SpecularFactor = pbrMat->GetSpecularFactor();
 
-                material.EmissiveFactor = Vec4F{ pbrMat->GetEmissiveFactor(), 1.0f };
+                material.Workflow = static_cast<float>( pbrMat->GetWorkflow() );
 
                 material.MetallicFactor = pbrMat->GetMetallicFactor();
                 material.RoughnessFactor = pbrMat->GetRoughnessFactor();
@@ -266,22 +266,27 @@ namespace Mikoto {
 
                 // UV Sets
                 material.BaseColorTextureSet = pbrMat->GetBaseColorTextureSet();
-                material.PhysicalDescriptorTextureSet = pbrMat->GetPhysicalDescriptorTextureSet();
+                material.MetallicRoughnessTextureSet = pbrMat->GetMetallicRoughnessTextureSet();
+                material.SpecilarGlossinessSet = pbrMat->GetSpecularGlossinessSet();
                 material.NormalTextureSet = pbrMat->GetNormalTextureSet();
                 material.OcclusionTextureSet = pbrMat->GetOcclusionTextureSet();
                 material.EmissiveTextureSet = pbrMat->GetEmissiveTextureSet();
-
+                
                 // Bindless texture indices
                 material.AlbedoIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::BASE_COLOR_TEXTURE ) );
+                material.DiffuseIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::DIFFUSE_TEXTURE ) );
                 material.NormalIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::NORMAL_TEXTURE ) );
+                material.EmissiveIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::EMISSIVE_TEXTURE ) );
+                material.AoIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
+
                 material.MetallicIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::METALLIC_TEXTURE ) );
                 material.RoughnessIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::ROUGHNESS_TEXTURE ) );
-                material.AoIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::AMBIENT_OCCLUSION_TEXTURE ) );
-                material.EmissiveIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::EMISSIVE_TEXTURE ) );
-                material.PhysicalDescriptorTextureIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::METALLIC_ROUGHNESS_TEXTURE ) );
+
+                material.SpecilarGlossinessIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::SPECULAR_GLOSSINESS ) );
+                material.MetallicRoughnessIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::METALLIC_ROUGHNESS_TEXTURE ) );
             }
         }
-
+        
         // Flaten
         Size activeMeshCount{};
         for (auto& [node, data] : m_IndexedGeometryManager.GetData()) {

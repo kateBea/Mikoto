@@ -287,11 +287,12 @@ namespace Mikoto {
         TextureLoadDescription loadInfo{};
         loadInfo.WithType( TextureType::TEXTURE_2D );
 
-        for ( const auto& mat: model.materials ) {
+        for ( const auto& gltfMaterial: model.materials ) {
             MaterialProperties props{};
-            props.Name = mat.name;
+            props.Name = gltfMaterial.name;
+            props.IsDoubleSided = gltfMaterial.doubleSided;
 
-            const auto& pbr = mat.pbrMetallicRoughness;
+            const auto& pbr{ gltfMaterial.pbrMetallicRoughness };
 
             props.BaseColorFactor = {
                 static_cast<float>( pbr.baseColorFactor[0] ),
@@ -303,7 +304,7 @@ namespace Mikoto {
             props.MetallicFactor = static_cast<float>( pbr.metallicFactor );
             props.RoughnessFactor = static_cast<float>( pbr.roughnessFactor );
 
-            // Albedo
+            // Base color
             if ( pbr.baseColorTexture.index >= 0 ) {
                 const auto& tex{ model.textures[pbr.baseColorTexture.index] };
                 props.BaseColorTextureSet = pbr.baseColorTexture.texCoord;
@@ -339,11 +340,11 @@ namespace Mikoto {
             }
 
             // Normal
-            if ( mat.normalTexture.index >= 0 ) {
-                const auto& tex{ model.textures[mat.normalTexture.index] };
-                props.NormalTextureSet = mat.normalTexture.texCoord;
+            if ( gltfMaterial.normalTexture.index >= 0 ) {
+                const auto& tex{ model.textures[gltfMaterial.normalTexture.index] };
+                props.NormalTextureSet = gltfMaterial.normalTexture.texCoord;
                 props.NormalScale =
-                        static_cast<float>( mat.normalTexture.scale );
+                        static_cast<float>( gltfMaterial.normalTexture.scale );
 
                 loadInfo.WithMapType( MapType::NORMAL_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
@@ -358,11 +359,11 @@ namespace Mikoto {
             }
 
             // Occlusion
-            if ( mat.occlusionTexture.index >= 0 ) {
-                const auto& tex{ model.textures[mat.occlusionTexture.index] };
-                props.OcclusionStrength = mat.occlusionTexture.texCoord;
+            if ( gltfMaterial.occlusionTexture.index >= 0 ) {
+                const auto& tex{ model.textures[gltfMaterial.occlusionTexture.index] };
+                props.OcclusionStrength = gltfMaterial.occlusionTexture.texCoord;
                 props.OcclusionStrength =
-                        static_cast<float>( mat.occlusionTexture.strength );
+                        static_cast<float>( gltfMaterial.occlusionTexture.strength );
 
                 loadInfo.WithMapType( MapType::AMBIENT_OCCLUSION_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
@@ -377,9 +378,9 @@ namespace Mikoto {
             }
 
             // Emissive
-            if ( mat.emissiveTexture.index >= 0 ) {
-                const auto& tex{ model.textures[mat.emissiveTexture.index] };
-                props.EmissiveTextureSet = mat.emissiveTexture.texCoord;
+            if ( gltfMaterial.emissiveTexture.index >= 0 ) {
+                const auto& tex{ model.textures[gltfMaterial.emissiveTexture.index] };
+                props.EmissiveTextureSet = gltfMaterial.emissiveTexture.texCoord;
 
                 loadInfo.WithMapType( MapType::EMISSIVE_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
@@ -394,39 +395,48 @@ namespace Mikoto {
             }
 
             props.EmissiveFactor = {
-                static_cast<float>( mat.emissiveFactor[0] ),
-                static_cast<float>( mat.emissiveFactor[1] ),
-                static_cast<float>( mat.emissiveFactor[2] )
+                static_cast<float>( gltfMaterial.emissiveFactor[0] ),
+                static_cast<float>( gltfMaterial.emissiveFactor[1] ),
+                static_cast<float>( gltfMaterial.emissiveFactor[2] )
             };
 
-            // Alpha
-            if (mat.alphaMode == "BLEND") {
+            // Alpha (Default is Opaque unless otherwise specified)
+            if (gltfMaterial.alphaMode == "BLEND") {
                 props.AlphaMask = PBR_AlphaMode::Blend;
-            } else if ( mat.alphaMode == "MASK" ) {
+            } else if ( gltfMaterial.alphaMode == "MASK" ) {
                 props.AlphaMask = PBR_AlphaMode::Mask;
             }
 
-            props.AlphaMaskCutoff = static_cast<float>( mat.alphaCutoff );
+            props.AlphaMaskCutoff = static_cast<float>( gltfMaterial.alphaCutoff );
 
             // Extensions
-            auto ext{ mat.extensions.find( "KHR_materials_pbrSpecularGlossiness" ) };
-            if ( mat.extensions.find( KHR_PBR_SpecularGlossiness.data() ) != mat.extensions.end() ) {
+            auto ext{ gltfMaterial.extensions.find( KHR_PBR_SpecularGlossiness.data() ) };
+            if ( gltfMaterial.extensions.find( KHR_PBR_SpecularGlossiness.data() ) != gltfMaterial.extensions.end() ) {
 
                 if ( ext->second.Has( "specularGlossinessTexture" ) ) {
                     auto index{ ext->second.Get( "specularGlossinessTexture" ).Get( "index" ) };
+                    
+                    auto texIndex = index.Get<int>();
+                    auto texCoordSet = ext->second.Get( "specularGlossinessTexture" ).Get( "texCoord" ).Get<int>();
 
-                    //material.extension.specularGlossinessTexture = &textures[index.Get<int>()];
+                    loadInfo.WithMapType( MapType::SPECULAR_GLOSSINESS );
+                    loadInfo.WithFile( FileService::Get()->LoadFile( 
+                        Path{ PathBuilder()
+                            .WithPath( rootPath )
+                            .WithPath( model.images[texIndex].uri )
+                            .Build() } ) );
 
-                    /*auto texCoordSet = ext->second.Get( "specularGlossinessTexture" ).Get( "texCoord" );
-                    material.texCoordSets.specularGlossiness = texCoordSet.Get<int>();
-                    material.pbrWorkflows.specularGlossiness = true;
-                    material.pbrWorkflows.metallicRoughness = false;*/
+                    TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
+                    if ( !texture.IsEmpty() ) {
+                        props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
+                    }
+
+                    props.SpecularGlossinessSet = texCoordSet;
+                    props.Workflow = PBR_Workflow::SpecularGlossiness;
                 }
-
+                
                 if ( ext->second.Has( "diffuseTexture" ) ) {
                     auto index{ ext->second.Get( "diffuseTexture" ).Get( "index" ) };
-                    //material.extension.diffuseTexture = &textures[index.Get<int>()];
-
                     loadInfo.WithMapType( MapType::DIFFUSE_TEXTURE );
                     loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
                             .WithPath( rootPath )
@@ -456,12 +466,12 @@ namespace Mikoto {
                 }
             }
 
-            if ( mat.extensions.find( KHR_PBR_Unlit.data() ) != mat.extensions.end() ) {
+            if ( gltfMaterial.extensions.find( KHR_PBR_Unlit.data() ) != gltfMaterial.extensions.end() ) {
                 props.Unlit = true;
             }
 
-            if ( mat.extensions.find( KHR_Emissive_Strength.data() ) != mat.extensions.end() ) {
-                auto ext = mat.extensions.find( KHR_Emissive_Strength.data() );
+            if ( gltfMaterial.extensions.find( KHR_Emissive_Strength.data() ) != gltfMaterial.extensions.end() ) {
+                auto ext = gltfMaterial.extensions.find( KHR_Emissive_Strength.data() );
                 if ( ext->second.Has( "emissiveStrength" ) ) {
                     auto value{ ext->second.Get( "emissiveStrength" ) };
                     props.EmissiveStrength = ( float )value.Get<double>();

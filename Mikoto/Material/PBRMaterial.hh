@@ -27,13 +27,26 @@ namespace Mikoto {
     enum class PBR_Workflow {
         MetallicRoughness,
         SpecularGlossiness,
-        Unlit
     };
 
     enum class PBR_AlphaMode {
         Opaque,
         Mask,
         Blend
+    };
+
+    // I need to lead the sampler specifications for this materials
+    // some mesh are properly rendered with specific type of sampler properties
+    // I had issues rendering Sponza because I was using clamp to edge whereas
+    // the wall bricks needed repeat
+    struct SamplingProperties {
+        float MipLevels{ 1.0f };
+
+        SamplerFilter MinFilter{ SamplerFilter::FILTER_NEAREST };
+        SamplerFilter MagFilter{ SamplerFilter::FILTER_NEAREST };
+        SamplerWrapMode WrapU{ SamplerWrapMode::WRAP_REPEAT };
+        SamplerWrapMode WrapV{ SamplerWrapMode::WRAP_REPEAT };
+        SamplerWrapMode WrapW{ SamplerWrapMode::WRAP_REPEAT };
     };
 
     struct MaterialProperties {
@@ -58,17 +71,20 @@ namespace Mikoto {
 
         // Texture UV sets (Maps can either use UV0 or UV1)
         // UV0 assumed by default unless otherwise specified
-        Int32 BaseColorTextureSet{};
-        Int32 PhysicalDescriptorTextureSet{};
-        Int32 NormalTextureSet{};
-        Int32 OcclusionTextureSet{};
-        Int32 EmissiveTextureSet{};
+        Int32 BaseColorTextureSet{ -1 };
+        Int32 MetallicRoughnessTextureSet{ -1 };
+        Int32 SpecularGlossinessSet{ -1 };
+        Int32 NormalTextureSet{ -1 };
+        Int32 OcclusionTextureSet{ -1 };
+        Int32 EmissiveTextureSet{ -1 };
 
         // GLTF Extensions
         bool Unlit{ false };
 
+        bool IsDoubleSided{ false };
 
         ankerl::unordered_dense::map<std::string, TextureHandle> TexturesByUri{};
+        ankerl::unordered_dense::map<std::string, SamplingProperties> TexturesSamplers{};
     };
 
     class PBRMaterial final : public Material {
@@ -101,12 +117,14 @@ namespace Mikoto {
         auto SetOcclusionStrength( float v ) -> void;
         auto SetEmissiveStrength( float v ) -> void;
         auto SetAlphaMaskCutoff( float v ) -> void;
+        auto SetIsDoubleSided( bool value ) -> void;
 
         // ===============================
         // UV Set Setters
         // ===============================
         auto SetBaseColorTextureSet( Int32 set ) -> void;
-        auto SetPhysicalDescriptorTextureSet( Int32 set ) -> void;
+        auto SetMetallicRoughnessTextureSet( Int32 set ) -> void;
+        auto SetSpecularGlossinessSet( Int32 set ) -> void;
         auto SetNormalTextureSet( Int32 set ) -> void;
         auto SetOcclusionTextureSet( Int32 set ) -> void;
         auto SetEmissiveTextureSet( Int32 set ) -> void;
@@ -135,10 +153,13 @@ namespace Mikoto {
         // UV Set Getters
         // ===============================
         MKT_NODISCARD auto GetBaseColorTextureSet() const -> Int32;
-        MKT_NODISCARD auto GetPhysicalDescriptorTextureSet() const -> Int32;
+        MKT_NODISCARD auto GetMetallicRoughnessTextureSet() const -> Int32;
+        MKT_NODISCARD auto GetSpecularGlossinessSet() const -> Int32;
         MKT_NODISCARD auto GetNormalTextureSet() const -> Int32;
         MKT_NODISCARD auto GetOcclusionTextureSet() const -> Int32;
         MKT_NODISCARD auto GetEmissiveTextureSet() const -> Int32;
+
+        MKT_NODISCARD auto IsDoubleSided() const -> bool;
 
         MKT_NODISCARD auto HasTexture( MapType type ) const -> bool;
         MKT_NODISCARD auto GetTexture( MapType type ) const -> TextureHandle;
@@ -171,10 +192,13 @@ namespace Mikoto {
 
         // UV sets
         Int32 m_BaseColorTextureSet{};
-        Int32 m_PhysicalDescriptorTextureSet{};
+        Int32 m_MetallicRoughnessTextureSet{};
+        Int32 m_SpecularGlossinessTextureSet{};
         Int32 m_NormalTextureSet{};
         Int32 m_OcclusionTextureSet{};
         Int32 m_EmissiveTextureSet{};
+
+        bool m_IsDoubleSided{ false };
 
         // Note: Materials reference both textures and samplers.
         // Textures provide the image data, while samplers define how that data is read

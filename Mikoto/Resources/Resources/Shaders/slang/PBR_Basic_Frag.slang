@@ -27,6 +27,10 @@ struct FinalShadingParameters {
     int UseBlurred;
     float SSAOIntensity;
 
+    int PrefilteredCubeMipLevels;
+    float ScaleIBLAmbient;
+    int Step; // for debug
+
     int IsSkyboxActive;
 };
 

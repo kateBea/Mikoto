@@ -13,36 +13,72 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Math_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Material_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
 
-struct LightingParameters {
+struct FinalShadingParameters {
     float4 GridSize;
     float Exposure;
     float Gamma;
     float MaxReflectionLOD;
 
+    int EnableSSAO;
+    int UseBlurred;
+    float SSAOIntensity;
+
+    int PrefilteredCubeMipLevels;
+    float ScaleIBLAmbient;
+    int Step; // for debug
+
     int IsSkyboxActive;
 };
 
+// Encapsulate the various inputs used by the various functions in the shading equation
+// We store values in this struct to simplify the integration of alternative implementations
+// of the shading terms, outlined in the Readme.MD Appendix.
+struct PBRInfo
+{
+    float NdotL;               // cos angle between normal and light direction
+    float NdotV;               // cos angle between normal and view direction
+    float NdotH;               // cos angle between normal and half vector
+    float LdotH;               // cos angle between light direction and half vector
+    float VdotH;               // cos angle between view direction and half vector
+    float perceptualRoughness; // roughness value, as authored by the model creator (input to shader)
+    float metalness;           // metallic value at the surface
+    float3 reflectance0;       // full reflectance color (normal incidence angle)
+    float3 reflectance90;        // reflectance color at grazing angle
+    float alphaRoughness;        // roughness mapped to a more linear change in the roughness (proposed by [2])
+    float3 diffuseColor;         // color contribution from diffuse lighting
+    float3 specularColor;        // color contribution from specular lighting
+};
+
+// Camera
+[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
+ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
+
 // Materials
-[[vk::binding(0, TEXTURES_SET_INDEX)]] Sampler2D g_BindlessTextures[];
-[[vk::binding(0, PER_MATERIAL_SET_INDEX)]] StructuredBuffer<MaterialParameters, ScalarDataLayout> Materials;
+[[vk::binding(Slot_0, UNBOUNDED_IV_SAMPLERS_SET_INDEX)]] Sampler2D g_BindlessTextures[];
 
-// Clustering and lighting resources
-[[vk::binding(0, DYNAMIC_BUFFERS_SET_INDEX)]] ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
-[[vk::binding(3, DYNAMIC_BUFFERS_SET_INDEX)]] StructuredBuffer<LightInfo, ScalarDataLayout> Lights;
-[[vk::binding(2, DYNAMIC_RESOURCE_SET_INDEX)]] StructuredBuffer<Cluster, ScalarDataLayout> Clusters;
+[[vk::binding(Slot_2, UAV_SET_INDEX)]] StructuredBuffer<MaterialParameters, ScalarDataLayout> Materials;
 
-// IBL resources
-[[vk::binding(4, DYNAMIC_RESOURCE_SET_INDEX)]] Sampler2D u_SamplerBRDFLUT;
-[[vk::binding(5, DYNAMIC_RESOURCE_SET_INDEX)]] SamplerCube u_PrefilteredMap;
-[[vk::binding(6, DYNAMIC_RESOURCE_SET_INDEX)]] SamplerCube u_SamplerIrradiance;
+// Lighting
+//[[vk::binding(Slot_3, UAV_SET_INDEX)]] StructuredBuffer<Cluster, ScalarDataLayout> Clusters;
+//[[vk::binding(Slot_4, UAV_SET_INDEX)]] StructuredBuffer<LightInfo, ScalarDataLayout> Lights;
+
+// IBL
+[[vk::binding(Slot_0, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SamplerBRDFLUT;
+[[vk::binding(Slot_1, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_PrefilteredMap;
+[[vk::binding(Slot_2, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_SamplerIrradiance;
+
+// SSAO
+//[[vk::binding(Slot_3, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAO;
+//[[vk::binding(Slot_4, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAOBlur;
 
 [[vk::push_constant]]
-LightingParameters u_Constants;
+FinalShadingParameters u_Constants;
 
 struct FSInput {
     float3 FragmentViewPos : TEXCOORD0;
@@ -57,6 +93,70 @@ struct FSInput {
     float4 ScreenPos : SV_Position;
 };
 
+float4 Tonemap(float4 color) {
+    float3 outcol = Uncharted2Tonemap(color.rgb * u_Constants.Exposure);
+    outcol = outcol * (1.0f / Uncharted2Tonemap(float3(11.2f)));
+    return float4(pow(outcol, float3(1.0f / u_Constants.Gamma)), color.a);
+}
+
+// Calculation of the lighting contribution from an optional Image Based Light source.
+// Precomputed Environment Maps are required uniform inputs and are computed as outlined in [1].
+// See our README.md on Environment Maps [3] for additional discussion.
+float3 GetIBLContribution(PBRInfo pbrInputs, float3 n, float3 reflection) {
+    float lod = (pbrInputs.perceptualRoughness * u_Constants.PrefilteredCubeMipLevels);
+    // retrieve a scale and bias to F0. See [1], Figure 3
+    float3 brdf = u_SamplerBRDFLUT.Sample(float2(pbrInputs.NdotV, 1.0 - pbrInputs.perceptualRoughness)).rgb;
+    float3 diffuseLight = SRGBtoLinear(Tonemap(u_SamplerIrradiance.Sample(n))).rgb;
+
+    float3 specularLight = SRGBtoLinear(Tonemap(u_PrefilteredMap.SampleLevel(reflection, lod))).rgb;
+
+    float3 diffuse = diffuseLight * pbrInputs.diffuseColor;
+    float3 specular = specularLight * (pbrInputs.specularColor * brdf.x + brdf.y);
+
+    // For presentation, this allows us to disable IBL terms
+    // For presentation, this allows us to disable IBL terms
+    diffuse *= u_Constants.ScaleIBLAmbient;
+    specular *= u_Constants.ScaleIBLAmbient;
+
+    return diffuse + specular;
+}
+
+// Basic Lambertian diffuse
+// Implementation from Lambert's Photometria https://archive.org/details/lambertsphotome00lambgoog
+// See also [1], Equation 1
+float3 Diffuse(PBRInfo pbrInputs) {
+    return pbrInputs.diffuseColor / PI_Value;
+}
+
+// The following equation models the Fresnel reflectance term of the spec equation (aka F())
+// Implementation of fresnel from [4], Equation 15
+float3 SpecularReflection(PBRInfo pbrInputs) {
+    return pbrInputs.reflectance0 + (pbrInputs.reflectance90 - pbrInputs.reflectance0) * pow(clamp(1.0 - pbrInputs.VdotH, 0.0, 1.0), 5.0);
+}
+
+// This calculates the specular geometric attenuation (aka G()),
+// where rougher material will reflect less light back to the viewer.
+// This implementation is based on [1] Equation 4, and we adopt their modifications to
+// alphaRoughness as input as originally proposed in [2].
+float GeometricOcclusion(PBRInfo pbrInputs) {
+    float NdotL = pbrInputs.NdotL;
+    float NdotV = pbrInputs.NdotV;
+    float r = pbrInputs.alphaRoughness;
+
+    float attenuationL = 2.0 * NdotL / (NdotL + sqrt(r * r + (1.0 - r * r) * (NdotL * NdotL)));
+    float attenuationV = 2.0 * NdotV / (NdotV + sqrt(r * r + (1.0 - r * r) * (NdotV * NdotV)));
+    return attenuationL * attenuationV;
+}
+
+// The following equation(s) model the distribution of microfacet normals across the area being drawn (aka D())
+// Implementation from "Average Irregularity Representation of a Roughened Surface for Ray Reflection" by T. S. Trowbridge, and K. P. Reitz
+// Follows the distribution function recommended in the SIGGRAPH 2013 course notes from EPIC Games [1], Equation 3.
+float MicrofacetDistribution(PBRInfo pbrInputs) {
+    float roughnessSq = pbrInputs.alphaRoughness * pbrInputs.alphaRoughness;
+    float f = (pbrInputs.NdotH * roughnessSq - pbrInputs.NdotH) * pbrInputs.NdotH + 1.0;
+    return roughnessSq / (PI_Value * f * f);
+}
+
 struct FSOutput {
     float4 Color : SV_Target0;
 };
@@ -67,119 +167,17 @@ FSOutput main(FSInput input) {
 
     MaterialParameters material = Materials[input.MaterialIndex];
 
-    float4 baseColor = float4(0.0, 0.0, 0.0, 0.0);
-    float3 diffuseColor = float3(0.0, 0.0, 0.0);
-    float perceptualRoughness = 0.0;
-    float metallic = 0.0f;
+    float4 baseColor = float4(0.4, 0.2, 0.4, 0.0);
 
-    float3 f0 = float3(0.04);
-
-    if (material.AlphaMask == PBR_ALPHA_MASK) {
-        if (material.BaseColorTextureSet != INVALID_UV_SET) {
-            Sampler2D colorMap = g_BindlessTextures[material.AlbedoIndex];
-            baseColor = SRGBtoLinear(colorMap.Sample(material.BaseColorTextureSet == 0 ? 
-                input.TexCoord0 : input.TexCoord1)) * material.BaseColorFactor;
-        } else {
-            baseColor = material.BaseColorFactor;
-        }
-        if (baseColor.a < material.AlphaMaskCutoff) {
-            discard;
-        }
+    if (material.DiffuseIndex != -1) {
+        baseColor = g_BindlessTextures[material.DiffuseIndex].Sample( material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1);
+    } else if (material.AlbedoIndex != -1) {
+        baseColor = g_BindlessTextures[material.AlbedoIndex].Sample( material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1);
+    } else {
+        baseColor = material.BaseColorFactor;
     }
 
-    if (material.Workflow == PBR_WORKFLOW_METALLIC_ROUGHNESS) {
-        // Metallic and Roughness material properties are packed together
-        // In glTF, these factors can be specified by fixed scalar values
-        // or from a metallic-roughness map
-        perceptualRoughness = material.RoughnessFactor;
-        metallic = material.MetallicFactor;
-
-        if (material.PhysicalDescriptorTextureSet > -1) {
-            // Roughness is stored in the 'g' channel, metallic is stored in the 'b' channel.
-            // This layout intentionally reserves the 'r' channel for (optional) occlusion map data
-            Sampler2D physicalDescriptorMap = g_BindlessTextures[material.PhysicalDescriptorTextureSet];
-            float4 mrSample = physicalDescriptorMap.Sample(material.PhysicalDescriptorTextureSet == 0 ? 
-                input.TexCoord0 : input.TexCoord1);
-            perceptualRoughness = mrSample.g * perceptualRoughness;
-            metallic = mrSample.b * metallic;
-        } else {
-            perceptualRoughness = clamp(perceptualRoughness, MIN_ROUGHNESS, 1.0);
-            metallic = clamp(metallic, 0.0, 1.0);
-        }
-        // Roughness is authored as perceptual roughness; as is convention,
-        // convert to material roughness by squaring the perceptual roughness [2].
-
-        // The albedo may be defined from a base texture or a flat color
-        if (material.BaseColorTextureSet != INVALID_UV_SET) {
-            Sampler2D colorMap = g_BindlessTextures[material.AlbedoIndex];
-            baseColor = SRGBtoLinear(colorMap.Sample(material.BaseColorTextureSet == 0 ? 
-                input.TexCoord0 : input.TexCoord1)) * material.BaseColorFactor;
-        } else {
-            baseColor = material.BaseColorFactor;
-        }
-    }
-
-    if (material.Workflow == PBR_WORKFLOW_SPECULAR_GLOSSINESS) {
-        // Values from specular glossiness workflow are converted to metallic roughness
-        if (material.PhysicalDescriptorTextureSet > -1) {
-            Sampler2D physicalDescriptorMap = g_BindlessTextures[material.PhysicalDescriptorTextureIndex];
-            perceptualRoughness = 1.0 - physicalDescriptorMap.Sample(material.PhysicalDescriptorTextureSet == 0 ? 
-                input.TexCoord0 : input.TexCoord1).a;
-        } else {
-            perceptualRoughness = 0.0;
-        }
-
-        const float epsilon = 1e-6;
-
-        Sampler2D colorMap = g_BindlessTextures[material.AlbedoIndex];
-        Sampler2D physicalDescriptorMap = g_BindlessTextures[material.PhysicalDescriptorTextureSet];
-
-        float4 diffuse = SRGBtoLinear(colorMap.Sample(input.TexCoord0));
-        float3 specular = SRGBtoLinear(physicalDescriptorMap.Sample(input.TexCoord0)).rgb;
-
-        float maxSpecular = max(max(specular.r, specular.g), specular.b);
-
-        // Convert metallic value from specular glossiness inputs
-        metallic = ConvertMetallic(diffuse.rgb, specular, maxSpecular);
-
-        float3 baseColorDiffusePart = diffuse.rgb * ((1.0 - maxSpecular) / (1 - MIN_ROUGHNESS) / max(1 - metallic, epsilon)) * material.DiffuseFactor.rgb;
-        float3 baseColorSpecularPart = specular - (float3(MIN_ROUGHNESS) * (1 - metallic) * (1 / max(metallic, epsilon))) * material.SpecularFactor.rgb;
-        baseColor = float4(lerp(baseColorDiffusePart, baseColorSpecularPart, metallic * metallic), diffuse.a);
-    }
-
-    baseColor *= float4(input.VertexColor, 1.0);
-
-    diffuseColor = baseColor.rgb * (float3(1.0) - f0);
-    diffuseColor *= 1.0 - metallic;
-
-    float alphaRoughness = perceptualRoughness * perceptualRoughness;
-
-    float3 specularColor = lerp(f0, baseColor.rgb, metallic);
-
-    // Compute reflectance.
-    float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b);
-
-    // For typical incident reflectance range (between 4% to 100%) set the grazing reflectance to 100% for typical fresnel effect.
-    // For very low reflectance range on highly diffuse objects (below 4%), incrementally reduce grazing reflecance to 0%.
-    float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
-    float3 specularEnvironmentR0 = specularColor.rgb;
-    float3 specularEnvironmentR90 = float3(1.0, 1.0, 1.0) * reflectance90;
-
-    //float3 n = (material.NormalTextureSet != INVALID_UV_SET) ? GetNormalFromMap(input.TexCoord, input.FragmentWorldPos, input.Normal) : normalize(input.Normal);
-    //n.y *= -1.0f;
-
-    //float3 v = normalize(ubo.camPos - inWorldPos);  // Vector from surface point to camera
-    //float3 l = normalize(uboParams.lightDir.xyz);   // Vector from surface point to light
-    //float3 h = normalize(l + v);                    // Half vector between both l and v
-
-    //float3 reflection = normalize(reflect(-v, n));
-
-    //float NdotL = clamp(dot(n, l), 0.001, 1.0);
-    //float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
-    //float NdotH = clamp(dot(n, h), 0.0, 1.0);
-    //float LdotH = clamp(dot(l, h), 0.0, 1.0);
-    //float VdotH = clamp(dot(v, h), 0.0, 1.0);
+    output.Color = baseColor;
 
     return output;
-
 }

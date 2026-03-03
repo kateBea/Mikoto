@@ -33,6 +33,22 @@
 
 namespace Mikoto {
 
+    struct VertexBufferData {
+        Vec3F Position{};
+        Vec3F Normal{};
+        Vec3F Color{};
+
+        Vec2F TexCoord0{};
+        Vec2F TexCoord1{};
+
+        Vec4F Joint{};
+        Vec4F Weight{};
+    };
+
+    struct IndexBufferData {
+        UInt32 Index{};
+    };
+
     struct GeometryAllocation {
         UInt64 VertexOffset{};
         UInt64 VertexSize{};

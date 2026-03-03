@@ -222,8 +222,13 @@ namespace Mikoto {
                 b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
-            [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+            [this]( CommandContext& ctx, FrameGraphBlackboard& blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
+
+                auto& constants{ blackboard.Get<FinalShadingConstants>() };
+                if (!constants.EnableSSAO) {
+                    return;
+                }
 
                 if ( m_Sampler.IsEmpty() || m_SamplerNoise.IsEmpty() ) {
                     m_Sampler = ctx.CreateSampler( SamplerDescription{} );
@@ -283,8 +288,13 @@ namespace Mikoto {
                     b.Write( "SSAOBlur_ColorTarget", FrameResourceState::RenderTarget );
                     b.Read( "SSAO_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                 },
-                [this]( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+                [this]( CommandContext& ctx, FrameGraphBlackboard& blackboard ) -> void {
                     MKT_BEGIN_PROFILER_NAMED();
+
+                    auto& constants{ blackboard.Get<FinalShadingConstants>() };
+                    if ( !constants.EnableSSAO ) {
+                        return;
+                    }
 
                     if ( m_Sampler.IsEmpty() ) {
                         m_Sampler = ctx.CreateSampler( SamplerDescription{} );

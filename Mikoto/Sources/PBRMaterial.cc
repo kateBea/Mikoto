@@ -43,10 +43,13 @@ namespace Mikoto {
         m_AlphaMaskCutoff = props.AlphaMaskCutoff;
 
         m_BaseColorTextureSet = props.BaseColorTextureSet;
-        m_PhysicalDescriptorTextureSet = props.PhysicalDescriptorTextureSet;
+        m_MetallicRoughnessTextureSet = props.MetallicRoughnessTextureSet;
+        m_SpecularGlossinessTextureSet = props.SpecularGlossinessSet;
         m_NormalTextureSet = props.NormalTextureSet;
         m_OcclusionTextureSet = props.OcclusionTextureSet;
         m_EmissiveTextureSet = props.EmissiveTextureSet;
+
+        m_IsDoubleSided = props.IsDoubleSided;
 
         for ( const auto& texture: props.TexturesByUri | std::ranges::views::values ) {
             SetTexture( texture.As<Texture2D>()->GetMapType(), texture );
@@ -171,6 +174,10 @@ namespace Mikoto {
         m_AlphaMaskCutoff = v;
     }
 
+    auto PBRMaterial::SetIsDoubleSided( bool v ) -> void {
+        m_IsDoubleSided = v;
+    }
+
     auto PBRMaterial::GetBaseColorTextureSet() const -> Int32 {
         return m_BaseColorTextureSet;
     }
@@ -179,12 +186,20 @@ namespace Mikoto {
         m_BaseColorTextureSet = set;
     }
 
-    auto PBRMaterial::GetPhysicalDescriptorTextureSet() const -> Int32 {
-        return m_PhysicalDescriptorTextureSet;
+    auto PBRMaterial::GetSpecularGlossinessSet() const -> Int32 {
+        return m_SpecularGlossinessTextureSet;
     }
 
-    auto PBRMaterial::SetPhysicalDescriptorTextureSet( Int32 set ) -> void {
-        m_PhysicalDescriptorTextureSet = set;
+    auto PBRMaterial::GetMetallicRoughnessTextureSet() const -> Int32 {
+        return m_MetallicRoughnessTextureSet;
+    }
+
+    auto PBRMaterial::SetMetallicRoughnessTextureSet( Int32 set ) -> void {
+        m_MetallicRoughnessTextureSet = set;
+    }
+
+    auto PBRMaterial::SetSpecularGlossinessSet( Int32 set ) -> void {
+        m_SpecularGlossinessTextureSet = set;
     }
 
     auto PBRMaterial::GetNormalTextureSet() const -> Int32 {
@@ -205,6 +220,10 @@ namespace Mikoto {
 
     auto PBRMaterial::GetEmissiveTextureSet() const -> Int32 {
         return m_EmissiveTextureSet;
+    }
+
+    auto PBRMaterial::IsDoubleSided() const -> bool {
+        return m_IsDoubleSided;
     }
 
     auto PBRMaterial::SetEmissiveTextureSet( Int32 set ) -> void {

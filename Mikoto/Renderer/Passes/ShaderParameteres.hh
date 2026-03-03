@@ -42,7 +42,7 @@ namespace Mikoto {
         Vec4F DiffuseFactor{};
         Vec4F SpecularFactor{};
 
-        int Workflow{};
+        Int32 Workflow{};
 
         float MetallicFactor{};
         float RoughnessFactor{};
@@ -51,19 +51,22 @@ namespace Mikoto {
         float EmissiveStrength{};
 
         Int32 BaseColorTextureSet{};
-        Int32 PhysicalDescriptorTextureSet{};
+        Int32 MetallicRoughnessTextureSet{};
+        Int32 SpecilarGlossinessSet{};
         Int32 NormalTextureSet{};
         Int32 OcclusionTextureSet{};
         Int32 EmissiveTextureSet{};
 
         // Texture indices
         Int32 AlbedoIndex{ INVALID_TEXTURE_INDEX };
+        Int32 DiffuseIndex{ INVALID_TEXTURE_INDEX };
         Int32 NormalIndex{ INVALID_TEXTURE_INDEX };
         Int32 MetallicIndex{ INVALID_TEXTURE_INDEX };
         Int32 RoughnessIndex{ INVALID_TEXTURE_INDEX };
         Int32 AoIndex{ INVALID_TEXTURE_INDEX };
         Int32 EmissiveIndex{ INVALID_TEXTURE_INDEX };
-        Int32 PhysicalDescriptorTextureIndex{ INVALID_TEXTURE_INDEX };
+        Int32 MetallicRoughnessIndex{ INVALID_TEXTURE_INDEX };
+        Int32 SpecilarGlossinessIndex{ INVALID_TEXTURE_INDEX };
     };
 
     struct ShaderMesh {
@@ -82,6 +85,10 @@ namespace Mikoto {
         Int32 EnableSSAO{ MKT_SHADER_FALSE };
         Int32 UseBlurred{ MKT_SHADER_FALSE };
         float SSAOIntensity{ 1.f };
+
+        Int32 PrefilteredCubeMipLevels{};
+        float ScaleIBLAmbient{ 1.0f };
+        Int32 Step{ 1 };
 
         Int32 IsSkyboxActive{};
     };

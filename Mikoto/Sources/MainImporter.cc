@@ -455,7 +455,7 @@ namespace Mikoto {
 
         // Just load the texture set these textures are using, actual texture load logic is separated
         MKT_ASSIMP_LOAD_UV_SET(properties.BaseColorTextureSet, material, aiTextureType_BASE_COLOR);
-        MKT_ASSIMP_LOAD_UV_SET(properties.PhysicalDescriptorTextureSet, material, aiTextureType_METALNESS);
+        MKT_ASSIMP_LOAD_UV_SET(properties.MetallicRoughnessTextureSet, material, aiTextureType_METALNESS);
         MKT_ASSIMP_LOAD_UV_SET(properties.NormalTextureSet, material, aiTextureType_NORMALS);
         MKT_ASSIMP_LOAD_UV_SET(properties.OcclusionTextureSet, material, aiTextureType_LIGHTMAP);
 

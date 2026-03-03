@@ -32,6 +32,7 @@ namespace Mikoto {
         METALLIC_ROUGHNESS_TEXTURE,
         AMBIENT_OCCLUSION_TEXTURE,
         EMISSIVE_TEXTURE,
+        SPECULAR_GLOSSINESS,
 
         UNDEFINED_TEXTURE,
     };
@@ -327,9 +328,9 @@ namespace Mikoto {
 
         SamplerFilter MinFilter{ SamplerFilter::FILTER_NEAREST };
         SamplerFilter MagFilter{ SamplerFilter::FILTER_NEAREST };
-        SamplerWrapMode WrapU{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE };
-        SamplerWrapMode WrapV{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE };
-        SamplerWrapMode WrapW{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE };
+        SamplerWrapMode WrapU{ SamplerWrapMode::WRAP_REPEAT };
+        SamplerWrapMode WrapV{ SamplerWrapMode::WRAP_REPEAT };
+        SamplerWrapMode WrapW{ SamplerWrapMode::WRAP_REPEAT };
 
         auto WithMipLevels(float mipLevels) -> SamplerDescription&;
         auto WithMinFilter( SamplerFilter filter ) -> SamplerDescription&;

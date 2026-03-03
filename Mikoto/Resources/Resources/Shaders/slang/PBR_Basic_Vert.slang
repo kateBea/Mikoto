@@ -16,13 +16,6 @@
 #include "base/Camera_Helpers.slang"
 #include "base/Material_Helpers.slang"
 
-static const uint MAX_BONES = 100;
-static const uint MAX_BONE_INFLUENCE = 4;
-
-struct BoneData {
-    float4x4 Bone[MAX_BONES];
-};
-
 [[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 

@@ -50,12 +50,12 @@ namespace Mikoto {
         // for dynamic shadow casters in a shadow texture atlas
         // TODO: investigate. Start by first integrating shadows for one dir light and proceed with atlas integration
         //https://www.adriancourreges.com/blog/2016/09/09/doom-2016-graphics-study/
-
+        
         // Shadow mapping
         RegisterDirShadowMap( graph );
         RegisterSpotShadowMap( graph );
         RegisterPointShadowMap( graph );
-
+        
         // IBL
         RegisterSkybox( graph );
         RegisterBRDFLut( graph );
@@ -64,9 +64,8 @@ namespace Mikoto {
         RegisterIrradiance( graph );
         RegisterSkyboxRender( graph );
 
-        RegisterShading( graph );
-
-        //RegisterMetalRoughnessPBR( graph );
+        //RegisterShading( graph );
+        RegisterMetalRoughnessPBR( graph );
 
         // This pass will force transitions into
         // states we can display in the editor
@@ -713,13 +712,15 @@ namespace Mikoto {
         // Resources:
         // https://github.khronos.org/Vulkan-Site/tutorial/latest/Building_a_Simple_Engine/Lighting_Materials/04_lighting_implementation.html
 
-        graph.RegisterPass(
-            "MetalRoughnessPBR",
-            [this]( FramePassBuilder &b ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass<FinalShadingConstants>(
+            "MetallicRoughnessPBR",
+            [this]( FramePassBuilder &b, FinalShadingConstants & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                b.Create<Texture>( "MetalRoughnessPBR_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
-                b.Create<Texture>( "MetalRoughnessPBR_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, Multisampling::MSAA_X1, TextureUsage::DEPTH );
+                b.CreateTexture( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
+                b.CreateTexture( "FinalShadingPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, Multisampling::MSAA_X1, TextureUsage::DEPTH );
 
                 GraphicsPipelineDescription graphicsDesc{
                     .DepthTest{ true },
@@ -727,39 +728,43 @@ namespace Mikoto {
                     .AlphaBlending{ true },
                     .EnableSampleRateShading{ true },
                     .MSAA{ Multisampling::MSAA_X1 },
-                    .PipelineCullMode{ CullMode::CULL_BACK },
+                    .PipelineCullMode{ CullMode::NONE },// We probably need to organize models by material some
+                                                        // models like the just_a_girl require cull_back to be properly visulized
                 };
 
-                b.UseShader( "Resources/Shaders/slang/PBR_MetallicRoughness_Vert.slang", ShaderStage::VERTEX )
-                    .UseShader( "Resources/Shaders/slang/PBR_MetallicRoughness_Frag.slang", ShaderStage::FRAGMENT )
-                    .Create<Pipeline>( "MetalRoughnessPBR_Pipeline", graphicsDesc );
+                b.UseShader( "Resources/Shaders/slang/PBR_MetallicRoughness_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/PBR_MetallicRoughness_Frag.slang", ShaderStage::FRAGMENT );
+                b.CreatePipeline( "MetallicRoughnessPBR_Pipeline", graphicsDesc );
 
-                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UnorderedAccessView )
-                    .Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccessView )
-                    .Read( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccessView )
-                    .Read( "MetalRoughnessPBR_ColorTarget", FrameResourceState::RenderTarget)
-                    .Read( "MetalRoughnessPBR_DepthTarget", FrameResourceState::RenderTarget )
-                    .Read( "ClusteredShading_Parameters", FrameResourceState::UniformBuffer );
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
+                b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_MaterialsInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_SkinningInfo", FrameResourceState::UnorderedAccessView );
+
+                b.Read( "AABBGenComp_Clusters", FrameResourceState::UnorderedAccessView );
+                b.Read( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccessView );
+
+                b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
+                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
+
+                b.Read( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
-                b.Read( "BRDFLutPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
 
-                b.Read( "MeshCulling_MeshInfo", FrameResourceState::UnorderedAccessView );
-                b.Read( "MeshCulling_MaterialInfo", FrameResourceState::UniformBuffer );
+                b.Read( "SSAO_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "SSAOBlur_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
-            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+            [this]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 MKT_ASSERT( m_MeshCullingPass, "Mesh culling must be valid" );
 
-                ctx.BindPipeline( "MetalRoughnessPBR" );
-
-                ctx.SetColorRenderTarget( "MetalRoughnessPBR_ColorTarget" );
-                ctx.SetDepthRenderTarget( "MetalRoughnessPBR_DepthTarget" );
+                ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
+                ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
 
                 LoadOp colorTargetLoadOP{ LoadOp::LOAD };
-                if (!m_UseSkybox) {
+                if ( !m_UseSkybox ) {
                     colorTargetLoadOP = LoadOp::CLEAR;
                     ctx.SetClearColor( m_ClearColor );
                 }
@@ -768,17 +773,49 @@ namespace Mikoto {
                     .ColorLoadOp{ colorTargetLoadOP },
                 };
 
-                ctx.BindImage( "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, 7 );
-                ctx.BindImage( "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, 8 );
-                ctx.BindImage( "BRDFLutPass_ColorTarget", m_BRDFLutSampler, 6 );
-
                 ctx.BeginRender( renderInfo );
+                
+                auto &data{ blackboard.Get<FinalShadingConstants>() };
+                data.MaxReflectionLOD = m_IBLParameters.MaxReflectionLOD;
+                data.Exposure = m_IBLParameters.Exposure;
+                data.Gamma = m_IBLParameters.Gamma;
+                data.IsSkyboxActive = m_IBLParameters.IsSkyboxActive;
 
-                const auto dimension{ InferDimensions( m_Resolution ) };
+                data.EnableSSAO = m_EnableSSAO ? MKT_SHADER_TRUE : MKT_SHADER_FALSE;
+                data.UseBlurred = m_UseBlurredSSAO ? MKT_SHADER_TRUE : MKT_SHADER_FALSE;
+                data.SSAOIntensity = m_SSAOIntensity;
 
-                ctx.SetViewport( 0, 0, dimension.first, dimension.second );
-                ctx.SetScissor( 0, 0, dimension.first, dimension.second );
+                data.PrefilteredCubeMipLevels = m_PrefilterMipLevels;
+                data.ScaleIBLAmbient = 1.0f;
+                data.Step = 1;
+                
+                // Bind resources
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
 
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_1 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_MaterialsInfo", ResourceSlot::Slot_2 );
+                
+                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "AABBGenComp_Clusters", ResourceSlot::Slot_3 );
+                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "LightCullingComp_LightsBuffer", ResourceSlot::Slot_4 );
+
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "BRDFLutPass_ColorTarget", m_BRDFLutSampler, ResourceSlot::Slot_0 );
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_1 );
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_2 );
+
+                //ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", ResourceSlot::Slot_3 );
+                //ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAOBlur_ColorTarget", ResourceSlot::Slot_4 );
+
+                ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
+
+                ctx.PushConstants( std::addressof( data ), sizeof( data ) );
+
+                const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                ctx.BindPipeline( "MetallicRoughnessPBR_Pipeline" );
                 m_MeshCullingPass->DrawInstances( ctx );
 
                 ctx.EndRender();

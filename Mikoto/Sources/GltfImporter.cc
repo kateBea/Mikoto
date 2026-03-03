@@ -28,6 +28,8 @@
 
 #include <Threading/ThreadUtility.hh>
 
+#include <Renderer/Core/RenderUtility.hh>
+
 #include <Assets/AssetsService.hh>
 
 namespace Mikoto {
@@ -60,6 +62,40 @@ namespace Mikoto {
             default:
                 return 1;
         }
+    }
+
+    static auto GetMikotoWrapMode( Int32 wrapMode ) -> SamplerWrapMode {
+        switch ( wrapMode ) {
+            case -1:
+            case 10497:
+                return SamplerWrapMode::WRAP_REPEAT;
+            case 33071:
+                return SamplerWrapMode::WRAP_CLAMP_TO_EDGE;
+            case 33648:
+                return SamplerWrapMode::MIRRORED_REPEAT;
+        }
+
+        return SamplerWrapMode::WRAP_REPEAT;
+    }
+
+    static auto GetMikotoFilterMode( Int32 filterMode ) -> SamplerFilter {
+        switch ( filterMode ) {
+            case -1:
+            case 9728:
+                return SamplerFilter::FILTER_NEAREST;
+            case 9729:
+                return SamplerFilter::FILTER_LINEAR;
+            case 9984:
+                return SamplerFilter::FILTER_NEAREST;
+            case 9985:
+                return SamplerFilter::FILTER_NEAREST;
+            case 9986:
+                return SamplerFilter::FILTER_LINEAR;
+            case 9987:
+                return SamplerFilter::FILTER_LINEAR;
+        }
+
+        return SamplerFilter::FILTER_NEAREST;
     }
 
     static auto ReadAccessorAsFloat(
@@ -324,8 +360,7 @@ namespace Mikoto {
             // Metall roughness
             if ( pbr.metallicRoughnessTexture.index >= 0 ) {
                 const auto& tex{ model.textures[pbr.metallicRoughnessTexture.index] };
-                props.BaseColorTextureSet =
-                        pbr.metallicRoughnessTexture.texCoord;
+                props.MetallicRoughnessTextureSet = pbr.metallicRoughnessTexture.texCoord;
 
                 loadInfo.WithMapType( MapType::METALLIC_ROUGHNESS_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
@@ -343,8 +378,7 @@ namespace Mikoto {
             if ( gltfMaterial.normalTexture.index >= 0 ) {
                 const auto& tex{ model.textures[gltfMaterial.normalTexture.index] };
                 props.NormalTextureSet = gltfMaterial.normalTexture.texCoord;
-                props.NormalScale =
-                        static_cast<float>( gltfMaterial.normalTexture.scale );
+                props.NormalScale = static_cast<float>( gltfMaterial.normalTexture.scale );
 
                 loadInfo.WithMapType( MapType::NORMAL_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()

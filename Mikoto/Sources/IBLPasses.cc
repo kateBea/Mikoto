@@ -27,7 +27,7 @@
 #include <Renderer/Passes/IBLPasses.hh>
 
 namespace Mikoto {
-
+    
     IBLPasses::IBLPasses( RenderResolution resolution )
         : m_Resolution{ resolution } {}
 
@@ -71,7 +71,7 @@ namespace Mikoto {
         // states we can display in the editor
         RegisterDebugViewsPass( graph );
     }
-
+    
     auto IBLPasses::UseConvolutedCube( bool enable ) -> void {
         m_UseConvolutedCubeMap = enable;
     }

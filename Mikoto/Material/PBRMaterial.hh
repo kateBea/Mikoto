@@ -84,7 +84,7 @@ namespace Mikoto {
         bool IsDoubleSided{ false };
 
         ankerl::unordered_dense::map<std::string, TextureHandle> TexturesByUri{};
-        ankerl::unordered_dense::map<std::string, SamplingProperties> TexturesSamplers{};
+        ankerl::unordered_dense::map<MapType, SamplingProperties> TexturesSamplers{};
     };
 
     class PBRMaterial final : public Material {

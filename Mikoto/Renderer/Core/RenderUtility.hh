@@ -67,6 +67,7 @@ namespace Mikoto {
 
     enum class SamplerWrapMode {
         WRAP_REPEAT,
+        MIRRORED_REPEAT,
         WRAP_CLAMP_TO_EDGE,
         WRAP_CLAMP_TO_BORDER,
     };

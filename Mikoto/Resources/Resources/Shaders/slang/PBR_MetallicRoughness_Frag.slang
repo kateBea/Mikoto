@@ -169,15 +169,114 @@ FSOutput main(FSInput input) {
 
     float4 baseColor = float4(0.4, 0.2, 0.4, 0.0);
 
-    if (material.DiffuseIndex != -1) {
-        baseColor = g_BindlessTextures[material.DiffuseIndex].Sample( material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1);
-    } else if (material.AlbedoIndex != -1) {
-        baseColor = g_BindlessTextures[material.AlbedoIndex].Sample( material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1);
-    } else {
-        baseColor = material.BaseColorFactor;
+    if (material.AlphaMask == PBR_ALPHA_MASK) {
+        if (material.AlbedoIndex != INVALID_UV_SET) {
+            Sampler2D colorMap = g_BindlessTextures[material.AlbedoIndex];
+
+            baseColor = SRGBtoLinear(colorMap.Sample(material.BaseColorTextureSet == 0 ? 
+                input.TexCoord0 : input.TexCoord1)) * material.BaseColorFactor;
+        } else {
+            baseColor = material.BaseColorFactor;
+        }
+
+        if (baseColor.a < material.AlphaMaskCutoff) {
+            discard;
+        }
     }
 
-    output.Color = baseColor;
+    float metallic = 0.0f;
+    float perceptualRoughness = 0.0;
+
+    float3 f0 = float3(0.04);
+    float3 diffuseColor = float3(0.0, 0.0, 0.0);
+
+
+    if (material.Workflow == PBR_WORKFLOW_METALLIC_ROUGHNESS) {
+        // Metallic and Roughness material properties are packed together
+        // In glTF, these factors can be specified by fixed scalar values
+        // or from a metallic-roughness map
+        perceptualRoughness = material.RoughnessFactor;
+        metallic = material.MetallicFactor;
+
+        if (material.MetallicRoughnessIndex != INVALID_TEXTURE_INDEX) {
+            // Roughness is stored in the 'g' channel, metallic is stored in the 'b' channel.
+            // This layout intentionally reserves the 'r' channel for (optional) occlusion map data
+            Sampler2D metallicRoughnessMap = g_BindlessTextures[material.MetallicRoughnessIndex];
+            float4 mrSample = metallicRoughnessMap.Sample(material.MetallicRoughnessTextureSet == 0 ? input.TexCoord0 : input.TexCoord1);
+
+            perceptualRoughness = mrSample.g * perceptualRoughness;
+            metallic = mrSample.b * metallic;
+        } else {
+            perceptualRoughness = clamp(perceptualRoughness, MIN_ROUGHNESS, 1.0);
+            metallic = clamp(metallic, 0.0, 1.0);
+        }
+        // Roughness is authored as perceptual roughness; as is convention,
+        // convert to material roughness by squaring the perceptual roughness [2].
+
+        // The albedo may be defined from a base texture or a flat color
+        if (material.AlbedoIndex != INVALID_UV_SET) {
+            Sampler2D colorMap = g_BindlessTextures[material.AlbedoIndex];
+            baseColor = SRGBtoLinear(colorMap.Sample(material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1)) * material.BaseColorFactor;
+        } else {
+            baseColor = material.BaseColorFactor;
+        }
+    }
+
+    if (material.Workflow == PBR_WORKFLOW_SPECULAR_GLOSSINESS) {
+        // Values from specular glossiness workflow are converted to metallic roughness
+        if (material.SpecularGlossinessIndex != INVALID_TEXTURE_INDEX) {
+            Sampler2D specularGlossinessMap = g_BindlessTextures[material.SpecularGlossinessIndex];
+            perceptualRoughness = 1.0 - specularGlossinessMap.Sample(material.SpecularGlossinessSet == 0 ? input.TexCoord0 : input.TexCoord1).a;
+        } else {
+            perceptualRoughness = 0.0;
+        }
+
+        const float epsilon = 1e-6;
+
+        // Diffuse index because specular glossiness
+        Sampler2D colorMap = g_BindlessTextures[material.DiffuseIndex];
+        Sampler2D specularGlossinessMap = g_BindlessTextures[material.SpecularGlossinessIndex];
+
+        float4 diffuse = SRGBtoLinear(colorMap.Sample(input.TexCoord0));
+        float3 specular = SRGBtoLinear(specularGlossinessMap.Sample(input.TexCoord0)).rgb;
+
+        float maxSpecular = max(max(specular.r, specular.g), specular.b);
+
+        // Convert metallic value from specular glossiness inputs
+        metallic = ConvertMetallic(diffuse.rgb, specular, maxSpecular);
+
+        float3 baseColorDiffusePart = diffuse.rgb * ((1.0 - maxSpecular) / (1 - MIN_ROUGHNESS) / max(1 - metallic, epsilon)) * material.DiffuseFactor.rgb;
+        float3 baseColorSpecularPart = specular - (float3(MIN_ROUGHNESS) * (1 - metallic) * (1 / max(metallic, epsilon))) * material.SpecularFactor.rgb;
+        baseColor = float4(lerp(baseColorDiffusePart, baseColorSpecularPart, metallic * metallic), diffuse.a);
+    }
+
+    float inputColorAplha = 1.0f; // TODO: extend input color to take 4th component
+    baseColor *= float4(input.VertexColor, inputColorAplha);
+
+    diffuseColor = baseColor.rgb * (float3(1.0) - f0);
+    diffuseColor *= 1.0 - metallic;
+
+    float alphaRoughness = perceptualRoughness * perceptualRoughness;
+
+    float3 specularColor = lerp(f0, baseColor.rgb, metallic);
+
+    // Compute reflectance.
+    float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b);
+
+    // For typical incident reflectance range (between 4% to 100%) set the grazing reflectance to 100% for typical fresnel effect.
+    // For very low reflectance range on highly diffuse objects (below 4%), incrementally reduce grazing reflecance to 0%.
+    float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
+    float3 specularEnvironmentR0 = specularColor.rgb;
+    float3 specularEnvironmentR90 = float3(1.0, 1.0, 1.0) * reflectance90;
+
+    float2 normalUvSet = material.NormalTextureSet == 0 ? input.TexCoord0 : input.TexCoord1;
+    float3 n = (material.NormalTextureSet != INVALID_UV_SET) ? 
+        GetNormalFromMap(g_BindlessTextures[material.NormalIndex], normalUvSet, input.Normal, input.FragmentWorldPos) : 
+        normalize(input.Normal);
+
+    n.y *= -1.0f;
+
+    output.Color = float4(diffuseColor, baseColor.a);
 
     return output;
 }

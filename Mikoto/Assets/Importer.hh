@@ -28,7 +28,7 @@ namespace Mikoto {
     struct VertexData {
         Vec3F Position{};
         Vec3F Normals{};
-        Vec3F Colors{};
+        Vec3F Colors{ 1.0f, 1.0f, 1.0f };
 
         Vec2F UV_0{};
         Vec2F UV_1{};

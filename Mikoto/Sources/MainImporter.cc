@@ -780,7 +780,7 @@ namespace Mikoto {
                 }
             }
         }
-        
+
         Node hierarchy{};
         BuildHierarchy( scene->mRootNode, hierarchy, skeleton );
 

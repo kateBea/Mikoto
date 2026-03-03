@@ -46,6 +46,7 @@ struct PBRInfo
     float NdotH;               // cos angle between normal and half vector
     float LdotH;               // cos angle between light direction and half vector
     float VdotH;               // cos angle between view direction and half vector
+
     float perceptualRoughness; // roughness value, as authored by the model creator (input to shader)
     float metalness;           // metallic value at the surface
     float3 reflectance0;       // full reflectance color (normal incidence angle)
@@ -53,6 +54,16 @@ struct PBRInfo
     float alphaRoughness;        // roughness mapped to a more linear change in the roughness (proposed by [2])
     float3 diffuseColor;         // color contribution from diffuse lighting
     float3 specularColor;        // color contribution from specular lighting
+};
+
+struct BaseInputs {
+    float perceptualRoughness;
+    float metallic;
+    float3 specularEnvironmentR0;
+    float3 specularEnvironmentR90;
+    float alphaRoughness;
+    float3 diffuseColor;
+    float3 specularColor;
 };
 
 // Camera
@@ -65,8 +76,8 @@ ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 [[vk::binding(Slot_2, UAV_SET_INDEX)]] StructuredBuffer<MaterialParameters, ScalarDataLayout> Materials;
 
 // Lighting
-//[[vk::binding(Slot_3, UAV_SET_INDEX)]] StructuredBuffer<Cluster, ScalarDataLayout> Clusters;
-//[[vk::binding(Slot_4, UAV_SET_INDEX)]] StructuredBuffer<LightInfo, ScalarDataLayout> Lights;
+[[vk::binding(Slot_3, UAV_SET_INDEX)]] StructuredBuffer<Cluster, ScalarDataLayout> Clusters;
+[[vk::binding(Slot_4, UAV_SET_INDEX)]] StructuredBuffer<LightInfo, ScalarDataLayout> Lights;
 
 // IBL
 [[vk::binding(Slot_0, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SamplerBRDFLUT;
@@ -102,16 +113,16 @@ float4 Tonemap(float4 color) {
 // Calculation of the lighting contribution from an optional Image Based Light source.
 // Precomputed Environment Maps are required uniform inputs and are computed as outlined in [1].
 // See our README.md on Environment Maps [3] for additional discussion.
-float3 GetIBLContribution(PBRInfo pbrInputs, float3 n, float3 reflection) {
-    float lod = (pbrInputs.perceptualRoughness * u_Constants.PrefilteredCubeMipLevels);
+float3 GetIBLContribution(float NdotV, float3 diffuseColor, float perceptualRoughness, float3 n, float3 reflection) {
+    float lod = (perceptualRoughness * u_Constants.PrefilteredCubeMipLevels);
     // retrieve a scale and bias to F0. See [1], Figure 3
-    float3 brdf = u_SamplerBRDFLUT.Sample(float2(pbrInputs.NdotV, 1.0 - pbrInputs.perceptualRoughness)).rgb;
+    float3 brdf = u_SamplerBRDFLUT.Sample(float2(NdotV, 1.0 - perceptualRoughness)).rgb;
     float3 diffuseLight = SRGBtoLinear(Tonemap(u_SamplerIrradiance.Sample(n))).rgb;
 
     float3 specularLight = SRGBtoLinear(Tonemap(u_PrefilteredMap.SampleLevel(reflection, lod))).rgb;
 
-    float3 diffuse = diffuseLight * pbrInputs.diffuseColor;
-    float3 specular = specularLight * (pbrInputs.specularColor * brdf.x + brdf.y);
+    float3 diffuse = diffuseLight * diffuseColor;
+    float3 specular = specularLight * (diffuseColor * brdf.x + brdf.y);
 
     // For presentation, this allows us to disable IBL terms
     // For presentation, this allows us to disable IBL terms
@@ -155,6 +166,45 @@ float MicrofacetDistribution(PBRInfo pbrInputs) {
     float roughnessSq = pbrInputs.alphaRoughness * pbrInputs.alphaRoughness;
     float f = (pbrInputs.NdotH * roughnessSq - pbrInputs.NdotH) * pbrInputs.NdotH + 1.0;
     return roughnessSq / (PI_Value * f * f);
+}
+
+float3 ComputeDirectionalLightContribution(float3 n, float3 v, LightInfo lightInfo, BaseInputs inputs) {
+    float3 l = normalize(lightInfo.Direction.xyz); // Vector from surface point to light
+    float3 h = normalize(l + v);                     // Half vector between both l and v
+
+    float NdotL = clamp(dot(n, l), 0.001, 1.0);
+    float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
+    float NdotH = clamp(dot(n, h), 0.0, 1.0);
+    float LdotH = clamp(dot(l, h), 0.0, 1.0);
+    float VdotH = clamp(dot(v, h), 0.0, 1.0);
+
+    PBRInfo pbrInputs = PBRInfo(
+		NdotL,
+		NdotV,
+		NdotH,
+		LdotH,
+		VdotH,
+		inputs.perceptualRoughness,
+		inputs.metallic,
+		inputs.specularEnvironmentR0,
+        inputs.specularEnvironmentR90,
+		inputs.alphaRoughness,
+		inputs.diffuseColor,
+		inputs.specularColor
+	);
+
+    // Calculate the shading terms for the microfacet specular shading model
+    float3 F = SpecularReflection(pbrInputs);
+    float G = GeometricOcclusion(pbrInputs);
+    float D = MicrofacetDistribution(pbrInputs);
+
+    // Calculation of analytical lighting contribution
+    float3 diffuseContrib = (1.0 - F) * Diffuse(pbrInputs);
+    float3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
+    // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
+    float3 color = NdotL * lightInfo.Diffuse * (diffuseContrib + specContrib);
+
+    return color;
 }
 
 struct FSOutput {
@@ -274,8 +324,50 @@ FSOutput main(FSInput input) {
         GetNormalFromMap(g_BindlessTextures[material.NormalIndex], normalUvSet, input.Normal, input.FragmentWorldPos) : 
         normalize(input.Normal);
 
-    n.y *= -1.0f;
+    n.y *= -1.0f; // Match Vulkan coordinates
 
+    float3 v = normalize(u_Camera.ViewPosition.xyz - input.FragmentWorldPos); // Vector from surface point to camera
+    float3 reflection = normalize(reflect(-v, n));
+
+    // Compute tile index light clustering
+    uint tileIndex = ComputeTileIndex(input.FragmentViewPos, u_Constants.GridSize.xyz, u_Camera.Planes, input.ScreenPos, u_Camera.ScreenDimensions);
+
+    // Compute common parameters
+    float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
+    BaseInputs baseInputs = BaseInputs(
+        perceptualRoughness,
+		metallic,
+		specularEnvironmentR0,
+		specularEnvironmentR90,
+        alphaRoughness,
+		diffuseColor,
+		specularColor
+    );
+
+    float3 lightContribution = float3(0, 0, 0);
+    // Light Contribution
+    if (tileIndex < Clusters.getCount()) {
+        uint lightCount = Clusters[tileIndex].Count;
+
+        for (uint i = 0; i < lightCount; i++) {
+            uint idx = Clusters[tileIndex].LightIndices[i];
+            LightInfo L = Lights[idx];
+
+            switch (L.ActiveLightType) {
+            case LIGHT_TYPE_POINT:
+                break;
+
+            case LIGHT_TYPE_SPOT:
+                break;
+
+            case LIGHT_TYPE_DIRECTIONAL:
+                lightContribution = ComputeDirectionalLightContribution(n, v, L, baseInputs);
+                break;
+            }
+        }
+    }
+
+    lightContribution += GetIBLContribution(NdotV, diffuseColor, perceptualRoughness, n, reflection);
     output.Color = float4(diffuseColor, baseColor.a);
 
     return output;

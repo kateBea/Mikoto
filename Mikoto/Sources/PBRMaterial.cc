@@ -61,15 +61,15 @@ namespace Mikoto {
     auto PBRMaterial::RemoveTexture( MapType type ) -> void {
         m_Textures.erase( type );
     }
-
+    
     auto PBRMaterial::GetAlphaMask() const -> PBR_AlphaMode {
         return m_AlphaMask;
     }
-
+    
     auto PBRMaterial::SetAlphaMask( PBR_AlphaMode mode ) -> void {
         m_AlphaMask = mode;
     }
-
+    
     auto PBRMaterial::GetWorkflow() const -> PBR_Workflow {
         return m_Workflow;
     }

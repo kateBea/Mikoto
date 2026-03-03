@@ -786,7 +786,7 @@ namespace Mikoto {
 
         skeleton.SetHierarchy( std::move( hierarchy ) );
     }
-
+    
     auto MainImporter::Import( ImporterInfo &loaderData, const ModelLoadDescription &description, ModelData& modelData ) -> void {
         // UVs appear messed UP for vulkan if we specify aiProcess_FlipUVs flag
         auto importerFlags{ static_cast<aiPostProcessSteps>( aiProcess_Triangulate | 

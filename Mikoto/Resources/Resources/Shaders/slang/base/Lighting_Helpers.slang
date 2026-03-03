@@ -289,3 +289,20 @@ float3 ComputePointLight(float3 N, float3 V, float3 F0, float roughness, float m
     float NdotL = max(dot(N, L), 0.0);
     return (kD * (albedo / PI_Value) + specular) * radiance * NdotL;
 }
+
+uint ComputeTileIndex(float3 viewPos, float3 gridSize, float2 planes, float4 fragCoord, float2 screenDimensions) {
+    uint zTile =
+        uint((log(abs(viewPos.z) / planes.y) *
+              gridSize.z) / log(planes.x / planes.y));
+
+    float2 tileSize = screenDimensions / gridSize.xy;
+
+    uint xTile = uint(fragCoord.x / tileSize.x);
+    uint yTile = uint(fragCoord.y / tileSize.y);
+
+    uint tileIndex = xTile +
+                     yTile * uint(gridSize.x) +
+                     zTile * uint(gridSize.x * gridSize.y);
+
+    return tileIndex;
+}

@@ -90,7 +90,7 @@ namespace Mikoto {
                 // Uv0
                 vertices.emplace_back( vertex.UV_0.x );
                 vertices.emplace_back( vertex.UV_0.y );
-
+                
                 // Uv1
                 vertices.emplace_back( vertex.UV_1.x );
                 vertices.emplace_back( vertex.UV_1.y );

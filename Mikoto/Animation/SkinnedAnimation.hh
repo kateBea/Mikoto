@@ -17,14 +17,14 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include <Animation/Skeleton.hh>
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
-
 #include "ozz/animation/offline/animation_builder.h"
 #include "ozz/animation/offline/raw_animation.h"
 #include "ozz/animation/runtime/animation.h"
 #include "ozz/base/memory/unique_ptr.h"
+
+#include <Common/Common.hh>
+#include <Animation/Skeleton.hh>
+#include <Library/Utility/Types.hh>
 
 namespace  Mikoto {
 
@@ -32,8 +32,8 @@ namespace  Mikoto {
     public:
         explicit SkinnedAnimation( std::string_view name, float duration, UInt32 ticksPerSecond );
 
-        auto GetDuration() const -> float;
-        auto GetTicksPerSecond() const -> float;
+        MKT_NODISCARD auto GetDuration() const -> float;
+        MKT_NODISCARD auto GetTicksPerSecond() const -> float;
 
         MKT_NODISCARD auto GetName() const -> const std::string&;
         MKT_NODISCARD auto GetOzzAnimation() -> ozz::animation::Animation*;

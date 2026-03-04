@@ -176,8 +176,8 @@ namespace Mikoto {
         }
     }
 
-    static auto LoadBoneProperties( const aiNodeAnim *channel ) -> AnimationeProperties {
-        AnimationeProperties result{};
+    static auto LoadBoneProperties( const aiNodeAnim *channel ) -> AnimationProperties {
+        AnimationProperties result{};
 
         for ( Int32 positionIndex{}; positionIndex < channel->mNumPositionKeys; ++positionIndex ) {
             aiVector3D aiPosition{ channel->mPositionKeys[positionIndex].mValue };

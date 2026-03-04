@@ -17,7 +17,6 @@
 
 #include <vector>
 #include <string>
-#include <utility>
 
 #include <ankerl/unordered_dense.h>
 
@@ -46,7 +45,7 @@ namespace Mikoto {
         float TimeStamp{};
     };
 
-    struct AnimationeProperties {
+    struct AnimationProperties {
         std::vector<KeyPosition> Positions{};
         std::vector<KeyRotation> Rotations{};
         std::vector<KeyScale> Scales{};
@@ -57,14 +56,14 @@ namespace Mikoto {
         Joint( const std::string& name, Int32 ID, Mat4F ModelToBoneTransform );
 
         auto SetParentID( Int32 ID ) -> void;
-        auto GetParentRelativeTransform() const -> const Mat4F&;
         auto SetParentRelativeTransform( const Mat4F& mat ) -> void;
-        auto SetAnimationProperties(AnimationeProperties&& properties ) -> void;
+        auto SetAnimationProperties(AnimationProperties&& properties ) -> void;
 
         MKT_NODISCARD auto GetID() const -> Int32;
         MKT_NODISCARD auto GetParentID() const -> Int32;
         MKT_NODISCARD auto GetBoneName() const -> const std::string&;
         MKT_NODISCARD auto GetModelToBoneTransform() const -> const Mat4F&;
+        MKT_NODISCARD auto GetParentRelativeTransform() const -> const Mat4F&;
 
         // [DEBUG]
         auto DebugPrintBoneContribution() const -> void;

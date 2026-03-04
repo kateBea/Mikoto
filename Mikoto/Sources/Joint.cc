@@ -23,8 +23,8 @@
 namespace Mikoto {
 
     Joint::Joint( const std::string& name, Int32 ID, Mat4F ModelToBoneTransform )
-        : m_ID{ ID },
-          m_Name{ name },
+        : m_Name{ name },
+          m_ID{ ID },
           m_ModelToBoneTransform{ ModelToBoneTransform }
     {
         MKT_ASSERT( m_ID != INVALID_JOINT_ID, "No valid ID found" );
@@ -58,7 +58,7 @@ namespace Mikoto {
         return m_Name;
     }
 
-    auto Joint::SetAnimationProperties( AnimationeProperties&& properties ) -> void {
+    auto Joint::SetAnimationProperties( AnimationProperties&& properties ) -> void {
         m_Positions = std::move( properties.Positions );
         m_Rotations = std::move( properties.Rotations );
         m_Scales = std::move( properties.Scales );

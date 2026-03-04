@@ -17,8 +17,6 @@
 
 #include <ankerl/unordered_dense.h>
 
-#include <Animation/Joint.hh>
-#include <Common/Common.hh>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -26,10 +24,11 @@
 #include "ozz/animation/offline/raw_skeleton.h"
 #include "ozz/animation/offline/skeleton_builder.h"
 #include "ozz/animation/runtime/animation.h"
-#include "ozz/animation/runtime/local_to_model_job.h"
-#include "ozz/animation/runtime/sampling_job.h"
 #include "ozz/animation/runtime/skeleton.h"
 #include "ozz/base/memory/unique_ptr.h"
+
+#include <Common/Common.hh>
+#include <Animation/Joint.hh>
 
 namespace Mikoto {
 
@@ -73,8 +72,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetOzzSkeleton() -> ozz::animation::Skeleton*;
         MKT_NODISCARD auto GetOzzSkeleton() const -> const ozz::animation::Skeleton*;
 
-        auto SetHierarchy( Node&& rootNode) -> void;
         MKT_NODISCARD auto GetHierarchy() const -> const Node&;
+        MKT_NODISCARD auto GetBoneCount() const -> UInt32;
 
         MKT_NODISCARD auto begin() -> JointsMapIterator;
         MKT_NODISCARD auto end() -> JointsMapIterator;
@@ -88,9 +87,8 @@ namespace Mikoto {
         auto DebugPrintBoneContribution() const -> void;
         auto SetVertexWeights( std::string_view meshName, std::string_view boneName, UInt64 vertex, float weight ) -> void;
 
-        auto GetBoneCount() const -> UInt32;
-
-        auto SetBoneMap(JointsMap&& boneMap ) -> void;
+        auto SetHierarchy( Node&& rootNode ) -> void;
+        auto SetBoneMap( JointsMap&& boneMap ) -> void;
 
     private:
         Node m_RootNode{};

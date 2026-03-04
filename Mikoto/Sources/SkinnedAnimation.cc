@@ -29,4 +29,8 @@ namespace Mikoto {
     auto SkinnedAnimation::GetName() const -> const std::string& {
         return m_Name;
     }
+
+    auto SkinnedAnimation::GetOzzAnimation() -> ozz::animation::Animation* {
+        return m_Animation.get();
+    }
 }

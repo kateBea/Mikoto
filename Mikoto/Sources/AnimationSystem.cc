@@ -47,7 +47,7 @@ namespace Mikoto {
 
     auto AnimationSystem::RegisterAnimation( ModelHandle handle ) -> UInt64 {
         UInt64 animatorID{ m_Animators.size() + 1 };
-        m_Animators.emplace( animatorID, handle );
+        m_Animators.try_emplace( animatorID, handle );
 
         return animatorID;
     }

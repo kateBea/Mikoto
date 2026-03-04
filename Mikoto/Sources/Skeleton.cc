@@ -88,6 +88,14 @@ namespace Mikoto {
         return nullptr;
     }
 
+    auto Skeleton::GetOzzSkeleton() -> ozz::animation::Skeleton* {
+        return m_Skeleton.get();
+    }
+
+    auto Skeleton::GetOzzSkeleton() const -> const ozz::animation::Skeleton* {
+        return m_Skeleton.get();
+    }
+
     auto Skeleton::FindJointByID( UInt32 ID ) const -> const Joint * {
         const auto iter{ m_JointsByID.find( ID ) };
         if ( iter != m_JointsByID.end() ) {

@@ -40,7 +40,8 @@ namespace Mikoto {
     {}
 
     auto Model::IsSkinned() const -> bool {
-        return !m_Animations.empty();
+        return !m_Animations.empty(); // TODO, a model is skinned if it has joints, some models do not have joints at all 
+        // some others just have joints but then they are just stuck in a specific pose if there is no animation
     }
 
     auto Model::HasAnimations() const -> bool {

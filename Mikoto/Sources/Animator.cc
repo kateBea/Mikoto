@@ -16,8 +16,16 @@
 #include <ranges>
 #include <cmath>
 
-// TODO: use ozz
+#include <ozz/animation/runtime/local_to_model_job.h>
+#include <ozz/animation/runtime/sampling_job.h>
+#include <ozz/animation/runtime/skeleton.h>
+#include <ozz/base/log.h>
+#include <ozz/base/maths/simd_math.h>
+#include <ozz/base/span.h>
 #include <ozz/animation/runtime/animation.h>
+#include <ozz/base/maths/soa_transform.h>
+#include <ozz/base/maths/vec_float.h>
+#include <ozz/options/options.h>
 
 #include <Common/String.hh>
 
@@ -30,52 +38,13 @@ namespace Mikoto {
         : m_CurrentTime{ 0.0f }, m_Model{ handle }
     {
         MKT_ASSERT( !handle.IsEmpty(), "Invalid model handle for animator" );
-
-        m_LocalTransform.resize( MAX_BONES_PER_MESH, Mat4F( 1.0f ) );
-        m_GlobalTransform.resize( MAX_BONES_PER_MESH );
-        m_FinalMatrices.resize( MAX_BONES_PER_MESH );
     }
 
     auto Animator::UpdateAnimation( float deltaTime ) -> void {
         if ( m_IsPlaying && m_CurrentAnimation ) {
-            m_CurrentTime += m_CurrentAnimation->GetTicksPerSecond() * deltaTime;
-            m_CurrentTime = std::fmod( m_CurrentTime, m_CurrentAnimation->GetDuration() ); // std::fmod is used to loop the animation
-
-            const Skeleton& skeleton{ m_Model->GetSkeleton() };
-            CalculateTransform( skeleton.GetHierarchy(), Mat4F{ 1.0f }, m_CurrentTime, skeleton );
+            
         }
 	}
-
-    auto Animator::CalculateTransform( const Node& node, glm::mat4 parentTransform, float animationTime, const Skeleton& skeleton ) -> void {
-        Mat4F localTransform{ node.Transformation };
-
-        if ( const Joint* joint{ skeleton.FindJoint( node.Name ) } ) {
-            UpdateLocalTransform(*joint, animationTime, localTransform );
-            const Mat4F globalTransform{ parentTransform * localTransform };
-
-            m_FinalMatrices[joint->GetID()] = globalTransform * joint->GetModelToBoneTransform();
-
-            for ( const auto& child: node.Children ) {
-                CalculateTransform( child, globalTransform, animationTime, skeleton );
-            }
-
-            return;
-        }
-
-        const Mat4F globalTransform{ parentTransform * localTransform };
-
-        for ( const auto& child: node.Children ) {
-            CalculateTransform( child, globalTransform, animationTime, skeleton );
-        }
-    }
-
-    auto Animator::UpdateLocalTransform( const Joint& joint, float animationTime, Mat4F& localTransform ) -> void {
-        const Mat4F translation{ joint.InterpolatePosition( animationTime ) };
-        const Mat4F rotation{ joint.InterpolateRotation( animationTime ) };
-        const Mat4F scale{ joint.InterpolateScaling( animationTime ) };
-
-        localTransform = translation * rotation * scale;
-    }
 
     auto Animator::SetCurrentAnimation( std::string_view name ) -> void {
         SkinnedAnimation* animation{ m_Model->FindAnimation( name ) };
@@ -83,12 +52,10 @@ namespace Mikoto {
             MKT_CORE_LOGGER_ERROR( "Animation {} does not exist. Cannot set current animation.", name );
             return;
         }
-        // Reset time to start the animation from the beginning
-        m_CurrentTime = 0.0f;
 
         m_CurrentAnimation = animation;
 
-        m_IsPlaying = false;
+        StopCurrentAnimation();
     }
 
     auto Animator::GetCurrentAnimation() const -> const SkinnedAnimation* {
@@ -97,7 +64,8 @@ namespace Mikoto {
 
     auto Animator::PlayCurrentAnimation() -> void {
         if ( m_CurrentAnimation ) {
-             m_IsPlaying = true;
+            m_CurrentTime = 0.0f;
+            m_IsPlaying = true;
          } else {
              MKT_CORE_LOGGER_ERROR( "No animation is currently set. Cannot play." );
          }
@@ -107,10 +75,7 @@ namespace Mikoto {
         if (animation) {
             m_CurrentAnimation = animation;
 
-            // Reset time to start the animation from the beginning
-            m_CurrentTime = 0.0f;
-
-            m_IsPlaying = true;
+            PlayCurrentAnimation();
         } else {
             MKT_CORE_LOGGER_ERROR( "Animation {} does not exist. Cannot play.", name );
         }
@@ -123,5 +88,53 @@ namespace Mikoto {
 
     auto Animator::IsPlaying() const -> bool {
         return m_IsPlaying;
+    }
+
+    auto Animator::UpdateOzzAnimation( float ts ) -> void {
+        // TODO: Updates current animation time.
+
+        // Get ozz skeleton and animation
+        auto skeleton{ m_Model->GetSkeleton().GetOzzSkeleton() };
+        auto playAnimation{ m_CurrentAnimation->GetOzzAnimation() };
+
+        // Samples optimized animation at t = animation_time_.
+        ozz::animation::SamplingJob sampling_job;
+        sampling_job.animation = playAnimation;
+        //sampling_job.context = MKT_ADDRESSOF( m_Context );
+        sampling_job.ratio = 0; // TODO
+        sampling_job.output = make_span( m_LocalMatrices );
+        if ( !sampling_job.Run() ) {
+            // error
+        }
+
+        // Converts from local space to model space matrices.
+        ozz::animation::LocalToModelJob ltm_job;
+        ltm_job.skeleton = skeleton;
+        ltm_job.input = make_span( m_LocalMatrices );
+        ltm_job.output = make_span( m_ModelMatrices );
+        if ( !ltm_job.Run() ) {
+            // error
+        }
+    }
+
+    auto Animator::InitializeOzzAnimation() -> void {
+        // Get ozz skeleton and animation
+        auto skeleton{ m_Model->GetSkeleton().GetOzzSkeleton() };
+        auto playAnimation{ m_CurrentAnimation->GetOzzAnimation() };
+
+        // Skeleton and animation needs to match.
+        if ( skeleton->num_joints() != playAnimation->num_tracks() ) {
+            //error
+        }
+
+        // Allocates runtime buffers.
+        const Int32 soaJointsCount{ skeleton->num_soa_joints() };
+        m_LocalMatrices.resize( soaJointsCount );
+        
+        const Int32 jointsCount{ skeleton->num_joints() };
+        m_ModelMatrices.resize( jointsCount );
+
+        // Allocates a context that matches animation requirements.
+        //m_Context.Resize( jointsCount );
     }
 }

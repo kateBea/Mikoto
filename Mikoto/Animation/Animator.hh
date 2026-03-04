@@ -17,6 +17,17 @@
 
 #include <ankerl/unordered_dense.h>
 
+#include <ozz/base/maths/simd_math.h>
+#include <ozz/base/maths/vec_float.h>
+#include <ozz/base/maths/soa_transform.h>
+#include <ozz/animation/runtime/skeleton.h>
+#include <ozz/animation/runtime/animation.h>
+#include <ozz/animation/runtime/sampling_job.h>
+#include <ozz/animation/runtime/local_to_model_job.h>
+
+#include <ozz/base/log.h>
+#include <ozz/options/options.h>
+
 #include <Library/Utility/Types.hh>
 
 #include <Assets/Model.hh>
@@ -30,36 +41,38 @@ namespace Mikoto {
 
         auto UpdateAnimation( float deltaTime ) -> void;
 
-        auto SetCurrentAnimation( std::string_view name ) -> void;
-        MKT_NODISCARD auto GetCurrentAnimation() const -> const SkinnedAnimation*;
+        auto GetFinalBoneMatrices() -> auto& { return m_ModelMatrices; }
 
-        auto GetFinalBoneMatrices() -> auto& { return m_FinalMatrices; }
-        auto GetAnimationList() const -> const auto& { return m_Model->GetAnimations(); }
+        MKT_NODISCARD auto GetCurrentAnimation() const -> const SkinnedAnimation*;
+        MKT_NODISCARD auto GetAnimationList() const -> const auto& { return m_Model->GetAnimations(); }
 
         auto StopCurrentAnimation() -> void;
-
         auto PlayCurrentAnimation() -> void;
+
         auto PlayAnimation( std::string_view name ) -> void;
+        auto SetCurrentAnimation( std::string_view name ) -> void;
 
         MKT_NODISCARD auto IsPlaying() const -> bool;
 
-    private:
-
-        auto UpdateLocalTransform( const Joint& joint, float animationTime, Mat4F& localTransform ) -> void;
-        auto CalculateTransform( const Node& node, glm::mat4 parentTransform, float animationTime, const Skeleton& skeleton ) -> void;
+        auto UpdateOzzAnimation( float ts ) -> void;
+        auto InitializeOzzAnimation() -> void;
 
     private:
+        ModelHandle m_Model{};
+
         UInt64 m_AnimationID{};
         float m_CurrentTime{};
-
-        ModelHandle m_Model{};
 
         bool m_IsPlaying{ false };
         SkinnedAnimation* m_CurrentAnimation{};
 
-        std::vector<Mat4F> m_LocalTransform{};
-        std::vector<Mat4F> m_GlobalTransform{};
-        std::vector<Mat4F> m_FinalMatrices{};
+        // Buffer of local transforms as sampled from the animation.
+        ozz::vector<ozz::math::SoaTransform> m_LocalMatrices;
+
+        // Buffer of model space matrices.
+        ozz::vector<ozz::math::Float4x4> m_ModelMatrices{};
+
+        //ozz::animation::SamplingJob::Context m_Context;
     };
 }
 

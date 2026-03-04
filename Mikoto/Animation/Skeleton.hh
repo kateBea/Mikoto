@@ -40,7 +40,6 @@ namespace Mikoto {
 
         // Transform relative to parent node
         Mat4F Transformation{};
-
         std::vector<Node> Children{};
     };
 
@@ -70,6 +69,9 @@ namespace Mikoto {
         MKT_NODISCARD auto FindJoint( std::string_view name ) const -> const Joint*;
         MKT_NODISCARD auto FindJointByID( UInt32 ID ) -> Joint*;
         MKT_NODISCARD auto FindJointByID( UInt32 ID ) const -> const Joint*;
+
+        MKT_NODISCARD auto GetOzzSkeleton() -> ozz::animation::Skeleton*;
+        MKT_NODISCARD auto GetOzzSkeleton() const -> const ozz::animation::Skeleton*;
 
         auto SetHierarchy( Node&& rootNode) -> void;
         MKT_NODISCARD auto GetHierarchy() const -> const Node&;

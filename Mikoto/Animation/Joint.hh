@@ -18,7 +18,6 @@
 #include <vector>
 #include <string>
 #include <utility>
-#include <list>
 
 #include <ankerl/unordered_dense.h>
 
@@ -57,29 +56,19 @@ namespace Mikoto {
     public:
         Joint( const std::string& name, Int32 ID, Mat4F ModelToBoneTransform );
 
-        auto GetPositionIndex( float animationTime ) const -> Int32;
-        auto GetRotationIndex( float animationTime ) const -> Int32;
-        auto GetScaleIndex( float animationTime ) const -> Int32;
-
-        auto SetParentID( Int32 ID) -> void;
+        auto SetParentID( Int32 ID ) -> void;
         auto GetParentRelativeTransform() const -> const Mat4F&;
         auto SetParentRelativeTransform( const Mat4F& mat ) -> void;
-
         auto SetAnimationProperties(AnimationeProperties&& properties ) -> void;
 
+        MKT_NODISCARD auto GetID() const -> Int32;
+        MKT_NODISCARD auto GetParentID() const -> Int32;
+        MKT_NODISCARD auto GetBoneName() const -> const std::string&;
+        MKT_NODISCARD auto GetModelToBoneTransform() const -> const Mat4F&;
+
+        // [DEBUG]
         auto DebugPrintBoneContribution() const -> void;
         auto SetVertexWeights( std::string_view meshName, UInt64 vertex, float weight ) -> void;
-
-        auto GetID() const -> Int32;
-        auto GetParentID() const -> Int32;
-        auto GetBoneName() const -> const std::string&;
-
-        auto GetModelToBoneTransform() const -> const Mat4F&;
-
-        auto InterpolatePosition( float animationTime ) const -> Mat4F;
-        auto InterpolateRotation( float animationTime ) const -> Mat4F;
-        auto InterpolateScaling( float animationTime ) const -> Mat4F;
-        auto GetScaleFactor( float lastTimeStamp, float nextTimeStamp, float animationTime ) const -> float;
 
     private:
         std::string m_Name{};

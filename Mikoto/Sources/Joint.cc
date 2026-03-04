@@ -30,36 +30,6 @@ namespace Mikoto {
         MKT_ASSERT( m_ID != INVALID_JOINT_ID, "No valid ID found" );
     }
 
-    auto Joint::GetPositionIndex( float animationTime ) const -> Int32 {
-        for ( Int32 index{}; index < m_Positions.size() - 1; ++index ) {
-            if ( animationTime < m_Positions[index + 1].TimeStamp ) {
-                return index;
-            }
-        }
-
-        MKT_ASSERT( false, "No valid position index" );
-    }
-
-    auto Joint::GetRotationIndex( float animationTime ) const -> Int32 {
-        for ( Int32 index{}; index < m_Rotations.size() - 1; ++index ) {
-            if ( animationTime < m_Rotations[index + 1].TimeStamp ) {
-                return index;
-            }
-        }
-
-        MKT_ASSERT( false, "No valid rotation index" );
-    }
-
-    auto Joint::GetScaleIndex( float animationTime ) const -> Int32 {
-        for ( Int32 index{}; index < m_Scales.size() - 1; ++index ) {
-            if ( animationTime < m_Scales[index + 1].TimeStamp ) {
-                return index;
-            }
-        }
-
-        MKT_ASSERT( false, "No valid scale index" );
-    }
-
     auto Joint::SetParentID( Int32 ID ) -> void {
         m_ParentID = ID;
     }
@@ -113,67 +83,5 @@ namespace Mikoto {
 
     auto Joint::SetVertexWeights( std::string_view meshName, UInt64 vertex, float weight ) -> void {
         m_VertexWeights[StringUtil::From( meshName )][vertex] = weight;
-    }
-
-    auto Joint::GetScaleFactor( float lastTimeStamp, float nextTimeStamp, float animationTime ) const -> float {
-        float scaleFactor{ 0.0f };
-        const float midWayLength{ animationTime - lastTimeStamp };
-        const float framesDiff{ nextTimeStamp - lastTimeStamp };
-
-        scaleFactor = midWayLength / framesDiff;
-
-        return scaleFactor;
-    }
-
-    auto Joint::InterpolatePosition( float animationTime ) const -> Mat4F {
-        if (m_Positions.empty()) {
-            return Mat4F{ 1.0f };
-        }
-
-        if ( m_Positions.size() == 1 ) {
-            return glm::translate( glm::mat4( 1.0f ), m_Positions[0].Position );
-        }
-
-        const Int32 p0Index{ GetPositionIndex( animationTime ) };
-        const Int32 p1Index{ p0Index + 1 };
-        const float scaleFactor{ GetScaleFactor( m_Positions[p0Index].TimeStamp, m_Positions[p1Index].TimeStamp, animationTime ) };
-        const Vec3F finalPosition{ glm::mix( m_Positions[p0Index].Position, m_Positions[p1Index].Position, scaleFactor ) };
-        return glm::translate( glm::mat4( 1.0f ), finalPosition );
-    }
-
-    auto Joint::InterpolateRotation( float animationTime ) const -> Mat4F {
-        if ( m_Rotations.empty() ) {
-            return Mat4F{ 1.0f };
-        }
-
-        if ( m_Rotations.size() == 1 ) {
-            Quat rotation{ glm::normalize( m_Rotations[0].Orientation ) };
-            return glm::toMat4( rotation );
-        }
-
-        const Int32 p0Index = GetRotationIndex( animationTime );
-        const Int32 p1Index = p0Index + 1;
-        const float scaleFactor = GetScaleFactor( m_Rotations[p0Index].TimeStamp,
-                                            m_Rotations[p1Index].TimeStamp, animationTime );
-        Quat finalRotation{ glm::slerp( m_Rotations[p0Index].Orientation, m_Rotations[p1Index].Orientation, scaleFactor ) };
-        finalRotation = glm::normalize( finalRotation );
-        return glm::toMat4( finalRotation );
-    }
-
-    auto Joint::InterpolateScaling( float animationTime ) const -> Mat4F {
-        if ( m_Scales.empty() ) {
-            return Mat4F{ 1.0f };
-        }
-
-        if (m_Scales.size() == 1) {
-            return glm::scale( glm::mat4( 1.0f ), m_Scales[0].Scale );
-        }
-
-        const Int32 p0Index{ GetScaleIndex( animationTime ) };
-        const Int32 p1Index{ p0Index + 1 };
-        const float scaleFactor{ GetScaleFactor( m_Scales[p0Index].TimeStamp,
-                                            m_Scales[p1Index].TimeStamp, animationTime ) };
-        const Vec3F finalScale{ glm::mix( m_Scales[p0Index].Scale, m_Scales[p1Index].Scale, scaleFactor ) };
-        return glm::scale( glm::mat4( 1.0f ), finalScale );
     }
 }

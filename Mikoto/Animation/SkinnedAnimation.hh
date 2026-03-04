@@ -36,6 +36,7 @@ namespace  Mikoto {
         auto GetTicksPerSecond() const -> float;
 
         MKT_NODISCARD auto GetName() const -> const std::string&;
+        MKT_NODISCARD auto GetOzzAnimation() -> ozz::animation::Animation*;
 
     private:
         // Duration of the animation in ticks

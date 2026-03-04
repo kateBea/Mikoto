@@ -238,8 +238,11 @@ namespace Mikoto {
                 // Geometry
                 geometry.Transform = transform.GetWorldTransform();
                 geometry.InverseModelView = glm::inverse( glm::mat3( m_Camera->GetViewMatrix() * geometry.Transform ) );
+
                 if (meshComponent.IsSkinned()) {
 
+                    // Instead of uploading the animator final matrices we want to upload matrices that deform the object if any
+                    // some models are skinned but have no animations, those will require these matrices uploaded
                     if (registry.any_of<SkinnedMeshRenderer>( entity )) {
                         auto& sm{ registry.get<SkinnedMeshRenderer>( entity ) };
                         auto animator{ AnimationSystem::Get()->GetAnimator( sm.GetAnimatorID() ) };

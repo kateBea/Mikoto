@@ -259,11 +259,11 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
 
-            glm::vec4 color{ material.GetColor() };
+            glm::vec4 color{ material.GetBaseColorFactor() };
             constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
 
             if ( ImGui::ColorEdit3( "Color", glm::value_ptr( color ), colorEditFlags ) ) {
-                material.SetColor( color );
+                material.SetBaseColorFactor( color );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -272,10 +272,6 @@ namespace Mikoto {
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
-
-            float mixing{};
-            if ( ImGuiUtils::Slider( "Mix", mixing, { 0.0f, 1.0f } ) ) {
-            }
 
             // Merge color with objects base color
             float opacity{ material.GetAlphaMaskCutoff() };

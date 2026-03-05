@@ -30,6 +30,7 @@ namespace Mikoto {
         NORMALS,
         POSITION,
         FINAL_IMAGE,
+        ZPASS,
         ENUM_MAX,
     };
 

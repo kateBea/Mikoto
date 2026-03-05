@@ -102,9 +102,9 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "Skybox", m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "DirectionalShadowMapDepth", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_DepthTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "InfiniteGrid", m_SceneRenderer->GetTexture( "InfiniteGrid_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "DepthPrePass", m_SceneRenderer->GetTexture( "DepthPrePass_Depth" ) );
+        m_EditorState->PassesCompositions.try_emplace( "DepthPrePass", m_SceneRenderer->GetTexture( "DepthPrePass_Color" ) );
     }
-
+    
     auto EditorLayer::SetupRenderer() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -119,7 +119,7 @@ namespace Mikoto {
 
         m_EditorState->EditorSceneRenderer = m_SceneRenderer.get();
     }
-
+    
     auto EditorLayer::SetupEditorState() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 

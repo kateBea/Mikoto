@@ -293,6 +293,7 @@ namespace Mikoto {
         // Copy animation final matrices from all active submitted animators
         //Size size{ MAX_BONES_PER_MESH * MKT_SIZEOF( Mat4F ) };
         //std::memcpy( MKT_ADDRESSOF( m_SkinningInfo[geometry.AnimatorID] ), MKT_ADDRESSOF( animator->GetFinalBoneMatrices() ), size );
+        //context.CopyBuffer( "MeshCulling_SkinningInfo", m_SkinningInfo.data(), MAX_SKINNED_MESHES * MKT_SIZEOF( SkinningInfo ) );
         
         // Flaten
         Size activeMeshCount{};
@@ -322,7 +323,6 @@ namespace Mikoto {
 
         context.CopyBuffer( "MeshCulling_GeometryInfo", m_MeshInfo.data(), activeMeshCount * MKT_SIZEOF( ShaderMesh ) );
         context.CopyBuffer( "MeshCulling_MaterialsInfo", m_MaterialInfo.data(), activeMeshCount * MKT_SIZEOF( ShaderMaterial ) );
-        //context.CopyBuffer( "MeshCulling_SkinningInfo", m_SkinningInfo.data(), MAX_SKINNED_MESHES * MKT_SIZEOF( SkinningInfo ) );
 
         // Clear after everything has been uploaded
         m_IndexedGeometryManager.Clear();

@@ -44,7 +44,7 @@ namespace Mikoto {
         RegisterLightCulling( graph );
 
         RegisterGBuffer( graph );
-        //RegisterDepthPrepass( graph );
+        RegisterDepthPrepass( graph );
     }
 
     auto ClusteredShading::SetMeshCulling( MeshCulling &cullingPass ) -> void {
@@ -206,12 +206,14 @@ namespace Mikoto {
             [this]( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                b.Create<Texture>("DepthPrePass_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                b.Create<Texture>("DepthPrePass_Depth", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
+                // Color attachment for debug
+                b.CreateTexture("DepthPrePass_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+
+                b.CreateTexture( "DepthPrePass_Depth", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
                 b.UseShader("Resources/Shaders/slang/ZPass_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader("Resources/Shaders/slang/ZPass_Frag.slang", ShaderStage::FRAGMENT );
-
+                
                 GraphicsPipelineDescription graphicsDesc{
                     .DepthTest{ true },
                     .DepthWrite{ true },
@@ -219,18 +221,15 @@ namespace Mikoto {
                     .PipelineCullMode{ CullMode::NONE },
                 };
 
-                b.Create<Pipeline>( "DepthPrePass_Pipeline", graphicsDesc );
+                b.CreatePipeline( "DepthPrePass_Pipeline", graphicsDesc );
 
                 b.Write( "DepthPrePass_Color", FrameResourceState::RenderTarget );
                 b.Write( "DepthPrePass_Depth", FrameResourceState::DepthWrite );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccessView );
-
-                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                b.Use( ResourceGroup::Dynamic, "FinalBuffer_ObjectInfo", 1 );
+                b.Read( "MeshCulling_MaterialsInfo", FrameResourceState::UnorderedAccessView );
             },
-
+            
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
@@ -239,7 +238,10 @@ namespace Mikoto {
                 ctx.SetColorRenderTarget( "DepthPrePass_Color" );
                 ctx.SetDepthRenderTarget( "DepthPrePass_Depth" );
 
-                ctx.SetClearColor( { 0.0f, 0.0f, 0.0f, 1.0f } );
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
+                
+                ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
 
                 ctx.BeginRender();
 

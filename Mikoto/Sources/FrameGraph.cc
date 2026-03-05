@@ -32,6 +32,9 @@ namespace Mikoto {
     auto FramePassNode::MarkDirty() -> void {
         IsDirty = true;
         Status = FramePassNodeStatus::ACTIVE;
+
+        // Need to rerun the pass so we clear this flag too
+        HasExecuted = false;
     }
 
     auto FramePassNode::IsActive() const -> bool {
@@ -318,22 +321,25 @@ namespace Mikoto {
     }
 
     auto FrameGraph::SubmitCommandLists() -> void {
-        // Before we submit the buffers we will submit the barriers created for each type of command buffer
+        // End recording commands to the command list and then submit for execution
         if (!m_GraphicsCommandList.IsEmpty()) {
-            m_Device->SubmitCommands( m_GraphicsCommandList );
             m_GraphicsCommandList->End();
+
+            m_Device->SubmitCommands( m_GraphicsCommandList );
             m_GraphicsCommandList.Reset();
         }
 
         if ( !m_ComputeCommandList.IsEmpty() ) {
-            m_Device->SubmitCommands( m_ComputeCommandList );
             m_ComputeCommandList->End();
+
+            m_Device->SubmitCommands( m_ComputeCommandList );
             m_ComputeCommandList.Reset();
         }
 
         if ( !m_TransferCommandList.IsEmpty() ) {
-            m_Device->SubmitCommands( m_TransferCommandList );
             m_TransferCommandList->End();
+
+            m_Device->SubmitCommands( m_TransferCommandList );
             m_TransferCommandList.Reset();
         }
     }

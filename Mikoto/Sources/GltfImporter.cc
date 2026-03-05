@@ -842,10 +842,6 @@ namespace Mikoto {
                     channel.NodeName = joint->GetBoneName();
                 }
 
-                if (channel.JointIndex == 13) {
-                    MKT_CORE_LOGGER_DEBUG( "YOO" );
-                }
-
                 animationDescription.Channels.emplace_back( channel );
             }
 

@@ -160,11 +160,7 @@ FSOutput main(FSInput input) {
     }
 
     // SSAO
-    
-    
-    // Read blurred SSAO
     float ssao = 1.0f;
-    
     
     if (u_Constants.EnableSSAO != MKT_SHADER_FALSE) {
         float2 uv = input.ScreenPos.xy / u_Camera.ScreenDimensions;

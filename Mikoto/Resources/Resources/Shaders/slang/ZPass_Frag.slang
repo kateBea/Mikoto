@@ -13,14 +13,32 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Camera_Helpers.slang"
+#include "base/Lighting_Helpers.slang"
 
 struct FSOutput {
     float4 Color : SV_Target0;
 };
 
+struct FSInput {
+    float4 ScreenPos : SV_Position;
+};
+
+[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
+ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
+
 [shader("fragment")]
-FSOutput main() {
+FSOutput main(FSInput input) {
     FSOutput o;
-    o.Color = float4(1.0, 1.0, 1.0, 1.0);
+
+    float depth = LinearDepth(input.ScreenPos.z, u_Camera.Planes);
+
+    float near = u_Camera.Planes.x;
+    float far = u_Camera.Planes.y;
+
+    float depthNormalized = (depth - near) / (far - near);
+
+    o.Color = float4(depthNormalized, depthNormalized, depthNormalized, 1.0);
+
     return o;
 }

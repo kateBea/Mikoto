@@ -58,6 +58,7 @@ namespace Mikoto {
         auto LoadPrimitives(tinygltf::Model& model, ModelData& modelData) -> void;
         auto LoadMaterials(tinygltf::Model& model, ModelData& modelData, const std::string& rootPath) -> void;
         auto LoadAnimations(tinygltf::Model& model, ModelData& modelData) -> void;
+        auto LoadSkeleton( tinygltf::Model& model, ModelData& modelData ) -> void;
 
         MKT_NODISCARD auto TryAcquireImporter() -> std::vector<Unique<LoaderData>>::iterator;
         auto Import(LoaderData& loaderData,const ModelLoadDescription& description, ModelData& out) -> void;

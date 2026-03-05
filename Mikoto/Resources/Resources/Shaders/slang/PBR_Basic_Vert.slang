@@ -15,6 +15,7 @@
 #include "base/Base.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Material_Helpers.slang"
+#include "base/Animation_Helpers.slang"
 
 [[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;

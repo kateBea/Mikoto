@@ -29,6 +29,8 @@
 
 #include <Common/String.hh>
 
+#include <Math/Math.hh>
+
 #include <Logging/Assert.hh>
 #include <Animation/Animator.hh>
 
@@ -38,11 +40,14 @@ namespace Mikoto {
         : m_CurrentTime{ 0.0f }, m_Model{ handle }
     {
         MKT_ASSERT( !handle.IsEmpty(), "Invalid model handle for animator" );
+        m_Context = ozz::make_unique<ozz::animation::SamplingJob::Context>();
+
+        m_FinalMatrices.resize( MAX_BONES_PER_MESH );
     }
 
     auto Animator::UpdateAnimation( float deltaTime ) -> void {
         if ( m_IsPlaying && m_CurrentAnimation ) {
-            
+            UpdateOzzAnimation( deltaTime );
         }
 	}
 
@@ -64,6 +69,8 @@ namespace Mikoto {
 
     auto Animator::PlayCurrentAnimation() -> void {
         if ( m_CurrentAnimation ) {
+            InitializeOzzAnimation();
+
             m_CurrentTime = 0.0f;
             m_IsPlaying = true;
          } else {
@@ -91,20 +98,24 @@ namespace Mikoto {
     }
 
     auto Animator::UpdateOzzAnimation( float ts ) -> void {
-        // TODO: Updates current animation time.
-
         // Get ozz skeleton and animation
-        auto skeleton{ m_Model->GetSkeleton().GetOzzSkeleton() };
+        auto* skeleton{ m_Model->GetSkeleton().GetOzzSkeleton() };
         auto playAnimation{ m_CurrentAnimation->GetOzzAnimation() };
+        
+        // Update current animation time.
+        m_CurrentTime += ts;
+        float duration{ playAnimation->duration() };
+        float ratio{ std::fmod( m_CurrentTime, duration ) / duration };// std::fmod because we wanna loop
 
         // Samples optimized animation at t = animation_time_.
         ozz::animation::SamplingJob sampling_job;
         sampling_job.animation = playAnimation;
-        //sampling_job.context = MKT_ADDRESSOF( m_Context );
-        sampling_job.ratio = 0; // TODO
+        sampling_job.context = m_Context.get();
+        sampling_job.ratio = ratio;
         sampling_job.output = make_span( m_LocalMatrices );
         if ( !sampling_job.Run() ) {
-            // error
+            MKT_CORE_LOGGER_ERROR( "Animator error on sampling job" );
+            return;
         }
 
         // Converts from local space to model space matrices.
@@ -113,8 +124,20 @@ namespace Mikoto {
         ltm_job.input = make_span( m_LocalMatrices );
         ltm_job.output = make_span( m_ModelMatrices );
         if ( !ltm_job.Run() ) {
-            // error
+            MKT_CORE_LOGGER_ERROR( "Animator error on local to model job" );
+            return;
         }
+
+        const Size jointCount{ m_ModelMatrices.size() };
+        const auto& inverseBindMats{ m_Model->GetSkeleton().GetInverseBindMatrices() };
+
+        for ( Size i{}; i < jointCount; ++i ) {
+            // because ozz uses colum major mat4x4 of floats
+            ozz::math::Float4x4& model{ m_ModelMatrices[i] };
+            m_FinalMatrices[i] = *reinterpret_cast<Mat4F*>( MKT_ADDRESSOF( model ) ) * inverseBindMats[i];
+        }
+
+        Math::DumpMat4FListBeautify( m_FinalMatrices );
     }
 
     auto Animator::InitializeOzzAnimation() -> void {
@@ -124,7 +147,8 @@ namespace Mikoto {
 
         // Skeleton and animation needs to match.
         if ( skeleton->num_joints() != playAnimation->num_tracks() ) {
-            //error
+            MKT_CORE_LOGGER_ERROR( "Animator error skeleton joint count does not match animation track count" );
+            return;
         }
 
         // Allocates runtime buffers.
@@ -135,6 +159,6 @@ namespace Mikoto {
         m_ModelMatrices.resize( jointsCount );
 
         // Allocates a context that matches animation requirements.
-        //m_Context.Resize( jointsCount );
+        m_Context->Resize( jointsCount );
     }
 }

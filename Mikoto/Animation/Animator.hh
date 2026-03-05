@@ -41,7 +41,7 @@ namespace Mikoto {
 
         auto UpdateAnimation( float deltaTime ) -> void;
 
-        auto GetFinalBoneMatrices() -> auto& { return m_ModelMatrices; }
+        auto GetFinalBoneMatrices() -> auto& { return m_FinalMatrices; }
 
         MKT_NODISCARD auto GetCurrentAnimation() const -> const SkinnedAnimation*;
         MKT_NODISCARD auto GetAnimationList() const -> const auto& { return m_Model->GetAnimations(); }
@@ -67,12 +67,14 @@ namespace Mikoto {
         SkinnedAnimation* m_CurrentAnimation{};
 
         // Buffer of local transforms as sampled from the animation.
-        ozz::vector<ozz::math::SoaTransform> m_LocalMatrices;
+        ozz::vector<ozz::math::SoaTransform> m_LocalMatrices{};
 
         // Buffer of model space matrices.
         ozz::vector<ozz::math::Float4x4> m_ModelMatrices{};
 
-        //ozz::animation::SamplingJob::Context m_Context;
+        std::vector<Mat4F> m_FinalMatrices{};
+
+        ozz::unique_ptr<ozz::animation::SamplingJob::Context> m_Context{};
     };
 }
 

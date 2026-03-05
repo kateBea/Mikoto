@@ -30,57 +30,25 @@ namespace Mikoto {
 
     inline constexpr Int32 INVALID_JOINT_ID{ -1 };
 
-    struct KeyPosition {
-        Vec3F Position{};
-        float TimeStamp{};
-    };
-
-    struct KeyRotation {
-        Quat Orientation{};
-        float TimeStamp{};
-    };
-
-    struct KeyScale {
-        Vec3F Scale{};
-        float TimeStamp{};
-    };
-
-    struct AnimationProperties {
-        std::vector<KeyPosition> Positions{};
-        std::vector<KeyRotation> Rotations{};
-        std::vector<KeyScale> Scales{};
-    };
-
     class Joint final {
     public:
-        Joint( const std::string& name, Int32 ID, Mat4F ModelToBoneTransform );
+        Joint( const std::string& name, Int32 ID );
 
         auto SetParentID( Int32 ID ) -> void;
-        auto SetParentRelativeTransform( const Mat4F& mat ) -> void;
-        auto SetAnimationProperties(AnimationProperties&& properties ) -> void;
 
         MKT_NODISCARD auto GetID() const -> Int32;
         MKT_NODISCARD auto GetParentID() const -> Int32;
         MKT_NODISCARD auto GetBoneName() const -> const std::string&;
-        MKT_NODISCARD auto GetModelToBoneTransform() const -> const Mat4F&;
-        MKT_NODISCARD auto GetParentRelativeTransform() const -> const Mat4F&;
 
         // [DEBUG]
-        auto DebugPrintBoneContribution() const -> void;
-        auto SetVertexWeights( std::string_view meshName, UInt64 vertex, float weight ) -> void;
+        auto PrintBoneInfo() const -> void;
+        auto SetWeights( std::string_view meshName, UInt64 vertex, float weight ) -> void;
 
     private:
         std::string m_Name{};
 
         Int32 m_ID{ INVALID_JOINT_ID };
         Int32 m_ParentID{ INVALID_JOINT_ID };
-
-        Mat4F m_ModelToBoneTransform{};
-        Mat4F m_ParentRelativeTransform{};
-
-        std::vector<KeyPosition> m_Positions{};
-        std::vector<KeyRotation> m_Rotations{};
-        std::vector<KeyScale> m_Scales{};
 
         JointVertexMap m_VertexWeights{};
     };

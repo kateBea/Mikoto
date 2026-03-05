@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include <cmath>
+#include <iomanip>
+#include <iostream>
 
 #include <imgui.h>
 #include <ImGuizmo.h>
@@ -21,8 +23,51 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Math/Math.hh>
+#include <Common/String.hh>
+#include <Library/String/String.hh>
 
 namespace Mikoto {
+
+    static auto DumpMat4( const glm::mat4& m, Size index ) -> void {
+        std::cout << "index: " << index << "\n";
+        std::cout << "=========================\n";
+
+        for ( Int32 row{ 0 }; row < 4; ++row ) {
+            for ( Int32 col{ 0 }; col < 4; ++col ) {
+                std::cout << std::setw( 10 )
+                          << std::setprecision( 5 )
+                          << std::fixed
+                          << m[col][row] << " ";
+            }
+            std::cout << "\n";
+        }
+
+        // endl to flush
+        std::cout << "=========================" << std::endl;
+    }
+
+    static auto DumpMat4Beautify( const glm::mat4& m, Size index ) -> void {
+        std::string out{};
+
+        out += StringUtil::Format( "index: {}\n", index );
+        out += "=========================\n";
+
+        for ( Int32 row{ 0 }; row < 4; ++row ) {
+            out += StringUtil::Format(
+                    "{:>10.5f} {:>10.5f} {:>10.5f} {:>10.5f}\n",
+                    m[0][row],
+                    m[1][row],
+                    m[2][row],
+                    m[3][row] );
+        }
+
+        out += "=========================\n";
+
+        MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                MKT_FMT_COLOR_BLUE_VIOLET,
+                "{}",
+                out );
+    }
 
     auto Math::Floor( const double value ) -> double {
         return glm::floor( value );
@@ -81,5 +126,17 @@ namespace Mikoto {
         scale.x = matrixScale[0];
         scale.y = matrixScale[1];
         scale.z = matrixScale[2];
+    }
+
+    auto Math::DumpMat4FList( const std::vector<glm::mat4>& m ) -> void {
+        for ( Size i{}; i < m.size(); ++i ) {
+            DumpMat4( m[i], i );
+        }
+    }
+
+    auto Math::DumpMat4FListBeautify( const std::vector<glm::mat4>& m ) -> void {
+        for ( Size i{}; i < m.size(); ++i ) {
+            DumpMat4Beautify( m[i], i );
+        }
     }
 }

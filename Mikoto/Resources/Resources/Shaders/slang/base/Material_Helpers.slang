@@ -29,9 +29,6 @@ static const int INVALID_UV_SET = -1;
 
 static const float MIN_ROUGHNESS = 0.04;
 
-static const uint MAX_BONES = 100;
-static const uint MAX_BONE_INFLUENCE = 4;
-
 // ============================================================================
 // Structs
 // ============================================================================
@@ -72,10 +69,6 @@ struct MeshParameters {
     float4x4 InverseModelView;
 
     int AnimatorID;
-};
-
-struct BoneData {
-    float4x4 Bone[MAX_BONES];
 };
 
 struct VertexData {

@@ -366,7 +366,7 @@ namespace Mikoto {
         BufferHandle buffer{ m_Context->GetBuffer( bufferName ) };
 
         MKT_ASSERT( !buffer.IsEmpty(), "Buffer does not exist" );
-        MKT_ASSERT( size < buffer->GetSizeBytes(), "Size is bigger than expected" );
+        MKT_ASSERT( size <= buffer->GetSizeBytes(), "Size is bigger than expected" );
 
         buffer->Copy( ptrSrc, size, m_Commands ); 
     }

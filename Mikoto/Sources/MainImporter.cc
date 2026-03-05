@@ -176,40 +176,45 @@ namespace Mikoto {
         }
     }
 
-    static auto LoadBoneProperties( const aiNodeAnim *channel ) -> AnimationProperties {
-        AnimationProperties result{};
+    static auto LoadBoneProperties( const aiNodeAnim *channel ) -> AnimationSampler {
+        std::vector<Vec3F> scales{};
+        std::vector<Vec3F> positions{};
+        std::vector<Quat> rotations{};
 
+        std::vector<float> timeStamps{};
+
+        // Review this logic
         for ( Int32 positionIndex{}; positionIndex < channel->mNumPositionKeys; ++positionIndex ) {
             aiVector3D aiPosition{ channel->mPositionKeys[positionIndex].mValue };
             double timeStamp{ channel->mPositionKeys[positionIndex].mTime };
-            KeyPosition data{
+           /* KeyPosition data{
                 .Position{ aiPosition.x, aiPosition.y, aiPosition.z },
                 .TimeStamp{ static_cast<float>( timeStamp ) }
             };
-            result.Positions.push_back( data );
+            result.Positions.push_back( data );*/
         }
 
         for ( Int32 rotationIndex{}; rotationIndex < channel->mNumRotationKeys; ++rotationIndex ) {
             aiQuaternion aiOrientation{ channel->mRotationKeys[rotationIndex].mValue };
             double timeStamp{ channel->mRotationKeys[rotationIndex].mTime };
-            KeyRotation data{
+            /*KeyRotation data{
                 .Orientation{ glm::quat( aiOrientation.w, aiOrientation.x, aiOrientation.y, aiOrientation.z ) },
                 .TimeStamp{ static_cast<float>( timeStamp ) }
             };
-            result.Rotations.push_back( data );
+            result.Rotations.push_back( data );*/
         }
 
         for ( Int32 keyIndex{}; keyIndex < channel->mNumScalingKeys; ++keyIndex ) {
             aiVector3D scale{ channel->mScalingKeys[keyIndex].mValue };
             double timeStamp{ channel->mScalingKeys[keyIndex].mTime };
-            KeyScale data{
+            /*KeyScale data{
                 .Scale{ scale.x, scale.y, scale.z },
                 .TimeStamp{ static_cast<float>( timeStamp ) }
             };
-            result.Scales.push_back( data );
+            result.Scales.push_back( data );*/
         }
 
-        return result;
+        return {};
     }
 
     static auto LoadBoneWeights( const aiMesh *mesh, MeshNodeData &meshNodeData, Skeleton& skeleton ) -> void {
@@ -230,7 +235,7 @@ namespace Mikoto {
                 float weight{ weights[weightIndex].mWeight };
                 UInt32 vertexId{ weights[weightIndex].mVertexId };
 
-                skeleton.SetVertexWeights( mesh->mName.C_Str(), boneName, vertexId, weight );
+                skeleton.SetWeights( mesh->mName.C_Str(), boneName, vertexId, weight );
 
                 MKT_ASSERT( vertexId < meshNodeData.Vertices.size(), "vertexID out of bounds for vertices count" );
 
@@ -250,17 +255,25 @@ namespace Mikoto {
         }
     }
 
-    static auto ReadJointAnimationProperties( const aiAnimation *animation, ModelData& modelData ) -> void {
+    static auto GetAnimationProperties( const aiAnimation *animation, ModelData& modelData ) -> void {
         Skeleton& skeleton{ modelData.SceneSkeleton };
         const UInt32 size{ ( animation->mNumChannels ) };
+
+        std::vector<AnimationSampler> samplers{};
+        std::vector<AnimationChannel> channels{};
 
         for ( UInt32 i{}; i < size; i++ ) {
             aiNodeAnim* channel{ animation->mChannels[i] };
             std::string jointName{ channel->mNodeName.data };
 
+            AnimationSampler animationSampler{};
+            AnimationChannel animationChannel{};
+
             Joint* joint{ skeleton.FindJoint( jointName ) };
             if (joint) {
-                joint->SetAnimationProperties( LoadBoneProperties(channel) );
+                // TODO: fill structures properly
+                samplers.emplace_back( animationSampler );
+                channels.emplace_back( animationChannel );
             }
         }
     }
@@ -565,7 +578,7 @@ namespace Mikoto {
     static auto LoadHierarchyTransformation( const aiNode *src, Skeleton &skeleton) -> void {
         Joint* parentJoint{ skeleton.FindJoint( src->mName.data ) };
         if (parentJoint) {
-            parentJoint->SetParentRelativeTransform( ToMat4F( src->mTransformation ) );
+            //parentJoint->SetParentRelativeTransform( ToMat4F( src->mTransformation ) );
         }
 
         for ( UInt32 i{}; i < src->mNumChildren; i++ ) {
@@ -617,16 +630,15 @@ namespace Mikoto {
         for ( UInt32 animationCount{}; animationCount < scene->mNumAnimations; ++animationCount ) {
             auto animation{ scene->mAnimations[animationCount] };
 
+            AnimationDescription desc{
+                .Name{ animation->mName.C_Str() },
+                .Duration{ static_cast<float>( animation->mDuration / animation->mTicksPerSecond ) },
+            };
             const auto [it, success]{
-                modelData.Animations.try_emplace(
-                    std::string{ animation->mName.C_Str() },
-
-                    animation->mName.C_Str(),
-                    static_cast<float>( animation->mDuration ),
-                    static_cast<UInt32>( animation->mTicksPerSecond))
+                modelData.Animations.try_emplace( std::string{ animation->mName.C_Str() }, std::move( desc ) )
             };
 
-            ReadJointAnimationProperties( animation, modelData );
+            GetAnimationProperties( animation, modelData );
         }
     }
 
@@ -776,7 +788,7 @@ namespace Mikoto {
                 std::string boneName{ bone->mName.C_Str() };
 
                 if ( !skeleton.HasJoint( boneName ) ) {
-                    skeleton.RegisterJoint( boneName, boneID++, ToMat4F( bone->mOffsetMatrix ) );
+                    skeleton.RegisterJoint( boneName, boneID++ );
                 }
             }
         }
@@ -819,7 +831,7 @@ namespace Mikoto {
         LoadModelAnimations(scene, modelData);
 
 #if !defined( NDEBUG )
-        modelData.SceneSkeleton.DebugPrintBoneContribution();
+        modelData.SceneSkeleton.PrintBoneInfo();
 
         if ( !modelData.Animations.empty() ) {
             MKT_COLOR_PRINT_FORMATTED_FLUSH(
@@ -827,7 +839,7 @@ namespace Mikoto {
                 "Printing skeleton hierarchy\n"
             );
 
-            PrintSkeletonTree( modelData.SceneSkeleton );
+            modelData.SceneSkeleton.PrintTreeView();
         }
 #endif
     }

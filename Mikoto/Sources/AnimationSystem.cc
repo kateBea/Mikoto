@@ -60,4 +60,4 @@ namespace Mikoto {
 
         return nullptr;
     }
-}// namespace Mikoto
+}

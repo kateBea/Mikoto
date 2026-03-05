@@ -15,9 +15,12 @@
 #include <ranges>
 #include <algorithm>
 
+#include <Library/Math/Math.hh>
+
 #include <tiny_gltf.h>
 
 #include <Logging/Logger.hh>
+#include <Common/String.hh>
 
 #include <Assets/GltfImporter.hh>
 
@@ -96,6 +99,153 @@ namespace Mikoto {
         }
 
         return SamplerFilter::FILTER_NEAREST;
+    }
+
+    static auto ToMat4F( const tinygltf::Node& node ) -> Mat4F {
+        glm::mat4 transform{ 1.0f };
+
+        if ( !node.matrix.empty() ) {
+            const double* m = node.matrix.data();
+
+            transform = glm::mat4(
+                    ( float )m[0], ( float )m[1], ( float )m[2], ( float )m[3],
+                    ( float )m[4], ( float )m[5], ( float )m[6], ( float )m[7],
+                    ( float )m[8], ( float )m[9], ( float )m[10], ( float )m[11],
+                    ( float )m[12], ( float )m[13], ( float )m[14], ( float )m[15] );
+        }
+
+        return transform;
+    }
+
+    static Mat4F ComputeNodeTransform( const tinygltf::Node& node ) {
+        Mat4F transform{ 1.0f };
+
+        if ( !node.matrix.empty() ) {
+            transform = ToMat4F( node );
+        } else {
+            Vec3F translation{ 0.0f };
+            Vec3F scale{ 1.0f };
+            Quat rotation{ 1, 0, 0, 0 };
+
+            if ( !node.translation.empty() )
+                translation = Vec3F(
+                        node.translation[0],
+                        node.translation[1],
+                        node.translation[2] );
+
+            if ( !node.scale.empty() )
+                scale = Vec3F(
+                        node.scale[0],
+                        node.scale[1],
+                        node.scale[2] );
+
+            if ( !node.rotation.empty() )
+                rotation = Quat(
+                        node.rotation[3],
+                        node.rotation[0],
+                        node.rotation[1],
+                        node.rotation[2] );
+
+            transform =
+                    glm::translate( Mat4F{ 1.0f }, translation ) *
+                    glm::mat4_cast( rotation ) *
+                    glm::scale( Mat4F{ 1.0f }, scale );
+        }
+
+        return transform;
+    }
+
+    static auto LoadNode( const tinygltf::Model& model, Skeleton& skeleton, Int32 nodeIndex ) -> Node {
+        const tinygltf::Node& gltfNode = model.nodes[nodeIndex];
+
+        Node node{};
+
+        // Node name
+        node.Name = gltfNode.name.empty()
+                            ? std::to_string( nodeIndex )
+                            : gltfNode.name;
+
+        // Local transform
+        node.Transformation = ComputeNodeTransform( gltfNode );
+
+        
+        // -------------------------
+        // Extract TRS
+        // -------------------------
+
+        // Translation
+        if ( !gltfNode.translation.empty() ) {
+            node.Translation = Vec3F{
+                static_cast<float>( gltfNode.translation[0] ),
+                static_cast<float>( gltfNode.translation[1] ),
+                static_cast<float>( gltfNode.translation[2] )
+            };
+        }
+
+        // Scale
+        if ( !gltfNode.scale.empty() ) {
+            node.Scale = Vec3F{
+                static_cast<float>( gltfNode.scale[0] ),
+                static_cast<float>( gltfNode.scale[1] ),
+                static_cast<float>( gltfNode.scale[2] )
+            };
+        }
+
+        // Rotation (glTF stores quaternion as x,y,z,w)
+        if ( !gltfNode.rotation.empty() ) {
+            node.Rotation = Quat{
+                static_cast<float>( gltfNode.rotation[3] ),// w
+                static_cast<float>( gltfNode.rotation[0] ),// x
+                static_cast<float>( gltfNode.rotation[1] ),// y
+                static_cast<float>( gltfNode.rotation[2] ) // z
+            };
+        }
+
+        // If TRS wasn't provided explicitly, extract it from the matrix
+        if ( gltfNode.translation.empty() &&
+             gltfNode.rotation.empty() &&
+             gltfNode.scale.empty() ) {
+            glm::vec3 scale{};
+            glm::quat rotation{};
+            glm::vec3 translation{};
+            glm::vec3 skew{};
+            glm::vec4 perspective{};
+
+            glm::decompose( node.Transformation,
+                            scale,
+                            rotation,
+                            translation,
+                            skew,
+                            perspective );
+
+            node.Translation = translation;
+            node.Rotation = rotation;
+            node.Scale = scale;
+        }
+
+        // Check if this node corresponds to a joint
+        if ( skeleton.HasJoint( node.Name ) ) {
+            if ( auto* joint = skeleton.FindJoint( node.Name ) ) {
+                node.JointID = joint->GetID();
+            }
+        }
+
+        // Recursively process children
+        for ( Int32 childIndex: gltfNode.children ) {
+            auto& child{ node.Children.emplace_back( LoadNode( model, skeleton, childIndex ) ) };
+
+            // Register parent ID
+            auto childName = model.nodes[childIndex].name.empty()
+                                     ? std::to_string( childIndex )
+                                     : model.nodes[childIndex].name;
+
+            auto childJoint{ skeleton.FindJointByID( childIndex ) };
+            if ( childJoint ) {
+                childJoint->SetParentID( nodeIndex );
+            }
+        }
+
+        return node;
     }
 
     static auto ReadAccessorAsFloat(
@@ -516,8 +666,203 @@ namespace Mikoto {
         }
     }
 
+    auto GLTFImporter::LoadSkeleton( tinygltf::Model& model, ModelData& modelData ) -> void {
+        if (model.skins.empty()) {
+            return;
+        }
+
+        const tinygltf::Skin& skin{ model.skins[0] };
+
+        Skeleton& skeleton{ modelData.SceneSkeleton };
+
+        // Load inverse bind matrices
+        std::vector<glm::mat4> inverseBindMatrices{};
+        if ( skin.inverseBindMatrices >= 0 ) {
+            const tinygltf::Accessor& accessor = model.accessors[skin.inverseBindMatrices];
+            const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+            const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+
+            inverseBindMatrices.resize( accessor.count );
+            std::memcpy( inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof( Mat4F ) );
+
+            skeleton.SetInverseBindMatrices( std::move( inverseBindMatrices ) );
+        }
+
+        // Register joints
+        for ( Int32 jointNodeIndex: skin.joints ) {
+            const tinygltf::Node& node{ model.nodes[jointNodeIndex] };
+
+            const std::string name {
+                    node.name.empty()
+                            ? std::to_string( jointNodeIndex )
+                            : node.name };
+
+            skeleton.RegisterJoint( name, jointNodeIndex );
+        }
+
+        // Determine root node
+        Int32 rootNodeIndex {
+                skin.skeleton != -1
+                        ? skin.skeleton
+                        : skin.joints[0] };
+
+        Node root{ LoadNode( model, skeleton, rootNodeIndex ) };
+
+        skeleton.SetHierarchy( std::move( root ) );
+
+#if !defined( NDEBUG )
+        MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                MKT_FMT_COLOR_BLUE_VIOLET,
+                "Printing skeleton hierarchy\n" );
+
+        modelData.SceneSkeleton.PrintTreeView();
+#endif
+
+        skeleton.BuildOzzStructures();
+    }
+
     auto GLTFImporter::LoadAnimations( tinygltf::Model& model, ModelData& modelData ) -> void {
-    
+        for ( tinygltf::Animation& anim: model.animations ) {
+            AnimationDescription animationDescription{};
+            animationDescription.Name = anim.name;
+
+            // Some animations do not have names
+            if ( anim.name.empty() ) {
+                animationDescription.Name = StringUtil::Format( "Unnamed animation" );
+            }
+
+            // Samplers
+            for ( auto& samp: anim.samplers ) {
+                AnimationSampler sampler{};
+
+                if ( samp.interpolation == "LINEAR" ) {
+                    sampler.Interpolation = InterpolationType::LINEAR;
+                }
+                if ( samp.interpolation == "STEP" ) {
+                    sampler.Interpolation = InterpolationType::STEP;
+                }
+                if ( samp.interpolation == "CUBICSPLINE" ) {
+                    sampler.Interpolation = InterpolationType::CUBICSPLINE;
+                }
+
+                // Read sampler input time values
+                {
+                    const tinygltf::Accessor& accessor = model.accessors[samp.input];
+                    const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+                    const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+
+                    MKT_ASSERT( accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Unexpected component type" );
+
+                    const void* dataPtr{ MKT_ADDRESSOF( buffer.data[accessor.byteOffset + bufferView.byteOffset] ) };
+                    const float* buf{ static_cast<const float*>( dataPtr ) };
+
+                    for ( Size index{}; index < accessor.count; index++ ) {
+                        sampler.TimeStamps.push_back( buf[index] );
+                    }
+
+                    // Compute bounds
+                    for ( auto input: sampler.TimeStamps ) {
+                        if ( input < animationDescription.Start ) {
+                            animationDescription.Start = input;
+                        }
+
+                        if ( input > animationDescription.End ) {
+                            animationDescription.End = input;
+                        }
+                    }
+                }
+
+                // Read sampler output T/R/S values
+                {
+                    const tinygltf::Accessor& accessor{ model.accessors[samp.output] };
+                    const tinygltf::BufferView& bufferView{ model.bufferViews[accessor.bufferView] };
+                    const tinygltf::Buffer& buffer{ model.buffers[bufferView.buffer] };
+
+                    MKT_ASSERT( accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Unexpected component type" );
+
+                    const void* dataPtr{ MKT_ADDRESSOF( buffer.data[accessor.byteOffset + bufferView.byteOffset] ) };
+
+                    switch ( accessor.type ) {
+                        case TINYGLTF_TYPE_VEC3: {
+                            const Vec3F* buf{ static_cast<const Vec3F*>( dataPtr ) };
+
+                            for ( Size index{}; index < accessor.count; index++ ) {
+                                sampler.OutputsVec4.emplace_back( glm::vec4( buf[index], 0.0f ) );
+                                sampler.Outputs.emplace_back( buf[index][0] );
+                                sampler.Outputs.emplace_back( buf[index][1] );
+                                sampler.Outputs.emplace_back( buf[index][2] );
+                            }
+                            break;
+                        }
+                        case TINYGLTF_TYPE_VEC4: {
+                            const Vec4F* buf{ static_cast<const Vec4F*>( dataPtr ) };
+
+                            for ( Size index{}; index < accessor.count; index++ ) {
+                                sampler.OutputsVec4.emplace_back( buf[index] );
+
+                                sampler.Outputs.emplace_back( buf[index][0] );
+                                sampler.Outputs.emplace_back( buf[index][1] );
+                                sampler.Outputs.emplace_back( buf[index][2] );
+                                sampler.Outputs.emplace_back( buf[index][3] );
+                            }
+                            break;
+                        }
+                        default: {
+                            MKT_CORE_LOGGER_WARN( "Unknown sampler type" );
+                            break;
+                        }
+                    }
+                }
+
+                animationDescription.Samplers.emplace_back( sampler );
+            }
+
+            // Channels
+            for ( auto& source: anim.channels ) {
+                AnimationChannel channel{};
+
+                if ( source.target_path == "rotation" ) {
+                    channel.Path = PathType::ROTATION;
+                }
+                if ( source.target_path == "translation" ) {
+                    channel.Path = PathType::TRANSLATION;
+                }
+                if ( source.target_path == "scale" ) {
+                    channel.Path = PathType::SCALE;
+                }
+                if ( source.target_path == "weights" ) {
+                    MKT_CORE_LOGGER_WARN( "weights not yet supported, skipping channel" );
+                    continue;
+                }
+
+                channel.SamplerIndex = source.sampler;
+                channel.JointIndex = source.target_node;
+
+                if ( Joint * joint{ modelData.SceneSkeleton.FindJointByID( channel.JointIndex ) } ) {
+                    channel.NodeName = joint->GetBoneName();
+                }
+
+                if (channel.JointIndex == 13) {
+                    MKT_CORE_LOGGER_DEBUG( "YOO" );
+                }
+
+                animationDescription.Channels.emplace_back( channel );
+            }
+
+            // Validations
+            for (const auto& sampler : animationDescription.Samplers) {
+                MKT_ASSERT( std::ranges::is_sorted( animationDescription.Samplers[0].TimeStamps ), "Keyframes not sorted in increasing order." );
+            }
+
+            const auto [it, success]{ 
+                modelData.Animations.try_emplace( animationDescription.Name, std::move( animationDescription ) ) 
+            };
+
+            // Build Ozz structures
+            if (success) {
+                it->second.BuildOzzStructures( modelData.SceneSkeleton );
+            }
+        }
     }
 
     auto GLTFImporter::TryAcquireImporter() -> std::vector<Unique<LoaderData>>::iterator {
@@ -550,12 +895,15 @@ namespace Mikoto {
             MKT_CORE_LOGGER_DEBUG( "Loaded glTF: {}", description.ModelFile->GetPath() );
 
             // Reference root path for loading textures
-            const std::string root{ Filesystem::StripFileName( description.ModelFile->GetPath() ) };
+            const std::string rootPath{ Filesystem::StripFileName( description.ModelFile->GetPath() ) };
 
-            LoadMaterials( model, out, root );
             LoadPrimitives( model, out );
-            LoadAnimations( model, out );
+            LoadMaterials( model, out, rootPath );
 
+            LoadSkeleton( model, out );
+
+            // Animation requires skeleton ready
+            LoadAnimations( model, out );
         }
     }
 }

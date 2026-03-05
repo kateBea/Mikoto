@@ -15,6 +15,9 @@
 #ifndef MIKOTO_ANIMATION_HH
 #define MIKOTO_ANIMATION_HH
 
+#include <limits>
+#include <numeric>
+
 #include <ankerl/unordered_dense.h>
 
 #include "ozz/animation/offline/animation_builder.h"
@@ -28,21 +31,74 @@
 
 namespace  Mikoto {
 
+    enum InterpolationType { LINEAR,
+                             STEP,
+                             CUBICSPLINE };
+
+    enum PathType { TRANSLATION,
+                    ROTATION,
+                    SCALE };
+
+    struct AnimationSampler {
+        InterpolationType Interpolation{ InterpolationType::LINEAR };
+
+        std::vector<Vec3F> Scales{};
+        std::vector<Vec3F> Positions{};
+        std::vector<Quat> Rotations{};
+
+        // This is kept because of how GLTF stores sampler values
+        std::vector<float> Outputs{};           // Key frame values (for rotations)
+        std::vector<glm::vec4> OutputsVec4{};   // Key frame values (for translations and scales)
+
+        std::vector<float> TimeStamps{};
+    };
+
+    struct AnimationChannel {
+        PathType Path{ PathType::TRANSLATION };
+        Int32 SamplerIndex{};
+
+        std::string NodeName{};
+        Int32 JointIndex{};
+    };
+
+    struct AnimationDescription {
+        // Duration of the animation in ticks
+        std::string Name{};
+
+        float Duration{};
+
+        std::vector<AnimationSampler> Samplers{};
+        std::vector<AnimationChannel> Channels{};
+
+        float Start{ std::numeric_limits<float>::max() };
+        float End{ std::numeric_limits<float>::min() };
+    };
+
     class SkinnedAnimation {
     public:
-        explicit SkinnedAnimation( std::string_view name, float duration, UInt32 ticksPerSecond );
+        explicit SkinnedAnimation( AnimationDescription&& description );
 
         MKT_NODISCARD auto GetDuration() const -> float;
-        MKT_NODISCARD auto GetTicksPerSecond() const -> float;
 
         MKT_NODISCARD auto GetName() const -> const std::string&;
         MKT_NODISCARD auto GetOzzAnimation() -> ozz::animation::Animation*;
 
+        auto BuildOzzStructures( const Skeleton& skeleton ) -> void;
+
+    private:
+        auto ResolveSamplers() -> void;
+
     private:
         // Duration of the animation in ticks
-        float m_Duration{};
-        UInt32 m_TicksPerSecond{};
         std::string m_Name{};
+
+        float m_Duration{}; // In seconds
+
+        std::vector<AnimationSampler> m_Samplers{};
+        std::vector<AnimationChannel> m_Channels{};
+
+        float m_End{ std::numeric_limits<float>::min() };
+        float m_Start{ std::numeric_limits<float>::max() };
 
         // To construct the animation
         ozz::animation::offline::RawAnimation m_RawAnimation{};

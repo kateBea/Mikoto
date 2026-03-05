@@ -22,28 +22,15 @@
 
 namespace Mikoto {
 
-    Joint::Joint( const std::string& name, Int32 ID, Mat4F ModelToBoneTransform )
+    Joint::Joint( const std::string& name, Int32 ID )
         : m_Name{ name },
-          m_ID{ ID },
-          m_ModelToBoneTransform{ ModelToBoneTransform }
+          m_ID{ ID }
     {
         MKT_ASSERT( m_ID != INVALID_JOINT_ID, "No valid ID found" );
     }
 
     auto Joint::SetParentID( Int32 ID ) -> void {
         m_ParentID = ID;
-    }
-
-    auto Joint::SetParentRelativeTransform( const Mat4F& mat ) -> void {
-        m_ParentRelativeTransform = mat;
-    }
-
-    auto Joint::GetParentRelativeTransform() const -> const Mat4F& {
-        return m_ParentRelativeTransform;
-    }
-
-    auto Joint::GetModelToBoneTransform() const -> const Mat4F& {
-        return m_ModelToBoneTransform;
     }
 
     auto Joint::GetID() const -> Int32 {
@@ -58,13 +45,7 @@ namespace Mikoto {
         return m_Name;
     }
 
-    auto Joint::SetAnimationProperties( AnimationProperties&& properties ) -> void {
-        m_Positions = std::move( properties.Positions );
-        m_Rotations = std::move( properties.Rotations );
-        m_Scales = std::move( properties.Scales );
-    }
-
-    auto Joint::DebugPrintBoneContribution() const -> void {
+    auto Joint::PrintBoneInfo() const -> void {
         MKT_COLOR_PRINT_FORMATTED_FLUSH(
                 MKT_FMT_COLOR_BLUE_VIOLET,
                 "Printing joint vertex contribution\n" );
@@ -81,7 +62,7 @@ namespace Mikoto {
         }
     }
 
-    auto Joint::SetVertexWeights( std::string_view meshName, UInt64 vertex, float weight ) -> void {
+    auto Joint::SetWeights( std::string_view meshName, UInt64 vertex, float weight ) -> void {
         m_VertexWeights[StringUtil::From( meshName )][vertex] = weight;
     }
 }

@@ -25,6 +25,7 @@
 #endif
 
 #include <numbers>
+#include <vector>
 
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
@@ -55,6 +56,9 @@ namespace Mikoto::Math {
     // MKT_NODISCARD auto Clamp( const T& value, const T& min, const T& max ) -> T {
     //     return std::max( min, std::min( value, max ) );
     // }
+
+    auto DumpMat4FList( const std::vector<glm::mat4>& m ) -> void;
+    auto DumpMat4FListBeautify( const std::vector<glm::mat4>& m ) -> void;
 
 }
 

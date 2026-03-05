@@ -15,17 +15,17 @@
 #ifndef MIKOTO_SKELETON_HH
 #define MIKOTO_SKELETON_HH
 
-#include <ankerl/unordered_dense.h>
-
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include "ozz/animation/offline/raw_skeleton.h"
-#include "ozz/animation/offline/skeleton_builder.h"
-#include "ozz/animation/runtime/animation.h"
-#include "ozz/animation/runtime/skeleton.h"
-#include "ozz/base/memory/unique_ptr.h"
+#include <ankerl/unordered_dense.h>
+
+#include <ozz/base/memory/unique_ptr.h>
+#include <ozz/animation/runtime/skeleton.h>
+#include <ozz/animation/runtime/animation.h>
+#include <ozz/animation/offline/raw_skeleton.h>
+#include <ozz/animation/offline/skeleton_builder.h>
 
 #include <Common/Common.hh>
 #include <Animation/Joint.hh>
@@ -39,13 +39,26 @@ namespace Mikoto {
 
         // Transform relative to parent node
         Mat4F Transformation{};
+
+        // The same info but split
+        Vec3F Scale{ 1.0f };
+        Vec3F Translation{ 0.0f };
+        Quat Rotation{ 1, 0, 0, 0 };
+
+        // Inverse bind
+
         std::vector<Node> Children{};
+    };
+
+    // Hierarchy of nodes that are bones
+    struct ArmatureNode {
+
     };
 
     // These 2 are vec4 because they need to match the bone influence
     // which is maximum bones influence a vertex ( from what we support now )
     inline constexpr UInt32 MAX_BONE_INFLUENCE{ 4 };
-    inline constexpr UInt32 MAX_BONES_PER_MESH{ 100 };
+    inline constexpr UInt32 MAX_BONES_PER_MESH{ 128 };
     inline constexpr UInt32 MAX_SKINNED_MESHES{ 1000 };
 
     using JointsMap = ankerl::unordered_dense::map<std::string, Joint>;
@@ -58,20 +71,24 @@ namespace Mikoto {
     public:
         explicit Skeleton() = default;
 
-        auto RegisterJoint( const std::string& name, Int32 ID, Mat4F ModelToBoneTransform ) -> void;
+        auto RegisterJoint( const std::string& name, Int32 ID ) -> void;
 
         auto GetBoneMap() -> JointsMap&;
         MKT_NODISCARD auto GetBoneMap() const -> const JointsMap&;
 
         MKT_NODISCARD auto HasJoint( std::string_view name ) const -> bool;
+
         MKT_NODISCARD auto FindJoint( std::string_view name ) -> Joint*;
         MKT_NODISCARD auto FindJoint( std::string_view name ) const -> const Joint*;
+
         MKT_NODISCARD auto FindJointByID( UInt32 ID ) -> Joint*;
         MKT_NODISCARD auto FindJointByID( UInt32 ID ) const -> const Joint*;
 
         MKT_NODISCARD auto GetOzzSkeleton() -> ozz::animation::Skeleton*;
+        MKT_NODISCARD auto GetOzzBondeIndex( UInt32 ID ) const -> Int32;
         MKT_NODISCARD auto GetOzzSkeleton() const -> const ozz::animation::Skeleton*;
 
+        MKT_NODISCARD auto GetInverseBindMatrices() const -> const std::vector<Mat4F>&;
         MKT_NODISCARD auto GetHierarchy() const -> const Node&;
         MKT_NODISCARD auto GetBoneCount() const -> UInt32;
 
@@ -84,17 +101,29 @@ namespace Mikoto {
         MKT_NODISCARD auto cbegin() const -> JointsMapConstIterator;
         MKT_NODISCARD auto cend() const -> JointsMapConstIterator;
 
-        auto DebugPrintBoneContribution() const -> void;
-        auto SetVertexWeights( std::string_view meshName, std::string_view boneName, UInt64 vertex, float weight ) -> void;
+        auto PrintTreeView() -> void;
+        auto PrintBoneInfo() const -> void;
+        auto SetWeights( std::string_view meshName, std::string_view boneName, UInt64 vertex, float weight ) -> void;
 
         auto SetHierarchy( Node&& rootNode ) -> void;
         auto SetBoneMap( JointsMap&& boneMap ) -> void;
+        auto SetInverseBindMatrices( std::vector<Mat4F>&& mats ) -> void;
+
+        auto BuildOzzStructures() -> void;
+
+    private:
+        auto ConstructOzzHierarchy( Node& root, ozz::animation::offline::RawSkeleton::Joint& joint ) -> void;
 
     private:
         Node m_RootNode{};
 
         JointsMap m_Joints{};
         JointsMapID m_JointsByID{};
+
+        std::vector<Mat4F> m_InverseBindMatrices{};
+
+        // ID -> ozz joint index
+        ankerl::unordered_dense::map<UInt32, Int32> m_JointOzzIndex{};
 
         // To construct the skeleton
         ozz::animation::offline::SkeletonBuilder m_Builder{};

@@ -227,7 +227,7 @@ namespace Mikoto {
                 b.Write( "DepthPrePass_Depth", FrameResourceState::DepthWrite );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                b.Read( "MeshCulling_MaterialsInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
             },
             
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {

@@ -23,9 +23,6 @@ ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 [[vk::binding(Slot_0, UAV_SET_INDEX)]]
 StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
 
-[[vk::binding(Slot_1, UAV_SET_INDEX)]]
-StructuredBuffer<MaterialParameters, ScalarDataLayout> Materials;
-
 [[vk::binding(Slot_2, UAV_SET_INDEX)]]
 StructuredBuffer<BoneData, ScalarDataLayout> Bones;
 
@@ -50,22 +47,9 @@ struct VSOutput {
     float2 TexCoord0 : TEXCOORD3;
     float3 Color : TEXCOORD4;
 
-    int AlbedoIndex : TEXCOORD5;
-    int NormalIndex : TEXCOORD6;
-    int MetallicIndex : TEXCOORD7;
-    int RoughnessIndex : TEXCOORD8;
-    int AoIndex : TEXCOORD9;
-    float4 Albedo : TEXCOORD10;
+    float2 TexCoord1 : TEXCOORD5;
 
-    float MetallicFactor : TEXCOORD11;
-    float RoughnessFactor : TEXCOORD12;
-
-    float3 EmissiveFactors : TEXCOORD13;
-    float EmissionIntensity : TEXCOORD14;
-    int EmissionIndex : TEXCOORD15;
-    float AlphaCutoff : TEXCOORD16;
-
-    float2 TexCoord1 : TEXCOORD17;
+    int MaterialIndex : TEXCOORD6;
 
     float4 PositionH : SV_Position;
 };
@@ -75,7 +59,6 @@ VSOutput main(VSInput input) {
     VSOutput o;
 
     MeshParameters meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
-    MaterialParameters meshMaterial = Materials[input.BaseInstanceIndex + input.InstanceIndex];
 
     float4x4 model = meshInfo.Transform;
 
@@ -121,22 +104,7 @@ VSOutput main(VSInput input) {
     o.FragmentWorldPos = worldPos.xyz;
     o.FragmentViewPos = mul(u_Camera.ViewMatrix, worldPos).xyz;
     o.Normal = worldNormal;
-
-    o.AlbedoIndex = meshMaterial.AlbedoIndex;
-    o.NormalIndex = meshMaterial.NormalIndex;
-    o.MetallicIndex = meshMaterial.MetallicIndex;
-    o.RoughnessIndex = meshMaterial.RoughnessIndex;
-    o.AoIndex = meshMaterial.AoIndex;
-
-    o.Albedo = meshMaterial.BaseColorFactor;
-    o.MetallicFactor = meshMaterial.MetallicFactor;
-    o.RoughnessFactor = meshMaterial.RoughnessFactor;
-
-    o.EmissiveFactors = float3(0, 0, 0); //  // TODO
-    o.EmissionIntensity = meshMaterial.EmissiveStrength;
-    o.EmissionIndex = meshMaterial.EmissiveIndex;
-
-    o.AlphaCutoff = meshMaterial.AlphaMaskCutoff;
+    o.MaterialIndex = input.BaseInstanceIndex + input.InstanceIndex;
 
     o.PositionH =
         mul(u_Camera.Projection,

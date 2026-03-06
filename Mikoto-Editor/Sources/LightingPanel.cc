@@ -37,30 +37,6 @@ namespace Mikoto {
 
         ImGui::Begin( m_PanelHeaderName.c_str(), &m_PanelIsVisible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize );
 
-        ImGuiTabBarFlags tabFlags{ ImGuiTabBarFlags_None };
-        if ( ImGui::BeginTabBar( "LightingTabBar", tabFlags ) ) {
-            if ( ImGui::BeginTabItem( "Scene" ) ) {
-                DrawSceneSettings();
-                ImGui::EndTabItem();
-            }
-
-            if ( ImGui::BeginTabItem( "Shadows" ) ) {
-                DrawShadowsSettings();
-                ImGui::EndTabItem();
-            }
-
-            if ( ImGui::BeginTabItem( "Lights" ) ) {
-                DrawLightsSettings();
-                ImGui::EndTabItem();
-            }
-
-            if ( ImGui::BeginTabItem( "Environment" ) ) {
-                DrawEnvironmentSettings();
-                ImGui::EndTabItem();
-            }
-            ImGui::EndTabBar();
-        }
-
         ImGui::End();
     }
 
@@ -75,43 +51,6 @@ namespace Mikoto {
     }
 
     auto LightingPanel::DrawSceneSettings() -> void {
-        static  std::array<std::string, 2> backgroundTypes{
-            "Skybox", "Clear color"
-        };
-
-        ImGui::SeparatorText( "Sky light" );
-
-        ImGui::Text( "Skybox Texture" );
-        ImGui::SameLine();
-
-        const SceneBackground current{ m_EditorState->ActiveEditorScene->GetSceneBackground() };
-        const SceneBackground selection{ ImGuiUtils::Combo( backgroundTypes, current ) };
-
-        m_EditorState->ActiveEditorScene->SetSceneBackground( selection );
-
-        TextureHandle textureHandle{ m_EditorState->ActiveEditorScene->GetSkybox() };
-
-        switch (selection) {
-
-            case SceneBackground::SKYBOX:
-                if (!textureHandle.IsEmpty()) {
-                    ImGuiUtils::InputText(StringUtil::Format( "{}", textureHandle->GetTextureUri() ), true );
-                }
-
-                if (ImGui::BeginDragDropTarget()) {
-                    if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("HDR_LOAD_LIGHT_PANEL") }) {
-                        std::string hdrPath{ *static_cast<std::string*>( payload->Data ) };
-                        RuntimeConsole::Get()->Debug( StringUtil::Format("You dropped texture from HDR_LOAD_LIGHT_PANEL {}", hdrPath ) );
-                    }
-                    ImGui::EndDragDropTarget();
-                }
-
-                break;
-            case SceneBackground::CLEAR_COLOR:
-
-                break;
-            default:
-                break;
-        }
+       
     }
 }

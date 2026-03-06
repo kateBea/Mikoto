@@ -37,15 +37,13 @@ namespace Mikoto {
         Int32 JointID{ -1 };
         std::string Name{};
 
-        // Transform relative to parent node
+        // Bind pose transform
         Mat4F Transformation{};
 
         // The same info but split
         Vec3F Scale{ 1.0f };
         Vec3F Translation{ 0.0f };
         Quat Rotation{ 1, 0, 0, 0 };
-
-        // Inverse bind
 
         std::vector<Node> Children{};
     };

@@ -60,7 +60,7 @@ namespace Mikoto {
                                        node.Rotation.y,
                                        node.Rotation.z,
                                        node.Rotation.w );
-
+        
         joint.transform.scale =
                 ozz::math::Float3( node.Scale.x,
                                    node.Scale.y,
@@ -74,7 +74,7 @@ namespace Mikoto {
             ConstructOzzHierarchy( node.Children[i], joint.children[i] );
         }
     }
-
+    
     auto Skeleton::BuildOzzStructures() -> void {
         // glTF skeletons usually have a single root
         m_RawSkeleton.roots.resize( 1 );

@@ -103,6 +103,9 @@ namespace Mikoto {
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
+
+                m_CameraParameters.InverseViewProjection = glm::inverse( m_CameraParameters.Projection * m_CameraParameters.ViewMatrix );
+
                 ctx.UploadBuffer( "CameraInfoPass_CameraData", m_CameraParameters );
             },  FramePassNodeType::GENERIC );
     }

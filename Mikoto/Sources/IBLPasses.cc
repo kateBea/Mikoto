@@ -567,6 +567,9 @@ namespace Mikoto {
 
                         ctx.BindPipeline( "DirectionalShadowMapPass_Pipeline" );
                         m_MeshCullingPass->DrawInstances( ctx );
+
+                        // We then copy this data to an depth image that is part of an unbounded image view set (just a bindless texture list of shadow maps, same for
+                        // the other shadow maps ligt types
                         
                         ctx.EndRender();
                     }
@@ -686,7 +689,7 @@ namespace Mikoto {
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "BRDFLutPass_ColorTarget", m_BRDFLutSampler, ResourceSlot::Slot_0 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_1 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_2 );
-
+                
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", ResourceSlot::Slot_3 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAOBlur_ColorTarget", ResourceSlot::Slot_4 );
 
@@ -711,8 +714,6 @@ namespace Mikoto {
 
         // Resources:
         // https://github.khronos.org/Vulkan-Site/tutorial/latest/Building_a_Simple_Engine/Lighting_Materials/04_lighting_implementation.html
-
-        MKT_BEGIN_PROFILER_NAMED();
 
         graph.RegisterPass<FinalShadingConstants>(
             "MetallicRoughnessPBR",
@@ -754,6 +755,9 @@ namespace Mikoto {
 
                 b.Read( "SSAO_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "SSAOBlur_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+
+                // Edge with this pass
+                b.Write( "FinalShadingPass_BufferEDGE+", FrameResourceState::UniformBuffer );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
@@ -772,7 +776,7 @@ namespace Mikoto {
                 PassRenderInfo renderInfo{
                     .ColorLoadOp{ colorTargetLoadOP },
                 };
-
+                
                 ctx.BeginRender( renderInfo );
                 
                 auto &data{ blackboard.Get<FinalShadingConstants>() };
@@ -796,9 +800,9 @@ namespace Mikoto {
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_1 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_MaterialsInfo", ResourceSlot::Slot_2 );
                 
-                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "AABBGenComp_Clusters", ResourceSlot::Slot_3 );
-                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "LightCullingComp_LightsBuffer", ResourceSlot::Slot_4 );
-
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "AABBGenComp_Clusters", ResourceSlot::Slot_3 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "LightCullingComp_LightsBuffer", ResourceSlot::Slot_4 );
+                
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "BRDFLutPass_ColorTarget", m_BRDFLutSampler, ResourceSlot::Slot_0 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_1 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_2 );
@@ -846,6 +850,7 @@ namespace Mikoto {
                 b.Read( "GBuffer_Color", FrameResourceState::ShaderRead_GraphicsPipeline );
 
                 b.Read( "DepthPrePass_Color", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "InfiniteGrid_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
             []( CommandContext &, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();

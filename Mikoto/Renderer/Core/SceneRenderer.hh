@@ -87,6 +87,20 @@ namespace Mikoto {
         auto SetWireframeLineColor(const Vec4F& color) -> void;
         auto SetWireframeClearColor(const Vec4F& color) -> void;
 
+        // Infinite grid
+        auto EnableInfiniteGrid( bool enable ) -> void;
+        auto SetOuterSquareColor( const Vec4F& color ) -> void;
+        auto SetInnerSquareColor( const Vec4F& color ) -> void;
+
+        auto SetOuterSquareWidth( float width ) -> void;
+        auto SetInnerSquareWidth( float width ) -> void;
+
+        auto SetZAxisWidth( float width ) -> void;
+        auto SetXAxisWidth( float width ) -> void;
+
+        auto SetZAxisColor( const Vec4F& color ) -> void;
+        auto SetXAxisColor( const Vec4F& color ) -> void;
+
         MKT_NODISCARD auto GetPassList() const -> const PassList&;
 
         // Resolution

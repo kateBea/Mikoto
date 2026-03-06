@@ -347,7 +347,7 @@ namespace Mikoto {
 
             float strength{ material.GetMetallicFactor() };
 
-            if ( ImGuiUtils::Slider( "Metal factor", strength, { 0.0f, 10.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Metal factor", strength, { 0.0f, 1.0f } ) ) {
                 material.SetMetallicFactor( strength );
             }
 
@@ -418,14 +418,6 @@ namespace Mikoto {
         constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
 
         if ( ImGui::BeginTable( "NormalMapEditContentsTable", columnCount, specularTableFlags ) ) {
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( columnIndexSpecular );
-
-            float strength{ /* TODO */ };
-
-            if ( ImGuiUtils::Slider( "Strength", strength, { 0.0f, 10.0f } ) ) {
-            }
-
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
             ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
@@ -576,7 +568,7 @@ namespace Mikoto {
 
             float strength{ material.GetRoughnessFactor() };
 
-            if ( ImGuiUtils::Slider( "Roughness factor", strength, { 0.0f, 10.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Roughness factor", strength, { 0.0f, 1.0f } ) ) {
                 material.SetRoughnessFactor( strength );
             }
 

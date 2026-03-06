@@ -12,93 +12,104 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// =========================================================================
+// ref: https://github.com/skaarj1989/SupernovaEngine
+// http://asliceofrendering.com/scene%20helper/2020/01/05/InfiniteGrid/
+// =========================================================================
+
 #include "base/Base.slang"
+#include "base/Camera_Helpers.slang"
+#include "base/Math_Helpers.slang"
+
+[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
+ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
+
+struct InfiniteGridProperties {
+    float4 OuterSquareColor ;
+    float4 InnerSquareColor ;
+
+    float4 XAxisColor;
+    float4 ZAxisColor;
+
+    float OuterSquareWidth;
+    float InnerSquareWidth;
+
+    float XAxisWidth;
+    float ZAxisWidth;
+};
 
 struct FSInput {
-    float3 WorldPos : TEXCOORD0;
-    float3 CameraWorldPos : TEXCOORD1;
+    float2 TexCoord : TEXCOORD0;
+
+    float3 Near : TEXCOORD1;
+    float3 Far : TEXCOORD2;
+
+    float4 FragPos : SV_Position;
 };
 
 struct FSOutput {
     float4 Color : SV_Target0;
+    float FragDepth : SV_Depth;
 };
 
-static const float gridSize = 100.0;
-static const float gridMinPixelsBetweenCells = 2.0;
-static const float gridCellSize = 0.025;
+[[vk::push_constant]]
+InfiniteGridProperties u_Params;
 
-static const float4 gridColorThin = float4(0.5, 0.5, 0.5, 1.0);
-static const float4 gridColorThick = float4(0.3, 0.2, 0.5, 1.0);
+float4 Grid(float3 fragPos, float scale, float thickness, float3 lineColor) {
+    const float2 coords = fragPos.xz * scale;
+    const float2 fd = fwidth(coords);
+    const float2 lattice = abs(fract(coords - 0.5) - 0.5) / (fd * thickness);
+    const float line = min(lattice.x, lattice.y);
 
-float log10_f(float x) {
-    return log(x) / log(10.0);
+    float4 color = float4(lineColor, 1.0 - min(line, 1.0));
+
+    const float axisWidthX = u_Params.XAxisWidth;
+    const float axisWidthZ = u_Params.ZAxisWidth;
+
+    // X axis
+    const float minX = min(fd.x, 1.0);
+    if (fragPos.x > -axisWidthX * minX && fragPos.x < axisWidthX * minX) {
+        color = float4(u_Params.XAxisColor);
+    }
+
+    // Z axis
+    const float minZ = min(fd.y, 1.0);
+    if (fragPos.z > -axisWidthZ * minZ && fragPos.z < axisWidthZ * minZ) {
+        color = float4(u_Params.ZAxisColor);
+    }
+    return color;
 }
 
-float satf(float x) {
-    return clamp(x, 0.0, 1.0);
+float4 WorldToClip(float4x4 viewProj, float4 v) {
+    return mul(viewProj, v); 
 }
 
-float2 satv(float2 v) {
-    return clamp(v, float2(0.0), float2(1.0));
+float LinearizeDepth(float n, float f, float sampledDepth) {
+    const float z = sampledDepth;
+    return n * f / (f + z * (n - f));
 }
 
-float max2(float2 v) {
-    return max(v.x, v.y);
+float3 WorldToNDC(float4 v, float4x4 camViewProj) {
+    const float4 P = WorldToClip(camViewProj, v);
+    return P.xyz / P.w;
 }
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
 
-    float2 dvx = float2(ddx(input.WorldPos.x), ddy(input.WorldPos.x));
-    float2 dvy = float2(ddx(input.WorldPos.z), ddy(input.WorldPos.z));
+    const float t = -input.Near.y / (input.Far.y - input.Near.y);
+    const float3 fragPos = input.Near + t * (input.Far - input.Near);
 
-    float lx = length(dvx);
-    float ly = length(dvy);
+    const float3 ndc = float3(WorldToNDC(float4(fragPos, 1.0), mul(u_Camera.Projection, u_Camera.ViewMatrix)));
+    if (ndc.z >= 1.0) discard;
 
-    float2 dudv = float2(lx, ly);
+    o.FragDepth = ndc.z - EPSILON;
 
-    float l = length(dudv);
+    o.Color = (Grid(fragPos, 0.01, 0.5, u_Params.InnerSquareColor.xyz) + Grid(fragPos, 0.5, 1, u_Params.OuterSquareColor.xyz)) * float(t > 0.0);
 
-    float LOD = max(0.0, log10_f(l * gridMinPixelsBetweenCells / gridCellSize) + 1.0);
-
-    float GridCellSizeLod0 = gridCellSize * pow(10.0, floor(LOD));
-    float GridCellSizeLod1 = GridCellSizeLod0 * 10.0;
-    float GridCellSizeLod2 = GridCellSizeLod1 * 10.0;
-
-    dudv *= 4.0;
-
-    float2 mod_div = fmod(input.WorldPos.xz, GridCellSizeLod0) / dudv;
-    float Lod0a = max2(float2(1.0) - abs(satv(mod_div) * 2.0 - float2(1.0)));
-
-    mod_div = fmod(input.WorldPos.xz, GridCellSizeLod1) / dudv;
-    float Lod1a = max2(float2(1.0) - abs(satv(mod_div) * 2.0 - float2(1.0)));
-
-    mod_div = fmod(input.WorldPos.xz, GridCellSizeLod2) / dudv;
-    float Lod2a = max2(float2(1.0) - abs(satv(mod_div) * 2.0 - float2(1.0)));
-
-    float LOD_fade = frac(LOD);
-    float4 Color;
-
-    if (Lod2a > 0.0) {
-        Color = gridColorThick;
-        Color.a *= Lod2a;
-    }
-    else if (Lod1a > 0.0) {
-        Color = lerp(gridColorThick, gridColorThin, LOD_fade);
-        Color.a *= Lod1a;
-    }
-    else {
-        Color = gridColorThin;
-        Color.a *= (Lod0a * (1.0 - LOD_fade));
-    }
-
-    float dist = length(input.WorldPos.xz - input.CameraWorldPos.xz);
-    float OpacityFalloff = (1.0 - satf(dist / gridSize));
-
-    Color.a *= OpacityFalloff;
-
-    o.Color = Color;
+    const float linearDepth = LinearizeDepth(u_Camera.Planes.x, u_Camera.Planes.y, ndc.z) / u_Camera.Planes.y;
+    o.Color.a *= max(0.0, (0.5 - linearDepth));
 
     return o;
 }

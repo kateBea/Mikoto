@@ -51,25 +51,13 @@ namespace Mikoto {
         ImGuiUtils::DrawNode( "Scene Stats", [this]() -> void {
             ImGuiUtils::UnindentScoped und{};
 
-            auto scene{ m_EditorState->ActiveEditorScene };
-
-            ImGui::Text( "Entities: %u", scene->GetEntityCount() );
-            ImGui::Text( "Root Entities: %u", 11 );
-            ImGui::Text( "Prefabs: %u", 22 );
-            ImGui::Text( "Lights: %u", 22 );
-            ImGui::Text( "Lights (active): %u", 33 );
+            // TODO
         } );
 
         ImGuiUtils::DrawNode( "Metadata", [this]() {
             ImGuiUtils::UnindentScoped und{};
 
-            auto scene{ m_EditorState->ActiveEditorScene };
-
-            const std::string &name{ scene->GetName() };
-            ImGui::Text( "Name: %s", name.c_str() );
-
-            ImGui::Text( "Path: %s", "EMPTY" );
-            ImGui::Text( "GUID: %s", "SCENE_GUID" );
+            // TODO
         } );
 
         ImGuiUtils::DrawNode( "Physics world", [this]() -> void {

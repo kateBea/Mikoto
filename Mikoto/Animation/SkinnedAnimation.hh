@@ -65,8 +65,6 @@ namespace  Mikoto {
         // Duration of the animation in ticks
         std::string Name{};
 
-        float Duration{};
-
         std::vector<AnimationSampler> Samplers{};
         std::vector<AnimationChannel> Channels{};
 

@@ -50,6 +50,42 @@ namespace Mikoto {
         m_RunWireframe = enable;
     }
 
+    auto DebugPasses::EnableInfiniteGrid( bool enable ) -> void {
+        m_EnableInfiniteGrid = enable;
+    }
+
+    auto DebugPasses::SetOuterSquareColor(const Vec4F& color) -> void {
+        m_InfiniteGridProperties.OuterSquareColor = color;
+    }
+
+    auto DebugPasses::SetInnerSquareColor(const Vec4F& color) -> void {
+        m_InfiniteGridProperties.InnerSquareColor = color;
+    }
+
+    auto DebugPasses::SetOuterSquareWidth(float width) -> void {
+        m_InfiniteGridProperties.OuterSquareWidth = width;
+    }
+
+    auto DebugPasses::SetInnerSquareWidth(float width) -> void {
+        m_InfiniteGridProperties.InnerSquareWidth = width;
+    }
+
+    auto DebugPasses::SetZAxisWidth(float width) -> void {
+        m_InfiniteGridProperties.ZAxisWidth = width;
+    }
+
+    auto DebugPasses::SetXAxisWidth(float width) -> void {
+        m_InfiniteGridProperties.XAxisWidth = width;
+    }
+
+    auto DebugPasses::SetZAxisColor(const Vec4F& color) -> void {
+        m_InfiniteGridProperties.ZAxisColor = color;
+    }
+
+    auto DebugPasses::SetXAxisColor(const Vec4F& color) -> void {
+        m_InfiniteGridProperties.XAxisColor = color;
+    }
+
     auto DebugPasses::RegisterPasses( FrameGraph &graph ) -> void {
         RegisterSimpleCompute( graph );
         RegisterHelloTriangle( graph );
@@ -208,48 +244,63 @@ namespace Mikoto {
             [this]( FramePassBuilder &b ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                b.Create<Texture>( "InfiniteGrid_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.CreateTexture( "InfiniteGrid_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
 
                 b.UseShader( "Resources/Shaders/slang/InfiniteGrid_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/InfiniteGrid_Frag.slang", ShaderStage::FRAGMENT );
 
-                b.Create<Pipeline>( "InfiniteGrid_Pipeline", 
+                b.CreatePipeline( "InfiniteGrid_Pipeline", 
                     GraphicsPipelineDescription{
                         .DepthTest{ true },
-                        .DepthWrite{ false },
-                        .PipelinePolygonMode{ PolygonMode::LINES },
+                        .DepthWrite{ true },
+                        .AlphaBlending{ true },
+                        .PipelineCullMode{ CullMode::NONE }, // Should be cull front but it's removing the grid
+                        .PipelinePolygonMode{ PolygonMode::FILL },
                         .PrimitiveTopology{ Topology::TRIANGLE_LIST },
-                        .VertexAttributesSpec{} } );
-
+                        .VertexAttributesSpec{}});
+                
+                // For debug purposes we output to the infinite grid's own target
                 b.Write( "InfiniteGrid_ColorTarget", FrameResourceState::RenderTarget );
+                b.Write( "InfiniteGrid_BufferEDGE+", FrameResourceState::UniformBuffer );
+                
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
-                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
+                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
+                b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
+
+                b.Read( "FinalShadingPass_BufferEDGE+", FrameResourceState::UniformBuffer );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
+                if (!m_EnableInfiniteGrid) {
+                    return;
+                }
+                
                 ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
-
+                
                 const auto dimensions{ InferDimensions( m_Resolution ) };
-
+                
                 ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
                 ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
                 ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
+                
+                ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
+                ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
 
-                ctx.SetColorRenderTarget( "InfiniteGrid_ColorTarget" );
+                ctx.PushConstants( MKT_ADDRESSOF( m_InfiniteGridProperties ), MKT_SIZEOF( m_InfiniteGridProperties ) );
 
                 PassRenderInfo renderInfo{
-                    .ColorLoadOp{ LoadOp::CLEAR },
-                    .DephtLoadOp{ LoadOp::CLEAR },
+                    .ColorLoadOp{ LoadOp::LOAD },
+                    .DephtLoadOp{ LoadOp::LOAD },
                 };
                 ctx.BeginRender( renderInfo );
 
                 ctx.BindPipeline( "InfiniteGrid_Pipeline" );
 
-                ctx.Draw( 4 );
-
+                ctx.Draw( 3 );
+                
                 ctx.EndRender();
             } );
     }

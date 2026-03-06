@@ -233,6 +233,8 @@ namespace Mikoto {
         m_Wireframe = info.Desc.Wireframe;
         m_VertexAttributesSpec = info.Desc.VertexAttributesSpec;
 
+        m_AlphaBlending = info.Desc.AlphaBlending;
+
         m_Multisampling = info.Desc.MSAA;
         m_EnableSampleRateShading = info.Desc.EnableSampleRateShading;
 
@@ -258,7 +260,6 @@ namespace Mikoto {
 
         for (const auto& _ : m_ColorAttachmentsFormats) {
             auto& blendAttachmentInfo{ m_PipelineConfig.ColorBlendAttachment.emplace_back() };
-            // Blending enabled by default
             blendAttachmentInfo.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
             blendAttachmentInfo.blendEnable = m_AlphaBlending ? VK_TRUE : VK_FALSE;
             blendAttachmentInfo.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;

@@ -32,6 +32,7 @@ struct CameraInfo {
     float4x4 Projection;
     float4x4 ViewMatrix;
     float4x4 InverseProjection;
+    float4x4 InverseViewProjection;
 
     float4 ViewPosition;
     float2 Planes;

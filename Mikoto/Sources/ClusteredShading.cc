@@ -208,7 +208,6 @@ namespace Mikoto {
 
                 // Color attachment for debug
                 b.CreateTexture("DepthPrePass_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-
                 b.CreateTexture( "DepthPrePass_Depth", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
                 b.UseShader("Resources/Shaders/slang/ZPass_Vert.slang", ShaderStage::VERTEX );

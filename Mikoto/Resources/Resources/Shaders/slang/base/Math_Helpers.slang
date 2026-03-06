@@ -19,3 +19,4 @@
 // ============================================================================
 static const float2 invAtan = float2(0.1591f, 0.3183f);
 static const float PI_Value = 3.1415926535897932384626433832795;
+static const float EPSILON = 1.19e-07;

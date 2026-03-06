@@ -282,6 +282,55 @@ namespace Mikoto {
         if (ImGuiUtils::Slider( "Wireframe width", lineWidth, { 0.0f, 30.0f } ) ) {
             m_EditorState->EditorSceneRenderer->SetWireframeLineLineWidth( lineWidth );
         }
+
+        // Infinite grid
+        ImGui::SeparatorText( "Infinite Grid" );
+        static bool enableGrid{ true };
+        if ( ImGuiUtils::CheckBox( "Enable", enableGrid ) ) {
+            m_EditorState->EditorSceneRenderer->EnableInfiniteGrid( enableGrid );
+        }
+
+        static Vec4F outerSquareColor{ 0.2f, 0.2f, 0.2f, 1.0f };
+        if ( ImGui::ColorEdit4( "Outer square color", glm::value_ptr( outerSquareColor ), colorEditFlags ) ) {
+            m_EditorState->EditorSceneRenderer->SetOuterSquareColor( outerSquareColor );
+        }
+
+        static Vec4F innerSquareColor{ 0.35f, 0.35f, 0.35f, 1.0f };
+        if ( ImGui::ColorEdit4( "Inner square color", glm::value_ptr( innerSquareColor ), colorEditFlags ) ) {
+            m_EditorState->EditorSceneRenderer->SetInnerSquareColor( innerSquareColor );
+        }
+
+        static float outerSquareWidth{ 1.5f };
+        if ( ImGuiUtils::Slider( "Outer square width", outerSquareWidth, { 0.0f, 10.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetOuterSquareWidth( outerSquareWidth );
+        }
+
+        static float innerSquareWidth{ 0.5f };
+        if ( ImGuiUtils::Slider( "Inner square width", innerSquareWidth, { 0.0f, 10.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetInnerSquareWidth( innerSquareWidth );
+        }
+
+        ImGui::SeparatorText( "Axis" );
+
+        static Vec4F zAxisColor{ 0.0f, 0.0f, 1.0f, 1.0f };
+        if ( ImGui::ColorEdit4( "Z Axis Color", glm::value_ptr( zAxisColor ), colorEditFlags ) ) {
+            m_EditorState->EditorSceneRenderer->SetZAxisColor( zAxisColor );
+        }
+        
+        static Vec4F xAxisColor{ 1.0f, 0.0f, 0.0f, 1.0f };
+        if ( ImGui::ColorEdit4( "X Axis Color", glm::value_ptr( xAxisColor ), colorEditFlags ) ) {
+            m_EditorState->EditorSceneRenderer->SetXAxisColor( xAxisColor );
+        }
+
+        static float zAxisWidth{ 5.0f };
+        if ( ImGuiUtils::Slider( "Z Axis Width", zAxisWidth, { 0.0f, 10.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetZAxisWidth( zAxisWidth );
+        }
+
+        static float xAxisWidth{ 5.0f };
+        if ( ImGuiUtils::Slider( "X Axis Width", xAxisWidth, { 0.0f, 10.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetXAxisWidth( xAxisWidth );
+        }
     }
 
     auto RendererPanel::DrawSSAOSettings() -> void {

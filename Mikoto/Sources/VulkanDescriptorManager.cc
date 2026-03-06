@@ -149,11 +149,11 @@ namespace Mikoto {
         m_Device = device;
 
         m_Ratios.clear();
-
+        
         for (const auto& poolRatio : poolRatios) {
             m_Ratios.push_back(poolRatio);
         }
-
+        
         VkDescriptorPool newPool{ CreatePool(initialSets, poolRatios) };
 
         m_SetsPerPool = static_cast<float>(initialSets) * SETS_PER_POOL_GROW_RATE; //grow it next allocation

@@ -117,8 +117,8 @@ float3 GetIBLContribution(float NdotV, float3 diffuseColor, float perceptualRoug
     float lod = (perceptualRoughness * u_Constants.PrefilteredCubeMipLevels);
     // retrieve a scale and bias to F0. See [1], Figure 3
     float3 brdf = u_SamplerBRDFLUT.Sample(float2(NdotV, 1.0 - perceptualRoughness)).rgb;
+    
     float3 diffuseLight = SRGBtoLinear(Tonemap(u_SamplerIrradiance.Sample(n))).rgb;
-
     float3 specularLight = SRGBtoLinear(Tonemap(u_PrefilteredMap.SampleLevel(reflection, lod))).rgb;
 
     float3 diffuse = diffuseLight * diffuseColor;
@@ -169,7 +169,7 @@ float MicrofacetDistribution(PBRInfo pbrInputs) {
 }
 
 float3 ComputeDirectionalLightContribution(float3 n, float3 v, LightInfo lightInfo, BaseInputs inputs) {
-    float3 l = normalize(lightInfo.Direction.xyz); // Vector from surface point to light
+    float3 l = normalize(-lightInfo.Direction.xyz); // Vector from surface point to light
     float3 h = normalize(l + v);                     // Half vector between both l and v
 
     float NdotL = clamp(dot(n, l), 0.001, 1.0);
@@ -217,7 +217,7 @@ FSOutput main(FSInput input) {
 
     MaterialParameters material = Materials[input.MaterialIndex];
 
-    float4 baseColor = float4(0.4, 0.2, 0.4, 0.0);
+    float4 baseColor = float4(0.0, 0.0, 0.0, 0.0);
 
     if (material.AlphaMask == PBR_ALPHA_MASK) {
         if (material.AlbedoIndex != INVALID_UV_SET) {
@@ -324,7 +324,7 @@ FSOutput main(FSInput input) {
         GetNormalFromMap(g_BindlessTextures[material.NormalIndex], normalUvSet, input.Normal, input.FragmentWorldPos) : 
         normalize(input.Normal);
 
-    n.y *= -1.0f; // Match Vulkan coordinates
+    //n.y *= -1.0f; // Match Vulkan coordinates
 
     float3 v = normalize(u_Camera.ViewPosition.xyz - input.FragmentWorldPos); // Vector from surface point to camera
     float3 reflection = normalize(reflect(-v, n));
@@ -361,14 +361,39 @@ FSOutput main(FSInput input) {
                 break;
 
             case LIGHT_TYPE_DIRECTIONAL:
-                lightContribution = ComputeDirectionalLightContribution(n, v, L, baseInputs);
+                lightContribution += ComputeDirectionalLightContribution(n, v, L, baseInputs);
                 break;
             }
         }
     }
 
-    lightContribution += GetIBLContribution(NdotV, diffuseColor, perceptualRoughness, n, reflection);
-    output.Color = float4(diffuseColor, baseColor.a);
+    lightContribution += GetIBLContribution(NdotV, specularColor, perceptualRoughness, n, reflection);
+
+    const float occlusionStrength = 1.0f;
+
+    // Apply optional PBR terms for additional (optional) shading
+    if (material.AoIndex != INVALID_TEXTURE_INDEX) {
+        Sampler2D aoMap = g_BindlessTextures[material.AoIndex];
+
+        float ao = aoMap.Sample(material.OcclusionTextureSet == 0 ? input.TexCoord0 : input.TexCoord1).r;
+        lightContribution = lerp(lightContribution, lightContribution * ao, occlusionStrength);
+    }
+
+    float3 emissive = material.EmissiveFactor.rgb * material.EmissiveStrength;
+
+    if (material.EmissiveIndex != INVALID_TEXTURE_INDEX) {
+        Sampler2D emissiveMap = g_BindlessTextures[material.EmissiveIndex];
+        emissive *= SRGBtoLinear(emissiveMap.Sample(material.EmissiveTextureSet == 0 ? input.TexCoord0 : input.TexCoord1)).rgb;
+    }
+
+    lightContribution += emissive;
+
+    // for debug and avoid removing sets
+    if (u_Constants.Step != 1) {
+        output.Color = float4(lightContribution, baseColor.a);
+    } else {
+        output.Color = float4(diffuseColor, baseColor.a);
+    }
 
     return output;
 }

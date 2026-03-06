@@ -253,7 +253,6 @@ namespace Mikoto {
                 }
                 
                 // Materials
-
                 material.BaseColorFactor = pbrMat->GetBaseColorFactor();
                 material.EmissiveFactor = Vec4F{ pbrMat->GetEmissiveFactor(), 1.0f };
                 material.DiffuseFactor = pbrMat->GetDiffuseFactor();
@@ -266,7 +265,7 @@ namespace Mikoto {
                 material.EmissiveStrength = pbrMat->GetEmissiveStrength();
                 material.AlphaMask = static_cast<float>( pbrMat->GetAlphaMask() );
                 material.AlphaMaskCutoff = pbrMat->GetAlphaMaskCutoff();
-
+                
                 // UV Sets
                 material.BaseColorTextureSet = pbrMat->GetBaseColorTextureSet();
                 material.MetallicRoughnessTextureSet = pbrMat->GetMetallicRoughnessTextureSet();
@@ -317,10 +316,10 @@ namespace Mikoto {
 
                 ++meshIndex;
             }
-
+            
             activeMeshCount += data.size();
         }
-
+        
         context.CopyBuffer( "MeshCulling_GeometryInfo", m_MeshInfo.data(), activeMeshCount * MKT_SIZEOF( ShaderMesh ) );
         context.CopyBuffer( "MeshCulling_MaterialsInfo", m_MaterialInfo.data(), activeMeshCount * MKT_SIZEOF( ShaderMaterial ) );
 

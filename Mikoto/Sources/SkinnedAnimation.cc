@@ -22,7 +22,7 @@ namespace Mikoto {
 
     SkinnedAnimation::SkinnedAnimation( AnimationDescription&& description )
         : m_Name{ std::move( description.Name ) },
-          m_Duration{ description.End }, 
+          m_Duration{ description.End - description.Start }, 
           m_Samplers{ std::move( description.Samplers ) },
           m_Channels{ std::move( description.Channels ) },
           m_End{ description.End },
@@ -79,7 +79,7 @@ namespace Mikoto {
                         const float w{ sampler.Outputs[i * 4 + 3] };
 
                         // glTF stores quaternion as (x,y,z,w)
-                        sampler.Rotations.emplace_back( w, x, y, z );
+                        sampler.Rotations.emplace_back( x, y, z, w );
                     }
 
                     break;

@@ -107,6 +107,9 @@ namespace Mikoto {
                 b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
                 b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
 
+                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
+                b.Read( "InfiniteGrid_BufferEDGE+", FrameResourceState::UniformBuffer );
+
                 b.Write( "3DRenderTextEdge", FrameResourceState::UniformBuffer );
                 b.Write( "MSDFTextPass_TextData", FrameResourceState::UnorderedAccessView );
             },

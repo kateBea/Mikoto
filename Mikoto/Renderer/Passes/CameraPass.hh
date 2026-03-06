@@ -31,6 +31,7 @@ namespace Mikoto {
             Mat4F Projection{};
             Mat4F ViewMatrix{};
             Mat4F InverseProjection{};
+            Mat4F InverseViewProjection{};
 
             Vec4F ViewPosition{};
 

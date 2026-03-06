@@ -184,7 +184,6 @@ namespace Mikoto {
         m_ImageAllocation.ImageCreateInfo.mipLevels = 1;
         m_ImageAllocation.ImageCreateInfo.arrayLayers = 1;
         m_ImageAllocation.ImageCreateInfo.samples = VulkanHelpers::ToVkRasterSamples( m_Multisampling );
-        ;
         m_ImageAllocation.ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         m_ImageAllocation.ImageCreateInfo.initialLayout = m_CurrentLayout;
 

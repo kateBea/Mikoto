@@ -444,7 +444,7 @@ namespace Mikoto {
                         node.Vertices,
                         &VertexData::Weights,
                         4 );
-
+                
                 if ( primitive.indices >= 0 ) {
                     const auto& accessor{ model.accessors[primitive.indices] };
                     const auto& view{ model.bufferViews[accessor.bufferView] };
@@ -472,24 +472,26 @@ namespace Mikoto {
 
         TextureLoadDescription loadInfo{};
         loadInfo.WithType( TextureType::TEXTURE_2D );
-
+        
         for ( const auto& gltfMaterial: model.materials ) {
             MaterialProperties props{};
             props.Name = gltfMaterial.name;
             props.IsDoubleSided = gltfMaterial.doubleSided;
-
+            
             const auto& pbr{ gltfMaterial.pbrMetallicRoughness };
-
+            
             props.BaseColorFactor = {
                 static_cast<float>( pbr.baseColorFactor[0] ),
                 static_cast<float>( pbr.baseColorFactor[1] ),
                 static_cast<float>( pbr.baseColorFactor[2] ),
                 static_cast<float>( pbr.baseColorFactor[3] )
             };
-
+            
             props.MetallicFactor = static_cast<float>( pbr.metallicFactor );
             props.RoughnessFactor = static_cast<float>( pbr.roughnessFactor );
 
+            // TODO(kate): check notes, these textures need specific format not any random format
+            // iirc base, diffuse need srgb; ao, metallic, etc need linear??
             // Base color
             if ( pbr.baseColorTexture.index >= 0 ) {
                 const auto& tex{ model.textures[pbr.baseColorTexture.index] };
@@ -717,7 +719,7 @@ namespace Mikoto {
 
         modelData.SceneSkeleton.PrintTreeView();
 #endif
-
+        
         skeleton.BuildOzzStructures();
     }
 
@@ -772,6 +774,34 @@ namespace Mikoto {
                     }
                 }
 
+                // Channels
+                for ( auto& source: anim.channels ) {
+                    AnimationChannel channel{};
+
+                    if ( source.target_path == "rotation" ) {
+                        channel.Path = PathType::ROTATION;
+                    }
+                    if ( source.target_path == "translation" ) {
+                        channel.Path = PathType::TRANSLATION;
+                    }
+                    if ( source.target_path == "scale" ) {
+                        channel.Path = PathType::SCALE;
+                    }
+                    if ( source.target_path == "weights" ) {
+                        MKT_CORE_LOGGER_WARN( "weights not yet supported, skipping channel" );
+                        continue;
+                    }
+
+                    channel.SamplerIndex = source.sampler;
+                    channel.JointIndex = source.target_node;
+
+                    if ( Joint * joint{ modelData.SceneSkeleton.FindJointByID( channel.JointIndex ) } ) {
+                        channel.NodeName = joint->GetBoneName();
+                    }
+
+                    animationDescription.Channels.emplace_back( channel );
+                }
+
                 // Read sampler output T/R/S values
                 {
                     const tinygltf::Accessor& accessor{ model.accessors[samp.output] };
@@ -815,34 +845,6 @@ namespace Mikoto {
                 }
 
                 animationDescription.Samplers.emplace_back( sampler );
-            }
-
-            // Channels
-            for ( auto& source: anim.channels ) {
-                AnimationChannel channel{};
-
-                if ( source.target_path == "rotation" ) {
-                    channel.Path = PathType::ROTATION;
-                }
-                if ( source.target_path == "translation" ) {
-                    channel.Path = PathType::TRANSLATION;
-                }
-                if ( source.target_path == "scale" ) {
-                    channel.Path = PathType::SCALE;
-                }
-                if ( source.target_path == "weights" ) {
-                    MKT_CORE_LOGGER_WARN( "weights not yet supported, skipping channel" );
-                    continue;
-                }
-
-                channel.SamplerIndex = source.sampler;
-                channel.JointIndex = source.target_node;
-
-                if ( Joint * joint{ modelData.SceneSkeleton.FindJointByID( channel.JointIndex ) } ) {
-                    channel.NodeName = joint->GetBoneName();
-                }
-
-                animationDescription.Channels.emplace_back( channel );
             }
 
             // Validations

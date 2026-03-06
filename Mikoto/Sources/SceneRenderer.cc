@@ -173,6 +173,42 @@ namespace Mikoto {
         return m_FrameGraph->GetPassList();
     }
 
+    auto SceneRenderer::EnableInfiniteGrid( bool enable ) -> void {
+        m_DebugPasses.EnableInfiniteGrid( enable );
+    }
+
+    auto SceneRenderer::SetOuterSquareColor( const Vec4F &color ) -> void {
+        m_DebugPasses.SetOuterSquareColor( color );
+    }
+
+    auto SceneRenderer::SetInnerSquareColor( const Vec4F &color ) -> void {
+        m_DebugPasses.SetInnerSquareColor( color );
+    }
+
+    auto SceneRenderer::SetOuterSquareWidth( float width ) -> void {
+        m_DebugPasses.SetOuterSquareWidth( width );
+    }
+
+    auto SceneRenderer::SetInnerSquareWidth( float width ) -> void {
+        m_DebugPasses.SetInnerSquareWidth( width );
+    }
+
+    auto SceneRenderer::SetZAxisWidth( float width ) -> void {
+        m_DebugPasses.SetZAxisWidth( width );
+    }
+
+    auto SceneRenderer::SetXAxisWidth( float width ) -> void {
+        m_DebugPasses.SetXAxisWidth( width );
+    }
+
+    auto SceneRenderer::SetZAxisColor( const Vec4F &color ) -> void {
+        m_DebugPasses.SetZAxisColor( color );
+    }
+
+    auto SceneRenderer::SetXAxisColor( const Vec4F &color ) -> void {
+        m_DebugPasses.SetXAxisColor( color );
+    }
+
     auto SceneRenderer::GetTexture( std::string_view name ) const -> TextureHandle {
         return m_FrameGraph->GetTexture(name);
     }

@@ -10,10 +10,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
-// limitations under the License.
 
+// limitations under the License.
 #include "base/Base.slang"
 #include "base/Camera_Helpers.slang"
+#include "base/Material_Helpers.slang"
+#include "base/Animation_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
 
@@ -43,6 +45,8 @@ Sampler2D g_BindlessTextures[];
 [[vk::binding(Slot_3, UAV_SET_INDEX)]] StructuredBuffer<Cluster, ScalarDataLayout> Clusters;
 [[vk::binding(Slot_4, UAV_SET_INDEX)]] StructuredBuffer<LightInfo, ScalarDataLayout> Lights;
 
+[[vk::binding(Slot_1, UAV_SET_INDEX)]] StructuredBuffer<MaterialParameters, ScalarDataLayout> Materials;
+
 [[vk::binding(Slot_0, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SamplerBRDFLUT;
 [[vk::binding(Slot_1, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_PrefilteredMap;
 [[vk::binding(Slot_2, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_SamplerIrradiance;
@@ -59,23 +63,8 @@ struct FSInput {
     float3 Normal : TEXCOORD2;
     float2 TexCoord : TEXCOORD3;
     float3 VertexColor : TEXCOORD4;
-
-    int AlbedoIndex : TEXCOORD5;
-    int NormalIndex : TEXCOORD6;
-    int MetallicIndex : TEXCOORD7;
-    int RoughnessIndex : TEXCOORD8;
-    int AoIndex : TEXCOORD9;
-    float4 Albedo : TEXCOORD10;
-
-    float MetallicFactor : TEXCOORD11;
-    float RoughnessFactor : TEXCOORD12;
-
-    float3 EmissiveFactors : TEXCOORD13;
-    float EmissionIntensity : TEXCOORD14;
-    int EmissionIndex : TEXCOORD15;
-    float AlphaCutoff : TEXCOORD16;
-
-    float2 TexCoord1 : TEXCOORD17;
+    float2 TexCoord1 : TEXCOORD5;
+    int MaterialIndex : TEXCOORD5;
 
     float4 ScreenPos : SV_Position;
 };
@@ -88,20 +77,22 @@ struct FSOutput {
 FSOutput main(FSInput input) {
     FSOutput o;
 
-    float4 albedo = (input.AlbedoIndex != INVALID_TEXTURE_INDEX )
-                        ? pow(g_BindlessTextures[input.AlbedoIndex].Sample(input.TexCoord), float4(2.2))
-                        : input.Albedo;
+    MaterialParameters material = Materials[input.MaterialIndex];
 
-    float metallic = (input.MetallicIndex != INVALID_TEXTURE_INDEX)
-        ? g_BindlessTextures[input.MetallicIndex].Sample(input.TexCoord).r
-                                                 : input.MetallicFactor;
+    float4 albedo = (material.AlbedoIndex != INVALID_TEXTURE_INDEX)
+                        ? pow(g_BindlessTextures[material.AlbedoIndex].Sample(input.TexCoord), float4(2.2))
+                        : material.BaseColorFactor;
 
-    float roughness = (input.RoughnessIndex != INVALID_TEXTURE_INDEX)
-        ? g_BindlessTextures[input.RoughnessIndex].Sample(input.TexCoord).r
-                                                   : input.RoughnessFactor;
+    float metallic = (material.MetallicIndex != INVALID_TEXTURE_INDEX)
+                         ? g_BindlessTextures[material.MetallicIndex].Sample(input.TexCoord).r
+                         : material.MetallicFactor;
 
-    float3 N = (input.NormalIndex != INVALID_TEXTURE_INDEX)
-        ? GetNormalFromMap(g_BindlessTextures[input.NormalIndex], input.TexCoord, input.FragmentWorldPos, input.Normal)
+    float roughness = (material.RoughnessIndex != INVALID_TEXTURE_INDEX)
+                          ? g_BindlessTextures[material.RoughnessIndex].Sample(input.TexCoord).r
+                          : material.RoughnessFactor;
+
+    float3 N = (material.NormalIndex != INVALID_TEXTURE_INDEX)
+                   ? GetNormalFromMap(g_BindlessTextures[material.NormalIndex], input.TexCoord, input.FragmentWorldPos, input.Normal)
                                          : normalize(input.Normal);
 
     float3 V = normalize(u_Camera.ViewPosition.xyz - input.FragmentWorldPos);
@@ -165,8 +156,8 @@ FSOutput main(FSInput input) {
     if (u_Constants.EnableSSAO != MKT_SHADER_FALSE) {
         float2 uv = input.ScreenPos.xy / u_Camera.ScreenDimensions;
 
-        ssao = (input.AoIndex != INVALID_TEXTURE_INDEX)
-            ? g_BindlessTextures[input.AoIndex].Sample(input.TexCoord).r
+        ssao = (material.AoIndex != INVALID_TEXTURE_INDEX)
+                   ? g_BindlessTextures[material.AoIndex].Sample(input.TexCoord).r
             : (u_Constants.UseBlurred == MKT_SHADER_TRUE ? u_SSAOBlur.Sample(uv).r : u_SSAO.Sample(uv).r);
 
         float ssaoStrength = u_Constants.SSAOIntensity;
@@ -190,16 +181,16 @@ FSOutput main(FSInput input) {
 
     // Emissive
     float3 emissive = float3(0, 0, 0);
-    if (input.EmissionIndex != INVALID_TEXTURE_INDEX) {
-        Sampler2D emissiveMap = g_BindlessTextures[input.EmissionIndex];
-        emissive = CalculateEmissive(input.EmissiveFactors, input.EmissionIntensity, input.EmissionIndex, emissiveMap, input.TexCoord);
+    if (material.EmissiveIndex != INVALID_TEXTURE_INDEX) {
+        Sampler2D emissiveMap = g_BindlessTextures[material.EmissiveIndex];
+        emissive = CalculateEmissive(material.EmissiveFactor.xyz, material.EmissiveStrength, material.EmissiveIndex, emissiveMap, input.TexCoord);
     } else {
-        emissive = CalculateEmissive(input.EmissiveFactors, input.EmissionIntensity, input.EmissionIndex, input.TexCoord);
+        emissive = CalculateEmissive(material.EmissiveFactor.xyz, material.EmissiveStrength, material.EmissiveIndex, input.TexCoord);
     }
 
-    float alpha = input.AlphaCutoff * albedo.a;
-    if (input.AlbedoIndex == INVALID_TEXTURE_INDEX) {
-        alpha = input.AlphaCutoff;
+    float alpha = material.AlphaMaskCutoff * albedo.a;
+    if (material.AlbedoIndex == INVALID_TEXTURE_INDEX) {
+        alpha = material.AlphaMaskCutoff;
     }
 
     o.Color = float4(color + emissive, alpha);

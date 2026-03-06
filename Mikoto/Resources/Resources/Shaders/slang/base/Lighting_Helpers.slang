@@ -200,10 +200,6 @@ float ComputeAttenuation(float distance, float radius) {
     return (s * s) / (distance * distance + 1.0);
 }
 
-float3 FresnelSchlick(float cosTheta, float3 F0) {
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}
-
 float3 ComputeDirectionalLight(float3 N, float3 V, float3 F0, float roughness, float metallic, float3 albedo, LightInfo lightInfo) {
     float3 L = normalize(-lightInfo.Direction.xyz);
     float3 H = normalize(V + L);

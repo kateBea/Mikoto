@@ -63,7 +63,7 @@ namespace Mikoto {
         RegisterPrefilter( graph );
         RegisterIrradiance( graph );
         RegisterSkyboxRender( graph );
-
+        
         //RegisterShading( graph );
         RegisterMetalRoughnessPBR( graph );
 

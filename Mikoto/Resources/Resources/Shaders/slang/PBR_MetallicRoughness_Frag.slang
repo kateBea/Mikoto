@@ -207,6 +207,7 @@ float3 ComputeDirectionalLightContribution(float3 n, float3 v, LightInfo lightIn
     return color;
 }
 
+
 struct FSOutput {
     float4 Color : SV_Target0;
 };
@@ -219,12 +220,18 @@ FSOutput main(FSInput input) {
 
     float4 baseColor = float4(0.0, 0.0, 0.0, 0.0);
 
+    // Handle alpha masking (glTF alphaMode = MASK)
+    // Fragments with alpha below the cutoff are discarded.
+    //
+    // For OPAQUE and BLEND modes no special handling is required in the shader.
+    // OPAQUE ignores the alpha channel entirely, while BLEND uses the alpha
+    // value during framebuffer blending which is handled via pipeline state.
     if (material.AlphaMask == PBR_ALPHA_MASK) {
         if (material.AlbedoIndex != INVALID_UV_SET) {
             Sampler2D colorMap = g_BindlessTextures[material.AlbedoIndex];
+            float2 uvSet = material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1;
 
-            baseColor = SRGBtoLinear(colorMap.Sample(material.BaseColorTextureSet == 0 ? 
-                input.TexCoord0 : input.TexCoord1)) * material.BaseColorFactor;
+            baseColor = SRGBtoLinear(colorMap.Sample(uvSet)) * material.BaseColorFactor;
         } else {
             baseColor = material.BaseColorFactor;
         }
@@ -236,10 +243,6 @@ FSOutput main(FSInput input) {
 
     float metallic = 0.0f;
     float perceptualRoughness = 0.0;
-
-    float3 f0 = float3(0.04);
-    float3 diffuseColor = float3(0.0, 0.0, 0.0);
-
 
     if (material.Workflow == PBR_WORKFLOW_METALLIC_ROUGHNESS) {
         // Metallic and Roughness material properties are packed together
@@ -303,14 +306,16 @@ FSOutput main(FSInput input) {
     float inputColorAplha = 1.0f; // TODO: extend input color to take 4th component
     baseColor *= float4(input.VertexColor, inputColorAplha);
 
-    diffuseColor = baseColor.rgb * (float3(1.0) - f0);
-    diffuseColor *= 1.0 - metallic;
+    // diffuse should disappear as the material becomes metallic.
+    float diffuseFactor = 1.0f - metallic;
 
-    float alphaRoughness = perceptualRoughness * perceptualRoughness;
+    // dielectrics default to 4%
+    float3 f0 = float3(0.04);
 
+    float3 diffuseColor = baseColor.rgb * (float3(1.0) - f0) * diffuseFactor;
     float3 specularColor = lerp(f0, baseColor.rgb, metallic);
 
-    // Compute reflectance.
+    float alphaRoughness = perceptualRoughness * perceptualRoughness;
     float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b);
 
     // For typical incident reflectance range (between 4% to 100%) set the grazing reflectance to 100% for typical fresnel effect.

@@ -4,6 +4,11 @@
 
 The ``develop`` branch is a WIP for the Mikoto's new architecture. It brings some new features, like resources pools, automatic resource cleanup, and abstraction on top of render
 passes, amongst other features.
+---
+
+![Mikoto Engine](Resources/Screenshots/img18.png)
+
+---
 
 ---
 
@@ -46,7 +51,7 @@ passes, amongst other features.
 |                    | Shadows                        | Directional, point, spot shadows                          | ❌                          |
 |                    | Cascaded Shadow Maps (CSM)     | Multi-split directional shadows                           | ❌                          |
 |                    | Outline Pass                   | Object outlining effect                                   | ❌                          |
-|                    | Infinite Grid                  | Procedural grid for editor/world                          | ❌                          |
+|                    | Infinite Grid                  | Procedural grid for editor/world                          | ✔️                          |
 |                    | Bloom                          | Multi-pass bright blur                                    | ❌                          |
 |                    | Depth of Field (DoF)           | DoF effect                                                | ❌                          |
 |                    | Screen-Space Reflections (SSR) | Reflections in screen space                               | ❌                          |

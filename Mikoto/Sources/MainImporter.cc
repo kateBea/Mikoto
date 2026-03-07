@@ -176,47 +176,6 @@ namespace Mikoto {
         }
     }
     
-    static auto LoadBoneProperties( const aiNodeAnim *channel ) -> AnimationSampler {
-        std::vector<Vec3F> scales{};
-        std::vector<Vec3F> positions{};
-        std::vector<Quat> rotations{};
-
-        std::vector<float> timeStamps{};
-
-        // Review this logic
-        for ( Int32 positionIndex{}; positionIndex < channel->mNumPositionKeys; ++positionIndex ) {
-            aiVector3D aiPosition{ channel->mPositionKeys[positionIndex].mValue };
-            double timeStamp{ channel->mPositionKeys[positionIndex].mTime };
-           /* KeyPosition data{
-                .Position{ aiPosition.x, aiPosition.y, aiPosition.z },
-                .TimeStamp{ static_cast<float>( timeStamp ) }
-            };
-            result.Positions.push_back( data );*/
-        }
-
-        for ( Int32 rotationIndex{}; rotationIndex < channel->mNumRotationKeys; ++rotationIndex ) {
-            aiQuaternion aiOrientation{ channel->mRotationKeys[rotationIndex].mValue };
-            double timeStamp{ channel->mRotationKeys[rotationIndex].mTime };
-            /*KeyRotation data{
-                .Orientation{ glm::quat( aiOrientation.w, aiOrientation.x, aiOrientation.y, aiOrientation.z ) },
-                .TimeStamp{ static_cast<float>( timeStamp ) }
-            };
-            result.Rotations.push_back( data );*/
-        }
-
-        for ( Int32 keyIndex{}; keyIndex < channel->mNumScalingKeys; ++keyIndex ) {
-            aiVector3D scale{ channel->mScalingKeys[keyIndex].mValue };
-            double timeStamp{ channel->mScalingKeys[keyIndex].mTime };
-            /*KeyScale data{
-                .Scale{ scale.x, scale.y, scale.z },
-                .TimeStamp{ static_cast<float>( timeStamp ) }
-            };
-            result.Scales.push_back( data );*/
-        }
-
-        return {};
-    }
-
     static auto LoadBoneWeights( const aiMesh *mesh, MeshNodeData &meshNodeData, Skeleton& skeleton ) -> void {
         MKT_COLOR_PRINT_FORMATTED( MKT_FMT_COLOR_AQUA, "Mesh {} has [{}] bones\n", mesh->mName.C_Str(), mesh->mNumBones );
 
@@ -627,22 +586,6 @@ namespace Mikoto {
         }
     }
 
-    static auto LoadModelAnimations( const aiScene *scene, ModelData& modelData ) -> void {
-        for ( UInt32 animationCount{}; animationCount < scene->mNumAnimations; ++animationCount ) {
-            auto animation{ scene->mAnimations[animationCount] };
-
-            AnimationDescription desc{
-                .Name{ animation->mName.C_Str() },
-                .End{ static_cast<float>( animation->mDuration / animation->mTicksPerSecond ) }, // duration will be computed as end - start (in seconds)
-            };
-            // const auto [it, success]{
-            //     modelData.Animations.try_emplace( std::string{ animation->mName.C_Str() }, std::move( desc ) )
-            // };
-
-            GetAnimationProperties( animation, modelData );
-        }
-    }
-
     MainImporter::MainImporter( GpuDevice *device )
     : ModelImporter{ device } {
         // Allocate max concurrent importers
@@ -685,91 +628,6 @@ namespace Mikoto {
 
             return false;
         } );
-    }
-
-    auto PrintSkeletonTree( const Skeleton &skeleton ) -> void {
-        using ID = UInt32;
-
-        const auto &boneMap{ skeleton.GetBoneMap() };
-
-        // Build parent -> children adjacency
-        std::unordered_map<ID, std::vector<const Joint *>> children{};
-        std::vector<const Joint *> roots{};
-
-        for ( const auto &[name, joint]: boneMap ) {
-            const Int32 parentID{ joint.GetParentID() };
-
-            if ( parentID == INVALID_JOINT_ID ) {
-                roots.push_back( std::addressof( joint ) );
-            } else {
-                children[static_cast<ID>( parentID )].push_back( std::addressof( joint ) );
-            }
-        }
-
-        fmt::print( "\n=== Skeleton Hierarchy ===\n" );
-
-        constexpr std::string_view BRANCH{ "\u251C\u2500\u2500 " };
-        constexpr std::string_view LAST   { "\u2514\u2500\u2500 " };
-        constexpr std::string_view PIPE   { "\u2502   " };
-        constexpr std::string_view SPACE   { "    " };
-
-        auto printNode =
-                [&]( const Joint *joint,
-                     const std::string &prefix,
-                     bool isLast,
-                     auto &&self ) -> void {
-            const std::string_view connector{ isLast ? LAST : BRANCH };
-
-            MKT_COLOR_PRINT_FORMATTED_FLUSH( MKT_FMT_COLOR_ORANGE_RED, "{}{}{} ({})\n",
-                                             prefix,
-                                             connector,
-                                             joint->GetBoneName(),
-                                             joint->GetID() );
-
-            const auto childIter{ children.find( joint->GetID() ) };
-            if ( childIter == children.end() ) {
-                return;
-            }
-
-            const auto &childList{ childIter->second };
-
-            for ( Size i{}; i < childList.size(); ++i ) {
-                const bool lastChild{ i == childList.size() - 1 };
-
-                self(
-                        childList[i],
-                        prefix + StringUtil::From( isLast ? SPACE : PIPE ),
-                        lastChild,
-                        self );
-            }
-        };
-
-        for ( Size i{}; i < roots.size(); ++i ) {
-            const bool lastRoot{ i == roots.size() - 1 };
-            printNode( roots[i], "", lastRoot, printNode );
-        }
-
-        MKT_COLOR_PRINT_FORMATTED_FLUSH(
-                MKT_FMT_COLOR_BLUE_VIOLET,
-                "=== End Skeleton ===\n\n"
-            );
-    }
-
-    static auto BuildHierarchy( const aiNode *rootNode, Node &hierarchyRoot, Skeleton& skeleton ) -> void {
-        hierarchyRoot.Name = rootNode->mName.data;
-        hierarchyRoot.Transformation = ToMat4F( rootNode->mTransformation );
-
-        Joint *joint{ skeleton.FindJoint( hierarchyRoot.Name ) };
-        if (joint) {
-            hierarchyRoot.JointID = joint->GetID();
-        }
-
-        for ( UInt32 i{}; i < rootNode->mNumChildren; ++i ) {
-            Node childNode{};
-            BuildHierarchy( rootNode->mChildren[i], childNode, skeleton );
-
-            hierarchyRoot.Children.emplace_back( childNode );
-        }
     }
 
     static auto PrepareJointHierarchy(const aiScene* scene, ModelData& modelData) -> void {
@@ -824,24 +682,5 @@ namespace Mikoto {
         PrepareJointHierarchy( scene, modelData );
 
         LoadModelMeshes( Filesystem::StripFileName( file->GetPath() ), scene->mRootNode, scene, description, modelData );
-
-        // It requires all node to exists
-        // as it does not add them
-        //LoadHierarchyTransformation( scene->mRootNode, modelData.SceneSkeleton );
-
-        LoadModelAnimations(scene, modelData);
-
-#if !defined( NDEBUG )
-        //modelData.SceneSkeleton.PrintBoneInfo();
-
-        if ( !modelData.Animations.empty() ) {
-            MKT_COLOR_PRINT_FORMATTED_FLUSH(
-                MKT_FMT_COLOR_BLUE_VIOLET,
-                "Printing skeleton hierarchy\n"
-            );
-
-            //modelData.SceneSkeleton.PrintTreeView();
-        }
-#endif
     }
 }

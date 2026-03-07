@@ -42,6 +42,10 @@ namespace Mikoto {
         return rootPath.string();
     }
 
+    auto Filesystem::GetProcessPath() -> Path {
+        return std::filesystem::current_path();
+    }
+
     auto Filesystem::GetGetAbsolutePath( std::string_view path ) -> Path {
         Path absolutePath{ std::filesystem::absolute( path ) };
 

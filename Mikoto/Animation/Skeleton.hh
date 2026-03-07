@@ -32,46 +32,19 @@
 
 namespace Mikoto {
 
-    // Represents the hierarchy of a scene
-    struct Node {
-        Int32 JointID{ -1 };
-        std::string Name{};
-
-        // Bind pose transform
-        Mat4F Transformation{};
-
-        // The same info but split
-        Vec3F Scale{ 1.0f };
-        Vec3F Translation{ 0.0f };
-        Quat Rotation{ 1, 0, 0, 0 };
-
-        std::vector<Node> Children{};
-    };
-
-    // Hierarchy of nodes that are bones
-    struct ArmatureNode {
-
-    };
-
     // These 2 are vec4 because they need to match the bone influence
     // which is maximum bones influence a vertex ( from what we support now )
     inline constexpr UInt32 MAX_BONE_INFLUENCE{ 4 };
     inline constexpr UInt32 MAX_BONES_PER_MESH{ 128 };
     inline constexpr UInt32 MAX_SKINNED_MESHES{ 1000 };
 
-    using JointsMap = ankerl::unordered_dense::map<std::string, Joint>;
-    using JointsMapID = ankerl::unordered_dense::map<UInt32, std::string>;
-
-    using JointsMapIterator = ankerl::unordered_dense::map<std::string, Joint>::iterator;
-    using JointsMapConstIterator = ankerl::unordered_dense::map<std::string, Joint>::const_iterator;
-
     class Skeleton {
     public:
+        explicit Skeleton( ozz::unique_ptr<ozz::animation::Skeleton>&& data = nullptr );
 
-        auto RegisterJoint( const std::string& name, Int32 ID ) -> void;
-
-        auto GetBoneMap() -> JointsMap&;
-        MKT_NODISCARD auto GetBoneMap() const -> const JointsMap&;
+        // Allow move.
+        Skeleton( Skeleton&& ) = default;
+        Skeleton& operator=( Skeleton&& ) = default;
 
         MKT_NODISCARD auto HasJoint( std::string_view name ) const -> bool;
 
@@ -81,38 +54,17 @@ namespace Mikoto {
         MKT_NODISCARD auto FindJointByID( UInt32 ID ) -> Joint*;
         MKT_NODISCARD auto FindJointByID( UInt32 ID ) const -> const Joint*;
 
-        MKT_NODISCARD auto GetOzzSkeleton() -> ozz::animation::Skeleton*;
         MKT_NODISCARD auto GetOzzBondeIndex( UInt32 ID ) const -> Int32;
+        MKT_NODISCARD auto GetOzzSkeleton() -> ozz::animation::Skeleton*;
         MKT_NODISCARD auto GetOzzSkeleton() const -> const ozz::animation::Skeleton*;
 
-        MKT_NODISCARD auto GetInverseBindMatrices() const -> const std::vector<Mat4F>&;
-        MKT_NODISCARD auto GetHierarchy() const -> const Node&;
-        MKT_NODISCARD auto GetBoneCount() const -> UInt32;
-
-        MKT_NODISCARD auto begin() -> JointsMapIterator;
-        MKT_NODISCARD auto end() -> JointsMapIterator;
-
-        MKT_NODISCARD auto begin() const -> JointsMapConstIterator;
-        MKT_NODISCARD auto end() const -> JointsMapConstIterator;
-
-        MKT_NODISCARD auto cbegin() const -> JointsMapConstIterator;
-        MKT_NODISCARD auto cend() const -> JointsMapConstIterator;
+        MKT_NODISCARD auto GetInverseBindMatrices() const -> const std::vector<Mat4F>& { return {}; }
 
         auto PrintTreeView() -> void;
         auto PrintBoneInfo() const -> void;
         auto SetWeights( std::string_view meshName, std::string_view boneName, UInt64 vertex, float weight ) -> void;
 
     private:
-        auto ConstructOzzHierarchy( Node& root, ozz::animation::offline::RawSkeleton::Joint& joint ) -> void;
-
-    private:
-        Node m_RootNode{};
-
-        JointsMap m_Joints{};
-        JointsMapID m_JointsByID{};
-
-        std::vector<Mat4F> m_InverseBindMatrices{};
-
         // ID -> ozz joint index
         ankerl::unordered_dense::map<UInt32, Int32> m_JointOzzIndex{};
 

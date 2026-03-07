@@ -137,9 +137,10 @@ namespace Mikoto {
     private:
         DISABLE_COPY_AND_MOVE_FOR( Model );
 
-        explicit Model( std::string modelName, Path modelPath)
-            : m_ModelName{ std::move( modelName ) },
-              m_ModelAbsolutePath{ std::move( modelPath ) }
+        Model( Path modelPath, Skeleton&& skeleton, AnimationMap&& animations )
+            : m_ModelName{ modelPath.filename().string() },
+              m_ModelAbsolutePath{ std::move( modelPath ) },
+              m_Animations{ std::move( animations ) }
         {}
 
     private:
@@ -153,7 +154,7 @@ namespace Mikoto {
         // ( Mesh index, mesh node )
         ankerl::unordered_dense::map<UInt32, MeshNode> m_Meshes{};
 
-        Skeleton m_Skeleton{};
+        Unique<Skeleton> m_Skeleton{};
         AnimationMap m_Animations{};
     };
 

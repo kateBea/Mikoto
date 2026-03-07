@@ -31,50 +31,9 @@
 
 namespace  Mikoto {
 
-    enum InterpolationType { LINEAR,
-                             STEP,
-                             CUBICSPLINE };
-
-    enum PathType { TRANSLATION,
-                    ROTATION,
-                    SCALE };
-
-    struct AnimationSampler {
-        InterpolationType Interpolation{ InterpolationType::LINEAR };
-
-        std::vector<Vec3F> Scales{};
-        std::vector<Vec3F> Positions{};
-        std::vector<Quat> Rotations{};
-
-        // This is kept because of how GLTF stores sampler values
-        std::vector<float> Outputs{};           // Key frame values (for rotations)
-        std::vector<glm::vec4> OutputsVec4{};   // Key frame values (for translations and scales)
-
-        std::vector<float> TimeStamps{};
-    };
-
-    struct AnimationChannel {
-        PathType Path{ PathType::TRANSLATION };
-        Int32 SamplerIndex{};
-
-        std::string NodeName{};
-        Int32 JointIndex{};
-    };
-
-    struct AnimationDescription {
-        // Duration of the animation in ticks
-        std::string Name{};
-
-        std::vector<AnimationSampler> Samplers{};
-        std::vector<AnimationChannel> Channels{};
-
-        float Start{ std::numeric_limits<float>::max() };
-        float End{ std::numeric_limits<float>::min() };
-    };
-
     class SkinnedAnimation {
     public:
-        explicit SkinnedAnimation();
+        explicit SkinnedAnimation( ozz::unique_ptr<ozz::animation::Animation>&& data = nullptr );
 
         MKT_NODISCARD auto GetDuration() const -> float;
 
@@ -82,16 +41,10 @@ namespace  Mikoto {
         MKT_NODISCARD auto GetOzzAnimation() -> ozz::animation::Animation*;
 
     private:
-        auto ResolveSamplers() -> void;
-
-    private:
         // Duration of the animation in ticks
         std::string m_Name{};
 
         float m_Duration{}; // In seconds
-
-        std::vector<AnimationSampler> m_Samplers{};
-        std::vector<AnimationChannel> m_Channels{};
 
         float m_End{ std::numeric_limits<float>::min() };
         float m_Start{ std::numeric_limits<float>::max() };

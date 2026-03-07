@@ -49,7 +49,7 @@ namespace Mikoto {
     }
 
     auto Model::GetSkeleton() const -> const Skeleton& {
-        return m_Skeleton;
+        return *m_Skeleton;
     }
 
     auto Model::FindAnimation( std::string_view name ) -> SkinnedAnimation * {

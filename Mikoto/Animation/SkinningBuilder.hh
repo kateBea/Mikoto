@@ -16,6 +16,7 @@
 #define MIKOTO_ANIMATION_BUILDER_HH
 
 #include <vector>
+#include <string>
 
 #include <ozz/base/memory/unique_ptr.h>
 
@@ -30,11 +31,18 @@
 #include <ozz/animation/offline/skeleton_builder.h>
 
 #include <Common/Common.hh>
+#include <Assets/Importer.hh>
 #include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
-    using AnimationList = std::vector<ozz::unique_ptr<ozz::animation::Animation>>;
+
+    struct OzzAnimationInfo {
+        std::string Name{};
+        ozz::unique_ptr<ozz::animation::Animation> Animation{};
+    };
+
+    using AnimationList = std::vector<OzzAnimationInfo>;
 
     class SkinningBuilder final {
     public:
@@ -43,21 +51,20 @@ namespace Mikoto {
 
         MKT_NODISCARD auto Build(ozz::animation::offline::OzzImporter& importer) -> bool;
 
-        auto GetAnimations() -> AnimationList&;
-
+        auto FillModelData( ModelData& data) -> void;
     private:
         // To construct the animations
         ozz::animation::offline::RawAnimation m_RawAnimation{};
         ozz::animation::offline::AnimationBuilder m_AnimationBuilder{};
 
-        std::vector<ozz::unique_ptr<ozz::animation::Animation>> m_Animations{};
+        std::vector<OzzAnimationInfo> m_Animations{};
 
         // To construct the skeleton
         ozz::animation::offline::SkeletonBuilder m_Builder{};
         ozz::animation::offline::RawSkeleton m_RawSkeleton{};
 
         // Run time skeleton
-        ozz::unique_ptr<ozz::animation::Skeleton> m_Skeleton{};
+        ozz::animation::Skeleton m_Skeleton{};
 
 
         Path m_Filename{};

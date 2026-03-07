@@ -56,9 +56,9 @@ namespace Mikoto {
         std::vector<MaterialProperties> Materials{};
 
         // For now we assume the
-        Unique<Skeleton> SceneSkeleton{};
+        Skeleton SceneSkeleton{};
 
-        ankerl::unordered_dense::map<std::string, Unique<SkinnedAnimation>> Animations{};
+        ankerl::unordered_dense::map<std::string, SkinnedAnimation> Animations{};
 
         // Texture URI the same way is stored in the materials
         std::unordered_map<std::string, TextureHandle> Textures{};

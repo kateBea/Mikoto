@@ -58,7 +58,7 @@ namespace Mikoto {
         // Base color/Albedo
         Vec4F BaseColorFactor{ 1.f, 1.f, 1.f, 1.f };
         Vec4F DiffuseFactor{ 1.f, 1.f, 1.f, 1.f };
-        Vec4F SpecularFactor{ 1.f, 1.f, 1.f, 1.f };
+        Vec4F SpecularFactor{ 0.f, 0.f, 0.f, 0.f };
         Vec3F EmissiveFactor{ 0.f, 0.f, 0.f };
 
         float MetallicFactor{ 1.f };
@@ -177,7 +177,7 @@ namespace Mikoto {
         // Base color/Albedo
         Vec4F m_BaseColorFactor{ 1.f, 1.f, 1.f, 1.f };
         Vec4F m_DiffuseFactor{ 1.f, 1.f, 1.f, 1.f };
-        Vec4F m_SpecularFactor{ 1.f, 1.f, 1.f, 1.f };
+        Vec4F m_SpecularFactor{ 0.f, 0.f, 0.f, 0.f };
         Vec3F m_EmissiveFactor{ 0.f, 0.f, 0.f };
 
         // Scalars
@@ -187,7 +187,7 @@ namespace Mikoto {
         float m_GlossinessFactor{ 1.f };
         float m_NormalScale{ 1.f };
         float m_OcclusionStrength{ 1.f };
-        float m_EmissiveStrength{ 1.f };
+        float m_EmissiveStrength{ 0.f };
         float m_AlphaMaskCutoff{ 1.0f };
 
         // UV sets

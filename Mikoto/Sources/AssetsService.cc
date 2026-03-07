@@ -244,10 +244,10 @@ namespace Mikoto {
             .WithMapType( description.Map )
 
             .WithType( description.Type )
-            .WithFormat( TextureFormat::RGBA8_UNORM )
-
+            .WithFormat( description.Format )
+            
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
+        
         return LoadTexture( textureDesc );
     }
 

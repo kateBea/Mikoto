@@ -59,7 +59,7 @@ float3 GetNormalFromMap(Sampler2D normalMap, float2 uv, float3 inNormal, float3 
     float3 B = -normalize(cross(N, T));
     float3x3 TBN = float3x3(T, B, N);
 
-    return normalize(mul(TBN, tangentNormal));
+    return normalize(mul(tangentNormal, TBN));
 }
 
 float LinearDepth(float depth, float2 planes) {

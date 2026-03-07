@@ -216,6 +216,7 @@ namespace Mikoto {
         auto WithName( std::string_view name ) -> TextureDescription&;
         auto WithHeight( Int32 height ) -> TextureDescription&;
         auto WithChannelCount( Int32 channels ) -> TextureDescription&;
+        auto WithSampleCount( Multisampling sampleCount ) -> TextureDescription&;
 
         auto WithMapType( MapType type ) -> TextureDescription&;
 
@@ -235,11 +236,13 @@ namespace Mikoto {
         const File* TextureFile{};
         MapType Map{ MapType::UNDEFINED_TEXTURE };
         TextureType Type{ TextureType::TEXTURE_UNKNOWN };
+        TextureFormat Format{ TextureFormat::RGBA8_UNORM };
 
         auto IsHDRMap( bool value ) -> TextureLoadDescription&;
         auto WithMapType( MapType type ) -> TextureLoadDescription&;
         auto WithFile( const File* file ) -> TextureLoadDescription&;
         auto WithType( TextureType type ) -> TextureLoadDescription&;
+        auto WithFormat( TextureFormat format ) -> TextureLoadDescription&;
     };
 
     struct TextureCubeLoadDescription {

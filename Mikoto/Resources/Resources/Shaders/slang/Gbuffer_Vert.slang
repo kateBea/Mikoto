@@ -19,7 +19,7 @@
 struct VSInput {
     float3 Position : ATTRIBUTE0;
     float3 Normal : ATTRIBUTE1;
-    float3 Color : ATTRIBUTE2;
+    float4 Color : ATTRIBUTE2;
     float2 TexCoord : ATTRIBUTE3;
 
     uint InstanceIndex : SV_InstanceID;
@@ -31,7 +31,7 @@ struct VSOutput {
     float3 FragmentWorldPos : TEXCOORD1;
     float3 VertexNormal : TEXCOORD2;
     float2 UV : TEXCOORD3;
-    float3 VertexColor : TEXCOORD4;
+    float4 VertexColor : TEXCOORD4;
 
     int AlbedoIndex : TEXCOORD5;
     int NormalIndex : TEXCOORD6;

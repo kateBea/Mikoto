@@ -76,7 +76,7 @@ namespace Mikoto {
     static inline const BufferLayout DEFAULT_VERTEX_BUFFER_LAYOUT{
         { ShaderDataType::FLOAT3_TYPE, "a_Position" },
         { ShaderDataType::FLOAT3_TYPE, "a_Normal" },
-        { ShaderDataType::FLOAT3_TYPE, "a_Color" },
+        { ShaderDataType::FLOAT4_TYPE, "a_Color" },
 
         { ShaderDataType::FLOAT2_TYPE, "a_UV0" },
         { ShaderDataType::FLOAT2_TYPE, "a_UV1" },

@@ -21,7 +21,7 @@ struct FSInput {
     float3 WorldPos : TEXCOORD1;
     float3 Normal : TEXCOORD2;
     float2 UV : TEXCOORD3;
-    float3 Color : TEXCOORD4;
+    float4 Color : TEXCOORD4;
 
     int AlbedoIndex : TEXCOORD5;
     int NormalIndex : TEXCOORD6;

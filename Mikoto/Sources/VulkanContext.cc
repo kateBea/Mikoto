@@ -265,7 +265,7 @@ namespace Mikoto {
         if ( vkCreateInstance( std::addressof( createInfo ), nullptr, std::addressof( m_VulkanData.Instance ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanContext::CreateInstance - Failed to create Vulkan instance." );
         }
-
+        
         // load all required Vulkan entry-points, including all extensions
         volkLoadInstance( m_VulkanData.Instance );
     }
@@ -293,7 +293,7 @@ namespace Mikoto {
             }
         }
     }
-
+    
     auto VulkanContext::CheckValidationLayerSupport() const -> bool {
         UInt32 layerCount{};
         vkEnumerateInstanceLayerProperties( std::addressof( layerCount ), nullptr );

@@ -29,7 +29,7 @@ StructuredBuffer<BoneData, ScalarDataLayout> Bones;
 struct VSInput {
     float3 Position : ATTRIBUTE0;
     float3 Normal : ATTRIBUTE1;
-    float3 Color : ATTRIBUTE2;
+    float4 Color : ATTRIBUTE2;
     float2 TexCoord0 : ATTRIBUTE3;
     float2 TexCoord1 : ATTRIBUTE4;
 
@@ -45,7 +45,7 @@ struct VSOutput {
     float3 FragmentWorldPos : TEXCOORD1;
     float3 Normal : TEXCOORD2;
     float2 TexCoord0 : TEXCOORD3;
-    float3 Color : TEXCOORD4;
+    float4 Color : TEXCOORD4;
 
     float2 TexCoord1 : TEXCOORD5;
 

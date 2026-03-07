@@ -143,9 +143,11 @@ namespace Mikoto {
 
             case FrameResourceState::DepthRead:
                 return {
-                    .Stages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                    .Access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
-                    .Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                    .Stages = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                              VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                    .Access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                              VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                    .Layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
                 };
 
             case FrameResourceState::TransferSrc:
@@ -331,23 +333,19 @@ namespace Mikoto {
                 nullptr,
                 std::addressof( m_TexturesPipelineLayout ) );
     }
-
+    
     UnboundedImageSamplersManager::~UnboundedImageSamplersManager() {
         vkDestroyPipelineLayout( m_Device->GetLogicalDevice(), m_TexturesPipelineLayout, nullptr );
     }
 
     auto BarrierManager::InsertBufferBarrier( BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState ) -> void {
-        if ( previousState == newState ) {
-            return;
-        }
-
         if ( BufferBarrierCount >= MAX_BARRIERS ) {
             return;
         }
 
         auto oldInfo{ GetVulkanState( previousState ) };
         auto newInfo{ GetVulkanState( newState ) };
-
+        
         VkBufferMemoryBarrier2 barrier{
             .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
             .srcStageMask = oldInfo.Stages,
@@ -363,10 +361,6 @@ namespace Mikoto {
     }
 
     auto BarrierManager::InsertTextureBarrier( TextureHandle texture, FrameResourceState previousState, FrameResourceState newState ) -> void {
-        if ( previousState == newState ) {
-            return;
-        }
-
         if ( ImageBarrierCount >= MAX_BARRIERS ) {
             return;
         }

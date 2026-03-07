@@ -982,7 +982,7 @@ namespace Mikoto {
             createInfo.queueFamilyIndexCount = 0;
             createInfo.pQueueFamilyIndices = nullptr;
         }
-
+        
         createInfo.preTransform = Capabilities.currentTransform;
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;// no blending
         createInfo.presentMode = presentMode;

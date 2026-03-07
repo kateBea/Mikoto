@@ -85,8 +85,8 @@ ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 [[vk::binding(Slot_2, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_SamplerIrradiance;
 
 // SSAO
-//[[vk::binding(Slot_3, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAO;
-//[[vk::binding(Slot_4, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAOBlur;
+[[vk::binding(Slot_3, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAO;
+[[vk::binding(Slot_4, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAOBlur;
 
 [[vk::push_constant]]
 FinalShadingParameters u_Constants;
@@ -94,14 +94,15 @@ FinalShadingParameters u_Constants;
 struct FSInput {
     float3 FragmentViewPos : TEXCOORD0;
     float3 FragmentWorldPos : TEXCOORD1;
-    float3 Normal : TEXCOORD2;
+    float3 Normal : NORMAL;
     float2 TexCoord0 : TEXCOORD3;
     float2 TexCoord1 : TEXCOORD4;
-    float3 VertexColor : TEXCOORD5;
+    float4 VertexColor : TEXCOORD5;
 
     uint MaterialIndex : TEXCOORD6;
 
     float4 ScreenPos : SV_Position;
+    bool IsFrontFace : SV_IsFrontFace;
 };
 
 float4 Tonemap(float4 color) {
@@ -111,21 +112,19 @@ float4 Tonemap(float4 color) {
 }
 
 // Calculation of the lighting contribution from an optional Image Based Light source.
-// Precomputed Environment Maps are required uniform inputs and are computed as outlined in [1].
-// See our README.md on Environment Maps [3] for additional discussion.
-float3 GetIBLContribution(float NdotV, float3 diffuseColor, float perceptualRoughness, float3 n, float3 reflection) {
-    float lod = (perceptualRoughness * u_Constants.PrefilteredCubeMipLevels);
+float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor, float perceptualRoughness, float3 n, float3 reflection) {
+    // Avoid rough reflections sample invalid mip levels
+    float lod = (perceptualRoughness * u_Constants.PrefilteredCubeMipLevels - 1);
+
     // retrieve a scale and bias to F0. See [1], Figure 3
     float3 brdf = u_SamplerBRDFLUT.Sample(float2(NdotV, 1.0 - perceptualRoughness)).rgb;
-    
-    float3 diffuseLight = SRGBtoLinear(Tonemap(u_SamplerIrradiance.Sample(n))).rgb;
-    float3 specularLight = SRGBtoLinear(Tonemap(u_PrefilteredMap.SampleLevel(reflection, lod))).rgb;
+
+    float3 diffuseLight = SRGBtoLINEAR(Tonemap(u_SamplerIrradiance.Sample(n))).rgb;
+    float3 specularLight = SRGBtoLINEAR(Tonemap(u_PrefilteredMap.SampleLevel(reflection, lod))).rgb;
 
     float3 diffuse = diffuseLight * diffuseColor;
-    float3 specular = specularLight * (diffuseColor * brdf.x + brdf.y);
+    float3 specular = specularLight * (specularColor * brdf.x + brdf.y);
 
-    // For presentation, this allows us to disable IBL terms
-    // For presentation, this allows us to disable IBL terms
     diffuse *= u_Constants.ScaleIBLAmbient;
     specular *= u_Constants.ScaleIBLAmbient;
 
@@ -134,21 +133,17 @@ float3 GetIBLContribution(float NdotV, float3 diffuseColor, float perceptualRoug
 
 // Basic Lambertian diffuse
 // Implementation from Lambert's Photometria https://archive.org/details/lambertsphotome00lambgoog
-// See also [1], Equation 1
 float3 Diffuse(PBRInfo pbrInputs) {
     return pbrInputs.diffuseColor / PI_Value;
 }
 
 // The following equation models the Fresnel reflectance term of the spec equation (aka F())
-// Implementation of fresnel from [4], Equation 15
 float3 SpecularReflection(PBRInfo pbrInputs) {
     return pbrInputs.reflectance0 + (pbrInputs.reflectance90 - pbrInputs.reflectance0) * pow(clamp(1.0 - pbrInputs.VdotH, 0.0, 1.0), 5.0);
 }
 
 // This calculates the specular geometric attenuation (aka G()),
 // where rougher material will reflect less light back to the viewer.
-// This implementation is based on [1] Equation 4, and we adopt their modifications to
-// alphaRoughness as input as originally proposed in [2].
 float GeometricOcclusion(PBRInfo pbrInputs) {
     float NdotL = pbrInputs.NdotL;
     float NdotV = pbrInputs.NdotV;
@@ -161,7 +156,7 @@ float GeometricOcclusion(PBRInfo pbrInputs) {
 
 // The following equation(s) model the distribution of microfacet normals across the area being drawn (aka D())
 // Implementation from "Average Irregularity Representation of a Roughened Surface for Ray Reflection" by T. S. Trowbridge, and K. P. Reitz
-// Follows the distribution function recommended in the SIGGRAPH 2013 course notes from EPIC Games [1], Equation 3.
+// Follows the distribution function recommended in the SIGGRAPH 2013 course notes from EPIC Games
 float MicrofacetDistribution(PBRInfo pbrInputs) {
     float roughnessSq = pbrInputs.alphaRoughness * pbrInputs.alphaRoughness;
     float f = (pbrInputs.NdotH * roughnessSq - pbrInputs.NdotH) * pbrInputs.NdotH + 1.0;
@@ -194,19 +189,99 @@ float3 ComputeDirectionalLightContribution(float3 n, float3 v, LightInfo lightIn
 	);
 
     // Calculate the shading terms for the microfacet specular shading model
-    float3 F = SpecularReflection(pbrInputs);
+    float3 F = SpecularReflection(pbrInputs); // kS
     float G = GeometricOcclusion(pbrInputs);
     float D = MicrofacetDistribution(pbrInputs);
 
-    // Calculation of analytical lighting contribution
+    // Calculation of analytical lighting contribution, ks + kD = 1 with kD = 1.0 - F
     float3 diffuseContrib = (1.0 - F) * Diffuse(pbrInputs);
     float3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
+
     // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
     float3 color = NdotL * lightInfo.Diffuse * (diffuseContrib + specContrib);
 
     return color;
 }
 
+float3 ComputePointlLightContribution(float3 n, float3 v, LightInfo lightInfo, BaseInputs inputs) {
+    float3 l = normalize(-lightInfo.Direction.xyz); // Vector from surface point to light
+    float3 h = normalize(l + v);                    // Half vector between both l and v
+
+    float NdotL = clamp(dot(n, l), 0.001, 1.0);
+    float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
+    float NdotH = clamp(dot(n, h), 0.0, 1.0);
+    float LdotH = clamp(dot(l, h), 0.0, 1.0);
+    float VdotH = clamp(dot(v, h), 0.0, 1.0);
+
+    PBRInfo pbrInputs = PBRInfo(
+        NdotL,
+        NdotV,
+        NdotH,
+        LdotH,
+        VdotH,
+        inputs.perceptualRoughness,
+        inputs.metallic,
+        inputs.specularEnvironmentR0,
+        inputs.specularEnvironmentR90,
+        inputs.alphaRoughness,
+        inputs.diffuseColor,
+        inputs.specularColor
+	);
+
+    // Calculate the shading terms for the microfacet specular shading model
+    float3 F = SpecularReflection(pbrInputs); // kS
+    float G = GeometricOcclusion(pbrInputs);
+    float D = MicrofacetDistribution(pbrInputs);
+
+    // Calculation of analytical lighting contribution, ks + kD = 1 with kD = 1.0 - F
+    float3 diffuseContrib = (1.0 - F) * Diffuse(pbrInputs);
+    float3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
+
+    // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
+    float3 color = NdotL * lightInfo.Diffuse * (diffuseContrib + specContrib);
+
+    return color;
+}
+
+float3 ComputeSpotLightContribution(float3 n, float3 v, LightInfo lightInfo, BaseInputs inputs) {
+    float3 l = normalize(-lightInfo.Direction.xyz); // Vector from surface point to light
+    float3 h = normalize(l + v);                    // Half vector between both l and v
+
+    float NdotL = clamp(dot(n, l), 0.001, 1.0);
+    float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
+    float NdotH = clamp(dot(n, h), 0.0, 1.0);
+    float LdotH = clamp(dot(l, h), 0.0, 1.0);
+    float VdotH = clamp(dot(v, h), 0.0, 1.0);
+
+    PBRInfo pbrInputs = PBRInfo(
+        NdotL,
+        NdotV,
+        NdotH,
+        LdotH,
+        VdotH,
+        inputs.perceptualRoughness,
+        inputs.metallic,
+        inputs.specularEnvironmentR0,
+        inputs.specularEnvironmentR90,
+        inputs.alphaRoughness,
+        inputs.diffuseColor,
+        inputs.specularColor
+	);
+
+    // Calculate the shading terms for the microfacet specular shading model
+    float3 F = SpecularReflection(pbrInputs); // kS
+    float G = GeometricOcclusion(pbrInputs);
+    float D = MicrofacetDistribution(pbrInputs);
+
+    // Calculation of analytical lighting contribution, ks + kD = 1 with kD = 1.0 - F
+    float3 diffuseContrib = (1.0 - F) * Diffuse(pbrInputs);
+    float3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
+
+    // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
+    float3 color = NdotL * lightInfo.Diffuse * (diffuseContrib + specContrib);
+
+    return color;
+}
 
 struct FSOutput {
     float4 Color : SV_Target0;
@@ -231,7 +306,7 @@ FSOutput main(FSInput input) {
             Sampler2D colorMap = g_BindlessTextures[material.AlbedoIndex];
             float2 uvSet = material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1;
 
-            baseColor = SRGBtoLinear(colorMap.Sample(uvSet)) * material.BaseColorFactor;
+            baseColor = SRGBtoLINEAR(colorMap.Sample(uvSet)) * material.BaseColorFactor;
         } else {
             baseColor = material.BaseColorFactor;
         }
@@ -269,7 +344,7 @@ FSOutput main(FSInput input) {
         // The albedo may be defined from a base texture or a flat color
         if (material.AlbedoIndex != INVALID_UV_SET) {
             Sampler2D colorMap = g_BindlessTextures[material.AlbedoIndex];
-            baseColor = SRGBtoLinear(colorMap.Sample(material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1)) * material.BaseColorFactor;
+            baseColor = SRGBtoLINEAR(colorMap.Sample(material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1)) * material.BaseColorFactor;
         } else {
             baseColor = material.BaseColorFactor;
         }
@@ -290,8 +365,8 @@ FSOutput main(FSInput input) {
         Sampler2D colorMap = g_BindlessTextures[material.DiffuseIndex];
         Sampler2D specularGlossinessMap = g_BindlessTextures[material.SpecularGlossinessIndex];
 
-        float4 diffuse = SRGBtoLinear(colorMap.Sample(input.TexCoord0));
-        float3 specular = SRGBtoLinear(specularGlossinessMap.Sample(input.TexCoord0)).rgb;
+        float4 diffuse = SRGBtoLINEAR(colorMap.Sample(input.TexCoord0));
+        float3 specular = SRGBtoLINEAR(specularGlossinessMap.Sample(input.TexCoord0)).rgb;
 
         float maxSpecular = max(max(specular.r, specular.g), specular.b);
 
@@ -303,14 +378,13 @@ FSOutput main(FSInput input) {
         baseColor = float4(lerp(baseColorDiffusePart, baseColorSpecularPart, metallic * metallic), diffuse.a);
     }
 
-    float inputColorAplha = 1.0f; // TODO: extend input color to take 4th component
-    baseColor *= float4(input.VertexColor, inputColorAplha);
-
-    // diffuse should disappear as the material becomes metallic.
-    float diffuseFactor = 1.0f - metallic;
-
+    baseColor *= float4(input.VertexColor);
+    
     // dielectrics default to 4%
     float3 f0 = float3(0.04);
+    
+    // diffuse should disappear as the material becomes metallic.
+    float diffuseFactor = 1.0f - metallic;
 
     float3 diffuseColor = baseColor.rgb * (float3(1.0) - f0) * diffuseFactor;
     float3 specularColor = lerp(f0, baseColor.rgb, metallic);
@@ -325,80 +399,140 @@ FSOutput main(FSInput input) {
     float3 specularEnvironmentR90 = float3(1.0, 1.0, 1.0) * reflectance90;
 
     float2 normalUvSet = material.NormalTextureSet == 0 ? input.TexCoord0 : input.TexCoord1;
-    float3 n = (material.NormalTextureSet != INVALID_UV_SET) ? 
+    float3 n = (material.NormalIndex != INVALID_UV_SET) ? 
         GetNormalFromMap(g_BindlessTextures[material.NormalIndex], normalUvSet, input.Normal, input.FragmentWorldPos) : 
         normalize(input.Normal);
 
-    //n.y *= -1.0f; // Match Vulkan coordinates
+    if (!input.IsFrontFace) {
+        n.y *= -1.0f;
+    }
 
     float3 v = normalize(u_Camera.ViewPosition.xyz - input.FragmentWorldPos); // Vector from surface point to camera
     float3 reflection = normalize(reflect(-v, n));
 
-    // Compute tile index light clustering
-    uint tileIndex = ComputeTileIndex(input.FragmentViewPos, u_Constants.GridSize.xyz, u_Camera.Planes, input.ScreenPos, u_Camera.ScreenDimensions);
+    BaseInputs inputs;
+    inputs.perceptualRoughness = perceptualRoughness;
+    inputs.metallic = metallic;
+    inputs.specularEnvironmentR0 = specularEnvironmentR0;
+    inputs.specularEnvironmentR90 = specularEnvironmentR90;
+    inputs.alphaRoughness = alphaRoughness;
+    inputs.diffuseColor = diffuseColor;
+    inputs.specularColor = specularColor;
 
-    // Compute common parameters
-    float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
-    BaseInputs baseInputs = BaseInputs(
-        perceptualRoughness,
-		metallic,
-		specularEnvironmentR0,
-		specularEnvironmentR90,
-        alphaRoughness,
-		diffuseColor,
-		specularColor
-    );
+    float3 lightContribution = float3(0.0);
 
-    float3 lightContribution = float3(0, 0, 0);
-    // Light Contribution
-    if (tileIndex < Clusters.getCount()) {
-        uint lightCount = Clusters[tileIndex].Count;
+    //////////////////////////////////////////////////////////
+    // Clustered Lighting
+    //////////////////////////////////////////////////////////
 
-        for (uint i = 0; i < lightCount; i++) {
-            uint idx = Clusters[tileIndex].LightIndices[i];
-            LightInfo L = Lights[idx];
+    uint clusterIndex = ComputeTileIndex(input.FragmentViewPos, u_Constants.GridSize.xyz, u_Camera.Planes, input.ScreenPos, u_Camera.ScreenDimensions);
 
-            switch (L.ActiveLightType) {
-            case LIGHT_TYPE_POINT:
-                break;
+    Cluster cluster = Clusters[clusterIndex];
 
-            case LIGHT_TYPE_SPOT:
-                break;
+    for (uint i = 0; i < cluster.Count; ++i) {
+        uint lightIndex = cluster.LightIndices[i];
+        LightInfo light = Lights[lightIndex];
 
-            case LIGHT_TYPE_DIRECTIONAL:
-                lightContribution += ComputeDirectionalLightContribution(n, v, L, baseInputs);
-                break;
-            }
+        //////////////////////////////////////////////////////
+        // Directional light
+        //////////////////////////////////////////////////////
+
+        if (light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL) {
+            lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs);
+            continue;
+        }
+
+        //////////////////////////////////////////////////////
+        // Point light
+        //////////////////////////////////////////////////////
+
+        if (light.ActiveLightType == LIGHT_TYPE_POINT) {
+            float3 lightVector = light.Position.xyz - input.FragmentWorldPos;
+
+            float distance = length(lightVector);
+            float3 l = normalize(lightVector);
+
+            float attenuation = saturate(1.0 - distance / light.Radius);
+            attenuation *= attenuation;
+        }
+
+        //////////////////////////////////////////////////////
+        // Spot light
+        //////////////////////////////////////////////////////
+
+        if (light.ActiveLightType == LIGHT_TYPE_SPOT) {
+            float3 lightVector = light.Position.xyz - input.FragmentWorldPos;
+
+            float distance = length(lightVector);
+            float3 l = normalize(lightVector);
+
+            float theta = dot(l, normalize(-light.Direction.xyz));
+
+            float epsilon = light.CutOff - light.OuterCutOff;
+
+            float intensity = saturate((theta - light.OuterCutOff) / epsilon);
+
+            float attenuation = intensity * saturate(1.0 - distance / light.Radius);
+            attenuation *= attenuation;
         }
     }
 
-    lightContribution += GetIBLContribution(NdotV, specularColor, perceptualRoughness, n, reflection);
+    //////////////////////////////////////////////////////////
+    // Image Based Lighting
+    //////////////////////////////////////////////////////////
 
-    const float occlusionStrength = 1.0f;
+    float NdotV = clamp(dot(n, v), 0.001, 1.0);
+    float3 iblLighting = float3(0.0);
 
-    // Apply optional PBR terms for additional (optional) shading
+    if (u_Constants.IsSkyboxActive == MKT_SHADER_TRUE) {
+        iblLighting = GetIBLContribution(NdotV, diffuseColor, specularColor, perceptualRoughness, n, reflection);
+    }
+
+    //////////////////////////////////////////////////////////
+    // Final lighting
+    //////////////////////////////////////////////////////////
+
+    float3 color = lightContribution + iblLighting;
+
+    //////////////////////////////////////////////////////////
+    // Ambient Occlusion
+    //////////////////////////////////////////////////////////
+    float ssao = 1.0f;
+
+    if (u_Constants.EnableSSAO != MKT_SHADER_FALSE) {
+        float2 uv = input.ScreenPos.xy / u_Camera.ScreenDimensions;
+
+        ssao = u_Constants.UseBlurred == MKT_SHADER_TRUE ? u_SSAOBlur.Sample(uv).r : u_SSAO.Sample(uv).r;
+        ssao = pow(ssao, u_Constants.SSAOIntensity);
+    }
+
+    float3 ssaoContrib = float3(ssao, ssao, ssao);
+
     if (material.AoIndex != INVALID_TEXTURE_INDEX) {
         Sampler2D aoMap = g_BindlessTextures[material.AoIndex];
+        float2 aoUVSet = material.OcclusionTextureSet == 0 ? input.TexCoord0 : input.TexCoord1;
 
-        float ao = aoMap.Sample(material.OcclusionTextureSet == 0 ? input.TexCoord0 : input.TexCoord1).r;
-        lightContribution = lerp(lightContribution, lightContribution * ao, occlusionStrength);
+        float ao = aoMap.Sample(aoUVSet) .r;
+
+        color *= lerp(color, color * ao, u_Constants.SSAOIntensity) * ssaoContrib;
     }
 
-    float3 emissive = material.EmissiveFactor.rgb * material.EmissiveStrength;
-
+    //////////////////////////////////////////////////////////
+    // Emissive
+    //////////////////////////////////////////////////////////
+    float3 emmissiveContrib = material.EmissiveFactor.xyz * material.EmissiveStrength;
     if (material.EmissiveIndex != INVALID_TEXTURE_INDEX) {
         Sampler2D emissiveMap = g_BindlessTextures[material.EmissiveIndex];
-        emissive *= SRGBtoLinear(emissiveMap.Sample(material.EmissiveTextureSet == 0 ? input.TexCoord0 : input.TexCoord1)).rgb;
+        float2 emissiveUvSet = material.EmissiveTextureSet == 0 ? input.TexCoord0 : input.TexCoord1;
+
+        float3 emissive = emissiveMap.Sample(emissiveUvSet).rgb;
+
+        emmissiveContrib *= emissive;
     }
 
-    lightContribution += emissive;
+    color += emmissiveContrib;
 
-    // for debug and avoid removing sets
-    if (u_Constants.Step != 1) {
-        output.Color = float4(lightContribution, baseColor.a);
-    } else {
-        output.Color = float4(diffuseColor, baseColor.a);
-    }
+    output.Color = Tonemap(float4(color, baseColor.a));
 
     return output;
 }

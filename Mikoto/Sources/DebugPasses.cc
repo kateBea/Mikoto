@@ -238,7 +238,7 @@ namespace Mikoto {
 
     auto DebugPasses::RegisterInfiniteGrid( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
+        
         graph.RegisterPass(
             "InfiniteGrid",
             [this]( FramePassBuilder &b ) {

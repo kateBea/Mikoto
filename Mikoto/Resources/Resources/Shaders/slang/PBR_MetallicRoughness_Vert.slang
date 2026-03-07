@@ -28,7 +28,7 @@ ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 struct VSInput {
     float3 Position : ATTRIBUTE0;
     float3 Normal : ATTRIBUTE1;
-    float3 Color : ATTRIBUTE2;
+    float4 Color : ATTRIBUTE2;
     float2 TexCoord0 : ATTRIBUTE3;
     float2 TexCoord1 : ATTRIBUTE4;
 
@@ -42,10 +42,10 @@ struct VSInput {
 struct VSOutput {
     float3 FragmentViewPos : TEXCOORD0;
     float3 FragmentWorldPos : TEXCOORD1;
-    float3 Normal : TEXCOORD2;
+    float3 Normal : NORMAL;
     float2 TexCoord0 : TEXCOORD3;
     float2 TexCoord1 : TEXCOORD4;
-    float3 Color : TEXCOORD5;
+    float4 Color : TEXCOORD5;
 
     uint MaterialIndex : TEXCOORD6;
 
@@ -55,17 +55,7 @@ struct VSOutput {
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
-
-    // Compute vertex index and indices index for this vertex
-    //uint vertexIndex = 0;
-    //VertexData attributes = VertexAttributes[vertexIndex];
-
-    // Compute material/mesh info index
-    //uint meshIndex = 0;
-    //MeshParameters meshInfo = Meshes[meshIndex];
-
-    //o.MaterialIndex = meshIndex;
-
+    
     MeshParameters meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
     o.MaterialIndex = input.BaseInstanceIndex + input.InstanceIndex;
 

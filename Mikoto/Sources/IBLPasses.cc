@@ -790,7 +790,7 @@ namespace Mikoto {
                 data.SSAOIntensity = m_SSAOIntensity;
 
                 data.PrefilteredCubeMipLevels = m_PrefilterMipLevels;
-                data.ScaleIBLAmbient = 1.0f;
+                data.ScaleIBLAmbient = 2;
                 data.Step = 1;
                 
                 // Bind resources
@@ -806,10 +806,10 @@ namespace Mikoto {
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "BRDFLutPass_ColorTarget", m_BRDFLutSampler, ResourceSlot::Slot_0 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_1 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_2 );
-
-                //ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", ResourceSlot::Slot_3 );
-                //ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAOBlur_ColorTarget", ResourceSlot::Slot_4 );
-
+                
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", ResourceSlot::Slot_3 );
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAOBlur_ColorTarget", ResourceSlot::Slot_4 );
+                
                 ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
 
                 ctx.PushConstants( std::addressof( data ), sizeof( data ) );

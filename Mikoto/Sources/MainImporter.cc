@@ -295,16 +295,17 @@ namespace Mikoto {
             }
 
             if (mesh->HasVertexColors( index )) {
-                vertex.Colors.x = mesh->mColors[index]->r;
-                vertex.Colors.y = mesh->mColors[index]->g;
-                vertex.Colors.z = mesh->mColors[index]->b;
+                vertex.Colors.r = mesh->mColors[index]->r;
+                vertex.Colors.g = mesh->mColors[index]->g;
+                vertex.Colors.b = mesh->mColors[index]->b;
+                vertex.Colors.a = mesh->mColors[index]->a;
             }
 
             if (mesh->HasTextureCoords( 0 )) {
                 vertex.UV_0.x = mesh->mTextureCoords[0][index].x;
                 vertex.UV_0.y = mesh->mTextureCoords[0][index].y;
             }
-
+            
             if (mesh->HasTextureCoords( 1 )) {
                 vertex.UV_1.x = mesh->mTextureCoords[1][index].x;
                 vertex.UV_1.y =  mesh->mTextureCoords[1][index].y;

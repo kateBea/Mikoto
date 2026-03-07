@@ -409,6 +409,11 @@ namespace Mikoto {
         return *this;
     }
 
+    auto TextureDescription::WithSampleCount( Multisampling sampleCount ) -> TextureDescription& {
+        MSAA = sampleCount;
+        return *this;
+    }
+
     auto TextureDescription::WithMapType( MapType type ) -> TextureDescription& {
         this->Map = type;
         return *this;
@@ -466,6 +471,11 @@ namespace Mikoto {
 
     auto TextureLoadDescription::WithType( TextureType type ) -> TextureLoadDescription& {
         this->Type = type;
+        return *this;
+    }
+
+    auto TextureLoadDescription::WithFormat( TextureFormat format ) -> TextureLoadDescription& {
+        this->Format = format;
         return *this;
     }
 

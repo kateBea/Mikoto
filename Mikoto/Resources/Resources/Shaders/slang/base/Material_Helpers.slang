@@ -88,29 +88,10 @@ struct IndexData {
 
 // ============================================================================
 // Helpers
-// ============================================================================
-float3 SRGBtoLinear(float3 srgb) {
-    // sRGB uses a piecewise curve:
-    //  - linear segment for low values
-    //  - power curve for higher values
-
-    float3 cutoff = float3(0.04045);
-    float3 low = srgb / 12.92;
-    float3 high = pow((srgb + 0.055) / 1.055, 2.4);
-
-    // step(x, y):
-    //   returns 0 when y < x, otherwise 1
-    //
-    // So:
-    //   less = (srgb <= 0.04045)
-    float3 useHigh = step(cutoff, srgb);
-
-    // choose low or high per-channel, branchless
-    return lerp(low, high, useHigh);
-}
-
-float4 SRGBtoLinear(float4 srgb) {
-    return float4(SRGBtoLinear(srgb.xyz), srgb.w);
+// ============================================================================º
+float4 SRGBtoLINEAR(float4 srgbIn) {
+    float3 linOut = pow(srgbIn.xyz, float3(2.2));
+    return float4(linOut, srgbIn.a);
 }
 
 // Gets metallic factor from specular glossiness workflow inputs

@@ -470,6 +470,8 @@ namespace Mikoto {
     auto GLTFImporter::LoadMaterials( tinygltf::Model& model, ModelData& modelData, const std::string& rootPath ) -> void {
         modelData.Materials.reserve( model.materials.size() );
 
+        // Default format is SRGB for emissive and base color
+        // rest is unrorm rgba8
         TextureLoadDescription loadInfo{};
         loadInfo.WithType( TextureType::TEXTURE_2D );
         
@@ -496,12 +498,14 @@ namespace Mikoto {
             if ( pbr.baseColorTexture.index >= 0 ) {
                 const auto& tex{ model.textures[pbr.baseColorTexture.index] };
                 props.BaseColorTextureSet = pbr.baseColorTexture.texCoord;
-                
+
                 loadInfo.WithMapType( MapType::BASE_COLOR_TEXTURE );
-                loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
+                loadInfo
+                    .WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
                            .WithPath( rootPath )
                            .WithPath( model.images[tex.source].uri )
-                           .Build() } ) );
+                           .Build() } ))
+                    .WithFormat(TextureFormat::RGBA8_UNORM);
 
                 TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
                 if (!texture.IsEmpty()) {
@@ -518,13 +522,18 @@ namespace Mikoto {
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
                            .WithPath( rootPath )
                            .WithPath( model.images[tex.source].uri )
-                           .Build() } ) );
+                           .Build() } ) )
+                .WithFormat( TextureFormat::RGBA8_UNORM );
 
                 TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
                 if (!texture.IsEmpty()) {
                     props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
                 }
+
             }
+
+            props.RoughnessFactor = pbr.roughnessFactor;
+            props.MetallicFactor = static_cast<float>( gltfMaterial.pbrMetallicRoughness.metallicFactor );
 
             // Normal
             if ( gltfMaterial.normalTexture.index >= 0 ) {
@@ -536,7 +545,8 @@ namespace Mikoto {
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
                            .WithPath( rootPath )
                            .WithPath( model.images[tex.source].uri )
-                           .Build() } ) );
+                           .Build() } ) )
+                .WithFormat( TextureFormat::RGBA8_UNORM );
 
                 TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
                 if (!texture.IsEmpty()) {
@@ -547,15 +557,16 @@ namespace Mikoto {
             // Occlusion
             if ( gltfMaterial.occlusionTexture.index >= 0 ) {
                 const auto& tex{ model.textures[gltfMaterial.occlusionTexture.index] };
-                props.OcclusionStrength = gltfMaterial.occlusionTexture.texCoord;
-                props.OcclusionStrength =
-                        static_cast<float>( gltfMaterial.occlusionTexture.strength );
+                props.OcclusionTextureSet = gltfMaterial.occlusionTexture.texCoord;
+                props.OcclusionStrength =static_cast<float>( gltfMaterial.occlusionTexture.strength );
 
                 loadInfo.WithMapType( MapType::AMBIENT_OCCLUSION_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
                            .WithPath( rootPath )
                            .WithPath( model.images[tex.source].uri )
-                           .Build() } ) );
+                           .Build() } ) )
+                    
+                .WithFormat( TextureFormat::RGBA8_UNORM );
 
                 TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
                 if (!texture.IsEmpty()) {
@@ -572,7 +583,8 @@ namespace Mikoto {
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
                            .WithPath( rootPath )
                            .WithPath( model.images[tex.source].uri )
-                           .Build() } ) );
+                           .Build() } ) )
+                    .WithFormat(TextureFormat::RGBA8_UNORM);
 
                 TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
                 if (!texture.IsEmpty()) {
@@ -591,6 +603,7 @@ namespace Mikoto {
                 props.AlphaMask = PBR_AlphaMode::Blend;
             } else if ( gltfMaterial.alphaMode == "MASK" ) {
                 props.AlphaMask = PBR_AlphaMode::Mask;
+                props.AlphaMaskCutoff = 0.5f;
             }
 
             props.AlphaMaskCutoff = static_cast<float>( gltfMaterial.alphaCutoff );
@@ -627,7 +640,8 @@ namespace Mikoto {
                     loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
                             .WithPath( rootPath )
                             .WithPath( model.images[index.Get<int>()].uri )
-                            .Build() } ) );
+                            .Build() } ) )
+                .WithFormat( TextureFormat::RGBA8_UNORM );
 
                     TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
                     if ( !texture.IsEmpty() ) {

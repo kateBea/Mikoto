@@ -86,6 +86,7 @@ namespace Mikoto {
                 vertices.emplace_back( vertex.Colors.r );
                 vertices.emplace_back( vertex.Colors.g );
                 vertices.emplace_back( vertex.Colors.b );
+                vertices.emplace_back( vertex.Colors.a );
 
                 // Uv0
                 vertices.emplace_back( vertex.UV_0.x );
@@ -107,7 +108,7 @@ namespace Mikoto {
                 vertices.emplace_back( vertex.Weights.z );
                 vertices.emplace_back( vertex.Weights.w );
             }
-
+            
             BufferDescription vertexDesc{};
             vertexDesc.WithData( reinterpret_cast<Byte *>( vertices.data() ) )
                       .WithUsage( BufferUsage::VERTEX )

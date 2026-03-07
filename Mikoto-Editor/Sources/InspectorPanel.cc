@@ -1559,7 +1559,6 @@ namespace Mikoto {
                     ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
                 }
 
-
                 if ( isSelected ) {
                     ImGui::SetItemDefaultFocus();
                 }
@@ -1648,7 +1647,6 @@ namespace Mikoto {
         if ( ImGuiUtils::Slider( "##WorldSize", currentSize, { TextComponent::GetMinLetterSize(), 500.0f } ) ) {
             textComponent.SetSize( currentSize );
         }
-
         ImGuiUtils::HelpMarker( "Text size in world space.", "(?)", true );
 
         // Slider float letter spacing

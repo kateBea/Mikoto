@@ -20,14 +20,8 @@
 
 namespace Mikoto {
 
-    SkinnedAnimation::SkinnedAnimation( AnimationDescription&& description )
-        : m_Name{ std::move( description.Name ) },
-          m_Duration{ description.End - description.Start }, 
-          m_Samplers{ std::move( description.Samplers ) },
-          m_Channels{ std::move( description.Channels ) },
-          m_End{ description.End },
-          m_Start{ description.Start }
-    {}
+    SkinnedAnimation::SkinnedAnimation( AnimationBuilder&& description )
+        {}
 
     auto SkinnedAnimation::GetDuration() const -> float {
         return m_Duration;
@@ -88,90 +82,90 @@ namespace Mikoto {
         }
     }
 
-    auto SkinnedAnimation::BuildOzzStructures( const Skeleton& skeleton ) -> void {
-        ResolveSamplers();
+    //auto SkinnedAnimation::BuildOzzStructures( const Skeleton& skeleton ) -> void {
+    //    ResolveSamplers();
 
-        // Construct raw animation
-        const UInt32 jointCount{ skeleton.GetBoneCount() };
+    //    // Construct raw animation
+    //    const UInt32 jointCount{ skeleton.GetBoneCount() };
 
-        m_RawAnimation.duration = m_Duration;
-        m_RawAnimation.tracks.resize( jointCount );
+    //    m_RawAnimation.duration = m_Duration;
+    //    m_RawAnimation.tracks.resize( jointCount );
 
-        for ( const AnimationChannel& channel: m_Channels ) {
-            const AnimationSampler& sampler{ m_Samplers[channel.SamplerIndex] };
+    //    for ( const AnimationChannel& channel: m_Channels ) {
+    //        const AnimationSampler& sampler{ m_Samplers[channel.SamplerIndex] };
 
-            // find by name
-            // Root of armature is included in channels we juist ignore it
-            Int32 index{ skeleton.GetOzzBondeIndex( channel.JointIndex ) };
-            if (index == -1) {
-                continue;
-            }
+    //        // find by name
+    //        // Root of armature is included in channels we juist ignore it
+    //        Int32 index{ skeleton.GetOzzBondeIndex( channel.JointIndex ) };
+    //        if (index == -1) {
+    //            continue;
+    //        }
 
-            auto& track{ m_RawAnimation.tracks[index] };
+    //        auto& track{ m_RawAnimation.tracks[index] };
 
-            switch ( channel.Path ) {
-                case PathType::TRANSLATION: {
-                    for ( Size i{}; i < sampler.TimeStamps.size(); ++i ) {
-                        ozz::animation::offline::RawAnimation::TranslationKey key{};
+    //        switch ( channel.Path ) {
+    //            case PathType::TRANSLATION: {
+    //                for ( Size i{}; i < sampler.TimeStamps.size(); ++i ) {
+    //                    ozz::animation::offline::RawAnimation::TranslationKey key{};
 
-                        key.time = sampler.TimeStamps[i];
+    //                    key.time = sampler.TimeStamps[i];
 
-                        const Vec3F& pos{ sampler.Positions[i] };
-                        key.value = ozz::math::Float3{ pos.x, pos.y, pos.z };
+    //                    const Vec3F& pos{ sampler.Positions[i] };
+    //                    key.value = ozz::math::Float3{ pos.x, pos.y, pos.z };
 
-                        track.translations.push_back( key );
-                    }
+    //                    track.translations.push_back( key );
+    //                }
 
-                    break;
-                }
+    //                break;
+    //            }
 
-                case PathType::ROTATION: {
-                    for ( Size i{}; i < sampler.TimeStamps.size(); ++i ) {
-                        ozz::animation::offline::RawAnimation::RotationKey key{};
+    //            case PathType::ROTATION: {
+    //                for ( Size i{}; i < sampler.TimeStamps.size(); ++i ) {
+    //                    ozz::animation::offline::RawAnimation::RotationKey key{};
 
-                        key.time = sampler.TimeStamps[i];
+    //                    key.time = sampler.TimeStamps[i];
 
-                        const Quat& rot{ sampler.Rotations[i] };
-                        key.value = ozz::math::Quaternion{
-                            rot.x, rot.y, rot.z, rot.w
-                        };
+    //                    const Quat& rot{ sampler.Rotations[i] };
+    //                    key.value = ozz::math::Quaternion{
+    //                        rot.x, rot.y, rot.z, rot.w
+    //                    };
 
-                        track.rotations.push_back( key );
-                    }
+    //                    track.rotations.push_back( key );
+    //                }
 
-                    break;
-                }
+    //                break;
+    //            }
 
-                case PathType::SCALE: {
-                    for ( Size i{}; i < sampler.TimeStamps.size(); ++i ) {
-                        ozz::animation::offline::RawAnimation::ScaleKey key{};
+    //            case PathType::SCALE: {
+    //                for ( Size i{}; i < sampler.TimeStamps.size(); ++i ) {
+    //                    ozz::animation::offline::RawAnimation::ScaleKey key{};
 
-                        key.time = sampler.TimeStamps[i];
+    //                    key.time = sampler.TimeStamps[i];
 
-                        const Vec3F& scale{ sampler.Scales[i] };
-                        key.value = ozz::math::Float3{
-                            scale.x, scale.y, scale.z
-                        };
+    //                    const Vec3F& scale{ sampler.Scales[i] };
+    //                    key.value = ozz::math::Float3{
+    //                        scale.x, scale.y, scale.z
+    //                    };
 
-                        track.scales.push_back( key );
-                    }
+    //                    track.scales.push_back( key );
+    //                }
 
-                    break;
-                }
-            }
-        }
+    //                break;
+    //            }
+    //        }
+    //    }
 
-        // Construct runtime animation
-        if (!m_RawAnimation.Validate()) {
-            MKT_CORE_LOGGER_ERROR( "Animation is not valid" );
-            return;
-        }
+    //    // Construct runtime animation
+    //    if (!m_RawAnimation.Validate()) {
+    //        MKT_CORE_LOGGER_ERROR( "Animation is not valid" );
+    //        return;
+    //    }
 
-        m_Animation = m_AnimationBuilder( m_RawAnimation );
+    //    m_Animation = m_AnimationBuilder( m_RawAnimation );
 
-        // Skeleton and animation needs to match.
-        if ( skeleton.GetOzzSkeleton()->num_joints() != m_Animation->num_tracks() ) {
-            MKT_CORE_LOGGER_ERROR( "Skeleton joints count does not match animation tracks count" );
-        }
-    }
+    //    // Skeleton and animation needs to match.
+    //    if ( skeleton.GetOzzSkeleton()->num_joints() != m_Animation->num_tracks() ) {
+    //        MKT_CORE_LOGGER_ERROR( "Skeleton joints count does not match animation tracks count" );
+    //    }
+    //}
 }

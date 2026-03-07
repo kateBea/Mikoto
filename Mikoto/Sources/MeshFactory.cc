@@ -57,9 +57,9 @@ namespace Mikoto {
     }
 
     auto MeshFactory::ConstructModel( ModelData &data, const ModelLoadDescription &loadInfo  ) -> Model * {
-        Model *result{ new Model( data.Name, loadInfo.ModelFile->GetPath(), std::move( data.SceneSkeleton ) ) };
+        Model *result{ new Model( data.Name, loadInfo.ModelFile->GetPath() ) };
 
-        result->SetAnimations( std::move(data.Animations) );
+        //result->SetAnimations( std::move(data.Animations) );
 
         UInt32 meshIndex{ 0 };
         for (const auto& meshNode : data.MeshNodes) {

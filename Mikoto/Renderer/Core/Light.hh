@@ -71,23 +71,50 @@ namespace Mikoto {
 
         template<typename... Args>
         auto SetDirection( Args&&... args ) -> void {
-            m_Direction = glm::vec3( std::forward<Args>( args )... );
+            m_Direction = glm::normalize( glm::vec3( std::forward<Args>( args )... ) );
         }
 
-        auto SetCutOff( float cutOff ) -> void { m_CutOff = cutOff; }
-        auto SetOuterCutOff( float outerCutOff ) -> void { m_OuterCutOff = outerCutOff; }
+        auto SetAngle( float angleDeg ) -> void {
+            m_Angle = angleDeg;
+            UpdateCutoffs();
+        }
+
+        auto SetSoftness( float softness ) -> void {
+            m_Softness = glm::clamp( softness, 0.0f, 1.0f );
+            UpdateCutoffs();
+        }
+
         auto SetRadius( float radius ) -> void { m_Radius = radius; }
 
         auto GetDirection() const -> const glm::vec3& { return m_Direction; }
+
+        auto GetAngle() const -> float { return m_Angle; }
+        auto GetSoftness() const -> float { return m_Softness; }
+
         auto GetCutOff() const -> float { return m_CutOff; }
         auto GetOuterCutOff() const -> float { return m_OuterCutOff; }
+
         auto GetRadius() const -> float { return m_Radius; }
 
     private:
-        glm::vec3 m_Direction{ 0.0f, -1.0f, 0.0f };// spot direction
-        float m_CutOff{ 0.2f };
-        float m_OuterCutOff{ 0.4f };
-        float m_Radius{ 1.0f };// range/falloff
+        void UpdateCutoffs() {
+            float outer = glm::radians( m_Angle );
+            float inner = outer * ( 1.0f - m_Softness );
+
+            m_CutOff = std::cos( inner );
+            m_OuterCutOff = std::cos( outer );
+        }
+
+    private:
+        glm::vec3 m_Direction{ 0.0f, -1.0f, 0.0f };
+
+        float m_Angle{ 30.0f };  // degrees
+        float m_Softness{ 0.1f };// 0..1
+
+        float m_CutOff{ 0.0f };
+        float m_OuterCutOff{ 0.0f };
+
+        float m_Radius{ 10.0f };
     };
 }// namespace Mikoto
 

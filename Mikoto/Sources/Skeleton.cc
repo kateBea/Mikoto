@@ -26,6 +26,9 @@
 
 namespace Mikoto {
 
+    Skeleton::Skeleton( SkeletonBuilder&& builder )
+        {}
+
     auto Skeleton::RegisterJoint( const std::string &name, Int32 ID ) -> void {
         m_JointsByID.try_emplace( ID, name );
         m_Joints.try_emplace( name, name, ID );
@@ -35,13 +38,13 @@ namespace Mikoto {
         return m_Joints.size();
     }
 
-    auto Skeleton::SetBoneMap( JointsMap &&boneMap ) -> void {
-        m_Joints = std::move( boneMap );
-    }
+    //auto Skeleton::SetBoneMap( JointsMap &&boneMap ) -> void {
+    //    m_Joints = std::move( boneMap );
+    //}
 
-    auto Skeleton::SetInverseBindMatrices(std::vector<Mat4F>&& mats) -> void {
-        m_InverseBindMatrices = std::move( mats );
-     }
+    //auto Skeleton::SetInverseBindMatrices(std::vector<Mat4F>&& mats) -> void {
+    //    m_InverseBindMatrices = std::move( mats );
+    // }
 
     auto Skeleton::ConstructOzzHierarchy( Node &node, ozz::animation::offline::RawSkeleton::Joint &joint ) -> void {
         // Setup root joints name.
@@ -75,28 +78,28 @@ namespace Mikoto {
         }
     }
     
-    auto Skeleton::BuildOzzStructures() -> void {
-        // glTF skeletons usually have a single root
-        m_RawSkeleton.roots.resize( 1 );
-        auto &root{ m_RawSkeleton.roots[0] };
+    //auto Skeleton::BuildOzzStructures() -> void {
+    //    // glTF skeletons usually have a single root
+    //    m_RawSkeleton.roots.resize( 1 );
+    //    auto &root{ m_RawSkeleton.roots[0] };
 
-        ConstructOzzHierarchy( m_RootNode, root );
+    //    ConstructOzzHierarchy( m_RootNode, root );
 
-        if ( !m_RawSkeleton.Validate() ) {
-            MKT_CORE_LOGGER_ERROR( "Skeleton is invalid" );
-            return;
-        }
+    //    if ( !m_RawSkeleton.Validate() ) {
+    //        MKT_CORE_LOGGER_ERROR( "Skeleton is invalid" );
+    //        return;
+    //    }
 
-        m_Skeleton = m_Builder( m_RawSkeleton );
+    //    m_Skeleton = m_Builder( m_RawSkeleton );
 
-        // Joint indices used later for animations
-        for ( Size i{}; i < m_Skeleton->num_joints(); ++i ) {
-            Joint *joint{ FindJoint( m_Skeleton->joint_names()[i] ) };
-            MKT_ASSERT( joint != nullptr, "Joint cannot be null" );
+    //    // Joint indices used later for animations
+    //    for ( Size i{}; i < m_Skeleton->num_joints(); ++i ) {
+    //        Joint *joint{ FindJoint( m_Skeleton->joint_names()[i] ) };
+    //        MKT_ASSERT( joint != nullptr, "Joint cannot be null" );
 
-            m_JointOzzIndex.try_emplace( joint->GetID(), i );
-        }
-    }
+    //        m_JointOzzIndex.try_emplace( joint->GetID(), i );
+    //    }
+    //}
 
     auto Skeleton::GetBoneMap() -> JointsMap & {
         return m_Joints;
@@ -130,9 +133,9 @@ namespace Mikoto {
         return nullptr;
     }
 
-    auto Skeleton::SetHierarchy( Node&& rootNode ) -> void {
+    /*auto Skeleton::SetHierarchy( Node&& rootNode ) -> void {
         m_RootNode = std::move( rootNode );
-    }
+    }*/
 
     auto Skeleton::GetHierarchy() const -> const Node& {
         return m_RootNode;

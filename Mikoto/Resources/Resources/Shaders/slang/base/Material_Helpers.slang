@@ -107,3 +107,11 @@ float ConvertMetallic(float3 diffuse, float3 specular, float maxSpecular) {
     float D = max(b * b - 4.0 * a * c, 0.0);
     return clamp((-b + sqrt(D)) / (2.0 * a), 0.0, 1.0);
 }
+
+// Inverse square attenuation for point lights
+float SphereLightAttenuation(float distance, float radius) {
+    float d2 = distance * distance;
+    float r2 = radius * radius;
+
+    return (2.0 / r2) * (1.0 - distance / sqrt(d2 + r2));
+}

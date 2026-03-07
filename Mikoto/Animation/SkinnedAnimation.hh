@@ -27,6 +27,7 @@
 
 #include <Common/Common.hh>
 #include <Animation/Skeleton.hh>
+#include <Animation/AnimationBuilder.hh>
 #include <Library/Utility/Types.hh>
 
 namespace  Mikoto {
@@ -74,14 +75,12 @@ namespace  Mikoto {
 
     class SkinnedAnimation {
     public:
-        explicit SkinnedAnimation( AnimationDescription&& description );
+        explicit SkinnedAnimation( AnimationBuilder&& description );
 
         MKT_NODISCARD auto GetDuration() const -> float;
 
         MKT_NODISCARD auto GetName() const -> const std::string&;
         MKT_NODISCARD auto GetOzzAnimation() -> ozz::animation::Animation*;
-
-        auto BuildOzzStructures( const Skeleton& skeleton ) -> void;
 
     private:
         auto ResolveSamplers() -> void;

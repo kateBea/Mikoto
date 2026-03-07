@@ -38,6 +38,8 @@
 
 #include <Renderer/Passes/ShaderParameteres.hh>
 
+// TODO: rework this importer, GLTF is the default one, for any other file type we default to Assimp
+
 namespace Mikoto {
 
 #define MKT_ASSIMP_LOAD_UV_SET( PROPERTIES_FIELD, MATERIAL_PTR, TEXTURE_TYPE )                         \
@@ -256,26 +258,26 @@ namespace Mikoto {
     }
 
     static auto GetAnimationProperties( const aiAnimation *animation, ModelData& modelData ) -> void {
-        Skeleton& skeleton{ modelData.SceneSkeleton };
-        const UInt32 size{ ( animation->mNumChannels ) };
+        //Skeleton& skeleton{ modelData.SceneSkeleton };
+        //const UInt32 size{ ( animation->mNumChannels ) };
 
-        std::vector<AnimationSampler> samplers{};
-        std::vector<AnimationChannel> channels{};
+        //std::vector<AnimationSampler> samplers{};
+        //std::vector<AnimationChannel> channels{};
 
-        for ( UInt32 i{}; i < size; i++ ) {
-            aiNodeAnim* channel{ animation->mChannels[i] };
-            std::string jointName{ channel->mNodeName.data };
+        //for ( UInt32 i{}; i < size; i++ ) {
+        //    aiNodeAnim* channel{ animation->mChannels[i] };
+        //    std::string jointName{ channel->mNodeName.data };
 
-            AnimationSampler animationSampler{};
-            AnimationChannel animationChannel{};
+        //    AnimationSampler animationSampler{};
+        //    AnimationChannel animationChannel{};
 
-            Joint* joint{ skeleton.FindJoint( jointName ) };
-            if (joint) {
-                // TODO: fill structures properly
-                samplers.emplace_back( animationSampler );
-                channels.emplace_back( animationChannel );
-            }
-        }
+        //    Joint* joint{ skeleton.FindJoint( jointName ) };
+        //    if (joint) {
+        //        // TODO: fill structures properly
+        //        samplers.emplace_back( animationSampler );
+        //        channels.emplace_back( animationChannel );
+        //    }
+        //}
     }
 
     static auto LoadVertices( const aiMesh *mesh, MeshNodeData& meshNodeData ) -> void {
@@ -594,7 +596,7 @@ namespace Mikoto {
     static auto LoadMeshWeights(const aiNode *node, const aiScene *scene, ModelData& modelData) -> void {
         for (UInt64 i{}; i < node->mNumMeshes; ++i) {
             if (scene->mMeshes[node->mMeshes[i]]->HasBones()) {
-                LoadBoneWeights(scene->mMeshes[node->mMeshes[i]], modelData.MeshNodes[i], modelData.SceneSkeleton);
+                //LoadBoneWeights(scene->mMeshes[node->mMeshes[i]], modelData.MeshNodes[i], modelData.SceneSkeleton);
             }
         }
     }
@@ -617,7 +619,7 @@ namespace Mikoto {
             ConstructMeshNode( rootPath, meshNode, scene, newMesh, material );
 
             if ( meshNode->HasBones() ) {
-                LoadBoneWeights( meshNode, newMesh, modelData.SceneSkeleton );
+                //LoadBoneWeights( meshNode, newMesh, modelData.SceneSkeleton );
             }
         }
 
@@ -775,7 +777,7 @@ namespace Mikoto {
     static auto PrepareJointHierarchy(const aiScene* scene, ModelData& modelData) -> void {
         // The ID will be the bone count value this is important as when we upload the data loater
         // in the shaders bone with ID = 0 goes to FinalMatrices[0]
-        Int32 boneID{ 0 };
+        /*Int32 boneID{ 0 };
         Skeleton &skeleton{ modelData.SceneSkeleton };
         for ( UInt32 meshIndex{}; meshIndex < scene->mNumMeshes; ++meshIndex ) {
             const aiMesh *mesh{ scene->mMeshes[meshIndex] };
@@ -795,9 +797,9 @@ namespace Mikoto {
         }
 
         Node hierarchy{};
-        BuildHierarchy( scene->mRootNode, hierarchy, skeleton );
+        BuildHierarchy( scene->mRootNode, hierarchy, skeleton );*/
 
-        skeleton.SetHierarchy( std::move( hierarchy ) );
+        //skeleton.SetHierarchy( std::move( hierarchy ) );
     }
     
     auto MainImporter::Import( ImporterInfo &loaderData, const ModelLoadDescription &description, ModelData& modelData ) -> void {
@@ -827,12 +829,12 @@ namespace Mikoto {
 
         // It requires all node to exists
         // as it does not add them
-        LoadHierarchyTransformation( scene->mRootNode, modelData.SceneSkeleton );
+        //LoadHierarchyTransformation( scene->mRootNode, modelData.SceneSkeleton );
 
         LoadModelAnimations(scene, modelData);
 
 #if !defined( NDEBUG )
-        modelData.SceneSkeleton.PrintBoneInfo();
+        //modelData.SceneSkeleton.PrintBoneInfo();
 
         if ( !modelData.Animations.empty() ) {
             MKT_COLOR_PRINT_FORMATTED_FLUSH(
@@ -840,7 +842,7 @@ namespace Mikoto {
                 "Printing skeleton hierarchy\n"
             );
 
-            modelData.SceneSkeleton.PrintTreeView();
+            //modelData.SceneSkeleton.PrintTreeView();
         }
 #endif
     }

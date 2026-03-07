@@ -29,6 +29,7 @@
 
 #include <Common/Common.hh>
 #include <Animation/Joint.hh>
+#include <Animation/SkeletonBuilder.hh>
 
 namespace Mikoto {
 
@@ -69,6 +70,8 @@ namespace Mikoto {
     public:
         explicit Skeleton() = default;
 
+        explicit Skeleton( SkeletonBuilder&& builder );
+
         auto RegisterJoint( const std::string& name, Int32 ID ) -> void;
 
         auto GetBoneMap() -> JointsMap&;
@@ -102,12 +105,6 @@ namespace Mikoto {
         auto PrintTreeView() -> void;
         auto PrintBoneInfo() const -> void;
         auto SetWeights( std::string_view meshName, std::string_view boneName, UInt64 vertex, float weight ) -> void;
-
-        auto SetHierarchy( Node&& rootNode ) -> void;
-        auto SetBoneMap( JointsMap&& boneMap ) -> void;
-        auto SetInverseBindMatrices( std::vector<Mat4F>&& mats ) -> void;
-
-        auto BuildOzzStructures() -> void;
 
     private:
         auto ConstructOzzHierarchy( Node& root, ozz::animation::offline::RawSkeleton::Joint& joint ) -> void;

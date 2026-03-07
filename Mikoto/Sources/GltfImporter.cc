@@ -683,58 +683,58 @@ namespace Mikoto {
     }
 
     auto GLTFImporter::LoadSkeleton( tinygltf::Model& model, ModelData& modelData ) -> void {
-        if (model.skins.empty()) {
-            return;
-        }
-
-        const tinygltf::Skin& skin{ model.skins[0] };
-
-        Skeleton& skeleton{ modelData.SceneSkeleton };
-
-        // Load inverse bind matrices
-        std::vector<glm::mat4> inverseBindMatrices{};
-        if ( skin.inverseBindMatrices >= 0 ) {
-            const tinygltf::Accessor& accessor = model.accessors[skin.inverseBindMatrices];
-            const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
-            const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
-
-            inverseBindMatrices.resize( accessor.count );
-            std::memcpy( inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof( Mat4F ) );
-
-            skeleton.SetInverseBindMatrices( std::move( inverseBindMatrices ) );
-        }
-
-        // Register joints
-        for ( Int32 jointNodeIndex: skin.joints ) {
-            const tinygltf::Node& node{ model.nodes[jointNodeIndex] };
-
-            const std::string name {
-                    node.name.empty()
-                            ? std::to_string( jointNodeIndex )
-                            : node.name };
-
-            skeleton.RegisterJoint( name, jointNodeIndex );
-        }
-
-        // Determine root node
-        Int32 rootNodeIndex {
-                skin.skeleton != -1
-                        ? skin.skeleton
-                        : skin.joints[0] };
-
-        Node root{ LoadNode( model, skeleton, rootNodeIndex ) };
-
-        skeleton.SetHierarchy( std::move( root ) );
-
-#if !defined( NDEBUG )
-        MKT_COLOR_PRINT_FORMATTED_FLUSH(
-                MKT_FMT_COLOR_BLUE_VIOLET,
-                "Printing skeleton hierarchy\n" );
-
-        modelData.SceneSkeleton.PrintTreeView();
-#endif
-        
-        skeleton.BuildOzzStructures();
+//        if (model.skins.empty()) {
+//            return;
+//        }
+//
+//        const tinygltf::Skin& skin{ model.skins[0] };
+//
+//        Skeleton& skeleton{ modelData.SceneSkeleton };
+//
+//        // Load inverse bind matrices
+//        std::vector<glm::mat4> inverseBindMatrices{};
+//        if ( skin.inverseBindMatrices >= 0 ) {
+//            const tinygltf::Accessor& accessor = model.accessors[skin.inverseBindMatrices];
+//            const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+//            const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+//
+//            inverseBindMatrices.resize( accessor.count );
+//            std::memcpy( inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof( Mat4F ) );
+//
+//            //skeleton.SetInverseBindMatrices( std::move( inverseBindMatrices ) );
+//        }
+//
+//        // Register joints
+//        for ( Int32 jointNodeIndex: skin.joints ) {
+//            const tinygltf::Node& node{ model.nodes[jointNodeIndex] };
+//
+//            const std::string name {
+//                    node.name.empty()
+//                            ? std::to_string( jointNodeIndex )
+//                            : node.name };
+//
+//            skeleton.RegisterJoint( name, jointNodeIndex );
+//        }
+//
+//        // Determine root node
+//        Int32 rootNodeIndex {
+//                skin.skeleton != -1
+//                        ? skin.skeleton
+//                        : skin.joints[0] };
+//
+//        Node root{ LoadNode( model, skeleton, rootNodeIndex ) };
+//
+//        //skeleton.SetHierarchy( std::move( root ) );
+//
+//#if !defined( NDEBUG )
+//        MKT_COLOR_PRINT_FORMATTED_FLUSH(
+//                MKT_FMT_COLOR_BLUE_VIOLET,
+//                "Printing skeleton hierarchy\n" );
+//
+//        //modelData.SceneSkeleton.PrintTreeView();
+//#endif
+//        
+//        //skeleton.BuildOzzStructures();
     }
 
     auto GLTFImporter::LoadAnimations( tinygltf::Model& model, ModelData& modelData ) -> void {
@@ -809,9 +809,9 @@ namespace Mikoto {
                     channel.SamplerIndex = source.sampler;
                     channel.JointIndex = source.target_node;
 
-                    if ( Joint * joint{ modelData.SceneSkeleton.FindJointByID( channel.JointIndex ) } ) {
+                    /*if ( Joint * joint{ modelData.SceneSkeleton.FindJointByID( channel.JointIndex ) } ) {
                         channel.NodeName = joint->GetBoneName();
-                    }
+                    }*/
 
                     animationDescription.Channels.emplace_back( channel );
                 }
@@ -872,7 +872,7 @@ namespace Mikoto {
 
             // Build Ozz structures
             if (success) {
-                it->second.BuildOzzStructures( modelData.SceneSkeleton );
+                //it->second.BuildOzzStructures( modelData.SceneSkeleton );
             }
         }
     }

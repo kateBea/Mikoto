@@ -1469,6 +1469,7 @@ namespace Mikoto {
             if ( ImGuiUtils::ColorEdit3( "Color", color ) ) {
                 spotLightData.SetColor( color );
             }
+            ImGuiUtils::SetCursorHandOnLastItemHovered();
 
             ImGui::Spacing();
             ImGui::TableNextRow();
@@ -1478,47 +1479,42 @@ namespace Mikoto {
             if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
                 spotLightData.SetIntensity( intensity );
             }
+            ImGuiUtils::SetCursorHandOnLastItemHovered();
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
             float radius{ spotLightData.GetRadius() };
-
-            if ( ImGuiUtils::Slider( "Cone Radius", radius, { 1.0f, 500.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Attenuation Radius", radius, { 1.0f, 500.0f } ) ) {
                 spotLightData.SetRadius( radius );
             }
-
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
-            ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Angles in degrees" );
+            ImGuiUtils::SetCursorHandOnLastItemHovered();
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
-            float cutOff{ spotLightData.GetCutOff() };
-            if ( ImGuiUtils::Slider( "Cut-off", cutOff, { 0.0f, 5.0f } ) ) {
-                spotLightData.SetCutOff( cutOff );
+            float angle{ spotLightData.GetAngle() };
+            if ( ImGuiUtils::Slider( "Angle", angle, { 1.0f, 90.0f } ) ) {
+                spotLightData.SetAngle( angle );
             }
+            ImGuiUtils::SetCursorHandOnLastItemHovered();
 
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Angles in degrees" );
+            ImGuiUtils::HelpMarker( "Cone angle in degrees" );
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
-            float outerCutOff{ spotLightData.GetOuterCutOff() };
-            if ( ImGuiUtils::Slider( "Outer cut-off", outerCutOff, { 0.0f, 5.0f } ) ) {
-                spotLightData.SetOuterCutOff( outerCutOff );
+            float softness{ spotLightData.GetSoftness() };
+            if ( ImGuiUtils::Slider( "Softness", softness, { 0.0f, 1.0f } ) ) {
+                spotLightData.SetSoftness( softness );
             }
 
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Angles in degrees" );
+            ImGuiUtils::HelpMarker( "Edge softness of the spotlight" );
 
             ImGui::Spacing();
             ImGui::TableNextRow();

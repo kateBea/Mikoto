@@ -137,10 +137,9 @@ namespace Mikoto {
     private:
         DISABLE_COPY_AND_MOVE_FOR( Model );
 
-        explicit Model( std::string modelName, Path modelPath, Skeleton&& skeleton)
+        explicit Model( std::string modelName, Path modelPath)
             : m_ModelName{ std::move( modelName ) },
-              m_ModelAbsolutePath{ std::move( modelPath ) },
-              m_Skeleton{ std::move( skeleton ) }
+              m_ModelAbsolutePath{ std::move( modelPath ) }
         {}
 
     private:

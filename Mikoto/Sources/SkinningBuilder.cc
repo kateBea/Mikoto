@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Animation/AnimationBuilder.hh>
+#include <Animation/SkinningBuilder.hh>
 
 namespace Mikoto {
 
-    auto AnimationBuilder::GetAnimations() -> AnimationList & {
+    auto SkinningBuilder::GetAnimations() -> AnimationList & {
         return m_Animations;
     }
 

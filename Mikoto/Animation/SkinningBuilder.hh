@@ -39,7 +39,6 @@ namespace Mikoto {
 
         auto GetAnimations() -> AnimationList&;
 
-
     private:
         // To construct the animations
         ozz::animation::offline::RawAnimation m_RawAnimation{};
@@ -56,6 +55,5 @@ namespace Mikoto {
 
     };
 }
-
 
 #endif // MIKOTO_ANIMATION_BUILDER_HH

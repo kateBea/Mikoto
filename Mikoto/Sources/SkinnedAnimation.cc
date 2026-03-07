@@ -20,7 +20,7 @@
 
 namespace Mikoto {
 
-    SkinnedAnimation::SkinnedAnimation( AnimationBuilder&& description )
+    SkinnedAnimation::SkinnedAnimation( SkinningBuilder&& description )
         {}
 
     auto SkinnedAnimation::GetDuration() const -> float {

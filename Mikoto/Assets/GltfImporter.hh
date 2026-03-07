@@ -33,14 +33,6 @@
 
 namespace Mikoto {
 
-    class GLTFAnimationBuilder final : AnimationBuilder {
-    public:
-        auto Build() -> bool override;
-
-    private:
-
-    };
-
     class GLTFSkeletonBuilder final : SkeletonBuilder {
     public:
         auto Build() -> bool override;

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #ifndef MIKOTO_SCENE_RENDERER_HH
 #define MIKOTO_SCENE_RENDERER_HH
 
@@ -34,6 +33,7 @@
 #include "Renderer/Passes/DebugPasses.hh"
 #include "Renderer/Passes/IBLPasses.hh"
 #include "Renderer/Passes/PostEffectsPasses.hh"
+#include "Renderer/Passes/ShadowMappingPass.hh"
 #include <Renderer/Passes/MeshCulling.hh>
 #include <Renderer/Passes/MaterialDebug.hh>
 #include <Renderer/Passes/CameraPass.hh>
@@ -143,6 +143,7 @@ namespace Mikoto {
         ClusteredShading m_ClusteredShadingPasses{ m_RenderResolution };
         MaterialDebug m_MaterialDebug{ m_RenderResolution };
         CameraPass m_CameraPass{ m_RenderResolution };
+        ShadowMappingPass m_ShadowMappingPass{ m_RenderResolution };
 
         // Async load HDR
         std::atomic_bool m_LoadedHDR{ false };

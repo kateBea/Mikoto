@@ -465,9 +465,7 @@ FetchContent_MakeAvailable(asio)
 FetchContent_Declare(
         tracy
         GIT_REPOSITORY https://github.com/wolfpld/tracy.git
-        GIT_TAG master
-        GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
+        GIT_TAG v0.13.1
 )
 
 FetchContent_MakeAvailable(tracy)

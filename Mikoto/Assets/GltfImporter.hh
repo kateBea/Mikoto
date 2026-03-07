@@ -19,16 +19,35 @@
 #include <atomic>
 #include <string_view>
 
+#include <tiny_gltf.h>
+
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
+
+#include <Animation/SkeletonBuilder.hh>
+#include <Animation/AnimationBuilder.hh>
 
 #include <Assets/Model.hh>
 #include <Assets/Importer.hh>
 #include <Renderer/Core/GpuDevice.hh>
 
-#include <tiny_gltf.h>
-
 namespace Mikoto {
+
+    class GLTFAnimationBuilder final : AnimationBuilder {
+    public:
+        auto Build() -> bool override;
+
+    private:
+
+    };
+
+    class GLTFSkeletonBuilder final : SkeletonBuilder {
+    public:
+        auto Build() -> bool override;
+
+
+    private:
+    };
 
     class GLTFImporter final : public ModelImporter {
     public:

@@ -70,9 +70,6 @@ namespace Mikoto {
         auto RegisterSkybox( FrameGraph& graph ) -> void;
         auto RegisterShading( FrameGraph& graph ) -> void;
         auto RegisterMetalRoughnessPBR( FrameGraph& graph ) -> void;
-        auto RegisterDirShadowMap( FrameGraph& graph ) -> void;
-        auto RegisterPointShadowMap( FrameGraph& graph ) -> void;
-        auto RegisterSpotShadowMap( FrameGraph& graph ) -> void;
         auto RegisterDebugViewsPass( FrameGraph& graph ) -> void;
 
     private:
@@ -127,11 +124,6 @@ namespace Mikoto {
             Mat4F MVP{};
         };
 
-        struct LightCameraInfo {
-            Mat4F LightView{};
-            Mat4F LightProjection{};
-        };
-
         static constexpr UInt32 MAX_MIP_LEVELS{ 7 };
 
     private:
@@ -166,8 +158,6 @@ namespace Mikoto {
         SamplerHandle m_Skybox2DSampler{};
 
         ShaderLightListParams m_LightsInfo{};
-
-        LightCameraInfo m_DirectionalShadowMapCameraInfo{};
 
         // SSAO
         bool m_EnableSSAO{ false };

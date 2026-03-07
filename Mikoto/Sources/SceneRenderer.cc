@@ -58,6 +58,7 @@ namespace Mikoto {
         m_IBLPasses.SetScene( scene );
         m_PostEffectsPasses.SetScene( scene );
         m_ClusteredShadingPasses.SetScene( scene );
+        m_ShadowMappingPass.SetScene( scene );
 
         OnPreRender();
 
@@ -73,6 +74,7 @@ namespace Mikoto {
         m_PostEffectsPasses.SetCamera( camera );
 
         m_MeshCulling.SetCamera( camera );
+        m_ShadowMappingPass.SetCamera( camera );
 
         m_ClusteredShadingPasses.SetCameraPass( m_CameraPass );
     }
@@ -245,6 +247,7 @@ namespace Mikoto {
         m_MeshCulling.RegisterPasses( *m_FrameGraph, m_Device );
 
         m_ClusteredShadingPasses.RegisterPasses( *m_FrameGraph );
+        m_ShadowMappingPass.RegisterPasses( *m_FrameGraph );
 
         m_IBLPasses.RegisterPasses( *m_FrameGraph, m_Device );
         m_PostEffectsPasses.RegisterPasses( *m_FrameGraph, m_Device );
@@ -269,6 +272,7 @@ namespace Mikoto {
         m_DebugPasses.SetMeshCulling( m_MeshCulling );
         m_PostEffectsPasses.SetMeshCulling( m_MeshCulling );
         m_ClusteredShadingPasses.SetMeshCulling( m_MeshCulling );
+        m_ShadowMappingPass.SetMeshCulling( m_MeshCulling );
 
         // If we loaded a new equirectangular update it in the passes
         if (m_LoadedHDR) {

@@ -110,10 +110,13 @@ namespace Mikoto {
                 b.Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 1 );
                 b.Use( ResourceGroup::Dynamic, "LightCullingComp_LightsBuffer", 2 );
             },
-            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                [this]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 SetupLightList( ctx );
+
+                auto &data{ blackboard.Get<FinalShadingConstants>() };
+                data.ActiveLights = m_ClusterShadingParams.ActiveLightCount;
 
                 if (m_ClusterShadingParams.ActiveLightCount == 0) {
                     return;
@@ -262,7 +265,7 @@ namespace Mikoto {
         const auto lightsView{ registry.view<TagComponent, TransformComponent, LightComponent>() };
 
         Int32 lightsCount{};
-
+        
         for (auto &lightEntity: lightsView) {
             if (lightsCount >= MAX_LIGHTS) {
                 break;
@@ -273,13 +276,25 @@ namespace Mikoto {
             TransformComponent &transformCom{ registry.get<TransformComponent>( lightEntity ) };
 
             auto &uboLight{ m_Lights[lightsCount] };
-
+            
             if (!tag.IsActive()) {
                 uboLight.ActiveLightType = static_cast<Int32>( ShaderActiveLightType::LIGHT_TYPE_INACTIVE );
                 continue;
             }
-
+            
             switch (lightComp.GetActiveType()) {
+                case LightType::DIRECTIONAL_LIGHT_TYPE: {
+                    auto &dir{ lightComp.Get<DirectionalLight>() };
+
+                    uboLight.Intensity = dir.GetIntensity();
+                    uboLight.Direction = Vec4F( dir.GetDirection(), 0.0f );
+                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
+                    uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
+                    uboLight.ActiveLightType = static_cast<Int32>( ShaderActiveLightType::LIGHT_TYPE_DIRECTIONAL );
+
+                    break;
+                }
+
                 case LightType::POINT_LIGHT_TYPE: {
                     auto &point{ lightComp.Get<PointLight>() };
 
@@ -308,18 +323,6 @@ namespace Mikoto {
                     uboLight.Radius = spot.GetRadius();
 
                     uboLight.ActiveLightType = static_cast<Int32>( ShaderActiveLightType::LIGHT_TYPE_SPOT );
-
-                    break;
-                }
-
-                case LightType::DIRECTIONAL_LIGHT_TYPE: {
-                    auto &dir{ lightComp.Get<DirectionalLight>() };
-
-                    uboLight.Intensity = dir.GetIntensity();
-                    uboLight.Direction = Vec4F( dir.GetDirection(), 0.0f );
-                    uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
-                    uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
-                    uboLight.ActiveLightType = static_cast<Int32>( ShaderActiveLightType::LIGHT_TYPE_DIRECTIONAL );
 
                     break;
                 }

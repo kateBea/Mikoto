@@ -61,12 +61,14 @@ void main(uint3 groupID: SV_GroupID,
         switch (Lights[i].ActiveLightType) {
         case LIGHT_TYPE_POINT:
             visible = TestSphereAABBPointLight(light, cluster, u_Camera.ViewMatrix);
+            //visible = true;
             break;
 
         case LIGHT_TYPE_SPOT:
             // TODO: real spotlight culling
             // improve. https://simoncoenen.com/blog/programming/graphics/SpotlightCulling
             visible = TestSphereAABBPointLight(light, cluster, u_Camera.ViewMatrix);
+            //visible = true;
             break;
 
         case LIGHT_TYPE_DIRECTIONAL:

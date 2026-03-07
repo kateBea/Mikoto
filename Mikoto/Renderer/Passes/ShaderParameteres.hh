@@ -82,6 +82,8 @@ namespace Mikoto {
         float Gamma{};
         float MaxReflectionLOD{};
 
+        UInt32 ActiveLights{};
+
         Int32 EnableSSAO{ MKT_SHADER_FALSE };
         Int32 UseBlurred{ MKT_SHADER_FALSE };
         float SSAOIntensity{ 1.f };

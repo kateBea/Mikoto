@@ -25,7 +25,8 @@ static const uint MAX_LIGHTS = 50;
 
 static const int LIGHT_TYPE_POINT = 1;
 static const int LIGHT_TYPE_SPOT = 2;
-static const int LIGHT_TYPE_DIRECTIONAL = 3;
+static const int LIGHT_TYPE_DIRECTIONAL = 0;
+
 static const int LIGHT_TYPE_INACTIVE = -1;
 
 static const float LIGHT_MIN_INFLUENCE = 0.001f;

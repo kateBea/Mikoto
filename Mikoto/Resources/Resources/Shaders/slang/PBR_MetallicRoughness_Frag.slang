@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Further ref: https://github.com/KhronosGroup/glTF-Sample-Viewer/blob/glTF-WebGL-PBR/shaders/pbr-frag.glsl
+// https://github.com/KhronosGroup/glTF-Sample-Viewer.git (branch glTF-WebGL-PBR)
 #include "base/Base.slang"
 #include "base/Math_Helpers.slang"
 #include "base/Camera_Helpers.slang"
@@ -24,6 +26,8 @@ struct FinalShadingParameters {
     float Exposure;
     float Gamma;
     float MaxReflectionLOD;
+
+    uint ActiveLights;
 
     int EnableSSAO;
     int UseBlurred;
@@ -114,7 +118,7 @@ float4 Tonemap(float4 color) {
 // Calculation of the lighting contribution from an optional Image Based Light source.
 float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor, float perceptualRoughness, float3 n, float3 reflection) {
     // Avoid rough reflections sample invalid mip levels
-    float lod = (perceptualRoughness * u_Constants.PrefilteredCubeMipLevels - 1);
+    float lod = perceptualRoughness * (u_Constants.PrefilteredCubeMipLevels - 1);
 
     // retrieve a scale and bias to F0. See [1], Figure 3
     float3 brdf = u_SamplerBRDFLUT.Sample(float2(NdotV, 1.0 - perceptualRoughness)).rgb;
@@ -135,6 +139,15 @@ float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor
 // Implementation from Lambert's Photometria https://archive.org/details/lambertsphotome00lambgoog
 float3 Diffuse(PBRInfo pbrInputs) {
     return pbrInputs.diffuseColor / PI_Value;
+}
+
+// Disney Implementation of diffuse from Physically-Based Shading at Disney by Brent Burley. See Section 5.3.
+// http://blog.selfshadow.com/publications/s2012-shading-course/burley/s2012_pbs_disney_brdf_notes_v3.pdf
+float3 DiffuseBurley(PBRInfo pbrInputs) {
+    float f90 = 2.0 * pbrInputs.LdotH * pbrInputs.LdotH * pbrInputs.alphaRoughness - 0.5;
+
+    return (pbrInputs.diffuseColor / PI_Value) * (1.0 + f90 * pow((1.0 - pbrInputs.NdotL), 5.0)) *
+           (1.0 + f90 * pow((1.0 - pbrInputs.NdotV), 5.0));
 }
 
 // The following equation models the Fresnel reflectance term of the spec equation (aka F())
@@ -194,7 +207,7 @@ float3 ComputeDirectionalLightContribution(float3 n, float3 v, LightInfo lightIn
     float D = MicrofacetDistribution(pbrInputs);
 
     // Calculation of analytical lighting contribution, ks + kD = 1 with kD = 1.0 - F
-    float3 diffuseContrib = (1.0 - F) * Diffuse(pbrInputs);
+    float3 diffuseContrib = (1.0 - F) * DiffuseBurley(pbrInputs);
     float3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
 
     // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
@@ -203,9 +216,25 @@ float3 ComputeDirectionalLightContribution(float3 n, float3 v, LightInfo lightIn
     return color;
 }
 
-float3 ComputePointlLightContribution(float3 n, float3 v, LightInfo lightInfo, BaseInputs inputs) {
-    float3 l = normalize(-lightInfo.Direction.xyz); // Vector from surface point to light
-    float3 h = normalize(l + v);                    // Half vector between both l and v
+float3 ComputePointlLightContribution(float3 n, float3 v, LightInfo lightInfo, BaseInputs inputs, float3 worldPos) {
+    float3 lightVector = lightInfo.Position.xyz - worldPos;
+
+    float distance = length(lightVector);
+    float3 l = lightVector / distance;
+
+    // inverse square attenuation
+    float attenuation = 1.0 / max(distance * distance, 0.001);
+    //float attenuation = 1.0 / (distance * distance); // physically correct
+
+    // radius falloff
+    float radiusFalloff = saturate(1.0 - distance / lightInfo.Radius);
+    radiusFalloff *= radiusFalloff;
+
+    attenuation *= radiusFalloff;
+
+    float3 lightIntensity = lightInfo.Diffuse * lightInfo.Intensity * attenuation;
+
+    float3 h = normalize(l + v);
 
     float NdotL = clamp(dot(n, l), 0.001, 1.0);
     float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
@@ -234,18 +263,37 @@ float3 ComputePointlLightContribution(float3 n, float3 v, LightInfo lightInfo, B
     float D = MicrofacetDistribution(pbrInputs);
 
     // Calculation of analytical lighting contribution, ks + kD = 1 with kD = 1.0 - F
-    float3 diffuseContrib = (1.0 - F) * Diffuse(pbrInputs);
+    float3 diffuseContrib = (1.0 - F) * DiffuseBurley(pbrInputs);
     float3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
 
     // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
-    float3 color = NdotL * lightInfo.Diffuse * (diffuseContrib + specContrib);
+    float3 color = NdotL * lightIntensity * (diffuseContrib + specContrib);
 
     return color;
 }
 
-float3 ComputeSpotLightContribution(float3 n, float3 v, LightInfo lightInfo, BaseInputs inputs) {
-    float3 l = normalize(-lightInfo.Direction.xyz); // Vector from surface point to light
-    float3 h = normalize(l + v);                    // Half vector between both l and v
+float3 ComputeSpotLightContribution(float3 n, float3 v, LightInfo lightInfo, BaseInputs inputs, float3 worldPos) {
+    float3 lightVector = lightInfo.Position.xyz - worldPos;
+
+    float distance = length(lightVector);
+    float3 l = lightVector / distance;
+
+    // distance attenuation (Smooth fallof not physically correct)
+    float distanceAttenuation = saturate(1.0 - distance / lightInfo.Radius);
+    distanceAttenuation *= distanceAttenuation;
+
+    // spotlight cone
+    float theta = dot(normalize(-lightInfo.Direction.xyz), l);
+
+    float epsilon = lightInfo.CutOff - lightInfo.OuterCutOff;
+    float coneAttenuation = saturate((theta - lightInfo.OuterCutOff) / epsilon);
+
+    // final attenuation
+    float attenuation = distanceAttenuation * coneAttenuation;
+
+    float3 lightIntensity = lightInfo.Diffuse * lightInfo.Intensity * attenuation;
+
+    float3 h = normalize(l + v);
 
     float NdotL = clamp(dot(n, l), 0.001, 1.0);
     float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
@@ -274,11 +322,11 @@ float3 ComputeSpotLightContribution(float3 n, float3 v, LightInfo lightInfo, Bas
     float D = MicrofacetDistribution(pbrInputs);
 
     // Calculation of analytical lighting contribution, ks + kD = 1 with kD = 1.0 - F
-    float3 diffuseContrib = (1.0 - F) * Diffuse(pbrInputs);
+    float3 diffuseContrib = (1.0 - F) * DiffuseBurley(pbrInputs);
     float3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
 
     // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
-    float3 color = NdotL * lightInfo.Diffuse * (diffuseContrib + specContrib);
+    float3 color = NdotL * lightIntensity * (diffuseContrib + specContrib);
 
     return color;
 }
@@ -429,7 +477,7 @@ FSOutput main(FSInput input) {
 
     Cluster cluster = Clusters[clusterIndex];
 
-    for (uint i = 0; i < cluster.Count; ++i) {
+    for (uint i = 0; i < cluster.Count && u_Constants.ActiveLights != 0; ++i) {
         uint lightIndex = cluster.LightIndices[i];
         LightInfo light = Lights[lightIndex];
 
@@ -447,13 +495,8 @@ FSOutput main(FSInput input) {
         //////////////////////////////////////////////////////
 
         if (light.ActiveLightType == LIGHT_TYPE_POINT) {
-            float3 lightVector = light.Position.xyz - input.FragmentWorldPos;
-
-            float distance = length(lightVector);
-            float3 l = normalize(lightVector);
-
-            float attenuation = saturate(1.0 - distance / light.Radius);
-            attenuation *= attenuation;
+            lightContribution += ComputePointlLightContribution(n, v, light, inputs, input.FragmentWorldPos);
+            continue;
         }
 
         //////////////////////////////////////////////////////
@@ -461,19 +504,7 @@ FSOutput main(FSInput input) {
         //////////////////////////////////////////////////////
 
         if (light.ActiveLightType == LIGHT_TYPE_SPOT) {
-            float3 lightVector = light.Position.xyz - input.FragmentWorldPos;
-
-            float distance = length(lightVector);
-            float3 l = normalize(lightVector);
-
-            float theta = dot(l, normalize(-light.Direction.xyz));
-
-            float epsilon = light.CutOff - light.OuterCutOff;
-
-            float intensity = saturate((theta - light.OuterCutOff) / epsilon);
-
-            float attenuation = intensity * saturate(1.0 - distance / light.Radius);
-            attenuation *= attenuation;
+            lightContribution += ComputeSpotLightContribution(n, v, light, inputs, input.FragmentWorldPos);
         }
     }
 

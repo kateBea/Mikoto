@@ -634,7 +634,7 @@ namespace Mikoto {
             range, 0, GetBufferDescriptorType( handle->GetUsage(), handle->GetResourceUsage() ) )
                 .UpdateSet( m_Device->GetLogicalDevice(), sets );
     }
-
+    
     auto VulkanGraphicsContext::PushImage( TextureHandle textureHandle, SamplerHandle samplerHandle, UInt32 groupBinding, VkDescriptorSet& sets ) -> void {
         if (sets == VK_NULL_HANDLE) {
             MKT_CORE_LOGGER_WARN( "VulkanGraphicsContext::PushImage - Null descriptor set. Image [{}]. Slot [0]", textureHandle->GetDebugName(), groupBinding );

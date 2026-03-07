@@ -175,7 +175,7 @@ namespace Mikoto {
                 return MapType::UNDEFINED_TEXTURE;
         }
     }
-
+    
     static auto LoadBoneProperties( const aiNodeAnim *channel ) -> AnimationSampler {
         std::vector<Vec3F> scales{};
         std::vector<Vec3F> positions{};

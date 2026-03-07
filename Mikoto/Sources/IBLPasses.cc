@@ -790,7 +790,7 @@ namespace Mikoto {
                 data.SSAOIntensity = m_SSAOIntensity;
 
                 data.PrefilteredCubeMipLevels = m_PrefilterMipLevels;
-                data.ScaleIBLAmbient = 2;
+                data.ScaleIBLAmbient = 1.f;
                 data.Step = 1;
                 
                 // Bind resources

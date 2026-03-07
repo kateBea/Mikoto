@@ -27,7 +27,6 @@
 
 #include <Common/Common.hh>
 #include <Animation/Skeleton.hh>
-#include <Animation/AnimationBuilder.hh>
 #include <Library/Utility/Types.hh>
 
 namespace  Mikoto {
@@ -75,7 +74,7 @@ namespace  Mikoto {
 
     class SkinnedAnimation {
     public:
-        explicit SkinnedAnimation( AnimationBuilder&& description );
+        explicit SkinnedAnimation();
 
         MKT_NODISCARD auto GetDuration() const -> float;
 

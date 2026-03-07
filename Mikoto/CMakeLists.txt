@@ -650,6 +650,7 @@ set(LIBRARIES
         Tracy::TracyClient
         OpenCL::OpenCL
         ozz_animation
+        ozz_animation_tools
         ozz_animation_offline
         meshoptimizer
         tinygltf

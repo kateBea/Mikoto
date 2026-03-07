@@ -36,8 +36,6 @@
 #include <Renderer/Core/RenderUtility.hh>
 #include <Threading/ThreadUtility.hh>
 
-#include <Renderer/Passes/ShaderParameteres.hh>
-
 // TODO: rework this importer, GLTF is the default one, for any other file type we default to Assimp
 
 namespace Mikoto {
@@ -524,7 +522,7 @@ namespace Mikoto {
                 out.reserve( 128 );
 
                 for ( Int32 j{ 0 }; j < count; ++j ) {
-                    out += std::format( "{} ", data[j] );
+                    out += StringUtil::Format( "{} ", data[j] );
                 }
 
                 MKT_COLOR_PRINT_FORMATTED_FLUSH(
@@ -541,7 +539,7 @@ namespace Mikoto {
                 out.reserve( 128 );
 
                 for ( Int32 j{ 0 }; j < count; ++j ) {
-                    out += std::format( "{} ", data[j] );
+                    out += StringUtil::Format( "{} ", data[j] );
                 }
 
                 MKT_COLOR_PRINT_FORMATTED_FLUSH(

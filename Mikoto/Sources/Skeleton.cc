@@ -26,9 +26,6 @@
 
 namespace Mikoto {
 
-    Skeleton::Skeleton( SkeletonBuilder&& builder )
-        {}
-
     auto Skeleton::RegisterJoint( const std::string &name, Int32 ID ) -> void {
         m_JointsByID.try_emplace( ID, name );
         m_Joints.try_emplace( name, name, ID );

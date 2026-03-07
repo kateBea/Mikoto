@@ -24,22 +24,13 @@
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 
-#include <Animation/SkeletonBuilder.hh>
-#include <Animation/AnimationBuilder.hh>
+#include <Animation/SkinningBuilder.hh>
 
 #include <Assets/Model.hh>
 #include <Assets/Importer.hh>
 #include <Renderer/Core/GpuDevice.hh>
 
 namespace Mikoto {
-
-    class GLTFSkeletonBuilder final : SkeletonBuilder {
-    public:
-        auto Build() -> bool override;
-
-
-    private:
-    };
 
     class GLTFImporter final : public ModelImporter {
     public:

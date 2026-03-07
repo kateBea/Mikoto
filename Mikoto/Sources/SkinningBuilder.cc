@@ -12,9 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
+#include <array>
+
+#include <Common/String.hh>
+
 #include <Animation/SkinningBuilder.hh>
 
+#include "Logging/Assert.hh"
+#include "Memory/Allocator.hh"
+
 namespace Mikoto {
+
+    SkinningBuilder::SkinningBuilder( const Path& filename )
+        : m_Filename{  filename }
+    {}
+
+    auto SkinningBuilder::Build(ozz::animation::offline::OzzImporter& importer) -> bool {
+        const std::string filename{ StringUtil::Format( R"(--file="{}")", m_Filename.string() )  };
+        std::array args{ "executable", filename.c_str() };
+
+        // Before we do this we check first if the animation have been loaded previously
+        importer( args.size(), args.data() );
+
+
+        // Load the generated files and read skeleton and animations
+        return true;
+    }
 
     auto SkinningBuilder::GetAnimations() -> AnimationList & {
         return m_Animations;

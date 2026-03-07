@@ -19,6 +19,8 @@
 
 #include <ozz/base/memory/unique_ptr.h>
 
+#include <ozz/animation/offline/tools/import2ozz.h>
+
 #include <ozz/animation/runtime/animation.h>
 #include <ozz/animation/offline/raw_animation.h>
 #include <ozz/animation/offline/animation_builder.h>
@@ -28,14 +30,18 @@
 #include <ozz/animation/offline/skeleton_builder.h>
 
 #include <Common/Common.hh>
+#include <Library/Utility/Types.hh>
 
 namespace Mikoto {
 
     using AnimationList = std::vector<ozz::unique_ptr<ozz::animation::Animation>>;
 
-    class SkinningBuilder {
+    class SkinningBuilder final {
     public:
-        MKT_NODISCARD auto Build() -> bool;
+        // This will  be a path to the mikoto asset file in the future for now its just the actual asset file
+        explicit SkinningBuilder(const Path& filename);
+
+        MKT_NODISCARD auto Build(ozz::animation::offline::OzzImporter& importer) -> bool;
 
         auto GetAnimations() -> AnimationList&;
 
@@ -52,6 +58,9 @@ namespace Mikoto {
 
         // Run time skeleton
         ozz::unique_ptr<ozz::animation::Skeleton> m_Skeleton{};
+
+
+        Path m_Filename{};
 
     };
 }

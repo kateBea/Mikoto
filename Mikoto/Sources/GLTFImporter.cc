@@ -12,28 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ranges>
-#include <algorithm>
-
-#include <Library/Math/Math.hh>
-
 #include <tiny_gltf.h>
 
-#include <Logging/Logger.hh>
+#include <Assets/AssetsService.hh>
+#include <Assets/GltfAnimImporter.hh>
 #include <Common/String.hh>
-
-#include <Assets/GltfImporter.hh>
-
 #include <Filesystem/FileService.hh>
 #include <Filesystem/FileSystem.hh>
-
+#include <Library/Math/Math.hh>
+#include <Logging/Logger.hh>
 #include <Material/PBRMaterial.hh>
-
-#include <Threading/ThreadUtility.hh>
-
 #include <Renderer/Core/RenderUtility.hh>
-
-#include <Assets/AssetsService.hh>
+#include <Threading/ThreadUtility.hh>
+#include <algorithm>
+#include <ranges>
 
 #//---------------------------------------------------------------------------//
 // Initial gltf2ozz implementation author: Alexander Dzhoganov                //
@@ -93,7 +85,7 @@ namespace Mikoto {
             return -1;
         }
     }
-    
+
     template<typename _VectorType>
     bool FixupNames( _VectorType& _data, const char* _pretty_name,
                      const char* _prefix_name ) {
@@ -488,9 +480,10 @@ namespace Mikoto {
         return true;
     }
 
-    class GltfImporter : public ozz::animation::offline::OzzImporter {
+
+    class GltfAnimImporter : public ozz::animation::offline::OzzImporter {
     public:
-        GltfImporter() {
+        GltfAnimImporter() {
             // We don't care about image data but we have to provide this callback
             // because we're not loading the stb library
             auto image_loader = []( tinygltf::Image*, const int, std::string*,
@@ -1058,7 +1051,7 @@ namespace Mikoto {
         // Local transform
         node.Transformation = ComputeNodeTransform( gltfNode );
 
-        
+
         // -------------------------
         // Extract TRS
         // -------------------------
@@ -1334,7 +1327,7 @@ namespace Mikoto {
                         node.Vertices,
                         &VertexData::Weights,
                         4 );
-                
+
                 if ( primitive.indices >= 0 ) {
                     const auto& accessor{ model.accessors[primitive.indices] };
                     const auto& view{ model.bufferViews[accessor.bufferView] };
@@ -1364,21 +1357,21 @@ namespace Mikoto {
         // rest is unrorm rgba8
         TextureLoadDescription loadInfo{};
         loadInfo.WithType( TextureType::TEXTURE_2D );
-        
+
         for ( const auto& gltfMaterial: model.materials ) {
             MaterialProperties props{};
             props.Name = gltfMaterial.name;
             props.IsDoubleSided = gltfMaterial.doubleSided;
-            
+
             const auto& pbr{ gltfMaterial.pbrMetallicRoughness };
-            
+
             props.BaseColorFactor = {
                 static_cast<float>( pbr.baseColorFactor[0] ),
                 static_cast<float>( pbr.baseColorFactor[1] ),
                 static_cast<float>( pbr.baseColorFactor[2] ),
                 static_cast<float>( pbr.baseColorFactor[3] )
             };
-            
+
             props.MetallicFactor = static_cast<float>( pbr.metallicFactor );
             props.RoughnessFactor = static_cast<float>( pbr.roughnessFactor );
 
@@ -1391,14 +1384,14 @@ namespace Mikoto {
 
                 loadInfo.WithMapType( MapType::BASE_COLOR_TEXTURE );
                 loadInfo
-                    .WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                           .WithPath( rootPath )
-                           .WithPath( model.images[tex.source].uri )
-                           .Build() } ))
-                    .WithFormat(TextureFormat::RGBA8_UNORM);
+                        .WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
+                                                                               .WithPath( rootPath )
+                                                                               .WithPath( model.images[tex.source].uri )
+                                                                               .Build() } ) )
+                        .WithFormat( TextureFormat::RGBA8_UNORM );
 
                 TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                if (!texture.IsEmpty()) {
+                if ( !texture.IsEmpty() ) {
                     props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
                 }
             }
@@ -1410,16 +1403,15 @@ namespace Mikoto {
 
                 loadInfo.WithMapType( MapType::METALLIC_ROUGHNESS_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                           .WithPath( rootPath )
-                           .WithPath( model.images[tex.source].uri )
-                           .Build() } ) )
-                .WithFormat( TextureFormat::RGBA8_UNORM );
+                                                                               .WithPath( rootPath )
+                                                                               .WithPath( model.images[tex.source].uri )
+                                                                               .Build() } ) )
+                        .WithFormat( TextureFormat::RGBA8_UNORM );
 
                 TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                if (!texture.IsEmpty()) {
+                if ( !texture.IsEmpty() ) {
                     props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
                 }
-
             }
 
             props.RoughnessFactor = pbr.roughnessFactor;
@@ -1433,13 +1425,13 @@ namespace Mikoto {
 
                 loadInfo.WithMapType( MapType::NORMAL_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                           .WithPath( rootPath )
-                           .WithPath( model.images[tex.source].uri )
-                           .Build() } ) )
-                .WithFormat( TextureFormat::RGBA8_UNORM );
+                                                                               .WithPath( rootPath )
+                                                                               .WithPath( model.images[tex.source].uri )
+                                                                               .Build() } ) )
+                        .WithFormat( TextureFormat::RGBA8_UNORM );
 
                 TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                if (!texture.IsEmpty()) {
+                if ( !texture.IsEmpty() ) {
                     props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
                 }
             }
@@ -1448,18 +1440,18 @@ namespace Mikoto {
             if ( gltfMaterial.occlusionTexture.index >= 0 ) {
                 const auto& tex{ model.textures[gltfMaterial.occlusionTexture.index] };
                 props.OcclusionTextureSet = gltfMaterial.occlusionTexture.texCoord;
-                props.OcclusionStrength =static_cast<float>( gltfMaterial.occlusionTexture.strength );
+                props.OcclusionStrength = static_cast<float>( gltfMaterial.occlusionTexture.strength );
 
                 loadInfo.WithMapType( MapType::AMBIENT_OCCLUSION_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                           .WithPath( rootPath )
-                           .WithPath( model.images[tex.source].uri )
-                           .Build() } ) )
-                    
-                .WithFormat( TextureFormat::RGBA8_UNORM );
+                                                                               .WithPath( rootPath )
+                                                                               .WithPath( model.images[tex.source].uri )
+                                                                               .Build() } ) )
+
+                        .WithFormat( TextureFormat::RGBA8_UNORM );
 
                 TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                if (!texture.IsEmpty()) {
+                if ( !texture.IsEmpty() ) {
                     props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
                 }
             }
@@ -1471,13 +1463,13 @@ namespace Mikoto {
 
                 loadInfo.WithMapType( MapType::EMISSIVE_TEXTURE );
                 loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                           .WithPath( rootPath )
-                           .WithPath( model.images[tex.source].uri )
-                           .Build() } ) )
-                    .WithFormat(TextureFormat::RGBA8_UNORM);
+                                                                               .WithPath( rootPath )
+                                                                               .WithPath( model.images[tex.source].uri )
+                                                                               .Build() } ) )
+                        .WithFormat( TextureFormat::RGBA8_UNORM );
 
                 TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                if (!texture.IsEmpty()) {
+                if ( !texture.IsEmpty() ) {
                     props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
                 }
             }
@@ -1489,7 +1481,7 @@ namespace Mikoto {
             };
 
             // Alpha (Default is Opaque unless otherwise specified)
-            if (gltfMaterial.alphaMode == "BLEND") {
+            if ( gltfMaterial.alphaMode == "BLEND" ) {
                 props.AlphaMask = PBR_AlphaMode::Blend;
             } else if ( gltfMaterial.alphaMode == "MASK" ) {
                 props.AlphaMask = PBR_AlphaMode::Mask;
@@ -1504,16 +1496,16 @@ namespace Mikoto {
 
                 if ( ext->second.Has( "specularGlossinessTexture" ) ) {
                     auto index{ ext->second.Get( "specularGlossinessTexture" ).Get( "index" ) };
-                    
+
                     auto texIndex = index.Get<int>();
                     auto texCoordSet = ext->second.Get( "specularGlossinessTexture" ).Get( "texCoord" ).Get<int>();
 
                     loadInfo.WithMapType( MapType::SPECULAR_GLOSSINESS );
-                    loadInfo.WithFile( FileService::Get()->LoadFile( 
-                        Path{ PathBuilder()
-                            .WithPath( rootPath )
-                            .WithPath( model.images[texIndex].uri )
-                            .Build() } ) );
+                    loadInfo.WithFile( FileService::Get()->LoadFile(
+                            Path{ PathBuilder()
+                                          .WithPath( rootPath )
+                                          .WithPath( model.images[texIndex].uri )
+                                          .Build() } ) );
 
                     TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
                     if ( !texture.IsEmpty() ) {
@@ -1523,15 +1515,15 @@ namespace Mikoto {
                     props.SpecularGlossinessSet = texCoordSet;
                     props.Workflow = PBR_Workflow::SpecularGlossiness;
                 }
-                
+
                 if ( ext->second.Has( "diffuseTexture" ) ) {
                     auto index{ ext->second.Get( "diffuseTexture" ).Get( "index" ) };
                     loadInfo.WithMapType( MapType::DIFFUSE_TEXTURE );
                     loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                            .WithPath( rootPath )
-                            .WithPath( model.images[index.Get<int>()].uri )
-                            .Build() } ) )
-                .WithFormat( TextureFormat::RGBA8_UNORM );
+                                                                                   .WithPath( rootPath )
+                                                                                   .WithPath( model.images[index.Get<int>()].uri )
+                                                                                   .Build() } ) )
+                            .WithFormat( TextureFormat::RGBA8_UNORM );
 
                     TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
                     if ( !texture.IsEmpty() ) {
@@ -1573,58 +1565,58 @@ namespace Mikoto {
     }
 
     auto GLTFImporter::LoadSkeleton( tinygltf::Model& model, ModelData& modelData ) -> void {
-//        if (model.skins.empty()) {
-//            return;
-//        }
-//
-//        const tinygltf::Skin& skin{ model.skins[0] };
-//
-//        Skeleton& skeleton{ modelData.SceneSkeleton };
-//
-//        // Load inverse bind matrices
-//        std::vector<glm::mat4> inverseBindMatrices{};
-//        if ( skin.inverseBindMatrices >= 0 ) {
-//            const tinygltf::Accessor& accessor = model.accessors[skin.inverseBindMatrices];
-//            const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
-//            const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
-//
-//            inverseBindMatrices.resize( accessor.count );
-//            std::memcpy( inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof( Mat4F ) );
-//
-//            //skeleton.SetInverseBindMatrices( std::move( inverseBindMatrices ) );
-//        }
-//
-//        // Register joints
-//        for ( Int32 jointNodeIndex: skin.joints ) {
-//            const tinygltf::Node& node{ model.nodes[jointNodeIndex] };
-//
-//            const std::string name {
-//                    node.name.empty()
-//                            ? std::to_string( jointNodeIndex )
-//                            : node.name };
-//
-//            skeleton.RegisterJoint( name, jointNodeIndex );
-//        }
-//
-//        // Determine root node
-//        Int32 rootNodeIndex {
-//                skin.skeleton != -1
-//                        ? skin.skeleton
-//                        : skin.joints[0] };
-//
-//        Node root{ LoadNode( model, skeleton, rootNodeIndex ) };
-//
-//        //skeleton.SetHierarchy( std::move( root ) );
-//
-//#if !defined( NDEBUG )
-//        MKT_COLOR_PRINT_FORMATTED_FLUSH(
-//                MKT_FMT_COLOR_BLUE_VIOLET,
-//                "Printing skeleton hierarchy\n" );
-//
-//        //modelData.SceneSkeleton.PrintTreeView();
-//#endif
-//        
-//        //skeleton.BuildOzzStructures();
+        //        if (model.skins.empty()) {
+        //            return;
+        //        }
+        //
+        //        const tinygltf::Skin& skin{ model.skins[0] };
+        //
+        //        Skeleton& skeleton{ modelData.SceneSkeleton };
+        //
+        //        // Load inverse bind matrices
+        //        std::vector<glm::mat4> inverseBindMatrices{};
+        //        if ( skin.inverseBindMatrices >= 0 ) {
+        //            const tinygltf::Accessor& accessor = model.accessors[skin.inverseBindMatrices];
+        //            const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+        //            const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+        //
+        //            inverseBindMatrices.resize( accessor.count );
+        //            std::memcpy( inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof( Mat4F ) );
+        //
+        //            //skeleton.SetInverseBindMatrices( std::move( inverseBindMatrices ) );
+        //        }
+        //
+        //        // Register joints
+        //        for ( Int32 jointNodeIndex: skin.joints ) {
+        //            const tinygltf::Node& node{ model.nodes[jointNodeIndex] };
+        //
+        //            const std::string name {
+        //                    node.name.empty()
+        //                            ? std::to_string( jointNodeIndex )
+        //                            : node.name };
+        //
+        //            skeleton.RegisterJoint( name, jointNodeIndex );
+        //        }
+        //
+        //        // Determine root node
+        //        Int32 rootNodeIndex {
+        //                skin.skeleton != -1
+        //                        ? skin.skeleton
+        //                        : skin.joints[0] };
+        //
+        //        Node root{ LoadNode( model, skeleton, rootNodeIndex ) };
+        //
+        //        //skeleton.SetHierarchy( std::move( root ) );
+        //
+        //#if !defined( NDEBUG )
+        //        MKT_COLOR_PRINT_FORMATTED_FLUSH(
+        //                MKT_FMT_COLOR_BLUE_VIOLET,
+        //                "Printing skeleton hierarchy\n" );
+        //
+        //        //modelData.SceneSkeleton.PrintTreeView();
+        //#endif
+        //
+        //        //skeleton.BuildOzzStructures();
     }
 
     auto GLTFImporter::LoadAnimations( tinygltf::Model& model, ModelData& modelData ) -> void {
@@ -1752,7 +1744,7 @@ namespace Mikoto {
             }
 
             // Validations
-            for (const auto& sampler : animationDescription.Samplers) {
+            for ( const auto& sampler: animationDescription.Samplers ) {
                 MKT_ASSERT( std::ranges::is_sorted( animationDescription.Samplers[0].TimeStamps ), "Keyframes not sorted in increasing order." );
             }
 
@@ -1803,12 +1795,17 @@ namespace Mikoto {
 
             // Build animations and skeleton
             // We will save the loaded ozz files in disk along withh a mikoto metadata file
-            // if the file has been processed we simply load the ozz animation files, otherwise we 
-            // create the necesary resources
+            // if the file has been processed we simply load the ozz animation files, otherwise we
+            // create the necessary resources (cleaqr model here because importer loads its own)
 
-            LoadSkeleton( model, out );
-            // Animation requires skeleton ready
-            LoadAnimations( model, out );
+            if (!model.animations.empty()) {
+                GltfAnimImporter animationImporter{};
+                SkinningBuilder builder{ description.ModelFile->GetPath() };
+
+                if ( builder.Build( animationImporter ) ) {
+                    // Get the skeleton and animations
+                }
+            }
         }
     }
-}
+}// namespace Mikoto

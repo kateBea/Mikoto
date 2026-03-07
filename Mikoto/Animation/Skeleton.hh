@@ -29,7 +29,6 @@
 
 #include <Common/Common.hh>
 #include <Animation/Joint.hh>
-#include <Animation/SkeletonBuilder.hh>
 
 namespace Mikoto {
 
@@ -68,9 +67,6 @@ namespace Mikoto {
 
     class Skeleton {
     public:
-        explicit Skeleton() = default;
-
-        explicit Skeleton( SkeletonBuilder&& builder );
 
         auto RegisterJoint( const std::string& name, Int32 ID ) -> void;
 

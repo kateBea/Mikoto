@@ -39,6 +39,10 @@ namespace Mikoto {
 
     class VulkanContext;
 
+    class VulkanBuffer;
+    class VulkanTexture;
+    class VulkanTextureCube;
+
     class VulkanCmdList final : public ICommandList {
     public:
         explicit VulkanCmdList( const VkCommandBufferAllocateInfo& createInfo, QueueType type, bool immediate );
@@ -89,7 +93,8 @@ namespace Mikoto {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
-        auto FillCubeTexture(Buffer* src, Texture* dest) -> void;
+        auto FillTexture( VulkanBuffer* src, VulkanTexture* dest ) -> void;
+        auto FillTexture( VulkanBuffer* src, VulkanTextureCube* dest ) -> void;
 
     private:
         VkCommandBuffer m_CmdBuffer{ VK_NULL_HANDLE };

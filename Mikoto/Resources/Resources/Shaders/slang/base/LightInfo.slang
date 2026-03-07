@@ -21,6 +21,7 @@ struct LightInfo {
 
     float CutOff;
     float OuterCutOff;
+
     float Intensity;
     float Radius;
 

@@ -102,6 +102,7 @@ namespace Mikoto {
 
         float CutOff{};
         float OuterCutOff{};
+
         float Intensity{};
         float Radius{};
 

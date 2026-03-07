@@ -5,9 +5,10 @@
 #ifndef LIGHT_HH
 #define LIGHT_HH
 
+#include <glm/glm.hpp>
+
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
-#include <glm/glm.hpp>
 
 namespace Mikoto {
 
@@ -42,7 +43,7 @@ namespace Mikoto {
         ~PointLight() = default;
 
         auto SetRadius( float radius ) -> void { m_Radius = radius; }
-        auto GetRadius() const -> float { return m_Radius; }
+        MKT_NODISCARD auto GetRadius() const -> float { return m_Radius; }
 
     private:
         float m_Radius{ 1.0f };// falloff radius
@@ -58,7 +59,7 @@ namespace Mikoto {
             m_Direction = glm::vec3( std::forward<Args>( args )... );
         }
 
-        auto GetDirection() const -> const glm::vec3& { return m_Direction; }
+        MKT_NODISCARD auto GetDirection() const -> const glm::vec3& { return m_Direction; }
 
     private:
         glm::vec3 m_Direction{ -1.0f, -1.0f, -1.0f };// default pointing diagonally down
@@ -66,8 +67,7 @@ namespace Mikoto {
 
     class SpotLight : public LightObject {
     public:
-        explicit SpotLight() = default;
-        ~SpotLight() = default;
+        explicit SpotLight() { UpdateCutoffs(); }
 
         template<typename... Args>
         auto SetDirection( Args&&... args ) -> void {
@@ -80,36 +80,39 @@ namespace Mikoto {
         }
 
         auto SetSoftness( float softness ) -> void {
-            m_Softness = glm::clamp( softness, 0.0f, 1.0f );
+            m_Softness = glm::clamp( softness, 0.0f, GetMaxSoftness() );
             UpdateCutoffs();
         }
 
         auto SetRadius( float radius ) -> void { m_Radius = radius; }
 
-        auto GetDirection() const -> const glm::vec3& { return m_Direction; }
+        MKT_NODISCARD static auto GetMaxSoftness() -> float { return 30.0f; }
+        MKT_NODISCARD static auto GetMaxAngle() -> float { return 180.0f; } // In degrees
 
-        auto GetAngle() const -> float { return m_Angle; }
-        auto GetSoftness() const -> float { return m_Softness; }
+        MKT_NODISCARD auto GetDirection() const -> const glm::vec3& { return m_Direction; }
 
-        auto GetCutOff() const -> float { return m_CutOff; }
-        auto GetOuterCutOff() const -> float { return m_OuterCutOff; }
+        MKT_NODISCARD auto GetAngle() const -> float { return m_Angle; }
+        MKT_NODISCARD auto GetSoftness() const -> float { return m_Softness; }
 
-        auto GetRadius() const -> float { return m_Radius; }
+        MKT_NODISCARD auto GetCutOff() const -> float { return m_CutOff; }
+        MKT_NODISCARD auto GetOuterCutOff() const -> float { return m_OuterCutOff; }
+
+        MKT_NODISCARD auto GetRadius() const -> float { return m_Radius; }
 
     private:
-        void UpdateCutoffs() {
-            float outer = glm::radians( m_Angle );
-            float inner = outer * ( 1.0f - m_Softness );
+        auto UpdateCutoffs() -> void {
+            const float outer{ glm::radians( m_Angle ) };
+            const float inner{ outer * ( GetMaxSoftness() - m_Softness ) };
 
-            m_CutOff = std::cos( inner );
-            m_OuterCutOff = std::cos( outer );
+            m_CutOff = glm::cos( inner );
+            m_OuterCutOff = glm::cos( outer );
         }
 
     private:
-        glm::vec3 m_Direction{ 0.0f, -1.0f, 0.0f };
+        Vec3F m_Direction{ 0.0f, -1.0f, 0.0f }; // Pointing downwards by default
 
         float m_Angle{ 30.0f };  // degrees
-        float m_Softness{ 0.1f };// 0..1
+        float m_Softness{ 1.0f };
 
         float m_CutOff{ 0.0f };
         float m_OuterCutOff{ 0.0f };

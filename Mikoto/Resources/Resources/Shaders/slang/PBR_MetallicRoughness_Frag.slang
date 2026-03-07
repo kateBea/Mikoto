@@ -223,11 +223,12 @@ float3 ComputePointlLightContribution(float3 n, float3 v, LightInfo lightInfo, B
     float3 l = lightVector / distance;
 
     // inverse square attenuation
-    float attenuation = 1.0 / max(distance * distance, 0.001);
+    //float attenuation = 1.0 / max(distance * distance, 0.001);
     //float attenuation = 1.0 / (distance * distance); // physically correct but need to clamp to a value if distance approaches 0
 
     // Test inverse square attenuation
-    //float attenuation = SphereLightAttenuation(distance, lightInfo.Radius);
+    float attenuation = SphereLightAttenuation(distance, lightInfo.Radius);
+    attenuation *= attenuation;
 
     // radius falloff
     float radiusFalloff = saturate(1.0 - distance / lightInfo.Radius);
@@ -281,12 +282,9 @@ float3 ComputeSpotLightContribution(float3 n, float3 v, LightInfo lightInfo, Bas
     float distance = length(lightVector);
     float3 l = lightVector / distance;
 
-    // distance attenuation (Smooth fallof not physically correct)
+    // distance attenuation (Smooth fall-of not physically correct)
     float distanceAttenuation = saturate(1.0 - distance / lightInfo.Radius);
     distanceAttenuation *= distanceAttenuation;
-
-    // Test this with spherical attenuation
-    // float distanceAttenuation = SphereLightAttenuation(distance, lightInfo.Radius);
 
     // spotlight cone
     float theta = dot(normalize(-lightInfo.Direction.xyz), l);

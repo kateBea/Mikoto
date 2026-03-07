@@ -637,9 +637,9 @@ namespace Mikoto {
                 .Name{ animation->mName.C_Str() },
                 .End{ static_cast<float>( animation->mDuration / animation->mTicksPerSecond ) }, // duration will be computed as end - start (in seconds)
             };
-            const auto [it, success]{
-                modelData.Animations.try_emplace( std::string{ animation->mName.C_Str() }, std::move( desc ) )
-            };
+            // const auto [it, success]{
+            //     modelData.Animations.try_emplace( std::string{ animation->mName.C_Str() }, std::move( desc ) )
+            // };
 
             GetAnimationProperties( animation, modelData );
         }

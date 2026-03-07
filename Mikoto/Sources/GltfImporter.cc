@@ -866,14 +866,14 @@ namespace Mikoto {
                 MKT_ASSERT( std::ranges::is_sorted( animationDescription.Samplers[0].TimeStamps ), "Keyframes not sorted in increasing order." );
             }
 
-            const auto [it, success]{ 
-                modelData.Animations.try_emplace( animationDescription.Name, std::move( animationDescription ) ) 
-            };
-
-            // Build Ozz structures
-            if (success) {
-                //it->second.BuildOzzStructures( modelData.SceneSkeleton );
-            }
+            // const auto [it, success]{
+            //     modelData.Animations.try_emplace( animationDescription.Name, CreateScope<SkinnedAnimation>( std::move( animationDescription ) ) )
+            // };
+            //
+            // // Build Ozz structures
+            // if (success) {
+            //     //it->second.BuildOzzStructures( modelData.SceneSkeleton );
+            // }
         }
     }
 
@@ -887,7 +887,6 @@ namespace Mikoto {
             return false;
         } );
     }
-
 
     auto GLTFImporter::Import( LoaderData& loaderData, const ModelLoadDescription& description, ModelData& out ) -> void {
         tinygltf::Model model{};

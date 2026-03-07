@@ -1454,7 +1454,7 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 0 );
 
             glm::vec3 direction{ spotLightData.GetDirection() };
-            if ( ImGuiUtils::DragFloat3( "Direction", "%.2f", direction, 0.01f, -1.0f, 1.0f ) ) {
+            if ( ImGuiUtils::DragFloat3( "Direction", "%.2f", direction, 0.01f, -Math::Constants::PI, Math::Constants::PI ) ) {
                 spotLightData.SetDirection( direction );
             }
 
@@ -1496,7 +1496,7 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 0 );
 
             float angle{ spotLightData.GetAngle() };
-            if ( ImGuiUtils::Slider( "Angle", angle, { 1.0f, 90.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Angle", angle, { 1.0f, SpotLight::GetMaxAngle() } ) ) {
                 spotLightData.SetAngle( angle );
             }
             ImGuiUtils::SetCursorHandOnLastItemHovered();
@@ -1509,7 +1509,7 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 0 );
 
             float softness{ spotLightData.GetSoftness() };
-            if ( ImGuiUtils::Slider( "Softness", softness, { 0.0f, 1.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Softness", softness, { 0.0f, SpotLight::GetMaxSoftness() } ) ) {
                 spotLightData.SetSoftness( softness );
             }
 
@@ -1558,6 +1558,7 @@ namespace Mikoto {
                 if ( ImGui::IsItemHovered() ) {
                     ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
                 }
+
 
                 if ( isSelected ) {
                     ImGui::SetItemDefaultFocus();

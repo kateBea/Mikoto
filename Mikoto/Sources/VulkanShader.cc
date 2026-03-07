@@ -107,7 +107,7 @@ namespace Mikoto {
         m_ContentsSize = m_SlangSpirv->getBufferSize();
         m_Contents = static_cast<const Byte*>( m_SlangSpirv->getBufferPointer() );
     }
-    
+
     auto VulkanShader::Release() -> void {
         vkDestroyShaderModule( VK_DEVICE( m_Device ), m_Module, nullptr );
 

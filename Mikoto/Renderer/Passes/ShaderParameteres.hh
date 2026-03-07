@@ -116,13 +116,6 @@ namespace Mikoto {
         ROUGH = 5,
     };
 
-    enum class ShaderActiveLightType {
-        LIGHT_TYPE_INACTIVE = -1,
-        LIGHT_TYPE_POINT = 1,
-        LIGHT_TYPE_SPOT = 2,
-        LIGHT_TYPE_DIRECTIONAL = 3,
-    };
-
     struct ShaderLightListParams {
         std::vector<ShaderLightTypeParams> Lights{
             MAX_LIGHTS,

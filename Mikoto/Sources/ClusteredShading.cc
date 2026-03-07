@@ -277,8 +277,10 @@ namespace Mikoto {
 
             auto &uboLight{ m_Lights[lightsCount] };
             
+            constexpr Int32 inactiveLightType{ -1 };
+
             if (!tag.IsActive()) {
-                uboLight.ActiveLightType = static_cast<Int32>( ShaderActiveLightType::LIGHT_TYPE_INACTIVE );
+                uboLight.ActiveLightType = inactiveLightType;
                 continue;
             }
             
@@ -290,7 +292,7 @@ namespace Mikoto {
                     uboLight.Direction = Vec4F( dir.GetDirection(), 0.0f );
                     uboLight.Position = Vec4F( transformCom.GetTranslation(), 1.0f );
                     uboLight.Diffuse = Vec4F( dir.GetColor() * dir.GetIntensity(), 1.0f );
-                    uboLight.ActiveLightType = static_cast<Int32>( ShaderActiveLightType::LIGHT_TYPE_DIRECTIONAL );
+                    uboLight.ActiveLightType = static_cast<Int32>( LightType::DIRECTIONAL_LIGHT_TYPE );
 
                     break;
                 }
@@ -304,7 +306,7 @@ namespace Mikoto {
                     uboLight.Intensity = point.GetIntensity();
                     uboLight.Radius = point.GetRadius();
 
-                    uboLight.ActiveLightType = static_cast<Int32>( ShaderActiveLightType::LIGHT_TYPE_POINT );
+                    uboLight.ActiveLightType = static_cast<Int32>( LightType::POINT_LIGHT_TYPE );
 
                     break;
                 }
@@ -322,7 +324,7 @@ namespace Mikoto {
                     uboLight.Intensity = spot.GetIntensity();
                     uboLight.Radius = spot.GetRadius();
 
-                    uboLight.ActiveLightType = static_cast<Int32>( ShaderActiveLightType::LIGHT_TYPE_SPOT );
+                    uboLight.ActiveLightType = static_cast<Int32>( LightType::SPOT_LIGHT_TYPE );
 
                     break;
                 }

@@ -1471,6 +1471,17 @@ namespace Mikoto {
         }
     }
 
+    auto GLTFImporter::TryAcquireImporter() -> std::vector<Unique<LoaderData>>::iterator {
+        return std::ranges::find_if( m_Importers, []( const auto& importer ) -> bool {
+            bool expected{ true };
+            if ( importer->IsFree.compare_exchange_strong( expected, false, std::memory_order_acquire ) ) {
+                return true;
+            }
+
+            return false;
+        } );
+    }
+
     auto GLTFImporter::Import( LoaderData& loaderData, const ModelLoadDescription& description, ModelData& out ) -> void {
         tinygltf::Model model{};
 

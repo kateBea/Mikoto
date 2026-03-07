@@ -29,6 +29,14 @@ namespace Mikoto {
     Skeleton::Skeleton( ozz::unique_ptr<ozz::animation::Skeleton> &&data )
         : m_Skeleton{ std::move( data ) } {}
 
+    auto Skeleton::HasJoint( std::string_view name ) const -> bool {
+        return false;
+    }
+
+    auto Skeleton::FindJoint( std::string_view name ) -> Joint * {
+        return nullptr;
+    }
+
     auto Skeleton::FindJoint( std::string_view name ) const -> const Joint* {
         return nullptr;
     }
@@ -61,9 +69,7 @@ namespace Mikoto {
     }
 
     auto Skeleton::SetWeights( std::string_view meshName, std::string_view boneName, UInt64 vertex, float weight ) -> void {
-        if (auto joint{ FindJoint( boneName ) }) {
-            joint->SetWeights( meshName, vertex, weight );
-        }
+
     }
 
     auto Skeleton::PrintTreeView() -> void {

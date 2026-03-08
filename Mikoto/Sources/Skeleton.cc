@@ -57,6 +57,10 @@ namespace Mikoto {
         return m_JointOzzIndex.at( ID );
     }
 
+    auto Skeleton::SetInverseBindMatrices( std::vector<Mat4F>&& mats ) -> void {
+        m_InverseBindMats = std::move( mats );
+    }
+
     auto Skeleton::GetOzzSkeleton() const -> const ozz::animation::Skeleton* {
         return m_Skeleton.get();
     }

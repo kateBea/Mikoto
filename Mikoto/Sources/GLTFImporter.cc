@@ -1471,6 +1471,21 @@ namespace Mikoto {
         }
     }
 
+    static auto LoadInverseBindMatrices(const tinygltf::Model& model, const tinygltf::Skin& skin ) -> std::vector<Mat4F> {
+        std::vector<Mat4F> inverseBindMats{};
+
+        if ( skin.inverseBindMatrices < 0 )
+            return {};
+
+        const tinygltf::Accessor& accessor = model.accessors[skin.inverseBindMatrices];
+        const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+        const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+        inverseBindMats.resize( accessor.count );
+        memcpy( inverseBindMats.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof( glm::mat4 ) );
+
+        return inverseBindMats;
+    }
+
     auto GLTFImporter::TryAcquireImporter() -> std::vector<Unique<LoaderData>>::iterator {
         return std::ranges::find_if( m_Importers, []( const auto& importer ) -> bool {
             bool expected{ true };
@@ -1517,6 +1532,8 @@ namespace Mikoto {
                 if ( builder.Build( animationImporter ) ) {
                     // Get the skeleton and animations
                     builder.FillModelData( out );
+
+                    out.SceneSkeleton.SetInverseBindMatrices( LoadInverseBindMatrices( model, model.skins[0] ) );
                 }
             }
         }

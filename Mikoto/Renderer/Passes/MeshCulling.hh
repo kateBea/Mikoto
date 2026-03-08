@@ -146,6 +146,8 @@ namespace Mikoto {
         std::vector<ShaderMesh> m_MeshInfo{};
         std::vector<ShaderMaterial> m_MaterialInfo{};
 
+        ankerl::unordered_dense::set<UInt32> m_ActiveFinalMatsIndices{};
+
         ankerl::unordered_dense::map<MeshNode*, DrawIndexedState> m_DrawIndexedState{};
 
         // Skinning information

@@ -24,5 +24,5 @@ static const uint MAX_BONE_INFLUENCE = 4;
 // Structs
 // ============================================================================
 struct BoneData {
-    float4x4 Bone[MAX_BONES];
+    float4x4 BoneMatrices[MAX_BONES];
 };

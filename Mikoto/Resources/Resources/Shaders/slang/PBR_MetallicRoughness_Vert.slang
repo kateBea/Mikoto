@@ -61,40 +61,36 @@ VSOutput main(VSInput input) {
 
     float4x4 model = meshInfo.Transform;
 
-    float4 skinnedPos = float4(0, 0, 0, 0);
-    float3 skinnedNormal = float3(0, 0, 0);
+    float4 inWeight0 = input.Weight;
+    float4 inJoint0 = input.Joint;
 
+    float4 locPos = float4(0, 0, 0, 0);
+    float3 normal = float3(0, 0, 0);
     if (meshInfo.AnimatorID != -1) {
-        uint baseIndex = meshInfo.AnimatorID;
+        uint animatorIndex = meshInfo.AnimatorID - 1;
 
-        for (uint i = 0; i < MAX_BONE_INFLUENCE; i++) {
-            int joint = uint(input.Joint[i]);
-            float weight = input.Weight[i];
+        BoneData bonePalette = Bones[animatorIndex];
 
-            if (weight <= 0.0 || joint < 0) {
-                continue;
-            }
+        float4x4 skinMat =
+            inWeight0.x * bonePalette.BoneMatrices[(uint)inJoint0.x] +
+            inWeight0.y * bonePalette.BoneMatrices[(uint)inJoint0.y] +
+            inWeight0.z * bonePalette.BoneMatrices[(uint)inJoint0.z] +
+            inWeight0.w * bonePalette.BoneMatrices[(uint)inJoint0.w];
 
-            if (joint >= MAX_BONES) {
-                // Fallback to rigid
-                skinnedPos = float4(input.Position, 1.0);
-                skinnedNormal = input.Normal;
-                break;
-            }
+        locPos = mul(skinMat, float4(input.Position, 1.0));
 
-            float4x4 bone = Bones[baseIndex].Bone[joint];
-
-            skinnedPos += mul(bone, float4(input.Position, 1.0)) * weight;
-            skinnedNormal += mul((float3x3)bone, input.Normal) * weight;
-        }
+        normal = normalize(
+            mul((float3x3)skinMat, input.Normal)
+    );
+        
     }
     else {
-        skinnedPos = float4(input.Position, 1.0);
-        skinnedNormal = input.Normal;
+        locPos = float4(input.Position, 1.0);
+        normal = input.Normal;
     }
 
-    float4 worldPos = mul(model, skinnedPos);
-    float3 worldNormal = normalize(mul((float3x3)model, skinnedNormal));
+    float4 worldPos = mul(model, locPos);
+    float3 worldNormal = normalize(mul((float3x3)model, normal));
 
     o.TexCoord0 = input.TexCoord0;
     o.TexCoord1 = input.TexCoord1;

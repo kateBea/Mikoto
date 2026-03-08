@@ -21,7 +21,10 @@
 namespace Mikoto {
 
     SkinnedAnimation::SkinnedAnimation( ozz::unique_ptr<ozz::animation::Animation>&& data )
-        : m_Animation{ std::move(data) } {}
+        : m_Animation{ std::move( data ) } {
+            m_Name = m_Animation->name();
+            m_Duration = m_Animation->duration();
+    }
 
     auto SkinnedAnimation::GetDuration() const -> float {
         return m_Duration;

@@ -140,6 +140,7 @@ namespace Mikoto {
         Model( Path modelPath, Skeleton&& skeleton, AnimationMap&& animations )
             : m_ModelName{ modelPath.filename().string() },
               m_ModelAbsolutePath{ std::move( modelPath ) },
+              m_Skeleton { std::move(skeleton) },
               m_Animations{ std::move( animations ) }
         {}
 
@@ -154,7 +155,7 @@ namespace Mikoto {
         // ( Mesh index, mesh node )
         ankerl::unordered_dense::map<UInt32, MeshNode> m_Meshes{};
 
-        Unique<Skeleton> m_Skeleton{};
+        Skeleton m_Skeleton{};
         AnimationMap m_Animations{};
     };
 

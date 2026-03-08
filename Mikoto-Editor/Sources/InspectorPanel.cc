@@ -1088,59 +1088,60 @@ namespace Mikoto {
     static auto SetupAnimatorComponentTab( Entity& entity ) -> void {
         AnimatorComponent& animatorComponent{ entity.GetComponent<AnimatorComponent>() };
 
-        std::string animationName{};
-        Animator* animator{ AnimationSystem::Get()->GetAnimator( animatorComponent.GetAnimatorID() ) };
-        if ( animator ) {
-            // Show list of animations
+        Animator* animator{
+            AnimationSystem::Get()->GetAnimator( animatorComponent.GetAnimatorID() )
+        };
 
-            animationName = animator->GetCurrentAnimation() ? animator->GetCurrentAnimation()->GetName() : "";
+        std::string currentAnimationName{};
+
+        if ( animator ) {
+            if ( const SkinnedAnimation* current{ animator->GetCurrentAnimation() } )
+                currentAnimationName = current->GetName();
         }
 
-
         ImGuiUtils::UnindentScoped und{};
-        ImGuiUtils::DrawNode( "Animation List", [&animationName, animator]() -> void {
-            ImGuiUtils::UnindentScoped und{};
 
-            if ( animator ) {
-                constexpr UInt32 maxAnimationDisplay{ 10 };
-                std::array<std::string, maxAnimationDisplay> animationNames{};
+        ImGuiUtils::DrawNode( "Animation List", [animator, &currentAnimationName]() -> void {
+            if ( !animator )
+                return;
 
-                // Set all the animation names in the array so we can display them in the combo box
-                UInt32 index{ 0 };
-                for ( const auto& animationName: animator->GetAnimationList() | std::ranges::views::keys ) {
-                    animationNames[index++] = animationName;
+            const auto& animationList{ animator->GetAnimationList() };
 
-                    if ( index == maxAnimationDisplay ) {
-                        break;
-                    }
-                }
+            if ( animationList.empty() )
+                return;
 
-                auto currentAnimation{ animator->GetCurrentAnimation() };
-                if (currentAnimation) {
-                    animationName = currentAnimation->GetName();
-                }
+            std::vector<std::string> animationNames{};
+            animationNames.reserve( animationList.size() );
 
-                const UInt32 availableAnimationCount{ static_cast<UInt32>( animator->GetAnimationList().size() ) };
-                auto selectionIndex{ ImGuiUtils::Combo( animationNames.data(), availableAnimationCount, animationName ) };
+            for ( const auto& name: animationList | std::views::keys )
+                animationNames.push_back( name );
 
-                if ( selectionIndex != -1 ) {
-                    animator->SetCurrentAnimation( animationNames[selectionIndex] );
-                }
+            const Int32 selectionIndex{
+                ImGuiUtils::Combo(
+                        animationNames.data(),
+                        static_cast<Size>( animationNames.size() ),
+                        currentAnimationName )
+            };
+
+            if ( selectionIndex != -1 ) {
+                currentAnimationName = animationNames[selectionIndex];
+                animator->SetCurrentAnimation( currentAnimationName );
             }
         } );
 
         bool play{ false };
 
-        if ( animator ) {
+        if ( animator )
             play = animator->IsPlaying();
-        }
 
         if ( ImGuiUtils::CheckBox( "Play selected animation", play ) ) {
-            if ( play ) {
-                animator->PlayAnimation( animationName );
-            } else {
+            if ( !animator )
+                return;
+
+            if ( play )
+                animator->PlayAnimation( currentAnimationName );
+            else
                 animator->StopCurrentAnimation();
-            }
         }
     }
 

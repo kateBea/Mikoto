@@ -248,10 +248,11 @@ namespace Mikoto {
                         auto animator{ AnimationSystem::Get()->GetAnimator( sm.GetAnimatorID() ) };
                         if ( animator != nullptr && animator->IsPlaying() ) {
                             geometry.AnimatorID = sm.GetAnimatorID();
+                            m_ActiveFinalMatsIndices.emplace( geometry.AnimatorID );
                         }
                     }
                 }
-                
+
                 // Materials
                 material.BaseColorFactor = pbrMat->GetBaseColorFactor();
                 material.EmissiveFactor = Vec4F{ pbrMat->GetEmissiveFactor(), 1.0f };
@@ -289,11 +290,18 @@ namespace Mikoto {
             }
         }
 
-        // Copy animation final matrices from all active submitted animators
-        //Size size{ MAX_BONES_PER_MESH * MKT_SIZEOF( Mat4F ) };
-        //std::memcpy( MKT_ADDRESSOF( m_SkinningInfo[geometry.AnimatorID] ), MKT_ADDRESSOF( animator->GetFinalBoneMatrices() ), size );
-        //context.CopyBuffer( "MeshCulling_SkinningInfo", m_SkinningInfo.data(), MAX_SKINNED_MESHES * MKT_SIZEOF( SkinningInfo ) );
-        
+        for (const auto& index : m_ActiveFinalMatsIndices) {
+            if ( Animator * animator{ AnimationSystem::Get()->GetAnimator( index ) } ) {
+                auto &finalMats{ animator->GetFinalBoneMatrices()  };
+                std::memcpy( m_SkinningInfo[index - 1].BoneTransforms.data(), finalMats.data(), finalMats.size() * MKT_SIZEOF( Mat4F ) );
+            }
+        }
+
+        if (!m_ActiveFinalMatsIndices.empty()) {
+            context.CopyBuffer( "MeshCulling_SkinningInfo", m_SkinningInfo.data(), MAX_SKINNED_MESHES * MKT_SIZEOF( SkinningInfo ) );
+            m_ActiveFinalMatsIndices.clear();
+        }
+
         // Flaten
         Size activeMeshCount{};
         for (auto& [node, data] : m_IndexedGeometryManager.GetData()) {

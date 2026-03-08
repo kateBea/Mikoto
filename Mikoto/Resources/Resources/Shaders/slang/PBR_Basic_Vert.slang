@@ -83,7 +83,7 @@ VSOutput main(VSInput input) {
                 break;
             }
 
-            float4x4 bone = Bones[baseIndex].Bone[joint];
+            float4x4 bone = Bones[baseIndex].BoneMatrices[joint];
 
             skinnedPos += mul(bone, float4(input.Position, 1.0)) * weight;
             skinnedNormal += mul((float3x3)bone, input.Normal) * weight;

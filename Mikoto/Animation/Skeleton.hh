@@ -58,7 +58,8 @@ namespace Mikoto {
         MKT_NODISCARD auto GetOzzSkeleton() -> ozz::animation::Skeleton*;
         MKT_NODISCARD auto GetOzzSkeleton() const -> const ozz::animation::Skeleton*;
 
-        MKT_NODISCARD auto GetInverseBindMatrices() const -> const std::vector<Mat4F>& { return {}; }
+        auto SetInverseBindMatrices( std::vector<Mat4F>&& mats ) -> void;
+        MKT_NODISCARD auto GetInverseBindMatrices() const -> const std::vector<Mat4F>& { return m_InverseBindMats; }
 
         auto PrintTreeView() -> void;
         auto PrintBoneInfo() const -> void;
@@ -71,6 +72,8 @@ namespace Mikoto {
         // To construct the skeleton
         ozz::animation::offline::SkeletonBuilder m_Builder{};
         ozz::animation::offline::RawSkeleton m_RawSkeleton{};
+
+        std::vector<Mat4F> m_InverseBindMats{};
 
         // Run time skeleton
         ozz::unique_ptr<ozz::animation::Skeleton> m_Skeleton{};

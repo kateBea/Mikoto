@@ -127,7 +127,7 @@ namespace Mikoto {
             MKT_CORE_LOGGER_ERROR( "Animator error on local to model job" );
             return;
         }
-
+        
         const Size jointCount{ m_ModelMatrices.size() };
         const auto& inverseBindMats{ m_Model->GetSkeleton().GetInverseBindMatrices() };
 
@@ -137,7 +137,7 @@ namespace Mikoto {
             m_FinalMatrices[i] = *reinterpret_cast<Mat4F*>( MKT_ADDRESSOF( model ) ) * inverseBindMats[i];
         }
 
-        Math::DumpMat4FListBeautify( m_FinalMatrices );
+        //Math::DumpMat4FListBeautify( m_FinalMatrices );
     }
 
     auto Animator::InitializeOzzAnimation() -> void {

@@ -131,7 +131,7 @@ namespace Mikoto {
         const Size jointCount{ m_ModelMatrices.size() };
         const auto& inverseBindMats{ m_Model->GetSkeleton().GetInverseBindMatrices() };
 
-        for ( Size i{}; i < jointCount; ++i ) {
+        for ( Size i{}; i < jointCount && i < inverseBindMats.size(); ++i ) {
             // because ozz uses colum major mat4x4 of floats
             ozz::math::Float4x4& model{ m_ModelMatrices[i] };
             m_FinalMatrices[i] = *reinterpret_cast<Mat4F*>( MKT_ADDRESSOF( model ) ) * inverseBindMats[i];

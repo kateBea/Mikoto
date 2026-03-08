@@ -305,6 +305,19 @@ namespace Mikoto {
             } );
     }
 
+    auto DebugPasses::RegisterBoneDebug(FrameGraph& graph) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+            "BoneHierarchyDebug",
+            []( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
+    }
+
     auto DebugPasses::RegisterHelloCube( FrameGraph &graph ) -> void {
 
     }

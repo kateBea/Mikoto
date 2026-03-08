@@ -35,7 +35,7 @@ namespace Mikoto {
     // These 2 are vec4 because they need to match the bone influence
     // which is maximum bones influence a vertex ( from what we support now )
     inline constexpr UInt32 MAX_BONE_INFLUENCE{ 4 };
-    inline constexpr UInt32 MAX_BONES_PER_MESH{ 128 };
+    inline constexpr UInt32 MAX_BONES_PER_MESH{ 256 }; // Needs to match shader's
     inline constexpr UInt32 MAX_SKINNED_MESHES{ 1000 };
 
     class Skeleton {

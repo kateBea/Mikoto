@@ -112,14 +112,14 @@ namespace Mikoto {
         // Animation
         const auto& animationNames{ importer.GetAnimationNames() };
         for (const auto& animationName : animationNames) {
-            PathBuilder builder{};
+            // Animators name their animations howver they want, the importer saves them with using properly formated file name
+            std::string animFileName{ importer.BuildFilename( "*.ozz", animationName.c_str() ) };
 
+            PathBuilder builder{};
             std::string animPath{ builder
                 .WithPath( Filesystem::GetProcessPath().string() )
-                .WithPath( animationName )
+                .WithPath( animFileName )
                 .Build().string() };
-            animPath.append( ".ozz" );
-
             // Now tries to open the file, which was provided as argument.
             // A file in ozz is a ozz::io::File, which implements ozz::io::Stream
             // interface and complies with std FILE specifications.

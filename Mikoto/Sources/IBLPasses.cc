@@ -45,6 +45,16 @@ namespace Mikoto {
             SamplerDescription samplerDescription{ .CubeSampler{ true } };
             m_CubeMapSampler = device->CreateSampler( samplerDescription );
         }
+
+        // Prepare shadow map sampler
+        SamplerDescription dirShadowSamplerdES{
+            .WrapU{ SamplerWrapMode::WRAP_CLAMP_TO_BORDER },
+            .WrapV{ SamplerWrapMode::WRAP_CLAMP_TO_BORDER },
+            .WrapW{ SamplerWrapMode::WRAP_CLAMP_TO_BORDER },
+            .BorderColor{ 1.0f, 1.0f, 1.0f, 1.0f },
+        };
+
+        m_DirShadowMapSampler = device->CreateSampler( dirShadowSamplerdES );
         
         // IBL
         RegisterSkybox( graph );
@@ -529,6 +539,8 @@ namespace Mikoto {
                 b.Read( "PrefilterPass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "IrradiancePass_ColorTargetCUBE", FrameResourceState::ShaderRead_GraphicsPipeline );
 
+                b.Read( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+
                 b.Read( "SSAO_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "SSAOBlur_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
@@ -578,6 +590,8 @@ namespace Mikoto {
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", ResourceSlot::Slot_3 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAOBlur_ColorTarget", ResourceSlot::Slot_4 );
 
+                ctx.BindImageSampler( ResourceGroup::DynamicSamplers, "DirectionalShadowMapPass_DepthTarget", m_DirShadowMapSampler, ResourceSlot::Slot_0 );
+
                 ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
 
                 ctx.PushConstants( std::addressof( data ), sizeof( data ) );
@@ -614,7 +628,7 @@ namespace Mikoto {
                     .AlphaBlending{ true },
                     .EnableSampleRateShading{ true },
                     .MSAA{ Multisampling::MSAA_X1 },
-                    .PipelineCullMode{ CullMode::NONE },// We probably need to organize models by material some
+                    .PipelineCullMode{ CullMode::NONE },// We probably need to organize models by material some (or handle models with diff mats somehow)
                                                         // models like the just_a_girl require cull_back to be properly visulized
                 };
 
@@ -623,7 +637,7 @@ namespace Mikoto {
                 b.CreatePipeline( "MetallicRoughnessPBR_Pipeline", graphicsDesc );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-
+                
                 b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
                 b.Read( "MeshCulling_MaterialsInfo", FrameResourceState::UnorderedAccessView );
                 b.Read( "MeshCulling_SkinningInfo", FrameResourceState::UnorderedAccessView );
@@ -640,6 +654,8 @@ namespace Mikoto {
 
                 b.Read( "SSAO_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "SSAOBlur_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+
+                b.Read( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
 
                 // Edge with this pass
                 b.Write( "FinalShadingPass_BufferEDGE+", FrameResourceState::UniformBuffer );
@@ -694,6 +710,8 @@ namespace Mikoto {
                 
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", ResourceSlot::Slot_3 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAOBlur_ColorTarget", ResourceSlot::Slot_4 );
+                
+                ctx.BindImageSampler( ResourceGroup::DynamicSamplers, "DirectionalShadowMapPass_DepthTarget", m_DirShadowMapSampler, ResourceSlot::Slot_0 );
                 
                 ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
 

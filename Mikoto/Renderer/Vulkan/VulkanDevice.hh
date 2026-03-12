@@ -409,8 +409,14 @@ namespace Mikoto {
 #define VK_DEVICE(GPU_DEVICE_PTR) \
     dynamic_cast<VulkanDevice*>(GPU_DEVICE_PTR)->GetLogicalDevice()
 
+#define MKT_VK_LOGICAL_DEVICE( GPU_DEVICE_PTR ) \
+    dynamic_cast<VulkanDevice*>( GPU_DEVICE_PTR )->GetLogicalDevice()
+
 #define TO_VK_DEVICE(GPU_DEVICE_PTR) \
     dynamic_cast<VulkanDevice*>(GPU_DEVICE_PTR)
+
+#define MKT_VK_DEVICE( GPU_DEVICE_PTR ) \
+    dynamic_cast<VulkanDevice*>( GPU_DEVICE_PTR )
 }
 
 #endif //MIKOTO_VULKAN_DEVICE_HH

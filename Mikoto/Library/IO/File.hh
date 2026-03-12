@@ -1,15 +1,20 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 1/27/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef FILE_HH
 #define FILE_HH
 
-// TODO: move this file to filesystem
-#include <Common/Common.hh>
-#include <Common/ReferenceCounted.hh>
-#include <Library/Utility/Types.hh>
-#include <Logging/Logger.hh>
 #include <filesystem>
 #include <fstream>
 #include <ranges>
@@ -18,7 +23,11 @@
 #include <vector>
 #include <mutex>
 
-#define MKT_CSTRING_PATH(path) path.string().c_str()
+// TODO: move this file to filesystem
+#include <Common/Common.hh>
+#include <Common/ReferenceCounted.hh>
+#include <Library/Utility/Types.hh>
+#include <Logging/Logger.hh>
 
 namespace Mikoto {
 
@@ -37,7 +46,7 @@ namespace Mikoto {
     };
 
     enum class FileType {
-        UNKNOWN_FILE_TYPE,
+        UNKNOWN_FILE_TYPE = -1,
 
         PNG_IMAGE_TYPE,
         JPEG_IMAGE_TYPE,
@@ -89,7 +98,7 @@ namespace Mikoto {
         MKT_NODISCARD auto IsFile() const -> bool { return std::filesystem::is_regular_file( m_Path ); }
 
         auto FlushContents() -> void;
-        auto SetContents( CStr contents ) -> void;
+        auto SetContents( std::string&& contents ) -> void;
 
         auto UpdateContents() -> void;
 
@@ -126,11 +135,9 @@ namespace Mikoto {
         std::string m_Contents{};
         FileType m_Type{ FileType::UNKNOWN_FILE_TYPE };
         FileMode m_OpenMode{ MKT_FILE_OPEN_MODE_NONE };
-
-        mutable std::mutex m_FileUpdateMutex{};
     };
 
     using FileHandle = Ref<File>;
+}
 
-}// namespace Mikoto
-#endif//FILE_HH
+#endif // MIKOTO_FILE_HH

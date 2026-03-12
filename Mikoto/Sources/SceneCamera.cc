@@ -29,14 +29,14 @@ namespace Mikoto {
         m_FieldOfView = fov;
         m_AspectRatio = aspectRatio;
 
-        m_Position = Vec3F{ 10.0f, 14.5f, 21.0f };
+        m_Position = Vec3F{ 100.0f, 100.5f, 100.0f };
         m_TargetPosition = Vec3F{ 10.0f, 14.5f, 21.0f };
         m_ForwardVector = glm::vec3{ -0.457344413f, -0.443095952f, -0.771039605f };
         m_TargetForwardVector = m_ForwardVector;
 
         UpdateViewMatrix();
     }
-
+    
     auto SceneCamera::SetTargetWindow( const Window* window ) -> void {
         if (window != nullptr) {
             m_TargetWindow = window;

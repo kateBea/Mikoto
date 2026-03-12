@@ -177,7 +177,7 @@ namespace Mikoto {
         auto Initialize() -> void override;
 
         auto CreateSwpChain() -> void;
-        auto GetImages() -> void;
+        auto FetchSwapChainImages() -> void;
 
         MKT_NODISCARD auto ChoosePresentMode( const std::vector<VkPresentModeKHR>& availablePresentModes ) const -> VkPresentModeKHR;
         MKT_NODISCARD auto ChooseExtent( const VkSurfaceCapabilitiesKHR& capabilities ) const -> VkExtent2D;

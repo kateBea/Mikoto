@@ -131,13 +131,12 @@ namespace Mikoto {
 
         const auto absolutePath{ Filesystem::GetGetAbsolutePathString( path ) };
         const auto findIt{ m_Files.find( absolutePath ) };
-
-        if (findIt != m_Files.end()) { return findIt->second.get(); }
+        if (findIt != m_Files.end()) { 
+            return findIt->second.get(); 
+        }
 
         File *result{ nullptr };
-
-        auto newFile{ File::Load( absolutePath, mode ) };
-        if (newFile) {
+        if ( auto newFile{ File::Load( absolutePath, mode ) } ) {
             result = newFile.get();
 
             {
@@ -145,16 +144,13 @@ namespace Mikoto {
                 const auto [insertIt, success]{
                     m_Files.try_emplace( absolutePath, std::move( newFile ) )
                 };
+
+                if (success) {
+                    result = m_Files[absolutePath].get();
+                }
             }
 
-            //If we managed to load the file listen on update notifications to update the file contents
-            FileWatcherService::Get()->Watch( result->GetPath(),
-                                              [result]( const Path &pathCallable, FileWatchEvent event ) mutable -> void {
-                                                  if (event == FileWatchEvent::MODIFIED) {
-                                                      result->UpdateContents();
-                                                      MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.string() );
-                                                  }
-                                              } );
+            // TODO: Watch file for changes and update engine side contents
         } else {
             MKT_CORE_LOGGER_ERROR( "Could not load file at {}", absolutePath );
         }
@@ -178,14 +174,23 @@ namespace Mikoto {
     auto FileService::CreateNewFile( const Path& path ) -> File* {
         File* result{ nullptr };
 
-        // File does not exist
-        auto newFile{ File::Create( path, MKT_FILE_OPEN_MODE_TRUNCATE ) };
-        if ( newFile ) {
-            result = newFile.get();
+        const auto absolutePath{ Filesystem::GetGetAbsolutePathString( path ) };
+        const auto findIt{ m_Files.find( absolutePath ) };
+        if ( findIt != m_Files.end() ) { 
+            return findIt->second.get(); 
+        }
 
-            const auto [insertIt, success]{
-                m_Files.try_emplace( path.string(), std::move( newFile ) )
-            };
+        if ( auto newFile{ File::Create( path, MKT_FILE_OPEN_MODE_TRUNCATE ) } ) {
+            {
+                std::lock_guard lock{ m_FileLoadMutex };
+                const auto [insertIt, success]{
+                    m_Files.try_emplace( absolutePath, std::move( newFile ) )
+                };
+
+                if (success) {
+                    result = m_Files[absolutePath].get();
+                }
+            }
         } else {
             MKT_CORE_LOGGER_ERROR( "Could not create file at {}", path.string() );
         }

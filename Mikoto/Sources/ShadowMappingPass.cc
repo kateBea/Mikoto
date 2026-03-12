@@ -43,19 +43,25 @@ namespace Mikoto {
         RegisterDirShadowMap( graph );
         RegisterSpotShadowMap( graph );
         RegisterPointShadowMap( graph );
+
+        RegisterDebugViewsPass( graph ); 
     }
 
     auto ShadowMappingPass::RegisterDirShadowMap( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        graph.RegisterPass(
+        struct ShadowMapInfo {
+            RenderResolution Reso{ RenderResolution::UHD_3120P };
+        };
+
+        graph.RegisterPass<ShadowMapInfo>(
             "DirectionalShadowMapPass",
-            [this]( FramePassBuilder &b ) {
+                [this]( FramePassBuilder &b, ShadowMapInfo& data ) {
                 MKT_BEGIN_PROFILER_NAMED();
-
-                b.CreateTexture( "DirectionalShadowMapPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
-                b.CreateTexture( "DirectionalShadowMapPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
-
+                
+                // Shadow pass only needs depth (color is used for debugging info for the directional light we want its map displayed)
+                b.CreateTexture( "DirectionalShadowMapPass_ColorTarget", data.Reso, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.CreateTexture( "DirectionalShadowMapPass_DepthTarget", data.Reso, TextureFormat::D32_FLOAT, TextureUsage::DEPTH );
                 b.CreateBuffer( "DirectionalShadowMapPass_CameraInfo", BufferUsage::UNIFORM, MKT_SIZEOF( LightCameraInfo ), 1 );
 
                 b.UseShader( "Resources/Shaders/slang/DirLighShadows_Frag.slang", ShaderStage::FRAGMENT );
@@ -64,66 +70,102 @@ namespace Mikoto {
                 GraphicsPipelineDescription graphicsDesc{
                     .DepthTest{ true },
                     .DepthWrite{ true },
+                    .AlphaBlending{ false },
+                    .PipelineCullMode{ CullMode::CULL_BACK }, // Front culling to avoid peter panning
                     .DepthAttachmentFormat{ TextureFormat::D32_FLOAT }
                 };
-
+                
                 b.CreatePipeline( "DirectionalShadowMapPass_Pipeline", graphicsDesc );
 
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
                 b.Write( "DirectionalShadowMapPass_ColorTarget", FrameResourceState::RenderTarget );
                 b.Write( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::DepthWrite );
 
                 b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_SkinningInfo", FrameResourceState::UnorderedAccessView );
             },
-            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+            [this]( CommandContext &ctx, FrameGraphBlackboard& blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 MKT_ASSERT( m_MeshCullingPass, "Mesh culling must be valid" );
-
+                
                 auto &registry{ m_Scene->GetRegistry() };
                 auto lights{ registry.view<TransformComponent, LightComponent>() };
 
-                if (lights.size_hint() == 0) {
+                if ( lights.size_hint() == 0 ) {
                     return;
                 }
 
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_1 );
 
-                for (const auto &light : lights) {
+                for ( const auto &light: lights ) {
                     auto &lightComp{ registry.get<LightComponent>( light ) };
 
-                    if (lightComp.IsTypeActive( LightType::DIRECTIONAL_LIGHT_TYPE )) {
+                    if ( lightComp.IsTypeActive( LightType::DIRECTIONAL_LIGHT_TYPE ) ) {
                         auto &transform{ registry.get<TransformComponent>( light ) };
 
                         ctx.SetColorRenderTarget( "DirectionalShadowMapPass_ColorTarget" );
                         ctx.SetDepthRenderTarget( "DirectionalShadowMapPass_DepthTarget" );
 
+                        ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
+                        
                         ctx.BeginRender();
 
-                        constexpr float zNear{ 0.01f };
-                        constexpr float zFar{ 2000.0f };
-                        constexpr float degreesFOV{ 45.0f };
+                        auto &shadowData{ blackboard.Get<ShadowMapInfo>() };
+                        const auto dimensions{ InferDimensions( shadowData.Reso ) };
 
-                        m_DirectionalShadowMapCameraInfo.LightView = glm::lookAt(transform.GetTranslation(), glm::vec3(0.0f), glm::vec3(0, 1, 0));
-                        m_DirectionalShadowMapCameraInfo.LightProjection = glm::perspective(glm::radians(degreesFOV), 1.0f, zNear, zFar);
+                        const float zNear{ m_Camera->GetNearPlane() };
+                        const float zFar{ m_Camera->GetFarPlane() };
+                        const float orthoSize{ 1000 /*dimensions.first*/ };
 
-                        ctx.PushConstants( std::addressof( m_DirectionalShadowMapCameraInfo ), sizeof(m_DirectionalShadowMapCameraInfo ) );
+                        m_DirectionalShadowMapCameraInfo.LightProjection =
+                                glm::ortho(
+                                        -orthoSize,
+                                        orthoSize,
+                                        -orthoSize,
+                                        orthoSize,
+                                        zNear,
+                                        zFar );
 
-                        const auto dimensions{ InferDimensions( m_Resolution ) };
+                        #if !defined(NDEBUG)
+                        #if defined( GLM_FORCE_DEPTH_ZERO_TO_ONE )
+                        //MKT_CORE_LOGGER_DEBUG( "Forced depth [0, 1]" );
+                        #endif
+                        #endif
+                        
+                        const glm::vec3 lightDir{ lightComp.Get<DirectionalLight>().GetDirection() };
+                        const glm::vec3 lightPos{ -lightDir * 500.0f };
+                        
+                        m_DirectionalShadowMapCameraInfo.LightView =
+                                glm::lookAt(
+                                        lightPos,
+                                        glm::vec3{ 0.0f, 0.0f, 0.0f },
+                                        glm::vec3{ 0.0f, 1.0f, 0.0f } );
+                        
+                        ctx.PushConstants(
+                                std::addressof( m_DirectionalShadowMapCameraInfo ),
+                                sizeof( m_DirectionalShadowMapCameraInfo ) );
+                        
+                        // Reference light space info for final composition pass
+                        auto &data{ blackboard.Get<FinalShadingConstants>() };
+                        data.LightViewProjection = m_DirectionalShadowMapCameraInfo.LightProjection * m_DirectionalShadowMapCameraInfo.LightView;
+                        
                         ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
                         ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
-
+                        
                         ctx.BindPipeline( "DirectionalShadowMapPass_Pipeline" );
-                        m_MeshCullingPass->DrawInstances( ctx );
 
-                        // We then copy this data to an depth image that is part of an unbounded image view set (just a bindless texture list of shadow maps, same for
-                        // the other shadow maps ligt types
+                        m_MeshCullingPass->DrawInstances( ctx );
 
                         ctx.EndRender();
                     }
                 }
             } );
     }
-
+    
     auto ShadowMappingPass::RegisterPointShadowMap( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -146,6 +188,18 @@ namespace Mikoto {
                 MKT_BEGIN_PROFILER_NAMED();
             },
             []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
+    }
+
+    auto ShadowMappingPass::RegisterDebugViewsPass( FrameGraph &graph ) -> void {
+        graph.RegisterPass(
+            "DebugViewsShadowMap",
+            []( FramePassBuilder &b ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+                b.Read( "DirectionalShadowMapPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+            },
+            []( CommandContext &, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
             } );
     }

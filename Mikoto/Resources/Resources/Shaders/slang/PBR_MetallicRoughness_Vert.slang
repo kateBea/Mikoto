@@ -17,6 +17,27 @@
 #include "base/Material_Helpers.slang"
 #include "base/Animation_Helpers.slang"
 
+struct FinalShadingParameters {
+    float4x4 LightViewProjection;
+
+    float4 GridSize;
+    float Exposure;
+    float Gamma;
+    float MaxReflectionLOD;
+
+    uint ActiveLights;
+
+    int EnableSSAO;
+    int UseBlurred;
+    float SSAOIntensity;
+
+    int PrefilteredCubeMipLevels;
+    float ScaleIBLAmbient;
+    int Step; // for debug
+
+    int IsSkyboxActive;
+};
+
 [[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
@@ -24,6 +45,9 @@ ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
 [[vk::binding(Slot_0, UAV_SET_INDEX)]] StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
 [[vk::binding(Slot_1, UAV_SET_INDEX)]] StructuredBuffer<BoneData, ScalarDataLayout> Bones;
+
+[[vk::push_constant]]
+FinalShadingParameters u_Constants;
 
 struct VSInput {
     float3 Position : ATTRIBUTE0;
@@ -48,6 +72,8 @@ struct VSOutput {
     float4 Color : TEXCOORD5;
 
     uint MaterialIndex : TEXCOORD6;
+
+    float4 FragPosLightSpace : TEXCOORD7;
 
     float4 PositionH : SV_Position;
 };
@@ -99,6 +125,8 @@ VSOutput main(VSInput input) {
     o.FragmentWorldPos = worldPos.xyz;
     o.FragmentViewPos = mul(u_Camera.ViewMatrix, worldPos).xyz;
     o.Normal = worldNormal;
+
+    o.FragPosLightSpace = mul(u_Constants.LightViewProjection, worldPos);
 
     o.PositionH =
         mul(u_Camera.Projection,

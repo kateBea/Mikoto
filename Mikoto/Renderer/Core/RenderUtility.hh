@@ -336,6 +336,8 @@ namespace Mikoto {
         SamplerWrapMode WrapV{ SamplerWrapMode::WRAP_REPEAT };
         SamplerWrapMode WrapW{ SamplerWrapMode::WRAP_REPEAT };
 
+        Vec4F BorderColor{ 0.0f, 0.0f, 0.0f, 1.0f };
+
         auto WithMipLevels(float mipLevels) -> SamplerDescription&;
         auto WithMinFilter( SamplerFilter filter ) -> SamplerDescription&;
         auto WithMagFilter( SamplerFilter filter ) -> SamplerDescription&;

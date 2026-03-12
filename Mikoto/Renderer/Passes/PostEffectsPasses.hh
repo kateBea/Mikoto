@@ -43,6 +43,7 @@ namespace Mikoto {
     private:
         auto RegisterSSAO( FrameGraph& graph ) -> void;
         auto RegisterBloom( FrameGraph& graph ) -> void;
+        auto RegisterChromaticAberration( FrameGraph& graph ) -> void;
         auto RegisterTextRender( FrameGraph& graph, GpuDevice* device) -> void;
         auto RegisterObjectOutline( FrameGraph& graph, GpuDevice* device) -> void;
 

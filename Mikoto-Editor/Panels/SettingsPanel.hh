@@ -62,7 +62,7 @@ namespace Mikoto {
 
     private:
         auto DrawCameraConfig() -> void;
-        auto DrawInfiniteGridConfig() -> void;
+        auto DrawCameraProperties() -> void;
 
     private:
 

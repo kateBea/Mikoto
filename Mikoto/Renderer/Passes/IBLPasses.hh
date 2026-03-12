@@ -164,6 +164,9 @@ namespace Mikoto {
         bool m_UseBlurredSSAO{ false };
         float m_SSAOIntensity{ 1.f };
 
+        // Shadow mapping
+        SamplerHandle m_DirShadowMapSampler{};
+
         Scene* m_Scene{};
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 

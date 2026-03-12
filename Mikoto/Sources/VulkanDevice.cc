@@ -1033,6 +1033,10 @@ namespace Mikoto {
         // This path requires dynamic re
         std::vector<VkRenderingAttachmentInfo> colorImages{};
 
+        // Deafult to color target render area, in the future take these as parameters
+        UInt32 width{};
+        UInt32 height{};
+
         for (auto &colorImage: info.ColorRenderTargets) {
             VkAttachmentLoadOp loadOp{ info.ColorLoadOp == LoadOp::CLEAR ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
             VkRenderingAttachmentInfo &colorAttachment{ colorImages.emplace_back( VkRenderingAttachmentInfo{} ) };
@@ -1042,6 +1046,9 @@ namespace Mikoto {
             colorAttachment.loadOp = loadOp;
             colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             colorAttachment.clearValue.color = { info.ClearColor.r, info.ClearColor.g, info.ClearColor.b, info.ClearColor.a };
+
+            width = colorImage->GetWidth();
+            height = colorImage->GetHeight();
         }
 
         VkRenderingAttachmentInfo depthAttachment{};
@@ -1054,11 +1061,11 @@ namespace Mikoto {
             depthAttachment.loadOp = loadOp;
             depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
-        }
 
-        // Dimensions
-        const UInt32 width{ static_cast<UInt32>( static_cast<float>( info.ColorRenderTargets.front()->GetWidth() ) ) };
-        const UInt32 height{ static_cast<UInt32>( static_cast<float>( info.ColorRenderTargets.front()->GetHeight() ) ) };
+            // We assume they share dimensions but this should be external
+            width = info.DepthRenderTarget->GetWidth();
+            height = info.DepthRenderTarget->GetHeight();
+        }
 
         VkRenderingInfo renderingInfo{};
         renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;

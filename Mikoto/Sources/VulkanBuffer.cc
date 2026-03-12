@@ -203,13 +203,20 @@ namespace Mikoto {
             std::memcpy( m_Data, src, m_SizeBytes );
         }
 
+        // Do I need these? I seemed to have more stable frames with these, need to study further
+        m_Allocation.AllocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+        m_Allocation.AllocationCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+
         m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
             VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
         m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-         m_Context = MKT_VK_CTX( RenderService::Get()->GetContext() );
+        // Mark as streaming
+        // m_UsageType = ResourceUsageType::RESOURCE_USAGE_STREAMING;
+
+        m_Context = MKT_VK_CTX( RenderService::Get()->GetContext() );
     }
 
     VulkanBuffer::VulkanBuffer( const BufferDescription& createInfo )
@@ -242,15 +249,16 @@ namespace Mikoto {
             case BufferUsage::SHADER_STORAGE:
                 SetupStorageBuffer(createInfo);
                 break;
-            default:;
+            default:
+                MKT_ASSERT( false, "Invalid buffer usage." );
         }
 
+        // The context is used later to infer frame index. This is used 
+        // to offset into the buffer slice corresponding to a specific frame index
         m_Context = MKT_VK_CTX( RenderService::Get()->GetContext() );
     }
 
     auto VulkanBuffer::CopyToHost( void* ptr, const Size size ) -> void {
-        // Do a check that this is CPU visible memory
-
         PersistentMap();
 
         const Size copySize{ Math::Min(size, m_Allocation.AllocationInfo.size) };
@@ -317,17 +325,14 @@ namespace Mikoto {
     }
 
     auto VulkanBuffer::CopyToDevice( const void* ptr, const Size size ) -> void {
-        // Do a check that this is CPU visible memory
-
         PersistentMap();
         CopyToDevice(ptr, size, 0);
     }
 
     auto VulkanBuffer::CopyToDevice( const void* ptr, const Size size, const Size offset ) -> void {
-        // Do a check that this is CPU visible memory
-
         PersistentMap();
 
+        // Streaming resources are updated often, we directly memcopy to the current slice
         if (IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_STREAMING )) {
             if (m_UsesScalarBlockLayout) {
                 const UInt32 currentFrame{ m_Context->GetCurrentFrameIndex() };
@@ -341,13 +346,15 @@ namespace Mikoto {
                 MKT_ASSERT( false, "Mikoto only supports scalar block for now" );
             }
         } else {
-            std::memcpy(static_cast<std::byte*>(m_Allocation.AllocationInfo.pMappedData) + offset, ptr, size);
+            // Static resources cannot be copied to from CPU directly
+            // Same goes for dynamic usage resources
+            //MKT_ASSERT( false, "Other types of resource usage require copy via commands" );
+            std::memcpy( static_cast<std::byte*>( m_Allocation.AllocationInfo.pMappedData ) + offset, ptr, size );
         }
     }
 
     auto VulkanBuffer::GetNativeHandle( ObjectType object ) -> Object {
         switch (object) {
-
             case ObjectType::Vk_Buffer:
                 return Object( m_Allocation.Buffer );
             default:;

@@ -42,6 +42,7 @@ namespace Mikoto {
         auto UpdateAnimation( float deltaTime ) -> void;
 
         auto GetFinalBoneMatrices() -> auto& { return m_FinalMatrices; }
+        auto GetInverseBindMatrices() -> auto& { return m_Model->GetSkeleton().GetInverseBindMatrices(); }
 
         MKT_NODISCARD auto GetCurrentAnimation() const -> const SkinnedAnimation*;
         MKT_NODISCARD auto GetAnimationList() const -> const auto& { return m_Model->GetAnimations(); }

@@ -87,6 +87,8 @@ namespace Mikoto {
     }
 
     auto DebugPasses::RegisterPasses( FrameGraph &graph ) -> void {
+        // Missing passes for physics debug (collision mesh renderer, etc)
+
         RegisterSimpleCompute( graph );
         RegisterHelloTriangle( graph );
         RegisterHelloTexture( graph );

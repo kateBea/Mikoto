@@ -91,12 +91,12 @@ namespace Mikoto {
                 if ( const auto it{ m_Models.find(fullpath) }; it != m_Models.end())
                     return it->second;
             }
-            else if constexpr (std::is_same_v<AssetType, Texture>) {
+            else if constexpr (std::is_same_v<AssetType, Texture>) { // TODO: resolve 2D or cube
                 if ( const auto it{ m_Textures2D.find(fullpath) }; it != m_Textures2D.end())
                     return it->second;
             }
-            else if constexpr (std::is_same_v<AssetType, TextureCube>) {
-                if ( const auto it{ m_Textures2D.find(fullpath) }; it != m_TexturesCubes.end())
+            else if constexpr (std::is_same_v<AssetType, TextureCube>) {// TODO: remove
+                if ( const auto it{ m_TexturesCubes.find(fullpath) }; it != m_TexturesCubes.end())
                     return it->second;
             }
             else if constexpr (std::is_same_v<AssetType, Audio>) {
@@ -193,6 +193,7 @@ namespace Mikoto {
 
         std::mutex m_Texture2DPoolMutex{};
         std::mutex m_TextureCubePoolMutex{};
+        std::mutex m_ModelLoadMutex{};
 
         ankerl::unordered_dense::map<std::string, MaterialHandle> m_Materials{};
         ankerl::unordered_dense::map<std::string, ModelHandle> m_Models{};

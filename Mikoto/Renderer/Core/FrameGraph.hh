@@ -117,6 +117,14 @@ namespace Mikoto {
         ankerl::unordered_dense::map<std::string, FramePassResource> Resources{};
     };
 
+    // This will be passed to the command context.
+    // Passes that need to create resources on the fly will go through 
+    // this manager, for example right now we are using boundless descriptor
+    // with lots of sampler 2D, we need control over that like knowing whether it exists and for how long
+    class FrameGraphResourceAllocator {
+
+    };
+
     class FrameGraph final {
     public:
         explicit FrameGraph( GraphicsContext *context, GpuDevice *device );

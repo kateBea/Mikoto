@@ -51,6 +51,7 @@ namespace Mikoto {
         auto RegisterDirShadowMap( FrameGraph& graph ) -> void;
         auto RegisterPointShadowMap( FrameGraph& graph ) -> void;
         auto RegisterSpotShadowMap( FrameGraph& graph ) -> void;
+        auto RegisterDebugViewsPass( FrameGraph& graph ) -> void;
 
     private:
         const Scene* m_Scene{};

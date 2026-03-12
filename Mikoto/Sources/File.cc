@@ -56,9 +56,6 @@ namespace Mikoto {
     }
 
     auto File::GetFileContents() const -> const std::string & {
-        // If this file is being updated do not fetch the contents until its finished
-        std::lock_guard lock{ m_FileUpdateMutex };
-
         return m_Contents;
     }
 
@@ -81,22 +78,15 @@ namespace Mikoto {
         }
     }
 
-    auto File::SetContents( CStr contents ) -> void {
-        m_Contents = contents;
-
+    auto File::SetContents( std::string &&contents ) -> void {
+        m_Contents = std::move(contents);
         FlushContents();
     }
 
     auto File::UpdateContents() -> void {
-        {
-            std::lock_guard lock{ m_FileUpdateMutex };
-            LoadContents();
-            InferFileSize();
-        }
+        LoadContents();
+        InferFileSize();
 
-        // Close the file after we have finished
-        // fetching its contents, if any other external library attempts
-        // to open the same file, it might fail
         if ( m_FileStream.is_open() ) {
             m_FileStream.close();
             m_FileStream = {};
@@ -133,7 +123,6 @@ namespace Mikoto {
 
             { "mp3", FileType::MP3_AUDIO_TYPE },
             { "wav", FileType::WAV_AUDIO_TYPE },
-
         };
 
         if ( const auto result{ values.find( extension ) }; result != values.end() ) {
@@ -174,4 +163,4 @@ namespace Mikoto {
 
         return "";
     }
-}// namespace Mikoto
+}

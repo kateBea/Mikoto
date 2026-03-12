@@ -77,6 +77,8 @@ namespace Mikoto {
     };
 
     struct FinalShadingConstants {
+        Mat4F LightViewProjection{};
+
         Vec4F GridSize{};
         float Exposure{};
         float Gamma{};

@@ -191,19 +191,20 @@ namespace Mikoto {
 
     auto ImGuiVulkanBackend::InitImGuiForVulkan() -> void {
         const auto window{ std::any_cast<GLFWwindow*>( m_Window->GetNativeWindow() ) };
-        std::array<VkDescriptorPoolSize, 11> poolSizes{};
 
-        poolSizes[0] = { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 };
-        poolSizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 };
-        poolSizes[2] = { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 };
-        poolSizes[3] = { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 };
-        poolSizes[4] = { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 };
-        poolSizes[5] = { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 };
-        poolSizes[6] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 };
-        poolSizes[7] = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 };
-        poolSizes[8] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 };
-        poolSizes[9] = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 };
-        poolSizes[10] = { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 };
+        std::array<VkDescriptorPoolSize, 11> poolSizes{
+            VK_DESCRIPTOR_TYPE_SAMPLER, 1000,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000,
+            VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000,
+            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000,
+            VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000,
+            VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000,
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000,
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000,
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000,
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000,
+            VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000
+        };
 
         VkDescriptorPoolCreateInfo poolCreateInfo{ VulkanHelpers::Initializers::DescriptorPoolCreateInfo() };
         poolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
@@ -211,14 +212,16 @@ namespace Mikoto {
         poolCreateInfo.poolSizeCount = static_cast<UInt32>( poolSizes.size() );
         poolCreateInfo.pPoolSizes = poolSizes.data();
 
-        const VulkanDevice& device{ *TO_VK_DEVICE( m_GpuDevice ) };
+        const VulkanDevice* device{ MKT_VK_DEVICE( m_GpuDevice ) };
 
-        if ( vkCreateDescriptorPool( VK_DEVICE(m_GpuDevice),
+        if ( vkCreateDescriptorPool( device->GetLogicalDevice(),
                                      std::addressof( poolCreateInfo ),
                                      nullptr,
                                      std::addressof( m_ImGuiDescriptorPool ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "ImGuiVulkanBackend::InitImGuiForVulkan - Failed to create descriptor pool for ImGui." );
         }
+
+        VulkanContext* context{ MKT_VK_CTX( RenderService::Get()->GetContext() ) };
 
 #if __linux__
         ImGui_ImplVulkan_LoadFunctions(VulkanContext::Get()->GetApiVersion(),
@@ -227,28 +230,28 @@ namespace Mikoto {
                 },
                 std::addressof( VulkanContext::Get()->GetInstance() ) );
 #else
-        ImGui_ImplVulkan_LoadFunctions( VulkanContext::Get()->GetApiVersion(),
+        ImGui_ImplVulkan_LoadFunctions( context->GetApiVersion(),
             []( const char* functionName, void* vulkanInstance ) {
             return vkGetInstanceProcAddr( *static_cast<VkInstance*>( vulkanInstance ), functionName );
-        }, std::addressof( VulkanContext::Get().GetInstance() ) );
+        }, std::addressof( context->GetInstance() ) );
 #endif
-
 
         ImGui_ImplGlfw_InitForVulkan( window, true );
 
         ImGui_ImplVulkan_InitInfo initInfo{
-            .ApiVersion{ VulkanContext::Get()->GetApiVersion() },
-            .Instance = VulkanContext::Get()->GetInstance(),
-            .PhysicalDevice = device.GetPhysicalDevice(),
+            .ApiVersion{ context->GetApiVersion() },
+            .Instance = context->GetInstance(),
+            .PhysicalDevice = device->GetPhysicalDevice(),
             .Device = VK_DEVICE(m_GpuDevice),
-            .Queue = device.GetLogicalDeviceQueues().Graphics->Queue,
+            .Queue = device->GetLogicalDeviceQueues().Graphics->Queue,
             .DescriptorPool = m_ImGuiDescriptorPool,
-            .MinImageCount = 3,
-            .ImageCount = 3,
+            .MinImageCount{ 3 },
+            .ImageCount{ 3 },
             .PipelineInfoMain{
-                    .RenderPass{ m_ImGuiRenderPass },
-                    .Subpass{ 0 },
-                    .MSAASamples{ VK_SAMPLE_COUNT_1_BIT } },
+                .RenderPass{ m_ImGuiRenderPass },
+                .Subpass{ 0 },
+                .MSAASamples{ VK_SAMPLE_COUNT_1_BIT } 
+            },
         };
 
         if (m_UseDynamicRendering) {
@@ -274,8 +277,7 @@ namespace Mikoto {
 
         // Color Device attachment
         TextureDescription colorDesc{};
-        colorDesc
-                .WithWidth( static_cast<Int32>( m_Extent2D.width ) )
+        colorDesc.WithWidth( static_cast<Int32>( m_Extent2D.width ) )
                 .WithHeight( static_cast<Int32>( m_Extent2D.height ) )
                 .WithChannelCount( 4 )
                 .WithData( nullptr )
@@ -289,8 +291,7 @@ namespace Mikoto {
 
         // Depth attachment
         TextureDescription depthDesc{};
-        depthDesc
-                .WithWidth( static_cast<Int32>(m_Extent2D.width) )
+        depthDesc.WithWidth( static_cast<Int32>(m_Extent2D.width) )
                 .WithHeight( static_cast<Int32>(m_Extent2D.height) )
                 .WithChannelCount( 1 )
                 .WithData( nullptr )

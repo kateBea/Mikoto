@@ -48,6 +48,7 @@ namespace Mikoto {
 
         RegisterBloom( graph );
         RegisterSSAO( graph );
+        RegisterChromaticAberration( graph );
         RegisterTextRender( graph, device );
     }
 
@@ -165,6 +166,19 @@ namespace Mikoto {
 
         graph.RegisterPass(
             "ObjectOutline",
+            []( FramePassBuilder& b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
+    }
+
+    auto PostEffectsPass::RegisterChromaticAberration( FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+            "ChromaticAberration",
             []( FramePassBuilder& b ) {
                 MKT_BEGIN_PROFILER_NAMED();
             },

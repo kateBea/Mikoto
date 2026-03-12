@@ -147,9 +147,12 @@ namespace Mikoto {
         } ) };
 
         if ( !model.IsEmpty() ) {
+
+            m_ModelLoadMutex.lock();
             auto [it, success]{
                 m_Models.try_emplace( modelFile->GetPath(), model )
             };
+            m_ModelLoadMutex.unlock();
 
             // TODO: Handle when a model gets updated from disk and reload it at engine side
             FileWatcherService::Get()->Watch(
@@ -296,7 +299,6 @@ namespace Mikoto {
             }
         }
 
-        // Because ImageLoader is RAII
         try {
             texture = m_GpuDevice->CreateTexture( textureDesc );
         } catch (std::exception& e) {
@@ -325,8 +327,7 @@ namespace Mikoto {
         if (!audioFile) {
             return AudioHandle::CreateEmpty();
         }
-
-        // if it exists
+        
         if (const auto itFind{ m_Audios.find( audioFile->GetPath() ) }; itFind != m_Audios.end() ) {
             return itFind->second;
         }

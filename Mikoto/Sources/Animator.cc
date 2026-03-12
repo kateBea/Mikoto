@@ -77,6 +77,7 @@ namespace Mikoto {
              MKT_CORE_LOGGER_ERROR( "No animation is currently set. Cannot play." );
          }
     }
+
     auto Animator::PlayAnimation( std::string_view name ) -> void {
         SkinnedAnimation* animation{ m_Model->FindAnimation( name ) };
         if (animation) {
@@ -131,7 +132,8 @@ namespace Mikoto {
         const Size jointCount{ m_ModelMatrices.size() };
         const auto& inverseBindMats{ m_Model->GetSkeleton().GetInverseBindMatrices() };
 
-        for ( Size i{}; i < jointCount && i < inverseBindMats.size(); ++i ) {
+        Size limit{ Math::Min( m_FinalMatrices.size(), inverseBindMats.size(), m_ModelMatrices.size() ) };
+        for ( Size i{}; i < limit; ++i ) {
             // because ozz uses colum major mat4x4 of floats
             ozz::math::Float4x4& model{ m_ModelMatrices[i] };
             m_FinalMatrices[i] = *reinterpret_cast<Mat4F*>( MKT_ADDRESSOF( model ) ) * inverseBindMats[i];
@@ -141,24 +143,20 @@ namespace Mikoto {
     }
 
     auto Animator::InitializeOzzAnimation() -> void {
-        // Get ozz skeleton and animation
         auto skeleton{ m_Model->GetSkeleton().GetOzzSkeleton() };
         auto playAnimation{ m_CurrentAnimation->GetOzzAnimation() };
 
-        // Skeleton and animation needs to match.
         if ( skeleton->num_joints() != playAnimation->num_tracks() ) {
             MKT_CORE_LOGGER_ERROR( "Animator error skeleton joint count does not match animation track count" );
             return;
         }
 
-        // Allocates runtime buffers.
         const Int32 soaJointsCount{ skeleton->num_soa_joints() };
         m_LocalMatrices.resize( soaJointsCount );
         
         const Int32 jointsCount{ skeleton->num_joints() };
         m_ModelMatrices.resize( jointsCount );
 
-        // Allocates a context that matches animation requirements.
         m_Context->Resize( jointsCount );
     }
 }

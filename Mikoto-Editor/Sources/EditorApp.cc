@@ -57,12 +57,9 @@ namespace Mikoto {
             //{ PrefabModels::SPONZA, "Resources/Models/Prefabs/sponza/sponza.obj" }
         };
 
-        TaskGraph loaders{};
         for ( const auto &val: m_PrefabModels | std::views::values ) {
-            loaders.Emplace( [&]() -> void { AssetsService::Get()->LoadAsset<Model>( val ); } );
+            AssetsService::Get()->LoadAsset<Model>( val );
         }
-
-        TaskService::Get()->WaitForExecution( loaders );
     }
 
     auto EditorApp::Init() -> void {

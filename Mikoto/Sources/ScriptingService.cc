@@ -103,7 +103,7 @@ namespace Mikoto {
         if ( File * file{ FileService::Get()->CreateNewFile( scriptName ) } ) {
             const File* scriptBase{ FileService::Get()->LoadFile( "Resources/Script-Examples/base.lua" ) };
 
-            file->SetContents( scriptBase->GetFileContents().c_str() );
+            file->SetContents( std::string{ scriptBase->GetFileContents() } );
             file->FlushContents();
 
             try {

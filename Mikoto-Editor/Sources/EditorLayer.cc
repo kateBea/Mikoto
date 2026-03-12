@@ -100,7 +100,7 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "Skybox", m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "DirectionalShadowMapDepth", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_DepthTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "ShadowMap", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "InfiniteGrid", m_SceneRenderer->GetTexture( "InfiniteGrid_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "DepthPrePass", m_SceneRenderer->GetTexture( "DepthPrePass_Color" ) );
     }
@@ -160,41 +160,6 @@ namespace Mikoto {
 
     auto EditorLayer::LoadResources() -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-#if false
-        TextureCubeLoadDescription loadDesc{};
-        loadDesc.WithType( TextureType::TEXTURE_CUBE )
-            .WithBasePath("Resources/Cubemaps/Lycksele2")
-            .WithFacePath( "posx.jpg" )
-            .WithFacePath( "negx.jpg" )
-
-            .WithFacePath( "negy.jpg" )
-            .WithFacePath( "posy.jpg" )
-
-            .WithFacePath( "posz.jpg" )
-            .WithFacePath( "negz.jpg" );
-
-        m_TextureCubeMap = AssetsService::Get()->LoadAsset<TextureCube>( loadDesc );
-
-        // For Debug, move to scene properties panel
-        const File* textureFile{ FileService::Get()->LoadFile( "Resources/HDR/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr" )  };
-        const ImageLoader2D image{ textureFile };
-        TextureDescription textureDesc{};
-        textureDesc.WithWidth( image.GetWidth() )
-            .WithHeight( image.GetHeight() )
-            .WithChannelCount( image.GetChannels() )
-
-            .WithData( image.GetData() )
-            .WithFile( textureFile )
-
-
-            .WithType( TextureType::TEXTURE_2D )
-            .WithFormat( TextureFormat::SRGB8_ALPHA8 )
-
-            .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
-        m_EditorState->TextureHDR = RenderService::Get()->GetGpuDevice()->CreateTexture( textureDesc );
-#endif
     }
 
     auto EditorLayer::SetPresentTarget() -> void {

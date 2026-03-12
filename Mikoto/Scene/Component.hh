@@ -339,6 +339,19 @@ namespace Mikoto {
             }
         }
 
+        template<typename T>
+        MKT_NODISCARD auto Get() const -> const T& {
+            if constexpr ( std::is_same_v<T, PointLight> ) {
+                return m_PointLight;
+            } else if constexpr ( std::is_same_v<T, SpotLight> ) {
+                return m_SpotLight;
+            } else if constexpr ( std::is_same_v<T, DirectionalLight> ) {
+                return m_DirectionalLight;
+            } else {
+                MKT_STATIC_ASSERT( false, "Unsupported light type in LightComponent::Get()" );
+            }
+        }
+
     private:
         SpotLight m_SpotLight{};
         PointLight m_PointLight{};

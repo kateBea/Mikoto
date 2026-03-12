@@ -50,7 +50,7 @@ namespace Mikoto {
                 return VK_SAMPLER_ADDRESS_MODE_REPEAT;
         }
     }
-
+    
     VulkanSampler::VulkanSampler( const SamplerDescription& info ) {
         // Create a Sampler for the texture we will display in the viewport
         m_CreateInfo = VulkanHelpers::Initializers::SamplerCreateInfo();
@@ -65,9 +65,15 @@ namespace Mikoto {
 
         m_CreateInfo.maxAnisotropy = 1.0f;
         m_CreateInfo.mipLodBias = 0.0f;
+        m_CreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK; 
         m_CreateInfo.minLod = 0.0f;
         m_CreateInfo.maxLod = info.MipLevels;
         m_CreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+
+        // Curently we only support transpoarent white or trasnparent black
+        if (info.BorderColor == Vec4F{ 1.0f, 1.0f, 1.0f, 1.0f }) {
+            m_CreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE; 
+        }
 
         if (info.CubeSampler) {
             m_CreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
@@ -210,6 +216,8 @@ namespace Mikoto {
             CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
             cmd->Begin();
 
+            // m_ExternalBufferSize is used if the client filled the buffer manually otherwise we use infered size
+            // m_ExternalBufferSize is used for instance for the Noise texture used for randimized sampling with SSAO
             cmd->FillTexture( m_Data, m_ExternalBufferSize == 0 ? m_ImageSize : m_ExternalBufferSize, this );
 
             cmd->End();
@@ -218,16 +226,15 @@ namespace Mikoto {
 
         // Prepare for view creation
         m_ImageViewCreateInfo = VulkanHelpers::Initializers::ImageViewCreateInfo();
-        m_ImageViewCreateInfo.pNext = nullptr;
-        m_ImageViewCreateInfo.flags = 0;
         m_ImageViewCreateInfo.image = m_ImageAllocation.Image;
         m_ImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         m_ImageViewCreateInfo.format = m_ImageAllocation.ImageCreateInfo.format;
 
+        // TODO: Review
         VkImageAspectFlags aspectFlags{ VK_IMAGE_ASPECT_COLOR_BIT };
         if ( m_TextureUsage == TextureUsage::DEPTH ) {
-            aspectFlags =
-                    m_ImageAllocation.ImageCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT : ( VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT );
+            aspectFlags = m_ImageAllocation.ImageCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? 
+                VK_IMAGE_ASPECT_DEPTH_BIT : ( VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT );
         }
 
         m_ImageViewCreateInfo.subresourceRange.aspectMask = aspectFlags;
@@ -305,6 +312,7 @@ namespace Mikoto {
             return;
         }
 
+        // Barrier for transition not handled externally
         if (insertBarrier) {
             VkImageSubresourceRange subresourceRange{};
             subresourceRange.aspectMask = VulkanHelpers::GetAspectMask(VulkanHelpers::ToVkFormat( GetFormat() ));;
@@ -459,7 +467,7 @@ namespace Mikoto {
     auto VulkanTextureCube::Release() -> void {
         dynamic_cast<VulkanDevice*>( m_Device )->WaitIdle();
 
-        vkDestroyImageView( VK_DEVICE( m_Device ), m_ImageView, nullptr );
+        vkDestroyImageView( MKT_VK_LOGICAL_DEVICE( m_Device ), m_ImageView, nullptr );
 
         auto* allocator{ MKT_VMA_ALLOC_PTR(m_Device) };
         allocator->FreeImage( m_ImageAllocation );
@@ -475,7 +483,11 @@ namespace Mikoto {
         };
 
         m_ImageAllocation.ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
+
+        // If the specified format is not supported we need to find the best format for the texture usage
+        // And upate the current format accordignly
         m_ImageAllocation.ImageCreateInfo.format = VulkanHelpers::ToVkFormat( m_Format );
+
         m_ImageAllocation.ImageCreateInfo.extent = extent;
 
         // This texture is a 2D image always
@@ -530,6 +542,9 @@ namespace Mikoto {
         std::vector<ImageLoader2D> images{};
 
         if ( m_IsLDR ) {
+            // TODO: Review. This allows me to construct the cube image without the need of a 
+            // Cube map generation pass. HdriToCubemap handles projection entirely on the CPU (single threaded)
+            // from an equirectangular map, also provides altervative OpenCL path (still untested and needs review)
             constexpr bool linearFilter{ true };
             const Int32 cubeMapResolution{ m_Width };
 
@@ -893,7 +908,8 @@ namespace Mikoto {
             SetupNonSwapChainImage();
         }
 
-        // External images have their image views provided on construction
+        // External images have their image provided on construction
+        // We still need to create the image views
         if ( vkCreateImageView( VK_DEVICE( m_Device ), std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Allocate - Failed to create the Vulkan Image View!" );
         }
@@ -914,26 +930,15 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "VulkanSwapChain::Initialize - Error the surface for the swapchain is null." );
         }
 
-        /**
-         * [00:11:36] CORE LOG [thread 10211] Validation layer: Validation Error: [ VUID-VkSwapchainCreateInfoKHR-imageExtent-01274 ] Object 0:
-         * handle = 0x62e000018450, type = VK_OBJECT_TYPE_DEVICE; | MessageID = 0x7cd0911d | vkCreateSwapchainKHR() called with imageExtent = (1494,921),
-         * which is outside the bounds returned by vkGetPhysicalDeviceSurfaceCapabilitiesKHR(): currentExtent = (1495,925), minImageExtent = (1495,925),
-         * maxImageExtent = (1495,925). The Vulkan spec states: imageExtent must be between minImageExtent and maxImageExtent, inclusive, where
-         * minImageExtent and maxImageExtent are members of the VkSurfaceCapabilitiesKHR structure returned by vkGetPhysicalDeviceSurfaceCapabilitiesKHR
-         * for the surface (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-VkSwapchainCreateInfoKHR-imageExtent-01274)
-         *
-         * this validation error is triggered at times when resizing the main window (GLFW window)
-         * */
         CreateSwpChain();
-
-        GetImages();
+        FetchSwapChainImages();
 
         m_IsAllocated = true;
     }
 
     auto VulkanSwapChain::CreateSwpChain() -> void {
         const auto [Capabilities, Formats, PresentModes]{
-            VulkanHelpers::GetSwapChainSupport( TO_VK_DEVICE( m_Device )->GetPhysicalDevice(), *m_Surface )
+            VulkanHelpers::GetSwapChainSupport( MKT_VK_DEVICE( m_Device )->GetPhysicalDevice(), *m_Surface )
         };
 
         const auto [format, colorSpace]{ ChooseSurfaceFormat( Formats ) };
@@ -967,7 +972,7 @@ namespace Mikoto {
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
         const auto& [Present, Graphics, Compute]{
-            TO_VK_DEVICE( m_Device )->GetLogicalDeviceQueues()
+            MKT_VK_DEVICE( m_Device )->GetLogicalDeviceQueues()
         };
 
         // Let swapchain to share images between queues or not. We need to account for it
@@ -994,8 +999,8 @@ namespace Mikoto {
         }
     }
 
-    auto VulkanSwapChain::GetImages() -> void {
-        static VulkanDevice& device{ *TO_VK_DEVICE( m_Device ) };
+    auto VulkanSwapChain::FetchSwapChainImages() -> void {
+        static VulkanDevice* device{ MKT_VK_DEVICE( m_Device ) };
 
         UInt32 imageCount{};
 
@@ -1003,14 +1008,14 @@ namespace Mikoto {
         // allowed to create a swap chain with more. That's why we'll first query the final number of
         // images with vkGetSwapchainImagesKHR with the last parameter as nullptr, then resize the container and finally call it again to
         // retrieve the handles.
-        vkGetSwapchainImagesKHR( device.GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), nullptr );
+        vkGetSwapchainImagesKHR( device->GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), nullptr );
 
         auto images{ std::vector<VkImage>( imageCount ) };
-        vkGetSwapchainImagesKHR( device.GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), images.data() );
+        vkGetSwapchainImagesKHR( device->GetLogicalDevice(), m_Swapchain, std::addressof( imageCount ), images.data() );
 
         UInt32 imageIndex{ 0 };
         for ( const VkImage image: images ) {
-            auto& insertedImg{ m_Images.emplace_back( device.CreateSwapChainTextures( ConstructImgViewInfo( image, m_Format ), m_Extent ) ) };
+            auto& insertedImg{ m_Images.emplace_back( device->CreateSwapChainTextures( ConstructImgViewInfo( image, m_Format ), m_Extent ) ) };
             insertedImg->SetDebugName( fmt::format( "Swapchain Img - {}", imageIndex++ ) );
         }
     }
@@ -1042,10 +1047,10 @@ namespace Mikoto {
         m_Extent = newDimensions;
         m_IsVsyncEnabled = vsync;
 
-        TO_VK_DEVICE( m_Device )->WaitIdle();
+        MKT_VK_DEVICE( m_Device )->WaitIdle();
         m_Images.clear();
 
-        vkDestroySwapchainKHR( VK_DEVICE( m_Device ), m_Swapchain, nullptr );
+        vkDestroySwapchainKHR( MKT_VK_LOGICAL_DEVICE( m_Device ), m_Swapchain, nullptr );
         m_OldSwapchain = m_Swapchain;
 
         m_Images.clear();

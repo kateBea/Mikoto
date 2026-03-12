@@ -137,16 +137,32 @@ namespace Mikoto {
         if ( sceneCamera.GetProjectionType() == ProjectionType::ORTHOGRAPHIC ) {}
     }
 
-    auto SettingsPanel::DrawInfiniteGridConfig() -> void {
-        ImGui::Spacing();
-        ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::GridSize", m_Data.GridSize, { 5, 100 } );
-        ImGui::SameLine();
-        ImGuiUtils::HelpMarker( "Adjust infinite grid size." );
+    auto SettingsPanel::DrawCameraProperties() -> void {
+        SceneCamera *camera{ m_EditorState->EditorCamera };
+        if ( !camera )
+            return;
 
-        ImGui::Spacing();
-        ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::GridCellSize", m_Data.GridCellSize, { 5, 100 } );
-        ImGui::SameLine();
-        ImGuiUtils::HelpMarker( "Adjust infinite grid cell size." );
+        if ( ImGui::CollapsingHeader( "Camera", ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            float fov{ camera->GetFOV() };
+            if ( ImGui::DragFloat( "FOV", &fov, 0.1f, 1.0f, 120.0f ) )
+                camera->SetFieldOfView( fov );
+
+            float nearPlane{ camera->GetNearPlane() };
+            if ( ImGui::DragFloat( "Near Plane", &nearPlane, 0.01f, 0.001f, 10.0f ) )
+                camera->SetNearPlane( nearPlane );
+
+            float farPlane{ camera->GetFarPlane() };
+            if ( ImGui::DragFloat( "Far Plane", &farPlane, 1.0f, 10.0f, 10000.0f ) )
+                camera->SetFarPlane( farPlane );
+
+            ImGui::Separator();
+
+            Vec3F target{ camera->GetPosition() };
+            float targetArr[3]{ target.x, target.y, target.z };
+
+            if ( ImGui::DragFloat3( "Position", targetArr, 0.1f ) )
+                camera->SetCameraTarget( { targetArr[0], targetArr[1], targetArr[2] } );
+        }
     }
 
     SettingsPanel::SettingsPanel( const SettingsPanelCreateInfo &data )
@@ -167,8 +183,8 @@ namespace Mikoto {
             DrawCameraConfig();
         } );
 
-        ImGuiUtils::DrawNode( "Infinite grid", [this] () -> void {
-            DrawInfiniteGridConfig();
+        ImGuiUtils::DrawNode( "Camera properties", [this] () -> void {
+            DrawCameraProperties();
         } );
 
         ImGui::End();

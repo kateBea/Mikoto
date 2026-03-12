@@ -97,7 +97,7 @@ namespace Mikoto {
             }
         }
     }
-
+    
     auto CommandContext::BindImageSampler( ResourceGroup group, std::string_view name, SamplerHandle sampler, ResourceSlot slot ) -> void {
         const auto it{ m_ResourcesByNames->Resources.find( std::string{ name } ) };
         if (it != m_ResourcesByNames->Resources.end()) {
@@ -111,7 +111,7 @@ namespace Mikoto {
             }
         }
     }
-
+    
     auto CommandContext::BindImageSampler( ResourceGroup group, TextureHandle texture, SamplerHandle sampler, ResourceSlot slot ) -> void {
         if (texture.IsEmpty()) {
             return;

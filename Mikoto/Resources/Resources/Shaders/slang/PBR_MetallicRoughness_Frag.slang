@@ -22,6 +22,8 @@
 #include "base/ClusteringLights_Helpers.slang"
 
 struct FinalShadingParameters {
+    float4x4 LightViewProjection;
+
     float4 GridSize;
     float Exposure;
     float Gamma;
@@ -92,6 +94,9 @@ ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 [[vk::binding(Slot_3, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAO;
 [[vk::binding(Slot_4, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAOBlur;
 
+// Shadow maps
+[[vk::binding(Slot_0, DYNAMIC_SAMPLERS_SET_INDEX)]] Sampler2D u_ShadowMap;
+
 [[vk::push_constant]]
 FinalShadingParameters u_Constants;
 
@@ -104,6 +109,8 @@ struct FSInput {
     float4 VertexColor : TEXCOORD5;
 
     uint MaterialIndex : TEXCOORD6;
+
+    float4 FragPosLightSpace : TEXCOORD7;
 
     float4 ScreenPos : SV_Position;
     bool IsFrontFace : SV_IsFrontFace;
@@ -177,7 +184,7 @@ float MicrofacetDistribution(PBRInfo pbrInputs) {
 }
 
 float3 ComputeDirectionalLightContribution(float3 n, float3 v, LightInfo lightInfo, BaseInputs inputs) {
-    float3 l = normalize(-lightInfo.Direction.xyz); // Vector from surface point to light
+    float3 l = normalize(-lightInfo.Direction.xyz); // Vector from surface point to light (multiply by -1 because otherwise wrong face is lit)
     float3 h = normalize(l + v);                     // Half vector between both l and v
 
     float NdotL = clamp(dot(n, l), 0.001, 1.0);
@@ -338,6 +345,69 @@ struct FSOutput {
     float4 Color : SV_Target0;
 };
 
+float ComputeShadow(float4 fragLightSpaceCoord, LightInfo light) {
+    const float shadowVal = 0.2f;
+    const float noShadowVal = 1.0f;
+
+    // Perspective divide
+    float3 projCoords = fragLightSpaceCoord.xyz / fragLightSpaceCoord.w;
+
+    // Vulkan z is already within [0, 1]
+    projCoords.xy = projCoords.xy * 0.5 + 0.5;
+    projCoords.y = 1 - projCoords.y; // This is something that I tried from memory, I remember needing this for proper texture coordinates on legacy Mikoto, this need further investigation
+
+    if (projCoords.z > 1.0f) {
+        return shadowVal;
+    }
+
+    float currentDpeth = projCoords.z;
+    float closestDepth = u_ShadowMap.Sample( projCoords.xy ).r;
+
+    float bias = 0.005;
+    // float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float shadow = (currentDpeth - bias) > closestDepth ? noShadowVal : shadowVal;
+
+    return shadow;
+}
+
+float ComputeShadowPCF(float4 fragLightSpaceCoord, LightInfo light) {
+    float3 projCoords = fragLightSpaceCoord.xyz / fragLightSpaceCoord.w;
+    projCoords.xy = projCoords.xy * 0.5 + 0.5;
+    projCoords.y = 1 - projCoords.y;
+
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+
+    float width = 0;
+    float height = 0;
+    float mipLevelCount = 0;
+
+    u_ShadowMap.GetDimensions(0, width, height, mipLevelCount);
+
+    float2 texelSize = 1.0 / float2(width, height);
+    float filterRadius = 2.0;
+
+    float shadow = 0.0;
+    int kernel = 2;
+
+    for (int x = -kernel; x <= kernel; ++x)
+    {
+        for (int y = -kernel; y <= kernel; ++y)
+        {
+            float2 offset = float2(x, y) * texelSize * filterRadius;
+
+            float depth = u_ShadowMap.Sample(projCoords.xy + offset).r;
+
+            shadow += currentDepth - bias > depth ? 1.0 : 0.0;
+        }
+    }
+
+    float samples = pow((kernel * 2 + 1), 2);
+    shadow /= samples;
+
+    return shadow;
+}
+
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput output;
@@ -489,7 +559,8 @@ FSOutput main(FSInput input) {
         //////////////////////////////////////////////////////
 
         if (light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL) {
-            lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs);
+            float shadow = ComputeShadow(input.FragPosLightSpace, light);
+            lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs) * (1.0f - shadow);
             continue;
         }
 
@@ -568,5 +639,10 @@ FSOutput main(FSInput input) {
 
     output.Color = Tonemap(float4(color, baseColor.a));
 
+    // if (u_Constants.Step == 1) {
+    //     float4 d = input.FragPosLightSpace / input.FragPosLightSpace.w;
+    //     output.Color = float4(d.z, d.z, d.z, 1.0f);
+    // }
+    
     return output;
 }

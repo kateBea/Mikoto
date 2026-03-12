@@ -26,6 +26,8 @@
 
 #include <numbers>
 #include <vector>
+#include <algorithm>
+#include <type_traits>
 
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
@@ -59,6 +61,28 @@ namespace Mikoto::Math {
 
     auto DumpMat4FList( const std::vector<glm::mat4>& m ) -> void;
     auto DumpMat4FListBeautify( const std::vector<glm::mat4>& m ) -> void;
+
+    template<typename T, typename... Ts>
+    auto Max( T first, Ts... args ) -> std::common_type_t<T, Ts...> {
+        using ReturnT = std::common_type_t<T, Ts...>;
+
+        ReturnT result{ first };
+
+        ( ( result = glm::max( result, static_cast<ReturnT>( args ) ) ), ... );
+
+        return result;
+    }
+
+    template<typename T, typename... Ts>
+    auto Min( T first, Ts... args ) -> std::common_type_t<T, Ts...> {
+        using ReturnT = std::common_type_t<T, Ts...>;
+
+        ReturnT result{ first };
+
+        ( ( result = glm::min( result, static_cast<ReturnT>( args ) ) ), ... );
+
+        return result;
+    }
 
 }
 

@@ -55,6 +55,8 @@ namespace Mikoto {
 
     private:
         std::mutex m_FileLoadMutex{};
+
+        // Change from Unique to Ref<File>
         ankerl::unordered_dense::map<std::string, Unique<File>> m_Files{};
     };
 }

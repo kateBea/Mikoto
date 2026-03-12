@@ -65,10 +65,10 @@ namespace Mikoto {
 
         auto ComputeAllocationSize() -> void;
 
-        auto SetupUniformBuffer(const BufferDescription& createInfo) -> void;
-        auto SetupStorageBuffer(const BufferDescription& createInfo) -> void;
-        auto SetupVertexBuffer(const BufferDescription& createInfo) -> void;
-        auto SetupIndexBuffer(const BufferDescription& createInfo) -> void;
+        auto SetupUniformBuffer() -> void;
+        auto SetupStorageBuffer() -> void;
+        auto SetupVertexBuffer() -> void;
+        auto SetupIndexBuffer() -> void;
 
     private:
         // When creating uniforms we need specify a minimum size for GPU memory alignment
@@ -88,6 +88,8 @@ namespace Mikoto {
         BufferHandle m_StagingForCopies{};
 
         bool m_UsesScalarBlockLayout{ false };
+
+        BufferViewHandle m_BufferViewHandle{};
     };
 
 #define MKT_VK_BUFFER(BUFFER_HANDLE) dynamic_cast<VulkanBuffer*>(BUFFER_HANDLE.GetRaw())

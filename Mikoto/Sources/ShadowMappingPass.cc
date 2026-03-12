@@ -72,6 +72,7 @@ namespace Mikoto {
                     .DepthWrite{ true },
                     .AlphaBlending{ false },
                     .PipelineCullMode{ CullMode::CULL_BACK }, // Front culling to avoid peter panning
+                    .VertexAttributesSpec{},
                     .DepthAttachmentFormat{ TextureFormat::D32_FLOAT }
                 };
                 
@@ -81,7 +82,6 @@ namespace Mikoto {
                 b.Write( "DirectionalShadowMapPass_ColorTarget", FrameResourceState::RenderTarget );
                 b.Write( "DirectionalShadowMapPass_DepthTarget", FrameResourceState::DepthWrite );
 
-                b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
                 b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
                 b.Read( "MeshCulling_SkinningInfo", FrameResourceState::UnorderedAccessView );
             },
@@ -100,6 +100,9 @@ namespace Mikoto {
                 ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_1 );
+
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshVertices(), ResourceSlot::Slot_2 );
+                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_3 );
 
                 for ( const auto &light: lights ) {
                     auto &lightComp{ registry.get<LightComponent>( light ) };

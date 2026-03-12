@@ -68,12 +68,17 @@ namespace Mikoto {
             FramePassResource& resource{ it->second };
 
             BufferHandle buffer{ m_Context->GetBuffer( name ) };
-            MKT_ASSERT( !buffer.IsEmpty(), "Texture cannot be empty" );
+            MKT_ASSERT( !buffer.IsEmpty(), "Buffer cannot be empty" );
 
             if (resource.IsResource( FrameResourceType::BUFFER )) {
                 m_Context->PushBuffer( group, buffer, m_ActivePass->Name, slot );
             }
         }
+    }
+
+    auto CommandContext::BindBuffer( ResourceGroup group, BufferHandle buffer, ResourceSlot slot ) -> void {
+        MKT_ASSERT( !buffer.IsEmpty(), "Buffer cannot be empty" );
+        m_Context->PushBuffer( group, buffer, m_ActivePass->Name, slot );
     }
 
     auto CommandContext::BindGroup( ResourceGroup group, std::string_view groupName ) -> void {
@@ -276,7 +281,7 @@ namespace Mikoto {
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 
-        for (auto &[vertexBuffer, binding]: info.VertexBuffers) {
+        for ( auto &[vertexBuffer, binding]: info.VertexBuffers ) {
             m_Commands->BindVertexBuffer( vertexBuffer, binding );
         }
 

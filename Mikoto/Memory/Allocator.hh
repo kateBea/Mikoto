@@ -32,6 +32,7 @@
 #define MKT_ADDRESSOF( OBJECT_REF ) std::addressof( OBJECT_REF )
 
 #define MKT_NOTHROW_PLACEMENT_NEW( SIZE ) ::operator new( 1 * SIZE, std::nothrow )
+#define MKT_NOTHROW_PLACEMENT_NEW_COUNT( SIZE, COUNT ) ::operator new( COUNT * SIZE, std::nothrow )
 #define MKT_NOTHROW_PLACEMENT_DELETE( PTR ) ::operator delete(PTR)
 
 namespace Mikoto {

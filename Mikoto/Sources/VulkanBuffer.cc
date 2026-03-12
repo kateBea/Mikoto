@@ -148,16 +148,16 @@ namespace Mikoto {
         return sliceSize * m_Context->GetMaxFramesInFlight();
     }
 
-    auto VulkanBuffer::SetupUniformBuffer(const BufferDescription& createInfo) -> void {
+    auto VulkanBuffer::SetupUniformBuffer() -> void {
         m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
         m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-        // For now Uniforms always filled from CPUI
+        // For now Uniforms always filled from CPU
     }
 
-    auto VulkanBuffer::SetupStorageBuffer(const BufferDescription& createInfo) -> void {
+    auto VulkanBuffer::SetupStorageBuffer() -> void {
         m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
         m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
@@ -167,19 +167,20 @@ namespace Mikoto {
             m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
         }
 
-        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        // Vertex buffers can also be used as as a source transfer for integrating vertex pulling
+        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     }
 
-    auto VulkanBuffer::SetupVertexBuffer(const BufferDescription&) -> void {
-        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    auto VulkanBuffer::SetupVertexBuffer() -> void {
+        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
         // Because vertices are not often modified/write from CPU
         m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
         m_Allocation.AllocationCreateInfo.priority = 1.0f;
     }
 
-    auto VulkanBuffer::SetupIndexBuffer(const BufferDescription&) -> void {
-        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    auto VulkanBuffer::SetupIndexBuffer() -> void {
+        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
         // Because indices are not often modified/write from CPU
         m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
@@ -198,6 +199,7 @@ namespace Mikoto {
         m_Allocation.BufferCreateInfo = VulkanHelpers::Initializers::BufferCreateInfo();
 
         // Data must be alive until call to Initialize()
+        // Remove after integrating buffer views
         if ( src ) {
             m_Data = new Byte[m_SizeBytes];
             std::memcpy( m_Data, src, m_SizeBytes );
@@ -238,16 +240,16 @@ namespace Mikoto {
 
         switch (m_Usage) {
             case BufferUsage::VERTEX:
-                SetupVertexBuffer( createInfo );
+                SetupVertexBuffer();
                 break;
             case BufferUsage::INDEX:
-                SetupIndexBuffer( createInfo );
+                SetupIndexBuffer();
                 break;
             case BufferUsage::UNIFORM:
-                SetupUniformBuffer(createInfo);
+                SetupUniformBuffer();
                 break;
             case BufferUsage::SHADER_STORAGE:
-                SetupStorageBuffer(createInfo);
+                SetupStorageBuffer();
                 break;
             default:
                 MKT_ASSERT( false, "Invalid buffer usage." );

@@ -134,7 +134,7 @@ namespace Mikoto {
         bool DepthWrite{ true };
         bool StencilTest{ false };
         bool AlphaBlending{ true };
-        bool Wireframe{ false };
+        bool Wireframe{ false }; // DEPRECATED use polygon mode lines
         float WireframeLineWidth{ 1.0f };
         bool EnableSampleRateShading{ false };
 

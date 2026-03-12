@@ -92,6 +92,7 @@ namespace Mikoto {
         // Need to bind pipeline before specifying resources
         auto BindPipeline(std::string_view pipelineName ) -> void;
 
+        auto BindBuffer( ResourceGroup group, BufferHandle buffer, ResourceSlot slot ) -> void;
         auto BindBuffer( ResourceGroup group, std::string_view name, ResourceSlot slot ) -> void;
 
         auto BindGroup( ResourceGroup group, std::string_view groupName ) -> void;
@@ -107,7 +108,7 @@ namespace Mikoto {
 
         auto SetPolygonLineWidth(float value) -> void;
 
-        auto DrawIndexed(const DrawIndexedState& info) -> void;
+        auto DrawIndexed(const DrawIndexedState& info ) -> void;
         auto DrawIndexedIndirect( const DrawIndirectIndexedState& info ) -> void;
 
         auto Draw(UInt32 vertexCount, UInt32 instanceCount = 1, UInt32 firstVertex = 0, UInt32 firstInstance = 0 ) -> void;

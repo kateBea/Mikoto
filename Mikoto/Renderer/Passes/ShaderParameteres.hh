@@ -73,6 +73,10 @@ namespace Mikoto {
         Mat4F Transform{};
         Mat4F InverseModelView{};
 
+        // For vertex pulling, this tells the offset into the  array of vertices
+        UInt32 MeshNodeOffsetVertex{};
+        UInt32 MeshNodeOffsetIndex{};
+
         Int32 AnimatorID{ -1 };
     };
 

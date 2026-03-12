@@ -374,6 +374,7 @@ namespace Mikoto {
         Usage = usage;
         return *this;
     }
+
     auto BufferDescription::WithBufferDataType( BufferDataType type ) -> BufferDescription& {
         Type = type;
         return *this;

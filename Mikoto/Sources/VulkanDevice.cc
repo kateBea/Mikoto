@@ -1151,6 +1151,53 @@ namespace Mikoto {
         this->CopyBuffer( staging.GetRaw(), dest );
     }
 
+    auto VulkanCmdList::CopyBuffer( Buffer* src, Buffer* dest, Size dstOffset ) -> void {
+        VkBufferCopy copy{
+            .srcOffset{ 0 },
+            .dstOffset{ dstOffset },
+            .size{ src->GetSizeBytes() },
+        };
+
+        vkCmdCopyBuffer(
+                m_CmdBuffer,
+                src->GetNativeHandle( ObjectType::Vk_Buffer ),
+                dest->GetNativeHandle( ObjectType::Vk_Buffer ),
+                1,
+                std::addressof( copy ) );
+
+        // Honestly im not sure how to handle this yet
+        VkAccessFlags accessFlags{ VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT };
+
+        // It is either vertex or index
+        if ( src->IsUsage( BufferUsage::INDEX ) ) {
+            accessFlags = VK_ACCESS_INDEX_READ_BIT;
+        }
+
+        // VK_QUEUE_FAMILY_IGNORED Because queue family indices are
+        // unified see https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
+        // Otherwise we would need to specify the indices explicitly
+
+        const VkBufferMemoryBarrier barrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask = accessFlags,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .buffer = dest->GetNativeHandle( ObjectType::Vk_Buffer ),
+            .offset = 0,
+            .size = src->GetSizeBytes()
+        };
+
+        vkCmdPipelineBarrier(
+                m_CmdBuffer,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                VK_FLAGS_NONE,
+                0, nullptr,
+                1, &barrier,
+                0, nullptr );
+    }
+
     auto VulkanCmdList::CopyTexture( Texture* srcTexture, Texture* destTexture ) -> void {
         const auto src{ dynamic_cast<VulkanTexture*>( srcTexture ) };
         const auto dest{ dynamic_cast<VulkanTexture*>( destTexture ) };

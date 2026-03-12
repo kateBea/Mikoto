@@ -154,6 +154,7 @@ namespace Mikoto {
                     .DepthWrite{ true },
                     .AlphaBlending{ false },
                     .PipelineCullMode{ CullMode::NONE },
+                    .VertexAttributesSpec{},
                     .ColorAttachmentFormats{
                         TextureFormat::RGBA32_FLOAT,
                         TextureFormat::RGBA8_UNORM,
@@ -171,6 +172,7 @@ namespace Mikoto {
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
                 b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
                 b.Read( "MeshCulling_MaterialsInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_SkinningInfo", FrameResourceState::UnorderedAccessView );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
@@ -178,6 +180,10 @@ namespace Mikoto {
                 ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_MaterialsInfo", ResourceSlot::Slot_1 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_2 );
+
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshVertices(), ResourceSlot::Slot_3 );
+                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_4 );
 
                 ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
 
@@ -221,6 +227,7 @@ namespace Mikoto {
                     .DepthWrite{ true },
                     .AlphaBlending{ false },
                     .PipelineCullMode{ CullMode::NONE },
+                    .VertexAttributesSpec{},
                 };
 
                 b.CreatePipeline( "DepthPrePass_Pipeline", graphicsDesc );
@@ -229,6 +236,8 @@ namespace Mikoto {
                 b.Write( "DepthPrePass_Depth", FrameResourceState::DepthWrite );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+
+                b.Read( "MeshCulling_SkinningInfo", FrameResourceState::UnorderedAccessView );
                 b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
             },
             
@@ -242,6 +251,10 @@ namespace Mikoto {
 
                 ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_1 );
+
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshVertices(), ResourceSlot::Slot_2 );
+                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_3 );
                 
                 ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
 

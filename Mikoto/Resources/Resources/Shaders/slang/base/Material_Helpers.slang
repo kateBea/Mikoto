@@ -68,13 +68,18 @@ struct MeshParameters {
     float4x4 Transform;
     float4x4 InverseModelView;
 
+    // For vertex pulling, this tells the offset into the  array of vertices
+    uint VertexOffset;
+    uint IndexOffset;
+
     int AnimatorID;
 };
 
 struct VertexData {
     float3 Position;
     float3 Normal;
-    float3 Color;
+    float4 Color;
+    
     float2 TexCoord0;
     float2 TexCoord1;
 

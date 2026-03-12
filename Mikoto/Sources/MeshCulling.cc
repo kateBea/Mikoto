@@ -95,6 +95,14 @@ namespace Mikoto {
                 .Size = alloc.IndexSize } );
     }
 
+    auto GeometryManager::GetVertices() -> BufferHandle {
+        return m_VertexBuffers;
+    }
+
+    auto GeometryManager::GetIndices() -> BufferHandle {
+        return m_IndexBuffers;
+    }
+
     auto GeometryManager::UploadMeshData( const MeshNode *node ) -> GeometryAllocation {
         const auto it{ m_Allocations.find( node ) };
         if (it != m_Allocations.end()) {
@@ -107,25 +115,15 @@ namespace Mikoto {
         auto alloc{ m_Allocator.Allocate( vertexBytes, indexBytes ) };
         MKT_ASSERT( alloc.has_value(), "Allocation is empty" );
 
-        // Upload contents to the GPU
-        // 
-        //auto stagingVB{ m_Device->CreateBuffer( vertexBytes ) };
-        //auto stagingIB{ m_Device->CreateBuffer( indexBytes ) };
+        CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, false ) };
+        cmd->Begin();
 
-        //CommandListHandle cmd{ m_Device->CreateCommandList( QueueType::TRANSFER_QUEUE, true ) };
+        // Issue copy commands (subrange copies)
+        cmd->CopyBuffer( node->GetVertexBuffer().GetRaw(), m_VertexBuffers.GetRaw(), alloc->VertexOffset );
+        cmd->CopyBuffer( node->GetIndexBuffer().GetRaw(), m_IndexBuffers.GetRaw(), alloc->IndexOffset );
 
-        //cmd->CopyBuffer( stagingVB.GetRaw(), node->GetVertexBuffer().GetRaw() );
-        //cmd->CopyBuffer( stagingIB.GetRaw(), node->GetIndexBuffer().GetRaw() );
-
-        //// Issue copy commands (subrange copies)
-        //m_Device->CopyBuffer( stagingVB, m_VertexBuffers, alloc->VertexOffset );
-        //m_Device->CopyBuffer( stagingIB, m_IndexBuffers, alloc->IndexOffset );
-
-        //// Save allocation for FreeMeshData()
-        //m_RegisteredMeshes[node] = *alloc;
-
-        //cmd->End();
-        //m_Device->SubmitCommands( cmd );
+        cmd->End();
+        m_Device->SubmitCommands( cmd );
 
         const auto [itInser, success]{ m_Allocations.try_emplace( node, *alloc ) };
 
@@ -135,7 +133,25 @@ namespace Mikoto {
     auto GeometryManager::Initialize( GpuDevice *device ) -> void {
         m_Device = device;
 
-        // Allocate big index buffer and vertex buffer
+        // Vertex buffers storage
+        BufferDescription vertexBufferStorageDesc{};
+        vertexBufferStorageDesc
+                .WithUsage( BufferUsage::SHADER_STORAGE )
+                .WithSizeBytes( MKT_MIBIBYTES( 512 ) )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
+
+        m_VertexBuffers = m_Device->CreateBuffer( vertexBufferStorageDesc );
+        m_VertexBuffers->SetDebugName( "GeometryManager - VertexBuffer" );
+
+        // Index buffer storage
+        BufferDescription indexBufferStorageDesc{};
+        indexBufferStorageDesc
+                .WithUsage( BufferUsage::SHADER_STORAGE )
+                .WithSizeBytes( MKT_MIBIBYTES( 512 ) )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
+
+        m_IndexBuffers = m_Device->CreateBuffer( indexBufferStorageDesc );
+        m_IndexBuffers->SetDebugName( "GeometryManager - IndexBuffer" );
     }
 
     auto GeometryManager::FreeMeshData( const MeshNode *node ) -> void {
@@ -158,6 +174,14 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         m_Camera = camera;
+    }
+
+    auto MeshCulling::GetMeshVertices() -> BufferHandle {
+        return m_GeometryManager.GetVertices();
+    }
+
+    auto MeshCulling::GetMeshIndices() -> BufferHandle {
+        return m_GeometryManager.GetIndices();
     }
 
     auto MeshCulling::RegisterPasses( FrameGraph &graph, GpuDevice* device ) -> void {
@@ -201,7 +225,7 @@ namespace Mikoto {
             },
             FramePassNodeType::TRANSFER );
     }
-
+    
     auto MeshCulling::RegisterMeshCullingPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -224,6 +248,7 @@ namespace Mikoto {
         auto &registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
+        Size meshIndex{};
         for ( auto [entity, tag, transform, materialComp, meshComponent]: renderables.each() ) {
             if ( !tag.IsActive() ) {
                 continue;
@@ -233,9 +258,15 @@ namespace Mikoto {
                 MeshNode *meshNode{ meshComponent.GetMesh() };
                 PBRMaterial *pbrMat{ materialComp.GetMaterial().Dynamic<PBRMaterial>() };
 
-                auto& [geometry, material]{ m_IndexedGeometryManager.RegisterInstance( meshNode ) };
+                auto geometryInfo{ m_GeometryManager.UploadMeshData( meshNode ) };
 
+                auto& [geometry, material]{ m_IndexedGeometryManager.RegisterInstance( meshNode ) };
+                
                 // Geometry
+                geometry.MeshNodeOffsetVertex = geometryInfo.VertexOffset / MKT_SIZEOF( VertexBufferData );
+                geometry.MeshNodeOffsetIndex = geometryInfo.IndexOffset / MKT_SIZEOF(UInt32);
+
+                geometry.Transform = transform.GetWorldTransform();
                 geometry.Transform = transform.GetWorldTransform();
                 geometry.InverseModelView = glm::inverse( glm::mat3( m_Camera->GetViewMatrix() * geometry.Transform ) );
 

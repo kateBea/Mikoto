@@ -22,15 +22,7 @@ struct DirectionalShadowMapUBO {
 };
 
 struct VSInput {
-    float3 Position : ATTRIBUTE0;
-    float3 Normal : ATTRIBUTE1;
-    float4 Color : ATTRIBUTE2;
-    float2 TexCoord0 : ATTRIBUTE3;
-    float2 TexCoord1 : ATTRIBUTE4;
-
-    float4 Joint : ATTRIBUTE5;
-    float4 Weight : ATTRIBUTE6;
-
+    uint VertexID : SV_VertexID;
     uint InstanceIndex : SV_InstanceID;
     uint BaseInstanceIndex : SV_StartInstanceLocation;
 };
@@ -46,16 +38,21 @@ DirectionalShadowMapUBO u_CamerasInfo;
 [[vk::binding(Slot_0, UAV_SET_INDEX)]] StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
 [[vk::binding(Slot_1, UAV_SET_INDEX)]] StructuredBuffer<BoneData, ScalarDataLayout> Bones;
 
+[[vk::binding(Slot_2, UAV_SET_INDEX)]] StructuredBuffer<VertexData, ScalarDataLayout> Vertices;
+//[[vk::binding(Slot_3, UAV_SET_INDEX)]] StructuredBuffer<uint, ScalarDataLayout> Indices;
+
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
 
+    
     MeshParameters meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
+    VertexData vertex = Vertices[meshInfo.VertexOffset + input.VertexID];
 
     float4x4 model = meshInfo.Transform;
 
-    float4 inWeight0 = input.Weight;
-    float4 inJoint0 = input.Joint;
+    float4 inWeight0 = vertex.Weight;
+    float4 inJoint0 = vertex.Joint;
 
     float4 locPos = float4(0, 0, 0, 0);
     if (meshInfo.AnimatorID != -1) {
@@ -69,10 +66,10 @@ VSOutput main(VSInput input) {
             inWeight0.z * bonePalette.BoneMatrices[(uint)inJoint0.z] +
             inWeight0.w * bonePalette.BoneMatrices[(uint)inJoint0.w];
 
-        locPos = mul(skinMat, float4(input.Position, 1.0));
+        locPos = mul(skinMat, float4(vertex.Position, 1.0));
     }
     else {
-        locPos = float4(input.Position, 1.0);
+        locPos = float4(vertex.Position, 1.0);
     }
 
     float4 worldPos = mul(model, locPos);

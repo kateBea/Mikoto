@@ -166,7 +166,53 @@ namespace Mikoto {
     };
 
     /**
-     * @class Device
+     * @class Buffer
+     * @brief Represents a raw CPU side data that can be uploaded to GPU
+     */
+    class BufferSpan : public IResource {
+    public:
+
+        explicit BufferSpan( Size size )
+            : m_Buffer{ ( Byte* )MKT_NOTHROW_PLACEMENT_NEW( size ) }, m_MaxSize{ size } { Initialize(); }
+
+        explicit BufferSpan( Size size, Size count )
+            : m_Buffer{ ( Byte* )MKT_NOTHROW_PLACEMENT_NEW_COUNT( size, count ) }, m_MaxSize{ size * count } { Initialize(); }
+
+        auto Emplace(const auto& data) -> void {
+            Size dataSize{ MKT_SIZEOF( decltype(data) ) };
+            MKT_ASSERT( ( m_CurrentSize + dataSize ) <= m_MaxSize, "Cannot fit data" );
+
+            std::memcpy( m_Buffer, MKT_ADDRESSOF(data), dataSize );
+
+            m_CurrentSize += dataSize;
+        }
+
+        ~BufferSpan() {
+            if (m_IsAllocated) {
+                Release();
+            }
+        }
+
+    private:
+        auto Initialize() -> void override {
+            // Empty
+            m_IsAllocated = true;
+        }
+
+        auto Release() -> void override {
+            MKT_NOTHROW_PLACEMENT_DELETE( m_Buffer );
+        }
+
+    private:
+        Byte* m_Buffer{};
+        Size m_MaxSize{};
+        Size m_CurrentSize{};
+    };
+
+    using BufferViewHandle = Ref<BufferSpan>;
+
+    /**
+     * @class Buffer
      * @brief Represents a generic buffer used for storing data.
      *
      * This class encapsulates buffer properties such as its size, usage type, and resource usage.

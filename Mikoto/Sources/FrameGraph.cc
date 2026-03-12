@@ -474,7 +474,7 @@ namespace Mikoto {
 
     auto FrameGraph::SortPassExecution() -> void {
         // TODO: check also that every resource has t least one writer
-        ankerl::unordered_dense::map<std::string, std::string> resourceWriters;
+        ankerl::unordered_dense::map<std::string, std::string> resourceWriters{};
 
         for (auto &[passName, node]: m_Passes) {
             for (const auto &w: node.Writes) {

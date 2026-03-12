@@ -59,6 +59,8 @@ namespace Mikoto {
         auto CopyBuffer(Buffer* src, Buffer* dest) -> void override;
         auto CopyBuffer(const void* src, Size size, Buffer* dest) -> void override;
 
+        auto CopyBuffer( Buffer* src, Buffer* dest, Size dstOffset ) -> void override;
+
         auto CopyTexture(Texture* src, Texture* dest) -> void override;
         auto CopyTexture(Texture2D* src, TextureCube* dest, UInt32 mipLevel, UInt32 face) -> void override;
 

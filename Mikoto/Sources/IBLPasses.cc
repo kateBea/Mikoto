@@ -583,13 +583,16 @@ namespace Mikoto {
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "AABBGenComp_Clusters", ResourceSlot::Slot_3 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "LightCullingComp_LightsBuffer", ResourceSlot::Slot_4 );
 
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshVertices(), ResourceSlot::Slot_5 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_6 );
+
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "BRDFLutPass_ColorTarget", m_BRDFLutSampler, ResourceSlot::Slot_0 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_1 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "IrradiancePass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_2 );
                 
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", ResourceSlot::Slot_3 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAOBlur_ColorTarget", ResourceSlot::Slot_4 );
-
+                
                 ctx.BindImageSampler( ResourceGroup::DynamicSamplers, "DirectionalShadowMapPass_DepthTarget", m_DirShadowMapSampler, ResourceSlot::Slot_0 );
 
                 ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
@@ -630,6 +633,7 @@ namespace Mikoto {
                     .MSAA{ Multisampling::MSAA_X1 },
                     .PipelineCullMode{ CullMode::NONE },// We probably need to organize models by material some (or handle models with diff mats somehow)
                                                         // models like the just_a_girl require cull_back to be properly visulized
+                    .VertexAttributesSpec{},
                 };
 
                 b.UseShader( "Resources/Shaders/slang/PBR_MetallicRoughness_Vert.slang", ShaderStage::VERTEX );
@@ -703,6 +707,9 @@ namespace Mikoto {
                 
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "AABBGenComp_Clusters", ResourceSlot::Slot_3 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "LightCullingComp_LightsBuffer", ResourceSlot::Slot_4 );
+
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshVertices(), ResourceSlot::Slot_5 );
+                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_6 );
                 
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "BRDFLutPass_ColorTarget", m_BRDFLutSampler, ResourceSlot::Slot_0 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_1 );
@@ -716,7 +723,7 @@ namespace Mikoto {
                 ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
 
                 ctx.PushConstants( std::addressof( data ), sizeof( data ) );
-
+                
                 const auto dimensions{ InferDimensions( m_Resolution ) };
 
                 ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );

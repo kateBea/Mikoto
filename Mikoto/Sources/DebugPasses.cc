@@ -128,10 +128,10 @@ namespace Mikoto {
                 GraphicsPipelineDescription graphicsDesc{
                     .DepthTest{ true },
                     .DepthWrite{ true },
-                    .AlphaBlending{ true },
                     .Wireframe{ true },
                     .PipelineCullMode{ CullMode::NONE },
                     .PipelinePolygonMode{ PolygonMode::LINES },
+                    .VertexAttributesSpec{},
                 };
                 b.CreatePipeline( "Wireframe_Pipeline", graphicsDesc );
 
@@ -139,7 +139,9 @@ namespace Mikoto {
                 b.Write( "Wireframe_DepthTarget", FrameResourceState::DepthWrite );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                b.Read( "FinalBuffer_ObjectInfo", FrameResourceState::UnorderedAccessView );
+
+                b.Read( "MeshCulling_GeometryInfo", FrameResourceState::UnorderedAccessView );
+                b.Read( "MeshCulling_SkinningInfo", FrameResourceState::UnorderedAccessView );
             },
             [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
@@ -149,6 +151,10 @@ namespace Mikoto {
 
                 ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_GeometryInfo", ResourceSlot::Slot_0 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_1 );
+
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_Culling->GetMeshVertices(), ResourceSlot::Slot_2 );
+                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_Culling->GetMeshIndices(), ResourceSlot::Slot_3 );
 
                 const auto dimensions{ InferDimensions( m_Resolution ) };
 

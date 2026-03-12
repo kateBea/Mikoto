@@ -36,7 +36,7 @@ namespace Mikoto {
     struct VertexBufferData {
         Vec3F Position{};
         Vec3F Normal{};
-        Vec3F Color{};
+        Vec4F Color{};
 
         Vec2F TexCoord0{};
         Vec2F TexCoord1{};
@@ -88,6 +88,9 @@ namespace Mikoto {
         // Returns allocation info needed for indirect drawing.
         auto UploadMeshData( const MeshNode* node ) -> GeometryAllocation;
 
+        auto GetVertices() -> BufferHandle;
+        auto GetIndices() -> BufferHandle;
+
     private:
         GpuDevice* m_Device{};
 
@@ -116,6 +119,9 @@ namespace Mikoto {
         auto SetScene( Scene* scene) -> void;
         auto SetCamera( const Camera* camera ) -> void;
         auto RegisterPasses( FrameGraph& graph, GpuDevice* device ) -> void;
+
+        auto GetMeshVertices() -> BufferHandle;
+        auto GetMeshIndices() -> BufferHandle;
 
         auto DrawInstances( CommandContext& context ) -> void;
         auto DrawInstancesIndirect( CommandContext& context ) -> void;

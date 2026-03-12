@@ -41,24 +41,18 @@ struct FinalShadingParameters {
 [[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
-//[[vk::binding(Slot_0, UAV_SET_INDEX)]] StructuredBuffer<VertexData, ScalarDataLayout> VertexAttributes;
-
 [[vk::binding(Slot_0, UAV_SET_INDEX)]] StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
 [[vk::binding(Slot_1, UAV_SET_INDEX)]] StructuredBuffer<BoneData, ScalarDataLayout> Bones;
+
+// Vertex pullign data
+[[vk::binding(Slot_5, UAV_SET_INDEX)]] StructuredBuffer<VertexData, ScalarDataLayout> Vertices;
+//[[vk::binding(Slot_6, UAV_SET_INDEX)]] StructuredBuffer<uint, ScalarDataLayout> Indices;
 
 [[vk::push_constant]]
 FinalShadingParameters u_Constants;
 
 struct VSInput {
-    float3 Position : ATTRIBUTE0;
-    float3 Normal : ATTRIBUTE1;
-    float4 Color : ATTRIBUTE2;
-    float2 TexCoord0 : ATTRIBUTE3;
-    float2 TexCoord1 : ATTRIBUTE4;
-
-    float4 Joint : ATTRIBUTE5;
-    float4 Weight : ATTRIBUTE6;
-
+    uint VertexID : SV_VertexID;
     uint InstanceIndex : SV_InstanceID;
     uint BaseInstanceIndex : SV_StartInstanceLocation;
 };
@@ -81,14 +75,17 @@ struct VSOutput {
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
-    
+
     MeshParameters meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
     o.MaterialIndex = input.BaseInstanceIndex + input.InstanceIndex;
 
+    //uint index = Indices[meshInfo.IndexOffset + input.VertexID];
+    VertexData vertex = Vertices[meshInfo.VertexOffset + input.VertexID];
+
     float4x4 model = meshInfo.Transform;
 
-    float4 inWeight0 = input.Weight;
-    float4 inJoint0 = input.Joint;
+    float4 inWeight0 = vertex.Weight;
+    float4 inJoint0 = vertex.Joint;
 
     float4 locPos = float4(0, 0, 0, 0);
     float3 normal = float3(0, 0, 0);
@@ -103,24 +100,24 @@ VSOutput main(VSInput input) {
             inWeight0.z * bonePalette.BoneMatrices[(uint)inJoint0.z] +
             inWeight0.w * bonePalette.BoneMatrices[(uint)inJoint0.w];
 
-        locPos = mul(skinMat, float4(input.Position, 1.0));
+        locPos = mul(skinMat, float4(vertex.Position, 1.0));
 
         normal = normalize(
-            mul((float3x3)skinMat, input.Normal)
+            mul((float3x3)skinMat, vertex.Normal)
     );
         
     }
     else {
-        locPos = float4(input.Position, 1.0);
-        normal = input.Normal;
+        locPos = float4(vertex.Position, 1.0);
+        normal = vertex.Normal;
     }
 
     float4 worldPos = mul(model, locPos);
     float3 worldNormal = normalize(mul((float3x3)model, normal));
 
-    o.TexCoord0 = input.TexCoord0;
-    o.TexCoord1 = input.TexCoord1;
-    o.Color = input.Color;
+    o.TexCoord0 = vertex.TexCoord0;
+    o.TexCoord1 = vertex.TexCoord1;
+    o.Color = vertex.Color;
 
     o.FragmentWorldPos = worldPos.xyz;
     o.FragmentViewPos = mul(u_Camera.ViewMatrix, worldPos).xyz;

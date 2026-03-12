@@ -170,6 +170,8 @@ namespace Mikoto {
     }
 
     struct BufferDescription {
+
+        // Use the buffer view handle instead of this
         Size SizeBytes{};
         Byte* Data{ nullptr };
 

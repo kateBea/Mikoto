@@ -22,8 +22,10 @@
 #include <iterator>
 #include <string>
 #include <string_view>
+#include <array>
 
 #include <Common/Common.hh>
+#include <Math/Math.hh>
 #include <Library/Utility/Types.hh>
 
 #include <fmt/color.h>
@@ -32,6 +34,73 @@
 #include <fmt/ranges.h>
 
 namespace Mikoto::StringUtil {
+
+    template<int Count>
+    class StaticString {
+    public:
+        explicit constexpr StaticString() = default;
+
+        explicit constexpr StaticString(const char* str) {
+            Size i{};
+            for (; i < Count - 1 && str[i] != '\0'; ++i) {
+                m_Buffer[i] = str[i];
+            }
+            m_Buffer[i] = '\0';
+        }
+
+        explicit constexpr StaticString(std::string_view str) {
+            const Size len{ Math::Min<Size>(str.size(), Count - 1) };
+            std::copy_n(str.data(), len, m_Buffer.data());
+            m_Buffer[len] = '\0';
+        }
+
+        MKT_NODISCARD constexpr auto GetData() -> char* {
+            return m_Buffer.data();
+        }
+
+        MKT_NODISCARD constexpr auto GetData() const -> const char* {
+            return m_Buffer.data();
+        }
+
+        MKT_NODISCARD constexpr auto C_Str() const -> const char* {
+            return m_Buffer.data();
+        }
+
+        MKT_NODISCARD constexpr auto GetSize() const -> Size {
+            return std::char_traits<char>::length(m_Buffer.data());
+        }
+
+        MKT_NODISCARD constexpr auto GetCapacity() const -> Size {
+            return Count;
+        }
+
+        MKT_NODISCARD constexpr auto IsEmpty() const -> bool {
+            return m_Buffer[0] == '\0';
+        }
+
+        MKT_NODISCARD constexpr auto operator[](Size index) -> char& {
+            return m_Buffer[index];
+        }
+
+        MKT_NODISCARD constexpr auto operator[](Size index) const -> const char& {
+            return m_Buffer[index];
+        }
+
+        MKT_NODISCARD constexpr auto GetView() const -> std::string_view {
+            return std::string_view{ m_Buffer.data(), GetSize() };
+        }
+
+        MKT_NODISCARD constexpr auto operator==(const StaticString& other) const -> bool {
+            return GetView() == other.GetView();
+        }
+
+        MKT_NODISCARD constexpr auto operator!=(const StaticString& other) const -> bool {
+            return !(*this == other);
+        }
+
+    private:
+        std::array<char, Count> m_Buffer{};
+    };
 
     enum class StringComparisonPolicy {
         CASE_SENSITIVE,

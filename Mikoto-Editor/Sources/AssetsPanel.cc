@@ -13,13 +13,9 @@
 // limitations under the License.
 
 #include <Common/Common.hh>
-
 #include <Panels/AssetsPanel.hh>
-
-#include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
-#include <ImGui/IconsMaterialDesign.h>
 
 namespace Mikoto {
 
@@ -37,19 +33,16 @@ namespace Mikoto {
     }
 
     auto AssetsPanel::OnUpdate( float ) -> void {
-        if ( m_PanelIsVisible ) {
-            constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
-
-            // Expand scene view to window bounds (no padding)
-            ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
-            ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
-
-            m_PanelIsFocused = ImGui::IsWindowFocused();
-            m_PanelIsHovered = ImGui::IsWindowHovered();
-
-            ImGui::End();
-
-            ImGui::PopStyleVar();
+        if ( !m_PanelIsVisible ) {
+            return;
         }
+
+        constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
+        ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
+
+        m_PanelIsFocused = ImGui::IsWindowFocused();
+        m_PanelIsHovered = ImGui::IsWindowHovered();
+
+        ImGui::End();
     }
 }

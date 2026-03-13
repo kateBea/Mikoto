@@ -21,7 +21,6 @@
 #include <Common/Common.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/DeviceObject.hh>
-#include <Renderer/Core/DeviceObjectHandle.hh>
 #include <Renderer/Core/RenderUtility.hh>
 
 namespace Mikoto {
@@ -187,7 +186,10 @@ namespace Mikoto {
             m_CurrentSize += dataSize;
         }
 
-        ~BufferSpan() {
+        MKT_NODISCARD auto GetSize() const -> Size { return m_MaxSize; }
+        MKT_NODISCARD auto GetData() const -> const void* { return ( const void* )m_Buffer; }
+
+        ~BufferSpan() override {
             if (m_IsAllocated) {
                 Release();
             }

@@ -81,7 +81,7 @@ namespace Mikoto {
         } else if ( ty == TINYGLTF_TYPE_MAT4 ) {
             return 16;
         } else {
-            // Unknown componenty type
+            // Unknown component type
             return -1;
         }
     }
@@ -1160,6 +1160,7 @@ namespace Mikoto {
                 node.Name = mesh.name;
                 node.MaterialIndex = primitive.material;
 
+
                 const auto& posAccessor{ model.accessors[primitive.attributes.at( "POSITION" )] };
 
                 const Size vertexCount{ posAccessor.count };
@@ -1235,6 +1236,13 @@ namespace Mikoto {
                         &VertexData::Weights,
                         4 );
 
+                // For tests only, idially will remove the vector
+                node.VerticesSpan = BufferSpanHandle::Spawn( MKT_SIZEOF( VertexData ), vertexCount );
+
+                for (const auto& data : node.Vertices) {
+                    node.VerticesSpan->Emplace( data );
+                }
+
                 if ( primitive.indices >= 0 ) {
                     const auto& accessor{ model.accessors[primitive.indices] };
                     const auto& view{ model.bufferViews[accessor.bufferView] };
@@ -1243,6 +1251,9 @@ namespace Mikoto {
 
                     node.Indices.resize( accessor.count );
 
+                    // Assuming UINt32
+                    node.IndicesSpan = BufferSpanHandle::Spawn( MKT_SIZEOF( UInt32 ), accessor.count );
+
                     for ( Size i{}; i < accessor.count; ++i ) {
                         if ( accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT ) {
                             node.Indices[i] = reinterpret_cast<const UInt16*>( dataPtr )[i];
@@ -1250,6 +1261,12 @@ namespace Mikoto {
                             node.Indices[i] = reinterpret_cast<const UInt32*>( dataPtr )[i];
                         }
                     }
+
+                    for ( const auto& data: node.Indices ) {
+                        node.IndicesSpan->Emplace( data );
+                    }
+
+                    // For tests only, idially will remove the vector
                 }
 
                 modelData.MeshNodes.push_back( std::move( node ) );
@@ -1398,9 +1415,7 @@ namespace Mikoto {
             props.AlphaMaskCutoff = static_cast<float>( gltfMaterial.alphaCutoff );
 
             // Extensions
-            auto ext{ gltfMaterial.extensions.find( KHR_PBR_SpecularGlossiness.data() ) };
-            if ( gltfMaterial.extensions.find( KHR_PBR_SpecularGlossiness.data() ) != gltfMaterial.extensions.end() ) {
-
+            if ( auto ext{ gltfMaterial.extensions.find( KHR_PBR_SpecularGlossiness.data() ) }; ext != gltfMaterial.extensions.end() ) {
                 if ( ext->second.Has( "specularGlossinessTexture" ) ) {
                     auto index{ ext->second.Get( "specularGlossinessTexture" ).Get( "index" ) };
 
@@ -1441,7 +1456,7 @@ namespace Mikoto {
                 if ( ext->second.Has( "diffuseFactor" ) ) {
                     auto factor{ ext->second.Get( "diffuseFactor" ) };
                     for ( UInt32 i{}; i < factor.ArrayLen(); i++ ) {
-                        auto val{ factor.Get( i ) };
+                        const auto& val{ factor.Get( i ) };
                         //material.extension.diffuseFactor[i] = val.IsNumber() ? ( float )val.Get<double>() : ( float )val.Get<int>();
                     }
                 }
@@ -1449,25 +1464,26 @@ namespace Mikoto {
                 if ( ext->second.Has( "specularFactor" ) ) {
                     auto factor{ ext->second.Get( "specularFactor" ) };
                     for ( UInt32 i{}; i < factor.ArrayLen(); i++ ) {
-                        auto val{ factor.Get( i ) };
+                        const auto& val{ factor.Get( i ) };
                         //material.extension.specularFactor[i] = val.IsNumber() ? ( float )val.Get<double>() : ( float )val.Get<int>();
                     }
                 }
             }
 
-            if ( gltfMaterial.extensions.find( KHR_PBR_Unlit.data() ) != gltfMaterial.extensions.end() ) {
+            if ( gltfMaterial.extensions.contains( KHR_PBR_Unlit.data() ) ) {
                 props.Unlit = true;
             }
 
-            if ( gltfMaterial.extensions.find( KHR_Emissive_Strength.data() ) != gltfMaterial.extensions.end() ) {
-                auto ext = gltfMaterial.extensions.find( KHR_Emissive_Strength.data() );
+            if ( auto ext{ gltfMaterial.extensions.find( KHR_Emissive_Strength.data() ) }; ext != gltfMaterial.extensions.end() ) {
                 if ( ext->second.Has( "emissiveStrength" ) ) {
                     auto value{ ext->second.Get( "emissiveStrength" ) };
-                    props.EmissiveStrength = ( float )value.Get<double>();
+
+                    // Use template parameter value because there is no overload for float
+                    props.EmissiveStrength = static_cast<float>( value.Get<double>() );
                 }
             }
 
-            modelData.Materials.push_back( std::move( props ) );
+            modelData.Materials.emplace_back( std::move( props ) );
         }
     }
 
@@ -1532,7 +1548,6 @@ namespace Mikoto {
                 if ( builder.Build( animationImporter ) ) {
                     // Get the skeleton and animations
                     builder.FillModelData( out );
-
                     out.SceneSkeleton.SetInverseBindMatrices( LoadInverseBindMatrices( model, model.skins[0] ) );
                 }
             }

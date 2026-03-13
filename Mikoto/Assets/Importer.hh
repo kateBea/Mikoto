@@ -22,6 +22,7 @@
 #include <Assets/Model.hh>
 #include <Library/Utility/Types.hh>
 #include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Core/DeviceObjectHandle.hh>
 
 namespace Mikoto {
 
@@ -44,6 +45,9 @@ namespace Mikoto {
 
         std::vector<VertexData> Vertices{};
         std::vector<UInt32> Indices{};
+
+        BufferSpanHandle IndicesSpan{};
+        BufferSpanHandle VerticesSpan{};
 
         // Unsigned because it needs at least one material
         UInt32 MaterialIndex{};

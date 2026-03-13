@@ -229,7 +229,6 @@ float3 ComputePointlLightContribution(float3 n, float3 v, LightInfo lightInfo, B
     float distance = length(lightVector);
     float3 l = lightVector / distance;
 
-    // inverse square attenuation
     float attenuation = 1.0 / max(distance * distance, 0.001);
     //float attenuation = 1.0 / (distance * distance); // physically correct
 
@@ -542,11 +541,10 @@ FSOutput main(FSInput input) {
 
     float3 lightContribution = float3(0.0);
 
-    //////////////////////////////////////////////////////////
-    // Clustered Lighting
-    //////////////////////////////////////////////////////////
-
-    uint clusterIndex = ComputeTileIndex(input.FragmentViewPos, u_Constants.GridSize.xyz, u_Camera.Planes, input.ScreenPos, u_Camera.ScreenDimensions);
+    // Cluster resolve
+    // TODO: Check first if there are active lights 
+    uint clusterIndex = ComputeTileIndex(input.FragmentViewPos, u_Constants.GridSize.xyz, 
+        u_Camera.Planes, input.ScreenPos, u_Camera.ScreenDimensions);
 
     Cluster cluster = Clusters[clusterIndex];
 
@@ -554,38 +552,23 @@ FSOutput main(FSInput input) {
         uint lightIndex = cluster.LightIndices[i];
         LightInfo light = Lights[lightIndex];
 
-        //////////////////////////////////////////////////////
-        // Directional light
-        //////////////////////////////////////////////////////
-
         if (light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL) {
             float shadow = ComputeShadow(input.FragPosLightSpace, light);
             lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs) * (1.0f - shadow);
             continue;
         }
 
-        //////////////////////////////////////////////////////
-        // Point light
-        //////////////////////////////////////////////////////
-
         if (light.ActiveLightType == LIGHT_TYPE_POINT) {
             lightContribution += ComputePointlLightContribution(n, v, light, inputs, input.FragmentWorldPos);
             continue;
         }
-
-        //////////////////////////////////////////////////////
-        // Spot light
-        //////////////////////////////////////////////////////
 
         if (light.ActiveLightType == LIGHT_TYPE_SPOT) {
             lightContribution += ComputeSpotLightContribution(n, v, light, inputs, input.FragmentWorldPos);
         }
     }
 
-    //////////////////////////////////////////////////////////
-    // Image Based Lighting
-    //////////////////////////////////////////////////////////
-
+    // IBL Contribution
     float NdotV = clamp(dot(n, v), 0.001, 1.0);
     float3 iblLighting = float3(0.0);
 
@@ -593,15 +576,10 @@ FSOutput main(FSInput input) {
         iblLighting = GetIBLContribution(NdotV, diffuseColor, specularColor, perceptualRoughness, n, reflection);
     }
 
-    //////////////////////////////////////////////////////////
-    // Final lighting
-    //////////////////////////////////////////////////////////
-
+    // Final color
     float3 color = lightContribution + iblLighting;
 
-    //////////////////////////////////////////////////////////
-    // Ambient Occlusion
-    //////////////////////////////////////////////////////////
+    // AO
     float ssao = 1.0f;
 
     if (u_Constants.EnableSSAO != MKT_SHADER_FALSE) {
@@ -622,9 +600,7 @@ FSOutput main(FSInput input) {
         color *= lerp(color, color * ao, u_Constants.SSAOIntensity) * ssaoContrib;
     }
 
-    //////////////////////////////////////////////////////////
-    // Emissive
-    //////////////////////////////////////////////////////////
+    // Emission
     float3 emmissiveContrib = material.EmissiveFactor.xyz * material.EmissiveStrength;
     if (material.EmissiveIndex != INVALID_TEXTURE_INDEX) {
         Sampler2D emissiveMap = g_BindlessTextures[material.EmissiveIndex];
@@ -638,11 +614,6 @@ FSOutput main(FSInput input) {
     color += emmissiveContrib;
 
     output.Color = Tonemap(float4(color, baseColor.a));
-
-    // if (u_Constants.Step == 1) {
-    //     float4 d = input.FragPosLightSpace / input.FragPosLightSpace.w;
-    //     output.Color = float4(d.z, d.z, d.z, 1.0f);
-    // }
     
     return output;
 }

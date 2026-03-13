@@ -229,6 +229,7 @@ namespace Mikoto {
         if ( createInfo.Data ) {
             m_Data = new Byte[m_SizeBytes];
             std::memcpy( m_Data, createInfo.Data, m_SizeBytes );
+            //m_BufferViewHandle = createInfo.BufferSpanHnd;
         }
 
         m_ElementSize = createInfo.ElementSize;

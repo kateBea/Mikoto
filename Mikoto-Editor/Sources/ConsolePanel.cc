@@ -16,8 +16,10 @@
 
 #include <ImGui/IconsMaterialDesign.h>
 
+#include <Common/String.hh>
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
+
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Panels/ConsolePanel.hh>
@@ -30,6 +32,8 @@ namespace Mikoto {
     }
 
     auto ConsolePanel::OnUpdate(float timeStep) -> void {
+        using namespace StringUtil;
+
         MKT_BEGIN_PROFILER_NAMED();
 
         if (!m_PanelIsVisible) {
@@ -38,15 +42,17 @@ namespace Mikoto {
 
         ImGui::Begin(m_PanelHeaderName.c_str(), std::addressof(m_PanelIsVisible), ImGuiWindowFlags_NoCollapse);
 
-        // Filtering options
         static bool showInfo{ true }, showWarn{ true }, showError{ true }, showDebug{ true };
 
         ImGui::Checkbox("Info", &showInfo);
         ImGui::SameLine();
+
         ImGui::Checkbox("Warn", &showWarn);
         ImGui::SameLine();
+
         ImGui::Checkbox("Error", &showError);
         ImGui::SameLine();
+
         ImGui::Checkbox("Debug", &showDebug);
 
         ImGui::Separator();
@@ -54,14 +60,13 @@ namespace Mikoto {
         ImGui::BeginChild("ConsoleScrollRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false,
                           ImGuiWindowFlags_HorizontalScrollbar);
 
-        const auto& logs{ RuntimeConsole::Get()->GetLogs() };
-        for (const auto& line : logs) {
+        for (const auto& line : RuntimeConsole::Get()->GetLogs()) {
             if (line.find("[INFO]") != std::string::npos && !showInfo) continue;
             if (line.find("[WARN]") != std::string::npos && !showWarn) continue;
             if (line.find("[ERROR]") != std::string::npos && !showError) continue;
             if (line.find("[DEBUG]") != std::string::npos && !showDebug) continue;
 
-            ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+            ImVec4 color{ ImGui::GetStyleColorVec4(ImGuiCol_Text) };
             if (line.find("[ERROR]") != std::string::npos) {
                 color = { 1.0f, 0.3f, 0.3f, 1.0f };
             }
@@ -86,19 +91,16 @@ namespace Mikoto {
         ImGui::EndChild();
         ImGui::Separator();
 
-        // Input text field
-        static char inputBuffer[256]{ "" };
+        static StaticString<256> buffer{};
 
-        if (ImGui::InputText("##ConsoleInput", inputBuffer, sizeof(inputBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
-            std::string input{ inputBuffer };
-            if (!input.empty()) {
+        if (ImGui::InputText("##ConsoleInput", buffer.GetData(), buffer.GetSize(), ImGuiInputTextFlags_EnterReturnsTrue)) {
+            if ( std::string input{ buffer.GetData() }; !input.empty()) {
                 RuntimeConsole::Get()->ExecuteCommand(input);
-                inputBuffer[0] = '\0';
+                buffer[0] = '\0';
                 m_ScrollToBottom = true;
             }
         }
 
         ImGui::End();
     }
-
 } // namespace Mikoto

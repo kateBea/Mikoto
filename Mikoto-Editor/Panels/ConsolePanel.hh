@@ -27,7 +27,6 @@ namespace Mikoto {
     class ConsolePanel final : public Panel {
     public:
         explicit ConsolePanel(const ConsolePanelCreateInfo& info);
-        auto operator=(ConsolePanel&& other) -> ConsolePanel& = default;
 
         auto OnUpdate(float timeStep) -> void override;
 

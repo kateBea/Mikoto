@@ -35,5 +35,4 @@ namespace Mikoto {
     };
 }
 
-
 #endif//MIKOTO_ASSETS_MANAGER_PANEL_HH

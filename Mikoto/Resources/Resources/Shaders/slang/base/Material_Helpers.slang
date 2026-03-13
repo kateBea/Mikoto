@@ -118,5 +118,5 @@ float SphereLightAttenuation(float distance, float radius) {
     float d2 = distance * distance;
     float r2 = radius * radius;
 
-    return (2.0 / r2) * (1.0 - distance / sqrt(d2 + r2));
+    return (2.0 / r2) * (1.0 - (distance / sqrt(d2 + r2)));
 }

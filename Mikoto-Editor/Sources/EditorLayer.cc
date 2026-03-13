@@ -33,6 +33,9 @@
 
 #include "Common/String.hh"
 
+#include <Renderer/Core/Buffer.hh>
+#include <Renderer/Core/RenderUtility.hh>
+
 namespace Mikoto {
 
     static auto ShowDockingDisabledMessage() -> void {
@@ -103,6 +106,8 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "ShadowMap", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "InfiniteGrid", m_SceneRenderer->GetTexture( "InfiniteGrid_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "DepthPrePass", m_SceneRenderer->GetTexture( "DepthPrePass_Color" ) );
+
+        //BufferSpanHandle span{ BufferSpanHandle::Spawn( MKT_MIBIBYTES( 200 ) ) };
     }
     
     auto EditorLayer::SetupRenderer() -> void {

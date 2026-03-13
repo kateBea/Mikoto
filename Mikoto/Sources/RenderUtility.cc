@@ -21,8 +21,10 @@
 #include <Common/Common.hh>
 #include <Core/Exception.hh>
 #include <Library/Utility/Types.hh>
+#include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/Framebuffer.hh>
 #include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Core/DeviceObjectHandle.hh>
 
 namespace Mikoto {
 
@@ -372,6 +374,11 @@ namespace Mikoto {
 
     auto BufferDescription::WithUsage( BufferUsage usage ) -> BufferDescription& {
         Usage = usage;
+        return *this;
+    }
+
+    auto BufferDescription::WidthHandle( BufferSpanHandle handle ) -> BufferDescription& {
+        BufferSpanHnd = handle;
         return *this;
     }
 

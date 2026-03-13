@@ -22,11 +22,11 @@
 
 #define MKT_BYTES( X ) ( X )
 
-#define MKT_KIBIBYTES( X ) ( ( X ) * 1024 )
-#define MKT_KILOBYTES( X ) ( ( X ) * 1000 )
+#define MKT_KIBIBYTES( X ) Size(( ( X ) * 1024 ))
+#define MKT_KILOBYTES( X ) Size(( ( X ) * 1000 ))
 
-#define MKT_MIBIBYTES( X ) ( ( X ) * 1024 * 1024 )
-#define MKT_MEGABYTES( X ) ( ( X ) * 1000 * 1000 )
+#define MKT_MIBIBYTES( X ) Size(( ( X ) * 1024 * 1024 ))
+#define MKT_MEGABYTES( X ) Size(( ( X ) * 1000 * 1000 ))
 
 #define MKT_SIZEOF( X ) sizeof( X )
 #define MKT_ADDRESSOF( OBJECT_REF ) std::addressof( OBJECT_REF )

@@ -20,6 +20,8 @@
 #include <Common/Common.hh>
 #include <Library/IO/File.hh>
 
+#include <Renderer/Core/DeviceObjectHandle.hh>
+
 namespace Mikoto {
 
     enum class MapType {
@@ -170,6 +172,7 @@ namespace Mikoto {
     }
 
     struct BufferDescription {
+        BufferSpanHandle BufferSpanHnd{}; 
 
         // Use the buffer view handle instead of this
         Size SizeBytes{};
@@ -185,6 +188,7 @@ namespace Mikoto {
         auto ForElement( Size size, Size count ) -> BufferDescription&;
         auto WithSizeBytes( Size size ) -> BufferDescription&;
         auto WithData( Byte* data ) -> BufferDescription&;
+        auto WidthHandle( BufferSpanHandle handle ) -> BufferDescription&;
         auto WithUsage( BufferUsage usage ) -> BufferDescription&;
         auto WithBufferDataType( BufferDataType type ) -> BufferDescription&;
         auto WithResourceUsageType( ResourceUsageType type ) -> BufferDescription&;

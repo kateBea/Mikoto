@@ -209,8 +209,6 @@ namespace Mikoto {
         Size m_CurrentSize{};
     };
 
-    using BufferViewHandle = Ref<BufferSpan>;
-
     /**
      * @class Buffer
      * @brief Represents a generic buffer used for storing data.

@@ -13,6 +13,9 @@
 // limitations under the License.
 
 namespace Mikoto {
+    class BufferSpan;
     class ICommandList;
+
+    using BufferSpanHandle = Ref<BufferSpan>;
     using CommandListHandle = Ref<ICommandList>;
 }

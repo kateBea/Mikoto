@@ -165,6 +165,9 @@ namespace Mikoto {
         MKT_NODISCARD static auto CreateEmpty() -> Ref { return Ref{ nullptr }; }
         MKT_NODISCARD static auto Create( RefCountedType* ptr ) -> Ref { return Ref{ ptr }; }
 
+        template<typename... Args>
+        MKT_NODISCARD static auto Spawn( Args&&... args ) -> Ref { return Ref{ new RefCountedType{ std::forward<Args>( args )... } }; }
+
         auto operator->() -> RefCountedType* { return m_Ptr; }
         auto operator->() const -> const RefCountedType* { return m_Ptr; }
 

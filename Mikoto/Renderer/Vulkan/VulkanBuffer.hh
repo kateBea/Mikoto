@@ -23,6 +23,7 @@
 #include <Common/Common.hh>
 #include <Renderer/Core/Buffer.hh>
 #include <Renderer/Core/DeviceObjectHandle.hh>
+
 #include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
 namespace Mikoto {
@@ -89,7 +90,7 @@ namespace Mikoto {
 
         bool m_UsesScalarBlockLayout{ false };
 
-        BufferViewHandle m_BufferViewHandle{};
+        BufferSpanHandle m_BufferViewHandle{};
     };
 
 #define MKT_VK_BUFFER(BUFFER_HANDLE) dynamic_cast<VulkanBuffer*>(BUFFER_HANDLE.GetRaw())

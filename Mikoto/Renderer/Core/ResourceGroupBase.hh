@@ -26,12 +26,12 @@
 namespace  Mikoto {
 
     enum class ResourceGroup {
-        UnboundedImageViews,  // For descriptor indexing with images (like bindless textures
+        UnboundedImageViews,  // For descriptor indexing with images (like bindless textures)
 
         ImageViews, // Storage images (storage image, unused for now, can be used in compute)
         BufferViews,  // Uniform buffers/ Storage (Is updated frequently every frame)
         
-        UnorderedAccessViews, // Storage buffer (does not require frequent change, usually changed via copy command)
+        UnorderedAccessViews, // Storage buffers (does not require frequent change, usually changed via copy command)
 
         StaticSamplers, // It is always the same image
         DynamicSamplers, // Can change sometimes
@@ -39,10 +39,6 @@ namespace  Mikoto {
         UnboundedBufferViews, // For descriptor indexing with buffers
 
         Constants, // Uniform buffers (does not require frequent change)
-
-        GlobalTextures,
-        Dynamic,
-        Static,
     };
 
     enum class ResourceSlot {
@@ -77,30 +73,6 @@ namespace  Mikoto {
         bool m_IsDirty{ true };
     };
 
-    class GlobalTextures : public ResourceGroupBase {
-    public:
-        static constexpr Int32 INVALID_TEXTURE_INDEX{ -1 };
-
-    public:
-
-        explicit GlobalTextures() : ResourceGroupBase{ ResourceGroup::GlobalTextures } {}
-
-        MKT_NODISCARD auto Bind(TextureHandle texture, SamplerHandle sampler) -> Int32;
-        MKT_NODISCARD auto Contains(TextureHandle texture, SamplerHandle sampler) -> bool;
-        MKT_NODISCARD auto GetIndex(TextureHandle texture, SamplerHandle sampler) -> Int32;
-
-        auto begin() -> decltype(auto) { return m_Resources.begin(); }
-        auto end() -> decltype(auto) { return m_Resources.end(); }
-
-        auto cbegin() const -> decltype(auto) { return m_Resources.cbegin(); }
-        auto cend() const -> decltype(auto) { return m_Resources.cend(); }
-
-        MKT_NODISCARD static auto GetMaxTextureCount() -> UInt32;
-
-    private:
-        ankerl::unordered_dense::map<std::pair<Texture*, Sampler*>, Size> m_Resources{};
-    };
-
     class ConstantsGroup final : public ResourceGroupBase {
     public:
 
@@ -122,7 +94,7 @@ namespace  Mikoto {
 
     class CommonResourceGroup final : public ResourceGroupBase {
     public:
-        explicit CommonResourceGroup( ResourceGroup type = ResourceGroup::Dynamic ) : ResourceGroupBase{ type } {}
+        explicit CommonResourceGroup( ResourceGroup type = ResourceGroup::Constants ) : ResourceGroupBase{ type } {}
 
         auto SetBuffer(std::string_view name, UInt32 binding) -> void;
         auto SetTexture(std::string_view textureName, std::string_view samplerName, UInt32 binding) -> void;

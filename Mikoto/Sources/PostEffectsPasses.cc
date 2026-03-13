@@ -224,7 +224,6 @@ namespace Mikoto {
                 GraphicsPipelineDescription graphicsDesc{
                     .DepthTest{ true },
                     .DepthWrite{ true },
-                    .AlphaBlending{ false },
                     .ColorAttachmentFormats{ TextureFormat::R8_UNORM }
                 };
 
@@ -294,7 +293,6 @@ namespace Mikoto {
                     GraphicsPipelineDescription graphicsDesc{
                         .DepthTest{ false },
                         .DepthWrite{ false },
-                        .AlphaBlending{ true },
                         .ColorAttachmentFormats{ TextureFormat::R8_UNORM },
                     };
 
@@ -351,7 +349,7 @@ namespace Mikoto {
         auto& registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TransformComponent, TextComponent>() };
 
-        // Prepare for glyp count, we can use this to
+        // Prepare for glyph count, we can use this to
         // determine how many instances to draw
         m_GlyphCount = 0;
         for ( auto& entity: renderables ) {

@@ -15,8 +15,6 @@
 #ifndef MIKOTO_HIERARCHY_PANEL_HH
 #define MIKOTO_HIERARCHY_PANEL_HH
 
-#include <memory>
-
 #include <Panels/Panel.hh>
 #include <Scene/Entity.hh>
 
@@ -36,18 +34,18 @@ namespace Mikoto {
         ~HierarchyPanel() override = default;
 
     private:
-        auto AddEntityWithModel(Entity* root = nullptr) -> void;
-        auto AddEntityWithModel(std::string_view uri, Entity* root = nullptr) -> void;
-
+        auto BlankSpacePopupMenu() -> void;
         auto DrawNodeTree( UInt64 entity ) -> void;
 
-        auto BlankSpacePopupMenu() -> void;
         auto OnEntityRightClickMenu( Entity* entity ) -> void;
-        auto DrawTextMenuItems(Entity* entity = nullptr) -> void;
-        auto DrawPrefabMenuItems( Entity* root = nullptr ) -> void;
-        auto DrawModelLoadMenuItem( Entity* root = nullptr ) -> void;
+
+        auto DrawTextMenu(Entity* entity = nullptr) -> void;
+        auto DrawPrefabMenu( Entity* root = nullptr ) -> void;
+        auto DrawModelLoadMenu( Entity* root = nullptr ) -> void;
         auto DrawLightMenuItems( Entity* root = nullptr ) const -> void;
 
+        auto AddEntityWithModel(Entity* root = nullptr) -> void;
+        auto AddEntityWithModel(std::string_view uri, Entity* root = nullptr) -> void;
     private:
         EditorState* m_EditorState{};
 

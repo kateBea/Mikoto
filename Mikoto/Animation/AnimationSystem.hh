@@ -15,8 +15,6 @@
 #ifndef MIKOTO_ANIMATION_SYSTEM_HH
 #define MIKOTO_ANIMATION_SYSTEM_HH
 
-#include <vector>
-
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
@@ -52,7 +50,6 @@ namespace Mikoto {
         // Reallocations invalidate all references
         ankerl::unordered_dense::map<UInt64, Animator> m_Animators{};
     };
-
 }
 
 #endif//MIKOTO_ANIMATION_SYSTEM_HH

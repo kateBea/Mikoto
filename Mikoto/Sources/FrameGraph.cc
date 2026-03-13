@@ -72,10 +72,6 @@ namespace Mikoto {
         return false;
     }
 
-    auto FramePassNode::HasResources() const -> bool {
-        return !this->DynamicResourceGroup.IsEmpty();
-    }
-
     auto BufferBuilder::ForElement( Size size, Size count ) -> BufferBuilder & {
         this->ElementSize = size;
         this->ElementCount = count;
@@ -131,22 +127,6 @@ namespace Mikoto {
 
     auto FramePassBuilder::UseShader( std::string_view path, ShaderStage stage ) -> FramePassBuilder& {
         m_PipelineDescription.UseShader( path, stage );
-        return *this;
-    }
-
-    auto FramePassBuilder::Use( ResourceGroup type ) -> FramePassBuilder& {
-
-        return *this;
-    }
-
-    auto FramePassBuilder::Use( ResourceGroup type, std::string_view name, UInt32 bindSlot ) -> FramePassBuilder& {
-        switch (type) {
-            case ResourceGroup::Dynamic:
-                m_Node->DynamicResourceGroup.SetBuffer( name, bindSlot );
-                break;
-            default: ;
-        }
-
         return *this;
     }
 

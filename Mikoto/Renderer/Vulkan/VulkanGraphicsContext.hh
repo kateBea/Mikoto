@@ -179,13 +179,6 @@ namespace Mikoto {
         ankerl::unordered_dense::map<std::string, UnboundedImageSamplersManager> m_CombinedImageSamplersGroupManager{};
 
         std::vector<SamplerHandle> m_Samplers{};
-
-        // Global list of sampled textures
-        GlobalTextures m_SrgTextures{};
-
-        // Cached dynamic buffers. These will be staging buffers that we copy data to and upload to GPU
-        // Staging -> Actual Device only GPU
-        ankerl::unordered_dense::map<Buffer*, BufferHandle> m_DeviceLocalBuffers{};
     };
 }// namespace Mikoto
 

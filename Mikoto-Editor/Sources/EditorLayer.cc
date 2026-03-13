@@ -99,15 +99,7 @@ namespace Mikoto {
 
         LoadResources();
 
-        m_EditorState->PassesCompositions.try_emplace( "Triangle", m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "Skybox", m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "ShadowMap", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "InfiniteGrid", m_SceneRenderer->GetTexture( "InfiniteGrid_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "DepthPrePass", m_SceneRenderer->GetTexture( "DepthPrePass_Color" ) );
-
-        //BufferSpanHandle span{ BufferSpanHandle::Spawn( MKT_MIBIBYTES( 200 ) ) };
+        PreparePreviewTargets();
     }
     
     auto EditorLayer::SetupRenderer() -> void {
@@ -318,13 +310,7 @@ namespace Mikoto {
     }
         
     auto EditorLayer::DebugInstancingTest() -> void {
-        ModelLoadDescription desc{
-            .ModelFile{ FileService::Get()->LoadFile(
-                    "Resources/Models/1 - Box texture/Box.gltf" ) },
-            .WantTextures{ true }
-        };
-
-        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( desc ) };
+        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( "Resources/Models/1 - Box texture/Box.gltf" ) };
 
         constexpr UInt32 gridSize{ 40 }; // gridSize * gridSize cubes
         constexpr float spacing{ 15.0f }; // Distance between cubes
@@ -549,6 +535,13 @@ namespace Mikoto {
         m_EditorCamera->UpdateState( timeStep );
     }
 
+    auto EditorLayer::PreparePreviewTargets() -> void {
+        m_EditorState->PassesCompositions.try_emplace( "1. Triangle", m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "2. Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "3. BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "5. ShadowMap", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_ColorTarget" ) );
+    }
+
     auto EditorLayer::CreatePanels() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -616,15 +609,20 @@ namespace Mikoto {
     auto EditorLayer::CreateCameras() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        constexpr float NEAR_PLANE{ 0.1f };
-        constexpr float FAR_PLANE{ 1000.0f };
-        constexpr float FIELD_OF_VIEW{ 45.0f };
-        const float ASPECT_RATIO{
-            static_cast<float>( m_Window->GetWidth() ) / static_cast<float>( m_Window->GetHeight() )
+        constexpr float nearPlane{ 0.1f };
+        constexpr float farPlane{ 1000.0f };
+        constexpr float fov{ 45.0f };
+        const float aspectRatio{ static_cast<float>( m_Window->GetWidth() ) / static_cast<float>( m_Window->GetHeight() ) };
+
+        SceneCameraDescription cameraDescription{
+            .Fov{ 45.0 },
+            .AspectRatio{ static_cast<float>( m_Window->GetWidth() ) / static_cast<float>( m_Window->GetHeight() ) },
+            .NearPlane{ 0.1f },
+            .FarPlane{ 3000.0f },
+            .TargetWindow{ m_Window }
         };
 
-        m_EditorCamera = CreateScope<SceneCamera>( FIELD_OF_VIEW, ASPECT_RATIO, NEAR_PLANE, FAR_PLANE );
-        m_EditorCamera->SetTargetWindow( m_Window );
+        m_EditorCamera = CreateScope<SceneCamera>( cameraDescription );
     }
 
     auto EditorLayer::UpdateDockSpace() -> void {
@@ -662,18 +660,24 @@ namespace Mikoto {
 
         // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
         // and handle the pass-thru hole, so we ask Begin() to not render a background.
-        if constexpr (dockSpaceConfigFlags & ImGuiDockNodeFlags_PassthruCentralNode) { windowFlags |= ImGuiWindowFlags_NoBackground; }
+        if constexpr (dockSpaceConfigFlags & ImGuiDockNodeFlags_PassthruCentralNode) {
+            windowFlags |= ImGuiWindowFlags_NoBackground;
+        }
 
         // Important: note that we proceed even if Begin() returns false (aka window is collapsed).
         // This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
         // all active windows docked into it will lose their parent and become undocked.
         // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
         // any change of docks-pace/settings would lead to windows being stuck in limbo and never being visible.
-        if constexpr (!optPadding) { ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) ); }
+        if constexpr (!optPadding) {
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
+        }
 
         ImGui::Begin( "DockSpace Demo", std::addressof( m_EditorState->ApplicationCloseFlag ), windowFlags );
 
-        if constexpr (!optPadding) { ImGui::PopStyleVar(); }
+        if constexpr (!optPadding) {
+            ImGui::PopStyleVar();
+        }
 
         // DockSpace is always fullscreen
         ImGui::PopStyleVar( 2 );
@@ -705,7 +709,7 @@ namespace Mikoto {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
 
-                if (ImGui::MenuItem( "New scene", "Ctrl + N" )) { InitializeEmptyScene( "Sandbox3D" ); }
+                if (ImGui::MenuItem( "New scene", "Ctrl + N" )) { InitializeEmptyScene( "Empty scene" ); }
                 if (ImGui::MenuItem( "Open scene", "Ctrl + L" )) { LoadScene(); }
                 if (ImGui::MenuItem( "Save scene", "Ctrl + S" )) { SaveScene(); }
 
@@ -717,11 +721,17 @@ namespace Mikoto {
                 ImGui::Separator();
 
                 if (ImGui::BeginMenu( "Manipulation Mode" )) {
-                    if (ImGui::MenuItem( "Translate", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::TRANSLATION )) { m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::TRANSLATION; }
+                    if (ImGui::MenuItem( "Translate", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::TRANSLATION )) {
+                        m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::TRANSLATION;
+                    }
 
-                    if (ImGui::MenuItem( "Rotate", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::ROTATION )) { m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::ROTATION; }
+                    if (ImGui::MenuItem( "Rotate", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::ROTATION )) {
+                        m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::ROTATION;
+                    }
 
-                    if (ImGui::MenuItem( "Scale", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::SCALE )) { m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::SCALE; }
+                    if (ImGui::MenuItem( "Scale", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::SCALE )) {
+                        m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::SCALE;
+                    }
 
                     ImGui::EndMenu();
                 }
@@ -730,22 +740,24 @@ namespace Mikoto {
                 static std::string screenMode{};
 
                 screenMode = m_Window->IsMaximized() ? "Windowed" : "Fullscreen";
-                if (ImGui::MenuItem( screenMode.c_str(), "Windows + H" )) { HandleWindowScreenMode(); }
+                if (ImGui::MenuItem( screenMode.c_str(), "Windows + H" )) {
+                    HandleWindowScreenMode();
+                }
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem( "Close", nullptr, false )) { m_EditorState->ApplicationCloseFlag = true; }
+                if (ImGui::MenuItem( "Close", nullptr, false )) {
+                    m_EditorState->ApplicationCloseFlag = true;
+                }
 
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu( "Window" )) {
                 if (ImGui::BeginMenu( "Panels" )) {
-
-                    // TODO: Loop
-
                     for (auto& panel : m_PanelRegistry | std::ranges::views::values) {
                         bool isActive{ panel->IsVisible() };
+
                         if (ImGui::MenuItem( panel->GetName().data(), nullptr, std::addressof( isActive ) )) {
                             panel->SetVisible( isActive );
                         }
@@ -785,7 +797,7 @@ namespace Mikoto {
                 if (ImGui::BeginMenu( MKT_LOC( "menu_language" ).c_str() )) {
                     const ISOLanguage current{ LocalizationService::Get()->GetCurrentLanguage() };
 
-                    for (ISOLanguage lang: languages) {
+                    for ( const ISOLanguage lang: languages) {
                         const bool isSelected{ ( lang == current ) };
 
                         if (ImGui::MenuItem( GetISOName( lang ).data(), nullptr, isSelected )) {
@@ -804,8 +816,6 @@ namespace Mikoto {
                 // which we can't undo at the moment without finer window depth/z control.
 
                 SetRendererResolution();
-
-                if ( ImGui::MenuItem( "Enable SSAO", nullptr ) ) {}
 
                 ImGui::EndMenu();
             }
@@ -879,7 +889,6 @@ namespace Mikoto {
 
         m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSceneBackground(SceneBackground::SKYBOX) );
 
-        // Wireframe
         RendererPanel* settings{ m_PanelRegistry.Get<RendererPanel>() };
         m_SceneRenderer->SetWireframeEnable(m_EditorState->ShowWireframe);
 

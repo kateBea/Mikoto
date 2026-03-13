@@ -105,10 +105,6 @@ namespace Mikoto {
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
                 b.Write( "LightCullingComp_LightsBuffer", FrameResourceState::UnorderedAccessView );
-
-                b.Use( ResourceGroup::Dynamic, "CameraInfoPass_CameraData", 0 );
-                b.Use( ResourceGroup::Dynamic, "AABBGenComp_Clusters", 1 );
-                b.Use( ResourceGroup::Dynamic, "LightCullingComp_LightsBuffer", 2 );
             },
                 [this]( CommandContext &ctx, FrameGraphBlackboard &blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();

@@ -77,9 +77,6 @@ namespace Mikoto {
         std::vector<ResourceNode> Reads{};
         std::vector<ResourceNode> Writes{};
 
-        CommonResourceGroup StaticResourceGroup{ ResourceGroup::Static };
-        CommonResourceGroup DynamicResourceGroup{ ResourceGroup::Dynamic };
-
         ankerl::unordered_dense::map<ResourceGroup, ResourceBinding> Resources{};
 
         FramePassNodeType Type{ FramePassNodeType::GRAPHICS };
@@ -99,8 +96,6 @@ namespace Mikoto {
         MKT_NODISCARD auto IsExecutionPolicy(FramePassExecutionPolicy status) const -> bool;
 
         MKT_NODISCARD auto ShouldRun() const -> bool;
-
-        MKT_NODISCARD auto HasResources() const -> bool;
     };
 
     struct BufferBuilder {

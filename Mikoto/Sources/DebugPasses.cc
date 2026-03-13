@@ -21,7 +21,6 @@
 #include <Renderer/Core/FramePassResource.hh>
 #include <Renderer/Passes/DebugPasses.hh>
 
-
 namespace Mikoto {
 
     DebugPasses::DebugPasses( RenderResolution resolution )
@@ -274,7 +273,7 @@ namespace Mikoto {
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
                 b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
-                b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthRead );
+                b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
 
                 b.Read( "FinalShadingPass_BufferEDGE+", FrameResourceState::UniformBuffer );
             },
@@ -335,7 +334,7 @@ namespace Mikoto {
             TextureHandle TargetTexture{};
 
             struct PushConstantData {
-                Int32 TextureIndex{ GlobalTextures::INVALID_TEXTURE_INDEX };
+                Int32 TextureIndex{ -1 };
             } PushConstants{};
         };
 

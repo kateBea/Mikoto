@@ -37,7 +37,7 @@
 namespace Mikoto {
 
     Animator::Animator( ModelHandle handle )
-        : m_CurrentTime{ 0.0f }, m_Model{ handle }
+        : m_Model{ handle }
     {
         MKT_ASSERT( !handle.IsEmpty(), "Invalid model handle for animator" );
         m_Context = ozz::make_unique<ozz::animation::SamplingJob::Context>();
@@ -79,13 +79,11 @@ namespace Mikoto {
     }
 
     auto Animator::PlayAnimation( std::string_view name ) -> void {
-        SkinnedAnimation* animation{ m_Model->FindAnimation( name ) };
-        if (animation) {
+        if ( SkinnedAnimation* animation{ m_Model->FindAnimation( name ) } ) {
             m_CurrentAnimation = animation;
-
             PlayCurrentAnimation();
         } else {
-            MKT_CORE_LOGGER_ERROR( "Animation {} does not exist. Cannot play.", name );
+            MKT_CORE_LOGGER_ERROR( "Animation {} does not exist. Cannot play it.", name );
         }
     }
 
@@ -132,7 +130,7 @@ namespace Mikoto {
         const Size jointCount{ m_ModelMatrices.size() };
         const auto& inverseBindMats{ m_Model->GetSkeleton().GetInverseBindMatrices() };
 
-        Size limit{ Math::Min( m_FinalMatrices.size(), inverseBindMats.size(), m_ModelMatrices.size() ) };
+        Size limit{ Math::Min( m_FinalMatrices.size(), inverseBindMats.size(), m_ModelMatrices.size() ) }; // ???
         for ( Size i{}; i < limit; ++i ) {
             // because ozz uses colum major mat4x4 of floats
             ozz::math::Float4x4& model{ m_ModelMatrices[i] };

@@ -1,9 +1,18 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 3/15/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <vector>
-
 #include <fmt/format.h>
 
 // I love Windows.h defining min and max macros that break everything
@@ -16,8 +25,8 @@
 #undef max
 #endif
 
-#include <msdf-atlas-gen/glyph-generators.h>
 #include <msdf-atlas-gen/msdf-atlas-gen.h>
+#include <msdf-atlas-gen/glyph-generators.h>
 
 #include <Renderer/Core/FontFactory.hh>
 
@@ -26,24 +35,14 @@ namespace Mikoto {
     auto FontFactory::GenerateAtlas( const CStr fontFilename, Int32 fontSize, bool expensiveColoring ) const -> MsdfData {
         MsdfData result{};
 
-        Int32 fontWeight{};
-        Int32 isVariableWeight{};
-
         // Initialize instance of FreeType library
         if (m_FreeTypeHandle != nullptr) {
-            msdfgen::FontHandle *font{ msdfgen::loadFont( m_FreeTypeHandle, fontFilename ) };
-
-            if (font != nullptr) {
+            if ( msdfgen::FontHandle *font{ msdfgen::loadFont( m_FreeTypeHandle, fontFilename ) }) {
                 // Storage for glyph geometry and their coordinates in the atlas
                 MsdfGlyphGeometryList glyphs{};
 
                 std::vector<msdfgen::FontVariationAxis> axes{};
                 msdfgen::listFontVariationAxes( axes, m_FreeTypeHandle, font );
-
-                if (!axes.empty()) { isVariableWeight = msdfgen::setFontVariationAxis( m_FreeTypeHandle, font, "Weight", fontWeight ); }
-                // else {
-                //     fontWeight = getWeightFromString(m_MetaData.subFamily);
-                // }
 
                 // FontGeometry is a helper class that loads a set of glyphs from a single font.
                 // It can also be used to get additional font metrics, kerning information, etc.
@@ -58,7 +57,7 @@ namespace Mikoto {
                         CharsetRange{ 0x0020, 0x007F },// Basic Latin
                         CharsetRange{ 0x3040, 0x309F },// Hiragana
                         CharsetRange{ 0x30A0, 0x30FF }, // Katakana
-                        //CharsetRange{ 0x00A0, 0x00FF },// Latin-1 Supplementº
+                        //CharsetRange{ 0x00A0, 0x00FF },// Latin-1 Supplement
                         //CharsetRange{ 0x0100, 0x017F },// Latin Extended-A
                         //CharsetRange{ 0x0180, 0x024F },// Latin Extended-B
                         //CharsetRange{ 0x0370, 0x03FF },// Greek & Coptic
@@ -211,9 +210,7 @@ namespace Mikoto {
         // Create Atlas texture
         const std::string &path{ description.FontFile->GetPath() };
         auto result{ GenerateAtlas( path.c_str(), description.FontSize ) };
-
         result.TextureAtlas->SetDebugName( fmt::format( "FontAtlas {}", description.FontFile->GetPath() ) );
-
 
 #if false && !defined(MSDFGEN_DISABLE_PNG)
         msdfgen::FontHandle *font = msdfgen::loadFont( m_FreeTypeHandle, description.FontFile->GetPath().c_str() );
@@ -232,14 +229,16 @@ namespace Mikoto {
 #endif
 
         // Construct font
-        Font *newFont{ new Font( result.TextureAtlas, description.FontSize ) };
+        FontHandle newFont{ FontHandle::Spawn( result.TextureAtlas, description.FontSize ) };
 
         newFont->SetPath( description.FontFile->GetPath() );
         newFont->SetName( description.FontFile->GetName() );
 
         // Fill glyph data
         for (auto &[codepoint, glyphData]: result.GlyphInfo) {
-            if (codepoint == 0) { continue; }
+            if (codepoint == 0) {
+                continue;
+            }
 
             newFont->RegisterGlyph( codepoint, glyphData );
         }
@@ -247,6 +246,6 @@ namespace Mikoto {
         newFont->SetMaxHeight( result.MaxHeight );
         newFont->SetMaxWidth( result.MaxHeight );
 
-        return FontHandle::Create( newFont );
+        return newFont;
     }
 }// namespace Mikoto

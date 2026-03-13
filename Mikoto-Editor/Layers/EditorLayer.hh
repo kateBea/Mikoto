@@ -101,11 +101,10 @@ namespace Mikoto {
 
         auto PrepareRenderer(double timeStep) -> void;
         auto PrepareCamera(double timeStep) -> void;
+        auto PreparePreviewTargets() -> void;
 
         auto SetupRenderer() -> void ;
-
         auto SetupEditorState() -> void ;
-
         auto SetupPresentTarget(Event& event) -> void;
 
         auto LoadResources() -> void;

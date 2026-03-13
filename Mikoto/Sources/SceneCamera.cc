@@ -1,19 +1,23 @@
-/**
- * EditorCamera.hh
- * Created by kate on 8/29/23.
- * */
+//    Copyright 2025 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <cmath>
 #include <utility>
 
-// Third-Party Libraries
 #include <glm/glm.hpp>
-
-// Quaternions with extensions
 #include <glm/gtx/quaternion.hpp>
 
-// Project Headers
 #include <Common/Common.hh>
 #include <Core/InputService.hh>
 #include <Library/Math/Math.hh>
@@ -21,6 +25,16 @@
 #include <Scene/SceneCamera.hh>
 
 namespace Mikoto {
+
+    SceneCamera::SceneCamera( const SceneCameraDescription &desc )
+        : Camera{ glm::perspective( glm::radians( desc.Fov ), desc.AspectRatio, desc.NearPlane, desc.FarPlane ) },
+        m_TargetWindow{ desc.TargetWindow } {
+
+        m_Position = Vec3F{ 100.0f, 100.5f, 100.0f };
+        m_TargetPosition = Vec3F{ 10.0f, 14.5f, 21.0f };
+        m_ForwardVector = glm::vec3{ -0.457344413f, -0.443095952f, -0.771039605f };
+        m_TargetForwardVector = m_ForwardVector;
+    }
 
     SceneCamera::SceneCamera( const float fov, const float aspectRatio, const float nearClip, const float farClip )
         : Camera{ glm::perspective( glm::radians( fov ), aspectRatio, nearClip, farClip ) } {

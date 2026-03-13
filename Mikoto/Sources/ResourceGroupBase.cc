@@ -50,10 +50,6 @@ namespace Mikoto {
         m_Resources.emplace( std::string{ samplerName }, Entry{.Name{ samplerName }, .Binding{ binding }, .Type{ ShaderResourceType::SAMPLER } } );
     }
 
-    auto GlobalTextures::GetMaxTextureCount() -> UInt32 {
-        return 4096;
-    }
-
     auto ConstantsGroup::SetData( const void *ptr, Size size ) -> void {
         m_Data = ptr;
         m_SizeBytes = size;
@@ -62,34 +58,5 @@ namespace Mikoto {
     auto ConstantsGroup::Clear() -> void {
         m_Data = nullptr;
         m_SizeBytes = 0;
-    }
-
-    auto GlobalTextures::Bind( TextureHandle texture, SamplerHandle sampler ) -> Int32 {
-        if (m_Resources.contains( std::make_pair(texture.GetRaw(), sampler.GetRaw()) )) {
-            return INVALID_TEXTURE_INDEX;
-        }
-
-        const auto [it, success] {
-            m_Resources.try_emplace( std::make_pair(texture.GetRaw(), sampler.GetRaw()), m_Resources.size() )
-        };
-
-        if (success) {
-            return it->second;
-        }
-
-        return INVALID_TEXTURE_INDEX;
-    }
-
-    auto GlobalTextures::Contains( TextureHandle texture, SamplerHandle sampler ) -> bool {
-        return GetIndex( texture, sampler ) != INVALID_TEXTURE_INDEX;
-    }
-
-    auto GlobalTextures::GetIndex( TextureHandle texture, SamplerHandle sampler ) -> Int32 {
-        const auto it{ m_Resources.find( std::make_pair(texture.GetRaw(), sampler.GetRaw() ) ) };
-        if (it != m_Resources.end()) {
-            return it->second;
-        }
-
-        return INVALID_TEXTURE_INDEX;
     }
 }// namespace Mikoto

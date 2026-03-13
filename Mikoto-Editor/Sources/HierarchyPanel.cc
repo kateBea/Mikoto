@@ -37,7 +37,7 @@
 
 namespace Mikoto {
 
-    auto HierarchyPanel::DrawPrefabMenuItems( Entity* root ) -> void {
+    auto HierarchyPanel::DrawPrefabMenu( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( ImGui::BeginMenu( "3D Object" ) ) {
@@ -288,16 +288,16 @@ namespace Mikoto {
                 RuntimeConsole::Get()->Debug( StringUtil::Format( "Queued create Empty object" ) );
             }
 
-            DrawPrefabMenuItems( entity );
-            DrawModelLoadMenuItem( entity );
+            DrawPrefabMenu( entity );
+            DrawModelLoadMenu( entity );
             DrawLightMenuItems( entity );
-            DrawTextMenuItems( entity );
+            DrawTextMenu( entity );
 
             ImGui::EndPopup();
         }
     }
 
-    auto HierarchyPanel::DrawModelLoadMenuItem( Entity* root ) -> void {
+    auto HierarchyPanel::DrawModelLoadMenu( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( ImGui::MenuItem( "Load model" ) ) {
@@ -305,7 +305,7 @@ namespace Mikoto {
         }
     }
 
-    auto HierarchyPanel::DrawTextMenuItems( Entity* root ) -> void {
+    auto HierarchyPanel::DrawTextMenu( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         ImGui::Spacing();
@@ -419,12 +419,10 @@ namespace Mikoto {
                 RuntimeConsole::Get()->Debug( fmt::format( "New entity queued {}", "Empty Object" ) );
             }
 
-            // We do not have the cursor on top of any entity
-            // the new entity will have no root
-            DrawPrefabMenuItems();
-            DrawModelLoadMenuItem();
+            DrawPrefabMenu();
+            DrawModelLoadMenu();
             DrawLightMenuItems();
-            DrawTextMenuItems();
+            DrawTextMenu();
 
             ImGui::EndPopup();
         }

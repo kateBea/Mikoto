@@ -41,9 +41,6 @@ namespace Mikoto {
     public:
         explicit FramePassBuilder( FramePassNode &node );
 
-        auto Use( ResourceGroup type ) -> FramePassBuilder&;
-        auto Use( ResourceGroup type, std::string_view name, UInt32 bindSlot ) -> FramePassBuilder&;
-
         // state indicates the state the resource needs to be in for this pass, this may imply setting
         // a barrier for transition on the resource before the pass starts (only if needed)
         auto Write( std::string_view name, FrameResourceState state) -> FramePassBuilder&;

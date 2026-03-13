@@ -15,8 +15,7 @@
 #include "base/Base.slang"
 #include "base/Lighting_Helpers.slang"
 
-[[vk::constant_id(0)]]
-const uint NUM_SAMPLES = 1024;
+const static uint NUM_SAMPLES = 1024;
 
 struct FSInput {
     float2 UV : TEXCOORD0;

@@ -153,7 +153,7 @@ namespace Mikoto {
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_1 );
 
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_Culling->GetMeshVertices(), ResourceSlot::Slot_2 );
-                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_Culling->GetMeshIndices(), ResourceSlot::Slot_3 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_Culling->GetMeshIndices(), ResourceSlot::Slot_3 );
 
                 const auto dimensions{ InferDimensions( m_Resolution ) };
 
@@ -172,7 +172,7 @@ namespace Mikoto {
 
                 ctx.SetPolygonLineWidth( m_WireframeLineWidth );
 
-                m_Culling->DrawInstances( ctx );
+                m_Culling->DrawInstancesIndirect( ctx );
 
                 ctx.EndRender();
             } );

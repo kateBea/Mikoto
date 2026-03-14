@@ -79,9 +79,10 @@ namespace Mikoto {
         auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding) -> void  override;
 
         auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void  override;
-
-        auto DrawIndexedIndirect( BufferHandle indexBuffer, UInt32 offset, UInt32 drawCount, UInt32 stride ) -> void override;
         auto DrawIndexed( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance)-> void  override;
+
+        auto DrawIndirect( BufferHandle indirect, UInt32 offset, UInt32 drawCount, UInt32 stride ) -> void override;
+        auto DrawIndexedIndirect( BufferHandle indirect, UInt32 offset, UInt32 drawCount, UInt32 stride ) -> void override;
 
         auto BindPipeline(PipelineHandle pipeline) -> void override;
 
@@ -174,7 +175,7 @@ namespace Mikoto {
     // ----------------------------------------------------------------------------
     // VulkanQueue. (TODO(kaTe): To implement still)
     // ----------------------------------------------------------------------------
-    // Abstraction over a VkQueue that enables safe multithreaded command buffer
+    // Abstraction over a VkQueue that tries to enable multithreaded command buffer
     // recording.
     //
     // Design goals:

@@ -33,16 +33,19 @@ struct VSOutput{
 [[vk::binding(Slot_1, UAV_SET_INDEX)]] StructuredBuffer<BoneData, ScalarDataLayout> Bones;
 
 [[vk::binding(Slot_2, UAV_SET_INDEX)]] StructuredBuffer<VertexData, ScalarDataLayout> Vertices;
-//[[vk::binding(Slot_3, UAV_SET_INDEX)]] StructuredBuffer<uint, ScalarDataLayout> Indices;
+[[vk::binding(Slot_3, UAV_SET_INDEX)]] StructuredBuffer<uint, ScalarDataLayout> Indices;
 
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    MeshParameters meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
+    // Compute instance index
+    uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
+    MeshParameters meshInfo = Meshes[instanceIndex];
 
-    // uint index = Indices[meshInfo.IndexOffset + input.VertexID];
-    VertexData vertex = Vertices[meshInfo.VertexOffset + input.VertexID];
+    // Compute attribute index
+    uint index = Indices[meshInfo.IndexOffset + input.VertexID];
+    VertexData vertex = Vertices[meshInfo.VertexOffset + index];
 
     float4x4 model = meshInfo.Transform;
 

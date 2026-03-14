@@ -289,8 +289,42 @@ namespace Mikoto {
         m_Commands->DrawIndexed( info.IndexBuffer->GetCount(), info.InstancesCount, info.FirstIndex, info.VertexOffset, info.FirstInstance );
     }
 
+    auto CommandContext::DrawIndirect( const DrawIndirectState &info, bool bindAttributes ) -> void {
+        if (info.DrawCount == 0) {
+            return;
+        }
+
+        if ( !m_HasSetConstantData ) {
+            m_Context->PushConstants( m_ActivePass->Name, m_PushConstants, m_Commands );
+
+            m_HasSetConstantData = true;
+        }
+
+        // If pass hasn't bound its resources do it once
+        if (!m_HasResourcesBound) {
+            m_Context->BindShaderResources( m_ActivePass->Name, m_Commands );
+            m_HasResourcesBound = true;
+        }
+
+        MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
+
+        // Bind vertex buffers
+        if (bindAttributes) {
+            for (auto& [vb, binding] : info.VertexBuffers) {
+                m_Commands->BindVertexBuffer( vb, binding );
+            }
+        }
+
+        // Multi-draw in one call
+        m_Commands->DrawIndirect(
+                info.IndirectCommandsBuffer,
+                0,
+                info.DrawCount,
+                sizeof( DrawIndirectCommand ) );
+    }
+
     auto CommandContext::DrawIndexedIndirect( const DrawIndirectIndexedState &info ) -> void {
-        if ( info.Commands.empty() ) {
+        if (info.DrawCount == 0) {
             return;
         }
 
@@ -374,6 +408,19 @@ namespace Mikoto {
         MKT_ASSERT( size <= buffer->GetSizeBytes(), "Size is bigger than expected" );
 
         buffer->Copy( ptrSrc, size, m_Commands ); 
+    }
+
+    auto CommandContext::CopyBuffer( BufferHandle buffer, const void *ptrSrc, Size size ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        if (size == 0) {
+            return;
+        }
+
+        MKT_ASSERT( !buffer.IsEmpty(), "Buffer does not exist" );
+        MKT_ASSERT( size <= buffer->GetSizeBytes(), "Size is bigger than expected" );
+
+        buffer->Copy( ptrSrc, size, m_Commands );
     }
 
     auto CommandContext::PushConstants( const void *ptr, Size size ) -> void {

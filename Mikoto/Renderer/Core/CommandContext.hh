@@ -56,6 +56,23 @@ namespace Mikoto {
         UInt32 FirstInstance{};
     };
 
+    struct DrawIndirectCommand {
+        UInt32    VertexCount{};
+        UInt32    InstanceCount{};
+        UInt32    FirstVertex{};
+        UInt32    FirstInstance{};
+    };
+
+    struct DrawIndirectState {
+        // Optional: Vertex buffer and the binding
+        std::vector<std::pair<BufferHandle, UInt32>> VertexBuffers{};
+
+        // Indirect draw command
+        BufferHandle IndirectCommandsBuffer{};
+
+        UInt32 DrawCount{};
+    };
+
     // Still need to figure out how to specify vertex buffers for indirect draw calls.
     // As far as I know, I can either specify one mega vertex buffer and index buffer and issue a single draw indirect draw call
     // or I can specify multiple vertex buffers and index buffers and issue multiple draw indirect calls. 
@@ -67,7 +84,6 @@ namespace Mikoto {
         BufferHandle IndirectCommandsBuffer{};
 
         UInt32 DrawCount{};
-        std::vector<DrawIndexedIndirectCommand> Commands{};
     };
 
     class CommandContext final {
@@ -109,7 +125,9 @@ namespace Mikoto {
         auto SetPolygonLineWidth(float value) -> void;
 
         auto DrawIndexed(const DrawIndexedState& info ) -> void;
+
         auto DrawIndexedIndirect( const DrawIndirectIndexedState& info ) -> void;
+        auto DrawIndirect( const DrawIndirectState& info, bool bindAttributes = false ) -> void;
 
         auto Draw(UInt32 vertexCount, UInt32 instanceCount = 1, UInt32 firstVertex = 0, UInt32 firstInstance = 0 ) -> void;
         auto Dispatch(UInt32 invX, UInt32 invY, UInt32 invZ) -> void;
@@ -130,6 +148,7 @@ namespace Mikoto {
 
         auto UploadBuffer(std::string_view bufferName, const void* ptrSrc, Size size, Size offset = 0 ) const -> void;
 
+        auto CopyBuffer( BufferHandle buffer, const void *ptrSrc, Size size ) -> void;
         auto CopyBuffer( std::string_view bufferName, const void* ptrSrc, Size size ) -> void;
 
         MKT_NODISCARD auto PushTexture(TextureHandle texture ) const -> Int32;

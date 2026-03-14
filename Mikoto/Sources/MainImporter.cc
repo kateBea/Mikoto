@@ -438,7 +438,6 @@ namespace Mikoto {
         }
 
 #if !defined( NDEBUG )
-
         MKT_COLOR_STYLE_PRINT_FORMATTED_FLUSH(
                 MKT_FMT_COLOR_CYAN, MKT_FMT_STYLE_BOLD,
                 "\n========= MATERIAL DEBUG =========\n" );

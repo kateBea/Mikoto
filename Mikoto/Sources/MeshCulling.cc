@@ -193,6 +193,16 @@ namespace Mikoto {
         m_MeshInfo.resize( MAX_RENDERABLE_ENTITIES );
         m_MaterialInfo.resize( MAX_RENDERABLE_ENTITIES );
 
+        // Indirect draw prepare
+        m_IndirectDrawCmds.resize( m_MaxUniqueDrawCalls );
+        BufferDescription indirectBufferDesc{};
+        indirectBufferDesc
+                .WithUsage( BufferUsage::INDIRECT_DRAW )
+                .ForElement( MKT_SIZEOF(DrawIndirectCommand), m_MaxUniqueDrawCalls )
+                .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
+
+        m_DrawIndirectState.IndirectCommandsBuffer = device->CreateBuffer( indirectBufferDesc );
+
         RegisterMeshCullingPass( graph );
         RegisterGeometryFilterPass( graph );
     }
@@ -225,7 +235,97 @@ namespace Mikoto {
             },
             FramePassNodeType::TRANSFER );
     }
-    
+
+    auto MeshCulling::PrepareIndexedDraw( CommandContext &context ) -> void {
+        // Refactored for Indexed draw (not indirect).
+        // Prepares draw indexed info and flattens the mesh info and material in the way
+        // Mesh_0: MeshInfo[0...Mesh0_Size]
+        // Mesh_1: MeshInfo[Mesh0_Size...Mesh1_Size], etc
+        // To be used with DrawInstances(...)
+
+        // Flatten
+        Size activeMeshCount{};
+        for (auto& [node, data] : m_IndexedGeometryManager.GetData()) {
+            DrawIndexedState &drawState{ m_DrawIndexedState[node] };
+
+            drawState.IndexBuffer = node->GetIndexBuffer();
+            drawState.IndicesCount = node->GetIndexBuffer()->GetCount();
+
+            if ( drawState.VertexBuffers.empty() ) {
+                drawState.VertexBuffers.emplace_back( node->GetVertexBuffer(), 0 );
+            }
+
+            drawState.InstancesCount = data.size();
+            drawState.FirstInstance = activeMeshCount;
+
+            Size meshIndex{};
+            for (auto& item : data) {
+                m_MeshInfo[activeMeshCount + meshIndex] = item.first;
+                m_MaterialInfo[activeMeshCount + meshIndex] = item.second;
+
+                ++meshIndex;
+            }
+
+            activeMeshCount += data.size();
+        }
+    }
+
+    auto MeshCulling::PrepareIndirectDraw( CommandContext &context ) -> void {
+        // Prepares draw indirect info and flattens the mesh info and material in the way
+        // Mesh_0: MeshInfo[0...Mesh0_Size]
+        // Mesh_1: MeshInfo[Mesh0_Size...Mesh1_Size], etc
+        // To be used with DrawInstancesIndirect(...), assumes the vertex shader uses vertex pulling
+        // with indices to retrieve the proper vertex ID from the indices buffer, see comment below
+
+        Size activeMeshCount{};
+        Size indirectDrawIndex{};
+
+        for (auto& [meshNode, instances] : m_IndirectDrawMeshes) {
+            MKT_ASSERT( indirectDrawIndex < m_MaxUniqueDrawCalls, "Exceeded max number of unique draw indirect calls." );
+
+            Size instanceCount{ m_IndexedGeometryManager.GetData()[meshNode].size() };
+            // TODO: specify the vertex buffers (leave for later, using vertex pulling for now)
+
+            // IMPORTANT: VertexCount must be the INDEX count when doing vertex pulling.
+            // The vertex shader uses SV_VertexID to index into the index buffer:
+            //     index = Indices[IndexOffset + VertexID]
+            // Vertex count tells how many times the vertex shader will run.
+            // So the shader must run once per index, not once per vertex.
+            m_IndirectDrawCmds[indirectDrawIndex].InstanceCount = instanceCount;
+            m_IndirectDrawCmds[indirectDrawIndex].VertexCount = meshNode->GetIndexBuffer()->GetCount();
+            m_IndirectDrawCmds[indirectDrawIndex].FirstInstance = activeMeshCount;
+
+            // Flatten data
+            Size meshIndex{};
+            for (auto &[meshInfo, materialInfo] :  m_IndexedGeometryManager.GetData()[meshNode]) {
+                m_MeshInfo[activeMeshCount + meshIndex] = meshInfo;
+                m_MaterialInfo[activeMeshCount + meshIndex] = materialInfo;
+
+                ++meshIndex;
+            }
+
+            activeMeshCount += instanceCount;
+
+            // If this node has instances we increment draw count
+            if (instanceCount != 0) {
+                indirectDrawIndex += 1;
+            }
+
+            instances.clear();
+        }
+
+        m_DrawIndirectState.DrawCount = indirectDrawIndex;
+        if (m_DrawIndirectState.DrawCount) {
+            context.CopyBuffer( m_DrawIndirectState.IndirectCommandsBuffer, m_IndirectDrawCmds.data(), m_DrawIndirectState.DrawCount * MKT_SIZEOF( DrawIndirectCommand ) );
+
+            context.CopyBuffer( "MeshCulling_GeometryInfo", m_MeshInfo.data(), activeMeshCount * MKT_SIZEOF( ShaderMesh ) );
+            context.CopyBuffer( "MeshCulling_MaterialsInfo", m_MaterialInfo.data(), activeMeshCount * MKT_SIZEOF( ShaderMaterial ) );
+        }
+
+        // Clear after everything has been uploaded
+        m_IndexedGeometryManager.Clear();
+    }
+
     auto MeshCulling::RegisterMeshCullingPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -248,7 +348,6 @@ namespace Mikoto {
         auto &registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
-        Size meshIndex{};
         for ( auto [entity, tag, transform, materialComp, meshComponent]: renderables.each() ) {
             if ( !tag.IsActive() ) {
                 continue;
@@ -258,13 +357,15 @@ namespace Mikoto {
                 MeshNode *meshNode{ meshComponent.GetMesh() };
                 PBRMaterial *pbrMat{ materialComp.GetMaterial().Dynamic<PBRMaterial>() };
 
-                auto geometryInfo{ m_GeometryManager.UploadMeshData( meshNode ) };
-
                 auto& [geometry, material]{ m_IndexedGeometryManager.RegisterInstance( meshNode ) };
                 
-                // Geometry
+                // For vertex pulling
+                const auto geometryInfo{ m_GeometryManager.UploadMeshData( meshNode ) };
                 geometry.MeshNodeOffsetVertex = geometryInfo.VertexOffset / MKT_SIZEOF( VertexBufferData );
                 geometry.MeshNodeOffsetIndex = geometryInfo.IndexOffset / MKT_SIZEOF(UInt32);
+
+                // For indirect draw
+                m_IndirectDrawMeshes[meshNode].emplace( tag.GetGUID() );
 
                 geometry.Transform = transform.GetWorldTransform();
                 geometry.Transform = transform.GetWorldTransform();
@@ -321,49 +422,19 @@ namespace Mikoto {
             }
         }
 
+        // Skinning
         for (const auto& index : m_ActiveFinalMatsIndices) {
             if ( Animator * animator{ AnimationSystem::Get()->GetAnimator( index ) } ) {
                 auto &finalMats{ animator->GetFinalBoneMatrices()  };
                 std::memcpy( m_SkinningInfo[index - 1].BoneTransforms.data(), finalMats.data(), finalMats.size() * MKT_SIZEOF( Mat4F ) );
             }
         }
-
         if (!m_ActiveFinalMatsIndices.empty()) {
             context.CopyBuffer( "MeshCulling_SkinningInfo", m_SkinningInfo.data(), MAX_SKINNED_MESHES * MKT_SIZEOF( SkinningInfo ) );
             m_ActiveFinalMatsIndices.clear();
         }
 
-        // Flaten
-        Size activeMeshCount{};
-        for (auto& [node, data] : m_IndexedGeometryManager.GetData()) {
-            DrawIndexedState &drawState{ m_DrawIndexedState[node] };
-
-            drawState.IndexBuffer = node->GetIndexBuffer();
-            drawState.IndicesCount = node->GetIndexBuffer()->GetCount();
-
-            if ( drawState.VertexBuffers.empty() ) {
-                drawState.VertexBuffers.emplace_back( node->GetVertexBuffer(), 0 );
-            }
-
-            drawState.InstancesCount = data.size();
-            drawState.FirstInstance = activeMeshCount;
-
-            Size meshIndex{};
-            for (auto& item : data) {
-                m_MeshInfo[activeMeshCount + meshIndex] = item.first;
-                m_MaterialInfo[activeMeshCount + meshIndex] = item.second;
-
-                ++meshIndex;
-            }
-            
-            activeMeshCount += data.size();
-        }
-        
-        context.CopyBuffer( "MeshCulling_GeometryInfo", m_MeshInfo.data(), activeMeshCount * MKT_SIZEOF( ShaderMesh ) );
-        context.CopyBuffer( "MeshCulling_MaterialsInfo", m_MaterialInfo.data(), activeMeshCount * MKT_SIZEOF( ShaderMaterial ) );
-
-        // Clear after everything has been uploaded
-        m_IndexedGeometryManager.Clear();
+        PrepareIndirectDraw( context );
     }
 
     auto IndexedGeometryManager::Clear() -> void {
@@ -408,11 +479,8 @@ namespace Mikoto {
         }
     }
 
-    auto MeshCulling::DrawInstancesIndirect( CommandContext &context ) -> void {
+    auto MeshCulling::DrawInstancesIndirect( CommandContext &context, bool bindAttributes ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        // TODO: Implement indirect draw
-        // Prepare indirect commands first, then draw
-        
+        context.DrawIndirect( m_DrawIndirectState, bindAttributes );
     }
 }

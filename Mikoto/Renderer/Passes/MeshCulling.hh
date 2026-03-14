@@ -124,7 +124,7 @@ namespace Mikoto {
         auto GetMeshIndices() -> BufferHandle;
 
         auto DrawInstances( CommandContext& context ) -> void;
-        auto DrawInstancesIndirect( CommandContext& context ) -> void;
+        auto DrawInstancesIndirect( CommandContext& context, bool bindAttributes = false ) -> void;
 
     private:
         auto SetupInstanceData( CommandContext& context ) -> void;
@@ -132,6 +132,9 @@ namespace Mikoto {
         auto RegisterScatteredWrites(FrameGraph &graph) -> void;
         auto RegisterMeshCullingPass(FrameGraph &graph) -> void;
         auto RegisterGeometryFilterPass(FrameGraph &graph) -> void;
+
+        auto PrepareIndexedDraw( CommandContext& context ) -> void;
+        auto PrepareIndirectDraw( CommandContext& context ) -> void;
 
     private:
         struct SkinningInfo {
@@ -144,6 +147,12 @@ namespace Mikoto {
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
         GeometryManager m_GeometryManager{};
+
+        // Multi draw indirect
+        UInt32 m_MaxUniqueDrawCalls{ 1'000'000 };
+        DrawIndirectState m_DrawIndirectState{};
+        std::vector<DrawIndirectCommand> m_IndirectDrawCmds{};
+        ankerl::unordered_dense::map<MeshNode*, ankerl::unordered_dense::set<UInt64>> m_IndirectDrawMeshes{};
 
         // Main geometry
         IndexedGeometryManager m_IndexedGeometryManager{};

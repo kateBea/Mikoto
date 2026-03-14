@@ -59,6 +59,7 @@ namespace Mikoto {
         INDEX,
         UNIFORM,
         SHADER_STORAGE,
+        INDIRECT_DRAW,
         UNDEFINED,
     };
 

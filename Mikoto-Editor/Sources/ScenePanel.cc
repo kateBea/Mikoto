@@ -197,6 +197,7 @@ namespace Mikoto {
         Mat4F objectTransform{ transformComponent.GetTransform() };
 
         ImGuizmo::OPERATION operation{ InferManipulationMode( m_EditorState->Manipulation ) };
+
         ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), operation, ImGuizmo::MODE::WORLD, glm::value_ptr( objectTransform ) );
 
         if (ImGuizmo::IsUsing()) {

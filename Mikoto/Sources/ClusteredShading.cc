@@ -179,7 +179,7 @@ namespace Mikoto {
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_2 );
 
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshVertices(), ResourceSlot::Slot_3 );
-                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_4 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_4 );
 
                 ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
 
@@ -197,7 +197,7 @@ namespace Mikoto {
 
                 ctx.BindPipeline( "GBuffer_Pipeline" );
 
-                m_MeshCullingPass->DrawInstances( ctx );
+                m_MeshCullingPass->DrawInstancesIndirect( ctx );
 
                 ctx.EndRender();
             } );
@@ -250,7 +250,7 @@ namespace Mikoto {
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_1 );
 
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshVertices(), ResourceSlot::Slot_2 );
-                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_3 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_3 );
                 
                 ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
 
@@ -261,7 +261,7 @@ namespace Mikoto {
                 ctx.SetViewport( 0, 0, dimensions.first, dimensions.second );
                 ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                m_MeshCullingPass->DrawInstances( ctx );
+                m_MeshCullingPass->DrawInstancesIndirect( ctx );
 
                 ctx.EndRender();
             } );

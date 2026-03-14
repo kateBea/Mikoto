@@ -46,7 +46,7 @@ ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
 // Vertex pullign data
 [[vk::binding(Slot_5, UAV_SET_INDEX)]] StructuredBuffer<VertexData, ScalarDataLayout> Vertices;
-//[[vk::binding(Slot_6, UAV_SET_INDEX)]] StructuredBuffer<uint, ScalarDataLayout> Indices;
+[[vk::binding(Slot_6, UAV_SET_INDEX)]] StructuredBuffer<uint, ScalarDataLayout> Indices;
 
 [[vk::push_constant]]
 FinalShadingParameters u_Constants;
@@ -76,11 +76,14 @@ struct VSOutput {
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    MeshParameters meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
-    o.MaterialIndex = input.BaseInstanceIndex + input.InstanceIndex;
+    // Compute instance index
+    uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
+    MeshParameters meshInfo = Meshes[instanceIndex];
+    o.MaterialIndex = instanceIndex;
 
-    //uint index = Indices[meshInfo.IndexOffset + input.VertexID];
-    VertexData vertex = Vertices[meshInfo.VertexOffset + input.VertexID];
+    // Compute attribute index
+    uint index = Indices[meshInfo.IndexOffset + input.VertexID];
+    VertexData vertex = Vertices[meshInfo.VertexOffset + index];
 
     float4x4 model = meshInfo.Transform;
 

@@ -418,6 +418,7 @@ namespace Mikoto {
         VkPhysicalDeviceFeatures deviceFeatures{
             .sampleRateShading = VK_TRUE,
             .multiDrawIndirect = VK_TRUE,
+            .drawIndirectFirstInstance = VK_TRUE,
             .fillModeNonSolid = VK_TRUE,
             .wideLines = VK_TRUE,
             .samplerAnisotropy = VK_TRUE,
@@ -1113,37 +1114,24 @@ namespace Mikoto {
             1,
             std::addressof(copy));
 
-        VkAccessFlags accessFlags{ VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT };
-
-        // It is either vertex or index
-        if (src->IsUsage(BufferUsage::INDEX)) {
-            accessFlags = VK_ACCESS_INDEX_READ_BIT;
-        }
-
-        // VK_QUEUE_FAMILY_IGNORED Because queue family indices are
-        // unified see https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
-        // Otherwise we would need to specify the indices explicitly
-
-        const VkBufferMemoryBarrier barrier{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-            .dstAccessMask = accessFlags,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .buffer = dest->GetNativeHandle(ObjectType::Vk_Buffer),
+        VkBufferMemoryBarrier2 barrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+            .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            .dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT,
+            .buffer = dest->GetNativeHandle( ObjectType::Vk_Buffer ),
             .offset = 0,
-            .size = src->GetSizeBytes()
+            .size = VK_WHOLE_SIZE
         };
 
-        vkCmdPipelineBarrier(
-            m_CmdBuffer,
-            VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-            VK_FLAGS_NONE,
-            0, nullptr,
-            1, &barrier,
-            0, nullptr
-        );
+        VkDependencyInfo depInfo{
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .bufferMemoryBarrierCount = 1,
+            .pBufferMemoryBarriers = &barrier,
+        };
+
+        vkCmdPipelineBarrier2( m_CmdBuffer, &depInfo );
     }
 
     auto VulkanCmdList::CopyBuffer( const void* src, Size size, Buffer* dest ) -> void {
@@ -1166,36 +1154,24 @@ namespace Mikoto {
                 std::addressof( copy ) );
 
         // Honestly im not sure how to handle this yet
-        VkAccessFlags accessFlags{ VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT };
-
-        // It is either vertex or index
-        if ( src->IsUsage( BufferUsage::INDEX ) ) {
-            accessFlags = VK_ACCESS_INDEX_READ_BIT;
-        }
-
-        // VK_QUEUE_FAMILY_IGNORED Because queue family indices are
-        // unified see https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
-        // Otherwise we would need to specify the indices explicitly
-
-        const VkBufferMemoryBarrier barrier{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-            .dstAccessMask = accessFlags,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        VkBufferMemoryBarrier2 barrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+            .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            .dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT,
             .buffer = dest->GetNativeHandle( ObjectType::Vk_Buffer ),
             .offset = 0,
-            .size = src->GetSizeBytes()
+            .size = VK_WHOLE_SIZE
         };
 
-        vkCmdPipelineBarrier(
-                m_CmdBuffer,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-                VK_FLAGS_NONE,
-                0, nullptr,
-                1, &barrier,
-                0, nullptr );
+        VkDependencyInfo depInfo{
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .bufferMemoryBarrierCount = 1,
+            .pBufferMemoryBarriers = &barrier,
+        };
+
+        vkCmdPipelineBarrier2( m_CmdBuffer, &depInfo );
     }
 
     auto VulkanCmdList::CopyTexture( Texture* srcTexture, Texture* destTexture ) -> void {
@@ -1373,8 +1349,12 @@ namespace Mikoto {
         vkCmdDrawIndexed( m_CmdBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
     }
 
-    auto VulkanCmdList::DrawIndexedIndirect(BufferHandle indexBuffer, UInt32 offset, UInt32 drawCount, UInt32 stride) -> void {
-        vkCmdDrawIndexedIndirect( m_CmdBuffer, indexBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), offset, drawCount, stride );
+    auto VulkanCmdList::DrawIndirect( BufferHandle indirect, UInt32 offset, UInt32 drawCount, UInt32 stride ) -> void {
+        vkCmdDrawIndirect( m_CmdBuffer, indirect->GetNativeHandle( ObjectType::Vk_Buffer ), offset, drawCount, stride );
+    }
+
+    auto VulkanCmdList::DrawIndexedIndirect(BufferHandle indirect, UInt32 offset, UInt32 drawCount, UInt32 stride) -> void {
+        vkCmdDrawIndexedIndirect( m_CmdBuffer, indirect->GetNativeHandle( ObjectType::Vk_Buffer ), offset, drawCount, stride );
     }
 
     auto VulkanCmdList::BindPipeline( PipelineHandle pipeline ) -> void {

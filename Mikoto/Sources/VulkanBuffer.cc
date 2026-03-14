@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Library/Math/Math.hh>
+#include <Renderer/Core/RenderService.hh>
+#include <Renderer/Vulkan/VulkanBuffer.hh>
+#include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 #include <cstddef>
 #include <memory>
 
-#include <Library/Math/Math.hh>
-
-#include <Renderer/Core/RenderService.hh>
-
-#include <Renderer/Vulkan/VulkanBuffer.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
-#include <Renderer/Vulkan/VulkanContext.hh>
-#include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
+#include "Common/String.hh"
 
 namespace Mikoto {
 
@@ -52,6 +51,10 @@ namespace Mikoto {
     }
     
     auto VulkanBuffer::Initialize() -> void {
+        // This is not relevant for all types of buffers but we default to this
+        // and the device is always created with support for this as it is a core feature in Vulkan 1.2
+        m_UsesScalarBlockLayout = true;
+
         ComputeAllocationSize();
         
         // Allocate memory
@@ -107,7 +110,6 @@ namespace Mikoto {
             if (TO_VK_DEVICE( m_Device )->IsScalarBlockLayoutEnabled()) {
                 // Non padded structs (VK_EXT_scalar_block_layout)
                 m_SizeBytes = m_ElementCount * m_ElementSize;
-                m_UsesScalarBlockLayout = true;
             } else {
                 MKT_ASSERT( false, "Mikoto does not support yet arbitrary padding for GPU buffers" );
             }
@@ -141,8 +143,22 @@ namespace Mikoto {
         m_Allocation.BufferCreateInfo.size = static_cast<VkDeviceSize>( m_SizeBytes );
     }
 
-    auto VulkanBuffer::CompuetAlignedSizeMaxFrames( Size sliceSize, Size bufferOffsetAligment ) -> Size {
-        VkDeviceSize alignment{ bufferOffsetAligment };
+    auto VulkanBuffer::SetupIndirectBuffer() -> void {
+        m_Allocation.AllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+        // Large SSBO may be updated via copy commands if marked as dynamic
+        // if marked as streaming they can be updated directly from CPU
+        if (IsResourceUsage(ResourceUsageType::RESOURCE_USAGE_DYNAMIC)) {
+            m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        }
+
+        // Mark as storage because it can be used to read and write from compute shaders
+        m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    }
+
+    auto VulkanBuffer::ComputeAlignedSizeMaxFrames( Size sliceSize, Size bufferOffsetAlignment ) -> Size {
+        VkDeviceSize alignment{ bufferOffsetAlignment };
         sliceSize = ( sliceSize + alignment - 1 ) & ~( alignment - 1 );
 
         return sliceSize * m_Context->GetMaxFramesInFlight();
@@ -167,7 +183,6 @@ namespace Mikoto {
             m_Allocation.AllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
         }
 
-        // Vertex buffers can also be used as as a source transfer for integrating vertex pulling
         m_Allocation.BufferCreateInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     }
 
@@ -252,11 +267,13 @@ namespace Mikoto {
             case BufferUsage::SHADER_STORAGE:
                 SetupStorageBuffer();
                 break;
+            case BufferUsage::INDIRECT_DRAW:
+                SetupIndirectBuffer();
+                break;
             default:
                 MKT_ASSERT( false, "Invalid buffer usage." );
         }
-
-        // The context is used later to infer frame index. This is used 
+        // The context is used later to infer frame index. This is used
         // to offset into the buffer slice corresponding to a specific frame index
         m_Context = MKT_VK_CTX( RenderService::Get()->GetContext() );
     }
@@ -271,14 +288,14 @@ namespace Mikoto {
     auto VulkanBuffer::Copy( const void* ptr, Size size, CommandListHandle cmd ) -> void {
         auto& physicalProperties{ TO_VK_DEVICE( m_Device )->GetPhysicalDeviceProperties() };
 
-        Size offsetAligment{};
+        Size offsetAlignment{};
         if ( m_Usage == BufferUsage::UNIFORM ) {
-            offsetAligment = physicalProperties.limits.minUniformBufferOffsetAlignment;
+            offsetAlignment = physicalProperties.limits.minUniformBufferOffsetAlignment;
         } else {
-            offsetAligment = physicalProperties.limits.minStorageBufferOffsetAlignment;
+            offsetAlignment = physicalProperties.limits.minStorageBufferOffsetAlignment;
         }
 
-        Size bufferSize{ CompuetAlignedSizeMaxFrames( size, offsetAligment ) };
+        Size bufferSize{ ComputeAlignedSizeMaxFrames( size, offsetAlignment ) };
 
         bool needsResizing { m_StagingSliceSize != 0 && bufferSize > m_StagingForCopies->GetSizeBytes() };
         if ( m_StagingForCopies.IsEmpty() || needsResizing ) {
@@ -287,6 +304,7 @@ namespace Mikoto {
 
             m_StagingSliceSize = bufferSize / m_Context->GetMaxFramesInFlight();
             m_StagingForCopies = TO_VK_DEVICE( m_Device )->CreateStaging( nullptr, bufferSize );
+            m_StagingForCopies->SetDebugName( StringUtil::Format("Staging for Copies: {}", GetDebugName()) );
         }
 
         VkDeviceSize offset{ m_StagingSliceSize * m_Context->GetCurrentFrameIndex() };

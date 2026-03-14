@@ -605,7 +605,7 @@ namespace Mikoto {
                 ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
                 ctx.BindPipeline( "FinalCompositionPass_Pipeline" );
-                m_MeshCullingPass->DrawInstances( ctx );
+                m_MeshCullingPass->DrawInstancesIndirect( ctx );
 
                 ctx.EndRender();
             } );
@@ -709,7 +709,7 @@ namespace Mikoto {
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "LightCullingComp_LightsBuffer", ResourceSlot::Slot_4 );
 
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshVertices(), ResourceSlot::Slot_5 );
-                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_6 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_6 );
                 
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "BRDFLutPass_ColorTarget", m_BRDFLutSampler, ResourceSlot::Slot_0 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "PrefilterPass_ColorTargetCUBE", m_CubeMapSampler, ResourceSlot::Slot_1 );
@@ -730,7 +730,7 @@ namespace Mikoto {
                 ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
                 ctx.BindPipeline( "MetallicRoughnessPBR_Pipeline" );
-                m_MeshCullingPass->DrawInstances( ctx );
+                m_MeshCullingPass->DrawInstancesIndirect( ctx );
 
                 ctx.EndRender();
             } );

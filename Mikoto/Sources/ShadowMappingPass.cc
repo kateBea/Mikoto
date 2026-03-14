@@ -102,7 +102,7 @@ namespace Mikoto {
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, "MeshCulling_SkinningInfo", ResourceSlot::Slot_1 );
 
                 ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshVertices(), ResourceSlot::Slot_2 );
-                //ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_3 );
+                ctx.BindBuffer( ResourceGroup::UnorderedAccessViews, m_MeshCullingPass->GetMeshIndices(), ResourceSlot::Slot_3 );
 
                 for ( const auto &light: lights ) {
                     auto &lightComp{ registry.get<LightComponent>( light ) };
@@ -161,7 +161,7 @@ namespace Mikoto {
                         
                         ctx.BindPipeline( "DirectionalShadowMapPass_Pipeline" );
 
-                        m_MeshCullingPass->DrawInstances( ctx );
+                        m_MeshCullingPass->DrawInstancesIndirect( ctx );
 
                         ctx.EndRender();
                     }

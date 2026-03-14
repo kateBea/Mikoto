@@ -60,12 +60,13 @@ namespace Mikoto {
 
         auto InitializeAttributesBuffers() -> void;
 
-        auto CompuetAlignedSizeMaxFrames( Size sliceSize, Size bufferOffsetAligment ) -> Size;
+        auto ComputeAlignedSizeMaxFrames( Size sliceSize, Size bufferOffsetAlignment ) -> Size;
 
         auto SetDebugInfo() -> void;
 
         auto ComputeAllocationSize() -> void;
 
+        auto SetupIndirectBuffer() -> void;
         auto SetupUniformBuffer() -> void;
         auto SetupStorageBuffer() -> void;
         auto SetupVertexBuffer() -> void;

@@ -59,7 +59,7 @@ namespace Mikoto {
         Vec4F BaseColorFactor{ 1.f, 1.f, 1.f, 1.f };
         Vec4F DiffuseFactor{ 1.f, 1.f, 1.f, 1.f };
         Vec4F SpecularFactor{ 0.f, 0.f, 0.f, 0.f };
-        Vec3F EmissiveFactor{ 0.f, 0.f, 0.f };
+        Vec3F EmissiveFactor{ 1.f, 1.f, 1.f };
 
         float MetallicFactor{ 1.f };
         float RoughnessFactor{ 1.f };

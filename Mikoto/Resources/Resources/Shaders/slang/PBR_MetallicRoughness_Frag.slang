@@ -389,10 +389,8 @@ float ComputeShadowPCF(float4 fragLightSpaceCoord, LightInfo light) {
     float shadow = 0.0;
     int kernel = 2;
 
-    for (int x = -kernel; x <= kernel; ++x)
-    {
-        for (int y = -kernel; y <= kernel; ++y)
-        {
+    for (int x = -kernel; x <= kernel; ++x) {
+        for (int y = -kernel; y <= kernel; ++y) {
             float2 offset = float2(x, y) * texelSize * filterRadius;
 
             float depth = u_ShadowMap.Sample(projCoords.xy + offset).r;
@@ -601,17 +599,17 @@ FSOutput main(FSInput input) {
     }
 
     // Emission
-    float3 emmissiveContrib = material.EmissiveFactor.xyz * material.EmissiveStrength;
+    float3 emissiveContrib = material.EmissiveFactor.xyz * material.EmissiveStrength;
     if (material.EmissiveIndex != INVALID_TEXTURE_INDEX) {
         Sampler2D emissiveMap = g_BindlessTextures[material.EmissiveIndex];
         float2 emissiveUvSet = material.EmissiveTextureSet == 0 ? input.TexCoord0 : input.TexCoord1;
 
         float3 emissive = emissiveMap.Sample(emissiveUvSet).rgb;
 
-        emmissiveContrib *= emissive;
+        emissiveContrib *= emissive;
     }
 
-    color += emmissiveContrib;
+    color += emissiveContrib;
 
     output.Color = Tonemap(float4(color, baseColor.a));
     

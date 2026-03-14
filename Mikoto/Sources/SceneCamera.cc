@@ -31,9 +31,10 @@ namespace Mikoto {
         m_TargetWindow{ desc.TargetWindow } {
 
         m_Position = Vec3F{ 100.0f, 100.5f, 100.0f };
-        m_TargetPosition = Vec3F{ 10.0f, 14.5f, 21.0f };
-        m_ForwardVector = glm::vec3{ -0.457344413f, -0.443095952f, -0.771039605f };
+        m_ForwardVector = Vec3F{ 1.0f, 1.0f, 1.0f };
         m_TargetForwardVector = m_ForwardVector;
+
+        UpdateViewMatrix();
     }
 
     SceneCamera::SceneCamera( const float fov, const float aspectRatio, const float nearClip, const float farClip )
@@ -44,8 +45,7 @@ namespace Mikoto {
         m_AspectRatio = aspectRatio;
 
         m_Position = Vec3F{ 100.0f, 100.5f, 100.0f };
-        m_TargetPosition = Vec3F{ 10.0f, 14.5f, 21.0f };
-        m_ForwardVector = glm::vec3{ -0.457344413f, -0.443095952f, -0.771039605f };
+        m_ForwardVector = Vec3F{ 1.0f, 1.0f, 1.0f };
         m_TargetForwardVector = m_ForwardVector;
 
         UpdateViewMatrix();
@@ -72,16 +72,17 @@ namespace Mikoto {
         // this avoids camera jumping
         m_LastMousePosition = mousePos;
 
-        if (delta == glm::vec2{0.0f}) return;
+        if (delta == Vec2F{ 0.0f }) {
+            return;
+        }
 
         m_Pitch = (m_WantCameraRotationX ? delta.y : 0.0f) * m_RotationSpeed * static_cast<float>( timeStep );
         m_Yaw   = (m_WantCameraRotationY ? delta.x : 0.0f) * m_RotationSpeed * static_cast<float>( timeStep );
 
         const glm::quat pitchQ{ glm::angleAxis(-m_Pitch, m_RightVector) };
-        const glm::quat yawQ{ glm::angleAxis(-m_Yaw,   Math::UNIT_VECTOR_Y) };
+        const glm::quat yawQ{ glm::angleAxis(-m_Yaw, Math::UNIT_VECTOR_Y) };
 
         // Combine pitch and yaw into a single rotation quaternion.
-        // Quaternion multiplication composes rotations in a stable way and avoids gimbal lock.
         // Order matters as quaternion product is non-commutative.
         const glm::quat rotation{ yawQ * pitchQ };
 
@@ -91,7 +92,7 @@ namespace Mikoto {
 
     auto SceneCamera::ProcessKeyboardInput( const double timeStep ) -> void {
 
-        const float speed = m_MovementSpeed * static_cast<float>( timeStep );
+        const float speed{ m_MovementSpeed * static_cast<float>( timeStep ) };
         if ( m_TargetWindow->IsKeyPressed( Key_W ) ) m_TargetPosition += m_ForwardVector * speed;
         if ( m_TargetWindow->IsKeyPressed( Key_S ) ) m_TargetPosition -= m_ForwardVector * speed;
         if ( m_TargetWindow->IsKeyPressed( Key_A ) ) m_TargetPosition -= m_RightVector * speed;
@@ -101,35 +102,33 @@ namespace Mikoto {
     }
 
     auto SceneCamera::Interpolate( const double timeStep ) -> void {
-        m_Position = glm::mix( m_Position, m_TargetPosition, 1.0f - glm::exp( -m_DampingFactor * static_cast<float>( timeStep ) ) );
-        m_ForwardVector = glm::normalize( glm::mix( m_ForwardVector, m_TargetForwardVector, 1.0f - glm::exp( -m_DampingFactor * static_cast<float>( timeStep ) ) ) );
+        const auto interpolationFactor{ 1.0f - glm::exp( -(m_DampingFactor * static_cast<float>( timeStep ) ) ) };
+
+        m_Position = glm::mix( m_Position, m_TargetPosition, interpolationFactor );
+        m_ForwardVector = glm::normalize( glm::mix( m_ForwardVector, m_TargetForwardVector, interpolationFactor ) );
     }
 
-    auto SceneCamera::UpdateState( const double timeStep ) -> void {
+    auto SceneCamera::Update( const double timeStep ) -> void {
         UpdateProjection();
         UpdateViewMatrix();
 
-        // Continue interpolation if they aren't equal
-        if ( m_Position != m_TargetPosition || m_ForwardVector != m_TargetForwardVector ) {
-            Interpolate( timeStep );
-        }
-
         if ( !m_AllowCameraMovementAndRotation ) {
             m_LastMousePosition = { m_TargetWindow->GetMouseX(), m_TargetWindow->GetMouseY() };
+
+            // Continue interpolation if they aren't equal
+            if ( m_Position != m_TargetPosition || m_ForwardVector != m_TargetForwardVector ) {
+                Interpolate( timeStep );
+            }
 
             return;
         }
 
         if (m_TargetWindow == nullptr) {
-            MKT_CORE_LOGGER_WARN( "SceneCamera::UpdateState - Camera has no target window. Forgot to call SetCamera(...)?" );
+            MKT_CORE_LOGGER_WARN( "SceneCamera::UpdateState - Camera has no target window. Forgot to call SetTargetWindow(...)?" );
             return;
         }
 
-        // We apply camera smooth damping with computing the values for the final position and the final forward vector used to determine the rotation
-        // Whenever there’s user input (keyboard/mouse), we update the targets, not the current values directly.
-        // The interpolation will smoothly move the camera towards the end position, the same applies for the rotation.
-
-        m_RightVector = glm::cross( m_ForwardVector, Math::UNIT_VECTOR_Y );
+        m_RightVector = glm::normalize( glm::cross( m_ForwardVector, Math::UNIT_VECTOR_Y ) );
 
         ProcessMouseInput( timeStep );
         ProcessKeyboardInput( timeStep );

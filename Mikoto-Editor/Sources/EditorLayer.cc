@@ -532,7 +532,7 @@ namespace Mikoto {
             m_EditorCamera->SetCameraTarget( transformComp.GetTranslation() );
         }
 
-        m_EditorCamera->UpdateState( timeStep );
+        m_EditorCamera->Update( timeStep );
     }
 
     auto EditorLayer::PreparePreviewTargets() -> void {

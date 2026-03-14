@@ -46,7 +46,7 @@ namespace Mikoto {
          * @brief Updates the camera state using the elapsed time.
          * @param timeStep Elapsed time since the last frame.
          * */
-        auto UpdateState( double timeStep ) -> void;
+        auto Update( double timeStep ) -> void;
 
         /**
          * @brief Sets the size of the viewport for the camera.

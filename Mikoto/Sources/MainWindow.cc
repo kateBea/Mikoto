@@ -334,13 +334,11 @@ namespace Mikoto {
 
     auto MainWindow::IsKeyPressed( KeyCode keyCode ) const -> bool {
         const auto state{ glfwGetKey( m_Window, keyCode ) };
-
         return state == GLFW_PRESS;
     }
 
     auto MainWindow::IsKeyReleased( KeyCode keyCode ) const -> bool {
         const auto state{ glfwGetKey( m_Window, keyCode ) };
-
         return state == GLFW_RELEASE;
     }
 
@@ -351,7 +349,6 @@ namespace Mikoto {
 
     auto MainWindow::IsMouseKeyReleased( MouseButton button ) const -> bool {
         const auto state{ glfwGetMouseButton( m_Window, button ) };
-
         return state == GLFW_RELEASE;
     }
 

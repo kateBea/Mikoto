@@ -344,7 +344,7 @@ struct FSOutput {
     float4 Color : SV_Target0;
 };
 
-float ComputeShadow(float4 fragLightSpaceCoord, LightInfo light) {
+float ComputeShadow(float4 fragLightSpaceCoord, LightInfo light, float3 normal) {
     const float shadowVal = 0.2f;
     const float noShadowVal = 1.0f;
 
@@ -353,7 +353,10 @@ float ComputeShadow(float4 fragLightSpaceCoord, LightInfo light) {
 
     // Vulkan z is already within [0, 1]
     projCoords.xy = projCoords.xy * 0.5 + 0.5;
-    projCoords.y = 1 - projCoords.y; // This is something that I tried from memory, I remember needing this for proper texture coordinates on legacy Mikoto, this need further investigation
+
+    // // This is something that I tried from memory, I remember needing this for proper texture coordinates on legacy Mikoto, this need further investigation, but still does not make any sense
+    // not doing this, gives wrong results, remove line and see results
+    projCoords.y = 1 - projCoords.y;
 
     if (projCoords.z > 1.0f) {
         return shadowVal;
@@ -362,45 +365,8 @@ float ComputeShadow(float4 fragLightSpaceCoord, LightInfo light) {
     float currentDpeth = projCoords.z;
     float closestDepth = u_ShadowMap.Sample( projCoords.xy ).r;
 
-    float bias = 0.005;
-    // float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float bias = max(0.05 * (1.0 - dot(normal, -light.Direction.xyz)), 0.005);
     float shadow = (currentDpeth - bias) > closestDepth ? noShadowVal : shadowVal;
-
-    return shadow;
-}
-
-float ComputeShadowPCF(float4 fragLightSpaceCoord, LightInfo light) {
-    float3 projCoords = fragLightSpaceCoord.xyz / fragLightSpaceCoord.w;
-    projCoords.xy = projCoords.xy * 0.5 + 0.5;
-    projCoords.y = 1 - projCoords.y;
-
-    float currentDepth = projCoords.z;
-    float bias = 0.005;
-
-    float width = 0;
-    float height = 0;
-    float mipLevelCount = 0;
-
-    u_ShadowMap.GetDimensions(0, width, height, mipLevelCount);
-
-    float2 texelSize = 1.0 / float2(width, height);
-    float filterRadius = 2.0;
-
-    float shadow = 0.0;
-    int kernel = 2;
-
-    for (int x = -kernel; x <= kernel; ++x) {
-        for (int y = -kernel; y <= kernel; ++y) {
-            float2 offset = float2(x, y) * texelSize * filterRadius;
-
-            float depth = u_ShadowMap.Sample(projCoords.xy + offset).r;
-
-            shadow += currentDepth - bias > depth ? 1.0 : 0.0;
-        }
-    }
-
-    float samples = pow((kernel * 2 + 1), 2);
-    shadow /= samples;
 
     return shadow;
 }
@@ -551,7 +517,7 @@ FSOutput main(FSInput input) {
         LightInfo light = Lights[lightIndex];
 
         if (light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL) {
-            float shadow = ComputeShadow(input.FragPosLightSpace, light);
+            float shadow = ComputeShadow(input.FragPosLightSpace, light, n);
             lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs) * (1.0f - shadow);
             continue;
         }

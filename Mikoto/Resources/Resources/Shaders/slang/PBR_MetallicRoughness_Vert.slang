@@ -104,10 +104,7 @@ VSOutput main(VSInput input) {
             inWeight0.w * bonePalette.BoneMatrices[(uint)inJoint0.w];
 
         locPos = mul(skinMat, float4(vertex.Position, 1.0));
-
-        normal = normalize(
-            mul((float3x3)skinMat, vertex.Normal)
-    );
+        normal = normalize(mul((float3x3)skinMat, vertex.Normal));
         
     }
     else {

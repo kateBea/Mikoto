@@ -22,6 +22,7 @@
 
 #include <Application/EditorUtility.hh>
 #include <Common/Common.hh>
+#include <Common/String.hh>
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
 #include <ImGui/ImGuiService.hh>
@@ -668,6 +669,8 @@ namespace Mikoto {
     }
 
     static auto EditPBRMaterial( PBRMaterial* material ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         if ( material == nullptr ) {
             return;
         }
@@ -935,13 +938,15 @@ namespace Mikoto {
         // All entities are guaranteed to have a TagComponent
         TagComponent& tag{ entity->GetComponent<TagComponent>() };
 
-        bool wantToRenderActiveEntity{ tag.IsActive() };
-        if ( ImGuiUtils::CheckBox( "##DrawVisibilityCheckBox::Checkbox", wantToRenderActiveEntity ) ) {
-            tag.SetActive( wantToRenderActiveEntity );
+        bool isActive{ tag.IsActive() };
+        if ( ImGuiUtils::CheckBox( "##DrawVisibilityCheckBox::Checkbox", isActive ) ) {
+            tag.SetActive( isActive );
         }
     }
 
     static auto DrawNameTextInput( Entity* entity ) -> void {
+        using namespace StringUtil;
+
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( entity == nullptr ) {
@@ -953,13 +958,11 @@ namespace Mikoto {
 
         constexpr ImGuiTextFlags flags{ ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll };
 
-        // Copy the entity's name into the array we will modify
-        constexpr UInt32 MAX_NAME_LENGTH{ 1024 };
-        std::array<char, MAX_NAME_LENGTH> name{};
-        std::ranges::copy( tag.GetTag(), name.data() );
+        StaticString<1024> name{ tag.GetTag() };
 
-        if ( ImGui::InputText( "##DrawNameTextInputTag", name.data(), name.max_size(), flags ) ) {
-            tag.SetTag( name.data() );
+        // Size + 1 to account for null terminating characater
+        if ( ImGui::InputText( "##DrawNameTextInputTag", name.GetData(), name.GetSize() + 1, flags ) ) {
+            tag.SetTag( name.GetView() );
         }
     }
 
@@ -1158,7 +1161,7 @@ namespace Mikoto {
         MaterialComponent& materialComponent{ entity.GetComponent<MaterialComponent>() };
 
         if ( materialComponent.HasMaterial() ) {
-            EditPBRMaterial( dynamic_cast<PBRMaterial*>( materialComponent.GetMaterial().GetRaw() ) );
+            EditPBRMaterial( materialComponent.GetMaterial().Dynamic<PBRMaterial>() );
         }
 
         ImGui::Indent();
@@ -2136,9 +2139,7 @@ namespace Mikoto {
 
         ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
 
-        Entity* target{ m_State->SelectedEntity };
-
-        if ( target != nullptr ) {
+        if ( Entity* target{ m_State->SelectedEntity } ) {
             DrawVisibilityCheckBox( target );
 
             ImGui::SameLine();

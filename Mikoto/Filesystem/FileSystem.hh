@@ -44,6 +44,9 @@ namespace Mikoto::Filesystem {
     MKT_NODISCARD auto GetGetAbsolutePathString(std::string_view path) -> std::string;
     MKT_NODISCARD auto GetGetAbsolutePathString(const Path& path) -> std::string;
 
+    // Creates parent directories if they do not exist
+    MKT_NODISCARD auto CreateIfNotExistsDirectory(const Path& path) -> bool;
+
     MKT_NODISCARD auto IsAbsolutePath(const Path& path) -> bool;
     MKT_NODISCARD auto IsRelativePath(const Path& path) -> bool;
 }

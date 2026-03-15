@@ -127,7 +127,6 @@ namespace Mikoto {
             return;
         }
         
-        const Size jointCount{ m_ModelMatrices.size() };
         const auto& inverseBindMats{ m_Model->GetSkeleton().GetInverseBindMatrices() };
 
         Size limit{ Math::Min( m_FinalMatrices.size(), inverseBindMats.size(), m_ModelMatrices.size() ) }; // ???

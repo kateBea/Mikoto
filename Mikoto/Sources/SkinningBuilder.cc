@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include <array>
+#include <exception>
 
 #include "ozz/base/log.h"
 
@@ -26,7 +26,9 @@
 // Uses the skeleton as an example of object to read.
 #include "ozz/animation/runtime/skeleton.h"
 
-#include <cstdlib>
+
+#include <nlohmann/json.hpp>
+
 
 #include <Common/String.hh>
 
@@ -35,10 +37,9 @@
 #include <Assets/Importer.hh>
 
 #include <Filesystem/FileSystem.hh>
+#include <Filesystem/FileService.hh>
 #include <Animation/SkinningBuilder.hh>
-
-#include "Logging/Assert.hh"
-#include "Memory/Allocator.hh"
+#include <Animation/AnimationSystem.hh>
 
 namespace Mikoto {
 
@@ -46,18 +47,50 @@ namespace Mikoto {
         : m_Filename{  filename }
     {}
 
-    auto SkinningBuilder::Build(ozz::animation::offline::OzzImporter& importer) -> bool {
+    auto SkinningBuilder::Build(ozz::animation::offline::OzzImporter& importer, std::string_view modelFileName) -> bool {
+#if !defined(NDEBUG)
+        const std::string loggingLevel{ StringUtil::Format(R"(--log_level={})", "verbose") };
+#elif
+        std::string loggingLevel{ StringUtil::Format(R"(--log_level={})", "standard") };
+#endif
+
+        // Store ozz animation files to Cache/Animations/ModelFile_Name along with the skeleton
+        std::string configString{};
+        const std::string& basePath{ AnimationSystem::Get()->GetAnimationCacheBasePath() };
+        const std::string cachedAnimationsBasePath{ StringUtil::Format( "{}/{}", basePath, modelFileName ) };
+        if (const File* configFile{ FileService::Get()->LoadFile( "Resources/AnimationConfiguration.json" ) }) {
+            try {
+                nlohmann::json data{ nlohmann::json::parse( configFile->GetFileContents() ) };
+                data["skeleton"]["filename"] = StringUtil::Format( "{}/{}/skeleton.ozz", basePath, modelFileName );
+
+                // Ensure directory exists
+                (void)Filesystem::CreateIfNotExistsDirectory( StringUtil::Format( "{}/{}", basePath, modelFileName ) );
+
+                auto& animations{ data.at("animations") };
+                for ( auto& animation : animations) {
+                    animation["filename"] = StringUtil::Format( "{}/{}/*.ozz", basePath, modelFileName );
+                }
+
+                configString = data.dump( 2 );
+            } catch (std::exception& exception) {
+                MKT_CORE_LOGGER_ERROR( "Error skinned animation JSON parse: e.what() {}", exception.what() );
+            }
+        }
+
+        const std::string configJSON{ StringUtil::Format( R"(--config={})", configString )  };
         const std::string filename{ StringUtil::Format( R"(--file={})", m_Filename.string() )  };
-        std::array args{ "executable", filename.c_str() };
+
+        std::array args{ "executable", filename.c_str(), loggingLevel.c_str(), configJSON.c_str() };
 
         // Before we do this we check first if the animation have been loaded previously
+        // There is an issue with models all having the same, I have countless models called scene
         importer( args.size(), args.data() );
 
         // Skeleton
         PathBuilder builderSkeletonPath{};
 
         std::string skeletonPath{ builderSkeletonPath
-            .WithPath( Filesystem::GetProcessPath().string() )
+            .WithPath( cachedAnimationsBasePath )
             .WithPath( "skeleton.ozz" )
             .Build()
             .string() };
@@ -117,7 +150,7 @@ namespace Mikoto {
 
             PathBuilder builder{};
             std::string animPath{ builder
-                .WithPath( Filesystem::GetProcessPath().string() )
+                .WithPath( cachedAnimationsBasePath )
                 .WithPath( animFileName )
                 .Build().string() };
             // Now tries to open the file, which was provided as argument.

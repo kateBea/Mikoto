@@ -236,6 +236,19 @@ namespace Mikoto {
             FramePassNodeType::TRANSFER );
     }
 
+    auto MeshCulling::PrepareSkinning( CommandContext &context ) -> void {
+        for (const auto& index : m_ActiveFinalMatsIndices) {
+            if ( Animator * animator{ AnimationSystem::Get()->GetAnimator( index ) } ) {
+                auto &finalMats{ animator->GetFinalBoneMatrices()  };
+                std::memcpy( m_SkinningInfo[index - 1].BoneTransforms.data(), finalMats.data(), finalMats.size() * MKT_SIZEOF( Mat4F ) );
+            }
+        }
+        if (!m_ActiveFinalMatsIndices.empty()) {
+            context.CopyBuffer( "MeshCulling_SkinningInfo", m_SkinningInfo.data(), MAX_SKINNED_MESHES * MKT_SIZEOF( SkinningInfo ) );
+            m_ActiveFinalMatsIndices.clear();
+        }
+    }
+
     auto MeshCulling::PrepareIndexedDraw( CommandContext &context ) -> void {
         // Refactored for Indexed draw (not indirect).
         // Prepares draw indexed info and flattens the mesh info and material in the way
@@ -391,7 +404,7 @@ namespace Mikoto {
                 material.DiffuseFactor = pbrMat->GetDiffuseFactor();
                 material.SpecularFactor = pbrMat->GetSpecularFactor();
 
-                material.Workflow = static_cast<float>( pbrMat->GetWorkflow() );
+                material.Workflow = static_cast<Int32>( pbrMat->GetWorkflow() );
 
                 material.MetallicFactor = pbrMat->GetMetallicFactor();
                 material.RoughnessFactor = pbrMat->GetRoughnessFactor();
@@ -422,17 +435,7 @@ namespace Mikoto {
             }
         }
 
-        // Skinning
-        for (const auto& index : m_ActiveFinalMatsIndices) {
-            if ( Animator * animator{ AnimationSystem::Get()->GetAnimator( index ) } ) {
-                auto &finalMats{ animator->GetFinalBoneMatrices()  };
-                std::memcpy( m_SkinningInfo[index - 1].BoneTransforms.data(), finalMats.data(), finalMats.size() * MKT_SIZEOF( Mat4F ) );
-            }
-        }
-        if (!m_ActiveFinalMatsIndices.empty()) {
-            context.CopyBuffer( "MeshCulling_SkinningInfo", m_SkinningInfo.data(), MAX_SKINNED_MESHES * MKT_SIZEOF( SkinningInfo ) );
-            m_ActiveFinalMatsIndices.clear();
-        }
+        PrepareSkinning( context );
 
         PrepareIndirectDraw( context );
     }

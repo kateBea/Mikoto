@@ -133,6 +133,7 @@ namespace Mikoto {
         auto RegisterMeshCullingPass(FrameGraph &graph) -> void;
         auto RegisterGeometryFilterPass(FrameGraph &graph) -> void;
 
+        auto PrepareSkinning( CommandContext& context ) -> void;
         auto PrepareIndexedDraw( CommandContext& context ) -> void;
         auto PrepareIndirectDraw( CommandContext& context ) -> void;
 

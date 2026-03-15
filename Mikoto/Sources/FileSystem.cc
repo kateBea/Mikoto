@@ -65,6 +65,17 @@ namespace Mikoto {
         return GetGetAbsolutePath(path).string();
     }
 
+    auto Filesystem::CreateIfNotExistsDirectory( const Path &path ) -> bool {
+        std::error_code ec{};
+        const bool created{ std::filesystem::create_directories(path, ec) };
+
+        if (ec) {
+            return false;
+        }
+
+        return created;
+    }
+
     auto Filesystem::OpenInExplorer( const Path &path ) -> void {
 #if defined( MIKOTO_PLATFORM_WINDOWS )
         if ( std::filesystem::is_regular_file( path ) ) {

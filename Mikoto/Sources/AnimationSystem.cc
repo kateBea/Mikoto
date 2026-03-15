@@ -17,6 +17,7 @@
 #include <ranges>
 
 #include <Logging/Logger.hh>
+#include <Filesystem/FileSystem.hh>
 #include <Animation/AnimationSystem.hh>
 
 namespace Mikoto {
@@ -25,6 +26,12 @@ namespace Mikoto {
 
     auto AnimationSystem::Init() -> void {
         MKT_CORE_LOGGER_INFO("Initializing AnimationSystem...");
+
+        // We need to ensure animation folders exists
+        // These are used to store the cached animations
+        if (Filesystem::CreateIfNotExistsDirectory( m_AnimationCachePathBase ) ) {
+            MKT_CORE_LOGGER_DEBUG( "Created directory to cache animation data. [Cache/Animations]" );
+        }
 
         m_IsInitialized = true;
     }
@@ -60,4 +67,8 @@ namespace Mikoto {
 
         return nullptr;
     }
-}
+
+    auto AnimationSystem::GetAnimationCacheBasePath() const -> const std::string & {
+        return m_AnimationCachePathBase;
+    }
+}// namespace Mikoto

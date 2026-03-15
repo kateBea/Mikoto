@@ -354,7 +354,8 @@ float ComputeShadow(float4 fragLightSpaceCoord, LightInfo light, float3 normal) 
     // Vulkan z is already within [0, 1]
     projCoords.xy = projCoords.xy * 0.5 + 0.5;
 
-    // // This is something that I tried from memory, I remember needing this for proper texture coordinates on legacy Mikoto, this need further investigation, but still does not make any sense
+    // This is something that I tried from memory, I remember needing this for proper texture 
+    // coordinates on legacy Mikoto, this need further investigation, but still does not make any sense
     // not doing this, gives wrong results, remove line and see results
     projCoords.y = 1 - projCoords.y;
 

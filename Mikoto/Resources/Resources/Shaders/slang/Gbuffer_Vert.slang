@@ -80,9 +80,7 @@ VSOutput main(VSInput input) {
 
         locPos = mul(skinMat, float4(vertex.Position, 1.0));
 
-        normal = normalize(
-            mul((float3x3)skinMat, vertex.Normal)
-    );
+        normal = normalize(mul((float3x3)skinMat, vertex.Normal));
     }
     else {
         locPos = float4(vertex.Position, 1.0);

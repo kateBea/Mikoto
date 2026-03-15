@@ -1,0 +1,70 @@
+{
+  "skeleton" :
+  {
+    "filename" : "Animations/skeleton.ozz",
+    "import" :
+    {
+      "enable" : true,
+      "raw" : false,
+      "types" :
+      {
+        "skeleton" : true,
+        "marker" : false,
+        "camera" : false,
+        "geometry" : false,
+        "light" : false,
+        "null" : false,
+        "any" : false
+      }
+    }
+  },
+  "animations" :
+  [
+    {
+      "clip" : "*",
+      "filename" : "*.ozz",
+      "raw" : false,
+      "additive" : false,
+      "additive_reference" : "animation",
+      "sampling_rate" : 0,
+      "iframe_interval" : 10,
+      "optimize" : true,
+      "optimization_settings" :
+      {
+        "tolerance" : 0.001,
+        "distance" : 0.1,
+        "override" : []
+      },
+      "tracks" :
+      {
+        "properties" : [],
+        "motion" :
+        {
+          "enable" : false,
+          "filename" : "*_motion_track.ozz",
+          "joint_name" : "",
+          "position" :
+          {
+            "components" : "xz",
+            "reference" : "skeleton",
+            "bake" : true,
+            "loop" : false,
+            "raw" : false,
+            "optimize" : true,
+            "optimization_tolerance" : 0.001
+          },
+          "rotation" :
+          {
+            "components" : "y",
+            "reference" : "skeleton",
+            "bake" : true,
+            "loop" : false,
+            "raw" : false,
+            "optimize" : true,
+            "optimization_tolerance" : 0.001
+          }
+        }
+      }
+    }
+  ]
+}

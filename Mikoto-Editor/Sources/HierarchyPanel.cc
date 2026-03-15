@@ -374,7 +374,7 @@ namespace Mikoto {
     auto HierarchyPanel::AddEntityWithModel( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // TODO: Use the asset service to load asynchronously and the asset cache to avoid loading the same model multiple times
+        // TODO: Use the asset cache service to load asynchronously and the asset cache to avoid loading the same model multiple times
         // and be notified when the model is loaded to create the entity with it, instead of blocking the main thread
         static std::atomic_bool loading{ false };
 

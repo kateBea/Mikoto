@@ -1545,7 +1545,8 @@ namespace Mikoto {
                 GltfAnimImporter animationImporter{};
                 SkinningBuilder builder{ description.ModelFile->GetPath() };
 
-                if ( builder.Build( animationImporter ) ) {
+                Path path{ description.ModelFile->GetPath() };
+                if ( builder.Build( animationImporter, path.stem().string() ) ) {
                     // Get the skeleton and animations
                     builder.FillModelData( out );
                     out.SceneSkeleton.SetInverseBindMatrices( LoadInverseBindMatrices( model, model.skins[0] ) );

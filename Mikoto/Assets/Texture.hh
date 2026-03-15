@@ -215,8 +215,8 @@ namespace Mikoto {
 
         SamplerHandle m_Sampler{};
 
-        std::string m_TextureUri{ "" };
-        std::string m_TextureName{ "" };
+        std::string m_TextureUri{};
+        std::string m_TextureName{};
     };
 
     using TextureHandle = Ref<Texture>;

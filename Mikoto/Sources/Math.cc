@@ -119,9 +119,9 @@ namespace Mikoto {
         translation.y = matrixTranslation[1];
         translation.z = matrixTranslation[2];
 
-        rotation.x = ToRadians( matrixRotation[0] );
-        rotation.y = ToRadians( matrixRotation[1] );
-        rotation.z = ToRadians( matrixRotation[2] );
+        rotation.x = matrixRotation[0];
+        rotation.y = matrixRotation[1];
+        rotation.z = matrixRotation[2];
 
         scale.x = matrixScale[0];
         scale.y = matrixScale[1];

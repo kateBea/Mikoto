@@ -42,15 +42,13 @@ namespace Mikoto {
         auto RegisterAnimation( ModelHandle handle ) -> UInt64;
 
         MKT_NODISCARD auto GetAnimator( UInt64 id ) -> Animator*;
-        MKT_NODISCARD auto GetAnimationCacheBasePath() const  -> const std::string&;
+
 
     private:
         // Not sure if animators should be wrapped into pointers
         // In case we add more animator while reading from this map
         // Reallocations invalidate all references
         ankerl::unordered_dense::map<UInt64, Animator> m_Animators{};
-
-        std::string m_AnimationCachePathBase{ "Cache/Animations" };
     };
 }
 

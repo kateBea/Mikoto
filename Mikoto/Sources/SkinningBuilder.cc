@@ -35,6 +35,7 @@
 #include <Logging/Logger.hh>
 
 #include <Assets/Importer.hh>
+#include <Assets/AssetsService.hh>
 
 #include <Filesystem/FileSystem.hh>
 #include <Filesystem/FileService.hh>
@@ -47,28 +48,31 @@ namespace Mikoto {
         : m_Filename{  filename }
     {}
 
-    auto SkinningBuilder::Build(ozz::animation::offline::OzzImporter& importer, std::string_view modelFileName) -> bool {
+    auto SkinningBuilder::Build(ozz::animation::offline::OzzImporter& importer, const Path& filepath) -> bool {
+        const std::string modelAnimationsPath{ StringUtil::Format(  "{}/Animations", GetHashedAssetID( filepath) ) };
 #if !defined(NDEBUG)
         const std::string loggingLevel{ StringUtil::Format(R"(--log_level={})", "verbose") };
 #elif
         std::string loggingLevel{ StringUtil::Format(R"(--log_level={})", "standard") };
 #endif
 
-        // Store ozz animation files to Cache/Animations/ModelFile_Name along with the skeleton
         std::string configString{};
-        const std::string& basePath{ AnimationSystem::Get()->GetAnimationCacheBasePath() };
-        const std::string cachedAnimationsBasePath{ StringUtil::Format( "{}/{}", basePath, modelFileName ) };
+
+        const std::string& assetCacheBasePath{ AssetsService::Get()->GetAssetCacheBasePath() };
+        const std::string cachedAnimationsBasePath{ StringUtil::Format( "{}/{}", assetCacheBasePath, modelAnimationsPath ) };
+
+        // We first open the file that contains the base configuration for all animations
         if (const File* configFile{ FileService::Get()->LoadFile( "Resources/AnimationConfiguration.json" ) }) {
             try {
                 nlohmann::json data{ nlohmann::json::parse( configFile->GetFileContents() ) };
-                data["skeleton"]["filename"] = StringUtil::Format( "{}/{}/skeleton.ozz", basePath, modelFileName );
+                data["skeleton"]["filename"] = StringUtil::Format( "{}/{}/skeleton.ozz", assetCacheBasePath, modelAnimationsPath );
 
-                // Ensure directory exists
-                (void)Filesystem::CreateIfNotExistsDirectory( StringUtil::Format( "{}/{}", basePath, modelFileName ) );
+                // Ensure animations directory exists
+                (void)Filesystem::CreateIfNotExistsDirectory( StringUtil::Format( "{}/{}", assetCacheBasePath, modelAnimationsPath ) );
 
                 auto& animations{ data.at("animations") };
                 for ( auto& animation : animations) {
-                    animation["filename"] = StringUtil::Format( "{}/{}/*.ozz", basePath, modelFileName );
+                    animation["filename"] = StringUtil::Format( "{}/{}/*.ozz", assetCacheBasePath, modelAnimationsPath );
                 }
 
                 configString = data.dump( 2 );

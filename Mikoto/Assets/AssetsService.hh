@@ -42,6 +42,11 @@
 
 namespace Mikoto {
 
+    using AssetID = UInt64;
+    MKT_NODISCARD inline auto GetHashedAssetID(const std::filesystem::path& path) -> AssetID {
+        return std::hash<std::string>{}(path.string());
+    }
+
     struct AssetsServiceDescription {};
 
     /**
@@ -150,6 +155,8 @@ namespace Mikoto {
             });
         }
 
+        MKT_NODISCARD auto GetAssetCacheBasePath() const  -> const std::string&;
+
         MKT_NODISCARD auto GetDummyTexture() -> TextureHandle;
 
         MKT_NODISCARD auto CreateMaterial( const MaterialProperties& spec = {} ) -> MaterialHandle;
@@ -157,6 +164,7 @@ namespace Mikoto {
         ~AssetsService() override = default;
 
     private:
+        auto CreateAssetCacheFolder(const Path& path) -> void;
         auto LoadModel( std::string_view uri ) -> ModelHandle;
         auto LoadModel( const ModelLoadDescription& description) -> ModelHandle;
 
@@ -202,6 +210,8 @@ namespace Mikoto {
 
         ankerl::unordered_dense::map<std::string, TextureHandle> m_Textures2D{};
         ankerl::unordered_dense::map<std::string, TextureHandle> m_TexturesCubes{};
+
+        std::string m_AnimationCachePathBase{ "AssetCache" };
     };
 }
 

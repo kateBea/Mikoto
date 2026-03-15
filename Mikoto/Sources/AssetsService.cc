@@ -44,6 +44,12 @@ namespace Mikoto {
 
         MKT_CORE_LOGGER_INFO("Initializing AssetsService...");
 
+        // We need to ensure animation folders exists
+        // These are used to store the cached animations
+        if (Filesystem::CreateIfNotExistsDirectory( m_AnimationCachePathBase ) ) {
+            MKT_CORE_LOGGER_DEBUG( "Created directory to cache animation data. '{}'", m_AnimationCachePathBase );
+        }
+
         // Model importer library
         MeshFactoryCreateInfo meshFactoryCreateInfo{
             .Device{ m_GpuDevice },
@@ -102,6 +108,10 @@ namespace Mikoto {
         m_IsInitialized = false;
     }
 
+    auto AssetsService::GetAssetCacheBasePath() const -> const std::string & {
+        return m_AnimationCachePathBase;
+    }
+
     auto AssetsService::GetDummyTexture() -> TextureHandle {
         return m_Textures2D[Filesystem::GetGetAbsolutePathString( s_DummyTexturePath)];
     }
@@ -113,6 +123,14 @@ namespace Mikoto {
         }
 
         return material;
+    }
+
+    auto AssetsService::CreateAssetCacheFolder( const Path& path ) -> void {
+        // Create cached folder
+        const std::string cacheFolder{ StringUtil::Format(  "{}/{}", GetAssetCacheBasePath(), GetHashedAssetID( path ) ) };
+        if (!Filesystem::CreateIfNotExistsDirectory( cacheFolder ) ) {
+            MKT_CORE_LOGGER_WARN( "Did not creache cache folder '{}'", cacheFolder );
+        }
     }
 
     auto AssetsService::LoadModel( const std::string_view uri ) -> ModelHandle {
@@ -133,6 +151,8 @@ namespace Mikoto {
         if ( !modelFile ) {
             return ModelHandle::CreateEmpty();
         }
+
+        CreateAssetCacheFolder( modelFile->GetPath() );
 
         // if it exists
         if ( const auto itFind{ m_Models.find( modelFile->GetPath() ) }; itFind != m_Models.end() ) {
@@ -191,6 +211,8 @@ namespace Mikoto {
 
     auto AssetsService::LoadTexture( const TextureDescription& description ) -> TextureHandle {
         std::string path{ description.TextureFile ? description.TextureFile->GetPath() : description.Name };
+
+        CreateAssetCacheFolder( path );
 
         TextureHandle texture{};
 
@@ -299,6 +321,8 @@ namespace Mikoto {
             }
         }
 
+        CreateAssetCacheFolder( description.BasePath );
+
         try {
             texture = m_GpuDevice->CreateTexture( textureDesc );
         } catch (std::exception& e) {
@@ -376,6 +400,8 @@ namespace Mikoto {
         if ( !fontFile ) {
             return FontHandle::CreateEmpty();
         }
+
+        CreateAssetCacheFolder( fontFile->GetPath() );
 
         // if it exists
         if ( const auto itFind{ m_Fonts.find( fontFile->GetPath() ) }; itFind != m_Fonts.end() ) {

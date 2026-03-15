@@ -49,7 +49,7 @@ namespace Mikoto {
         // This will  be a path to the mikoto asset file in the future for now its just the actual asset file
         explicit SkinningBuilder(const Path& filename);
 
-        MKT_NODISCARD auto Build(ozz::animation::offline::OzzImporter& importer, std::string_view modelFileName) -> bool;
+        MKT_NODISCARD auto Build(ozz::animation::offline::OzzImporter& importer, const Path& filepath) -> bool;
 
         auto FillModelData( ModelData& data) -> void;
     private:

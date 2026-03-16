@@ -126,6 +126,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetSizeBytes() const -> Size { return m_SizeBytes; }
 
+        MKT_NODISCARD auto GetSampleCount() const -> Multisampling { return m_Multisampling; }
+
         /**
          * @brief Sets the sampler for the texture.
          *

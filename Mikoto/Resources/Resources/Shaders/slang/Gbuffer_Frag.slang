@@ -89,7 +89,18 @@ FSOutput main(FSInput input)
     // Emisive
     o.Emissive = float4(0, 0, 0, 0);
     if (materialInfo.IsBloomy == MKT_SHADER_TRUE) {
-        o.Emissive = o.Color;                
+        float3 emissiveContrib = materialInfo.EmissiveFactor.xyz * materialInfo.EmissiveStrength * materialInfo.BaseColorFactor.xyz;
+
+        if (materialInfo.EmissiveIndex != INVALID_TEXTURE_INDEX) {
+            Sampler2D emissiveMap = g_BindlessTextures[materialInfo.EmissiveIndex];
+            float2 emissiveUvSet = materialInfo.EmissiveTextureSet == 0 ? input.Uv0 : input.Uv1;
+
+            float3 emissive = emissiveMap.Sample(emissiveUvSet).rgb;
+
+            emissiveContrib *= emissive;
+        }
+
+        o.Emissive = float4(emissiveContrib, 1.0f);
     }
 
     return o;

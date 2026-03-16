@@ -715,7 +715,7 @@ namespace Mikoto {
             roughnessMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( ImGuiUtils::PushImageButton( roughnessMap->GetHandle(), ImGuiService::Get()->GetTextureID( roughnessMap ), ImVec2{ 64, 64 } ) ) {
+        if ( ImGuiUtils::PushImageButton( "##EditRoughnessProperties:TextureID", ImGuiService::Get()->GetTextureID( roughnessMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::ROUGHNESS_TEXTURE );
         }
 

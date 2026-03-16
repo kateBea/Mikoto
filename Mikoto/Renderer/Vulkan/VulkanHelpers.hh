@@ -103,6 +103,7 @@ namespace Mikoto::VulkanHelpers {
     MKT_NODISCARD auto SetupDeviceQueueCreateInfo(const std::set<UInt32>& uniqueQueueFamilies) -> std::vector<VkDeviceQueueCreateInfo>;
 
     auto CopyImageToImage(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D srcSize, VkExtent3D dstSize) -> void;
+    auto CopyImageToImageMultiSampled(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D srcSize) -> void;
     auto CopyImage(VkCommandBuffer cmd, VkImage srcImage, VkImageLayout srcLayout, VkImage dstImage, VkImageLayout dstLayout, VkExtent3D extent ) -> void;
 
     MKT_NODISCARD auto GetSwapChainSupport( const VkPhysicalDevice& device, const VkSurfaceKHR& surface ) -> SwapChainSupportDetails;

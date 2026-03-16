@@ -250,7 +250,7 @@ namespace Mikoto {
             .PipelineInfoMain{
                 .RenderPass{ m_ImGuiRenderPass },
                 .Subpass{ 0 },
-                .MSAASamples{ VK_SAMPLE_COUNT_1_BIT } 
+                .MSAASamples{ VK_SAMPLE_COUNT_8_BIT }
             },
         };
 
@@ -282,6 +282,7 @@ namespace Mikoto {
                 .WithChannelCount( 4 )
                 .WithData( nullptr )
                 .WithType( TextureType::TEXTURE_2D )
+                .WithSampleCount( Multisampling::MSAA_X8 )
                 .WithTextureUsage( TextureUsage::COLOR )
                 .WithFormat( TextureFormat::RGBA8_UNORM )
                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_DYNAMIC );
@@ -295,6 +296,7 @@ namespace Mikoto {
                 .WithHeight( static_cast<Int32>(m_Extent2D.height) )
                 .WithChannelCount( 1 )
                 .WithData( nullptr )
+                .WithSampleCount( Multisampling::MSAA_X8 )
                 .WithType( TextureType::TEXTURE_2D )
                 .WithTextureUsage( TextureUsage::DEPTH )
                 .WithFormat( TextureFormat::D32_FLOAT_S8_UINT )

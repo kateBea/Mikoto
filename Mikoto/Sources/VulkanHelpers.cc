@@ -615,6 +615,34 @@ namespace Mikoto::VulkanHelpers {
         vkCmdBlitImage2( cmd, &blitInfo );
     }
 
+    auto CopyImageToImageMultiSampled( const VkCommandBuffer cmd, const VkImage source, const VkImage destination, const VkExtent3D srcSize ) -> void {
+        VkImageResolve2 resolve{};
+        resolve.sType = VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2;
+
+        resolve.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        resolve.srcSubresource.mipLevel = 0;
+        resolve.srcSubresource.baseArrayLayer = 0;
+        resolve.srcSubresource.layerCount = 1;
+
+        resolve.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        resolve.dstSubresource.mipLevel = 0;
+        resolve.dstSubresource.baseArrayLayer = 0;
+        resolve.dstSubresource.layerCount = 1;
+
+        resolve.extent = { srcSize.width, srcSize.height, 1 };
+
+        VkResolveImageInfo2 info{};
+        info.sType = VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2;
+        info.srcImage = source;
+        info.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        info.dstImage = destination;
+        info.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        info.regionCount = 1;
+        info.pRegions = &resolve;
+
+        vkCmdResolveImage2(cmd, &info);
+    }
+
     auto CopyImage(VkCommandBuffer cmd, VkImage srcImage, VkImageLayout srcLayout, VkImage dstImage, VkImageLayout dstLayout, VkExtent3D extent ) -> void {
         VkImageCopy copyRegion{};
         copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;

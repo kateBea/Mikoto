@@ -485,7 +485,6 @@ namespace Mikoto {
         if (ImGuiUtils::Slider( "Max ReflectionLOD", lineWidth, { 0.0f, 30.0f } ) ) {
             m_EditorState->EditorSceneRenderer->SetMaxReflectionLOD( lineWidth );
         }
-
     }
 
     auto RendererPanel::DrawShadowMappingSettings() -> void {

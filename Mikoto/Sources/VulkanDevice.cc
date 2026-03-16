@@ -1193,7 +1193,11 @@ namespace Mikoto {
         dstExtent.height = dest->GetHeight();
         dstExtent.depth = 1;
 
-        VulkanHelpers::CopyImageToImage( m_CmdBuffer, src->GetNativeHandle(ObjectType::Vk_Image), dest->GetNativeHandle(ObjectType::Vk_Image), srcExtent, dstExtent );
+        if (src->GetSampleCount() != Multisampling::MSAA_X1) {
+            VulkanHelpers::CopyImageToImageMultiSampled( m_CmdBuffer, src->GetNativeHandle(ObjectType::Vk_Image), dest->GetNativeHandle(ObjectType::Vk_Image), srcExtent );
+        } else {
+            VulkanHelpers::CopyImageToImage( m_CmdBuffer, src->GetNativeHandle(ObjectType::Vk_Image), dest->GetNativeHandle(ObjectType::Vk_Image), srcExtent, dstExtent );
+        }
 
         // Reset layout
         src->SubmitLayoutTransition( VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_CmdBuffer );

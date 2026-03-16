@@ -18,7 +18,7 @@
 #include <ankerl/unordered_dense.h>
 
 #include <Common/Common.hh>
-#include <Material/PBRMaterial.hh>
+#include <Material/PhysicalMaterial.hh>
 #include <Material/Texture2D.hh>
 #include <Renderer/Core/Buffer.hh>
 #include <cstdint>

@@ -14,10 +14,8 @@
 
 #include <filesystem>
 #include <memory>
-#include <stdexcept>
 
 #include <volk.h>
-
 
 #include <Common/Common.hh>
 #include <Common/String.hh>
@@ -37,7 +35,12 @@ namespace Mikoto {
                 return VK_FILTER_NEAREST;
             case SamplerFilter::FILTER_LINEAR:
                 return VK_FILTER_LINEAR;
+            default:
+                // Empty
+                ;
         }
+
+        return VK_FILTER_NEAREST;
     }
 
     MKT_NODISCARD static auto ToVkSamplerWarp(SamplerWrapMode wrap) -> VkSamplerAddressMode {
@@ -48,9 +51,14 @@ namespace Mikoto {
                 return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
             case SamplerWrapMode::WRAP_REPEAT:
                 return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            default:
+                // Empty
+                ;
         }
+
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
     }
-    
+
     VulkanSampler::VulkanSampler( const SamplerDescription& info ) {
         // Create a Sampler for the texture we will display in the viewport
         m_CreateInfo = VulkanHelpers::Initializers::SamplerCreateInfo();
@@ -121,13 +129,13 @@ namespace Mikoto {
         m_IsLDR = data.IsHDR;
 
         if ( data.TextureFile ) {
-            m_DebugName = fmt::format( "Mikoto Texture. Id: {}, Loaded from {}", GetHandle(), data.TextureFile->GetPathCStr() );
+            m_DebugName = fmt::format( "Mikoto Texture. Id: {}, Loaded from {}", GetHandle(), data.TextureFile->GetPathView() );
         } else {
             m_DebugName = fmt::format( "Mikoto Texture. Id: {}", GetHandle() );
         }
 
         if (data.TextureFile) {
-            SetTextureUri( data.TextureFile->GetPathCStr() );
+            SetTextureUri( data.TextureFile->GetPathView() );
             SetTextureName( data.TextureFile->GetName() );
         }
     }
@@ -262,7 +270,7 @@ namespace Mikoto {
         m_TextureUsage = data.Usage;
 
         if (!data.Faces.empty() && data.Faces[0]) {
-            SetTextureUri( data.Faces[0]->GetPathCStr() );
+            SetTextureUri( data.Faces[0]->GetPathView() );
             SetTextureName( data.Faces[0]->GetName() );
         }
     }
@@ -548,10 +556,10 @@ namespace Mikoto {
             constexpr bool linearFilter{ true };
             const Int32 cubeMapResolution{ m_Width };
 
-            HdriToCubemap<unsigned char> hdriToCube_hdr( m_TextureFaces[0]->GetPathCStr(), cubeMapResolution, linearFilter );
+            HdriToCubemap<unsigned char> hdriToCube_hdr( m_TextureFaces[0]->GetPathView().data(), cubeMapResolution, linearFilter );
 
-            const std::string basePath{ Path{ m_TextureFaces[0]->GetPathCStr() }.remove_filename().string() };
-            const std::string hdrFile{ Path{ m_TextureFaces[0]->GetPathCStr() }.stem().string() };
+            const std::string basePath{ Path{ m_TextureFaces[0]->GetPathView() }.remove_filename().string() };
+            const std::string hdrFile{ Path{ m_TextureFaces[0]->GetPathView() }.stem().string() };
 
             const std::string emitFolder{ fmt::format( "{}{}", basePath, hdrFile ) };
 

@@ -21,7 +21,7 @@
 #include <Filesystem/FileSystem.hh>
 #include <Library/Math/Math.hh>
 #include <Logging/Logger.hh>
-#include <Material/PBRMaterial.hh>
+#include <Material/PhysicalMaterial.hh>
 #include <Renderer/Core/RenderUtility.hh>
 #include <Threading/ThreadUtility.hh>
 #include <algorithm>
@@ -1516,7 +1516,15 @@ namespace Mikoto {
     auto GLTFImporter::Import( LoaderData& loaderData, const ModelLoadDescription& description, ModelData& out ) -> void {
         tinygltf::Model model{};
 
-        bool res{ loaderData.Loader.LoadASCIIFromFile( &model, &loaderData.Err, &loaderData.Warn, description.ModelFile->GetPath() ) };
+        bool res{ false };
+        const std::string extension{ Path{ description.ModelFile->GetPath() }.extension().string() };
+        if (StringUtil::Contains( extension, "gltf" )) {
+            res = loaderData.Loader.LoadASCIIFromFile( &model, &loaderData.Err, &loaderData.Warn, description.ModelFile->GetPath() );
+        } else if (StringUtil::Contains( extension, "glb" )) {
+            // Still need to properly handle glb
+            res = loaderData.Loader.LoadBinaryFromFile( &model, &loaderData.Err, &loaderData.Warn, description.ModelFile->GetPath() );
+        }
+
         if ( !loaderData.Warn.empty() ) {
             MKT_CORE_LOGGER_WARN( "GLTF Loader WARN: {}", loaderData.Warn );
         }
@@ -1539,7 +1547,7 @@ namespace Mikoto {
             // Build animations and skeleton
             // We will save the loaded ozz files in disk along withh a mikoto metadata file
             // if the file has been processed we simply load the ozz animation files, otherwise we
-            // create the necessary resources (cleaqr model here because importer loads its own)
+            // create the necessary resources (clear model here because importer loads its own)
 
             if (!model.animations.empty()) {
                 GltfAnimImporter animationImporter{};

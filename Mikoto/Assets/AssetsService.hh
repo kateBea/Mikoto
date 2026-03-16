@@ -15,30 +15,29 @@
 #ifndef MIKOTO_ASSETS_SERVICE_HH
 #define MIKOTO_ASSETS_SERVICE_HH
 
-#include <vector>
-#include <future>
-#include <atomic>
-#include <mutex>
 #include <ankerl/unordered_dense.h>
 
+#include <Assets/AudioClip.hh>
 #include <Assets/Font.hh>
+#include <Assets/MeshFactory.hh>
 #include <Assets/Model.hh>
 #include <Assets/Texture.hh>
 #include <Audio/AudioDevice.hh>
 #include <Common/Common.hh>
 #include <Common/Service.hh>
 #include <Common/Singleton.hh>
+#include <Filesystem/FileSystem.hh>
 #include <Library/Data/ResourcePool.hh>
 #include <Library/Utility/Types.hh>
+#include <Material/PhysicalMaterial.hh>
+#include <Material/TextureCube.hh>
 #include <Renderer/Core/FontFactory.hh>
 #include <Renderer/Core/RenderUtility.hh>
 #include <Threading/TaskService.hh>
-
-#include <Assets/AudioClip.hh>
-#include <Assets/MeshFactory.hh>
-#include <Material/PBRMaterial.hh>
-#include <Material/TextureCube.hh>
-#include <Filesystem/FileSystem.hh>
+#include <atomic>
+#include <future>
+#include <mutex>
+#include <vector>
 
 namespace Mikoto {
 
@@ -197,7 +196,7 @@ namespace Mikoto {
         GpuDevice* m_GpuDevice{ nullptr };
         AudioDevice* m_AudioDevice{ nullptr };
 
-        ResourcePoolTyped<PBRMaterial> m_PBRMaterialsPool{};
+        ResourcePoolTyped<PhysicalMaterial> m_PBRMaterialsPool{};
 
         std::mutex m_Texture2DPoolMutex{};
         std::mutex m_TextureCubePoolMutex{};

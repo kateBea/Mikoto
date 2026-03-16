@@ -297,7 +297,7 @@ namespace Mikoto {
                               static_cast<float>( y ) * spacing, 0.0f } );
                     auto& pbr{ e->GetComponent<MaterialComponent>() };
 
-                    PBRMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PBRMaterial>() };
+                    PhysicalMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PhysicalMaterial>() };
                     if (pbrMat) {
                         pbrMat->SetAlphaMaskCutoff( 1.0f );
                         pbrMat->SetMetallicFactor( static_cast<float>( x ) / static_cast<float>( gridSize - 1 ) );
@@ -337,7 +337,7 @@ namespace Mikoto {
                                   static_cast<float>( z ) * spacing } );
 
                         auto &pbr{ e->GetComponent<MaterialComponent>() };
-                        PBRMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PBRMaterial>() };
+                        PhysicalMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PhysicalMaterial>() };
                         if ( pbrMat ) {
                             pbrMat->SetAlphaMaskCutoff( 1.0f );
                             pbrMat->SetColor( Vec4F{ GetRandomizedVec3F( 0.0f, 1.0f ), 1.0f } );

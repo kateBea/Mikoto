@@ -40,6 +40,8 @@ namespace Mikoto {
         auto SetMeshCulling( MeshCulling &culling ) -> void;
         auto RegisterPasses(FrameGraph& graph, GpuDevice* device) -> void;
 
+        // Bloom
+        auto EnableBloom(bool value) -> void;
     private:
         auto RegisterSSAO( FrameGraph& graph ) -> void;
         auto RegisterBloom( FrameGraph& graph ) -> void;

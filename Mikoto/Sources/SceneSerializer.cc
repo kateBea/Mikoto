@@ -249,7 +249,7 @@ namespace Mikoto {
             return nullptr;
         }
 
-        YAML::Node data{ YAML::Load( inputFile->GetFileContents() ) };
+        YAML::Node data{ YAML::Load( inputFile->GetContentsString() ) };
 
         if (data.IsNull()) {
             auto message{ fmt::format("File opened '{}' but contains no data for deserialization", saveFilePath.string()) };

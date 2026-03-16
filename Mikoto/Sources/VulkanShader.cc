@@ -28,8 +28,8 @@ namespace Mikoto {
     VulkanShader::VulkanShader( const ShaderModuleDescription& createInfo )
         : ShaderModule{
               createInfo.Stage,
-              reinterpret_cast<const void*>( createInfo.ShaderFile->GetFileContents().data() ),
-              createInfo.ShaderFile->GetSizeBytes()
+              reinterpret_cast<const void*>( createInfo.ShaderFile->GetContentsString().data() ),
+              createInfo.ShaderFile->GetSize()
           },
           m_Path{ createInfo.ShaderFile ? createInfo.ShaderFile->GetPath() : "" } {
 

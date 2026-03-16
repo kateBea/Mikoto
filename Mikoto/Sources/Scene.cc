@@ -106,6 +106,7 @@ namespace Mikoto {
         m_Registry.on_construct<ScriptComponent>().connect<&Scene::OnScriptAdded>(this);
 
         m_Registry.on_construct<RigidBodyComponent>().connect<&Scene::OnRigidBodyAdded>(this);
+
         m_Registry.on_destroy<RigidBodyComponent>().connect<&Scene::OnRigidBodyRemoved>(this);
 
         PhysicsWorldCreateInfo spec{
@@ -161,18 +162,24 @@ namespace Mikoto {
 
     auto Scene::OnScriptAdded( entt::registry& reg, entt::entity e ) -> void {
         TagComponent& tag{ reg.get<TagComponent>(e) };
-        ScriptComponent& script{ reg.get<ScriptComponent>(e) };
+        ScriptComponent& scriptComponent{ reg.get<ScriptComponent>(e) };
 
+        ScriptHandle scriptHandle{};
         if (Entity* entity{ FindByID( tag.GetGUID() ) }) {
-            ScriptHandle scriptHandle{};
-            if (script.GetFilePath().empty()) {
-                scriptHandle = ScriptingService::Get()->LoadScript( script.GetFilePath(), entity );
+            if (!scriptComponent.GetFilePath().empty()) {
+                // The component wants to load a specific file
+                scriptHandle = ScriptingService::Get()->LoadScript( scriptComponent.GetFilePath(), entity );
             } else {
+                // start from default script
                 scriptHandle = ScriptingService::Get()->CreateScript( entity );
             }
-            script.SetScript( scriptHandle );
-        }
 
+            if (!scriptHandle.IsEmpty()) {
+                scriptComponent.SetScript( scriptHandle );
+            } else {
+                MKT_CORE_LOGGER_WARN( "Scene::OnScriptAdded - Failed to add script." );
+            }
+        }
     }
 
     auto Scene::OnRigidBodyRemoved( entt::registry& reg, entt::entity e ) const -> void {

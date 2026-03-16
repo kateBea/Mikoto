@@ -368,7 +368,7 @@ namespace Mikoto {
 
             if ( meshComponent.HasMesh() && materialComp.HasMaterial() ) {
                 MeshNode *meshNode{ meshComponent.GetMesh() };
-                PBRMaterial *pbrMat{ materialComp.GetMaterial().Dynamic<PBRMaterial>() };
+                PhysicalMaterial *pbrMat{ materialComp.GetMaterial().Dynamic<PhysicalMaterial>() };
 
                 auto& [geometry, material]{ m_IndexedGeometryManager.RegisterInstance( meshNode ) };
                 

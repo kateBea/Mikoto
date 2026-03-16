@@ -238,7 +238,8 @@ float3 ComputePointlLightContribution(float3 n, float3 v, LightInfo lightInfo, B
 
     attenuation *= radiusFalloff;
 
-    float3 lightIntensity = lightInfo.Diffuse * lightInfo.Intensity * attenuation;
+    const float intensityBaseFactor = 1000.0f;
+    const float3 lightIntensity = lightInfo.Diffuse * (lightInfo.Intensity * intensityBaseFactor) * attenuation;
 
     float3 h = normalize(l + v);
 
@@ -300,7 +301,8 @@ float3 ComputeSpotLightContribution(float3 n, float3 v, LightInfo lightInfo, Bas
     // final attenuation
     float attenuation = distanceAttenuation * coneAttenuation;
 
-    float3 lightIntensity = lightInfo.Diffuse * lightInfo.Intensity * attenuation;
+    const float intensityBaseFactor = 1000.0f;
+    float3 lightIntensity = lightInfo.Diffuse * (lightInfo.Intensity * intensityBaseFactor) * attenuation;
 
     float3 h = normalize(l + v);
 
@@ -427,7 +429,7 @@ FSOutput main(FSInput input) {
         // convert to material roughness by squaring the perceptual roughness [2].
 
         // The albedo may be defined from a base texture or a flat color
-        if (material.AlbedoIndex != INVALID_UV_SET) {
+        if (material.AlbedoIndex != INVALID_TEXTURE_INDEX) {
             Sampler2D colorMap = g_BindlessTextures[material.AlbedoIndex];
             baseColor = SRGBtoLINEAR(colorMap.Sample(material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1)) * material.BaseColorFactor;
         } else {

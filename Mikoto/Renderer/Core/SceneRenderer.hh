@@ -101,6 +101,9 @@ namespace Mikoto {
         auto SetZAxisColor( const Vec4F& color ) -> void;
         auto SetXAxisColor( const Vec4F& color ) -> void;
 
+        // Bloom
+        auto EnableBloom(bool value) -> void;
+
         MKT_NODISCARD auto GetPassList() const -> const PassList&;
 
         // Resolution

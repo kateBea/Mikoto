@@ -12,23 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_PANELS_HH
-#define MIKOTO_PANELS_HH
-
 #include <Panels/AnimatorTimelinePanel.hh>
-#include <Panels/AssetsPanel.hh>
-#include <Panels/ConsolePanel.hh>
-#include <Panels/ContentBrowserPanel.hh>
-#include <Panels/GamePreviewPanel.hh>
-#include <Panels/HierarchyPanel.hh>
-#include <Panels/InspectorPanel.hh>
-#include <Panels/LightingDebugPanel.hh>
-#include <Panels/LightingPanel.hh>
-#include <Panels/PassVisualizerPanel.hh>
-#include <Panels/RendererPanel.hh>
-#include <Panels/ScenePanel.hh>
-#include <Panels/ScenePropertiesPanel.hh>
-#include <Panels/SettingsPanel.hh>
-#include <Panels/StatsPanel.hh>
 
-#endif //MIKOTO_PANELS_HH
+namespace Mikoto {
+}// namespace Mikoto

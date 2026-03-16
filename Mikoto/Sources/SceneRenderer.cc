@@ -211,6 +211,10 @@ namespace Mikoto {
         m_DebugPasses.SetXAxisColor( color );
     }
 
+    auto SceneRenderer::EnableBloom( bool value ) -> void {
+        m_PostEffectsPasses.EnableBloom( value );
+    }
+
     auto SceneRenderer::GetTexture( std::string_view name ) const -> TextureHandle {
         return m_FrameGraph->GetTexture(name);
     }

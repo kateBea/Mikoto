@@ -25,19 +25,29 @@
 
 namespace Mikoto {
 
+    struct FileEventInfo {
+        std::chrono::steady_clock::time_point lastEvent{};
+    };
+
     enum class FileWatchEvent { MODIFIED, CREATED, DELETED, MOVED };
 
     class FileWatcher final {
     public:
         using WatcherCallback = std::function< void( const Path& path, FileWatchEvent ) >;
 
-        explicit FileWatcher( const Path& path );
+        // eventTimeOut is used for debouncing (in ms).
+        // Helps to prevent redundant, rapid-fire actions by waiting for an event to
+        // stop triggering (e.g., after 100-500ms) before executing a handler
+        explicit FileWatcher( const Path& path, UInt32 eventTimeOut = 500 );
 
         auto RegisterWatchCallback(WatcherCallback&& callback) -> void;
 
     private:
         Path m_WatchedPath{};
+        std::chrono::milliseconds m_DebounceTime{};
         std::vector<WatcherCallback> m_Callbacks{};
+
+        ankerl::unordered_dense::map<FileWatchEvent, FileEventInfo> m_EventTypeInfos{};
 
         Unique<filewatch::FileWatch<std::string>> m_Watcher{};
     };

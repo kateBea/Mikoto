@@ -50,12 +50,14 @@ namespace Mikoto {
     }
 
     File::File( const Path& path, std::fstream&& stream, const FileMode openMode )
-        : m_PathObject{ path }, m_Path{ path.string() }, m_Extension{ path.extension().string() }, m_FileStream{ std::move( stream ) }, m_OpenMode{ openMode } {
-
-        UpdateContents();
+        : m_Path{ path }, m_PathUtf8{ path.string() }, m_Extension{ path.extension().string() }, m_FileStream{ std::move( stream ) }, m_OpenMode{ openMode } {
+        UpdateContentsFromDisk();
     }
 
-    auto File::GetFileContents() const -> const std::string & {
+    auto File::GetContentsString() const -> const std::string & {
+        // I need to make sure the file has been properly updated before i can read its contents
+        std::lock_guard lock{ m_FileUpdateMutex };
+
         return m_Contents;
     }
 
@@ -70,25 +72,28 @@ namespace Mikoto {
             openMode |= std::ios_base::app;
         }
 
-        m_FileStream = std::move( std::fstream{ m_Path, openMode } );
+        m_FileStream = std::move( std::fstream{ m_PathUtf8, openMode } );
 
         if ( m_FileStream.is_open() ) {
             m_FileStream << m_Contents;
+            m_FileStream.flush();
             m_FileStream.close();
         }
     }
 
-    auto File::SetContents( std::string &&contents ) -> void {
-        m_Contents = std::move(contents);
-        FlushContents();
-    }
+    auto File::UpdateContentsFromDisk() -> void {
+        // If the file is closed we need to reopen it (just for reading)
+        if (!m_FileStream.is_open() ) {
+            m_FileStream.open( m_PathUtf8, std::ios::in );
+        }
 
-    auto File::UpdateContents() -> void {
         LoadContents();
         InferFileSize();
 
         if ( m_FileStream.is_open() ) {
             m_FileStream.close();
+
+            // Close file again
             m_FileStream = {};
         }
 
@@ -98,7 +103,7 @@ namespace Mikoto {
 
     auto File::LoadContents() -> void {
         if ( !m_FileStream.is_open() ) {
-            MKT_CORE_LOGGER_ERROR( "Failed to open file [ {} ]!", m_Path );
+            MKT_CORE_LOGGER_ERROR( "Failed to open file [ {} ]!", m_PathUtf8 );
             return;
         }
 
@@ -112,6 +117,39 @@ namespace Mikoto {
             m_FileStream.seekg( 0 );
             m_Size = std::distance( std::istreambuf_iterator<char>( m_FileStream ), std::istreambuf_iterator<char>() );
         }
+    }
+
+    auto File::GetPath() const -> const std::string& {
+        return m_PathUtf8;
+    }
+
+    auto File::GetName() const -> std::string {
+        return m_Path.filename().string();
+    }
+
+    auto File::GetExtension() const -> const std::string& {
+        return m_Extension;
+    }
+
+    auto File::GetPathView() const -> std::string_view {
+        return m_PathUtf8;
+    }
+
+    auto File::GetContentsBytes() const -> const void* {
+        return m_Contents.c_str();
+    }
+
+    auto File::GetType() const -> FileType {
+        return m_Type;
+    }
+
+    auto File::GetSize() const -> Size {
+        return m_Size;
+    }
+
+    auto File::SetContents( std::string &&contents ) -> void {
+        std::lock_guard lock{ m_FileUpdateMutex };
+        m_Contents = std::move(contents);
     }
 
     auto File::InferFileType( const std::string &extension ) -> FileType {
@@ -143,6 +181,8 @@ namespace Mikoto {
     }
 
     auto File::InferExtensionFromFileSignature( const std::string &fileContent ) -> std::string {
+        std::string result{};
+
         // https://en.wikipedia.org/wiki/List_of_file_signatures
         static const std::unordered_map<std::string, std::vector<UChar>> signatureMap{
             { "png", { 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A } },   // PNG
@@ -153,14 +193,15 @@ namespace Mikoto {
             { "mp4", { 0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70 } },// MP4
         };
 
-        const auto itResult{ std::ranges::find_if( signatureMap, [&fileContent]( const std::pair<const std::string, std::vector<UChar>> &pair ) {
+        const auto itResult{ std::ranges::find_if( signatureMap,
+            [&fileContent]( const std::pair<const std::string, std::vector<UChar>> &pair ) {
             return CompareSignature( fileContent, pair.second );
         } ) };
 
         if ( itResult != signatureMap.end() ) {
-            return itResult->first;
+           result = itResult->first;
         }
 
-        return "";
+        return result;
     }
 }

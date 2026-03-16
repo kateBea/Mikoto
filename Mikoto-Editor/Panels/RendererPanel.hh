@@ -53,6 +53,8 @@ namespace Mikoto {
 
         auto DrawSSAOSettings() -> void;
 
+        auto DrawPostProcessing() -> void;
+
         auto DrawIBLSettings() -> void;
         auto DrawShadowMappingSettings() -> void;
 

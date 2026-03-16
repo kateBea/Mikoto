@@ -119,7 +119,6 @@ namespace Mikoto {
 
             DrawPassInfo();
 
-
             if (m_ShowPassGraph) {
                 m_GraphEditor.Render();
             }
@@ -145,13 +144,16 @@ namespace Mikoto {
             DrawSSAOSettings();
         });
 
-        ImGui::SeparatorText( "Graphics Features" );
         ImGuiUtils::DrawNode( "Shadow Mapping settings", [this] () -> void {
             DrawShadowMappingSettings();
         });
 
         ImGuiUtils::DrawNode( "Image Based Lighting settings", [this] () -> void {
             DrawIBLSettings();
+        });
+
+        ImGuiUtils::DrawNode( "Post processing", [this] () -> void {
+            DrawPostProcessing();
         });
 
         ImGui::End();
@@ -358,6 +360,17 @@ namespace Mikoto {
         if (ImGuiUtils::Slider("Power", m_SSAOStrength, { 0.1f, 5.0f })) {
             m_EditorState->EditorSceneRenderer->SetSSAOIntensity( m_SSAOStrength );
         }
+    }
+
+    auto RendererPanel::DrawPostProcessing() -> void {
+        ImGuiUtils::UnindentScoped und{};
+
+        static bool enableBloom{ false };
+        if (ImGuiUtils::CheckBox( "##RendererPanel::DrawPostProcessing::Bloom", enableBloom )) {
+            m_EditorState->EditorSceneRenderer->EnableBloom( enableBloom );
+        }
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "Enable bloom" );
     }
 
     auto RendererPanel::DrawIBLSettings() -> void {

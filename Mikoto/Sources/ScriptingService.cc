@@ -75,7 +75,7 @@ namespace Mikoto {
                 handle = m_ScriptPool.Allocate( file,  m_LuaState, entity );
 
                 FileWatcherService::Get()->Watch( file->GetPath(), 
-                [handle, this](const Path& pathCallable, FileWatchEvent event) mutable -> void {
+                [handle, this](const Path& , FileWatchEvent event) mutable -> void {
                     if (event == FileWatchEvent::MODIFIED) {
                         handle->ReloadScript(m_LuaState);
                     }
@@ -90,8 +90,10 @@ namespace Mikoto {
     }
 
     auto ScriptingService::CreateScript(Entity* entity) -> ScriptHandle {
-        std::atomic_uint64_t scriptCount{};
+        static std::atomic_uint64_t scriptCount{};
 
+        // Move this logic to the asset service, by doing it that way we can benefit from unique hash IDs for the script asset
+        // Need to properly give it a thought tho, a single script might be shared by multiple scene objects
         std::string scriptName{ StringUtil::Format( "{}/Script.lua", m_ScriptsDirectory.string() ) };
         if ( std::filesystem::exists( scriptName ) ) {
             scriptName = StringUtil::Format( "{}/Script-{}.lua", m_ScriptsDirectory.string(), scriptCount.load() );
@@ -101,16 +103,18 @@ namespace Mikoto {
         ScriptHandle handle{ ScriptHandle::CreateEmpty() };
 
         if ( File * file{ FileService::Get()->CreateNewFile( scriptName ) } ) {
+            // This script is an empty template used to create new scripts
             const File* scriptBase{ FileService::Get()->LoadFile( "Resources/Script-Examples/base.lua" ) };
 
-            file->SetContents( std::string{ scriptBase->GetFileContents() } );
+            // Set contents by default does not flush
+            file->SetContents( std::string{ scriptBase->GetContentsString() } );
             file->FlushContents();
 
             try {
                 handle = m_ScriptPool.Allocate( file, m_LuaState, entity );
 
                 FileWatcherService::Get()->Watch( file->GetPath(),
-                [handle, this]( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
+                [handle, this]( const Path&, FileWatchEvent event ) mutable -> void {
                     if ( event == FileWatchEvent::MODIFIED ) {
                         handle->ReloadScript( m_LuaState );
                     }

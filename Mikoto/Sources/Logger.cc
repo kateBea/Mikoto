@@ -34,6 +34,7 @@
 #include <Core/Exception.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
+#include <Filesystem/FileSystem.hh>
 
 namespace fs = std::filesystem;
 
@@ -80,7 +81,12 @@ namespace Mikoto {
         m_StdOut = spdlog::stdout_color_mt( "MIKOTO_STDOUT_LOGGER" );
         m_StdErr = spdlog::stderr_color_mt( "MIKOTO_STDERR_LOGGER" );
 
-        m_FileLogName = NextLogFilePath( fs::current_path() ).string();
+        constexpr std::string_view logsPath{ "Logs" };
+        if (Filesystem::CreateIfNotExistsDirectory( logsPath )) {
+            MKT_CORE_LOGGER_DEBUG( "Created directory for logs" );
+        }
+
+        m_FileLogName = NextLogFilePath( logsPath ).string();
 
         try {
             m_File = spdlog::basic_logger_mt( "MIKOTO_FILE_LOGGER", m_FileLogName );

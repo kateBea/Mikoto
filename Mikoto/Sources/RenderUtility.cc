@@ -31,15 +31,15 @@ namespace Mikoto {
     auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc* {
         constexpr int targetChannelCount{ STBI_rgb_alpha };
         stbi_uc* data{ stbi_load_from_memory(
-                reinterpret_cast<const stbi_uc*>( textureFile->GetFileBytes() ),
-                textureFile->GetFileContents().size(),
+                reinterpret_cast<const stbi_uc*>( textureFile->GetContentsBytes() ),
+                textureFile->GetContentsString().size(),
                 std::addressof( outWidth ),
                 std::addressof( outHeight ),
                 std::addressof( outChannels ),
                 targetChannelCount ) };
 
         if ( !data ) {
-            MKT_THROW_RUNTIME_ERROR( fmt::format( "LoadImageFromFile - Failed to load texture image: [{}]", textureFile->GetPathCStr() ) );
+            MKT_THROW_RUNTIME_ERROR( fmt::format( "LoadImageFromFile - Failed to load texture image: [{}]", textureFile->GetPathView() ) );
         }
 
         outChannels = 4;
@@ -67,15 +67,15 @@ namespace Mikoto {
     auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc* {
         constexpr int targetChannelCount{ STBI_rgb_alpha };
         stbi_uc* data{ reinterpret_cast<stbi_uc*>( stbi_loadf_from_memory(
-                reinterpret_cast<const stbi_uc*>( textureFile->GetFileBytes() ),
-                textureFile->GetFileContents().size(),
+                reinterpret_cast<const stbi_uc*>( textureFile->GetContentsBytes() ),
+                textureFile->GetContentsString().size(),
                 std::addressof( outWidth ),
                 std::addressof( outHeight ),
                 std::addressof( outChannels ),
                 targetChannelCount ) ) };
 
         if ( !data ) {
-            MKT_THROW_RUNTIME_ERROR( fmt::format( "LoadHDRImageFromFile - Failed to load HDR: [{}]", textureFile->GetPathCStr() ) );
+            MKT_THROW_RUNTIME_ERROR( fmt::format( "LoadHDRImageFromFile - Failed to load HDR: [{}]", textureFile->GetPathView() ) );
         }
 
         outChannels = 4;

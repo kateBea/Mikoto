@@ -45,15 +45,30 @@ namespace Mikoto {
         return FileWatchEvent::CREATED;
     }
 
-    FileWatcher::FileWatcher( const Path &path ) {
+    FileWatcher::FileWatcher( const Path &path, UInt32 eventTimeOut )
+        : m_DebounceTime{ eventTimeOut}
+    {
         m_WatchedPath = path.string();
         const std::string watchedPathStr{ m_WatchedPath.string() };
 
         m_Watcher = CreateScope<filewatch::FileWatch<std::string>>(
                 watchedPathStr, [this]( const std::string &, const filewatch::Event event ) -> void {
-                    MKT_CORE_LOGGER_ERROR( "MODIFIED" );
+                    auto eventType{ ConverEventType( event ) };
+
+                    // TODO: Debounce check does not behave as expected still getting duplicate events within same time span
+                    auto& info{ m_EventTypeInfos[eventType] };
+                    const auto now{ std::chrono::steady_clock::now() };
+
+                    if (now - info.lastEvent <= m_DebounceTime) {
+                        return;
+                    }
+
+                    // Last time I handled this event
+                    info.lastEvent = now;
+
+                    // Run handlers
                     for (const auto& callback : m_Callbacks) {
-                        callback(m_WatchedPath, ConverEventType( event ));
+                        callback(m_WatchedPath, eventType);
                     }
                 });
     }

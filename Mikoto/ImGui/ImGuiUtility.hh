@@ -86,6 +86,9 @@ namespace Mikoto::ImGuiUtils {
         return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), textureHandle, size ); 
     }
 
+    MKT_NODISCARD inline auto PushImageButton( std::string_view ID, ImTextureID textureHandle, const ImVec2 size ) -> bool {
+        return ImGui::ImageButton( ID.data(), textureHandle, size );
+    }
 
     MKT_NODISCARD inline auto ComputeWidth() -> float {
         const ImGuiContext &globalContext{ *GImGui };

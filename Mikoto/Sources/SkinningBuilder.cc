@@ -40,7 +40,6 @@
 #include <Filesystem/FileSystem.hh>
 #include <Filesystem/FileService.hh>
 #include <Animation/SkinningBuilder.hh>
-#include <Animation/AnimationSystem.hh>
 
 namespace Mikoto {
 
@@ -52,19 +51,19 @@ namespace Mikoto {
         const std::string modelAnimationsPath{ StringUtil::Format(  "{}/Animations", GetHashedAssetID( filepath) ) };
 #if !defined(NDEBUG)
         const std::string loggingLevel{ StringUtil::Format(R"(--log_level={})", "verbose") };
-#elif
-        std::string loggingLevel{ StringUtil::Format(R"(--log_level={})", "standard") };
+#else
+        const std::string loggingLevel{ StringUtil::Format(R"(--log_level={})", "standard") };
 #endif
 
-        std::string configString{};
+        std::string configJSON{};
 
         const std::string& assetCacheBasePath{ AssetsService::Get()->GetAssetCacheBasePath() };
         const std::string cachedAnimationsBasePath{ StringUtil::Format( "{}/{}", assetCacheBasePath, modelAnimationsPath ) };
 
-        // We first open the file that contains the base configuration for all animations
+        // We first open the file that contains the base configuration for any animation
         if (const File* configFile{ FileService::Get()->LoadFile( "Resources/AnimationConfiguration.json" ) }) {
             try {
-                nlohmann::json data{ nlohmann::json::parse( configFile->GetFileContents() ) };
+                nlohmann::json data{ nlohmann::json::parse( configFile->GetContentsString() ) };
                 data["skeleton"]["filename"] = StringUtil::Format( "{}/{}/skeleton.ozz", assetCacheBasePath, modelAnimationsPath );
 
                 // Ensure animations directory exists
@@ -75,19 +74,19 @@ namespace Mikoto {
                     animation["filename"] = StringUtil::Format( "{}/{}/*.ozz", assetCacheBasePath, modelAnimationsPath );
                 }
 
-                configString = data.dump( 2 );
+                configJSON = data.dump( 2 );
             } catch (std::exception& exception) {
                 MKT_CORE_LOGGER_ERROR( "Error skinned animation JSON parse: e.what() {}", exception.what() );
             }
         }
 
-        const std::string configJSON{ StringUtil::Format( R"(--config={})", configString )  };
-        const std::string filename{ StringUtil::Format( R"(--file={})", m_Filename.string() )  };
+        const std::string configJSONParameter{ StringUtil::Format( R"(--config={})", configJSON )  };
+        const std::string filenameParameter{ StringUtil::Format( R"(--file={})", m_Filename.string() )  };
 
-        std::array args{ "executable", filename.c_str(), loggingLevel.c_str(), configJSON.c_str() };
+        std::array args{ "executable", filenameParameter.c_str(), loggingLevel.c_str(), configJSONParameter.c_str() };
 
-        // Before we do this we check first if the animation have been loaded previously
-        // There is an issue with models all having the same, I have countless models called scene
+        // Import the model animations and skeleton
+        // TODO: only if the corresponding ozz files have not been created yet
         importer( args.size(), args.data() );
 
         // Skeleton
@@ -149,7 +148,7 @@ namespace Mikoto {
         // Animation
         const auto& animationNames{ importer.GetAnimationNames() };
         for (const auto& animationName : animationNames) {
-            // Animators name their animations howver they want, the importer saves them with using properly formated file name
+            // Animators name their animations however they want, the importer saves them with using properly formated file name
             std::string animFileName{ importer.BuildFilename( "*.ozz", animationName.c_str() ) };
 
             PathBuilder builder{};
@@ -162,10 +161,10 @@ namespace Mikoto {
             // interface and complies with std FILE specifications.
             // ozz::io::File follows RAII programming idiom, which ensures that the file
             // will always be closed (by ozz::io::FileStream destructor).
-            ozz::io::File file( animPath.c_str(), "rb" );
+            ozz::io::File ozzAnimationFile( animPath.c_str(), "rb" );
 
             // Checks file status, which can be closed if filename is invalid.
-            if ( !file.opened() ) {
+            if ( !ozzAnimationFile.opened() ) {
                 MKT_CORE_LOGGER_ERROR( "Cannot open file {}.", animPath );
                 continue;
             }
@@ -180,7 +179,7 @@ namespace Mikoto {
             // archive object, in opposition to write-capable (ozz::io::OArchive)
             // archives.
             // Archives take as argument stream objects, which must be valid and opened.
-            ozz::io::IArchive archive( &file );
+            ozz::io::IArchive ozzAnimationArchive( &ozzAnimationFile );
 
             // Before actually reading the object from the file, we need to test that
             // the archive (at current seek position) contains the object type we
@@ -191,7 +190,7 @@ namespace Mikoto {
             // Tagging is not mandatory for all object types. It's usually only used for
             // high level object types (skeletons, animations...), but not low level
             // ones (math objects, native types...).
-            if ( !archive.TestTag<ozz::animation::Animation>() ) {
+            if ( !ozzAnimationArchive.TestTag<ozz::animation::Animation>() ) {
                 MKT_CORE_LOGGER_ERROR( "Archive doesn't contain the expected object type." );
                 continue;
             }
@@ -201,7 +200,7 @@ namespace Mikoto {
             // Only objects that implement archive specifications can be used there,
             // along with all native types. Note that pointers aren't supported.
             ozz::animation::Animation animation{};
-            archive >> animation;
+            ozzAnimationArchive >> animation;
 
             m_Animations.emplace_back( OzzAnimationInfo{ 
                 .Name{ animationName }, 

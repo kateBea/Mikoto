@@ -121,7 +121,7 @@ namespace Mikoto {
         const File *file{ FileService::Get()->LoadFile( path ) };
         MKT_ASSERT( file, "File is NULL" );
 
-        nlohmann::json data{ nlohmann::json::parse( file->GetFileContents() ) };
+        nlohmann::json data{ nlohmann::json::parse( file->GetContentsString() ) };
 
         const ISOLanguage language{ InferISO( path.filename().string() ) };
 

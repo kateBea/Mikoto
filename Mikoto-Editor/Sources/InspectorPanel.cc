@@ -20,6 +20,8 @@
 // Project Headers
 #include <ImGui/IconsMaterialDesign.h>
 
+#include <Animation/AnimationSystem.hh>
+#include <Animation/Animator.hh>
 #include <Application/EditorUtility.hh>
 #include <Common/Common.hh>
 #include <Common/String.hh>
@@ -29,13 +31,10 @@
 #include <ImGui/ImGuiUtility.hh>
 #include <Layers/EditorLayer.hh>
 #include <Library/Math/Math.hh>
-#include <Material/PBRMaterial.hh>
+#include <Material/PhysicalMaterial.hh>
 #include <Panels/InspectorPanel.hh>
 #include <Scene/Component.hh>
 #include <Scene/Entity.hh>
-
-#include <Animation/Animator.hh>
-#include <Animation/AnimationSystem.hh>
 
 #include "Scripting/ScriptingService.hh"
 
@@ -155,7 +154,7 @@ namespace Mikoto {
         if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
     }
 
-    static auto UpdateMaterialTexture( PBRMaterial& standardMat, MapType mapType ) -> void {
+    static auto UpdateMaterialTexture( PhysicalMaterial& standardMat, MapType mapType ) -> void {
         const std::initializer_list<std::pair<std::string, std::string>> filters{
             { "Textures", "jpg,jpeg,png" },
             { "JPG", "jpg" },
@@ -185,7 +184,7 @@ namespace Mikoto {
         }
     }
 
-    static auto DisplayTextureEditTreeNode( const std::string_view title, PBRMaterial& standardMat, const std::function<void( PBRMaterial& standardMat )>& func ) -> void {
+    static auto DisplayTextureEditTreeNode( const std::string_view title, PhysicalMaterial& standardMat, const std::function<void( PhysicalMaterial& standardMat )>& func ) -> void {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
                                                     ImGuiTreeNodeFlags_Framed |
                                                     ImGuiTreeNodeFlags_SpanAvailWidth |
@@ -207,7 +206,82 @@ namespace Mikoto {
         }
     }
 
-    static auto EditPBRMaterialAlbedoMap( PBRMaterial& material ) -> void {
+    static auto EditDiffuseProperties( PhysicalMaterial& material ) -> void {
+        ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( " Diffuse" );
+
+        TextureHandle diffuseMap{ material.GetTexture( MapType::DIFFUSE_TEXTURE ) };
+        if ( diffuseMap.IsEmpty() ) {
+            diffuseMap = AssetsService::Get()->GetDummyTexture();
+        }
+
+        if ( ImGuiUtils::PushImageButton( "##EditDiffuseProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::DIFFUSE_TEXTURE );
+        }
+
+        // Target from content browser
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                TextureHandle dstAlbedoMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTexture( MapType::DIFFUSE_TEXTURE, dstAlbedoMap );
+
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        if ( material.HasTexture( MapType::DIFFUSE_TEXTURE ) ) {
+            ImGuiUtils::ToolTip( [&]() -> void {
+                ShowTextureHoverTooltip( material.GetTexture( MapType::DIFFUSE_TEXTURE ).GetRaw() );
+            },ImGui::IsItemHovered() );
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+
+            if ( !material.HasTexture( MapType::DIFFUSE_TEXTURE ) ) {
+                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            }
+
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        ImGui::SameLine();
+
+        constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
+
+        if ( ImGui::BeginTable( "DiffuseMapEditContentsTable", 1, tableFlags ) ) {
+            constexpr auto columnIndex{ 0 };
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndex );
+
+            glm::vec4 color{ material.GetDiffuseFactor() };
+            constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+
+            if ( ImGui::ColorEdit3( "Diffuse factor", glm::value_ptr( color ), colorEditFlags ) ) {
+                material.SetDiffuseFactor( color );
+            }
+
+            if ( ImGui::IsItemHovered() ) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndex );
+
+            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
+            if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveTexture( MapType::DIFFUSE_TEXTURE );
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    static auto EditBaseColorProperties( PhysicalMaterial& material ) -> void {
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( " Albedo" );
@@ -217,7 +291,7 @@ namespace Mikoto {
             diffuseMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( ImGuiUtils::PushImageButton( diffuseMap->GetHandle(), ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
+        if ( ImGuiUtils::PushImageButton( "##EditBaseColorProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::BASE_COLOR_TEXTURE );
         }
 
@@ -275,9 +349,9 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( columnIndex );
 
             // Merge color with objects base color
-            float opacity{ material.GetAlphaMaskCutoff() };
-            if ( ImGuiUtils::Slider( "Opacity", opacity, { 0.0f, 1.0f } ) ) {
-                material.SetAlphaMaskCutoff( opacity );
+            float cutOff{ material.GetAlphaMaskCutoff() };
+            if ( ImGuiUtils::Slider( "Alpha Cut-Off", cutOff, { 0.0f, 1.0f } ) ) {
+                material.SetAlphaMaskCutoff( cutOff );
             }
 
             ImGui::TableNextRow();
@@ -290,11 +364,115 @@ namespace Mikoto {
                 material.RemoveTexture( MapType::BASE_COLOR_TEXTURE );
             }
 
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndex );
+
+            PBR_AlphaMode currentAlphaMode{ material.GetAlphaMask() };
+            std::array<std::string, static_cast<Size>(PBR_AlphaMode::AlphaMode_Count)> choicesAlpha{
+                "Opaque", "Mask", "Blend",
+            };
+
+            PBR_AlphaMode newAlphaMode{ ImGuiUtils::Combo( choicesAlpha, currentAlphaMode ) };
+            if (currentAlphaMode != newAlphaMode) {
+                material.SetAlphaMask( newAlphaMode );
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndex );
+
+            PBR_Workflow currentWorkFlow{ material.GetWorkflow() };
+            std::array<std::string, static_cast<Size>(PBR_Workflow::Workflow_Count)> choicesWorkflow{
+                "Metallic-Roughness", "Specular-Glossiness",
+            };
+
+            PBR_Workflow newWorkFlow{ ImGuiUtils::Combo( choicesWorkflow, currentWorkFlow ) };
+            if (newWorkFlow != currentWorkFlow) {
+                material.SetWorkflow( newWorkFlow );
+            }
+
+            ImGui::EndTable();
+        }
+
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        EditDiffuseProperties( material );
+    }
+
+    static auto EditMetallicRoughnessProperties( PhysicalMaterial& material ) -> void {
+        ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( " Metallic-Roughness" );
+
+        TextureHandle metallicMap{ material.GetTexture( MapType::METALLIC_ROUGHNESS_TEXTURE ) };
+        if ( metallicMap.IsEmpty() ) {
+            metallicMap = AssetsService::Get()->GetDummyTexture();
+        }
+
+        if ( ImGuiUtils::PushImageButton( "##EditMetallicRoughnessProperties:TextureID", ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::METALLIC_ROUGHNESS_TEXTURE );
+        }
+
+        // Target from content browser
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                TextureHandle dstMetallicMap{ *static_cast<TextureHandle*>( payload->Data ) };
+                material.SetTexture( MapType::METALLIC_ROUGHNESS_TEXTURE, dstMetallicMap );
+
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        if ( material.HasTexture( MapType::METALLIC_ROUGHNESS_TEXTURE ) ) {
+            ImGuiUtils::ToolTip( [&]() -> void {
+                ShowTextureHoverTooltip( metallicMap.GetRaw() );
+            },ImGui::IsItemHovered() );
+        }
+
+        if ( ImGui::IsItemHovered() ) {
+            if ( !material.HasTexture( MapType::METALLIC_ROUGHNESS_TEXTURE ) ) {
+                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            }
+
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+
+        ImGui::SameLine();
+
+        constexpr auto columnCount{ 1 };
+        constexpr auto columnIndexSpecular{ 0 };
+        constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
+
+        if ( ImGui::BeginTable( "MetallicRoughnessEditContentsTable", columnCount, specularTableFlags ) ) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+
+            static float perceptualRoughness{ 0 }; // TODO
+            if ( ImGuiUtils::Slider( "Perceptual Roughness", perceptualRoughness, { 0.0f, 1.0f } ) ) {
+            }
+
+            ImGuiUtils::SetCursorHandOnLastItemHovered();
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
+
+            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
+            if ( ImGui::Button( "Remove Texture" ) ) {
+                material.RemoveTexture( MapType::METALLIC_ROUGHNESS_TEXTURE );
+            }
+
+            if ( ImGui::IsItemHovered() ) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
             ImGui::EndTable();
         }
     }
 
-    static auto EditPBRMaterialMetallicMap( PBRMaterial& material ) -> void {
+    static auto EditMetallicProperties( PhysicalMaterial& material ) -> void {
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( " Metallic" );
@@ -304,7 +482,7 @@ namespace Mikoto {
             metallicMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( ImGuiUtils::PushImageButton( metallicMap->GetHandle(), ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
+        if ( ImGuiUtils::PushImageButton( "##EditMetallicProperties::TextureID", ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::METALLIC_TEXTURE );
         }
 
@@ -368,9 +546,11 @@ namespace Mikoto {
 
             ImGui::EndTable();
         }
+
+        EditMetallicRoughnessProperties( material );
     }
 
-    static auto EditPBRMaterialNormalMap( PBRMaterial& material ) -> void {
+    static auto EditNormalsProperties( PhysicalMaterial& material ) -> void {
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( " Normal" );
@@ -436,7 +616,7 @@ namespace Mikoto {
         }
     }
 
-    static auto EditPBRMaterialEmissiveMap( PBRMaterial& material ) -> void {
+    static auto EditEmissionProperties( PhysicalMaterial& material ) -> void {
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( " Emission" );
@@ -515,7 +695,7 @@ namespace Mikoto {
         }
     }
 
-    static auto EditPBRMaterialRoughnessMap( PBRMaterial& material ) -> void {
+    static auto EditRoughnessProperties( PhysicalMaterial& material ) -> void {
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( " Roughness" );
@@ -568,10 +748,11 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
             float strength{ material.GetRoughnessFactor() };
-
-            if ( ImGuiUtils::Slider( "Roughness factor", strength, { 0.0f, 1.0f } ) ) {
+            if ( ImGuiUtils::Slider( "Roughness", strength, { 0.0f, 1.0f } ) ) {
                 material.SetRoughnessFactor( strength );
             }
+
+            ImGuiUtils::SetCursorHandOnLastItemHovered();
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
@@ -591,7 +772,7 @@ namespace Mikoto {
         }
     }
 
-    static auto EditPBRMaterialAmbientOcclusion( PBRMaterial& material ) -> void {
+    static auto EditAmbientOcclusionProperties( PhysicalMaterial& material ) -> void {
         ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( " Ambient Occlusion" );
@@ -668,19 +849,19 @@ namespace Mikoto {
         }
     }
 
-    static auto EditPBRMaterial( PBRMaterial* material ) -> void {
+    static auto EditMaterial( PhysicalMaterial* material ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( material == nullptr ) {
             return;
         }
 
-        DisplayTextureEditTreeNode( "Albedo", *material, EditPBRMaterialAlbedoMap );
-        DisplayTextureEditTreeNode( "Metallic", *material, EditPBRMaterialMetallicMap );
-        DisplayTextureEditTreeNode( "Roughness", *material, EditPBRMaterialRoughnessMap );
-        DisplayTextureEditTreeNode( "Ambient Occlusion", *material, EditPBRMaterialAmbientOcclusion );
-        DisplayTextureEditTreeNode( "Normal", *material, EditPBRMaterialNormalMap );
-        DisplayTextureEditTreeNode( "Emission", *material, EditPBRMaterialEmissiveMap );
+        DisplayTextureEditTreeNode( "Base Color", *material, EditBaseColorProperties );
+        DisplayTextureEditTreeNode( "Metal-ness", *material, EditMetallicProperties );
+        DisplayTextureEditTreeNode( "Roughness", *material, EditRoughnessProperties );
+        DisplayTextureEditTreeNode( "Ambient Occlusion", *material, EditAmbientOcclusionProperties );
+        DisplayTextureEditTreeNode( "Normals", *material, EditNormalsProperties );
+        DisplayTextureEditTreeNode( "Emission", *material, EditEmissionProperties );
     }
 
     static auto DrawComponentButton( Entity* entity ) -> void {
@@ -959,9 +1140,7 @@ namespace Mikoto {
         constexpr ImGuiTextFlags flags{ ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll };
 
         StaticString<1024> name{ tag.GetTag() };
-
-        // Size + 1 to account for null terminating characater
-        if ( ImGui::InputText( "##DrawNameTextInputTag", name.GetData(), name.GetSize() + 1, flags ) ) {
+        if ( ImGui::InputText( "##DrawNameTextInputTag", name.GetData(), name.GetCapacity(), flags ) ) {
             tag.SetTag( name.GetView() );
         }
     }
@@ -1024,12 +1203,11 @@ namespace Mikoto {
         if ( ImGui::IsItemHovered() )
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
 
-        // ---- Script Preview ----
         if ( file != nullptr ) {
             ImGui::Spacing();
             ImGui::SeparatorText( "Script Preview" );
 
-            const std::string& contents{ file->GetFileContents() };
+            const std::string& contents{ file->GetContentsString() };
 
             // Cap preview for performance
             constexpr Size kMaxPreviewSize{ 8192 * 4 };// more generous limit
@@ -1161,7 +1339,7 @@ namespace Mikoto {
         MaterialComponent& materialComponent{ entity.GetComponent<MaterialComponent>() };
 
         if ( materialComponent.HasMaterial() ) {
-            EditPBRMaterial( materialComponent.GetMaterial().Dynamic<PBRMaterial>() );
+            EditMaterial( materialComponent.GetMaterial().Dynamic<PhysicalMaterial>() );
         }
 
         ImGui::Indent();

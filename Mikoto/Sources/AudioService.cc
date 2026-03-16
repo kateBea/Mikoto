@@ -44,7 +44,7 @@ namespace Mikoto {
 
         // Initialize default listeners
         for ( Size index{}; index < description.MaxListenersCount; ++index ) {
-            m_Listeners.emplace_back( index, 0, 0, 0 );
+            m_Listeners.emplace_back( index, 0.0f, 0.0f, 0.0f );
         }
 
         m_IsInitialized = true;

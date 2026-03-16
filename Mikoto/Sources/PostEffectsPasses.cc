@@ -52,6 +52,10 @@ namespace Mikoto {
         RegisterTextRender( graph, device );
     }
 
+    auto PostEffectsPass::EnableBloom( bool value ) -> void {
+
+    }
+
     auto PostEffectsPass::SetMeshCulling( MeshCulling& culling ) -> void {
         m_MeshCullingPass = std::addressof( culling );
     }

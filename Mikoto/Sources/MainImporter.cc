@@ -12,15 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstdlib>
-#include <memory>
-#include <vector>
-#include <array>
-
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include <assimp/GltfMaterial.h>
-#include <assimp/DefaultLogger.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 #include <Assets/AssetsService.hh>
 #include <Assets/MainImporter.hh>
@@ -30,11 +24,16 @@
 #include <Filesystem/FileSystem.hh>
 #include <Library/Utility/Types.hh>
 #include <Logging/Logger.hh>
-#include <Material/PBRMaterial.hh>
+#include <Material/PhysicalMaterial.hh>
 #include <Math/Math.hh>
 #include <Renderer/Core/RenderService.hh>
 #include <Renderer/Core/RenderUtility.hh>
 #include <Threading/ThreadUtility.hh>
+#include <array>
+#include <assimp/DefaultLogger.hpp>
+#include <cstdlib>
+#include <memory>
+#include <vector>
 
 // TODO: rework this importer, GLTF is the default one, for any other file type we default to Assimp
 
@@ -144,6 +143,7 @@ namespace Mikoto {
     static auto InferMapType( const aiTextureType type ) -> MapType {
         switch ( type ) {
             case aiTextureType_DIFFUSE:
+            case aiTextureType_AMBIENT: // Not sure if this one should go here, Mikoto does not contemplate an ambient map yet
             case aiTextureType_BASE_COLOR:
                 return MapType::BASE_COLOR_TEXTURE;
 
@@ -437,6 +437,7 @@ namespace Mikoto {
             properties.GlossinessFactor = glossiness;
         }
 
+        // Workflow
 #if !defined( NDEBUG )
         MKT_COLOR_STYLE_PRINT_FORMATTED_FLUSH(
                 MKT_FMT_COLOR_CYAN, MKT_FMT_STYLE_BOLD,
@@ -658,11 +659,7 @@ namespace Mikoto {
     }
     
     auto MainImporter::Import( ImporterInfo &loaderData, const ModelLoadDescription &description, ModelData& modelData ) -> void {
-        // UVs appear messed UP for vulkan if we specify aiProcess_FlipUVs flag
-        auto importerFlags{ static_cast<aiPostProcessSteps>( aiProcess_Triangulate | 
-            aiProcess_GenNormals | 
-            aiProcess_FlipUVs | 
-            aiProcess_JoinIdenticalVertices ) };
+        auto importerFlags{ static_cast<aiPostProcessSteps>( aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_GenUVCoords | aiProcess_TransformUVCoords /*| aiProcess_FlipUVs*/ ) };
 
         const File *file{ description.ModelFile };
         const std::string absolutePath{ file->GetPath() };

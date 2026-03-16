@@ -27,12 +27,16 @@ namespace Mikoto {
     enum class PBR_Workflow {
         MetallicRoughness,
         SpecularGlossiness,
+
+        Workflow_Count
     };
 
     enum class PBR_AlphaMode {
         Opaque,
         Mask,
-        Blend
+        Blend,
+
+        AlphaMode_Count
     };
 
     // I need to lead the sampler specifications for this materials
@@ -71,12 +75,12 @@ namespace Mikoto {
 
         // Texture UV sets (Maps can either use UV0 or UV1)
         // UV0 assumed by default unless otherwise specified
-        Int32 BaseColorTextureSet{ -1 };
-        Int32 MetallicRoughnessTextureSet{ -1 };
-        Int32 SpecularGlossinessSet{ -1 };
-        Int32 NormalTextureSet{ -1 };
-        Int32 OcclusionTextureSet{ -1 };
-        Int32 EmissiveTextureSet{ -1 };
+        Int32 BaseColorTextureSet{ 0 };
+        Int32 MetallicRoughnessTextureSet{ 0 };
+        Int32 SpecularGlossinessSet{ 0 };
+        Int32 NormalTextureSet{ 0 };
+        Int32 OcclusionTextureSet{ 0 };
+        Int32 EmissiveTextureSet{ 0 };
 
         // GLTF Extensions
         bool Unlit{ false };
@@ -87,10 +91,10 @@ namespace Mikoto {
         ankerl::unordered_dense::map<MapType, SamplingProperties> TexturesSamplers{};
     };
 
-    class PBRMaterial final : public Material {
+    class PhysicalMaterial final : public Material {
     public:
-        explicit PBRMaterial( std::string_view name = "PBR" );
-        explicit PBRMaterial( const MaterialProperties& props );
+        explicit PhysicalMaterial( std::string_view name = "PBR" );
+        explicit PhysicalMaterial( const MaterialProperties& props );
 
         auto RemoveTexture( MapType type ) -> void;
         auto SetTexture( MapType type, const TextureHandle& texture ) -> void;
@@ -164,7 +168,7 @@ namespace Mikoto {
         MKT_NODISCARD auto HasTexture( MapType type ) const -> bool;
         MKT_NODISCARD auto GetTexture( MapType type ) const -> TextureHandle;
 
-        ~PBRMaterial() override;
+        ~PhysicalMaterial() override;
 
     private:
         auto Release() -> void override;

@@ -64,10 +64,10 @@ namespace Mikoto {
 
                 // If the subscriber has a handler for the exact type of event we have, call it
                 // Otherwise check whether the subscriber has a handler for the category of the event and call it
-                if ( const auto handler{ subscriber->GetHandler( event->GetType() ) }; handler ) {
-                    event->SetHandled( handler( *event ) );
-                } else if ( const auto handler{ subscriber->GetHandler( event->GetCategoryFlags() ) }; handler ) {
-                    event->SetHandled( handler( *event ) );
+                if ( const auto handlerByType{ subscriber->GetHandler( event->GetType() ) } ) {
+                    event->SetHandled( handlerByType( *event ) );
+                } else if ( const auto handlerByCategory{ subscriber->GetHandler( event->GetCategoryFlags() ) } ) {
+                    event->SetHandled( handlerByCategory( *event ) );
                 }
             }
         }

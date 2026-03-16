@@ -194,7 +194,6 @@ namespace Mikoto {
         }
     }
 
-
     auto HierarchyPanel::OnEntityRightClickMenu( Entity* entity ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -222,7 +221,7 @@ namespace Mikoto {
                 }
 
                 if ( ImGui::MenuItem( "Script", menuItemShortcut, menuItemSelected, !IsPresent<ScriptComponent>( entity ) ) ) {
-                    entity->AddComponent<ScriptComponent>( "TODO: PATH" );
+                    entity->AddComponent<ScriptComponent>();
                     ImGui::CloseCurrentPopup();
                 }
 

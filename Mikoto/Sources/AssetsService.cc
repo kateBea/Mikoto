@@ -126,7 +126,6 @@ namespace Mikoto {
     }
 
     auto AssetsService::CreateAssetCacheFolder( const Path& path ) -> void {
-        // Create cached folder
         const std::string cacheFolder{ StringUtil::Format(  "{}/{}", GetAssetCacheBasePath(), GetHashedAssetID( path ) ) };
         if (!Filesystem::CreateIfNotExistsDirectory( cacheFolder ) ) {
             MKT_CORE_LOGGER_WARN( "Did not creache cache folder '{}'", cacheFolder );

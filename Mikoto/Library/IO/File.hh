@@ -80,27 +80,30 @@ namespace Mikoto {
         }
     }
 
-    class File final /*IResource so it is ref counted*/ {
+    class File final {
     public:
-        File(File&&) = default;
-        auto operator=(File&&) noexcept -> File& = default;
+        File(File&&) = delete;
+        auto operator=(File&&) noexcept -> File& = delete;
 
-        MKT_NODISCARD auto GetPath() const -> const std::string& { return m_Path; }
-        MKT_NODISCARD auto GetName() const -> std::string { return m_PathObject.filename().string(); }
-        MKT_NODISCARD auto GetExtension() const -> const std::string& { return m_Extension; }
-        MKT_NODISCARD auto GetPathCStr() const -> CStr { return m_Path.c_str(); }
-        MKT_NODISCARD auto GetFileBytes() const -> const void* { return m_Contents.c_str(); }
-        MKT_NODISCARD auto GetFileContents() const -> const std::string&;
-        MKT_NODISCARD auto GetSize() const -> double { return static_cast<double>( m_Size ) / 1'000'000.0; }
-        MKT_NODISCARD auto GetType() const -> FileType { return m_Type; }
-        MKT_NODISCARD auto GetSizeBytes() const -> Size { return m_Size; }
-        MKT_NODISCARD auto IsDirectory() const -> bool { return std::filesystem::is_directory( m_Path ); }
-        MKT_NODISCARD auto IsFile() const -> bool { return std::filesystem::is_regular_file( m_Path ); }
+        // Name of file with extension
+        MKT_NODISCARD auto GetName() const -> std::string;
+
+        MKT_NODISCARD auto GetPath() const -> const std::string&;
+        MKT_NODISCARD auto GetPathView() const -> std::string_view;
+
+        MKT_NODISCARD auto GetContentsBytes() const -> const void*;
+        MKT_NODISCARD auto GetContentsString() const -> const std::string&;
+
+        // Size in bytes
+        MKT_NODISCARD auto GetSize() const -> Size;
+        MKT_NODISCARD auto GetType() const -> FileType;
+
+        MKT_NODISCARD auto GetExtension() const -> const std::string&;
 
         auto FlushContents() -> void;
         auto SetContents( std::string&& contents ) -> void;
 
-        auto UpdateContents() -> void;
+        auto UpdateContentsFromDisk() -> void;
 
         static auto Load( const Path& path, FileMode openMode = MKT_FILE_OPEN_MODE_NONE ) -> Unique<File>;
         static auto Create( const Path& path, FileMode openMode = MKT_FILE_OPEN_MODE_NONE ) -> Unique<File>;
@@ -125,8 +128,8 @@ namespace Mikoto {
         MKT_NODISCARD static auto InferExtensionFromFileSignature( const std::string& fileContent ) -> std::string;
 
     private:
-        Path m_PathObject{};
-        std::string m_Path{};
+        Path m_Path{};
+        std::string m_PathUtf8{};
         std::string m_Extension{};
 
         Size m_Size{};
@@ -135,6 +138,8 @@ namespace Mikoto {
         std::string m_Contents{};
         FileType m_Type{ FileType::UNKNOWN_FILE_TYPE };
         FileMode m_OpenMode{ MKT_FILE_OPEN_MODE_NONE };
+
+        mutable std::mutex m_FileUpdateMutex{};
     };
 
     using FileHandle = Ref<File>;

@@ -661,6 +661,8 @@ namespace Mikoto {
 
     class ScriptComponent {
     public:
+        // The script can be constructed from a script on disk
+        // if left empty we will use a blank script with minimal setup
         explicit ScriptComponent(const Path& filePath = {})
             : m_FilePath{ filePath } {}
 

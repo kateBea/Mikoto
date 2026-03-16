@@ -340,7 +340,16 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         graph.RegisterPass(
-            "Bloom",
+            "BloomDownSampling",
+            []( FramePassBuilder& b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
+
+        graph.RegisterPass(
+            "BloomUpSampling",
             []( FramePassBuilder& b ) {
                 MKT_BEGIN_PROFILER_NAMED();
             },

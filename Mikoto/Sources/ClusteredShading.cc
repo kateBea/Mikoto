@@ -140,6 +140,7 @@ namespace Mikoto {
                 b.CreateTexture( "GBuffer_Position", m_Resolution, TextureFormat::RGBA32_FLOAT, TextureUsage::COLOR );
                 b.CreateTexture( "GBuffer_Normal", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
                 b.CreateTexture( "GBuffer_Color", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+                b.CreateTexture( "GBuffer_Emissive", m_Resolution, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
                 b.CreateTexture( "GBuffer_Depth", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, TextureUsage::DEPTH );
 
                 b.UseShader( "Resources/Shaders/slang/Gbuffer_Vert.slang", ShaderStage::VERTEX );
@@ -154,7 +155,8 @@ namespace Mikoto {
                     .ColorAttachmentFormats{
                         TextureFormat::RGBA32_FLOAT,
                         TextureFormat::RGBA8_UNORM,
-                        TextureFormat::RGBA8_UNORM
+                        TextureFormat::RGBA8_UNORM,
+                        TextureFormat::RGBA16_FLOAT
                     },
                     .DepthAttachmentFormat{ TextureFormat::D32_FLOAT_S8_UINT }
                 };
@@ -163,6 +165,7 @@ namespace Mikoto {
                 b.Write( "GBuffer_Position", FrameResourceState::RenderTarget );
                 b.Write( "GBuffer_Normal", FrameResourceState::RenderTarget );
                 b.Write( "GBuffer_Color", FrameResourceState::RenderTarget );
+                b.Write( "GBuffer_Emissive", FrameResourceState::RenderTarget );
                 b.Write( "GBuffer_Depth", FrameResourceState::DepthWrite );
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
@@ -186,6 +189,7 @@ namespace Mikoto {
                 ctx.SetColorRenderTarget( "GBuffer_Position" );
                 ctx.SetColorRenderTarget( "GBuffer_Normal" );
                 ctx.SetColorRenderTarget( "GBuffer_Color" );
+                ctx.SetColorRenderTarget( "GBuffer_Emissive" );
                 ctx.SetDepthRenderTarget( "GBuffer_Depth" );
 
                 ctx.BeginRender();

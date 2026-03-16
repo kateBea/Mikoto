@@ -225,10 +225,17 @@ namespace Mikoto {
         return m_IsDoubleSided;
     }
 
+    auto PhysicalMaterial::IsBloomy() const -> bool {
+        return m_IsBloomy;
+    }
+
     auto PhysicalMaterial::SetEmissiveTextureSet( Int32 set ) -> void {
         m_EmissiveTextureSet = set;
     }
 
+    auto PhysicalMaterial::EnableBloom( bool enable ) -> void {
+        m_IsBloomy = enable;
+    }
 
     auto PhysicalMaterial::SetTexture( const MapType type, const TextureHandle& texture ) -> void {
         m_Textures[type] = texture;

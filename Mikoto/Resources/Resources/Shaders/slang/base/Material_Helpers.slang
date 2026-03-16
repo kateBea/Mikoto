@@ -62,6 +62,8 @@ struct MaterialParameters {
     int    EmissiveIndex;
     int    MetallicRoughnessIndex;
     int    SpecularGlossinessIndex;
+
+    int    IsBloomy;
 };
 
 struct MeshParameters {

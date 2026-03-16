@@ -415,7 +415,7 @@ namespace Mikoto {
                 // UV Sets
                 material.BaseColorTextureSet = pbrMat->GetBaseColorTextureSet();
                 material.MetallicRoughnessTextureSet = pbrMat->GetMetallicRoughnessTextureSet();
-                material.SpecilarGlossinessSet = pbrMat->GetSpecularGlossinessSet();
+                material.SpecularGlossinessSet = pbrMat->GetSpecularGlossinessSet();
                 material.NormalTextureSet = pbrMat->GetNormalTextureSet();
                 material.OcclusionTextureSet = pbrMat->GetOcclusionTextureSet();
                 material.EmissiveTextureSet = pbrMat->GetEmissiveTextureSet();
@@ -430,8 +430,10 @@ namespace Mikoto {
                 material.MetallicIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::METALLIC_TEXTURE ) );
                 material.RoughnessIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::ROUGHNESS_TEXTURE ) );
 
-                material.SpecilarGlossinessIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::SPECULAR_GLOSSINESS ) );
+                material.SpecularGlossinessIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::SPECULAR_GLOSSINESS ) );
                 material.MetallicRoughnessIndex = context.PushImageSampler( ResourceGroup::UnboundedImageViews, "Texture2D_List", pbrMat->GetTexture( MapType::METALLIC_ROUGHNESS_TEXTURE ) );
+
+                material.IsBloomy = pbrMat->IsBloomy() ? MKT_SHADER_TRUE : MKT_SHADER_FALSE;
             }
         }
 

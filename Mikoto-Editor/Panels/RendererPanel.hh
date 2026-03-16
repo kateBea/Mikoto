@@ -27,10 +27,11 @@ namespace Mikoto {
 
     enum class FinalCompositionTarget {
         COLOR,
+        EMISSIVE,
         NORMALS,
         POSITION,
+        DEPTH_PASS,
         FINAL_IMAGE,
-        ZPASS,
         ENUM_MAX,
     };
 

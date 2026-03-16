@@ -52,7 +52,7 @@ namespace Mikoto {
 
         Int32 BaseColorTextureSet{};
         Int32 MetallicRoughnessTextureSet{};
-        Int32 SpecilarGlossinessSet{};
+        Int32 SpecularGlossinessSet{};
         Int32 NormalTextureSet{};
         Int32 OcclusionTextureSet{};
         Int32 EmissiveTextureSet{};
@@ -66,7 +66,9 @@ namespace Mikoto {
         Int32 AoIndex{ INVALID_TEXTURE_INDEX };
         Int32 EmissiveIndex{ INVALID_TEXTURE_INDEX };
         Int32 MetallicRoughnessIndex{ INVALID_TEXTURE_INDEX };
-        Int32 SpecilarGlossinessIndex{ INVALID_TEXTURE_INDEX };
+        Int32 SpecularGlossinessIndex{ INVALID_TEXTURE_INDEX };
+
+        Int32 IsBloomy{ MKT_SHADER_FALSE };
     };
 
     struct ShaderMesh {

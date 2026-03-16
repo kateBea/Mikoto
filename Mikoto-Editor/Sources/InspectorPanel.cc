@@ -680,6 +680,16 @@ namespace Mikoto {
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
+            bool isBloomy{ material.IsBloomy() };
+            if (ImGuiUtils::CheckBox( "##EditEmissionProperties:IsBloomy", isBloomy ) ) {
+                material.EnableBloom( isBloomy );
+            }
+
+            ImGui::SameLine();
+            ImGui::TextUnformatted( "Enable bloom" );
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( columnIndexSpecular );
             ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
             ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 

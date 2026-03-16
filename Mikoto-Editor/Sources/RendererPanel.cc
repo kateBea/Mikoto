@@ -490,12 +490,12 @@ namespace Mikoto {
 
     auto RendererPanel::DrawShadowMappingSettings() -> void {
         std::array<std::string, static_cast<Size>(FinalCompositionTarget::ENUM_MAX)> choices{
-            "Color", "Normals", "Position", "Final Image", "Depth"
+            "Color", "Emissive", "Normals", "Position", "Depth", "Final Image"
         };
 
         // These are directly taken from the core passes from the Scene renderer
         std::array<std::string, static_cast<Size>(FinalCompositionTarget::ENUM_MAX)> images{
-            "GBuffer_Color", "GBuffer_Normal", "GBuffer_Position", "FinalShadingPass_ColorTarget", "DepthPrePass_Color"
+            "GBuffer_Color", "GBuffer_Emissive","GBuffer_Normal", "GBuffer_Position", "DepthPrePass_Color", "FinalShadingPass_ColorTarget",
         };
 
         m_FinalCompositionTarget = ImGuiUtils::Combo( choices, m_FinalCompositionTarget );

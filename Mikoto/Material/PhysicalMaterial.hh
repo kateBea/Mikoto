@@ -134,6 +134,11 @@ namespace Mikoto {
         auto SetEmissiveTextureSet( Int32 set ) -> void;
 
         // ===============================
+        // Bloom
+        // ===============================
+        auto EnableBloom( bool enable ) -> void;
+
+        // ===============================
         // Scalar & Factor Getters
         // ===============================
         MKT_NODISCARD auto GetAlphaMask() const -> PBR_AlphaMode;
@@ -164,6 +169,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetEmissiveTextureSet() const -> Int32;
 
         MKT_NODISCARD auto IsDoubleSided() const -> bool;
+        MKT_NODISCARD auto IsBloomy() const -> bool;
 
         MKT_NODISCARD auto HasTexture( MapType type ) const -> bool;
         MKT_NODISCARD auto GetTexture( MapType type ) const -> TextureHandle;
@@ -203,6 +209,8 @@ namespace Mikoto {
         Int32 m_EmissiveTextureSet{};
 
         bool m_IsDoubleSided{ false };
+
+        bool m_IsBloomy{ false };
 
         // Note: Materials reference both textures and samplers.
         // Textures provide the image data, while samplers define how that data is read

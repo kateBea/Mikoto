@@ -27,12 +27,11 @@ struct VSOutput {
     float3 FragmentViewPos : TEXCOORD0;
     float3 FragmentWorldPos : TEXCOORD1;
     float3 VertexNormal : TEXCOORD2;
-    float2 UV : TEXCOORD3;
-    float4 VertexColor : TEXCOORD4;
+    float2 Uv0 : TEXCOORD3;
+    float2 Uv1 : TEXCOORD4;
+    float4 Color : TEXCOORD5;
 
-    int AlbedoIndex : TEXCOORD5;
-    int NormalIndex : TEXCOORD6;
-    float4 Albedo : TEXCOORD7;
+    uint MaterialIndex : TEXTCOORD6;
 
     float4 PositionH : SV_Position;
 };
@@ -41,7 +40,6 @@ struct VSOutput {
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
 [[vk::binding(Slot_0, UAV_SET_INDEX)]] StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
-[[vk::binding(Slot_1, UAV_SET_INDEX)]] StructuredBuffer<MaterialParameters, ScalarDataLayout> Materials;
 [[vk::binding(Slot_2, UAV_SET_INDEX)]] StructuredBuffer<BoneData, ScalarDataLayout> Bones;
 
 [[vk::binding(Slot_3, UAV_SET_INDEX)]] StructuredBuffer<VertexData, ScalarDataLayout> Vertices;
@@ -54,7 +52,8 @@ VSOutput main(VSInput input) {
     // Compute instance index
     uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
     MeshParameters meshInfo = Meshes[instanceIndex];
-    MaterialParameters materialInfo = Materials[instanceIndex];
+
+    o.MaterialIndex = instanceIndex;
 
     // Compute attribute index
     uint index = Indices[meshInfo.IndexOffset + input.VertexID];
@@ -97,13 +96,9 @@ VSOutput main(VSInput input) {
     o.VertexNormal = worldNormal;
 
     // Interpolated per-vertex data
-    o.VertexColor = vertex.Color;
-    o.UV = vertex.TexCoord0;
-
-    // Material
-    o.AlbedoIndex = materialInfo.AlbedoIndex;
-    o.NormalIndex = materialInfo.NormalIndex;
-    o.Albedo = materialInfo.BaseColorFactor;
+    o.Color = vertex.Color;
+    o.Uv0 = vertex.TexCoord0;
+    o.Uv1 = vertex.TexCoord1;
 
     // Final clip position
     o.PositionH =

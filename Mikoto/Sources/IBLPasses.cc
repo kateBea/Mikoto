@@ -758,6 +758,7 @@ namespace Mikoto {
                 b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "GBuffer_Color", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "GBuffer_Emissive", FrameResourceState::ShaderRead_GraphicsPipeline );
 
                 b.Read( "DepthPrePass_Color", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "InfiniteGrid_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );

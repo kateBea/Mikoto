@@ -48,7 +48,6 @@ namespace Mikoto {
         VkSamplerCreateInfo m_CreateInfo{};
     };
 
-
     class VulkanTexture final : public Texture2D {
     public:
         explicit VulkanTexture( const TextureDescription& data );
@@ -61,7 +60,8 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetCurrentLayout() const -> VkImageLayout;
         MKT_NODISCARD auto GetCreateInfo() const -> const VkImageCreateInfo&;
-        MKT_NODISCARD auto GetViewCreateInfo() const -> const VkImageViewCreateInfo&;
+
+        MKT_NODISCARD auto GetView( UInt32 mipLevel ) const -> const VkImageView&;
 
         auto SetDebugName(std::string_view name) -> void override;
 
@@ -88,7 +88,7 @@ namespace Mikoto {
 
         ImageAllocation m_ImageAllocation{};
 
-        VkImageView m_ImageView{ VK_NULL_HANDLE };
+        std::vector<VkImageView> m_ImageViews{};
         VkImageViewCreateInfo m_ImageViewCreateInfo{};
 
         VkImageLayout m_CurrentLayout{ VK_IMAGE_LAYOUT_UNDEFINED };

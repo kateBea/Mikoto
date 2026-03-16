@@ -412,6 +412,11 @@ namespace Mikoto {
         return *this;
     }
 
+    auto TextureDescription::WithMipLevelCount( UInt32 count ) -> TextureDescription& {
+        MipLevelCount = count;
+        return *this;
+    }
+
     auto TextureDescription::WithChannelCount( Int32 channels ) -> TextureDescription& {
         ChannelCount = channels;
         return *this;

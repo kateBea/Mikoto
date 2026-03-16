@@ -198,6 +198,8 @@ namespace Mikoto {
     struct TextureDescription {
         std::string Name{};
 
+        UInt32 MipLevelCount{ 1 };
+
         Int32 Width{};
         Int32 Height{};
         Int32 ChannelCount{ 4 };
@@ -222,6 +224,7 @@ namespace Mikoto {
         auto WithWidth( Int32 width ) -> TextureDescription&;
         auto WithName( std::string_view name ) -> TextureDescription&;
         auto WithHeight( Int32 height ) -> TextureDescription&;
+        auto WithMipLevelCount( UInt32 count ) -> TextureDescription&;
         auto WithChannelCount( Int32 channels ) -> TextureDescription&;
         auto WithSampleCount( Multisampling sampleCount ) -> TextureDescription&;
 

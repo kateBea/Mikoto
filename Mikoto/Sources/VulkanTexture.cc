@@ -118,8 +118,9 @@ namespace Mikoto {
         m_IsAllocated = true;
     }
 
+    // Vulkan Texture 2D  ------------------------------------------------------------------------------------------------
     VulkanTexture::VulkanTexture( const TextureDescription& data )
-        : Texture2D{ data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType, data.Format, data.Usage, data.Map } {
+        : Texture2D{ data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType, data.Format, data.MipLevelCount, data.Usage, data.Map } {
         m_ImageSize = m_Width * m_Height * m_Channels;
 
         m_ExternalBufferSize = data.BufferSize;
@@ -138,19 +139,25 @@ namespace Mikoto {
             SetTextureUri( data.TextureFile->GetPathView() );
             SetTextureName( data.TextureFile->GetName() );
         }
+
+        // Prepare mip levels
+        m_ImageViews.resize( GetMipLevelCount() );
     }
 
     VulkanTexture::VulkanTexture( const VkImageViewCreateInfo& viewCreateInfo, VkExtent2D extent )
         : Texture2D{ static_cast<Int32>( extent.width ), static_cast<Int32>( extent.height ), 0, nullptr,
                      ResourceUsageType::RESOURCE_USAGE_STATIC,
                      VulkanHelpers::ToTextureFormat( viewCreateInfo.format ) },
-          m_IsImageExternal{ true },
-          m_ImageViewCreateInfo{ viewCreateInfo } {
+        m_IsImageExternal{ true },
+        m_ImageViewCreateInfo{ viewCreateInfo } {
         m_ImageAllocation.Image = viewCreateInfo.image;
 
         m_ImageSize = m_Width * m_Height * m_Channels;
 
         m_DebugName = fmt::format( "Mikoto Swap chain Texture. Id:", GetHandle() );
+
+        // Prepare mip levels
+        m_ImageViews.resize( GetMipLevelCount() );
     }
 
     auto VulkanTexture::Release() -> void {
@@ -160,7 +167,9 @@ namespace Mikoto {
 
         TO_VK_DEVICE( m_Device )->WaitIdle();
 
-        vkDestroyImageView( VK_DEVICE( m_Device ), m_ImageView, nullptr );
+        for (auto& imageView : m_ImageViews ) {
+            vkDestroyImageView( VK_DEVICE( m_Device ), imageView, nullptr );
+        }
 
         if ( !m_IsImageExternal ) {
             auto* allocator{ MKT_VMA_ALLOC_PTR( m_Device ) };
@@ -172,11 +181,14 @@ namespace Mikoto {
 
     auto VulkanTexture::SetDebugInfo() -> void {
         if ( m_DebugName == GetDefaultDebugName() ) {
-            m_DebugName = fmt::format( "MikotoVulkanTexture (Loaded Text: '{}') Image: {}, ImageView: {}, Pool ID: {}", GetTextureUri(), reinterpret_cast<UInt64>( m_ImageAllocation.Image ), reinterpret_cast<UInt64>( m_ImageView ), GetHandle() );
+            m_DebugName = fmt::format( "MikotoVulkanTexture (Loaded Text: '{}') Image: {}, Pool ID: {}", GetTextureUri(), reinterpret_cast<UInt64>( m_ImageAllocation.Image ), GetHandle() );
         }
 
         VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE, reinterpret_cast<UInt64>( m_ImageAllocation.Image ), m_DebugName.c_str() );
-        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<UInt64>( m_ImageView ), m_DebugName.c_str() );
+
+        for (auto& imageView : m_ImageViews ) {
+            VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<UInt64>( imageView ), m_DebugName.c_str() );
+        }
     }
 
     auto VulkanTexture::SetupNonSwapChainImage() -> void {
@@ -232,18 +244,18 @@ namespace Mikoto {
             m_Device->SubmitCommands( cmd );
         }
 
-        // Prepare for view creation
-        m_ImageViewCreateInfo = VulkanHelpers::Initializers::ImageViewCreateInfo();
-        m_ImageViewCreateInfo.image = m_ImageAllocation.Image;
-        m_ImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        m_ImageViewCreateInfo.format = m_ImageAllocation.ImageCreateInfo.format;
-
         // TODO: Review
         VkImageAspectFlags aspectFlags{ VK_IMAGE_ASPECT_COLOR_BIT };
         if ( m_TextureUsage == TextureUsage::DEPTH ) {
             aspectFlags = m_ImageAllocation.ImageCreateInfo.format < VK_FORMAT_D16_UNORM_S8_UINT ? 
                 VK_IMAGE_ASPECT_DEPTH_BIT : ( VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT );
         }
+
+        // Prepare for view creation
+        m_ImageViewCreateInfo = VulkanHelpers::Initializers::ImageViewCreateInfo();
+        m_ImageViewCreateInfo.image = m_ImageAllocation.Image;
+        m_ImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        m_ImageViewCreateInfo.format = m_ImageAllocation.ImageCreateInfo.format;
 
         m_ImageViewCreateInfo.subresourceRange.aspectMask = aspectFlags;
         m_ImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
@@ -252,6 +264,210 @@ namespace Mikoto {
         m_ImageViewCreateInfo.subresourceRange.layerCount = 1;
     }
 
+
+    VulkanTexture::~VulkanTexture() {
+        if ( m_IsAllocated ) {
+            Release();
+        }
+    }
+
+
+    auto VulkanTexture::HasExternalImage() const -> bool {
+        return m_IsImageExternal;
+    }
+
+    auto VulkanTexture::GetCurrentLayout() const -> VkImageLayout {
+        return m_CurrentLayout;
+    }
+
+    auto VulkanTexture::GetCreateInfo() const -> const VkImageCreateInfo& {
+        return m_ImageAllocation.ImageCreateInfo;
+    }
+
+    auto VulkanTexture::GetView( UInt32 mipLevel ) const -> const VkImageView& {
+        MKT_ASSERT( mipLevel < m_ImageViews.size(), "Mip level out of bounds" );
+        return m_ImageViews[ mipLevel ];
+    }
+
+    auto VulkanTexture::SetDebugName( std::string_view name ) -> void {
+        m_DebugName = name;
+        SetDebugInfo();
+    }
+
+    auto VulkanTexture::IsSwapChainImage() const -> bool {
+        return m_IsImageExternal;
+    }
+
+    auto VulkanTexture::GetNativeHandle( ObjectType type ) -> Object {
+        switch ( type ) {
+            case ObjectType::Vk_Image:
+                return Object( m_ImageAllocation.Image );
+
+            case ObjectType::Vk_ImageView:
+                return Object( m_ImageViews[0] ); // Returns view at mip 0
+
+            case ObjectType::Vk_Format:
+                return Object( std::addressof( m_ImageAllocation.ImageCreateInfo.format ) );
+
+            default:;
+        }
+
+        return Object( nullptr );
+    }
+
+    auto VulkanTexture::GetNativeHandle( ObjectType type ) const -> Object {
+        return const_cast<VulkanTexture*>(this)->GetNativeHandle( type );
+    }
+
+    auto VulkanTexture::SubmitLayoutTransition( const VkImageLayout newLayout, const VkCommandBuffer cmd, bool insertBarrier ) -> void {
+        if (m_CurrentLayout == newLayout ) {
+            return;
+        }
+
+        if (insertBarrier) {
+            VkImageSubresourceRange subresourceRange{};
+            subresourceRange.aspectMask = VulkanHelpers::GetAspectMask(VulkanHelpers::ToVkFormat( GetFormat() ));;
+            subresourceRange.baseMipLevel = 0;
+            subresourceRange.levelCount = 1;
+            subresourceRange.layerCount = 1;
+
+            // Create an image barrier object
+            VkImageMemoryBarrier imageMemoryBarrier{};
+            imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+            imageMemoryBarrier.oldLayout = m_CurrentLayout;
+            imageMemoryBarrier.newLayout = newLayout;
+            imageMemoryBarrier.image = m_ImageAllocation.Image;
+            imageMemoryBarrier.subresourceRange = subresourceRange;
+
+            // Source layouts (old)
+            // Source access mask controls actions that have to be finished on the old layout
+            // before it will be transitioned to the new layout
+            switch ( m_CurrentLayout ) {
+                case VK_IMAGE_LAYOUT_UNDEFINED:
+                    // Image layout is undefined (or does not matter)
+                    // Only valid as initial layout
+                    // No flags required, listed only for completeness
+                    imageMemoryBarrier.srcAccessMask = 0;
+                    break;
+
+                case VK_IMAGE_LAYOUT_PREINITIALIZED:
+                    // Image is preinitialized
+                    // Only valid as initial layout for linear images, preserves memory contents
+                    // Make sure host writes have been finished
+                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+                    break;
+
+                case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                    // Image is a color attachment
+                    // Make sure any writes to the color buffer have been finished
+                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                    break;
+
+                case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+                    // Image is a depth/stencil attachment
+                    // Make sure any writes to the depth/stencil buffer have been finished
+                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                    break;
+
+                case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+                    // Image is a transfer source
+                    // Make sure any reads from the image have been finished
+                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                    break;
+
+                case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                    // Image is a transfer destination
+                    // Make sure any writes to the image have been finished
+                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                    break;
+
+                case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                    // Image is read by a shader
+                    // Make sure any shader reads from the image have been finished
+                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                    break;
+                default:
+                    // Other source layouts aren't handled (yet)
+                    break;
+            }
+
+            // Target layouts (new)
+            // Destination access mask controls the dependency for the new image layout
+            switch ( newLayout ) {
+                case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                    // Image will be used as a transfer destination
+                    // Make sure any writes to the image have been finished
+                    imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                    break;
+
+                case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+                    // Image will be used as a transfer source
+                    // Make sure any reads from the image have been finished
+                    imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                    break;
+
+                case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                    // Image will be used as a color attachment
+                    // Make sure any writes to the color buffer have been finished
+                    imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                    break;
+
+                case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+                    // Image layout will be used as a depth/stencil attachment
+                    // Make sure any writes to depth/stencil buffer have been finished
+                    imageMemoryBarrier.dstAccessMask = imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                    break;
+
+                case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                    // Image will be read in a shader (sampler, input attachment)
+                    // Make sure any writes to the image have been finished
+                    if ( imageMemoryBarrier.srcAccessMask == 0 ) {
+                        imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+                    }
+                    imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                    break;
+                default:
+                    // Other source layouts aren't handled (yet)
+                    break;
+            }
+
+            // Put barrier inside setup command buffer
+            vkCmdPipelineBarrier(
+                    cmd,
+                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &imageMemoryBarrier );
+        }
+
+        // Update the current layout
+        m_CurrentLayout = newLayout;
+    }
+
+    auto VulkanTexture::Initialize() -> void {
+        if ( m_ImageAllocation.Image == VK_NULL_HANDLE ) {
+            SetupNonSwapChainImage();
+        }
+
+        for (Size mipLevelIndex{ 0 }; mipLevelIndex < GetMipLevelCount(); ++mipLevelIndex ) {
+            m_ImageViewCreateInfo.subresourceRange.baseMipLevel = mipLevelIndex;
+            if ( vkCreateImageView( VK_DEVICE( m_Device ), std::addressof( m_ImageViewCreateInfo ),
+                nullptr, std::addressof( m_ImageViews[mipLevelIndex] ) ) != VK_SUCCESS ) {
+                MKT_THROW_RUNTIME_ERROR( StringUtil::Format( "VulkanTexture::Allocate - Failed to create the Vulkan Image View mip : {}!", mipLevelIndex ) );
+            }
+        }
+
+        SetDebugInfo();
+
+        m_IsAllocated = true;
+    }
+
+    // Vulkan Texture Cube ------------------------------------------------------------------------------------------------
     VulkanTextureCube::VulkanTextureCube( const TextureCubeCreateDescription& data )
         : TextureCube{ data.ResourceUsage, data.MipLevels } {
 
@@ -493,7 +709,7 @@ namespace Mikoto {
         m_ImageAllocation.ImageCreateInfo = VulkanHelpers::Initializers::ImageCreateInfo();
 
         // If the specified format is not supported we need to find the best format for the texture usage
-        // And upate the current format accordignly
+        // And update the current format accordingly
         m_ImageAllocation.ImageCreateInfo.format = VulkanHelpers::ToVkFormat( m_Format );
 
         m_ImageAllocation.ImageCreateInfo.extent = extent;
@@ -528,7 +744,6 @@ namespace Mikoto {
 
         m_SizeBytes = m_ImageSize;
 
-        // Prepare for view creation
         m_ImageViewCreateInfo = VulkanHelpers::Initializers::ImageViewCreateInfo();
         m_ImageViewCreateInfo.image = m_ImageAllocation.Image;
         m_ImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
@@ -724,207 +939,6 @@ namespace Mikoto {
 
         VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE, reinterpret_cast<UInt64>( m_ImageAllocation.Image ), m_DebugName.c_str() );
         VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<UInt64>( m_ImageView ), m_DebugName.c_str() );
-    }
-
-    VulkanTexture::~VulkanTexture() {
-        if ( m_IsAllocated ) {
-            Release();
-        }
-    }
-
-
-    auto VulkanTexture::HasExternalImage() const -> bool {
-        return m_IsImageExternal;
-    }
-
-    auto VulkanTexture::GetCurrentLayout() const -> VkImageLayout {
-        return m_CurrentLayout;
-    }
-
-    auto VulkanTexture::GetCreateInfo() const -> const VkImageCreateInfo& {
-        return m_ImageAllocation.ImageCreateInfo;
-    }
-
-    auto VulkanTexture::GetViewCreateInfo() const -> const VkImageViewCreateInfo& {
-        return m_ImageViewCreateInfo;
-    }
-
-    auto VulkanTexture::SetDebugName( std::string_view name ) -> void {
-        m_DebugName = name;
-
-        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE, reinterpret_cast<UInt64>( m_ImageAllocation.Image ), m_DebugName.c_str() );
-        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<UInt64>( m_ImageView ), m_DebugName.c_str() );
-    }
-
-    auto VulkanTexture::IsSwapChainImage() const -> bool {
-        return m_IsImageExternal;
-    }
-
-    auto VulkanTexture::GetNativeHandle( ObjectType type ) -> Object {
-        switch ( type ) {
-            case ObjectType::Vk_Image:
-                return Object( m_ImageAllocation.Image );
-
-            case ObjectType::Vk_ImageView:
-                return Object( m_ImageView );
-
-            case ObjectType::Vk_Format:
-                return Object( std::addressof( m_ImageAllocation.ImageCreateInfo.format ) );
-
-            default:;
-        }
-
-        return Object( nullptr );
-    }
-
-    auto VulkanTexture::GetNativeHandle( ObjectType type ) const -> Object {
-        return const_cast<VulkanTexture*>(this)->GetNativeHandle( type );
-    }
-
-    auto VulkanTexture::SubmitLayoutTransition( const VkImageLayout newLayout, const VkCommandBuffer cmd, bool insertBarrier ) -> void {
-        if (m_CurrentLayout == newLayout ) {
-            return;
-        }
-
-        if (insertBarrier) {
-            VkImageSubresourceRange subresourceRange{};
-            subresourceRange.aspectMask = VulkanHelpers::GetAspectMask(VulkanHelpers::ToVkFormat( GetFormat() ));;
-            subresourceRange.baseMipLevel = 0;
-            subresourceRange.levelCount = 1;
-            subresourceRange.layerCount = 1;
-
-            // Create an image barrier object
-            VkImageMemoryBarrier imageMemoryBarrier{};
-            imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-            imageMemoryBarrier.oldLayout = m_CurrentLayout;
-            imageMemoryBarrier.newLayout = newLayout;
-            imageMemoryBarrier.image = m_ImageAllocation.Image;
-            imageMemoryBarrier.subresourceRange = subresourceRange;
-
-            // Source layouts (old)
-            // Source access mask controls actions that have to be finished on the old layout
-            // before it will be transitioned to the new layout
-            switch ( m_CurrentLayout ) {
-                case VK_IMAGE_LAYOUT_UNDEFINED:
-                    // Image layout is undefined (or does not matter)
-                    // Only valid as initial layout
-                    // No flags required, listed only for completeness
-                    imageMemoryBarrier.srcAccessMask = 0;
-                    break;
-
-                case VK_IMAGE_LAYOUT_PREINITIALIZED:
-                    // Image is preinitialized
-                    // Only valid as initial layout for linear images, preserves memory contents
-                    // Make sure host writes have been finished
-                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-                    break;
-
-                case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-                    // Image is a color attachment
-                    // Make sure any writes to the color buffer have been finished
-                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-                    break;
-
-                case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-                    // Image is a depth/stencil attachment
-                    // Make sure any writes to the depth/stencil buffer have been finished
-                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-                    break;
-
-                case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-                    // Image is a transfer source
-                    // Make sure any reads from the image have been finished
-                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-                    break;
-
-                case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-                    // Image is a transfer destination
-                    // Make sure any writes to the image have been finished
-                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                    break;
-
-                case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-                    // Image is read by a shader
-                    // Make sure any shader reads from the image have been finished
-                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-                    break;
-                default:
-                    // Other source layouts aren't handled (yet)
-                    break;
-            }
-
-            // Target layouts (new)
-            // Destination access mask controls the dependency for the new image layout
-            switch ( newLayout ) {
-                case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-                    // Image will be used as a transfer destination
-                    // Make sure any writes to the image have been finished
-                    imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                    break;
-
-                case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-                    // Image will be used as a transfer source
-                    // Make sure any reads from the image have been finished
-                    imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-                    break;
-
-                case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-                    // Image will be used as a color attachment
-                    // Make sure any writes to the color buffer have been finished
-                    imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-                    break;
-
-                case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-                    // Image layout will be used as a depth/stencil attachment
-                    // Make sure any writes to depth/stencil buffer have been finished
-                    imageMemoryBarrier.dstAccessMask = imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-                    break;
-
-                case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-                    // Image will be read in a shader (sampler, input attachment)
-                    // Make sure any writes to the image have been finished
-                    if ( imageMemoryBarrier.srcAccessMask == 0 ) {
-                        imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-                    }
-                    imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-                    break;
-                default:
-                    // Other source layouts aren't handled (yet)
-                    break;
-            }
-
-            // Put barrier inside setup command buffer
-            vkCmdPipelineBarrier(
-                    cmd,
-                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                    0,
-                    0, nullptr,
-                    0, nullptr,
-                    1, &imageMemoryBarrier );
-        }
-
-        // Update the current layout
-        m_CurrentLayout = newLayout;
-    }
-
-    auto VulkanTexture::Initialize() -> void {
-        if ( m_ImageAllocation.Image == VK_NULL_HANDLE ) {
-            SetupNonSwapChainImage();
-        }
-
-        // External images have their image provided on construction
-        // We still need to create the image views
-        if ( vkCreateImageView( VK_DEVICE( m_Device ), std::addressof( m_ImageViewCreateInfo ), nullptr, std::addressof( m_ImageView ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanTexture::Allocate - Failed to create the Vulkan Image View!" );
-        }
-
-        SetDebugInfo();
-
-        m_IsAllocated = true;
     }
 
     VulkanSwapChain::VulkanSwapChain( const VulkanSwapChainCreateInfo& createInfo )

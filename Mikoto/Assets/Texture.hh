@@ -127,6 +127,7 @@ namespace Mikoto {
         MKT_NODISCARD auto GetSizeBytes() const -> Size { return m_SizeBytes; }
 
         MKT_NODISCARD auto GetSampleCount() const -> Multisampling { return m_Multisampling; }
+        MKT_NODISCARD auto GetMipLevelCount() const -> UInt32 { return m_MipLevelCount; }
 
         /**
          * @brief Sets the sampler for the texture.
@@ -194,8 +195,8 @@ namespace Mikoto {
          * @param usage
          */
         explicit Texture( const TextureType type, const TextureFormat format,
-                          const Int32 width, const Int32 height, const Int32 channels, ResourceUsageType usage, TextureUsage textureUsage )
-            : DeviceObject{ usage }, m_Type{ type }, m_Format{ format }, m_TextureUsage{ textureUsage }, m_Width{ width }, m_Height{ height }, m_Channels{ channels } {
+                          const Int32 width, const Int32 height, const Int32 channels, ResourceUsageType usage, TextureUsage textureUsage, UInt32 miplevelCount = 1 )
+            : DeviceObject{ usage }, m_Type{ type }, m_Format{ format }, m_TextureUsage{ textureUsage }, m_Width{ width }, m_Height{ height }, m_Channels{ channels }, m_MipLevelCount { miplevelCount } {
         }
 
     protected:
@@ -216,6 +217,8 @@ namespace Mikoto {
         Size m_SizeBytes{};
 
         SamplerHandle m_Sampler{};
+
+        UInt32 m_MipLevelCount{ 1 };
 
         std::string m_TextureUri{};
         std::string m_TextureName{};

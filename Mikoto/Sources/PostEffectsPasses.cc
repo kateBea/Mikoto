@@ -216,13 +216,13 @@ namespace Mikoto {
 
         graph.RegisterPass(
             "SSAO",
-            [this, SSAO_NOISE_DIM]( FramePassBuilder& b ) {
+            [this]( FramePassBuilder& b ) {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 b.CreateBuffer( "SSAO_Parameters", BufferUsage::UNIFORM, sizeof( m_SSAOParameters ), 1, ResourceUsageType::RESOURCE_USAGE_STREAMING );
 
                 b.CreateTexture( "SSAO_ColorTarget", m_Resolution, TextureFormat::R8_UNORM, TextureUsage::COLOR );
-                b.CreateTexture( "SSAO_NoiseTexture", SSAO_NOISE_DIM, SSAO_NOISE_DIM,
+                b.CreateTexture( "SSAO_NoiseTexture", SSAO_NOISE_DIM, SSAO_NOISE_DIM, // SSAO_NOISE_DIM is constexpr, capturing it is not required
                                  TextureFormat::RGBA32_FLOAT, m_SSONoise.data(), MKT_SIZEOF( Vec4F ) * m_SSONoise.size() );
 
                 GraphicsPipelineDescription graphicsDesc{
@@ -359,6 +359,8 @@ namespace Mikoto {
     }
 
     auto PostEffectsPass::TraverseTextList( CommandContext& ctx ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         auto& registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TransformComponent, TextComponent>() };
 
@@ -366,19 +368,21 @@ namespace Mikoto {
         // determine how many instances to draw
         m_GlyphCount = 0;
         for ( auto& entity: renderables ) {
-            auto& transform{ registry.get<TransformComponent>( entity ) };
             auto& textComponent{ registry.get<TextComponent>( entity ) };
 
             if ( !textComponent.HasFont() ) {
                 continue;
             }
 
+            auto& transform{ registry.get<TransformComponent>( entity ) };
             SetupTextForRender( ctx, transform, textComponent );
         }
     }
 
     auto PostEffectsPass::SetupTextForRender( CommandContext& context, const TransformComponent& transformComponent, const TextComponent& textComponent ) -> void {
         using namespace StringUtils;
+
+        MKT_BEGIN_PROFILER_NAMED();
 
         FontHandle font{ textComponent.GetFontHandle() };
 

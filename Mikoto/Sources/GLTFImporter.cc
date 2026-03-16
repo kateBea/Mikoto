@@ -15,7 +15,7 @@
 #include <tiny_gltf.h>
 
 #include <Assets/AssetsService.hh>
-#include <Assets/GltfAnimImporter.hh>
+#include <Assets/GLTFImporter.hh>
 #include <Common/String.hh>
 #include <Filesystem/FileService.hh>
 #include <Filesystem/FileSystem.hh>
@@ -1513,18 +1513,20 @@ namespace Mikoto {
         } );
     }
 
-    auto GLTFImporter::Import( LoaderData& loaderData, const ModelLoadDescription& description, ModelData& out ) -> void {
-        tinygltf::Model model{};
+    auto GLTFImporter::LoadModel( LoaderData& loaderData, const ModelLoadDescription& description, tinygltf::Model& model ) -> bool {
+        const std::string& path{description.ModelFile->GetPath()};
+        const std::string extension{ Path{ path }.extension().string() };
 
-        bool res{ false };
-        const std::string extension{ Path{ description.ModelFile->GetPath() }.extension().string() };
-        if (StringUtil::Contains( extension, "gltf" )) {
-            res = loaderData.Loader.LoadASCIIFromFile( &model, &loaderData.Err, &loaderData.Warn, description.ModelFile->GetPath() );
-        } else if (StringUtil::Contains( extension, "glb" )) {
-            // Still need to properly handle glb
-            res = loaderData.Loader.LoadBinaryFromFile( &model, &loaderData.Err, &loaderData.Warn, description.ModelFile->GetPath() );
+        bool result{ false };
+
+        if (extension == ".gltf") {
+            result = loaderData.Loader.LoadASCIIFromFile( &model, &loaderData.Err, &loaderData.Warn, path);
+        }
+        else if (extension == ".glb") {
+            result = loaderData.Loader.LoadBinaryFromFile(&model, &loaderData.Err, &loaderData.Warn, path);
         }
 
+        // Log messages
         if ( !loaderData.Warn.empty() ) {
             MKT_CORE_LOGGER_WARN( "GLTF Loader WARN: {}", loaderData.Warn );
         }
@@ -1533,32 +1535,35 @@ namespace Mikoto {
             MKT_CORE_LOGGER_ERROR( "GLTF Loader ERROR: {}", loaderData.Err );
         }
 
-        if ( !res ) {
-            MKT_CORE_LOGGER_ERROR( "Failed to load glTF: {}", description.ModelFile->GetPath() );
-        } else {
-            MKT_CORE_LOGGER_DEBUG( "Loaded glTF: {}", description.ModelFile->GetPath() );
+        return result;
+    }
 
-            // Reference root path for loading textures
-            const std::string rootPath{ Filesystem::StripFileName( description.ModelFile->GetPath() ) };
-
-            LoadPrimitives( model, out );
-            LoadMaterials( model, out, rootPath );
-
-            // Build animations and skeleton
-            // We will save the loaded ozz files in disk along withh a mikoto metadata file
-            // if the file has been processed we simply load the ozz animation files, otherwise we
-            // create the necessary resources (clear model here because importer loads its own)
-
-            if (!model.animations.empty()) {
-                GltfAnimImporter animationImporter{};
-                SkinningBuilder builder{ description.ModelFile->GetPath() };
-
-                if ( builder.Build( animationImporter, description.ModelFile->GetPath() ) ) {
-                    // Get the skeleton and animations
-                    builder.FillModelData( out );
-                    out.SceneSkeleton.SetInverseBindMatrices( LoadInverseBindMatrices( model, model.skins[0] ) );
-                }
-            }
+    auto GLTFImporter::LoadAnimations(const tinygltf::Model& model,const ModelLoadDescription& description,ModelData& out) -> void {
+        if (model.animations.empty()) {
+            return;
         }
+
+        GltfAnimImporter importer{};
+        SkinningBuilder builder{description.ModelFile->GetPath()};
+
+        if (!builder.Build(importer, description.ModelFile->GetPath())) {
+            return;
+        }
+
+        builder.FillModelData(out);
+        out.SceneSkeleton.SetInverseBindMatrices(LoadInverseBindMatrices(model, model.skins[0]));
+    }
+
+    auto GLTFImporter::Import( LoaderData& loaderData, const ModelLoadDescription& description, ModelData& out ) -> void {
+        tinygltf::Model model{};
+        if (!LoadModel(loaderData, description, model)) {
+            return;
+        }
+
+        const std::string rootPath{ Filesystem::StripFileName(description.ModelFile->GetPath()) };
+
+        LoadPrimitives(model, out);
+        LoadMaterials(model, out, rootPath);
+        LoadAnimations(model, description, out);
     }
 }// namespace Mikoto

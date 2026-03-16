@@ -28,7 +28,6 @@
 #include <Renderer/Core/Pipeline.hh>
 #include <Renderer/Core/Framebuffer.hh>
 #include <Renderer/Core/DeviceObject.hh>
-#include <Renderer/Core/DeviceObjectHandle.hh>
 
 namespace Mikoto {
 
@@ -90,8 +89,8 @@ namespace Mikoto {
 
         virtual auto BindPipeline(PipelineHandle pipeline) -> void = 0;
 
-        MKT_NODISCARD auto IsImmediate() -> bool { return m_IsImmediate; }
-        MKT_NODISCARD auto GetQueueType() -> QueueType { return m_QueueType; }
+        MKT_NODISCARD auto IsImmediate() const -> bool { return m_IsImmediate; }
+        MKT_NODISCARD auto GetQueueType() const -> QueueType { return m_QueueType; }
 
         using DeviceObject::Initialize;
 
@@ -163,7 +162,5 @@ namespace Mikoto {
         bool m_IsInitialized{ false };
     };
 }
-
-
 
 #endif //MIKOTO_GPU_DEVICE_HH

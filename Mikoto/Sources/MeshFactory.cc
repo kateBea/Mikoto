@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include <Assets/AssetsService.hh>
-#include <Assets/GltfAnimImporter.hh>
+#include <Assets/GLTFImporter.hh>
 #include <Assets/MainImporter.hh>
 #include <Assets/MeshFactory.hh>
 #include <Assets/MeshOptimizer.hh>

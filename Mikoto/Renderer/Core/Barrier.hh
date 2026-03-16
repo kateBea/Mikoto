@@ -16,6 +16,7 @@
 #define MIKOTO_BARRIER_HH
 
 #include <string>
+
 #include <Renderer/Core/FrameGraphStructures.hh>
 
 namespace Mikoto {
@@ -24,11 +25,13 @@ namespace Mikoto {
 
         FrameResourceType Type{ FrameResourceType::INVALID };
 
-        FramePassNodeType PreviousPass{ FramePassNodeType::GENERIC };
         FramePassNodeType NextPass{ FramePassNodeType::GENERIC };
+        FramePassNodeType PreviousPass{ FramePassNodeType::GENERIC };
 
         FrameResourceState PreState{ FrameResourceState::Undefined };
         FrameResourceState PostState{ FrameResourceState::Undefined };
+
+        FrameResourceAccessType AccessType{ FrameResourceAccessType::Undefined };
     };
 }
 #endif//MIKOTO_BARRIER_HH

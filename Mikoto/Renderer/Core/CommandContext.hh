@@ -151,12 +151,6 @@ namespace Mikoto {
         auto CopyBuffer( BufferHandle buffer, const void *ptrSrc, Size size ) -> void;
         auto CopyBuffer( std::string_view bufferName, const void* ptrSrc, Size size ) -> void;
 
-        MKT_NODISCARD auto PushTexture(TextureHandle texture ) const -> Int32;
-        MKT_NODISCARD auto GetNamedBuffer( std::string_view ) const -> BufferHandle;
-
-        auto BindImage(TextureHandle handle, SamplerHandle sampler, UInt32 bindingSlot) -> void;
-        auto BindImage(std::string_view name, SamplerHandle sampler, UInt32 bindingSlot) -> void;
-
         auto CreateSampler( SamplerDescription samplerDescription ) -> SamplerHandle;
 
      private:
@@ -170,7 +164,6 @@ namespace Mikoto {
         ConstantsGroup m_PushConstants{};
 
         RenderInfo m_RenderInfo{};
-
 
         bool m_HasSetConstantData{ false };
 

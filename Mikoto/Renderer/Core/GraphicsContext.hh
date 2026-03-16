@@ -73,12 +73,7 @@ namespace Mikoto {
         virtual auto PrepareResourceBindings(std::string_view passName, PipelineDescription& desc) -> void = 0;
         virtual auto BindShaderResources(std::string_view passName, CommandListHandle cmdList  ) -> void = 0;
 
-        // [DEPRECATED] To be removed
-        virtual auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void = 0;
-        virtual auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void = 0;
-        virtual auto PushConstants( std::string_view passName, const ConstantsGroup& srg_constants, CommandListHandle cmd ) -> void = 0;
-
-        // [DEPRECATED] To be removed
+        // [DEPRECATED] To be removed (Barriers are preferred to be submitted in batch)
         virtual auto InsertResourceBarrier(BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool = 0;
         virtual auto InsertResourceBarrier(TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool = 0;
 
@@ -86,10 +81,11 @@ namespace Mikoto {
 
         virtual auto PushBuffer(ResourceGroup group, BufferHandle buffer, std::string_view pass, ResourceSlot slot ) -> void = 0;
         virtual auto PushTexture(ResourceGroup group, TextureHandle texture, std::string_view pass, ResourceSlot slot ) -> void = 0;
+        virtual auto PushConstants( std::string_view passName, const ConstantsGroup& srg_constants, CommandListHandle cmd ) -> void = 0;
         virtual auto PushTexture(ResourceGroup group, TextureHandle texture, SamplerHandle sampler, std::string_view pass, ResourceSlot slot ) -> void = 0;
 
-        virtual auto BindImageSamplerUndoundedGroup( std::string_view groupName, CommandListHandle cmd ) -> void = 0;
-        virtual auto RegisterImageSamplerUndoundedGroup( std::string_view groupName, TextureHandle texture, SamplerHandle sampler ) -> Int32 = 0;
+        virtual auto BindImageSamplerUnboundedGroup( std::string_view groupName, CommandListHandle cmd ) -> void = 0;
+        virtual auto RegisterImageSamplerUnboundedGroup( std::string_view groupName, TextureHandle texture, SamplerHandle sampler ) -> Int32 = 0;
 
         MKT_NODISCARD static auto Create(GpuDevice* device) -> Unique<GraphicsContext>;
 

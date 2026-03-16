@@ -84,7 +84,7 @@ namespace Mikoto {
     auto CommandContext::BindGroup( ResourceGroup group, std::string_view groupName ) -> void {
         std::string name{ groupName };
         if ( !m_ActiveUnoundedResourceGroups[name] ) {
-            m_Context->BindImageSamplerUndoundedGroup( groupName, m_Commands );
+            m_Context->BindImageSamplerUnboundedGroup( groupName, m_Commands );
             m_ActiveUnoundedResourceGroups[name] = true;
         }
     }
@@ -134,13 +134,13 @@ namespace Mikoto {
 
         std::string name{ groupName };
         if (!m_ActiveUnoundedResourceGroups[name]) {
-            m_Context->BindImageSamplerUndoundedGroup( groupName, m_Commands) ;
+            m_Context->BindImageSamplerUnboundedGroup( groupName, m_Commands) ;
             m_ActiveUnoundedResourceGroups[name] = true;
         }
 
         switch ( group ) {
             case ResourceGroup::UnboundedImageViews:
-                index = m_Context->RegisterImageSamplerUndoundedGroup( groupName, texture, SamplerHandle::CreateEmpty() );
+                index = m_Context->RegisterImageSamplerUnboundedGroup( groupName, texture, SamplerHandle::CreateEmpty() );
                 break;
         }
          
@@ -156,7 +156,7 @@ namespace Mikoto {
 
         switch ( group ) {
             case ResourceGroup::UnboundedImageViews:
-                index = m_Context->RegisterImageSamplerUndoundedGroup( groupName, texture, SamplerHandle::CreateEmpty() );
+                index = m_Context->RegisterImageSamplerUnboundedGroup( groupName, texture, SamplerHandle::CreateEmpty() );
                 break;
         }
 
@@ -430,33 +430,8 @@ namespace Mikoto {
         m_HasSetConstantData = false;
     }
 
-    auto CommandContext::PushTexture( TextureHandle texture ) const -> Int32 {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        return -1;
-    }
-
-    auto CommandContext::GetNamedBuffer( std::string_view name ) const -> BufferHandle {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        return m_Context->GetBuffer( name );
-    }
-
-    auto CommandContext::BindImage( TextureHandle handle, SamplerHandle sampler, UInt32 bindingSlot ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-        m_Context->PushTexture( handle, sampler, m_ActivePass->Name, bindingSlot );
-    }
-    
-    auto CommandContext::BindImage( std::string_view name, SamplerHandle sampler, UInt32 bindingSlot ) -> void {
-        TextureHandle texture{ m_Context->GetTexture( name ) };
-        MKT_ASSERT( !texture.IsEmpty(), "Texture cannot be empty" );
-
-        m_Context->PushTexture( texture, sampler, m_ActivePass->Name, bindingSlot );
-    }
-
     auto CommandContext::CreateSampler( SamplerDescription samplerDescription ) -> SamplerHandle {
         MKT_BEGIN_PROFILER_NAMED();
-
         return m_Context->CreateSampler( samplerDescription );
     }
 }

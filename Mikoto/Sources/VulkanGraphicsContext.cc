@@ -660,56 +660,6 @@ namespace Mikoto {
         writer.UpdateSet( m_Device->GetLogicalDevice(), sets );
     }
 
-    auto VulkanGraphicsContext::PushBuffer( BufferHandle handle, std::string_view passName, UInt32 bindingSlot ) -> void {
-        // Verify the pass exists and is not already using that buffer
-
-        const auto it{ m_PassInfo.find( std::string{ passName } ) };
-        if (it == m_PassInfo.end()) {
-            return;
-        }
-
-        // If the combined buffer does not exist
-        auto setIndex{ handle->IsResourceUsage( ResourceUsageType::RESOURCE_USAGE_DYNAMIC ) ? 
-            DYNAMIC_BUFFERS_SET_INDEX : DYNAMIC_RESOURCE_SET_INDEX };
-        if (!it->second.Buffers.contains( handle.GetRaw() )) {
-
-            PushBuffer( handle, bindingSlot, it->second.DescriptorSets[setIndex] );
-
-            it->second.Buffers.emplace( handle.GetRaw() );
-            it->second.BuffersBindings[bindingSlot] = handle.GetRaw();
-        } else {
-            // Update the binding if it is a new buffer
-            if (it->second.BuffersBindings[bindingSlot] != handle.GetRaw()) {
-                PushBuffer( handle, bindingSlot, it->second.DescriptorSets[setIndex] );
-                it->second.BuffersBindings[bindingSlot] = handle.GetRaw();
-            }
-        }
-    }
-
-    auto VulkanGraphicsContext::PushTexture( TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot ) -> void {
-        const auto it{ m_PassInfo.find( std::string{ passName } ) };
-        if (it == m_PassInfo.end()) {
-            return;
-        }
-
-        // If the combined image sampler does not exist
-        const auto itCombinedImageSampler{ it->second.CombinedImageSampler.find( std::make_pair( handle.GetRaw(), sampler.GetRaw() ) ) };
-
-        // Individual textures go to the static resources set
-        if (itCombinedImageSampler == it->second.CombinedImageSampler.end()) {
-            PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[DYNAMIC_RESOURCE_SET_INDEX] );
-            it->second.CombinedImageSampler.emplace( std::make_pair( handle.GetRaw(), sampler.GetRaw() ) );
-
-            it->second.CombinedImageSamplerBinding[bindingSlot] = std::make_pair( handle.GetRaw(), sampler.GetRaw() );
-        } else {
-            // Update if there is a different pair of image and sampler
-            if (it->second.CombinedImageSamplerBinding[bindingSlot] != std::make_pair( handle.GetRaw(), sampler.GetRaw() )) {
-                PushImage( handle, sampler, bindingSlot, it->second.DescriptorSets[DYNAMIC_RESOURCE_SET_INDEX] );
-                it->second.CombinedImageSamplerBinding[bindingSlot] = std::make_pair( handle.GetRaw(), sampler.GetRaw() );
-            }
-        }
-    }
-
     auto VulkanGraphicsContext::PushConstants( std::string_view passName, const ConstantsGroup &constants, CommandListHandle cmd ) -> void {
         const auto it{ m_PassInfo.find( StringUtil::From( passName ) ) };
         if (it == m_PassInfo.end()) {
@@ -860,7 +810,7 @@ namespace Mikoto {
         PushTexture( group, texture, sampler, pass, slot);
     }
 
-    auto VulkanGraphicsContext::BindImageSamplerUndoundedGroup(std::string_view groupName, CommandListHandle cmd) -> void {
+    auto VulkanGraphicsContext::BindImageSamplerUnboundedGroup(std::string_view groupName, CommandListHandle cmd) -> void {
         const auto it{ m_CombinedImageSamplersGroupManager.find( StringUtil::From( groupName ) ) };
 
         if ( it == m_CombinedImageSamplersGroupManager.end() ) {
@@ -871,7 +821,7 @@ namespace Mikoto {
         manager.Bind( cmd );
     }
 
-    auto VulkanGraphicsContext::RegisterImageSamplerUndoundedGroup( std::string_view groupName, TextureHandle texture, SamplerHandle sampler ) -> Int32 {
+    auto VulkanGraphicsContext::RegisterImageSamplerUnboundedGroup( std::string_view groupName, TextureHandle texture, SamplerHandle sampler ) -> Int32 {
         if ( texture.IsEmpty() ) {
             return INVALID_BINDLESS_GROUP_INDEX;
         }

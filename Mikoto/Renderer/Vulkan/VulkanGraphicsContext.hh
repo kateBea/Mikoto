@@ -102,21 +102,17 @@ namespace Mikoto {
         auto PrepareResourceBindings( std::string_view pass, PipelineDescription& desc ) -> void override;
         auto BindShaderResources( std::string_view passName, CommandListHandle cmdList ) -> void override;
 
-        auto PushBuffer(BufferHandle handle, std::string_view passName, UInt32 bindingSlot) -> void  override;
-        auto PushTexture(TextureHandle handle, SamplerHandle sampler, std::string_view passName, UInt32 bindingSlot) -> void  override;
-        auto PushConstants( std::string_view passName, const ConstantsGroup& constants, CommandListHandle cmd ) -> void override;
-
         auto InsertResourceBarrierBatch(std::span<ResourceBarrierInfo> barriers, CommandListHandle cmd) -> void override;
         auto InsertResourceBarrier(BufferHandle buffer, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
         auto InsertResourceBarrier(TextureHandle texture, FrameResourceState previousState, FrameResourceState newState, CommandListHandle cmd) -> bool  override;
 
         auto PushBuffer(ResourceGroup group, BufferHandle buffer, std::string_view pass, ResourceSlot slot ) -> void override;
-
+        auto PushConstants( std::string_view passName, const ConstantsGroup& constants, CommandListHandle cmd ) -> void override;
         auto PushTexture(ResourceGroup group, TextureHandle texture, std::string_view pass, ResourceSlot slot ) -> void override;
         auto PushTexture(ResourceGroup group, TextureHandle texture, SamplerHandle sampler, std::string_view pass, ResourceSlot slot ) -> void override;
 
-        auto BindImageSamplerUndoundedGroup( std::string_view groupName, CommandListHandle cmd ) -> void override;
-        auto RegisterImageSamplerUndoundedGroup( std::string_view groupName, TextureHandle texture, SamplerHandle sampler ) -> Int32 override;
+        auto BindImageSamplerUnboundedGroup( std::string_view groupName, CommandListHandle cmd ) -> void override;
+        auto RegisterImageSamplerUnboundedGroup( std::string_view groupName, TextureHandle texture, SamplerHandle sampler ) -> Int32 override;
 
         ~VulkanGraphicsContext() override = default;
 

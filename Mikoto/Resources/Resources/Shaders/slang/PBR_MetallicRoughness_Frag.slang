@@ -252,34 +252,55 @@ float3 ComputeDirectionalLightContribution(float3 n, float3 v, LightInfo lightIn
     return color;
 }
 
+// Ref: Moving frostbite to PBR
+// https://www.ea.com/frostbite/news/moving-frostbite-to-pb
+float SmoothDistanceAtt(float d2, float invR2) {
+    float howFar = d2 * invR2;                       
+    float dontDie = saturate(1.0 - howFar * howFar); 
+    return dontDie * dontDie;                       
+}
+
+float GetDistanceAtt(float3 L_unorm, float invR2) {
+    float d2 = dot(L_unorm, L_unorm);   
+    float invSq = 1.0 / max(d2, 0.0001);
+
+    float fade = SmoothDistanceAtt(d2, invR2); 
+
+    return invSq * fade;
+}
+
+float GetAngleAtt(float3 L, float3 lightDir, float scale, float offset) {
+    float howInsideCone = dot(lightDir, L); // are we in the cone or nah
+
+    float cone = saturate(howInsideCone * scale + offset);
+    cone *= cone;                                         
+
+    return cone; 
+}
+
 float3 ComputePointlLightContribution(float3 n, float3 v, LightInfo lightInfo, BaseInputs inputs, float3 worldPos) {
-    float3 lightVector = lightInfo.Position.xyz - worldPos;
+    // Light vector and distance (v, l)
+    const float3 lightVector = lightInfo.Position.xyz - worldPos;
+    const float distance = length(lightVector);
 
-    float distance = length(lightVector);
-    float3 l = lightVector / distance;
+    float attenuation = 1;
 
-    float attenuation = 1.0 / max(distance * distance, 0.001);
-    //float attenuation = 1.0 / (distance * distance); // physically correct
+    const float radius = lightInfo.Radius;
+    const float lightInvSqrAttRadius = 1 / (radius * radius);
 
-    // radius falloff
-    float radiusFalloff = saturate(1.0 - distance / lightInfo.Radius);
-    radiusFalloff *= radiusFalloff;
-
-    attenuation *= radiusFalloff;
-
+    attenuation *= GetDistanceAtt(lightVector, lightInvSqrAttRadius);
+    
     const float intensityBaseFactor = 1000.0f;
     const float3 lightIntensity = lightInfo.Diffuse * (lightInfo.Intensity * intensityBaseFactor) * attenuation;
+    
+    const float3 l = lightVector / distance;
+    const float3 h = normalize(l + v);
 
-    float3 h = normalize(l + v);
-
-    // Test inverse square attenuation
-    //float attenuation = SphereLightAttenuation(distance, lightInfo.Radius);
-
-    float NdotL = clamp(dot(n, l), 0.001, 1.0);
-    float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
-    float NdotH = clamp(dot(n, h), 0.0, 1.0);
-    float LdotH = clamp(dot(l, h), 0.0, 1.0);
-    float VdotH = clamp(dot(v, h), 0.0, 1.0);
+    const float NdotL = clamp(dot(n, l), 0.001, 1.0);
+    const float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);
+    const float NdotH = clamp(dot(n, h), 0.0, 1.0);
+    const float LdotH = clamp(dot(l, h), 0.0, 1.0);
+    const float VdotH = clamp(dot(v, h), 0.0, 1.0);
 
     PBRInfo pbrInputs = PBRInfo(
         NdotL,
@@ -297,16 +318,16 @@ float3 ComputePointlLightContribution(float3 n, float3 v, LightInfo lightInfo, B
 	);
 
     // Calculate the shading terms for the microfacet specular shading model
-    float3 F = SpecularReflection(pbrInputs); // kS
-    float G = GeometricOcclusion(pbrInputs);
-    float D = MicrofacetDistribution(pbrInputs);
+    const float3 F = SpecularReflection(pbrInputs); // kS
+    const float G = GeometricOcclusion(pbrInputs);
+    const float D = MicrofacetDistribution(pbrInputs);
 
     // Calculation of analytical lighting contribution, ks + kD = 1 with kD = 1.0 - F
-    float3 diffuseContrib = (1.0 - F) * DiffuseBurley(pbrInputs);
-    float3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
+    const float3 diffuseContrib = (1.0 - F) * DiffuseBurley(pbrInputs);
+    const float3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
 
     // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
-    float3 color = NdotL * lightIntensity * (diffuseContrib + specContrib);
+    const float3 color = NdotL * lightIntensity * (diffuseContrib + specContrib);
 
     return color;
 }

@@ -82,7 +82,7 @@ void main(uint3 groupID: SV_GroupID,
         }
 
         // Write into cluster list
-        if (visible && cluster.Count < MAX_LIGHT_CLUSTERS) {
+        if (visible && cluster.Count <= MAX_LIGHT_CLUSTERS) {
             cluster.LightIndices[cluster.Count] = i;
             cluster.Count++;
         }

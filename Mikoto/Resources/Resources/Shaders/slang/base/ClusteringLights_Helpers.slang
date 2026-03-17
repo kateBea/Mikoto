@@ -97,6 +97,8 @@ float3 ScreenToView(float2 screenCoord, float2 screenDimensions, float4x4 viewIn
     return v.xyz;
 }
 
+// TODO: Review point light attenuation algorithm to implement proper culling
+
 bool SphereAABBIntersection(float3 center, float radius, float3 aabbMin, float3 aabbMax) {
     float3 closest = clamp(center, aabbMin, aabbMax);
 
@@ -105,6 +107,8 @@ bool SphereAABBIntersection(float3 center, float radius, float3 aabbMin, float3 
 
     return distSq <= (radius * radius);
 }
+
+// TODO: Review point light attenuation algorithm to implement proper culling
 
 bool TestSphereAABBPointLight(LightInfo light, Cluster cluster, float4x4 view) {
     float3 center = mul(view, float4(light.Position.xyz, 1.0)).xyz;

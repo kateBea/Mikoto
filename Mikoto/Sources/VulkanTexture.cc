@@ -207,7 +207,7 @@ namespace Mikoto {
         m_ImageAllocation.ImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
         m_ImageAllocation.ImageCreateInfo.usage = VulkanHelpers::ToVkImageUsage( m_TextureUsage );
 
-        m_ImageAllocation.ImageCreateInfo.mipLevels = 1;
+        m_ImageAllocation.ImageCreateInfo.mipLevels = m_MipLevelCount;
         m_ImageAllocation.ImageCreateInfo.arrayLayers = 1;
         m_ImageAllocation.ImageCreateInfo.samples = VulkanHelpers::ToVkRasterSamples( m_Multisampling );
         m_ImageAllocation.ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;

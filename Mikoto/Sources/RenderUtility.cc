@@ -378,7 +378,7 @@ namespace Mikoto {
     }
 
     auto BufferDescription::WidthHandle( BufferSpanHandle handle ) -> BufferDescription& {
-        BufferSpanHnd = handle;
+        //TODO: BufferSpanHnd = handle;
         return *this;
     }
 

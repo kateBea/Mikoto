@@ -173,7 +173,8 @@ namespace Mikoto {
     }
 
     struct BufferDescription {
-        BufferSpanHandle BufferSpanHnd{}; 
+        // GCC complaints incomplete type
+        //BufferSpanHandle BufferSpanHnd{};
 
         // Use the buffer view handle instead of this
         Size SizeBytes{};

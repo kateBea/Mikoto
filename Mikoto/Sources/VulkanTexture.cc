@@ -1133,6 +1133,7 @@ namespace Mikoto {
 
         // NOTE: if we only have one format, and it is VK_FORMAT_UNDEFINED, it means the surface supports all formats
         for ( const auto& availableFormat: availableFormats ) {
+            // TODO: some platforms require VK_FORMAT_B8G8R8A8_UNORM
             if ( availableFormat.format == VK_FORMAT_R8G8B8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR ) {
                 return availableFormat;
             }

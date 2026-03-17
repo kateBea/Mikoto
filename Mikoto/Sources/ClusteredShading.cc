@@ -192,6 +192,8 @@ namespace Mikoto {
                 ctx.SetColorRenderTarget( "GBuffer_Emissive" );
                 ctx.SetDepthRenderTarget( "GBuffer_Depth" );
 
+                ctx.SetClearColor( {0.0f, 0.0f, 0.0f, 0.0f } );
+
                 ctx.BeginRender();
 
                 const auto dimensions{ InferDimensions( m_Resolution ) };

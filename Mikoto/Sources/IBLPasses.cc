@@ -111,6 +111,10 @@ namespace Mikoto {
         m_SSAOIntensity = value;
     }
 
+    auto IBLPasses::SetToneMapping( ToneMappingType type ) -> void {
+        m_ToneMapType = type;
+    }
+
     auto IBLPasses::UseCubeMap( bool value ) -> void {
         m_UseCubeMap = value;
     }
@@ -697,7 +701,8 @@ namespace Mikoto {
                 data.PrefilteredCubeMipLevels = m_PrefilterMipLevels;
                 data.ScaleIBLAmbient = 1.f;
                 data.Step = 1;
-                
+                data.ToneMap = static_cast<Int32>(m_ToneMapType);
+
                 // Bind resources
                 ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
 

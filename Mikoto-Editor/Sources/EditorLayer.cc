@@ -884,8 +884,6 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         m_SceneRenderer->SetCamera( m_EditorCamera.get() );
-        m_SceneRenderer->SetEnvironmentGamma( m_ActiveScene->GetGamma() );
-        m_SceneRenderer->SetEnvironmentExposure( m_ActiveScene->GetExposure() );
 
         m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSceneBackground(SceneBackground::SKYBOX) );
 

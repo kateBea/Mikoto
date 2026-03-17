@@ -102,16 +102,16 @@ namespace Mikoto {
         m_RenderTargetDimensions = InferDimensions(m_RenderResolution);
     }
 
-    auto SceneRenderer::SetEnvironmentGamma( float value ) -> void {
+    auto SceneRenderer::SetImageGamma( float value ) -> void {
         m_IBLPasses.SetGamma( value );
+    }
+
+    auto SceneRenderer::SetImageExposure( float value ) -> void {
+        m_IBLPasses.SetExposure( value );
     }
 
     auto SceneRenderer::SetMaxReflectionLOD( float value ) -> void {
         m_IBLPasses.SetMaxReflectionLOD( value );
-    }
-
-    auto SceneRenderer::SetEnvironmentExposure( float value ) -> void {
-        m_IBLPasses.SetExposure( value );
     }
 
     auto SceneRenderer::UpdateEquirectangularMapAsync( std::string_view path ) -> void {
@@ -209,6 +209,10 @@ namespace Mikoto {
 
     auto SceneRenderer::SetXAxisColor( const Vec4F &color ) -> void {
         m_DebugPasses.SetXAxisColor( color );
+    }
+
+    auto SceneRenderer::SetToneMapping( ToneMappingType type ) -> void {
+        m_IBLPasses.SetToneMapping( type );
     }
 
     auto SceneRenderer::EnableBloom( bool value ) -> void {

@@ -113,13 +113,6 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
 
-        MKT_NODISCARD auto GetGamma() const -> float;
-        MKT_NODISCARD auto GetExposure() const -> float;
-
-        // To remove, deprecated
-        auto SetGamma( float gamma ) -> void;
-        auto SetExposure( float exposure ) -> void;
-
         MKT_NODISCARD auto GetEntityCount() const -> Size;
 
         MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<Size, Unique<Entity>>& { return m_Entities; }
@@ -198,10 +191,6 @@ namespace Mikoto {
         Vec4F m_ClearColor{ 0.3f, 0.2f, 0.6f, 1.0f };
 
         SceneBackground m_Background{ SceneBackground::CLEAR_COLOR };
-
-        float m_Gamma{ 2.20f };
-        float m_Exposure{ 1.0f };
-
     };
 }
 

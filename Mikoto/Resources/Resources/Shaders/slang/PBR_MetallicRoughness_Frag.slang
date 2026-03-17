@@ -17,6 +17,7 @@
 #include "base/Base.slang"
 #include "base/Math_Helpers.slang"
 #include "base/Camera_Helpers.slang"
+#include "base/Tonemap_Helpers.slang"
 #include "base/Material_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
@@ -40,6 +41,7 @@ struct FinalShadingParameters {
     int Step; // for debug
 
     int IsSkyboxActive;
+    int ToneMapType;
 };
 
 // Encapsulate the various inputs used by the various functions in the shading equation
@@ -116,10 +118,37 @@ struct FSInput {
     bool IsFrontFace : SV_IsFrontFace;
 };
 
-float4 Tonemap(float4 color) {
+float4 Tonemap_Uncharted2(float4 color) {
     float3 outcol = Uncharted2Tonemap(color.rgb * u_Constants.Exposure);
     outcol = outcol * (1.0f / Uncharted2Tonemap(float3(11.2f)));
+
     return float4(pow(outcol, float3(1.0f / u_Constants.Gamma)), color.a);
+}
+
+float3 Tonemap_Reinhard(float3 color) {
+    return color / (1.0 + color);
+}
+
+float4 Tonemap_Linear(float4 inColor, float exposure, float gamma) {
+
+    float3 color = inColor.xyz * exposure;
+    color = saturate(color);
+
+    // gamma correction
+    return float4(pow(color, float3(1.0f / gamma)), inColor.a);
+}
+
+float4 Tonemap_Aces(float4 color, float exposure, float gamma) {
+    float3 outColor = color.xyz * exposure;
+
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+
+    outColor = saturate((outColor * (a * outColor + b)) / (outColor * (c * outColor + d) + e));
+    return float4(pow(outColor, float3(1.0f / gamma)), color.a);
 }
 
 // Calculation of the lighting contribution from an optional Image Based Light source.
@@ -130,8 +159,8 @@ float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor
     // retrieve a scale and bias to F0. See [1], Figure 3
     float3 brdf = u_SamplerBRDFLUT.Sample(float2(NdotV, 1.0 - perceptualRoughness)).rgb;
 
-    float3 diffuseLight = SRGBtoLINEAR(Tonemap(u_SamplerIrradiance.Sample(n))).rgb;
-    float3 specularLight = SRGBtoLINEAR(Tonemap(u_PrefilteredMap.SampleLevel(reflection, lod))).rgb;
+    float3 diffuseLight = SRGBtoLINEAR(Tonemap_Uncharted2(u_SamplerIrradiance.Sample(n))).rgb;
+    float3 specularLight = SRGBtoLINEAR(Tonemap_Uncharted2(u_PrefilteredMap.SampleLevel(reflection, lod))).rgb;
 
     float3 diffuse = diffuseLight * diffuseColor;
     float3 specular = specularLight * (specularColor * brdf.x + brdf.y);
@@ -580,7 +609,23 @@ FSOutput main(FSInput input) {
 
     color += emissiveContrib;
 
-    output.Color = Tonemap(float4(color, baseColor.a));
+    switch (u_Constants.ToneMapType) {
+    case c_ToneMapLinear:
+        output.Color = Tonemap_Linear(float4(color, baseColor.a), u_Constants.Exposure, u_Constants.Gamma);
+        break;
+    case c_ToneMapReinhard:
+        output.Color = float4(Tonemap_Reinhard(color.xyz), baseColor.a);
+        break;
+    case c_ToneMapUncharted2:
+        output.Color = Tonemap_Uncharted2(float4(color, baseColor.a));
+        break;
+    case c_ToneMapACES:
+        output.Color = Tonemap_Aces(float4(color, baseColor.a), u_Constants.Exposure, u_Constants.Gamma);
+        break;
+    default:
+        output.Color = Tonemap_Aces(float4(color, baseColor.a), u_Constants.Exposure, u_Constants.Gamma);
+        break;
+    }
     
     return output;
 }

@@ -86,8 +86,8 @@ namespace Mikoto {
         Mat4F LightViewProjection{};
 
         Vec4F GridSize{};
-        float Exposure{};
-        float Gamma{};
+        float Exposure{ 1.0f };
+        float Gamma{ 2.0f };
         float MaxReflectionLOD{};
 
         UInt32 ActiveLights{};
@@ -101,6 +101,8 @@ namespace Mikoto {
         Int32 Step{ 1 };
 
         Int32 IsSkyboxActive{};
+
+        Int32 ToneMap{};
     };
 
     struct ShaderLightTypeParams {

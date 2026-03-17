@@ -19,8 +19,7 @@
 
 #include <Common/Common.hh>
 #include <Renderer/Core/GpuDevice.hh>
-#include <Library/Data/Registry.hh>
-#include <Scene/Camera.hh>
+
 #include <Scene/Scene.hh>
 #include <Scene/SceneCamera.hh>
 
@@ -63,9 +62,9 @@ namespace Mikoto {
 
         // IBL
         auto EnableSkybox(bool enable) -> void;
-        auto SetEnvironmentGamma(float value) -> void;
+        auto SetImageGamma(float value) -> void;
         auto SetMaxReflectionLOD( float value ) -> void;
-        auto SetEnvironmentExposure(float value) -> void;
+        auto SetImageExposure(float value) -> void;
 
         auto IsUsingPrecomputedLDRCubeMap() -> bool;
 
@@ -100,6 +99,9 @@ namespace Mikoto {
 
         auto SetZAxisColor( const Vec4F& color ) -> void;
         auto SetXAxisColor( const Vec4F& color ) -> void;
+
+        // HDR
+        auto SetToneMapping(ToneMappingType type) -> void;
 
         // Bloom
         auto EnableBloom(bool value) -> void;

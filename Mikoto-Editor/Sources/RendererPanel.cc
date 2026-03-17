@@ -154,6 +154,7 @@ namespace Mikoto {
 
         ImGuiUtils::DrawNode( "Post processing", [this] () -> void {
             DrawPostProcessing();
+            DrawToneMapSettings();
         });
 
         ImGui::End();
@@ -373,6 +374,39 @@ namespace Mikoto {
         ImGui::TextUnformatted( "Enable bloom" );
     }
 
+    auto RendererPanel::DrawToneMapSettings() -> void {
+        ImGuiUtils::UnindentScoped und{};
+
+        ImGui::Spacing();
+
+        static float gamma{ 2.0f };
+        static float exposure{ 1.0f };
+
+        if (ImGuiUtils::Slider( "Gamma", gamma, { 0.0f, 10.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetImageGamma( gamma );
+        }
+
+        if (ImGuiUtils::Slider( "Exposure", exposure, { 0.0f, 10.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetImageExposure( exposure );
+        }
+
+        ImGui::Spacing();
+        ImGui::TextUnformatted( "ToneMap type" );
+
+        ImGui::SameLine();
+
+        std::array<std::string, static_cast<Size>(ToneMappingType::Max_Count)> choices{
+            "Linear", "Reinhard", "Uncharted2", "Aces",
+        };
+
+        static ToneMappingType toneMapType{ ToneMappingType::Aces };
+        toneMapType = ImGuiUtils::Combo( choices, toneMapType );
+
+        if (m_FinalCompositionTarget != FinalCompositionTarget::ENUM_MAX) {
+            m_EditorState->EditorSceneRenderer->SetToneMapping( toneMapType );
+        }
+    }
+
     auto RendererPanel::DrawIBLSettings() -> void {
         ImGuiUtils::UnindentScoped und{};
 
@@ -419,7 +453,7 @@ namespace Mikoto {
             }
 
             if ( ImGuiUtils::PushImageButton(
-                         displayedHandle->GetHandle(),
+                         "##RendererPanel::DrawIBLSettings:DisplayTextureID",
                          ImGuiService::Get()->GetTextureID( displayedHandle ),
                          ImVec2{ 64, 64 } ) ) {
                 // Clicked thumbnail
@@ -430,8 +464,7 @@ namespace Mikoto {
                 ImGui::TextUnformatted( "Click to load texture" );
                 if ( !textureHandle.IsEmpty() )
                     ImGui::TextUnformatted( textureHandle->GetTextureUri().c_str() );
-            },
-                                 ImGui::IsItemHovered() );
+            },ImGui::IsItemHovered() );
 
             hdrDropTarget();
 
@@ -454,7 +487,6 @@ namespace Mikoto {
         static  std::array<std::string, 2> backgroundTypes{
             "Skybox", "Clear color"
         };
-
         const SceneBackground current{ m_EditorState->ActiveEditorScene->GetSceneBackground() };
         const SceneBackground selection{ ImGuiUtils::Combo( backgroundTypes, current ) };
 
@@ -463,14 +495,6 @@ namespace Mikoto {
         ImGui::Spacing();
 
         hdrDropTarget();
-
-        ImGui::Spacing();
-
-        float gamma    { m_EditorState->ActiveEditorScene->GetGamma() };
-        float exposure { m_EditorState->ActiveEditorScene->GetExposure() };
-
-        if (ImGuiUtils::Slider( "Gamma", gamma, { 0.0f, 10.0f } ) ) { m_EditorState->ActiveEditorScene->SetGamma( gamma ); }
-        if (ImGuiUtils::Slider( "Exposure", exposure, { 0.0f, 10.0f } ) ) { m_EditorState->ActiveEditorScene->SetExposure( exposure ); }
 
         constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
 

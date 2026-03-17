@@ -27,6 +27,16 @@
 
 namespace Mikoto {
 
+    // Index order matches shader
+    // See base/Tonemap_Helpers.slang
+    enum class ToneMappingType {
+        Linear,
+        Reinhard,
+        Uncharted2,
+        Aces,
+        Max_Count,
+    };
+
     class IBLPasses {
     public:
         explicit IBLPasses( RenderResolution resolution);
@@ -45,6 +55,9 @@ namespace Mikoto {
         auto SetSSAOIntensity( float value ) -> void;
 
         // HDR
+        auto SetGamma( float value ) -> void;
+        auto SetExposure( float value ) -> void;
+        auto SetToneMapping(ToneMappingType type) -> void;
         auto SetEquirectangularMap(TextureHandle texture2D) -> void;
 
         // LDR
@@ -54,8 +67,6 @@ namespace Mikoto {
         MKT_NODISCARD auto IsUsingCubeMap() const -> bool;
 
         // IBL
-        auto SetExposure( float value ) -> void;
-        auto SetGamma( float value ) -> void;
         auto EnableSkybox(bool enable) -> void;
         auto SetMaxReflectionLOD( float value ) -> void;
         auto UseConvolutedCube(bool enable)-> void;
@@ -111,8 +122,8 @@ namespace Mikoto {
         };
 
         struct IBLParameters {
-            float Exposure{};
-            float Gamma{};
+            float Exposure{ 1.0f };
+            float Gamma{ 2.0f };
 
             float MaxReflectionLOD{ 9.0 };
             float MaxMipLevel{ 1.0 };
@@ -158,6 +169,9 @@ namespace Mikoto {
         SamplerHandle m_Skybox2DSampler{};
 
         ShaderLightListParams m_LightsInfo{};
+
+        // HDR
+        ToneMappingType m_ToneMapType{ ToneMappingType::Aces };
 
         // SSAO
         bool m_EnableSSAO{ false };

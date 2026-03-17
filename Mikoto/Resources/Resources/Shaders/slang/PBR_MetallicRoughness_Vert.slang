@@ -36,6 +36,8 @@ struct FinalShadingParameters {
     int Step; // for debug
 
     int IsSkyboxActive;
+
+    int ToneMapType;
 };
 
 [[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]

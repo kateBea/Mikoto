@@ -396,7 +396,7 @@ namespace Mikoto {
         ImGui::SameLine();
 
         std::array<std::string, static_cast<Size>(ToneMappingType::Max_Count)> choices{
-            "Linear", "Reinhard", "Uncharted2", "Aces",
+            "Linear", "Reinhard", "Uncharted2", "Aces", "Khronos Neutral"
         };
 
         static ToneMappingType toneMapType{ ToneMappingType::Aces };

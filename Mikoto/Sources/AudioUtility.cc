@@ -15,6 +15,7 @@
 #include <Audio/AudioUtility.hh>
 
 namespace Mikoto {
+
     AudioLoadDescription& AudioLoadDescription::WithFile( const File* source ) {
         this->AudioFile = source;
         return *this;

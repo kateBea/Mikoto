@@ -46,7 +46,7 @@ namespace Mikoto {
     auto PostEffectsPass::RegisterPasses( FrameGraph& graph, GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        RegisterBloom( graph );
+        //RegisterBloom( graph );
         RegisterSSAO( graph );
         RegisterChromaticAberration( graph );
         RegisterTextRender( graph, device );
@@ -339,22 +339,89 @@ namespace Mikoto {
     auto PostEffectsPass::RegisterBloom( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        graph.RegisterPass(
+        graph.RegisterPass<BloomParameters>(
             "BloomDownSampling",
-            []( FramePassBuilder& b ) {
+            [this]( FramePassBuilder& b, BloomParameters& data ) {
                 MKT_BEGIN_PROFILER_NAMED();
+                b.CreateTexture( "BloomDownSampling_ColorTarget", m_Resolution, TextureFormat::RGBA16_FLOAT, Multisampling::MSAA_X1, TextureUsage::COLOR, data.MipLevelCount );
+
+                b.CreateBuffer( "Bloom_Parameters", BufferUsage::UNIFORM, sizeof( BloomParameters ), 1, ResourceUsageType::RESOURCE_USAGE_STREAMING );
+
+                GraphicsPipelineDescription graphicsDesc{
+                    .DepthTest{ true },
+                    .DepthWrite{ true },
+                    .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT }
+                };
+
+                b.UseShader( "Resources/Shaders/slang/BloomDown_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/BloomDown_Frag.slang", ShaderStage::FRAGMENT );
+                b.CreatePipeline( "BloomDownSampling_Pipeline", graphicsDesc );
+
+                b.Write( "Bloom_Parameters", FrameResourceState::UniformBuffer );
+                b.Write( "BloomDownSampling_ColorTarget", FrameResourceState::RenderTarget );
+
+                b.Read( "GBuffer_Emissive", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
-            []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+            [this]( CommandContext& ctx, FrameGraphBlackboard& blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
+
+                auto& data{ blackboard.Get<BloomParameters>() };
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Emissive", data.EmissiveGBufferSampler, ResourceSlot::Slot_0 );
+
+                for (UInt32 mipLevel{ 0 }; mipLevel < data.MipLevelCount; ++mipLevel ) {
+                    ctx.SetColorRenderTarget( "BloomDownSampling_ColorTarget", mipLevel );
+                    ctx.BeginRender();
+
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    ctx.BindPipeline( "BloomDownSampling_Pipeline" );
+                    ctx.Draw( 3 );
+
+                    ctx.EndRender();
+                }
             } );
 
         graph.RegisterPass(
             "BloomUpSampling",
             []( FramePassBuilder& b ) {
                 MKT_BEGIN_PROFILER_NAMED();
+
+                GraphicsPipelineDescription graphicsDesc{
+                    .DepthTest{ true },
+                    .DepthWrite{ true },
+                    .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT }
+                };
+
+                b.UseShader( "Resources/Shaders/slang/BloomUp_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/BloomUp_Frag.slang", ShaderStage::FRAGMENT );
+                b.CreatePipeline( "BloomUpSampling_Pipeline", graphicsDesc );
+
+                b.Read( "Bloom_Parameters", FrameResourceState::UniformBuffer );
+                b.Read( "BloomDownSampling_ColorTarget", FrameResourceState::RenderTarget );
+
+                b.Read( "GBuffer_Emissive", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
-            []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+            [this]( CommandContext& ctx, FrameGraphBlackboard& blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
+
+                auto& data{ blackboard.Get<BloomParameters>() };
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Emissive", data.EmissiveGBufferSampler, ResourceSlot::Slot_0 );
+
+                for (UInt32 mipLevel{ 0 }; mipLevel < data.MipLevelCount; ++mipLevel ) {
+                    ctx.SetColorRenderTarget( "BloomDownSampling_ColorTarget", mipLevel );
+                    ctx.BeginRender();
+
+                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
+                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                    ctx.BindPipeline( "BloomUpSampling_Pipeline" );
+                    ctx.Draw( 3 );
+
+                    ctx.EndRender();
+                }
             } );
     }
 

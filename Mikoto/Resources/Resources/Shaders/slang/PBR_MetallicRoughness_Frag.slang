@@ -151,6 +151,35 @@ float4 Tonemap_Aces(float4 color, float exposure, float gamma) {
     return float4(pow(outColor, float3(1.0f / gamma)), color.a);
 }
 
+// Input color is non-negative and resides in the Linear Rec. 709 color space.
+// Output color is also Linear Rec. 709, but in the [0, 1] range.
+// https://github.com/KhronosGroup/ToneMapping
+// https://www.khronos.org/news/press/khronos-pbr-neutral-tone-mapper-released-for-true-to-life-color-rendering-of-3d-products
+float4 Tonemap_KhronosNeutral(float4 inColor, float exposure, float gamma) {
+    float3 color = inColor.xyz * exposure;
+
+    const float startCompression = 0.8 - 0.04;
+    const float desaturation = 0.15;
+
+    float x = min(color.r, min(color.g, color.b));
+    float offset = x < 0.08 ? x - 6.25 * x * x : 0.04;
+    color -= offset;
+
+    float peak = max(color.r, max(color.g, color.b));
+    if (peak < startCompression) {
+        return float4(pow(color, float3(1.0f / gamma)), inColor.a);
+    }
+
+    const float d = 1. - startCompression;
+    float newPeak = 1. - d * d / (peak + d - startCompression);
+    color *= newPeak / peak;
+
+    float g = 1. - 1. / (desaturation * (peak - newPeak) + 1.);
+    color = lerp(color, newPeak * float3(1, 1, 1), g);
+
+    return float4(pow(color, float3(1.0f / gamma)), inColor.a);
+}
+
 // Calculation of the lighting contribution from an optional Image Based Light source.
 float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor, float perceptualRoughness, float3 n, float3 reflection) {
     // Avoid rough reflections sample invalid mip levels
@@ -642,6 +671,9 @@ FSOutput main(FSInput input) {
         break;
     case c_ToneMapACES:
         output.Color = Tonemap_Aces(float4(color, baseColor.a), u_Constants.Exposure, u_Constants.Gamma);
+        break;
+    case c_ToneMapKhronosNeutral:
+        output.Color = Tonemap_KhronosNeutral(float4(color, baseColor.a), u_Constants.Exposure, u_Constants.Gamma);
         break;
     default:
         output.Color = Tonemap_Aces(float4(color, baseColor.a), u_Constants.Exposure, u_Constants.Gamma);

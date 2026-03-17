@@ -16,3 +16,4 @@ const static int c_ToneMapLinear = 0;
 const static int c_ToneMapReinhard = 1;
 const static int c_ToneMapUncharted2 = 2;
 const static int c_ToneMapACES = 3;
+const static int c_ToneMapKhronosNeutral = 4;

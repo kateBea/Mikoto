@@ -1034,7 +1034,7 @@ namespace Mikoto {
         // This path requires dynamic re
         std::vector<VkRenderingAttachmentInfo> colorImages{};
 
-        // Deafult to color target render area, in the future take these as parameters
+        // Default to color target render area, in the future take these as parameters
         UInt32 width{};
         UInt32 height{};
 

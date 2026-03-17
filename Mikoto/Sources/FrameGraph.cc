@@ -207,6 +207,24 @@ namespace Mikoto {
         CreateTexture( name, scale.first, scale.second, format, msaa, usage );
     }
 
+    auto FramePassBuilder::CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, Multisampling msaa, TextureUsage usage, UInt32 mipLevelCount ) -> void {
+        const auto [width, height] { InferDimensions( resolution ) };
+
+        TextureDescription colorDesc{};
+        colorDesc.WithWidth( width )
+                 .WithHeight( height )
+                 .WithChannelCount( 4 ) // TODO: infer from texture, depth ones usually have one channel
+                 .WithData( nullptr )
+                 .WithType( TextureType::TEXTURE_2D )
+                 .WithTextureUsage( usage )
+                 .WithSampleCount( msaa )
+                 .WithMipLevelCount( mipLevelCount )
+                 .WithFormat( format )
+                 .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+
+        CreateTexture( name, colorDesc );
+    }
+
     auto FramePassBuilder::CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, Multisampling msaa, TextureUsage usage ) -> void {
         TextureDescription colorDesc{};
         colorDesc.WithWidth( width )
@@ -215,10 +233,9 @@ namespace Mikoto {
                  .WithData( nullptr )
                  .WithType( TextureType::TEXTURE_2D )
                  .WithTextureUsage( usage )
+                 .WithSampleCount( msaa )
                  .WithFormat( format )
                  .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
-        colorDesc.MSAA = msaa;
 
         CreateTexture( name, colorDesc );
     }

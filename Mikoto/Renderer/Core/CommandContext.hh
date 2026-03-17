@@ -96,7 +96,7 @@ namespace Mikoto {
         auto BeginRender( const PassRenderInfo& renderInfo = PassRenderInfo{}) -> void;
         auto EndRender() -> void;
 
-        auto SetColorRenderTarget(std::string_view color) -> void;
+        auto SetColorRenderTarget(std::string_view color, UInt32 mipLevel = 0) -> void;
         auto SetDepthRenderTarget(std::string_view depth) -> void;
 
         auto SetViewport( Int32 x, Int32 y, Int32 width, Int32 height) -> void;

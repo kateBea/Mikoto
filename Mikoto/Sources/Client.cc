@@ -24,7 +24,7 @@ namespace Mikoto {
     }
 
     HttpClient::HttpClient( std::string_view host, UInt16 port, SecurityProtocol sp )
-    : m_Host{ host }, m_Security{ sp }, m_Port{ port }
+        : m_Host{ host }, m_Port{ port }, m_Security{ sp }
     {
         InitSocket();
     }

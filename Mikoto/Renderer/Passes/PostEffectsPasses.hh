@@ -31,6 +31,14 @@
 
 namespace Mikoto {
 
+    struct BloomParameters {
+        const UInt32 MipLevelCount{ 4 };
+        SamplerHandle EmissiveGBufferSampler{};
+
+        float Width{};
+        float Height{};
+    };
+
     class PostEffectsPass {
     public:
         explicit PostEffectsPass( RenderResolution resolution);
@@ -123,6 +131,7 @@ namespace Mikoto {
 
         MeshCulling* m_MeshCullingPass{};
 
+        // Infinite grid
         InfiniteGridParameters m_InfiniteGridParameters{};
     };
 

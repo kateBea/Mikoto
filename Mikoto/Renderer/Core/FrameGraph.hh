@@ -87,6 +87,7 @@ namespace Mikoto {
         auto CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, TextureUsage usage ) -> void;
         auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, TextureUsage usage ) -> void;
         auto CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, Multisampling msaa, TextureUsage usage ) -> void;
+        auto CreateTexture( std::string_view name, RenderResolution resolution, TextureFormat format, Multisampling msaa, TextureUsage usage, UInt32 mipLevelCount ) -> void;
         auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, Multisampling msaa, TextureUsage usage ) -> void;
         auto CreateTexture( std::string_view name, UInt32 width, UInt32 height, TextureFormat format, void* ptr, Size sizeBytes) -> void;
 

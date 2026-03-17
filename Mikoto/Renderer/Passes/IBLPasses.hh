@@ -34,6 +34,7 @@ namespace Mikoto {
         Reinhard,
         Uncharted2,
         Aces,
+        Khronos_Neutral,
         Max_Count,
     };
 

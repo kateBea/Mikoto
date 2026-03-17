@@ -171,7 +171,7 @@ namespace Mikoto {
         m_RenderInfo.Clear();
     }
 
-    auto CommandContext::SetColorRenderTarget( std::string_view color ) -> void {
+    auto CommandContext::SetColorRenderTarget( std::string_view color, UInt32 mipLevel ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         TextureHandle colorHandle{ m_Context->GetTexture( color ) };

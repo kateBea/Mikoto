@@ -16,7 +16,6 @@
 
 #include <Logging/Logger.hh>
 #include <Filesystem/File.hh>
-
 #include <Library/IO/File.hh>
 
 namespace Mikoto {

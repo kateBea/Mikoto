@@ -83,6 +83,18 @@ namespace Mikoto {
         m_IBLPasses.SetClearColor( color );
     }
 
+    auto SceneRenderer::SetContrast( float contrast ) -> void {
+        m_PostEffectsPasses.SetContrast( contrast );
+    }
+
+    auto SceneRenderer::SetSaturation( float saturation ) -> void {
+        m_PostEffectsPasses.SetSaturation( saturation );
+    }
+
+    auto SceneRenderer::SetTintColor( const Vec3F &tintColor ) -> void {
+        m_PostEffectsPasses.SetTintColor( tintColor );
+    }
+
     auto SceneRenderer::EnableSkybox( bool enable ) -> void {
         m_IBLPasses.EnableSkybox( enable );
     }
@@ -117,6 +129,7 @@ namespace Mikoto {
     auto SceneRenderer::UpdateEquirectangularMapAsync( std::string_view path ) -> void {
         TaskService::Get()->Submit( [path = Filesystem::GetGetAbsolutePath(path), this]() -> void {
             m_Equirectangular = AssetsService::Get()->LoadAsset<Texture>( path, true );
+
             m_CubeMap = AssetsService::Get()->LoadAsset<TextureCube>( path );
 
             m_LoadedHDR = true;

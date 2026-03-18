@@ -51,7 +51,7 @@ namespace Mikoto {
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
 
         // There must be at least one valid color target
-        MKT_ASSERT( !m_RenderInfo.ColorRenderTargets.empty() && !m_RenderInfo.ColorRenderTargets.front().IsEmpty() ||
+        MKT_ASSERT( !m_RenderInfo.ColorRenderTargets.empty() ||
                 !m_RenderInfo.DepthRenderTarget.IsEmpty(),
             "No valid color or depth target" );
 
@@ -177,7 +177,7 @@ namespace Mikoto {
         TextureHandle colorHandle{ m_Context->GetTexture( color ) };
         MKT_ASSERT( !colorHandle.IsEmpty(), "Color render target must not be empty" );
 
-        m_RenderInfo.ColorRenderTargets.emplace_back( colorHandle );
+        m_RenderInfo.ColorRenderTargets.emplace_back( mipLevel, colorHandle );
     }
 
     auto CommandContext::SetDepthRenderTarget( std::string_view depth ) -> void {
@@ -193,7 +193,8 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_ASSERT( !m_Commands.IsEmpty(), "No valid command list handle" );
-        m_Commands->SetViewport( x, y, width, height );
+        m_Commands->SetViewport( x, y, width, height ); // Makes this so that default does not flip in Vulkan, the flip version was made to account for OpenGL
+        // viewport coordinate system, passes that render models may explicitly ask for a flip ?
     }
 
     auto CommandContext::SetViewport( Int32 x, Int32 y, Int32 width, Int32 height, bool flip ) -> void {

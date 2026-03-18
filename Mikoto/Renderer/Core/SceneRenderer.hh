@@ -60,6 +60,11 @@ namespace Mikoto {
         auto SetCamera( SceneCamera* camera ) -> void;
         auto SetClearColor(const Vec4F& color) -> void;
 
+        // Image postprocessing
+        auto SetContrast( float contrast ) -> void;
+        auto SetSaturation( float saturation ) -> void;
+        auto SetTintColor( const Vec3F& tintColor) -> void;
+
         // IBL
         auto EnableSkybox(bool enable) -> void;
         auto SetImageGamma(float value) -> void;

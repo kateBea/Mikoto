@@ -14,39 +14,29 @@
 
 #include "base/Base.slang"
 #include "base/Camera_Helpers.slang"
-#include "base/Lighting_Helpers.slang"
-#include "base/Tonemap_Helpers.slang"
-
-struct FSInput {
-    float3 Direction : TEXCOORD0;
-    float  Exposure  : TEXCOORD1;
-    float  Gamma     : TEXCOORD2;
-};
-
 struct FSOutput {
     float4 Color : SV_Target0;
 };
 
-[[vk::binding(Slot_0, DYNAMIC_SAMPLERS_SET_INDEX)]]
-SamplerCube g_SkyboxTex;
+struct FSInput {
+    float2 UV : TEXCOORD0;
+};
 
-[[vk::push_constant]]
-SkyBoxParameters u_IBLParams;
+// Bloom
+[[vk::binding(Slot_0, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_Bloom;
+[[vk::binding(Slot_1, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SceneColor;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
 
-    const float blur = 4.5;
-    float3 color;
+    float3 scene = u_SceneColor.Sample(input.UV).rgb;
+    float3 bloom = u_Bloom.Sample(input.UV).rgb;
 
-    if (u_IBLParams.MaxMipLevel > blur) {
-        color = g_SkyboxTex.SampleLevel(input.Direction, blur).rgb;
-    }
-    else {
-        color = g_SkyboxTex.Sample(input.Direction).rgb;
-    }
+    float bloomIntensity = 2.0f;
 
-    o.Color = float4(color, 1.0);
+    float3 color = scene + bloom * bloomIntensity;
+
+    o.Color = float4(color, 1.0f);
     return o;
 }

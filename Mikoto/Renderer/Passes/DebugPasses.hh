@@ -79,6 +79,7 @@ namespace Mikoto {
         auto RegisterHelloCube( FrameGraph& graph ) -> void;
         auto RegisterHelloTexture( FrameGraph& graph ) -> void;
         auto RegisterBoneDebug( FrameGraph& graph ) -> void;
+        auto RegisterEmitTexture( FrameGraph& graph ) -> void;
 
         auto RegisterDebugViewsPass( FrameGraph& graph ) -> void;
 

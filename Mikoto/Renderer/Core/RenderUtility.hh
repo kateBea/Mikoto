@@ -424,6 +424,8 @@ namespace Mikoto {
     MKT_NODISCARD auto InferAPI( std::string_view apiName ) -> GraphicsAPI;
     MKT_NODISCARD auto InferElementCount(BufferDataType dataType, Size blockSize) -> Size;
     MKT_NODISCARD auto InferDimensions(RenderResolution resolution) -> std::pair<float, float>;
+    MKT_NODISCARD auto InferDimensions(RenderResolution resolution, UInt32 mipLevel) -> std::pair<UInt32, UInt32>;
+    MKT_NODISCARD auto InferDimensions(float width, float height, UInt32 mipLevel) -> std::pair<UInt32, UInt32>;
 
     MKT_NODISCARD auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
     MKT_NODISCARD auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;

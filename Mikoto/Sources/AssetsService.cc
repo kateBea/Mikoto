@@ -203,6 +203,7 @@ namespace Mikoto {
         TextureLoadDescription loadDesc{};
         loadDesc.WithFile( FileService::Get()->LoadFile( uri ) )
                 .IsHDRMap( isHDR )
+                // Use proper format for HDR images, currently using the default which is rgb8 unorm
                 .WithType( TextureType::TEXTURE_2D );
 
         return LoadTexture( loadDesc );

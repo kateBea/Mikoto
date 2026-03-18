@@ -14,17 +14,16 @@
 
 #include <memory>
 
-#include <Math/Math.hh>
-
 #include <Core/Profiler.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Component.hh>
-
-#include <Renderer/Core/FramePassResource.hh>
-#include <Renderer/Core/FrameGraphBlackboard.hh>
+#include <Math/Math.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraphBlackboard.hh>
+#include <Renderer/Core/FramePassResource.hh>
 #include <Renderer/Passes/IBLPasses.hh>
+#include <Scene/Component.hh>
+#include <Scene/Scene.hh>
+
+#include "Renderer/Passes/PostEffectsPasses.hh"
 
 namespace Mikoto {
     
@@ -435,6 +434,7 @@ namespace Mikoto {
                     .AlphaBlending{ false },
                     .PipelineCullMode{ CullMode::NONE },
                     .PrimitiveTopology{ Topology::TRIANGLE_LIST },
+                    .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT },
                 };
                 b.CreatePipeline( "SkyboxPass_Pipeline", graphicsDesc );
 
@@ -622,11 +622,11 @@ namespace Mikoto {
         // https://github.khronos.org/Vulkan-Site/tutorial/latest/Building_a_Simple_Engine/Lighting_Materials/04_lighting_implementation.html
 
         graph.RegisterPass<FinalShadingConstants>(
-            "MetallicRoughnessPBR",
+            "PBR_Radiance",
             [this]( FramePassBuilder &b, FinalShadingConstants & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
-                b.CreateTexture( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
+                b.CreateTexture( "FinalShadingPass_ColorTarget", m_Resolution, TextureFormat::RGBA16_FLOAT, Multisampling::MSAA_X1, TextureUsage::COLOR );
                 b.CreateTexture( "FinalShadingPass_DepthTarget", m_Resolution, TextureFormat::D32_FLOAT_S8_UINT, Multisampling::MSAA_X1, TextureUsage::DEPTH );
 
                 GraphicsPipelineDescription graphicsDesc{
@@ -638,6 +638,7 @@ namespace Mikoto {
                     .PipelineCullMode{ CullMode::NONE },// We probably need to organize models by material some (or handle models with diff mats somehow)
                                                         // models like the just_a_girl require cull_back to be properly visulized
                     .VertexAttributesSpec{},
+                    .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT }, // Shading pass may emit High range values, adjusted later by tonemap pass
                 };
 
                 b.UseShader( "Resources/Shaders/slang/PBR_MetallicRoughness_Vert.slang", ShaderStage::VERTEX );
@@ -679,7 +680,10 @@ namespace Mikoto {
                 LoadOp colorTargetLoadOP{ LoadOp::LOAD };
                 if ( !m_UseSkybox ) {
                     colorTargetLoadOP = LoadOp::CLEAR;
-                    ctx.SetClearColor( m_ClearColor );
+
+                    // Not sure if this is correct but otherwise clear colors look weird when tone-mapped.
+                    // Clear color is assumed to be in LDR we just conver it to an HDR value.
+                    ctx.SetClearColor( m_ClearColor / (1.0f / m_ClearColor ) );
                 }
 
                 PassRenderInfo renderInfo{
@@ -722,7 +726,7 @@ namespace Mikoto {
                 
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", ResourceSlot::Slot_3 );
                 ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAOBlur_ColorTarget", ResourceSlot::Slot_4 );
-                
+
                 ctx.BindImageSampler( ResourceGroup::DynamicSamplers, "DirectionalShadowMapPass_DepthTarget", m_DirShadowMapSampler, ResourceSlot::Slot_0 );
                 
                 ctx.BindGroup( ResourceGroup::UnboundedImageViews, "Texture2D_List" );
@@ -767,6 +771,11 @@ namespace Mikoto {
 
                 b.Read( "DepthPrePass_Color", FrameResourceState::ShaderRead_GraphicsPipeline );
                 b.Read( "InfiniteGrid_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+
+                b.Read( "BloomBlend_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "Tonemap_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "ColorGradient_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "ChromaticAberration_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
             []( CommandContext &, FrameGraphBlackboard & ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();

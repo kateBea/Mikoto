@@ -32,12 +32,17 @@
 namespace Mikoto {
 
     struct RenderInfo {
+        struct ColorRenderTargetInfo {
+            UInt32 MipLevel{ 0 };
+            TextureHandle ColorTarget{};
+        };
+
         LoadOp ColorLoadOp{ LoadOp::CLEAR };
         LoadOp DephtLoadOp{ LoadOp::CLEAR };
 
         TextureHandle DepthRenderTarget{};
         Vec4F ClearColor{ 0.0f, 0.0f, 0.0f, 1.0f };
-        std::vector<TextureHandle> ColorRenderTargets{};
+        std::vector<ColorRenderTargetInfo> ColorRenderTargets{};
 
         auto Clear() -> void;
     };

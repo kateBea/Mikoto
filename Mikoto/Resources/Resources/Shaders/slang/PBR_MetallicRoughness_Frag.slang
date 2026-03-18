@@ -118,68 +118,6 @@ struct FSInput {
     bool IsFrontFace : SV_IsFrontFace;
 };
 
-float4 Tonemap_Uncharted2(float4 color) {
-    float3 outcol = Uncharted2Tonemap(color.rgb * u_Constants.Exposure);
-    outcol = outcol * (1.0f / Uncharted2Tonemap(float3(11.2f)));
-
-    return float4(pow(outcol, float3(1.0f / u_Constants.Gamma)), color.a);
-}
-
-float3 Tonemap_Reinhard(float3 color) {
-    return color / (1.0 + color);
-}
-
-float4 Tonemap_Linear(float4 inColor, float exposure, float gamma) {
-
-    float3 color = inColor.xyz * exposure;
-    color = saturate(color);
-
-    // gamma correction
-    return float4(pow(color, float3(1.0f / gamma)), inColor.a);
-}
-
-float4 Tonemap_Aces(float4 color, float exposure, float gamma) {
-    float3 outColor = color.xyz * exposure;
-
-    float a = 2.51f;
-    float b = 0.03f;
-    float c = 2.43f;
-    float d = 0.59f;
-    float e = 0.14f;
-
-    outColor = saturate((outColor * (a * outColor + b)) / (outColor * (c * outColor + d) + e));
-    return float4(pow(outColor, float3(1.0f / gamma)), color.a);
-}
-
-// Input color is non-negative and resides in the Linear Rec. 709 color space.
-// Output color is also Linear Rec. 709, but in the [0, 1] range.
-// https://github.com/KhronosGroup/ToneMapping
-// https://www.khronos.org/news/press/khronos-pbr-neutral-tone-mapper-released-for-true-to-life-color-rendering-of-3d-products
-float4 Tonemap_KhronosNeutral(float4 inColor, float exposure, float gamma) {
-    float3 color = inColor.xyz * exposure;
-
-    const float startCompression = 0.8 - 0.04;
-    const float desaturation = 0.15;
-
-    float x = min(color.r, min(color.g, color.b));
-    float offset = x < 0.08 ? x - 6.25 * x * x : 0.04;
-    color -= offset;
-
-    float peak = max(color.r, max(color.g, color.b));
-    if (peak < startCompression) {
-        return float4(pow(color, float3(1.0f / gamma)), inColor.a);
-    }
-
-    const float d = 1. - startCompression;
-    float newPeak = 1. - d * d / (peak + d - startCompression);
-    color *= newPeak / peak;
-
-    float g = 1. - 1. / (desaturation * (peak - newPeak) + 1.);
-    color = lerp(color, newPeak * float3(1, 1, 1), g);
-
-    return float4(pow(color, float3(1.0f / gamma)), inColor.a);
-}
-
 // Calculation of the lighting contribution from an optional Image Based Light source.
 float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor, float perceptualRoughness, float3 n, float3 reflection) {
     // Avoid rough reflections sample invalid mip levels
@@ -188,8 +126,8 @@ float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor
     // retrieve a scale and bias to F0. See [1], Figure 3
     float3 brdf = u_SamplerBRDFLUT.Sample(float2(NdotV, 1.0 - perceptualRoughness)).rgb;
 
-    float3 diffuseLight = SRGBtoLINEAR(Tonemap_Uncharted2(u_SamplerIrradiance.Sample(n))).rgb;
-    float3 specularLight = SRGBtoLINEAR(Tonemap_Uncharted2(u_PrefilteredMap.SampleLevel(reflection, lod))).rgb;
+    float3 diffuseLight = SRGBtoLINEAR(Tonemap_Uncharted2(u_SamplerIrradiance.Sample(n), u_Constants.Exposure, u_Constants.Gamma)).rgb;
+    float3 specularLight = SRGBtoLINEAR(Tonemap_Uncharted2(u_PrefilteredMap.SampleLevel(reflection, lod), u_Constants.Exposure, u_Constants.Gamma)).rgb;
 
     float3 diffuse = diffuseLight * diffuseColor;
     float3 specular = specularLight * (specularColor * brdf.x + brdf.y);
@@ -658,27 +596,7 @@ FSOutput main(FSInput input) {
     }
 
     color += emissiveContrib;
-
-    switch (u_Constants.ToneMapType) {
-    case c_ToneMapLinear:
-        output.Color = Tonemap_Linear(float4(color, baseColor.a), u_Constants.Exposure, u_Constants.Gamma);
-        break;
-    case c_ToneMapReinhard:
-        output.Color = float4(Tonemap_Reinhard(color.xyz), baseColor.a);
-        break;
-    case c_ToneMapUncharted2:
-        output.Color = Tonemap_Uncharted2(float4(color, baseColor.a));
-        break;
-    case c_ToneMapACES:
-        output.Color = Tonemap_Aces(float4(color, baseColor.a), u_Constants.Exposure, u_Constants.Gamma);
-        break;
-    case c_ToneMapKhronosNeutral:
-        output.Color = Tonemap_KhronosNeutral(float4(color, baseColor.a), u_Constants.Exposure, u_Constants.Gamma);
-        break;
-    default:
-        output.Color = Tonemap_Aces(float4(color, baseColor.a), u_Constants.Exposure, u_Constants.Gamma);
-        break;
-    }
+    output.Color = float4(color, baseColor.a);
     
     return output;
 }

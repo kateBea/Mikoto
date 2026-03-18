@@ -32,19 +32,6 @@ struct SkyBoxParameters {
 // Helpers
 // ============================================================================
 
-// From http://filmicworlds.com/blog/filmic-tonemapping-operators/
-float3 Uncharted2Tonemap(float3 color) {
-    const float A = 0.15;
-    const float B = 0.50;
-    const float C = 0.10;
-    const float D = 0.20;
-    const float E = 0.02;
-    const float F = 0.30;
-
-    return ((color * (A * color + C * B) + D * E) /
-            (color * (A * color + B) + D * F)) - (E / F);
-}
-
 float3 GetNormalFromMap(Sampler2D normalMap, float2 uv, float3 inNormal, float3 worldPos) {
     // Perturb normal, see http://www.thetenthplanet.de/archives/1180
     float3 tangentNormal = normalMap.Sample(uv).xyz * 2.0 - 1.0;

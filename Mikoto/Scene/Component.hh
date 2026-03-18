@@ -71,6 +71,18 @@ namespace Mikoto {
         bool m_IsActive{};
     };
 
+    // Used to identify objects that must be highlighted or
+    // should be part of outline, highlight passes
+    class HighlightComponent final {
+    public:
+
+        auto SetHighlighted(bool value) -> void { m_IsHighlighted = value; }
+        MKT_NODISCARD auto IsHighlighted() const -> bool { return m_IsHighlighted; }
+
+    private:
+        bool m_IsHighlighted{ false };
+    };
+
     class TransformComponent {
     public:
         explicit TransformComponent() {
@@ -727,6 +739,24 @@ namespace Mikoto {
 
     private:
         UInt64 m_AnimatorID{};
+    };
+
+    class PostProcessComponent {
+    public:
+        explicit PostProcessComponent() = default;
+
+        PostProcessComponent( const PostProcessComponent& other ) = default;
+        PostProcessComponent( PostProcessComponent&& other ) = default;
+
+        auto operator=( const PostProcessComponent& other ) -> PostProcessComponent& = default;
+        auto operator=( PostProcessComponent&& other ) -> PostProcessComponent& = default;
+
+        MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return m_Material; }
+
+        ~PostProcessComponent() = default;
+
+    private:
+        MaterialHandle m_Material{};
     };
 }
 

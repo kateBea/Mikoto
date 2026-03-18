@@ -699,7 +699,7 @@ namespace Mikoto {
             auto& currentFrameCmdLists{ m_AvailableGraphicsCommandLists[m_CurrentFrameIndex] };
 
             if (currentFrameCmdLists.empty() ) {
-                constexpr UInt32 growCount{ 10 };
+                constexpr UInt32 growCount{ 20 };
 
                 currentFrameCmdLists.reserve( growCount );
 
@@ -1038,11 +1038,14 @@ namespace Mikoto {
         UInt32 width{};
         UInt32 height{};
 
-        for (auto &colorImage: info.ColorRenderTargets) {
+        UInt32 highestMip{};
+        for (auto &[mipLevel, colorImage]: info.ColorRenderTargets) {
+            VulkanTexture* vulkanTexture{ dynamic_cast<VulkanTexture *>(colorImage.GetRaw()) };
+
             VkAttachmentLoadOp loadOp{ info.ColorLoadOp == LoadOp::CLEAR ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
             VkRenderingAttachmentInfo &colorAttachment{ colorImages.emplace_back( VkRenderingAttachmentInfo{} ) };
             colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-            colorAttachment.imageView = colorImage->GetNativeHandle( ObjectType::Vk_ImageView );
+            colorAttachment.imageView = vulkanTexture->GetView( mipLevel );
             colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             colorAttachment.loadOp = loadOp;
             colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1050,6 +1053,16 @@ namespace Mikoto {
 
             width = colorImage->GetWidth();
             height = colorImage->GetHeight();
+
+            // Keep the lowest mip's dimensions
+            if (mipLevel > highestMip) {
+                highestMip = mipLevel;
+
+                auto dimensions{ InferDimensions( width, height, highestMip ) };
+
+                width = dimensions.first;
+                height = dimensions.second;
+            }
         }
 
         VkRenderingAttachmentInfo depthAttachment{};
@@ -1057,15 +1070,18 @@ namespace Mikoto {
             VkAttachmentLoadOp loadOp{ info.DephtLoadOp == LoadOp::CLEAR ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
 
             depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-            depthAttachment.imageView = info.DepthRenderTarget->GetNativeHandle( ObjectType::Vk_ImageView );
+            depthAttachment.imageView = info.DepthRenderTarget->GetNativeHandle( ObjectType::Vk_ImageView ); // Depth for now defaults to mip 0
             depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             depthAttachment.loadOp = loadOp;
             depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
 
-            // We assume they share dimensions but this should be external
-            width = info.DepthRenderTarget->GetWidth();
-            height = info.DepthRenderTarget->GetHeight();
+            // Color target dimensions are prioritized
+            if (width == 0 && height == 0) {
+                // We assume they share dimensions but this should be external
+                width = info.DepthRenderTarget->GetWidth();
+                height = info.DepthRenderTarget->GetHeight();
+            }
         }
 
         VkRenderingInfo renderingInfo{};
@@ -1576,7 +1592,6 @@ namespace Mikoto {
 
         // Command pool to allocate command buffers for compute queue operations
         VkCommandPoolCreateInfo createInfo{ VulkanHelpers::Initializers::CommandPoolCreateInfo() };
-        createInfo.flags = 0;
         createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         createInfo.queueFamilyIndex = DetermineQueueIndex( queues, m_QueueType );
 

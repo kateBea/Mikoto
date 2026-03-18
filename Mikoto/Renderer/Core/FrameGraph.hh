@@ -123,6 +123,7 @@ namespace Mikoto {
 
     };
 
+    // TODO: Consider passes depending on each other instead of depending on reads and writes
     class FrameGraph final {
     public:
         explicit FrameGraph( GraphicsContext *context, GpuDevice *device );

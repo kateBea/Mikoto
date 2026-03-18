@@ -67,10 +67,7 @@ namespace Mikoto {
 
     auto EditorState::RegisterSelection( Entity *entity ) -> void {
         SelectedEntity = entity;
-    }
-
-    auto EditorState::RegisterSelections( const std::vector<Entity *> &list ) -> void {
-        std::ranges::for_each(list, [&](Entity *entity) { SelectedEntities.emplace(entity); });
+        SelectedEntity->GetComponent<HighlightComponent>().SetHighlighted( true );
     }
 
     auto EditorState::RemoveSingleSelection() -> void {
@@ -78,7 +75,11 @@ namespace Mikoto {
     }
 
     auto EditorState::RemoveSelections( const std::vector<Entity *> &list ) -> void {
-        std::ranges::for_each(list, [&](Entity *entity) { SelectedEntities.erase(entity); });
+        // TODO:
+    }
+
+    auto EditorState::RegisterSelections( const std::vector<Entity *> &list ) -> void {
+        // TODO:
     }
 
     EditorLayer::EditorLayer( Window* window)
@@ -122,7 +123,7 @@ namespace Mikoto {
 
         m_EditorState->EditorCamera = m_EditorCamera.get();
         m_EditorState->ActiveEditorScene = m_ActiveScene;
-        m_EditorState->FinalComposition = m_SceneRenderer->GetTexture( "FinalShadingPass_ColorTarget" );
+        m_EditorState->FinalComposition = m_SceneRenderer->GetTexture( "Tonemap_ColorTarget" );
         m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
     }
 
@@ -157,6 +158,7 @@ namespace Mikoto {
 
     auto EditorLayer::LoadResources() -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
     }
 
     auto EditorLayer::SetPresentTarget() -> void {
@@ -540,6 +542,9 @@ namespace Mikoto {
         m_EditorState->PassesCompositions.try_emplace( "2. Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "3. BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
         m_EditorState->PassesCompositions.try_emplace( "5. ShadowMap", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "6. Bloom", m_SceneRenderer->GetTexture( "BloomBlend_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "7. Gradient", m_SceneRenderer->GetTexture( "ColorGradient_ColorTarget" ) );
+        m_EditorState->PassesCompositions.try_emplace( "8. Chroma", m_SceneRenderer->GetTexture( "ChromaticAberration_ColorTarget" ) );
     }
 
     auto EditorLayer::CreatePanels() -> void {

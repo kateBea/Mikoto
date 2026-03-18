@@ -344,16 +344,40 @@ namespace Mikoto {
     auto InferDimensions( RenderResolution resolution ) -> std::pair<float, float> {
         switch ( resolution ) {
             case RenderResolution::HD_720P:
-                return std::make_pair( 1280.0f, 720.0f );
+                return std::make_pair( 1280, 720 );
             case RenderResolution::FHD_1080:
-                return std::make_pair( 1920.0f, 1080.0f );
+                return std::make_pair( 1920, 1080 );
             case RenderResolution::QHD_1440P:
-                return std::make_pair( 2560.0f, 1440.0f );
+                return std::make_pair( 2560, 1440 );
             case RenderResolution::UHD_3120P:
-                return std::make_pair( 3840.0f, 2160.0f );
+                return std::make_pair( 3840, 2160 );
         }
 
-        return std::make_pair( 1920.0f, 1080.0f );
+        return std::make_pair( 1920, 1080 );
+    }
+
+    auto InferDimensions(RenderResolution resolution, UInt32 mipLevel) -> std::pair<UInt32, UInt32> {
+        auto result{ InferDimensions(resolution) };
+
+        const UInt32 baseWidth{ static_cast<UInt32>( result.first ) };
+        const UInt32 baseHeight{ static_cast<UInt32>( result.second ) };
+
+        UInt32 width  { std::max(1u, baseWidth >> mipLevel) };
+        UInt32 height { std::max(1u, baseHeight >> mipLevel) };
+
+        return std::make_pair( width, height );
+    }
+
+    auto InferDimensions( float width, float height, UInt32 mipLevel ) -> std::pair<UInt32, UInt32> {
+        UInt32 baseWidth  { static_cast<UInt32>(width) };
+        UInt32 baseHeight { static_cast<UInt32>(height) };
+
+        UInt32 mipWidth  { std::max(1u, baseWidth  >> mipLevel) };
+        UInt32 mipHeight { std::max(1u, baseHeight >> mipLevel) };
+
+        return { mipWidth, mipHeight };
+
+        return std::make_pair( width, height );
     }
 
     auto BufferDescription::ForElement( const Size size, const Size count ) -> BufferDescription& {

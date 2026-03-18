@@ -18,6 +18,7 @@
 #include "base/Animation_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
+#include "base/Tonemap_Helpers.slang"
 
 struct FinalShadingParameters {
     float4 GridSize;

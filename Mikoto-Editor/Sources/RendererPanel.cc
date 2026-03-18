@@ -372,11 +372,38 @@ namespace Mikoto {
         }
         ImGui::SameLine();
         ImGui::TextUnformatted( "Enable bloom" );
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        static float contrast{ 1.0f };
+        if (ImGuiUtils::Slider( "Contrast", contrast, { 0.0f, 10.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetContrast( contrast );
+        }
+
+        static float saturation{ 1.0f };
+        if (ImGuiUtils::Slider( "Saturation", saturation, { 0.0f, 10.0f } ) ) {
+            m_EditorState->EditorSceneRenderer->SetSaturation( saturation );
+        }
+
+        constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview };
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        static Vec4F tintColor{ 0.1f, 0.2f, 0.3f, 1.0f };
+        if ( ImGui::ColorEdit3( "Tint", glm::value_ptr( tintColor ), colorEditFlags ) ) {
+            m_EditorState->EditorSceneRenderer->SetTintColor( tintColor );
+        }
     }
 
     auto RendererPanel::DrawToneMapSettings() -> void {
         ImGuiUtils::UnindentScoped und{};
 
+        ImGui::Spacing();
+        ImGui::Separator();
         ImGui::Spacing();
 
         static float gamma{ 2.0f };
@@ -391,9 +418,7 @@ namespace Mikoto {
         }
 
         ImGui::Spacing();
-        ImGui::TextUnformatted( "ToneMap type" );
-
-        ImGui::SameLine();
+        ImGui::Spacing();
 
         std::array<std::string, static_cast<Size>(ToneMappingType::Max_Count)> choices{
             "Linear", "Reinhard", "Uncharted2", "Aces", "Khronos Neutral"
@@ -405,6 +430,9 @@ namespace Mikoto {
         if (m_FinalCompositionTarget != FinalCompositionTarget::ENUM_MAX) {
             m_EditorState->EditorSceneRenderer->SetToneMapping( toneMapType );
         }
+
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "ToneMap type" );
     }
 
     auto RendererPanel::DrawIBLSettings() -> void {
@@ -518,7 +546,7 @@ namespace Mikoto {
 
         // These are directly taken from the core passes from the Scene renderer
         std::array<std::string, static_cast<Size>(FinalCompositionTarget::ENUM_MAX)> images{
-            "GBuffer_Color", "GBuffer_Emissive","GBuffer_Normal", "GBuffer_Position", "DepthPrePass_Color", "FinalShadingPass_ColorTarget",
+            "GBuffer_Color", "GBuffer_Emissive","GBuffer_Normal", "GBuffer_Position", "DepthPrePass_Color", "Tonemap_ColorTarget",
         };
 
         m_FinalCompositionTarget = ImGuiUtils::Combo( choices, m_FinalCompositionTarget );

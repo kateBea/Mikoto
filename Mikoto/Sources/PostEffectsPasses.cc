@@ -46,10 +46,26 @@ namespace Mikoto {
     auto PostEffectsPass::RegisterPasses( FrameGraph& graph, GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        //RegisterBloom( graph );
+        RegisterBloom( graph );
         RegisterSSAO( graph );
+        RegisterTonemap( graph );
+        RegisterGradient( graph );
+        RegisterPostProcessMaterialsFilter( graph );
         RegisterChromaticAberration( graph );
         RegisterTextRender( graph, device );
+        RegisterObjectOutline( graph );
+    }
+
+    auto PostEffectsPass::SetContrast( float contrast ) -> void {
+        m_ColorGradientParameters.Contrast = contrast;
+    }
+
+    auto PostEffectsPass::SetSaturation( float saturation ) -> void {
+        m_ColorGradientParameters.Saturation = saturation;
+    }
+
+    auto PostEffectsPass::SetTintColor( const Vec3F& tintColor ) -> void {
+        m_ColorGradientParameters.Tint = tintColor;
     }
 
     auto PostEffectsPass::EnableBloom( bool value ) -> void {
@@ -62,7 +78,6 @@ namespace Mikoto {
 
     auto PostEffectsPass::RegisterTextRender( FrameGraph& graph, GpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
         m_TextInfo.resize( MAX_GLYPHS );
 
         // Vertex buffer and index buffer for the quads
@@ -107,12 +122,12 @@ namespace Mikoto {
                         .DefaultVertexLayout{ layout },
                         .InputRateSpec{ .BindingIndex = { 0 }, .AttributeRate{ InputRate::PER_VERTEX } } } };
                 graphicsDesc.PrimitiveTopology = Topology::TRIANGLE_LIST;
+                graphicsDesc.ColorAttachmentFormats = { TextureFormat::RGBA16_FLOAT };
                 b.CreatePipeline( "TextRenderPass_Pipeline", graphicsDesc );
 
                 b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
                 b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
 
-                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
                 b.Read( "InfiniteGrid_BufferEDGE+", FrameResourceState::UniformBuffer );
 
                 b.Write( "3DRenderTextEdge", FrameResourceState::UniformBuffer );
@@ -165,11 +180,51 @@ namespace Mikoto {
             } );
     }
 
-    auto PostEffectsPass::RegisterObjectOutline( FrameGraph& graph, GpuDevice* device ) -> void {
+    auto PostEffectsPass::RegisterObjectOutline( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // First pass here will require the positions
+        // So it will probably depend on GBuffer_Positions
+
+        // Filter objects that mush appear outlined
         graph.RegisterPass(
-            "ObjectOutline",
+            "OutlineObjectsFilter",
+            []( FramePassBuilder& b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
+
+        graph.RegisterPass(
+            "OutlineMask",
+            []( FramePassBuilder& b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
+
+        graph.RegisterPass(
+            "OutlineSeedInit",
+            []( FramePassBuilder& b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
+
+        graph.RegisterPass(
+            "JFA_Resolution",
+            []( FramePassBuilder& b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
+
+        graph.RegisterPass(
+            "CompositeOutline",
             []( FramePassBuilder& b ) {
                 MKT_BEGIN_PROFILER_NAMED();
             },
@@ -183,6 +238,72 @@ namespace Mikoto {
 
         graph.RegisterPass(
             "ChromaticAberration",
+            [this]( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+
+                b.CreateTexture( "ChromaticAberration_ColorTarget", m_Resolution, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
+
+                b.UseShader( "Resources/Shaders/slang/ChromaticAberration_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/ChromaticAberration_Frag.slang", ShaderStage::FRAGMENT );
+
+                b.CreatePipeline( "ChromaticAberration_Pipeline",
+                    GraphicsPipelineDescription{
+                    .VertexAttributesSpec{},
+                    .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT }
+                } );
+
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
+                b.Read( "FinalShadingPass_BufferEDGE+", FrameResourceState::UniformBuffer );
+                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard& blackboard ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+
+                const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "FinalShadingPass_ColorTarget", ResourceSlot::Slot_0 );
+
+                ctx.SetColorRenderTarget( "ChromaticAberration_ColorTarget" );
+
+                ctx.BeginRender();
+
+                ctx.BindPipeline( "ChromaticAberration_Pipeline" );
+
+                ctx.Draw( 3 );
+
+                ctx.EndRender();
+            } );
+    }
+
+    auto PostEffectsPass::RegisterDepthOfField( FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        // Pending:
+        // https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-28-practical-post-process-depth-field
+        graph.RegisterPass(
+            "DepthOfField_InitializeCoC",
+            []( FramePassBuilder& b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
+
+        graph.RegisterPass(
+            "DepthOfField_ComputeNearCoC",
+            []( FramePassBuilder& b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext& ctx, FrameGraphBlackboard& ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
+
+        graph.RegisterPass(
+            "DepthOfField_BlurNearCoC",
             []( FramePassBuilder& b ) {
                 MKT_BEGIN_PROFILER_NAMED();
             },
@@ -343,7 +464,7 @@ namespace Mikoto {
             "BloomDownSampling",
             [this]( FramePassBuilder& b, BloomParameters& data ) {
                 MKT_BEGIN_PROFILER_NAMED();
-                b.CreateTexture( "BloomDownSampling_ColorTarget", m_Resolution, TextureFormat::RGBA16_FLOAT, Multisampling::MSAA_X1, TextureUsage::COLOR, data.MipLevelCount );
+                b.CreateTexture( "BloomDownSampling_ColorTarget", m_Resolution, TextureFormat::RGBA16_FLOAT, Multisampling::MSAA_X1, TextureUsage::COLOR, data.MipCount );
 
                 b.CreateBuffer( "Bloom_Parameters", BufferUsage::UNIFORM, sizeof( BloomParameters ), 1, ResourceUsageType::RESOURCE_USAGE_STREAMING );
 
@@ -360,19 +481,36 @@ namespace Mikoto {
                 b.Write( "Bloom_Parameters", FrameResourceState::UniformBuffer );
                 b.Write( "BloomDownSampling_ColorTarget", FrameResourceState::RenderTarget );
 
+                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
                 b.Read( "GBuffer_Emissive", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
             [this]( CommandContext& ctx, FrameGraphBlackboard& blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 auto& data{ blackboard.Get<BloomParameters>() };
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Emissive", data.EmissiveGBufferSampler, ResourceSlot::Slot_0 );
 
-                for (UInt32 mipLevel{ 0 }; mipLevel < data.MipLevelCount; ++mipLevel ) {
+                if (data.GBufferEmissiveSampler.IsEmpty() ) {
+                    SamplerDescription description{
+                        .MinFilter{ SamplerFilter::FILTER_LINEAR },
+                        .MagFilter{ SamplerFilter::FILTER_LINEAR },
+                        .WrapU{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE },
+                        .WrapV{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE },
+                        .WrapW{ SamplerWrapMode::WRAP_CLAMP_TO_EDGE },
+                    };
+
+                    data.GBufferEmissiveSampler = ctx.CreateSampler( description );
+                }
+
+                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Emissive", data.GBufferEmissiveSampler, ResourceSlot::Slot_0 );
+
+                for (UInt32 mipLevel{ 0 }; mipLevel < data.MipCount; ++mipLevel ) {
                     ctx.SetColorRenderTarget( "BloomDownSampling_ColorTarget", mipLevel );
-                    ctx.BeginRender();
 
-                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                    PassRenderInfo info{ .ColorLoadOp{LoadOp::LOAD} };
+                    ctx.BeginRender(info);
+
+                    const auto dimensions{ InferDimensions( m_Resolution, mipLevel ) };
                     ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
                     ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
@@ -407,13 +545,15 @@ namespace Mikoto {
                 MKT_BEGIN_PROFILER_NAMED();
 
                 auto& data{ blackboard.Get<BloomParameters>() };
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Emissive", data.EmissiveGBufferSampler, ResourceSlot::Slot_0 );
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Emissive", data.GBufferEmissiveSampler, ResourceSlot::Slot_0 );
 
-                for (UInt32 mipLevel{ 0 }; mipLevel < data.MipLevelCount; ++mipLevel ) {
+                for (UInt32 mipLevel{ 0 }; mipLevel < data.MipCount; ++mipLevel ) {
                     ctx.SetColorRenderTarget( "BloomDownSampling_ColorTarget", mipLevel );
-                    ctx.BeginRender();
 
-                    const auto dimensions{ InferDimensions( m_Resolution ) };
+                    PassRenderInfo info{ .ColorLoadOp{LoadOp::LOAD} };
+                    ctx.BeginRender(info);
+
+                    const auto dimensions{ InferDimensions( m_Resolution, mipLevel ) };
                     ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
                     ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
@@ -423,6 +563,175 @@ namespace Mikoto {
                     ctx.EndRender();
                 }
             } );
+
+        // Final bloom composition pass
+        graph.RegisterPass(
+            "BloomBlend",
+            [this]( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+
+                b.CreateTexture( "BloomBlend_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
+
+                GraphicsPipelineDescription graphicsDesc{
+                    .DepthTest{ true },
+                    .DepthWrite{ true },
+                    .ColorAttachmentFormats{ TextureFormat::RGBA8_UNORM }
+                };
+
+                b.UseShader( "Resources/Shaders/slang/Bloom_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/Bloom_Frag.slang", ShaderStage::FRAGMENT );
+                b.CreatePipeline( "BloomBlend_Pipeline", graphicsDesc );
+
+                b.Read( "BloomDownSampling_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+
+                b.Write( "BloomBlend_ColorTarget", FrameResourceState::RenderTarget );
+
+                b.Read( "FinalShadingPass_BufferEDGE+", FrameResourceState::RenderTarget );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "BloomDownSampling_ColorTarget", ResourceSlot::Slot_0 );
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "FinalShadingPass_ColorTarget", ResourceSlot::Slot_1 );
+
+                const auto dimensions{ InferDimensions( m_Resolution ) };
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                ctx.SetColorRenderTarget( "BloomBlend_ColorTarget" );
+
+                ctx.BeginRender();
+
+                ctx.BindPipeline( "BloomBlend_Pipeline" );
+
+                ctx.Draw( 3 );
+
+                ctx.EndRender();
+            } );
+    }
+
+    auto PostEffectsPass::RegisterTonemap( FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        struct TonemapParameters {
+            float Exposure{};
+            float Gamma{};
+            Int32 ToneMapType{};
+        };
+
+        graph.RegisterPass<TonemapParameters>(
+            "Tonemap",
+            [this]( FramePassBuilder &b, TonemapParameters& ) {
+                MKT_BEGIN_PROFILER_NAMED();
+
+                b.CreateTexture( "Tonemap_ColorTarget", m_Resolution, TextureFormat::RGBA8_UNORM, TextureUsage::COLOR );
+
+                b.UseShader( "Resources/Shaders/slang/Tonemap_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/Tonemap_Frag.slang", ShaderStage::FRAGMENT );
+
+                b.CreatePipeline( "Tonemap_Pipeline",
+                    GraphicsPipelineDescription{
+                    .VertexAttributesSpec{},
+                    .ColorAttachmentFormats{ TextureFormat::RGBA8_UNORM }
+                } );
+
+                b.Write( "Tonemap_ColorTarget", FrameResourceState::RenderTarget );
+
+                b.Read( "ChromaticAberration_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+
+                b.Read( "FinalShadingPass_BufferEDGE+", FrameResourceState::UniformBuffer );
+                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard& blackboard ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+
+                auto &pbrRadianceData{ blackboard.Get<FinalShadingConstants>() };
+                auto &tonemappingData{ blackboard.Get<TonemapParameters>() };
+
+                tonemappingData.Exposure = pbrRadianceData.Exposure;
+                tonemappingData.Gamma = pbrRadianceData.Gamma;
+                tonemappingData.ToneMapType = pbrRadianceData.ToneMap;
+
+                ctx.PushConstants( MKT_ADDRESSOF( tonemappingData ), MKT_SIZEOF( tonemappingData ) );
+
+                const auto dimensions{ InferDimensions( m_Resolution ) };
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                ctx.BindImageSampler( ResourceGroup::DynamicSamplers, "ChromaticAberration_ColorTarget", ResourceSlot::Slot_0 );
+
+                ctx.SetColorRenderTarget( "Tonemap_ColorTarget" );
+
+                ctx.BeginRender();
+
+                ctx.BindPipeline( "Tonemap_Pipeline" );
+
+                ctx.Draw( 3 );
+
+                ctx.EndRender();
+            } );
+    }
+
+    auto PostEffectsPass::RegisterPostProcessMaterialsFilter( FrameGraph& graph ) -> void {
+        graph.RegisterPass(
+           "PostProcessMaterials_Filter",
+           []( FramePassBuilder &b ) {
+               MKT_BEGIN_PROFILER_NAMED();
+           },
+           []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+               MKT_BEGIN_PROFILER_NAMED();
+           } );
+    }
+
+    auto PostEffectsPass::RegisterGradient( FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+            "ColorGradient",
+            [this]( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+
+                b.CreateTexture( "ColorGradient_ColorTarget", m_Resolution, TextureFormat::RGBA16_FLOAT, TextureUsage::COLOR );
+
+                b.UseShader( "Resources/Shaders/slang/ColorGradient_Vert.slang", ShaderStage::VERTEX );
+                b.UseShader( "Resources/Shaders/slang/ColorGradient_Frag.slang", ShaderStage::FRAGMENT );
+
+                b.CreatePipeline( "ColorGradient_Pipeline",
+                    GraphicsPipelineDescription{
+                    .VertexAttributesSpec{},
+                    .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT }
+                } );
+
+                b.Read( "FinalShadingPass_BufferEDGE+", FrameResourceState::UniformBuffer );
+                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
+            },
+            [this]( CommandContext &ctx, FrameGraphBlackboard& blackboard ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+
+                auto &pbrRadianceData{ blackboard.Get<FinalShadingConstants>() };
+
+                m_ColorGradientParameters.Exposure = pbrRadianceData.Exposure;
+
+                ctx.PushConstants( MKT_ADDRESSOF( m_ColorGradientParameters ), MKT_SIZEOF( m_ColorGradientParameters ) );
+
+                const auto dimensions{ InferDimensions( m_Resolution ) };
+
+                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
+                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
+
+                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "FinalShadingPass_ColorTarget", ResourceSlot::Slot_0 );
+
+                ctx.SetColorRenderTarget( "ColorGradient_ColorTarget" );
+
+                ctx.BeginRender();
+
+                ctx.BindPipeline( "ColorGradient_Pipeline" );
+
+                ctx.Draw( 3 );
+
+                ctx.EndRender();
+            } );
     }
 
     auto PostEffectsPass::TraverseTextList( CommandContext& ctx ) -> void {
@@ -431,9 +740,8 @@ namespace Mikoto {
         auto& registry{ m_Scene->GetRegistry() };
         auto renderables{ registry.view<TransformComponent, TextComponent>() };
 
-        // Prepare for glyph count, we can use this to
-        // determine how many instances to draw
         m_GlyphCount = 0;
+
         for ( auto& entity: renderables ) {
             auto& textComponent{ registry.get<TextComponent>( entity ) };
 

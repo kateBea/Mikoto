@@ -32,11 +32,26 @@
 namespace Mikoto {
 
     struct BloomParameters {
-        const UInt32 MipLevelCount{ 4 };
-        SamplerHandle EmissiveGBufferSampler{};
+        bool Enabled{ true };
 
-        float Width{};
-        float Height{};
+        float Threshold{ 1.0f };
+
+        float Intensity{ 1.0f };
+        float Scatter{ 0.7f };
+
+        UInt32 MipCount{ 4 };
+
+        float ScreenWidth{};
+        float ScreenHeight{};
+
+        SamplerHandle GBufferEmissiveSampler{};
+    };
+
+    struct ColorGradientParameters {
+        float Exposure{ 1.0f };
+        float Contrast{ 1.0f };
+        float Saturation{ 1.0f };
+        Vec3F Tint{ 1.0f, 1.0f, 1.0f };
     };
 
     class PostEffectsPass {
@@ -48,14 +63,24 @@ namespace Mikoto {
         auto SetMeshCulling( MeshCulling &culling ) -> void;
         auto RegisterPasses(FrameGraph& graph, GpuDevice* device) -> void;
 
+        // Gradient
+        auto SetContrast( float contrast ) -> void;
+        auto SetSaturation( float saturation ) -> void;
+        auto SetTintColor( const Vec3F& tintColor) -> void;
+
         // Bloom
         auto EnableBloom(bool value) -> void;
+
     private:
         auto RegisterSSAO( FrameGraph& graph ) -> void;
         auto RegisterBloom( FrameGraph& graph ) -> void;
+        auto RegisterTonemap( FrameGraph& graph ) -> void;
+        auto RegisterPostProcessMaterialsFilter( FrameGraph& graph ) -> void;
+        auto RegisterGradient( FrameGraph& graph ) -> void;
+        auto RegisterObjectOutline( FrameGraph& graph ) -> void;
         auto RegisterChromaticAberration( FrameGraph& graph ) -> void;
+        auto RegisterDepthOfField( FrameGraph& graph ) -> void;
         auto RegisterTextRender( FrameGraph& graph, GpuDevice* device) -> void;
-        auto RegisterObjectOutline( FrameGraph& graph, GpuDevice* device) -> void;
 
         auto TraverseTextList( CommandContext& ctx ) -> void;
 
@@ -133,6 +158,9 @@ namespace Mikoto {
 
         // Infinite grid
         InfiniteGridParameters m_InfiniteGridParameters{};
+
+        // Colors
+        ColorGradientParameters m_ColorGradientParameters{};
     };
 
 }// namespace Mikoto

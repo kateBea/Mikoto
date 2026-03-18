@@ -350,6 +350,7 @@ namespace Mikoto {
             entity->AddComponent<RelationComponent>();
         }
 
+        entity->AddComponent<HighlightComponent>();
         entity->AddComponent<TagComponent>( info.Name );
         entity->AddComponent<TransformComponent>( initialPosition, initialSize, initialRotation );
 

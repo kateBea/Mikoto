@@ -264,7 +264,8 @@ namespace Mikoto {
                         .PipelineCullMode{ CullMode::NONE }, // Should be cull front but it's removing the grid
                         .PipelinePolygonMode{ PolygonMode::FILL },
                         .PrimitiveTopology{ Topology::TRIANGLE_LIST },
-                        .VertexAttributesSpec{}});
+                        .VertexAttributesSpec{},
+                    });
                 
                 // For debug purposes we output to the infinite grid's own target
                 b.Write( "InfiniteGrid_ColorTarget", FrameResourceState::RenderTarget );
@@ -272,6 +273,8 @@ namespace Mikoto {
                 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
 
+                b.Read( "Tonemap_ColorTarget", FrameResourceState::RenderTarget );
+                b.Read( "ChromaticAberration_ColorTarget", FrameResourceState::RenderTarget );
                 b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::RenderTarget );
                 b.Read( "FinalShadingPass_DepthTarget", FrameResourceState::DepthWrite );
 
@@ -293,7 +296,7 @@ namespace Mikoto {
 
                 ctx.SetClearColor( { 1.0f, 1.0f, 1.0f, 1.0f } );
                 
-                ctx.SetColorRenderTarget( "FinalShadingPass_ColorTarget" );
+                ctx.SetColorRenderTarget( "Tonemap_ColorTarget" );
                 ctx.SetDepthRenderTarget( "FinalShadingPass_DepthTarget" );
 
                 ctx.PushConstants( MKT_ADDRESSOF( m_InfiniteGridProperties ), MKT_SIZEOF( m_InfiniteGridProperties ) );
@@ -325,8 +328,33 @@ namespace Mikoto {
             } );
     }
 
-    auto DebugPasses::RegisterHelloCube( FrameGraph &graph ) -> void {
+    auto DebugPasses::RegisterEmitTexture( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
+        // Used for debug purposes mainly, draws a full Quad and projects passed texture onto it
+        // See shader for more
+
+        graph.RegisterPass(
+            "EmitTexture",
+            []( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
+    }
+
+    auto DebugPasses::RegisterHelloCube( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+            "SpinningCube",
+            []( FramePassBuilder &b ) {
+                MKT_BEGIN_PROFILER_NAMED();
+            },
+            []( CommandContext &ctx, FrameGraphBlackboard & ) -> void {
+                MKT_BEGIN_PROFILER_NAMED();
+            } );
     }
 
     auto DebugPasses::RegisterHelloTexture( FrameGraph &graph ) -> void {

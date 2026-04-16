@@ -532,13 +532,13 @@ set(IMGUI_NO_EDITOR_INCLUDE_DIR "${IMGUI_NO_EDITOR_ROOT}")
 # -------------------------------------------------------
 # OpenCL-SDK
 # -------------------------------------------------------
-FetchContent_Declare(
-        OpenCL-SDK
-        GIT_REPOSITORY https://github.com/KhronosGroup/OpenCL-SDK.git
-        GIT_TAG        main   # You can lock to a specific release
-)
-
-FetchContent_MakeAvailable(OpenCL-SDK)
+#FetchContent_Declare(
+#        OpenCL-SDK
+#        GIT_REPOSITORY https://github.com/KhronosGroup/OpenCL-SDK.git
+#        GIT_TAG        main   # You can lock to a specific release
+#)
+#
+#FetchContent_MakeAvailable(OpenCL-SDK)
 
 # -------------------------------------------------------
 # MeshOptimizer
@@ -565,13 +565,13 @@ FetchContent_MakeAvailable(tinygltf)
 # -------------------------------------------------------
 # KTX-Software
 # -------------------------------------------------------
-FetchContent_Declare(
-        ktx
-        GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software.git
-        GIT_TAG        v4.4.2
-)
-
-FetchContent_MakeAvailable(ktx)
+#FetchContent_Declare(
+#        ktx
+#        GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software.git
+#        GIT_TAG        v4.4.2
+#)
+#
+#FetchContent_MakeAvailable(ktx)
 
 # ======================================
 # Project sources
@@ -648,13 +648,13 @@ set(LIBRARIES
         nlohmann_json::nlohmann_json
         sol2::sol2
         Tracy::TracyClient
-        OpenCL::OpenCL
+        #OpenCL::OpenCL
         ozz_animation
         ozz_animation_tools
         ozz_animation_offline
         meshoptimizer
         tinygltf
-        ktx
+        #ktx
         ${SLANG_LIBS}
 )
 
@@ -735,11 +735,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${LUA_INCLUDE_DIR}
         ${FILEWATCH_INCLUDE_DIR}
         ${IMOGUIZMO_INCLUDE_DIR}
-        ${OpenCL-SDK_SOURCE_DIR}/lib/include
-        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
-        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include
+#        ${OpenCL-SDK_SOURCE_DIR}/lib/include
+#        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
+#        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include
         ${ozz_SOURCE_DIR}/include
-        ${ktx_SOURCE_DIR}
+        #${ktx_SOURCE_DIR}
         ${meshoptimizer_SOURCE_DIR}/src
         ${tinygltf_SOURCE_DIR}
         ${IMGUI_NO_EDITOR_INCLUDE_DIR}

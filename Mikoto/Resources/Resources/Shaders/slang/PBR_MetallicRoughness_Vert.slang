@@ -47,8 +47,8 @@ ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 [[vk::binding(Slot_1, UAV_SET_INDEX)]] StructuredBuffer<BoneData, ScalarDataLayout> Bones;
 
 // Vertex pullign data
-[[vk::binding(Slot_5, UAV_SET_INDEX)]] StructuredBuffer<VertexData, ScalarDataLayout> Vertices;
-[[vk::binding(Slot_6, UAV_SET_INDEX)]] StructuredBuffer<uint, ScalarDataLayout> Indices;
+[[vk::binding(Slot_5, UAV_SET_INDEX)]] ByteAddressBuffer[] Vertices;
+[[vk::binding(Slot_6, UAV_SET_INDEX)]] ByteAddressBuffer[] Indices;
 
 [[vk::push_constant]]
 FinalShadingParameters u_Constants;
@@ -74,6 +74,12 @@ struct VSOutput {
     float4 PositionH : SV_Position;
 };
 
+T LoadData<T>(uint bufferID, uint baseOffset, uint index) {
+    return Vertices[bufferID].LoadByteOffset<T>(
+        (baseOffset + index) * sizeof(T)
+    );
+}
+
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
@@ -84,8 +90,8 @@ VSOutput main(VSInput input) {
     o.MaterialIndex = instanceIndex;
 
     // Compute attribute index
-    uint index = Indices[meshInfo.IndexOffset + input.VertexID];
-    VertexData vertex = Vertices[meshInfo.VertexOffset + index];
+    uint index = Indices[0].LoadByteOffset<uint>( (meshInfo.IndexOffset + input.VertexID) * sizeof(uint) );
+    VertexData vertex = LoadData<VertexData>( 0, meshInfo.VertexOffset, index );
 
     float4x4 model = meshInfo.Transform;
 

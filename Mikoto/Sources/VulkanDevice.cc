@@ -403,6 +403,7 @@ namespace Mikoto {
             .descriptorBindingVariableDescriptorCount = VK_TRUE,
             .runtimeDescriptorArray = VK_TRUE,
             .scalarBlockLayout = VK_TRUE,
+            .bufferDeviceAddress = VK_TRUE,
         };
 
         // --- Vulkan 1.1 Features 
@@ -422,6 +423,7 @@ namespace Mikoto {
             .fillModeNonSolid = VK_TRUE,
             .wideLines = VK_TRUE,
             .samplerAnisotropy = VK_TRUE,
+            .shaderInt64 = VK_TRUE,
         };
 
         // --- Final root features struct ---

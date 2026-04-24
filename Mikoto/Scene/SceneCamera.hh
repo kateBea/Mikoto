@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,27 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_EDITOR_CAMERA_HH
-#define MIKOTO_EDITOR_CAMERA_HH
-
-#include "glm/glm.hpp"
+#ifndef MIKOTO_SCENE_CAMERA_HH
+#define MIKOTO_SCENE_CAMERA_HH
 
 #include <Platform/Window.hh>
 
-#include "Scene/Camera.hh"
-#include "Common/Common.hh"
-#include "Library/Random/Random.hh"
-#include "Library/Utility/Types.hh"
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Scene/Camera.hh>
 
-namespace Mikoto {
+namespace mikoto::scene {
+    using namespace mikoto::core;
 
     struct SceneCameraDescription {
-        float Fov{};
-        float AspectRatio{};
-        float NearPlane{};
-        float FarPlane{};
+        float mFov{};
+        float mAspectRatio{};
+        float mNearPlane{};
+        float mFarPlane{};
 
-        Window* TargetWindow{};
+        platform::Window* mWindow{};
     };
 
     class SceneCamera final : public Camera {
@@ -76,11 +74,11 @@ namespace Mikoto {
          * */
         auto SetFieldOfView( float value ) -> void { m_FieldOfView = value; }
 
-        auto SetTargetWindow( const Window* window ) -> void;
+        auto SetTargetWindow( const platform::Window* window ) -> void;
 
         auto WantRotation( bool xAxis, bool yAxis ) -> void;
 
-        auto SetCameraTarget(const Vec3F& position) -> void;
+        auto SetCameraTarget(const float3& position) -> void;
         auto LockCameraToTarget(bool enable) -> void;
         auto SetOrbitDistance(float orbitDistance = 10.0f) -> void;
 
@@ -102,6 +100,15 @@ namespace Mikoto {
          * */
         auto EnableCamera( const bool value ) { m_AllowCameraMovementAndRotation = value; }
 
+        // Vignette
+        // Size
+        // Shape
+
+        // Depth of field
+        // Aperture ( F-Stop )
+        // Focal length
+        // Depht blur
+
     private:
         // [Internal]
         auto UpdateViewMatrix() -> void;
@@ -114,10 +121,10 @@ namespace Mikoto {
     private:
         // This kind of camera responds to input from a window
         // in order to compute translations and rotations
-        const Window* m_TargetWindow{ nullptr };
+        const platform::Window* m_TargetWindow{ nullptr };
 
-        Vec3F m_TargetPosition{ 0.0f, 0.0f, 0.0f };
-        Vec3F m_TargetForwardVector{ 0.0f, 0.0f, -1.0f };
+        float3 m_TargetPosition{ 0.0f, 0.0f, 0.0f };
+        float3 m_TargetForwardVector{ 0.0f, 0.0f, -1.0f };
 
         // Controls how quickly the camera moves towards the target. Higher values mean faster smoothing.
         float m_DampingFactor{ 15.0f };
@@ -125,7 +132,7 @@ namespace Mikoto {
         bool m_WantCameraRotationX{ true };
         bool m_WantCameraRotationY{ true };
 
-        Vec2F m_LastMousePosition{ 0.0f, 0.0f };
+        float2 m_LastMousePosition{ 0.0f, 0.0f };
 
         float m_RotationSpeed{ 2.f };
         float m_MovementSpeed{ 2.f };
@@ -135,10 +142,10 @@ namespace Mikoto {
 
         bool m_AllowCameraMovementAndRotation{ false };
 
-        Vec3F m_CameraTarget{ 0.0f, 0.0f, 0.0f };
+        float3 m_CameraTarget{ 0.0f, 0.0f, 0.0f };
         float m_OrbitDistance{ 10.f };
         bool m_LockCameraToTarget{ false };
     };
 }// namespace Mikoto
 
-#endif// MIKOTO_EDITOR_CAMERA_HH
+#endif// MIKOTO_SCENE_CAMERA_HH

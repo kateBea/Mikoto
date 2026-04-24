@@ -21,27 +21,40 @@
 #include <ImGuizmo.h>
 #include <ImOGuizmo.hh>
 
-// Project Headers
 #include <ImGui/IconsMaterialDesign.h>
 
-#include <Common/Common.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+
 #include <Math/Math.hh>
+
+#include <Memory/Allocator.hh>
+
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
+#include <ImGui/ImGuiWidget.hh>
+
 #include <Layers/EditorLayer.hh>
-#include <Library/String/String.hh>
-#include <Panels/ScenePanel.hh>
+
+#include <Scene/Entity.hh>
 #include <Scene/Component.hh>
 
-namespace Mikoto {
+#include <Panels/ScenePanel.hh>
 
-    static auto InferManipulationMode( ImGuiUtils::GuizmoManipulationMode manipulation ) -> ImGuizmo::OPERATION {
+namespace mikoto::editor {
+
+    using namespace mikoto::gui;
+    using namespace mikoto::core;
+    using namespace mikoto::scene;
+
+    MKT_NODISCARD static auto InferManipulationMode( gui::GuizmoType manipulation ) -> ImGuizmo::OPERATION {
         switch (manipulation) {
-            case ImGuiUtils::GuizmoManipulationMode::TRANSLATION:
+            case gui::GuizmoType::eTranslation:
                 return ImGuizmo::OPERATION::TRANSLATE;
-            case ImGuiUtils::GuizmoManipulationMode::ROTATION:
+            case gui::GuizmoType::eRotation:
                 return ImGuizmo::OPERATION::ROTATE;
-            case ImGuiUtils::GuizmoManipulationMode::SCALE:
+            case gui::GuizmoType::eScale:
                 return ImGuizmo::OPERATION::SCALE;
 
             default: ;
@@ -50,76 +63,53 @@ namespace Mikoto {
         return ImGuizmo::OPERATION::TRANSLATE;
     }
 
-    auto ScenePanel::CreateImguiTextureID() -> void {
-        ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
-        if (const ImTextureID id{ backend->ConstructImGuiTextureID( m_EditorState->FinalComposition ) }; id != 0) {
-            m_ColorImageID = id;
-        }
-    }
-
-    auto ScenePanel::CreateWireframeImguiTextureID() -> void {
-        ImGuiBackend *backend{ ImGuiService::Get()->GetBackend() };
-        auto wireframeTexture{ m_EditorState->EditorSceneRenderer->GetTexture( "Wireframe_ColorTarget" ) };
-        const ImTextureID id{ backend->ConstructImGuiTextureID( wireframeTexture ) };
-
-        if ( id != 0 ) {
-            m_WireframeImageID = id;
-        }
-    }
-
     ScenePanel::ScenePanel( const ScenePanelCreateInfo &createInfo )
-        : Panel{ "Scene" },  m_EditorState{ createInfo.State }, m_ViewPortWidth( createInfo.Width ), m_ViewPortHeight( createInfo.Height ) {
-        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_IMAGE, m_PanelName );
-
-        CreateImguiTextureID();
+        : Panel{ "Scene" },  mEditorState{ createInfo.mState } {
+        mPanelHeaderName = widget::MakeIconTitle( ICON_MD_IMAGE, mPanelName );
     }
 
     auto ScenePanel::OnUpdate( float ts ) -> void {
-        if (!m_PanelIsVisible) {
+        if (!mPanelIsVisible) {
             return;
         }
 
         constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
 
         // Expand scene view to window bounds (no padding)
-        ImGuiUtils::ImGuiScopedStyleVar winPad ( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
+        ImGuiScopedStyleVar winPad ( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
 
-        ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
+        ImGui::Begin( mPanelHeaderName.c_str(), MKT_ADDRESSOF( mPanelIsVisible ), windowFlags );
 
-        m_PanelIsFocused = ImGui::IsWindowFocused();
-        m_PanelIsHovered = ImGui::IsWindowHovered();
+        mPanelIsFocused = ImGui::IsWindowFocused();
+        mPanelIsHovered = ImGui::IsWindowHovered();
 
         UpdateViewport();
+        UpdateManipulation();
 
-        SetupManipulation();
         DrawManipulationGuizmos();
         DrawOrientationAxis();
-
-        // Try validating the image id again in case the texture was recreated
-        // We also get a new ID if the viewport image was update
-        const bool newViewportImage{ ImGuiService::Get()->GetTextureID( m_EditorState->FinalComposition.GetRaw() ) != m_ColorImageID };
-
-        if (!IsDisplayTextureValid() || newViewportImage) {
-            CreateImguiTextureID();
-        }
-
-        if (!IsWireframeDisplayTextureValid()) {
-            CreateWireframeImguiTextureID();
-        }
 
         ImGui::End();
     }
 
-    auto ScenePanel::SetManipulation( ImGuiUtils::GuizmoManipulationMode mode ) -> void {
-        m_GuizmoType = mode;
+    auto ScenePanel::SetManipulation( GuizmoType mode ) -> void {
+        mManipulationType = mode;
+    }
+
+    auto ScenePanel::SetTexture( TextureHandle texture ) -> void {
+        if (texture.IsEmpty()) {
+            return;
+        }
+
+        mColorImageID= ImGuiService::Get()->GetTextureID( texture );
     }
 
     auto ScenePanel::GetWidth() const -> float {
-        return m_ViewPortWidth;
+        return mViewportWidth;
     }
 
     auto ScenePanel::GetHeight() const -> float {
-        return m_ViewPortHeight;
+        return mViewportHeight;
     }
 
     auto ScenePanel::DrawOrientationAxis() -> void {
@@ -127,77 +117,70 @@ namespace Mikoto {
 
         const float widgetSize{ 100.0f };
         const float gizmoX{ winPos.x };
-        const float gizmoY{ winPos.y + m_ViewPortHeight - widgetSize };
+        const float gizmoY{ winPos.y + mViewportHeight - widgetSize };
 
         ImOGuizmo::SetRect(gizmoX, gizmoY, widgetSize);
 
-        glm::mat4 view{ m_EditorState->EditorCamera->GetViewMatrix() };
+        glm::mat4 view{ mEditorState->mActiveCamera->GetViewMatrix() };
         glm::mat4 proj{ glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 1000.0f) };
 
         ImOGuizmo::DrawGizmo(glm::value_ptr(view), glm::value_ptr(proj));
     }
 
-    auto ScenePanel::ShowUtilitiesOverlay() -> void {
+    auto ScenePanel::DrawUtilitiesOverlay() -> void {
     }
 
     auto ScenePanel::IsDisplayTextureValid() const -> bool {
-        return m_ColorImageID != 0;
-    }
-
-    auto ScenePanel::IsWireframeDisplayTextureValid() const -> bool {
-        return m_WireframeImageID != 0;
+        return mColorImageID != 0;
     }
 
     auto ScenePanel::UpdateViewport() -> void {
         const ImVec2 dim{ ImGui::GetContentRegionAvail() };
 
-        if (m_ViewPortWidth != dim.x || m_ViewPortHeight != dim.y) {
-            m_ViewPortWidth = dim.x;
-            m_ViewPortHeight = dim.y;
+        if (mViewportWidth != dim.x || mViewportHeight != dim.y) {
+            mViewportWidth = dim.x;
+            mViewportHeight = dim.y;
         }
 
         // No flipping, the final image is already in the correct viewport coordinates
         // In the case of vulkan this is also taken into account when setting up the viewport
-        if (IsDisplayTextureValid() && !m_EditorState->ShowWireframe) {
-            ImGui::Image( m_ColorImageID, ImVec2{ dim.x, dim.y } );
-        }
-
-        if (IsWireframeDisplayTextureValid() && m_EditorState->ShowWireframe) {
-            ImGui::Image( m_WireframeImageID, ImVec2{ dim.x, dim.y } );
+        if (IsDisplayTextureValid()) {
+            ImGui::Image( mColorImageID, ImVec2{ dim.x, dim.y } );
         }
     }
 
-    auto ScenePanel::SetupManipulation() const -> void {
-        Entity *currentSelection{ m_EditorState->SelectedEntity };
-        if (currentSelection != nullptr && currentSelection->IsValid()) {
-            if (!currentSelection->GetComponent<TagComponent>().IsActive()) {
-                return;
-            }
-
-            ImGuizmo::SetOrthographic( m_EditorState->EditorCamera->IsOrthographic() );
-            ImGuizmo::SetDrawlist();
-
-            const ImVec2 windowPosition{ ImGui::GetWindowPos() };
-            const ImVec2 windowDimensions{ ImGui::GetWindowSize() };
-            ImGuizmo::SetRect( windowPosition.x, windowPosition.y, windowDimensions.x, windowDimensions.y );
+    auto ScenePanel::UpdateManipulation() -> void {
+        if (!mEditorState->mSelectedEntity) {
+            return;
         }
+
+        Entity *currentSelection{ mEditorState->mSelectedEntity };
+        if (currentSelection->IsValid() || !currentSelection->GetComponent<TagComponent>().IsActive()) {
+            return;
+        }
+
+        ImGuizmo::SetOrthographic( mEditorState->mActiveCamera->IsOrthographic() );
+        ImGuizmo::SetDrawlist();
+
+        const ImVec2 windowPosition{ ImGui::GetWindowPos() };
+        const ImVec2 windowDimensions{ ImGui::GetWindowSize() };
+        ImGuizmo::SetRect( windowPosition.x, windowPosition.y, windowDimensions.x, windowDimensions.y );
     }
 
     auto ScenePanel::DrawManipulationGuizmos() -> void {
-        Entity *currentSelection{ m_EditorState->SelectedEntity };
+        Entity *currentSelection{ mEditorState->mSelectedEntity };
         if (currentSelection == nullptr || !currentSelection->IsValid() || !currentSelection->GetComponent<TagComponent>().IsActive()) {
             return;
         }
 
         TransformComponent &transformComponent{ currentSelection->GetComponent<TransformComponent>() };
 
-        const Mat4F &cameraView{ m_EditorState->EditorCamera->GetViewMatrix() };
-        const Mat4F &cameraProjection{ m_EditorState->EditorCamera->GetProjection() };
+        const float4x4 &cameraView{ mEditorState->mActiveCamera->GetViewMatrix() };
+        const float4x4 &cameraProjection{ mEditorState->mActiveCamera->GetProjection() };
 
-        Mat4F objectTransform{ transformComponent.GetTransform() };
+        float4x4 objectTransform{ transformComponent.GetTransform() };
 
-        ImGuizmo::OPERATION operation{ InferManipulationMode( m_EditorState->Manipulation ) };
-
+        ImGuizmo::OPERATION operation{ InferManipulationMode( mManipulationType ) };
         ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), operation, ImGuizmo::MODE::WORLD, glm::value_ptr( objectTransform ) );
 
         if (ImGuizmo::IsUsing()) {
@@ -205,7 +188,7 @@ namespace Mikoto {
         }
     }
 
-    auto ScenePanel::DrawSceneToolbar() const -> void {
+    auto ScenePanel::DrawSceneToolbar() -> void {
         // Static so user dragging persists
         static bool firstFrame{ true };
         static ImVec2 toolbarPos{};
@@ -245,20 +228,22 @@ namespace Mikoto {
                 toolbarPos.y += delta.y;
             }
 
-            auto makeTool = [&]( const char *icon, ImGuiUtils::GuizmoManipulationMode type ) {
+            auto makeTool = [&]( const char *icon, GuizmoType type ) {
                 const bool active{
-                    m_EditorState->Manipulation == static_cast<ImGuiUtils::GuizmoManipulationMode>( type )
+                    mManipulationType == as<gui::GuizmoType>( type )
                 };
 
                 const ImVec2 btnSize{ 28.0f, 28.0f };
                 const ImVec2 iconPadding{ 2.0f, 2.0f };
 
-                if (active) ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.75f, 0.75f, 0.75f, 0.85f } );
+                if (active) {
+                    ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.75f, 0.75f, 0.75f, 0.85f } );
+                }
 
                 ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, iconPadding );
 
                 if (ImGui::Button( icon, btnSize )) {
-                    m_EditorState->Manipulation = static_cast<ImGuiUtils::GuizmoManipulationMode>( type );
+                    mManipulationType = as<gui::GuizmoType>( type );
                 }
 
                 ImGui::PopStyleVar();
@@ -270,11 +255,11 @@ namespace Mikoto {
 
             // Extra spacing on first button
             ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 6.0f, 0.0f } );
-            makeTool( ICON_MD_OPEN_WITH, ImGuiUtils::GuizmoManipulationMode::TRANSLATION );
+            makeTool( ICON_MD_OPEN_WITH, gui::GuizmoType::eTranslation );
             ImGui::PopStyleVar();
 
-            makeTool( ICON_MD_ROTATE_RIGHT, ImGuiUtils::GuizmoManipulationMode::ROTATION );
-            makeTool( ICON_MD_OPEN_IN_FULL, ImGuiUtils::GuizmoManipulationMode::SCALE );
+            makeTool( ICON_MD_ROTATE_RIGHT, gui::GuizmoType::eRotation );
+            makeTool( ICON_MD_OPEN_IN_FULL, gui::GuizmoType::eScale );
 
             ImGui::NewLine();
         }
@@ -284,6 +269,5 @@ namespace Mikoto {
         ImGui::PopStyleVar( 3 );
         ImGui::PopStyleColor( 2 );
     }
-
 
 }// namespace Mikoto

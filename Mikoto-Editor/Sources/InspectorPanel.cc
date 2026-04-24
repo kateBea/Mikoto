@@ -1,44 +1,58 @@
-/**
- * InspectorPanel.cc
- * Created by kate on 6/25/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
-#include <algorithm>
-#include <array>
-#include <iterator>
-#include <numbers>
-
-// Third-Party Libraries
-#include <fmt/format.h>
+#include <EASTL/array.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/fixed_string.h>
 
 #include <imgui.h>
 #include <imgui_internal.h>
 
 #include <glm/gtc/type_ptr.hpp>
 
-// Project Headers
-#include <ImGui/IconsMaterialDesign.h>
-
-#include <Animation/AnimationSystem.hh>
-#include <Animation/Animator.hh>
-#include <Application/EditorUtility.hh>
-#include <Common/Common.hh>
-#include <Common/String.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
-#include <ImGui/ImGuiService.hh>
+
+#include <Memory/Allocator.hh>
+
+#include <ImGui/ImGuiWidget.hh>
 #include <ImGui/ImGuiUtility.hh>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/IconsMaterialDesign.h>
+
+#include <Scripting/ScriptingService.hh>
+
+#include <Animation/SkinnedAnimation.hh>
+#include <Animation/AnimationSystem.hh>
+
 #include <Layers/EditorLayer.hh>
-#include <Library/Math/Math.hh>
-#include <Material/PhysicalMaterial.hh>
-#include <Panels/InspectorPanel.hh>
-#include <Scene/Component.hh>
+
+#include <Scene/Scene.hh>
 #include <Scene/Entity.hh>
 
-#include "Scripting/ScriptingService.hh"
+#include <Panels/InspectorPanel.hh>
 
-namespace Mikoto {
+namespace mikoto::editor {
+
+    using namespace mikoto::gui;
+    using namespace mikoto::core;
+    using namespace mikoto::scene;
+    using namespace mikoto::renderer;
 
     template<typename ComponentType, typename UIFunction, typename... Args>
     static auto DrawComponent( const std::string_view componentLabel, Entity& entity, const UIFunction& uiFunc, const bool hasRemoveButton = true, Args&&... args ) -> void {
@@ -57,28 +71,19 @@ namespace Mikoto {
 
             // See ImGui implementation for button dimensions computation
             const float lineHeight{ GImGui->FontSize + GImGui->Style.FramePadding.y * 2.0f };
+            const bool componentNodeOpen{ ImGui::TreeNodeEx( reinterpret_cast<void*>( typeid( ComponentType ).hash_code() ), treeNodeFlags, "%s", componentLabel.data() ) };
 
-            const bool componentNodeOpen{
-                ImGui::TreeNodeEx( reinterpret_cast<void*>( typeid( ComponentType ).hash_code() ), treeNodeFlags, "%s",
-                                   componentLabel.data() )
-            };
-
-            // Node frame is hovered
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
+            SetCursorHandOnLastItemHovered();
 
             ImGui::PopStyleVar();
 
             if ( hasRemoveButton ) {
                 ImGui::SameLine( contentRegionAvailable.x - lineHeight * 0.5f );
-                if ( ImGui::Button( fmt::format( "{}", ICON_MD_SETTINGS ).c_str(), ImVec2{ lineHeight, lineHeight } ) ) {
+                if ( ImGui::Button( string::Format( "{}", ICON_MD_SETTINGS ).c_str(), ImVec2{ lineHeight, lineHeight } ) ) {
                     ImGui::OpenPopup( "ComponentSettingsButton" );
                 }
 
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
+                SetCursorHandOnLastItemHovered();
 
                 if ( ImGui::BeginPopup( "ComponentSettingsButton" ) ) {
                     if ( ImGui::MenuItem( "Remove Component" ) ) {
@@ -91,9 +96,7 @@ namespace Mikoto {
             }
 
             if ( componentNodeOpen ) {
-
                 uiFunc( entity, std::forward<Args>( args )... );
-
                 ImGui::TreePop();
             }
 
@@ -107,8 +110,8 @@ namespace Mikoto {
         }
     }
 
-    static auto ShowTextureHoverTooltip( const Texture* texture ) -> void {
-        if ( ImGuiUtils::PushImageButton( texture->GetHandle(), ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 128, 128 } ) ) {
+    static auto ShowTextureHoverTooltip( const ITexture* texture ) -> void {
+        if ( PushImageButton( texture->GetHandle(), ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 128, 128 } ) ) {
         }
 
         ImGui::SameLine();
@@ -124,8 +127,8 @@ namespace Mikoto {
 
             // First row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            UInt32 width{ static_cast<UInt32>( texture->GetWidth() ) };
-            UInt32 height{ static_cast<UInt32>( texture->GetHeight() ) };
+            u32 width{ as<u32>( texture->GetWidth() ) };
+            u32 height{ as<u32>( texture->GetHeight() ) };
             ImGui::TextUnformatted( fmt::format( "{} x {}", width, height ).c_str() );
 
             // Second row - first colum
@@ -134,10 +137,10 @@ namespace Mikoto {
             ImGui::TextUnformatted( "Type" );
 
             // Second row - second colum
-            constexpr auto type{ FileType::UNKNOWN_FILE_TYPE };
+            constexpr auto type{ FileType::eInvalid };
 
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( GetFileExtensionName( type ).data() );
+            ImGui::TextUnformatted( "Unknown" );
 
             // Third row - first colum
             ImGui::TableNextRow();
@@ -146,7 +149,7 @@ namespace Mikoto {
 
             // Third row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( fmt::format( "{} MB", Math::Round( 2.33, 2 ) ).c_str() );
+            ImGui::TextUnformatted( fmt::format( "{} MB", math::Round( 2.33, 2 ) ).c_str() );
 
             ImGui::EndTable();
         }
@@ -155,7 +158,7 @@ namespace Mikoto {
     }
 
     static auto UpdateMaterialTexture( PhysicalMaterial& standardMat, MapType mapType ) -> void {
-        const std::initializer_list<std::pair<std::string, std::string>> filters{
+        const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
             { "Textures", "jpg,jpeg,png" },
             { "JPG", "jpg" },
             { "JPEG", "jpeg" },
@@ -164,23 +167,8 @@ namespace Mikoto {
 
         const Path path{ FileService::Get()->OpenDialog( filters ) };
 
-        if ( !path.empty() ) {
-            static bool loading{ false };
+        if ( !path.IsEmpty() ) {
 
-            if ( !loading ) {
-                loading = true;
-
-                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( path ) };
-                if ( !texture.IsEmpty() ) {
-                    standardMat.SetTexture( mapType, texture );
-                }
-
-                loading = false;
-
-                TaskService::Get()->Submit( [&]() -> void {
-
-                } );
-            }
         }
     }
 
@@ -211,36 +199,36 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Diffuse" );
 
-        TextureHandle diffuseMap{ material.GetTexture( MapType::DIFFUSE_TEXTURE ) };
+        TextureHandle diffuseMap{ material.GetTexture( MapType::eDiffuse ) };
         if ( diffuseMap.IsEmpty() ) {
             diffuseMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( ImGuiUtils::PushImageButton( "##EditDiffuseProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
-            UpdateMaterialTexture( material, MapType::DIFFUSE_TEXTURE );
+        if ( PushImageButton( "##EditDiffuseProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::eDiffuse );
         }
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstAlbedoMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTexture( MapType::DIFFUSE_TEXTURE, dstAlbedoMap );
+                material.SetTexture( MapType::eDiffuse, dstAlbedoMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTexture( MapType::DIFFUSE_TEXTURE ) ) {
-            ImGuiUtils::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( material.GetTexture( MapType::DIFFUSE_TEXTURE ).GetRaw() );
+        if ( material.HasTexture( MapType::eDiffuse ) ) {
+            gui::ToolTip( [&]() -> void {
+                ShowTextureHoverTooltip( material.GetTexture( MapType::eDiffuse ).GetRaw() );
             },ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTexture( MapType::DIFFUSE_TEXTURE ) ) {
-                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            if ( !material.HasTexture( MapType::eDiffuse ) ) {
+                gui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -270,11 +258,11 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
 
-            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTexture( MapType::DIFFUSE_TEXTURE );
+                material.RemoveTexture( MapType::eDiffuse );
             }
 
             ImGui::EndTable();
@@ -286,37 +274,37 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Albedo" );
 
-        TextureHandle diffuseMap{ material.GetTexture( MapType::BASE_COLOR_TEXTURE ) };
+        TextureHandle diffuseMap{ material.GetTexture( MapType::eBaseColor ) };
         if ( diffuseMap.IsEmpty() ) {
             diffuseMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( ImGuiUtils::PushImageButton( "##EditBaseColorProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
-            UpdateMaterialTexture( material, MapType::BASE_COLOR_TEXTURE );
+        if ( gui::PushImageButton( "##EditBaseColorProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::eBaseColor );
         }
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstAlbedoMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTexture( MapType::BASE_COLOR_TEXTURE, dstAlbedoMap );
+                material.SetTexture( MapType::eBaseColor, dstAlbedoMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTexture( MapType::BASE_COLOR_TEXTURE ) ) {
-            ImGuiUtils::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( material.GetTexture( MapType::BASE_COLOR_TEXTURE ).GetRaw() );
+        if ( material.HasTexture( MapType::eBaseColor ) ) {
+            gui::ToolTip( [&]() -> void {
+                ShowTextureHoverTooltip( material.GetTexture( MapType::eBaseColor ).GetRaw() );
             },
                                  ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTexture( MapType::BASE_COLOR_TEXTURE ) ) {
-                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            if ( !material.HasTexture( MapType::eBaseColor ) ) {
+                gui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -350,29 +338,29 @@ namespace Mikoto {
 
             // Merge color with objects base color
             float cutOff{ material.GetAlphaMaskCutoff() };
-            if ( ImGuiUtils::Slider( "Alpha Cut-Off", cutOff, { 0.0f, 1.0f } ) ) {
+            if ( gui::Slider( "Alpha Cut-Off", cutOff, { 0.0f, 1.0f } ) ) {
                 material.SetAlphaMaskCutoff( cutOff );
             }
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
 
-            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTexture( MapType::BASE_COLOR_TEXTURE );
+                material.RemoveTexture( MapType::eBaseColor );
             }
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
 
-            PBR_AlphaMode currentAlphaMode{ material.GetAlphaMask() };
-            std::array<std::string, static_cast<Size>(PBR_AlphaMode::AlphaMode_Count)> choicesAlpha{
+            AlphaMode currentAlphaMode{ material.GetAlphaMask() };
+            std::array<std::string, static_cast<size_t>(AlphaMode::eCount)> choicesAlpha{
                 "Opaque", "Mask", "Blend",
             };
 
-            PBR_AlphaMode newAlphaMode{ ImGuiUtils::Combo( choicesAlpha, currentAlphaMode ) };
+            AlphaMode newAlphaMode{ gui::Combo( choicesAlpha, currentAlphaMode ) };
             if (currentAlphaMode != newAlphaMode) {
                 material.SetAlphaMask( newAlphaMode );
             }
@@ -380,12 +368,12 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
 
-            PBR_Workflow currentWorkFlow{ material.GetWorkflow() };
-            std::array<std::string, static_cast<Size>(PBR_Workflow::Workflow_Count)> choicesWorkflow{
+            Workflow currentWorkFlow{ material.GetWorkflow() };
+            std::array<std::string, static_cast<size_t>(Workflow::eCount)> choicesWorkflow{
                 "Metallic-Roughness", "Specular-Glossiness",
             };
 
-            PBR_Workflow newWorkFlow{ ImGuiUtils::Combo( choicesWorkflow, currentWorkFlow ) };
+            Workflow newWorkFlow{ gui::Combo( choicesWorkflow, currentWorkFlow ) };
             if (newWorkFlow != currentWorkFlow) {
                 material.SetWorkflow( newWorkFlow );
             }
@@ -404,35 +392,35 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Metallic-Roughness" );
 
-        TextureHandle metallicMap{ material.GetTexture( MapType::METALLIC_ROUGHNESS_TEXTURE ) };
+        TextureHandle metallicMap{ material.GetTexture( MapType::eMetallicRoughness ) };
         if ( metallicMap.IsEmpty() ) {
             metallicMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( ImGuiUtils::PushImageButton( "##EditMetallicRoughnessProperties:TextureID", ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
-            UpdateMaterialTexture( material, MapType::METALLIC_ROUGHNESS_TEXTURE );
+        if ( gui::PushImageButton( "##EditMetallicRoughnessProperties:TextureID", ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::eMetallicRoughness );
         }
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstMetallicMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTexture( MapType::METALLIC_ROUGHNESS_TEXTURE, dstMetallicMap );
+                material.SetTexture( MapType::eMetallicRoughness, dstMetallicMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTexture( MapType::METALLIC_ROUGHNESS_TEXTURE ) ) {
-            ImGuiUtils::ToolTip( [&]() -> void {
+        if ( material.HasTexture( MapType::eMetallicRoughness ) ) {
+            gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( metallicMap.GetRaw() );
             },ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
-            if ( !material.HasTexture( MapType::METALLIC_ROUGHNESS_TEXTURE ) ) {
-                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            if ( !material.HasTexture( MapType::eMetallicRoughness ) ) {
+                gui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -449,19 +437,19 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
             static float perceptualRoughness{ 0 }; // TODO
-            if ( ImGuiUtils::Slider( "Perceptual Roughness", perceptualRoughness, { 0.0f, 1.0f } ) ) {
+            if ( gui::Slider( "Perceptual Roughness", perceptualRoughness, { 0.0f, 1.0f } ) ) {
             }
 
-            ImGuiUtils::SetCursorHandOnLastItemHovered();
+            gui::SetCursorHandOnLastItemHovered();
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
-            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTexture( MapType::METALLIC_ROUGHNESS_TEXTURE );
+                material.RemoveTexture( MapType::eMetallicRoughness );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -477,28 +465,28 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Metallic" );
 
-        TextureHandle metallicMap{ material.GetTexture( MapType::METALLIC_TEXTURE ) };
+        TextureHandle metallicMap{ material.GetTexture( MapType::eMetallic ) };
         if ( metallicMap.IsEmpty() ) {
             metallicMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( ImGuiUtils::PushImageButton( "##EditMetallicProperties::TextureID", ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
-            UpdateMaterialTexture( material, MapType::METALLIC_TEXTURE );
+        if ( gui::PushImageButton( "##EditMetallicProperties::TextureID", ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::eMetallic );
         }
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstMetallicMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTexture( MapType::METALLIC_TEXTURE, dstMetallicMap );
+                material.SetTexture( MapType::eMetallic, dstMetallicMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTexture( MapType::METALLIC_TEXTURE ) ) {
-            ImGuiUtils::ToolTip( [&]() -> void {
+        if ( material.HasTexture( MapType::eMetallic ) ) {
+            gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( metallicMap.GetRaw() );
             },
                                  ImGui::IsItemHovered() );
@@ -506,8 +494,8 @@ namespace Mikoto {
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTexture( MapType::METALLIC_TEXTURE ) ) {
-                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            if ( !material.HasTexture( MapType::eMetallic ) ) {
+                gui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -526,18 +514,18 @@ namespace Mikoto {
 
             float strength{ material.GetMetallicFactor() };
 
-            if ( ImGuiUtils::Slider( "Metal factor", strength, { 0.0f, 1.0f } ) ) {
+            if ( gui::Slider( "Metal factor", strength, { 0.0f, 1.0f } ) ) {
                 material.SetMetallicFactor( strength );
             }
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
-            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTexture( MapType::METALLIC_TEXTURE );
+                material.RemoveTexture( MapType::eMetallic );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -555,28 +543,28 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Normal" );
 
-        TextureHandle normalMap{ material.GetTexture( MapType::NORMAL_TEXTURE ) };
+        TextureHandle normalMap{ material.GetTexture( MapType::eNormal ) };
         if ( normalMap.IsEmpty() ) {
             normalMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( ImGuiUtils::PushImageButton( normalMap->GetHandle(), ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
-            UpdateMaterialTexture( material, MapType::NORMAL_TEXTURE );
+        if ( gui::PushImageButton( normalMap->GetHandle(), ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::eNormal );
         }
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstNormalMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTexture( MapType::NORMAL_TEXTURE, dstNormalMap );
+                material.SetTexture( MapType::eNormal, dstNormalMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTexture( MapType::NORMAL_TEXTURE ) ) {
-            ImGuiUtils::ToolTip( [&]() -> void {
+        if ( material.HasTexture( MapType::eNormal ) ) {
+            gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( normalMap.GetRaw() );
             },
                                  ImGui::IsItemHovered() );
@@ -584,8 +572,8 @@ namespace Mikoto {
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTexture( MapType::NORMAL_TEXTURE ) ) {
-                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            if ( !material.HasTexture( MapType::eNormal ) ) {
+                gui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -601,11 +589,11 @@ namespace Mikoto {
         if ( ImGui::BeginTable( "NormalMapEditContentsTable", columnCount, specularTableFlags ) ) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
-            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTexture( MapType::NORMAL_TEXTURE );
+                material.RemoveTexture( MapType::eNormal );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -621,28 +609,28 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Emission" );
 
-        TextureHandle normalMap{ material.GetTexture( MapType::EMISSIVE_TEXTURE ) };
+        TextureHandle normalMap{ material.GetTexture( MapType::eEmissive ) };
         if ( normalMap.IsEmpty() ) {
             normalMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( ImGuiUtils::PushImageButton( normalMap->GetHandle(), ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
-            UpdateMaterialTexture( material, MapType::EMISSIVE_TEXTURE );
+        if ( gui::PushImageButton( normalMap->GetHandle(), ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::eEmissive );
         }
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstNormalMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTexture( MapType::EMISSIVE_TEXTURE, dstNormalMap );
+                material.SetTexture( MapType::eEmissive, dstNormalMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTexture( MapType::EMISSIVE_TEXTURE ) ) {
-            ImGuiUtils::ToolTip( [&]() -> void {
+        if ( material.HasTexture( MapType::eEmissive ) ) {
+            gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( normalMap.GetRaw() );
             },
                                  ImGui::IsItemHovered() );
@@ -650,8 +638,8 @@ namespace Mikoto {
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTexture( MapType::EMISSIVE_TEXTURE ) ) {
-                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            if ( !material.HasTexture( MapType::eEmissive ) ) {
+                gui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -668,20 +656,20 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
-            Vec3F factors{ material.GetEmissiveFactor() };
-            if ( ImGuiUtils::ColorEdit3( "Factors", factors ) ) {
+            float3 factors{ material.GetEmissiveFactor() };
+            if ( gui::ColorEdit3( "Factors", factors ) ) {
                 material.SetEmissiveFactor( factors );
             }
 
             float strength{ material.GetEmissiveStrength() };
-            if ( ImGuiUtils::Slider( "Strength", strength, { 0.0f, 10.0f } ) ) {
+            if ( gui::Slider( "Strength", strength, { 0.0f, 10.0f } ) ) {
                 material.SetEmissiveStrength( strength );
             }
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
             bool isBloomy{ material.IsBloomy() };
-            if (ImGuiUtils::CheckBox( "##EditEmissionProperties:IsBloomy", isBloomy ) ) {
+            if (gui::CheckBox( "##EditEmissionProperties:IsBloomy", isBloomy ) ) {
                 material.EnableBloom( isBloomy );
             }
 
@@ -690,11 +678,11 @@ namespace Mikoto {
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
-            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTexture( MapType::EMISSIVE_TEXTURE );
+                material.RemoveTexture( MapType::eEmissive );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -710,28 +698,28 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Roughness" );
 
-        TextureHandle roughnessMap{ material.GetTexture( MapType::ROUGHNESS_TEXTURE ) };
+        TextureHandle roughnessMap{ material.GetTexture( MapType::eRoughness ) };
         if ( roughnessMap.IsEmpty() ) {
             roughnessMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( ImGuiUtils::PushImageButton( "##EditRoughnessProperties:TextureID", ImGuiService::Get()->GetTextureID( roughnessMap ), ImVec2{ 64, 64 } ) ) {
-            UpdateMaterialTexture( material, MapType::ROUGHNESS_TEXTURE );
+        if ( gui::PushImageButton( "##EditRoughnessProperties:TextureID", ImGuiService::Get()->GetTextureID( roughnessMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::eRoughness );
         }
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstRoughnessMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTexture( MapType::ROUGHNESS_TEXTURE, dstRoughnessMap );
+                material.SetTexture( MapType::eRoughness, dstRoughnessMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTexture( MapType::ROUGHNESS_TEXTURE ) ) {
-            ImGuiUtils::ToolTip( [&]() -> void {
+        if ( material.HasTexture( MapType::eRoughness ) ) {
+            gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( roughnessMap.GetRaw() );
             },
                                  ImGui::IsItemHovered() );
@@ -739,8 +727,8 @@ namespace Mikoto {
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTexture( MapType::ROUGHNESS_TEXTURE ) ) {
-                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            if ( !material.HasTexture( MapType::eRoughness ) ) {
+                gui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -758,20 +746,20 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
             float strength{ material.GetRoughnessFactor() };
-            if ( ImGuiUtils::Slider( "Roughness", strength, { 0.0f, 1.0f } ) ) {
+            if ( gui::Slider( "Roughness", strength, { 0.0f, 1.0f } ) ) {
                 material.SetRoughnessFactor( strength );
             }
 
-            ImGuiUtils::SetCursorHandOnLastItemHovered();
+            gui::SetCursorHandOnLastItemHovered();
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
-            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTexture( MapType::ROUGHNESS_TEXTURE );
+                material.RemoveTexture( MapType::eRoughness );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -787,20 +775,20 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::TextUnformatted( " Ambient Occlusion" );
 
-        TextureHandle aoMap{ material.GetTexture( MapType::AMBIENT_OCCLUSION_TEXTURE ) };
+        TextureHandle aoMap{ material.GetTexture( MapType::eAmbientOcclusion ) };
         if ( aoMap.IsEmpty() ) {
             aoMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( ImGuiUtils::PushImageButton( aoMap->GetHandle(), ImGuiService::Get()->GetTextureID( aoMap ), ImVec2{ 64, 64 } ) ) {
-            UpdateMaterialTexture( material, MapType::AMBIENT_OCCLUSION_TEXTURE );
+        if ( gui::PushImageButton( aoMap->GetHandle(), ImGuiService::Get()->GetTextureID( aoMap ), ImVec2{ 64, 64 } ) ) {
+            UpdateMaterialTexture( material, MapType::eAmbientOcclusion );
         }
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
                 TextureHandle dstAoMap{ *static_cast<TextureHandle*>( payload->Data ) };
-                material.SetTexture( MapType::AMBIENT_OCCLUSION_TEXTURE, dstAoMap );
+                material.SetTexture( MapType::eAmbientOcclusion, dstAoMap );
 
                 RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
             }
@@ -808,8 +796,8 @@ namespace Mikoto {
             ImGui::EndDragDropTarget();
         }
 
-        if ( material.HasTexture( MapType::AMBIENT_OCCLUSION_TEXTURE ) ) {
-            ImGuiUtils::ToolTip( [&]() -> void {
+        if ( material.HasTexture( MapType::eAmbientOcclusion ) ) {
+            gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( aoMap.GetRaw() );
             },
                                  ImGui::IsItemHovered() );
@@ -817,8 +805,8 @@ namespace Mikoto {
 
         if ( ImGui::IsItemHovered() ) {
 
-            if ( !material.HasTexture( MapType::AMBIENT_OCCLUSION_TEXTURE ) ) {
-                ImGuiUtils::ToolTip( "Click me to load a texture." );
+            if ( !material.HasTexture( MapType::eAmbientOcclusion ) ) {
+                gui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -837,18 +825,18 @@ namespace Mikoto {
 
             float factor{ material.GetAoFactor() };
 
-            if ( ImGuiUtils::Slider( "AO Factor", factor, { 0.0f, 10.0f } ) ) {
+            if ( gui::Slider( "AO Factor", factor, { 0.0f, 10.0f } ) ) {
                 material.SetAoFactor( factor );
             }
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
-            ImGuiUtils::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            ImGuiUtils::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
-                material.RemoveTexture( MapType::AMBIENT_OCCLUSION_TEXTURE );
+                material.RemoveTexture( MapType::eAmbientOcclusion );
             }
 
             if ( ImGui::IsItemHovered() ) {
@@ -884,9 +872,9 @@ namespace Mikoto {
         ImGui::SameLine();
         ImGui::PushItemWidth( -1.0f );
 
-        ImGuiUtils::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
-        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f } };
-        ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
+        ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
+        ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f } };
+        ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
 
         if ( ImGui::Button( "Add component" ) ) {
             ImGui::OpenPopup( "AddComponentButtonPopup" );
@@ -928,7 +916,7 @@ namespace Mikoto {
             }
 
             if ( ImGui::MenuItem( "Audio", menuItemShortcut, menuItemSelected, !IsPresent<AudioSourceComponent>( entity ) ) ) {
-                entity->AddComponent<AudioSourceComponent>();
+                entity->AddComponent<AudioSourceComponent>("");
                 ImGui::CloseCurrentPopup();
             }
 
@@ -964,7 +952,7 @@ namespace Mikoto {
         ImGui::PopItemWidth();
     }
 
-    static auto DisplayMapInformation( const TextureHandle& texture, const std::string_view mapName ) -> void {
+    static auto DisplayMapInformation( const TextureHandle& texture, const eastl::string_view mapName ) -> void {
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
@@ -975,7 +963,7 @@ namespace Mikoto {
 
         ImGui::Spacing();
 
-        if ( ImGuiUtils::PushImageButton( texture->GetHandle(), ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 64, 64 } ) ) {
+        if ( gui::PushImageButton( texture->GetHandle(), ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 64, 64 } ) ) {
         }
 
         ImGui::SameLine();
@@ -990,8 +978,8 @@ namespace Mikoto {
 
             // First row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            UInt32 width{ static_cast<UInt32>( texture->GetWidth() ) };
-            UInt32 height{ static_cast<UInt32>( texture->GetHeight() ) };
+            u32 width{ static_cast<u32>( texture->GetWidth() ) };
+            u32 height{ static_cast<u32>( texture->GetHeight() ) };
             ImGui::TextUnformatted( fmt::format( "{} x {}", width, height ).c_str() );
 
             // Second row - first colum
@@ -1001,7 +989,7 @@ namespace Mikoto {
 
             // Second row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( GetFileExtensionName( FileType::MP3_AUDIO_TYPE ).data() );
+            ImGui::TextUnformatted( "Unknown" );
 
             // Third row - first colum
             ImGui::TableNextRow();
@@ -1010,7 +998,7 @@ namespace Mikoto {
 
             // Third row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( fmt::format( "{} MB", Math::Round( 111, 2 ) ).c_str() );
+            ImGui::TextUnformatted( fmt::format( "{} MB", math::Round( 111, 2 ) ).c_str() );
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
@@ -1018,7 +1006,7 @@ namespace Mikoto {
 
             // Third row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( fmt::format( "{}", texture->GetChannels() ).c_str() );
+            ImGui::TextUnformatted( fmt::format( "{}", -1 ).c_str() );
 
             ImGui::EndTable();
         }
@@ -1036,8 +1024,8 @@ namespace Mikoto {
         ImGui::Spacing();
         ImGui::Spacing();
 
-        for ( auto& texture: meshTarget.GetProperties().TexturesByUri | std::ranges::views::values ) {
-            DisplayMapInformation( texture, texture->GetDebugName() );
+        for ( auto& texture: meshTarget.GetProperties().mTexturesByUri | std::ranges::views::values ) {
+            DisplayMapInformation( texture.mTexture, texture.mTexture->GetDebugName() );
         }
     }
 
@@ -1053,8 +1041,8 @@ namespace Mikoto {
         ImGui::NextColumn();
         ImGui::PushMultiItemsWidths( 3, ImGui::CalcItemWidth() );
 
-        ImGuiUtils::ImGuiScopedStyleVar frameBorderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 7.0f, 5.0f } };
+        gui::ImGuiScopedStyleVar frameBorderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+        gui::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 7.0f, 5.0f } };
 
         const float lineHeight{ GImGui->FontSize + GImGui->Style.FramePadding.y * 3.0f };
         const ImVec2 buttonSize{ lineHeight + 3.0f, lineHeight };
@@ -1130,28 +1118,26 @@ namespace Mikoto {
         TagComponent& tag{ entity->GetComponent<TagComponent>() };
 
         bool isActive{ tag.IsActive() };
-        if ( ImGuiUtils::CheckBox( "##DrawVisibilityCheckBox::Checkbox", isActive ) ) {
+        if ( gui::CheckBox( "##DrawVisibilityCheckBox::Checkbox", isActive ) ) {
             tag.SetActive( isActive );
         }
     }
 
     static auto DrawNameTextInput( Entity* entity ) -> void {
-        using namespace StringUtil;
-
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( entity == nullptr ) {
             return;
         }
 
-        // All entities are guaranteed to have a TagComponent
         TagComponent& tag{ entity->GetComponent<TagComponent>() };
 
+        constexpr u32 kInputNameLength{ 1024 };
         constexpr ImGuiTextFlags flags{ ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll };
 
-        StaticString<1024> name{ tag.GetTag() };
-        if ( ImGui::InputText( "##DrawNameTextInputTag", name.GetData(), name.GetCapacity(), flags ) ) {
-            tag.SetTag( name.GetView() );
+        eastl::fixed_string<char, kInputNameLength> name{ tag.GetTag().c_str() };
+        if ( ImGui::InputText( "##DrawNameTextInputTag", name.data(), name.capacity(), flags ) ) {
+            tag.SetTag( name );
         }
     }
 
@@ -1171,12 +1157,12 @@ namespace Mikoto {
         DrawVec3Transform( "Scale", newScale, 1.0, 100.0, uniformScale );
         ImGui::SameLine();
 
-        if ( ImGuiUtils::CheckBox( "##SetupTransformComponentTab:UniformScale", uniformScale ) ) {
+        if ( gui::CheckBox( "##SetupTransformComponentTab:UniformScale", uniformScale ) ) {
             entity.GetComponent<TransformComponent>().SetUniformSale( uniformScale );
         }
 
         if ( ImGui::IsItemHovered() ) {
-            ImGuiUtils::ToolTip( "Enable uniform scaling" );
+            gui::ToolTip( "Enable uniform scaling" );
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
         }
 
@@ -1189,23 +1175,23 @@ namespace Mikoto {
         ScriptComponent& scriptComponent{ entity.GetComponent<ScriptComponent>() };
 
         // Static so ImGui input buffer persists
-        static std::string formattedPath{};
-        const File* file{ FileService::Get()->LoadFile( scriptComponent.GetFilePath() ) };
+        static eastl::string formattedPath{};
+        FileHandle file{ FileService::Get()->LoadFile( scriptComponent.GetFilePath() ) };
 
-        if ( file != nullptr ) {
-            formattedPath = fmt::format( "{}", file->GetPath() );
+        if ( !file.IsEmpty() ) {
+            formattedPath = string::Format( "{}", file->GetPath().GetC_Str() );
         }
 
         ImGui::InputText( "##PathToScript", formattedPath.data(), formattedPath.size() + 1, ImGuiInputTextFlags_ReadOnly );
         ImGui::SameLine();
 
         if ( ImGui::Button( fmt::format( " {} Load ", ICON_MD_SEARCH ).c_str() ) ) {
-            const std::initializer_list<std::pair<std::string, std::string>> filters{
+            const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
                 { "LUA Files", "lua" }
             };
 
-            Path path{ FileService::Get()->OpenDialog( filters ).string() };
-            if ( !path.empty() ) {
+            Path path{ FileService::Get()->OpenDialog( filters ) };
+            if ( !path.IsEmpty() ) {
                 scriptComponent.SetScript( ScriptingService::Get()->LoadScript( path, std::addressof( entity ) ) );
             }
         }
@@ -1213,14 +1199,14 @@ namespace Mikoto {
         if ( ImGui::IsItemHovered() )
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
 
-        if ( file != nullptr ) {
+        if ( !file.IsEmpty() ) {
             ImGui::Spacing();
             ImGui::SeparatorText( "Script Preview" );
 
-            const std::string& contents{ file->GetContentsString() };
+            const eastl::string& contents{ file->GetContentsString() };
 
             // Cap preview for performance
-            constexpr Size kMaxPreviewSize{ 8192 * 4 };// more generous limit
+            constexpr size_t kMaxPreviewSize{ 8192 * 4 };// more generous limit
             const bool truncated = contents.size() > kMaxPreviewSize;
             const std::string_view preview{
                 contents.data(),
@@ -1235,7 +1221,7 @@ namespace Mikoto {
                 const char* end{ preview.data() + preview.size() };
                 while ( start < end ) {
                     const char* lineEnd = std::find( start, end, '\n' );
-                    lines.emplace_back( start, static_cast<Size>( lineEnd - start ) );
+                    lines.emplace_back( start, static_cast<size_t>( lineEnd - start ) );
                     start = ( lineEnd == end ) ? end : lineEnd + 1;
                 }
             }
@@ -1247,10 +1233,10 @@ namespace Mikoto {
 
             const float height{ ImGui::GetTextLineHeightWithSpacing() * 15.0f };
             if ( ImGui::BeginChild( "ScriptPreviewChild", ImVec2{ 0, height }, true, ImGuiWindowFlags_HorizontalScrollbar ) ) {
-                ImGuiUtils::ImGuiScopedTextFont newFont{ ImGuiService::Get()->PushFont( "./Resources/Fonts/Google_Sans_Code/static/GoogleSansCode-Light.ttf" ) };
+                gui::ImGuiScopedTextFont newFont{ ImGuiService::Get()->PushFont( "./Resources/Fonts/Google_Sans_Code/static/GoogleSansCode-Light.ttf" ) };
 
                 ImGuiListClipper clipper{};
-                clipper.Begin( static_cast<Int32>( lines.size() ) );
+                clipper.Begin( static_cast<i32>( lines.size() ) );
                 while ( clipper.Step() ) {
                     for ( int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i ) {
                         ImGui::TextUnformatted( lines[i].data(), lines[i].data() + lines[i].size() );
@@ -1270,29 +1256,26 @@ namespace Mikoto {
 
             ImGui::Spacing();
             if ( ImGui::Button( fmt::format( "{} Open in External Editor", ICON_MD_OPEN_IN_NEW ).c_str() ) ) {
-                RuntimeConsole::Get()->ExecuteCommand(
-                        StringUtils::Concat( "/", " code ", file->GetPath() ) );
+                RuntimeConsole::Get()->ExecuteCommand( string::Concat( "/", " code ", file->GetPath().GetC_Str() ).c_str() );
             }
         }
     }
 
     static auto SetupAnimatorComponentTab( Entity& entity ) -> void {
         AnimatorComponent& animatorComponent{ entity.GetComponent<AnimatorComponent>() };
-
         Animator* animator{
             AnimationSystem::Get()->GetAnimator( animatorComponent.GetAnimatorID() )
         };
 
-        std::string currentAnimationName{};
-
+        eastl::string currentAnimationName{};
         if ( animator ) {
             if ( const SkinnedAnimation* current{ animator->GetCurrentAnimation() } )
                 currentAnimationName = current->GetName();
         }
 
-        ImGuiUtils::UnindentScoped und{};
+        gui::UnindentScoped und{};
 
-        ImGuiUtils::DrawNode( "Animation List", [animator, &currentAnimationName]() -> void {
+        gui::DrawNode( "Animation List", [animator, &currentAnimationName]() -> void {
             if ( !animator )
                 return;
 
@@ -1301,16 +1284,16 @@ namespace Mikoto {
             if ( animationList.empty() )
                 return;
 
-            std::vector<std::string> animationNames{};
+            eastl::vector<eastl::string> animationNames{};
             animationNames.reserve( animationList.size() );
 
-            for ( const auto& name: animationList | std::views::keys )
-                animationNames.push_back( name );
+            for ( const auto& [name, animation]: animationList )
+                animationNames.push_back( animation.GetName() );
 
-            const Int32 selectionIndex{
-                ImGuiUtils::Combo(
+            const i32 selectionIndex{
+                gui::Combo(
                         animationNames.data(),
-                        static_cast<Size>( animationNames.size() ),
+                        static_cast<size_t>( animationNames.size() ),
                         currentAnimationName )
             };
 
@@ -1325,7 +1308,7 @@ namespace Mikoto {
         if ( animator )
             play = animator->IsPlaying();
 
-        if ( ImGuiUtils::CheckBox( "Play selected animation", play ) ) {
+        if ( gui::CheckBox( "Play selected animation", play ) ) {
             if ( !animator )
                 return;
 
@@ -1367,7 +1350,7 @@ namespace Mikoto {
             // --- Body Type ---
             {
                 std::array bodyTypes{ "Static", "Kinematic", "Dynamic" };
-                Int32 currentType{ static_cast<int>( rb.GetBodyType() ) };
+                i32 currentType{ static_cast<int>( rb.GetBodyType() ) };
 
                 ImGui::Text("Body Type");
                 ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
@@ -1419,7 +1402,7 @@ namespace Mikoto {
             }
 
             {
-                Vec3F linearVel{ rb.GetLinearVelocity() };
+                float3 linearVel{ rb.GetLinearVelocity() };
                 ImGui::Text("Linear Velocity");
                 ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
                 if (ImGui::DragFloat3("##LinearVelocity", &linearVel.x, 0.1f)) {
@@ -1429,7 +1412,7 @@ namespace Mikoto {
 
             // --- Angular Velocity ---
             {
-                Vec3F angularVel{ rb.GetAngularVelocity() };
+                float3 angularVel{ rb.GetAngularVelocity() };
                 ImGui::Text("Angular Velocity");
                 ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
                 if (ImGui::DragFloat3("##AngularVelocity", &angularVel.x, 0.1f)) {
@@ -1455,17 +1438,15 @@ namespace Mikoto {
         ImGui::SameLine();
 
         Path path{ "" };
-
         const MeshNode* mesh{ component.GetMesh() };
-
         if ( mesh != nullptr ) {
-            path = component.GetModel()->GetDirectory();
+            path = component.GetModel()->GetPath();
         }
 
         // Imgui Will need this later, so the buffer must still exist
         // can't be made a with automatic storage duration
-        static std::string formatedPath{};
-        formatedPath = fmt::format( "{}", path.string() );
+        static eastl::string formatedPath{};
+        formatedPath = string::Format( "{}", path.GetC_Str() );
 
         // See imgui assert on the size of the buffer
         // formatedPath.size() already includes the terminator
@@ -1475,37 +1456,29 @@ namespace Mikoto {
 
         static bool loading{ false };
         if ( ImGui::Button( fmt::format( " {} Load ", ICON_MD_SEARCH ).c_str() ) ) {
+            threading::TaskService::Get()->Submit( [rootEntity = std::addressof(entity), scene ]() -> void {
+                const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+                    { "Model files", "obj,gltf,fbx,glb" },
+                    { "OBJ files", "obj" },
+                    { "glTF files", "gltf" },
+                    { "FBX files", "fbx" },
+                    { "GLB files", "glb" },
+                };
 
-            if ( !loading ) {
+                Path targetModelPath{ FileService::Get()->OpenDialog( filters ) };
 
-                loading = true;
+                if ( !targetModelPath.IsEmpty() ) {
+                    ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( targetModelPath ) };
 
-                TaskService::Get()->Submit( [rootEntity = std::addressof(entity), scene ]() -> void {
-                    const std::initializer_list<std::pair<std::string, std::string>> filters{
-                        { "Model files", "obj,gltf,fbx,glb" },
-                        { "OBJ files", "obj" },
-                        { "glTF files", "gltf" },
-                        { "FBX files", "fbx" },
-                        { "GLB files", "glb" },
+                    const EntityCreateInfo entityCreateInfo{
+                        .mRoot = rootEntity,
+                        .mName{ model->GetName() },
+                        .mModel = model,
                     };
 
-                    Path targetModelPath{ FileService::Get()->OpenDialog( filters ).string() };
-
-                    if ( !targetModelPath.empty() ) {
-                        ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( targetModelPath.string() ) };
-
-                        const EntityCreateInfo entityCreateInfo{
-                            .Root{ rootEntity },
-                            .Name{ model->GetName().c_str() },
-                            .Model{ model },
-                        };
-
-                        scene->QueueCreateEntity( entityCreateInfo );
-                    }
-
-                    loading = false;
-                } );
-            }
+                    scene->PushEntity( entityCreateInfo );
+                }
+            });
         }
 
         if ( ImGui::IsItemHovered() ) {
@@ -1537,7 +1510,7 @@ namespace Mikoto {
 
             ImGui::TableSetColumnIndex( 1 );
             float intensity{ direLightData.GetIntensity() };
-            if ( ImGuiUtils::Slider( "##Intensity", intensity, { 1.0f, 10.0f } ) ) {
+            if ( gui::Slider( "##Intensity", intensity, { 1.0f, 10.0f } ) ) {
                 direLightData.SetIntensity( intensity );
             }
 
@@ -1549,7 +1522,7 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 1 );
 
             glm::vec4 diffuse{ direLightData.GetColor(), 1.0f };
-            if ( ImGuiUtils::ColorEdit4( "##DirectionalLightDiffuse", diffuse ) ) {
+            if ( gui::ColorEdit4( "##DirectionalLightDiffuse", diffuse ) ) {
                 direLightData.SetColor( diffuse );
             }
 
@@ -1560,7 +1533,7 @@ namespace Mikoto {
 
             ImGui::SameLine();
 
-            ImGuiUtils::HelpMarker(
+            widget::MakeHelpPopUp(
                     "In the case of the fourth component having a value of 1.0f\n"
                     "we do light calculations using the light's position instead\n"
                     "which is the position of the game object." );
@@ -1570,7 +1543,7 @@ namespace Mikoto {
             constexpr float PI{ std::numbers::pi_v<float> };
             glm::vec3 direction{ direLightData.GetDirection() };
 
-            if ( ImGuiUtils::DragFloat3( "##DirectionalLightDirection", "%.2f", direction, 0.01f, -PI, PI ) ) {
+            if ( DragFloat3( "##DirectionalLightDirection", "%.2f", direction, 0.01f, -PI, PI ) ) {
                 direLightData.SetDirection( direction );
             }
 
@@ -1581,7 +1554,7 @@ namespace Mikoto {
 
             ImGui::TableSetColumnIndex( 1 );
             static bool castShadows{};
-            ImGuiUtils::CheckBox( "##DirectionalLightShadows", castShadows );
+            (void)CheckBox( "##DirectionalLightShadows", castShadows );
 
             ImGui::EndTable();
         }
@@ -1597,7 +1570,7 @@ namespace Mikoto {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
             glm::vec3 diffuseComponent{ pointLightData.GetColor() };
-            if ( ImGuiUtils::ColorEdit3( "Color", diffuseComponent ) ) {
+            if ( gui::ColorEdit3( "Color", diffuseComponent ) ) {
                 pointLightData.SetColor( diffuseComponent );
             }
 
@@ -1606,7 +1579,7 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 0 );
 
             float intensity{ pointLightData.GetIntensity() };
-            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
+            if ( gui::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
                 pointLightData.SetIntensity( intensity );
             }
 
@@ -1615,7 +1588,7 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 0 );
 
             float radius{ pointLightData.GetRadius() };
-            if ( ImGuiUtils::Slider( "Radius", radius, { 1.0f, 500.0f } ) ) {
+            if ( gui::Slider( "Radius", radius, { 1.0f, 500.0f } ) ) {
                 pointLightData.SetRadius( radius );
             }
 
@@ -1628,7 +1601,7 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 0 );
 
             static bool castShadows{};
-            if ( ImGuiUtils::CheckBox( "Cast shadows", castShadows ) ) {
+            if ( gui::CheckBox( "Cast shadows", castShadows ) ) {
             }
 
             ImGui::EndTable();
@@ -1646,74 +1619,74 @@ namespace Mikoto {
             ImGui::TableSetColumnIndex( 0 );
 
             glm::vec3 direction{ spotLightData.GetDirection() };
-            if ( ImGuiUtils::DragFloat3( "Direction", "%.2f", direction, 0.01f, -Math::Constants::PI, Math::Constants::PI ) ) {
+            if ( DragFloat3( "Direction", "%.2f", direction, 0.01f, -math::constants::kPi, math::constants::kPi ) ) {
                 spotLightData.SetDirection( direction );
             }
 
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "The spot position is determined by the objects position." );
+            widget::MakeHelpPopUp( "The spot position is determined by the objects position." );
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
-            Vec3F color{ spotLightData.GetColor() };
-            if ( ImGuiUtils::ColorEdit3( "Color", color ) ) {
+            float3 color{ spotLightData.GetColor() };
+            if ( gui::ColorEdit3( "Color", color ) ) {
                 spotLightData.SetColor( color );
             }
-            ImGuiUtils::SetCursorHandOnLastItemHovered();
+            gui::SetCursorHandOnLastItemHovered();
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
             float intensity{ spotLightData.GetIntensity() };
-            if ( ImGuiUtils::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
+            if ( gui::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
                 spotLightData.SetIntensity( intensity );
             }
-            ImGuiUtils::SetCursorHandOnLastItemHovered();
+            gui::SetCursorHandOnLastItemHovered();
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
             float radius{ spotLightData.GetRadius() };
-            if ( ImGuiUtils::Slider( "Attenuation Radius", radius, { 1.0f, 500.0f } ) ) {
+            if ( gui::Slider( "Attenuation Radius", radius, { 1.0f, 500.0f } ) ) {
                 spotLightData.SetRadius( radius );
             }
-            ImGuiUtils::SetCursorHandOnLastItemHovered();
+            gui::SetCursorHandOnLastItemHovered();
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
             float angle{ spotLightData.GetAngle() };
-            if ( ImGuiUtils::Slider( "Angle", angle, { 1.0f, SpotLight::GetMaxAngle() } ) ) {
+            if ( gui::Slider( "Angle", angle, { 1.0f, SpotLight::GetMaxAngle() } ) ) {
                 spotLightData.SetAngle( angle );
             }
-            ImGuiUtils::SetCursorHandOnLastItemHovered();
+            gui::SetCursorHandOnLastItemHovered();
 
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Cone angle in degrees" );
+            widget::MakeHelpPopUp( "Cone angle in degrees" );
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
             float softness{ spotLightData.GetSoftness() };
-            if ( ImGuiUtils::Slider( "Softness", softness, { 0.0f, SpotLight::GetMaxSoftness() } ) ) {
+            if ( gui::Slider( "Softness", softness, { 0.0f, SpotLight::GetMaxSoftness() } ) ) {
                 spotLightData.SetSoftness( softness );
             }
 
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Edge softness of the spotlight" );
+            widget::MakeHelpPopUp( "Edge softness of the spotlight" );
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
             static bool castShadows{};
-            ImGuiUtils::CheckBox( "Cast shadows", castShadows );
+            CheckBox( "Cast shadows", castShadows );
 
             ImGui::EndTable();
         }
@@ -1729,12 +1702,12 @@ namespace Mikoto {
         ImGui::TextUnformatted( "Light type " );
         ImGui::SameLine();
 
-        if ( ImGui::BeginCombo( "##LightType", lightTypes[static_cast<Size>( lightType )].data() ) ) {
-            Size lightTypeIndex{};
+        if ( ImGui::BeginCombo( "##LightType", lightTypes[static_cast<size_t>( lightType )].data() ) ) {
+            size_t lightTypeIndex{};
             for ( const auto& currentType: lightTypes ) {
                 // Tells whether we want to highlight this light type in the ImGui combo.
                 // This will be the case if the current type of light is the same as the component
-                const bool isSelected{ currentType == lightTypes[static_cast<Size>( lightType )] };
+                const bool isSelected{ currentType == lightTypes[static_cast<size_t>( lightType )] };
 
                 // This cast is valid because lightTypeIndex is always in the range [0, 2]
                 // where each index indicates a type of light, see LightType definition.
@@ -1767,17 +1740,18 @@ namespace Mikoto {
         }
 
         switch ( lightComponent.GetActiveType() ) {
-            case LightType::DIRECTIONAL_LIGHT_TYPE:
+            case LightType::eDirectional:
                 SetupDirectionalLightOptions( lightComponent );
                 break;
 
-            case LightType::POINT_LIGHT_TYPE:
+            case LightType::ePoint:
                 SetupPointLightOptions( lightComponent );
                 break;
 
-            case LightType::SPOT_LIGHT_TYPE:
+            case LightType::eSpot:
                 SetupSpotLightLightOptions( lightComponent );
                 break;
+            default:;
         }
     }
 
@@ -1791,9 +1765,9 @@ namespace Mikoto {
             textComponent.SetColor( color );
         }
 
-        ImGuiUtils::HelpMarker( "Select the current font.", "(?)", true );
+        widget::MakeHelpPopUp( "Select the current font.", "(?)" );
 
-        std::string fontPath{ "Select font" };
+        eastl::string fontPath{ "Select font" };
 
         if (textComponent.HasFont()) {
             fontPath = textComponent.GetFont()->GetName();
@@ -1802,65 +1776,60 @@ namespace Mikoto {
         ImGui::InputText( "##FontPath", fontPath.data(), fontPath.size() + 1, ImGuiInputTextFlags_ReadOnly );
         ImGui::SameLine();
         if ( ImGui::Button( "Load Font" ) ) {
-            static bool loading{ false };
-            if ( !loading ) {
-                loading = true;
+            threading::TaskService::Get()->Submit( [&]() -> void {
+                const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+                    { "Font Files", "ttf" }
+                };
 
-                TaskService::Get()->Submit( [&]() -> void {
-                    const std::initializer_list<std::pair<std::string, std::string>> filters{
-                        { "Font Files", "ttf" }
-                    };
+                Path path{ FileService::Get()->OpenDialog( filters ) };
+                if ( !path.IsEmpty() ) {
+                    FontHandle newFont{ AssetsService::Get()->LoadAsset<Font>( path ) };
 
-                    Path path{ FileService::Get()->OpenDialog( filters ) };
-                    if ( !path.empty() ) {
-                        FontHandle newFont{ AssetsService::Get()->LoadAsset<Font>( path ) };
-
-                        if ( !newFont.IsEmpty() ) {
-                            textComponent.SetFont( newFont );
-                        }
+                    if ( !newFont.IsEmpty() ) {
+                        textComponent.SetFont( newFont );
                     }
-
-                    loading = false;
-                } );
-            }
+                }
+            } );
         }
 
         ImGui::Spacing();
-        static std::array textAlignment{ "Center", "Left", "Right" };
+        static eastl::array textAlignment{ "Center", "Left", "Right" };
 
-        static std::string currentAlignment{ textAlignment[0] };
-        ImGuiUtils::ComboList( textAlignment.begin(), textAlignment.end(), currentAlignment, [&]( const std::string_view target ) -> bool { return StringUtils::Equal( currentAlignment, target ); }, "SetupTextComponentTab:Alignment" );
+        static eastl::string currentAlignment{ textAlignment[0] };
+        ComboList( textAlignment.begin(), textAlignment.end(), currentAlignment, [&]( const eastl::string_view target ) -> bool {
+            return string::Equal( currentAlignment, target );
+        }, "SetupTextComponentTab:Alignment" );
 
-        ImGuiUtils::HelpMarker( "Text alignment.", "(?)", true );
+        widget::MakeHelpPopUp( "Text alignment.", "(?)" );
 
         // Slider float font size
         float currentSize{ textComponent.GetSize() };
         ImGui::Spacing();
-        if ( ImGuiUtils::Slider( "##WorldSize", currentSize, { TextComponent::GetMinLetterSize(), 500.0f } ) ) {
+        if ( gui::Slider( "##WorldSize", currentSize, { TextComponent::GetMinLetterSize(), 500.0f } ) ) {
             textComponent.SetSize( currentSize );
         }
-        ImGuiUtils::HelpMarker( "Text size in world space.", "(?)", true );
+        widget::MakeHelpPopUp( "Text size in world space.", "(?)" );
 
         // Slider float letter spacing
         float spacing{ textComponent.GetSpacing() };
         ImGui::Spacing();
-        if ( ImGuiUtils::Slider( "##Spacing", spacing, { TextComponent::GetMinLetterSpacing(), 35.0f } ) ) {
+        if ( gui::Slider( "##Spacing", spacing, { TextComponent::GetMinLetterSpacing(), 35.0f } ) ) {
             textComponent.SetSpacing( spacing );
         }
 
-        ImGuiUtils::HelpMarker( "Text inner spacing.", "(?)", true );
+        widget::MakeHelpPopUp( "Text inner spacing.", "(?)" );
 
         // Slider float letter spacing
         bool isWorldText{ textComponent.IsWorldText() };
         ImGui::Spacing();
-        if ( ImGuiUtils::CheckBox( "Is World Text", isWorldText) ) {
+        if ( gui::CheckBox( "Is World Text", isWorldText) ) {
             textComponent.SetIsWorldText( isWorldText );
         }
 
         ImGui::Spacing();
 
-        std::string content{ textComponent.GetContents() };
-        if ( ImGuiUtils::TextArea( content ) ) {
+        eastl::string content{ textComponent.GetContents() };
+        if ( gui::TextArea( content ) ) {
             textComponent.SetContents( content );
         }
 
@@ -1870,11 +1839,11 @@ namespace Mikoto {
             if ( font != nullptr ) {
                 TextureHandle atlas{ font->GetAtlas() };
 
-                if ( ImGuiUtils::PushImageButton( atlas->GetHandle(), ImGuiService::Get()->GetTextureID( atlas ), ImVec2{ 256, 256 } ) ) {
+                if ( gui::PushImageButton( atlas->GetHandle(), ImGuiService::Get()->GetTextureID( atlas ), ImVec2{ 256, 256 } ) ) {
 
                 }
 
-                ImGuiUtils::ToolTip( [&]() -> void {
+                gui::ToolTip( [&]() -> void {
                     ShowTextureHoverTooltip( atlas.GetRaw() );
                 },  ImGui::IsItemHovered() );
 
@@ -1904,7 +1873,7 @@ namespace Mikoto {
         // Forward Vector
         //
         {
-            Vec3F forward{ listener.GetForward() };
+            float3 forward{ listener.GetForward() };
 
             ImGui::Text( "Forward" );
             ImGui::SameLine();
@@ -1917,7 +1886,7 @@ namespace Mikoto {
         // Up Vector
         //
         {
-            Vec3F up{ listener.GetUp() };
+            float3 up{ listener.GetUp() };
 
             ImGui::Text( "Up" );
             ImGui::SameLine();
@@ -1930,7 +1899,7 @@ namespace Mikoto {
         // Velocity Vector
         //
         {
-            Vec3F vel{ listener.GetVelocity() };
+            float3 vel{ listener.GetVelocity() };
 
             ImGui::Text( "Velocity" );
             ImGui::SameLine();
@@ -1945,9 +1914,9 @@ namespace Mikoto {
         // Reset Button
         //
         if ( ImGui::Button( "Reset Listener Orientation" ) ) {
-            listener.SetForward( Vec3F{ 0.0f, 0.0f, -1.0f } );
-            listener.SetUp( Vec3F{ 0.0f, 1.0f, 0.0f } );
-            listener.SetVelocity( Vec3F{ 0.0f, 0.0f, 0.0f } );
+            listener.SetForward( float3{ 0.0f, 0.0f, -1.0f } );
+            listener.SetUp( float3{ 0.0f, 1.0f, 0.0f } );
+            listener.SetVelocity( float3{ 0.0f, 0.0f, 0.0f } );
         }
     }
 
@@ -1968,8 +1937,8 @@ namespace Mikoto {
         ImGui::TextUnformatted( "Audio Clip" );
 
         ImGui::TableSetColumnIndex( 1 );
-        static std::string clipPath{};
-        clipPath = clip ? clip->GetTrackName() : "";
+        static eastl::string clipPath{};
+        clipPath = !clip.IsEmpty() ? clip->GetTrackName() : "";
         ImGui::InputText( "##AudioClipPath", clipPath.data(), clipPath.size() + 1, ImGuiInputTextFlags_ReadOnly );
         ImGui::SameLine();
         if ( ImGui::Button( "Load Clip" ) ) {
@@ -1977,14 +1946,16 @@ namespace Mikoto {
             if ( !loading ) {
                 loading = true;
 
-                TaskService::Get()->Submit( [&]() -> void {
-                    const std::initializer_list<std::pair<std::string, std::string>> filters{
+                threading::TaskService::Get()->Submit( [&]() -> void {
+                    const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
                         { "Audio Files", "wav,mp3,ogg" }
                     };
 
                     Path path{ FileService::Get()->OpenDialog( filters ) };
-                    if ( !path.empty() ) {
-                        AudioHandle newClip{ AssetsService::Get()->LoadAsset<Audio>( AudioLoadDescription{ .AudioFile{ FileService::Get()->LoadFile( path ) } } ) };
+                    if ( !path.IsEmpty() ) {
+                        AudioHandle newClip{ AssetsService::Get()->LoadAsset<Audio>( AudioLoadDescription {
+                            .mAudioFile{ FileService::Get()->LoadFile( path ) }
+                        } ) };
 
                         if ( !newClip.IsEmpty() ) {
                             audioComponent.SetClip( newClip );
@@ -2005,7 +1976,7 @@ namespace Mikoto {
         if ( ImGui::Checkbox( "##IsSpatizlizedAudio", MKT_ADDRESSOF( isSpatialized ) ) ) {
             if ( source ) source->SetSpatialization( isSpatialized );
         }
-        ImGuiUtils::SetCursorHandOnLastItemHovered();
+        gui::SetCursorHandOnLastItemHovered();
 
         // --- Muted ---
         ImGui::TableNextRow();
@@ -2016,7 +1987,7 @@ namespace Mikoto {
         if ( ImGui::Checkbox( "##IsMutedAudio", &isMuted ) ) {
             if ( source ) source->Mute( isMuted );
         }
-        ImGuiUtils::SetCursorHandOnLastItemHovered();
+        gui::SetCursorHandOnLastItemHovered();
 
         // --- Loop ---
         ImGui::TableNextRow();
@@ -2027,7 +1998,7 @@ namespace Mikoto {
         if ( ImGui::Checkbox( "##IsLoopingAudio", &isLooping ) ) {
             if ( source ) source->SetLooping( isLooping );
         }
-        ImGuiUtils::SetCursorHandOnLastItemHovered();
+        gui::SetCursorHandOnLastItemHovered();
 
         // --- Volume ---
         ImGui::TableNextRow();
@@ -2040,7 +2011,7 @@ namespace Mikoto {
                 source->SetVolume( volume );
             }
         }
-        ImGuiUtils::SetCursorHandOnLastItemHovered();
+        gui::SetCursorHandOnLastItemHovered();
 
         // --- Playback controls ---
         if (!source.IsEmpty()) {
@@ -2050,22 +2021,22 @@ namespace Mikoto {
             ImGui::TextUnformatted( "Playback" );
             ImGui::TableSetColumnIndex( 1 );
 
-            if ( ImGui::Button( StringUtils::Concat( ICON_MD_PLAY_ARROW, " Play" ).c_str() ) ) {
+            if ( ImGui::Button( string::Concat( ICON_MD_PLAY_ARROW, " Play" ).c_str() ) ) {
                 source->Play();
             }
-            ImGuiUtils::SetCursorHandOnLastItemHovered();
+            gui::SetCursorHandOnLastItemHovered();
 
             ImGui::SameLine();
-            if ( ImGui::Button( StringUtils::Concat( ICON_MD_PAUSE, " Pause" ).c_str() ) ) {
+            if ( ImGui::Button( string::Concat( ICON_MD_PAUSE, " Pause" ).c_str() ) ) {
                 source->Pause();
             }
-            ImGuiUtils::SetCursorHandOnLastItemHovered();
+            gui::SetCursorHandOnLastItemHovered();
 
             ImGui::SameLine();
-            if ( ImGui::Button( StringUtils::Concat( ICON_MD_STOP, " Stop" ).c_str() ) ) {
+            if ( ImGui::Button( string::Concat( ICON_MD_STOP, " Stop" ).c_str() ) ) {
                 source->Stop();
             }
-            ImGuiUtils::SetCursorHandOnLastItemHovered();
+            gui::SetCursorHandOnLastItemHovered();
 
             // --- Progress bar ---
             ImGui::TableNextRow();
@@ -2176,13 +2147,12 @@ namespace Mikoto {
 
     static auto SetupCameraComponentTab( Entity& entity ) -> void {
         CameraComponent& cameraComponent{ entity.GetComponent<CameraComponent>() };
-
-        static const std::array<std::string, 2> cameraProjectionTypeNames{
+        static const eastl::array<std::string, 2> kCameraProjectionTypeNames{
             "Orthographic", "Perspective"
         };
 
         if ( !cameraComponent.HasCamera() ) {
-            if ( !ImGuiUtils::ButtonTextIcon( StringUtils::Concat( ICON_MD_ADD, " Add camera" ).c_str() ) ) {
+            if ( !ButtonTextIcon( string::Concat( ICON_MD_ADD, " Add camera" ).c_str() ) ) {
                 return;
             }
         }
@@ -2204,18 +2174,18 @@ namespace Mikoto {
             }
 
             ImGui::TableSetColumnIndex( 1 );
-            const auto& currentProjectionTypeStr{ cameraProjectionTypeNames[static_cast<UInt32>( cameraCurrentProjectionType )] };
+            const auto& currentProjectionTypeStr{ kCameraProjectionTypeNames[as<u32>( cameraCurrentProjectionType )] };
 
             if ( ImGui::BeginCombo( "##Projection", currentProjectionTypeStr.c_str() ) ) {
-                UInt32 projectionIndex{};
-                for ( const auto& projectionType: cameraProjectionTypeNames ) {
+                u32 projectionIndex{};
+                for ( const auto& projectionType: kCameraProjectionTypeNames ) {
                     // Tells whether we want to highlight this projection in the ImGui combo.
                     // This will be the case if this projection type is the current one for this camera.
-                    bool isSelected{ projectionType == cameraProjectionTypeNames[static_cast<UInt32>( cameraCurrentProjectionType )] };
+                    bool isSelected{ projectionType == kCameraProjectionTypeNames[as<u32>( cameraCurrentProjectionType )] };
 
                     // Create a selectable combo item for each perspective
                     if ( ImGui::Selectable( projectionType.c_str(), isSelected ) ) {
-                        sceneCamera.SetProjectionType( static_cast<ProjectionType>( projectionIndex ) );
+                        sceneCamera.SetProjectionType( as<ProjectionType>( projectionIndex ) );
                     }
 
                     if ( ImGui::IsItemHovered() ) {
@@ -2290,12 +2260,6 @@ namespace Mikoto {
         }
     }
 
-    InspectorPanel::InspectorPanel( const InspectorPanelCreateInfo& createInfo )
-        : Panel{  "Inspector" }, m_State( createInfo.State ) {
-
-        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_ERROR_OUTLINE, m_PanelName );
-    }
-
     auto InspectorPanel::DrawComponents( Entity* entity ) const -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -2303,9 +2267,9 @@ namespace Mikoto {
             return;
         }
 
-        DrawComponent<TransformComponent>( fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), *entity, [&]( Entity& target ) -> void { SetupTransformComponentTab( target, m_State->ActiveEditorScene ); }, false );
+        DrawComponent<TransformComponent>( fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), *entity, [&]( Entity& target ) -> void { SetupTransformComponentTab( target, mState->mActiveScene ); }, false );
         DrawComponent<MaterialComponent>( fmt::format( "{} Material", ICON_MD_INSIGHTS ), *entity, SetupMaterialComponentTab );
-        DrawComponent<MeshComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), *entity, [&]( Entity& target ) -> void { SetupRenderComponentTab( target, m_State->ActiveEditorScene ); } );
+        DrawComponent<MeshComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), *entity, [&]( Entity& target ) -> void { SetupRenderComponentTab( target, mState->mActiveScene ); } );
         DrawComponent<RigidBodyComponent>( fmt::format( "{} Physics", ICON_MD_FITNESS_CENTER ), *entity, SetupPhysicsComponentTab );
         DrawComponent<LightComponent>( fmt::format( "{} Light", ICON_MD_LIGHT ), *entity, SetupLightComponentTab );
         DrawComponent<AudioListenerComponent>( fmt::format( "{} Audio Listener", ICON_MD_AUTO_GRAPH ), *entity, SetupAudioListenerComponentTab );
@@ -2318,16 +2282,22 @@ namespace Mikoto {
         DrawComponent<SkinnedMeshRenderer>( fmt::format( "{} SkinRenderer", ICON_MD_COOKIE ), *entity, SetupSkinMeshComponentTab );
     }
 
+    InspectorPanel::InspectorPanel( const InspectorPanelCreateInfo& createInfo )
+        : Panel{  "Inspector" }, mState( createInfo.mState ) {
+
+        mPanelHeaderName = widget::MakeIconTitle( ICON_MD_ERROR_OUTLINE, mPanelName );
+    }
+
     auto InspectorPanel::OnUpdate( float ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if ( !m_PanelIsVisible ) {
+        if ( !mPanelIsVisible ) {
             return;
         }
 
-        ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
+        ImGui::Begin( mPanelHeaderName.c_str(), MKT_ADDRESSOF( mPanelIsVisible ), ImGuiWindowFlags_NoCollapse );
 
-        if ( Entity* target{ m_State->SelectedEntity } ) {
+        if ( Entity* target{ mState->mSelectedEntity } ) {
             DrawVisibilityCheckBox( target );
 
             ImGui::SameLine();

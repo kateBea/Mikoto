@@ -1,19 +1,26 @@
-/**
- * KeyCodes.hh
- * Created by kate on 5/31/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef MIKOTO_KEYCODES_HH
 #define MIKOTO_KEYCODES_HH
 
-// C++ Standard Library
-#include <string_view>
+#include <EASTL/string_view.h>
 
-// Third-Party Libraries
 #include <GLFW/glfw3.h>
 
-// Project Headers
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
 #if defined(USE_GLFW_INPUT)
     #define MKT_KEY_SPACE              GLFW_KEY_SPACE
@@ -143,9 +150,9 @@
 #define KEY_STRING_REPRESENTATION(name) #name
 
 
+namespace mikoto::core {
 
-namespace Mikoto {
-    enum KeyCode : Int16 {
+    enum KeyCode : i16 {
         Key_Space           = MKT_KEY_SPACE           ,
         Key_Apostrophe      = MKT_KEY_APOSTROPHE      , /* ' */
         Key_Comma           = MKT_KEY_COMMA           , /* , */
@@ -274,7 +281,7 @@ namespace Mikoto {
         Key_Menu            = MKT_KEY_MENU            ,
     };
 
-    MKT_NODISCARD inline auto GetStringRepresentation(KeyCode code) -> std::string_view {
+    MKT_NODISCARD inline auto GetStringRepresentation(KeyCode code) -> eastl::string_view {
         switch (code) {
             case Key_Space           : return KEY_STRING_REPRESENTATION(MKT_KEY_SPACE)         ;
             case Key_Apostrophe      : return KEY_STRING_REPRESENTATION(MKT_KEY_APOSTROPHE)    ;

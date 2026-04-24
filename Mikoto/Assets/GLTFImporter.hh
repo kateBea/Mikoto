@@ -15,62 +15,55 @@
 #ifndef MIKOTO_GLTF_IMPORTER_HH
 #define MIKOTO_GLTF_IMPORTER_HH
 
-#include <string>
-#include <atomic>
-#include <string_view>
+#include <EASTL/atomic.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
 
 #include <tiny_gltf.h>
 
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
-
-#include <Animation/SkinningBuilder.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 
 #include <Assets/Model.hh>
 #include <Assets/Importer.hh>
+
 #include <Renderer/Core/GpuDevice.hh>
 
-namespace Mikoto {
+#include <Animation/SkinningBuilder.hh>
+
+namespace mikoto::asset {
+
+    struct LoaderData {
+        i32 mIndex{ -1 };
+
+        eastl::string mError{};
+        eastl::string mWarning{};
+        tinygltf::TinyGLTF mLoader{};
+
+        std::atomic_bool mIsFree{ true };
+    };
 
     class GLTFImporter final : public ModelImporter {
     public:
         explicit GLTFImporter(GpuDevice* device);
 
-        auto Import(const ModelLoadDescription& description, ModelData& out) -> void override;
+        auto Import(const ModelLoadDescription& description, ModelDataDescription& out) -> void override;
 
-    private:
-        struct LoaderData {
-            Int32 Index{ -1 };
-
-            std::string Err{};
-            std::string Warn{};
-            tinygltf::TinyGLTF Loader{};
-
-            std::atomic_bool IsFree{ true };
-        };
-
-    private:
         // Extension names
-        static constexpr std::string_view KHR_PBR_Unlit{ "KHR_materials_unlit" };
-        static constexpr std::string_view KHR_Emissive_Strength{ "KHR_materials_emissive_strength" };
-        static constexpr std::string_view KHR_PBR_SpecularGlossiness{ "KHR_materials_pbrSpecularGlossiness" };
+        static constexpr eastl::string_view KHR_PBR_Unlit{ "KHR_materials_unlit" };
+        static constexpr eastl::string_view KHR_Emissive_Strength{ "KHR_materials_emissive_strength" };
+        static constexpr eastl::string_view KHR_PBR_SpecularGlossiness{ "KHR_materials_pbrSpecularGlossiness" };
 
     private:
 
-        auto LoadPrimitives(tinygltf::Model& model, ModelData& modelData) -> void;
-        auto LoadMaterials(tinygltf::Model& model, ModelData& modelData, const std::string& rootPath) -> void;
-
-        MKT_NODISCARD auto TryAcquireImporter() -> std::vector<Unique<LoaderData>>::iterator;
-        MKT_NODISCARD auto LoadModel(LoaderData& loaderData,const ModelLoadDescription& description, tinygltf::Model& model) -> bool;
-
-        auto LoadAnimations(const tinygltf::Model& model,const ModelLoadDescription& description,ModelData& out) -> void;
-
-        auto Import(LoaderData& loaderData,const ModelLoadDescription& description, ModelData& out) -> void;
+        MKT_NODISCARD auto TryAcquireImporter() -> eastl::vector<eastl::unique_ptr<LoaderData>>::iterator;
+        auto Import(LoaderData& loaderData,const ModelLoadDescription& description, ModelDataDescription& out) -> void;
 
     private:
-        UInt32 m_MaxConcurrentImporters{};
-
-        std::vector<Unique<LoaderData>> m_Importers{};
+        u32 mMaxConcurrentImporters{};
+        eastl::vector<eastl::unique_ptr<LoaderData>> mImporters{};
     };
 }
 

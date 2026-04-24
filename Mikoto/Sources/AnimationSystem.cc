@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,50 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <array>
-#include <cstdlib>
 #include <ranges>
 
+#include <Core/Core.hh>
 #include <Logging/Logger.hh>
-#include <Filesystem/FileSystem.hh>
 #include <Animation/AnimationSystem.hh>
 
-namespace Mikoto {
+namespace mikoto::animation {
 
     AnimationSystem::AnimationSystem( const AnimationSystemCreateInfo & ) {}
 
-    auto AnimationSystem::Init() -> void {
+    auto AnimationSystem::Initialize() -> void {
         MKT_CORE_LOGGER_INFO("Initializing AnimationSystem...");
-
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto AnimationSystem::Shutdown() -> void {
-        if (!m_IsInitialized) {
+        if (!mIsInitialized) {
             return;
         }
 
         MKT_CORE_LOGGER_INFO( "Shutting down AnimationSystem..." );
 
-        m_Animators.clear();
+        mAnimators.clear();
     }
 
     auto AnimationSystem::Update( float dt ) -> void {
-        for ( auto& animator : m_Animators | std::ranges::views::values ) {
-            animator.UpdateAnimation( dt );
+        for ( auto& animator : mAnimators | std::ranges::views::values ) {
+            animator.Update( dt );;
         }
     }
 
-    auto AnimationSystem::RegisterAnimation( ModelHandle handle ) -> UInt64 {
-        UInt64 animatorID{ m_Animators.size() + 1 };
-        m_Animators.try_emplace( animatorID, handle );
+    auto AnimationSystem::RegisterAnimation( ModelHandle handle ) -> u64 {
+        u64 animatorID{ mAnimators.size() + 1 };
+        mAnimators.try_emplace( animatorID, handle );
 
         return animatorID;
     }
 
-    auto AnimationSystem::GetAnimator( UInt64 id ) -> Animator * {
-        const auto it{ m_Animators.find( id ) };
-        if ( it != m_Animators.end() ) {
+    auto AnimationSystem::GetAnimator( u64 id ) -> Animator * {
+        const auto it{ mAnimators.find( id ) };
+        if ( it != mAnimators.end() ) {
             return std::addressof( it->second );
         }
 

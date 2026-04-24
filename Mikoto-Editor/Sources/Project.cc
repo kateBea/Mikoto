@@ -12,10 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Project/Project.hh>
-
-namespace Mikoto {
-
-    Project::Project( const Path &path ) {
-    }
-}// namespace Mikoto
+// #include <Project/Project.hh>
+//
+// namespace mikoto::editor {
+//
+// }// namespace Mikoto

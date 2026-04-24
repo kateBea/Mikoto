@@ -13,34 +13,47 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
+
+using namespace mikoto;
 
 struct FSInput {
-    float2 texCoord : TEXCOORD0;
-    float3 color : COLOR0;
+    float2 texCoord : ATTRIBUTE0;
+    float3 color : ATTRIBUTE1;
 };
 
 struct FSOutput {
     float4 color : SV_Target;
 };
 
-struct HelloTextureUniformBuffer {
+struct MyCB {
+    int SamplerIndex;
     int TextureIndex;
 };
 
-[[vk::binding(Slot_0, UNBOUNDED_IV_SAMPLERS_SET_INDEX)]]
-Sampler2D g_BindlessTextures[];
+MKT_DECLARE_CONSTANT_BUFFERS cBuffers;
 
-[[vk::push_constant]] 
-HelloTextureUniformBuffer u_MetaData;
+MKT_DECLARE_SAMPLERS Samplers;
+MKT_DECLARE_TEXTURE_2D Texture2Ds;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
-    if (u_MetaData.TextureIndex != INVALID_TEXTURE_INDEX) {
-        o.color = g_BindlessTextures[u_MetaData.TextureIndex].Sample(input.texCoord);
+    MyCB cb = memory::LoadData<MyCB>(cBuffers, 0, 0, 5);
+
+#if !defined(MKT_SUPPORT_D3D11)
+    if (cb.TextureIndex != -1) {
+        o.color = Texture2Ds[cb.TextureIndex].Sample(Samplers[cb.SamplerIndex], input.texCoord);
     } else {
         o.color = float4(input.color, 1.0);
     }
+#else
+    if (cb.TextureIndex != -1) {
+        o.color = Texture2Ds[0].Sample(Samplers[0], input.texCoord);
+    } else {
+        o.color = float4(input.color, 1.0);
+    }
+#endif
 
     return o;
 }

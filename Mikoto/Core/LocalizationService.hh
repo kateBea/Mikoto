@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,13 +15,24 @@
 #ifndef MIKOTO_LOCALIZATION_SERVICE_HH
 #define MIKOTO_LOCALIZATION_SERVICE_HH
 
+#include <EASTL/array.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Common.hh>
-#include <Common/Service.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
 
-namespace Mikoto {
+#include <Filesystem/Path.hh>
+
+namespace mikoto::core {
+
+    using namespace mikoto::core;
+    using namespace mikoto::filesystem;
 
     enum class ISOLanguage {
         ES_ES, // Spanish (Spain)
@@ -32,21 +43,21 @@ namespace Mikoto {
     };
 
     struct LocalizationServiceCreateInfo {
-        Path LocalizationRoot{};// Assets/Localization
-        ISOLanguage DefaultLanguage{ ISOLanguage::EN_US };
+        Path mLocalizationBasePath{};// Assets/Localization
+        ISOLanguage mDefaultLanguage{ ISOLanguage::EN_US };
     };
 
     struct LanguageAlias {
-        std::string_view Alias;
-        ISOLanguage Value;
+        eastl::string_view mAlias{};
+        ISOLanguage mValue{ ISOLanguage::EN_US };
     };
 
-    MKT_NODISCARD constexpr auto StripExtension( std::string_view sv ) -> std::string_view {
+    MKT_NODISCARD constexpr auto StripExtension( eastl::string_view sv ) -> eastl::string_view {
         const auto dot{ sv.find( '.' ) };
-        return dot == std::string_view::npos ? sv : sv.substr( 0, dot );
+        return dot == eastl::string_view::npos ? sv : sv.substr( 0, dot );
     }
 
-    constexpr std::array LanguageAliases{
+    constexpr eastl::array LanguageAliases{
         // Japanese
         LanguageAlias{ "ja", ISOLanguage::JA_JP },
         LanguageAlias{ "ja-jp", ISOLanguage::JA_JP },
@@ -72,19 +83,19 @@ namespace Mikoto {
         LanguageAlias{ "chinese_simplified", ISOLanguage::ZH_CN },
     };
 
-    MKT_NODISCARD static constexpr auto InferISO( std::string_view language ) -> ISOLanguage {
+    MKT_NODISCARD static constexpr auto InferISO( eastl::string_view language ) -> ISOLanguage {
         language = StripExtension( language );
 
         for (const auto &entry: LanguageAliases) {
-            if (StringUtils::Equal( language, entry.Alias, StringUtils::StringComparisonPolicy::CASE_INSENSITIVE )) {
-                return entry.Value;
+            if (string::Equal( language, entry.mAlias, string::ComparePolicy::eIgnoreCase )) {
+                return entry.mValue;
             }
         }
 
         return ISOLanguage::EN_US;
     }
 
-    MKT_NODISCARD static constexpr auto GetISOName( ISOLanguage language ) -> std::string_view {
+    MKT_NODISCARD static constexpr auto GetISOName( ISOLanguage language ) -> eastl::string_view {
         using enum ISOLanguage;
 
         switch (language) {
@@ -102,11 +113,11 @@ namespace Mikoto {
     public:
         explicit LocalizationService( const LocalizationServiceCreateInfo& createInfo );
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         auto SetLanguage( ISOLanguage language ) -> void;
-        auto SetLanguage( const std::string &language ) -> void;
+        auto SetLanguage( const eastl::string &language ) -> void;
 
         MKT_NODISCARD auto GetDefaultLanguage() const -> ISOLanguage;
         MKT_NODISCARD auto GetCurrentLanguage() const -> ISOLanguage;
@@ -114,8 +125,8 @@ namespace Mikoto {
         MKT_NODISCARD auto IsCurrentLanguage(ISOLanguage language) const -> bool;
         MKT_NODISCARD auto IsDefaultLanguage(ISOLanguage language) const -> bool;
 
-        MKT_NODISCARD auto HasKey( const std::string &key, ISOLanguage language ) const -> bool;
-        MKT_NODISCARD auto Translate( const std::string &key ) const -> const std::string &;
+        MKT_NODISCARD auto HasKey( const eastl::string &key, ISOLanguage language ) const -> bool;
+        MKT_NODISCARD auto Translate( const eastl::string &key ) const -> const eastl::string &;
 
         auto ParseLocalizationEntries(const Path &file) -> void;
 
@@ -125,14 +136,14 @@ namespace Mikoto {
 
     private:
         ISOLanguage m_DefaultLanguage{ ISOLanguage::EN_US };
-        ISOLanguage m_CurrentLanguage{ ISOLanguage::EN_US };
+        ISOLanguage mCurrentLanguage{ ISOLanguage::EN_US };
 
-        Path m_LocDefaultPath{};
+        Path mLocDefaultPath{};
 
         // Entry -> Translation
-        using TranslationMap = ankerl::unordered_dense::map<std::string, std::string>;
+        using TranslationMap = ankerl::unordered_dense::map<eastl::string, eastl::string>;
 
-        ankerl::unordered_dense::map<ISOLanguage, TranslationMap> m_Translations{};
+        ankerl::unordered_dense::map<ISOLanguage, TranslationMap> mTranslations{};
     };
 
     #define MKT_LOC(key) LocalizationService::Get()->Translate(key)

@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_ASSETS_MANAGER_PANEL_HH
-#define MIKOTO_ASSETS_MANAGER_PANEL_HH
+#ifndef MIKOTO_ASSETS_PANEL_HH
+#define MIKOTO_ASSETS_PANEL_HH
 
 #include <Panels/Panel.hh>
 
-namespace Mikoto {
+namespace mikoto::editor {
+
     struct EditorState;
 
     struct AssetsPanelDescription {
-        EditorState* State{};
+        EditorState* mState{};
     };
 
     class AssetsPanel final : public Panel {
@@ -31,8 +32,8 @@ namespace Mikoto {
         auto OnUpdate( float timeStep ) -> void override;
 
     private:
-        EditorState* m_EditorState{};
+        EditorState* mEditorState{};
     };
 }
 
-#endif//MIKOTO_ASSETS_MANAGER_PANEL_HH
+#endif//MIKOTO_ASSETS_PANEL_HH

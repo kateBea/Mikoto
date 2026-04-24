@@ -15,39 +15,42 @@
 #ifndef MIKOTO_MAIN_IMPORTER_HH
 #define MIKOTO_MAIN_IMPORTER_HH
 
-#include <string>
-#include <atomic>
-#include <vector>
+#include <EASTL/atomic.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
 
 #include <assimp/IOStream.hpp>
 #include <assimp/IOSystem.hpp>
-#include <assimp/LogStream.hpp>
 #include <assimp/Importer.hpp>
+#include <assimp/LogStream.hpp>
 
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
 
-#include <Animation/SkinningBuilder.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 
 #include <Assets/Model.hh>
 #include <Assets/Importer.hh>
+
+#include <Animation/SkinningBuilder.hh>
 #include <Renderer/Core/GpuDevice.hh>
 
-namespace Mikoto {
+namespace mikoto::asset {
 
     class MainImporter final : public ModelImporter {
     public:
         explicit MainImporter(GpuDevice* device);
 
-        auto Import( const ModelLoadDescription &description, ModelData& out) -> void override;
+        auto Import( const ModelLoadDescription &description, ModelDataDescription& out) -> void override;
 
     private:
         struct ImporterInfo {
-            Int32 Index{ -1 };
+            i32 Index{ -1 };
             Assimp::Importer MeshImporter{};
             std::atomic_bool IsFree{ true };
 
-            Unique<Assimp::IOSystem> CustomFileHandlingImpl{};
+            eastl::unique_ptr<Assimp::IOSystem> CustomFileHandlingImpl{};
 
             ImporterInfo() = default;
             ~ImporterInfo() = default;
@@ -58,12 +61,12 @@ namespace Mikoto {
         };
 
     private:
-        MKT_NODISCARD auto TryAcquireImporter() -> std::vector<Unique<ImporterInfo>>::iterator;
-        auto Import(ImporterInfo& loaderData,const ModelLoadDescription& description, ModelData& modelData) -> void;
+        MKT_NODISCARD auto TryAcquireImporter() -> eastl::vector<eastl::unique_ptr<ImporterInfo>>::iterator;
+        auto Import(ImporterInfo& loaderData,const ModelLoadDescription& description, ModelDataDescription& modelData) -> void;
 
     private:
-        Unique<Assimp::LogStream> m_LogImpl{};
-        std::vector<Unique<ImporterInfo>> m_Importers{};
+        eastl::unique_ptr<Assimp::LogStream> m_LogImpl{};
+        eastl::vector<eastl::unique_ptr<ImporterInfo>> m_Importers{};
     };
 }
 

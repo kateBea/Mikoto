@@ -39,13 +39,20 @@ Sampler2D srcTexture;
 [[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]] 
 ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
+struct BloomDownParameters {
+    float2 Resolution;
+};
+
+[[vk::push_constant]]
+BloomDownParameters u_Constants;
+
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
 
     float2 texCoord = input.UV;
 
-    float2 srcTexelSize = 1.0 / u_Camera.ScreenDimensions;
+    float2 srcTexelSize = 1.0 / u_Constants.Resolution;
     float x = srcTexelSize.x;
     float y = srcTexelSize.y;
 

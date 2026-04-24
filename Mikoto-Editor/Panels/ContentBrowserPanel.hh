@@ -16,26 +16,53 @@
 #define MIKOTO_CONTENT_BROWSER_HH
 
 #include <imgui.h>
+
+#include <EASTL/deque.h>
+#include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
+
 #include <ankerl/unordered_dense.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Profiler.hh>
+#include <Core/RuntimeConsole.hh>
+
+#include <Filesystem/Path.hh>
+#include <Filesystem/File.hh>
+#include <Filesystem/FileService.hh>
+#include <Filesystem/FileSystem.hh>
 
 #include <Panels/Panel.hh>
 #include <Renderer/Core/GpuDevice.hh>
 
-namespace Mikoto {
+#include <Application/ThumbnailCache.hh>
+
+namespace mikoto::editor {
 
     struct EditorState;
 
-    struct ContentBrowserPanelDescription {
-        GpuDevice* Device{ nullptr };
-        Path AssetsRootDirectory{ "./Resources" };
-        Path ProjectRootDirectory{ "." };
+    enum class IconType {
+        eInvalid = -1,
+        eFolder,
+        eAudioFile,
+        eVideoFile,
+        eImageFile,
+        eRegularFile,
+        eMaterialFile,
+    };
 
-        EditorState* State{ nullptr };
+    struct ContentBrowserPanelDescription {
+        GpuDevice* mDevice{ nullptr };
+        EditorState* mState{ nullptr };
+
+        Path mProjectBasePath{};
+        Path mResourcesBasePath{};
     };
 
     class ContentBrowserPanel final : public Panel {
     public:
-
         explicit ContentBrowserPanel(const ContentBrowserPanelDescription& desc);
 
         auto OnUpdate(float timeStep) -> void override;
@@ -43,53 +70,40 @@ namespace Mikoto {
         ~ContentBrowserPanel() override = default;
 
     private:
-        enum class TextureIconType : UInt32 {
-            ICON_FILE,
-            ICON_FOLDER,
-            ICON_AUDIO,
-            ICON_MATERIAL,
-        };
-
-        auto LoadIcons() -> void;
         auto DrawHeader() -> void;
-        auto DrawSideView( const Path& root ) -> void;
+        auto DrawSideHierarchy( const Path& root ) -> void;
         auto DrawMainBody() -> void;
 
-        auto OnRightClickBlackSpace() -> void;
+        auto DrawBlankSpaceRightClickMenu() -> void;
 
         auto DrawCurrentDirItems() -> void;
-        auto DrawProjectDirTree(const Path& root ) const -> void;
 
     private:
-        GpuDevice* m_Device{ nullptr };
+        GpuDevice* mDevice{ nullptr };
+        EditorState* mEditorState{ nullptr };
 
-        ImGuiTextFilter m_SearchFilter{};
+        ImGuiTextFilter mSearchFilter{};
 
-        float m_ThumbnailSize{ 100.0f };
+        eastl::unique_ptr<ThumbnailCache> mThumbnailCache{};
+        ankerl::unordered_dense::map<IconType, ImTextureID> mThumbnailHandles{};
 
-        Path m_ProjectRoot{};
-        Path m_AssetsRootDirectory{};
+        Path mProjectBasePath{};
+        Path mResourcesBasePath{};
 
-        Path m_CurrentDirectory{};
-        Path m_ForwardDirectory{};
+        Path mCurrentDirectory{};
+        Path mPreviousDirectory{};
+        Path mForwardDirectory{};
 
-        bool m_ShowFileTypeHint{};
-        bool m_ShowFoldersOnlyInDirectoryTree{};
+        bool mShowFileTypeHint{ false };
+        float mThumbnailSize{ 100.0f };
 
-        std::deque<Path> m_DirectoryStack{};
-
-        EditorState* m_EditorState{ nullptr };
+        eastl::deque<Path> mDirectoryStack{};
 
         // NOTE: texture is static because drag and
         // drop needs this to persis
-        TextureHandle m_Thumbnail{};
+        TextureHandle mThumbnail{};
 
-        Path m_SelectedItem{};
-        std::vector<Path> m_SelectedItems{};
-
-        ankerl::unordered_dense::set<std::string> m_ThumbnailsUploadCache{};
-        ankerl::unordered_dense::map<TextureIconType, TextureHandle> m_Textures{};
-        ankerl::unordered_dense::map<TextureIconType, ImTextureID> m_ImGuiTextureHandles{};
+        Path mSelectedItem{};
     };
 }
 

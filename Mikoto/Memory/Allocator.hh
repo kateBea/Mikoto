@@ -15,34 +15,76 @@
 #ifndef MIKOTO_ALLOCATOR_HH
 #define MIKOTO_ALLOCATOR_HH
 
-#include <memory>
+#include <new>
+#include <cstdint>
 
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+#include <EASTL/vector.h>
+#include <EASTL/optional.h>
+#include <EASTL/unique_ptr.h>
+
+#include <ankerl/unordered_dense.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
 #define MKT_BYTES( X ) ( X )
 
-#define MKT_KIBIBYTES( X ) Size(( ( X ) * 1024 ))
-#define MKT_KILOBYTES( X ) Size(( ( X ) * 1000 ))
+#define MKT_KIBIBYTES( X ) (( ( X ) * 1024 ))
+#define MKT_KILOBYTES( X ) (( ( X ) * 1000 ))
 
-#define MKT_MIBIBYTES( X ) Size(( ( X ) * 1024 * 1024 ))
-#define MKT_MEGABYTES( X ) Size(( ( X ) * 1000 * 1000 ))
+#define MKT_MIBIBYTES( X ) (( ( X ) * 1024 * 1024 ))
+#define MKT_MEGABYTES( X ) (( ( X ) * 1000 * 1000 ))
 
 #define MKT_SIZEOF( X ) sizeof( X )
 #define MKT_ADDRESSOF( OBJECT_REF ) std::addressof( OBJECT_REF )
 
+#define MKT_VECTOR_SIZE_BYTES( vec ) vec.size() * sizeof(decltype(vec)::value_type)
+
+#define MKT_NO_THROW_NEW new (std::nothrow)
 #define MKT_NOTHROW_PLACEMENT_NEW( SIZE ) ::operator new( 1 * SIZE, std::nothrow )
 #define MKT_NOTHROW_PLACEMENT_NEW_COUNT( SIZE, COUNT ) ::operator new( COUNT * SIZE, std::nothrow )
 #define MKT_NOTHROW_PLACEMENT_DELETE( PTR ) ::operator delete(PTR)
 
-namespace Mikoto {
+namespace ankerl::unordered_dense {
 
-    class Allocator {
+    // Taken as reference: unordered_dense line 314
+    template <class T>
+    struct hash<eastl::unique_ptr<T>> {
+        using is_avalanching = void;
+
+        auto operator()(eastl::unique_ptr<T> const& ptr) const noexcept -> std::uint64_t {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+            return detail::wyhash::hash(reinterpret_cast<std::uintptr_t>(ptr.get()));
+        }
+    };
+}
+
+namespace mikoto::memory {
+
+    using namespace mikoto::core;
+
+    auto MallocFree( void* p ) -> void;
+
+    MKT_NODISCARD auto MallocAlloc( size_t size ) -> void*;
+    MKT_NODISCARD auto MallocCalloc( size_t size ) -> void*;
+    MKT_NODISCARD auto MallocRealloc( void* p, size_t size ) -> void*;
+
+    // Alignment must be >= 1 (power of two). 0 is invalid.
+    MKT_NODISCARD auto AlignUp(size_t value, size_t alignment) -> size_t;
+
+    struct Allocation {
+        size_t mOffset{};
+        size_t mSize{};
+    };
+
+    class IAllocator {
     public:
+        virtual ~IAllocator() = default;
 
-        explicit Allocator() = default;
-        virtual ~Allocator() = default;
+        MKT_NODISCARD virtual auto Allocate(size_t size, size_t alignment) -> eastl::optional<Allocation> = 0;
+        virtual auto Free(const Allocation& allocation) -> void = 0;
 
+        virtual auto Reset() -> void {} // optional override
     };
 }
 

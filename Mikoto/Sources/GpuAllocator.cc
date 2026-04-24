@@ -11,17 +11,27 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+
+#include <EASTL/unique_ptr.h>
 
 #include <Memory/GpuAllocator.hh>
-#include <Renderer/Core/RenderService.hh>
+
+#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Core/RenderSystem.hh>
+
+#include <Memory/GpuAllocator.hh>
 #include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
-namespace Mikoto {
+namespace mikoto::memory {
 
-    auto GpuAllocator::Create(GpuDevice* device) -> Unique<GpuAllocator> {
-        switch ( RenderService::Get()->GetActiveGraphicsApi() ) {
-            case GraphicsAPI::VULKAN_API:
-                return CreateScope<VulkanMemoryAllocator>(device);
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::vulkan;
+
+    auto IGpuAllocator::Create(GpuDevice* device) -> eastl::unique_ptr<IGpuAllocator> {
+        switch ( device->GetGraphicsApi() ) {
+            case GraphicsAPI::eVulkan:
+                return eastl::make_unique<GpuMemoryAllocator>(device);
             default:;
         }
 

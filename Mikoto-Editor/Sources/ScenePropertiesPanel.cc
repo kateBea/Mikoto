@@ -1,72 +1,80 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 1/9/2026.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-
-#include <Panels/ScenePropertiesPanel.hh>
-
-// Third-Party Libraries
-#include "fmt/format.h"
-#include "imgui.h"
-
-// Project Headers
-#include <ImGui/IconsMaterialDesign.h>
-#include <ImGui/ImGuiUtility.hh>
-#include <Layers/EditorLayer.hh>
-
-#include "ImGui/ImGuiService.hh"
-#include "Scene/Component.hh"
-#include <Physics/PhysicsWorld.hh>
-
-namespace Mikoto {
-
-    ScenePropertiesPanel::ScenePropertiesPanel( const ScenePropertiesPanelCreateInfo &info )
-        : Panel{ "Scene Properties" }, m_EditorState{ info.State }
-    {
-        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_DATA_OBJECT, m_PanelName );
-    }
-
-    auto ScenePropertiesPanel::OnUpdate( float timeStep ) -> void {
-        if (!m_PanelIsVisible) {
-            return;
-        }
-
-        ImGui::Begin( m_PanelHeaderName.c_str(), &m_PanelIsVisible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize );
-
-        ImGuiUtils::DrawNode( "Background", [this]() -> void {
-            ImGuiUtils::UnindentScoped und{};
-
-            ImGui::Separator();
-            ImGui::Text( "Skybox" );
-        } );
-
-        ImGuiUtils::DrawNode( "Scene Stats", [this]() -> void {
-            ImGuiUtils::UnindentScoped und{};
-
-            // TODO
-        } );
-
-        ImGuiUtils::DrawNode( "Metadata", [this]() {
-            ImGuiUtils::UnindentScoped und{};
-
-            // TODO
-        } );
-
-        ImGuiUtils::DrawNode( "Physics world", [this]() -> void {
-            ImGuiUtils::UnindentScoped und{};
-
-            auto scene{ m_EditorState->ActiveEditorScene };
-            auto *physics{ scene->GetPhysicsWorld() };
-
-            static std::array<std::string, 4> values{
-                "Earth", "Moon", "Mars", "Jupiter"
-            };
-
-            GravityBody current{ physics->GetGravityBody() };
-            current = ImGuiUtils::Combo( values, current );
-
-            physics->SetGravityBody( current );
-        } );
-
-        ImGui::End();
-    }
-}
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// #include <imgui.h>
+//
+// #include <ImGui/ImGuiUtility.hh>
+// #include <ImGui/IconsMaterialDesign.h>
+//
+// #include <Layers/EditorLayer.hh>
+//
+// #include <Physics/PhysicsWorld.hh>
+//
+// #include <Panels/ScenePropertiesPanel.hh>
+//
+// namespace mikoto::editor {
+//
+//     using namespace mikoto::physics;
+//
+//     ScenePropertiesPanel::ScenePropertiesPanel( const ScenePropertiesPanelCreateInfo &info )
+//         : Panel{ "Scene Properties" }, mEditorState{ info.State }
+//     {
+//         mPanelHeaderName = gui::MakePanelName( ICON_MD_DATA_OBJECT, mPanelName );
+//     }
+//
+//     auto ScenePropertiesPanel::OnUpdate( float timeStep ) -> void {
+//         if (!mPanelIsVisible) {
+//             return;
+//         }
+//
+//         ImGui::Begin( mPanelHeaderName.c_str(), MKT_ADDRESSOF( mPanelIsVisible ), ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize );
+//
+//         gui::DrawNode( "Background", [this]() -> void {
+//             gui::UnindentScoped und{};
+//
+//             ImGui::Separator();
+//             ImGui::Text( "Skybox" );
+//         } );
+//
+//         gui::DrawNode( "Scene Stats", [this]() -> void {
+//             gui::UnindentScoped und{};
+//
+//             // TODO
+//         } );
+//
+//         gui::DrawNode( "Metadata", [this]() {
+//             gui::UnindentScoped und{};
+//
+//             // TODO
+//         } );
+//
+//         gui::DrawNode( "Physics world", [this]() -> void {
+//             gui::UnindentScoped und{};
+//
+//             auto scene{ mEditorState->mActiveEditorScene };
+//             auto *physics{ scene->GetPhysicsWorld() };
+//
+//             static std::array<std::string, 4> values{
+//                 "Earth", "Moon", "Mars", "Jupiter"
+//             };
+//
+//             GravityBody current{ physics->GetGravityBody() };
+//             current = gui::Combo( values, current );
+//
+//             physics->SetGravityBody( current );
+//         } );
+//
+//         ImGui::End();
+//     }
+// }

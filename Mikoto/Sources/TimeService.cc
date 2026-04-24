@@ -12,15 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <chrono>
 
-#include <Common/Service.hh>
+#include <EASTL/chrono.h>
+#include <EASTL/ratio.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
+#include <fmt/chrono.h>
+#include <fmt/format.h>
+
+#include <Core/String.hh>
 #include <Core/Profiler.hh>
+#include <Core/Service.hh>
 #include <Core/TimeService.hh>
+
 #include <Logging/Logger.hh>
 
-namespace Mikoto {
+namespace mikoto::core {
 
-    auto Time::GetUnitString() const -> std::string_view {
+    auto Time::GetUnitString() const -> eastl::string_view {
         return GetUnitString( this->Unit );
     }
 
@@ -32,12 +43,12 @@ namespace Mikoto {
         return Convert(this->Unit, unit, Value);
     }
 
-    auto Time::GetUnitString( TimeUnit unit ) -> std::string_view {
+    auto Time::GetUnitString( TimeUnit unit ) -> eastl::string_view {
         switch (unit) {
-            case TimeUnit::SECONDS: return "s";
-            case TimeUnit::MILLISECONDS: return "ms";
-            case TimeUnit::MICROSECONDS: return "us";
-            case TimeUnit::NANOSECONDS: return "ns";
+            case TimeUnit::eSeconds: return "s";
+            case TimeUnit::eMilliseconds: return "ms";
+            case TimeUnit::eMicroseconds: return "us";
+            case TimeUnit::eNanoseconds: return "ns";
         }
 
         return "Unknown";
@@ -48,29 +59,29 @@ namespace Mikoto {
         double seconds{};
 
         switch ( src ) {
-            case TimeUnit::SECONDS:
+            case TimeUnit::eSeconds:
                 seconds = value;
                 break;
-            case TimeUnit::MILLISECONDS:
+            case TimeUnit::eMilliseconds:
                 seconds = value / 1'000.0;
                 break;
-            case TimeUnit::MICROSECONDS:
+            case TimeUnit::eMicroseconds:
                 seconds = value / 1'000'000.0;
                 break;
-            case TimeUnit::NANOSECONDS:
+            case TimeUnit::eNanoseconds:
                 seconds = value / 1'000'000'000.0;
                 break;
         }
 
         // Convert seconds -> destination
         switch ( dst ) {
-            case TimeUnit::SECONDS:
+            case TimeUnit::eSeconds:
                 return seconds;
-            case TimeUnit::MILLISECONDS:
+            case TimeUnit::eMilliseconds:
                 return seconds * 1'000.0;
-            case TimeUnit::MICROSECONDS:
+            case TimeUnit::eMicroseconds:
                 return seconds * 1'000'000.0;
-            case TimeUnit::NANOSECONDS:
+            case TimeUnit::eNanoseconds:
                 return seconds * 1'000'000'000.0;
         }
 
@@ -78,97 +89,95 @@ namespace Mikoto {
     }
 
     auto TimeServiceCreateInfo::WithDefaultUnit( const TimeUnit unit ) -> TimeServiceCreateInfo & {
-        this->DefaultUnit = unit;
-
+        this->mDefaultUnit = unit;
         return *this;
     }
 
     TimeService::TimeService( const TimeServiceCreateInfo &option )
-        : m_DefaultUnits{ option.DefaultUnit } {}
+        : mDefaultUnits{ option.mDefaultUnit } {}
 
-    auto TimeService::Init() -> void {
+    auto TimeService::Initialize() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_CORE_LOGGER_INFO( "Initializing TimeService..." );
 
-        m_InitTimePoint = Clock::now();
+        mInitTimePoint = Clock::now();
 
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto TimeService::Tick() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         const auto now{ Clock::now() };
-        m_TimeStep = std::chrono::duration_cast<Sec>( now - m_LastFrameTime ).count();
-        m_LastFrameTime = now;
+        mTimeStep = eastl::chrono::duration_cast<Sec>( now - mLastFrameTime ).count();
+        mLastFrameTime = now;
     }
 
-    auto TimeService::GetDefaultUnit() const -> TimeUnit { return m_DefaultUnits; }
+    auto TimeService::GetDefaultUnit() const -> TimeUnit {
+        return mDefaultUnits;
+    }
 
     auto TimeService::GetTimeStep( const TimeUnit unit ) const -> double {
         switch (unit) {
-            case TimeUnit::SECONDS:
-                return m_TimeStep;
-            case TimeUnit::MILLISECONDS:
-                return m_TimeStep * MILLISECONDS_PER_SECOND;
-            case TimeUnit::MICROSECONDS:
-                return m_TimeStep * MICROSECONDS_PER_SECOND;
-            case TimeUnit::NANOSECONDS:
-                return m_TimeStep * NANOSECONDS_PER_SECOND;
+            case TimeUnit::eSeconds:
+                return mTimeStep;
+            case TimeUnit::eMilliseconds:
+                return mTimeStep * kMilliPerSeconds;
+            case TimeUnit::eMicroseconds:
+                return mTimeStep * kMicroPerSeconds;
+            case TimeUnit::eNanoseconds:
+                return mTimeStep * kNanoPerSeconds;
         }
 
-        return m_TimeStep;
+        return mTimeStep;
     }
 
     auto TimeService::GetTime( const TimeUnit unit ) const -> double {
         switch (unit) {
-            case TimeUnit::SECONDS:
-                return std::chrono::duration_cast<Sec>( Clock::now() - m_InitTimePoint ).count();
-            case TimeUnit::MILLISECONDS:
-                return std::chrono::duration_cast<Milli>( Clock::now() - m_InitTimePoint ).count();
-            case TimeUnit::MICROSECONDS:
-                return std::chrono::duration_cast<Micro>( Clock::now() - m_InitTimePoint ).count();
-            case TimeUnit::NANOSECONDS:
-                return std::chrono::duration_cast<Nano>( Clock::now() - m_InitTimePoint ).count();
+            case TimeUnit::eSeconds:
+                return eastl::chrono::duration_cast<Sec>( Clock::now() - mInitTimePoint ).count();
+            case TimeUnit::eMilliseconds:
+                return eastl::chrono::duration_cast<Milli>( Clock::now() - mInitTimePoint ).count();
+            case TimeUnit::eMicroseconds:
+                return eastl::chrono::duration_cast<Micro>( Clock::now() - mInitTimePoint ).count();
+            case TimeUnit::eNanoseconds:
+                return eastl::chrono::duration_cast<Nano>( Clock::now() - mInitTimePoint ).count();
         }
 
-        return std::chrono::duration_cast<Sec>( Clock::now() - m_InitTimePoint ).count();
+        return eastl::chrono::duration_cast<Sec>( Clock::now() - mInitTimePoint ).count();
     }
 
-    auto TimeService::ToString( double time, const TimeUnit unit ) -> std::string {
-        using namespace std::literals::chrono_literals;
+    auto TimeService::ToString( double time, const TimeUnit unit ) -> eastl::string {
+        using namespace eastl::literals::chrono_literals;
 
-        if (unit != TimeUnit::SECONDS) time = TransformToSeconds( time, unit );
+        if (unit != TimeUnit::eSeconds) time = TransformToSeconds( time, unit );
 
-        std::chrono::hours hours{ static_cast<ULongLong>( time / SECONDS_PER_HOUR ) };
-        std::chrono::minutes minutes{ ( static_cast<ULongLong>( time ) % static_cast<ULongLong>( SECONDS_PER_HOUR ) / SECONDS_PER_MINUTE ) };
-        std::chrono::seconds seconds{ ( static_cast<ULongLong>( time ) % static_cast<ULongLong>( SECONDS_PER_HOUR ) % SECONDS_PER_MINUTE ) };
+        std::chrono::hours hours{ as<ull>( time / kSecPerHour ) };
+        std::chrono::minutes minutes{ ( as<ull>( time ) % as<ull>( kSecPerHour ) / kSecPerMin ) };
+        std::chrono::seconds seconds{ ( as<ull>( time ) % as<ull>( kSecPerHour ) % kSecPerMin ) };
 
-        return fmt::format( "{:%H:%M:%S}", hours + minutes + seconds );
+        return string::ToEA_Stl( fmt::format( "{:%H:%M:%S}", hours + minutes + seconds ) );
     }
 
     auto TimeService::TransformToSeconds( const double time, const TimeUnit unit ) -> double {
         switch (unit) {
-            case TimeUnit::MILLISECONDS:
-                return time / MILLISECONDS_PER_SECOND;
-            case TimeUnit::MICROSECONDS:
-                return time / MICROSECONDS_PER_SECOND;
-            case TimeUnit::NANOSECONDS:
-                return time / NANOSECONDS_PER_SECOND;
+            case TimeUnit::eMilliseconds:
+                return time / kMilliPerSeconds;
+            case TimeUnit::eMicroseconds:
+                return time / kMicroPerSeconds;
+            case TimeUnit::eNanoseconds:
+                return time / kNanoPerSeconds;
             default:
                 return time;
         }
     }
 
     auto TimeService::Shutdown() -> void {
-        if (!m_IsInitialized) {
+        if (!mIsInitialized) {
             return;
         }
 
-        // The Log comes after so we know the service was
-        // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down TimeService..." );
     }
-
 }// namespace Mikoto

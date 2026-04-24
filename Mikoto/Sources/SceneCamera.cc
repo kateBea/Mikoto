@@ -18,20 +18,26 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include <Common/Common.hh>
-#include <Core/InputService.hh>
-#include <Library/Math/Math.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/InputSystem.hh>
+
+#include <Logging/Assert.hh>
+#include <Logging/Logger.hh>
+
 #include <Scene/SceneCamera.hh>
 
-namespace Mikoto {
+namespace mikoto::scene {
+
+    using namespace mikoto::core;
+    using namespace mikoto::platform;
 
     SceneCamera::SceneCamera( const SceneCameraDescription &desc )
-        : Camera{ glm::perspective( glm::radians( desc.Fov ), desc.AspectRatio, desc.NearPlane, desc.FarPlane ) },
-        m_TargetWindow{ desc.TargetWindow } {
+        : Camera{ glm::perspective( glm::radians( desc.mFov ), desc.mAspectRatio, desc.mNearPlane, desc.mFarPlane ) },
+        m_TargetWindow{ desc.mWindow } {
 
-        m_Position = Vec3F{ 100.0f, 100.5f, 100.0f };
-        m_ForwardVector = Vec3F{ 1.0f, 1.0f, 1.0f };
+        m_Position = float3{ 100.0f, 100.5f, 100.0f };
+        m_ForwardVector = float3{ 1.0f, 1.0f, 1.0f };
         m_TargetForwardVector = m_ForwardVector;
 
         UpdateViewMatrix();
@@ -44,13 +50,13 @@ namespace Mikoto {
         m_FieldOfView = fov;
         m_AspectRatio = aspectRatio;
 
-        m_Position = Vec3F{ 100.0f, 100.5f, 100.0f };
-        m_ForwardVector = Vec3F{ 1.0f, 1.0f, 1.0f };
+        m_Position = float3{ 100.0f, 100.5f, 100.0f };
+        m_ForwardVector = float3{ 1.0f, 1.0f, 1.0f };
         m_TargetForwardVector = m_ForwardVector;
 
         UpdateViewMatrix();
     }
-    
+
     auto SceneCamera::SetTargetWindow( const Window* window ) -> void {
         if (window != nullptr) {
             m_TargetWindow = window;
@@ -72,7 +78,7 @@ namespace Mikoto {
         // this avoids camera jumping
         m_LastMousePosition = mousePos;
 
-        if (delta == Vec2F{ 0.0f }) {
+        if (delta == float2{ 0.0f }) {
             return;
         }
 
@@ -80,7 +86,7 @@ namespace Mikoto {
         m_Yaw   = (m_WantCameraRotationY ? delta.x : 0.0f) * m_RotationSpeed * static_cast<float>( timeStep );
 
         const glm::quat pitchQ{ glm::angleAxis(-m_Pitch, m_RightVector) };
-        const glm::quat yawQ{ glm::angleAxis(-m_Yaw, Math::UNIT_VECTOR_Y) };
+        const glm::quat yawQ{ glm::angleAxis(-m_Yaw, math::constants::kUnitVectorY) };
 
         // Combine pitch and yaw into a single rotation quaternion.
         // Order matters as quaternion product is non-commutative.
@@ -128,7 +134,7 @@ namespace Mikoto {
             return;
         }
 
-        m_RightVector = glm::normalize( glm::cross( m_ForwardVector, Math::UNIT_VECTOR_Y ) );
+        m_RightVector = glm::normalize( glm::cross( m_ForwardVector, math::constants::kUnitVectorY ) );
 
         ProcessMouseInput( timeStep );
         ProcessKeyboardInput( timeStep );
@@ -152,7 +158,7 @@ namespace Mikoto {
         m_WantCameraRotationY = yAxis;
     }
 
-    auto SceneCamera::SetCameraTarget( const Vec3F &position ) -> void {
+    auto SceneCamera::SetCameraTarget( const float3 &position ) -> void {
         m_CameraTarget = position;
     }
 

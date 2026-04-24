@@ -12,309 +12,72 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ranges>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
 
-#include <Core/Timer.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Core/Profiler.hh>
 
-#include <Filesystem/FileSystem.hh>
-#include <Threading/TaskService.hh>
-
-#include <Assets/AssetsService.hh>
-
-#include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/GraphicsContext.hh>
-#include <Renderer/Core/RenderService.hh>
+#include <Renderer/Core/Renderer.hh>
+#include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/SceneRenderer.hh>
-#include <Renderer/Passes/DebugPasses.hh>
-#include <Renderer/Passes/IBLPasses.hh>
-#include <Renderer/Passes/MeshCulling.hh>
-#include <Renderer/Passes/PostEffectsPasses.hh>
-#include <Renderer/Passes/ClusteredShading.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo )
-        : m_Device{ createInfo.Device } {}
+        : mDevice{ createInfo.mDevice } {}
 
     auto SceneRenderer::Init() -> void {
-        InitGraphicsContex();
-        InitCoreFramePasses();
+        mFrameGraph = FrameGraph::Create( mDevice );
+
+        // Initialize passes
+        mDebugPasses.RegisterPasses( *mFrameGraph );
+
+        // Build graph
+        mFrameGraph->Compile();
     }
 
     auto SceneRenderer::Shutdown() -> void {
-        m_Camera = nullptr;
-        m_Device = nullptr;
-
-        m_GraphicsContext->Shutdown();
-        m_GraphicsContext.reset();
+        mCamera = nullptr;
+        mDevice = nullptr;
     }
 
     auto SceneRenderer::Render( Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_CameraPass.SetScene( scene );
-        m_MeshCulling.SetScene( scene );
-        m_IBLPasses.SetScene( scene );
-        m_PostEffectsPasses.SetScene( scene );
-        m_ClusteredShadingPasses.SetScene( scene );
-        m_ShadowMappingPass.SetScene( scene );
-
-        OnPreRender();
-
-        m_FrameGraph->Execute();
-
-        OnPostRender();
+        mFrameGraph->Execute();
     }
 
-    auto SceneRenderer::SetCamera( SceneCamera *camera ) -> void {
-        m_CameraPass.SetCamera( camera );
-
-        m_IBLPasses.SetCamera( camera );
-        m_PostEffectsPasses.SetCamera( camera );
-
-        m_MeshCulling.SetCamera( camera );
-        m_ShadowMappingPass.SetCamera( camera );
-
-        m_ClusteredShadingPasses.SetCameraPass( m_CameraPass );
-    }
-
-    auto SceneRenderer::SetClearColor( const Vec4F& color ) -> void {
-        m_IBLPasses.SetClearColor( color );
-    }
-
-    auto SceneRenderer::SetContrast( float contrast ) -> void {
-        m_PostEffectsPasses.SetContrast( contrast );
-    }
-
-    auto SceneRenderer::SetSaturation( float saturation ) -> void {
-        m_PostEffectsPasses.SetSaturation( saturation );
-    }
-
-    auto SceneRenderer::SetTintColor( const Vec3F &tintColor ) -> void {
-        m_PostEffectsPasses.SetTintColor( tintColor );
-    }
-
-    auto SceneRenderer::EnableSkybox( bool enable ) -> void {
-        m_IBLPasses.EnableSkybox( enable );
-    }
-
-    auto SceneRenderer::GetRenderResolution() const -> RenderResolution {
-        return m_RenderResolution;
-    }
-
-    auto SceneRenderer::IsRenderResolution( RenderResolution resolution ) const -> bool {
-        return m_RenderResolution == resolution;
-    }
-
-    auto SceneRenderer::SetRenderResolution( RenderResolution resolution ) -> void {
-        m_RenderResolution = resolution;
-        m_WantResize = true;
-
-        m_RenderTargetDimensions = InferDimensions(m_RenderResolution);
-    }
-
-    auto SceneRenderer::SetImageGamma( float value ) -> void {
-        m_IBLPasses.SetGamma( value );
-    }
-
-    auto SceneRenderer::SetImageExposure( float value ) -> void {
-        m_IBLPasses.SetExposure( value );
-    }
-
-    auto SceneRenderer::SetMaxReflectionLOD( float value ) -> void {
-        m_IBLPasses.SetMaxReflectionLOD( value );
-    }
-
-    auto SceneRenderer::UpdateEquirectangularMapAsync( std::string_view path ) -> void {
-        TaskService::Get()->Submit( [path = Filesystem::GetGetAbsolutePath(path), this]() -> void {
-            m_Equirectangular = AssetsService::Get()->LoadAsset<Texture>( path, true );
-
-            m_CubeMap = AssetsService::Get()->LoadAsset<TextureCube>( path );
-
-            m_LoadedHDR = true;
-        } );
-    }
-
-    auto SceneRenderer::SetUseConvolutedCube( bool enable ) -> void {
-        m_IBLPasses.UseConvolutedCube( enable );
-    }
-
-    auto SceneRenderer::UseLDRCubeMap( bool enable ) -> void {
-        m_IBLPasses.UseCubeMap( enable );
-    }
-
-    auto SceneRenderer::IsUsingConvolutedCube() const -> bool {
-        return m_IBLPasses.IsUsingConvolutedCube();
-    }
-
-    auto SceneRenderer::GetEquirectangularMap() -> TextureHandle {
-        return m_Equirectangular;
-    }
-
-    auto SceneRenderer::IsUsingPrecomputedLDRCubeMap() -> bool {
-        return m_IBLPasses.IsUsingCubeMap();
-    }
-
-    auto SceneRenderer::SetEnableSSAO( bool enable ) -> void {
-        m_IBLPasses.SetEnableSSAO( enable );
-    }
-
-    auto SceneRenderer::SetEnableSSAOBlurred( bool enable ) -> void {
-        m_IBLPasses.SetEnableSSAOBlur( enable );
-    }
-
-    auto SceneRenderer::SetSSAOIntensity( float value ) -> void {
-        m_IBLPasses.SetSSAOIntensity( value );
-    }
-
-    auto SceneRenderer::SetWireframeEnable( bool enable ) -> void {
-        m_DebugPasses.SetWireframeEnable(enable);
-    }
-
-    auto SceneRenderer::SetWireframeLineLineWidth( float value ) -> void {
-        m_DebugPasses.SetWireframeLineLineWidth( value );
-    }
-
-    auto SceneRenderer::SetWireframeLineColor( const Vec4F &color ) -> void {
-        m_DebugPasses.SetWireframeLineColor( color );
-    }
-
-    auto SceneRenderer::SetWireframeClearColor( const Vec4F &color ) -> void {
-        m_DebugPasses.SetWireframeLineLineClearColor( color );
-    }
-
-    auto SceneRenderer::GetPassList() const -> const PassList & {
-        return m_FrameGraph->GetPassList();
-    }
-
-    auto SceneRenderer::EnableInfiniteGrid( bool enable ) -> void {
-        m_DebugPasses.EnableInfiniteGrid( enable );
-    }
-
-    auto SceneRenderer::SetOuterSquareColor( const Vec4F &color ) -> void {
-        m_DebugPasses.SetOuterSquareColor( color );
-    }
-
-    auto SceneRenderer::SetInnerSquareColor( const Vec4F &color ) -> void {
-        m_DebugPasses.SetInnerSquareColor( color );
-    }
-
-    auto SceneRenderer::SetOuterSquareWidth( float width ) -> void {
-        m_DebugPasses.SetOuterSquareWidth( width );
-    }
-
-    auto SceneRenderer::SetInnerSquareWidth( float width ) -> void {
-        m_DebugPasses.SetInnerSquareWidth( width );
-    }
-
-    auto SceneRenderer::SetZAxisWidth( float width ) -> void {
-        m_DebugPasses.SetZAxisWidth( width );
-    }
-
-    auto SceneRenderer::SetXAxisWidth( float width ) -> void {
-        m_DebugPasses.SetXAxisWidth( width );
-    }
-
-    auto SceneRenderer::SetZAxisColor( const Vec4F &color ) -> void {
-        m_DebugPasses.SetZAxisColor( color );
-    }
-
-    auto SceneRenderer::SetXAxisColor( const Vec4F &color ) -> void {
-        m_DebugPasses.SetXAxisColor( color );
-    }
-
-    auto SceneRenderer::SetToneMapping( ToneMappingType type ) -> void {
-        m_IBLPasses.SetToneMapping( type );
-    }
-
-    auto SceneRenderer::EnableBloom( bool value ) -> void {
-        m_PostEffectsPasses.EnableBloom( value );
-    }
-
-    auto SceneRenderer::GetTexture( std::string_view name ) const -> TextureHandle {
-        return m_FrameGraph->GetTexture(name);
-    }
-
-    auto SceneRenderer::GetBuffer( std::string_view name ) const -> BufferHandle {
-        return m_FrameGraph->GetBuffer(name);
-    }
-
-    auto SceneRenderer::Create( const SceneRendererCreateInfo &spec ) -> Unique<SceneRenderer> {
-        return CreateScope<SceneRenderer>( spec );
-    }
-
-    auto SceneRenderer::InitGraphicsContex() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        m_GraphicsContext = GraphicsContext::Create( m_Device );
-
-        if (m_GraphicsContext) {
-            m_GraphicsContext->Init();
-        }
-    }
-
-    auto SceneRenderer::InitCoreFramePasses() -> void {
-        if (m_GraphicsContext == nullptr) {
-            return;
-        }
-
-        m_FrameGraph = FrameGraph::Create( m_GraphicsContext.get(), m_Device );
-
-        m_DebugPasses.RegisterPasses( *m_FrameGraph );
-        m_CameraPass.RegisterPasses( *m_FrameGraph );
-        m_MaterialDebug.RegisterPasses( *m_FrameGraph );
-
-        m_MeshCulling.RegisterPasses( *m_FrameGraph, m_Device );
-
-        m_ClusteredShadingPasses.RegisterPasses( *m_FrameGraph );
-        m_ShadowMappingPass.RegisterPasses( *m_FrameGraph );
-
-        m_IBLPasses.RegisterPasses( *m_FrameGraph, m_Device );
-        m_PostEffectsPasses.RegisterPasses( *m_FrameGraph, m_Device );
-
-        m_FrameGraph->Compile();
-    }
-
-    auto SceneRenderer::SetEquirectangularMap() -> void {
-        m_CameraPass.SetEquirectangularMap( m_Equirectangular );
-        m_IBLPasses.SetEquirectangularMap( m_Equirectangular );
-        m_IBLPasses.SetCubeMap( m_CubeMap );
-    }
-
-    auto SceneRenderer::OnPreRender() -> void {
-        // If SetRenderResolution was called we will need to
-        // Reconstruct render target which will require recompiling the frame graph
-        if (m_WantResize) {
-
-        }
-
-        m_IBLPasses.SetMeshCulling( m_MeshCulling );
-        m_DebugPasses.SetMeshCulling( m_MeshCulling );
-        m_PostEffectsPasses.SetMeshCulling( m_MeshCulling );
-        m_ClusteredShadingPasses.SetMeshCulling( m_MeshCulling );
-        m_ShadowMappingPass.SetMeshCulling( m_MeshCulling );
-
-        // If we loaded a new equirectangular update it in the passes
-        if (m_LoadedHDR) {
-            SetEquirectangularMap();
-
-            // Clear flag
-            m_LoadedHDR = false;
-        }
-    }
-
-    auto SceneRenderer::OnPostRender() -> void {
+    auto SceneRenderer::SetMainCamera( SceneCamera *camera ) -> void {
 
     }
 
-    auto SceneRendererCreateInfo::WithName( std::string_view name ) -> SceneRendererCreateInfo & {
-        this->Name = name;
+    auto SceneRenderer::SetClearColor( const float4 &color ) -> void {
+
+    }
+
+    auto SceneRenderer::GetTexture( eastl::string_view name ) const -> TextureHandle {
+        return TextureHandle::CreateEmpty();
+    }
+
+    auto SceneRenderer::GetBuffer( eastl::string_view name ) const -> BufferHandle {
+        return BufferHandle::CreateEmpty();
+    }
+
+    auto SceneRenderer::Create( const SceneRendererCreateInfo &spec ) -> eastl::unique_ptr<SceneRenderer> {
+        return eastl::make_unique<SceneRenderer>( spec );
+    }
+
+    auto SceneRendererCreateInfo::WithName( eastl::string_view name ) -> SceneRendererCreateInfo & {
+        this->mName = name;
         return *this;
     }
 
     auto SceneRendererCreateInfo::WithDevice( GpuDevice *device ) -> SceneRendererCreateInfo & {
-        this->Device = device;
+        this->mDevice = device;
         return *this;
     }
 }// namespace Mikoto

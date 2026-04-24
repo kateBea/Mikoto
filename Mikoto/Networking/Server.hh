@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,12 +20,13 @@
 
 #include <ankerl/unordered_dense.h>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
 #include <Networking/Socket.hh>
 #include <Networking/NetworkUtilities.hh>
 
-#include <Library/Utility/Types.hh>
-
-namespace Mikoto {
+namespace mikoto::network {
 
     class HttpServer {
     public:
@@ -36,17 +37,17 @@ namespace Mikoto {
         auto Get( std::string_view path, Handler handler ) -> void;
         auto Post( std::string_view path, Handler handler ) -> void;
 
-        auto Listen( std::string_view address, UInt16 port ) -> void;
+        auto Listen( std::string_view address, u16 port ) -> void;
 
     private:
         auto AcceptLoop() -> void;
         auto HandleClient( SocketHandle clientSocket ) -> void;
 
     private:
-        ankerl::unordered_dense::map<std::string, Handler> m_GetRoutes{};
-        ankerl::unordered_dense::map<std::string, Handler> m_PostRoutes{};
+        ankerl::unordered_dense::map<std::string, Handler> mGetRoutes{};
+        ankerl::unordered_dense::map<std::string, Handler> mPostRoutes{};
 
-        SocketHandle m_ServerSocket;
+        SocketHandle mServerSocket{};
     };
 }
 

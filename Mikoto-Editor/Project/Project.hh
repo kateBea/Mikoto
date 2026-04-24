@@ -15,21 +15,18 @@
 #ifndef MIKOTO_PROJECT_HH
 #define MIKOTO_PROJECT_HH
 
-#include <Library/Utility/Types.hh>
+#include <Core/Serializable.hh>
+#include <Filesystem/Path.hh>
 
-namespace Mikoto {
+namespace mikoto::editor {
 
-    class Project final {
+    class Project final : public core::ISerializable {
     public:
 
-        explicit Project(const Path& path);
-        ~Project() = default;
-
-    private:
+        auto Serialize( const filesystem::Path &filename ) -> void override;
+        auto Deserialize( const filesystem::Path &filename ) -> void override;
 
     };
 }
-
-
 
 #endif //MIKOTO_PROJECT_HH

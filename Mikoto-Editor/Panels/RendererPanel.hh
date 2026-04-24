@@ -15,10 +15,10 @@
 #ifndef MIKOTO_RENDERER_PANEL_HH
 #define MIKOTO_RENDERER_PANEL_HH
 
+#include <../../Mikoto/ImGui/GraphEditor.hh>
 #include <Panels/Panel.hh>
-#include <GraphNodes/GraphEditor.hh>
 
-namespace Mikoto {
+namespace mikoto::editor {
     struct EditorState;
 
     struct RendererPanelCreateInfo {
@@ -56,6 +56,8 @@ namespace Mikoto {
 
         auto DrawPostProcessing() -> void;
         auto DrawToneMapSettings() -> void;
+
+        auto DrawRayTracingSettings() -> void;
 
         auto DrawIBLSettings() -> void;
         auto DrawShadowMappingSettings() -> void;

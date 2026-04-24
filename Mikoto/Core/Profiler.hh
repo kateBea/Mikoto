@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,17 +18,17 @@
 #include <tracy/Tracy.hpp>
 #include <Logging/Assert.hh>
 
-namespace Mikoto {
+namespace mikoto::core {
 
-// This should use Tracy ZoneMacros, must be used with tracy profiler on
-// as it leaks memory if the profiler is not running
+    // This should use Tracy ZoneMacros, must be used with tracy profiler on
+    // as it leaks memory if the profiler is not running
 
-#if defined(MIKOTO_ENABLE_TRACY)
-    #define MKT_BEGIN_PROFILER_NAMED() ZoneScopedNS( __PRETTY_FUNCTION__ , 30 );
+#if defined( MIKOTO_ENABLE_TRACY )
+#define MKT_BEGIN_PROFILER_NAMED() ZoneScopedNS( __PRETTY_FUNCTION__, 30 );
 #else
-    #define MKT_BEGIN_PROFILER_NAMED()
+#define MKT_BEGIN_PROFILER_NAMED()
 #endif
 
-} // Miktoto
+}// namespace mikoto::core
 
-#endif //
+#endif//MIKOTO_PROFILER_HH

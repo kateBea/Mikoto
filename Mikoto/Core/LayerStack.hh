@@ -15,54 +15,55 @@
 #ifndef MIKOTO_LAYER_STACK_HH
 #define MIKOTO_LAYER_STACK_HH
 
-#include <string>
-#include <string_view>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
+#include <Core/Core.hh>
 #include <Core/Event.hh>
-#include <Common/Common.hh>
-#include <Library/Data/Registry.hh>
+#include <Core/Registry.hh>
 
-namespace Mikoto {
+namespace mikoto::core {
+
     class ILayer {
-      public:
-        explicit ILayer( const std::string_view name)
-            : m_LayerName{ name } {}
+    public:
+        explicit ILayer( const eastl::string_view name )
+            : mName{ name } {}
         virtual ~ILayer() = default;
 
         // Add deltaTime parameter
-        virtual auto OnUpdate(float deltaTime) -> void = 0;
+        virtual auto OnUpdate( float deltaTime ) -> void = 0;
         virtual auto OnCreate() -> void = 0;
         virtual auto OnDestroy() -> void = 0;
 
         // Layers are not subscribers, instead subscribers can propagate
         // events to them through the layer stack. An event could be
         // marked as handled if we do not want to further propagate it down the layer stack
-        virtual auto OnEvent(Event& event) -> void = 0;
+        virtual auto OnEvent( Event& event ) -> void = 0;
 
     private:
-        std::string m_LayerName{ "BaseLayer" };
+        eastl::string mName{ "BaseLayer" };
     };
 
     class LayerStack final {
     public:
         template<typename LayerType, typename... Args>
         auto PushLayer(Args&&... args) -> LayerType* {
-            auto* result{ m_Layers.Register<LayerType>(std::forward<Args>(args)...) };
+            auto* result{ mLayers.Register<LayerType>(std::forward<Args>(args)...) };
             result->OnCreate();
             return result;
         }
 
         template<typename LayerType>
         auto PopLayer() -> void {
-            if ( auto* result{ m_Layers.Get<LayerType>() } ) {
+            if ( auto* result{ mLayers.Get<LayerType>() } ) {
                 result->OnDestroy();
-                m_Layers.Unregister<LayerType>();
+                mLayers.Unregister<LayerType>();
             }
         }
 
         template<typename LayerType>
         auto GetLayer() -> LayerType* {
-            return m_Layers.Get<LayerType>();
+            return mLayers.Get<LayerType>();
         }
 
         auto Shutdown() -> void;
@@ -73,13 +74,13 @@ namespace Mikoto {
         auto OnEvent(Event& event) -> void;
 
         // Iteration over registered layers
-        MKT_NODISCARD constexpr auto begin() -> decltype(auto) { return m_Layers.begin(); }
-        MKT_NODISCARD constexpr auto end() -> decltype(auto) { return m_Layers.end(); }
-        MKT_NODISCARD constexpr auto begin() const -> decltype(auto) { return m_Layers.begin(); }
-        MKT_NODISCARD constexpr auto end() const -> decltype(auto) { return m_Layers.end(); }
+        MKT_NODISCARD constexpr auto begin() -> decltype(auto) { return mLayers.begin(); }
+        MKT_NODISCARD constexpr auto end() -> decltype(auto) { return mLayers.end(); }
+        MKT_NODISCARD constexpr auto begin() const -> decltype(auto) { return mLayers.begin(); }
+        MKT_NODISCARD constexpr auto end() const -> decltype(auto) { return mLayers.end(); }
 
     private:
-        Registry<ILayer> m_Layers{};
+        Registry<ILayer> mLayers{};
     };
 }
 

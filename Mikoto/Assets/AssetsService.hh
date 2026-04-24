@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,129 +15,239 @@
 #ifndef MIKOTO_ASSETS_SERVICE_HH
 #define MIKOTO_ASSETS_SERVICE_HH
 
+#include <mutex>
+
+#include <EASTL/tuple.h>
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
+#include <EASTL/utility.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/string_view.h>
+
 #include <ankerl/unordered_dense.h>
 
-#include <Assets/AudioClip.hh>
-#include <Assets/Font.hh>
-#include <Assets/MeshFactory.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
+#include <Core/ResourcePool.hh>
+
+#include <Assets/Asset.hh>
 #include <Assets/Model.hh>
-#include <Assets/Texture.hh>
+#include <Audio/AudioClip.hh>
 #include <Audio/AudioDevice.hh>
-#include <Common/Common.hh>
-#include <Common/Service.hh>
-#include <Common/Singleton.hh>
+#include <Assets/MeshFactory.hh>
+
 #include <Filesystem/FileSystem.hh>
-#include <Library/Data/ResourcePool.hh>
-#include <Library/Utility/Types.hh>
+
 #include <Material/PhysicalMaterial.hh>
-#include <Material/TextureCube.hh>
-#include <Renderer/Core/FontFactory.hh>
-#include <Renderer/Core/RenderUtility.hh>
+#include <Material/PostProcessMaterial.hh>
+
+#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Text/Font.hh>
+
 #include <Threading/TaskService.hh>
-#include <atomic>
-#include <future>
-#include <mutex>
-#include <vector>
+#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Core/FontFactory.hh>
 
-namespace Mikoto {
+namespace mikoto::asset {
 
-    using AssetID = UInt64;
-    MKT_NODISCARD inline auto GetHashedAssetID(const std::filesystem::path& path) -> AssetID {
-        return std::hash<std::string>{}(path.string());
-    }
+    using namespace mikoto::core;
+    using namespace mikoto::audio;
+    using namespace mikoto::renderer;
+    using namespace mikoto::material;
+
+    struct TextureLoadDescription {
+        Path mPath{};
+
+        TextureDimension mDimension{ TextureDimension::eTexture2D };
+
+        auto SetPath( const Path& path ) -> TextureLoadDescription&;
+        auto SetDimensions( TextureDimension dim ) -> TextureLoadDescription&;
+    };
+
+    template<typename AssetType>
+    class AssetCache {
+    public:
+        enum class LoadState {
+            eLoading,
+            eReady
+        };
+
+    public:
+        template<typename LoaderFn>
+        auto RequestLoad(const Path& path, LoaderFn&& loader) -> void {
+            std::unique_lock lock{ mMutex };
+
+            auto it{ mEntries.find(path) };
+
+            // Already loading or ready -> do nothing
+            if (it != mEntries.end()) {
+                return;
+            }
+
+            // Create entry in loading state
+            auto entry{ eastl::make_unique<Entry>() };
+            entry->mState = LoadState::eLoading;
+
+            Entry* entryPtr{ entry.get() };
+            mEntries.emplace(path, eastl::move(entry));
+
+            lock.unlock();
+
+            // Dispatch async task instead of blocking
+            threading::TaskService::Get()->Submit([this, entryPtr, loader = std::forward<LoaderFn>(loader)]() mutable {
+                Ref<AssetType> asset{ loader() };
+
+                std::lock_guard lock{ mMutex };
+
+                entryPtr->mAsset = asset;
+                entryPtr->mState = LoadState::eReady;
+                entryPtr->mCv.notify_all(); // optional
+            });
+        }
+
+        template<typename LoaderFn>
+        MKT_NODISCARD auto LoadOrGet( const Path& path, LoaderFn&& loader ) -> Ref<AssetType> {
+            Entry* entryPtr{ nullptr };
+            {
+                std::unique_lock lock{ mMutex };
+
+                auto it{ mEntries.find( path ) };
+                if ( it == mEntries.end() ) {
+                    // Create entry ONLY here
+                    auto newEntry{ eastl::make_unique<Entry>() };
+                    newEntry->mState = LoadState::eLoading;
+
+                    auto [insertIt, _]{ mEntries.emplace( path, eastl::move( newEntry ) ) };
+                    entryPtr = insertIt->second.get();
+                    // We are the loader -> continue below
+                } else {
+                    entryPtr = it->second.get();
+
+                    if ( entryPtr->mState == LoadState::eReady ) {
+                        return entryPtr->mAsset;
+                    }
+
+                    // Wait until ready
+                    entryPtr->mCv.wait( lock, [entryPtr]() {
+                        return entryPtr->mState == LoadState::eReady;
+                    } );
+
+                    return entryPtr->mAsset;
+                }
+            }
+
+            // Outside lock -> perform heavy load
+            // We avoid locking above for the loading because we
+            // would block the whole cache even for read only purposes
+            Ref<AssetType> asset{ loader() };
+            {
+                std::lock_guard lock{ mMutex };
+
+                entryPtr->mAsset = asset;
+                entryPtr->mState = LoadState::eReady;
+
+                entryPtr->mCv.notify_all();
+
+                return entryPtr->mAsset;
+            }
+        }
+
+        MKT_NODISCARD auto GetIfReady( const Path& path ) const -> Ref<AssetType> {
+            std::lock_guard lock{ mMutex };
+
+            auto it{ mEntries.find( path ) };
+            if ( it == mEntries.end() ) {
+                return Ref<AssetType>::CreateEmpty();
+            }
+
+            Entry* entry{ it->second.get() };
+            if ( entry->mState == LoadState::eReady ) {
+                return entry->mAsset;
+            }
+
+            return Ref<AssetType>::CreateEmpty();
+        }
+
+        auto Clear() -> void {
+            std::lock_guard lock{ mMutex };
+            mEntries.clear();
+        }
+
+        MKT_NODISCARD auto operator[]( const Path& path ) -> Ref<AssetType> {
+            return GetIfReady( path );
+        }
+
+        MKT_NODISCARD auto operator[]( const Path& path ) const -> Ref<AssetType> {
+            return GetIfReady( path );
+        }
+
+    private:
+        struct Entry {
+            Ref<AssetType> mAsset{};
+            LoadState mState{ LoadState::eLoading };
+            std::condition_variable mCv{};
+        };
+
+    private:
+        mutable std::mutex mMutex{};
+        ankerl::unordered_dense::map<Path, eastl::unique_ptr<Entry>> mEntries{};
+    };
 
     struct AssetsServiceDescription {};
 
-    /**
-    * @class AssetsService
-    * @brief Manages the loading, retrieval, and deletion of assets.
-    *
-    * The `AssetsService` class provides an interface for handling assets such as models,
-    * textures, fonts, and audio files. It supports both synchronous and asynchronous
-    * loading of resources, and provides functionality to manage and clean up resources.
-    */
     class AssetsService final : public IService, public Singleton<AssetsService> {
     public:
-        /**
-        * @brief Constructs an AssetsService with the provided configuration.
-        * @param options The configuration for initializing the AssetsService.
-        */
+
         explicit AssetsService( const AssetsServiceDescription& options );
 
-        /**
-        * @brief Initializes the AssetsService.
-        * Initializes this service structures. After this call user can safely load assets.
-        */
-        auto Init() -> void override;
-
-        /**
-        * @brief Shuts down the AssetsService.
-        * Destroys this service structures. No other methods should be called after a call to Shutdown()
-        */
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        /**
-        * @brief Retrieves an asset of the specified type by its URI.
-        *
-        * This function searches for an asset associated with the given URI and attempts
-        * to return it as a handle to the specified `AssetType`. If the asset is not found
-        * returns an empty handle.
-        *
-        * @tparam AssetType The type of the asset to retrieve. Must be a type derived from the base asset type.
-        * @param uri A string view representing the URI or identifier of the asset.
-        * @return Pointer to the asset of type `AssetType` if found and valid; otherwise, `nullptr`.
-        */
+        MKT_NODISCARD auto GetDummyTexture() -> TextureHandle;
+        MKT_NODISCARD auto GetAssetCacheBasePath() const  -> const Path&;
+
         template<typename AssetType>
-        MKT_NODISCARD auto GetAssetByUri( const std::string_view uri ) -> Ref<AssetType> {
-            const auto fullpath{ Filesystem::GetGetAbsolutePathString( uri ) };
+        MKT_NODISCARD auto GetAssetByUri( const eastl::string_view uri ) -> Ref<AssetType> {
+            Path fullPath{ Path{ uri }.GetAbsolute() };
 
             if constexpr (std::is_same_v<AssetType, Model>) {
-                if ( const auto it{ m_Models.find(fullpath) }; it != m_Models.end())
-                    return it->second;
+                return mModels[uri];
             }
-            else if constexpr (std::is_same_v<AssetType, Texture>) { // TODO: resolve 2D or cube
-                if ( const auto it{ m_Textures2D.find(fullpath) }; it != m_Textures2D.end())
-                    return it->second;
-            }
-            else if constexpr (std::is_same_v<AssetType, TextureCube>) {// TODO: remove
-                if ( const auto it{ m_TexturesCubes.find(fullpath) }; it != m_TexturesCubes.end())
-                    return it->second;
+            else if constexpr (std::is_same_v<AssetType, ITexture>) {
+                return mTextures2D[uri];
             }
             else if constexpr (std::is_same_v<AssetType, Audio>) {
-                if ( const auto it{ m_Audios.find(fullpath) }; it != m_Audios.end())
-                    return it->second;
+                return mAudios[uri];
             }
             else if constexpr (std::is_same_v<AssetType, Font>) {
-                if ( const auto it{ m_Fonts.find(fullpath) }; it != m_Fonts.end())
-                    return it->second;
+                return mFonts[uri];
             }
             else if constexpr (std::is_same_v<AssetType, Material>) {
-                if ( const auto it{ m_Materials.find(std::string(uri)) }; it != m_Materials.end())
-                    return it->second;
+                return mMaterials[uri];
             }
 
             return Ref<AssetType>::CreateEmpty();
         }
 
         template<typename AssetType>
-        auto LoadAsset( auto&&... args ) -> Ref<AssetType> {
+        MKT_NODISCARD auto LoadAsset( auto&&... args ) -> Ref<AssetType> {
             if constexpr (std::is_same_v<AssetType, Model>) {
-                return LoadModel( std::forward<decltype(args)>(args)... );
+                return LoadModel( eastl::forward<decltype(args)>(args)... );
             }
-            else if constexpr (std::is_same_v<AssetType, Texture>) {
-                return LoadTexture( std::forward<decltype(args)>(args)... );
-            }
-            else if constexpr (std::is_same_v<AssetType, TextureCube>) {
-                return LoadCubeMap( std::forward<decltype(args)>(args)... );
+            else if constexpr (std::is_same_v<AssetType, ITexture>) {
+                return LoadTexture( eastl::forward<decltype(args)>(args)... );
             }
             else if constexpr (std::is_same_v<AssetType, Audio>) {
-                return LoadAudio( std::forward<decltype(args)>(args)... );
+                return LoadAudio( eastl::forward<decltype(args)>(args)... );
             }
             else if constexpr (std::is_same_v<AssetType, Font>) {
-                return LoadFont( std::forward<decltype(args)>(args)... );
+                return LoadFont( eastl::forward<decltype(args)>(args)... );
             }
             else if constexpr (std::is_same_v<AssetType, Material>) {
-                return LoadMaterial( std::forward<decltype(args)>(args)... );
+                return LoadMaterial( eastl::forward<decltype(args)>(args)... );
             }
 
             return Ref<AssetType>::CreateEmpty();
@@ -145,72 +255,56 @@ namespace Mikoto {
 
         template<typename AssetType>
         auto LoadAssetAsync( auto&&... args ) -> void {
-            auto tuple{ std::make_tuple(std::forward<decltype(args)>(args)...) };
+            auto tuple{ eastl::make_tuple(eastl::forward<decltype(args)>(args)...) };
 
-            TaskService::Get()->Submit([this, argsTuple = std::move(tuple)]() mutable -> void {
-                std::apply([this]<typename... Args>(Args&&... unpackedArgs) {
-                    LoadAsset<AssetType>(std::forward<Args>(unpackedArgs)...);
-                }, std::move(argsTuple));
+            threading::TaskService::Get()->Submit([this, argsTuple = eastl::move(tuple)]() mutable -> void {
+                eastl::apply([this]<typename... Args>(Args&&... unpackedArgs) {
+                    (void)LoadAsset<AssetType>(eastl::forward<Args>(unpackedArgs)...);
+                }, eastl::move(argsTuple));
             });
         }
-
-        MKT_NODISCARD auto GetAssetCacheBasePath() const  -> const std::string&;
-
-        MKT_NODISCARD auto GetDummyTexture() -> TextureHandle;
 
         MKT_NODISCARD auto CreateMaterial( const MaterialProperties& spec = {} ) -> MaterialHandle;
 
         ~AssetsService() override = default;
 
     private:
-        auto CreateAssetCacheFolder(const Path& path) -> void;
-        auto LoadModel( std::string_view uri ) -> ModelHandle;
+        auto LoadModel( const Path& uri ) -> ModelHandle;
         auto LoadModel( const ModelLoadDescription& description) -> ModelHandle;
 
-        auto LoadTexture( const Path& uri, bool isHDR = false ) -> TextureHandle;
-        auto LoadTexture( std::string_view uri, bool isHDR = false  ) -> TextureHandle;
-        auto LoadTexture( const TextureDescription& description ) -> TextureHandle;
-        auto LoadTexture( const TextureLoadDescription& description) -> TextureHandle;
-
-        auto LoadCubeMap( const Path& uri ) -> TextureHandle;
-        auto LoadCubeMap( const TextureCubeLoadDescription& description) -> TextureHandle;
+        auto LoadTexture( const Path& uri, TextureDimension dimension ) -> TextureHandle;
+        auto LoadTexture( const TextureLoadDescription& desc ) -> TextureHandle;
 
         auto LoadAudio( const AudioLoadDescription& description) -> AudioHandle;
 
         auto LoadFont( const Path& uri ) -> FontHandle;
-        auto LoadFont( std::string_view uri ) -> FontHandle;
         auto LoadFont( const FontLoadDescription& description) -> FontHandle;
 
-        auto LoadMaterial( std::string_view uri) -> MaterialHandle;
         auto LoadMaterial( const Path& uri) -> MaterialHandle;
 
         auto LoadDummyAssets() -> void;
 
-    private:
-        static constexpr std::string_view s_DummyTexturePath{ "./Resources/Textures/texture.png" };
+        auto CreateAssetCacheFolder(const Path& path) -> void;
 
     private:
-        Unique<MeshFactory> m_MeshFactory{};
-        Unique<FontFactory> m_FontFactory{};
+        static inline const Path kDummyTexturePath{ "./Resources/Textures/texture.png" };
 
-        GpuDevice* m_GpuDevice{ nullptr };
-        AudioDevice* m_AudioDevice{ nullptr };
+    private:
+        eastl::unique_ptr<MeshFactory> mMeshFactory{};
+        eastl::unique_ptr<FontFactory> mFontFactory{};
 
-        ResourcePoolTyped<PhysicalMaterial> m_PBRMaterialsPool{};
+        GpuDevice* mGpuDevice{ nullptr };
+        AudioDevice* mAudioDevice{ nullptr };
 
-        std::mutex m_Texture2DPoolMutex{};
-        std::mutex m_TextureCubePoolMutex{};
-        std::mutex m_ModelLoadMutex{};
+        AssetCache<Font> mFonts{};
+        AssetCache<Model> mModels{};
+        AssetCache<Audio> mAudios{};
+        AssetCache<Material> mMaterials{};
 
-        ankerl::unordered_dense::map<std::string, MaterialHandle> m_Materials{};
-        ankerl::unordered_dense::map<std::string, ModelHandle> m_Models{};
-        ankerl::unordered_dense::map<std::string, AudioHandle> m_Audios{};
-        ankerl::unordered_dense::map<std::string, FontHandle> m_Fonts{};
+        AssetCache<ITexture> mTextures2D{};
+        AssetCache<ITexture> mTexturesCubes{};
 
-        ankerl::unordered_dense::map<std::string, TextureHandle> m_Textures2D{};
-        ankerl::unordered_dense::map<std::string, TextureHandle> m_TexturesCubes{};
-
-        std::string m_AnimationCachePathBase{ "AssetCache" };
+        Path mAnimationCachePathBase{ "AssetCache" };
     };
 }
 

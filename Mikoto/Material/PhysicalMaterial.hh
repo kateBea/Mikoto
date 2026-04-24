@@ -15,28 +15,51 @@
 #ifndef MIKOTO_PHYSICALLY_BASED_MATERIAL_HH
 #define MIKOTO_PHYSICALLY_BASED_MATERIAL_HH
 
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
 #include <ankerl/unordered_dense.h>
 
-#include <Assets/Texture.hh>
-#include <Common/Common.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
+#include <Filesystem/File.hh>
+#include <Filesystem/Path.hh>
+
 #include <Material/Material.hh>
-#include <Renderer/Core/RenderUtility.hh>
 
-namespace Mikoto {
+#include <Renderer/Core/Rhi.hh>
 
-    enum class PBR_Workflow {
-        MetallicRoughness,
-        SpecularGlossiness,
+namespace mikoto::material {
 
-        Workflow_Count
+    using namespace mikoto::core;
+    using namespace mikoto::renderer;
+
+    enum class Workflow {
+        eMetallicRoughness,
+        eSpecularGlossiness,
+        eCount,
     };
 
-    enum class PBR_AlphaMode {
+    enum class AlphaMode {
         Opaque,
-        Mask,
-        Blend,
+        eMask,
+        eBlend,
+        eCount,
+    };
 
-        AlphaMode_Count
+    enum class MapType {
+        eInvalid = -1,
+
+        eDiffuse,
+        eBaseColor,
+        eNormal,
+        eMetallic,
+        eRoughness,
+        eMetallicRoughness,
+        eAmbientOcclusion,
+        eEmissive,
+        eSpecularGlossiness,
     };
 
     // I need to lead the sampler specifications for this materials
@@ -46,58 +69,62 @@ namespace Mikoto {
     struct SamplingProperties {
         float MipLevels{ 1.0f };
 
-        SamplerFilter MinFilter{ SamplerFilter::FILTER_NEAREST };
-        SamplerFilter MagFilter{ SamplerFilter::FILTER_NEAREST };
-        SamplerWrapMode WrapU{ SamplerWrapMode::WRAP_REPEAT };
-        SamplerWrapMode WrapV{ SamplerWrapMode::WRAP_REPEAT };
-        SamplerWrapMode WrapW{ SamplerWrapMode::WRAP_REPEAT };
+        rhi::SamplerFilter MinFilter{ rhi::SamplerFilter::eNearest };
+        rhi::SamplerFilter MagFilter{ rhi::SamplerFilter::eNearest };
+        rhi::SamplerWrapMode WrapU{ rhi::SamplerWrapMode::eRepeat };
+        rhi::SamplerWrapMode WrapV{ rhi::SamplerWrapMode::eRepeat };
+        rhi::SamplerWrapMode WrapW{ rhi::SamplerWrapMode::eRepeat };
+    };
+
+    struct PBRMap {
+        rhi::TextureHandle mTexture{};
+        MapType MapType{ MapType::eInvalid };
     };
 
     struct MaterialProperties {
-        std::string Name{};
+        eastl::string mName{};
 
-        PBR_AlphaMode AlphaMask{ PBR_AlphaMode::Opaque };
-        PBR_Workflow Workflow{ PBR_Workflow::MetallicRoughness };
+        AlphaMode AlphaMask{ AlphaMode::Opaque };
+        Workflow Workflow{ Workflow::eMetallicRoughness };
 
         // Base color/Albedo
-        Vec4F BaseColorFactor{ 1.f, 1.f, 1.f, 1.f };
-        Vec4F DiffuseFactor{ 1.f, 1.f, 1.f, 1.f };
-        Vec4F SpecularFactor{ 0.f, 0.f, 0.f, 0.f };
-        Vec3F EmissiveFactor{ 1.f, 1.f, 1.f };
+        float4 BaseColorFactor{ 1.f, 1.f, 1.f, 1.f };
+        float4 DiffuseFactor{ 1.f, 1.f, 1.f, 1.f };
+        float4 SpecularFactor{ 0.f, 0.f, 0.f, 0.f };
+        float3 EmissiveFactor{ 1.f, 1.f, 1.f };
 
-        float MetallicFactor{ 1.f };
-        float RoughnessFactor{ 1.f };
-        float GlossinessFactor{ 1.f };
-        float NormalScale{ 1.f };
-        float OcclusionStrength{ 1.f };
-        float EmissiveStrength{ 1.f };
-        float AlphaMaskCutoff{ 1.0f };
+        f32 MetallicFactor{ 1.f };
+        f32 RoughnessFactor{ 1.f };
+        f32 GlossinessFactor{ 1.f };
+        f32 NormalScale{ 1.f };
+        f32 OcclusionStrength{ 1.f };
+        f32 EmissiveStrength{ 1.f };
+        f32 AlphaMaskCutoff{ 1.0f };
 
         // Texture UV sets (Maps can either use UV0 or UV1)
         // UV0 assumed by default unless otherwise specified
-        Int32 BaseColorTextureSet{ 0 };
-        Int32 MetallicRoughnessTextureSet{ 0 };
-        Int32 SpecularGlossinessSet{ 0 };
-        Int32 NormalTextureSet{ 0 };
-        Int32 OcclusionTextureSet{ 0 };
-        Int32 EmissiveTextureSet{ 0 };
+        i32 BaseColorTextureSet{ 0 };
+        i32 MetallicRoughnessTextureSet{ 0 };
+        i32 SpecularGlossinessSet{ 0 };
+        i32 NormalTextureSet{ 0 };
+        i32 OcclusionTextureSet{ 0 };
+        i32 EmissiveTextureSet{ 0 };
 
         // GLTF Extensions
         bool Unlit{ false };
+        bool mIsDoubleSided{ false };
 
-        bool IsDoubleSided{ false };
-
-        ankerl::unordered_dense::map<std::string, TextureHandle> TexturesByUri{};
+        ankerl::unordered_dense::map<filesystem::Path, PBRMap> mTexturesByUri{};
         ankerl::unordered_dense::map<MapType, SamplingProperties> TexturesSamplers{};
     };
 
     class PhysicalMaterial final : public Material {
     public:
-        explicit PhysicalMaterial( std::string_view name = "PBR" );
+        explicit PhysicalMaterial( eastl::string_view name = "PBR" );
         explicit PhysicalMaterial( const MaterialProperties& props );
 
         auto RemoveTexture( MapType type ) -> void;
-        auto SetTexture( MapType type, const TextureHandle& texture ) -> void;
+        auto SetTexture( MapType type, const rhi::TextureHandle& texture ) -> void;
 
         MKT_NODISCARD auto IsOpaque() const -> bool;
         MKT_NODISCARD auto IsTransparent() const -> bool;
@@ -105,33 +132,33 @@ namespace Mikoto {
         // ===============================
         // Scalar & Factor Setters
         // ===============================
-        auto SetAlphaMask( PBR_AlphaMode mode ) -> void;
-        auto SetWorkflow( PBR_Workflow mode ) -> void;
+        auto SetAlphaMask( AlphaMode mode ) -> void;
+        auto SetWorkflow( Workflow mode ) -> void;
 
-        auto SetBaseColorFactor( const Vec4F& value ) -> void;
-        auto SetDiffuseFactor( const Vec4F& value ) -> void;
-        auto SetSpecularFactor( const Vec4F& value ) -> void;
-        auto SetEmissiveFactor( const Vec3F& value ) -> void;
+        auto SetBaseColorFactor( const float4& value ) -> void;
+        auto SetDiffuseFactor( const float4& value ) -> void;
+        auto SetSpecularFactor( const float4& value ) -> void;
+        auto SetEmissiveFactor( const float3& value ) -> void;
 
-        auto SetAoFactor( float v ) -> void;
-        auto SetMetallicFactor( float v ) -> void;
-        auto SetRoughnessFactor( float v ) -> void;
-        auto SetGlossinessFactor( float v ) -> void;
-        auto SetNormalScale( float v ) -> void;
-        auto SetOcclusionStrength( float v ) -> void;
-        auto SetEmissiveStrength( float v ) -> void;
-        auto SetAlphaMaskCutoff( float v ) -> void;
+        auto SetAoFactor( f32 v ) -> void;
+        auto SetMetallicFactor( f32 v ) -> void;
+        auto SetRoughnessFactor( f32 v ) -> void;
+        auto SetGlossinessFactor( f32 v ) -> void;
+        auto SetNormalScale( f32 v ) -> void;
+        auto SetOcclusionStrength( f32 v ) -> void;
+        auto SetEmissiveStrength( f32 v ) -> void;
+        auto SetAlphaMaskCutoff( f32 v ) -> void;
         auto SetIsDoubleSided( bool value ) -> void;
 
         // ===============================
         // UV Set Setters
         // ===============================
-        auto SetBaseColorTextureSet( Int32 set ) -> void;
-        auto SetMetallicRoughnessTextureSet( Int32 set ) -> void;
-        auto SetSpecularGlossinessSet( Int32 set ) -> void;
-        auto SetNormalTextureSet( Int32 set ) -> void;
-        auto SetOcclusionTextureSet( Int32 set ) -> void;
-        auto SetEmissiveTextureSet( Int32 set ) -> void;
+        auto SetBaseColorTextureSet( i32 set ) -> void;
+        auto SetMetallicRoughnessTextureSet( i32 set ) -> void;
+        auto SetSpecularGlossinessSet( i32 set ) -> void;
+        auto SetNormalTextureSet( i32 set ) -> void;
+        auto SetOcclusionTextureSet( i32 set ) -> void;
+        auto SetEmissiveTextureSet( i32 set ) -> void;
 
         // ===============================
         // Bloom
@@ -141,13 +168,13 @@ namespace Mikoto {
         // ===============================
         // Scalar & Factor Getters
         // ===============================
-        MKT_NODISCARD auto GetAlphaMask() const -> PBR_AlphaMode;
-        MKT_NODISCARD auto GetWorkflow() const -> PBR_Workflow;
+        MKT_NODISCARD auto GetAlphaMask() const -> AlphaMode;
+        MKT_NODISCARD auto GetWorkflow() const -> Workflow;
 
-        MKT_NODISCARD auto GetBaseColorFactor() const -> const Vec4F&;
-        MKT_NODISCARD auto GetDiffuseFactor() const -> const Vec4F&;
-        MKT_NODISCARD auto GetSpecularFactor() const -> const Vec4F&;
-        MKT_NODISCARD auto GetEmissiveFactor() const -> const Vec3F&;
+        MKT_NODISCARD auto GetBaseColorFactor() const -> const float4&;
+        MKT_NODISCARD auto GetDiffuseFactor() const -> const float4&;
+        MKT_NODISCARD auto GetSpecularFactor() const -> const float4&;
+        MKT_NODISCARD auto GetEmissiveFactor() const -> const float3&;
 
         MKT_NODISCARD auto GetAoFactor() const -> float;
         MKT_NODISCARD auto GetMetallicFactor() const -> float;
@@ -161,64 +188,59 @@ namespace Mikoto {
         // ===============================
         // UV Set Getters
         // ===============================
-        MKT_NODISCARD auto GetBaseColorTextureSet() const -> Int32;
-        MKT_NODISCARD auto GetMetallicRoughnessTextureSet() const -> Int32;
-        MKT_NODISCARD auto GetSpecularGlossinessSet() const -> Int32;
-        MKT_NODISCARD auto GetNormalTextureSet() const -> Int32;
-        MKT_NODISCARD auto GetOcclusionTextureSet() const -> Int32;
-        MKT_NODISCARD auto GetEmissiveTextureSet() const -> Int32;
+        MKT_NODISCARD auto GetBaseColorTextureSet() const -> i32;
+        MKT_NODISCARD auto GetMetallicRoughnessTextureSet() const -> i32;
+        MKT_NODISCARD auto GetSpecularGlossinessSet() const -> i32;
+        MKT_NODISCARD auto GetNormalTextureSet() const -> i32;
+        MKT_NODISCARD auto GetOcclusionTextureSet() const -> i32;
+        MKT_NODISCARD auto GetEmissiveTextureSet() const -> i32;
 
         MKT_NODISCARD auto IsDoubleSided() const -> bool;
         MKT_NODISCARD auto IsBloomy() const -> bool;
 
         MKT_NODISCARD auto HasTexture( MapType type ) const -> bool;
-        MKT_NODISCARD auto GetTexture( MapType type ) const -> TextureHandle;
+        MKT_NODISCARD auto GetTexture( MapType type ) const -> rhi::TextureHandle;
 
-        ~PhysicalMaterial() override;
-
-    private:
-        auto Release() -> void override;
-        auto Initialize() -> void override;
+        ~PhysicalMaterial() override = default;
 
     private:
-        PBR_AlphaMode m_AlphaMask{ PBR_AlphaMode::Opaque };
-        PBR_Workflow m_Workflow{ PBR_Workflow::MetallicRoughness };
+        AlphaMode m_AlphaMask{ AlphaMode::Opaque };
+        Workflow m_Workflow{ Workflow::eMetallicRoughness };
 
         // Base color/Albedo
-        Vec4F m_BaseColorFactor{ 1.f, 1.f, 1.f, 1.f };
-        Vec4F m_DiffuseFactor{ 1.f, 1.f, 1.f, 1.f };
-        Vec4F m_SpecularFactor{ 0.f, 0.f, 0.f, 0.f };
-        Vec3F m_EmissiveFactor{ 0.f, 0.f, 0.f };
+        float4 m_BaseColorFactor{ 1.f, 1.f, 1.f, 1.f };
+        float4 m_DiffuseFactor{ 1.f, 1.f, 1.f, 1.f };
+        float4 m_SpecularFactor{ 0.f, 0.f, 0.f, 0.f };
+        float3 m_EmissiveFactor{ 0.f, 0.f, 0.f };
 
         // Scalars
-        float m_AoFactor{ 1.f };
-        float m_MetallicFactor{ 1.f };
-        float m_RoughnessFactor{ 1.f };
-        float m_GlossinessFactor{ 1.f };
-        float m_NormalScale{ 1.f };
-        float m_OcclusionStrength{ 1.f };
-        float m_EmissiveStrength{ 0.f };
-        float m_AlphaMaskCutoff{ 1.0f };
+        f32 m_AoFactor{ 1.f };
+        f32 m_MetallicFactor{ 1.f };
+        f32 m_RoughnessFactor{ 1.f };
+        f32 m_GlossinessFactor{ 1.f };
+        f32 m_NormalScale{ 1.f };
+        f32 m_OcclusionStrength{ 1.f };
+        f32 m_EmissiveStrength{ 0.f };
+        f32 m_AlphaMaskCutoff{ 1.0f };
 
         // UV sets
-        Int32 m_BaseColorTextureSet{};
-        Int32 m_MetallicRoughnessTextureSet{};
-        Int32 m_SpecularGlossinessTextureSet{};
-        Int32 m_NormalTextureSet{};
-        Int32 m_OcclusionTextureSet{};
-        Int32 m_EmissiveTextureSet{};
-
-        bool m_IsDoubleSided{ false };
+        i32 m_BaseColorTextureSet{};
+        i32 m_MetallicRoughnessTextureSet{};
+        i32 m_SpecularGlossinessTextureSet{};
+        i32 m_NormalTextureSet{};
+        i32 m_OcclusionTextureSet{};
+        i32 m_EmissiveTextureSet{};
 
         bool m_IsBloomy{ false };
+        bool m_IsDoubleSided{ false };
 
         // Note: Materials reference both textures and samplers.
         // Textures provide the image data, while samplers define how that data is read
         // (filtering, addressing, LOD behavior, etc.).
         // This separation allows the same texture to be reused across materials
         // with different sampling settings.
-        ankerl::unordered_dense::map<MapType, TextureHandle> m_Textures{};
-        ankerl::unordered_dense::map<MapType, SamplerHandle> m_Samplers{};
+        ankerl::unordered_dense::map<MapType, rhi::TextureHandle> m_Textures{};
+        ankerl::unordered_dense::map<MapType, rhi::SamplerHandle> m_Samplers{};
     };
 }
 

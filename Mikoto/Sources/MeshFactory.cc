@@ -12,148 +12,151 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Assets/AssetsService.hh>
+#include <EASTL/array.h>
+#include <EASTL/memory.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Profiler.hh>
+
+#include <Assets/Model.hh>
+
+#include <Assets/MeshFactory.hh>
 #include <Assets/GLTFImporter.hh>
 #include <Assets/MainImporter.hh>
-#include <Assets/MeshFactory.hh>
 #include <Assets/MeshOptimizer.hh>
-#include <Assets/Model.hh>
-#include <Common/String.hh>
-#include <Filesystem/FileService.hh>
-#include <Library/Utility/Types.hh>
-#include <Renderer/Core/Pipeline.hh>
-#include <Renderer/Core/RenderService.hh>
-#include <Renderer/Core/RenderUtility.hh>
-#include <array>
-#include <cstdlib>
-#include <memory>
-#include <vector>
+#include <Assets/AssetsService.hh>
+#include <Assets/ImageProcessor.hh>
 
-namespace Mikoto {
+#include <Memory/Allocator.hh>
+
+#include <Filesystem/FileService.hh>
+
+#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Core/RenderSystem.hh>
+
+namespace mikoto::asset {
 
     MeshFactory::MeshFactory( const MeshFactoryCreateInfo &createInfo )
-        : m_Device{ createInfo.Device } {
+        : mDevice{ createInfo.mDevice } {
     }
 
     auto MeshFactory::ImportModel( const ModelLoadDescription &loadInfo ) -> ModelHandle {
-        ModelData resultMain{};
-
-        if ( loadInfo.ModelFile->GetPath().ends_with( "gltf" ) || loadInfo.ModelFile->GetPath().ends_with( "glb" ) ) {
-            MKT_CORE_LOGGER_DEBUG( "Using GLTF Importer for {}", loadInfo.ModelFile->GetPath() );
-            m_GLTFImporter->Import( loadInfo, resultMain );
+        ModelDataDescription resultMain{};
+        if ( loadInfo.mFile->GetPath().EndsWith( "gltf" ) || loadInfo.mFile->GetPath().EndsWith( "glb" ) ) {
+            MKT_CORE_LOGGER_DEBUG( "Using GLTF Importer for {}", loadInfo.mFile->GetPath().GetC_Str() );
+            mGltfImporter->Import( loadInfo, resultMain );
         } else {
-            MKT_CORE_LOGGER_DEBUG( "Using Assimp Importer for {}", loadInfo.ModelFile->GetPath() );
-            m_MainImporter->Import( loadInfo, resultMain );
+            MKT_CORE_LOGGER_DEBUG( "Using Assimp Importer for {}", loadInfo.mFile->GetPath().GetC_Str() );
+            mMainImporter->Import( loadInfo, resultMain );
         }
 
-
-        Model *result{ ConstructModel( resultMain, loadInfo ) };
-
-        return ModelHandle::Create( result );
+        return ConstructModel( resultMain, loadInfo );
     }
 
-    auto MeshFactory::ConstructModel( ModelData &data, const ModelLoadDescription &loadInfo  ) -> Model * {
-        Model *result{ new Model( loadInfo.ModelFile->GetPath(),
-                                  std::move( data.SceneSkeleton ),
-                                  std::move( data.Animations ) ) };
+    auto MeshFactory::ConstructModel( ModelDataDescription &data, const ModelLoadDescription &loadInfo  ) -> ModelHandle {
+        ModelCreateDescription modelDescription{};
+        modelDescription
+            .SetPath( loadInfo.mFile->GetPath() )
+            .SetName( data.mName )
+            .SetAnimations( std::move( data.mAnimations ) )
+            .SetSkeleton( std::move( data.mSceneSkeleton ) );
 
-        UInt32 meshIndex{ 0 };
-        for (const auto& meshNode : data.MeshNodes) {
+        // Here I load all images from disk and crate the GPU resource with a command
+        // and write to the images all in one go instead of doing it individually
+        // We assume the textures are placed in the same folder as the model
+        // otherwise we can look for them in the textures folder at the same level
+        if (loadInfo.mExtractTextures) {
+            CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
+            cmd->Begin();
 
-            // Change this to be a raw stream of bytes so im not forced to attributes being floats only
-            std::vector<float> vertices{};
-            std::vector<UInt32> indices{ meshNode.Indices };
+            for (auto& material : data.mMaterials) {
+                for (auto& [relativePath, pbrMapInfo] : material.mTexturesByUri) {
+                    auto pathToTexture{ PathBuilder{}
+                        .SetPath( loadInfo.mFile->GetPath().GetDirectory() )
+                        .SetPath( relativePath )
+                        .Build() };
 
-            vertices.reserve( DEFAULT_VERTEX_BUFFER_LAYOUT.GetStride() / sizeof( float ) * meshNode.Vertices.size() );
+                    asset::ImageHandle image{ asset::ProcessImage2D( pathToTexture ) };
+                    auto textureDescription{ TextureCreateDescription{}
+                        .SetWidth( as<i32>( image->mWidth ) )
+                        .SetHeight( as<i32>( image->mHeight ) )
+                        .SetDimensions( TextureDimension::eTexture2D )
+                        .SetMultisampling( Multisampling::eMsaaX1 )
+                        .SetUsage( TextureUsageFlagsBits::kShaderResource )
+                        .SetFormat( Format::eRGBA8_UNORM ) };
 
-            // TODO: automate with the provided vertex buffer layout
-            for (const auto& vertex : meshNode.Vertices) {
-                // Positions
-                vertices.emplace_back( vertex.Position.x );
-                vertices.emplace_back( vertex.Position.y );
-                vertices.emplace_back( vertex.Position.z );
+                    pbrMapInfo.mTexture = mDevice->CreateTexture( textureDescription );
 
-                // Normals
-                vertices.emplace_back( vertex.Normals.x );
-                vertices.emplace_back( vertex.Normals.y );
-                vertices.emplace_back( vertex.Normals.z );
-
-                // Color
-                vertices.emplace_back( vertex.Colors.r );
-                vertices.emplace_back( vertex.Colors.g );
-                vertices.emplace_back( vertex.Colors.b );
-                vertices.emplace_back( vertex.Colors.a );
-
-                // Uv0
-                vertices.emplace_back( vertex.UV_0.x );
-                vertices.emplace_back( vertex.UV_0.y );
-                
-                // Uv1
-                vertices.emplace_back( vertex.UV_1.x );
-                vertices.emplace_back( vertex.UV_1.y );
-
-                // Joint
-                vertices.emplace_back( vertex.Joints.x );
-                vertices.emplace_back( vertex.Joints.y );
-                vertices.emplace_back( vertex.Joints.z );
-                vertices.emplace_back( vertex.Joints.w );
-
-                // Weight
-                vertices.emplace_back( vertex.Weights.x );
-                vertices.emplace_back( vertex.Weights.y );
-                vertices.emplace_back( vertex.Weights.z );
-                vertices.emplace_back( vertex.Weights.w );
+                    // Data is always writen at mip zero and
+                    // these textures are often loaded to be read from shaders
+                    // hence why we transition to shaderResource
+                    cmd->WriteTexture( pbrMapInfo.mTexture.GetRaw(), 0, image->mBufferSpan->GetData(), image->mBufferSpan->GetSize() );
+                    cmd->SetResourceState( pbrMapInfo.mTexture.GetRaw(), ResourceStates::eShaderResource );
+                }
             }
-            
-            BufferDescription vertexDesc{};
-            vertexDesc.WithData( reinterpret_cast<Byte *>( vertices.data() ) )
-                      .WithUsage( BufferUsage::VERTEX )
-                      .WidthHandle( meshNode.VerticesSpan )
-                      .WithBufferDataType( BufferDataType::BUFFER_DATA_FLOAT32 )
-                      .WithSizeBytes( InferSize<float>( vertices.size() ) )
-                      .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
 
-            BufferDescription indexDesc{};
-            indexDesc.WithData( reinterpret_cast<Byte *>( indices.data() ) )
-                     .WithUsage( BufferUsage::INDEX )
-                     .WidthHandle( meshNode.IndicesSpan )
-                     .WithSizeBytes( InferSize<UInt32>(  meshNode.Indices.size() ) )
-                     .WithBufferDataType( BufferDataType::BUFFER_DATA_UINT32 )
-                     .WithResourceUsageType( ResourceUsageType::RESOURCE_USAGE_STATIC );
-
-            BufferHandle vertexBuffer{ m_Device->CreateBuffer( vertexDesc ) };
-            BufferHandle indexBuffer{ m_Device->CreateBuffer( indexDesc ) };
-
-            vertexBuffer->SetDebugName( StringUtil::Format("Vertices for: {}", meshNode.Name) );
-            indexBuffer->SetDebugName( StringUtil::Format( "Indices for: {}", meshNode.Name ) );
-
-            // If it does not have any material construct one by default
-            MaterialProperties material{ data.Materials[meshNode.MaterialIndex]  };
-            MeshNode node{ meshIndex,vertexBuffer, indexBuffer, meshNode.Name, std::move( material) };
-
-            result->PushMeshNode( meshIndex,std::move( node) );
-
-            ++meshIndex;
+            cmd->End();
+            mDevice->ExecuteCommands( cmd );
         }
 
-        return result;
+        u32 meshIndex{ 0 };
+        for (const auto& meshNode : data.mMeshNodes) {
+            // Optimize vertices and indices
+
+            // Create vertices buffer (WindingOrder counter-clockwise)
+            auto verticesDesc{ BufferCreateDescription{}
+                .SetBufferUsage( BufferUsageFlagsBits::kVertex )
+                .SetHeapType( HeapType::eDeviceLocal )
+                .SetCpuAccessType( CpuAccessType::eRead )
+                .SetInitialData( BufferSpanHandle::Spawn(
+                    meshNode.mVertices.data(), MKT_VECTOR_SIZE_BYTES(meshNode.mVertices) ) )
+            };
+            BufferHandle vertices{ mDevice->CreateBuffer( verticesDesc ) };
+
+            // Create indices buffer
+            auto indicesDesc{ BufferCreateDescription{}
+                .SetBufferUsage( BufferUsageFlagsBits::kIndex )
+                .SetHeapType( HeapType::eDeviceLocal )
+                .SetCpuAccessType( CpuAccessType::eRead )
+                .SetFormat( Format::eR32_UINT )
+                .SetInitialData( BufferSpanHandle::Spawn( meshNode.mIndices.data(), MKT_VECTOR_SIZE_BYTES(meshNode.mIndices) ) )
+            };
+            BufferHandle indices{ mDevice->CreateBuffer( indicesDesc ) };
+
+            auto meshCreateInfo{ MeshCreateDescription{}
+                .SetName( meshNode.mName )
+                .SetVertices( vertices )
+                .SetIndices( indices )
+                .SetTransform( meshNode.mTransform )
+                .SetMaterial( data.mMaterials[meshNode.MaterialIndex] )
+            };
+
+            modelDescription.AddMesh( meshIndex++, meshCreateInfo );
+        }
+
+        return ModelHandle::Spawn( std::move( modelDescription ) );
     }
 
-    auto MeshFactory::Init() -> void {
-        m_GLTFImporter = CreateScope<GLTFImporter>( m_Device );
-        m_MainImporter = CreateScope<MainImporter>( m_Device );
+    auto MeshFactory::Initialize() -> void {
+        mGltfImporter = eastl::make_unique<GLTFImporter>( mDevice );
+        //mMainImporter = eastl::make_unique<MainImporter>( mDevice );
 
-        MeshOptimizer::OptimizerTestRun();
-
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto MeshFactory::Shutdown() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
-        if (!m_IsInitialized) { return; }
+        if (!mIsInitialized) { return; }
 
-        m_GLTFImporter = nullptr;
-        m_MainImporter = nullptr;
+        mGltfImporter = nullptr;
+        mMainImporter = nullptr;
 
         MKT_CORE_LOGGER_INFO( "Shutting down AssetsService..." );
     }

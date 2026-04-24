@@ -15,130 +15,119 @@
 #ifndef MIKOTO_SCENE_HH
 #define MIKOTO_SCENE_HH
 
-#include <mutex>
 #include <memory>
-#include <string_view>
+#include <mutex>
 
+#include <flecs.h> // TODO: test
 #include <entt/entt.hpp>
+
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
+#include <EASTL/string_view.h>
+
 #include <ankerl/unordered_dense.h>
 
 #include <Assets/Model.hh>
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+
 #include <Scene/Entity.hh>
 #include <Scene/Component.hh>
 
-namespace Mikoto {
+#include <Physics/PhysicsWorld.hh>
 
-    class PhysicsWorld;
+namespace mikoto::scene {
 
     enum class SceneState {
-        IDLE,
-        SIMULATING
-    };
-
-    enum class SceneBackground {
-        SKYBOX,
-        CLEAR_COLOR,
+        eIdle,
+        eSimulating
     };
 
     struct EntityCreateInfo {
-        Entity* Root{};
-        std::string Name{};
-        ModelHandle Model{};
+        Entity* mRoot{};
+        eastl::string mName{};
+        ModelHandle mModel{};
 
         // Light config
-        bool IsLight{ false };
-        LightType TypeLight{ LightType::DIRECTIONAL_LIGHT_TYPE };
+        bool mIsLight{ false };
+        LightType mLightType{ LightType::eDirectional };
 
         // Text config
-        bool IsText{ false };
-        bool IsWorldText{ false };
-        float TextSize{ 12.0f };
-        float TextSpacing{ 1.0f };
-        std::string InitialContents{};
+        bool mIsText{ false };
+        bool mIsWorldText{ false };
+        float mTextSize{ 12.0f };
+        float mTextSpacing{ 1.0f };
+        eastl::string mInitialContents{};
 
-        auto WithName( std::string_view name ) -> EntityCreateInfo&;
-        auto WithRoot( Entity* root ) -> EntityCreateInfo&;
-        auto WithModelMesh( ModelHandle modelMesh ) -> EntityCreateInfo&;
+        auto SetName( eastl::string_view name ) -> EntityCreateInfo&;
+        auto SetRoot( Entity* root ) -> EntityCreateInfo&;
+        auto SetModel( ModelHandle modelMesh ) -> EntityCreateInfo&;
     };
 
     class Scene final {
     public:
-        explicit Scene( std::string_view name = "New Scene" );
-
-        auto SetState( SceneState state ) -> void;
+        explicit Scene( eastl::string_view name = "New Scene" );
 
         auto Update( float timeStep ) -> void;
 
-        auto SetName( std::string_view name ) -> void;
+        auto SetState( SceneState state ) -> void;
+        auto SetName( eastl::string_view name ) -> void;
 
-        auto RemoveEntity( UInt64 uniqueID ) -> void;
+        auto RemoveEntity( u64 uniqueID ) -> void;
 
-        MKT_NODISCARD auto FindByID( UInt64 uniqueID ) -> Entity*;
-        MKT_NODISCARD auto FindFirstByName( std::string_view name ) -> Entity*;
+        MKT_NODISCARD auto FindByID( u64 uniqueID ) -> Entity*;
+        MKT_NODISCARD auto FindFirstByName( eastl::string_view name ) -> Entity*;
 
-        MKT_NODISCARD auto FindByID( UInt64 uniqueID ) const -> const Entity*;
-        MKT_NODISCARD auto FindFirstByName( std::string_view name ) const -> const Entity*;
+        MKT_NODISCARD auto FindByID( u64 uniqueID ) const -> const Entity*;
+        MKT_NODISCARD auto FindFirstByName( eastl::string_view name ) const -> const Entity*;
 
-        MKT_NODISCARD auto ExistsByID( UInt64 uniqueID ) -> bool;
-        MKT_NODISCARD auto ExistsByName( std::string_view name ) -> bool;
+        MKT_NODISCARD auto ExistsByID( u64 uniqueID ) -> bool;
+        MKT_NODISCARD auto ExistsByName( eastl::string_view name ) -> bool;
 
-        MKT_NODISCARD auto CreateEntity( std::string_view name ) -> Entity*;
-        MKT_NODISCARD auto CreateEntity( Entity* root, std::string_view name ) -> Entity*;
+        MKT_NODISCARD auto CreateEntity( eastl::string_view name ) -> Entity*;
+        MKT_NODISCARD auto CreateEntity( Entity* root, eastl::string_view name ) -> Entity*;
         MKT_NODISCARD auto CreateEntity( const EntityCreateInfo& createInfo = {} ) -> Entity*;
 
-        MKT_NODISCARD auto GetPhysicsWorld() -> PhysicsWorld*;
+        MKT_NODISCARD auto GetPhysicsWorld() -> physics::PhysicsWorld*;
 
         MKT_NODISCARD auto GetRootEntities() const -> const ankerl::unordered_dense::set<Entity*>&;
 
         template<typename EntityFunction>
         auto ApplyToChildren(Entity* parent, const EntityFunction& callable) -> void;
 
-        // [Deprecated] These will be moved to a camera component
-        auto SetSceneBackground(SceneBackground background) -> void;
-        MKT_NODISCARD auto GetSceneBackground() const -> SceneBackground;
-        MKT_NODISCARD auto IsSceneBackground(SceneBackground background) const -> bool;
-        auto SetSkybox( TextureHandle cubeMap ) -> void;
-        MKT_NODISCARD auto GetSkybox( ) -> TextureHandle;
+        template<typename Callback, typename... ComponentTypes>
+        auto ForAll(const Callback& c) -> void;
 
-        auto QueueCreateEntity( std::string_view name ) -> void;
-        auto QueueCreateEntity( const EntityCreateInfo& createInfo = {} ) -> void;
+        auto PushEntity( eastl::string_view name ) -> void;
+        auto PushEntity( const EntityCreateInfo& createInfo = {} ) -> void;
 
         // Call if the viewport where this scene is being rendered is resized
         auto OnViewPortResize( float width, float height ) -> void;
 
-        MKT_NODISCARD auto GetLightCount() const -> UInt32;
-        MKT_NODISCARD auto GetActiveLightCount() const -> UInt32;
-
-        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
-
-        MKT_NODISCARD auto GetEntityCount() const -> Size;
-
-        MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<Size, Unique<Entity>>& { return m_Entities; }
+        MKT_NODISCARD auto GetName() const -> eastl::string_view;
+        MKT_NODISCARD auto GetEntityCount() const -> size_t;
+        MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<u64, eastl::unique_ptr<Entity>>&;
 
         auto GetRegistry() -> entt::registry&;
         MKT_NODISCARD auto GetRegistry() const -> const entt::registry&;
 
         auto Clear() -> void;
 
-        ~Scene();
+        ~Scene() = default;
 
     private:
         friend class PhysicsWorld;
 
         struct EntityCommand {
             enum class Type {
-                CREATE, DESTROY
-            } Type{ Type::CREATE };
+                eCreate, eDestroy
+            } Type{ Type::eCreate };
 
             EntityCreateInfo CreateInfo{};  // only for CREATE
-            UInt64 EntityID{ 0 };           // only for DESTROY
+            u64 EntityID{ 0 };           // only for DESTROY
         };
 
         auto ProcessPendingCommands() -> void;
 
-        MKT_NODISCARD auto DestroyEntitySingle( UInt64 entityID) -> bool;
+        MKT_NODISCARD auto DestroyEntitySingle( u64 entityID) -> bool;
         MKT_NODISCARD auto CreateEntitySingle( const EntityCreateInfo& createInfo) -> Entity*;
 
         auto UpdateIdle( double deltaTime ) -> void;
@@ -147,9 +136,11 @@ namespace Mikoto {
         auto OnScriptAdded(entt::registry& reg, entt::entity e ) -> void;
 
         auto OnRigidBodyAdded(entt::registry& reg, entt::entity e ) const -> void;
+        auto OnColliderAdded(entt::registry& reg, entt::entity e ) const -> void;
         auto OnRigidBodyRemoved(entt::registry& reg, entt::entity e ) const -> void;
+        auto OnColliderRemoved(entt::registry& reg, entt::entity e ) const -> void;
 
-        auto SetupMeshComponent(Entity* entity, ModelHandle model, Int32 index) -> void;
+        auto SetupMeshComponent(Entity* entity, ModelHandle model, i32 index) -> void;
 
         auto CreateEntityDefault(const EntityCreateInfo& info ) -> Entity*;
 
@@ -157,40 +148,29 @@ namespace Mikoto {
         auto UpdateAudioListenerAndSources() -> void;
 
     private:
-        auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, Int32 index, UInt64 animatorID = 0 ) -> void;
+        auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, i32 index, u64 animatorID = 0 ) -> void;
 
-        auto WorkerDestroyEntity(UInt64 entityID) -> void;
+        auto WorkerDestroyEntity(u64 entityID) -> void;
         auto WorkerCreateEntity(const EntityCreateInfo& info) -> void;
 
-        auto ComputeStats() -> void;
-
     private:
-        std::string m_Name{};
-        entt::registry m_Registry{};
+        eastl::string mName{};
+        entt::registry mRegistry{};
 
-        PhysicsWorld* m_PhysicsWorld{};
+        physics::PhysicsWorld* mPhysicsWorld{};
 
-        SceneState m_SceneState{ SceneState::IDLE };
+        SceneState mSceneState{ SceneState::eIdle };
 
         // Deletion and creation is deferred until we call update
-        std::mutex m_CommandQueueMutex{};
-        std::vector<EntityCommand> m_EntityCommands{};
+        std::mutex mCommandQueueMutex{};
+        eastl::vector<EntityCommand> mEntityCommands{};
 
         // Unique because iterators are invalidated on resize
-        ankerl::unordered_dense::map<Size, Unique<Entity>> m_Entities{};
+        ankerl::unordered_dense::map<u64, eastl::unique_ptr<Entity>> mEntities{};
 
         // Entities with no parent
         // used to calculate hierarchical transform
-        ankerl::unordered_dense::set<Entity*> m_RootEntities{};
-
-        // Stats
-        UInt32 m_TotalLightCount{ 0 };
-        UInt32 m_ActiveLightCount{ 0 };
-
-        TextureHandle m_Skybox{ nullptr };
-        Vec4F m_ClearColor{ 0.3f, 0.2f, 0.6f, 1.0f };
-
-        SceneBackground m_Background{ SceneBackground::CLEAR_COLOR };
+        ankerl::unordered_dense::set<Entity*> mRootEntities{};
     };
 }
 

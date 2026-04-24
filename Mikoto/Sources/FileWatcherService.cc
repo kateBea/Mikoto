@@ -15,49 +15,50 @@
 #include <chrono>
 #include <filesystem>
 
+#include <EASTL/utility.h>
+#include <EASTL/unique_ptr.h>
+
 #include <FileWatch.hh>
 
 #include <Core/Profiler.hh>
-#include <Filesystem/FileWatcher.hh>
+#include <Logging/Logger.hh>
+
 #include <Filesystem/FileSystem.hh>
+#include <Filesystem/FileWatcher.hh>
 #include <Filesystem/FileWatcherService.hh>
 
-namespace Mikoto {
+namespace mikoto::filesystem {
 
-    FileWatcherService::FileWatcherService( const FileWatcherServiceCreateInfo& info)
-        : m_FollowSymLinks{ info.FollowSymLinks }
-    {
-    }
+    FileWatcherService::FileWatcherService( const FileWatcherServiceCreateInfo& )
+    {}
 
     auto FileWatcherService::Watch( const Path &path, FileWatcher::WatcherCallback&& callback ) -> void {
-        const std::string fileAbsolutePath{ path.string() };
-        const auto it{ m_WatchedPaths.find( fileAbsolutePath ) };
+        const Path fileAbsolutePath{ path.ToAbsolute() };
+        const auto it{ mWatchedPaths.find( fileAbsolutePath ) };
 
-        if (it == m_WatchedPaths.end()) {
-            std::lock_guard lock{ m_WatcherInsertMutex };
-            m_WatchedPaths[fileAbsolutePath] = CreateScope<FileWatcher>( Filesystem::GetGetAbsolutePath( path ) );
+        if (it == mWatchedPaths.end()) {
+            std::lock_guard lock{ mWatcherInsertMutex };
+            mWatchedPaths[fileAbsolutePath] = eastl::make_unique<FileWatcher>( fileAbsolutePath );
         }
 
-        m_WatchedPaths.at(fileAbsolutePath)->RegisterWatchCallback( std::move( callback ) );
+        mWatchedPaths.at(fileAbsolutePath)->RegisterWatchCallback( eastl::move( callback ) );
     }
 
-    auto FileWatcherService::Init() -> void {
+    auto FileWatcherService::Initialize() -> void {
         MKT_CORE_LOGGER_INFO( "Initializing FileWatcherService..." );
 
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto FileWatcherService::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if (!m_IsInitialized) {
+        if (!mIsInitialized) {
             return;
         }
 
-        m_WatchedPaths.clear();
-
         MKT_CORE_LOGGER_INFO( "Shutting down FileWatcherService..." );
 
-        m_WatchedPaths.clear();
+        mWatchedPaths.clear();
     }
 }

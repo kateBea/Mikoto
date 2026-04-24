@@ -1,12 +1,17 @@
 {
-  "button_close": "Cerrar",
-  "button_cancel": "Cancelar",
   "menu_file": "Archivo",
-  "menu_edit": "Editar",
-  "menu_view": "Vista",
+  "menu_close": "Cerrar",
+  "menu_window": "Ventana",
+  "menu_panels": "Paneles",
+  "menu_theme": "Tema",
   "menu_language": "Idioma",
-  "window_scene": "Escena",
-  "window_inspector": "Inspector",
-  "window_console": "Consola",
-  "tooltip_save_scene": "Guardar la escena actual"
+  "menu_tools": "Herramientas",
+  "menu_about": "Acerca de",
+
+  "new_scene": "Nueva escena",
+  "open_scene": "Abrir escena",
+  "save_scene": "Guardar escena",
+  "new_project": "Nuevo Proyecto",
+  "open_project": "Abrir proyecto",
+  "save_project": "Guardar proyecto"
 }

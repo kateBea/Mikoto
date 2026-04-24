@@ -1,15 +1,25 @@
+//    Copyright 2026 ケイト
 //
-// Created by kate on 1/17/26.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef MIKOTO_INPUTBINDING_HH
-#define MIKOTO_INPUTBINDING_HH
+#ifndef MIKOTO_INPUT_BINDING_HH
+#define MIKOTO_INPUT_BINDING_HH
 
 #include <sol/sol.hpp>
 
 #include <Scripting/ScriptingBinding.hh>
 
-namespace Mikoto {
+namespace mikoto::scripting {
     class InputBinding final : public ScriptingBinding {
     public:
 
@@ -19,4 +29,4 @@ namespace Mikoto {
 
 
 
-#endif//MIKOTO_INPUTBINDING_HH
+#endif//MIKOTO_INPUT_BINDING_HH

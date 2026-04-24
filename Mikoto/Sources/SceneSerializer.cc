@@ -12,14 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <algorithm>
-#include <fstream>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <utility>
-#include <vector>
-#include <initializer_list>
+#include <EASTL/string.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/string_view.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -82,7 +77,8 @@ namespace YAML {
     };
 }// namespace YAML
 
-namespace Mikoto {
+namespace mikoto::scene {
+
 #define MKT_SERIALIZE_COMPONENT_IF_PRESENT( TYPE, KEY_NAME )           \
     if ( root->HasComponent<TYPE>() ) {                            \
         emitter << YAML::Key << KEY_NAME << YAML::Value;           \
@@ -117,7 +113,7 @@ namespace Mikoto {
 
     static auto SerializeComponent( const TagComponent& tag, YAML::Emitter& emitter ) -> void {
         emitter << YAML::BeginMap;
-        emitter << YAML::Key << "Name" << YAML::Value << tag.GetTag();
+        emitter << YAML::Key << "Name" << YAML::Value << tag.GetTag().c_str();
         emitter << YAML::Key << "Visibility" << YAML::Value << tag.IsActive();
         emitter << YAML::EndMap;
     }
@@ -126,11 +122,11 @@ namespace Mikoto {
         emitter << YAML::BeginMap;
 
         emitter << YAML::Key << "MeshIndex" << YAML::Value << meshComponent.GetMeshIndex();
-        emitter << YAML::Key << "ModelPath" << YAML::Value << meshComponent.GetModelPath().string();
+        emitter << YAML::Key << "ModelPath" << YAML::Value << meshComponent.GetModelPath().GetC_Str();
 
         emitter << YAML::EndMap;
     }
-    
+
     static auto SerializeComponent( const MaterialComponent& materialComponent, YAML::Emitter& emitter ) -> void {
         emitter << YAML::BeginMap;
 
@@ -170,7 +166,7 @@ namespace Mikoto {
     static auto SerializeComponent( const TextComponent& textComponent, YAML::Emitter& emitter ) -> void {
         emitter << YAML::BeginMap;
 
-        emitter << YAML::Key << "Contents" << YAML::Value << textComponent.GetContents();
+        emitter << YAML::Key << "Contents" << YAML::Value << textComponent.GetContents().c_str();
         emitter << YAML::Key << "Color" << YAML::Value << textComponent.GetColor();
         emitter << YAML::Key << "IsWorldText" << YAML::Value << textComponent.IsWorldText();
         emitter << YAML::Key << "Size" << YAML::Value << textComponent.GetSize();
@@ -207,7 +203,7 @@ namespace Mikoto {
         MKT_SERIALIZE_COMPONENT_IF_PRESENT( TextComponent, "TextComponent" );
         MKT_SERIALIZE_COMPONENT_IF_PRESENT( ScriptComponent, "ScriptComponent" );
 
-        // I do not serialize the relationship component the hierarchy is stored splicitly by the nesting of the nodes in the yaml file. 
+        // I do not serialize the relationship component the hierarchy is stored splicitly by the nesting of the nodes in the yaml file.
         // So if an entity has children they will be nested under it in the yaml file and if it does not have children it will just be a leaf node.
         for ( const auto& childID: root->GetComponent<RelationComponent>().GetChildren() ) {
             SerializeNode( emitter, secene.FindByID( childID ), secene );
@@ -217,17 +213,17 @@ namespace Mikoto {
     }
 
     auto SceneSerializer::Serialize( const Scene& scene, const Path& saveFilePath ) -> void {
-        File* outputFile{ FileService::Get()->CreateNewFile( saveFilePath ) };
+        FileHandle outputFile{ FileService::Get()->CreateNewFile( saveFilePath ) };
 
-        if ( outputFile == nullptr ) {
-            MKT_CORE_LOGGER_ERROR( "Could not open file '{}' required for scene serialization", saveFilePath.string() );
+        if ( outputFile.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Could not open file '{}' required for scene serialization", saveFilePath.GetC_Str() );
             return;
         }
 
         YAML::Emitter emitter{};
 
         emitter << YAML::BeginMap;
-        emitter << YAML::Key << "Scene" << YAML::Value << scene.GetName();
+        emitter << YAML::Key << "Scene" << YAML::Value << scene.GetName().data();
         emitter << YAML::Key << "Objects" << YAML::Value << YAML::BeginSeq;
 
         for ( const auto& root: scene.GetRootEntities() ) {
@@ -241,25 +237,25 @@ namespace Mikoto {
         outputFile->FlushContents();
     }
 
-    auto SceneSerializer::Deserialize( const Path& saveFilePath ) -> Unique<Scene> {
-        File* inputFile{ FileService::Get()->LoadFile( saveFilePath ) };
+    auto SceneSerializer::Deserialize( const Path& saveFilePath ) -> eastl::unique_ptr<Scene> {
+        FileHandle inputFile{ FileService::Get()->LoadFile( saveFilePath ) };
 
-        if ( inputFile == nullptr ) {
-            MKT_CORE_LOGGER_ERROR( "Could not open file '{}' required for scene serialization", saveFilePath.string() );
+        if ( inputFile.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Could not open file '{}' required for scene serialization", saveFilePath.GetC_Str() );
             return nullptr;
         }
 
-        YAML::Node data{ YAML::Load( inputFile->GetContentsString() ) };
+        YAML::Node data{ YAML::Load( inputFile->GetContentsString().c_str() ) };
 
         if (data.IsNull()) {
-            auto message{ fmt::format("File opened '{}' but contains no data for deserialization", saveFilePath.string()) };
+            auto message{ fmt::format("File opened '{}' but contains no data for deserialization", saveFilePath.GetC_Str()) };
 
             MKT_CORE_LOGGER_WARN( "{}", message );
             return nullptr;
         }
 
         if (data["Scene"].IsNull()) {
-            auto message{ fmt::format("File opened [{}] but contains Scene Node", saveFilePath.string()) };
+            auto message{ fmt::format("File opened [{}] but contains Scene Node", saveFilePath.GetC_Str()) };
 
             MKT_CORE_LOGGER_WARN( "{}", message );
             return nullptr;
@@ -267,7 +263,7 @@ namespace Mikoto {
 
         // Recreate a new scene on top of which we are going to deserialize
         const std::string sceneName{ data["Scene"].as<std::string>() };
-        Unique<Scene> result{ CreateScope<Scene>( sceneName ) };
+        eastl::unique_ptr<Scene> result{ /*TODO*/};
 
         const auto sceneEntities{ data["Objects"] };
 
@@ -287,7 +283,7 @@ namespace Mikoto {
                 if (!object["RenderComponent"].IsNull()) {
                     const bool isPrefab{ object["RenderComponent"]["IsPrefab"].as<bool>() };
 
-                    entityCreateInfo.Name = name;
+                    entityCreateInfo.mName = name;
                     entityCreateInfo.PrefabType = PrefabSceneObject::NO_PREFAB_OBJECT;
 
                     if (isPrefab) {

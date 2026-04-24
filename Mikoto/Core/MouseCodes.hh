@@ -1,16 +1,23 @@
-/**
- * MouseCodes.hh
- * Created by kate on 5/31/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_MOUSE_BUTTONS_HH
 #define MIKOTO_MOUSE_BUTTONS_HH
 
-// Third-Party Library
-#include "GLFW/glfw3.h"
+#include <EASTL/string_view.h>
 
-// Project Headers
-#include "Common/Common.hh"
+#include <GLFW/glfw3.h>
 
 #if defined(USE_GLFW_INPUT)
     #define MKT_MOUSE_BUTTON_1       GLFW_MOUSE_BUTTON_1
@@ -29,8 +36,8 @@
 
 #define MOUSE_BUTTON_STRING_REPRESENTATION(name) #name
 
-namespace Mikoto {
-    enum MouseButton : Int8 {
+namespace mikoto::core {
+    enum MouseButton : i8 {
         Mouse_Button_1 = MKT_MOUSE_BUTTON_1,
         Mouse_Button_2 = MKT_MOUSE_BUTTON_2,
         Mouse_Button_3 = MKT_MOUSE_BUTTON_3,
@@ -46,7 +53,7 @@ namespace Mikoto {
         Mouse_Button_Middle = MKT_MOUSE_BUTTON_MIDDLE,
     };
 
-    MKT_NODISCARD inline auto GetStringRepresentation(MouseButton button) -> std::string_view {
+    MKT_NODISCARD inline auto GetStringRepresentation(MouseButton button) -> eastl::string_view {
         switch (button) {
             case Mouse_Button_1:     return  MOUSE_BUTTON_STRING_REPRESENTATION(MKT_MOUSE_BUTTON_LEFT);
             case Mouse_Button_2:     return  MOUSE_BUTTON_STRING_REPRESENTATION(MKT_MOUSE_BUTTON_RIGHT);

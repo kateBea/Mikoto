@@ -1,12 +1,17 @@
 {
-  "button_close": "閉じる",
-  "button_cancel": "キャンセル",
   "menu_file": "ファイル",
-  "menu_edit": "編集",
-  "menu_view": "表示",
+  "menu_close": "閉じる",
+  "menu_window": "ウィンドウ",
+  "menu_panels": "パネル",
+  "menu_theme": "テーマ",
   "menu_language": "言語",
-  "window_scene": "シーン",
-  "window_inspector": "インスペクター",
-  "window_console": "コンソール",
-  "tooltip_save_scene": "現在のシーンを保存します"
+  "menu_tools": "ツール",
+  "menu_about": "情報",
+
+  "new_scene": "新しいシーン",
+  "open_scene": "シーンを開く",
+  "save_scene": "シーンを保存",
+  "new_project": "新しいプロジェクト",
+  "open_project": "プロジェクトを開く",
+  "save_project": "プロジェクトを保存"
 }

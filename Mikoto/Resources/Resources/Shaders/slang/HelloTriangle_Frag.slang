@@ -12,7 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "base/Base.slang"
+
+struct FSInput {
+    float4 position : SV_POSITION;
+    float2 uv    : TEXCOORD;
+};
+
+DECL_BINDING(0, 0) SamplerState sampler;
+DECL_BINDING(1, 0) Texture2D texture;
+
 [shader("fragment")]
-float4 main(float3 col : COLOR0) : SV_Target {
-    return float4(col, 1.0);
+float4 main(FSInput input) : SV_TARGET {
+    return float4(texture.Sample(sampler, input.uv).xyz, 1.0);
 }

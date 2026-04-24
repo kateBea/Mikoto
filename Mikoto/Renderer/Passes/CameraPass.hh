@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 #include <Renderer/Core/FrameGraph.hh>
 #include <Library/Utility/Types.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
     class CameraPass {
     public:

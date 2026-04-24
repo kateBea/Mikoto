@@ -12,60 +12,72 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Core/Platform.hh>
 #include <Core/Exception.hh>
+#include <Core/Platform.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
 #include <Renderer/D3D12/D3D12Context.hh>
+#include <Renderer/D3D12/Direct3D12Helpers.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer::d3d12 {
 
-    auto D3D12Context::Init() -> bool {
+    auto Context::Init() -> bool {
+#if !defined(NDEBUG)
+        ThrowIfFailed( D3D12GetDebugInterface( IID_PPV_ARGS( &mDebug ) ) );
+        ThrowIfFailed( mDebug->QueryInterface( IID_PPV_ARGS( &mDebugController ) ) );
+
+        mDebugController->EnableDebugLayer();
+        mDebugController->SetEnableGPUBasedValidation( true );
+#endif
+
+        UINT dxgiFactoryFlags{ DXGI_CREATE_FACTORY_DEBUG };
+        MKT_ASSERT( SUCCEEDED( CreateDXGIFactory2( dxgiFactoryFlags, IID_PPV_ARGS( &mDxgiFactory ) ) ), "Failed to create factory" );
+
         // Init the device when the context is ready
-        m_Device = GpuDevice::Create({ .Api = GraphicsAPI::DIRECTX_12 });
-        if (!m_Device) {
-            MKT_THROW_RUNTIME_ERROR( "D3D12Context::Create - Could not initialize DIRECTX_12 GPU Device." );
+        mDevice = GpuDevice::Create( { .mApi = GraphicsAPI::eD3D12 } );
+        if ( !mDevice ) {
+            MKT_THROW_RUNTIME_ERROR( "Could not initialize D3D12 GPU Device." );
         }
-        m_Device->Init();
+        mDevice->Init();
 
         return true;
     }
 
-    auto D3D12Context::Shutdown() -> void {
+    auto Context::Shutdown() -> void {
 
     }
 
-    auto D3D12Context::SubmitFrame() -> void {
+    auto Context::SubmitFrame() -> void {
 
     }
 
-    auto D3D12Context::PrepareFrame() -> void {
+    auto Context::PrepareFrame() -> void {
 
     }
 
-    auto D3D12Context::Update() -> void {
+    auto Context::Update() -> void {
 
     }
 
-    auto D3D12Context::Present() -> void {
+    auto Context::Present() -> void {
 
     }
 
-    auto D3D12Context::SetPresentTarget( TextureHandle texture ) -> void {
+    auto Context::SetPresentTarget( TextureHandle texture ) -> void {
 
     }
 
-    auto D3D12Context::EnableVSync() -> void {
+    auto Context::SetRefreshRate( RefreshRate rate ) -> void {
 
     }
 
-    auto D3D12Context::DisableVSync() -> void {
-
+    auto Context::GetSwapChain() const -> SwapChainHandle {
+        return mSwapChain;
     }
 
-    auto D3D12Context::IsVsyncEnabled() const -> bool {
-        return false;
+    auto Context::GetDxiFactory() const -> IDXGIFactory4* {
+        return mDxgiFactory.Get();
     }
 }// namespace Mikoto
 

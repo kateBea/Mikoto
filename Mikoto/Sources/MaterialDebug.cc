@@ -11,31 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-#include <Core/Profiler.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Component.hh>
-
-#include <Math/Math.hh>
-
-#include <Library/Random/Random.hh>
-#include <Library/String/String.hh>
-
-#include <Renderer/Core/FramePassResource.hh>
-#include <Renderer/Core/CommandContext.hh>
-#include <Renderer/Passes/ShaderParameteres.hh>
-#include <Renderer/Passes/PostEffectsPasses.hh>
-
-#include <Renderer/Passes/MaterialDebug.hh>
-
-namespace Mikoto {
-
-    MaterialDebug::MaterialDebug( RenderResolution resolution )
-        : m_Resolution{ resolution } {}
-
-    auto MaterialDebug::RegisterPasses( FrameGraph &graph ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-    }
-}
+//
+// #include <Core/Profiler.hh>
+// #include <Renderer/Passes/MaterialDebug.hh>
+//
+// namespace mikoto {
+//
+//     MaterialDebug::MaterialDebug( RenderResolution resolution )
+//         : m_Resolution{ resolution } {}
+//
+//     auto MaterialDebug::RegisterPasses( FrameGraph &graph ) -> void {
+//         MKT_BEGIN_PROFILER_NAMED();
+//
+//     }
+// }

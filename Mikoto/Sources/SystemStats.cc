@@ -12,28 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <map>
+#include <Platform/PlatformWin32.hh>
+
 #include <mutex>
 #include <sstream>
-#include <string>
 
+#include <EASTL/string.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Platform.hh>
 #include <Core/SystemStats.hh>
-#include <Renderer/Core/RenderService.hh>
 
-namespace Mikoto {
+#include <Logging/Logger.hh>
+
+#include <Renderer/Core/RenderSystem.hh>
+
+namespace mikoto::core {
 
 #if defined( _WIN32 ) && defined(_MSC_VER)
+
 #include <pdh.h>
 #include <pdhmsg.h>
 #include <psapi.h>
-#include <windows.h>
 
-    static auto ReadCpuName() -> std::string {
-        int cpuInfo[4] = { -1 };
-        char cpuBrandString[0x40];
+    MKT_NODISCARD static auto ReadCpuName() -> eastl::string {
+        int cpuInfo[4]{ -1 };
+        char cpuBrandString[0x40]{};
+
         __cpuid( cpuInfo, 0x80000000 );
-        unsigned int nExIds = cpuInfo[0];
-        memset( cpuBrandString, 0, sizeof( cpuBrandString ) );
+
+        unsigned int nExIds{ (unsigned int)cpuInfo[0] };
 
         if ( nExIds >= 0x80000004 ) {
             int cpuData[4];
@@ -44,7 +54,7 @@ namespace Mikoto {
             __cpuid( cpuData, 0x80000004 );
             memcpy( cpuBrandString + 32, cpuData, sizeof( cpuData ) );
         }
-        return std::string( cpuBrandString );
+        return { cpuBrandString };
     }
 
     static auto GetProcessMemoryUsage() -> double {
@@ -141,12 +151,6 @@ namespace Mikoto {
 #endif
 
     auto SystemStats::Update( float ) -> void {
-        std::lock_guard lock{ m_UpdateMutex };
-
-        // FIXME: if the render service was initialized then we have a render context we can get device info from
-        if (RenderService::GetPtr()) {
-            m_VRAMUsage = RenderService::Get()->GetGpuDevice()->GetMemoryUsage();
-        }
 
 #if defined( __linux__ )
         std::ifstream meminfo{ "/proc/meminfo" };
@@ -175,60 +179,79 @@ namespace Mikoto {
             memValues[key] = value * 1024.0;
         }
 
-        m_TotalRam = memValues["MemTotal"];
-        m_FreeRam = memValues["MemFree"];
-        m_SharedRam = memValues["Shmem"];
+        mTotalRam = memValues["MemTotal"];
+        mFreeRam = memValues["MemFree"];
+        mSharedRam = memValues["Shmem"];
 
         // Update CPU info
-        if ( m_CpuName.empty() )
-            m_CpuName = ReadCpuName();
+        if ( mCpuName.empty() )
+            mCpuName = ReadCpuName();
 
-        m_CpuUsage = ReadCpuUsage();
-        m_ProcessRamUsage = GetProcessMemoryUsage();
+        mCpuUsage = ReadCpuUsage();
+        mProcessRamUsage = GetProcessMemoryUsage();
 #endif
 
 #if defined( _WIN32 ) && defined(_MSC_VER)
         MEMORYSTATUSEX memStatus{};
         memStatus.dwLength = sizeof( memStatus );
         if ( GlobalMemoryStatusEx( &memStatus ) ) {
-            m_TotalRam = static_cast<double>( memStatus.ullTotalPhys );
-            m_FreeRam = static_cast<double>( memStatus.ullAvailPhys );
-            m_SharedRam = 0.0;// Windows does not expose shared memory like Linux
+            mTotalRam = static_cast<double>( memStatus.ullTotalPhys );
+            mFreeRam = static_cast<double>( memStatus.ullAvailPhys );
+            mSharedRam = 0.0;// Windows does not expose shared memory like Linux
         }
 
-        if ( m_CpuName.empty() ) m_CpuName = ReadCpuName();
-        m_CpuUsage = GetCpuUsageWindows( m_LastIdleTime, m_LastKernelTime, m_LastUserTime );
-        m_ProcessRamUsage = GetProcessMemoryUsage();
+        if ( mCpuName.empty() ) {
+            mCpuName = ReadCpuName();
+        }
+        mCpuUsage = GetCpuUsageWindows( mLastIdleTime, mLastKernelTime, mLastUserTime );
+        mProcessRamUsage = GetProcessMemoryUsage();
 #endif
     }
 
-    auto SystemStats::Init() -> void {
+    auto SystemStats::Initialize() -> void {
         MKT_CORE_LOGGER_DEBUG( "Initializing SystemStats" );
 
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto SystemStats::Shutdown() -> void {
-        if (!m_IsInitialized) {
+        if (!mIsInitialized) {
             return;
         }
 
         MKT_CORE_LOGGER_DEBUG( "Shutting down SystemStats" );
     }
 
-    auto SystemStats::SetUpdateFrequency( Int32 frequency ) -> void {
-        m_UpdateFrequency = frequency;
+    auto SystemStats::SetUpdateFrequency( i32 frequency ) -> void {
+        mUpdateFrequency = frequency;
     }
 
-    auto SystemStats::GetSharedRam() const -> double { return m_SharedRam; }
-    auto SystemStats::GetFreeRam() const -> double { return m_FreeRam; }
-    auto SystemStats::GetTotalRam() const -> double { return m_TotalRam; }
-    auto SystemStats::GetCpuName() const -> const std::string& { return m_CpuName; }
-    auto SystemStats::GetCpuUsage() const -> double { return m_CpuUsage; }
-    auto SystemStats::GetVramUsage() const -> double { return m_VRAMUsage; }
-    auto SystemStats::SetVramUsage( double usageBytes ) -> void { m_VRAMUsage = usageBytes; }
-    auto SystemStats::GetProcessRamUsage() const -> double {
-        return m_ProcessRamUsage;
+    auto SystemStats::GetSharedRam() const -> f64 {
+        return mSharedRam;
+    }
+
+    auto SystemStats::GetFreeRam() const -> f64 {
+        return mFreeRam;
+    }
+
+    auto SystemStats::GetTotalRam() const -> f64 {
+        return mTotalRam;
+    }
+
+    auto SystemStats::GetCpuName() const -> eastl::string_view {
+        return mCpuName;
+    }
+
+    auto SystemStats::GetCpuUsage() const -> f64 {
+        return mCpuUsage;
+    }
+
+    auto SystemStats::GetGpuRamUsage() const -> f64 {
+        return mGpuRamUsage;
+    }
+
+    auto SystemStats::GetProcessRamUsage() const -> f64 {
+        return mProcessRamUsage;
     }
 
 }// namespace Mikoto

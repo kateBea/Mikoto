@@ -12,29 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-static float2 positions[3] = float2[](
-    float2(-0.6, -0.5),
-    float2( 0.6, -0.5),
-    float2( 0.0,  0.6)
-);
+#include "base/Base.slang"
 
-// per-vertex colors
-static float3 colors[3] = float3[](
-    float3(1.0, 0.0, 0.0),
-    float3(0.0, 1.0, 0.0),
-    float3(0.0, 0.0, 1.0)
-);
+struct VSInput {
+    float3 position   : POSITION;
+    float3 normal     : NORMAL;
+    float4 color      : COLOR;
 
-struct VSOutput {
-    float4 sv_position : SV_Position;
-    float3 color       : COLOR0;
+    float2 uv0        : TEXCOORD0;
+    float2 uv1        : TEXCOORD1;
+
+    float4 joints0    : BLENDINDICES0;
+    float4 weights0   : BLENDWEIGHT0;
+
+    float4 joints1    : BLENDINDICES1;
+    float4 weights1   : BLENDWEIGHT1;
 };
 
+struct VSOutput {
+    float4 position : SV_POSITION;
+    float2 uv    : TEXCOORD;
+};
+
+struct MyData {
+    float4x4 model;
+    float4x4 view;
+    float4x4 projection;
+};
+
+DECL_BINDING(2, 0) ConstantBuffer<MyData> Matrices;
+
 [shader("vertex")]
-VSOutput main(uint vid : SV_VertexID) {
-    VSOutput result;
-    // look up the position and color by index
-    result.sv_position = float4(positions[vid], 0.0, 1.0);
-    result.color = colors[vid];
-    return result;
+VSOutput main(VSInput input) {
+    VSOutput o;
+    o.position = Matrices.projection * Matrices.view * Matrices.model * float4(input.position, 1.0);
+    o.uv = input.uv0;
+    return o;
 }

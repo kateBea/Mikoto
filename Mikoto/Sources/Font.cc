@@ -1,66 +1,71 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 3/2/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include <Assets/Font.hh>
+#include <Renderer/Text/Font.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
-    Font::Font( TextureHandle fontAtlas, float pixelSize ) 
-        : m_Atlas{ fontAtlas },
-          m_PixelSize{ pixelSize }
-    {}
+    Font::Font( TextureHandle fontAtlas, f32 pixelSize, Path path )
+        : mPath{ path },
+          mAtlas{ fontAtlas },
+          mPixelSize{ pixelSize } {}
 
     auto Font::GetPath() const -> const Path& {
-        return m_Path;
+        return mPath;
     }
 
-    auto Font::GetName() const -> const std::string& {
-        return m_Name;
+    auto Font::GetName() const -> eastl::string_view {
+        return mPath.GetStem();
     }
 
     auto Font::GetAtlas() const -> TextureHandle {
-        return m_Atlas;
+        return mAtlas;
     }
 
-    auto Font::GetGlyph( const UInt32 characterCode ) const -> const FontGlyph& {
-        return m_Glyphs.at( characterCode );
+    auto Font::GetGlyph( const u32 characterCode ) const -> const FontGlyph& {
+        return mGlyphs.at( characterCode );
     }
 
-    auto Font::GetMaxHeight() const -> double {
-        return m_MaxHeight;
+    auto Font::GetMaxHeight() const -> f64 {
+        return mMaxHeight;
     }
 
-    auto Font::GetMaxWidth() const -> double {
-        return m_MaxWidth;
+    auto Font::GetMaxWidth() const -> f64 {
+        return mMaxWidth;
     }
 
-    auto Font::SetMaxHeight( const double maxHeight ) -> void {
-        m_MaxHeight = maxHeight;
+    auto Font::SetMaxHeight( const f64 maxHeight ) -> void {
+        mMaxHeight = maxHeight;
     }
 
-    auto Font::SetMaxWidth( const double maxWidth ) -> void {
-        m_MaxWidth = maxWidth;
+    auto Font::SetMaxWidth( const f64 maxWidth ) -> void {
+        mMaxWidth = maxWidth;
     }
 
-    auto Font::HasGlyph( const UInt32 unicodePoint ) const -> bool {
-        return m_Glyphs.contains( unicodePoint );
+    auto Font::HasGlyph( const u32 unicodePoint ) const -> bool {
+        return mGlyphs.contains( unicodePoint );
     }
 
-    auto Font::RegisterGlyph( UInt32 characterCode, const FontGlyph& glyph ) -> void {
-        m_Glyphs.emplace( characterCode, glyph );
+    auto Font::RegisterGlyph( u32 characterCode, const FontGlyph& glyph ) -> void {
+        mGlyphs.emplace( characterCode, glyph );
     }
 
-    auto Font::SetName( const std::string_view name ) -> void {
-        m_Name = name;
+    auto Font::GetGlyphCount() const -> size_t {
+        return mGlyphs.size();
     }
 
-    auto Font::SetPath( const std::string_view path ) -> void {
-        m_Path = path;
+    auto Font::GetSize() const -> f64 {
+        return mPixelSize;
     }
-
-    auto Font::GetGlyphCount() const -> Size {
-        return m_Glyphs.size();
-    }
-
-}
+}// namespace mikoto::renderer

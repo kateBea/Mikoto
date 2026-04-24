@@ -12,25 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <any>
-
-#include <volk.h>
 #include <GLFW/glfw3.h>
+#include <volk.h>
 
-#include <Common/Common.hh>
+#include <Core/Core.hh>
 #include <Core/CoreEvents.hh>
-#include <Common/String.hh>
-#include <Core/EventService.hh>
-#include <Core/InputService.hh>
+#include <Core/EventSystem.hh>
+#include <Core/Exception.hh>
+#include <Core/InputSystem.hh>
 #include <Core/Profiler.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/String.hh>
+#include <Core/Types.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
 #include <Platform/MainWindow.hh>
 
-#include <Renderer/Vulkan/VulkanHelpers.hh>
+namespace mikoto::platform {
 
-namespace Mikoto {
+    using namespace mikoto::core;
+
     MainWindow::MainWindow(const WindowProperties& properties )
         :   Window{ properties }
     {
@@ -39,6 +39,7 @@ namespace Mikoto {
 
     auto MainWindow::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
         MKT_CORE_LOGGER_INFO("MainWindow::Init - Initializing new GLFW Window.");
 
         SetCustomTitle();
@@ -59,7 +60,7 @@ namespace Mikoto {
     auto MainWindow::Shutdown() -> void {
         MKT_CORE_LOGGER_INFO("Shutting MainWindow '{}'", GetTitle());
 
-        glfwDestroyWindow(m_Window);
+        glfwDestroyWindow(mWindow);
     }
 
     auto MainWindow::SetBasicHints() -> void {
@@ -68,7 +69,7 @@ namespace Mikoto {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, IsResizable() ? GLFW_TRUE : GLFW_FALSE);
 
-        if (m_ScreenMode != ScreenMode::WINDOW_MODE_FULLSCREEN) {
+        if (mScreenMode != ScreenMode::eFullScreen) {
             glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
         }
     }
@@ -76,37 +77,37 @@ namespace Mikoto {
     auto MainWindow::InstallCallbacks() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        glfwSetWindowUserPointer(m_Window, this);
+        glfwSetWindowUserPointer(mWindow, this);
 
-        glfwSetWindowSizeCallback(m_Window,
+        glfwSetWindowSizeCallback(mWindow,
             [](GLFWwindow* window, int width, int height) -> void {
                 const auto data{ static_cast<MainWindow*>(glfwGetWindowUserPointer(window)) };
-                data->m_Width = width;
-                data->m_Height = height;
+                data->mWidth = width;
+                data->mHeight = height;
 
-                EventService::Get()->Queue<WindowResizedEvent>(width, height);
+                EventSystem::Get()->Queue<WindowResizedEvent>(width, height);
             }
         );
 
-        glfwSetWindowCloseCallback(m_Window,
+        glfwSetWindowCloseCallback(mWindow,
             []( GLFWwindow* ) {
-                EventService::Get()->Queue<WindowCloseEvent>();
+                EventSystem::Get()->Queue<WindowCloseEvent>();
             }
         );
 
-        glfwSetKeyCallback(m_Window,
+        glfwSetKeyCallback(mWindow,
             []( GLFWwindow* , int key,  int , int action, int mods) -> void {
                 switch (action) {
                     case GLFW_PRESS: {
-                        EventService::Get()->Queue<KeyPressedEvent>(key, false, mods);
+                        EventSystem::Get()->Queue<KeyPressedEvent>(key, false, mods);
                         break;
                     }
                     case GLFW_RELEASE: {
-                        EventService::Get()->Queue<KeyReleasedEvent>(key);
+                        EventSystem::Get()->Queue<KeyReleasedEvent>(key);
                         break;
                     }
                     case GLFW_REPEAT: {
-                        EventService::Get()->Queue<KeyPressedEvent>(key, true, mods);
+                        EventSystem::Get()->Queue<KeyPressedEvent>(key, true, mods);
                         break;
                     }
                     default: {
@@ -117,15 +118,15 @@ namespace Mikoto {
             }
         );
 
-        glfwSetMouseButtonCallback(m_Window,
+        glfwSetMouseButtonCallback(mWindow,
             []( GLFWwindow* , int button, int action, int mods) -> void {
                 switch (action) {
                     case GLFW_PRESS: {
-                        EventService::Get()->Queue<MouseButtonPressedEvent>(button, mods);
+                        EventSystem::Get()->Queue<MouseButtonPressedEvent>(button, mods);
                         break;
                     }
                     case GLFW_RELEASE: {
-                        EventService::Get()->Queue<MouseButtonReleasedEvent>(button);
+                        EventSystem::Get()->Queue<MouseButtonReleasedEvent>(button);
                         break;
                     }
                     default:
@@ -135,80 +136,80 @@ namespace Mikoto {
             }
         );
 
-        glfwSetScrollCallback(m_Window,
+        glfwSetScrollCallback(mWindow,
             []( GLFWwindow* , double xOffset, double yOffset) -> void {
-                EventService::Get()->Queue<MouseScrollEvent>(xOffset, yOffset);
+                EventSystem::Get()->Queue<MouseScrollEvent>(xOffset, yOffset);
             }
         );
 
-        glfwSetCursorPosCallback(m_Window,
+        glfwSetCursorPosCallback(mWindow,
             [](GLFWwindow* , double x, double y) -> void {
-                EventService::Get()->Queue<MouseMovedEvent>(x, y);
+                EventSystem::Get()->Queue<MouseMovedEvent>(x, y);
             }
         );
 
-        glfwSetCharCallback(m_Window,
+        glfwSetCharCallback(mWindow,
             [](GLFWwindow* , unsigned int codePoint) -> void {
-                EventService::Get()->Queue<KeyCharEvent>(codePoint);
+                EventSystem::Get()->Queue<KeyCharEvent>(codePoint);
             }
         );
 
-        glfwSetWindowCloseCallback(m_Window,
+        glfwSetWindowCloseCallback(mWindow,
             [](GLFWwindow* ) -> void {
-                EventService::Get()->Queue<WindowCloseEvent>();
+                EventSystem::Get()->Queue<WindowCloseEvent>();
             }
         );
 
-        glfwSetWindowFocusCallback(m_Window,
+        glfwSetWindowFocusCallback(mWindow,
             [](GLFWwindow* window, int focus) -> void {
                 MainWindow* data{ static_cast<MainWindow*>(glfwGetWindowUserPointer(window)) };
                 if (focus == GLFW_TRUE) {
-                    InputService::Get().SetFocus( data );
+                    InputSystem::Get()->SetFocus( data );
                 }
             });
     }
 
     auto MainWindow::SetCustomTitle() -> void {
-        switch(m_Backend) {
-            case GraphicsAPI::VULKAN_API:
-                m_Title = StringUtil::Format("{} (Vulkan Version {}.{})", m_Title, MKT_VULKAN_VERSION_MAJOR, MKT_VULKAN_VERSION_MINOR);
+        switch(mBackend) {
+            case GraphicsAPI::eVulkan:
+                mTitle = string::Format("{} (Vulkan Version {}.{})", mTitle, 1, 3); // 1 and 3 are major and minor versions, take them from the vulkan context
                 break;
-            case GraphicsAPI::DIRECTX_11:
-                m_Title = StringUtil::Format("{} Direct3D11", m_Title);
+            case GraphicsAPI::eD3D12:
+                mTitle = string::Format("{} DirectX 12", mTitle);
                 break;
-            case GraphicsAPI::DIRECTX_12:
-                m_Title = StringUtil::Format("{} Direct3D12", m_Title);
+            case GraphicsAPI::eD3D11:
+                mTitle = string::Format("{} DirectX 11", mTitle);
                 break;
             default:;
         }
     }
 
-    auto MainWindow::MoveToMonitorCenter() const -> void {
+    auto MainWindow::MoveToMonitorCenter() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         // See: https://www.glfw.org/docs/3.3/monitor_guide.html
         // The primary monitor is returned by glfwGetPrimaryMonitor. It is the user's
         // preferred monitor and is usually the one with global UI elements like task bar or menu bar.
-        Int32 monitorWidth{};
-        Int32 monitorHeight{};
+        i32 monitorWidth{};
+        i32 monitorHeight{};
 
-        Int32 monitorX{};
-        Int32 monitorY{};
+        i32 monitorX{};
+        i32 monitorY{};
 
-        GLFWmonitor* primary{ glfwGetWindowMonitor( m_Window ) };
+        GLFWmonitor* primary{ glfwGetWindowMonitor( mWindow ) };
 
         if (primary == nullptr) {
             primary = glfwGetPrimaryMonitor();
         }
 
         glfwGetMonitorWorkarea(primary, std::addressof( monitorX  ), std::addressof( monitorY  ), std::addressof(monitorWidth), std::addressof(monitorHeight));
-        glfwSetWindowPos(m_Window, monitorWidth / 2 - m_Width / 2, monitorHeight / 2 - m_Height / 2);
+        glfwSetWindowPos(mWindow, monitorWidth / 2 - mWidth / 2, monitorHeight / 2 - mHeight / 2);
     }
 
     auto MainWindow::CreateNativeHandle() -> void {
         try {
-            m_Window = glfwCreateWindow(GetWidth(), GetHeight(), GetTitle().data(), nullptr, nullptr);
-            if (m_Window == nullptr) {
+            mWindow = glfwCreateWindow(GetWidth(), GetHeight(), GetTitle().data(), nullptr, nullptr);
+            if (mWindow == nullptr) {
                 MKT_THROW_RUNTIME_ERROR( "GLFWindow handle is NULL" );
             }
         } catch( std::exception& e ) {
@@ -222,43 +223,43 @@ namespace Mikoto {
     }
 
     auto MainWindow::SetScreenMode( const ScreenMode mode ) -> void {
-        m_ScreenMode = mode;
+        mScreenMode = mode;
 
-        switch ( m_ScreenMode ) {
-            case ScreenMode::WINDOW_MODE_FULLSCREEN: {
+        switch ( mScreenMode ) {
+            case ScreenMode::eFullScreen: {
                 // Get the primary monitor
                 GLFWmonitor* monitor{ glfwGetPrimaryMonitor() };
                 const GLFWvidmode* videoMode{ glfwGetVideoMode( monitor ) };
 
-                m_WidthPreFullScreen = m_Width;
-                m_HeightPreFullScreen = m_Height;
+                mWidthPreFullScreen = mWidth;
+                mHeightPreFullScreen = mHeight;
 
-                glfwSetWindowMonitor( m_Window, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate );
+                glfwSetWindowMonitor( mWindow, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate );
                 break;
             }
-            case ScreenMode::WINDOW_MODE_WINDOWED: {
+            case ScreenMode::eWindowed: {
                 // Get the primary monitor
                 GLFWmonitor* monitor{ glfwGetPrimaryMonitor() };
                 const GLFWvidmode* videoMode{ glfwGetVideoMode( monitor ) };
 
-                m_Width = m_WidthPreFullScreen;
-                m_Height = m_HeightPreFullScreen;
+                mWidth = mWidthPreFullScreen;
+                mHeight = mHeightPreFullScreen;
 
-                glfwSetWindowMonitor( m_Window, nullptr, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate );
-                glfwSetWindowSize( m_Window, m_WidthPreFullScreen, m_HeightPreFullScreen );
+                glfwSetWindowMonitor( mWindow, nullptr, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate );
+                glfwSetWindowSize( mWindow, mWidthPreFullScreen, mHeightPreFullScreen );
 
                 MoveToMonitorCenter();
 
                 break;
             }
 
-            case ScreenMode::WINDOW_MODE_BORDERLESS: {
+            case ScreenMode::eBorderless: {
                 // Get the primary monitor
-                Int32 monitorWidth{};
-                Int32 monitorHeight{};
+                i32 monitorWidth{};
+                i32 monitorHeight{};
 
-                Int32 monitorX{};
-                Int32 monitorY{};
+                i32 monitorX{};
+                i32 monitorY{};
 
                 GLFWmonitor* monitor{ glfwGetPrimaryMonitor() };
 
@@ -266,53 +267,53 @@ namespace Mikoto {
 
                 const GLFWvidmode* videoMode{ glfwGetVideoMode( monitor ) };
 
-                glfwSetWindowSize( m_Window, monitorWidth, monitorHeight );
-                glfwSetWindowMonitor( m_Window, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate );
+                glfwSetWindowSize( mWindow, monitorWidth, monitorHeight );
+                glfwSetWindowMonitor( mWindow, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate );
                 break;
             }
         }
     }
 
     auto MainWindow::SetCursorMode( CursorMode mode ) -> void {
-        MKT_ASSERT( m_Window != nullptr, "Trying to set cursor mode on NULL Window" );
+        MKT_ASSERT( mWindow != nullptr, "Trying to set cursor mode on NULL Window" );
 
         switch (mode) {
-            case CursorMode::NORMAL:
-                glfwSetInputMode( m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+            case CursorMode::eNormal:
+                glfwSetInputMode( mWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
                 break;
-            case CursorMode::HIDDEN:
-                glfwSetInputMode( m_Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN );
+            case CursorMode::eHidden:
+                glfwSetInputMode( mWindow, GLFW_CURSOR, GLFW_CURSOR_HIDDEN );
                 break;
-            case CursorMode::DISABLED:
-                glfwSetInputMode( m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+            case CursorMode::eDisabled:
+                glfwSetInputMode( mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
                 break;
         }
 
-        m_CursorMode = mode;
+        mCursorMode = mode;
     }
 
     auto MainWindow::SetCursorType( CursorType type ) -> void {
-        MKT_ASSERT( m_Window != nullptr, "Trying to set cursor type on NULL Window" );
+        MKT_ASSERT( mWindow != nullptr, "Trying to set cursor type on NULL Window" );
 
         GLFWcursor *cursor{ nullptr };
 
         switch (type) {
-            case CursorType::ARROW:
+            case CursorType::eArrow:
                 cursor = glfwCreateStandardCursor( GLFW_ARROW_CURSOR );
                 break;
-            case CursorType::HAND:
+            case CursorType::eHand:
                 cursor = glfwCreateStandardCursor( GLFW_HAND_CURSOR );
                 break;
-            case CursorType::TEXT:
+            case CursorType::eText:
                 cursor = glfwCreateStandardCursor( GLFW_IBEAM_CURSOR );
                 break;
-            case CursorType::RESIZE_VERTICAL:
+            case CursorType::eResizeVertical:
                 cursor = glfwCreateStandardCursor( GLFW_VRESIZE_CURSOR );
                 break;
-            case CursorType::RESIZE_HORIZONTAL:
+            case CursorType::eResizeHorizontal:
                 cursor = glfwCreateStandardCursor( GLFW_HRESIZE_CURSOR );
                 break;
-            case CursorType::CROSSHAIR:
+            case CursorType::eCrossHair:
                 cursor = glfwCreateStandardCursor( GLFW_CROSSHAIR_CURSOR );
                 break;
             default:
@@ -320,35 +321,35 @@ namespace Mikoto {
                 break;
         }
 
-        glfwSetCursor( m_Window, cursor );
+        glfwSetCursor( mWindow, cursor );
 
-        m_CursorType = type;
+        mCursorType = type;
     }
 
     auto MainWindow::ResetCursorType() -> void {
         GLFWcursor *cursor{ glfwCreateStandardCursor( GLFW_ARROW_CURSOR ) };
-        glfwSetCursor( m_Window, cursor );
+        glfwSetCursor( mWindow, cursor );
 
-        m_CursorType = CursorType::ARROW;
+        mCursorType = CursorType::eArrow;
     }
 
     auto MainWindow::IsKeyPressed( KeyCode keyCode ) const -> bool {
-        const auto state{ glfwGetKey( m_Window, keyCode ) };
+        const auto state{ glfwGetKey( mWindow, keyCode ) };
         return state == GLFW_PRESS;
     }
 
     auto MainWindow::IsKeyReleased( KeyCode keyCode ) const -> bool {
-        const auto state{ glfwGetKey( m_Window, keyCode ) };
+        const auto state{ glfwGetKey( mWindow, keyCode ) };
         return state == GLFW_RELEASE;
     }
 
     auto MainWindow::IsMouseKeyPressed( MouseButton button ) const -> bool {
-        const auto state{ glfwGetMouseButton( m_Window, button ) };
+        const auto state{ glfwGetMouseButton( mWindow, button ) };
         return state == GLFW_PRESS;
     }
 
     auto MainWindow::IsMouseKeyReleased( MouseButton button ) const -> bool {
-        const auto state{ glfwGetMouseButton( m_Window, button ) };
+        const auto state{ glfwGetMouseButton( mWindow, button ) };
         return state == GLFW_RELEASE;
     }
 
@@ -363,12 +364,16 @@ namespace Mikoto {
     auto MainWindow::GetMousePos() const -> std::pair<double, double> {
         double posX{};
         double posY{};
-        glfwGetCursorPos( m_Window, std::addressof( posX ), std::addressof( posY ) );
+        glfwGetCursorPos( mWindow, std::addressof( posX ), std::addressof( posY ) );
 
         return std::make_pair( posX, posY );
     }
 
     auto MainWindow::ShouldClose() const -> bool {
-        return glfwWindowShouldClose( m_Window );
+        return glfwWindowShouldClose( mWindow );
     }
-}
+
+    auto MainWindow::GetNativeWindow() const -> eastl::any {
+        return mWindow;
+    }
+}// namespace mikoto::platform

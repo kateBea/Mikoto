@@ -15,26 +15,29 @@
 #ifndef MIKOTO_AUDIO_SERVICE_HH
 #define MIKOTO_AUDIO_SERVICE_HH
 
-#include <vector>
+#include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
 
-#include <Common/Service.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
 
-#include <Library/Utility/Types.hh>
-
-#include <Assets/AudioClip.hh>
+#include <Audio/AudioClip.hh>
 #include <Audio/AudioDevice.hh>
 #include <Audio/AudioListener.hh>
 
-namespace Mikoto {
-    struct AudioServiceCreateInfo {
+namespace mikoto::audio {
 
-    };
+    using namespace mikoto::core;
+
+    struct AudioServiceCreateInfo {};
 
     class AudioService final : public IService, public Singleton<AudioService> {
     public:
         explicit AudioService(const AudioServiceCreateInfo& options);
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         MKT_NODISCARD auto GetDevice() -> AudioDevice*;
@@ -45,12 +48,12 @@ namespace Mikoto {
         ~AudioService() override = default;
 
     private:
-        Unique<AudioDevice> m_Device{};
+        eastl::unique_ptr<AudioDevice> mDevice{};
 
         // On Audio Service initialization we create the fixed amount of listeners
         // and send one at a time whenever CreateListener() is called
-        Size m_CurrentAllocationCount{};
-        std::vector<AudioListener> m_Listeners{};
+        size_t mCurrentAllocationCount{};
+        eastl::vector<AudioListener> mListeners{};
     };
 }
 

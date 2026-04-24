@@ -1,41 +1,51 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 3/26/2025.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
+#include <EASTL/unique_ptr.h>
+
+#include <taskflow/taskflow.hpp>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+
 #include <Logging/Logger.hh>
+
 #include <Threading/TaskService.hh>
 
-namespace Mikoto {
+namespace mikoto::threading {
 
-
-    TaskService::TaskService( const TaskServiceCreateInfo &options )
-        : m_ThreadCount{ options.WorkerThreadCount }
+    TaskService::TaskService( const TaskServiceCreateInfo& info )
+        : mTaskManager{ eastl::make_unique<TaskManager>( info.mExecutor )}
     {}
 
-    auto TaskService::Init() -> void {
+    auto TaskService::Initialize() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_CORE_LOGGER_INFO("Initializing TaskService...");
 
-        m_TaskManager = CreateScope<TaskManager>( m_ThreadCount );
-        if (m_TaskManager) {
-            m_TaskManager->Init();
+        if (mTaskManager) {
+            mTaskManager->Initialize();
         }
 
-        SetupPeriodicTaskRunner();
-
-        m_IsInitialized = true;
-    }
-
-    auto TaskService::SetupPeriodicTaskRunner() -> void {
-
+        mIsInitialized = true;
     }
 
     auto TaskService::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if (!m_IsInitialized) {
+        if (!mIsInitialized) {
             return;
         }
 
@@ -44,11 +54,7 @@ namespace Mikoto {
         MKT_CORE_LOGGER_INFO( "Shutting down TaskService..." );
     }
 
-    auto TaskService::Update( float ) -> void {
-
-    }
-
-    auto TaskService::WaitForExecution( TaskGraph &graph ) -> void {
-        m_TaskManager->ExecuteGraph(graph);
+    auto TaskService::GetWorkersCount() const -> u32 {
+        return mTaskManager->GetWorkersCount();
     }
 }// namespace Mikoto

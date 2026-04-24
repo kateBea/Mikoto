@@ -12,31 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <algorithm>
-#include <fstream>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <utility>
-#include <vector>
-#include <initializer_list>
-
 #include <nfd.hpp>
 
+#include <EASTL/memory.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
+#include <Core/Exception.hh>
 #include <Core/Profiler.hh>
-#include <Filesystem/FileService.hh>
-#include <Filesystem/FileWatcherService.hh>
+
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
-#include <Core/Exception.hh>
 
-#include "Filesystem/FileSystem.hh"
+#include <Filesystem/FileSystem.hh>
+#include <Filesystem/FileService.hh>
+#include <Filesystem/FileWatcherService.hh>
 
-namespace Mikoto {
+namespace mikoto::filesystem {
 
     FileService::FileService( const FileServiceCreateInfo& ) {}
 
-    auto FileService::SaveDialog( const std::string& defaultName, const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path {
+    auto FileService::SaveDialog( const eastl::string& defaultName, const std::initializer_list<eastl::pair<eastl::string, eastl::string>>& filters ) -> Path {
+        // Use method from mikoto::filesystem instead for file dialogs
+
         std::string saveFilePath{};
 
         // Process filters
@@ -65,10 +63,10 @@ namespace Mikoto {
 
         // NFD::Guard will automatically quit NFD.
 
-        return saveFilePath;
+        return Path{ saveFilePath.c_str() };
     }
 
-    auto FileService::OpenDialog( const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path {
+    auto FileService::OpenDialog( const std::initializer_list<eastl::pair<eastl::string, eastl::string>>& filters ) -> Path {
         std::string filePath{};
 
         // Process filters
@@ -97,10 +95,10 @@ namespace Mikoto {
 
         // NFD::Guard will automatically quit NFD.
 
-        return filePath;
+        return Path{ filePath };
     }
 
-    auto FileService::Init() -> void {
+    auto FileService::Initialize() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_CORE_LOGGER_INFO( "Initializing FileService..." );
@@ -109,13 +107,13 @@ namespace Mikoto {
             MKT_THROW_RUNTIME_ERROR( "FileManager - Failed to initialized File dialog library NFD." );
         }
 
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto FileService::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if ( !m_IsInitialized ) {
+        if ( !mIsInitialized ) {
             return;
         }
 
@@ -126,94 +124,87 @@ namespace Mikoto {
         NFD::Quit();
     }
 
-    auto FileService::LoadFile( const Path& path, FileMode mode ) -> File* {
+    auto FileService::LoadFile( const Path& path ) -> FileHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
-        const auto absolutePath{ Filesystem::GetGetAbsolutePathString( path ) };
-        const auto findIt{ m_Files.find( absolutePath ) };
-        if ( findIt != m_Files.end() ) {
-            return findIt->second.get();
+        const auto& absolutePath{ path.GetAbsolute() };
+        const auto findIt{ mFiles.find( absolutePath ) };
+
+        if ( findIt != mFiles.end() ) {
+            return findIt->second;
         }
 
-        File* result{ nullptr };
-        if ( auto newFile{ File::Load( absolutePath, mode ) } ) {
-            result = newFile.get();
+        if ( !path.Exists() ) {
+            return FileHandle::CreateEmpty();
+        }
 
-            {
-                std::lock_guard lock{ m_FileLoadMutex };
-                const auto [insertIt, success]{
-                    m_Files.try_emplace( absolutePath, std::move( newFile ) )
-                };
+        FileHandle result{ FileHandle::Spawn( absolutePath ) };
 
-                if ( success ) {
-                    result = m_Files[absolutePath].get();
+        {
+            std::lock_guard lock{ mFileLoadMutex };
+            const auto [insertIt, success]{
+                mFiles.try_emplace( absolutePath, result )
+            };
 
-                    //If we managed to load the file listen on update notifications to update the file contents
-                    FileWatcherService::Get()->Watch( result->GetPath(),
-                                                      [result]( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
-                                                          if ( event == FileWatchEvent::MODIFIED ) {
-                                                              result->UpdateContentsFromDisk();
-                                                              MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.string() );
-                                                          }
-                                                      } );
-                }
+            if ( success ) {
+                //If we managed to load the file listen on update notifications to update the file contents
+                FileWatcherService::Get()->Watch( result->GetPath(),
+                    [result]( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
+                    if ( event == FileWatchEvent::eModified ) {
+                    result->UpdateContentsFromDisk();
+                    MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.GetC_Str() );
+                    }
+                } );
             }
-        } else {
-            MKT_CORE_LOGGER_ERROR( "Could not load file at {}", absolutePath );
         }
 
         return result;
     }
 
-    auto FileService::CreateNewFile( const Path& path ) -> File* {
-        File* result{ nullptr };
+    auto FileService::CreateNewFile( eastl::string_view path ) -> FileHandle {
+        return CreateNewFile( Path{ path } );
+    }
 
-        const auto absolutePath{ Filesystem::GetGetAbsolutePathString( path ) };
-        const auto findIt{ m_Files.find( absolutePath ) };
-        if ( findIt != m_Files.end() ) {
-            return findIt->second.get();
-        }
+    auto FileService::CreateNewFile( const Path& path ) -> FileHandle {
+        FileHandle result{ nullptr };
 
-        if ( auto newFile{ File::Create( path, MKT_FILE_OPEN_MODE_TRUNCATE ) } ) {
-            {
-                std::lock_guard lock{ m_FileLoadMutex };
-                const auto [insertIt, success]{
-                    m_Files.try_emplace( absolutePath, std::move( newFile ) )
-                };
-
-                if ( success ) {
-                    result = m_Files[absolutePath].get();
-
-                    FileWatcherService::Get()->Watch( result->GetPath(),
-                                                      [result]( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
-                                                          if ( event == FileWatchEvent::MODIFIED ) {
-                                                              result->UpdateContentsFromDisk();
-                                                              MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.string() );
-                                                          }
-                                                      } );
-                }
-            }
-        } else {
-            MKT_CORE_LOGGER_ERROR( "Could not create file at {}", path.string() );
-        }
+        // const auto absolutePath{ filesystem::GetGetAbsolutePathString( path ) };
+        // const auto findIt{ m_Files.find( absolutePath ) };
+        // if ( findIt != m_Files.end() ) {
+        //     return findIt->second.get();
+        // }
+        //
+        // if ( auto newFile{ File::Create( path, MKT_FILE_OPEN_MODE_TRUNCATE ) } ) {
+        //     {
+        //         std::lock_guard lock{ m_FileLoadMutex };
+        //         const auto [insertIt, success]{
+        //             m_Files.try_emplace( absolutePath, std::move( newFile ) )
+        //         };
+        //
+        //         if ( success ) {
+        //             result = m_Files[absolutePath].get();
+        //
+        //             FileWatcherService::Get()->Watch( result->GetPath(),
+        //                                               [result]( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
+        //                                                   if ( event == FileWatchEvent::MODIFIED ) {
+        //                                                       result->UpdateContentsFromDisk();
+        //                                                       MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.string() );
+        //                                                   }
+        //                                               } );
+        //         }
+        //     }
+        // } else {
+        //     MKT_CORE_LOGGER_ERROR( "Could not create file at {}", path.string() );
+        // }
 
         return result;
     }
 
-    auto FileService::GetFile( const Path &path ) -> File * {
-        const auto absolutePath{ Filesystem::GetGetAbsolutePathString( path ) };
-
-        auto it{ m_Files.find( absolutePath ) };
-        if (it != m_Files.end()) { return it->second.get(); }
-
-        return nullptr;
+    auto FileService::GetFile( const Path &path ) -> FileHandle {
+        return FileHandle{};
     }
 
-    auto FileService::GetFile( const Path& path ) const -> const File* {
-        return const_cast<FileService*>( this )->GetFile( path );
+    auto FileService::GetFile( const Path& path ) const -> const FileHandle {
+        return FileHandle{};
     }
-
-    auto FileService::SaveFile( const File* file ) -> bool {
-        return false;
-    }
-}
+}// namespace mikoto::filesystem

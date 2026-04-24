@@ -15,26 +15,26 @@
 #ifndef MIKOTO_CONFIG_LOADER_HH
 #define MIKOTO_CONFIG_LOADER_HH
 
-#include <any>
-#include <string>
+#include <EASTL/any.h>
+#include <EASTL/string.h>
 
 #include <ankerl/unordered_dense.h>
 
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Filesystem/Path.hh>
 
-namespace Mikoto {
+namespace mikoto::core {
 
     class Configuration {
     public:
-        virtual ~Configuration() = default;
 
-        virtual auto Load( const Path& filePath ) -> void = 0;
+        MKT_NODISCARD auto IsLoaded() const  -> bool { return mIsLoaded; }
 
         template<typename T>
-        auto Get( const std::string& key, const T& defaultValue = {} ) const -> T {
-            const auto it{ m_Data.find( key ) };
-            if ( it != m_Data.end() ) {
-                if ( auto* val{ std::any_cast<T>( &it->second ) } ) {
+        MKT_NODISCARD auto Get( const eastl::string& key, const T& defaultValue = {} ) const -> T {
+            const auto it{ mData.find( key ) };
+            if ( it != mData.end() ) {
+                if ( auto* val{ eastl::any_cast<T>( &it->second ) } ) {
                     return *val;
                 }
             }
@@ -42,11 +42,13 @@ namespace Mikoto {
             return defaultValue;
         }
 
-        MKT_NODISCARD auto IsLoaded() const  -> bool { return m_IsLoaded; }
+        virtual auto Load( const filesystem::Path& filePath ) -> void = 0;
+
+        virtual ~Configuration() = default;
 
     protected:
-        bool m_IsLoaded{ false };
-        ankerl::unordered_dense::map<std::string, std::any> m_Data{};
+        ankerl::unordered_dense::map<eastl::string, eastl::any> mData{};
+        bool mIsLoaded{ false };
     };
 
 }// namespace Mikoto

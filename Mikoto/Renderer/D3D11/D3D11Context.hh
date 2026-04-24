@@ -15,24 +15,32 @@
 #ifndef MIKOTO_D3D11CONTEXT_HH
 #define MIKOTO_D3D11CONTEXT_HH
 
-#include <Common/Common.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Platform.hh>
-#include <Library/Utility/Types.hh>
-#include <Renderer/Core/RenderService.hh>
+
+#include <Logging/Assert.hh>
+
+#include <Renderer/Core/RenderContext.hh>
+#include <Renderer/Core/RenderSystem.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
+#include <Renderer/D3D11/D3D11SwapChain.hh>
 #include <Renderer/D3D11/Direct3D11Libraries.hh>
 
 #include <d3d11.h>
 #include <dxgi1_3.h>
 #include <wrl.h>
+#include <dxgidebug.h>
 
-namespace Mikoto {
+// https://learn.microsoft.com/en-us/windows/win32/direct3d12/direct3d-12-graphics
 
-    class D3D11Context final : public RenderContext {
+namespace mikoto::renderer::d3d11 {
+
+    class Context final : public RenderContext {
     public:
-        explicit D3D11Context(const RenderContextCreateInfo& createInfo)
+        explicit Context(const RenderContextCreateInfo& createInfo)
            :  RenderContext{ createInfo }
         { }
 
@@ -45,25 +53,42 @@ namespace Mikoto {
         auto Update() -> void override;
 
         auto Present() -> void override;
-
         auto SetPresentTarget( TextureHandle texture ) -> void override;
+        auto SetRefreshRate( RefreshRate rate ) -> void override;
 
-        auto EnableVSync() -> void override;
-        auto DisableVSync() -> void override;
+        // D3D11 Specifics
+        MKT_NODISCARD auto GetSwapChain() const -> SwapChainHandle;
+        MKT_NODISCARD auto GetDxiFactory() const -> IDXGIFactory2*;
 
-        MKT_NODISCARD auto IsVsyncEnabled() const -> bool override;
+        auto DumpDXGIMessages() -> void;
 
-        ~D3D11Context() override = default;
+        ~Context() override = default;
 
     private:
         MKT_NODISCARD auto CreateSwapChain() -> bool;
 
     private:
-        Microsoft::WRL::ComPtr<IDXGISwapChain1> m_SwapChain{};
-        Microsoft::WRL::ComPtr<IDXGIFactory2> m_DxgiFactory{};
-        Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_DeviceContext{};
+        TextureHandle mPresentTarget{};
+
+        SwapChainHandle mSwapChain{};
+        Microsoft::WRL::ComPtr<IDXGIFactory2> mDxgiFactory{};
+
+#if !defined(NDEBUG)
+        Microsoft::WRL::ComPtr<IDXGIInfoQueue> mDxgiInfoQueue{};
+#endif
     };
-}
+
+#define MKT_D3D11_CHECK( expr, message )                            \
+    do {                                                            \
+        HRESULT hr__{ ( expr ) };                                   \
+        checked_cast<Context*>( RenderSystem::Get()->GetContext() ) \
+                ->DumpDXGIMessages();                               \
+                                                                    \
+        if ( FAILED( hr__ ) ) {                                     \
+            MKT_ASSERT( false, message );                           \
+        }                                                           \
+    } while ( 0 )
+}// namespace mikoto::renderer::d3d11
 
 #endif
 

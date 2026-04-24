@@ -24,7 +24,7 @@
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/ShaderParameteres.hh>
 
-namespace Mikoto {
+namespace mikoto {
     // Displays a material on a sphere with a convoluted background on top of a cube
     // using a directional light with shadows
     class MaterialDebug final {

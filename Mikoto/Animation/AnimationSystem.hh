@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,38 +17,38 @@
 
 #include <ankerl/unordered_dense.h>
 
+#include <Core/Core.hh>
+#include <Core/Singleton.hh>
+#include <Core/Subsystem.hh>
+
 #include <Animation/Animator.hh>
-#include <Assets/Model.hh>
-#include <Common/Common.hh>
-#include <Common/Singleton.hh>
-#include <Common/Subsystem.hh>
 
-namespace Mikoto {
+namespace mikoto::animation {
 
-    struct AnimationSystemCreateInfo {
+    using namespace mikoto::core;
+    using namespace mikoto::asset;
 
-    };
+    struct AnimationSystemCreateInfo {};
 
-    class AnimationSystem final : public Subsystem, public Singleton<AnimationSystem>{
+    class AnimationSystem final : public ISubsystem, public Singleton<AnimationSystem> {
     public:
 
         explicit AnimationSystem(const AnimationSystemCreateInfo& createInfo);
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
         auto Update(float dt) -> void override;
 
         // Valid IDs start from 1
-        auto RegisterAnimation( ModelHandle handle ) -> UInt64;
+        auto RegisterAnimation( ModelHandle handle ) -> u64;
 
-        MKT_NODISCARD auto GetAnimator( UInt64 id ) -> Animator*;
-
+        MKT_NODISCARD auto GetAnimator( u64 id ) -> Animator*;
 
     private:
         // Not sure if animators should be wrapped into pointers
         // In case we add more animator while reading from this map
         // Reallocations invalidate all references
-        ankerl::unordered_dense::map<UInt64, Animator> m_Animators{};
+        ankerl::unordered_dense::map<u64, Animator> mAnimators{};
     };
 }
 

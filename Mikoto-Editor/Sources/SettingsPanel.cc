@@ -12,40 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ImGui/IconsMaterialDesign.h>
+#include <EASTL/array.h>
+
 #include <imgui.h>
-
-#include <Core/Profiler.hh>
-#include <ImGui/ImGuiUtility.hh>
-#include <Layers/EditorLayer.hh>
-#include <Library/String/String.hh>
-#include <Panels/SettingsPanel.hh>
 #include <glm/gtc/type_ptr.hpp>
-#include <memory>
 
-#include "Renderer/Core/RenderService.hh"
+#include <ImGui/ImGuiWidget.hh>
+#include <ImGui/ImGuiUtility.hh>
+#include <ImGui/IconsMaterialDesign.h>
 
-namespace Mikoto {
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Profiler.hh>
+
+#include <Memory/Allocator.hh>
+
+#include <Layers/EditorLayer.hh>
+#include <Panels/SettingsPanel.hh>
+
+#include <Renderer/Core/RenderSystem.hh>
+
+namespace mikoto::editor {
 
     auto SettingsPanel::DrawCameraConfig() -> void {
-        static const std::array<std::string, 2> cameraProjectionTypesStr{
+        static const eastl::array<eastl::string, 2> cameraProjectionTypesStr{
             "Orthographic", "Perspective"
         };
 
-        SceneCamera &sceneCamera{ *m_EditorState->EditorCamera };
+        SceneCamera &sceneCamera{ *mEditorState->mActiveCamera };
         const ProjectionType cameraCurrentProjectionType{ sceneCamera.GetProjectionType() };
 
-        const std::string &currentProjectionTypeStr{ cameraProjectionTypesStr[static_cast<UInt32>( cameraCurrentProjectionType )] };
+        const eastl::string &currentProjectionTypeStr{ cameraProjectionTypesStr[static_cast<u32>( cameraCurrentProjectionType )] };
 
         ImGui::Spacing();
         if ( ImGui::BeginCombo( "##SettingsPanel::OnUpdate::EditorCam:Projection", currentProjectionTypeStr.c_str() ) ) {
-            UInt32 projectionIndex{};
+            u32 projectionIndex{};
 
-            for ( const std::string &projectionType: cameraProjectionTypesStr ) {
-                const bool isSelected{ projectionType == cameraProjectionTypesStr[static_cast<UInt32>( cameraCurrentProjectionType )] };
+            for ( const eastl::string &projectionType: cameraProjectionTypesStr ) {
+                const bool isSelected{ projectionType == cameraProjectionTypesStr[as<u32>( cameraCurrentProjectionType )] };
 
                 if ( ImGui::Selectable( fmt::format( " {}", projectionType ).c_str(), isSelected ) ) {
-                    sceneCamera.SetProjectionType( static_cast<ProjectionType>( projectionIndex ) );
+                    sceneCamera.SetProjectionType( as<ProjectionType>( projectionIndex ) );
                 }
 
                 if ( ImGui::IsItemHovered() ) {
@@ -68,77 +75,73 @@ namespace Mikoto {
 
         if ( sceneCamera.GetProjectionType() == ProjectionType::PERSPECTIVE ) {
             ImGui::Spacing();
-            ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::CameraSpeed", m_Data.EditorCameraMovementSpeed, { 2, 5000 } );
+            (void)Slider( "##SettingsPanel::OnUpdate::CameraSpeed", mData.mEditorCameraMovementSpeed, { 2, 5000 } );
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Adjust camera movement speed" );
+            widget::MakeHelpPopUp( "Adjust camera movement speed" );
 
             ImGui::Spacing();
-            ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::RotationSpeed", m_Data.EditorCameraRotationSpeed, { 3, 500 } );
+            (void)Slider( "##SettingsPanel::OnUpdate::RotationSpeed", mData.mEditorCameraRotationSpeed, { 3, 500 } );
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Adjust camera rotation speed." );
+            widget::MakeHelpPopUp( "Adjust camera rotation speed." );
 
             ImGui::Spacing();
-            if ( ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::Damping", m_Data.DampingFactor, { 5, 30 } ) ) { m_EditorState->EditorCamera->SetDampingFactor( m_Data.DampingFactor ); }
+            if ( gui::Slider( "##SettingsPanel::OnUpdate::Damping", mData.mDampingFactor, { 5, 30 } ) ) {
+                mEditorState->mActiveCamera->SetDampingFactor( mData.mDampingFactor );
+            }
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Adjust camera smooth damping factor." );
+            widget::MakeHelpPopUp( "Adjust camera smooth damping factor." );
 
             ImGui::Spacing();
-            ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::NearClip", m_Data.NearPlane, { -10.0f, 100.0f } );
+            (void)Slider( "##SettingsPanel::OnUpdate::NearClip", mData.mNearPlane, { -10.0f, 100.0f } );
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Adjust camera near plane." );
+            widget::MakeHelpPopUp( "Adjust camera near plane." );
 
             ImGui::Spacing();
-            ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::FarClip", m_Data.FarPlane, { 5, 200000 } );
+            (void)Slider( "##SettingsPanel::OnUpdate::FarClip", mData.mFarPlane, { 5, 200000 } );
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Adjust camera far clip." );
+            widget::MakeHelpPopUp( "Adjust camera far clip." );
 
             ImGui::Spacing();
-            ImGuiUtils::Slider( "##SettingsPanel::OnUpdate::FieldOfView", m_Data.FieldOfView, { 10, 100 } );
+            (void)Slider( "##SettingsPanel::OnUpdate::FieldOfView", mData.mFieldOfView, { 10, 100 } );
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Adjust camera field of view." );
+            widget::MakeHelpPopUp( "Adjust camera field of view." );
 
             ImGui::Spacing();
-            ImGuiUtils::CheckBox( "Lock Rotation ( X )", m_Data.WantXAxisRotation );
+            (void)CheckBox( "Lock Rotation ( X )", mData.mWantXAxisRotation );
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Lock rotation in the X axis. Cannot look from top to bottom and viceversa." );
+            widget::MakeHelpPopUp( "Lock rotation in the X axis. Cannot look from top to bottom and viceversa." );
 
             ImGui::Spacing();
-            ImGuiUtils::CheckBox( "Lock Rotation ( Y )", m_Data.WantYAxisRotation );
+            (void)CheckBox( "Lock Rotation ( Y )", mData.mWantYAxisRotation );
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Lock rotation in the X axis. Cannot look from left to right and viceversa." );
+            widget::MakeHelpPopUp( "Lock rotation in the X axis. Cannot look from left to right and viceversa." );
 
             ImGui::Spacing();
-            ImGuiUtils::CheckBox( "Lock Camera to target", m_Data.LockCameraToTarget );
+            (void)CheckBox( "Lock Camera to target", mData.mLockCameraToTarget );
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Lock camera to current selected entity" );
+            widget::MakeHelpPopUp( "Lock camera to current selected entity" );
 
             // Limit FPS
             ImGui::Spacing();
 
-            bool isVsyncEnabled{ RenderService::Get()->GetContext()->IsVsyncEnabled() };
+            bool isVsyncEnabled{ RenderSystem::Get()->GetContext()->IsRefreshType( RefreshRate::eSync ) };
 
-            if ( ImGuiUtils::CheckBox( "Limit FPS", isVsyncEnabled ) ) {
+            if ( gui::CheckBox( "Limit FPS", isVsyncEnabled ) ) {
                 if (isVsyncEnabled) {
-                    RenderService::Get()->GetContext()->EnableVSync();
+                    RenderSystem::Get()->GetContext()->SetRefreshRate( RefreshRate::eSync );
                 } else {
-                    RenderService::Get()->GetContext()->DisableVSync();
+                    RenderSystem::Get()->GetContext()->SetRefreshRate( RefreshRate::eUnlimited );
                 }
             }
             ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Enable Vertical Sync" );
-
-            // Heatmap
-            ImGui::Spacing();
-            ImGuiUtils::CheckBox( "Show heatmap", m_EditorState->ShowHeatMap );
-            ImGui::SameLine();
-            ImGuiUtils::HelpMarker( "Visualize heatmap for clusters" );
+            widget::MakeHelpPopUp( "Enable Vertical Sync" );
         }
 
         if ( sceneCamera.GetProjectionType() == ProjectionType::ORTHOGRAPHIC ) {}
     }
 
     auto SettingsPanel::DrawCameraProperties() -> void {
-        SceneCamera *camera{ m_EditorState->EditorCamera };
+        SceneCamera *camera{ mEditorState->mActiveCamera };
         if ( !camera )
             return;
 
@@ -157,7 +160,7 @@ namespace Mikoto {
 
             ImGui::Separator();
 
-            Vec3F target{ camera->GetPosition() };
+            float3 target{ camera->GetPosition() };
             float targetArr[3]{ target.x, target.y, target.z };
 
             if ( ImGui::DragFloat3( "Position", targetArr, 0.1f ) )
@@ -166,27 +169,35 @@ namespace Mikoto {
     }
 
     SettingsPanel::SettingsPanel( const SettingsPanelCreateInfo &data )
-        : Panel{ "Settings" }, m_EditorState( data.State ) {
-        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_CONSTRUCTION, m_PanelName );
+        : Panel{ "Settings" }, mEditorState( data.mState ) {
+        mPanelHeaderName = widget::MakeIconTitle( ICON_MD_CONSTRUCTION, mPanelName );
     }
 
     auto SettingsPanel::OnUpdate( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if (!m_PanelIsVisible) {
+        if (!mPanelIsVisible) {
             return;
         }
 
-        ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
+        ImGui::Begin( mPanelHeaderName.c_str(), MKT_ADDRESSOF( mPanelIsVisible ), ImGuiWindowFlags_NoCollapse );
 
-        ImGuiUtils::DrawNode( "Camera", [this] () -> void {
+        gui::DrawNode( "Camera", [this] () -> void {
             DrawCameraConfig();
         } );
 
-        ImGuiUtils::DrawNode( "Camera properties", [this] () -> void {
+        gui::DrawNode( "Camera properties", [this] () -> void {
             DrawCameraProperties();
         } );
 
         ImGui::End();
+    }
+
+    auto SettingsPanel::GetData() -> SettingsPanelData & {
+        return mData;
+    }
+
+    auto SettingsPanel::GetData() const -> const SettingsPanelData & {
+        return mData;
     }
 }// namespace Mikoto

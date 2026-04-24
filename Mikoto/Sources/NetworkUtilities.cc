@@ -1,131 +1,143 @@
+//    Copyright 2026 ケイト
 //
-// Created by kate on 10/30/25.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#include <cctype>
-#include <stdexcept>
-#include <string>
-#include <string_view>
-#include <unordered_map>
 #include <regex>
 #include <optional>
 #include <utility>
+#include <string>
+#include <string_view>
 
-#include "Networking/NetworkUtilities.hh"
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Exception.hh>
 
+#include <Networking/NetworkUtilities.hh>
 
-namespace Mikoto {
-
-    // Helper: trim whitespace from start and end
-    inline std::string_view trim( std::string_view sv ) {
-        while ( !sv.empty() && std::isspace( sv.front() ) ) sv.remove_prefix( 1 );
-        while ( !sv.empty() && std::isspace( sv.back() ) ) sv.remove_suffix( 1 );
-        return sv;
-    }
+namespace mikoto::network {
 
     // Parse raw HTTP response
-    auto ParseHttpResponse( std::string_view response ) -> HttpResponse {
-        HttpResponse result;
+    auto ParseHttpResponse( eastl::string_view response ) -> HttpResponse {
+        HttpResponse result{};
 
         // Step 1: Read status line
-        size_t pos = response.find( "\r\n" );
-        if ( pos == std::string_view::npos )
-            throw std::runtime_error( "Malformed HTTP response: missing status line" );
+        size_t pos{ response.find( "\r\n" ) };
+        if ( pos == eastl::string_view::npos ) {
+            MKT_THROW_RUNTIME_ERROR( "Malformed HTTP response: missing status line" );
+        }
 
-        result.Status = std::string( response.substr( 0, pos ) );
+        result.mStatus = eastl::string( response.substr( 0, pos ) );
         response.remove_prefix( pos + 2 );
 
         // Step 2: Read headers
         while ( true ) {
-            size_t headerEnd = response.find( "\r\n" );
-            if ( headerEnd == std::string_view::npos )
-                throw std::runtime_error( "Malformed HTTP headers" );
+            size_t headerEnd{ response.find( "\r\n" ) };
+            if ( headerEnd == eastl::string_view::npos ) {
+                MKT_THROW_RUNTIME_ERROR( "Malformed HTTP headers" );
+            }
 
-            if ( headerEnd == 0 ) {// empty line = end of headers
+            if ( headerEnd == 0 ) { // empty line = end of headers
                 response.remove_prefix( 2 );
                 break;
             }
 
-            auto line = response.substr( 0, headerEnd );
+            auto line { response.substr( 0, headerEnd ) };
             response.remove_prefix( headerEnd + 2 );
 
-            size_t colon = line.find( ':' );
-            if ( colon == std::string_view::npos )
-                throw std::runtime_error( "Malformed HTTP header line" );
+            size_t colon{ line.find( ':' ) };
+            if ( colon == eastl::string_view::npos ) {
+                MKT_THROW_RUNTIME_ERROR( "Malformed HTTP header line" );
+            }
 
-            std::string key = std::string( trim( line.substr( 0, colon ) ) );
-            std::string value = std::string( trim( line.substr( colon + 1 ) ) );
-            result.Headers[key] = value;
+            eastl::string key{ eastl::string( string::Trim( line.substr( 0, colon ) ) ) };
+            eastl::string value{ eastl::string( string::Trim( line.substr( colon + 1 ) ) ) };
+            result.mHeaders[key] = value;
         }
 
         // Step 3: Handle body
-        auto itTE = result.Headers.find( "Transfer-Encoding" );
-        auto itCL = result.Headers.find( "Content-Length" );
+        auto itTE{ result.mHeaders.find( "Transfer-Encoding" ) };
+        auto itCL{ result.mHeaders.find( "Content-Length" ) };
 
-        if ( itTE != result.Headers.end() && itTE->second == "chunked" ) {
+        if ( itTE != result.mHeaders.end() && itTE->second == "chunked" ) {
             // Chunked transfer encoding
-            std::string body;
+            eastl::string body{};
             while ( !response.empty() ) {
                 // Read chunk size line
-                size_t lineEnd = response.find( "\r\n" );
-                if ( lineEnd == std::string_view::npos )
-                    throw std::runtime_error( "Malformed chunked encoding" );
+                size_t lineEnd{ response.find( "\r\n" ) };
+                if ( lineEnd == eastl::string_view::npos ) {
+                    MKT_THROW_RUNTIME_ERROR( "Malformed chunked encoding" );
+                }
 
-                std::string line( response.substr( 0, lineEnd ) );
+                eastl::string line( response.substr( 0, lineEnd ) );
                 response.remove_prefix( lineEnd + 2 );
 
-                size_t chunkSize = std::stoul( line, nullptr, 16 );
+                size_t chunkSize{ std::stoul( line.c_str(), nullptr, 16 ) };
                 if ( chunkSize == 0 )
                     break;// last chunk
 
-                if ( response.size() < chunkSize + 2 )
-                    throw std::runtime_error( "Chunk size exceeds remaining data" );
+                if ( response.size() < chunkSize + 2 ) {
+                    MKT_THROW_RUNTIME_ERROR( "Chunk size exceeds remaining data" );
+                }
 
-                body.append( response.substr( 0, chunkSize ) );
+                body = string::Format( "{}", response.substr( 0, chunkSize ) );
                 response.remove_prefix( chunkSize + 2 );// skip \r\n after chunk
             }
-            result.Body = std::move( body );
+            result.mBody = std::move( body );
 
-        } else if ( itCL != result.Headers.end() ) {
+        } else if ( itCL != result.mHeaders.end() ) {
             // Content-Length present
-            size_t contentLength = std::stoul( itCL->second );
-            if ( response.size() < contentLength )
-                throw std::runtime_error( "Content-Length exceeds remaining data" );
+            size_t contentLength = std::stoul( itCL->second.c_str() );
+            if ( response.size() < contentLength ) {
+                MKT_THROW_RUNTIME_ERROR( "Content-Length exceeds remaining data" );
+            }
 
-            result.Body = std::string( response.substr( 0, contentLength ) );
+            result.mBody = eastl::string( response.substr( 0, contentLength ) );
 
         } else {
             // Neither Transfer-Encoding nor Content-Length → read till EOF
-            result.Body = std::string( response );
+            result.mBody = eastl::string( response );
         }
 
         return result;
     }
 
-    auto GetHost( std::string_view url ) -> std::pair<std::string, std::optional<std::string>> {
+    auto GetHost( eastl::string_view url ) -> eastl::pair<eastl::string, eastl::optional<eastl::string>> {
         // Regex pattern for URL: scheme://host[:port][/...]
         static const std::regex pattern(R"(^(?:https?:\/\/)?([^\/:]+)(?::(\d+))?.*$)",std::regex::icase);
+
         std::smatch match{};
-        const std::string urlTarget{ url };
+        const std::string urlTarget{ url.data() };
 
         if (std::regex_match(urlTarget, match, pattern)) {
-            std::string host = match[1].str();
+            std::string host{ match[1].str() };
             std::optional<std::string> port{};
+
             if (match[2].matched) {
                 port = match[2].str();
             }
 
-            return {host, port};
+            return { host.c_str(), port->data() };
         }
 
         // Fallback: not a full URL, just a host
-        return std::make_pair( urlTarget, std::optional<std::string>() );
+        return eastl::make_pair( urlTarget.c_str(), eastl::optional<eastl::string>() );
     }
 
-    auto GetHttpBody( std::string_view apiResponse ) -> std::string {
+    auto GetHttpBody( eastl::string_view apiResponse ) -> eastl::string {
         try {
             auto parsed = ParseHttpResponse( apiResponse );
-            return parsed.Body;
+            return parsed.mBody;
         } catch ( const std::exception& e ) {
             // Optional: handle parsing errors
             // For now, return empty string on failure
@@ -133,7 +145,7 @@ namespace Mikoto {
         }
     }
 
-    auto GetHttpResponse( std::string_view apiResponse ) -> HttpResponse {
+    auto GetHttpResponse( eastl::string_view apiResponse ) -> HttpResponse {
         try {
             auto parsed = ParseHttpResponse( apiResponse );
             return parsed;
@@ -144,11 +156,11 @@ namespace Mikoto {
         }
     }
 
-    auto HttpResponse::IsStatus( std::string_view status ) const -> bool {
-        return Status == status;
+    auto HttpResponse::IsStatus( eastl::string_view status ) const -> bool {
+        return mStatus == status;
     }
 
     auto HttpResponse::IsStatusOK() const -> bool {
-        return Status == "200";
+        return mStatus == "200";
     }
 }// namespace Mikoto::Network

@@ -15,19 +15,18 @@
 #ifndef MIKOTO_MEMORY_SERVICE_HH
 #define MIKOTO_MEMORY_SERVICE_HH
 
-#include <Common/Common.hh>
-#include <Common/Service.hh>
-#include <Common/Singleton.hh>
-#include <Library/Utility/Types.hh>
-#include <Memory/HeapAllocator.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
 
-namespace Mikoto {
+namespace mikoto::memory {
 
     /**
     * @struct MemoryServiceCreateInfo
     * @brief Struct used for configuring and initializing a MemoryService instance.
     *
-    * This structure holds the configuration options for the `MemoryService`, specifically the initial amount of memory
+    * This structure holds the configuration option for the `MemoryService`, specifically the initial amount of memory
     * that should be allocated when the service is initialized. It provides a fluent interface for setting its properties.
     */
     struct MemoryServiceCreateInfo {
@@ -67,7 +66,7 @@ namespace Mikoto {
          *
          * This method is called to set up the memory system with the initial allocation.
          */
-        auto Init() -> void override;
+        auto Initialize() -> void override;
 
         /**
          * @brief Shuts down the MemoryService.

@@ -15,26 +15,24 @@
 #ifndef MIKOTO_EXECUTE_PROCESS_HH
 #define MIKOTO_EXECUTE_PROCESS_HH
 
-#include <string>
-#include <vector>
-#include <functional>
+#include <EASTL/functional.h>
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
 
-#include <Common/Common.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
-namespace Mikoto {
+namespace mikoto::core::process {
 
-    class ExecuteProcess final {
-    public:
-        using AsyncCallback = std::function<void( const std::string& )>;
+    using AsyncCallback = eastl::function<void( const eastl::string& )>;
 
-        static auto RunDetached(const std::string& command) -> int;
+    auto RunDetached(const eastl::string& command) -> int;
 
-        // Blocks the calling thread until it has finish reading from spawning process stdout
-        static auto Run(const std::string& command) -> std::string;
+    // Blocks the calling thread until it has finish reading from spawning process stdout
+    auto Run(const eastl::string& command) -> eastl::string;
 
-        // Runs asynchronously, for every line in the file from spawning process it runs the callback
-        static auto RunAsync(const std::string& command, AsyncCallback&& onOutput) -> void;
-    };
+    // Runs asynchronously, for every line in the file from spawning process it runs the callback
+    auto RunAsync(const eastl::string& command, AsyncCallback&& onOutput) -> void;
 
 } // namespace Mikoto
 

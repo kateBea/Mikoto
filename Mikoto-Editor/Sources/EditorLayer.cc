@@ -14,637 +14,218 @@
 
 #include <imgui.h>
 
-#include <Application/EditorApp.hh>
-#include <Application/EditorUtility.hh>
 #include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Event.hh>
+#include <Core/Profiler.hh>
+#include <Core/CoreEvents.hh>
+#include <Core/Exception.hh>
+#include <Core/InputSystem.hh>
+#include <Core/LocalizationService.hh>
+
+#include <Memory/Allocator.hh>
+
+#include <Assets/ImageProcessor.hh>
+
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
+
 #include <Layers/EditorLayer.hh>
-#include <Panels/Panels.hh>
-#include <Physics/PhysicService.hh>
-#include <Renderer/Core/DebugRenderer.hh>
-#include <Renderer/Core/RenderService.hh>
-#include <Scene/Component.hh>
+
+#include <Filesystem/FileWatcherService.hh>
+
+#include <Renderer/Core/RenderSystem.hh>
+
 #include <Scene/SceneManager.hh>
-#include <algorithm>
-#include <glm/gtc/type_ptr.hpp>
-#include <memory>
-#include <ranges>
 
-#include "Common/String.hh"
+#include <Panels/StatsPanel.hh>
+#include <Panels/ScenePanel.hh>
+#include <Panels/InspectorPanel.hh>
+#include <Panels/HierarchyPanel.hh>
+#include <Panels/SettingsPanel.hh>
+#include <Panels/RuntimeConsolePanel.hh>
+#include <Panels/ContentBrowserPanel.hh>
 
-#include <Renderer/Core/Buffer.hh>
-#include <Renderer/Core/RenderUtility.hh>
+namespace mikoto::editor {
 
-namespace Mikoto {
+    using namespace mikoto::gui;
+    using namespace mikoto::core;
+    using namespace mikoto::platform;
 
-    static auto ShowDockingDisabledMessage() -> void {
-        ImGuiIO &io{ ImGui::GetIO() };
-
-        ImGui::Text( "ERROR: Docking is not enabled! See Demo > Configuration." );
-        ImGui::Text( "Set io.ConfigFlags |= ImGuiConfigFlags_DockingEnable in your code" );
-        ImGui::SameLine( 0.0f, 0.0f );
-
-        if (ImGui::SmallButton( "Click here" )) {
-            io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        }
+    auto EditorState::GetPrefab( PrefabModelType model ) -> ModelHandle {
+        return mPrefabPaths[model];
     }
 
-    auto EditorState::IsEntityAnySelected() const -> bool {
-        return SelectedEntity != nullptr || !SelectedEntities.empty();
-    }
-    auto EditorState::IsEntitySelected( Entity *entity ) const -> bool {
-        return SelectedEntity != entity || SelectedEntities.contains( entity );
-    }
-
-    auto EditorState::GetSelectedEntity() const -> Entity * {
-        return SelectedEntity;
-    }
-
-    auto EditorState::GetSelectedEntities() const -> const ankerl::unordered_dense::set<Entity*> & {
-        return SelectedEntities;
-    }
-
-    auto EditorState::RegisterSelection( Entity *entity ) -> void {
-        SelectedEntity = entity;
-        SelectedEntity->GetComponent<HighlightComponent>().SetHighlighted( true );
-    }
-
-    auto EditorState::RemoveSingleSelection() -> void {
-        SelectedEntity = nullptr;
-    }
-
-    auto EditorState::RemoveSelections( const std::vector<Entity *> &list ) -> void {
-        // TODO:
-    }
-
-    auto EditorState::RegisterSelections( const std::vector<Entity *> &list ) -> void {
-        // TODO:
-    }
-
-    EditorLayer::EditorLayer( Window* window)
-        : ILayer{ "Editor Layer" }, m_Window{ window } {}
+    EditorLayer::EditorLayer( Window *window )
+        : ILayer{ "EditorLayer" }, mWindow{ window }
+    {}
 
     auto EditorLayer::OnCreate() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_EditorState = CreateScope<EditorState>();
+        InitEditorState();
 
-        SetupRenderer();
+        InitEmptyScene();
 
-        CreateCameras();
-        PrepareNewScene();
+        InitDockingSpace();
 
-        SetupEditorState();
-        CreatePanels();
+        InitAssets();
+        InitSceneRenderer();
 
-        LoadResources();
+        InitEditorCamera();
 
-        PreparePreviewTargets();
-    }
-    
-    auto EditorLayer::SetupRenderer() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        SceneRendererCreateInfo spec{};
-        spec.WithName( "Scene renderer" )
-            .WithDevice( RenderService::Get()->GetGpuDevice() );
-
-        m_SceneRenderer = SceneRenderer::Create( spec );
-        if (m_SceneRenderer) {
-            m_SceneRenderer->Init();
-        }
-
-        m_EditorState->EditorSceneRenderer = m_SceneRenderer.get();
-    }
-    
-    auto EditorLayer::SetupEditorState() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        m_EditorState->EditorCamera = m_EditorCamera.get();
-        m_EditorState->ActiveEditorScene = m_ActiveScene;
-        m_EditorState->FinalComposition = m_SceneRenderer->GetTexture( "Tonemap_ColorTarget" );
-        m_EditorState->SelectedEntity = m_ActiveScene->FindFirstByName( "Ground" );
-    }
-
-    auto EditorLayer::SetupPresentTarget( Event &event ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        // To store panels visibility state to restore later, when switching back to panel rendering
-        static std::unordered_map<Panel*, bool> panelsVisibilityState{};
-
-        if (const auto *keyPressed{ dynamic_cast<KeyPressedEvent *>( std::addressof( event ) ) }) {
-            if (keyPressed->GetKeyCode() == Key_F11) {
-                if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
-                    m_RenderScreenTarget = RenderScreenTarget::WINDOW;
-
-                    // Save panel visibility state before hiding them
-                    for ( const auto &panel: m_PanelRegistry | std::ranges::views::values ) {
-                        panelsVisibilityState[panel.get()] = panel->IsVisible();
-                    }
-                } else {
-                    m_RenderScreenTarget = RenderScreenTarget::PANEL;
-
-                    // Restore panel visibility state
-                    for ( const auto &panel: m_PanelRegistry | std::ranges::views::values ) {
-                        panel->SetVisible( panelsVisibilityState[panel.get()] );
-                    }
-                }
-
-                event.SetHandled( true );
-            }
-        }
-    }
-
-    auto EditorLayer::LoadResources() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-    }
-
-    auto EditorLayer::SetPresentTarget() -> void {
-        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
-            m_EditorState->RenderImage = ImGuiService::Get()->GetFinalComposition();
-        } else {
-            if (!m_EditorState->ShowWireframe) {
-                m_EditorState->RenderImage = m_EditorState->FinalComposition;
-            } else {
-                m_EditorState->RenderImage = m_EditorState->EditorSceneRenderer->GetTexture( "Wireframe_ColorTarget" );
-            }
-        }
-
-        RenderService::Get()->SetPresentTarget( m_EditorState->RenderImage );
-    }
-
-    auto EditorLayer::SimpleScene() -> void {
-        ModelLoadDescription descFirst{
-            .ModelFile{ FileService::Get()->LoadFile( "./Resources/Models/1 - Box texture/BoxTexture.obj" ) },
-            .WantTextures{ true }
-        };
-
-        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
-
-        // This emitting sounds
-        EntityCreateInfo groundDesc{
-            .Root{ nullptr },
-            .Name{ "Ground" },
-            .Model{ box }
-        };
-
-        if (Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) }) {
-            TransformComponent &transformComponent{ groundEntity->GetComponent<TransformComponent>() };
-            transformComponent.SetScale( { 100.0f, 0.5f, 100.00f } );
-            transformComponent.SetTranslation( { 0.0f, 0.0f, 0.0f } );
-
-            RigidBodyComponent &rigidBody{ groundEntity->AddComponent<RigidBodyComponent>() };
-            rigidBody.SetBodyType( RigidBodyComponent::BodyType::STATIC );
-
-            FontHandle font{ AssetsService::Get()->LoadAsset<Font>( Path{ "Resources/Fonts/Google_Sans_Code/GoogleSansCode-Italic-VariableFont_wght.ttf" } ) };
-
-            TextComponent &text{ groundEntity->AddComponent<TextComponent>() };
-            text.SetFont( font );
-        }
-
-        // First box
-        EntityCreateInfo boxDesc{
-            .Root{ nullptr },
-            .Name{ "FirstBox" },
-            .Model{ box }
-        };
-
-        if (Entity *boxEntity{ m_ActiveScene->CreateEntity( boxDesc ) }) {
-            boxEntity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player1.lua" );
-            TransformComponent &transformComponent{ boxEntity->GetComponent<TransformComponent>() };
-            transformComponent.SetTranslation( { 0.0f, 10.0f, 0.0f } );
-
-            RigidBodyComponent &rigidBody{ boxEntity->AddComponent<RigidBodyComponent>() };
-            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
-        }
-
-        // Second box
-        EntityCreateInfo box2Desc{
-            .Root{ nullptr },
-            .Name{ "SecondBox" },
-            .Model{ box }
-        };
-
-        if (Entity *box2Entity{ m_ActiveScene->CreateEntity( box2Desc ) }) {
-            box2Entity->AddComponent<ScriptComponent>( "Resources/Script-Examples/Player2.lua" );
-            TransformComponent &transformComponent{ box2Entity->GetComponent<TransformComponent>() };
-            transformComponent.SetTranslation( { 1.0f, 30.0f, 0.0f } );
-
-            RigidBodyComponent &rigidBody{ box2Entity->AddComponent<RigidBodyComponent>() };
-            rigidBody.SetBodyType( RigidBodyComponent::BodyType::DYNAMIC );
-        }
-
-        Entity *light{ m_ActiveScene->CreateEntity( "Light" ) };
-        if (light) {
-            LightComponent &lightComp{ light->AddComponent<LightComponent>() };
-            lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
-
-            auto &pointLightData{ lightComp.Get<PointLight>() };
-            pointLightData.SetIntensity( 112.81f );
-            pointLightData.SetRadius( 30.44f );
-
-            TransformComponent &transformComponent{ light->GetComponent<TransformComponent>() };
-            transformComponent.SetTranslation( { 0.0f, 4.0f, 0.0f } );
-        }
-    }
-
-    auto EditorLayer::DebugManyLightsTest() -> void {
-        // This is just to test clustered forward shading
-        // We generate an empty object and 'lightCount' lights in random positions attached to it
-        constexpr UInt32 lightCount{ 256 };
-        Entity* lightCluster{ m_ActiveScene->CreateEntity( "LightCluster" ) };
-        for (UInt32 count{}; count < lightCount; count++) {
-            if (Entity *clusteredLight{ m_ActiveScene->CreateEntity( lightCluster, fmt::format( "Light {}", count ) ) }) {
-                LightComponent &lightComp{ clusteredLight->AddComponent<LightComponent>() };
-                lightComp.SetActiveType( LightType::POINT_LIGHT_TYPE );
-
-                auto &pointLightData{ lightComp.Get<PointLight>() };
-                pointLightData.SetIntensity( 50.0f );
-                pointLightData.SetRadius( 15.0f );
-                pointLightData.SetColor( GetRandomizedVec3F(0.0f, 1.0f ) );
-
-                TransformComponent &transformComponent{ clusteredLight->GetComponent<TransformComponent>() };
-                transformComponent.SetTranslation( { GetRandomReal(-500.0f, 500.0f), 2.0f, GetRandomReal(-500.0f, 500.0f) } );
-
-                // Test heatmaps, by accumulating many lights into small area
-                // transformComponent.SetTranslation( { GetRandomReal(0, 10.0f), 2.0f, GetRandomReal(0, 15) } );
-            }
-        }
-    }
-
-    auto EditorLayer::DebugSpheresProperties() -> void {
-        ModelHandle sphere{ AssetsService::Get()->LoadAsset<Model>( EditorApp::GetPrefabUri( PrefabModels::SPHERE ) ) };
-
-        Entity *root{ m_ActiveScene->CreateEntity( "InstancingGridSpheres" ) };
-
-        EntityCreateInfo info{
-            .Root{ root },
-            .Model{ sphere }
-        };
-
-        constexpr UInt32 gridSize{ 5 };// gridSize * gridSize spheres
-        constexpr float spacing{ 30.0f };// Distance between spheres
-
-        for (UInt32 x{}; x < gridSize; ++x) {
-            for ( UInt32 y{}; y < gridSize; ++y ) {
-
-                info.Name = fmt::format( "Sphere_{}_{}", x, y );
-
-                if ( Entity * e{ m_ActiveScene->CreateEntity( info ) } ) {
-                    auto &t{ e->GetComponent<TransformComponent>() };
-                    t.SetTranslation(
-                            { static_cast<float>( x ) * spacing,
-                              static_cast<float>( y ) * spacing, 0.0f } );
-                    auto& pbr{ e->GetComponent<MaterialComponent>() };
-
-                    PhysicalMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PhysicalMaterial>() };
-                    if (pbrMat) {
-                        pbrMat->SetAlphaMaskCutoff( 1.0f );
-                        pbrMat->SetMetallicFactor( static_cast<float>( x ) / static_cast<float>( gridSize - 1 ) );
-                        pbrMat->SetRoughnessFactor( static_cast<float>( y ) / static_cast<float>( gridSize - 1 ) );
-                    }
-                }
-                
-            }
-        }
-    }
-        
-    auto EditorLayer::DebugInstancingTest() -> void {
-        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( "Resources/Models/1 - Box texture/Box.gltf" ) };
-
-        constexpr UInt32 gridSize{ 40 }; // gridSize * gridSize cubes
-        constexpr float spacing{ 15.0f }; // Distance between cubes
-
-        Entity *root{ m_ActiveScene->CreateEntity( "InstancingGridBoxes" ) };
-
-        EntityCreateInfo info{
-            .Root{ root },
-            .Name{ "" },
-            .Model{ box }
-        };
-        
-        for ( UInt32 x{}; x < gridSize; ++x ) {
-            for ( UInt32 y{}; y < gridSize; ++y ) {
-                for ( UInt32 z{}; z < gridSize; ++z ) {
-
-                    info.Name = fmt::format( "Cube_{}_{}_{}", x, y, z );
-
-                    if ( Entity * e{ m_ActiveScene->CreateEntity( info ) } ) {
-                        auto &t{ e->GetComponent<TransformComponent>() };
-                        t.SetTranslation(
-                                { static_cast<float>( x ) * spacing,
-                                  static_cast<float>( y ) * spacing,
-                                  static_cast<float>( z ) * spacing } );
-
-                        auto &pbr{ e->GetComponent<MaterialComponent>() };
-                        PhysicalMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PhysicalMaterial>() };
-                        if ( pbrMat ) {
-                            pbrMat->SetAlphaMaskCutoff( 1.0f );
-                            pbrMat->SetColor( Vec4F{ GetRandomizedVec3F( 0.0f, 1.0f ), 1.0f } );
-                        }
-                    }
-
-                }
-            }
-        }
-    }
-    
-    auto EditorLayer::DebugDamagedHelmet() -> void {
-        ModelLoadDescription descFirst{
-            .ModelFile{ FileService::Get()->LoadFile( "Resources/Models/9 - Helmet/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf" ) },
-            .WantTextures{ true }
-        };
-
-        ModelHandle box{ AssetsService::Get()->LoadAsset<Model>( descFirst ) };
-
-        // This emitting sounds
-        EntityCreateInfo groundDesc{
-            .Root{ nullptr },
-            .Name{ "Helmet" },
-            .Model{ box }
-        };
-
-        if (Entity *groundEntity{ m_ActiveScene->CreateEntity( groundDesc ) }) {
-        }
-
-        if (Entity *light{ m_ActiveScene->CreateEntity( "Directional Light" ) }) {
-            LightComponent &lightComp{ light->AddComponent<LightComponent>() };
-            lightComp.SetActiveType( LightType::DIRECTIONAL_LIGHT_TYPE );
-
-            auto &direLightInfo{ lightComp.Get<DirectionalLight>() };
-            direLightInfo.SetIntensity( 10.0f );
-        }
+        InitEditorPanels();
     }
 
     auto EditorLayer::OnDestroy() -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        m_EditorState = nullptr;
-
-        m_ActiveScene = nullptr;
-
-        m_EditorCamera = nullptr;
-
-        m_SceneRenderer->Shutdown();
-        m_SceneRenderer = nullptr;
-
-        m_PanelRegistry.Clear();
     }
 
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        PrepareCamera( timeStep );
-        PrepareRenderer( timeStep );
+        UpdateCameraState( timeStep );
+        UpdateRendererState( timeStep );
+        UpdateSceneState( timeStep );
 
-        m_ActiveScene->SetState( SceneState::IDLE );
-        m_ActiveScene->Update( timeStep );
+        RenderScene( timeStep );
 
-        m_SceneRenderer->Render( m_ActiveScene );
-
-        UpdateDockSpace();
-
-        // Panels must appear after dock space
-        // so they can become part of it
-        UpdatePanels( timeStep );
-
-        SetPresentTarget();
+        ShowDockSpace();
+        ShowDockSpacePanels( timeStep );
     }
 
     auto EditorLayer::OnEvent( Event &event ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if (event.IsType( EventType::KEY_PRESSED_EVENT )) {
-            SetupPresentTarget( event );
-        }
-    }
+        if (event.IsType( EventType::MOUSE_BUTTON_PRESSED_EVENT )) {
+            auto* scenePanel{ mPanelRegistry.Get<ScenePanel>() };
+            auto* mouseButtongEvent{ as<MouseButtonPressedEvent*>(MKT_ADDRESSOF( event )) };
 
-    auto EditorLayer::UpdatePanels( const float timeStep ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        for (const auto &panel: m_PanelRegistry | std::ranges::views::values) {
-            panel->OnUpdate( timeStep );
-        }
-    }
-
-    auto EditorLayer::SaveScene() const -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-        SceneManager::Get()->SaveToDisk( m_ActiveScene );
-    }
-
-    auto EditorLayer::LoadScene() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        // use the scene manager to add this loaded scene
-    }
-
-    auto EditorLayer::SaveProject() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-    }
-
-    auto EditorLayer::OpenProject() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-    }
-
-    auto EditorLayer::CreateProject() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-    }
-
-    auto EditorLayer::HandleWindowScreenMode() const -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        if (!m_Window->IsMaximized()) {
-            m_Window->SetScreenMode( ScreenMode::WINDOW_MODE_FULLSCREEN );
-        } else {
-            m_Window->SetScreenMode( ScreenMode::WINDOW_MODE_WINDOWED );
-        }
-    }
-
-    auto EditorLayer::SetRendererResolution() const -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        if (ImGui::BeginMenu( "Resolution" )) {
-            if ( ImGui::MenuItem( "HD - 720p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::HD_720P)) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::HD_720P );
+            if (mouseButtongEvent->GetMouseButton() == Mouse_Button_Right && scenePanel && scenePanel->IsHovered() ) {
+                if (!mWindow->IsCursorMode( CursorMode::eDisabled )) {
+                    mWindow->SetCursorMode( CursorMode::eDisabled );
+                }
             }
+        }
 
-            if ( ImGui::MenuItem( "FHD - 1080p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::FHD_1080)) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::FHD_1080 );
+        if (event.IsType( EventType::MOUSE_BUTTON_RELEASED_EVENT )) {
+            auto* mouseButtongEvent{ as<MouseButtonReleasedEvent*>(MKT_ADDRESSOF( event )) };
+
+            if (mouseButtongEvent->GetMouseButton() == Mouse_Button_Right) {
+                mWindow->SetCursorMode( CursorMode::eNormal );
             }
-
-            if ( ImGui::MenuItem( "QHD - 1440p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::QHD_1440P)) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::QHD_1440P );
-            }
-
-            if ( ImGui::MenuItem( "UHD - 2160p", nullptr, m_SceneRenderer->IsRenderResolution(RenderResolution::UHD_3120P)) ) {
-                m_SceneRenderer->SetRenderResolution( RenderResolution::UHD_3120P );
-            }
-
-            ImGui::EndMenu();
         }
     }
 
-    auto EditorLayer::PrepareCamera( double timeStep ) -> void {
+    auto EditorLayer::InitAssets() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        SettingsPanel *settingsPanel{ m_PanelRegistry.Get<SettingsPanel>() };
-        const auto &configuration{ settingsPanel->GetData() };
-
-        m_EditorCamera->SetMovementSpeed( configuration.EditorCameraMovementSpeed );
-        m_EditorCamera->SetRotationSpeed( configuration.EditorCameraRotationSpeed );
-
-        m_EditorCamera->SetFarPlane( configuration.FarPlane );
-        m_EditorCamera->SetNearPlane( configuration.NearPlane );
-
-        m_EditorCamera->WantRotation( configuration.WantXAxisRotation, configuration.WantYAxisRotation );
-
-        m_EditorCamera->SetFieldOfView( configuration.FieldOfView );
-
-        // Set viewport to the currently active window we can either expand
-        // the final composition to occupy the whole screen or just an ImGui viewport
-        ScenePanel *scenePanel{ m_PanelRegistry.Get<ScenePanel>() };
-        if (m_RenderScreenTarget == RenderScreenTarget::PANEL) {
-            m_EditorCamera->SetViewportSize( scenePanel->GetWidth(), scenePanel->GetHeight() );
-        } else {
-            m_EditorCamera->SetViewportSize( m_Window->GetWidth(), m_Window->GetHeight() );
-        }
-
-        if (InputService::Get()->IsMouseKeyPressed( Mouse_Button_Right ) && (scenePanel->IsHovered() || m_RenderScreenTarget == RenderScreenTarget::WINDOW)) {
-            m_EditorCamera->EnableCamera( true );
-
-            if (!m_Window->IsCursorMode( CursorMode::DISABLED )) {
-                m_Window->SetCursorMode( CursorMode::DISABLED );
-            }
-
-        } else {
-            m_Window->SetCursorMode( CursorMode::NORMAL );
-            m_EditorCamera->EnableCamera( false );
-        }
-
-        // Camera target
-        m_EditorCamera->LockCameraToTarget( configuration.LockCameraToTarget );
-
-        if (configuration.LockCameraToTarget && m_EditorState->SelectedEntity) {
-            auto& transformComp{ m_EditorState->SelectedEntity->GetComponent<TransformComponent>() };
-            m_EditorCamera->SetCameraTarget( transformComp.GetTranslation() );
-        }
-
-        m_EditorCamera->Update( timeStep );
-    }
-
-    auto EditorLayer::PreparePreviewTargets() -> void {
-        m_EditorState->PassesCompositions.try_emplace( "1. Triangle", m_SceneRenderer->GetTexture( "HelloTriangle_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "2. Texture2D", m_SceneRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "3. BRDF LUT", m_SceneRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "5. ShadowMap", m_SceneRenderer->GetTexture( "DirectionalShadowMapPass_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "6. Bloom", m_SceneRenderer->GetTexture( "BloomBlend_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "7. Gradient", m_SceneRenderer->GetTexture( "ColorGradient_ColorTarget" ) );
-        m_EditorState->PassesCompositions.try_emplace( "8. Chroma", m_SceneRenderer->GetTexture( "ChromaticAberration_ColorTarget" ) );
-    }
-
-    auto EditorLayer::CreatePanels() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        StatsPanelCreateInfo statsCreateInfo{};
-        statsCreateInfo.State = m_EditorState.get();
-        m_PanelRegistry.Register<StatsPanel>( statsCreateInfo );
-
-        ConsolePanelCreateInfo consoleCreateInfo{};
-        consoleCreateInfo.State = m_EditorState.get();
-        m_PanelRegistry.Register<ConsolePanel>( consoleCreateInfo );
-
-        ScenePanelCreateInfo scenePanelCreateInfo{
-            .Width = static_cast<UInt32>( m_Window->GetWidth() ),
-            .Height = static_cast<UInt32>( m_Window->GetHeight() ),
-            .DisplayTarget = m_EditorState->FinalComposition,
-            .State = m_EditorState.get()
+        ankerl::unordered_dense::map<PrefabModelType, eastl::string_view> modelPaths{
+            { PrefabModelType::eCube, "Resources/Models/Prefabs/cube/gltf/scene.gltf" },
+            { PrefabModelType::eCone, "Resources/Models/Prefabs/cone/gltf/scene.gltf" },
+            { PrefabModelType::eSphere, "Resources/Models/Prefabs/sphere/gltf/scene.gltf" },
+            { PrefabModelType::eCylinder, "Resources/Models/Prefabs/cylinder/gltf/scene.gltf" },
         };
 
-        m_PanelRegistry.Register<ScenePanel>( scenePanelCreateInfo );
+        // So each thread writes to its own slot, need to double check
+        for ( const auto &[type, path]: modelPaths ) {
+            mEditorState->mPrefabPaths[type] = ModelHandle::CreateEmpty();
+        }
 
-        SettingsPanelCreateInfo settingsPanelCreateInfo{};
-        settingsPanelCreateInfo.State = m_EditorState.get();
-
-        m_PanelRegistry.Register<SettingsPanel>( settingsPanelCreateInfo );
-
-        ContentBrowserPanelDescription contentsBrowserPanelCreateInfo{};
-        contentsBrowserPanelCreateInfo.Device = RenderService::Get()->GetGpuDevice();
-        contentsBrowserPanelCreateInfo.State = m_EditorState.get();
-        m_PanelRegistry.Register<ContentBrowserPanel>( contentsBrowserPanelCreateInfo );
-
-        HierarchyPanelCreateInfo hierarchyPanelCreateInfo{};
-        hierarchyPanelCreateInfo.State = m_EditorState.get();
-        m_PanelRegistry.Register<HierarchyPanel>( hierarchyPanelCreateInfo );
-
-        InspectorPanelCreateInfo inspectorPanelCreateInfo{};
-        inspectorPanelCreateInfo.State = m_EditorState.get();
-        m_PanelRegistry.Register<InspectorPanel>( inspectorPanelCreateInfo );
-
-        AssetsPanelDescription assetsPanelDescription{};
-        assetsPanelDescription.State = m_EditorState.get();
-        m_PanelRegistry.Register<AssetsPanel>( assetsPanelDescription );
-
-        PassVisualizerDescription passVisualizerDescription{};
-        passVisualizerDescription.State = m_EditorState.get();
-        auto* passVisualizer{ m_PanelRegistry.Register<PassVisualizerPanel>( passVisualizerDescription ) };
-        passVisualizer->SetVisible( false );
-
-        LightingDebugPanelCreateInfo lightingDebugPanelCreateInfo{};
-        lightingDebugPanelCreateInfo.State = m_EditorState.get();
-        m_PanelRegistry.Register<LightingDebugPanel>( lightingDebugPanelCreateInfo );
-
-        ScenePropertiesPanelCreateInfo scenePropertiesPanel{};
-        scenePropertiesPanel.State = m_EditorState.get();
-        m_PanelRegistry.Register<ScenePropertiesPanel>( scenePropertiesPanel );
-
-        RendererPanelCreateInfo rendererPanelCreateInfo{};
-        rendererPanelCreateInfo.State = m_EditorState.get();
-        m_PanelRegistry.Register<RendererPanel>( rendererPanelCreateInfo );
-
-        LightingPanelCreateInfo lightingPanelCreateInfo{};
-        lightingPanelCreateInfo.State = m_EditorState.get();
-        m_PanelRegistry.Register<LightingPanel>( lightingPanelCreateInfo );
+        threading::TaskService::Get()->ParallelFor(modelPaths,
+            [&](const PrefabModelType& type, const Path& path) -> void {
+            mEditorState->mPrefabPaths[type] = AssetsService::Get()->LoadAsset<Model>( path );
+        });
     }
 
-    auto EditorLayer::CreateCameras() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+    auto EditorLayer::InitEditorState() -> void {
+        mEditorState = eastl::make_unique<EditorState>();
+    }
 
-        constexpr float nearPlane{ 0.1f };
-        constexpr float farPlane{ 1000.0f };
-        constexpr float fov{ 45.0f };
-        const float aspectRatio{ static_cast<float>( m_Window->GetWidth() ) / static_cast<float>( m_Window->GetHeight() ) };
+    auto EditorLayer::InitSceneRenderer() -> void {
+        SceneRendererCreateInfo spec{};
+        spec.WithName( "Scene renderer" )
+            .WithDevice( RenderSystem::Get()->GetGpuDevice() );
+
+        mSceneRenderer = SceneRenderer::Create( spec );
+
+        if (mSceneRenderer) {
+            mSceneRenderer->Init();
+        }
+
+        mEditorState->mSceneRenderer = mSceneRenderer.get();
+    }
+
+    auto EditorLayer::InitEditorCamera() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
         SceneCameraDescription cameraDescription{
-            .Fov{ 45.0 },
-            .AspectRatio{ static_cast<float>( m_Window->GetWidth() ) / static_cast<float>( m_Window->GetHeight() ) },
-            .NearPlane{ 0.1f },
-            .FarPlane{ 3000.0f },
-            .TargetWindow{ m_Window }
+            .mFov = 45.0,
+            .mAspectRatio = as<float>( mWindow->GetWidth() ) / as<float>( mWindow->GetHeight() ),
+            .mNearPlane = 0.1f,
+            .mFarPlane = 3000.0f,
+            .mWindow = mWindow
         };
 
-        m_EditorCamera = CreateScope<SceneCamera>( cameraDescription );
+        mEditorCamera = eastl::make_unique<SceneCamera>( cameraDescription );
+        mEditorState->mActiveCamera = mEditorCamera.get();
     }
 
-    auto EditorLayer::UpdateDockSpace() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+    auto EditorLayer::InitEditorPanels() -> void {
+        // Stats panel
+        StatsPanelCreateInfo statsCreateInfo{
+            .mState = mEditorState.get(),
+        };
+        mPanelRegistry.Register<StatsPanel>( statsCreateInfo );
 
-        // If you strip some features of, this demo is pretty much equivalent to calling DockSpaceOverViewport()!
-        // In most cases you should be able to just call DockSpaceOverViewport() and ignore all the code below!
-        // In this specific demo, we are not using DockSpaceOverViewport() because:
-        // - we allow the host window to be floating/moveable instead of filling the viewport (when opt_fullscreen == false)
-        // - we allow the host window to have padding (when optPadding == true)
-        // - we have a local menu bar in the host window (vs. you could use BeginMainMenuBar() + DockSpaceOverViewport() in your code!)
-        // TL;DR; this demo is more complicated than what you would normally use.
-        // If we removed all the options we are showcasing, this demo would become:
-        //     void ShowExampleAppDockSpace()
-        //     {
-        //         ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-        //     }
+        // Console runtime panel
+        RuntimeConsolePanelCreateInfo consoleCreateInfo{
+            .mState = mEditorState.get(),
+        };
+        mPanelRegistry.Register<RuntimeConsolePanel>( consoleCreateInfo );
+
+        // Scene viewport panel
+        ScenePanelCreateInfo scenePanelCreateInfo{
+            .mState = mEditorState.get(),
+            .mImage = TextureHandle::CreateEmpty(),
+        };
+        mPanelRegistry.Register<ScenePanel>( scenePanelCreateInfo );
+
+        // Inspector panel
+        InspectorPanelCreateInfo inspectorPanelCreateInfo{};
+        inspectorPanelCreateInfo.mState = mEditorState.get();
+        mPanelRegistry.Register<InspectorPanel>( inspectorPanelCreateInfo );
+
+        // Hierarchy panel
+        HierarchyPanelCreateInfo hierarchyPanelCreateInfo{};
+        hierarchyPanelCreateInfo.mState = mEditorState.get();
+        mPanelRegistry.Register<HierarchyPanel>( hierarchyPanelCreateInfo );
+
+        // Settings panel
+        SettingsPanelCreateInfo settingsPanelCreateInfo{};
+        settingsPanelCreateInfo.mState = mEditorState.get();
+
+        mPanelRegistry.Register<SettingsPanel>( settingsPanelCreateInfo );
+
+        // Content browser
+        ContentBrowserPanelDescription contentsBrowserPanelCreateInfo{};
+        contentsBrowserPanelCreateInfo.mDevice = RenderSystem::Get()->GetGpuDevice();
+        contentsBrowserPanelCreateInfo.mState = mEditorState.get();
+        contentsBrowserPanelCreateInfo.mProjectBasePath = ".";
+        contentsBrowserPanelCreateInfo.mResourcesBasePath = "Resources";
+        mPanelRegistry.Register<ContentBrowserPanel>( contentsBrowserPanelCreateInfo );
+    }
+
+    auto EditorLayer::InitDockingSpace() -> void {
+        //https://github.com/ocornut/imgui/wiki/Docking
+    }
+
+    auto EditorLayer::InitEmptyScene() -> void {
+        mEditorState->mActiveScene = SceneManager::Get()->CreateScene( "Scene" );
+    }
+
+    auto EditorLayer::ShowDockSpace() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
         constexpr auto optPadding{ false };
         constexpr ImGuiDockNodeFlags dockSpaceConfigFlags{ ImGuiDockNodeFlags_None };
@@ -678,7 +259,7 @@ namespace Mikoto {
             ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
         }
 
-        ImGui::Begin( "DockSpace Demo", std::addressof( m_EditorState->ApplicationCloseFlag ), windowFlags );
+        ImGui::Begin( "EditorDockSpace", nullptr, windowFlags );
 
         if constexpr (!optPadding) {
             ImGui::PopStyleVar();
@@ -688,79 +269,62 @@ namespace Mikoto {
         ImGui::PopStyleVar( 2 );
 
         // Submit the DockSpace
-        const ImGuiIO &io{ ImGui::GetIO() };
+        ImGuiIO &io{ ImGui::GetIO() };
         ImGuiStyle &style{ ImGui::GetStyle() };
         style.WindowMinSize.x = 450;
 
         // minimum imgui windows width to avoid making them flat
         const float minimumPanelsWidth{ style.WindowMinSize.x };
         if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
-            const ImGuiID dockSpaceId = ImGui::GetID( "MikotoDockEditor" );
+            // https://github.com/ocornut/imgui/wiki/Docking
+            ImGuiID dockSpaceId{ ImGui::GetID( "MikotoDockEditor" ) };
             ImGui::DockSpace( dockSpaceId, ImVec2( 0.0f, 0.0f ), dockSpaceConfigFlags );
-        } else {
-            ShowDockingDisabledMessage();
         }
 
         style.WindowMinSize.x = minimumPanelsWidth;
 
-        ImGuiUtils::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
-        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f } };
-        ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
+        ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
+        ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f } };
+        ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
 
         if (ImGui::BeginMenuBar()) {
             ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
 
-            if (ImGui::BeginMenu( "File" )) {
+            if (ImGui::BeginMenu( MKT_LOC( "menu_file" ).c_str() )) {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
 
-                if (ImGui::MenuItem( "New scene", "Ctrl + N" )) { InitializeEmptyScene( "Empty scene" ); }
-                if (ImGui::MenuItem( "Open scene", "Ctrl + L" )) { LoadScene(); }
-                if (ImGui::MenuItem( "Save scene", "Ctrl + S" )) { SaveScene(); }
+                if (ImGui::MenuItem( MKT_LOC( "new_scene" ).c_str(), "Ctrl + N" )) {}
+                if (ImGui::MenuItem( MKT_LOC( "open_scene" ).c_str(), "Ctrl + L" )) {}
+                if (ImGui::MenuItem( MKT_LOC( "save_scene" ).c_str(), "Ctrl + S" )) {}
 
                 ImGui::Separator();
-                if (ImGui::MenuItem( "New project", "Ctrl + P" )) { CreateProject(); }
-                if (ImGui::MenuItem( "Open project", "Ctrl + P" )) { OpenProject(); }
-                if (ImGui::MenuItem( "Save project", "Ctrl + G" )) { SaveProject(); }
+                if (ImGui::MenuItem( MKT_LOC( "new_project" ).c_str(), "Ctrl + P" )) {}
+                if (ImGui::MenuItem( MKT_LOC( "open_project" ).c_str(), "Ctrl + P" )) {}
+                if (ImGui::MenuItem( MKT_LOC( "save_project" ).c_str(), "Ctrl + G" )) {}
 
                 ImGui::Separator();
-
-                if (ImGui::BeginMenu( "Manipulation Mode" )) {
-                    if (ImGui::MenuItem( "Translate", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::TRANSLATION )) {
-                        m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::TRANSLATION;
-                    }
-
-                    if (ImGui::MenuItem( "Rotate", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::ROTATION )) {
-                        m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::ROTATION;
-                    }
-
-                    if (ImGui::MenuItem( "Scale", nullptr, m_EditorState->Manipulation == ImGuiUtils::GuizmoManipulationMode::SCALE )) {
-                        m_EditorState->Manipulation = ImGuiUtils::GuizmoManipulationMode::SCALE;
-                    }
-
-                    ImGui::EndMenu();
-                }
 
                 // Screen mode
                 static std::string screenMode{};
 
-                screenMode = m_Window->IsMaximized() ? "Windowed" : "Fullscreen";
+                screenMode = mWindow->IsMaximized() ? "Windowed" : "Fullscreen";
                 if (ImGui::MenuItem( screenMode.c_str(), "Windows + H" )) {
-                    HandleWindowScreenMode();
+
                 }
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem( "Close", nullptr, false )) {
-                    m_EditorState->ApplicationCloseFlag = true;
+                if (ImGui::MenuItem( MKT_LOC( "menu_close" ).c_str(), nullptr, false )) {
+
                 }
 
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu( "Window" )) {
-                if (ImGui::BeginMenu( "Panels" )) {
-                    for (auto& panel : m_PanelRegistry | std::ranges::views::values) {
+            if (ImGui::BeginMenu( MKT_LOC( "menu_window" ).c_str() )) {
+                if (ImGui::BeginMenu( MKT_LOC( "menu_panels" ).c_str() )) {
+                    for (auto& panel : mPanelRegistry | std::ranges::views::values) {
                         bool isActive{ panel->IsVisible() };
 
                         if (ImGui::MenuItem( panel->GetName().data(), nullptr, std::addressof( isActive ) )) {
@@ -771,8 +335,10 @@ namespace Mikoto {
                     ImGui::EndMenu();
                 }
 
-                if (ImGui::BeginMenu( "Theme" )) {
-                    if (ImGui::MenuItem( "Classic" )) { ImGui::StyleColorsClassic(); }
+                if (ImGui::BeginMenu( MKT_LOC( "menu_theme" ).c_str() )) {
+                    if (ImGui::MenuItem( "Classic" )) {
+                        ImGui::StyleColorsClassic();
+                    }
                     if (ImGui::MenuItem( "Dark Default" )) {
                         ImGui::StyleColorsDark();
                         ImGuiService::Get()->SetThemeDarkModeDefault();
@@ -781,8 +347,12 @@ namespace Mikoto {
                         ImGui::StyleColorsDark();
                         ImGuiService::Get()->SetThemeDarkModeAlt();
                     }
-                    if (ImGui::MenuItem( "Focused" )) { ImGui::StyleColorsDark(); }
-                    if (ImGui::MenuItem( "Blindness" )) { ImGui::StyleColorsLight(); }
+                    if (ImGui::MenuItem( "Focused" )) {
+                        ImGui::StyleColorsDark();
+                    }
+                    if (ImGui::MenuItem( "Blindness" )) {
+                        ImGui::StyleColorsLight();
+                    }
 
                     ImGui::EndMenu();
                 }
@@ -790,7 +360,7 @@ namespace Mikoto {
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu( "Language" )) {
+            if (ImGui::BeginMenu( MKT_LOC( "menu_language" ).c_str() )) {
                 static constexpr std::array languages{
                     ISOLanguage::EN_US,
                     ISOLanguage::EN_GB,
@@ -816,46 +386,22 @@ namespace Mikoto {
                 ImGui::EndMenu();
             }
 
-            if ( ImGui::BeginMenu( "Tools" ) ) {
+            if ( ImGui::BeginMenu( MKT_LOC( "menu_tools" ).c_str() ) ) {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
-
-                SetRendererResolution();
 
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu( "Help" )) {
-                constexpr ImGuiPopupFlags popUpFlags{ ImGuiPopupFlags_None };
-
-                if (ImGui::MenuItem( "About" )) { ImGui::OpenPopup( "About", popUpFlags ); }
-
-                // Always center this window when appearing
-                const ImVec2 center{ ImGui::GetMainViewport()->GetCenter() };
-                ImGui::SetNextWindowPos( center, ImGuiCond_Appearing, ImVec2( 0.5f, 0.5f ) );
-
-                if (ImGui::BeginPopupModal( "About", nullptr, ImGuiWindowFlags_AlwaysAutoResize )) {
-                    ImGui::Text(
-                            "Mikoto is an open source 3D graphics\n"
-                            "engine currently on development.\n"
-                            "\nContributors:\n"
-                            "kateBea: github.com/kateBea" );
-
-                    ImGui::Separator();
-
-                    if (ImGui::Button( "Accept", ImVec2{ 120, 0 } )) { ImGui::CloseCurrentPopup(); }
-
-                    ImGui::SetItemDefaultFocus();
-                    ImGui::EndPopup();
-                }
+            if (ImGui::BeginMenu( MKT_LOC( "menu_about" ).c_str() )) {
 
                 ImGui::EndMenu();
             }
 
 #if !defined(NDEBUG)
-            ImGui::TextUnformatted( StringUtil::Format(" | Build type [DEBUG]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
+            ImGui::TextUnformatted( string::Format(" | Build type [DEBUG]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
 #else
-            ImGui::TextUnformatted( StringUtil::Format( " | Build type [RELEASE]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
+            ImGui::TextUnformatted( string::Format( " | Build type [RELEASE]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
 #endif
 
             ImGui::EndMenuBar();
@@ -865,36 +411,68 @@ namespace Mikoto {
         ImGui::End();
     }
 
-    auto EditorLayer::PrepareNewScene() -> void {
+    auto EditorLayer::ShowDockSpacePanels( float ts ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        constexpr std::string_view sceneDefaultName{ "Sandbox" };
-        InitializeEmptyScene( sceneDefaultName );
+        for (const auto &panel: mPanelRegistry | std::ranges::views::values) {
+            panel->OnUpdate( ts );
+        }
     }
 
-    auto EditorLayer::InitializeEmptyScene( const std::string_view name ) -> void {
+    auto EditorLayer::RenderScene( float ) -> void {
+        mSceneRenderer->Render( mEditorState->mActiveScene );
+    }
+
+    auto EditorLayer::UpdateSceneState( float ts  ) -> void {
+        mEditorState->mActiveScene->SetState( SceneState::eIdle );
+        mEditorState->mActiveScene->Update( ts );
+    }
+
+    auto EditorLayer::UpdateCameraState( float ts  ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_ActiveScene = SceneManager::Get()->CreateScene( name );
+        SettingsPanel *settingsPanel{ mPanelRegistry.Get<SettingsPanel>() };
+        const auto &configuration{ settingsPanel->GetData() };
 
-        //SimpleScene();
-        //DebugInstancingTest();
-        //DebugManyLightsTest();
-        //DebugDamagedHelmet();
+        mEditorCamera->SetMovementSpeed( configuration.mEditorCameraMovementSpeed );
+        mEditorCamera->SetRotationSpeed( configuration.mEditorCameraRotationSpeed );
 
-        DebugSpheresProperties();
+        mEditorCamera->SetFarPlane( configuration.mFarPlane );
+        mEditorCamera->SetNearPlane( configuration.mNearPlane );
+
+        mEditorCamera->WantRotation( configuration.mWantXAxisRotation, configuration.mWantYAxisRotation );
+
+        mEditorCamera->SetFieldOfView( configuration.mFieldOfView );
+
+        // Set viewport to the currently active window we can either expand
+        // the final composition to occupy the whole screen or just an ImGui viewport
+        ScenePanel *scenePanel{ mPanelRegistry.Get<ScenePanel>() };
+        if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
+            mEditorCamera->SetViewportSize( scenePanel->GetWidth(), scenePanel->GetHeight() );
+        } else {
+            mEditorCamera->SetViewportSize( mWindow->GetWidth(), mWindow->GetHeight() );
+        }
+
+        if ((InputSystem::Get()->IsMouseKeyPressed( Mouse_Button_Right ) && scenePanel->IsHovered()) ||
+            mScreenPresentTarget == ScreenPresentTarget::eFinalImage) {
+            mEditorCamera->EnableCamera( true );
+        } else {
+            mEditorCamera->EnableCamera( false );
+        }
+
+        // Camera target
+        mEditorCamera->LockCameraToTarget( configuration.mLockCameraToTarget );
+        if (configuration.mLockCameraToTarget && mEditorState->mSelectedEntity) {
+            auto& transformComp{ mEditorState->mSelectedEntity->GetComponent<TransformComponent>() };
+            mEditorCamera->SetCameraTarget( transformComp.GetTranslation() );
+        }
+
+        mEditorCamera->Update( ts );
     }
 
-    auto EditorLayer::PrepareRenderer( double ) -> void {
+    auto EditorLayer::UpdateRendererState( float ts ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_SceneRenderer->SetCamera( m_EditorCamera.get() );
-
-        m_SceneRenderer->EnableSkybox( m_ActiveScene->IsSceneBackground(SceneBackground::SKYBOX) );
-
-        RendererPanel* settings{ m_PanelRegistry.Get<RendererPanel>() };
-        m_SceneRenderer->SetWireframeEnable(m_EditorState->ShowWireframe);
-
-        m_SceneRenderer->UseLDRCubeMap( settings->EnableSkyboxLDR() );
+        mSceneRenderer->SetMainCamera( mEditorCamera.get() );
     }
-}
+}// namespace mikoto

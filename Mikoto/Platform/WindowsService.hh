@@ -15,25 +15,27 @@
 #ifndef MIKOTO_WINDOWS_SYSTEM_HH
 #define MIKOTO_WINDOWS_SYSTEM_HH
 
-#include <vector>
+#include <EASTL/memory.h>
+#include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
 #include <Platform/Window.hh>
 
-#include <Common/Service.hh>
-#include <Common/Singleton.hh>
-#include <Library/Utility/Types.hh>
+namespace mikoto::platform {
 
-namespace Mikoto {
+    using namespace mikoto::core;
 
-    struct WindowsServiceCreateInfo {
-
-    };
+    struct WindowsServiceCreateInfo {};
 
     class WindowsService final : public IService, public Singleton<WindowsService> {
     public:
         explicit WindowsService(WindowsServiceCreateInfo const &serviceCreateInfo);
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         MKT_NODISCARD auto Create(const WindowProperties& properties) -> Window*;
@@ -43,7 +45,7 @@ namespace Mikoto {
         auto ShutdownWindowHandling() -> void;
 
     private:
-        std::vector<Unique<Window>> m_Windows{};
+        eastl::vector<eastl::unique_ptr<Window>> mWindows{};
     };
 }
 

@@ -15,20 +15,18 @@
 #ifndef MIKOTO_SHADER_RENDER_PARAMS_HH
 #define MIKOTO_SHADER_RENDER_PARAMS_HH
 
+#include <../../Core/Common.hh>
+#include <Library/Utility/Types.hh>
+#include <array>
+#include <glm/glm.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <array>
-
-#include <glm/glm.hpp>
-
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
 
 #define MKT_SHADER_TRUE 1
 #define MKT_SHADER_FALSE 0
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
     static constexpr Int32 INVALID_TEXTURE_INDEX{ -1 };
     static constexpr UInt32 MAX_LIGHTS{ 10000 };
@@ -79,7 +77,8 @@ namespace Mikoto {
         UInt32 MeshNodeOffsetVertex{};
         UInt32 MeshNodeOffsetIndex{};
 
-        Int32 AnimatorID{ -1 };
+        Int32 MatricesIndex{ -1 };
+        Int32 HasArmature{ MKT_SHADER_FALSE };
     };
 
     struct FinalShadingConstants {

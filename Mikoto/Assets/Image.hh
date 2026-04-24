@@ -1,0 +1,87 @@
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef MIKOTO_IMAGE_HH
+#define MIKOTO_IMAGE_HH
+
+#include <EASTL/fixed_hash_map.h>
+#include <EASTL/unique_ptr.h>
+
+#include <Memory/BufferSpan.hh>
+#include <Core/Core.hh>
+#include <Core/ReferenceCounted.hh>
+#include <Core/String.hh>
+#include <Core/Types.hh>
+#include <Filesystem/File.hh>
+#include <Filesystem/Path.hh>
+
+namespace mikoto::asset {
+
+    using namespace mikoto::core;
+    using namespace mikoto::memory;
+    using namespace mikoto::filesystem;
+
+    enum class ImageFormat {
+        eInvalid = -1,
+
+        eRGBA_8, // 8 bits per channel
+        eRGBA_32F, // 32 bit signet float
+    };
+
+    enum class ImageCubeFace {
+        eTop,
+        eBottom,
+        eFront,
+        eBack,
+        eLeft,
+        eRight,
+    };
+
+    constexpr inline u32 kCubeFaceCount{ 6 };
+
+    // Flat textures, equirectangular maps
+    struct Image : public ReferenceCounted {
+        FileHandle mFileHandle{};
+        BufferSpanHandle mBufferSpan{};
+
+        u32 mWidth{};
+        u32 mHeight{};
+        u32 mChannels{};
+
+        ImageFormat mFormat{ ImageFormat::eRGBA_8 };
+
+        ~Image() override = default;
+    };
+
+    // This abstraction extend support to help with loading
+    // images from KTX or cube images split into 6 faces
+    struct ImageCube final : public Image {
+        struct FaceSlice {
+            size_t mOffset{};
+            size_t mSizeBytes{};
+        };
+
+        // When cube is list of 2D images in disk
+        // this contains the base path of folder that contains all 6 images
+        Path mBasePath{};
+
+        BufferSpanHandle mBufferSpan{};
+        eastl::fixed_hash_map<ImageCubeFace, FaceSlice, kCubeFaceCount> mFaces{};
+    };
+
+    using ImageHandle = Ref<Image>;
+
+}// namespace Mikoto
+
+#endif//MIKOTO_IMAGE_HH

@@ -15,17 +15,20 @@
 #ifndef MIKOTO_MESH_FACTORY_HH
 #define MIKOTO_MESH_FACTORY_HH
 
-#include <Common/Service.hh>
-#include <Common/Singleton.hh>
-#include <Library/Utility/Types.hh>
+#include <EASTL/unique_ptr.h>
 
-#include <Assets/Model.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
+
 #include <Assets/Importer.hh>
+#include <Assets/Model.hh>
 
-namespace Mikoto {
+namespace mikoto::asset {
 
     struct MeshFactoryCreateInfo {
-        GpuDevice* Device{ nullptr };
+        GpuDevice* mDevice{ nullptr };
     };
 
     class MeshFactory final : public Singleton<MeshFactory>, public IService {
@@ -33,18 +36,19 @@ namespace Mikoto {
 
         explicit MeshFactory(const MeshFactoryCreateInfo& createInfo);
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         auto ImportModel( const ModelLoadDescription& loadInfo ) -> ModelHandle;
 
     private:
-        auto ConstructModel(ModelData& data, const ModelLoadDescription &loadInfo  ) -> Model*;
+        auto ConstructModel(ModelDataDescription& data, const ModelLoadDescription &loadInfo  ) -> ModelHandle;
 
     private:
-        GpuDevice* m_Device{ nullptr };
-        Unique<ModelImporter> m_MainImporter{};
-        Unique<ModelImporter> m_GLTFImporter{};
+        GpuDevice* mDevice{ nullptr };
+
+        eastl::unique_ptr<ModelImporter> mMainImporter{};
+        eastl::unique_ptr<ModelImporter> mGltfImporter{};
     };
 }
 

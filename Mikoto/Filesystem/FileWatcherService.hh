@@ -15,35 +15,38 @@
 #ifndef MIKOTO_FILE_WATCHER_HH
 #define MIKOTO_FILE_WATCHER_HH
 
+#include <EASTL/utility.h>
+#include <EASTL/unique_ptr.h>
+
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Common.hh>
-#include <Common/Service.hh>
-#include <Library/IO/File.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
+
+#include <Filesystem/Path.hh>
 #include <Filesystem/FileWatcher.hh>
 
-namespace Mikoto {
+namespace mikoto::filesystem {
 
-    struct FileWatcherServiceCreateInfo {
-        bool FollowSymLinks{ false };
-    };
+    using namespace mikoto::core;
+
+    struct FileWatcherServiceCreateInfo {};
 
     class FileWatcherService final : public IService, public Singleton<FileWatcherService> {
     public:
 
         explicit FileWatcherService( const FileWatcherServiceCreateInfo& info);
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         auto Watch(const Path& path, FileWatcher::WatcherCallback&& callback) -> void;
 
     private:
-        std::mutex m_WatcherInsertMutex{};
-        ankerl::unordered_dense::map<std::string, Unique<FileWatcher>> m_WatchedPaths{};
-
-        bool m_FollowSymLinks{ false };
+        std::mutex mWatcherInsertMutex{};
+        ankerl::unordered_dense::map<Path, eastl::unique_ptr<FileWatcher>> mWatchedPaths{};
     };
 }
 

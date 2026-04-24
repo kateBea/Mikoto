@@ -12,18 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <EASTL/unique_ptr.h>
 
 #include <Core/Exception.hh>
-
 #include <Renderer/D3D11/D3D11Context.hh>
-
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
 #include <d3d11.h>
 #include <dxgi1_3.h>
 #include <wrl.h>
+#include <dxgidebug.h>
 
+#include <Renderer/Core/RenderSystem.hh>
 #include <Renderer/D3D11/D3D11Device.hh>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -31,104 +32,142 @@
 #define GLFW_NATIVE_INCLUDE_NONE
 #include <GLFW/glfw3native.h>
 
-namespace Mikoto {
+#include <Platform/PlatformWin32.hh>
 
-    auto D3D11Context::Init() -> bool {
-        if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&m_DxgiFactory)))) {
+namespace mikoto::renderer::d3d11 {
+
+#if !defined(NDEBUG)
+
+    // https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-debug-id
+    auto Context::DumpDXGIMessages() -> void {
+        const auto messageCount{ mDxgiInfoQueue->GetNumStoredMessages( DXGI_DEBUG_ALL ) };
+
+        for ( UINT64 i{}; i < messageCount; ++i ) {
+            SIZE_T messageLength{};
+            mDxgiInfoQueue->GetMessage( DXGI_DEBUG_ALL, i, nullptr, &messageLength );
+
+            auto bytes{ eastl::make_unique<std::byte[]>( messageLength ) };
+            auto *message{ rc_cast<DXGI_INFO_QUEUE_MESSAGE*>( bytes.get() ) };
+
+            if ( SUCCEEDED( mDxgiInfoQueue->GetMessage( DXGI_DEBUG_ALL, i, message, &messageLength ) ) ) {
+                switch (message->Severity ) {
+                    case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION:
+                        MKT_CORE_LOGGER_CRITICAL( "[DXGI Corruption Producer {}] {}", message->pDescription, windows::GuidToString( message->Producer ) );
+                        break;
+                    case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR:
+                        MKT_CORE_LOGGER_ERROR( "[DXGI Error Producer {}] {}", message->pDescription, windows::GuidToString( message->Producer ) );
+                        break;
+                    case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_WARNING:
+                        MKT_CORE_LOGGER_WARN( "[DXGI Warning Producer {}] {}", message->pDescription, windows::GuidToString( message->Producer ) );
+                        break;
+                    case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_INFO:
+                        MKT_CORE_LOGGER_INFO( "[DXGI Info Producer {}] {}", message->pDescription, windows::GuidToString( message->Producer ) );
+                        break;
+                    case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_MESSAGE:
+                        MKT_CORE_LOGGER_TRACE( "[DXGI Message Producer {}] {}", message->pDescription, windows::GuidToString( message->Producer ) );
+                        break;
+                }
+            }
+        }
+
+        mDxgiInfoQueue->ClearStoredMessages( DXGI_DEBUG_ALL );
+    }
+#endif
+
+    auto Context::Init() -> bool {
+        if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&mDxgiFactory)))) {
             MKT_CORE_LOGGER_ERROR( "D3D11Context::Init - Unable to create DXGIFactory" );
             return false;
         }
 
         // Init the device when the context is ready
-        m_Device = GpuDevice::Create({ .Api = GraphicsAPI::DIRECTX_11 });
-        if (!m_Device) {
+        mDevice = GpuDevice::Create({ .mApi = GraphicsAPI::eD3D11 });
+        if (!mDevice) {
             MKT_CORE_LOGGER_ERROR( "D3D11Context::Init - Could not initialize DIRECTX_11 GPU Device." );
         }
-        m_Device->Init();
+        mDevice->Init();
 
-        if (!CreateSwapChain()) {
-            MKT_CORE_LOGGER_ERROR( "D3D11Context::Init - Failed to create swapchain" );
-            return false;
+        // If no window is provided we use D3D11 headless
+        if (mWindow) {
+            if (!CreateSwapChain()) {
+                MKT_CORE_LOGGER_ERROR( "D3D11Context::Init - Failed to create swapchain" );
+                return false;
+            }
         }
+
+
+#if !defined(NDEBUG)
+        if ( FAILED( DXGIGetDebugInterface1( 0, IID_PPV_ARGS( &mDxgiInfoQueue ) ) ) ) {
+        }
+#endif
 
         return true;
     }
 
-    auto D3D11Context::Shutdown() -> void {
-
+    auto Context::Shutdown() -> void {
+        mPresentTarget.Reset();
     }
 
-    auto D3D11Context::SubmitFrame() -> void {
+    auto Context::SubmitFrame() -> void {
+        mDevice->Flush();
 
-    }
-
-    auto D3D11Context::PrepareFrame() -> void {
-
-    }
-
-    auto D3D11Context::Update() -> void {
-
-    }
-
-    auto D3D11Context::Present() -> void {
-
-    }
-
-    auto D3D11Context::SetPresentTarget( TextureHandle texture ) -> void {
-
-    }
-
-    auto D3D11Context::EnableVSync() -> void {
-
-    }
-
-    auto D3D11Context::DisableVSync() -> void {
-
-    }
-
-    auto D3D11Context::IsVsyncEnabled() const -> bool {
-        return false;
-    }
-
-    auto D3D11Context::CreateSwapChain() -> bool {
-        DXGI_SWAP_CHAIN_DESC1 swapChainDescriptor = {};
-        swapChainDescriptor.Width = m_TargetWindow->GetWidth();
-        swapChainDescriptor.Height = m_TargetWindow->GetHeight();
-        swapChainDescriptor.Format = DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM;
-        swapChainDescriptor.SampleDesc.Count = 1;
-        swapChainDescriptor.SampleDesc.Quality = 0;
-        swapChainDescriptor.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        swapChainDescriptor.BufferCount = 2;
-        swapChainDescriptor.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        swapChainDescriptor.Scaling = DXGI_SCALING::DXGI_SCALING_STRETCH;
-        swapChainDescriptor.Flags = {};
-
-        DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDescriptor{};
-        swapChainFullscreenDescriptor.Windowed = true;
-
-        HWND win32Handle{};
-
-        try {
-            const auto window{ std::any_cast<GLFWwindow*>( m_TargetWindow->GetNativeWindow() ) };
-            win32Handle = glfwGetWin32Window(window);
-        } catch ( const std::exception& exception ) {
-            MKT_CORE_LOGGER_ERROR( "D3D11Context::CreateSwapChain - Cast exception: e.what(): {}", exception.what() );
-            return false;
+        if (mWindow->GetWidth() != mSwapChain->GetWidth() || mWindow->GetHeight() != mSwapChain->GetHeight()) {
+            mSwapChain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
         }
 
-        if (FAILED(m_DxgiFactory->CreateSwapChainForHwnd(
-            TO_D3D11_DEVICE(m_Device.get()),
-            win32Handle,
-            &swapChainDescriptor,
-            &swapChainFullscreenDescriptor,
-            nullptr,
-            &m_SwapChain)))
-        {
-            MKT_CORE_LOGGER_ERROR( "D3D11Context::CreateSwapChain - Failed to create swapchain" );
-            return false;
+        // TODO: instead render a full quad sampling the final image
+        // otherwise it is annoying as you ned ensure the texture you rendered to before is compatible with swap chain image to copy
+        if (!mPresentTarget.IsEmpty()) {
+            Device* device{ as<Device*>( mDevice.get() ) };
+
+            ID3D11Texture2D* presentTargetRTV{ mPresentTarget->GetNativeHandle( ObjectType::D3D11_Texture2D ) };
+            ID3D11Texture2D* swapChainRTV{ mSwapChain->GetNativeHandle( ObjectType::D3D11_Texture2D ) };
+
+            device->GetDeviceContext()->CopyResource(swapChainRTV, presentTargetRTV );
+        }
+    }
+
+    auto Context::PrepareFrame() -> void {
+        mDevice->RunGarbageCollection();
+    }
+
+    auto Context::Update() -> void {
+#if !defined(NDEBUG)
+        DumpDXGIMessages();
+        as<Device*>( GetGpuDevice() )->DumpErrorMessages();
+#endif
+    }
+
+    auto Context::Present() -> void {
+        mSwapChain->Present();
+    }
+
+    auto Context::SetPresentTarget( TextureHandle texture ) -> void {
+        mPresentTarget = texture;
+    }
+
+    auto Context::SetRefreshRate( RefreshRate rate ) -> void {
+        mRefreshRate = rate;
+
+        // Handle vsync or not
+        mSwapChain->SetRefreshRate( mRefreshRate );
+    }
+
+    auto Context::GetSwapChain() const -> SwapChainHandle {
+        return mSwapChain;
+    }
+
+    auto Context::GetDxiFactory() const -> IDXGIFactory2* {
+        return mDxgiFactory.Get();
+    }
+
+    auto Context::CreateSwapChain() -> bool {
+        mSwapChain = as<Device*>( GetGpuDevice() )->CreateSwapChain( mWindow, mDxgiFactory );
+        if (!mSwapChain.IsEmpty()) {
+            mSwapChain->SetRefreshRate( mRefreshRate );
         }
 
-        return true;
+        return !mSwapChain.IsEmpty();
     }
 }
 

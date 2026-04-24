@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,45 +16,50 @@
 #define MIKOTO_ANIMATION_HH
 
 #include <limits>
-#include <numeric>
+
+#include <EASTL/string.h>
+#include <EASTL/numeric.h>
 
 #include <ankerl/unordered_dense.h>
 
-#include "ozz/animation/offline/animation_builder.h"
-#include "ozz/animation/offline/raw_animation.h"
-#include "ozz/animation/runtime/animation.h"
-#include "ozz/base/memory/unique_ptr.h"
+#include <ozz/base/memory/unique_ptr.h>
+#include <ozz/animation/runtime/animation.h>
+#include <ozz/animation/offline/raw_animation.h>
+#include <ozz/animation/offline/animation_builder.h>
 
-#include <Common/Common.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
 #include <Animation/Skeleton.hh>
-#include <Library/Utility/Types.hh>
 
-namespace  Mikoto {
+namespace  mikoto::animation {
+
+    static inline constexpr u32 kMaxBonesPerVertex{ 8 };
 
     class SkinnedAnimation {
     public:
         explicit SkinnedAnimation( ozz::unique_ptr<ozz::animation::Animation>&& data = nullptr );
 
-        MKT_NODISCARD auto GetDuration() const -> float;
+        MKT_NODISCARD auto GetDuration() const -> f32;
 
-        MKT_NODISCARD auto GetName() const -> const std::string&;
+        MKT_NODISCARD auto GetName() const -> const eastl::string&;
         MKT_NODISCARD auto GetOzzAnimation() -> ozz::animation::Animation*;
 
     private:
         // Duration of the animation in ticks
-        std::string m_Name{};
+        eastl::string mName{};
 
-        float m_Duration{}; // In seconds
+        f32 mDuration{}; // In seconds
 
-        float m_End{ std::numeric_limits<float>::min() };
-        float m_Start{ std::numeric_limits<float>::max() };
+        f32 mEnd{ eastl::numeric_limits<f32>::min() };
+        f32 mStart{ eastl::numeric_limits<f32>::max() };
 
         // To construct the animation
-        ozz::animation::offline::RawAnimation m_RawAnimation{};
-        ozz::animation::offline::AnimationBuilder m_AnimationBuilder{};
+        ozz::animation::offline::RawAnimation mRawAnimation{};
+        ozz::animation::offline::AnimationBuilder mAnimationBuilder{};
 
         // Final runtime animation
-        ozz::unique_ptr<ozz::animation::Animation> m_Animation{};
+        ozz::unique_ptr<ozz::animation::Animation> mAnimation{};
     };
 }
 

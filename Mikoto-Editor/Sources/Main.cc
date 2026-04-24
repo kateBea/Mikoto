@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,142 +12,136 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Application/EditorApp.hh>
-#include <Application/EditorConfigLoader.hh>
-#include <Audio/AudioService.hh>
-#include <Core/InputService.hh>
+#include <new>
+#include <cstdlib>
+#include <exception>
+
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
 #include <Core/Profiler.hh>
-#include <Core/Root.hh>
-#include <Filesystem/FileService.hh>
-#include <Layers/EditorLayer.hh>
-#include <Library/Utility/Types.hh>
 #include <Logging/Logger.hh>
-#include <Physics/PhysicService.hh>
+
 #include <Platform/Window.hh>
 #include <Platform/WindowsService.hh>
-#include <exception>
-#include <string_view>
 
-#include "Core/LocalizationService.hh"
-#include "Core/RuntimeConsole.hh"
-#include "Filesystem/FileWatcherService.hh"
-#include "Renderer/Core/RenderService.hh"
-#include "Scene/SceneManager.hh"
-#include <Scripting/ScriptingService.hh>
+#include <Layers/GameLayer.hh>
+#include <Layers/EditorLayer.hh>
 
-Mikoto::Window* g_Window{ nullptr };
-Mikoto::EditorApp* g_Application{ nullptr };
+#include <Application/EditorApp.hh>
+#include <Application/Configuration.hh>
 
-constexpr std::string_view g_ConfidPath{ "app-config.toml" };
-const Mikoto::BaseConfiguration g_Config{ g_ConfidPath };
+using namespace mikoto::core;
+using namespace mikoto::editor;
+using namespace mikoto::platform;
 
-auto InitRenderServices() -> void {
-    using namespace Mikoto;
+Window* gWindow{ nullptr };
+EditorApp* gApplication{ nullptr };
 
-    if (!g_Config.IsLoaded()) {
-        std::printf( "Could not load file at %s·", g_ConfidPath.data() );
-        return;
+// Core engine and Services
+WindowsService* gWindowsService{ nullptr };
+
+constexpr eastl::string_view kConfigPath{ "app-config.toml" };
+const BaseConfiguration gConfiguration{ kConfigPath };
+
+auto InitWindow() -> bool {
+    if (!gConfiguration.IsLoaded()) {
+        MKT_CORE_LOGGER_ERROR( "Could not load file at %s·", kConfigPath.data() );
+        return false;
     }
 
-    WindowProperties properties{
-        .Title{ g_Config.Get<std::string>( "application.title" ) },
-        .Width{ static_cast<Int32>( g_Config.Get<Int64>( "application.width" ) ) },
-        .Height{ static_cast<Int32>( g_Config.Get<Int64>( "application.height" )) },
-        .Backend{ InferAPI( g_Config.Get<std::string>( "renderer.api" ) ) },
-        .Resizable{ g_Config.Get<bool>( "application.resizable" ) }
+    // Initialize the window service
+    gWindowsService = new (std::nothrow) WindowsService{ WindowsServiceCreateInfo{} };
+    gWindowsService->Initialize();
+
+    const WindowProperties properties{
+        .mTitle = gConfiguration.Get<eastl::string>( "application.title" ),
+        .mWidth = as<i32>( gConfiguration.Get<i64>( "application.width" ) ),
+        .mHeight = as<i32>( gConfiguration.Get<i64>( "application.height" )),
+        .mBackend = InferAPI( gConfiguration.Get<eastl::string>( "renderer.api" ) ),
+        .mResizable = gConfiguration.Get<bool>( "application.resizable" ),
     };
 
-    g_Window = WindowsService::Get()->Create( properties );
+    gWindow = gWindowsService->Create( properties );
 
-    Root::EnableRenderSubsystems( g_Window );
-}
-auto InitializeEngine() -> void {
-    MKT_BEGIN_PROFILER_NAMED();
-
-    using namespace Mikoto;
-
-    Root::Init( RootConfig{
-        .EnableAllServices{ true },
-        .EnableAllSubsystems{ true },
-    } );
+    return true;
 }
 
-auto InitializeApplication() -> void {
-    using namespace Mikoto;
-
+auto InitEditor() -> bool {
     MKT_BEGIN_PROFILER_NAMED();
 
-    if (!g_Window) {
-        return;
+    if (!gWindow) {
+        return false;
     }
 
-    g_Application = new EditorApp{};
+    gApplication = new (std::nothrow) EditorApp{ gWindow };
 
     try {
-
-        g_Application->SetWindow( g_Window );
-        g_Application->Init();
-
-        g_Application->PushLayer<EditorLayer>(g_Window );
-
+        gApplication->Init();
+        gApplication->PushLayer<GameLayer>( gWindow );
+        gApplication->PushLayer<EditorLayer>( gWindow );
     } catch ( const std::exception& e ) {
-        MKT_CORE_LOGGER_ERROR( "Initializing application - Exception: e.what(): {}", e.what() );
-    }
-}
-
-auto RunCleanup() -> void {
-    using namespace Mikoto;
-
-    MKT_BEGIN_PROFILER_NAMED();
-
-    if (g_Application) {
-        g_Application->Shutdown();
-    }
-
-    delete g_Application;
-
-    Root::Shutdown();
-}
-
-auto RunApplication() -> void {
-    MKT_BEGIN_PROFILER_NAMED();
-
-    if (!g_Application || !g_Window) {
-        return;
-    }
-
-    try {
-        g_Application->Run();
-
-    } catch ( const std::exception& e ) {
-        MKT_CORE_LOGGER_ERROR( "Running application - Exception: e.what(): {}", e.what() );
-    }
-}
-
-auto Usage(const int argc)-> bool {
-    MKT_BEGIN_PROFILER_NAMED();
-
-    if ( argc != 1 ) {
-        std::printf( "MikotoEditor takes no arguments." );
+        MKT_CORE_LOGGER_ERROR( "Ini App exception - e.what(): {}", e.what() );
         return false;
     }
 
     return true;
 }
 
+auto Cleanup() -> void {
+    using namespace mikoto;
+
+    MKT_BEGIN_PROFILER_NAMED();
+
+    // Cleanup app
+    if (gApplication) {
+        gApplication->Shutdown();
+        delete gApplication;
+    }
+
+    // Cleanup window service
+    if (gWindowsService) {
+        gWindowsService->Shutdown();
+        delete gWindowsService;
+    }
+}
+
+auto Run() -> void {
+    MKT_BEGIN_PROFILER_NAMED();
+
+    if (!gApplication || !gWindow) {
+        return;
+    }
+
+    try {
+        gApplication->Run();
+
+    } catch ( const std::exception& e ) {
+        MKT_CORE_LOGGER_ERROR( "Running application - Exception: e.what(): {}", e.what() );
+    }
+}
+
+// TODO: Add control to for entry point according to platform
+// WinMain for windows graphics apps...
 auto main( const int argc, char** ) -> int {
     MKT_BEGIN_PROFILER_NAMED();
 
-    if (!Usage( argc )) {
-        return 1;
+    if ( argc != 1 ) {
+        MKT_CORE_LOGGER_ERROR( "Application expects no arguments." );
+        return EXIT_FAILURE;
     }
 
-    InitializeEngine();
-    InitRenderServices();
-    InitializeApplication();
+    if (!InitWindow()) {
+        return EXIT_FAILURE;
+    }
 
-    RunApplication();
-    RunCleanup();
+    if (!InitEditor()) {
+        Cleanup();
+        return EXIT_FAILURE;
+    }
 
-    return 0;
+    Run();
+    Cleanup();
+
+    return EXIT_SUCCESS;
 }

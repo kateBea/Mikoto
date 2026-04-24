@@ -15,44 +15,44 @@
 #ifndef MIKOTO_TIME_MANAGER_HH
 #define MIKOTO_TIME_MANAGER_HH
 
-#include <ratio>
-#include <chrono>
-#include <string>
+#include <EASTL/chrono.h>
+#include <EASTL/ratio.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 
-#include <Common/Common.hh>
-#include <Common/Service.hh>
-#include <Common/Singleton.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
 
-namespace Mikoto {
+namespace mikoto::core {
 
     enum class TimeUnit {
-        SECONDS,
-        MILLISECONDS,
-        MICROSECONDS,
-        NANOSECONDS,
+        eSeconds,
+        eMilliseconds,
+        eMicroseconds,
+        eNanoseconds,
     };
 
-    // Represents a time
-    // in the specified units
     struct Time {
         double Value{};
-        TimeUnit Unit{ TimeUnit::SECONDS };
+        TimeUnit Unit{ TimeUnit::eSeconds };
 
-        MKT_NODISCARD auto GetUnitString() const -> std::string_view;
-        MKT_NODISCARD auto Convert( TimeUnit unit = TimeUnit::SECONDS) const -> double;
+        MKT_NODISCARD auto GetUnitString() const -> eastl::string_view;
+        MKT_NODISCARD auto Convert( TimeUnit unit = TimeUnit::eSeconds) const -> double;
 
-        MKT_NODISCARD static auto GetUnitString(TimeUnit unit) -> std::string_view;
+        MKT_NODISCARD static auto GetUnitString(TimeUnit unit) -> eastl::string_view;
 
     private:
         MKT_NODISCARD static auto Convert( TimeUnit src, TimeUnit dst, double value ) -> double;
     };
 
     struct TimeServiceCreateInfo {
-        TimeUnit DefaultUnit{ TimeUnit::SECONDS };
+        TimeUnit mDefaultUnit{ TimeUnit::eSeconds };
+
         auto WithDefaultUnit(TimeUnit unit) -> TimeServiceCreateInfo&;
     };
 
@@ -62,41 +62,41 @@ namespace Mikoto {
 
         ~TimeService() override = default;
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         auto Tick() -> void;
 
         MKT_NODISCARD auto GetDefaultUnit() const -> TimeUnit;
-        MKT_NODISCARD auto GetTimeStep( TimeUnit unit = TimeUnit::SECONDS) const -> double;
-        MKT_NODISCARD auto GetTime( TimeUnit unit = TimeUnit::SECONDS ) const -> double;
-        MKT_NODISCARD static auto ToString(double time, TimeUnit unit = TimeUnit::SECONDS) -> std::string;
+        MKT_NODISCARD auto GetTimeStep( TimeUnit unit = TimeUnit::eSeconds) const -> double;
+        MKT_NODISCARD auto GetTime( TimeUnit unit = TimeUnit::eSeconds ) const -> double;
+        MKT_NODISCARD static auto ToString(double time, TimeUnit unit = TimeUnit::eSeconds) -> eastl::string;
         MKT_NODISCARD static auto TransformToSeconds( double time, TimeUnit unit ) -> double;
 
         // Conversion constants
-        static constexpr UInt32 SECONDS_PER_HOUR{ 3'600 };        /**< Seconds per hour. */
-        static constexpr UInt32 SECONDS_PER_MINUTE{ 60 };         /**< Minutes per second. */
+        static constexpr u32 kSecPerHour{ 3'600 };        /**< Seconds per hour. */
+        static constexpr u32 kSecPerMin{ 60 };         /**< Minutes per second. */
 
-        static constexpr UInt32 MILLISECONDS_PER_SECOND{ 1'000 };            /**< Milliseconds per second. */
-        static constexpr UInt32 MICROSECONDS_PER_SECOND{ 1'000'000 };        /**< Microseconds per second. */
-        static constexpr UInt32 NANOSECONDS_PER_SECOND{ 1'000'000'000 };     /**< Nanoseconds per second. */
+        static constexpr u32 kMilliPerSeconds{ 1'000 };            /**< Milliseconds per second. */
+        static constexpr u32 kMicroPerSeconds{ 1'000'000 };        /**< Microseconds per second. */
+        static constexpr u32 kNanoPerSeconds{ 1'000'000'000 };     /**< Nanoseconds per second. */
 
         // Conversion types
-        using Nano      = std::chrono::duration<double, std::ratio<1, 1'000'000'000>>;   /**< Type for nanoseconds. */
-        using Micro     = std::chrono::duration<double, std::ratio<1, 1'000'000>>;       /**< Type for microseconds. */
-        using Milli     = std::chrono::duration<double, std::ratio<1, 1'000>>;           /**< Type for milliseconds. */
-        using Sec       = std::chrono::duration<double /* std::ratio<1, 1> */>;               /**< Type for seconds. */
+        using Nano      = eastl::chrono::duration<double, eastl::ratio<1, 1'000'000'000>>;   /**< Type for nanoseconds. */
+        using Micro     = eastl::chrono::duration<double, eastl::ratio<1, 1'000'000>>;       /**< Type for microseconds. */
+        using Milli     = eastl::chrono::duration<double, eastl::ratio<1, 1'000>>;           /**< Type for milliseconds. */
+        using Sec       = eastl::chrono::duration<double /* eastl::ratio<1, 1> */>;               /**< Type for seconds. */
 
         // Time point types
-        using Clock     = std::chrono::high_resolution_clock;                            /**< Type for clock. */
-        using TimePoint = std::chrono::time_point<Clock>;                              /**< Type for a point in time. */
+        using Clock     = eastl::chrono::high_resolution_clock;                            /**< Type for clock. */
+        using TimePoint = eastl::chrono::time_point<Clock>;                              /**< Type for a point in time. */
 
     private:
-        double m_TimeStep{};
-        TimePoint m_LastFrameTime{};
-        TimePoint m_InitTimePoint{};
+        double mTimeStep{};
+        TimePoint mLastFrameTime{};
+        TimePoint mInitTimePoint{};
 
-        TimeUnit m_DefaultUnits{ TimeUnit::SECONDS };
+        TimeUnit mDefaultUnits{ TimeUnit::eSeconds };
     };
 }
 

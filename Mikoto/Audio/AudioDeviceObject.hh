@@ -15,9 +15,9 @@
 #ifndef MIKOTO_AUDIO_DEVICE_OBJECT_HH
 #define MIKOTO_AUDIO_DEVICE_OBJECT_HH
 
-#include <Library/Data/ResourcePool.hh>
+#include <Core/ResourcePool.hh>
 
-namespace Mikoto {
+namespace mikoto::audio {
 
     class AudioDevice;
 
@@ -29,7 +29,7 @@ namespace Mikoto {
      * such as buffers, textures, and shaders. It manages the association with the device and handles
      * resource allocation and release. The actual allocation and release are implemented by derived classes.
      */
-    class AudioDeviceObject : public IResource {
+    class AudioDeviceObject : public core::IResource {
     public:
         /**
          * @brief Default constructor for the DeviceObject class.

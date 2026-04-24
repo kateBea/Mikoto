@@ -14,9 +14,9 @@
 
 #include <Panels/GamePreviewPanel.hh>
 
-namespace Mikoto {
+namespace mikoto::editor {
 
-    GamePreviewPanel::GamePreviewPanel( const GamePreviewPanelCreateInfo &createInfo ) {
+    GamePreviewPanel::GamePreviewPanel( const GamePreviewPanelCreateInfo & ) {
 
     }
 

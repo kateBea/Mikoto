@@ -15,69 +15,73 @@
 #ifndef MIKOTO_SOCKET_HH
 #define MIKOTO_SOCKET_HH
 
-#include <atomic>
-#include <asio.hpp>
-#include <string>
-#include <string_view>
+#include <EASTL/atomic.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
+#include <Platform/PlatformWin32.hh>
+#include <asio.hpp>
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
 #include <asio/ssl.hpp>
 #endif
 
-#include <Library/Utility/Types.hh>
-#include <Library/Data/ResourcePool.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/ResourcePool.hh>
 
-namespace Mikoto {
+namespace mikoto::network {
 
-    enum class ConnectionStatus { PENDING, CONNECTED, DISCONNECTED };
+    using namespace mikoto::core;
 
-    class Socket : public IResource {
+    enum class ConnectionStatus { ePending, eConnected, eDisconnected };
+
+    class ISocket : public IResource {
     public:
-        explicit Socket() = default;
+        explicit ISocket() = default;
 
         virtual auto Disconnect() -> void = 0;
 
-        MKT_NODISCARD virtual auto GetHost() const -> const std::string& = 0;
+        MKT_NODISCARD virtual auto GetHost() const -> const eastl::string& = 0;
 
-        MKT_NODISCARD auto GetConnectionStatus() const -> ConnectionStatus { return m_ConnectionStatus; }
-        MKT_NODISCARD auto IsConnectionStatus(const ConnectionStatus status ) const -> bool { return m_ConnectionStatus == status; }
+        MKT_NODISCARD auto GetConnectionStatus() const -> ConnectionStatus { return mConnectionStatus; }
+        MKT_NODISCARD auto IsConnectionStatus(const ConnectionStatus status ) const -> bool { return mConnectionStatus == status; }
 
         MKT_NODISCARD virtual auto IsConnected() const -> bool = 0;
-        MKT_NODISCARD virtual auto Connect( std::string_view address, UInt16 port ) -> bool = 0;
+        MKT_NODISCARD virtual auto Connect( eastl::string_view address, u16 port ) -> bool = 0;
 
-        virtual auto SendSync( std::string_view data ) -> void = 0;
-        virtual auto SendSync( const void* data, Size size ) -> void = 0;
+        virtual auto SendSync( eastl::string_view data ) -> void = 0;
+        virtual auto SendSync( const void* data, size_t size ) -> void = 0;
 
-        MKT_NODISCARD virtual auto ReceiveSync( void* buffer, Size maxSize ) -> Size = 0;
+        MKT_NODISCARD virtual auto ReceiveSync( void* buffer, size_t maxSize ) -> size_t = 0;
 
         using IResource::Initialize;
 
     protected:
-        ConnectionStatus m_ConnectionStatus{ ConnectionStatus::DISCONNECTED };
+        ConnectionStatus mConnectionStatus{ ConnectionStatus::eDisconnected };
     };
 
-    using SocketHandle = Ref<Socket>;
+    using SocketHandle = Ref<ISocket>;
 
-    class TcpSocket final : public Socket {
+    class TcpSocket final : public ISocket {
     public:
 
-        TcpSocket( asio::io_context& ctx, std::string_view address, UInt16 port, bool wait = true );
+        TcpSocket( asio::io_context& ctx, eastl::string_view address, u16 port, bool wait = true );
 
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-        TcpSocket( asio::io_context& ctx, asio::ssl::context& sslContext, std::string_view address, UInt16 port, bool wait = true );
+        TcpSocket( asio::io_context& ctx, asio::ssl::context& sslContext, eastl::string_view address, UInt16 port, bool wait = true );
 #endif
 
         auto Disconnect() -> void override;
 
         MKT_NODISCARD auto IsConnected() const -> bool override;
-        MKT_NODISCARD auto Connect( std::string_view address, UInt16 port ) -> bool override;
+        MKT_NODISCARD auto Connect( eastl::string_view address, u16 port ) -> bool override;
 
-        auto SendSync( std::string_view data ) -> void override;
-        auto SendSync( const void* data, Size size ) -> void override;
+        auto SendSync( eastl::string_view data ) -> void override;
+        auto SendSync( const void* data, size_t size ) -> void override;
 
-        MKT_NODISCARD auto ReceiveSync( void* buffer, Size maxSize ) -> Size override;
+        MKT_NODISCARD auto ReceiveSync( void* buffer, size_t maxSize ) -> size_t override;
 
-        MKT_NODISCARD auto GetHost() const -> const std::string& override;
+        MKT_NODISCARD auto GetHost() const -> const eastl::string& override;
 
         ~TcpSocket() override;
 
@@ -90,7 +94,7 @@ namespace Mikoto {
 
     private:
         // To avoid keep reading if we reach eof
-        asio::error_code m_ErrorCode{};
+        asio::error_code mErrorCode{};
 
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
         asio::ip::tcp::socket m_Socket;
@@ -98,15 +102,15 @@ namespace Mikoto {
         asio::ssl::stream<asio::ip::tcp::socket>* m_SslSocket{ nullptr };
 
 #else
-        asio::ip::tcp::socket m_Socket;
-        asio::ip::tcp::endpoint m_TcpEndpoint{};
+        asio::ip::tcp::socket mSocket;
+        asio::ip::tcp::endpoint mTcpEndpoint{};
 #endif
 
-        UInt16 m_Port{};
-        std::string m_HostName{};
+        u16 mPort{};
+        eastl::string mHostName{};
 
-        bool m_IsSsl{ false };
-        bool m_InitSync{ false };
+        bool mIsSsl{ false };
+        bool mInitSync{ false };
     };
 }// namespace Mikoto
 

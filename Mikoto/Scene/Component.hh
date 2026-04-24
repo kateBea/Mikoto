@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,40 +15,51 @@
 #ifndef MIKOTO_COMPONENT_HH
 #define MIKOTO_COMPONENT_HH
 
-#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
+#include <functional>
 
-#include <glm/glm.hpp>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
+#include <Math/Random.hh>
+#include <Assets/AssetsService.hh>
+#include <Assets/Model.hh>
+#include <Audio/AudioClip.hh>
+#include <Audio/AudioDevice.hh>
+#include <Audio/AudioListener.hh>
+#include <Filesystem/FileService.hh>
+#include <Material/Material.hh>
+#include <Math/Math.hh>
+#include <Physics/PhysicsUtility.hh>
+#include <Renderer/Core/Light.hh>
+#include <Renderer/Particle/ParticleEmitter.hh>
+#include <Renderer/Text/Font.hh>
+#include <Scene/SceneCamera.hh>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include <Math/Math.hh>
-#include <Assets/AssetsService.hh>
-#include <Assets/AudioClip.hh>
-#include <Assets/Font.hh>
-#include <Assets/Model.hh>
-#include <Audio/AudioDevice.hh>
-#include <Audio/AudioListener.hh>
-#include <Common/Common.hh>
-#include <Filesystem/FileService.hh>
-#include <Library/Math/Math.hh>
-#include <Library/Random/Random.hh>
-#include <Library/Utility/Types.hh>
-#include <Material/Material.hh>
-#include <Renderer/Core/Light.hh>
-#include <Scene/SceneCamera.hh>
 
 #include "Scripting/Script.hh"
 
-namespace Mikoto {
+namespace mikoto::scene {
+
+    using namespace mikoto::math;
+    using namespace mikoto::math::random;
+    using namespace mikoto::material;
+    using namespace mikoto::animation;
+    using namespace mikoto::renderer;
+    using namespace mikoto::audio;
+    using namespace mikoto::scripting;
+    using namespace mikoto::asset;
 
     class TagComponent {
     public:
         explicit TagComponent() = default;
 
-        explicit TagComponent( const std::string_view tag, bool active = true )
+        explicit TagComponent( const eastl::string_view tag, bool active = true )
             : m_Tag{ tag }, m_IsActive{ active } {}
 
         TagComponent( const TagComponent& other ) = default;
@@ -58,14 +69,14 @@ namespace Mikoto {
         auto operator=( TagComponent&& other ) -> TagComponent& = default;
 
         MKT_NODISCARD auto IsActive() const -> bool { return m_IsActive; }
-        MKT_NODISCARD auto GetTag() const -> const std::string& { return m_Tag; }
-        MKT_NODISCARD auto GetGUID() const -> UInt64 { return m_GUID.Get(); }
+        MKT_NODISCARD auto GetTag() const -> const eastl::string& { return m_Tag; }
+        MKT_NODISCARD auto GetGUID() const -> u64 { return m_GUID.Get(); }
 
-        auto SetTag( const std::string_view newName ) -> void { m_Tag = newName; }
+        auto SetTag( const eastl::string_view newName ) -> void { m_Tag = newName; }
         auto SetActive( const bool value ) -> void { m_IsActive = value; }
 
     private:
-        std::string m_Tag{};
+        eastl::string m_Tag{};
         GlobalUniqueID m_GUID{};
         
         bool m_IsActive{};
@@ -111,38 +122,53 @@ namespace Mikoto {
             return glm::quat( m_Rotation );
         }
 
-        MKT_NODISCARD auto GetWorldTransform() const -> const Mat4F& { return m_WorldTransform; }
-        auto SetWorldTransform( const Mat4F& worldTransform ) -> void { m_WorldTransform = worldTransform; }
+        MKT_NODISCARD auto GetWorldTransform() const -> const float4x4& { return m_WorldTransform; }
+        auto SetWorldTransform( const float4x4& worldTransform ) -> void { m_WorldTransform = worldTransform; }
 
         auto ComputeTransform( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) -> void {
             m_Translation = position;
             m_Rotation = angles;
             m_Scale = size;
 
-            m_Transform = Math::RecomputeTransform( position, size, angles );
+            // NOTE:
+            // Euler rotations composed via successive glm::rotate calls can produce incorrect
+            // behavior because rotations are applied in world space, causing axis misalignment.
+            // Use quaternion-based rotation (or consistent multiplication order) to ensure
+            // rotations happen in local space around the object's pivot.
+            // Pivot (center of rotation)
+
+            // NOTE:
+            // Rotations must be applied in local space (object axes), not world axes.
+            // Chaining glm::rotate on an accumulating matrix can cause rotations to be
+            // applied in world space, leading to incorrect behavior.
+            // Use quaternions (glm::quat) or proper multiplication order to ensure
+            // rotations follow the object's local axes.
+
+            // TODO: See comment in RecomputeTransform, use RecomputeTransform that takes pivot
+            m_Transform = math::RecomputeTransform( position, size, angles );
         }
 
         auto SetTransform( const glm::mat4& transform ) -> void {
             m_Transform = transform;
-            Math::Decompose( m_Transform, m_Translation, m_Rotation, m_Scale );
+            math::Decompose( m_Transform, m_Translation, m_Rotation, m_Scale );
         }
 
-        auto SetTranslation( const Vec3F& value ) -> void {
+        auto SetTranslation( const float3& value ) -> void {
             m_Translation = value;
-            m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
+            m_Transform = math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
         }
 
-        auto SetRotation( const Vec3F& value ) -> void {
+        auto SetRotation( const float3& value ) -> void {
             m_Rotation = value;
-            m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
+            m_Transform = math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
         }
 
         auto SetRotation( const glm::quat& quaternion ) -> void {
             m_Rotation = glm::eulerAngles( quaternion );
-            m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
+            m_Transform = math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
         }
 
-        auto SetScale( const Vec3F& value ) -> void {
+        auto SetScale( const float3& value ) -> void {
             if ( !m_HasUniformScale ) {
                 m_Scale = value;
             } else {
@@ -163,7 +189,7 @@ namespace Mikoto {
                 }
             }
 
-            m_Transform = Math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
+            m_Transform = math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
         }
 
         auto SetUniformSale( const bool value ) -> void { m_HasUniformScale = value; }
@@ -172,11 +198,11 @@ namespace Mikoto {
 
     private:
         // Transform vectors
-        Vec3F m_Translation{ 0.0f, 0.0f, 0.0f };
-        Vec3F m_Rotation{};
-        Vec3F m_Scale{};
+        float3 m_Translation{ 0.0f, 0.0f, 0.0f };
+        float3 m_Rotation{};
+        float3 m_Scale{};
 
-        Mat4F m_WorldTransform{ 1.0f };
+        float4x4 m_WorldTransform{ 1.0f };
 
         // Model matrix (defines object translation, rotation and scale
         // according to the current transform values/vectors
@@ -187,7 +213,7 @@ namespace Mikoto {
 
     class RelationComponent {
     public:
-        explicit RelationComponent( const std::optional<UInt64> parent = std::nullopt )
+        explicit RelationComponent( const std::optional<u64> parent = std::nullopt )
             : m_Parent{ parent } {}
 
         RelationComponent( const RelationComponent& other ) = default;
@@ -196,15 +222,15 @@ namespace Mikoto {
         auto operator=( const RelationComponent& other ) -> RelationComponent& = default;
         auto operator=( RelationComponent&& other ) -> RelationComponent& = default;
 
-        auto RegisterChild( const UInt64 id ) -> void { m_ChildrenIDs.emplace( id ); }
-        auto EraseChild( const UInt64 id ) -> void { m_ChildrenIDs.erase( id ); }
+        auto RegisterChild( const u64 id ) -> void { m_ChildrenIDs.emplace( id ); }
+        auto EraseChild( const u64 id ) -> void { m_ChildrenIDs.erase( id ); }
 
-        MKT_NODISCARD auto IsChild( const UInt64 id ) const -> bool { return m_ChildrenIDs.contains( id ); }
+        MKT_NODISCARD auto IsChild( const u64 id ) const -> bool { return m_ChildrenIDs.contains( id ); }
         MKT_NODISCARD auto HasChildren() const -> bool { return !m_ChildrenIDs.empty(); }
 
-        auto SetParent( UInt64 uid ) -> void { m_Parent = uid; }
+        auto SetParent( u64 uid ) -> void { m_Parent = uid; }
         MKT_NODISCARD auto HasParent() const -> bool { return m_Parent.has_value(); }
-        MKT_NODISCARD auto GetParent() const -> const std::optional<UInt64>& { return m_Parent; }
+        MKT_NODISCARD auto GetParent() const -> const std::optional<u64>& { return m_Parent; }
 
         MKT_NODISCARD auto IsLeaf() const -> bool { return m_ChildrenIDs.empty(); }
         MKT_NODISCARD auto GetChildren() const -> decltype( auto ) { return ( m_ChildrenIDs ); }
@@ -212,8 +238,8 @@ namespace Mikoto {
         ~RelationComponent() = default;
 
     private:
-        std::optional<UInt64> m_Parent{};
-        ankerl::unordered_dense::set<UInt64> m_ChildrenIDs{};
+        std::optional<u64> m_Parent{};
+        ankerl::unordered_dense::set<u64> m_ChildrenIDs{};
     };
 
     /**
@@ -250,31 +276,26 @@ namespace Mikoto {
      * */
     class MeshComponent {
     public:
-        explicit MeshComponent( ModelHandle model = ModelHandle::CreateEmpty(), Int32 meshIndex = {} )
+        explicit MeshComponent( ModelHandle model = ModelHandle::CreateEmpty(), i32 meshIndex = {} )
             : m_Model{ model }, m_MeshIndex{ meshIndex } 
         {
-            SetPath( model->GetDirectory() );
-            SetName( model->GetName() );
         }
 
         ~MeshComponent() = default;
 
-        auto SetMesh( ModelHandle model, const Int32 meshIndex ) {
+        auto SetMesh( ModelHandle model, const i32 meshIndex ) {
             if ( !model.IsEmpty() ) {
                 m_Model = model;
                 m_MeshIndex = meshIndex;
-
-                SetPath( model->GetDirectory() );
-                SetName( model->GetName() );
             }
         }
 
-        MKT_NODISCARD auto GetMeshIndex() const -> Int32 { return m_MeshIndex; }
+        MKT_NODISCARD auto GetMeshIndex() const -> i32 { return m_MeshIndex; }
         MKT_NODISCARD auto GetModelPath() const -> const Path& { return m_Path; }
 
         MKT_NODISCARD auto HasMesh() const -> bool { return !m_Model.IsEmpty(); }
         MKT_NODISCARD auto GetMesh() const -> const MeshNode* {
-            return std::addressof( m_Model->GetMeshNode( static_cast<UInt32>( m_MeshIndex ) ) );
+            return std::addressof( m_Model->GetMeshNode( static_cast<u32>( m_MeshIndex ) ) );
         }
 
         MKT_NODISCARD auto GetMesh() -> MeshNode* {
@@ -282,29 +303,24 @@ namespace Mikoto {
                 return nullptr;
             }
 
-            return std::addressof( m_Model->GetMeshNode( static_cast<UInt32>( m_MeshIndex ) ) );
+            return std::addressof( m_Model->GetMeshNode( static_cast<u32>( m_MeshIndex ) ) );
         }
 
         auto GetModel() -> ModelHandle { return m_Model; }
 
-        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Model->GetName(); }
+        MKT_NODISCARD auto GetName() const -> eastl::string_view { return m_Model->GetPath().GetFilename(); }
 
-        auto IsSkinned() const -> bool {
-            return m_Model->IsSkinned();
-        }
+        MKT_NODISCARD auto IsSkinned() const -> bool { return m_Model->IsSkinned(); }
+        MKT_NODISCARD auto HasArmature() const -> bool { return m_Model->HasArmature(); }
 
-        auto SetAnimator(UInt64 id) -> void {
+        auto SetAnimator(u64 id) -> void {
             m_AnimatorID = id;
         }
 
         MKT_NODISCARD auto HasAnimations() const -> bool { return m_Model->HasAnimations(); }
 
     private:
-        auto SetPath( const Path& path ) -> void { m_Path = path; }
-        auto SetName( const std::string& name ) -> void { m_Name = name; }
-
-    private:
-        Int32 m_MeshIndex{ -1 };
+        i32 m_MeshIndex{ -1 };
 
         ModelHandle m_Model{};
 
@@ -314,13 +330,13 @@ namespace Mikoto {
         // Animator Controlling this mesh
         // We need to make sure the passed animation
         // uses an skeleton that is compatible with the bone IDs of this mesh
-        UInt64 m_AnimatorID{};
+        u64 m_AnimatorID{};
         bool m_IsSkinned{ false };
     };
 
     class LightComponent {
     public:
-        explicit LightComponent( LightType type = LightType::POINT_LIGHT_TYPE )
+        explicit LightComponent( LightType type = LightType::ePoint )
             : m_Type{ type } {}
 
         LightComponent( const LightComponent& other ) = default;
@@ -369,23 +385,23 @@ namespace Mikoto {
         PointLight m_PointLight{};
         DirectionalLight m_DirectionalLight{};
 
-        LightType m_Type{ LightType::POINT_LIGHT_TYPE };
+        LightType m_Type{ LightType::ePoint };
     };
 
 
     class AudioSourceComponent {
     public:
-        explicit AudioSourceComponent( const Path& path = "" ) {
+        explicit AudioSourceComponent( const Path& path ) {
             if ( auto file{ FileService::Get()->LoadFile( path ) }; !file ) {
-                MKT_CORE_LOGGER_ERROR( "AudioSourceComponent - Failed to load audio file: {}", path.string() );
+                MKT_CORE_LOGGER_ERROR( "AudioSourceComponent - Failed to load audio file: {}", path.GetC_Str() );
             } else {
                 const AudioLoadDescription desc{
-                    .AudioFile{ file },
-                    .Volume{ 0.5f }
+                    .mAudioFile{ file },
+                    .mVolume{ 0.5f }
                 };
 
                 if ( AudioHandle handle{ AssetsService::Get()->LoadAsset<Audio>( desc ) }; handle.IsEmpty() ) {
-                    MKT_CORE_LOGGER_ERROR( "AudioSourceComponent - Audio handle is empty: {}", path.string() );
+                    MKT_CORE_LOGGER_ERROR( "AudioSourceComponent - Audio handle is empty: {}", path.GetC_Str() );
                 } else {
                     m_AudioSource = handle->CreateSource();
                 }
@@ -455,14 +471,14 @@ namespace Mikoto {
     class RigidBodyComponent {
     public:
         enum class BodyType {
-            STATIC,
-            KINEMATIC,
-            DYNAMIC
+            eStatic,
+            eKinematic,
+            eDynamic
         };
 
         explicit RigidBodyComponent() = default;
 
-        explicit RigidBodyComponent( const UInt64 bodyID )
+        explicit RigidBodyComponent( const u64 bodyID )
             : m_BodyID{ bodyID }, m_IsValidBody{ true } {}
 
         RigidBodyComponent( const RigidBodyComponent& ) = default;
@@ -475,7 +491,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetMass() const -> float { return m_Mass; }
         auto SetMass( const float mass ) -> void {
-            m_Mass = Math::Clamp( mass, 1.0f, GetMaxBodyMass() );
+            m_Mass = math::Clamp( mass, 1.0f, GetMaxBodyMass() );
         }
 
         MKT_NODISCARD auto static GetMaxBodyMass() -> float { return 300000.0f; }
@@ -488,17 +504,17 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetBodyType() const -> BodyType { return m_BodyType; }
         MKT_NODISCARD auto IsBodyType( const BodyType type ) const -> bool { return m_BodyType == type; }
-        MKT_NODISCARD auto IsDynamic() const -> bool { return m_BodyType == BodyType::DYNAMIC; }
+        MKT_NODISCARD auto IsDynamic() const -> bool { return m_BodyType == BodyType::eDynamic; }
         auto SetBodyType( const BodyType type ) -> void { m_BodyType = type; }
 
-        MKT_NODISCARD auto GetBodyID() const -> UInt64 { return m_BodyID; }
-        MKT_NODISCARD auto IsValidBodyID() const -> UInt64 { return m_IsValidBody; }
+        MKT_NODISCARD auto GetBodyID() const -> u64 { return m_BodyID; }
+        MKT_NODISCARD auto IsValidBodyID() const -> u64 { return m_IsValidBody; }
 
         auto SetLinearVelocity( float x, float y, float z ) -> void {
             m_LinearVelocity = { x, y, z };
         }
 
-        auto SetLinearVelocity( const Vec3F& velocity ) -> void {
+        auto SetLinearVelocity( const float3& velocity ) -> void {
             m_LinearVelocity = velocity;
         }
 
@@ -506,14 +522,14 @@ namespace Mikoto {
             m_AngularVelocity = { x, y, z };
         }
 
-        auto SetAngularVelocity( const Vec3F& velocity ) -> void {
+        auto SetAngularVelocity( const float3& velocity ) -> void {
             m_AngularVelocity = velocity;
         }
 
-        MKT_NODISCARD auto GetLinearVelocity() const -> Vec3F { return m_LinearVelocity; }
-        MKT_NODISCARD auto GetAngularVelocity() const -> Vec3F { return m_AngularVelocity; }
+        MKT_NODISCARD auto GetLinearVelocity() const -> float3 { return m_LinearVelocity; }
+        MKT_NODISCARD auto GetAngularVelocity() const -> float3 { return m_AngularVelocity; }
 
-        auto SetBodyID( const UInt64 bodyID ) -> void {
+        auto SetBodyID( const u64 bodyID ) -> void {
             m_BodyID = bodyID;
             m_IsValidBody = true;
         }
@@ -527,15 +543,15 @@ namespace Mikoto {
 
     private:
         float m_Mass{ 1.0f };
-        float m_Restitution{ 0.2f };
+        float m_Restitution{ 0.01f };
         float m_Friction{ 1.0f };
         bool m_UseGravity{ true };
-        BodyType m_BodyType{ BodyType::DYNAMIC };
+        BodyType m_BodyType{ BodyType::eKinematic };
 
-        Vec3F m_LinearVelocity{ 0.0f, -2.0f, 0.0f };
-        Vec3F m_AngularVelocity{ 0.0f, 0.0f, 0.0f };
+        float3 m_LinearVelocity{ 0.0f, -1.0f, 0.0f };
+        float3 m_AngularVelocity{ 0.0f, 0.0f, 0.0f };
 
-        UInt64 m_BodyID{};
+        u64 m_BodyID{};
         bool m_IsValidBody{ false };
     };
 
@@ -550,6 +566,18 @@ namespace Mikoto {
         auto operator=( ColliderComponent&& other ) -> ColliderComponent& = default;
 
         ~ColliderComponent() = default;
+
+        MKT_NODISCARD auto GetRadius() const -> float { return m_Radius; }
+        MKT_NODISCARD auto GetHeight() const -> float { return m_Height; }
+        MKT_NODISCARD auto IsTrigger() const -> bool { return m_IsTrigger; }
+
+    private:
+        physics::ColliderType m_Type{ physics::ColliderType::eBox };
+
+        float m_Radius{};
+        float m_Height{};
+
+        bool m_IsTrigger{false};
     };
 
     class CameraComponent {
@@ -584,7 +612,7 @@ namespace Mikoto {
         DISABLE_COPY_FOR( CameraComponent );
 
     private:
-        Unique<SceneCamera> m_Camera{};
+        eastl::unique_ptr<SceneCamera> m_Camera{};
 
         Background m_Background{ Background::CLEAR_COLOR };
 
@@ -599,8 +627,8 @@ namespace Mikoto {
     public:
         explicit TextComponent() = default;
 
-        TextComponent( std::string_view textContent, float size, float spacing, bool isWorld )
-            : m_TextContent{ textContent }, m_Size{ size }, m_Spacing{ spacing }, m_IsWorldText{ isWorld } {}
+        TextComponent( eastl::string_view textContent, float size, float spacing, bool isWorld )
+            : mTextContent{ textContent }, mSize{ size }, mSpacing{ spacing }, mIsWorldText{ isWorld } {}
 
         TextComponent( const TextComponent& other ) = default;
         TextComponent( TextComponent&& other ) = default;
@@ -610,30 +638,30 @@ namespace Mikoto {
 
         auto SetFont( FontHandle font ) -> void {
             if ( !font.IsEmpty() ) {
-                m_Font = font;
+                mFont = font;
             }
         }
 
-        MKT_NODISCARD auto HasFont() const -> bool { return !m_Font.IsEmpty(); }
+        MKT_NODISCARD auto HasFont() const -> bool { return !mFont.IsEmpty(); }
 
         auto SetCamera( const Camera* camera ) -> void {
             if ( camera != nullptr ) {
-                m_Camera = camera;
+                mCamera = camera;
             }
         }
 
-        auto SetIsWorldText(bool value) -> void { m_IsWorldText = value; }
+        auto SetIsWorldText(bool value) -> void { mIsWorldText = value; }
 
-        MKT_NODISCARD auto IsWorldText() const ->bool { return m_IsWorldText; }
-        MKT_NODISCARD auto GetCamera() const -> const Camera* { return m_Camera; }
+        MKT_NODISCARD auto IsWorldText() const ->bool { return mIsWorldText; }
+        MKT_NODISCARD auto GetCamera() const -> const Camera* { return mCamera; }
 
-        MKT_NODISCARD auto GetFont() const -> const Font* { return m_Font.GetRaw(); }
-        MKT_NODISCARD auto GetFontHandle() const -> FontHandle { return m_Font; }
-        MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return m_Color; }
+        MKT_NODISCARD auto GetFont() const -> const Font* { return mFont.GetRaw(); }
+        //MKT_NODISCARD auto GetFontHandle() const -> FontHandle { return m_Font; }
+        MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return mColor; }
 
-        MKT_NODISCARD auto GetSize() const -> float { return m_Size; }
-        MKT_NODISCARD auto GetSpacing() const -> float { return m_Spacing; }
-        MKT_NODISCARD auto GetContents() const -> const std::string& { return m_TextContent; }
+        MKT_NODISCARD auto GetSize() const -> float { return mSize; }
+        MKT_NODISCARD auto GetSpacing() const -> float { return mSpacing; }
+        MKT_NODISCARD auto GetContents() const -> const eastl::string& { return mTextContent; }
 
         MKT_NODISCARD static auto GetMinLetterSpacing() -> float { return 1.0f; }
         MKT_NODISCARD static auto GetMaxLetterSpacing() -> float { return 10.0f; }
@@ -643,40 +671,43 @@ namespace Mikoto {
 
         auto SetSize( const float value ) -> void {
             if ( value != 0 ) {
-                m_Size = value;
+                mSize = value;
             }
         }
         auto SetSpacing( const float value ) -> void {
             if ( value != 0 ) {
-                m_Spacing = value;
+                mSpacing = value;
             }
         }
 
-        auto SetContents( const std::string_view content ) -> void { m_TextContent = content; }
+        auto SetContents( const eastl::string_view content ) -> void { mTextContent = content; }
 
         template<typename... Args>
-        auto SetColor( Args&&... args ) -> void { m_Color = glm::vec4{ std::forward<Args>( args )... }; }
+        auto SetColor( Args&&... args ) -> void { mColor = glm::vec4{ std::forward<Args>( args )... }; }
 
     private:
-        std::string m_TextContent{};
+        eastl::string mTextContent{};
 
-        Vec4F m_Color{ 1.0f, 1.0f, 0.4f, 1.0f };
+        float4 mColor{ 1.0f, 1.0f, 0.4f, 1.0f };
 
-        float m_Size{ 12 };
-        float m_Spacing{ 0 };
+        float mSize{ 12 };
+        float mSpacing{ 0 };
 
-        FontHandle m_Font{};
-        const Camera* m_Camera{ nullptr };
+        FontHandle mFont{};
+        const Camera* mCamera{ nullptr };
 
-        bool m_IsWorldText{ false };
+        bool mIsWorldText{ false };
     };
 
     class ScriptComponent {
     public:
         // The script can be constructed from a script on disk
         // if left empty we will use a blank script with minimal setup
-        explicit ScriptComponent(const Path& filePath = {})
-            : m_FilePath{ filePath } {}
+        explicit ScriptComponent(const Path& filePath)
+            : mFilePath{ filePath } {}
+
+        explicit ScriptComponent(eastl::string_view filePath = "")
+            : mFilePath{ filePath } {}
 
         ScriptComponent( const ScriptComponent& other ) = default;
         ScriptComponent( ScriptComponent&& other ) = default;
@@ -686,25 +717,25 @@ namespace Mikoto {
 
         auto SetScript( ScriptHandle handle ) -> void {
             if ( !handle.IsEmpty( ) ) {
-                m_Script = handle;
-                m_FilePath = m_Script->GetFile()->GetPath();
+                mScript = handle;
+                mFilePath = mScript->GetFile()->GetPath();
             }
         }
 
 
-        MKT_NODISCARD auto GetHandle() -> ScriptHandle { return m_Script; }
-        MKT_NODISCARD auto GetFilePath() const -> const Path& { return m_FilePath; }
+        MKT_NODISCARD auto GetHandle() -> ScriptHandle { return mScript; }
+        MKT_NODISCARD auto GetFilePath() const -> const Path& { return mFilePath; }
 
         ~ScriptComponent() = default;
 
     private:
-        Path m_FilePath{};
-        ScriptHandle m_Script{};
+        Path mFilePath{};
+        ScriptHandle mScript{};
     };
 
     class AnimatorComponent {
     public:
-        explicit AnimatorComponent( UInt64 ID = 0)
+        explicit AnimatorComponent( u64 ID = 0)
             : m_AnimatorID{ ID } {}
 
         AnimatorComponent( const AnimatorComponent& other ) = default;
@@ -715,16 +746,16 @@ namespace Mikoto {
 
         ~AnimatorComponent() = default;
 
-        auto SetAnimatorID( UInt64 ID) -> void { m_AnimatorID = ID; }
-        MKT_NODISCARD auto GetAnimatorID() const -> UInt64 { return m_AnimatorID; }
+        auto SetAnimatorID( u64 ID) -> void { m_AnimatorID = ID; }
+        MKT_NODISCARD auto GetAnimatorID() const -> u64 { return m_AnimatorID; }
 
     private:
-        UInt64 m_AnimatorID{};
+        u64 m_AnimatorID{};
     };
 
     class SkinnedMeshRenderer {
     public:
-        explicit SkinnedMeshRenderer( UInt64 ID = 0)
+        explicit SkinnedMeshRenderer( u64 ID = 0)
             : m_AnimatorID{ ID } {}
 
         SkinnedMeshRenderer( const SkinnedMeshRenderer& other ) = default;
@@ -735,28 +766,45 @@ namespace Mikoto {
 
         ~SkinnedMeshRenderer() = default;
 
-        MKT_NODISCARD auto GetAnimatorID() const -> UInt64 { return m_AnimatorID; }
+        MKT_NODISCARD auto GetAnimatorID() const -> u64 { return m_AnimatorID; }
 
     private:
-        UInt64 m_AnimatorID{};
+        u64 m_AnimatorID{};
     };
 
-    class PostProcessComponent {
+    class PostProcessMaterialComponent {
     public:
-        explicit PostProcessComponent() = default;
+        explicit PostProcessMaterialComponent() = default;
 
-        PostProcessComponent( const PostProcessComponent& other ) = default;
-        PostProcessComponent( PostProcessComponent&& other ) = default;
+        PostProcessMaterialComponent( const PostProcessMaterialComponent& other ) = default;
+        PostProcessMaterialComponent( PostProcessMaterialComponent&& other ) = default;
 
-        auto operator=( const PostProcessComponent& other ) -> PostProcessComponent& = default;
-        auto operator=( PostProcessComponent&& other ) -> PostProcessComponent& = default;
+        auto operator=( const PostProcessMaterialComponent& other ) -> PostProcessMaterialComponent& = default;
+        auto operator=( PostProcessMaterialComponent&& other ) -> PostProcessMaterialComponent& = default;
 
         MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return m_Material; }
 
-        ~PostProcessComponent() = default;
+        ~PostProcessMaterialComponent() = default;
 
     private:
         MaterialHandle m_Material{};
+    };
+
+    class ParticleEmitterComponent {
+    public:
+        explicit ParticleEmitterComponent() = default;
+
+        ParticleEmitterComponent( const ParticleEmitterComponent& other ) = default;
+        ParticleEmitterComponent( ParticleEmitterComponent&& other ) = default;
+
+        auto operator=( const ParticleEmitterComponent& other ) -> ParticleEmitterComponent& = default;
+        auto operator=( ParticleEmitterComponent&& other ) -> ParticleEmitterComponent& = default;
+
+        ~ParticleEmitterComponent() = default;
+
+    private:
+        Ref<renderer::ParticleEmitter> m_Emitter{};
+        bool m_IsPlaying{ true };
     };
 }
 

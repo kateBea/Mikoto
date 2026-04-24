@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,44 +15,42 @@
 #ifndef MIKOTO_EDITOR_APP_HH
 #define MIKOTO_EDITOR_APP_HH
 
-#include <Common/Application.hh>
-#include <Core/EventService.hh>
+#include <EASTL/string.h>
+#include <EASTL/unique_ptr.h>
+
+#include <ankerl/unordered_dense.h>
+
+#include <Core/Engine.hh>
+#include <Core/Application.hh>
+#include <Core/EventSystem.hh>
+
 #include <Platform/Window.hh>
 
-namespace Mikoto {
+#include <Theme/ThemeManager.hh>
 
-    // There's a set of models that are loaded at start
-    // and made available for editor to use on scenes
-    enum class PrefabModels {
-        CUBE,
-        SPHERE,
-        CONE,
-        CYLINDER,
-        SPONZA,
-    };
+namespace mikoto::editor {
+
+    using namespace mikoto::core;
+    using namespace mikoto::platform;
 
     class EditorApp final : public Application, public Subscriber {
     public:
-
-        auto Run() -> void override;
+        explicit EditorApp( Window* window );
 
         auto Init() -> void override;
+        auto Run() -> void override;
         auto Shutdown() -> void override;
         auto Update() -> void override;
 
-        auto SetWindow(Window* window) -> void;
-
-        static auto GetPrefabUri(PrefabModels prefab) -> const std::string&;
+    private:
+        auto InitEventCallbacks() -> void;
 
     private:
-        auto InitPrefabs() -> void;
-        auto SetupEventCallbacks() -> void;
+        Window* mWindow{};
 
-    private:
-
-        Window* m_Window{};
-        ankerl::unordered_dense::map<PrefabModels, std::string> m_PrefabModels{};
+        eastl::unique_ptr<Engine> mEngine{};
+        eastl::unique_ptr<ThemeManager> mThemeManager{};
     };
-}
+}// namespace mikoto::editor
 
 #endif// MIKOTO_EDITOR_APP_HH

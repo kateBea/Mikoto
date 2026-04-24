@@ -17,12 +17,12 @@
 
 #include <Panels/Panel.hh>
 
-namespace Mikoto {
+namespace mikoto::editor {
 
     struct EditorState;
 
     struct GamePreviewPanelCreateInfo {
-        EditorState* State{};
+        EditorState* mState{};
     };
 
     class GamePreviewPanel final : public Panel {
@@ -34,9 +34,9 @@ namespace Mikoto {
         ~GamePreviewPanel() override = default;
 
     private:
-        EditorState* m_State{};
+        EditorState* mState{};
     };
 }
 
 
-#endif //MIKOTO_GAMEPREVIEWPANEL_HH
+#endif //MIKOTO_GAME_PREVIEW_PANEL_HH

@@ -1,73 +1,88 @@
-/**
- * VulkanFrameBuffer.cc
- * Created by kate on 7/10/2023.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// Third-Party Library
 #include <volk.h>
 
-// Project Headers
-#include <Common/Common.hh>
+#include <EASTL/vector.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
+#include <Memory/Allocator.hh>
+
 #include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanFramebuffer.hh>
 
-namespace Mikoto {
-    VulkanFramebuffer::VulkanFramebuffer( const FramebufferDescription& createInfo )
-        : Framebuffer{ createInfo } {
+namespace mikoto::renderer::vulkan {
+
+    using namespace mikoto::memory;
+
+    Framebuffer::Framebuffer( const FramebufferDescription& createInfo )
+        : IFramebuffer{ createInfo } {
     }
 
-    auto VulkanFramebuffer::GetNativeHandle( ObjectType type ) -> Object {
+    auto Framebuffer::GetNativeHandle( ObjectType type ) -> Object {
         if (type != ObjectType::Vk_Framebuffer) {
             return Object(nullptr);
         }
 
-        return Object(m_FrameBuffer );
+        return Object(mFrameBuffer );
     }
 
-    auto VulkanFramebuffer::Release() -> void {
-        TO_VK_DEVICE( m_Device )->WaitIdle();
-        vkDestroyFramebuffer( VK_DEVICE(m_Device), m_FrameBuffer, nullptr );
-
-        m_IsAllocated = false;
+    auto Framebuffer::Release() -> void {
+        vkDestroyFramebuffer( checked_cast<Device*>( mDevice )->GetDevice(), mFrameBuffer, nullptr );
+        mIsAllocated = false;
     }
 
-    VulkanFramebuffer::~VulkanFramebuffer() {
-        if ( m_IsAllocated ) {
+    Framebuffer::~Framebuffer() {
+        if ( mIsAllocated ) {
             Release();
         }
     }
 
-    auto VulkanFramebuffer::Initialize() -> void {
-        m_CreateInfo = VulkanHelpers::Initializers::FramebufferCreateInfo();
+    auto Framebuffer::Initialize() -> void {
+        mCreateInfo = initializers::FramebufferCreateInfo();
 
+        // TODO: No longer using this
         VkRenderPass renderPass{ VK_NULL_HANDLE };
-        if (m_Spec.NativeHandleSpec.has_value()) {
-            renderPass = std::any_cast<VkFramebufferCreateInfo>( m_Spec.NativeHandleSpec ).renderPass;
-        }
 
-        m_CreateInfo.pNext = nullptr;
-        m_CreateInfo.renderPass = renderPass;
+        mCreateInfo.pNext = nullptr;
+        mCreateInfo.renderPass = renderPass;
 
-        m_CreateInfo.width = m_Spec.Width;
-        m_CreateInfo.height = m_Spec.Height;
-        m_CreateInfo.layers = 1;
+        mCreateInfo.width = mWidth;
+        mCreateInfo.height = mHeight;
+        mCreateInfo.layers = 1;
 
-        std::vector<VkImageView> attachments{};
-        for (auto& texture : m_Spec.ColorAttachments) {
+        eastl::vector<VkImageView> attachments{};
+        for (auto& texture : mColorAttachments) {
             attachments.emplace_back( texture->GetNativeHandle( ObjectType::Vk_ImageView ) );
         }
 
-        for (auto& texture : m_Spec.DepthAttachment) {
+        for (auto& texture : mDepthAttachment) {
             attachments.emplace_back( texture->GetNativeHandle( ObjectType::Vk_ImageView ) );
         }
 
-        m_CreateInfo.attachmentCount = static_cast<UInt32>( attachments.size() );
-        m_CreateInfo.pAttachments = attachments.data();
+        mCreateInfo.attachmentCount = as<u32>( attachments.size() );
+        mCreateInfo.pAttachments = attachments.data();
 
-        if ( vkCreateFramebuffer( VK_DEVICE(m_Device), std::addressof( m_CreateInfo ), nullptr, std::addressof( m_FrameBuffer ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "Failed to create framebuffer!" );
-        }
+        MKT_VK_CHECK( vkCreateFramebuffer(
+            checked_cast<Device*>( mDevice )->GetDevice(),
+            MKT_ADDRESSOF( mCreateInfo ),
+            nullptr,
+            MKT_ADDRESSOF( mFrameBuffer ) ) );
 
-        m_IsAllocated = true;
+        mIsAllocated = true;
     }
 }// namespace Mikoto

@@ -95,6 +95,7 @@ VSOutput main(VSInput input) {
     float4 locPos = float4(0, 0, 0, 0);
     float3 normal = float3(0, 0, 0);
     if (meshInfo.AnimatorID != -1) {
+        // Mesh is animated or has armature
         uint animatorIndex = meshInfo.AnimatorID - 1;
 
         BoneData bonePalette = Bones[animatorIndex];

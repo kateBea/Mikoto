@@ -15,21 +15,18 @@
 #ifndef MIKOTO_POST_EFFECTS_PASSES_HH
 #define MIKOTO_POST_EFFECTS_PASSES_HH
 
-#include <string_view>
-
-#include <Assets/Font.hh>
-
+#include <Renderer/Text/Font.hh>
 #include <Library/Utility/Types.hh>
-
-#include <Scene/Scene.hh>
+#include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Passes/MeshCulling.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Component.hh>
-#include <Renderer/Core/GpuDevice.hh>
-#include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Passes/MeshCulling.hh>
-#include <Renderer/Core/CommandContext.hh>
+#include <Scene/Scene.hh>
+#include <string_view>
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
     struct BloomParameters {
         bool Enabled{ true };
@@ -73,7 +70,7 @@ namespace Mikoto {
 
     private:
         auto RegisterSSAO( FrameGraph& graph ) -> void;
-        auto RegisterBloom( FrameGraph& graph ) -> void;
+        auto RegisterBloom( FrameGraph& graph, GpuDevice* device ) -> void;
         auto RegisterTonemap( FrameGraph& graph ) -> void;
         auto RegisterPostProcessMaterialsFilter( FrameGraph& graph ) -> void;
         auto RegisterGradient( FrameGraph& graph ) -> void;
@@ -146,7 +143,7 @@ namespace Mikoto {
 
         Vec4F m_ClearColor{ 0.1f, 0.3f, 0.4f, 1.0f };
 
-        RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
+        RenderResolution m_Resolution{ RenderResolution::e1080P };
 
         UInt32 m_SSOKernelSize{ 64 };
         std::vector<Vec4F> m_SSONoise{};

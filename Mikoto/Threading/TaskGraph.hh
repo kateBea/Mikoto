@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,34 +15,19 @@
 #ifndef MIKOTO_TASKGRAPH_HH
 #define MIKOTO_TASKGRAPH_HH
 
-#include <utility>
-
 #include <taskflow/taskflow.hpp>
 
-namespace Mikoto {
-
-    enum class DumpDst {
-        STANDARD_OUTPUT,
-        STANDARD_ERROR,
-    };
+namespace mikoto::threading {
 
     class TaskGraph final {
     public:
 
-        template <typename Callable>
-        auto Emplace(Callable&& c) -> TaskGraph& {
-            m_Taskflow.emplace( std::forward<Callable>(c) );
-            return *this;
-        }
-
-        auto Dump(DumpDst out) -> void;
-
         operator tf::Taskflow&() noexcept {
-            return m_Taskflow;
+            return mTaskflow;
         }
 
     private:
-        tf::Taskflow m_Taskflow{};
+        tf::Taskflow mTaskflow{};
     };
 }
 

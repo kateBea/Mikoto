@@ -15,29 +15,45 @@
 #ifndef MIKOTOROOT_THUMBNAIL_CACHE_HH
 #define MIKOTOROOT_THUMBNAIL_CACHE_HH
 
+#include <EASTL/string.h>
+
 #include <ankerl/unordered_dense.h>
 
-#include <Assets/Texture.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 
-namespace Mikoto {
+#include <Filesystem/Path.hh>
+
+#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Core/GpuDevice.hh>
+
+#include <Assets/AssetsService.hh>
+
+namespace mikoto::editor {
+
+    using namespace mikoto::asset;
+    using namespace mikoto::renderer;
 
     // Thumbnail info
     struct Thumbnail {
-        TextureHandle ThumbnailImage{};
+        rhi::TextureHandle mThumbnail{};
     };
 
     class ThumbnailCache {
     public:
 
-        MKT_NODISCARD auto GetThumbnail(const Path& path) const -> Thumbnail;
-        MKT_NODISCARD auto CreateThumbnail(const Path& path) const -> Thumbnail;
+        explicit ThumbnailCache(GpuDevice* device);
 
-        auto CreateThumbnailAsync(const Path& path) const -> void;
+        MKT_NODISCARD auto Contains(const filesystem::Path& path ) const -> bool;
+        MKT_NODISCARD auto GetThumbnail(const filesystem::Path& path) const -> Thumbnail;
+
+        auto CreateThumbnailAsync(const filesystem::Path& path) -> void;
+        MKT_NODISCARD auto CreateThumbnail(const filesystem::Path& path) -> Thumbnail;
 
     private:
-        ankerl::unordered_dense::map<std::string, Thumbnail> m_Textures2D{};
-        // Create the renderer for models, render the scene in very low resolution and scale
+        GpuDevice* mDevice{};
+        AssetCache<ITexture> mThumbnails{};
     };
 
 }// namespace Mikoto

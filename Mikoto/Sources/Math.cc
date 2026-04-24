@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cmath>
 #include <iomanip>
 #include <iostream>
 
@@ -22,78 +21,82 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+
 #include <Math/Math.hh>
-#include <Common/String.hh>
-#include <Library/String/String.hh>
 
-namespace Mikoto {
+namespace mikoto::math {
 
-    static auto DumpMat4( const glm::mat4& m, Size index ) -> void {
-        std::cout << "index: " << index << "\n";
-        std::cout << "=========================\n";
+    using namespace mikoto::core;
 
-        for ( Int32 row{ 0 }; row < 4; ++row ) {
-            for ( Int32 col{ 0 }; col < 4; ++col ) {
-                std::cout << std::setw( 10 )
-                          << std::setprecision( 5 )
-                          << std::fixed
-                          << m[col][row] << " ";
-            }
-            std::cout << "\n";
-        }
+    // static auto DumpMat4( const float4x4& m, size_type index ) -> void {
+    //     std::cout << "index: " << index << "\n";
+    //     std::cout << "=========================\n";
+    //
+    //     for ( i32 row{ 0 }; row < 4; ++row ) {
+    //         for ( i32 col{ 0 }; col < 4; ++col ) {
+    //             std::cout << std::setw( 10 )
+    //                       << std::setprecision( 5 )
+    //                       << std::fixed
+    //                       << m[col][row] << " ";
+    //         }
+    //         std::cout << "\n";
+    //     }
+    //
+    //     // endl to flush
+    //     std::cout << "=========================" << std::endl;
+    // }
+    //
+    // static auto DumpMat4Beautify( const float4x4& m, size_type index ) -> void {
+    //     std::string out{};
+    //
+    //     out += ::Format( "index: {}\n", index );
+    //     out += "=========================\n";
+    //
+    //     for ( Int32 row{ 0 }; row < 4; ++row ) {
+    //         out += StringUtil::Format(
+    //                 "{:>10.5f} {:>10.5f} {:>10.5f} {:>10.5f}\n",
+    //                 m[0][row],
+    //                 m[1][row],
+    //                 m[2][row],
+    //                 m[3][row] );
+    //     }
+    //
+    //     out += "=========================\n";
+    //
+    //     MKT_COLOR_PRINT_FORMATTED_FLUSH(
+    //             MKT_FMT_COLOR_BLUE_VIOLET,
+    //             "{}",
+    //             out );
+    // }
 
-        // endl to flush
-        std::cout << "=========================" << std::endl;
-    }
-
-    static auto DumpMat4Beautify( const glm::mat4& m, Size index ) -> void {
-        std::string out{};
-
-        out += StringUtil::Format( "index: {}\n", index );
-        out += "=========================\n";
-
-        for ( Int32 row{ 0 }; row < 4; ++row ) {
-            out += StringUtil::Format(
-                    "{:>10.5f} {:>10.5f} {:>10.5f} {:>10.5f}\n",
-                    m[0][row],
-                    m[1][row],
-                    m[2][row],
-                    m[3][row] );
-        }
-
-        out += "=========================\n";
-
-        MKT_COLOR_PRINT_FORMATTED_FLUSH(
-                MKT_FMT_COLOR_BLUE_VIOLET,
-                "{}",
-                out );
-    }
-
-    auto Math::Floor( const double value ) -> double {
+    auto math::Floor( const double value ) -> double {
         return glm::floor( value );
     }
 
-    auto Math::Log2( const double value ) -> double {
+    auto math::Log2( const double value ) -> double {
         return std::log2( value );
     }
 
-    auto Math::ToRadians( double value ) -> double {
+    auto math::ToRadians( double value ) -> double {
         return glm::radians( value );
     }
 
-    auto Math::ToDegrees( double value ) -> double {
+    auto math::ToDegrees( double value ) -> double {
         return glm::degrees( value );
     }
 
-    auto Math::Abs( double value ) -> double {
+    auto math::Abs( double value ) -> double {
         return glm::abs( value );
     }
 
-    auto Math::Lerp( float a, float b, float f ) -> double {
+    auto math::Lerp( float a, float b, float f ) -> double {
         return a + f * (b - a);
     }
 
-    auto Math::Recompose( Mat4F& transform, const Vec3F& translation, const Vec3F& rotation, const Vec3F& scale ) -> void {
+    auto math::Recompose( float4x4& transform, const float3& translation, const float3& rotation, const float3& scale ) -> void {
         float matrixTranslation[3]{}, matrixRotation[3]{}, matrixScale[3]{};
 
         matrixTranslation[0] = translation.x;
@@ -111,7 +114,7 @@ namespace Mikoto {
         ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, glm::value_ptr( transform ));
     }
 
-    auto Math::Decompose( const Mat4F &transform, Vec3F &translation, Vec3F &rotation, Vec3F &scale ) -> void {
+    auto math::Decompose( const float4x4 &transform, float3 &translation, float3 &rotation, float3 &scale ) -> void {
         float matrixTranslation[3]{}, matrixRotation[3]{}, matrixScale[3]{};
         ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr( transform ), matrixTranslation, matrixRotation, matrixScale);
 
@@ -128,15 +131,15 @@ namespace Mikoto {
         scale.z = matrixScale[2];
     }
 
-    auto Math::DumpMat4FList( const std::vector<glm::mat4>& m ) -> void {
-        for ( Size i{}; i < m.size(); ++i ) {
-            DumpMat4( m[i], i );
-        }
+    auto math::DumpMat4FList( const std::vector<glm::mat4>& m ) -> void {
+        // for ( Size i{}; i < m.size(); ++i ) {
+        //     DumpMat4( m[i], i );
+        // }
     }
 
-    auto Math::DumpMat4FListBeautify( const std::vector<glm::mat4>& m ) -> void {
-        for ( Size i{}; i < m.size(); ++i ) {
-            DumpMat4Beautify( m[i], i );
-        }
+    auto math::DumpMat4FListBeautify( const std::vector<glm::mat4>& m ) -> void {
+        // for ( Size i{}; i < m.size(); ++i ) {
+        //     DumpMat4Beautify( m[i], i );
+        // }
     }
 }

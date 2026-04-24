@@ -15,8 +15,7 @@
 #ifndef MIKOTO_THEME_HH
 #define MIKOTO_THEME_HH
 
-
-namespace Mikoto {
+namespace mikoto::editor {
     class Theme final {
     public:
 

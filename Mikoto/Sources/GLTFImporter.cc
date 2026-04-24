@@ -12,22 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ranges>
+
 #include <tiny_gltf.h>
+
+#include <EASTL/algorithm.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+
+#include <Logging/Logger.hh>
 
 #include <Assets/AssetsService.hh>
 #include <Assets/GLTFImporter.hh>
-#include <Common/String.hh>
+
 #include <Filesystem/FileService.hh>
 #include <Filesystem/FileSystem.hh>
-#include <Library/Math/Math.hh>
-#include <Logging/Logger.hh>
-#include <Material/PhysicalMaterial.hh>
-#include <Renderer/Core/RenderUtility.hh>
-#include <Threading/ThreadUtility.hh>
-#include <algorithm>
-#include <ranges>
 
-#//---------------------------------------------------------------------------//
+#include <Material/PhysicalMaterial.hh>
+#include <Threading/ThreadUtility.hh>
+
+//---------------------------------------------------------------------------//
 // Initial gltf2ozz implementation author: Alexander Dzhoganov                //
 // https://github.com/guillaumeblanc/ozz-animation/pull/70                    //
 //----------------------------------------------------------------------------//
@@ -35,6 +41,7 @@
 #include <cassert>
 #include <cstring>
 
+#include "glm/gtc/type_ptr.hpp"
 #include "ozz/animation/offline/raw_animation_utils.h"
 #include "ozz/animation/offline/tools/import2ozz.h"
 #include "ozz/animation/runtime/skeleton.h"
@@ -63,7 +70,7 @@
 #endif// _MSC_VER
 
 
-namespace Mikoto {
+namespace mikoto::asset {
 
     static inline int32_t GetTypeSizeInBytes( uint32_t ty ) {
         if ( ty == TINYGLTF_TYPE_SCALAR ) {
@@ -920,22 +927,22 @@ namespace Mikoto {
         tinygltf::Model m_model;
     };
 
-    static auto ComponentSize( Int32 componentType ) -> Size {
+    static auto ComponentSize( i32 componentType ) -> size_t {
         switch ( componentType ) {
             case TINYGLTF_COMPONENT_TYPE_FLOAT:
                 return sizeof( float );
             case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
-                return sizeof( UInt32 );
+                return sizeof( u32 );
             case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-                return sizeof( UInt16 );
+                return sizeof( u16 );
             case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-                return sizeof( UInt8 );
+                return sizeof( u8 );
             default:
                 return 0;
         }
     }
 
-    static auto TypeCount( Int32 type ) -> Size {
+    static auto TypeCount( i32 type ) -> size_t {
         switch ( type ) {
             case TINYGLTF_TYPE_SCALAR:
                 return 1;
@@ -950,42 +957,42 @@ namespace Mikoto {
         }
     }
 
-    static auto GetMikotoWrapMode( Int32 wrapMode ) -> SamplerWrapMode {
+    static auto GetMikotoWrapMode( i32 wrapMode ) -> SamplerWrapMode {
         switch ( wrapMode ) {
             case -1:
             case 10497:
-                return SamplerWrapMode::WRAP_REPEAT;
+                return SamplerWrapMode::eRepeat;
             case 33071:
-                return SamplerWrapMode::WRAP_CLAMP_TO_EDGE;
+                return SamplerWrapMode::eClampToEdge;
             case 33648:
-                return SamplerWrapMode::MIRRORED_REPEAT;
+                return SamplerWrapMode::eMirroredRepeat;
         }
 
-        return SamplerWrapMode::WRAP_REPEAT;
+        return SamplerWrapMode::eRepeat;
     }
 
-    static auto GetMikotoFilterMode( Int32 filterMode ) -> SamplerFilter {
+    static auto GetMikotoFilterMode( i32 filterMode ) -> SamplerFilter {
         switch ( filterMode ) {
             case -1:
             case 9728:
-                return SamplerFilter::FILTER_NEAREST;
+                return SamplerFilter::eNearest;
             case 9729:
-                return SamplerFilter::FILTER_LINEAR;
+                return SamplerFilter::eLinear;
             case 9984:
-                return SamplerFilter::FILTER_NEAREST;
+                return SamplerFilter::eNearest;
             case 9985:
-                return SamplerFilter::FILTER_NEAREST;
+                return SamplerFilter::eNearest;
             case 9986:
-                return SamplerFilter::FILTER_LINEAR;
+                return SamplerFilter::eLinear;
             case 9987:
-                return SamplerFilter::FILTER_LINEAR;
+                return SamplerFilter::eLinear;
         }
 
-        return SamplerFilter::FILTER_NEAREST;
+        return SamplerFilter::eNearest;
     }
 
-    static auto ToMat4F( const tinygltf::Node& node ) -> Mat4F {
-        glm::mat4 transform{ 1.0f };
+    static auto ToMat4F( const tinygltf::Node& node ) -> float4x4 {
+        float4x4 transform{ 1.0f };
 
         if ( !node.matrix.empty() ) {
             const double* m = node.matrix.data();
@@ -1000,39 +1007,39 @@ namespace Mikoto {
         return transform;
     }
 
-    static Mat4F ComputeNodeTransform( const tinygltf::Node& node ) {
-        Mat4F transform{ 1.0f };
+    static auto ComputeNodeTransform( const tinygltf::Node& node ) -> float4x4 {
+        float4x4 transform{ 1.0f };
 
         if ( !node.matrix.empty() ) {
             transform = ToMat4F( node );
         } else {
-            Vec3F translation{ 0.0f };
-            Vec3F scale{ 1.0f };
-            Quat rotation{ 1, 0, 0, 0 };
+            float3 translation{ 0.0f };
+            float3 scale{ 1.0f };
+            quat rotation{ 1, 0, 0, 0 };
 
             if ( !node.translation.empty() )
-                translation = Vec3F(
+                translation = float3(
                         node.translation[0],
                         node.translation[1],
                         node.translation[2] );
 
             if ( !node.scale.empty() )
-                scale = Vec3F(
+                scale = float3(
                         node.scale[0],
                         node.scale[1],
                         node.scale[2] );
 
             if ( !node.rotation.empty() )
-                rotation = Quat(
+                rotation = quat(
                         node.rotation[3],
                         node.rotation[0],
                         node.rotation[1],
                         node.rotation[2] );
 
             transform =
-                    glm::translate( Mat4F{ 1.0f }, translation ) *
+                    glm::translate( float4x4{ 1.0f }, translation ) *
                     glm::mat4_cast( rotation ) *
-                    glm::scale( Mat4F{ 1.0f }, scale );
+                    glm::scale( float4x4{ 1.0f }, scale );
         }
 
         return transform;
@@ -1053,10 +1060,10 @@ namespace Mikoto {
         std::vector<float> result{};
         result.resize( accessor.count * elemSize );
 
-        for ( Size i{}; i < accessor.count; ++i ) {
+        for ( size_t i{}; i < accessor.count; ++i ) {
             const auto* element = dataPtr + i * ( stride ? stride : compSize * elemSize );
 
-            for ( Size c{}; c < elemSize; ++c ) {
+            for ( size_t c{}; c < elemSize; ++c ) {
                 const auto* compPtr = element + c * compSize;
                 float value{};
 
@@ -1066,13 +1073,13 @@ namespace Mikoto {
                         break;
 
                     case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: {
-                        auto v = *reinterpret_cast<const UInt8*>( compPtr );
+                        auto v = *reinterpret_cast<const u8*>( compPtr );
                         value = accessor.normalized ? v / 255.f : static_cast<float>( v );
                         break;
                     }
 
                     case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: {
-                        auto v = *reinterpret_cast<const UInt16*>( compPtr );
+                        auto v = *reinterpret_cast<const u16*>( compPtr );
                         value = accessor.normalized ? v / 65535.f : static_cast<float>( v );
                         break;
                     }
@@ -1094,9 +1101,9 @@ namespace Mikoto {
             const tinygltf::Model& model,
             const tinygltf::Primitive& primitive,
             const std::string& attributeName,
-            std::vector<VertexData>& vertices,
-            TVec VertexData::* member,
-            Size componentCount ) -> void {
+            eastl::vector<VertexDescription>& vertices,
+            TVec VertexDescription::* member,
+            size_t componentCount ) -> void {
 
         if ( !primitive.attributes.contains( attributeName ) ) {
             return;
@@ -1105,23 +1112,23 @@ namespace Mikoto {
         const auto& accessor{ model.accessors[primitive.attributes.at( attributeName )] };
         auto data{ ReadAccessorAsFloat( model, accessor ) };
 
-        const Size vertexCount{ vertices.size() };
+        const size_t vertexCount{ vertices.size() };
 
-        for ( Size i{}; i < vertexCount; ++i ) {
+        for ( size_t i{}; i < vertexCount; ++i ) {
             TVec value{};
 
-            if constexpr ( std::is_same_v<TVec, Vec2F> ) {
+            if constexpr ( std::is_same_v<TVec, float2> ) {
                 value = {
                     data[i * componentCount + 0],
                     data[i * componentCount + 1]
                 };
-            } else if constexpr ( std::is_same_v<TVec, Vec3F> ) {
+            } else if constexpr ( std::is_same_v<TVec, float3> ) {
                 value = {
                     data[i * componentCount + 0],
                     data[i * componentCount + 1],
                     data[i * componentCount + 2]
                 };
-            } else if constexpr ( std::is_same_v<TVec, Vec4F> ) {
+            } else if constexpr ( std::is_same_v<TVec, float4> ) {
                 value = {
                     data[i * componentCount + 0],
                     data[i * componentCount + 1],
@@ -1136,43 +1143,53 @@ namespace Mikoto {
 
     GLTFImporter::GLTFImporter( GpuDevice* device )
         : ModelImporter{ device } {
-        for ( Int32 count{}; count < ThreadUtils::InferConcurrentThreads(); ++count ) {
-            m_Importers.emplace_back( CreateScope<LoaderData>( count ) );
+        for ( i32 count{}; count < threading::GetThreadConcurrency(); ++count ) {
+            mImporters.emplace_back( eastl::make_unique<LoaderData>( count ) );
         }
     }
 
-    auto GLTFImporter::Import( const ModelLoadDescription& description, ModelData& out ) -> void {
-        auto iter{ m_Importers.end() };
+    auto GLTFImporter::Import( const ModelLoadDescription& description, ModelDataDescription& out ) -> void {
+        auto iter{ mImporters.end() };
         do {
             iter = TryAcquireImporter();
-        } while ( iter == m_Importers.end() );
+        } while ( iter == mImporters.end() );
 
-        MKT_CORE_LOGGER_DEBUG( "Using GLTF importer {}", ( *iter )->Index );
+        MKT_CORE_LOGGER_DEBUG( "Using GLTF importer {}", ( *iter )->mIndex );
 
         Import( *( *iter ), description, out );
-        ( *iter )->IsFree.store( true, std::memory_order_release );
+        ( *iter )->mIsFree.store( true, std::memory_order_release );
     }
 
-    auto GLTFImporter::LoadPrimitives( tinygltf::Model& model, ModelData& modelData ) -> void {
+    auto GLTFImporter::TryAcquireImporter() -> eastl::vector<eastl::unique_ptr<LoaderData>>::iterator {
+        return std::ranges::find_if( mImporters, []( const auto& importer ) -> bool {
+            bool expected{ true };
+            if ( importer->mIsFree.compare_exchange_strong( expected, false, std::memory_order_acquire ) ) {
+                return true;
+            }
+
+            return false;
+        } );
+    }
+
+    static auto LoadPrimitives( tinygltf::Model& model, ModelDataDescription& modelData ) -> void {
         for ( const auto& mesh: model.meshes ) {
             for ( const auto& primitive: mesh.primitives ) {
-                MeshNodeData node{};
-                node.Name = mesh.name;
+                MeshNodeDescription node{};
+                node.mName = mesh.name.c_str();
                 node.MaterialIndex = primitive.material;
-
 
                 const auto& posAccessor{ model.accessors[primitive.attributes.at( "POSITION" )] };
 
-                const Size vertexCount{ posAccessor.count };
-                node.Vertices.resize( vertexCount );
+                const size_t vertexCount{ posAccessor.count };
+                node.mVertices.resize( vertexCount );
 
                 // POSITION (required)
                 LoadVertexAttribute(
                         model,
                         primitive,
                         "POSITION",
-                        node.Vertices,
-                        &VertexData::Position,
+                        node.mVertices,
+                        &VertexDescription::mPosition,
                         3 );
 
                 // NORMAL
@@ -1180,23 +1197,20 @@ namespace Mikoto {
                         model,
                         primitive,
                         "NORMAL",
-                        node.Vertices,
-                        &VertexData::Normals,
+                        node.mVertices,
+                        &VertexDescription::mNormals,
                         3 );
 
                 // COLOR_0 (can be VEC3 or VEC4)
                 if ( primitive.attributes.contains( "COLOR_0" ) ) {
-                    const auto& accessor =
-                            model.accessors[primitive.attributes.at( "COLOR_0" )];
-
-                    const auto compCount = TypeCount( accessor.type );
-
+                    const auto& accessor{ model.accessors[primitive.attributes.at( "COLOR_0" )] };
+                    const auto compCount { TypeCount( accessor.type ) };
                     LoadVertexAttribute(
                             model,
                             primitive,
                             "COLOR_0",
-                            node.Vertices,
-                            &VertexData::Colors,
+                            node.mVertices,
+                            &VertexDescription::mColors,
                             compCount == 4 ? 4 : 3 );
                 }
 
@@ -1205,8 +1219,8 @@ namespace Mikoto {
                         model,
                         primitive,
                         "TEXCOORD_0",
-                        node.Vertices,
-                        &VertexData::UV_0,
+                        node.mVertices,
+                        &VertexDescription::mUv0,
                         2 );
 
                 // TEXCOORD_1
@@ -1214,8 +1228,8 @@ namespace Mikoto {
                         model,
                         primitive,
                         "TEXCOORD_1",
-                        node.Vertices,
-                        &VertexData::UV_1,
+                        node.mVertices,
+                        &VertexDescription::mUv1,
                         2 );
 
                 // JOINTS_0
@@ -1223,8 +1237,17 @@ namespace Mikoto {
                         model,
                         primitive,
                         "JOINTS_0",
-                        node.Vertices,
-                        &VertexData::Joints,
+                        node.mVertices,
+                        &VertexDescription::mJoints0,
+                        4 );
+
+                // JOINTS_1
+                LoadVertexAttribute(
+                        model,
+                        primitive,
+                        "JOINTS_1",
+                        node.mVertices,
+                        &VertexDescription::mJoints1,
                         4 );
 
                 // WEIGHTS_0
@@ -1232,16 +1255,18 @@ namespace Mikoto {
                         model,
                         primitive,
                         "WEIGHTS_0",
-                        node.Vertices,
-                        &VertexData::Weights,
+                        node.mVertices,
+                        &VertexDescription::mWeights0,
                         4 );
 
-                // For tests only, idially will remove the vector
-                node.VerticesSpan = BufferSpanHandle::Spawn( MKT_SIZEOF( VertexData ), vertexCount );
-
-                for (const auto& data : node.Vertices) {
-                    node.VerticesSpan->Emplace( data );
-                }
+                // WEIGHTS_1
+                LoadVertexAttribute(
+                        model,
+                        primitive,
+                        "WEIGHTS_0",
+                        node.mVertices,
+                        &VertexDescription::mWeights1,
+                        4 );
 
                 if ( primitive.indices >= 0 ) {
                     const auto& accessor{ model.accessors[primitive.indices] };
@@ -1249,213 +1274,121 @@ namespace Mikoto {
                     const auto& buffer{ model.buffers[view.buffer] };
                     const auto* dataPtr{ buffer.data.data() + view.byteOffset + accessor.byteOffset };
 
-                    node.Indices.resize( accessor.count );
+                    node.mIndices.resize( accessor.count );
 
-                    // Assuming UINt32
-                    node.IndicesSpan = BufferSpanHandle::Spawn( MKT_SIZEOF( UInt32 ), accessor.count );
-
-                    for ( Size i{}; i < accessor.count; ++i ) {
+                    for ( size_t i{}; i < accessor.count; ++i ) {
                         if ( accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT ) {
-                            node.Indices[i] = reinterpret_cast<const UInt16*>( dataPtr )[i];
+                            node.mIndices[i] = reinterpret_cast<const u16*>( dataPtr )[i];
                         } else if ( accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT ) {
-                            node.Indices[i] = reinterpret_cast<const UInt32*>( dataPtr )[i];
+                            node.mIndices[i] = reinterpret_cast<const u32*>( dataPtr )[i];
                         }
                     }
-
-                    for ( const auto& data: node.Indices ) {
-                        node.IndicesSpan->Emplace( data );
-                    }
-
-                    // For tests only, idially will remove the vector
                 }
 
-                modelData.MeshNodes.push_back( std::move( node ) );
+                modelData.mMeshNodes.push_back( std::move( node ) );
             }
         }
     }
 
-    auto GLTFImporter::LoadMaterials( tinygltf::Model& model, ModelData& modelData, const std::string& rootPath ) -> void {
-        modelData.Materials.reserve( model.materials.size() );
-
-        // Default format is SRGB for emissive and base color
-        // rest is unrorm rgba8
-        TextureLoadDescription loadInfo{};
-        loadInfo.WithType( TextureType::TEXTURE_2D );
+     static auto LoadMaterials( tinygltf::Model& model, ModelDataDescription& modelData ) -> void {
+        // Instead of loading textures individually here, it would be better to
+        // just get material properties see comment in mesh factory
+        modelData.mMaterials.reserve( model.materials.size() );
 
         for ( const auto& gltfMaterial: model.materials ) {
-            MaterialProperties props{};
-            props.Name = gltfMaterial.name;
-            props.IsDoubleSided = gltfMaterial.doubleSided;
-
-            const auto& pbr{ gltfMaterial.pbrMetallicRoughness };
-
-            props.BaseColorFactor = {
-                static_cast<float>( pbr.baseColorFactor[0] ),
-                static_cast<float>( pbr.baseColorFactor[1] ),
-                static_cast<float>( pbr.baseColorFactor[2] ),
-                static_cast<float>( pbr.baseColorFactor[3] )
+            MaterialProperties props{
+                .mName = gltfMaterial.name.c_str(),
+                .mIsDoubleSided = gltfMaterial.doubleSided,
             };
 
-            props.MetallicFactor = static_cast<float>( pbr.metallicFactor );
-            props.RoughnessFactor = static_cast<float>( pbr.roughnessFactor );
+            const auto& pbr{ gltfMaterial.pbrMetallicRoughness };
+            props.BaseColorFactor = {
+                as<f32>( pbr.baseColorFactor[0] ),
+                as<f32>( pbr.baseColorFactor[1] ),
+                as<f32>( pbr.baseColorFactor[2] ),
+                as<f32>( pbr.baseColorFactor[3] )
+            };
 
-            // TODO(kate): check notes, these textures need specific format not any random format
-            // iirc base, diffuse need srgb; ao, metallic, etc need linear??
+            props.MetallicFactor = as<f32>( pbr.metallicFactor );
+            props.RoughnessFactor = as<f32>( pbr.roughnessFactor );
+
             // Base color
             if ( pbr.baseColorTexture.index >= 0 ) {
                 const auto& tex{ model.textures[pbr.baseColorTexture.index] };
                 props.BaseColorTextureSet = pbr.baseColorTexture.texCoord;
-
-                loadInfo.WithMapType( MapType::BASE_COLOR_TEXTURE );
-                loadInfo
-                        .WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                                                                               .WithPath( rootPath )
-                                                                               .WithPath( model.images[tex.source].uri )
-                                                                               .Build() } ) )
-                        .WithFormat( TextureFormat::RGBA8_UNORM );
-
-                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                if ( !texture.IsEmpty() ) {
-                    props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
-                }
+                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .MapType = MapType::eBaseColor };
             }
 
-            // Metall roughness
+            // Metallic-roughness
             if ( pbr.metallicRoughnessTexture.index >= 0 ) {
                 const auto& tex{ model.textures[pbr.metallicRoughnessTexture.index] };
                 props.MetallicRoughnessTextureSet = pbr.metallicRoughnessTexture.texCoord;
-
-                loadInfo.WithMapType( MapType::METALLIC_ROUGHNESS_TEXTURE );
-                loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                                                                               .WithPath( rootPath )
-                                                                               .WithPath( model.images[tex.source].uri )
-                                                                               .Build() } ) )
-                        .WithFormat( TextureFormat::RGBA8_UNORM );
-
-                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                if ( !texture.IsEmpty() ) {
-                    props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
-                }
+                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .MapType = MapType::eMetallicRoughness };
             }
 
-            props.RoughnessFactor = pbr.roughnessFactor;
-            props.MetallicFactor = static_cast<float>( gltfMaterial.pbrMetallicRoughness.metallicFactor );
+            props.RoughnessFactor = as<f32>( pbr.roughnessFactor );
+            props.MetallicFactor = as<f32>( gltfMaterial.pbrMetallicRoughness.metallicFactor );
 
             // Normal
             if ( gltfMaterial.normalTexture.index >= 0 ) {
                 const auto& tex{ model.textures[gltfMaterial.normalTexture.index] };
                 props.NormalTextureSet = gltfMaterial.normalTexture.texCoord;
                 props.NormalScale = static_cast<float>( gltfMaterial.normalTexture.scale );
-
-                loadInfo.WithMapType( MapType::NORMAL_TEXTURE );
-                loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                                                                               .WithPath( rootPath )
-                                                                               .WithPath( model.images[tex.source].uri )
-                                                                               .Build() } ) )
-                        .WithFormat( TextureFormat::RGBA8_UNORM );
-
-                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                if ( !texture.IsEmpty() ) {
-                    props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
-                }
+                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .MapType = MapType::eNormal };
             }
 
-            // Occlusion
+            // Ambient Occlusion
             if ( gltfMaterial.occlusionTexture.index >= 0 ) {
                 const auto& tex{ model.textures[gltfMaterial.occlusionTexture.index] };
                 props.OcclusionTextureSet = gltfMaterial.occlusionTexture.texCoord;
-                props.OcclusionStrength = static_cast<float>( gltfMaterial.occlusionTexture.strength );
-
-                loadInfo.WithMapType( MapType::AMBIENT_OCCLUSION_TEXTURE );
-                loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                                                                               .WithPath( rootPath )
-                                                                               .WithPath( model.images[tex.source].uri )
-                                                                               .Build() } ) )
-
-                        .WithFormat( TextureFormat::RGBA8_UNORM );
-
-                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                if ( !texture.IsEmpty() ) {
-                    props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
-                }
+                props.OcclusionStrength = as<f32>( gltfMaterial.occlusionTexture.strength );
+                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .MapType = MapType::eNormal };
             }
 
             // Emissive
             if ( gltfMaterial.emissiveTexture.index >= 0 ) {
                 const auto& tex{ model.textures[gltfMaterial.emissiveTexture.index] };
                 props.EmissiveTextureSet = gltfMaterial.emissiveTexture.texCoord;
-
-                loadInfo.WithMapType( MapType::EMISSIVE_TEXTURE );
-                loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                                                                               .WithPath( rootPath )
-                                                                               .WithPath( model.images[tex.source].uri )
-                                                                               .Build() } ) )
-                        .WithFormat( TextureFormat::RGBA8_UNORM );
-
-                TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                if ( !texture.IsEmpty() ) {
-                    props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
-                }
+                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .MapType = MapType::eEmissive };
             }
 
             props.EmissiveFactor = {
-                static_cast<float>( gltfMaterial.emissiveFactor[0] ),
-                static_cast<float>( gltfMaterial.emissiveFactor[1] ),
-                static_cast<float>( gltfMaterial.emissiveFactor[2] )
+                as<f32>( gltfMaterial.emissiveFactor[0] ),
+                as<f32>( gltfMaterial.emissiveFactor[1] ),
+                as<f32>( gltfMaterial.emissiveFactor[2] )
             };
 
-            // Alpha (Default is Opaque unless otherwise specified)
+            // AlphaMask (Default is Opaque unless otherwise specified)
             if ( gltfMaterial.alphaMode == "BLEND" ) {
-                props.AlphaMask = PBR_AlphaMode::Blend;
+                props.AlphaMask = AlphaMode::eBlend;
             } else if ( gltfMaterial.alphaMode == "MASK" ) {
-                props.AlphaMask = PBR_AlphaMode::Mask;
+                props.AlphaMask = AlphaMode::eMask;
                 props.AlphaMaskCutoff = 0.5f;
             }
 
-            props.AlphaMaskCutoff = static_cast<float>( gltfMaterial.alphaCutoff );
+            props.AlphaMaskCutoff = as<f32>( gltfMaterial.alphaCutoff );
 
-            // Extensions
-            if ( auto ext{ gltfMaterial.extensions.find( KHR_PBR_SpecularGlossiness.data() ) }; ext != gltfMaterial.extensions.end() ) {
+            // Extension: KHR_PBR_SpecularGlossiness
+            if ( auto ext{ gltfMaterial.extensions.find( GLTFImporter::KHR_PBR_SpecularGlossiness.data() ) }; ext != gltfMaterial.extensions.end() ) {
                 if ( ext->second.Has( "specularGlossinessTexture" ) ) {
                     auto index{ ext->second.Get( "specularGlossinessTexture" ).Get( "index" ) };
+                    auto texIndex{ index.Get<int>() };
+                    auto texCoordSet{ ext->second.Get( "specularGlossinessTexture" ).Get( "texCoord" ).Get<int>() };
 
-                    auto texIndex = index.Get<int>();
-                    auto texCoordSet = ext->second.Get( "specularGlossinessTexture" ).Get( "texCoord" ).Get<int>();
-
-                    loadInfo.WithMapType( MapType::SPECULAR_GLOSSINESS );
-                    loadInfo.WithFile( FileService::Get()->LoadFile(
-                            Path{ PathBuilder()
-                                          .WithPath( rootPath )
-                                          .WithPath( model.images[texIndex].uri )
-                                          .Build() } ) );
-
-                    TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                    if ( !texture.IsEmpty() ) {
-                        props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
-                    }
+                    props.mTexturesByUri[Path{ model.images[texIndex].uri }] = PBRMap{ .MapType = MapType::eSpecularGlossiness };
 
                     props.SpecularGlossinessSet = texCoordSet;
-                    props.Workflow = PBR_Workflow::SpecularGlossiness;
+                    props.Workflow = Workflow::eSpecularGlossiness;
                 }
 
                 if ( ext->second.Has( "diffuseTexture" ) ) {
                     auto index{ ext->second.Get( "diffuseTexture" ).Get( "index" ) };
-                    loadInfo.WithMapType( MapType::DIFFUSE_TEXTURE );
-                    loadInfo.WithFile( FileService::Get()->LoadFile( Path{ PathBuilder()
-                                                                                   .WithPath( rootPath )
-                                                                                   .WithPath( model.images[index.Get<int>()].uri )
-                                                                                   .Build() } ) )
-                            .WithFormat( TextureFormat::RGBA8_UNORM );
-
-                    TextureHandle texture{ AssetsService::Get()->LoadAsset<Texture>( loadInfo ) };
-                    if ( !texture.IsEmpty() ) {
-                        props.TexturesByUri[loadInfo.TextureFile->GetPath()] = texture;
-                    }
+                    props.mTexturesByUri[Path{ model.images[index.Get<int>()].uri }] = PBRMap{ .MapType = MapType::eDiffuse };
                 }
 
                 if ( ext->second.Has( "diffuseFactor" ) ) {
                     auto factor{ ext->second.Get( "diffuseFactor" ) };
-                    for ( UInt32 i{}; i < factor.ArrayLen(); i++ ) {
+                    for ( u32 i{}; i < factor.ArrayLen(); i++ ) {
                         const auto& val{ factor.Get( i ) };
                         //material.extension.diffuseFactor[i] = val.IsNumber() ? ( float )val.Get<double>() : ( float )val.Get<int>();
                     }
@@ -1463,31 +1396,34 @@ namespace Mikoto {
 
                 if ( ext->second.Has( "specularFactor" ) ) {
                     auto factor{ ext->second.Get( "specularFactor" ) };
-                    for ( UInt32 i{}; i < factor.ArrayLen(); i++ ) {
+                    for ( u32 i{}; i < factor.ArrayLen(); i++ ) {
                         const auto& val{ factor.Get( i ) };
                         //material.extension.specularFactor[i] = val.IsNumber() ? ( float )val.Get<double>() : ( float )val.Get<int>();
                     }
                 }
             }
 
-            if ( gltfMaterial.extensions.contains( KHR_PBR_Unlit.data() ) ) {
+            // Extension: KHR_PBR_Unlit
+            if ( gltfMaterial.extensions.contains( GLTFImporter::KHR_PBR_Unlit.data() ) ) {
                 props.Unlit = true;
             }
 
-            if ( auto ext{ gltfMaterial.extensions.find( KHR_Emissive_Strength.data() ) }; ext != gltfMaterial.extensions.end() ) {
+            // Extension: KHR_Emissive_Strength
+            if ( auto ext{ gltfMaterial.extensions.find( GLTFImporter::KHR_Emissive_Strength.data() ) }; ext != gltfMaterial.extensions.end() ) {
                 if ( ext->second.Has( "emissiveStrength" ) ) {
                     auto value{ ext->second.Get( "emissiveStrength" ) };
-
                     // Use template parameter value because there is no overload for float
-                    props.EmissiveStrength = static_cast<float>( value.Get<double>() );
+                    props.EmissiveStrength = as<float>( value.Get<double>() );
                 }
             }
 
-            modelData.Materials.emplace_back( std::move( props ) );
+            modelData.mMaterials.emplace_back( std::move( props ) );
         }
     }
 
-    static auto LoadInverseBindMatrices(const tinygltf::Model& model, const tinygltf::Skin& skin ) -> std::vector<Mat4F> {
+#if false
+
+    static auto LoadInverseBindMatrices( const tinygltf::Model& model, const tinygltf::Skin& skin ) -> std::vector<Mat4F> {
         std::vector<Mat4F> inverseBindMats{};
 
         if ( skin.inverseBindMatrices < 0 )
@@ -1502,68 +1438,134 @@ namespace Mikoto {
         return inverseBindMats;
     }
 
-    auto GLTFImporter::TryAcquireImporter() -> std::vector<Unique<LoaderData>>::iterator {
-        return std::ranges::find_if( m_Importers, []( const auto& importer ) -> bool {
-            bool expected{ true };
-            if ( importer->IsFree.compare_exchange_strong( expected, false, std::memory_order_acquire ) ) {
-                return true;
-            }
+    auto GLTFImporter::LoadAnimations( const tinygltf::Model& model, const ModelLoadDescription& description, ModelData& out ) -> void {
+        if ( model.animations.empty() ) {
+            return;
+        }
 
-            return false;
-        } );
+        GltfAnimImporter importer{};
+        SkinningBuilder builder{ description.ModelFile->GetPath() };
+
+        if ( !builder.Build( importer, description.ModelFile->GetPath() ) ) {
+            return;
+        }
+
+        builder.FillModelData( out );
+        out.SceneSkeleton.SetInverseBindMatrices( LoadInverseBindMatrices( model, model.skins[0] ) );
     }
 
-    auto GLTFImporter::LoadModel( LoaderData& loaderData, const ModelLoadDescription& description, tinygltf::Model& model ) -> bool {
-        const std::string& path{description.ModelFile->GetPath()};
-        const std::string extension{ Path{ path }.extension().string() };
+#endif
+
+    MKT_NODISCARD static auto GetLocalTransform( const tinygltf::Node& node ) -> float4x4 {
+        if ( !node.matrix.empty() ) {
+            return glm::make_mat4( node.matrix.data() );
+        }
+
+        float4x4 translation{ 1.0f };
+        float4x4 rotation{ 1.0f };
+        float4x4 scale{ 1.0f };
+
+        if ( !node.translation.empty() ) {
+            translation = glm::translate(
+                float4x4{ 1.0f },
+                float3{
+                as<f32>( node.translation[0] ),
+                as<f32>( node.translation[1] ),
+                as<f32>( node.translation[2] ) } );
+        }
+
+        if ( !node.rotation.empty() ) {
+            quat q{
+                as<f32>( node.rotation[3] ),// w
+                as<f32>( node.rotation[0] ),// x
+                as<f32>( node.rotation[1] ),// y
+                as<f32>( node.rotation[2] ) // z
+            };
+
+            rotation = glm::mat4_cast( q );
+        }
+
+        if ( !node.scale.empty() ) {
+            scale = glm::scale(
+                float4x4{ 1.0f },
+                float3{ as<float>( node.scale[0] ),
+                    as<float>( node.scale[1] ),
+                    as<float>( node.scale[2] ) } );
+        }
+
+        return translation * rotation * scale;
+    }
+
+    static auto TraverseNode( const tinygltf::Model& model, i32 nodeIndex, const float4x4& parentTransform, ModelDataDescription& out ) -> void {
+        const tinygltf::Node& node{ model.nodes[nodeIndex] };
+
+        float4x4 localTransform{ GetLocalTransform( node ) };
+        float4x4 worldTransform{ parentTransform * localTransform };
+
+        // Store mesh transform
+        if ( node.mesh >= 0 ) {
+            auto& meshNode{ out.mMeshNodes[node.mesh] };
+            meshNode.mTransform = worldTransform;
+        }
+
+        // Recurse children
+        for ( i32 childIndex: node.children ) {
+            TraverseNode( model, childIndex, worldTransform, out );
+        }
+    }
+
+    static auto LoadHierarchyTransform( const tinygltf::Model& model, ModelDataDescription& out ) -> void {
+        if ( model.scenes.empty() ) {
+            return;
+        }
+
+        i32 sceneIndex{ model.defaultScene >= 0 ? model.defaultScene : 0 };
+        const tinygltf::Scene& scene{ model.scenes[sceneIndex] };
+
+        for ( int nodeIndex: scene.nodes ) {
+            TraverseNode( model, nodeIndex, float4x4{ 1.0f }, out );
+        }
+    }
+
+    auto LoadModel( LoaderData& loaderData, const ModelLoadDescription& description, tinygltf::Model& model ) -> bool {
+        const eastl::string extension{ description.mFile->GetExtension() };
+
+        // Because tinyGLTF works with std::string
+        std::string err{};
+        std::string warn{};
+        std::string path{ description.mFile->GetPath().GetC_Str() };
 
         bool result{ false };
+        if ( extension == ".gltf" ) {
+            result = loaderData.mLoader.LoadASCIIFromFile( &model, MKT_ADDRESSOF( err ), MKT_ADDRESSOF( warn ), path );
+        } else if ( extension == ".glb" ) {
+            result = loaderData.mLoader.LoadBinaryFromFile( &model, MKT_ADDRESSOF( err ), MKT_ADDRESSOF( warn ), path );
+        }
 
-        if (extension == ".gltf") {
-            result = loaderData.Loader.LoadASCIIFromFile( &model, &loaderData.Err, &loaderData.Warn, path);
-        }
-        else if (extension == ".glb") {
-            result = loaderData.Loader.LoadBinaryFromFile(&model, &loaderData.Err, &loaderData.Warn, path);
-        }
+        loaderData.mError = err.c_str();
+        loaderData.mWarning = warn.c_str();
 
         // Log messages
-        if ( !loaderData.Warn.empty() ) {
-            MKT_CORE_LOGGER_WARN( "GLTF Loader WARN: {}", loaderData.Warn );
+        if ( !loaderData.mWarning.empty() ) {
+            MKT_CORE_LOGGER_WARN( "GLTF Loader WARN: {}", loaderData.mWarning );
         }
 
-        if ( !loaderData.Err.empty() ) {
-            MKT_CORE_LOGGER_ERROR( "GLTF Loader ERROR: {}", loaderData.Err );
+        if ( !loaderData.mError.empty() ) {
+            MKT_CORE_LOGGER_ERROR( "GLTF Loader ERROR: {}", loaderData.mError );
         }
 
         return result;
     }
 
-    auto GLTFImporter::LoadAnimations(const tinygltf::Model& model,const ModelLoadDescription& description,ModelData& out) -> void {
-        if (model.animations.empty()) {
-            return;
-        }
-
-        GltfAnimImporter importer{};
-        SkinningBuilder builder{description.ModelFile->GetPath()};
-
-        if (!builder.Build(importer, description.ModelFile->GetPath())) {
-            return;
-        }
-
-        builder.FillModelData(out);
-        out.SceneSkeleton.SetInverseBindMatrices(LoadInverseBindMatrices(model, model.skins[0]));
-    }
-
-    auto GLTFImporter::Import( LoaderData& loaderData, const ModelLoadDescription& description, ModelData& out ) -> void {
+    auto GLTFImporter::Import( LoaderData& loaderData, const ModelLoadDescription& description, ModelDataDescription& out ) -> void {
         tinygltf::Model model{};
-        if (!LoadModel(loaderData, description, model)) {
+        if ( !LoadModel( loaderData, description, model ) ) {
             return;
         }
 
-        const std::string rootPath{ Filesystem::StripFileName(description.ModelFile->GetPath()) };
-
-        LoadPrimitives(model, out);
-        LoadMaterials(model, out, rootPath);
-        LoadAnimations(model, description, out);
+        LoadPrimitives( model, out );
+        LoadMaterials( model, out );
+        // LoadAnimations( model, description, out );
+        LoadHierarchyTransform( model, out );
     }
-}// namespace Mikoto
+}// namespace mikoto

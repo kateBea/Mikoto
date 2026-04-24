@@ -15,13 +15,21 @@
 #ifndef MIKOTO_IMGUI_D3D11BACKEND_HH
 #define MIKOTO_IMGUI_D3D11BACKEND_HH
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Platform.hh>
+
+#include <Renderer/Text/Font.hh>
+#include <Renderer/Core/FontFactory.hh>
 
 #include <ImGui/ImGuiService.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-namespace Mikoto {
+namespace mikoto::gui {
+
+    using namespace mikoto::core;
+    using namespace mikoto::platform;
 
     class ImGuiD3D11Backend final : public ImGuiBackend {
     public:
@@ -36,9 +44,23 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetFinalComposition() -> TextureHandle override;
 
-        MKT_NODISCARD auto ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID override;
+        MKT_NODISCARD auto ConstructImGuiTextureID( const ITexture* texture ) -> ImTextureID override;
         MKT_NODISCARD auto ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID override;
 
+    private:
+        // [ Internal ]
+        auto CreateImages() -> void;
+
+    private:
+        u32 mExtentWidth{};
+        u32 mExtentHeight{};
+
+        FontHandle mDebugFont{};
+
+        TextureHandle mColorImage{};
+        TextureHandle mDepthImage{};
+
+        float4 mClearColor{ 0.2f, 0.4f, 0.5f, 1.0f };
     };
 }
 

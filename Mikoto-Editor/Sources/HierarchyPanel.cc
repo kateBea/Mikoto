@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,54 +12,62 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <memory>
+#include <EASTL/string.h>
+#include <EASTL/memory.h>
+#include <EASTL/string_view.h>
 
 #include <imgui.h>
 
 #include <ImGui/IconsMaterialDesign.h>
 
-#include <Common/Common.hh>
-#include <Common/String.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Core/Profiler.hh>
-#include <Application/EditorApp.hh>
-#include <Application/EditorUtility.hh>
-#include <Assets/AssetsService.hh>
 #include <Core/RuntimeConsole.hh>
-#include <ImGui/ImGuiUtility.hh>
-#include <Layers/EditorLayer.hh>
-#include <Library/String/String.hh>
-#include <Library/Utility/Types.hh>
-#include <Panels/HierarchyPanel.hh>
-#include <Scene/Component.hh>
+
+#include <Memory/Allocator.hh>
+
 #include <Scene/Scene.hh>
+#include <Scene/Entity.hh>
+#include <Scene/Component.hh>
 
-#include "ImGui/IconsMaterialDesignIcons.h"
+#include <Assets/AssetsService.hh>
 
-namespace Mikoto {
+#include <Threading/TaskService.hh>
+
+#include <Application/EditorApp.hh>
+
+#include <Layers/EditorLayer.hh>
+
+#include <ImGui/ImGuiWidget.hh>
+#include <ImGui/ImGuiUtility.hh>
+#include <ImGui/IconsMaterialDesignIcons.h>
+
+#include <Panels/HierarchyPanel.hh>
+
+namespace mikoto::editor {
+
+    using namespace mikoto::gui;
+    using namespace mikoto::core;
+    using namespace mikoto::scene;
+    using namespace mikoto::renderer;
 
     auto HierarchyPanel::DrawPrefabMenu( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( ImGui::BeginMenu( "3D Object" ) ) {
-
             if ( ImGui::MenuItem( "Cube" ) ) {
-                AddEntityWithModel( EditorApp::GetPrefabUri( PrefabModels::CUBE ), root );
+                AddEntityWithModel( mEditorState->GetPrefab( PrefabModelType::eCube ), root );
             }
-
             if ( ImGui::MenuItem( "Cone" ) ) {
-                AddEntityWithModel( EditorApp::GetPrefabUri( PrefabModels::CONE ), root );
+                AddEntityWithModel( mEditorState->GetPrefab( PrefabModelType::eCone ), root );
             }
-
             if ( ImGui::MenuItem( "Cylinder" ) ) {
-                AddEntityWithModel( EditorApp::GetPrefabUri( PrefabModels::CYLINDER ), root );
+                AddEntityWithModel( mEditorState->GetPrefab( PrefabModelType::eCylinder ), root );
             }
-
             if ( ImGui::MenuItem( "Sphere" ) ) {
-                AddEntityWithModel( EditorApp::GetPrefabUri( PrefabModels::SPHERE ), root );
-            }
-
-            if ( ImGui::MenuItem( "Sponza" ) ) {
-                AddEntityWithModel( EditorApp::GetPrefabUri( PrefabModels::SPONZA ), root );
+                AddEntityWithModel( mEditorState->GetPrefab( PrefabModelType::eSphere ), root );
             }
 
             ImGui::EndMenu();
@@ -70,93 +78,52 @@ namespace Mikoto {
         MKT_BEGIN_PROFILER_NAMED();
 
         EntityCreateInfo entityCreateInfo{
-            .Root{ root },
-            .IsLight{ true }
+            .mRoot = root,
+            .mIsLight = true
         };
 
         ImGui::Spacing();
         ImGui::Separator();
 
         if ( ImGui::MenuItem( "Sky Light" ) ) {
-            entityCreateInfo.Name = "Sky Light";
-            entityCreateInfo.TypeLight = LightType::DIRECTIONAL_LIGHT_TYPE;
+            entityCreateInfo.mName = "Sky Light";
+            entityCreateInfo.mLightType = LightType::eSkyLight;
         }
 
         if ( ImGui::MenuItem( "Directional light" ) ) {
-            entityCreateInfo.Name = "Directional light";
-            entityCreateInfo.TypeLight = LightType::DIRECTIONAL_LIGHT_TYPE;
+            entityCreateInfo.mName = "Directional light";
+            entityCreateInfo.mLightType = LightType::eDirectional;
         }
 
         if ( ImGui::MenuItem( "Point light" ) ) {
-            entityCreateInfo.Name = "Point light";
-            entityCreateInfo.TypeLight = LightType::POINT_LIGHT_TYPE;
+            entityCreateInfo.mName = "Point light";
+            entityCreateInfo.mLightType = LightType::ePoint;
         }
 
         if ( ImGui::MenuItem( "Spot light" ) ) {
-            entityCreateInfo.Name = "Spot light";
-            entityCreateInfo.TypeLight = LightType::SPOT_LIGHT_TYPE;
+            entityCreateInfo.mName = "Spot light";
+            entityCreateInfo.mLightType = LightType::eSpot;
         }
 
-        if ( !entityCreateInfo.Name.empty() ) {
-            m_EditorState->ActiveEditorScene->QueueCreateEntity( entityCreateInfo );
-            RuntimeConsole::Get()->Debug( StringUtil::Format( "Queued create light: {}", entityCreateInfo.Name ) );
+        if ( !entityCreateInfo.mName.empty() ) {
+            mEditorState->mActiveScene->PushEntity( entityCreateInfo );
         }
     }
 
-    HierarchyPanel::HierarchyPanel( const HierarchyPanelCreateInfo& createInfo )
-        : Panel{ "Hierarchy",  },
-          m_EditorState{ createInfo.State } {
-        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_MERGE, m_PanelName );
-    }
-
-    auto HierarchyPanel::OnUpdate( float ) -> void {
+    auto HierarchyPanel::DrawNodeTree( const u64 entityID ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if ( !m_PanelIsVisible ) {
-            return;
-        }
-
-        ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), ImGuiWindowFlags_NoCollapse );
-
-        m_PanelIsHovered = ImGui::IsWindowHovered();
-        m_PanelIsFocused = ImGui::IsWindowFocused();
-
-        auto& entityList{ m_EditorState->ActiveEditorScene->GetEntities() };
-
-        // FIXME: segfault if we insert new entity as child for this one
-        for ( auto& [entityID, entity]: entityList ) {
-            const RelationComponent& relation{ entity->GetComponent<RelationComponent>() };
-
-            // only root entities are shown at upper level
-            if ( !relation.HasParent() ) {
-                DrawNodeTree( entityID );
-            }
-        }
-
-        if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {
-            m_EditorState->RemoveSingleSelection();
-        }
-
-        BlankSpacePopupMenu();
-
-        ImGui::End();
-    }
-
-
-    auto HierarchyPanel::DrawNodeTree( const UInt64 entityID ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        Entity* entity{ m_EditorState->ActiveEditorScene->FindByID( entityID ) };
+        Entity* entity{ mEditorState->mActiveScene->FindByID( entityID ) };
         if ( entity == nullptr ) {
             return;
         }
 
-        Entity* currentSelection{ m_EditorState->SelectedEntity };
-
+        Entity* currentSelection{ mEditorState->mSelectedEntity };
         const TagComponent& entityTag{ entity->GetComponent<TagComponent>() };
         const RelationComponent& entityRelation{ entity->GetComponent<RelationComponent>() };
 
-        const auto thisEntityIsSelected{ currentSelection != nullptr && entityID == currentSelection->GetComponent<TagComponent>().GetGUID() };
+        const auto thisEntityIsSelected{ currentSelection != nullptr &&
+            entityID == currentSelection->GetComponent<TagComponent>().GetGUID() };
 
         const ImGuiTreeNodeFlags styleFlags{
             ImGuiTreeNodeFlags_OpenOnArrow |
@@ -174,13 +141,13 @@ namespace Mikoto {
         // U+F6D1  ->  63185
         // U+F1B2  ->  61874
         // U+F1B3  ->  61875
-        const std::string icon { ImGuiUtils::GetStringFromUnicode( 63185 ) };
+        const eastl::string icon { GetStringFromUnicode( 63185 ) };
 
-        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( entityTag.GetGUID() ), 
+        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( entityTag.GetGUID() ),
             flags, "%s", fmt::format( " {} {}",  icon.data(), entityTag.GetTag() ).c_str() ) };
 
         if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
-            m_EditorState->SelectedEntity = entity;
+            mEditorState->mSelectedEntity = entity;
         }
 
         OnEntityRightClickMenu( entity );
@@ -206,17 +173,22 @@ namespace Mikoto {
             ImGuiPopupFlags_MouseButtonRight
         };
 
-        ImGuiUtils::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
-        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f } };
-        ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
+        gui::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
+        gui::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f } };
+        gui::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
 
         if ( ImGui::BeginPopupContextItem( nullptr, popupWindowFlags ) ) {
             if ( ImGui::BeginMenu( "Add component" ) ) {
                 constexpr bool menuItemSelected{ false };
                 const char* menuItemShortcut{ nullptr };
 
-                if ( ImGui::MenuItem( "Material", menuItemShortcut, menuItemSelected, !IsPresent<MaterialComponent>( entity ) ) ) {
+                if ( ImGui::MenuItem( "Physical Material", menuItemShortcut, menuItemSelected, !IsPresent<MaterialComponent>( entity ) ) ) {
                     entity->AddComponent<MaterialComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if ( ImGui::MenuItem( "Post-Process Material", menuItemShortcut, menuItemSelected, !IsPresent<PostProcessMaterialComponent>( entity ) ) ) {
+                    entity->AddComponent<PostProcessMaterialComponent>();
                     ImGui::CloseCurrentPopup();
                 }
 
@@ -246,7 +218,7 @@ namespace Mikoto {
                 }
 
                 if ( ImGui::MenuItem( "Audio source", menuItemShortcut, menuItemSelected, !IsPresent<AudioSourceComponent>( entity ) ) ) {
-                    entity->AddComponent<AudioSourceComponent>();
+                    entity->AddComponent<AudioSourceComponent>("");
                     ImGui::CloseCurrentPopup();
                 }
 
@@ -271,20 +243,17 @@ namespace Mikoto {
             }
 
             if ( ImGui::MenuItem( "Remove object" ) ) {
-                m_EditorState->ActiveEditorScene->RemoveEntity( entity->GetComponent<TagComponent>().GetGUID() );
-                m_EditorState->RemoveSingleSelection();
-
-                RuntimeConsole::Get()->Debug( fmt::format( "Removing entity: {}", entity->GetComponent<TagComponent>().GetTag() ) );
+                mEditorState->mActiveScene->RemoveEntity( entity->GetComponent<TagComponent>().GetGUID() );
+                mEditorState->mSelectedEntity = nullptr;
             }
 
             if ( ImGui::MenuItem( "Create empty object" ) ) {
                 EntityCreateInfo createInfo{
-                    .Root{ entity },
-                    .Name{ "Empty object" },
+                    .mRoot = entity,
+                    .mName = "Empty object",
                 };
 
-                m_EditorState->ActiveEditorScene->QueueCreateEntity( createInfo );
-                RuntimeConsole::Get()->Debug( StringUtil::Format( "Queued create Empty object" ) );
+                mEditorState->mActiveScene->PushEntity( createInfo );
             }
 
             DrawPrefabMenu( entity );
@@ -293,6 +262,20 @@ namespace Mikoto {
             DrawTextMenu( entity );
 
             ImGui::EndPopup();
+        }
+    }
+
+    auto HierarchyPanel::DrawSearchBar() -> void {
+        const float cursorPosX{ ImGui::GetCursorPosX() };
+        mSearchFilter.Draw( "##HierarchyPanelFilter", ImGui::GetContentRegionAvail().x );
+        if ( !mSearchFilter.IsActive() ) {
+            ImGui::SameLine();
+            ImGui::SetCursorPosX( cursorPosX + ImGui::GetFontSize() * 0.5f );
+
+            // TODO: grab the color from text color and lower alpha value
+            ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 255, 255, 128 ) );
+            ImGui::TextUnformatted( fmt::format( "{} Search...", ICON_MD_SEARCH ).c_str() );
+            ImGui::PopStyleColor();
         }
     }
 
@@ -312,110 +295,108 @@ namespace Mikoto {
 
         if ( ImGui::MenuItem( "Text" ) ) {
             const EntityCreateInfo entityCreateInfo{
-                .Root{ root },
-                .Name{ "Text" },
-                .IsText{ true },
-                .IsWorldText{ false },
-                .TextSize{ TextComponent::GetMinLetterSize() },
-                .TextSpacing{ TextComponent::GetMinLetterSpacing() },
-                .InitialContents{ "Text" },
+                .mRoot = root,
+                .mName = "Text",
+                .mIsText = true ,
+                .mIsWorldText = false,
+                .mTextSize = TextComponent::GetMinLetterSize(),
+                .mTextSpacing = TextComponent::GetMinLetterSpacing(),
+                .mInitialContents = "Example",
             };
 
-            m_EditorState->ActiveEditorScene->QueueCreateEntity( entityCreateInfo );
-            RuntimeConsole::Get()->Debug( StringUtil::Format( "Queued create entity {}", entityCreateInfo.Name ) );
+            mEditorState->mActiveScene->PushEntity( entityCreateInfo );
         }
 
         if ( ImGui::MenuItem( "Text 3D" ) ) {
             const EntityCreateInfo entityCreateInfo{
-                .Root{ root },
-                .Name{ "Text" },
-                .IsText{ true },
-                .IsWorldText{ true },
-                .TextSize{ TextComponent::GetMinLetterSize() },
-                .TextSpacing{ TextComponent::GetMinLetterSpacing() },
-                .InitialContents{ "Text" },
+                .mRoot = root,
+                .mName = "Text",
+                .mIsText = true ,
+                .mIsWorldText = true,
+                .mTextSize = TextComponent::GetMinLetterSize(),
+                .mTextSpacing = TextComponent::GetMinLetterSpacing(),
+                .mInitialContents = "Example",
             };
 
-            m_EditorState->ActiveEditorScene->QueueCreateEntity( entityCreateInfo );
-            RuntimeConsole::Get()->Debug( StringUtil::Format( "Queued create entity {}", entityCreateInfo.Name ) );
+            mEditorState->mActiveScene->PushEntity( entityCreateInfo );
         }
     }
 
-    auto HierarchyPanel::AddEntityWithModel( const std::string_view uri, Entity* root ) -> void {
-        // See comment in AddEntityWithModel( Entity* root )
-        static std::atomic_bool loading{ false };
+    auto HierarchyPanel::AddEntityWithModel( eastl::string_view uri, Entity* root ) -> void {
+        threading::TaskService::Get()->Submit( [this, root, path = Path{ uri }]() -> void {
+            ModelLoadDescription description{
+                .mFile = FileService::Get()->LoadFile( path ),
+                .mExtractTextures = true,
+            };
+            const ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( description ) };
 
-        if ( !loading ) {
-            loading = true;
-            TaskService::Get()->Submit( [this, root, path = std::string{ uri }]() -> void {
+            const EntityCreateInfo entityCreateInfo{
+                .mRoot = root,
+                .mName{ description.mFile->GetName() },
+                .mModel = model,
+            };
 
-                ModelLoadDescription description{
-                    .ModelFile{ FileService::Get()->LoadFile( path ) },
-                    .WantTextures{ true }
-                };
+            mEditorState->mActiveScene->PushEntity( entityCreateInfo );
+        } );
+    }
 
-                const std::string name{ Path{ path }.stem().string() };
-                const ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( description ) };
+    auto HierarchyPanel::AddEntityWithModel( ModelHandle model, Entity* root ) -> void {
+        threading::TaskService::Get()->Submit( [this, root, model]() -> void {
+            const EntityCreateInfo entityCreateInfo{
+                .mRoot = root,
+                .mName{ model->GetName() },
+                .mModel = model,
+            };
 
-                const EntityCreateInfo entityCreateInfo{
-                    .Root{ root },
-                    .Name =  name,
-                    .Model = model,
-                };
-
-                m_EditorState->ActiveEditorScene->QueueCreateEntity( entityCreateInfo );
-
-                loading = false;
-            } );
-        }
+            mEditorState->mActiveScene->PushEntity( entityCreateInfo );
+        } );
     }
 
     auto HierarchyPanel::AddEntityWithModel( Entity* root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // TODO: Use the asset cache service to load asynchronously and the asset cache to avoid loading the same model multiple times
-        // and be notified when the model is loaded to create the entity with it, instead of blocking the main thread
-        static std::atomic_bool loading{ false };
+        threading::TaskService::Get()->Submit( [this, root]() -> void {
+            const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+                { "Model files", "obj,gltf,fbx,glb" },
+                { "OBJ files", "obj" },
+                { "glTF files", "gltf" },
+                { "FBX files", "fbx" },
+                { "GLB files", "glb" },
+            };
 
-        if ( !loading ) {
-            loading = true;
+            const Path path{ FileService::Get()->OpenDialog( filters ) };
+            ModelLoadDescription description{
+                .mFile = FileService::Get()->LoadFile( path ),
+                .mExtractTextures = true,
+            };
+            const ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( description ) };
 
-            TaskService::Get()->Submit( [this, rootEntity = root]() -> void {
-                const std::initializer_list<std::pair<std::string, std::string>> filters{
-                    { "Model files", "obj,gltf,fbx,glb" },
-                    { "OBJ files", "obj" },
-                    { "glTF files", "gltf" },
-                    { "FBX files", "fbx" },
-                    { "GLB files", "glb" },
-                };
+            const EntityCreateInfo entityCreateInfo{
+                .mRoot = root,
+                .mName{ description.mFile->GetName() },
+                .mModel = model,
+            };
 
-                const std::string path{ FileService::Get()->OpenDialog( filters ).string() };
-                if (!path.empty()) {
-                    AddEntityWithModel(path, rootEntity);
-                }
-
-                loading = false;
-            });
-        }
+            mEditorState->mActiveScene->PushEntity( entityCreateInfo );
+        });
     }
 
     auto HierarchyPanel::BlankSpacePopupMenu() -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
+        ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f } };
+        ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
 
         constexpr ImGuiPopupFlags popupWindowFlags{
             ImGuiPopupFlags_NoOpenOverItems |
             ImGuiPopupFlags_MouseButtonRight
         };
 
-        ImGuiUtils::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
-        ImGuiUtils::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f } };
-        ImGuiUtils::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
-
         if ( ImGui::BeginPopupContextWindow( "##HierarchyPanel::BlankSpacePopupMenu:HierarchyMenuOptions", popupWindowFlags ) ) {
-
             if ( ImGui::MenuItem( "Empty Object" ) ) {
-                m_EditorState->ActiveEditorScene->QueueCreateEntity( "Empty Object" );
-                RuntimeConsole::Get()->Debug( fmt::format( "New entity queued {}", "Empty Object" ) );
+                mEditorState->mActiveScene->PushEntity( "Empty Object" );
+                RuntimeConsole::Get()->Debug( string::Format( "New entity queued {}", "Empty Object" ) );
             }
 
             DrawPrefabMenu();
@@ -425,5 +406,44 @@ namespace Mikoto {
 
             ImGui::EndPopup();
         }
+    }
+
+    HierarchyPanel::HierarchyPanel( const HierarchyPanelCreateInfo& createInfo )
+        : Panel{ "Hierarchy",  },
+          mEditorState{ createInfo.mState } {
+        mPanelHeaderName = widget::MakeIconTitle( ICON_MD_MERGE, mPanelName );
+    }
+
+    auto HierarchyPanel::OnUpdate( float ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        if ( !mPanelIsVisible ) {
+            return;
+        }
+
+        ImGui::Begin( mPanelHeaderName.c_str(), MKT_ADDRESSOF( mPanelIsVisible ), ImGuiWindowFlags_NoCollapse );
+
+        mPanelIsHovered = ImGui::IsWindowHovered();
+        mPanelIsFocused = ImGui::IsWindowFocused();
+
+        DrawSearchBar();
+
+        if (mEditorState->mActiveScene) {
+            auto& entityList{ mEditorState->mActiveScene->GetEntities() };
+            for ( auto& [entityID, entity]: entityList ) {
+                const RelationComponent& relation{ entity->GetComponent<RelationComponent>() };
+                if ( !relation.HasParent() ) {
+                    DrawNodeTree( entityID );
+                }
+            }
+
+            if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {
+                mEditorState->mSelectedEntity = nullptr;
+            }
+
+            BlankSpacePopupMenu();
+        }
+
+        ImGui::End();
     }
 }// namespace Mikoto

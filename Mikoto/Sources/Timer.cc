@@ -1,27 +1,38 @@
-/**
- * Timer.cc
- * Created by kate on 6/15/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <chrono>
 
-// Project Headers
-#include <Common/Common.hh>
+#include <EASTL/chrono.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
+#include <Core/Timer.hh>
+#include <Core/String.hh>
+#include <Core/TimeService.hh>
+
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
-#include <Core/TimeService.hh>
-#include <Library/String/String.hh>
-#include <Core/Timer.hh>
 
-namespace Mikoto {
+namespace mikoto::core {
 
-    MKT_NODISCARD static constexpr auto GetUnitStr( const TimeUnit defaultUnit = TimeUnit::SECONDS) -> std::string_view {
+    MKT_NODISCARD static constexpr auto GetUnitStr( const TimeUnit defaultUnit = TimeUnit::eSeconds) -> std::string_view {
         switch (defaultUnit) {
-            case TimeUnit::SECONDS:         return "s";
-            case TimeUnit::MILLISECONDS:    return "ms";
-            case TimeUnit::MICROSECONDS:    return "µs";
-            case TimeUnit::NANOSECONDS:     return "ns";
+            case TimeUnit::eSeconds:         return "s";
+            case TimeUnit::eMilliseconds:    return "ms";
+            case TimeUnit::eMicroseconds:    return "µs";
+            case TimeUnit::eNanoseconds:     return "ns";
         }
 
         return "s";
@@ -31,7 +42,7 @@ namespace Mikoto {
         : m_TimeSinceStart{ Clock::now() }, m_PrintOnExit{ printOnExit }
     {}
 
-    Timer::Timer(std::string_view scopeName, std::string_view startMessage, bool showStartMessage)
+    Timer::Timer(eastl::string_view scopeName, eastl::string_view startMessage, bool showStartMessage)
         :   m_TimeSinceStart{ Clock::now() }, m_ScopeName{ scopeName }
     {
         if (showStartMessage) {
@@ -41,13 +52,13 @@ namespace Mikoto {
 
     auto Timer::GetCurrentProgress( const TimeUnit defaultUnit ) const -> double {
         switch (defaultUnit) {
-            case TimeUnit::SECONDS:         return std::chrono::duration_cast<Sec>(Clock::now() - m_TimeSinceStart).count();
-            case TimeUnit::MILLISECONDS:    return std::chrono::duration_cast<Milli>(Clock::now() - m_TimeSinceStart).count();
-            case TimeUnit::MICROSECONDS:    return std::chrono::duration_cast<Micro>(Clock::now() - m_TimeSinceStart).count();
-            case TimeUnit::NANOSECONDS:     return std::chrono::duration_cast<Nano>(Clock::now() - m_TimeSinceStart).count();
+            case TimeUnit::eSeconds:         return eastl::chrono::duration_cast<Sec>(Clock::now() - m_TimeSinceStart).count();
+            case TimeUnit::eMilliseconds:    return eastl::chrono::duration_cast<Milli>(Clock::now() - m_TimeSinceStart).count();
+            case TimeUnit::eMicroseconds:    return eastl::chrono::duration_cast<Micro>(Clock::now() - m_TimeSinceStart).count();
+            case TimeUnit::eNanoseconds:     return eastl::chrono::duration_cast<Nano>(Clock::now() - m_TimeSinceStart).count();
         }
 
-        return std::chrono::duration_cast<Sec>(Clock::now() - m_TimeSinceStart).count();;
+        return eastl::chrono::duration_cast<Sec>(Clock::now() - m_TimeSinceStart).count();;
     }
 
     auto Timer::Restart() -> void {
@@ -56,7 +67,7 @@ namespace Mikoto {
 
     Timer::~Timer() {
         if (m_PrintOnExit) {
-            const auto units{ TimeUnit::SECONDS };
+            const auto units{ TimeUnit::eSeconds };
             MKT_CORE_LOGGER_DEBUG("[END] Profiling Scope {}. Elapsed {:.10f} {}", m_ScopeName, GetCurrentProgress(units), GetUnitStr(units));
         }
     }

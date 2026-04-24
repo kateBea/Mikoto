@@ -16,12 +16,11 @@
 #define MIKOTO_IMGUI_D3D12BACKEND_HH
 
 #include <Core/Platform.hh>
-
 #include <ImGui/ImGuiService.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-namespace Mikoto {
+namespace mikoto::gui {
 
     class ImGuiD3D12Backend final : public ImGuiBackend {
     public:
@@ -36,7 +35,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetFinalComposition() -> TextureHandle override;
 
-        MKT_NODISCARD auto ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID override;
+        MKT_NODISCARD auto ConstructImGuiTextureID( const ITexture* texture ) -> ImTextureID override;
         MKT_NODISCARD auto ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID override;
 
     };

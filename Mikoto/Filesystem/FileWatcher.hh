@@ -16,20 +16,23 @@
 #define MIKOTO_FILE_WATCH_HH
 
 #include <vector>
+#include <memory>
+
+#include <EASTL/unique_ptr.h>
 
 #include <FileWatch.hh>
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Types.hh>
+#include <Filesystem/Path.hh>
 
-namespace Mikoto {
+namespace mikoto::filesystem {
 
-    struct FileEventInfo {
-        std::chrono::steady_clock::time_point lastEvent{};
-    };
+    using namespace mikoto::core;
 
-    enum class FileWatchEvent { MODIFIED, CREATED, DELETED, MOVED };
+    enum class FileWatchEvent { eModified, eCreated, eDeleted, eMoved };
 
     class FileWatcher final {
     public:
@@ -38,18 +41,16 @@ namespace Mikoto {
         // eventTimeOut is used for debouncing (in ms).
         // Helps to prevent redundant, rapid-fire actions by waiting for an event to
         // stop triggering (e.g., after 100-500ms) before executing a handler
-        explicit FileWatcher( const Path& path, UInt32 eventTimeOut = 500 );
+        explicit FileWatcher( const Path& path, u32 timeOut = 500 );
 
         auto RegisterWatchCallback(WatcherCallback&& callback) -> void;
 
     private:
-        Path m_WatchedPath{};
-        std::chrono::milliseconds m_DebounceTime{};
-        std::vector<WatcherCallback> m_Callbacks{};
+        Path mWatchedPath{};
+        std::chrono::milliseconds mDebounceTime{};
+        std::vector<WatcherCallback> mCallbacks{};
 
-        ankerl::unordered_dense::map<FileWatchEvent, FileEventInfo> m_EventTypeInfos{};
-
-        Unique<filewatch::FileWatch<std::string>> m_Watcher{};
+        eastl::unique_ptr<filewatch::FileWatch<std::string>> mWatcher{};
     };
 }
 

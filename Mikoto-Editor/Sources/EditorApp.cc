@@ -12,27 +12,51 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstdlib>
-#include <iostream>
-#include <stdexcept>
-#include <string>
-#include <utility>
+#include <ranges>
 
-#include <Core/Root.hh>
+#include <EASTL/string.h>
+#include <EASTL/utility.h>
+#include <EASTL/unique_ptr.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Profiler.hh>
 #include <Core/CoreEvents.hh>
 #include <Core/TimeService.hh>
-#include <Core/Configuration.hh>
 
 #include <Logging/Logger.hh>
 
-#include <Layers/EditorLayer.hh>
 #include <Application/EditorApp.hh>
 
-#include <Assets/AssetsService.hh>
-#include <Renderer/Core/RenderService.hh>
+namespace mikoto::editor {
 
-namespace Mikoto {
+    using namespace mikoto::core;
+
+    EditorApp::EditorApp( Window *window )
+        : mWindow{ window }
+    {}
+
+    auto EditorApp::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Editor..." );
+
+        MKT_ASSERT( mWindow, "Window must not be null" );
+
+        const EngineDescription config{
+            .mEnableAllServices = true,
+            .mEnableAllSubsystems = true,
+            .mWindow = mWindow,
+        };
+
+        mEngine = eastl::make_unique<Engine>( config );
+        mEngine->Initialize();
+
+        mThemeManager = eastl::make_unique<ThemeManager>();
+        mThemeManager->Initialize();
+
+        InitEventCallbacks();
+    }
 
     auto EditorApp::Run() -> void {
         MKT_BEGIN_PROFILER_NAMED();
@@ -42,91 +66,73 @@ namespace Mikoto {
         }
     }
 
-    auto EditorApp::GetPrefabUri( const PrefabModels prefab ) -> const std::string & {
-        return dynamic_cast<EditorApp *>( s_Instance )->m_PrefabModels[prefab];
-    }
-
-    auto EditorApp::InitPrefabs() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        m_PrefabModels = {
-            { PrefabModels::CUBE, "Resources/Models/Prefabs/cube/gltf/scene.gltf" },
-            { PrefabModels::CONE, "Resources/Models/Prefabs/cone/gltf/scene.gltf" },
-            { PrefabModels::SPHERE, "Resources/Models/Prefabs/sphere/gltf/scene.gltf" },
-            { PrefabModels::CYLINDER, "Resources/Models/Prefabs/cylinder/gltf/scene.gltf" },
-            //{ PrefabModels::SPONZA, "Resources/Models/Prefabs/sponza/sponza.obj" }
-        };
-
-        TaskGraph loaders{};
-        for ( const auto &path: m_PrefabModels | std::views::values ) {
-            loaders.Emplace( [path]() -> void { AssetsService::Get()->LoadAsset<Model>( path ); } );
-        }
-
-        TaskService::Get()->WaitForExecution( loaders );
-    }
-
-    auto EditorApp::Init() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Editor..." );
-
-        SetupEventCallbacks();
-
-        InitPrefabs();
-    }
-
     auto EditorApp::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        MKT_CORE_LOGGER_DEBUG( "Shutting down Mikoto Editor..." );
+        MKT_CORE_LOGGER_DEBUG( "Shutting down Editor App..." );
 
-        m_LayerStack.Shutdown();
+        mLayerStack.Shutdown();
 
-        m_Window = nullptr;
+        if (mThemeManager) {
+            mThemeManager->Shutdown();
+            mThemeManager.reset();
+        }
+
+        if (mEngine) {
+            mEngine->Shutdown();
+            mEngine.reset();
+        }
+
+        mWindow = nullptr;
     }
 
     auto EditorApp::Update() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // Update the time step
         TimeService::Get()->Tick();
 
-        if ( !m_Window->IsMinimized() ) {
-            const double timeStep{ TimeService::Get()->GetTimeStep( TimeUnit::SECONDS ) };
+        if ( !mWindow->IsMinimized() ) {
+            const double timeStep{ TimeService::Get()->GetTimeStep() };
 
-            RenderService::Get()->PrepareFrame();
+            // Start a new frame
+            RenderSystem::Get()->PrepareFrame();
 
-            m_LayerStack.OnUpdate( timeStep );
+            mLayerStack.OnUpdate( as<f32>( timeStep ) );
+            mEngine->Update();
 
-            Root::UpdateSubsystems( timeStep );
-
-            RenderService::Get()->EndFrame();
-            RenderService::Get()->PresentFrame();
+            // Submit frame to be processed and present
+            RenderSystem::Get()->SubmitFrame();
+            RenderSystem::Get()->PresentFrame();
         }
     }
 
-    auto EditorApp::SetWindow( Window *window ) -> void {
+    auto EditorApp::InitEventCallbacks() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        m_Window = window;
-    }
+        AddHandler<WindowCloseEvent>(
+            [this]( Event &event ) -> bool {
+                mState = ApplicationStatus::eStopped;
+                event.SetHandled( true );
+                return true;
+            } );
 
-    auto EditorApp::SetupEventCallbacks() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+        AddHandler<KeyPressedEvent>(
+            [this]( Event &event ) -> bool {
+                mLayerStack.OnEvent( event );
+                return event.IsHandled();
+            } );
 
-        AddHandler( EventType::WINDOW_CLOSE_EVENT,
-                    [this]( Event &event ) -> bool {
-                        m_State = ApplicationStatus::STOPPED;
-                        event.SetHandled( true );
-                        MKT_CORE_LOGGER_TRACE( "EditorApp::EventManager - Handled Window Event close" );
-                        return true;
-                    } );
+        AddHandler<MouseButtonPressedEvent>(
+            [this]( Event &event ) -> bool {
+                mLayerStack.OnEvent( event );
+                return event.IsHandled();
+            } );
 
-        AddHandler( EventType::KEY_PRESSED_EVENT,
-                    [this]( Event &event ) -> bool {
-                        m_LayerStack.OnEvent( event );
-                        return event.IsHandled();
-                    } );
-
-        EventService::Get()->Subscribe( this );
+        AddHandler<MouseButtonReleasedEvent>(
+            [this]( Event &event ) -> bool {
+                mLayerStack.OnEvent( event );
+                return event.IsHandled();
+            } );
     }
 }// namespace Mikoto

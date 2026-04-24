@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <EASTL/unique_ptr.h>
+
+#include <Filesystem/Path.hh>
+
 #include <Theme/ThemeSerializer.hh>
 
-namespace Mikoto {
+namespace mikoto::editor {
 
     auto ThemeSerializer::Serialize( const Theme &obj, const Path &savePath ) -> void {
 
     }
-    auto ThemeSerializer::Deserialize( const Path &loadPath ) -> Unique<Theme> {
-        return Unique<Theme>(); // TODO:
+
+    auto ThemeSerializer::Deserialize( const Path &loadPath ) -> eastl::unique_ptr<Theme> {
+        return eastl::unique_ptr<Theme>(); // TODO:
     }
 }// namespace Mikoto

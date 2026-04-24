@@ -12,9 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <array>
 #include <cstdio>
-#include <memory>
+#include <cstdlib>
+
+#include <EASTL/array.h>
+#include <EASTL/memory.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/fixed_string.h>
 
 #include <Core/ExecuteProcess.hh>
 #include <Threading/TaskService.hh>
@@ -28,16 +33,18 @@
 #define PCLOSE pclose
 #endif
 
-namespace Mikoto {
+namespace mikoto::core {
 
-    auto ExecuteProcess::Run( const std::string &command ) -> std::string {
+    using namespace mikoto::threading;
+
+    auto process::Run( const eastl::string &command ) -> eastl::string {
         // Redirect stderr to stdout to merge both because
         // POPEN will have associated the process stdout or stdin (stderr is excluded)
-        const std::string cmd{ command + " 2>&1" };
-        constexpr std::string_view openMode{ "r" };
+        const eastl::string cmd{ command + " 2>&1" };
+        constexpr eastl::string_view openMode{ "r" };
 
-        std::string result{};
-        std::array<char, 256> buffer{};
+        eastl::string result{};
+        eastl::fixed_string<char, 256> buffer{};
 
         if (std::FILE *pipe{ POPEN( cmd.c_str(), openMode.data() ) }) {
             while (std::fgets( buffer.data(), buffer.size(), pipe ) != nullptr) { result += buffer.data(); }
@@ -47,26 +54,27 @@ namespace Mikoto {
         return result;
     }
 
-    auto ExecuteProcess::RunDetached( const std::string &command ) -> int {
+    auto process::RunDetached( const eastl::string &command ) -> int {
 #if defined( _WIN32 )
-        const std::string cmd{ "start /B " + command };
+        const eastl::string cmd{ "start /B " + command };
 #else
-        const std::string cmd{ command + " &" };
+        const eastl::string cmd{ command + " &" };
 #endif
 
+        // TODO: unsafe
         return std::system( cmd.c_str() );
     }
 
-    auto ExecuteProcess::RunAsync( const std::string &command, AsyncCallback &&onOutput ) -> void {
+    auto process::RunAsync( const eastl::string &command, AsyncCallback &&onOutput ) -> void {
         TaskService::Get()->Submit( [command, onOutput = std::move( onOutput )]() -> void {
             // See comment about redirection at ExecuteProcess::Run(...)
-            const std::string cmd{ command + " 2>&1" };
-            constexpr std::string_view openMode{ "r" };
+            const eastl::string cmd{ command + " 2>&1" };
+            constexpr eastl::string_view openMode{ "r" };
 
-            std::array<char, 256> buffer{};
+            eastl::fixed_string<char, 256> buffer{};
 
             if (std::FILE *pipe{ POPEN( cmd.c_str(), openMode.data() ) }) {
-                while (std::fgets( buffer.data(), buffer.size(), pipe ) != nullptr) {
+                while (std::fgets( buffer.data(), as<size_t>( buffer.size() ), pipe ) != nullptr) {
                     if (onOutput) {
                         onOutput( buffer.data() );
                     }

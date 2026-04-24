@@ -2,61 +2,41 @@
 // Created by zanet on 3/27/2025.
 //
 
-#ifndef TASKSCHEDULER_HH
-#define TASKSCHEDULER_HH
-#include <functional>
-
-#include <Common/Service.hh>
-#include <Common/Singleton.hh>
-#include <Library/String/String.hh>
-#include <Library/Utility/Types.hh>
-#include <Logging/Logger.hh>
+#ifndef MIKOTO_TASK_MANAGER_HH
+#define MIKOTO_TASK_MANAGER_HH
 
 #include <taskflow/taskflow.hpp>
-
 #include <ankerl/unordered_dense.h>
 
-#include "TaskGraph.hh"
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
 
-namespace Mikoto {
+#include <Logging/Logger.hh>
+
+#include <Threading/TaskGraph.hh>
+
+namespace mikoto::threading {
+
+    using namespace mikoto::core;
 
     class TaskManager final : public IService, public Singleton<TaskManager> {
     public:
-        explicit TaskManager(UInt32 threadCount);
+        explicit TaskManager(tf::Executor* executor);
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         auto SubmitTask(std::function<void()>&& task) -> void;
+        auto Execute(tf::Taskflow& flow ) -> tf::Future<void>;
 
-        template<typename Func, typename... Args>
-        auto RunPeriodically(Size seconds, Func&& func, Args&&... args ) -> UInt32 {
-            auto newTask{
-                std::function<void()>{ std::bind( std::forward<Func>( func ), std::forward<Args>( args )... ) }
-            };
-
-            m_PeriodicTasksFrequency.try_emplace( m_TaskIndex, seconds );
-            m_PeriodicTaskCondition.try_emplace( m_TaskIndex, true );
-
-            AddNewTaskRunner(std::move(newTask), m_TaskIndex);
-
-            return m_TaskIndex++;
-        }
-
-        auto DisablePeriodicTask(UInt32 index) -> void;
-        auto ExecuteGraph( TaskGraph & graph ) -> void;
+        MKT_NODISCARD auto GetWorkersCount() const -> u32;
 
     private:
-        auto AddNewTaskRunner(std::function<void()>&& task, UInt32 index) -> void;
-
-        UInt32 m_ThreadCount{};
-        tf::Executor m_Executor{};
-
-        UInt32 m_TaskIndex{};
-        ankerl::unordered_dense::map<UInt32, Size> m_PeriodicTasksFrequency{};
-        ankerl::unordered_dense::map<UInt32, bool> m_PeriodicTaskCondition{};
+        tf::Executor* mExecutor{};
     };
 }// namespace Mikoto
 
 
-#endif//TASKSCHEDULER_HH
+#endif//MIKOTO_TASK_MANAGER_HH

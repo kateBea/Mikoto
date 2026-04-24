@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <vector>
 #include <fmt/format.h>
+
+#include <vector>
 
 // I love Windows.h defining min and max macros that break everything
 
@@ -28,130 +29,145 @@
 #include <msdf-atlas-gen/msdf-atlas-gen.h>
 #include <msdf-atlas-gen/glyph-generators.h>
 
+#include <Renderer/Text/Font.hh>
 #include <Renderer/Core/FontFactory.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
-    auto FontFactory::GenerateAtlas( const CStr fontFilename, Int32 fontSize, bool expensiveColoring ) const -> MsdfData {
-        MsdfData result{};
+    auto FontFactory::GenerateAtlas( eastl::string_view fontFilename, i32 fontSize, bool expensiveColoring ) const -> FontProperties {
+        FontProperties result{};
 
-        // Initialize instance of FreeType library
-        if (m_FreeTypeHandle != nullptr) {
-            if ( msdfgen::FontHandle *font{ msdfgen::loadFont( m_FreeTypeHandle, fontFilename ) }) {
-                // Storage for glyph geometry and their coordinates in the atlas
-                MsdfGlyphGeometryList glyphs{};
+        if ( mFreeTypeHandle == nullptr ) {
+            return result;
+        }
 
-                std::vector<msdfgen::FontVariationAxis> axes{};
-                msdfgen::listFontVariationAxes( axes, m_FreeTypeHandle, font );
+        msdfgen::FontHandle *font{ msdfgen::loadFont( mFreeTypeHandle, fontFilename.data() ) };
+        if ( !font ) {
+            return result;
+        }
 
-                // FontGeometry is a helper class that loads a set of glyphs from a single font.
-                // It can also be used to get additional font metrics, kerning information, etc.
-                msdf_atlas::FontGeometry fontGeometry( std::addressof( glyphs ) );
+        // Storage for glyph geometry and their coordinates in the atlas
+        GeometryList glyphs{};
 
-                constexpr float fontScale{ 2.0f };
-                constexpr bool customCharset{ true };
+        std::vector<msdfgen::FontVariationAxis> axes{};
+        msdfgen::listFontVariationAxes( axes, mFreeTypeHandle, font );
 
-                if (customCharset) {
-                    // Specify a set of character glyphs
-                    std::array charsetRanges{
-                        CharsetRange{ 0x0020, 0x007F },// Basic Latin
-                        CharsetRange{ 0x3040, 0x309F },// Hiragana
-                        CharsetRange{ 0x30A0, 0x30FF }, // Katakana
-                        //CharsetRange{ 0x00A0, 0x00FF },// Latin-1 Supplement
-                        //CharsetRange{ 0x0100, 0x017F },// Latin Extended-A
-                        //CharsetRange{ 0x0180, 0x024F },// Latin Extended-B
-                        //CharsetRange{ 0x0370, 0x03FF },// Greek & Coptic
-                        //CharsetRange{ 0x0400, 0x04FF } // Cyrillic
-                    };
+        // FontGeometry is a helper class that loads a set of glyphs from a single font.
+        // It can also be used to get additional font metrics, kerning information, etc.
 
-                    msdf_atlas::Charset charset{};
-                    for (auto [Start, End]: charsetRanges) { for (Int32 c{ Start }; c <= End; c++) { charset.add( c ); } }
+        std::vector<msdf_atlas::GlyphGeometry> v{ glyphs.begin(), glyphs.end() };
+        msdf_atlas::FontGeometry fontGeometry( std::addressof( v ) );
 
-                    // The second argument can be ignored unless you mix different font sizes in one atlas.
-                    // In the last argument, you can specify a charset other than ASCII.
-                    // To load specific glyph indices, use loadGlyphs instead.
-                    fontGeometry.loadCharset( font, fontScale, charset );
-                } else {
-                    fontGeometry.loadCharset( font, fontScale, msdf_atlas::Charset::ASCII );
+        constexpr float fontScale{ 2.0f };
+        constexpr bool customCharset{ true };
+
+        if ( customCharset ) {
+            // Specify a set of character glyphs
+            // https://www.unicode.org/charts/PDF/U3000.pdf
+            std::array charsetRanges{
+                CharsetRange{ 0x0020, 0x007F },// Basic Latin
+                CharsetRange{ 0x3040, 0x309F },// Hiragana
+                CharsetRange{ 0x30A0, 0x30FF },// Katakana
+                CharsetRange{ 0x00A0, 0x00FF },// Latin-1 Supplement
+                //CharsetRange{ 0x4E00, 0x9FFF }, // CJK Unified Ideographs
+                //CharsetRange{ 0x0100, 0x017F },// Latin Extended-A
+                //CharsetRange{ 0x0180, 0x024F },// Latin Extended-B
+                CharsetRange{ 0x0370, 0x03FF },// Greek & Coptic
+                CharsetRange{ 0x0400, 0x04FF } // Cyrillic
+            };
+
+            msdf_atlas::Charset charset{};
+            for ( auto [Start, End]: charsetRanges ) {
+                for ( i32 c{ Start }; c <= End; c++ ) {
+                    charset.add( c );
                 }
+            }
 
-                // Apply MSDF edge coloring. See edge-coloring.h for other coloring strategies.
-                unsigned long long glyphSeed{ 0 };
-                constexpr unsigned long long LCG_MULTIPLIER{ 6364136223846793005ull };
+            // The second argument can be ignored unless you mix different font sizes in one atlas.
+            // In the last argument, you can specify a charset other than ASCII.
+            // To load specific glyph indices, use loadGlyphs instead.
+            fontGeometry.loadCharset( font, fontScale, charset );
+        } else {
+            fontGeometry.loadCharset( font, fontScale, msdf_atlas::Charset::ASCII );
+        }
 
-                if (expensiveColoring) {
-                    constexpr UInt64 coloringSeed{ 0 };
-                    constexpr unsigned long long LCG_INCREMENT{ 1442695040888963407ull };
+        // Apply MSDF edge coloring. See edge-coloring.h for other coloring strategies.
+        unsigned long long glyphSeed{ 0 };
+        constexpr unsigned long long LCG_MULTIPLIER{ 6364136223846793005ull };
 
-                    constexpr double maxCornerAngle{ 3.0 };
+        if ( expensiveColoring ) {
+            constexpr u64 coloringSeed{ 0 };
+            constexpr unsigned long long LCG_INCREMENT{ 1442695040888963407ull };
 
-                    msdf_atlas::Workload( [&glyphs = glyphs, &coloringSeed, &LCG_MULTIPLIER, &LCG_INCREMENT, &glyphSeed]( int i, int threadNo ) -> bool {
-                        glyphSeed = ( LCG_MULTIPLIER * ( coloringSeed ^ i ) + LCG_INCREMENT ) * !!coloringSeed;
-                        glyphs[i].edgeColoring( msdfgen::edgeColoringInkTrap, maxCornerAngle, glyphSeed );
-                        return true;
-                    }, glyphs.size() ).finish( std::thread::hardware_concurrency() );
-                } else {
-                    constexpr double maxCornerAngle{ 3.0 };
+            constexpr double maxCornerAngle{ 3.0 };
 
-                    for (msdf_atlas::GlyphGeometry &glyph: glyphs) {
-                        glyphSeed *= LCG_MULTIPLIER;
-                        glyph.edgeColoring( msdfgen::edgeColoringInkTrap, maxCornerAngle, glyphSeed );
-                    }
-                }
+            msdf_atlas::Workload( [&glyphs = glyphs, &coloringSeed, &LCG_MULTIPLIER, &LCG_INCREMENT, &glyphSeed]( int i, int threadNo ) -> bool {
+                glyphSeed = ( LCG_MULTIPLIER * ( coloringSeed ^ i ) + LCG_INCREMENT ) * !!coloringSeed;
+                glyphs[i].edgeColoring( msdfgen::edgeColoringInkTrap, maxCornerAngle, glyphSeed );
+                return true;
+            },
+                                  glyphs.size() )
+                    .finish( std::thread::hardware_concurrency() );
+        } else {
+            constexpr double maxCornerAngle{ 3.0 };
 
-                // TightAtlasPacker class computes the layout of the atlas.
-                msdf_atlas::TightAtlasPacker packer{};
-
-                // Set atlas parameters:
-                // setDimensions or setDimensionsConstraint to find the best value
-                packer.setDimensionsConstraint( msdf_atlas::DimensionsConstraint::SQUARE );
-
-                // setScale for a fixed size or setMinimumScale to use the largest that fits
-                packer.setScale( fontSize );
-
-                // setPixelRange or setUnitRange
-                packer.setPixelRange( 2.0f );
-                packer.setMiterLimit( 1.0 );
-
-                // Compute atlas layout - pack glyphs
-                packer.pack( glyphs.data(), static_cast<Int32>( glyphs.size() ) );
-
-                // Get final atlas dimensions
-                Int32 width{};
-                Int32 height{};
-                packer.getDimensions( width, height );
-
-                // The ImmediateAtlasGenerator class facilitates the generation of the atlas bitmap.
-                MTSDFGen generator{ width, height };
-
-                // GeneratorAttributes can be modified to change the generator's default settings.
-                msdf_atlas::GeneratorAttributes attributes{
-                    .config{ msdfgen::MSDFGeneratorConfig{ true } },
-                    .scanlinePass{ true }
-                };
-                generator.setAttributes( attributes );
-                generator.setThreadCount( 8 );
-
-                // Generate atlas bitmap
-                generator.generate( glyphs.data(), static_cast<Int32>( glyphs.size() ) );
-
-                SubmitAtlasBitmapAndLayout( generator.atlasStorage(), glyphs, result, fontSize );
-
-                // Cleanup
-                msdfgen::destroyFont( font );
+            for ( msdf_atlas::GlyphGeometry &glyph: glyphs ) {
+                glyphSeed *= LCG_MULTIPLIER;
+                glyph.edgeColoring( msdfgen::edgeColoringInkTrap, maxCornerAngle, glyphSeed );
             }
         }
+
+        // TightAtlasPacker class computes the layout of the atlas.
+        msdf_atlas::TightAtlasPacker packer{};
+
+        // Set atlas parameters:
+        // setDimensions or setDimensionsConstraint to find the best value
+        packer.setDimensionsConstraint( msdf_atlas::DimensionsConstraint::SQUARE );
+
+        // setScale for a fixed size or setMinimumScale to use the largest that fits
+        packer.setScale( fontSize );
+
+        // setPixelRange or setUnitRange
+        packer.setPixelRange( 2.0f );
+        packer.setMiterLimit( 1.0 );
+
+        // Compute atlas layout - pack glyphs
+        packer.pack( glyphs.data(), as<i32>( glyphs.size() ) );
+
+        // Get final atlas dimensions
+        i32 width{};
+        i32 height{};
+        packer.getDimensions( width, height );
+
+        // The ImmediateAtlasGenerator class facilitates the generation of the atlas bitmap.
+        AtlasGenerator generator{ width, height };
+
+        // GeneratorAttributes can be modified to change the generator's default settings.
+        msdf_atlas::GeneratorAttributes attributes{
+            .config = msdfgen::MSDFGeneratorConfig{ true },
+            .scanlinePass = true,
+        };
+        generator.setAttributes( attributes );
+        generator.setThreadCount( 8 );
+
+        // Generate atlas bitmap
+        generator.generate( glyphs.data(), as<i32>( glyphs.size() ) );
+
+        SubmitAtlasBitmapAndLayout( generator.atlasStorage(), glyphs, result, fontSize );
+
+        // Cleanup
+        msdfgen::destroyFont( font );
 
         return result;
     }
 
-    auto FontFactory::SubmitAtlasBitmapAndLayout( const msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4> &atlas, std::vector<msdf_atlas::GlyphGeometry> glyphs, MsdfData &data, Int32 fontSize ) const -> void {
+    auto FontFactory::SubmitAtlasBitmapAndLayout( const msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4> &atlas, GeometryList& glyphs, FontProperties &data, i32 fontSize ) const -> void {
         msdfgen::BitmapConstRef bitmap{ ( msdfgen::BitmapConstRef<unsigned char, 4> )atlas };
 
-        Int32 atlasWidth{ bitmap.width };
-        Int32 atlasHeight{ bitmap.height };
+        i32 atlasWidth{ bitmap.width };
+        i32 atlasHeight{ bitmap.height };
 
-        for (const auto &g: glyphs) {
+        for ( const auto &g: glyphs ) {
             FontGlyph glyphData{ g.getCodepoint() };
 
             double pLeft, pBottom, pRight, pTop;
@@ -159,61 +175,69 @@ namespace Mikoto {
             g.getQuadPlaneBounds( pLeft, pBottom, pRight, pTop );
             g.getQuadAtlasBounds( aLeft, aBottom, aRight, aTop );
 
-            glyphData.SetAtlasBounds({ aLeft, aBottom, aRight, aTop });
-            glyphData.SetPlaneBounds({ pLeft, pBottom, pRight, pTop });
-            glyphData.SetAdvanceX(g.getAdvance());
+            glyphData.SetAtlasBounds( { aLeft, aBottom, aRight, aTop } );
+            glyphData.SetPlaneBounds( { pLeft, pBottom, pRight, pTop } );
+            glyphData.SetAdvanceX( g.getAdvance() );
             glyphData.SetWidth( aRight - aLeft );
             glyphData.SetHeight( aTop - aBottom );
             glyphData.SetBearingUnderline( pBottom * fontSize );
 
-            data.GlyphInfo.insert( { g .getCodepoint(), glyphData } );
+            data.mGlyphMap.insert( { g.getCodepoint(), glyphData } );
 
-            if (glyphData.m_Height > data.MaxHeight) {
+            if ( glyphData.mHeight > data.mMaxHeight ) {
                 //code = g.getCodepoint();
             }
 
-            data.MaxHeight = std::max( data.MaxHeight, static_cast<Int32>( static_cast<float>( glyphData.m_Height ) + glyphData.m_BearingUnderline ) );
-            data.MaxHeight = std::max( data.MaxHeight, static_cast<Int32>( g.getAdvance() ) );
+            data.mMaxHeight = std::max( data.mMaxHeight, as<i32>( as<float>( glyphData.mHeight ) + glyphData.mBearingUnderline ) );
+            data.mMaxHeight = std::max( data.mMaxHeight, as<i32>( g.getAdvance() ) );
         }
 
         // Create texture from the raw atlas data
-        TextureDescription textureDesc{};
-        textureDesc.WithWidth( atlasWidth )
-                   .WithHeight( atlasHeight )
-                   .WithChannelCount( 4 )
-                   .WithData( const_cast<UChar *>( bitmap.pixels ) )
-                   .WithType( TextureType::TEXTURE_2D )
-                   .WithFormat( TextureFormat::RGBA8_UNORM )
-                   .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
+        constexpr u32 channelCount{ 4 };
+        auto textureDesc{ TextureCreateDescription{}
+            .SetWidth( atlasWidth )
+            .SetHeight( atlasHeight )
+            .SetBufferData( BufferSpanHandle::Spawn( rc_cast<byte_t*>( bitmap.pixels ), as<size_t>( atlasWidth * atlasHeight * channelCount ) ) )
+            .SetDimensions( TextureDimension::eTexture2D )
+            .SetFormat( Format::eRGBA8_UNORM ) };
 
-        data.TextureAtlas = m_GpuDevice->CreateTexture( textureDesc );
+        data.mAtlas = mDevice->CreateTexture( textureDesc );
+    }
+
+    auto FontLoadDescription::WithFile( FileHandle file ) -> FontLoadDescription & {
+        mFile = file;
+        return *this;
+    }
+
+    auto FontLoadDescription::WithPixelSize( float pixelSize ) -> FontLoadDescription & {
+        mSize = pixelSize;
+        return *this;
     }
 
     FontFactory::FontFactory( const FontFactoryCreateInfo &options )
-        : m_GpuDevice( options.Device ) {}
+        : mDevice( options.mDevice ) {}
 
-    auto FontFactory::Init() -> void {
-        m_FreeTypeHandle = msdfgen::initializeFreetype();
+    auto FontFactory::Initialize() -> void {
+        mFreeTypeHandle = msdfgen::initializeFreetype();
 
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto FontFactory::Shutdown() -> void {
-        if (!m_IsInitialized) { return; }
+        if ( !mIsInitialized ) { return; }
 
-        msdfgen::deinitializeFreetype( m_FreeTypeHandle );
+        msdfgen::deinitializeFreetype( mFreeTypeHandle );
 
-        m_IsInitialized = false;
+        mIsInitialized = false;
     }
 
     auto FontFactory::LoadFont( const FontLoadDescription &description ) -> FontHandle {
-        // Create Atlas texture
-        const std::string &path{ description.FontFile->GetPath() };
-        auto result{ GenerateAtlas( path.c_str(), description.FontSize ) };
-        result.TextureAtlas->SetDebugName( fmt::format( "FontAtlas {}", description.FontFile->GetPath() ) );
+        const eastl::string_view path{ description.mFile->GetPath() };
+        const auto result{ GenerateAtlas( path, description.mSize ) };
+        //result.TextureAtlas->SetDebugName(string::Format( "FontAtlas {}", description.mFile->GetPath().GetC_Str() ) );
 
-#if false && !defined(MSDFGEN_DISABLE_PNG)
-        msdfgen::FontHandle *font = msdfgen::loadFont( m_FreeTypeHandle, description.FontFile->GetPath().c_str() );
+#if false && !defined( MSDFGEN_DISABLE_PNG )
+        msdfgen::FontHandle *font = msdfgen::loadFont( mFreeTypeHandle, description.FontFile->GetPath().c_str() );
 
         msdfgen::Shape shape;
         if (msdfgen::loadGlyph( shape, font, 'C' )) {
@@ -229,23 +253,20 @@ namespace Mikoto {
 #endif
 
         // Construct font
-        FontHandle newFont{ FontHandle::Spawn( result.TextureAtlas, description.FontSize ) };
-
-        newFont->SetPath( description.FontFile->GetPath() );
-        newFont->SetName( description.FontFile->GetName() );
+        FontHandle newFont{ FontHandle::Spawn( result.mAtlas, description.mSize, description.mFile->GetPath() ) };
 
         // Fill glyph data
-        for (auto &[codepoint, glyphData]: result.GlyphInfo) {
-            if (codepoint == 0) {
+        for ( auto &[codepoint, glyphData]: result.mGlyphMap ) {
+            if ( codepoint == 0 ) {
                 continue;
             }
 
             newFont->RegisterGlyph( codepoint, glyphData );
         }
 
-        newFont->SetMaxHeight( result.MaxHeight );
-        newFont->SetMaxWidth( result.MaxHeight );
+        newFont->SetMaxHeight( result.mMaxHeight );
+        newFont->SetMaxWidth( result.mMaxHeight );
 
         return newFont;
     }
-}// namespace Mikoto
+}// namespace mikoto::renderer

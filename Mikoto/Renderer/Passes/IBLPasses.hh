@@ -25,7 +25,11 @@
 #include <Renderer/Passes/MeshCulling.hh>
 #include <Renderer/Passes/ShaderParameteres.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer {
+
+    // TODO: study how to account for bum mapping etc
+    // I need it to properly render the ancient rune stones mesh from sketfab
+    // https://youtu.be/cM7RjEtZGHw
 
     // Index order matches shader
     // See base/Tonemap_Helpers.slang
@@ -187,7 +191,7 @@ namespace Mikoto {
 
         MeshCulling* m_MeshCullingPass{};
 
-        RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
+        RenderResolution m_Resolution{ RenderResolution::e1080P };
     };
 }
 

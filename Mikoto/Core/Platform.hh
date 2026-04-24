@@ -1,6 +1,16 @@
+//    Copyright 2026 ケイト
 //
-// Created by kate on 11/7/25.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_PLATFORM_H
 #define MIKOTO_PLATFORM_H
@@ -83,15 +93,6 @@
         #define MIKOTO_API
     #endif
 #endif
-
-// =======================
-//  Utility Macros
-// =======================
-#define MIKOTO_STRINGIFY_IMPL(x) #x
-#define MIKOTO_STRINGIFY(x) MIKOTO_STRINGIFY_IMPL(x)
-
-#define MIKOTO_CONCAT_IMPL(a, b) a##b
-#define MIKOTO_CONCAT(a, b) MIKOTO_CONCAT_IMPL(a, b)
 
 // =======================
 //  Endianness

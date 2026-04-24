@@ -15,36 +15,20 @@
 #ifndef MIKOTO_AUDIO_UTILITY_HH
 #define MIKOTO_AUDIO_UTILITY_HH
 
-#include <Library/IO/File.hh>
-#include <Library/Utility/Types.hh>
+#include <Filesystem/Path.hh>
+#include <Filesystem/File.hh>
 
-namespace Mikoto {
+namespace mikoto::audio {
 
-    /**
-    * @brief Defines the properties of an audio resource.
-    *
-    * This structure encapsulates details such as the source file and volume level
-    * for an audio resource.
-    */
+    using namespace mikoto::filesystem;
+
     struct AudioLoadDescription {
-        const File* AudioFile{}; ///< The file path to the audio source.
-        float Volume{ 1.4f };///< The default volume level.
+        FileHandle mAudioFile{};
+        float mVolume{ 1.4f };
 
-        /**
-         * @brief Sets the audio source file.
-         *
-         * @param source The path to the audio file.
-         * @return Reference to the modified AudioDescription.
-         */
-        auto WithFile( const File* source ) -> AudioLoadDescription&;
-
-        /**
-         * @brief Sets the volume level.
-         *
-         * @param volume The volume value (range typically 0.0 to 1.0).
-         * @return Reference to the modified AudioDescription.
-         */
+        auto WithFile( FileHandle source ) -> AudioLoadDescription&;
         auto SetVolume( float volume ) -> AudioLoadDescription&;
     };
+
 }
 #endif //MIKOTO_AUDIO_UTILITY_HH

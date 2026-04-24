@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,11 +14,13 @@
 
 #include <memory>
 #include <utility>
+#include <exception>
 
-#include <Core/Profiler.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Platform.hh>
+#include <Core/Profiler.hh>
 #include <Logging/Logger.hh>
-
 #include <Platform/MainWindow.hh>
 
 #if defined( MIKOTO_PLATFORM_LINUX )
@@ -29,30 +31,37 @@
 
 #include <Platform/WindowsService.hh>
 
-namespace Mikoto {
+namespace mikoto::platform {
 
     WindowsService::WindowsService( WindowsServiceCreateInfo const & ) {}
 
-    auto WindowsService::Init() -> void {
+    auto WindowsService::Initialize() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        MKT_CORE_LOGGER_INFO("Initializing WindowsService...");
         InitWindowHandling();
 
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto WindowsService::Shutdown() -> void {
-        if (!m_IsInitialized) {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        if (!mIsInitialized) {
             return;
         }
 
-        for (const auto& window : m_Windows) {
+        MKT_CORE_LOGGER_INFO("Shutting down WindowsService...");
+
+        for (const auto& window : mWindows) {
             window->Shutdown();
         }
 
-        m_Windows.clear();
+        mWindows.clear();
 
         ShutdownWindowHandling();
 
-        m_IsInitialized = false;
+        mIsInitialized = false;
     }
 
     auto WindowsService::Create( const WindowProperties &properties ) -> Window * {
@@ -61,18 +70,20 @@ namespace Mikoto {
         Window* result{ nullptr };
 
         try {
-            Unique<Window> window{};
+            eastl::unique_ptr<Window> window{};
 
 #if defined( MIKOTO_PLATFORM_WINDOWS ) && defined( MKT_USE_WIN32_WINDOW )
             window = CreateScope<Win32Window>( properties );
 #elif defined( MIKOTO_PLATFORM_LINUX ) && defined( MKT_USE_XCB_WINDOW )
             window = CreateScope<LinuxWindow>( properties );
 #else
-            window = CreateScope<MainWindow>( properties );
+            window = eastl::make_unique<MainWindow>( properties );
 #endif
 
-            result = m_Windows.emplace_back( std::move( window ) ).get();
-            result->Init();
+            if (window) {
+                result = mWindows.emplace_back( std::move( window ) ).get();
+                result->Init();
+            }
         } catch (std::exception &e) {
             MKT_CORE_LOGGER_ERROR( "Window service exception: {}", e.what() );
         }
@@ -91,7 +102,7 @@ namespace Mikoto {
         const auto ret{ glfwInit() };
         MKT_ASSERT(ret == GLFW_TRUE, "Failed to initialized the GLFW library.");
 
-        glfwSetErrorCallback([](Int32 errCode, const char* desc) -> void {
+        glfwSetErrorCallback([](int errCode, const char* desc) -> void {
             MKT_CORE_LOGGER_ERROR("GLFW error code: {} Description: {}", errCode, desc);
         });
 #endif

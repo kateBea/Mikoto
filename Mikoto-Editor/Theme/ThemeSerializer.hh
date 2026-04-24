@@ -15,14 +15,19 @@
 #ifndef MIKOTO_THEME_SERIALIZER_HH
 #define MIKOTO_THEME_SERIALIZER_HH
 
-#include <Theme/Theme.hh>
-#include <Core/Serializer.hh>
+#include <EASTL/unique_ptr.h>
 
-namespace Mikoto {
+#include <Core/Serializer.hh>
+#include <Theme/Theme.hh>
+
+namespace mikoto::editor {
+
+    using namespace mikoto::core;
+
     class ThemeSerializer final : public ISerializer<Theme> {
     public:
         auto Serialize( const Theme& obj, const Path& savePath ) -> void override;
-        auto Deserialize( const Path& loadPath ) -> Unique<Theme> override;
+        auto Deserialize( const Path& loadPath ) -> eastl::unique_ptr<Theme> override;
     };
 }
 

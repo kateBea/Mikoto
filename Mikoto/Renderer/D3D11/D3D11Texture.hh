@@ -15,31 +15,68 @@
 #ifndef MIKOTO_D3D11_TEXTURE_HH
 #define MIKOTO_D3D11_TEXTURE_HH
 
-#include <Common/Common.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Platform.hh>
-#include <Library/Utility/Types.hh>
-#include <Renderer/Core/RenderService.hh>
+
+#include <Assets/Image.hh>
+
+#include <Renderer/Core/Rhi.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
-
-#include <Renderer/D3D11/Direct3D11Libraries.hh>
 
 #include <d3d11.h>
 #include <dxgi1_3.h>
 #include <wrl.h>
+#include <d3dcommon.h>
 
-namespace Mikoto {
-    class D3D11Texture {
-    };
+#include <Renderer/D3D11/Direct3D11Libraries.hh>
 
-    class D3D11SwapChain {
+namespace mikoto::renderer::d3d11 {
+
+    class Sampler final : public rhi::ISampler {
     public:
+        explicit Sampler( const rhi::SamplerCreateDescription& desc );
 
-        auto Present() -> void;
+        auto SetDebugName( const eastl::string_view name ) -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
+
+        ~Sampler() override;
 
     private:
-        Microsoft::WRL::ComPtr<IDXGISwapChain1> m_SwapChain{};
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_RenderTarget{};
+        auto Release() -> void override;
+        auto Initialize() -> void override;
+
+    private:
+        Microsoft::WRL::ComPtr<ID3D11SamplerState> mSampler{};
+    };
+
+    class Texture final : public ITexture  {
+    public:
+        explicit Texture( const TextureCreateDescription& data );
+
+        auto SetDebugName( eastl::string_view name ) -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
+
+        auto EnableUsage( ResourceStates state ) -> void;
+
+        ~Texture() override;
+
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+
+    private:
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture{};
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRenderTargetView{};
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> mDepthStencilTargetView{};
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mShaderResourceView{};
+
+        bool mKeepInitializerResources{ false };
     };
 }
 

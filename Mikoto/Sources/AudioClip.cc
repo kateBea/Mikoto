@@ -14,25 +14,21 @@
 
 #include <miniaudio.h>
 
-#include <Logging/Logger.hh>
-#include <Library/IO/File.hh>
-
-#include <Assets/AudioClip.hh>
+#include <Audio/AudioClip.hh>
 #include <Audio/AudioDevice.hh>
 
-namespace Mikoto {
+#include <Logging/Logger.hh>
+
+namespace mikoto::audio {
+
+    using namespace mikoto::core;
 
     Audio::Audio( const AudioLoadDescription& description )
-        : m_FileSource{ description.AudioFile },
-          m_TrackName{
-          Path{ description.AudioFile->GetPath() }
-              .replace_extension()
-              .filename()
-              .string() }
+        : mFileSource{ description.mAudioFile }
     {}
 
     auto Audio::CreateSource() -> AudioSourceHandle {
-        AudioSourceHandle source{ m_Sources.Allocate( m_Device, m_FileSource->GetPath() ) };
+        AudioSourceHandle source{ m_Sources.Allocate( m_Device, mFileSource->GetPath() ) };
         if ( source.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate audio source." );
             return AudioSourceHandle::CreateEmpty();
@@ -43,12 +39,12 @@ namespace Mikoto {
         return source;
     }
 
-    auto Audio::GetFile() const -> const File* { 
-        return m_FileSource; 
+    auto Audio::GetFile() const -> FileHandle {
+        return mFileSource;
     }
 
-    auto Audio::GetTrackName() const -> const std::string& {
-        return m_TrackName;
+    auto Audio::GetTrackName() const -> eastl::string_view {
+        return mFileSource->GetName();
     }
 
     auto Audio::Release() -> void {
@@ -59,6 +55,6 @@ namespace Mikoto {
         m_Sources.Init( 5 );
         SetIsReady( true );
 
-        m_IsAllocated = true;
+        mIsAllocated = true;
     }
 }// namespace Mikoto

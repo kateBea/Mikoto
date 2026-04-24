@@ -12,256 +12,220 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <fstream>
-#include <array>
 #include <ranges>
-#include <vector>
 
-#include <volk.h>
+#include <EASTL/span.h>
+#include <EASTL/vector.h>
+#include <EASTL/algorithm.h>
 
-#include <Common/Common.hh>
-
-#include <Logging/Logger.hh>
-
-#include <Library/Utility/Types.hh>
-
-#include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
-#include <Renderer/Vulkan/VulkanShader.hh>
-#include <Renderer/Vulkan/Reflection.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer::vulkan {
 
-    static auto InferVulkanTopology(Topology topology) -> VkPrimitiveTopology {
-        switch (topology) {
-            case Topology::POINT_LIST: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-            case Topology::LINE_LIST: return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-            case Topology::LINE_STRIP: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-            case Topology::TRIANGLE_LIST: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            case Topology::TRIANGLE_STRIP: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-            case Topology::TRIANGLE_FAN: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+    MKT_NODISCARD static auto CreatePipelineLayout(
+        Device* device,
+        PipelineReflection& mPipelineReflection,
+        BindingSetLayoutsMap& bindingLayoutsMap,
+        VkPipelineLayout& pipelineLayout ) -> void {
+
+        // IMPORTANT:
+        // In Vulkan, VkPipelineLayoutCreateInfo::pSetLayouts is an array where each element
+        // corresponds to a descriptor set index in order:
+        //    pSetLayouts[0] -> set = 0
+        //    pSetLayouts[1] -> set = 1
+        //    pSetLayouts[2] -> set = 2
+        // Vulkan does NOT sort or remap them automatically. If the layouts in out.setLayouts
+        // are not in the same order as the shader set indices, you will get validation errors.
+        // For example, if the fragment shader uses set = 1 but out.setLayouts[1] corresponds
+        // to set = 2, Vulkan will complain that the descriptor is missing.
+        // Here we are just filling not used slots with empty descriptor set layouts.
+
+        // TODO: VK_EXT_Pipeline library extension
+        // [11:59:23] STDERR LOG [thread 67676] Validation Error: Validation Error: [ VUID-VkPipelineLayoutCreateInfo-graphicsPipelineLibrary-06753 ] |
+        // MessageID = 0x57ab6143 | vkCreatePipelineLayout(): pCreateInfo->pSetLayouts[0] is VK_NULL_HANDLE, but VK_EXT_graphics_pipeline_library is not enabled.
+        // The Vulkan spec states: If graphicsPipelineLibrary is not enabled, elements of pSetLayouts must be valid VkDescriptorSetLayout objects
+        // (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-VkPipelineLayoutCreateInfo-graphicsPipelineLibrary-06753)
+
+        // Find the highest set index
+        u32 maxSet{ 0 };
+        for ( const auto& setIndex: bindingLayoutsMap ) {
+            maxSet = eastl::max( maxSet, setIndex.first );
         }
 
-        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    }
+        // Initialize everything with "holes" and fill accordingly
+        VkDescriptorSetLayout emptySetLayout{ device->GetGetLayoutForEmptySet() };
+        eastl::vector<VkDescriptorSetLayout> setLayouts( maxSet + 1, emptySetLayout );
 
-    static auto InferCullMode(CullMode cullMode) -> VkCullModeFlagBits {
-        switch (cullMode) {
-            case CullMode::NONE: return VK_CULL_MODE_NONE;
-            case CullMode::CULL_BACK: return VK_CULL_MODE_BACK_BIT;
-            case CullMode::CULL_FRONT: return VK_CULL_MODE_FRONT_BIT;
+        // Place set layouts at correct set indices
+        for ( const auto& [setIndex, layout]: bindingLayoutsMap ) {
+            setLayouts[setIndex] = layout;
         }
 
-        return VK_CULL_MODE_NONE;
+        VkPipelineLayoutCreateInfo plInfo{ initializers::PipelineLayoutCreateInfo() };
+
+        plInfo.setLayoutCount = as<u32>( setLayouts.size() );
+        plInfo.pSetLayouts = setLayouts.data();
+
+        plInfo.pushConstantRangeCount = as<u32>( mPipelineReflection.mPushConstantRanges.size() );
+        plInfo.pPushConstantRanges = mPipelineReflection.mPushConstantRanges.data();
+
+        MKT_VK_CHECK( vkCreatePipelineLayout( device->GetDevice(), &plInfo, nullptr, MKT_ADDRESSOF( pipelineLayout ) ) );
     }
 
-    static auto GetDefaultGraphicsPipelineConfigInfo() -> VulkanGraphicsPipelineConfiguration {
-        VulkanGraphicsPipelineConfiguration configInfo{};
+    static auto CreateDescriptorSetLayouts(
+        Device* device,
+        PipelineReflection& pipelineReflection,
+        BindingSetLayoutsMap& bindingLayoutsMap,
+        BindingLayoutHandle bindingLayoutHandle = BindingLayoutHandle::CreateEmpty()  ) -> void {
+        BindingLayout* bindingLayout{ bindingLayoutHandle.IsEmpty() ?
+            nullptr : checked_cast<BindingLayout*>( bindingLayoutHandle.GetRaw() )
+        };
 
+        for ( const auto& [setIndex, setBindings]: pipelineReflection.mBindingSetsMap ) {
+            if (bindingLayout && setIndex == bindingLayout->GetRegisterSpace()) {
+                VkDescriptorSetLayout setLayout{ bindingLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) };
+                bindingLayoutsMap[setIndex] = setLayout;
+                continue;
+            }
+
+            // Get the max binding the other ones will be empty
+            u32 maxBinding{0};
+            for (const auto& item : setBindings) {
+                maxBinding = eastl::max( maxBinding, item.second.mBinding );
+            }
+            std::vector<VkDescriptorSetLayoutBinding> layoutBindings{};
+            layoutBindings.resize( maxBinding + 1 );
+
+            // Initialize bindings
+            for (u32 index{}; auto& item: layoutBindings ) {
+                item = VkDescriptorSetLayoutBinding{
+                    .binding = index++,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER, // Dummy
+                    .descriptorCount = 1, // Dummy
+                    .stageFlags = VK_SHADER_STAGE_ALL , // Dummy
+                };
+            }
+
+            // Fill accordingly
+            for ( const auto& [bindingIndex, bindingInfo]: setBindings ) {
+                layoutBindings[bindingIndex] = VkDescriptorSetLayoutBinding{
+                    .binding = bindingIndex,
+                    .descriptorType = bindingInfo.mType,
+                    .descriptorCount = bindingInfo.mCount,
+                    .stageFlags = bindingInfo.mStageFlags,
+                };
+            }
+
+            VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+            layoutInfo.bindingCount = as<u32>( layoutBindings.size() );
+            layoutInfo.pBindings = layoutBindings.data();
+
+            VkDescriptorBindingFlags bindingFlags{ VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT };
+
+            VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
+            flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+
+            flagsInfo.bindingCount = 1;
+            flagsInfo.pBindingFlags = MKT_ADDRESSOF( bindingFlags );
+
+            MKT_VK_CHECK( vkCreateDescriptorSetLayout(
+                device->GetDevice(),
+                MKT_ADDRESSOF( layoutInfo ),
+                nullptr,
+                MKT_ADDRESSOF( bindingLayoutsMap[setIndex] ) ) );
+        }
+    }
+
+    MKT_NODISCARD static auto GetShaderStagesInfo(const eastl::span<const ShaderModuleHandle> shaders) -> eastl::vector<VkPipelineShaderStageCreateInfo> {
+        eastl::vector<VkPipelineShaderStageCreateInfo> result{};
+        result.reserve(shaders.size());
+
+        eastl::for_each(
+            shaders.begin(),
+            shaders.end(),
+            [&result](const auto& h) {
+                if (h.IsEmpty())
+                    return;
+
+                const auto* shader{ checked_cast<const Shader*>(h.GetRaw()) };
+                result.emplace_back(shader->GetPipelineInfo());
+            }
+        );
+
+        return result;
+    }
+
+    GraphicsPipeline::GraphicsPipeline( const GraphicsPipelineDescription &info )
+        : IGraphicsPipeline{ info } {
         // [Input assembly]
-        configInfo.InputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        configInfo.InputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        configInfo.InputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
+        mInputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        mInputAssemblyInfo.topology = GetTopology(mDesc.mPrimitiveTopology);;
+        mInputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
         // [Viewport and Scissor]
-        configInfo.ViewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        configInfo.ViewportInfo.viewportCount = 1;// VK_DYNAMIC_VIEWPORT_WITH_COUNT has to be set for this to be 0
-        configInfo.ViewportInfo.pViewports = nullptr;
-        configInfo.ViewportInfo.scissorCount = 1;// VK_DYNAMIC_SCISSOR_WITH_COUNT has to be set for this to be 0
-        configInfo.ViewportInfo.pScissors = nullptr;
+        mViewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        mViewportInfo.viewportCount = 1;
+        mViewportInfo.pViewports = nullptr;
+        mViewportInfo.scissorCount = 1;
+        mViewportInfo.pScissors = nullptr;
 
-        configInfo.RasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        configInfo.RasterizationInfo.depthClampEnable = VK_FALSE;
-        configInfo.RasterizationInfo.rasterizerDiscardEnable = VK_FALSE;// requires extension if enabled
-        configInfo.RasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+        // [Raster]
+        mRasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        mRasterizationInfo.depthClampEnable = VK_FALSE;
+        mRasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
+        mRasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+        mRasterizationInfo.cullMode = GetCullMode(mDesc.mCullMode);
 
-        // The maximum line width that is supported depends on the hardware, any line thicker than 1.0f requires you to enable the wideLines GPU feature.
-        configInfo.RasterizationInfo.lineWidth = 0.0f;
-        configInfo.RasterizationInfo.cullMode = VK_CULL_MODE_NONE;
-        configInfo.RasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        configInfo.RasterizationInfo.depthBiasEnable = VK_FALSE;
-        configInfo.RasterizationInfo.depthBiasConstantFactor = 0.0f;
-        configInfo.RasterizationInfo.depthBiasClamp = 0.0f;
-        configInfo.RasterizationInfo.depthBiasSlopeFactor = 0.0f;
+        constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
+        mRasterizationInfo.lineWidth = GPU_STANDARD_LINE_WIDTH;
 
-        configInfo.MultisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        configInfo.MultisampleInfo.sampleShadingEnable = VK_FALSE;
-        configInfo.MultisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-        configInfo.MultisampleInfo.minSampleShading = 1.0f;         // Optional
-        configInfo.MultisampleInfo.pSampleMask = nullptr;           // Optional
-        configInfo.MultisampleInfo.alphaToCoverageEnable = VK_FALSE;// Optional
-        configInfo.MultisampleInfo.alphaToOneEnable = VK_FALSE;     // Optional
-
-        configInfo.DepthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        configInfo.DepthStencilInfo.depthTestEnable = VK_TRUE;
-        configInfo.DepthStencilInfo.depthWriteEnable = VK_TRUE;
-        configInfo.DepthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-        configInfo.DepthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-        configInfo.DepthStencilInfo.stencilTestEnable = VK_TRUE;          // Enable stencil test
-        configInfo.DepthStencilInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;// Always pass
-        configInfo.DepthStencilInfo.back.failOp = VK_STENCIL_OP_REPLACE;
-        configInfo.DepthStencilInfo.back.depthFailOp = VK_STENCIL_OP_REPLACE;
-        configInfo.DepthStencilInfo.back.passOp = VK_STENCIL_OP_REPLACE;// Write stencil value
-        configInfo.DepthStencilInfo.back.reference = 1;                 // Stencil value to write
-        configInfo.DepthStencilInfo.back.compareMask = 0xFF;
-        configInfo.DepthStencilInfo.back.writeMask = 0xFF;
-        configInfo.DepthStencilInfo.front = configInfo.DepthStencilInfo.back;// Use default settings for front faces
-
-        return configInfo;
-    }
-
-    static auto GetDefaultAttributeDescriptions(
-        const std::vector<AttributesSpec>& attributeSpec,
-        const VulkanHelpers::Reflection::ReflectedData& reflection ) ->
-        std::vector<VkVertexInputAttributeDescription>
-    {
-        // Input attribute count is determined by the reflection metadata
-        // as we want to avoid declaring more input attributes than what the shader consumes
-        Size attributeCount{ reflection.vertexAttributes.size() };
-        std::vector attributeDescriptions( attributeCount, VkVertexInputAttributeDescription{} );
-
-        /**
-         * The binding parameter tells Vulkan from which binding the per-vertex (if do per vertex and not instanced) data comes.
-         * The location parameter references the location directive of the input in the vertex shader.
-         * See: https://vulkan-tutorial.com/Vertex_buffers/Vertex_input_description
-         * */
-
-        // For each binding we declare the binding's input attributes
-        Size attributeIndex{};
-        for (Size attributeBinding{}; attributeBinding < attributeSpec.size(); ++attributeBinding ) {
-            for ( Size currentBufferLayoutCount{}; currentBufferLayoutCount < attributeCount && currentBufferLayoutCount < attributeSpec[attributeBinding].DefaultVertexLayout.GetCount(); ++currentBufferLayoutCount ) {
-                const BufferLayout& layout{ attributeSpec[attributeBinding].DefaultVertexLayout };
-
-                attributeDescriptions[attributeIndex] = {};
-                attributeDescriptions[attributeIndex].binding = attributeBinding;
-                attributeDescriptions[attributeIndex].location = attributeIndex;
-                attributeDescriptions[attributeIndex].format = VulkanHelpers::ToVkShaderDataType( layout[currentBufferLayoutCount].GetType() );
-                attributeDescriptions[attributeIndex].offset = layout[currentBufferLayoutCount].GetOffset();
-
-                ++attributeIndex;
-            }
+        if (mDesc.mPolygonMode == PolygonMode::eLines) {
+            mRasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
+            mDynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
         }
 
+        // The maximum line width that is supported depends on the hardware,
+        // any line thicker than 1.0f requires you to enable the wideLines GPU feature.
+        mRasterizationInfo.lineWidth = 0.0f;
+        mRasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+        mRasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        mRasterizationInfo.depthBiasEnable = VK_FALSE;
+        mRasterizationInfo.depthBiasConstantFactor = 0.0f;
+        mRasterizationInfo.depthBiasClamp = 0.0f;
+        mRasterizationInfo.depthBiasSlopeFactor = 0.0f;
 
-        return attributeDescriptions;
-    }
+        // [Multisampling]
+        mMultisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        mMultisampleInfo.sampleShadingEnable = mDesc.mEnableSampleRateShading ? VK_TRUE : VK_FALSE;;
+        mMultisampleInfo.rasterizationSamples = GetSampleCount( mDesc.mMultisampling );
+        mMultisampleInfo.minSampleShading = 1.0f;         // Optional
+        mMultisampleInfo.pSampleMask = nullptr;           // Optional
+        mMultisampleInfo.alphaToCoverageEnable = VK_FALSE;// Optional
+        mMultisampleInfo.alphaToOneEnable = VK_FALSE;     // Optional
 
-    // Helper function to convert Mikoto InputRate -> Vulkan VkVertexInputRate
-    MKT_NODISCARD static auto ToVulkanInputRate(InputRate rate) -> VkVertexInputRate {
-        switch (rate) {
-            case InputRate::PER_VERTEX:   return VK_VERTEX_INPUT_RATE_VERTEX;
-            case InputRate::PER_INSTANCE: return VK_VERTEX_INPUT_RATE_INSTANCE;
-            default:                      return VK_VERTEX_INPUT_RATE_VERTEX; // fallback
-        }
-    }
+        // [Depth]
+        mDepthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        mDepthStencilInfo.depthTestEnable = mDesc.mEnableDepthTest ? VK_TRUE : VK_FALSE;;
+        mDepthStencilInfo.depthWriteEnable = mDesc.mEnableDepthWrite ? VK_TRUE : VK_FALSE;;
+        mDepthStencilInfo.depthCompareOp = GetCompareOp(mDesc.mDepthCompareOp);
+        mDepthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+        mDepthStencilInfo.stencilTestEnable = VK_TRUE;              // Enable stencil test
+        mDepthStencilInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;    // Always pass
+        mDepthStencilInfo.back.failOp = VK_STENCIL_OP_REPLACE;
+        mDepthStencilInfo.back.depthFailOp = VK_STENCIL_OP_REPLACE;
+        mDepthStencilInfo.back.passOp = VK_STENCIL_OP_REPLACE;      // Write stencil value
+        mDepthStencilInfo.back.reference = 1;                       // Stencil value to write
+        mDepthStencilInfo.back.compareMask = 0xFF;
+        mDepthStencilInfo.back.writeMask = 0xFF;
+        mDepthStencilInfo.front = mDepthStencilInfo.back;           //Use default settings for front faces
 
-    static auto GetDefaultBindingDescriptions(const std::vector<AttributesSpec>& attributeSpec ) -> std::vector<VkVertexInputBindingDescription> {
-        // Specify vertex buffers to be bound, we are generally using 1 now, but for instancing you may need more than one binding, see docs for more
-        // Example BindVertexBuffer(vertexBuffer, binding = 0)
-        //         BindVertexBuffer(vertexBuffer, binding = 1), etc
-
-        auto bindingDescriptions{ std::vector<VkVertexInputBindingDescription>(attributeSpec.size()) };
-
-        for (Size attributeBinding{}; attributeBinding < attributeSpec.size(); ++attributeBinding ) {
-            bindingDescriptions[attributeBinding] = {};
-            bindingDescriptions[attributeBinding].binding = attributeBinding;
-            bindingDescriptions[attributeBinding].stride = attributeSpec[attributeBinding].DefaultVertexLayout.GetStride();
-            bindingDescriptions[attributeBinding].inputRate = ToVulkanInputRate(attributeSpec[attributeBinding].InputRateSpec.AttributeRate);
-        }
-
-        return bindingDescriptions;
-    }
-
-    static auto GetShaderStagesInfo(const std::vector<ShaderModuleHandle>& shaders) -> std::vector<VkPipelineShaderStageCreateInfo> {
-        std::vector<VkPipelineShaderStageCreateInfo> shaderStagesInfos{};
-
-        for (auto& shader : shaders) {
-            if (!shader.IsEmpty()) {
-                const auto vkModule{ dynamic_cast<const VulkanShader*>(shader.GetRaw() ) };
-                shaderStagesInfos.emplace_back(vkModule->GetPipelineStageCreateInfo());
-            }
-        }
-
-        return shaderStagesInfos;
-    }
-
-    auto VulkanPipeline::Get() const -> VkPipeline {
-        return m_Pipeline;
-    }
-
-    auto VulkanPipeline::GetLayout() const -> VkPipelineLayout {
-        return m_ReflectionData.pipelineLayout;
-    }
-
-    auto VulkanPipeline::HasDynamicBuffersSet() const -> bool {
-        return m_ReflectionData.DynamicBuffersBindingCount != 0;
-    }
-
-    auto VulkanPipeline::GetDynamicBuffersSetBindingCount() const -> UInt32 {
-        return m_ReflectionData.DynamicBuffersBindingCount;
-    }
-
-    auto VulkanPipeline::HasPushConstants() const -> bool {
-        return !m_ReflectionData.pushConstantRanges.empty();
-    }
-
-    auto VulkanPipeline::GetDescriptorLayoutCount() const -> Size {
-        return m_ReflectionData.setLayouts.size();
-    }
-
-    auto VulkanPipeline::GetDescriptorSetIndices() const -> std::vector<UInt32> {
-        std::vector<UInt32> keys{};
-        keys.reserve(m_ReflectionData.setLayouts.size());
-
-        for ( const auto& key: m_ReflectionData.setLayouts | std::views::keys )
-            keys.push_back(key);
-
-        return keys;
-    }
-
-    auto VulkanPipeline::GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout& {
-        return m_ReflectionData.setLayouts.at(index);
-    }
-
-    VulkanGraphicsPipeline::VulkanGraphicsPipeline( const VulkanGraphicsPipelineDescription& info)
-        : GraphicsPipeline{ info.Desc.ShaderStages } {
-
-        m_Topology = info.Desc.PrimitiveTopology;
-        m_CullMode = info.Desc.PipelineCullMode;
-        m_Wireframe = info.Desc.Wireframe;
-        m_VertexAttributesSpec = info.Desc.VertexAttributesSpec;
-
-        m_AlphaBlending = info.Desc.AlphaBlending;
-
-        m_Multisampling = info.Desc.MSAA;
-        m_EnableSampleRateShading = info.Desc.EnableSampleRateShading;
-
-        // Depth Render target format
-        m_DepthAttachmentFormat = VulkanHelpers::ToVkFormat( info.Desc.DepthAttachmentFormat );
-
-        // Color render target formats
-        for (auto& attachment : info.Desc.ColorAttachmentFormats) {
-            // TODO: configure blend for each attachment in this order
-            m_ColorAttachmentsFormats.emplace_back(VulkanHelpers::ToVkFormat( attachment ));
-        }
-    }
-
-    auto VulkanGraphicsPipeline::Release() -> void {
-        DestroyReflectedPipeline( VK_DEVICE(m_Device), m_ReflectionData );
-
-        vkDestroyPipeline( VK_DEVICE(m_Device), m_Pipeline, nullptr );
-        m_IsAllocated = false;
-    }
-
-    auto VulkanGraphicsPipeline::SetupDefaultConfiguration() -> void {
-        m_PipelineConfig = GetDefaultGraphicsPipelineConfigInfo();
-
-        for (const auto& _ : m_ColorAttachmentsFormats) {
-            auto& blendAttachmentInfo{ m_PipelineConfig.ColorBlendAttachment.emplace_back() };
+        // [Color blend]
+        for (const auto& _ : mDesc.mColorFormats) {
+            auto& blendAttachmentInfo{ mColorBlendAttachments.emplace_back() };
             blendAttachmentInfo.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-            blendAttachmentInfo.blendEnable = m_AlphaBlending ? VK_TRUE : VK_FALSE;
+            blendAttachmentInfo.blendEnable = mDesc.mEnableAlphaBlending ? VK_TRUE : VK_FALSE;
             blendAttachmentInfo.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
             blendAttachmentInfo.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
             blendAttachmentInfo.colorBlendOp = VK_BLEND_OP_ADD;
@@ -270,59 +234,38 @@ namespace Mikoto {
             blendAttachmentInfo.alphaBlendOp = VK_BLEND_OP_ADD;
         }
 
-        m_PipelineConfig.ColorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        m_PipelineConfig.ColorBlendInfo.logicOpEnable = VK_FALSE;
-        m_PipelineConfig.ColorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
-        m_PipelineConfig.ColorBlendInfo.attachmentCount = static_cast<UInt32>(m_PipelineConfig.ColorBlendAttachment.size());
-        m_PipelineConfig.ColorBlendInfo.pAttachments = m_PipelineConfig.ColorBlendAttachment.data();
-        m_PipelineConfig.ColorBlendInfo.blendConstants[0] = 0.0f;
-        m_PipelineConfig.ColorBlendInfo.blendConstants[1] = 0.0f;
-        m_PipelineConfig.ColorBlendInfo.blendConstants[2] = 0.0f;
-        m_PipelineConfig.ColorBlendInfo.blendConstants[3] = 0.0f;
+        mColorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        mColorBlendInfo.logicOpEnable = VK_FALSE;
+        mColorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
+        mColorBlendInfo.attachmentCount = as<u32>(mColorBlendAttachments.size());
+        mColorBlendInfo.pAttachments = mColorBlendAttachments.data();
+        mColorBlendInfo.blendConstants[0] = 0.0f;
+        mColorBlendInfo.blendConstants[1] = 0.0f;
+        mColorBlendInfo.blendConstants[2] = 0.0f;
+        mColorBlendInfo.blendConstants[3] = 0.0f;
 
-        m_PipelineConfig.InputAssemblyInfo.topology = InferVulkanTopology(m_Topology);
+        // [Dynamic states]
+        mDynamicStates.emplace_back( VK_DYNAMIC_STATE_VIEWPORT );
+        mDynamicStates.emplace_back( VK_DYNAMIC_STATE_SCISSOR );
 
-        // Multisampling config
-        m_PipelineConfig.MultisampleInfo.sampleShadingEnable = m_EnableSampleRateShading ? VK_TRUE : VK_FALSE;
-        m_PipelineConfig.MultisampleInfo.rasterizationSamples = VulkanHelpers::ToVkRasterSamples( m_Multisampling );
+        mDynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        mDynamicStateInfo.pDynamicStates = mDynamicStates.data();
+        mDynamicStateInfo.dynamicStateCount = as<u32>( mDynamicStates.size() );
+        mDynamicStateInfo.flags = 0;
 
-        m_PipelineConfig.DepthStencilInfo.depthWriteEnable = m_DepthWrite ? VK_TRUE : VK_FALSE;
-        m_PipelineConfig.DepthStencilInfo.depthTestEnable = m_DepthTest ? VK_TRUE : VK_FALSE;
-
-        m_PipelineConfig.RasterizationInfo.cullMode = InferCullMode(m_CullMode);
-
-        constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
-        m_PipelineConfig.RasterizationInfo.lineWidth = GPU_STANDARD_LINE_WIDTH;
-
-        if (m_Wireframe) {
-            m_PipelineConfig.RasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
-            m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
+        // [Color attachment formats]
+        mDepthAttachmentFormat = GetFormat( mDesc.mDepthFormat );
+        for (const auto& format : mDesc.mColorFormats) {
+            mColorAttachmentsFormats.emplace_back( GetFormat( format ) );
         }
-
-        // VK_DYNAMIC_STATE_VERTEX_INPUT_EXT can reduce the amount of pipelines the application needs to create
-        // because it allows for vertex input binding and attribute descriptions to be dynamic. This is, of course, not a
-        // core feature as of Vulkan 1.3 and requires to be enabled when creating the device on which this pipeline will be created
-        // Make it static because pDynamicStates does not persist the value beyond this scope
-        m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_VIEWPORT );
-        m_DynamicStates.emplace_back( VK_DYNAMIC_STATE_SCISSOR );
-
-        std::ranges::copy( m_DynamicStates, std::back_inserter( m_PipelineConfig.DynamicStates ) );
-
-        m_PipelineConfig.DynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        m_PipelineConfig.DynamicStateInfo.pDynamicStates = m_PipelineConfig.DynamicStates.data();
-        m_PipelineConfig.DynamicStateInfo.dynamicStateCount = m_PipelineConfig.DynamicStates.size();
-        m_PipelineConfig.DynamicStateInfo.flags = 0;
-
     }
 
-    auto VulkanGraphicsPipeline::GetNativeHandle( ObjectType type ) -> Object {
+    auto GraphicsPipeline::GetNativeHandle( ObjectType type ) -> Object {
         switch (type) {
-
+            case ObjectType::Vk_Pipeline: return Object( mPipeline );
             case ObjectType::Vk_PipelineLayout:
-                return Object( m_ReflectionData.pipelineLayout );
-
-            case ObjectType::Vk_Pipeline:
-                return Object( m_Pipeline );
+                return mReflectedPipelineLayout == VK_NULL_HANDLE ?
+                mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout ) : Object( mReflectedPipelineLayout );
 
             default:;
         }
@@ -330,179 +273,217 @@ namespace Mikoto {
         return Object(nullptr);
     }
 
-    auto VulkanGraphicsPipeline::SetDebugName( std::string_view name ) -> void {
-        m_DebugName = name;
-        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ), m_DebugName.c_str() );
+     auto GraphicsPipeline::GetNativeHandle( ObjectType type ) const -> Object {
+        switch (type) {
+            case ObjectType::Vk_Pipeline: return Object( mPipeline );
+            case ObjectType::Vk_PipelineLayout:
+                return mReflectedPipelineLayout == VK_NULL_HANDLE ?
+                mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout ) : Object( mReflectedPipelineLayout );
+
+            default:;
+        }
+
+        return Object(nullptr);
     }
 
-    VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
-        if (m_IsAllocated) {
+    auto GraphicsPipeline::SetDebugName( eastl::string_view name ) -> void {
+        IGraphicsPipeline::SetDebugName( name );
+    }
+
+    GraphicsPipeline::~GraphicsPipeline() {
+        if (mIsAllocated) {
             Release();
         }
     }
 
-    auto VulkanGraphicsPipeline::Initialize() -> void {
-        SetupDefaultConfiguration();
-
-        // Setup Shaders
-        const auto& shaderStageInfos{ GetShaderStagesInfo(m_ShaderModules) };
-        if (shaderStageInfos.empty()) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanGraphicsPipeline::Initialize - stage infos is empty" );
+    auto GraphicsPipeline::Initialize() -> void {
+        eastl::fixed_vector<ShaderModuleHandle, kMaxShaders> shaders{};
+        for (const auto& [type, shader] : mDesc.mShaders) {
+            shaders.emplace_back(shader);
         }
 
-        VkGraphicsPipelineCreateInfo pipelineInfo{ VulkanHelpers::Initializers::GraphicsPipelineCreateInfo() };
-        pipelineInfo.stageCount = shaderStageInfos.size();
-        pipelineInfo.pStages = shaderStageInfos.data();
+        // [Pipeline layout and Descriptor sets layout]
+        mPipelineReflection = PipelineReflection::Reflect( shaders );
 
-        // Pipeline layout
-        std::vector<std::vector<UInt32>> shaderBlocks{};
-        for (const auto& shader : m_ShaderModules) {
-            const void* data{ shader->GetContents() };
-            const Size size{ shader->GetContentSize() };
-
-            const auto* begin{ reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data)) };
-            const auto* end{ reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data) + size) };
-
-            shaderBlocks.emplace_back(begin, end);
-        }
-
-        const VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData) };
-        if (res != VK_SUCCESS || m_ReflectionData.pipelineLayout == VK_NULL_HANDLE) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanGraphicsPipeline::Initialize - Layout is null handle" );
-        }
-
-        // Setup Vertex input
-        VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VulkanHelpers::Initializers::PipelineVertexInputStateCreateInfo() };
-
-        // Binding descriptions (define data layout)
-        // Attribute layout is what we specify because we are the ones that know how is buffer data laid out in CPU side
-        auto bindingDescriptions{ GetDefaultBindingDescriptions( m_VertexAttributesSpec ) };
-        auto attributeDesc{ GetDefaultAttributeDescriptions( m_VertexAttributesSpec, m_ReflectionData ) };
-
-        // First we check non consumed attributes and remove them
-
-
-        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<UInt32>( attributeDesc.size() );
-        vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.data();
-
-        vertexInputInfo.vertexBindingDescriptionCount = static_cast<UInt32>( bindingDescriptions.size() );
-        vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
-
-        if (m_ReflectionData.vertexBindings.empty() || m_VertexAttributesSpec.empty()) {
-            vertexInputInfo.vertexBindingDescriptionCount = 0;
-            vertexInputInfo.pVertexBindingDescriptions = nullptr;
-
-            vertexInputInfo.vertexAttributeDescriptionCount = 0;
-            vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+        // TODO: This path will be done when we want reflection
+        // When reflection is enabled the whole pipeline state is reflected
+        // as in all necessary properties are inferred from provided shaders
+        // This logic will be moved the GpuDevice will expose via the descriptions
+        // some parameters to specify if certain objects should be constructed via reflection
+        // like the binding layout, the pipeline layout simply consists of a group of binding layouts and push constant ranges
+        // so we only really need to reflect the descriptor set layouts (called Binding layouts in the RHI)
+        if (mDesc.mUseReflection) {
+            CreateDescriptorSetLayouts( checked_cast<Device*>( mDevice ), mPipelineReflection, mBindingLayoutsMap );
+            CreatePipelineLayout( checked_cast<Device*>( mDevice ), mPipelineReflection, mBindingLayoutsMap, mReflectedPipelineLayout );
         }
 
         // Create pipeline rendering info for dynamic rendering
-        VkPipelineRenderingCreateInfo renderingInfo{};
-        renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-        renderingInfo.colorAttachmentCount = static_cast<UInt32>(m_ColorAttachmentsFormats.size());
-        renderingInfo.pColorAttachmentFormats = m_ColorAttachmentsFormats.data();
-        renderingInfo.depthAttachmentFormat = m_DepthAttachmentFormat;
+        VkPipelineRenderingCreateInfo renderingInfo{ initializers::PipelineRenderingCreateInfo() };
+        renderingInfo.colorAttachmentCount = as<u32>(mColorAttachmentsFormats.size());
+        renderingInfo.pColorAttachmentFormats = mColorAttachmentsFormats.data();
+        renderingInfo.depthAttachmentFormat = mDepthAttachmentFormat;
         renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
-        // Pipeline create info submit
-        pipelineInfo.pNext = std::addressof( renderingInfo );
-        pipelineInfo.pVertexInputState = std::addressof( vertexInputInfo );
-        pipelineInfo.pInputAssemblyState = std::addressof( m_PipelineConfig.InputAssemblyInfo );
-        pipelineInfo.pViewportState = std::addressof( m_PipelineConfig.ViewportInfo );
-        pipelineInfo.pRasterizationState = std::addressof( m_PipelineConfig.RasterizationInfo );
-        pipelineInfo.pMultisampleState = std::addressof( m_PipelineConfig.MultisampleInfo );
-        pipelineInfo.pColorBlendState = std::addressof( m_PipelineConfig.ColorBlendInfo );
-        pipelineInfo.pDepthStencilState = std::addressof( m_PipelineConfig.DepthStencilInfo );
-        pipelineInfo.layout = m_ReflectionData.pipelineLayout;
+        VkGraphicsPipelineCreateInfo pipelineInfo{ initializers::GraphicsPipelineCreateInfo() };
+
+        // [Shaders]
+        const auto& shaderStageInfos{ GetShaderStagesInfo(shaders) };
+        MKT_ASSERT( !shaderStageInfos.empty(), "No shader stage infos available" );
+        pipelineInfo.stageCount = mDesc.mShaders.size();
+        pipelineInfo.pStages = shaderStageInfos.data();
+
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{ initializers::PipelineVertexInputStateCreateInfo() };
+
+        // [Vertex attributes]
+        // If the client provided an input layout
+        if (!mDesc.mInputLayout.IsEmpty()) {
+            InputLayout* inputLayout{ checked_cast<InputLayout*>( mDesc.mInputLayout.GetRaw() ) };
+            mVertexBindingDescriptions = inputLayout->GetVertexBindingDesc();
+            mVertexInputDescriptions = inputLayout->GetVertexAttributesDesc();
+        }
+
+        // [VALIDATION] If the vertex shader itself did not declare these attributes
+        if (mPipelineReflection.mVertexBindings.empty() || mPipelineReflection.mVertexAttributes.empty()) {
+            mVertexInputDescriptions.clear();
+            mVertexBindingDescriptions.clear();
+        }
+
+        vertexInputInfo.vertexAttributeDescriptionCount = as<u32>( mVertexInputDescriptions.size() );
+        vertexInputInfo.pVertexAttributeDescriptions = mVertexInputDescriptions.data();
+        vertexInputInfo.vertexBindingDescriptionCount = as<u32>( mVertexBindingDescriptions.size() );
+        vertexInputInfo.pVertexBindingDescriptions = mVertexBindingDescriptions.data();
+
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineIndex = -1;
+        pipelineInfo.layout = mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout );
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-        pipelineInfo.pDynamicState = std::addressof( m_PipelineConfig.DynamicStateInfo );
+        pipelineInfo.pDynamicState = MKT_ADDRESSOF( mDynamicStateInfo );
 
-        if ( vkCreateGraphicsPipelines( VK_DEVICE( m_Device ), VK_NULL_HANDLE, 1, std::addressof( pipelineInfo ), nullptr, std::addressof( m_Pipeline ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanGraphicsPipeline::Initialize - Failed to create Graphics pipeline" );
-        }
+        pipelineInfo.pNext = MKT_ADDRESSOF( renderingInfo );
+        pipelineInfo.pVertexInputState = MKT_ADDRESSOF( vertexInputInfo );
+        pipelineInfo.pInputAssemblyState = MKT_ADDRESSOF( mInputAssemblyInfo );
+        pipelineInfo.pViewportState = MKT_ADDRESSOF( mViewportInfo );
+        pipelineInfo.pRasterizationState = MKT_ADDRESSOF( mRasterizationInfo );
+        pipelineInfo.pMultisampleState = MKT_ADDRESSOF( mMultisampleInfo );
+        pipelineInfo.pColorBlendState = MKT_ADDRESSOF( mColorBlendInfo );
+        pipelineInfo.pDepthStencilState = MKT_ADDRESSOF( mDepthStencilInfo );
 
-        if (m_DebugName == GetDefaultDebugName()) {
-            m_DebugName = fmt::format( "MikotoPipeline {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Pipeline ), GetHandle() );
-        }
+        MKT_VK_CHECK( vkCreateGraphicsPipelines(
+            checked_cast<Device*>( mDevice )->GetDevice(),
+            VK_NULL_HANDLE,
+            1,
+            MKT_ADDRESSOF( pipelineInfo ),
+            nullptr,
+            MKT_ADDRESSOF( mPipeline ) ) );
 
-        VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ),m_DebugName.c_str() );
-
-        m_IsAllocated = true;
+        mIsAllocated = true;
     }
 
-    VulkanComputePipeline::VulkanComputePipeline(const ComputePipelineDescription& info)
-        : ComputePipeline( info )
+    auto GraphicsPipeline::Release() -> void {
+        auto* device{ checked_cast<Device*>( mDevice ) };
+
+        for (const auto& pipelineInfo : mBindingLayoutsMap) {
+            if (pipelineInfo.second != VK_NULL_HANDLE) {
+                vkDestroyDescriptorSetLayout( device->GetDevice(), pipelineInfo.second, nullptr );
+            }
+        }
+
+        if (mReflectedPipelineLayout != VK_NULL_HANDLE ) {
+            vkDestroyPipelineLayout( device->GetDevice(), mReflectedPipelineLayout, nullptr );
+        }
+
+        vkDestroyPipeline( device->GetDevice(), mPipeline, nullptr );
+
+        mIsAllocated = false;
+    }
+
+    ComputePipeline::ComputePipeline( const ComputePipelineDescription &info )
+        : IComputePipeline{ info }
     {}
 
-    auto VulkanComputePipeline::Release() -> void {
-        DestroyReflectedPipeline( VK_DEVICE(m_Device), m_ReflectionData );
-
-        vkDestroyPipeline( VK_DEVICE( m_Device ), m_Pipeline, nullptr );
-        m_IsAllocated = false;
-    }
-
-    VulkanComputePipeline::~VulkanComputePipeline() {
-        if (m_IsAllocated) {
-            Release();
-        }
-    }
-
-    auto VulkanComputePipeline::Initialize() -> void {
-        VkComputePipelineCreateInfo computePipelineCreateInfo{ VulkanHelpers::Initializers::ComputePipelineCreateInfo() };
-
-        const auto& shaderStageInfos{ GetShaderStagesInfo(m_ShaderModules) };
-
-        std::vector<std::vector<UInt32>> shaderBlocks{};
-        for (const auto& shader : m_ShaderModules) {
-            const void* data{ shader->GetContents() };
-            const Size size{ shader->GetContentSize() };
-
-            const auto* begin{ reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data)) };
-            const auto* end{ reinterpret_cast<const UInt32*>(static_cast<const std::byte*>(data) + size) };
-
-            shaderBlocks.emplace_back(begin, end);
-        }
-
-        VkResult res{ ReflectSPIRV( VK_DEVICE(m_Device), shaderBlocks, m_ReflectionData ) };
-
-        if (shaderStageInfos.empty() || m_ReflectionData.pipelineLayout == VK_NULL_HANDLE || res != VK_SUCCESS) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Failed to reflect compute pipeline stages." );
-        }
-
-        // I use front() because compute pipeline only have one stage, the compute shader
-        computePipelineCreateInfo.stage = shaderStageInfos.front();
-        computePipelineCreateInfo.layout = m_ReflectionData.pipelineLayout;
-
-        if ( vkCreateComputePipelines( VK_DEVICE(m_Device), VK_NULL_HANDLE, 1, std::addressof( computePipelineCreateInfo ), nullptr, std::addressof( m_Pipeline ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanComputePipeline::Initialize - Failed to create compute pipeline" );
-        }
-
-        if (m_DebugName == GetDefaultDebugName()) {
-            m_DebugName = fmt::format( "MikotoPipeline {}, Pool ID: {}", reinterpret_cast<UInt64>( m_Pipeline ), GetHandle() );
-        }
-        VulkanHelpers::SetObjectDebugName(VK_DEVICE( m_Device ),VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ),m_DebugName.c_str() );
-
-        m_IsAllocated = true;
-    }
-
-    auto VulkanComputePipeline::SetDebugName( std::string_view name ) -> void {
-        m_DebugName = name;
-        VulkanHelpers::SetObjectDebugName( VK_DEVICE( m_Device ), VK_OBJECT_TYPE_PIPELINE, reinterpret_cast<UInt64>( m_Pipeline ), m_DebugName.c_str() );
-    }
-
-    auto VulkanComputePipeline::GetNativeHandle( ObjectType type ) -> Object {
+    auto ComputePipeline::GetNativeHandle( ObjectType type ) -> Object {
         switch (type) {
+            case ObjectType::Vk_Pipeline: return Object( mPipeline );
             case ObjectType::Vk_PipelineLayout:
-                return Object(m_ReflectionData.pipelineLayout);
-
-            case ObjectType::Vk_Pipeline:
-                return Object(m_Pipeline );
+                return mReflectedPipelineLayout == VK_NULL_HANDLE ?
+                mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout ) : Object( mReflectedPipelineLayout );
 
             default:;
         }
 
         return Object(nullptr);
     }
-}
+
+    auto ComputePipeline::GetNativeHandle( ObjectType type ) const -> Object {
+        switch (type) {
+            case ObjectType::Vk_Pipeline: return Object( mPipeline );
+            case ObjectType::Vk_PipelineLayout:
+                return mReflectedPipelineLayout == VK_NULL_HANDLE ?
+                mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout ) : Object( mReflectedPipelineLayout );
+
+            default:;
+        }
+
+        return Object(nullptr);
+    }
+
+    auto ComputePipeline::SetDebugName( eastl::string_view name ) -> void {
+
+    }
+
+    ComputePipeline::~ComputePipeline() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto ComputePipeline::Initialize() -> void {
+        eastl::array shaders{ mDesc.mStage };
+
+        // [Pipeline layout and Descriptor sets layout]
+        mPipelineReflection = PipelineReflection::Reflect( shaders );
+
+        // TODO: This path will be done when we want reflection
+        // When reflection is enabled the whole pipeline state is reflected
+        // as in all necessary properties are inferred from provided shaders
+        if (mDesc.mUseReflection) {
+            CreateDescriptorSetLayouts( checked_cast<Device*>( mDevice ), mPipelineReflection, mBindingLayoutsMap);
+            CreatePipelineLayout( checked_cast<Device*>( mDevice ), mPipelineReflection, mBindingLayoutsMap, mReflectedPipelineLayout );
+        }
+
+        VkComputePipelineCreateInfo pipelineInfo{ initializers::ComputePipelineCreateInfo() };
+
+        // [Shaders]
+        const auto& shaderStageInfos{ GetShaderStagesInfo( shaders ) };
+        pipelineInfo.stage = shaderStageInfos.front();
+        pipelineInfo.layout = mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout );;
+
+        MKT_VK_CHECK( vkCreateComputePipelines(
+            checked_cast<Device*>( mDevice )->GetDevice(),
+            VK_NULL_HANDLE,
+            1,
+            MKT_ADDRESSOF( pipelineInfo ),
+            nullptr,
+            MKT_ADDRESSOF( mPipeline ) ) );
+
+        mIsAllocated = true;
+    }
+
+    auto ComputePipeline::Release() -> void {
+        auto* device{ checked_cast<Device*>( mDevice ) };
+
+        for (const auto& pipelineInfo : mBindingLayoutsMap) {
+            if (pipelineInfo.second != VK_NULL_HANDLE) {
+                vkDestroyDescriptorSetLayout( device->GetDevice(), pipelineInfo.second, nullptr );
+            }
+        }
+
+        if (mReflectedPipelineLayout != VK_NULL_HANDLE ) {
+            vkDestroyPipelineLayout( device->GetDevice(), mReflectedPipelineLayout, nullptr );
+        }
+
+        vkDestroyPipeline( device->GetDevice(), mPipeline, nullptr );
+
+        mIsAllocated = false;
+    }
+}// namespace mikoto::renderer::vulkan

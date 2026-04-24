@@ -74,7 +74,8 @@ struct MeshParameters {
     uint VertexOffset;
     uint IndexOffset;
 
-    int AnimatorID;
+    int AnimatorID; // MatricesIndex
+    int HasArmature;
 };
 
 struct VertexData {
@@ -87,10 +88,6 @@ struct VertexData {
 
     float4 Joint;
     float4 Weight;
-};
-
-struct IndexData {
-    uint Index;
 };
 
 // ============================================================================

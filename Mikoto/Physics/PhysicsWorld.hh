@@ -15,7 +15,9 @@
 #ifndef MIKOTO_PHYSICS_WORLD_HH
 #define MIKOTO_PHYSICS_WORLD_HH
 
-#include <atomic>
+#include <EASTL/atomic.h>
+#include <EASTL/string.h>
+#include <EASTL/unique_ptr.h>
 
 #include <ankerl/unordered_dense.h>
 
@@ -31,14 +33,21 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
-#include <Common/Common.hh>
-#include <Common/Subsystem.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Subsystem.hh>
+
 #include <Scene/Component.hh>
 
-namespace Mikoto {
+#include <Physics/PhysicSystem.hh>
 
+namespace mikoto::scene {
     class Scene;
-    class Entity;
+}
+
+namespace mikoto::physics {
+
+    using namespace mikoto::scene;
 
     // Layer that objects can be in, determines which other objects it can collide with
     // Typically you at least want to have 1 layer for moving bodies and 1 layer for static bodies, but you can have more
@@ -50,39 +59,22 @@ namespace Mikoto {
         static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
     };// namespace Layers
 
-    // Each broadphase layer results in a separate bounding volume tree in the broad phase. You at least want to have
+    // Each broad-phase layer results in a separate bounding volume tree in the broad phase. You at least want to have
     // a layer for non-moving and moving objects to avoid having to update a tree full of static objects every frame.
-    // You can have a 1-on-1 mapping between object layers and broadphase layers (like in this case) but if you have
+    // You can have a 1-on-1 mapping between object layers and broad-phase layers (like in this case) but if you have
     // many object layers you'll be creating many broad phase trees, which is not efficient. If you want to fine tune
-    // your broadphase layers define JPH_TRACK_BROADPHASE_STATS and look at the stats reported on the TTY.
+    // your broad-phase layers define JPH_TRACK_BROADPHASE_STATS and look at the stats reported on the TTY.
     namespace BroadPhaseLayers {
         static constexpr JPH::BroadPhaseLayer NON_MOVING( 0 );
         static constexpr JPH::BroadPhaseLayer MOVING( 1 );
-        static constexpr UInt32 NUM_LAYERS( 2 );
+        static constexpr u32 NUM_LAYERS( 2 );
     };// namespace BroadPhaseLayers
-
-    struct PhysicsWorldCreateInfo {
-        Scene* TargetScene{ nullptr };
-        Vec3F Gravity{ 0.0f, -9.81f, 0.0f };
-    };
-
-    // Callback for traces, connect this to your own trace function if you have one
-    static auto TraceImpl( const char* inFMT, ... ) -> void {
-        // Format the message
-        va_list list;
-        va_start( list, inFMT );
-        char buffer[1024];
-        vsnprintf( buffer, sizeof( buffer ), inFMT, list );
-        va_end( list );
-
-        MKT_CORE_LOGGER_DEBUG( "Jolt Trace {}", std::string( buffer ) );
-    }
 
     static auto ConvertToJoltMotionType( RigidBodyComponent::BodyType bodyType ) -> JPH::EMotionType {
         switch ( bodyType ) {
-            case RigidBodyComponent::BodyType::STATIC:
+            case RigidBodyComponent::BodyType::eStatic:
                 return JPH::EMotionType::Static;
-            case RigidBodyComponent::BodyType::KINEMATIC:
+            case RigidBodyComponent::BodyType::eKinematic:
                 return JPH::EMotionType::Kinematic;
             default:;
         }
@@ -91,7 +83,7 @@ namespace Mikoto {
     }
 
     // Callback for asserts, connect this to your own assert handler if you have one
-    static bool AssertFailedImpl( const char* inExpression, const char* inMessage, const char* inFile, UInt32 inLine ) {
+    static bool AssertFailedImpl( const char* inExpression, const char* inMessage, const char* inFile, u32 inLine ) {
         // Print to the TTY
         MKT_CORE_LOGGER_DEBUG( "AssertFailedImpl" );
 
@@ -105,7 +97,7 @@ namespace Mikoto {
         MKT_NODISCARD auto ShouldCollide( JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2 ) const -> bool override {
             switch ( inObject1 ) {
                 case Layers::NON_MOVING:
-                    return inObject2 == Layers::MOVING;// Non moving only collides with moving
+                    return inObject2 == Layers::MOVING;// Non-moving only collides with moving
                 case Layers::MOVING:
                     return true;// Moving collides with everything
                 default:
@@ -141,7 +133,9 @@ namespace Mikoto {
             mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
         }
 
-        MKT_NODISCARD auto GetNumBroadPhaseLayers() const -> UInt32 override { return BroadPhaseLayers::NUM_LAYERS; }
+        MKT_NODISCARD auto GetNumBroadPhaseLayers() const -> u32 override {
+            return BroadPhaseLayers::NUM_LAYERS;
+        }
 
         MKT_NODISCARD auto GetBroadPhaseLayer( JPH::ObjectLayer inLayer ) const -> JPH::BroadPhaseLayer override {
             JPH_ASSERT( inLayer < Layers::NUM_LAYERS );
@@ -150,10 +144,10 @@ namespace Mikoto {
 
 #if defined( JPH_EXTERNAL_PROFILE ) || defined( JPH_PROFILE_ENABLED )
         MKT_NODISCARD auto GetBroadPhaseLayerName( JPH::BroadPhaseLayer inLayer ) const -> const char* override {
-            switch ( static_cast<JPH::BroadPhaseLayer::Type>( inLayer ) ) {
-                case static_cast<JPH::BroadPhaseLayer::Type>( BroadPhaseLayers::NON_MOVING ):
+            switch ( as<JPH::BroadPhaseLayer::Type>( inLayer ) ) {
+                case as<JPH::BroadPhaseLayer::Type>( BroadPhaseLayers::NON_MOVING ):
                     return "NON_MOVING";
-                case static_cast<JPH::BroadPhaseLayer::Type>( BroadPhaseLayers::MOVING ):
+                case as<JPH::BroadPhaseLayer::Type>( BroadPhaseLayers::MOVING ):
                     return "MOVING";
                 default:
                     JPH_ASSERT( false );
@@ -202,43 +196,38 @@ namespace Mikoto {
         }
     };
 
-    enum class GravityBody {
-        EARTH,
-        MOON,
-        MARS,
-        JUPITER,
-    };
-
     // Every scene has its own physics  simulation world
-    class PhysicsWorld final : public Subsystem {
+    class PhysicsWorld final : public core::ISubsystem {
     public:
         explicit PhysicsWorld( const PhysicsWorldCreateInfo& scene );
 
         ~PhysicsWorld() override = default;
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
         auto Update( float timeStep ) -> void override;
 
-        auto OnRigidBodyRemoved( Entity& entity ) -> void;
-        auto OnRigidBodyAdded( Entity& entity) -> void;
+        auto AddRigidBody( Entity* entity ) -> void;
+        auto AddCollider( Entity* entity ) -> void; // Can have collider and no rigid body
 
-        auto OnRigidBodyRemoved( RigidBodyComponent& rigidBody ) -> void;
-        auto OnRigidBodyAdded( TransformComponent& transformComponent, RigidBodyComponent& rigidBodyComponent ) -> void;
+        auto RemoveRigidBody( Entity* entity ) -> void;
+        auto RemoveColliderBody( Entity* entity ) -> void;
 
+        auto SetGravity( const float3& gravity ) -> void;
         auto SetGravityBody( GravityBody body) -> void;
+
         MKT_NODISCARD auto GetGravityBody() const -> GravityBody;
 
-        MKT_NODISCARD static auto GetGravityFor(GravityBody body) -> Vec3F;
-        MKT_NODISCARD static auto Create( const PhysicsWorldCreateInfo& spec ) -> Unique<PhysicsWorld>;
+        MKT_NODISCARD static auto GetGravityFor(GravityBody body) -> float3;
+        MKT_NODISCARD static auto Create( const PhysicsWorldCreateInfo& spec ) -> eastl::unique_ptr<PhysicsWorld>;
 
     private:
         struct SimulationInfo {
             JPH::PhysicsSystem PhysicsSystem{};
             JPH::BodyInterface* BodyInterface{ nullptr };
 
-            Unique<JPH::TempAllocatorImpl> TempAllocator{};
-            Unique<JPH::JobSystemThreadPool> JobSystem{};
+            eastl::unique_ptr<JPH::TempAllocatorImpl> TempAllocator{};
+            eastl::unique_ptr<JPH::JobSystemThreadPool> JobSystem{};
 
             // Create mapping table from object layer to broadphase layer
             // Note: As this is an interface, PhysicsSystem will take a reference to this so this instance needs to stay alive!
@@ -262,34 +251,34 @@ namespace Mikoto {
 
 
     private:
+        // [Internal]
         auto PreUpdate() -> void;
         auto PostUpdate() -> void;
 
-        auto GenerateBodyID() -> UInt64;
+        auto GenerateBodyID() -> u64;
 
-        auto GetJoltBody(UInt64 id) -> JPH::Body*;
+        auto GetJoltBody(u64 id) -> JPH::Body*;
 
-        auto UpdateBodyProperties(JPH::Body* body, RigidBodyComponent& rbComponent ) const -> void;
+        auto UpdateBodyProperties(JPH::Body& body, RigidBodyComponent& rbComponent ) const -> void;
 
-        MKT_NODISCARD static auto ToMat4F( const JPH::RMat44& jphMat ) -> glm::mat4;
-        MKT_NODISCARD static auto ToVec3F( const JPH::Vec3& jphVec3 ) -> glm::vec3;
-        MKT_NODISCARD static auto ToQuatF( const JPH::Quat& jphQuat ) -> glm::quat;
+        MKT_NODISCARD static auto ToMat4F( const JPH::RMat44& jphMat ) -> float4x4;
+        MKT_NODISCARD static auto ToVec3F( const JPH::Vec3& jphVec3 ) -> float3;
+        MKT_NODISCARD static auto ToQuatF( const JPH::Quat& jphQuat ) -> quat;
 
-        MKT_NODISCARD static auto ToVec3( const glm::vec3& vec3GLM ) -> JPH::Vec3;
-        MKT_NODISCARD static auto ToQuat( const glm::vec3& vec3EulerAnglesGLM ) -> JPH::Quat;
-        MKT_NODISCARD static auto ToQuat( const glm::quat &q ) -> JPH::Quat;
+        MKT_NODISCARD static auto ToVec3( const float3& vec3GLM ) -> JPH::Vec3;
+        MKT_NODISCARD static auto ToQuat( const float3& vec3EulerAnglesGLM ) -> JPH::Quat;
+        MKT_NODISCARD static auto ToQuat( const quat &q ) -> JPH::Quat;
 
     private:
 
-        Scene* m_Scene{ nullptr };
+        Scene* mScene{};
+        SimulationInfo mSimulationInfo{};
 
-        GravityBody m_GravityBody{ GravityBody::EARTH };
-        Vec3F m_Gravity{ GetGravityFor( GravityBody::EARTH ) };
+        GravityBody mGravityBody{ GravityBody::eEarth };
+        float3 mGravity{ GetGravityFor( GravityBody::eEarth ) };
 
-        SimulationInfo m_SimulationInfo{};
-
-        std::atomic_uint64_t m_BodyIdCounter{ 0 };
-        ankerl::unordered_dense::map<UInt64, JPH::Body*> m_Bodies{};
+        std::atomic_uint64_t mBodyIdCounter{ 0 };
+        ankerl::unordered_dense::map<u64, JPH::Body*> mBodies{};
     };
 }
 

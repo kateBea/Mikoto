@@ -14,8 +14,8 @@
 
 struct VSOutput {
     float4 position : SV_Position;
-    float2 texCoord : TEXCOORD0;
-    float3 color : COLOR0;
+    float2 texCoord : ATTRIBUTE0;
+    float3 color : ATTRIBUTE1;
 };
 
 static const float2 positions[4] = {

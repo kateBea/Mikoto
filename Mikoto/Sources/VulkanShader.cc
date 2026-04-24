@@ -1,129 +1,131 @@
-/**
- * VulkanShader.cc
- * Created by kate on 7/3/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// C++ Standard Library
 #include <filesystem>
 #include <fstream>
 
-// Third-Party Libraries
-#include "volk.h"
+#include <volk.h>
+
 #include <spirv_reflect.h>
+
 #include <slang.h>
 #include <slang-com-ptr.h>
 
-// Project Headers
-#include <Common/Common.hh>
-#include <Common/String.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Profiler.hh>
+#include <Core/String.hh>
+
 #include <Logging/Logger.hh>
 
-#include <Core/Profiler.hh>
+#include <Renderer/Core/RenderSystem.hh>
+
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanShader.hh>
 
-namespace Mikoto {
-    VulkanShader::VulkanShader( const ShaderModuleDescription& createInfo )
-        : ShaderModule{
-              createInfo.Stage,
-              reinterpret_cast<const void*>( createInfo.ShaderFile->GetContentsString().data() ),
-              createInfo.ShaderFile->GetSize()
-          },
-          m_Path{ createInfo.ShaderFile ? createInfo.ShaderFile->GetPath() : "" } {
+namespace mikoto::renderer::vulkan {
 
-        if (createInfo.ShaderFile) {
-            m_DebugName = createInfo.ShaderFile->GetName();
-        }
+    Shader::Shader( const ShaderModuleCreateDescription& desc )
+        : IShaderModule{ desc.mType, desc.mEntryPoint }, mFile{ desc.mFile }, mUseSlang{ desc.mIsSlangShader } {
     }
 
-    auto VulkanShader::GetNativeHandle( ObjectType object ) -> Object {
-        return Object(m_Module );
+    auto Shader::DumpShaderCode() -> void {
+#if !defined(NDEBUG)
+        MKT_COLOR_PRINT_FORMATTED_FLUSH( MKT_FMT_COLOR_AQUA, "{}", mShaderCode );
+#endif
     }
 
-    auto VulkanShader::Initialize() -> void {
-        if (!HasContents()) {
-            MKT_CORE_LOGGER_ERROR( "VulkanShader::Initialize - Shader has no contents." );
-            return;
+    auto Shader::GetNativeHandle( ObjectType object ) -> Object {
+        if (object != ObjectType::Vk_Shader) {
+            return Object{ nullptr };
         }
 
-        // [DEBUG]. Test slang integration to slowly migrate to it
-        if ( m_Path.ends_with( SLANG_FILE_EXTENSION ) ) {
-            LoadSlang( m_Path );
-        }
+        return Object( mModule );
+    }
+
+    auto Shader::GetPipelineInfo() const -> const VkPipelineShaderStageCreateInfo& {
+        return mStageCreateInfo;
+    }
+
+    auto Shader::GetContents() const -> const void* {
+        return mSlangSpirv->getBufferPointer();
+    }
+
+    auto Shader::GetContentsByteSize() const -> size_t {
+        return mSlangSpirv->getBufferSize();
+    }
+
+    auto Shader::Initialize() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        // For now, we default to slang only
+        auto session{ RenderSystem::Get()->GetSlangCurrentSession() };
+        const eastl::string_view modulePath{ mFile->GetPath() };
+        const eastl::string_view moduleName{ mFile->GetName() };
+
+        mSlangModule = session->loadModuleFromSource( moduleName.data(), modulePath.data(), nullptr, nullptr );
+        mSlangModule->getTargetCode( 0, mSlangSpirv.writeRef() );
+
+        auto src{ mSlangSpirv->getBufferPointer() };
+        auto byteSize{ mSlangSpirv->getBufferSize() };
 
         // Check client specified correctly the stage
         SpvReflectShaderModule module{};
-        SpvReflectResult result{ spvReflectCreateShaderModule(GetContentSize(), GetContents(), &module) };
-
+        SpvReflectResult result{ spvReflectCreateShaderModule(byteSize, src, &module) };
         if (result == SPV_REFLECT_RESULT_SUCCESS) {
-            // Number of entrypoints
-            VkShaderStageFlagBits moduleStage{ static_cast<VkShaderStageFlagBits>( module.shader_stage ) };
-
-            if (VulkanHelpers::ToVkStage( m_Stage ) != moduleStage) {
-                MKT_CORE_LOGGER_WARN( "VulkanShader::Initialize - Specified wrong stage for shader {}. Changing to right type.", m_DebugName );
+            VkShaderStageFlagBits moduleStage{ as<VkShaderStageFlagBits>( module.shader_stage ) };
+            if (GetShaderModuleStage( mStage ) != moduleStage) {
+                mStage = GetShaderModuleStage( moduleStage );
+                MKT_CORE_LOGGER_WARN( "Specified wrong stage for shader {}. Changed to right type.", mFile->GetName().data() );
             }
-
-            m_Stage = VulkanHelpers::FromVkStage( moduleStage );
         }
 
-        VkShaderModuleCreateInfo moduleCreateInfo{ VulkanHelpers::Initializers::ShaderModuleCreateInfo() };
-        moduleCreateInfo.codeSize = GetContentSize();
-        moduleCreateInfo.pCode = static_cast<const UInt32*>(GetContents());
+        VkShaderModuleCreateInfo moduleCreateInfo{ initializers::ShaderModuleCreateInfo() };
+        moduleCreateInfo.codeSize = byteSize;
+        moduleCreateInfo.pCode = as<u32*>( src );
 
-        if ( vkCreateShaderModule( VK_DEVICE(m_Device),
-                                   std::addressof( moduleCreateInfo ),
-                                   nullptr,
-                                   std::addressof( m_Module ) ) != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanShader::Initialize - Failed to create shader module" );
-        }
+        MKT_VK_CHECK( vkCreateShaderModule(
+            checked_cast<Device*>( mDevice )->GetDevice(),
+            MKT_ADDRESSOF( moduleCreateInfo ),
+            nullptr,
+            MKT_ADDRESSOF( mModule ) ));
 
-        m_StageCreateInfo = VulkanHelpers::Initializers::PipelineShaderStageCreateInfo();
-        m_StageCreateInfo.stage = VulkanHelpers::ToVkStage( m_Stage );
-        m_StageCreateInfo.module = m_Module;
-        m_StageCreateInfo.pName = m_EntryPoint.c_str();
-        m_StageCreateInfo.flags = 0;
-        m_StageCreateInfo.pNext = nullptr;
-        m_StageCreateInfo.pSpecializationInfo = nullptr;
+        mStageCreateInfo = initializers::PipelineShaderStageCreateInfo();
+        mStageCreateInfo.stage = GetShaderModuleStage( mStage );
+        mStageCreateInfo.module = mModule;
+        mStageCreateInfo.pName = mEntryPoint.c_str();
+        mStageCreateInfo.flags = 0;
+        mStageCreateInfo.pNext = nullptr;
+        mStageCreateInfo.pSpecializationInfo = nullptr;
 
-        m_IsAllocated = true;
-    }
-    
-    auto VulkanShader::LoadSlang( const Path& path ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+#if !defined(NDEBUG)
+        // FIXME: This is not what I want, I want the GLSL here for debugging
+        mShaderCode = as<const char*>( mSlangSpirv->getBufferPointer() );
+        DumpShaderCode();
+#endif
 
-        Path glslFile{ path };
-        glslFile.replace_extension();
-        
-        const std::string moduelPath{ path.string() };
-        const std::string moduelName{ path.filename().string() };
-
-        auto session{ RenderService::Get()->GetSlangCurrentSession() };
-
-        m_SlangModule = session->loadModuleFromSource( moduelName.c_str(), moduelPath.c_str(), nullptr, nullptr );
-        m_SlangModule->getTargetCode( 0, m_SlangSpirv.writeRef() );
-
-        m_ContentsSize = m_SlangSpirv->getBufferSize();
-        m_Contents = static_cast<const Byte*>( m_SlangSpirv->getBufferPointer() );
-    }
-    
-    auto VulkanShader::Release() -> void {
-        vkDestroyShaderModule( VK_DEVICE( m_Device ), m_Module, nullptr );
-
-        m_IsAllocated = false;
-    }
-    
-    auto VulkanShader::GetPipelineStageCreateInfo() const -> const VkPipelineShaderStageCreateInfo& {
-        return m_StageCreateInfo;
+        mIsAllocated = true;
     }
 
-    auto VulkanShader::GetVulkanStage() const -> VkShaderStageFlags {
-        return m_StageCreateInfo.stage;
+    auto Shader::Release() -> void {
+        vkDestroyShaderModule( checked_cast<Device*>( mDevice )->GetDevice(), mModule, nullptr );
+        mIsAllocated = false;
     }
 
-    VulkanShader::~VulkanShader() {
-        if ( m_IsAllocated ) {
+    Shader::~Shader() {
+        if ( mIsAllocated ) {
             Release();
         }
     }

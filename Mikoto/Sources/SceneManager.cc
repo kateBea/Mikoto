@@ -12,33 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string>
-#include <initializer_list>
+#include <mutex>
 
-#include <Library/Utility/Types.hh>
+#include <EASTL/utility.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/string_view.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Service.hh>
 
 #include <Scene/SceneManager.hh>
 #include <Filesystem/FileService.hh>
 
-namespace Mikoto {
+namespace mikoto::scene {
 
-    auto SceneManager::Init() -> void {
-        m_Scenes.reserve( 10 );
+    auto SceneManager::Initialize() -> void {
+        mScenes.reserve( 10 );
 
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto SceneManager::Shutdown() -> void {
-        if (!m_IsInitialized) {
+        if (!mIsInitialized) {
             return;
         }
 
-        m_Scenes.clear();
+        mScenes.clear();
+
+        mIsInitialized = false;
     }
 
     auto SceneManager::LoadFromDisk() -> Scene* {
         // File filters
-        const std::initializer_list<std::pair<std::string, std::string>> filters{
+        const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
                 { "Mikoto Scene files", "mkts,mktscene" },
                 { "Mikoto Project Files", "mkt,mktp,mktproject" }
         };
@@ -48,16 +56,16 @@ namespace Mikoto {
     }
 
     auto SceneManager::Load( const Path &path ) -> Scene * {
-        auto deserialized{ m_Serializer.Deserialize( path ) };
-        return Register( deserialized->GetName(), std::move( deserialized ) );
+        auto deserialized{ mSerializer.Deserialize( path ) };
+        return Register( deserialized->GetName().data(), std::move( deserialized ) );
     }
 
     auto SceneManager::Save(const Scene* scene, const Path &path ) -> void {
-        m_Serializer.Serialize( *scene, path );
+        mSerializer.Serialize( *scene, path );
     }
 
     auto SceneManager::SaveToDisk( const Scene* scene) -> void {
-        const std::initializer_list<std::pair<std::string, std::string>> filters{
+        const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
                 { "Mikoto Scene files", "mkts,mktscene" },
                 { "Mikoto Project Files", "mkt,mktp,mktproject" }
         };
@@ -66,17 +74,19 @@ namespace Mikoto {
         Save( scene, savePath );
     }
 
-    auto SceneManager::CreateScene( std::string_view name ) -> Scene * {
-        return Register( name, CreateScope<Scene>( name ) );
+    auto SceneManager::CreateScene( eastl::string_view name ) -> Scene * {
+        return Register( name, eastl::move( eastl::make_unique<Scene>( name ) ) );
     }
 
-    auto SceneManager::GetByName( const std::string_view name ) -> Scene * {
-        return m_Scenes.at( std::string{ name } ).get();
+    auto SceneManager::GetByName( const eastl::string_view name ) -> Scene * {
+        return mScenes.at( name.data() ).get();
     }
 
-    auto SceneManager::Register( const std::string_view name, Unique<Scene> &&scene ) -> Scene * {
+    auto SceneManager::Register( const eastl::string_view name, eastl::unique_ptr<Scene> &&scene ) -> Scene * {
+        std::lock_guard lock{ mSceneRegisterMutex };
+
         const auto [it, success] {
-            m_Scenes.try_emplace( std::string{ name }, std::move(scene) )
+            mScenes.try_emplace( name.data(), std::move(scene) )
         };
 
         if (success) {

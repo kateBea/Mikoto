@@ -16,14 +16,14 @@
 #define MIKOTO_LIGHTING_PANEL_HH
 
 #include <Panels/Panel.hh>
-#include <Assets/Texture.hh>
+#include <Renderer/Core/Texture.hh>
 
-namespace Mikoto {
+namespace mikoto::editor {
 
     struct EditorState;
 
     struct LightingPanelCreateInfo {
-        EditorState* State{};
+        EditorState* mState{};
     };
 
     class LightingPanel final : public Panel {
@@ -42,8 +42,7 @@ namespace Mikoto {
         auto DrawEnvironmentSettings() -> void;
 
     private:
-        EditorState* m_EditorState{};
-        TextureHandle m_LoadedCubeMap{};
+        EditorState* mEditorState{};
     };
 }
 

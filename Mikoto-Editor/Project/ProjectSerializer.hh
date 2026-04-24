@@ -15,14 +15,18 @@
 #ifndef MIKOTO_PROJECT_SERIALIZER_HH
 #define MIKOTO_PROJECT_SERIALIZER_HH
 
-#include <Project/Project.hh>
-#include <Core/Serializer.hh>
+#include <EASTL/unique_ptr.h>
 
-namespace Mikoto {
-    class ProjectSerializer final : public ISerializer<Project> {
+#include <Core/Serializer.hh>
+#include <Project/Project.hh>
+#include <Filesystem/Path.hh>
+
+namespace mikoto::editor {
+
+    class ProjectSerializer final : public core::ISerializer<Project> {
     public:
-        auto Serialize( const Project& obj, const Path& savePath ) -> void override;
-        auto Deserialize( const Path& loadPath ) -> Unique<Project> override;
+        auto Serialize( const Project& obj, const filesystem::Path& savePath ) -> void override;
+        auto Deserialize( const filesystem::Path& loadPath ) -> eastl::unique_ptr<Project> override;
     };
 }
 

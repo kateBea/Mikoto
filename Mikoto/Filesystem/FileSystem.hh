@@ -15,29 +15,25 @@
 #ifndef MIKOTO_FILESYSTEM_HH
 #define MIKOTO_FILESYSTEM_HH
 
-#include <string_view>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
-namespace Mikoto::Filesystem {
+#include <Filesystem/Path.hh>
 
-    enum class PathType {
-        DIRECTORY,
-        REGULAR_FILE,
-        CHARACTER_FILE,
-    };
+namespace mikoto::filesystem {
 
     auto OpenInExplorer( const Path& path ) -> void;
 
     MKT_NODISCARD auto IsRegularFile(const Path& path) -> bool;
     MKT_NODISCARD auto IsDirectory(const Path& path) -> bool;
-    MKT_NODISCARD auto IsPathType(const Path& path, PathType) -> bool;
 
     // Process current working directory
     MKT_NODISCARD auto GetProcessPath() -> Path;
 
-    MKT_NODISCARD auto StripFileName(std::string_view path) -> std::string;
+    MKT_NODISCARD auto StripFileName(eastl::string_view path) -> eastl::string;
 
     MKT_NODISCARD auto GetGetAbsolutePath(std::string_view path) -> Path;
     MKT_NODISCARD auto GetGetAbsolutePath(const Path& path) -> Path;
@@ -49,6 +45,12 @@ namespace Mikoto::Filesystem {
 
     MKT_NODISCARD auto IsAbsolutePath(const Path& path) -> bool;
     MKT_NODISCARD auto IsRelativePath(const Path& path) -> bool;
+
+    auto Notify( std::string_view message ) -> void;
+
+    //MKT_NODISCARD auto OpenFile( /**/ ) -> filesystem::Path;
+    //MKT_NODISCARD auto SaveFile( /**/ ) -> filesystem::Path;
+    //MKT_NODISCARD auto SelectFolder( /**/ ) -> filesystem::Path;
 }
 
 #endif //MIKOTO_FILESYSTEM_HH

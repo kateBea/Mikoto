@@ -16,14 +16,23 @@
 #define MIKOTO_D3D12CONTEXT_HH
 
 #include <Core/Platform.hh>
-#include <Renderer/Core/RenderService.hh>
+
+#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Core/RenderContext.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-namespace Mikoto {
-    class D3D12Context final : public RenderContext {
+#include <Renderer/D3D12/D3D12SwapChain.hh>
+
+#include <dxgi1_4.h>
+#include <dxgidebug.h>
+#include <wrl.h>
+
+namespace mikoto::renderer::d3d12 {
+
+    class Context final : public RenderContext {
     public:
-        explicit D3D12Context(const RenderContextCreateInfo& createInfo)
+        explicit Context(const RenderContextCreateInfo& createInfo)
            :  RenderContext{ createInfo }
         { }
 
@@ -36,15 +45,23 @@ namespace Mikoto {
         auto Update() -> void override;
 
         auto Present() -> void override;
-
         auto SetPresentTarget( TextureHandle texture ) -> void override;
+        auto SetRefreshRate( RefreshRate rate ) -> void override;
 
-        auto EnableVSync() -> void override;
-        auto DisableVSync() -> void override;
+        // D3D12 Specifics
+        MKT_NODISCARD auto GetSwapChain() const -> SwapChainHandle;
+        MKT_NODISCARD auto GetDxiFactory() const -> IDXGIFactory4*;
 
-        MKT_NODISCARD auto IsVsyncEnabled() const -> bool override;
+        ~Context() override = default;
 
-        ~D3D12Context() override = default;
+    private:
+        SwapChainHandle mSwapChain{};
+        Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory{};
+
+#if !defined(NDEBUG)
+        Microsoft::WRL::ComPtr<ID3D12Debug> mDebug{};
+        Microsoft::WRL::ComPtr<ID3D12Debug1> mDebugController{};
+#endif
 
     };
 }

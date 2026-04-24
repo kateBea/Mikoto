@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,16 +15,19 @@
 #ifndef MIKOTO_WIN32WINDOW_HH
 #define MIKOTO_WIN32WINDOW_HH
 
-
 #include <Core/Platform.hh>
 #include <Platform/Window.hh>
 
+// TODO:
+// https://youtu.be/D-PC-huX-l8?list=PLqCJpWy5Fohd3S7ICFXwUomYW0Wv67pDD
 #if defined(MIKOTO_PLATFORM_WINDOWS) && defined(MKT_USE_WIN32_WINDOW)
 
-//#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+// Must go before anything else
+// or at least before you include Windows.h
+#include <Platform/PlatformWin32.hh>
 
-namespace Mikoto {
+
+namespace mikoto::platform {
 
     class Win32Window final : public Window {
     public:

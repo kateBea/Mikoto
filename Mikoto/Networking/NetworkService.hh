@@ -15,19 +15,27 @@
 #ifndef NETWORK_SERVICE_HH
 #define NETWORK_SERVICE_HH
 
-#include <asio.hpp>
+#include <EASTL/string.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/string_view.h>
 
+#include <Platform/PlatformWin32.hh>
+#include <asio.hpp>
 #if defined(MIKOTO_OPENSSL_AVAILABLE)
 #include <asio/ssl.hpp>
 #endif
 
-#include <Common/Subsystem.hh>
-#include <Common/Singleton.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Singleton.hh>
+#include <Core/Subsystem.hh>
+#include <Core/ResourcePool.hh>
 
 #include <Networking/Socket.hh>
 
-namespace Mikoto {
+namespace mikoto::network {
+
+    using namespace mikoto::core;
 
     /**
      * @enum SecurityProtocol
@@ -42,8 +50,8 @@ namespace Mikoto {
      *  - SecurityProtocol::TLS  -> Secure TLS session layered over TCP
      */
     enum class SecurityProtocol {
-        NONE,
-        TLS,
+        eInvalid = -1,
+        eTLS,
     };
 
     /**
@@ -54,8 +62,8 @@ namespace Mikoto {
      * UDP is reserved for future support.
      */
     enum class SocketType {
-        SOCKET_TCP,
-        SOCKET_UDP, // WIP
+        eTcp,
+        eUdp, // WIP
     };
 
     /**
@@ -69,7 +77,7 @@ namespace Mikoto {
     struct NetworkServiceCreateInfo {};
 
     /**
-     * @class NetworkService
+     * @class NetworkSystem
      * @brief Provides TCP/HTTP/HTTPS networking functionality for Mikoto Engine.
      *
      * The NetworkService manages all socket creation, initialization, shutdown,
@@ -91,7 +99,7 @@ namespace Mikoto {
      * ns.Shutdown();
      * @endcode
      */
-    class NetworkService final : public Subsystem, public Singleton<NetworkService> {
+    class NetworkSystem final : public ISubsystem, public Singleton<NetworkSystem> {
     public:
         /**
          * @brief Constructs a new NetworkService instance.
@@ -99,7 +107,7 @@ namespace Mikoto {
          * The constructor does not initialize networking; call Init() before use.
          * @param options User-provided settings for configuring the NetworkService.
          */
-        explicit NetworkService( const NetworkServiceCreateInfo &options );
+        explicit NetworkSystem( const NetworkServiceCreateInfo &options );
 
         /**
          * @brief Initializes the networking system.
@@ -107,7 +115,7 @@ namespace Mikoto {
          * Sets up the ASIO I/O context and the internal TcpSocket resource pool.
          * Must be called before any socket is created.
          */
-        auto Init() -> void override;
+        auto Initialize() -> void override;
 
         /**
          * @brief Shuts down the networking system.
@@ -137,7 +145,7 @@ namespace Mikoto {
          * @param port The port to connect to.
          * @return A socket handle. The handle may be empty if creation failed.
          */
-        auto CreateSocket( SocketType type, std::string_view hostName, UInt16 port, SecurityProtocol sp = SecurityProtocol::NONE ) -> SocketHandle;
+        auto CreateSocket( SocketType type, eastl::string_view hostName, u16 port, SecurityProtocol sp = SecurityProtocol::eInvalid ) -> SocketHandle;
 
         /**
          * @brief Creates a socket and waits for a synchronous connection.
@@ -149,7 +157,7 @@ namespace Mikoto {
          * @param port The port.
          * @return A socket handle. May be empty on failure.
          */
-        auto CreateSocketSync( SocketType type, std::string_view hostName, UInt16 port, SecurityProtocol sp = SecurityProtocol::NONE ) -> SocketHandle;
+        auto CreateSocketSync( SocketType type, eastl::string_view hostName, u16 port, SecurityProtocol sp = SecurityProtocol::eInvalid ) -> SocketHandle;
 
         /**
          * @brief Creates an HTTP socket (port 80 by default).
@@ -161,7 +169,7 @@ namespace Mikoto {
          * @param wait Whether to block the calling thread until the connection completes.
          * @return A valid socket handle on success, or an empty handle on failure.
          */
-        auto CreateSocketHttp( std::string_view hostName, bool wait = true ) -> SocketHandle;
+        auto CreateSocketHttp( eastl::string_view hostName, bool wait = true ) -> SocketHandle;
 
         /**
          * @brief Creates an HTTPS socket (port 443 by default).
@@ -175,28 +183,28 @@ namespace Mikoto {
          * @param wait Whether to block until the connection completes.
          * @return A socket handle, or an empty handle if HTTPS is not supported or the connection failed.
          */
-        auto CreateSocketHttps( std::string_view hostName, bool wait ) -> SocketHandle;
+        auto CreateSocketHttps( eastl::string_view hostName, bool wait ) -> SocketHandle;
 
         /// @brief Destructor. Automatically calls Shutdown() if the service was still running.
-        ~NetworkService() override = default;
+        ~NetworkSystem() override = default;
 
     private:
         // [Internal usage]
 
         // If wait == true creation is asynchronous, synchronous otherwise
-        auto CreateSocketTcp(std::string_view hostName, UInt16 port, bool wait, SecurityProtocol sp = SecurityProtocol::NONE ) -> SocketHandle;
+        auto CreateSocketTcp(eastl::string_view hostName, u16 port, bool wait, SecurityProtocol sp = SecurityProtocol::eInvalid ) -> SocketHandle;
 
     private:
         /// @brief ASIO context used for all asynchronous network operations.
-        asio::io_context m_IoContext{};
+        eastl::unique_ptr<asio::io_context> mIoContext{};
 
 #if defined(MIKOTO_OPENSSL_AVAILABLE)
         /// @brief SSL context used for secure HTTPS sockets.
-        asio::ssl::context m_SslContext{ asio::ssl::context::tls_client };
+        asio::ssl::context mSslContext{ asio::ssl::context::tls_client };
 #endif
 
         /// @brief Pool for allocating and reusing TcpSocket objects.
-        ResourcePoolTyped<TcpSocket> m_TcpSockets{};
+        ResourcePoolTyped<TcpSocket> mTcpSockets{};
     };
 }// namespace Mikoto
 

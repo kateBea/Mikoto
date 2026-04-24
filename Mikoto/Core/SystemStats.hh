@@ -15,66 +15,63 @@
 #ifndef MIKOTO_SYSTEM_STATS_HH
 #define MIKOTO_SYSTEM_STATS_HH
 
+#include <EASTL/string.h>
 #if defined( _WIN32 )
 #include <windows.h>
 #endif
 
-#include <mutex>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Singleton.hh>
+#include <Core/Subsystem.hh>
 
-#include <Common/Common.hh>
-#include <Common/Subsystem.hh>
-#include <Common/Singleton.hh>
-#include <Library/Utility/Types.hh>
+namespace mikoto::core {
 
-namespace Mikoto {
-
-    class SystemStats final : public Subsystem, public Singleton<SystemStats> {
+    class SystemStats final : public ISubsystem, public Singleton<SystemStats> {
     public:
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         // Can be called by background thread every x time
         // to avoid overhead spinning cpu
-        auto Update(float) -> void override;
+        auto Update(float ts) -> void override;
 
         // Tells how often we fetch system stats (in seconds)
-        auto SetUpdateFrequency( Int32 frequency ) -> void;
-
-        // RAM in bytes
-        MKT_NODISCARD auto GetSharedRam() const -> double;
-        MKT_NODISCARD auto GetFreeRam() const -> double;
-        MKT_NODISCARD auto GetTotalRam() const -> double;
+        auto SetUpdateFrequency( i32 frequency ) -> void;
 
         // CPU
-        MKT_NODISCARD auto GetCpuUsage() const -> double;
-        MKT_NODISCARD auto GetCpuName() const -> const std::string&;
+        MKT_NODISCARD auto GetCpuUsage() const -> f64;
+        MKT_NODISCARD auto GetCpuName() const -> eastl::string_view;
+        MKT_NODISCARD auto GetProcessRamUsage() const -> f64;
+        // In bytes
+        MKT_NODISCARD auto GetSharedRam() const -> f64;
+        MKT_NODISCARD auto GetFreeRam() const -> f64;
+        MKT_NODISCARD auto GetTotalRam() const -> f64;
 
-        // VRAM (stub, later Vulkan/Allocator integration)
-        MKT_NODISCARD auto GetVramUsage() const -> double;
-        MKT_NODISCARD auto SetVramUsage( double usageBytes ) -> void;
+        // GPU
+        MKT_NODISCARD auto GetGpuRamUsage() const -> f64;
 
-        MKT_NODISCARD auto GetProcessRamUsage() const -> double;
 
     private:
-        double m_SharedRam{ 0.0 };
-        double m_FreeRam{ 0.0 };
-        double m_TotalRam{ 0.0 };
-        double m_CpuUsage{ 0.0 };
-        double m_VRAMUsage{ 0.0 };
+        f64 mSharedRam{ 0.0 };
+        f64 mFreeRam{ 0.0 };
+        f64 mTotalRam{ 0.0 };
+        f64 mCpuUsage{ 0.0 };
+        f64 mGpuRamUsage{ 0.0 };
 
-        double m_ProcessRamUsage{ 0.0 };
+        f64 mProcessRamUsage{ 0.0 };
 
-        std::string m_CpuName{};
-        std::string m_GpuName{ "Unknown GPU" };
+        eastl::string mCpuName{};
+        eastl::string mGpuName{ "Unknown GPU" };
 
-        std::mutex m_UpdateMutex{};
 #if defined( _WIN32 )
-        ULARGE_INTEGER m_LastIdleTime{};
-        ULARGE_INTEGER m_LastKernelTime{};
-        ULARGE_INTEGER m_LastUserTime{};
+        ULARGE_INTEGER mLastIdleTime{};
+        ULARGE_INTEGER mLastKernelTime{};
+        ULARGE_INTEGER mLastUserTime{};
 #endif
 
-        Int32 m_UpdateFrequency{ 1 };
+        i32 mUpdateFrequency{ 1 };
     };
 }
 

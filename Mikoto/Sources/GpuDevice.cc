@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Core/Platform.hh>
+#include <EASTL/unique_ptr.h>
 
+#include <Core/Platform.hh>
 #include <Renderer/Core/GpuDevice.hh>
+
 #include <Renderer/Vulkan/VulkanDevice.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
@@ -22,22 +24,29 @@
 #include <Renderer/D3D12/D3D12Device.hh>
 #endif
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
-    auto RenderInfo::Clear() -> void {
-        this->ColorRenderTargets.clear();
-        this->DepthRenderTarget = TextureHandle::CreateEmpty();
+    auto GpuDevice::GetGraphicsApi() const -> GraphicsAPI {
+        return mApi;
     }
 
-    auto GpuDevice::Create( const GpuDeviceCreateInfo &createInfo ) -> Unique<GpuDevice> {
-        switch ( createInfo.Api ) {
-            case GraphicsAPI::VULKAN_API:
-                return CreateScope<VulkanDevice>( createInfo );
+    auto GpuDevice::IsInitialized() const -> bool {
+        return mIsInitialized;
+    }
+
+    auto GpuDevice::GetDeviceName() const -> eastl::string_view {
+        return mName;
+    }
+
+    auto GpuDevice::Create( const GpuDeviceCreateInfo &createInfo ) -> eastl::unique_ptr<GpuDevice> {
+        switch ( createInfo.mApi ) {
+            case GraphicsAPI::eVulkan:
+                return eastl::make_unique<vulkan::Device>( createInfo );
 #if defined(MIKOTO_PLATFORM_WINDOWS)
-            case GraphicsAPI::DIRECTX_11:
-                return CreateScope<D3D11Device>( createInfo );
-            case GraphicsAPI::DIRECTX_12:
-                return CreateScope<D3D12Device>( createInfo );
+            case GraphicsAPI::eD3D11:
+                return eastl::make_unique<d3d11::Device>( createInfo );
+            case GraphicsAPI::eD3D12:
+                return eastl::make_unique<d3d12::Device>( createInfo );
 #endif
             default:;
         }
@@ -45,7 +54,7 @@ namespace Mikoto {
         return nullptr;
     }
 
-    GpuDevice::GpuDevice( const GraphicsAPI api )
-        : m_Api{ api }
+    GpuDevice::GpuDevice( const GraphicsAPI api, const GpuFeatureSupport& featuresSupport )
+        : mApi{ api }, mFeaturesSupport{ featuresSupport }
     {}
 }

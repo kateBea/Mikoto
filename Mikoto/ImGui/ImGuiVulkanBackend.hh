@@ -15,31 +15,28 @@
 #ifndef MIKOTO_IMGUI_VULKAN_BACKEND_HH
 #define MIKOTO_IMGUI_VULKAN_BACKEND_HH
 
-#include <any>
-#include <memory>
-#include <vector>
+#include <EASTL/memory.h>
+#include <EASTL/vector.h>
 
 #include <volk.h>
 #include <ankerl/unordered_dense.h>
 
-#include <ImGui/ImGuiService.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanFramebuffer.hh>
-#include <Renderer/Vulkan/VulkanTexture.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
-namespace Mikoto {
+#include <ImGui/ImGuiService.hh>
+
+#include <Renderer/Vulkan/VulkanDevice.hh>
+
+namespace mikoto::gui {
+
+    // Since Mikoto defaults to 1.3
+    // ImGuiVulkanBackend wil be using Dynamic Rendering by default
+    // (already supported by ImGui)
 
     class ImGuiVulkanBackend final : public ImGuiBackend {
     public:
-        explicit ImGuiVulkanBackend( const ImGuiBackendCreateInfo& createInfo )
-            : ImGuiBackend{ createInfo },
-        m_Extent2D{
-            .width{ static_cast<UInt32>( createInfo.Handle->GetWidth() ) },
-            .height{ static_cast<UInt32>( createInfo.Handle->GetHeight() ) } },
-        m_Extent3D{
-            .width{ static_cast<UInt32>( createInfo.Handle->GetWidth() ) },
-            .height{ static_cast<UInt32>( createInfo.Handle->GetHeight() ) },
-            .depth{ 1 } } {}
+        explicit ImGuiVulkanBackend( const ImGuiBackendCreateInfo& createInfo );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
@@ -49,42 +46,33 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetFinalComposition() -> TextureHandle override;
 
-        MKT_NODISCARD auto ConstructImGuiTextureID( const Texture* texture ) -> ImTextureID override;
+        MKT_NODISCARD auto ConstructImGuiTextureID( const ITexture* texture ) -> ImTextureID override;
         MKT_NODISCARD auto ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID override;
 
     private:
         auto InitImGuiForVulkan() -> void;
-        auto CreateRenderPass() -> void;
         auto CreateImages() -> void;
-        auto CreateFrameBuffer() -> void;
 
-        auto RecordRenderPassCommands(CommandListHandle cmdList ) -> void;
-        auto RecordDynamicRenderCommands(CommandListHandle cmdList ) -> void;
+        auto RecordDynamicRenderCommands( CommandListHandle cmdList ) -> void;
 
         auto SetupViewportAndScissors( CommandListHandle cmdList ) -> void;
         auto RecordCommands( CommandListHandle cmdList  ) -> void;
 
     private:
-#if defined( MKT_USE_VULKAN_DYNAMIC_RENDERING )
-        const bool m_UseDynamicRendering{ true };
-#else
-        const bool m_UseDynamicRendering{ false };
-#endif
 
-        VkRenderPass m_ImGuiRenderPass{};
-        VkDescriptorPool m_ImGuiDescriptorPool{};
+        CommandListHandle mCommandList{};
 
-        TextureHandle m_ColorImage{};
-        TextureHandle m_DepthImage{};
-        FramebufferHandle m_DrawFrameBuffer{};
+        VkDescriptorPool mImGuiDescriptorPool{};
 
-        VkExtent2D m_Extent2D{ 2560, 1440 };
-        VkExtent3D m_Extent3D{ 2560, 1440, 1 };
+        VkExtent3D mDimensions{ 2560, 1440, 1 };
+
+        TextureHandle mColorImage{};
+        TextureHandle mDepthImage{};
 
         struct ImGuiTextIDInfo {
             VkDescriptorSet descriptorSet{};
         };
-        ankerl::unordered_dense::map<const Texture*, ImGuiTextIDInfo> m_ImGuiSets{};
+        ankerl::unordered_dense::map<const ITexture*, ImGuiTextIDInfo> m_ImGuiSets{};
     };
 }// namespace Mikoto
 

@@ -1,34 +1,49 @@
+//    Copyright 2026 ケイト
 //
-// Created by kate on 1/17/26.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_SCRIPT_HH
 #define MIKOTO_SCRIPT_HH
 
 #include <sol/sol.hpp>
 
-#include <Common/Common.hh>
-#include <Common/ReferenceCounted.hh>
-#include <Library/IO/File.hh>
-#include <Library/Utility/Types.hh>
-#include <Library/Data/ResourcePool.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/ResourcePool.hh>
+#include <Core/ReferenceCounted.hh>
+
+#include <Filesystem/File.hh>
 
 #include <Scene/Entity.hh>
 
-namespace Mikoto {
+namespace mikoto::scripting {
+
+    using namespace mikoto::core;
+    using namespace mikoto::scene;
+    using namespace mikoto::filesystem;
 
     class Script final : public IResource {
     public:
-        explicit Script(const File* file, sol::state& state, Entity* entity);
+        explicit Script(FileHandle file, sol::state& state, Entity* entity);
 
-        auto Update(float dt ) -> void;
+        auto Update( float dt ) -> void;
 
         auto ReloadScript(sol::state& state) -> void;
 
         auto SetEnable(bool value) -> void;
 
         MKT_NODISCARD auto IsEnabled() const -> bool;
-        MKT_NODISCARD auto GetFile() const -> const File*;
+        MKT_NODISCARD auto GetFile() const -> FileHandle;
 
         ~Script() override;
 
@@ -41,16 +56,17 @@ namespace Mikoto {
 
     private:
 
-        Entity* m_Entity{};
+        Entity* mEntity{};
 
-        sol::state* m_State{};
-        const File* m_File{};
+        sol::state* mState{};
+        FileHandle mFile{};
 
-        bool m_Enabled{ false };
+        bool mEnabled{ false };
 
-        sol::table m_Object{};
-        sol::function m_OnCreate{};
-        sol::function m_OnUpdate{};
+        sol::table mObject{};
+
+        sol::function mOnCreate{};
+        sol::function mOnUpdate{};
     };
 
     using ScriptHandle = Ref<Script>;

@@ -16,13 +16,12 @@
 #define MIKOTO_PLATFORM_LINUX_LINUX_WINDOW_HH
 
 #include <Core/Platform.hh>
-
 #include <Platform/Window.hh>
 
 #if defined(MIKOTO_PLATFORM_LINUX) && defined(MKT_USE_XCB_WINDOW)
 #include <xcb/xcb.h>
 
-namespace Mikoto {
+namespace mikoto::platform {
 
     class LinuxWindow final : public Window {
     public:

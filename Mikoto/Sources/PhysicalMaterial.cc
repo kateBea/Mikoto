@@ -12,16 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Library/Math/Math.hh>
-#include <Material/PhysicalMaterial.hh>
-#include <Material/Texture2D.hh>
 #include <ranges>
 
-namespace Mikoto {
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
-    PhysicalMaterial::PhysicalMaterial( const std::string_view name )
+#include <Math/Math.hh>
+
+#include <Material/PhysicalMaterial.hh>
+
+#include <Renderer/Core/Rhi.hh>
+
+namespace mikoto::material {
+
+    PhysicalMaterial::PhysicalMaterial( const eastl::string_view name )
         : Material{ name } {
-        Initialize();
     }
 
     PhysicalMaterial::PhysicalMaterial( const MaterialProperties& props ) {
@@ -48,60 +53,58 @@ namespace Mikoto {
         m_OcclusionTextureSet = props.OcclusionTextureSet;
         m_EmissiveTextureSet = props.EmissiveTextureSet;
 
-        m_IsDoubleSided = props.IsDoubleSided;
+        m_IsDoubleSided = props.mIsDoubleSided;
 
-        for ( const auto& texture: props.TexturesByUri | std::ranges::views::values ) {
-            SetTexture( texture.As<Texture2D>()->GetMapType(), texture );
+        for ( const auto& texture: props.mTexturesByUri | std::ranges::views::values ) {
+            SetTexture( texture.MapType, texture.mTexture );
         }
-
-        Initialize();
     }
-    
+
     auto PhysicalMaterial::RemoveTexture( MapType type ) -> void {
         m_Textures.erase( type );
     }
-    
-    auto PhysicalMaterial::GetAlphaMask() const -> PBR_AlphaMode {
+
+    auto PhysicalMaterial::GetAlphaMask() const -> AlphaMode {
         return m_AlphaMask;
     }
-    
-    auto PhysicalMaterial::SetAlphaMask( PBR_AlphaMode mode ) -> void {
+
+    auto PhysicalMaterial::SetAlphaMask( AlphaMode mode ) -> void {
         m_AlphaMask = mode;
     }
-    
-    auto PhysicalMaterial::GetWorkflow() const -> PBR_Workflow {
+
+    auto PhysicalMaterial::GetWorkflow() const -> Workflow {
         return m_Workflow;
     }
 
-    auto PhysicalMaterial::SetWorkflow( PBR_Workflow mode ) -> void {
+    auto PhysicalMaterial::SetWorkflow( Workflow mode ) -> void {
         m_Workflow = mode;
     }
 
-    auto PhysicalMaterial::GetBaseColorFactor() const -> const Vec4F& {
+    auto PhysicalMaterial::GetBaseColorFactor() const -> const float4& {
         return m_BaseColorFactor;
     }
 
-    auto PhysicalMaterial::SetBaseColorFactor( const Vec4F& value ) -> void {
+    auto PhysicalMaterial::SetBaseColorFactor( const float4& value ) -> void {
         m_BaseColorFactor = value;
     }
 
-    auto PhysicalMaterial::GetDiffuseFactor() const -> const Vec4F& {
+    auto PhysicalMaterial::GetDiffuseFactor() const -> const float4& {
         return m_DiffuseFactor;
     }
 
-    auto PhysicalMaterial::SetDiffuseFactor( const Vec4F& value ) -> void {
+    auto PhysicalMaterial::SetDiffuseFactor( const float4& value ) -> void {
         m_DiffuseFactor = value;
     }
 
-    auto PhysicalMaterial::GetSpecularFactor() const -> const Vec4F& {
+    auto PhysicalMaterial::GetSpecularFactor() const -> const float4& {
         return m_SpecularFactor;
     }
 
-    auto PhysicalMaterial::SetSpecularFactor( const Vec4F& value ) -> void {
+    auto PhysicalMaterial::SetSpecularFactor( const float4& value ) -> void {
         m_SpecularFactor = value;
     }
 
-    auto PhysicalMaterial::GetEmissiveFactor() const -> const Vec3F& {
+    auto PhysicalMaterial::GetEmissiveFactor() const -> const float3& {
         return m_EmissiveFactor;
     }
 
@@ -109,7 +112,7 @@ namespace Mikoto {
         return m_AoFactor;
     }
 
-    auto PhysicalMaterial::SetEmissiveFactor( const Vec3F& value ) -> void {
+    auto PhysicalMaterial::SetEmissiveFactor( const float3& value ) -> void {
         m_EmissiveFactor = value;
     }
 
@@ -177,47 +180,47 @@ namespace Mikoto {
         m_IsDoubleSided = v;
     }
 
-    auto PhysicalMaterial::GetBaseColorTextureSet() const -> Int32 {
+    auto PhysicalMaterial::GetBaseColorTextureSet() const -> i32 {
         return m_BaseColorTextureSet;
     }
 
-    auto PhysicalMaterial::SetBaseColorTextureSet( Int32 set ) -> void {
+    auto PhysicalMaterial::SetBaseColorTextureSet( i32 set ) -> void {
         m_BaseColorTextureSet = set;
     }
 
-    auto PhysicalMaterial::GetSpecularGlossinessSet() const -> Int32 {
+    auto PhysicalMaterial::GetSpecularGlossinessSet() const -> i32 {
         return m_SpecularGlossinessTextureSet;
     }
 
-    auto PhysicalMaterial::GetMetallicRoughnessTextureSet() const -> Int32 {
+    auto PhysicalMaterial::GetMetallicRoughnessTextureSet() const -> i32 {
         return m_MetallicRoughnessTextureSet;
     }
 
-    auto PhysicalMaterial::SetMetallicRoughnessTextureSet( Int32 set ) -> void {
+    auto PhysicalMaterial::SetMetallicRoughnessTextureSet( i32 set ) -> void {
         m_MetallicRoughnessTextureSet = set;
     }
 
-    auto PhysicalMaterial::SetSpecularGlossinessSet( Int32 set ) -> void {
+    auto PhysicalMaterial::SetSpecularGlossinessSet( i32 set ) -> void {
         m_SpecularGlossinessTextureSet = set;
     }
 
-    auto PhysicalMaterial::GetNormalTextureSet() const -> Int32 {
+    auto PhysicalMaterial::GetNormalTextureSet() const -> i32 {
         return m_NormalTextureSet;
     }
 
-    auto PhysicalMaterial::SetNormalTextureSet( Int32 set ) -> void {
+    auto PhysicalMaterial::SetNormalTextureSet( i32 set ) -> void {
         m_NormalTextureSet = set;
     }
 
-    auto PhysicalMaterial::GetOcclusionTextureSet() const -> Int32 {
+    auto PhysicalMaterial::GetOcclusionTextureSet() const -> i32 {
         return m_OcclusionTextureSet;
     }
 
-    auto PhysicalMaterial::SetOcclusionTextureSet( Int32 set ) -> void {
+    auto PhysicalMaterial::SetOcclusionTextureSet( i32 set ) -> void {
         m_OcclusionTextureSet = set;
     }
 
-    auto PhysicalMaterial::GetEmissiveTextureSet() const -> Int32 {
+    auto PhysicalMaterial::GetEmissiveTextureSet() const -> i32 {
         return m_EmissiveTextureSet;
     }
 
@@ -229,7 +232,7 @@ namespace Mikoto {
         return m_IsBloomy;
     }
 
-    auto PhysicalMaterial::SetEmissiveTextureSet( Int32 set ) -> void {
+    auto PhysicalMaterial::SetEmissiveTextureSet( i32 set ) -> void {
         m_EmissiveTextureSet = set;
     }
 
@@ -237,7 +240,7 @@ namespace Mikoto {
         m_IsBloomy = enable;
     }
 
-    auto PhysicalMaterial::SetTexture( const MapType type, const TextureHandle& texture ) -> void {
+    auto PhysicalMaterial::SetTexture( const MapType type, const rhi::TextureHandle& texture ) -> void {
         m_Textures[type] = texture;
     }
 
@@ -253,25 +256,11 @@ namespace Mikoto {
         return m_Textures.contains( type );
     }
 
-    auto PhysicalMaterial::GetTexture( const MapType type ) const -> TextureHandle {
+    auto PhysicalMaterial::GetTexture( const MapType type ) const -> rhi::TextureHandle {
         if ( const auto it{ m_Textures.find( type ) }; it != m_Textures.end() ) {
             return it->second;
         }
 
-        return TextureHandle::CreateEmpty();
-    }
-
-    PhysicalMaterial::~PhysicalMaterial() {
-        if ( m_IsAllocated ) {
-            Release();
-        }
-    }
-
-    auto PhysicalMaterial::Release() -> void {
-        m_IsAllocated = false;
-    }
-
-    auto PhysicalMaterial::Initialize() -> void {
-        m_IsAllocated = true;
+        return rhi::TextureHandle::CreateEmpty();
     }
 }

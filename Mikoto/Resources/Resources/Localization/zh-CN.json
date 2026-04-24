@@ -1,15 +1,17 @@
 {
   "menu_file": "文件",
-  "menu_edit": "编辑",
-  "menu_view": "视图",
+  "menu_close": "关闭",
+  "menu_window": "窗口",
+  "menu_panels": "面板",
+  "menu_theme": "主题",
   "menu_language": "语言",
+  "menu_tools": "工具",
+  "menu_about": "关于",
 
-  "window_scene": "场景",
-  "window_inspector": "检查器",
-  "window_console": "控制台",
-
-  "button_close": "关闭",
-  "button_cancel": "取消",
-
-  "tooltip_save_scene": "保存当前场景"
+  "new_scene": "新建场景",
+  "open_scene": "打开场景",
+  "save_scene": "保存场景",
+  "new_project": "新建项目",
+  "open_project": "打开项目",
+  "save_project": "保存项目"
 }

@@ -12,71 +12,74 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string>
-#include <array>
-#include <string_view>
+#include <EASTL/array.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
 #include <Core/Profiler.hh>
 
-#include <Renderer/Core/GpuDevice.hh>
-#include <Renderer/Core/RenderService.hh>
+#include <Filesystem/FileService.hh>
+#include <Filesystem/FileSystem.hh>
 
 #include <Material/ShaderLibrary.hh>
 
-#include <Filesystem/FileSystem.hh>
-#include <Filesystem/FileService.hh>
+#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Core/RenderSystem.hh>
 
-namespace Mikoto {
+namespace mikoto::material {
 
     ShaderLibrary::ShaderLibrary( const ShaderLibraryDescription &options )
-        : m_Device{ options.Device }, m_RootPath{ options.RootPath } {}
+        : mDevice{ options.mDevice }, mRootPath{ options.mRootPath } {}
 
-    auto ShaderLibrary::Init() -> void {
+    auto ShaderLibrary::Initialize() -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto ShaderLibrary::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if ( !m_IsInitialized ) {
+        if ( !mIsInitialized ) {
             return;
         }
 
-        m_Shaders.clear();
-
-        m_IsInitialized = false;
+        mShaders.clear();
+        mIsInitialized = false;
     }
 
-    auto ShaderLibrary::GetShader( const std::string_view uri ) -> ShaderModuleHandle {
-        const std::string fullPath{ Filesystem::GetGetAbsolutePathString( uri ) };
-        if ( auto it{ m_Shaders.find( fullPath ) }; it != m_Shaders.end() ) {
+    auto ShaderLibrary::GetShader( const eastl::string_view uri ) -> ShaderModuleHandle {
+        const auto fullPath{ Path{ uri } };
+        if ( auto it{ mShaders.find( fullPath ) }; it != mShaders.end() ) {
             return it->second;
         }
 
         return ShaderModuleHandle::CreateEmpty();
     }
 
-    auto ShaderLibrary::LoadShader( const Path &path, ShaderStage stage ) -> ShaderModuleHandle {
+    auto ShaderLibrary::LoadShader( eastl::string_view uri, rhi::ShaderType type ) -> ShaderModuleHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
-        const std::string fullPath{ Filesystem::GetGetAbsolutePathString( path ) };
-        auto it{ m_Shaders.find( fullPath ) };
-        if ( it != m_Shaders.end() ) {
+        auto path{ PathBuilder{}
+            .SetPath( mRootPath )
+            .SetPath( uri.data() )
+            .Build()};
+
+        auto it{ mShaders.find( path ) };
+        if ( it != mShaders.end() ) {
             return it->second;
         }
 
-        ShaderModuleHandle shaderModuleHandle{ m_Device->LoadShader( path, stage ) };
+        auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
+            .SetFile( FileService::Get()->LoadFile( path ) )
+            .SetStage( type )
+        };
+        ShaderModuleHandle shaderModuleHandle{ mDevice->CreateShader( fragmentShaderDescription ) };
+        shaderModuleHandle->DumpShaderCode();
         if ( !shaderModuleHandle.IsEmpty() ) {
-            m_Shaders.try_emplace( fullPath, shaderModuleHandle );
-            return m_Shaders.at( fullPath );
+            mShaders.try_emplace( path, shaderModuleHandle );
+            return mShaders.at( path );
         }
 
         return ShaderModuleHandle::CreateEmpty();
-    }
-
-    auto ShaderLibrary::LoadShader( const ShaderModuleDescription &description ) -> ShaderModuleHandle {
-        return this->LoadShader( description.ShaderFile->GetPath(), description.Stage );
     }
 }// namespace Mikoto

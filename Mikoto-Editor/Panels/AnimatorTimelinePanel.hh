@@ -15,9 +15,13 @@
 #ifndef MIKOTO_ANIMATOR_PANEL_HH
 #define MIKOTO_ANIMATOR_PANEL_HH
 
-namespace Mikoto {
+#include <Panels/Panel.hh>
 
-    class AnimatorTimelinePanel {
+namespace mikoto::editor {
+
+    class AnimatorTimelinePanel final : public Panel {
+    public:
+        auto OnUpdate( float timeStep ) -> void override;
     };
 
 }// namespace Mikoto

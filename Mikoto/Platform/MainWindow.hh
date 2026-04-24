@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,19 +15,20 @@
 #ifndef MIKOTO_MAIN_WINDOW_HH
 #define MIKOTO_MAIN_WINDOW_HH
 
-#include <any>
-#include <atomic>
+#include <EASTL/any.h>
+#include <EASTL/atomic.h>
 
 #include <volk.h>
 #include <GLFW/glfw3.h>
 
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
-#include <Platform/Window.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/KeyCodes.hh>
 #include <Core/MouseCodes.hh>
 
-namespace Mikoto {
+#include <Platform/Window.hh>
+
+namespace mikoto::platform {
 
     class MainWindow final : public Window {
     public:
@@ -55,7 +56,7 @@ namespace Mikoto {
 
         MKT_NODISCARD auto ShouldClose() const -> bool override;
 
-        MKT_NODISCARD auto GetNativeWindow() const -> std::any override { return m_Window; }
+        MKT_NODISCARD auto GetNativeWindow() const -> eastl::any override;
 
         ~MainWindow() override = default;
 
@@ -65,16 +66,14 @@ namespace Mikoto {
         auto InstallCallbacks() -> void;
         auto SetCustomTitle() -> void;
 
-        auto MoveToMonitorCenter() const -> void;
-
         auto CreateNativeHandle() -> void;
+        auto MoveToMonitorCenter() -> void;
 
     private:
-        // To restore dimensions on exiting full screen mode
-        Int32 m_WidthPreFullScreen{};
-        Int32 m_HeightPreFullScreen{};
+        i32 mWidthPreFullScreen{};
+        i32 mHeightPreFullScreen{};
 
-        GLFWwindow* m_Window{};
+        GLFWwindow* mWindow{};
     };
 }
 

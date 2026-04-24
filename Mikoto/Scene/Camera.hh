@@ -1,23 +1,32 @@
-/**
- * Camera.hh
- * Created by kate on 6/24/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_CAMERA_HH
 #define MIKOTO_CAMERA_HH
 
 #include <utility>
 
-// Third-Party Libraries
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-// Project Headers
-#include "Common/Common.hh"
-#include <Library/Random/Random.hh>
-#include <Library/Math/Math.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
-namespace Mikoto {
+#include <Math/Random.hh>
+#include <Math/Math.hh>
+
+namespace mikoto::scene {
 
     enum class ProjectionType {
         ORTHOGRAPHIC,
@@ -69,9 +78,9 @@ namespace Mikoto {
         auto SetRotation(const glm::vec3& angles = glm::vec3(0.0f)) -> void {
             m_Rotation = angles;
 
-            m_Transform = rotate(m_Transform, glm::radians( m_Rotation[0] ), Math::UNIT_VECTOR_X);
-            m_Transform =  rotate(m_Transform, glm::radians( m_Rotation[1] ), Math::UNIT_VECTOR_Y);
-            m_Transform =  rotate(m_Transform, glm::radians( m_Rotation[2] ), Math::UNIT_VECTOR_Z);
+            m_Transform = rotate(m_Transform, glm::radians( m_Rotation[0] ), core::float3{ 1.0f, 0.0f, 0.0f });
+            m_Transform =  rotate(m_Transform, glm::radians( m_Rotation[1] ), core::float3{ .0f, 1.0f, 0.0f } );
+            m_Transform =  rotate(m_Transform, glm::radians( m_Rotation[2] ), core::float3{ 0.0f, 0.0f, 1.0f });
         }
 
         MKT_NODISCARD auto GetProjectionType() const -> ProjectionType { return m_ProjectionType; }
@@ -122,7 +131,7 @@ namespace Mikoto {
         // [Vectors]
         glm::vec3 m_Position{ -15.0f, 5.0f, 30.0f };
         glm::vec3 m_RightVector{ 1.0f, 0.0f, 0.0f };
-        glm::vec3 m_CameraUpVector{ Math::UNIT_VECTOR_Y };
+        glm::vec3 m_CameraUpVector{ core::float3{ .0f, 1.0f, 0.0f } };
         glm::vec3 m_ForwardVector{ 15.0f, -5.0f, -30.0f };
 
         // [Rotations]
@@ -131,7 +140,7 @@ namespace Mikoto {
         float m_Pitch{ 0.0f };
 
         // [Misc]
-        GlobalUniqueID m_Guid{};
+        math::random::GlobalUniqueID m_Guid{};
 
         glm::mat4 m_Projection{};
         glm::mat4 m_Transform{};

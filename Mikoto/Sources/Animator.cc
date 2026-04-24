@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,75 +12,104 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <memory>
-#include <ranges>
 #include <cmath>
+#include <ranges>
 
-#include <ozz/animation/runtime/local_to_model_job.h>
-#include <ozz/animation/runtime/sampling_job.h>
-#include <ozz/animation/runtime/skeleton.h>
-#include <ozz/base/log.h>
-#include <ozz/base/maths/simd_math.h>
+#include <EASTL/memory.h>
+#include <EASTL/vector.h>
+#include <EASTL/string_view.h>
+
 #include <ozz/base/span.h>
+#include <ozz/base/maths/simd_math.h>
 #include <ozz/animation/runtime/animation.h>
-#include <ozz/base/maths/soa_transform.h>
-#include <ozz/base/maths/vec_float.h>
-#include <ozz/options/options.h>
-
-#include <Common/String.hh>
+#include <ozz/animation/runtime/sampling_job.h>
+#include <ozz/animation/runtime/local_to_model_job.h>
 
 #include <Math/Math.hh>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Logging/Assert.hh>
+
+#include <Memory/Allocator.hh>
+
 #include <Animation/Animator.hh>
 
-namespace Mikoto {
+namespace mikoto::animation {
+
+    using namespace mikoto::core;
+    using namespace mikoto::asset;
 
     Animator::Animator( ModelHandle handle )
-        : m_Model{ handle }
+        : mModel{ handle }
     {
         MKT_ASSERT( !handle.IsEmpty(), "Invalid model handle for animator" );
-        m_Context = ozz::make_unique<ozz::animation::SamplingJob::Context>();
+        mContext = ozz::make_unique<ozz::animation::SamplingJob::Context>();
 
-        m_FinalMatrices.resize( MAX_BONES_PER_MESH );
+        mFinalMatrices.resize( kMaxBonesPerMesh );
     }
 
-    auto Animator::UpdateAnimation( float deltaTime ) -> void {
-        if ( m_IsPlaying && m_CurrentAnimation ) {
+    auto Animator::Update( float deltaTime ) -> void {
+        if ( m_IsPlaying && mCurrentAnimation ) {
             UpdateOzzAnimation( deltaTime );
         }
 	}
 
-    auto Animator::SetCurrentAnimation( std::string_view name ) -> void {
-        SkinnedAnimation* animation{ m_Model->FindAnimation( name ) };
+    auto Animator::GetFinalBoneMatrices() const -> const eastl::vector<float4x4>& {
+        return mFinalMatrices;
+    }
+
+    auto Animator::GetInverseBindMatrices() const -> const eastl::vector<float4x4>& {
+        return mModel->GetSkeleton().GetInverseBindMatrices();
+    }
+
+    auto Animator::SetAnimatorState( AnimatorState state ) -> void {
+        mState = state;
+    }
+
+    auto Animator::GetAnimatorState() const -> AnimatorState {
+        return mState;
+    }
+
+    auto Animator::IsAnimatorState( AnimatorState state ) const -> bool {
+        return  mState == state;
+    }
+
+    auto Animator::SetCurrentAnimation( eastl::string_view name ) -> void {
+        SkinnedAnimation* animation{ mModel->FindAnimation( name ) };
         if ( !animation ) {
             MKT_CORE_LOGGER_ERROR( "Animation {} does not exist. Cannot set current animation.", name );
             return;
         }
 
-        m_CurrentAnimation = animation;
+        mCurrentAnimation = animation;
 
         StopCurrentAnimation();
     }
 
     auto Animator::GetCurrentAnimation() const -> const SkinnedAnimation* {
-        return m_CurrentAnimation;
+        return mCurrentAnimation;
+    }
+
+    auto Animator::GetAnimationList() const -> const AnimationList& {
+        return mModel->GetAnimations();
     }
 
     auto Animator::PlayCurrentAnimation() -> void {
-        if ( m_CurrentAnimation ) {
+        if ( mCurrentAnimation ) {
             InitializeOzzAnimation();
 
-            m_CurrentTime = 0.0f;
+            mCurrentTime = 0.0f;
             m_IsPlaying = true;
          } else {
              MKT_CORE_LOGGER_ERROR( "No animation is currently set. Cannot play." );
          }
     }
 
-    auto Animator::PlayAnimation( std::string_view name ) -> void {
-        if ( SkinnedAnimation* animation{ m_Model->FindAnimation( name ) } ) {
-            m_CurrentAnimation = animation;
+    auto Animator::PlayAnimation( eastl::string_view name ) -> void {
+        if ( SkinnedAnimation* animation{ mModel->FindAnimation( name ) } ) {
+            mCurrentAnimation = animation;
             PlayCurrentAnimation();
         } else {
             MKT_CORE_LOGGER_ERROR( "Animation {} does not exist. Cannot play it.", name );
@@ -88,7 +117,7 @@ namespace Mikoto {
     }
 
     auto Animator::StopCurrentAnimation() -> void {
-        m_CurrentTime = 0.0f;
+        mCurrentTime = 0.0f;
         m_IsPlaying = false;
     }
 
@@ -98,62 +127,62 @@ namespace Mikoto {
 
     auto Animator::UpdateOzzAnimation( float ts ) -> void {
         // Get ozz skeleton and animation
-        auto* skeleton{ m_Model->GetSkeleton().GetOzzSkeleton() };
-        auto playAnimation{ m_CurrentAnimation->GetOzzAnimation() };
-        
+        auto* skeleton{ mModel->GetSkeleton().GetOzzSkeleton() };
+        auto playAnimation{ mCurrentAnimation->GetOzzAnimation() };
+
         // Update current animation time.
-        m_CurrentTime += ts;
+        mCurrentTime += ts;
         float duration{ playAnimation->duration() };
-        float ratio{ std::fmod( m_CurrentTime, duration ) / duration };// std::fmod because we wanna loop
+        float ratio{ std::fmod( mCurrentTime, duration ) / duration };// std::fmod because we wanna loop
 
         // Samples optimized animation at t = animation_time_.
-        ozz::animation::SamplingJob sampling_job;
-        sampling_job.animation = playAnimation;
-        sampling_job.context = m_Context.get();
-        sampling_job.ratio = ratio;
-        sampling_job.output = make_span( m_LocalMatrices );
-        if ( !sampling_job.Run() ) {
+        ozz::animation::SamplingJob samplingJob{};
+        samplingJob.animation = playAnimation;
+        samplingJob.context = mContext.get();
+        samplingJob.ratio = ratio;
+        samplingJob.output = make_span( mLocalMatrices );
+        if ( !samplingJob.Run() ) {
             MKT_CORE_LOGGER_ERROR( "Animator error on sampling job" );
             return;
         }
 
         // Converts from local space to model space matrices.
-        ozz::animation::LocalToModelJob ltm_job;
-        ltm_job.skeleton = skeleton;
-        ltm_job.input = make_span( m_LocalMatrices );
-        ltm_job.output = make_span( m_ModelMatrices );
-        if ( !ltm_job.Run() ) {
+        ozz::animation::LocalToModelJob ltmJob{};
+        ltmJob.skeleton = skeleton;
+        ltmJob.input = make_span( mLocalMatrices );
+        ltmJob.output = make_span( mModelMatrices );
+        if ( !ltmJob.Run() ) {
             MKT_CORE_LOGGER_ERROR( "Animator error on local to model job" );
             return;
         }
-        
-        const auto& inverseBindMats{ m_Model->GetSkeleton().GetInverseBindMatrices() };
 
-        Size limit{ Math::Min( m_FinalMatrices.size(), inverseBindMats.size(), m_ModelMatrices.size() ) }; // ???
-        for ( Size i{}; i < limit; ++i ) {
+        const auto& inverseBindMats{ mModel->GetSkeleton().GetInverseBindMatrices() };
+
+        size_t limit{ math::Min( mFinalMatrices.size(), inverseBindMats.size(), mModelMatrices.size() ) }; // ???
+        for ( size_t i{}; i < limit; ++i ) {
             // because ozz uses colum major mat4x4 of floats
-            ozz::math::Float4x4& model{ m_ModelMatrices[i] };
-            m_FinalMatrices[i] = *reinterpret_cast<Mat4F*>( MKT_ADDRESSOF( model ) ) * inverseBindMats[i];
+            ozz::math::Float4x4& model{ mModelMatrices[i] };
+            mFinalMatrices[i] = *reinterpret_cast<float4x4*>( MKT_ADDRESSOF( model ) ) * inverseBindMats[i];
         }
 
         //Math::DumpMat4FListBeautify( m_FinalMatrices );
     }
 
     auto Animator::InitializeOzzAnimation() -> void {
-        auto skeleton{ m_Model->GetSkeleton().GetOzzSkeleton() };
-        auto playAnimation{ m_CurrentAnimation->GetOzzAnimation() };
+        auto skeleton{ mModel->GetSkeleton().GetOzzSkeleton() };
+        auto playAnimation{ mCurrentAnimation->GetOzzAnimation() };
 
         if ( skeleton->num_joints() != playAnimation->num_tracks() ) {
             MKT_CORE_LOGGER_ERROR( "Animator error skeleton joint count does not match animation track count" );
             return;
         }
 
-        const Int32 soaJointsCount{ skeleton->num_soa_joints() };
-        m_LocalMatrices.resize( soaJointsCount );
-        
-        const Int32 jointsCount{ skeleton->num_joints() };
-        m_ModelMatrices.resize( jointsCount );
+        const i32 soaJointsCount{ skeleton->num_soa_joints() };
+        mLocalMatrices.resize( soaJointsCount );
 
-        m_Context->Resize( jointsCount );
+        const i32 jointsCount{ skeleton->num_joints() };
+        mModelMatrices.resize( jointsCount );
+
+        mContext->Resize( jointsCount );
     }
 }

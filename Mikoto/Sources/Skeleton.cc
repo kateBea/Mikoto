@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,71 +12,70 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <utility>
-#include <memory>
 #include <ranges>
 
-#include <Logging/Logger.hh>
-
-#include <Common/String.hh>
-#include <Animation/Skeleton.hh>
-#include <Library/String/String.hh>
+#include <EASTL/vector.h>
+#include <EASTL/memory.h>
+#include <EASTL/string.h>
+#include <EASTL/utility.h>
+#include <EASTL/string_view.h>
 
 #include <ozz/animation/runtime/skeleton.h>
 
-namespace Mikoto {
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+
+#include <Logging/Logger.hh>
+
+#include <Animation/Skeleton.hh>
+
+namespace mikoto::animation {
 
     Skeleton::Skeleton( ozz::unique_ptr<ozz::animation::Skeleton> &&data )
-        : m_Skeleton{ std::move( data ) } {}
+        : mSkeleton{ eastl::move( data ) } {}
 
-    auto Skeleton::HasJoint( std::string_view name ) const -> bool {
+    auto Skeleton::HasJoint( eastl::string_view name ) const -> bool {
         return false;
     }
 
-    auto Skeleton::FindJoint( std::string_view name ) -> Joint * {
+    auto Skeleton::FindJoint( eastl::string_view name ) -> Joint * {
         return nullptr;
     }
 
-    auto Skeleton::FindJoint( std::string_view name ) const -> const Joint* {
+    auto Skeleton::FindJoint( eastl::string_view name ) const -> const Joint* {
         return nullptr;
     }
 
-    auto Skeleton::FindJointByID( UInt32 ID ) -> Joint * {
+    auto Skeleton::FindJointByID( u32 ID ) -> Joint * {
         return nullptr;
     }
 
     auto Skeleton::GetOzzSkeleton() -> ozz::animation::Skeleton* {
-        return m_Skeleton.get();
+        return mSkeleton.get();
     }
 
-    auto Skeleton::GetOzzBondeIndex( UInt32 ID ) const -> Int32 {
-        if (!m_JointOzzIndex.contains(ID)) {
-            return -1;
-        }
-
-        return m_JointOzzIndex.at( ID );
+    auto Skeleton::GetOzzBoneIndex( u32 ID ) const -> i32 {
+        return -1;
     }
 
-    auto Skeleton::SetInverseBindMatrices( std::vector<Mat4F>&& mats ) -> void {
-        m_InverseBindMats = std::move( mats );
+    auto Skeleton::SetInverseBindMatrices( eastl::vector<float4x4>&& mats ) -> void {
+        mInverseBindMats = eastl::move( mats );
+    }
+
+    auto Skeleton::GetInverseBindMatrices() const -> const eastl::vector<float4x4>& {
+        return mInverseBindMats;
     }
 
     auto Skeleton::GetOzzSkeleton() const -> const ozz::animation::Skeleton* {
-        return m_Skeleton.get();
+        return mSkeleton.get();
     }
 
-    auto Skeleton::FindJointByID( UInt32 ID ) const -> const Joint * {
+    auto Skeleton::FindJointByID( u32 ID ) const -> const Joint* {
         return nullptr;
     }
 
-    auto Skeleton::PrintBoneInfo() const -> void {
-    }
-
-    auto Skeleton::SetWeights( std::string_view meshName, std::string_view boneName, UInt64 vertex, float weight ) -> void {
-
-    }
-
-    auto Skeleton::PrintTreeView() -> void {
-        
+    auto Skeleton::IsArmaturePresent() const -> bool {
+        return mSkeleton != nullptr;
     }
 }

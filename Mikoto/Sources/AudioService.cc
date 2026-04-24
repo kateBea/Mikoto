@@ -12,53 +12,58 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+
 #include <Memory/Allocator.hh>
+
 #include <Audio/AudioService.hh>
 
-namespace Mikoto {
+namespace mikoto::audio {
 
+    using namespace mikoto::core;
 
     AudioService::AudioService( const AudioServiceCreateInfo &options ) {
     }
 
     auto AudioService::GetDevice() -> AudioDevice * {
-        return m_Device.get();
+        return mDevice.get();
     }
 
     auto AudioService::GetDevice() const -> const AudioDevice * {
-        return m_Device.get();
+        return mDevice.get();
     }
 
-    auto AudioService::Init() -> void {
+    auto AudioService::Initialize() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_CORE_LOGGER_INFO("Initializing AudioService...");
 
         constexpr AudioDeviceDescription description{};
-        m_Device = AudioDevice::Create( description );
+        mDevice = AudioDevice::Create( description );
 
-        if (m_Device) {
-            m_Device->Init();
+        if (mDevice) {
+            mDevice->Init();
         }
 
         // Initialize default listeners
-        for ( Size index{}; index < description.MaxListenersCount; ++index ) {
-            m_Listeners.emplace_back( index, 0.0f, 0.0f, 0.0f );
+        for ( i32 index{}; index < description.mMaxListeners; ++index ) {
+            mListeners.emplace_back( index, 0.0f, 0.0f, 0.0f );
         }
 
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto AudioService::CreateListener() -> AudioListener * {
-        MKT_ASSERT( m_CurrentAllocationCount < m_Listeners.size(), "Reached max number of listeners" );
-        return MKT_ADDRESSOF( m_Listeners[m_CurrentAllocationCount++] );
+        MKT_ASSERT( mCurrentAllocationCount < mListeners.size(), "Reached max number of listeners" );
+        return MKT_ADDRESSOF( mListeners[mCurrentAllocationCount++] );
     }
 
     auto AudioService::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if (!m_IsInitialized) {
+        if (!mIsInitialized) {
             return;
         }
 
@@ -66,8 +71,7 @@ namespace Mikoto {
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down AudioService..." );
 
-        m_Device->Shutdown();
-        m_Device = nullptr;
+        mDevice->Shutdown();
+        mDevice.reset();
     }
-
 }// namespace Mikoto

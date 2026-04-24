@@ -15,148 +15,178 @@
 #ifndef MIKOTO_MODEL_HH
 #define MIKOTO_MODEL_HH
 
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Common.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
+#include <Animation/SkinnedAnimation.hh>
+
+#include <Filesystem/File.hh>
+
 #include <Material/PhysicalMaterial.hh>
-#include <Material/Texture2D.hh>
-#include <Renderer/Core/Buffer.hh>
-#include <cstdint>
-#include <filesystem>
-#include <string>
-#include <string_view>
-#include <vector>
 
-#include "Animation/SkinnedAnimation.hh"
+#include <Renderer/Core/Rhi.hh>
 
-namespace Mikoto {
+namespace mikoto::asset {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer;
+    using namespace mikoto::material;
+    using namespace mikoto::animation;
+    using namespace mikoto::filesystem;
+    using namespace mikoto::renderer::rhi;
+
+    using AnimationList = ankerl::unordered_dense::map<eastl::string, animation::SkinnedAnimation>;
 
     enum class VertexAttribute {
-        POSITIONS,
-        NORMALS,
-        TANGENTS,
-        BITANGENTS,
-        UV0,
-        UV1,
-        COLORS,
-        JOINTS,
-        WEIGHTS,
-
-        CUSTOM,
+        ePositions,
+        eNormals,
+        eTangents,
+        eBitangents,
+        eUV0,
+        eUV1,
+        eColors,
+        eJoints,
+        eWeights,
     };
 
     struct ModelLoadDescription {
-        const File* ModelFile{};
-        bool WantTextures{ true };
-
-        GraphicsAPI TargetAPI{ GraphicsAPI::UNKNOWN };
+        FileHandle mFile{};
+        GraphicsAPI mApi{ GraphicsAPI::eInvalid };
+        bool mExtractTextures{ true };
 
         // Specifies the order we want attributes in
         // Default is order specified by DEFAULT_VERTEX_BUFFER_LAYOUT in Pipeline.hh file
-        std::vector<VertexAttribute> Attributes{
-            VertexAttribute::POSITIONS,
-            VertexAttribute::NORMALS,
-            VertexAttribute::COLORS,
-            VertexAttribute::UV0,
-            VertexAttribute::UV1,
+        eastl::vector<VertexAttribute> mAttributes{
+            VertexAttribute::ePositions,
+            VertexAttribute::eNormals,
+            VertexAttribute::eColors,
+            VertexAttribute::eUV0,
+            VertexAttribute::eUV1,
 
-            VertexAttribute::JOINTS, // Bone IDs
-            VertexAttribute::WEIGHTS, // Weight IDs
+            VertexAttribute::eJoints, // Bone IDs
+            VertexAttribute::eWeights, // Weight IDs
         };
 
         auto LoadTextures( bool value ) -> ModelLoadDescription&;
-        auto WithFilePath( const File* file ) -> ModelLoadDescription&;
+        auto WithFilePath( FileHandle file ) -> ModelLoadDescription&;
+    };
+
+    struct MeshCreateDescription {
+        BufferHandle mVertices{};
+        BufferHandle mIndices{};
+
+        float4x4 mTransform{};
+        eastl::string_view mName{};
+        MaterialProperties mProperties{};
+
+        auto SetName( eastl::string_view name ) -> MeshCreateDescription&;
+        auto SetTransform( const float4x4& t ) -> MeshCreateDescription&;
+        auto SetMaterial( const MaterialProperties& mat ) -> MeshCreateDescription&;
+        auto SetVertices( BufferHandle vertices ) -> MeshCreateDescription&;
+        auto SetIndices( BufferHandle indices ) -> MeshCreateDescription&;
     };
 
     class MeshNode final {
     public:
-        explicit MeshNode( UInt32 index,
-            BufferHandle vertices,
-            BufferHandle indices, std::string_view name,
-            MaterialProperties&& properties );
-
+        MeshNode( u32 index, const MeshCreateDescription& desc);
         MeshNode(MeshNode&& other) noexcept = default;
 
-        MKT_NODISCARD auto GetName() -> const std::string& { return m_Name; }
+        MKT_NODISCARD auto GetName() -> const eastl::string& { return mName; }
 
-        MKT_NODISCARD auto GetMeshIndex() const -> Size { return m_MeshIndex; }
-        MKT_NODISCARD auto GetVertexBuffer() -> BufferHandle { return  m_Vertices; }
-        MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return m_Indices; }
+        MKT_NODISCARD auto GetTransform() const -> const float4x4& { return mTransform; }
+        MKT_NODISCARD auto GetMeshIndex() const -> size_t { return mMeshIndex; }
+        MKT_NODISCARD auto GetVertexBuffer() -> BufferHandle { return  mVertices; }
+        MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return mIndices; }
 
-        MKT_NODISCARD auto GetVertexBuffer() const -> BufferHandle { return m_Vertices; }
-        MKT_NODISCARD auto GetIndexBuffer() const -> BufferHandle { return m_Indices; }
+        MKT_NODISCARD auto GetVertexBuffer() const -> BufferHandle { return mVertices; }
+        MKT_NODISCARD auto GetIndexBuffer() const -> BufferHandle { return mIndices; }
 
-        MKT_NODISCARD auto GetProperties() const -> const MaterialProperties& { return m_Properties; }
+        MKT_NODISCARD auto GetProperties() const -> const MaterialProperties& { return mProperties; }
 
         DISABLE_COPY_FOR( MeshNode );
 
     private:
-        Size m_MeshIndex{};
+        eastl::string mName{};
+        size_t mMeshIndex{};
 
-        std::string m_Name{};
+        BufferHandle mIndices{};
+        BufferHandle mVertices{};
 
-        BufferHandle m_Vertices{};
-        BufferHandle m_Indices{};
+        MaterialProperties mProperties{};
 
-        MaterialProperties m_Properties{};
+        float4x4 mTransform{ 1.0f }; // Identity by default
     };
 
-    using AnimationMap = ankerl::unordered_dense::map<std::string, SkinnedAnimation>;
+    struct ModelCreateDescription {
+        Path mPath{};
+        eastl::string mName{};
+
+        Skeleton mSceneSkeleton{};
+        AnimationList mAnimations{};
+        ankerl::unordered_dense::map<u32, MeshNode> mMeshes{};
+
+        auto SetPath(const Path& path) -> ModelCreateDescription&;
+        auto AddMesh(u32 index, const MeshCreateDescription& desc) -> ModelCreateDescription&;
+        auto SetName(eastl::string_view name) -> ModelCreateDescription&;
+        auto SetSkeleton(Skeleton&& skeleton) -> ModelCreateDescription&;
+        auto SetAnimations(AnimationList&& animations) -> ModelCreateDescription&;
+    };
 
     class Model final : public ReferenceCounted {
     public:
-        MKT_NODISCARD auto GetMeshNodeCount() const -> Size { return m_Meshes.size(); }
+        explicit Model( ModelCreateDescription&& desc )
+            : mPath{ eastl::move( desc.mPath ) },
+              mName{ eastl::move( desc.mName ) },
+              mSkeleton { eastl::move(desc.mSceneSkeleton) },
+              mAnimations{ eastl::move( desc.mAnimations ) },
+              mMeshes{ eastl::move( desc.mMeshes ) }
+        {}
 
-        MKT_NODISCARD auto GetMeshNode(const Size index) -> MeshNode& { return m_Meshes.at(index); }
+        MKT_NODISCARD auto GetMeshNodeCount() const -> size_t;
 
-        MKT_NODISCARD auto GetMeshNode(const Size index) const -> const MeshNode& { return m_Meshes.at(index); }
+        MKT_NODISCARD auto GetMeshNode( size_t index) -> MeshNode&;
+        MKT_NODISCARD auto GetMeshNode( size_t index) const -> const MeshNode&;
 
-        MKT_NODISCARD auto GetName() const -> const std::string& { return m_ModelName; }
-        MKT_NODISCARD auto GetDirectory() const -> const Path& { return m_ModelAbsolutePath; }
+        MKT_NODISCARD auto GetPath() const -> const Path&;
+        MKT_NODISCARD auto GetName() const -> eastl::string_view;
 
         MKT_NODISCARD auto IsSkinned() const -> bool;
+        MKT_NODISCARD auto HasArmature() const -> bool;
         MKT_NODISCARD auto HasAnimations() const -> bool;
 
         MKT_NODISCARD auto GetSkeleton() const -> const Skeleton&;
 
-        MKT_NODISCARD auto FindAnimation( std::string_view name ) -> SkinnedAnimation*;
-        MKT_NODISCARD auto FindAnimation( std::string_view name ) const -> const SkinnedAnimation*;
+        MKT_NODISCARD auto FindAnimation( eastl::string_view name ) -> SkinnedAnimation*;
+        MKT_NODISCARD auto FindAnimation( eastl::string_view name ) const -> const SkinnedAnimation*;
 
-        MKT_NODISCARD auto GetAnimations() -> AnimationMap&;
-        MKT_NODISCARD auto GetAnimations() const -> const AnimationMap&;
-
-        template<typename... Args>
-        auto PushMeshNode(UInt32 index, Args&&... args) -> void {
-            m_Meshes.emplace(index, std::forward<Args>(args)...);
-        }
-
-        auto SetAnimations(AnimationMap&& animations ) -> void;
+        MKT_NODISCARD auto GetAnimations() -> AnimationList&;
+        MKT_NODISCARD auto GetAnimations() const -> const AnimationList&;
 
         ~Model() override = default;
 
     private:
         DISABLE_COPY_AND_MOVE_FOR( Model );
 
-        Model( Path modelPath, Skeleton&& skeleton, AnimationMap&& animations )
-            : m_ModelName{ modelPath.filename().string() },
-              m_ModelAbsolutePath{ std::move( modelPath ) },
-              m_Skeleton { std::move(skeleton) },
-              m_Animations{ std::move( animations ) }
-        {}
-
     private:
         // Only the factory can construct models
         friend class MeshFactory;
 
     protected:
-        std::string m_ModelName{};
-        Path m_ModelAbsolutePath{};
+        Path mPath{};
+        eastl::string mName{};
+
+        // Skinning
+        Skeleton mSkeleton{};
+        AnimationList mAnimations{};
 
         // ( Mesh index, mesh node )
-        ankerl::unordered_dense::map<UInt32, MeshNode> m_Meshes{};
-
-        Skeleton m_Skeleton{};
-        AnimationMap m_Animations{};
+        ankerl::unordered_dense::map<u32, MeshNode> mMeshes{};
     };
 
     using ModelHandle = Ref<Model>;

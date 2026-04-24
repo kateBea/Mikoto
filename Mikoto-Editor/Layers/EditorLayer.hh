@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,64 +15,72 @@
 #ifndef MIKOTO_EDITOR_LAYER_HH
 #define MIKOTO_EDITOR_LAYER_HH
 
-#include <memory>
+#include <EASTL/memory.h>
+#include <EASTL/string.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/string_view.h>
 
 #include <ankerl/unordered_dense.h>
 
-#include <Assets/Model.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Event.hh>
+#include <Core/Registry.hh>
 #include <Core/LayerStack.hh>
-#include <ImGui/ImGuiUtility.hh>
-#include <Library/Data/Registry.hh>
-#include <Material/TextureCube.hh>
-#include <Panels/Panel.hh>
+
+#include <Assets/Model.hh>
+
 #include <Platform/Window.hh>
-#include <Scene/Entity.hh>
-#include <Scene/Scene.hh>
-#include <Scene/SceneCamera.hh>
-#include <Scene/SceneSerializer.hh>
+
+#include <Renderer/Core/Rhi.hh>
 #include <Renderer/Core/SceneRenderer.hh>
 
-namespace Mikoto {
+#include <Scene/Scene.hh>
+#include <Scene/Entity.hh>
+
+#include <Panels/Panel.hh>
+
+#include <Theme/Theme.hh>
+
+namespace mikoto::editor {
+
+    using namespace mikoto::core;
+    using namespace mikoto::scene;
+    using namespace mikoto::platform;
+    using namespace mikoto::renderer;
+
+    enum class PrefabModelType {
+        eCube,
+        eSphere,
+        eCone,
+        eCylinder,
+    };
+
+    enum class ScreenPresentTarget {
+        ePanels,
+        eFinalImage
+    };
 
     struct EditorState {
-        Entity* SelectedEntity{};
-        ankerl::unordered_dense::set<Entity*> SelectedEntities{};
+        Scene* mActiveScene{};
+        Entity *mSelectedEntity{};
+        SceneCamera* mActiveCamera{};
+        SceneRenderer *mSceneRenderer{};
 
-        // Used when scene is not simulating
-        Scene* ActiveEditorScene{};
-        SceneCamera* EditorCamera{};
-        SceneRenderer* EditorSceneRenderer{};
+        Theme* mActiveTheme{};
 
-        // The final composition from the scene renderer
-        TextureHandle FinalComposition{};
+        // Image that will be used for presentation
+        TextureHandle mFinalComposition{};
 
-        // Pass name and output value
-        ankerl::unordered_dense::map<std::string, TextureHandle> PassesCompositions{};
+        // List of prefab models
+        ankerl::unordered_dense::map<PrefabModelType, ModelHandle> mPrefabPaths{};
 
-        // Editor specifies which texture gets rendered on the window
-        TextureHandle RenderImage{};
-
-        ImGuiUtils::GuizmoManipulationMode Manipulation{ ImGuiUtils::GuizmoManipulationMode::TRANSLATION };
-
-        bool ApplicationCloseFlag{ true };
-        bool ShowHeatMap{ false };
-        bool ShowWireframe{ false };
-
-        MKT_NODISCARD auto IsEntityAnySelected() const -> bool;
-        MKT_NODISCARD auto IsEntitySelected(Entity* entity) const -> bool;
-        MKT_NODISCARD auto GetSelectedEntity() const -> Entity*;
-        MKT_NODISCARD auto GetSelectedEntities() const -> const ankerl::unordered_dense::set<Entity*>&;
-
-        auto RegisterSelection(Entity* entity) -> void;
-        auto RegisterSelections(const std::vector<Entity*>& list) -> void;
-
-        auto RemoveSingleSelection() -> void;
-        auto RemoveSelections(const std::vector<Entity *> &list) -> void;
+        MKT_NODISCARD auto GetPrefab( PrefabModelType model ) -> ModelHandle;
     };
 
     class EditorLayer final : public ILayer {
     public:
-        explicit EditorLayer(Window* window);
+        explicit EditorLayer( Window* window);
 
         auto OnCreate() -> void override;
         auto OnDestroy() -> void override;
@@ -81,64 +89,33 @@ namespace Mikoto {
         auto OnEvent(Event &event) -> void override;
 
     private:
-        auto UpdatePanels(float timeStep) -> void;
+        auto InitAssets() -> void;
+        auto InitEditorState() -> void;
+        auto InitSceneRenderer() -> void;
+        auto InitEditorCamera() -> void;
+        auto InitEditorPanels() -> void;
+        auto InitDockingSpace() -> void;
 
-        auto SaveScene() const -> void;
-        auto LoadScene() -> void;
-        auto InitializeEmptyScene(std::string_view name) -> void;
+        auto InitEmptyScene() -> void;
 
-        auto SaveProject() -> void;
-        auto OpenProject() -> void;
-        auto CreateProject() -> void;
+        auto ShowDockSpace() -> void;
+        auto ShowDockSpacePanels( float ts ) -> void;
 
-        auto CreatePanels() -> void;
-        auto CreateCameras() -> void;
-        auto HandleWindowScreenMode() const -> void;
-        auto SetRendererResolution() const -> void;
-        auto UpdateDockSpace() -> void;
+        auto RenderScene( float ts ) -> void;
 
-        auto PrepareNewScene() -> void;
-
-        auto PrepareRenderer(double timeStep) -> void;
-        auto PrepareCamera(double timeStep) -> void;
-        auto PreparePreviewTargets() -> void;
-
-        auto SetupRenderer() -> void ;
-        auto SetupEditorState() -> void ;
-        auto SetupPresentTarget(Event& event) -> void;
-
-        auto LoadResources() -> void;
-
-        auto SetPresentTarget() -> void;
-
-        auto SimpleScene() -> void;
-        auto DebugManyLightsTest() -> void;
-        auto DebugInstancingTest() -> void;
-        auto DebugSpheresProperties() -> void;
-
-        auto DebugDamagedHelmet() -> void;
+        auto UpdateSceneState( float ts ) -> void;
+        auto UpdateCameraState( float ts  ) -> void;
+        auto UpdateRendererState( float ts  ) -> void;
 
     private:
-        enum class RenderScreenTarget { WINDOW, PANEL };
+        Window* mWindow{};
+        Registry<Panel> mPanelRegistry{};
 
-    private:
-        Unique<EditorState> m_EditorState{};
+        eastl::unique_ptr<EditorState> mEditorState{};
+        eastl::unique_ptr<SceneCamera> mEditorCamera{};
+        eastl::unique_ptr<SceneRenderer> mSceneRenderer{};
 
-        Window* m_Window{ nullptr };
-
-        Path m_ModelsRootDirectory{};
-        Path m_FontsRootDirectory{};
-
-        Scene* m_ActiveScene{};
-        Unique<SceneRenderer> m_SceneRenderer{};
-
-        TextureHandle m_TextureCubeMap{};
-
-        Unique<SceneCamera> m_EditorCamera{};
-
-        Registry<Panel> m_PanelRegistry{};
-
-        RenderScreenTarget m_RenderScreenTarget{ RenderScreenTarget::PANEL };
+        ScreenPresentTarget mScreenPresentTarget{ ScreenPresentTarget::ePanels };
     };
 }
 

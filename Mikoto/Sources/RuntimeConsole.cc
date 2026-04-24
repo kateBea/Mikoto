@@ -12,141 +12,169 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <string>
 #include <sstream>
 
-#include <fmt/format.h>
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
+#include <EASTL/utility.h>
+#include <EASTL/string_view.h>
+#include <EASTL/functional.h>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Core/Profiler.hh>
+#include <Core/ExecuteProcess.hh>
 #include <Core/RuntimeConsole.hh>
+
 #include <Threading/TaskService.hh>
 
-#include "Core/ExecuteProcess.hh"
+namespace mikoto::core {
 
-namespace Mikoto {
+    RuntimeConsole::RuntimeConsole( const RuntimeConsoleCreateInfo&  )
+    {}
 
-    RuntimeConsole::RuntimeConsole( const ConsoleManagerCreateInfo& createInfo )
-        : m_Name( createInfo.Name ) {
-    }
-
-    auto RuntimeConsole::Init() -> void {
+    auto RuntimeConsole::Initialize() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        AddLog( { ConsoleLogLevel::CONSOLE_INFO, "RuntimeConsole initialized." } );
+        AddLog( { ConsoleLogLevel::eInfo, "RuntimeConsole initialized." } );
 
-        RegisterCommand("echo", "Prints a message to the console",
-                []( const std::vector<std::string>& args ) {
-                    std::string msg;
-                    for ( auto& arg: args ) msg += arg + " ";
-                    Get()->AddLog( { ConsoleLogLevel::CONSOLE_INFO, msg } );
-                } );
+        RegisterDefaultCommands();
 
-        RegisterCommand( "/", "Executes an external system command", []( const std::vector<std::string>& args ) {
-            if ( args.empty() ) {
-                Get()->AddLog( { ConsoleLogLevel::CONSOLE_WARNING, "Usage: /<command> [ARGS]" } );
-                return;
-            }
-
-            std::string cmd;
-            for ( const auto& arg: args ) {
-                cmd += arg + " ";
-            }
-
-            Get()->AddLog( { ConsoleLogLevel::CONSOLE_DEBUG, "Running command: " + cmd } );
-
-            ExecuteProcess::RunAsync( cmd, []( const std::string& line ) {
-                // Push each line into the console output
-                Get()->AddLog( { ConsoleLogLevel::CONSOLE_INFO, line } );
-            } );
-        } );
-
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto RuntimeConsole::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        AddLog( { ConsoleLogLevel::CONSOLE_INFO, "RuntimeConsole shutting down." } );
-        m_Commands.clear();
-        m_LogEntries.clear();
-        m_IsInitialized = false;
+        if (!mIsInitialized) {
+            return;
+        }
+
+        MKT_CORE_LOGGER_DEBUG( "Shutting down RuntimeConsole" );
+
+        AddLog( { ConsoleLogLevel::eInfo, "RuntimeConsole Shutting down." } );
+
+        mRegisteredCommands.clear();
+        mLogEntries.clear();
+        mIsInitialized = false;
     }
 
     auto RuntimeConsole::RegisterCommand(
-            const std::string& name,
-            const std::string& desc,
-            std::function<void( const std::vector<std::string>& )> callback ) -> void {
-        m_Commands[name] = { name, desc, std::move( callback ) };
+            const eastl::string& name,
+            const eastl::string& desc,
+            eastl::function<void( const eastl::vector<eastl::string>& )> callback ) -> void {
+        std::lock_guard lock{ mCommandRegisterMutex };
+        mRegisteredCommands[name] = { name, desc, eastl::move( callback ) };
     }
 
-    auto RuntimeConsole::ExecuteCommand( const std::string& input ) -> void {
+    auto RuntimeConsole::ExecuteCommand( const eastl::string& input ) -> void {
         // TODO: Figure out a better way to do this
         // The way to run an external command is /command_name (No space!)
 
-        std::string command{ input };
-
-        if ( input.starts_with( "/" ) ) {
-            command = fmt::format( "/ {}", input.substr( input.find( '/' ) + 1, input.length() ) );
+        eastl::string command{ input };
+        if ( string::StartsWith(input, "/" ) ) {
+            command = string::Format( "/ {}", input.substr( input.find( '/' ) + 1, input.length() ) );
         }
 
-        std::string cmd{};
-        std::istringstream iss{ command };
+        std::istringstream iss{ command.c_str() };
 
         // First word or group of letters is the command
-        iss >> cmd;
+        std::string stdCmd{};
+        iss >> stdCmd;
+
+        eastl::string cmd{ stdCmd.c_str() };
+
+        eastl::vector<eastl::string> args{};
 
         std::string arg{};
-        std::vector<std::string> args{};
-
         while ( iss >> arg )
-            args.push_back( arg );
+            args.push_back( arg.c_str() );
 
         // Find the command in the list of commands and run it
         // with the set of parameters
-        auto it{ m_Commands.find( cmd ) };
-        if ( it != m_Commands.end() ) {
-            it->second.Callback( args );
+        auto it{ mRegisteredCommands.find( cmd ) };
+        if ( it != mRegisteredCommands.end() ) {
+            it->second.mCallback( args );
         } else {
-            AddLog( { ConsoleLogLevel::CONSOLE_WARNING, "Unknown command: " + cmd } );
+            AddLog( { ConsoleLogLevel::eWarning, string::Format( "Unknown command: {}", cmd ) } );
         }
     }
 
-    auto RuntimeConsole::Error( std::string_view message ) -> void {
-        AddLog( ConsoleLogLevel::CONSOLE_ERROR, message );
+    auto RuntimeConsole::Error( eastl::string_view message ) -> void {
+        AddLog( ConsoleLogLevel::eError, message );
     }
 
-    auto RuntimeConsole::Info( std::string_view message ) -> void {
-        AddLog( ConsoleLogLevel::CONSOLE_INFO, message );
+    auto RuntimeConsole::Info( eastl::string_view message ) -> void {
+        AddLog( ConsoleLogLevel::eInfo, message );
     }
 
-    auto RuntimeConsole::Debug( std::string_view message ) -> void {
-        AddLog( ConsoleLogLevel::CONSOLE_DEBUG, message );
+    auto RuntimeConsole::Debug( eastl::string_view message ) -> void {
+        AddLog( ConsoleLogLevel::eDebug, message );
     }
 
-    auto RuntimeConsole::Warning( std::string_view message ) -> void {
-        AddLog( ConsoleLogLevel::CONSOLE_WARNING, message );
+    auto RuntimeConsole::Warning( eastl::string_view message ) -> void {
+        AddLog( ConsoleLogLevel::eWarning, message );
     }
 
     auto RuntimeConsole::AddLog( ConsoleMessage message ) -> void {
-        std::string prefix;
+        eastl::string prefix{};
+
         switch ( message.Level ) {
-            case ConsoleLogLevel::CONSOLE_ERROR:
+            case ConsoleLogLevel::eError:
                 prefix = "[ERROR] ";
                 break;
-            case ConsoleLogLevel::CONSOLE_WARNING:
+            case ConsoleLogLevel::eWarning:
                 prefix = "[WARN] ";
                 break;
-            case ConsoleLogLevel::CONSOLE_INFO:
+            case ConsoleLogLevel::eInfo:
                 prefix = "[INFO] ";
                 break;
-            case ConsoleLogLevel::CONSOLE_DEBUG:
+            case ConsoleLogLevel::eDebug:
                 prefix = "[DEBUG] ";
                 break;
         }
-        m_LogEntries.emplace_back( prefix + message.Message );
+
+        mLogEntries.emplace_back( prefix.append( message.mMessage ) );
     }
 
-    auto RuntimeConsole::AddLog( const ConsoleLogLevel level, const std::string_view message ) -> void {
+    auto RuntimeConsole::AddLog( const ConsoleLogLevel level, const eastl::string_view message ) -> void {
         AddLog( ConsoleMessage{ level, message.data() } );
     }
 
+    auto RuntimeConsole::GetLogs() const -> const eastl::vector<eastl::string>& {
+        return mLogEntries;
+    }
+
+    auto RuntimeConsole::RegisterDefaultCommands() -> void {
+        RegisterCommand("echo", "Prints a message to the console",
+            []( const eastl::vector<eastl::string>& args ) {
+                eastl::string msg{};
+                for ( auto& arg: args ) {
+                    msg += string::Format( "{} ", arg);
+                }
+
+                Get()->AddLog( { ConsoleLogLevel::eInfo, msg } );
+            } );
+
+        RegisterCommand( "/", "Executes an external system command", []( const eastl::vector<eastl::string>& args ) {
+            if ( args.empty() ) {
+                Get()->AddLog( { ConsoleLogLevel::eWarning, "Usage: /<command> [ARGS]" } );
+                return;
+            }
+
+            // Pack arguments for the command
+            eastl::string cmd{};
+            for ( const auto& arg: args ) {
+                cmd += arg + " ";
+            }
+
+            // Submit for execution
+            Get()->AddLog( { ConsoleLogLevel::eDebug, "Running command: " + cmd } );
+            process::RunAsync( cmd, []( const eastl::string& line ) {
+                Get()->AddLog( { ConsoleLogLevel::eInfo, line } );
+            } );
+        } );
+    }
 }// namespace Mikoto

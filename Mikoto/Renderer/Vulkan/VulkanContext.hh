@@ -1,132 +1,95 @@
-/**
- * VulkanContext.hh
- * Created by kate on 7/3/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_VULKAN_CONTEXT_HH
 #define MIKOTO_VULKAN_CONTEXT_HH
 
-// C++ Standard Library
-#include <any>
-#include <vector>
-
-// Third-Party Libraries
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
-// Project Headers
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+#include <EASTL/vector.h>
 
-#include <Renderer/Core/RenderService.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
-#include <Renderer/Vulkan/VulkanTexture.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
-namespace Mikoto {
+#include <Renderer/Core/RenderContext.hh>
 
-    struct VulkanContextData {
-        VkInstance Instance{};
-        VkSurfaceKHR Surface{};
-        VmaVulkanFunctions VulkanVMAFunctions{};
-        VkDebugUtilsMessengerEXT DebugMessenger{};
+#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanInstance.hh>
+#include <Renderer/Vulkan/VulkanSwapchain.hh>
 
-        UInt32 ApiVersion{};
 
-        bool VOLKInitSuccess{};
+namespace mikoto::renderer::vulkan {
 
-        const bool EnableValidationLayers{};
-        std::vector<const char*> ValidationLayers{};
-        std::vector<const char*> InstanceExtensions{};
-    };
-
-    class VulkanContext final : public RenderContext, public Singleton<VulkanContext> {
+    // Reference: https://github.com/nvpro-samples/vk_minimal_latest
+    class Context final : public RenderContext, public Singleton<Context> {
     public:
-        explicit VulkanContext(const RenderContextCreateInfo& createInfo)
-            :  RenderContext{ createInfo }
-        { }
+        explicit Context( const RenderContextCreateInfo& createInfo )
+            : RenderContext{ createInfo } {}
 
         auto Init() -> bool override;
         auto Shutdown() -> void override;
 
-        auto SetPresentTarget(TextureHandle texture) -> void override;
+        auto SetRefreshRate( RefreshRate rate ) -> void override;
+        auto SetPresentTarget( TextureHandle texture ) -> void override;
 
+        auto Present() -> void override;
         auto SubmitFrame() -> void override;
         auto PrepareFrame() -> void override;
 
         auto Update() -> void override;
 
-        auto EnableVSync() -> void override;
-        auto DisableVSync() -> void override;
+        // Vulkan Specifics
+        MKT_NODISCARD auto GetMaxFramesInFlight() const -> u32;
+        MKT_NODISCARD auto GetCurrentImageIndex() const -> u32;
+        MKT_NODISCARD auto GetCurrentFrameIndex() const -> u32;
 
-        MKT_NODISCARD auto IsVsyncEnabled() const -> bool override;
+        MKT_NODISCARD auto GetInstance() -> Instance&;
+        MKT_NODISCARD auto GetInstance() const -> const Instance&;
 
-        auto Present() -> void override;
+        MKT_NODISCARD auto GetSwapchain() -> SwapChainHandle;
 
-        MKT_NODISCARD auto GetMaxFramesInFlight() const -> UInt32 { return m_MaxFramesInFlight; }
-
-        MKT_NODISCARD auto GetCurrentImageIndex() const -> UInt32 { return m_CurrentImageIndex; }
-        MKT_NODISCARD auto GetCurrentFrameIndex() const -> UInt32 { return m_CurrentFrameIndex; }
-
-        // [General getters]
-        MKT_NODISCARD auto GetSurface() const -> const VkSurfaceKHR& { return m_VulkanData.Surface; }
-
-        MKT_NODISCARD auto GetInstance() const -> const VkInstance& { return m_VulkanData.Instance; }
-        MKT_NODISCARD auto GetInstance() -> VkInstance& { return m_VulkanData.Instance; }
-
-        MKT_NODISCARD auto GetSwapchain() -> SwapChainHandle { return m_Swapchain; }
-
-        MKT_NODISCARD auto GetApiVersion() const -> UInt32 { return m_VulkanData.ApiVersion; }
-
-        MKT_NODISCARD auto GetValidationLayers() const -> const std::vector<const char*>& { return m_VulkanData.ValidationLayers; }
-        MKT_NODISCARD auto GetVMAFunctions() const -> const VmaVulkanFunctions& { return m_VulkanData.VulkanVMAFunctions; }
+        MKT_NODISCARD auto GetApiVersion() const -> u32;
 
     private:
-        auto InitVolk() -> void;
-
         auto CreateSwapchain() -> void;
-
-        auto CreateSurface() -> void;
-        auto CreateInstance() -> void;
-        auto CreateDebugMessenger() -> void;
-        auto CreateSynchronizationPrimitives() -> void;
-
-        auto RecreateSwapchain( bool enableVsync = false) -> void;
-
-        auto SwitchSyncMode( bool enable ) -> void;
-        MKT_NODISCARD auto CheckValidationLayerSupport() const -> bool;
+        auto PrepareSynchronization() -> void;
 
     private:
+        static constexpr u32 kVersionMajor{ 1 };
+        static constexpr u32 kVersionMinor{ 3 };
+        static constexpr u32 kVersionPatch{ 0 };
 
-        TextureHandle m_PresentTarget{};
-        SwapChainHandle m_Swapchain{};
+        static constexpr u32 kMaxFramesInFlight{ 3 };
+
+        TextureHandle mPresentTarget{};
+        SwapChainHandle mSwapchain{};
 
         // Current frame
-        UInt32 m_CurrentFrameIndex{};
+        u32 mCurrentFrameIndex{};
+        u32 mCurrentImageIndex{};
+        u32 mMaxFramesInFlight{};
 
-        // Current swapchain image we can render to
-        // which is set at the start of every frame via PrepareFrame
-        UInt32 m_CurrentImageIndex{};
-        std::vector<FrameSynchronizationPrimitives> m_FrameSyncPrimitives{};
+        eastl::unique_ptr<Instance> mInstance{};
 
-        UInt32 m_MaxFramesInFlight{};
-
-        VulkanContextData m_VulkanData{
-            .Instance{},
-            .Surface{},
-            .DebugMessenger{},
-            .VOLKInitSuccess{},
-#if defined( NDEBUG )
-            // Disable validation layers for non-debug builds
-            .EnableValidationLayers{ false },
-#else
-            .EnableValidationLayers{ true },
-#endif
-            .ValidationLayers{ "VK_LAYER_KHRONOS_validation" },
-            .InstanceExtensions{ VK_EXT_DEBUG_UTILS_EXTENSION_NAME }
+        struct FrameContext {
+            BinarySemaphore mImageAvailableSemaphore{};
+            BinarySemaphore mRenderFinishedSemaphore{};
         };
+
+        eastl::vector<FrameContext> mFrames{};
     };
+}// namespace mikoto::renderer::vulkan
 
-#define MKT_VK_CTX(RENDER_CONTEXT_PTR) dynamic_cast<VulkanContext*>(RENDER_CONTEXT_PTR)
-}
-
-#endif // MIKOTO_VULKAN_CONTEXT_HH
+#endif// MIKOTO_VULKAN_CONTEXT_HH

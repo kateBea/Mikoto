@@ -13,9 +13,11 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 
-[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
-RWStructuredBuffer<uint, ScalarDataLayout> OutputBuffer;
+using namespace mikoto;
+
+MKT_DECLARE_RW_STRUCTURED_BUFFERS sBuffers;
 
 bool IsPrime(uint n) {
     if (n < 2) return false;
@@ -30,13 +32,32 @@ bool IsPrime(uint n) {
     return true;
 }
 
+struct MyStruct {
+    int x;
+    int y;
+    int z;
+};
+
+struct ShaderParameters {
+    int BufferID;
+};
+
+MKT_DECLARE_PUSH_CONSTANT
+ShaderParameters uParams;
+
 [numthreads(64, 1, 1)]
 [shader("compute")]
 void main(uint3 gid: SV_DispatchThreadID) {
-    uint idx = gid.x;
+    MyStruct s;
+    s.x = 1;
+    s.y = 1;
+    s.z = 1;
 
-    if (IsPrime(idx))
-        OutputBuffer[idx] = idx;
-    else
-        OutputBuffer[idx] = 0;
+#ifdef MKT_SUPPORT_D3D11
+    // Nee to handle properly bufferID must be a constant expression known at compile time
+    memory::WriteData<MyStruct>(sBuffers, 0, 0, 5, s);
+#else
+    memory::WriteData<MyStruct>(sBuffers, uParams.BufferID, 0, 5, s);
+#endif
+
 }

@@ -12,62 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include <filesystem>
+
+#include <portable-file-dialogs.h>
 
 #include <Core/Platform.hh>
 #include <Filesystem/FileSystem.hh>
 
+#include <Logging/Logger.hh>
+
 #if defined( MIKOTO_PLATFORM_WINDOWS )
+#include <Platform/PlatformWin32.hh>
 #include <windows.h>
 #include <shlobj.h>
 #endif
 
-namespace Mikoto {
+namespace mikoto {
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
-    auto OpenAndSelectFile( const std::wstring &filePath ) -> void {
-        PIDLIST_ABSOLUTE pidl{ ILCreateFromPathW( filePath.c_str() ) };
-        if ( pidl ) {
-            SHOpenFolderAndSelectItems( pidl, 0, nullptr, 0 );
-            ILFree( pidl );
-        }
-    }
-#endif
+     auto OpenAndSelectFile( const std::wstring &filePath ) -> void {
+         PIDLIST_ABSOLUTE pidl{ ILCreateFromPathW( filePath.c_str() ) };
+         if ( pidl ) {
+             SHOpenFolderAndSelectItems( pidl, 0, nullptr, 0 );
+             ILFree( pidl );
+         }
+     }
+ #endif
 
-    auto Filesystem::StripFileName( std::string_view path ) -> std::string {
-        Path rootPath{ path };
-        rootPath.remove_filename();
+     auto filesystem::GetGetAbsolutePath( std::string_view path ) -> Path {
+         Path absolutePath{ std::filesystem::absolute( path ) };
+         return absolutePath;
+     }
 
-        return rootPath.string();
-    }
-
-    auto Filesystem::GetProcessPath() -> Path {
-        return std::filesystem::current_path();
-    }
-
-    auto Filesystem::GetGetAbsolutePath( std::string_view path ) -> Path {
-        Path absolutePath{ std::filesystem::absolute( path ) };
-
-        return absolutePath;
-    }
-
-    auto Filesystem::GetGetAbsolutePath( const Path &path ) -> Path {
-        Path absolutePath{ std::filesystem::absolute( path ) };
-        return absolutePath;
-    }
-
-    auto Filesystem::GetGetAbsolutePathString( std::string_view path ) -> std::string {
-        return GetGetAbsolutePath(path).string();
-    }
-
-    auto Filesystem::GetGetAbsolutePathString( const Path &path ) -> std::string {
-        return GetGetAbsolutePath(path).string();
-    }
-
-    auto Filesystem::CreateIfNotExistsDirectory( const Path &path ) -> bool {
+    auto filesystem::CreateIfNotExistsDirectory( const Path &path ) -> bool {
         std::error_code ec{};
-        const bool created{ std::filesystem::create_directories(path, ec) };
+        const bool created{ std::filesystem::create_directories(path.GetPathTyped<std::string>(), ec) };
 
         if (ec) {
             return false;
@@ -76,13 +55,27 @@ namespace Mikoto {
         return created;
     }
 
-    auto Filesystem::OpenInExplorer( const Path &path ) -> void {
+    //     auto filesystem::Notify( std::string_view message ) -> void {
+//         // Check that a backend is available
+//         if (!pfd::settings::available()) {
+//             MKT_CORE_LOGGER_ERROR( "Portable File Dialogs are not available on this platform." );
+//         }
+//
+//         // Set verbosity to true
+//         pfd::settings::verbose(true);
+//
+//         pfd::notify("Important Notification",
+//                 "This is ' a message, pay \" attention \\ to it!",
+//                 pfd::icon::info);
+//     }
+//
+    auto filesystem::OpenInExplorer( const Path &path ) -> void {
 #if defined( MIKOTO_PLATFORM_WINDOWS )
-        if ( std::filesystem::is_regular_file( path ) ) {
-            OpenAndSelectFile(path.wstring());
+        if ( std::filesystem::is_regular_file( path.GetPathTyped<std::filesystem::path>() ) ) {
+            //OpenAndSelectFile( path.GetPathTyped<std::wstring>() );
         } else {
-            std::wstring widePath{ path.wstring() };
-            ShellExecuteW( nullptr, L"open", widePath.c_str(), nullptr, nullptr, SW_SHOWDEFAULT );
+            //std::wstring widePath{ path.GetPathTyped<std::wstring>() };
+            //ShellExecuteW( nullptr, L"open", widePath.c_str(), nullptr, nullptr, SW_SHOWDEFAULT );
         }
 #endif
     }

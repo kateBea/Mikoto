@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,29 +15,39 @@
 #ifndef MIKOTO_SCRIPTING_SERVICE_HH
 #define MIKOTO_SCRIPTING_SERVICE_HH
 
-#include <sol/sol.hpp>
+#include <EASTL/vector.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Subsystem.hh>
-#include <Common/Singleton.hh>
+#include <sol/sol.hpp>
 
-#include <Library/Data/Registry.hh>
-#include <Library/Data/ResourcePool.hh>
+#include <Core/Registry.hh>
+#include <Core/Singleton.hh>
+#include <Core/Subsystem.hh>
+#include <Core/ResourcePool.hh>
 
 #include <Scene/Entity.hh>
 
 #include <Scripting/Script.hh>
 #include <Scripting/ScriptingBinding.hh>
 
-namespace Mikoto {
+namespace mikoto::scripting {
+
+    using namespace mikoto::core;
+    using namespace mikoto::scene;
+    using namespace mikoto::filesystem;
+
     struct ScriptingServiceDescription {
+        Path mScriptBasePath{};
     };
 
-    class ScriptingService final : public Subsystem, public Singleton<ScriptingService> {
+    class ScriptingService final : public ISubsystem, public Singleton<ScriptingService> {
     public:
         explicit ScriptingService( const ScriptingServiceDescription& config );
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         auto Update(float timeStep) -> void override;
@@ -51,14 +61,12 @@ namespace Mikoto {
         auto InitBindings() -> void;
 
     private:
-        sol::state m_LuaState{};
+        sol::state mLuaState{};
 
-        const Path m_ScriptsDirectory{ "Assets/Scripts" };
+        Path mBasePath{};
 
-        Registry<ScriptingBinding> m_Bindings{};
-        ResourcePoolTyped<Script> m_ScriptPool{};
-
-        ankerl::unordered_dense::map<std::string, std::vector<ScriptHandle>> m_Scripts{};
+        Registry<ScriptingBinding> mBindings{};
+        ResourcePoolTyped<Script> mScriptPool{};
     };
 }
 

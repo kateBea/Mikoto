@@ -15,35 +15,34 @@
 #ifndef MIKOTO_POST_PROCESS_MATERIAL_HH
 #define MIKOTO_POST_PROCESS_MATERIAL_HH
 
-#include <string_view>
+#include <EASTL/string_view.h>
 
-#include <Assets/Texture.hh>
-#include <Common/Common.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
 #include <Material/Material.hh>
-#include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Core/Rhi.hh>
 
-namespace Mikoto {
+namespace mikoto::material {
+
+    using namespace mikoto::renderer;
 
     // This will be used for effects applied on top of an image, usually the final image but we can specify the target image this is applied on
     // a good example is the chromatic aberration effect, takes as input the final HDR shading image
     class PostProcessMaterial final : public Material {
     public:
 
-        explicit PostProcessMaterial( std::string_view name = "PostProcessMaterial" );
+        explicit PostProcessMaterial( eastl::string_view name = "PostProcessMaterial" );
 
-        auto SetTargetImage(TextureHandle handle) -> void;
+        auto SetTargetImage(rhi::TextureHandle handle) -> void;
 
-        MKT_NODISCARD auto GetTargetImage() -> TextureHandle;
+        MKT_NODISCARD auto GetTargetImage() -> rhi::TextureHandle;
 
         ~PostProcessMaterial() override;
 
     private:
-        auto Initialize() -> void override;
-        auto Release() -> void override;
-
-    private:
         // Post process is applied on top of an image
-        TextureHandle m_TargetTexture{};
+        rhi::TextureHandle mTargetTexture{};
     };
 
 }// namespace Mikoto

@@ -1,53 +1,41 @@
+//    Copyright 2026 ケイト
 //
-// Created by zanet on 1/6/2026.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-
-
-#include <array>
-#include <string_view>
-#include <typeinfo>
-
-// Third-Party Libraries
-#include "imgui.h"
-
-// Project Headers
-#include <ImGui/IconsMaterialDesign.h>
-
-#include <Core/SystemStats.hh>
-#include <Core/TimeService.hh>
-#include <ImGui/ImGuiUtility.hh>
-#include <Layers/EditorLayer.hh>
-#include <Renderer/Core/RenderService.hh>
-#include <Renderer/Passes/IBLPasses.hh>
-#include <Renderer/Passes/ClusteredShading.hh>
-#include <Renderer/Passes/ClusteredShading.hh>
-
-#include <Panels/LightingDebugPanel.hh>
-
-#include <Scene/Component.hh>
-
-namespace Mikoto {
-
-    LightingDebugPanel::LightingDebugPanel( const LightingDebugPanelCreateInfo &info )
-        : Panel{ "Lighting Debug" }, m_EditorState{ info.State } {
-        m_PanelHeaderName = ImGuiUtils::MakePanelName( ICON_MD_TABLE_CHART, m_PanelName );
-    }
-
-    auto LightingDebugPanel::OnUpdate( float timeStep ) -> void {
-        // Display info about clustered forward
-        // this is mainly a debug pass
-        if (!m_PanelIsVisible) {
-            return;
-        }
-
-        constexpr ImGuiWindowFlags flags{ ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize };
-        ImGui::Begin( m_PanelHeaderName.c_str(), &m_PanelIsVisible, flags);
-
-        DisplaySelectedLightProperties();
-
-        ImGui::End();
-    }
-
-    auto LightingDebugPanel::DisplaySelectedLightProperties() const -> void {
-    }
-}
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// #include <imgui.h>
+//
+// #include <ImGui/IconsMaterialDesign.h>
+//
+// #include <ImGui/ImGuiUtility.hh>
+// #include <Layers/EditorLayer.hh>
+// #include <Panels/LightingDebugPanel.hh>
+//
+// namespace mikoto::editor {
+//
+//     LightingDebugPanel::LightingDebugPanel( const LightingDebugPanelCreateInfo &info )
+//         : Panel{ "Lighting Debug" }, mEditorState{ info.mState } {
+//         mPanelHeaderName = gui::MakePanelName( ICON_MD_TABLE_CHART, mPanelName );
+//     }
+//
+//     auto LightingDebugPanel::OnUpdate( float timeStep ) -> void {
+//         if (!mPanelIsVisible) {
+//             return;
+//         }
+//
+//         constexpr ImGuiWindowFlags flags{ ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize };
+//         ImGui::Begin( mPanelHeaderName.c_str(), &mPanelIsVisible, flags);
+//
+//
+//         ImGui::End();
+//     }
+// }

@@ -15,111 +15,99 @@
 #ifndef MIKOTO_VULKAN_PIPELINE_HH
 #define MIKOTO_VULKAN_PIPELINE_HH
 
-#include <vector>
-#include <memory>
-
+#include <EASTL/memory.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
+#include <ankerl/unordered_dense.h>
 #include <volk.h>
 
-#include <Common/Common.hh>
-#include <Renderer/Core/Pipeline.hh>
-#include <Renderer/Vulkan/Reflection.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
-namespace Mikoto {
+#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Vulkan/VulkanReflection.hh>
 
-    class VulkanPipeline {
+namespace mikoto::renderer::vulkan {
+
+    using BindingSetLayoutsMap = eastl::fixed_hash_map<u32, VkDescriptorSetLayout,
+            kMaxBindingsDescriptorSetLayouts>;
+
+    class GraphicsPipeline final :  public IGraphicsPipeline {
     public:
-
-        MKT_NODISCARD auto Get() const -> VkPipeline;
-        MKT_NODISCARD auto GetLayout() const -> VkPipelineLayout;
-
-        MKT_NODISCARD auto HasDynamicBuffersSet() const -> bool;
-        MKT_NODISCARD auto GetDynamicBuffersSetBindingCount() const -> UInt32;
-
-        MKT_NODISCARD auto HasPushConstants() const -> bool;
-
-        MKT_NODISCARD auto GetDescriptorLayoutCount() const -> Size;
-        MKT_NODISCARD auto GetDescriptorSetIndices() const -> std::vector<UInt32>;
-        MKT_NODISCARD auto GetDescriptorSetLayout( UInt32 index ) const -> const VkDescriptorSetLayout&;
-
-    protected:
-        VkPipeline m_Pipeline{};
-        VulkanHelpers::Reflection::ReflectedData m_ReflectionData{};
-    };
-
-    struct VulkanGraphicsPipelineDescription {
-        GraphicsPipelineDescription Desc{};
-
-        // Will be deprecated most likely in the future as
-        // Mikoto targets Vulkan 1.3 onwards
-#if !defined(MKT_USE_VULKAN_DYNAMIC_RENDERING)
-        // Not needed if we do dynamic rendering
-        UInt32 Subpass{};
-        VkRenderPass RenderPass{};
-#endif
-    };
-
-    struct VulkanGraphicsPipelineConfiguration {
-        VkPipelineViewportStateCreateInfo ViewportInfo{};
-        VkPipelineInputAssemblyStateCreateInfo InputAssemblyInfo{};
-        VkPipelineRasterizationStateCreateInfo RasterizationInfo{};
-        VkPipelineMultisampleStateCreateInfo MultisampleInfo{};
-        VkPipelineColorBlendStateCreateInfo ColorBlendInfo{};
-        VkPipelineDepthStencilStateCreateInfo DepthStencilInfo{};
-        VkPipelineDynamicStateCreateInfo DynamicStateInfo{};
-
-        std::vector<VkPipelineColorBlendAttachmentState> ColorBlendAttachment{};
-
-        std::vector<VkDynamicState> DynamicStates{};
-    };
-
-    class VulkanGraphicsPipeline final : public VulkanPipeline, public GraphicsPipeline {
-    public:
-        explicit VulkanGraphicsPipeline(const VulkanGraphicsPipelineDescription& info);
+        explicit GraphicsPipeline( const GraphicsPipelineDescription& info );
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
-        auto SetDebugName(std::string_view name) -> void override;
+        auto SetDebugName( eastl::string_view name ) -> void override;
 
-        ~VulkanGraphicsPipeline() override;
+        ~GraphicsPipeline() override;
 
     public:
-        DISABLE_COPY_AND_MOVE_FOR(VulkanGraphicsPipeline);
+        DISABLE_COPY_AND_MOVE_FOR( GraphicsPipeline );
 
     private:
         auto Initialize() -> void override;
         auto Release() -> void override;
 
-        auto SetupDefaultConfiguration() -> void;
-
     private:
-        VkFormat m_DepthAttachmentFormat{};
-        std::vector<VkFormat> m_ColorAttachmentsFormats{};
+        VkPipeline mPipeline{};
 
-        std::vector<VkDynamicState> m_DynamicStates{};
-        VulkanGraphicsPipelineConfiguration m_PipelineConfig{};
+        VkPipelineLayout mReflectedPipelineLayout{};
+
+        VkFormat mDepthAttachmentFormat{};
+        eastl::vector<VkFormat> mColorAttachmentsFormats{};
+        eastl::vector<VkDynamicState> mDynamicStates{};
+
+        VkPipelineViewportStateCreateInfo mViewportInfo{};
+        VkPipelineInputAssemblyStateCreateInfo mInputAssemblyInfo{};
+        VkPipelineRasterizationStateCreateInfo mRasterizationInfo{};
+        VkPipelineMultisampleStateCreateInfo mMultisampleInfo{};
+        VkPipelineColorBlendStateCreateInfo mColorBlendInfo{};
+        VkPipelineDepthStencilStateCreateInfo mDepthStencilInfo{};
+        VkPipelineDynamicStateCreateInfo mDynamicStateInfo{};
+
+        // Config per color attachment this
+        eastl::vector<VkPipelineColorBlendAttachmentState> mColorBlendAttachments{};
+
+        eastl::fixed_hash_map<u32, VkDescriptorSetLayout, kMaxBindingLayouts> mDescriptorSetLayouts{};
+
+        // Input layout
+        eastl::fixed_vector<VkVertexInputAttributeDescription, kMaxVertexAttributes> mVertexInputDescriptions{};
+        eastl::fixed_vector<VkVertexInputBindingDescription, kMaxVertexBindings> mVertexBindingDescriptions{};
+
+        PipelineReflection mPipelineReflection{};
+
+        BindingSetLayoutsMap mBindingLayoutsMap{};
     };
 
-    class VulkanComputePipeline final : public VulkanPipeline, public ComputePipeline {
+    class ComputePipeline final :  public IComputePipeline {
     public:
-        explicit VulkanComputePipeline( const ComputePipelineDescription& info );
+        explicit ComputePipeline( const ComputePipelineDescription& info );
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
-        auto SetDebugName(std::string_view name) -> void override;
+        auto SetDebugName( eastl::string_view name ) -> void override;
 
-        ~VulkanComputePipeline() override;
+        ~ComputePipeline() override;
 
     public:
-        DISABLE_COPY_AND_MOVE_FOR(VulkanComputePipeline);
+        DISABLE_COPY_AND_MOVE_FOR( ComputePipeline );
 
     private:
         auto Initialize() -> void override;
         auto Release() -> void override;
+
+    private:
+        VkPipeline mPipeline{};
+
+        VkPipelineLayout mReflectedPipelineLayout{};
+
+        PipelineReflection mPipelineReflection{};
+
+        BindingSetLayoutsMap mBindingLayoutsMap{};
     };
+}// namespace mikoto::renderer::vulkan
 
-#define MKT_TO_VK_PIPELINE(PIPELINE_HANDLE) dynamic_cast<VulkanPipeline*>(PIPELINE_HANDLE.GetRaw())
-#define MKT_TO_VK_GRAPHICS_PIPELINE(PIPELINE_HANDLE) dynamic_cast<VulkanGraphicsPipeline*>(PIPELINE_HANDLE.GetRaw())
-#define MKT_TO_VK_COMPUTE_PIPELINE(PIPELINE_HANDLE) dynamic_cast<VulkanComputePipeline*>(PIPELINE_HANDLE.GetRaw())
-}
-
-#endif // MIKOTO_VULKAN_PIPELINE_HH
+#endif// MIKOTO_VULKAN_PIPELINE_HH

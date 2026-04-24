@@ -11,35 +11,36 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <Material/PostProcessMaterial.hh>
-
-namespace Mikoto {
-    PostProcessMaterial::PostProcessMaterial( std::string_view name )
-        : Material{ name }
-    {}
-
-    auto PostProcessMaterial::SetTargetImage( TextureHandle handle ) -> void {
-        if (!handle.IsEmpty()) {
-            m_TargetTexture = handle;
-        }
-    }
-
-    auto PostProcessMaterial::GetTargetImage() -> TextureHandle {
-        return m_TargetTexture;
-    }
-
-    PostProcessMaterial::~PostProcessMaterial() {
-        if (m_IsAllocated) {
-            Release();
-        }
-    }
-
-    auto PostProcessMaterial::Initialize() -> void {
-        m_IsAllocated = true;
-    }
-
-    auto PostProcessMaterial::Release() -> void {
-
-        m_IsAllocated = false;
-    }
-}// namespace Mikoto
+//
+// #include <Material/PostProcessMaterial.hh>
+//
+// namespace mikoto {
+//     PostProcessMaterial::PostProcessMaterial( std::string_view name )
+//         : Material{ name }
+//     {}
+//
+//     auto PostProcessMaterial::SetTargetImage( TextureHandle handle ) -> void {
+//         if (!handle.IsEmpty()) {
+//             m_TargetTexture = handle;
+//         }
+//     }
+//
+//     auto PostProcessMaterial::GetTargetImage() -> TextureHandle {
+//         return m_TargetTexture;
+//     }
+//
+//     PostProcessMaterial::~PostProcessMaterial() {
+//         if (m_IsAllocated) {
+//             Release();
+//         }
+//     }
+//
+//     auto PostProcessMaterial::Initialize() -> void {
+//         m_IsAllocated = true;
+//     }
+//
+//     auto PostProcessMaterial::Release() -> void {
+//
+//         m_IsAllocated = false;
+//     }
+// }// namespace Mikoto

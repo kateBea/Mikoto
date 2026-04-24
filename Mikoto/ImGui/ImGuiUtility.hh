@@ -15,37 +15,35 @@
 #ifndef MIKOTO_IMGUI_UTILS_HH
 #define MIKOTO_IMGUI_UTILS_HH
 
-#include <any>
-#include <span>
-
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <glm/gtc/type_ptr.hpp>
 
-#include <Common/Common.hh>
-
-#include <Library/String/String.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 
 #include <Logging/Assert.hh>
-#include <ImGui/IconsMaterialDesign.h>
 
-namespace Mikoto::ImGuiUtils {
+#include <glm/gtc/type_ptr.hpp>
 
-    enum class GuizmoManipulationMode {
-        TRANSLATION,
-        ROTATION,
-        SCALE,
+namespace mikoto::gui {
+
+    using namespace mikoto::core;
+
+    enum class GuizmoType {
+        eTranslation,
+        eRotation,
+        eScale,
     };
 
     class UnindentScoped {
     public:
-        explicit UnindentScoped(UInt32 width = 0)
+        explicit UnindentScoped(u32 width = 0)
             : m_Width{ width } { ImGui::Unindent( m_Width ); }
 
         ~UnindentScoped() { ImGui::Indent( m_Width ); }
     private:
-        UInt32 m_Width{};
+        u32 m_Width{};
     };
 
     class ImGuiScopedStyleVar {
@@ -58,7 +56,7 @@ namespace Mikoto::ImGuiUtils {
 
     class ImGuiScopedBorderColor {
     public:
-        explicit ImGuiScopedBorderColor( Vec4F color, float thickness = 1.0f ) {
+        explicit ImGuiScopedBorderColor( float4 color, float thickness = 1.0f ) {
             ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, thickness );
             ImGui::PushStyleColor( ImGuiCol_Border, IM_COL32( color.r, color.g, color.b, color.a ) );
         }
@@ -71,208 +69,62 @@ namespace Mikoto::ImGuiUtils {
 
     class ImGuiScopedTextFont {
     public:
-        static constexpr Int8 Invalid{ -1 };
+        static constexpr i8 Invalid{ -1 };
 
-        explicit ImGuiScopedTextFont( const Int8 index )
+        explicit ImGuiScopedTextFont( const i8 index )
             : m_Index{ index } { if (m_Index != Invalid) { ImGui::PushFont( ImGui::GetIO().Fonts->Fonts[index] ); } }
 
         ~ImGuiScopedTextFont() { if (m_Index != Invalid) { ImGui::PopFont(); } }
 
     private:
-        Int8 m_Index{};
+        i8 m_Index{};
     };
 
-    MKT_NODISCARD inline auto PushImageButton( UInt64 textureId, ImTextureID textureHandle, const ImVec2 size ) -> bool { 
-        return ImGui::ImageButton( StringUtils::ToString( textureId ).c_str(), textureHandle, size ); 
-    }
+    auto PushImageButton( u64 textureId, ImTextureID textureHandle, ImVec2 size ) -> bool;
+    auto PushImageButton( eastl::string_view ID, ImTextureID textureHandle, ImVec2 size ) -> bool;
 
-    MKT_NODISCARD inline auto PushImageButton( std::string_view ID, ImTextureID textureHandle, const ImVec2 size ) -> bool {
-        return ImGui::ImageButton( ID.data(), textureHandle, size );
-    }
+    auto ComputeWidth() -> float;
 
-    MKT_NODISCARD inline auto ComputeWidth() -> float {
-        const ImGuiContext &globalContext{ *GImGui };
-        const ImGuiWindow *currentWindow{ globalContext.CurrentWindow };
-        float width{};
+    auto CheckBox( eastl::string_view label, bool &value ) -> bool;
 
-        if (globalContext.NextItemData.HasFlags & ImGuiNextItemDataFlags_HasWidth) { width = globalContext.NextItemData.Width; } else { width = currentWindow->DC.ItemWidth; }
+    auto ToolTip( eastl::string_view description ) -> void;
 
-        if (width < 0.0f) {
-            float regionAvailableX{ ImGui::GetContentRegionAvail().x };
-            width = ImMax( 1.0f, regionAvailableX + width );
-        }
+    auto ToolTip( const eastl::function<void()> &func, bool enable ) -> void;
 
-        width = IM_TRUNC( width );
+    auto DragFloat4( eastl::string_view label, eastl::string_view format, glm::vec4 &vect, float speed, float minVal, float maxVal ) -> bool;
 
-        return width;
-    }
+    auto DragFloat3( eastl::string_view label, eastl::string_view format, glm::vec3 &vect, float speed, float minVal, float maxVal ) -> bool;
 
-    inline auto HelpMarker( const std::string_view description, const std::string_view placeHolder = "(?)", const bool sameLine = false ) -> void {
-        if (sameLine) { ImGui::SameLine(); }
+    auto ColorEdit4( eastl::string_view label, glm::vec4 &vect ) -> bool;
 
-        ImGui::TextDisabled( "%s", placeHolder.data() );
-        if (ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort ) && ImGui::BeginTooltip()) {
-            ImGui::PushTextWrapPos( ImGui::GetFontSize() * 35.0f );
-            ImGui::TextUnformatted( description.data() );
-            ImGui::PopTextWrapPos();
-            ImGui::EndTooltip();
-        }
-    }
+    auto ColorEdit3( eastl::string_view label, glm::vec3 &vect ) -> bool;
 
-    inline auto CheckBox( const CStr label, bool &value ) -> bool {
-        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 3.5f };
+    auto Slider( eastl::string_view label, float &value, const glm::vec2 &bounds, eastl::string_view format = "%.2f" ) -> bool;
 
-        bool active{ ImGui::Checkbox( label, std::addressof( value ) ) };
+    auto ButtonTextIcon( eastl::string_view icon, ImVec2 size = { 0.0f, 0.0f } ) -> bool;
 
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+    auto TextArea( eastl::string &buffer ) -> bool;
 
-        return active;
-    }
+    auto CenteredText( const char *label, float width, float height = 20.0f ) -> void;
 
-    inline auto ToolTip( const std::string_view description ) -> void {
-        ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
+    auto DragDropDemo() -> void;
 
-        if (ImGui::BeginTooltip()) {
-            ImGui::PushTextWrapPos( ImGui::GetFontSize() * 35.0f );
-            ImGui::TextUnformatted( description.data() );
-            ImGui::PopTextWrapPos();
-            ImGui::EndTooltip();
-        }
+    auto ImImageVK( ImTextureID image, ImVec2 dim )-> void;
 
-        ImGui::PopStyleVar();
-    }
+    MKT_NODISCARD auto GetStringFromUnicode( u32 codePoint ) -> eastl::string;
 
-    inline auto ToolTip( const std::function<void()> &func, const bool enable ) -> void {
-        ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
+    auto DebugShowMaterialIcons() -> void;
 
-        if (enable && ImGui::BeginTooltip()) {
-            ImGui::PushTextWrapPos( ImGui::GetFontSize() * 35.0f );
+    auto DrawMemoryVisualizer( const void *memory, size_t size, std::uintptr_t baseAddress, size_t bytesPerRow = 16 ) -> void;
 
-            func();
+    auto SetCursorHandOnLastItemHovered() -> void;
 
-            ImGui::PopTextWrapPos();
-            ImGui::EndTooltip();
-        }
+    MKT_NODISCARD auto Combo(eastl::string* choices, size_t count, const eastl::string& currentSelection) -> i32;
 
-        ImGui::PopStyleVar();
-    }
-
-    inline auto DragFloat4( const CStr label, const CStr format, glm::vec4 &vect, float speed, float minVal, float maxVal ) -> bool {
-        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 3.5f };
-        ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 5.0f, 5.0f } };
-
-        bool active{ ImGui::DragFloat4( label, value_ptr( vect ), speed, minVal, maxVal, format ) };
-
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-        return active;
-    }
-
-    inline auto DragFloat3( const CStr label, const CStr format, glm::vec3 &vect, float speed, float minVal, float maxVal ) -> bool {
-        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 3.5f };
-        ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 5.0f, 5.0f } };
-
-        bool active{ ImGui::DragFloat3( label, value_ptr( vect ), speed, minVal, maxVal, format ) };
-
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-        return active;
-    }
-
-    inline auto ColorEdit4( const CStr label, glm::vec4 &vect ) -> bool {
-        constexpr ImGuiColorEditFlags colorEditFlags{
-            ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_PickerHueBar
-        };
-
-        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
-        ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 5.0f, 5.0f } };
-
-        const bool active{ ImGui::ColorEdit4( label, value_ptr( vect ), colorEditFlags ) };
-
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-        return active;
-    }
-
-    inline auto ColorEdit3( const CStr label, glm::vec3 &vect ) -> bool {
-        constexpr ImGuiColorEditFlags colorEditFlags{
-            ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_PickerHueBar
-        };
-
-        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
-        ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 5.0f, 5.0f } };
-
-        const bool active{ ImGui::ColorEdit3( label, value_ptr( vect ), colorEditFlags ) };
-
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-        return active;
-    }
-
-    inline auto Slider( const CStr label, float &value, const glm::vec2 &bounds, std::string_view format = "%.2f" ) -> bool {
-        constexpr ImGuiSliderFlags flags{ ImGuiSliderFlags_None };
-
-        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
-        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
-
-        const bool active{ ImGui::SliderFloat( label, std::addressof( value ), bounds.x, bounds.y, format.data(), flags ) };
-
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-        return active;
-    }
-
-    inline auto ButtonTextIcon( const CStr icon, ImVec2 size = { 0.0f, 0.0f } ) -> bool {
-        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
-        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
-        ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemInnerSpacing, ImVec2{ 0.0f, 0.0f } };
-        ImGuiScopedStyleVar framePadding{ ImGuiStyleVar_FramePadding, ImVec2{ 4.0f, 4.0f } };
-
-        const bool active{ ImGui::Button( fmt::format( "{}", icon ).c_str(), size ) };
-
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
-
-        return active;
-    }
-
-    inline auto TextArea( std::string &buffer ) -> bool {
-        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
-        ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
-
-        const auto resizeCallback{ []( ImGuiInputTextCallbackData *data ) -> Int32 {
-            if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-                std::string *str{ static_cast<std::string *>( data->UserData ) };
-
-                str->resize( data->BufTextLen );
-                data->Buf = str->data();
-            }
-            return 0;
-        } };
-
-        constexpr ImGuiInputTextFlags flags{ ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackResize };
-
-        const ImVec2 windowSize{ ImGui::GetWindowSize() };
-
-        constexpr float maxScale{ 3 };
-        constexpr float minScale{ 1 };
-
-        const bool active{ ImGui::InputTextMultiline( "##TextArea:Input", buffer.data(), buffer.capacity() + 1,
-                                                      ImVec2( ComputeWidth(), windowSize.y * 0.3f ), flags, resizeCallback, std::addressof( buffer ) ) };
-
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_TextInput ); }
-
-        ImGui::SetWindowFontScale( minScale );
-
-        return active;
-    }
+    auto InputText(eastl::string_view viewData, bool readOnly = false) -> bool;
 
     template<typename InputIt, typename Pred>
-    inline auto ComboList( InputIt start, InputIt end, std::string &currentlyActive, Pred &&isSelectedPred, const CStr label ) -> void {
+    auto ComboList( InputIt start, InputIt end, eastl::string &currentlyActive, Pred &&isSelectedPred, const eastl::string_view label ) -> void {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
         ImGuiScopedStyleVar popUpRounding{ ImGuiStyleVar_PopupRounding, 2.5f };
@@ -297,324 +149,6 @@ namespace Mikoto::ImGuiUtils {
 
         if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
     }
-
-    inline auto CenteredText( const char *label, const float width, float height = 20.0f ) -> void {
-        // https://github.com/phicore/ImGuiStylingTricks/wiki/Custom-MessageBox#step-5-removed-title-bar-and-homemade-centered-text
-
-        ImGuiContext &g{ *GImGui };
-        const ImGuiStyle &style{ g.Style };
-
-        const ImVec2 textSize{ width, height };
-        const ImGuiWindow *window{ ImGui::GetCurrentWindow() };
-
-        const ImVec2 labelSize{ ImGui::CalcTextSize( label, nullptr, true ) };
-
-        const ImVec2 minCursorPos{ window->DC.CursorPos };
-        const ImVec2 itemSize{ ImGui::CalcItemSize( textSize, labelSize.x + style.FramePadding.x * 2.0f, labelSize.y + style.FramePadding.y * 2.0f ) };
-
-        const ImVec2 maxCursorPos{ ImVec2( minCursorPos.x + itemSize.x, minCursorPos.y + itemSize.y ) };
-        const ImRect alignment{ minCursorPos, maxCursorPos };
-
-        ImGui::ItemSize( itemSize, style.FramePadding.y );
-
-        const ImVec2 posMin{ ImVec2( alignment.Min.x + style.FramePadding.x, alignment.Min.y + style.FramePadding.y ) };
-        const ImVec2 posMax{ ImVec2( alignment.Max.x - style.FramePadding.x, alignment.Max.y - style.FramePadding.y ) };
-
-        ImGui::RenderTextClipped( posMin, posMax, label, nullptr, &labelSize, style.ButtonTextAlign, &alignment );
-    }
-
-    inline auto DragDropDemo() -> void {
-        if (ImGui::TreeNode( "Drag and Drop" )) {
-            if (ImGui::TreeNode( "Drag and drop in standard widgets" )) {
-                // ColorEdit widgets automatically act as drag source and drag target.
-                // They are using standardized payload strings IMGUI_PAYLOAD_TYPE_COLOR_3F and IMGUI_PAYLOAD_TYPE_COLOR_4F
-                // to allow your own widgets to use colors in their drag and drop interaction.
-                // Also see 'Demo->Widgets->Color/Picker Widgets->Palette' demo.
-                HelpMarker( "You can drag from the color squares." );
-                static float col1[3] = { 1.0f, 0.0f, 0.2f };
-                static float col2[4] = { 0.4f, 0.7f, 0.0f, 0.5f };
-                ImGui::ColorEdit3( "color 1", col1 );
-                ImGui::ColorEdit4( "color 2", col2 );
-                ImGui::TreePop();
-            }
-
-            if (ImGui::TreeNode( "Drag and drop to copy/swap items" )) {
-                enum Mode {
-                    Mode_Copy,
-                    Mode_Move,
-                    Mode_Swap
-                };
-                static int mode = 0;
-                if (ImGui::RadioButton( "Copy", mode == Mode_Copy )) { mode = Mode_Copy; }
-                ImGui::SameLine();
-                if (ImGui::RadioButton( "Move", mode == Mode_Move )) { mode = Mode_Move; }
-                ImGui::SameLine();
-                if (ImGui::RadioButton( "Swap", mode == Mode_Swap )) { mode = Mode_Swap; }
-                static const char *names[9] = {
-                    "Bobby", "Beatrice", "Betty",
-                    "Brianna", "Barry", "Bernard",
-                    "Bibi", "Blaine", "Bryn"
-                };
-                for (int n = 0; n < IM_ARRAYSIZE( names ); n++) {
-                    ImGui::PushID( n );
-                    if (( n % 3 ) != 0) ImGui::SameLine();
-                    ImGui::Button( names[n], ImVec2( 60, 60 ) );
-
-                    // Our buttons are both drag sources and drag targets here!
-                    if (ImGui::BeginDragDropSource( ImGuiDragDropFlags_None )) {
-                        // Set payload to carry the index of our item (could be anything)
-                        ImGui::SetDragDropPayload( "DND_DEMO_CELL", &n, sizeof( int ) );
-
-                        // Display preview (could be anything, e.g. when dragging an image we could decide to display
-                        // the filename and a small preview of the image, etc.)
-                        if (mode == Mode_Copy) { ImGui::Text( "Copy %s", names[n] ); }
-                        if (mode == Mode_Move) { ImGui::Text( "Move %s", names[n] ); }
-                        if (mode == Mode_Swap) { ImGui::Text( "Swap %s", names[n] ); }
-                        ImGui::EndDragDropSource();
-                    }
-                    if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload( "DND_DEMO_CELL" )) {
-                            IM_ASSERT( payload->DataSize == sizeof( int ) );
-                            int payload_n = *( const int * )payload->Data;
-                            if (mode == Mode_Copy) { names[n] = names[payload_n]; }
-                            if (mode == Mode_Move) {
-                                names[n] = names[payload_n];
-                                names[payload_n] = "";
-                            }
-                            if (mode == Mode_Swap) {
-                                const char *tmp = names[n];
-                                names[n] = names[payload_n];
-                                names[payload_n] = tmp;
-                            }
-                        }
-                        ImGui::EndDragDropTarget();
-                    }
-                    ImGui::PopID();
-                }
-                ImGui::TreePop();
-            }
-
-            if (ImGui::TreeNode( "Drag to reorder items (simple)" )) {
-                // FIXME: there is temporary (usually single-frame) ID Conflict during reordering as a same item may be submitting twice.
-                // This code was always slightly faulty but in a way which was not easily noticeable.
-                // Until we fix this, enable ImGuiItemFlags_AllowDuplicateId to disable detecting the issue.
-                ImGui::PushItemFlag( ImGuiItemFlags_AllowDuplicateId, true );
-
-                // Simple reordering
-                HelpMarker(
-                        "We don't use the drag and drop api at all here! "
-                        "Instead we query when the item is held but not hovered, and order items accordingly." );
-                static const char *item_names[] = { "Item One", "Item Two", "Item Three", "Item Four", "Item Five" };
-                for (int n = 0; n < IM_ARRAYSIZE( item_names ); n++) {
-                    const char *item = item_names[n];
-                    ImGui::Selectable( item );
-
-                    if (ImGui::IsItemActive() && !ImGui::IsItemHovered()) {
-                        int n_next = n + ( ImGui::GetMouseDragDelta( 0 ).y < 0.f ? -1 : 1 );
-                        if (n_next >= 0 && n_next < IM_ARRAYSIZE( item_names )) {
-                            item_names[n] = item_names[n_next];
-                            item_names[n_next] = item;
-                            ImGui::ResetMouseDragDelta();
-                        }
-                    }
-                }
-
-                ImGui::PopItemFlag();
-                ImGui::TreePop();
-            }
-
-            if (ImGui::TreeNode( "Tooltip at target location" )) {
-                for (int n = 0; n < 2; n++) {
-                    // Drop targets
-                    ImGui::Button( n ? "drop here##1" : "drop here##0" );
-                    if (ImGui::BeginDragDropTarget()) {
-                        ImGuiDragDropFlags drop_target_flags = ImGuiDragDropFlags_AcceptBeforeDelivery | ImGuiDragDropFlags_AcceptNoPreviewTooltip;
-                        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload( IMGUI_PAYLOAD_TYPE_COLOR_4F, drop_target_flags )) {
-                            IM_UNUSED( payload );
-                            ImGui::SetMouseCursor( ImGuiMouseCursor_NotAllowed );
-                            ImGui::SetTooltip( "Cannot drop here!" );
-                        }
-                        ImGui::EndDragDropTarget();
-                    }
-
-                    // Drop source
-                    static ImVec4 col4 = { 1.0f, 0.0f, 0.2f, 1.0f };
-                    if (n == 0) ImGui::ColorButton( "drag me", col4 );
-                }
-                ImGui::TreePop();
-            }
-
-            ImGui::TreePop();
-        }
-    }
-
-    MKT_NODISCARD inline auto ImImageVK( const ImTextureID image, const ImVec2 dim ) { return ImGui::Image( image, dim ); }
-
-    inline auto GetStringFromUnicode( UInt32 codePoint ) -> std::string {
-        std::array<char, 5> utf8{};
-        ImTextCharToUtf8( utf8.data(), codePoint );
-
-        return std::string{ utf8.data() };
-    }
-
-    inline auto DebugShowMaterialIcons() -> void {
-        ImGui::Begin( "Material Icons Debug" );
-
-        // Scrollable area
-        if (ImGui::BeginChild( "IconScrollArea", ImVec2( 0, 0 ), true )) {
-            const UInt32 ICON_MIN{ ICON_MIN_MD };
-            const UInt32 ICON_MAX{ ICON_MAX_16_MD };
-            const UInt32 ICONS_PER_ROW{ 16 };
-
-            Int32 count{};
-            char utf8[5]{};
-
-            for (UInt32 codepoint{ ICON_MIN }; codepoint <= ICON_MAX; ++codepoint) {
-                ImTextCharToUtf8( utf8, codepoint );
-
-                // Render icon as selectable button
-                ImGui::PushID( codepoint );
-                if (ImGui::Button( utf8, ImVec2( 24, 24 ) )) {
-                    // Optional: do something on click
-                }
-                if (ImGui::IsItemHovered()) { ImGui::SetTooltip( "Codepoint: U+%04X (%d)", codepoint, codepoint ); }
-                ImGui::PopID();
-
-                count++;
-                if (count % ICONS_PER_ROW != 0) ImGui::SameLine();
-            }
-
-            ImGui::EndChild();
-        }
-
-        ImGui::End();
-    }
-
-    /**
-     * @brief Visualizes raw memory in a read-only ImGui table.
-     *
-     * Displays a debug-friendly, table-based view of a contiguous memory region.
-     * Intended for inspecting CPU-mapped GPU buffers such as UBOs, SSBOs,
-     * staging buffers, and compute shader outputs.
-     *
-     * The table presents:
-     * - Absolute addresses derived from a base address
-     * - Byte offsets relative to the base address
-     * - Raw byte values in hexadecimal format
-     * - Raw byte values in decimal format
-     *
-     * This function is purely visual and never mutates the underlying memory.
-     *
-     * @param memory
-     * Pointer to the beginning of the memory region to visualize.
-     * Must remain valid for the duration of the ImGui frame.
-     * If nullptr, no table is drawn.
-     *
-     * @param size
-     * Size of the memory region in bytes.
-     * Defines how many bytes are displayed.
-     * If zero, the function returns early.
-     *
-     * @param baseAddress
-     * Reference base address used for display purposes.
-     * This does not need to match the actual CPU pointer value.
-     * Common use cases include GPU device addresses or synthetic base offsets.
-     *
-     * @param bytesPerRow
-     * Number of bytes displayed per table row.
-     * Defaults to 16, matching standard hex-dump conventions.
-     * Smaller values produce a compact view, larger values increase horizontal density.
-     *
-     * @note
-     * - Read-only debug utility
-     * - No dynamic allocations
-     * - No RTTI usage
-     * - Safe for real-time debug panels
-     *
-     * @warning
-     * The memory pointer must remain valid while this function is executing.
-     * Passing dangling or unmapped memory results in undefined behavior.
-     *
-     * @see ImGui::BeginTable
-     * @see ImGui::TableSetupColumn
-     */
-    static auto DrawMemoryTable(
-            const void *memory,
-            std::size_t size,
-            std::uintptr_t baseAddress,
-            std::size_t bytesPerRow = 16
-            ) -> void;
-
-    inline auto DrawMemoryVisualizer( const void *memory, std::size_t size, std::uintptr_t baseAddress, std::size_t bytesPerRow = 16 ) -> void {
-        if (memory == nullptr || size == 0) {
-            ImGui::TextUnformatted( "No memory to display." );
-            return;
-        }
-
-        const auto *bytes{ static_cast<const std::uint8_t *>( memory ) };
-
-        constexpr ImGuiTableFlags flags{
-            ImGuiTableFlags_Borders
-            | ImGuiTableFlags_RowBg
-            | ImGuiTableFlags_ScrollY
-            | ImGuiTableFlags_SizingFixedFit
-        };
-
-        if (ImGui::BeginTable( "MemoryTable", 4, flags, ImVec2{ 0.0f, 320.0f } )) {
-            ImGui::TableSetupColumn( "Address", ImGuiTableColumnFlags_WidthFixed, 120.0f );
-            ImGui::TableSetupColumn( "Offset", ImGuiTableColumnFlags_WidthFixed, 80.0f );
-            ImGui::TableSetupColumn( "Hex", ImGuiTableColumnFlags_WidthStretch );
-            ImGui::TableSetupColumn( "Decimal", ImGuiTableColumnFlags_WidthStretch );
-            ImGui::TableHeadersRow();
-
-            for (std::size_t row{ 0 }; row < size; row += bytesPerRow) {
-                const std::uintptr_t address{ baseAddress + row };
-
-                ImGui::TableNextRow();
-
-                // Address
-                ImGui::TableSetColumnIndex( 0 );
-                ImGui::Text( "0x%08llX", static_cast<unsigned long long>( address ) );
-
-                // Offset
-                ImGui::TableSetColumnIndex( 1 );
-                ImGui::Text( "+0x%06llX", static_cast<unsigned long long>( row ) );
-
-                // Hex
-                ImGui::TableSetColumnIndex( 2 );
-                for (std::size_t col{ 0 }; col < bytesPerRow; ++col) {
-                    const std::size_t index{ row + col };
-                    if (index < size) { ImGui::Text( "%02X", bytes[index] ); } else { ImGui::TextUnformatted( "  " ); }
-                    ImGui::SameLine();
-                }
-
-                // Decimal
-                ImGui::TableSetColumnIndex( 3 );
-                for (std::size_t col{ 0 }; col < bytesPerRow; ++col) {
-                    const std::size_t index{ row + col };
-                    if (index < size) { ImGui::Text( "%3u", static_cast<unsigned int>( bytes[index] ) ); } else { ImGui::TextUnformatted( "   " ); }
-                    ImGui::SameLine();
-                }
-            }
-
-            ImGui::EndTable();
-        }
-    }
-
-    inline auto SetCursorHandOnLastItemHovered() -> void {
-        if (ImGui::IsItemHovered()) { 
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); 
-        }
-    }
-
-
-    /**
-     * Utility function to make panel names for ImGui windows.
-     * @param panelIcon Panel's icon value.
-     * @param panelName Name of the panel.
-     * @returns The panel's name including the icon.
-     * */
-    MKT_NODISCARD inline auto MakePanelName( std::string_view panelIcon, std::string_view panelName ) -> std::string { return fmt::format( "{} {}", panelIcon, panelName ); }
 
     template<typename UIFunction, typename... Args>
     auto DrawNode( const std::string_view label, const UIFunction& uiFunc, Args&&... args ) -> void {
@@ -645,21 +179,20 @@ namespace Mikoto::ImGuiUtils {
         }
     }
 
-
     template<typename EnumType>
     MKT_NODISCARD auto Combo(std::span<std::string> choices, EnumType currentSelection) -> EnumType {
-        MKT_ASSERT( static_cast<UInt32>( currentSelection ) < choices.size(), "Enum value must be lower than choices size" );
+        MKT_ASSERT( static_cast<u32>( currentSelection ) < choices.size(), "Enum value must be lower than choices size" );
 
         EnumType result{ currentSelection };
 
-        const std::string &currentChoiceStr{ choices[static_cast<UInt32>( currentSelection )] };
+        const std::string &currentChoiceStr{ choices[static_cast<u32>( currentSelection )] };
         const std::string labelName{ fmt::format( "##{}{}", __PRETTY_FUNCTION__, currentChoiceStr ) };
 
         if ( ImGui::BeginCombo( labelName.data(), currentChoiceStr.c_str() ) ) {
-            UInt32 selectionIndex{};
+            u32 selectionIndex{};
 
             for ( const std::string &selectionStr: choices ) {
-                const bool isSelected{ selectionStr == choices[static_cast<UInt32>( currentSelection )] };
+                const bool isSelected{ selectionStr == choices[static_cast<u32>( currentSelection )] };
 
                 if ( ImGui::Selectable( fmt::format( " {}", selectionStr ).c_str(), isSelected ) ) {
                     result = static_cast<EnumType>( selectionIndex );
@@ -684,55 +217,6 @@ namespace Mikoto::ImGuiUtils {
         }
 
         return result;
-    }
-
-    MKT_NODISCARD inline auto Combo(std::string* choices, Size count, const std::string& currentSelection) -> Int32 {
-        Int32 selectionIndex{ -1 };
-
-        const std::string labelName{
-            fmt::format( "##{}{}", __PRETTY_FUNCTION__, currentSelection )
-        };
-
-        if ( ImGui::BeginCombo( labelName.data(), currentSelection.c_str() ) ) {
-            for ( Size index{}; index < count; ++index ) {
-                const std::string &selectionStr{ choices[index] };
-
-                const bool isSelected{ selectionStr == currentSelection };
-
-                if ( ImGui::Selectable(
-                             fmt::format( " {}", selectionStr ).c_str(),
-                             isSelected ) ) {
-                    selectionIndex = static_cast<Int32>( index );
-                }
-
-                if ( ImGui::IsItemHovered() )
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-
-                if ( isSelected )
-                    ImGui::SetItemDefaultFocus();
-            }
-
-            ImGui::EndCombo();
-        }
-
-        if ( ImGui::IsItemHovered() )
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-
-        return selectionIndex;
-    }
-
-    inline auto InputText(std::string_view viewData, bool readOnly = false) -> bool {
-        ImGuiTextFlags flags{ ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll };
-
-        if (readOnly) {
-            flags |= ImGuiInputTextFlags_ReadOnly;
-        }
-
-        constexpr UInt32 MAX_LENGTH{ 1024 };
-        std::array<char, MAX_LENGTH> name{};
-        std::ranges::copy( viewData, name.data() );
-
-        return ImGui::InputText( "##DrawNameTextInputTag", name.data(), name.max_size(), flags );
     }
 }
 

@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,29 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <utility>
+#include <EASTL/string.h>
+#include <EASTL/utility.h>
 
 #include <Logging/Logger.hh>
 
 #include <Animation/SkinnedAnimation.hh>
 
-namespace Mikoto {
-
+namespace mikoto::animation {
     SkinnedAnimation::SkinnedAnimation( ozz::unique_ptr<ozz::animation::Animation>&& data )
-        : m_Animation{ std::move( data ) } {
-            m_Name = m_Animation->name();
-            m_Duration = m_Animation->duration();
+        : mName{ data ? data->name() : "" },
+        mDuration{ data ? data->duration() : 0.0f },
+        mAnimation{ eastl::move( data ) } {
     }
 
     auto SkinnedAnimation::GetDuration() const -> float {
-        return m_Duration;
+        return mDuration;
     }
 
-    auto SkinnedAnimation::GetName() const -> const std::string& {
-        return m_Name;
+    auto SkinnedAnimation::GetName() const -> const eastl::string& {
+        return mName;
     }
 
     auto SkinnedAnimation::GetOzzAnimation() -> ozz::animation::Animation* {
-        return m_Animation.get();
+        return mAnimation.get();
     }
 }

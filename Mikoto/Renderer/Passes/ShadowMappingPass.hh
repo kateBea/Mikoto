@@ -31,7 +31,7 @@
 #include <Renderer/Core/RenderUtility.hh>
 #include <Renderer/Passes/MeshCulling.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
     struct LightCameraInfo {
         Mat4F LightView{};

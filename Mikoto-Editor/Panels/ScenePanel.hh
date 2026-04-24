@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,23 +15,26 @@
 #ifndef MIKOTO_SCENE_PANEL_HH
 #define MIKOTO_SCENE_PANEL_HH
 
-#include <Library/Utility/Types.hh>
+#include <imgui.h>
 
-#include <ImGui/ImGuiUtility.hh>
-#include <Assets/Texture.hh>
+#include <EASTL/array.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
 #include <Panels/Panel.hh>
 
-namespace Mikoto {
+#include <ImGui/ImGuiUtility.hh>
+
+#include <Renderer/Core/Rhi.hh>
+
+namespace mikoto::editor {
 
     struct EditorState;
 
     struct ScenePanelCreateInfo {
-        UInt32 Width{};
-        UInt32 Height{};
-
-        TextureHandle DisplayTarget{};
-
-        EditorState* State{};
+        EditorState* mState{};
+        TextureHandle mImage{};
     };
 
     class ScenePanel final : public Panel {
@@ -39,7 +42,9 @@ namespace Mikoto {
         explicit ScenePanel(const ScenePanelCreateInfo& createInfo);
 
         auto OnUpdate(float ts) -> void override;
-        auto SetManipulation( ImGuiUtils::GuizmoManipulationMode mode ) -> void;
+
+        auto SetManipulation( gui::GuizmoType mode ) -> void;
+        auto SetTexture( TextureHandle texture ) -> void;
 
         ~ScenePanel() override = default;
 
@@ -49,30 +54,26 @@ namespace Mikoto {
     private:
         auto DrawOrientationAxis() -> void;
 
-        auto ShowUtilitiesOverlay() -> void;
-        auto IsDisplayTextureValid() const -> bool;
-        auto IsWireframeDisplayTextureValid() const -> bool;
         auto UpdateViewport() -> void;
-        auto SetupManipulation() const -> void;
-        auto DrawManipulationGuizmos() -> void;
-        auto DrawSceneToolbar() const -> void;
-        auto CreateImguiTextureID() -> void;
+        auto UpdateManipulation() -> void;
 
-        auto CreateWireframeImguiTextureID() -> void;
+        auto DrawUtilitiesOverlay() -> void;
+
+        auto DrawSceneToolbar() -> void;
+        auto DrawManipulationGuizmos() -> void;
+
+        MKT_NODISCARD auto IsDisplayTextureValid() const -> bool;
 
     private:
-        EditorState* m_EditorState{};
+        EditorState* mEditorState{};
+        ImTextureID mColorImageID{};
 
-        ImGuiUtils::GuizmoManipulationMode m_GuizmoType{ ImGuiUtils::GuizmoManipulationMode::TRANSLATION };
+        f32 mViewportWidth{ 1920 };
+        f32 mViewportHeight{ 1080 };
 
-        float m_ViewPortWidth{};
-        float m_ViewPortHeight{};
+        float2 mGuizmoPosition{ 1.0f };
 
-        glm::vec2 m_ViewportBounds[2]{};
-        glm::vec2 m_GizmoPosition = glm::vec2(1.0f);
-
-        ImTextureID m_ColorImageID{};
-        ImTextureID m_WireframeImageID{};
+        gui::GuizmoType mManipulationType{ gui::GuizmoType::eTranslation };
     };
 }
 

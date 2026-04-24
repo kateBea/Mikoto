@@ -19,33 +19,38 @@
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
 #include <Memory/GpuAllocator.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer::vulkan {
 
     struct BufferAllocation {
-        VkBuffer Buffer{};
+        VkBuffer mBuffer{ VK_NULL_HANDLE };
+        VmaAllocation mAllocation{ VK_NULL_HANDLE };
 
-        VmaAllocation Allocation{};
-        VmaAllocationInfo AllocationInfo{};
+        VmaAllocationInfo mAllocationInfo{};
 
-        VkBufferCreateInfo BufferCreateInfo{};
-        VmaAllocationCreateInfo AllocationCreateInfo{};
+        VkBufferCreateInfo mBufferCreateInfo{};
+        VmaAllocationCreateInfo mAllocationCreateInfo{};
     };
 
     struct ImageAllocation {
-        VkImage Image{ VK_NULL_HANDLE };
+        VkImage mImage{ VK_NULL_HANDLE };
+        VmaAllocation mAllocation{ VK_NULL_HANDLE };
 
-        VkImageCreateInfo ImageCreateInfo{};
-        VmaAllocationInfo AllocationInfo{};
-        VmaAllocation Allocation{ VK_NULL_HANDLE };
+        VkImageCreateInfo mImageCreateInfo{};
+        VmaAllocationInfo mAllocationInfo{};
 
-        VmaAllocationCreateInfo AllocationCreateInfo{};
+        VmaAllocationCreateInfo mAllocationCreateInfo{};
     };
 
-    class VulkanMemoryAllocator final : public GpuAllocator {
+    // Allocations are sync internally by VMA so it is safe
+    // to call Allocation functions from any thread
+    class GpuMemoryAllocator final : public memory::IGpuAllocator {
     public:
-        explicit VulkanMemoryAllocator( GpuDevice* device );
+        explicit GpuMemoryAllocator( GpuDevice* device );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
@@ -59,24 +64,19 @@ namespace Mikoto {
         auto MapBuffer( BufferAllocation& allocation ) const -> void;
         auto UnmapBuffer( BufferAllocation& allocation ) const -> void;
 
-        MKT_NODISCARD auto IsValidAllocation(BufferAllocation& allocation) const -> bool;
-
         // These are slow use for debug only
-        MKT_NODISCARD auto GetMemoryUsage() const -> Size override;
-        MKT_NODISCARD auto GetMemoryTotal() const -> Size override;
-        MKT_NODISCARD auto GetMemoryAvailable() const -> Size override;
+        MKT_NODISCARD auto GetMemoryUsage() const -> size_t override;
+        MKT_NODISCARD auto GetMemoryTotal() const -> size_t override;
+        MKT_NODISCARD auto GetMemoryAvailable() const -> size_t override;
 
     private:
         // Map/Unmap Device memory to cpu accessible memory (map = true to map, false to unmap)
         auto MapBuffer( BufferAllocation& allocation, bool map ) const -> void;
 
     private:
-        VmaAllocator m_Allocator{};
-        mutable VmaTotalStatistics m_Stats{};
+        VmaAllocator mAllocator{};
+        mutable VmaTotalStatistics mStats{};
     };
-
-#define MKT_VMA_ALLOC_PTR( GPU_DEVICE ) dynamic_cast<VulkanMemoryAllocator*>( TO_VK_DEVICE( GPU_DEVICE )->GetAllocator() )
 }// namespace Mikoto
-
 
 #endif//MIKOTO_VULKAN_MEMORY_ALLOCATOR_H

@@ -31,7 +31,7 @@
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/ShaderParameteres.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
     struct VertexBufferData {
         Vec3F Position{};

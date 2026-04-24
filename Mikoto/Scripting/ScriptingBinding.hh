@@ -5,7 +5,7 @@
 #ifndef MIKOTO_SCRIPTING_BINDING_HH
 #define MIKOTO_SCRIPTING_BINDING_HH
 
-namespace Mikoto {
+namespace mikoto::scripting {
     class ScriptingBinding {
     public:
         virtual ~ScriptingBinding() = default;

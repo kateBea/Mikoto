@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// C++ Standard Library
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 
@@ -27,31 +26,35 @@
 #include <string>
 #include <string_view>
 
-#include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
-// Project Headers
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
 #include <Core/Exception.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
+
 #include <Filesystem/FileSystem.hh>
 
 namespace fs = std::filesystem;
 
-namespace Mikoto {
+namespace mikoto::core {
 
     // Global logger instance
-    Logger s_Logger{};
+    Logger sLogger{};
 
     MKT_NODISCARD
-    static auto NextLogFilePath( const fs::path& directory ) -> fs::path {
+    static auto NextLogFilePath( const fs::path& directory ) -> eastl::string {
         constexpr std::string_view BASE{ "mikoto" };
         constexpr std::string_view EXT{ ".log" };
+
         const std::string today{ fmt::format( "{:%Y%m%d}", std::chrono::system_clock::now() ) };
 
         // Regex pattern to match log files like mikoto-20251014-1.log,
         // mikoto, then date, then log count index
-        Int32 maxIndex{};
+        i32 maxIndex{};
         const std::regex pattern{ R"(mikoto-(\d{8})-(\d+)\.log)" };
 
         // Find the last file index
@@ -68,28 +71,28 @@ namespace Mikoto {
             }
         }
 
-        return directory / fmt::format( "{}-{}-{}{}", BASE, today, maxIndex + 1, EXT );
+        return string::ToEA_Stl( (directory / fmt::format( "{}-{}-{}{}", BASE, today, maxIndex + 1, EXT )).string() );
     }
 
     Logger::Logger()
-        : m_StdOut{ nullptr } {
+        : mStdOut{ nullptr } {
         Init();
     }
 
     auto Logger::Init() -> void {
 
-        m_StdOut = spdlog::stdout_color_mt( "MIKOTO_STDOUT_LOGGER" );
-        m_StdErr = spdlog::stderr_color_mt( "MIKOTO_STDERR_LOGGER" );
+        mStdOut = spdlog::stdout_color_mt( "MIKOTO_STDOUT_LOGGER" );
+        mStdErr = spdlog::stderr_color_mt( "MIKOTO_STDERR_LOGGER" );
 
-        constexpr std::string_view logsPath{ "Logs" };
-        if (Filesystem::CreateIfNotExistsDirectory( logsPath )) {
+        constexpr eastl::string_view logsPath{ "Logs" };
+        if (filesystem::CreateIfNotExistsDirectory( logsPath )) {
             MKT_CORE_LOGGER_DEBUG( "Created directory for logs" );
         }
 
-        m_FileLogName = NextLogFilePath( logsPath ).string();
+        mFileLogName = NextLogFilePath( logsPath.data() );
 
         try {
-            m_File = spdlog::basic_logger_mt( "MIKOTO_FILE_LOGGER", m_FileLogName );
+            mFile = spdlog::basic_logger_mt( "MIKOTO_FILE_LOGGER", mFileLogName.c_str() );
         } catch ( spdlog::spdlog_ex& e ) {
             MKT_THROW_RUNTIME_ERROR( fmt::format( "Failed to initialize logger: {}", e.what() ) );
         }
@@ -97,39 +100,39 @@ namespace Mikoto {
         // Set m_CoreLogger pattern.
         // Check out the wiki for info about formatting
         // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting
-        m_StdOut->set_pattern( "%^[%X] STDOUT LOG [thread %t] %v%$" );
-        m_StdErr->set_pattern( "%^[%X] STDERR LOG [thread %t] %v%$" );
-        m_File->set_pattern( "%^[%X] [thread %t] %v%$" );
+        mStdOut->set_pattern( "%^[%X] STDOUT LOG [thread %t] %v%$" );
+        mStdErr->set_pattern( "%^[%X] STDERR LOG [thread %t] %v%$" );
+        mFile->set_pattern( "%^[%X] [thread %t] %v%$" );
 
         // Log every message from the current level onwards.
         // If trace is used, all messages are logged including critical ones,
         // if debug is used, trace messages aren't logged and so on.
-        m_StdOut->set_level( spdlog::level::trace );
-        m_StdErr->set_level( spdlog::level::trace );
-        m_File->set_level( spdlog::level::trace );
+        mStdOut->set_level( spdlog::level::trace );
+        mStdErr->set_level( spdlog::level::trace );
+        mFile->set_level( spdlog::level::trace );
 
         // Auto flush when "debug" or higher level message is logged on all loggers.
         // Check the FAQ for more about this matter.
         // https://github.com/gabime/spdlog/wiki/0.-FAQ
 
         // These may be slow, make configurable externally
-        m_StdOut->flush_on(spdlog::level::trace);
-        m_StdErr->flush_on(spdlog::level::trace);
-        m_File->flush_on(spdlog::level::trace);
+        mStdOut->flush_on(spdlog::level::trace);
+        mStdErr->flush_on(spdlog::level::trace);
+        mFile->flush_on(spdlog::level::trace);
     }
 
-    auto Logger::GetStdOutLog() -> const Shared<spdlog::logger>& {
-        MKT_ASSERT( m_StdOut, "STD Out Logger is NULL" );
-        return m_StdOut;
+    auto Logger::GetStdOutLog() -> const std::shared_ptr<spdlog::logger>& {
+        MKT_ASSERT( mStdOut, "STD Out Logger is NULL" );
+        return mStdOut;
     }
 
-    auto Logger::GetStdErrLog() -> const Shared<spdlog::logger>& {
-        MKT_ASSERT( m_StdErr, "STD Err Logger is NULL" );
-        return m_StdErr;
+    auto Logger::GetStdErrLog() -> const std::shared_ptr<spdlog::logger>& {
+        MKT_ASSERT( mStdErr, "STD Err Logger is NULL" );
+        return mStdErr;
     }
 
-    auto Logger::GetStdFileLog() -> const Shared<spdlog::logger>& {
-        MKT_ASSERT( m_File, "File Logger is NULL" );
-        return m_File;
+    auto Logger::GetStdFileLog() -> const std::shared_ptr<spdlog::logger>& {
+        MKT_ASSERT( mFile, "File Logger is NULL" );
+        return mFile;
     }
 }// namespace Mikoto

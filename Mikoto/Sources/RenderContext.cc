@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <EASTL/unique_ptr.h>
+
 #include <Core/Platform.hh>
+#include <Renderer/Core/RenderContext.hh>
 
-#include <Library/Utility/Types.hh>
-
-#include <Renderer/Core/RenderService.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
@@ -24,22 +24,38 @@
 #include <Renderer/D3D12/D3D12Context.hh>
 #endif
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
-    auto RenderContext::Create( const RenderContextCreateInfo& config ) -> Unique<RenderContext> {
-        Unique<RenderContext> result{ nullptr };
-        switch (config.Api) {
-            case GraphicsAPI::VULKAN_API:
-                result = CreateScope<VulkanContext>( config );
+    auto RenderContext::GetGpuDevice() -> GpuDevice* {
+        return mDevice.get();
+    }
+
+    auto RenderContext::GetGpuDevice() const -> const GpuDevice* {
+        return mDevice.get();
+    }
+
+    auto RenderContext::GetRefreshRate() const -> RefreshRate {
+        return mRefreshRate;
+    }
+
+    auto RenderContext::IsRefreshType( RefreshRate type ) const -> bool {
+        return mRefreshRate == type;
+    }
+
+    auto RenderContext::Create( const RenderContextCreateInfo& config ) -> eastl::unique_ptr<RenderContext> {
+        eastl::unique_ptr<RenderContext> result{ nullptr };
+
+        switch (config.mApi) {
+            case GraphicsAPI::eVulkan:
+                result = eastl::make_unique<vulkan::Context>( config );
                 break;
 #if defined(MIKOTO_PLATFORM_WINDOWS)
-            case GraphicsAPI::DIRECTX_11:
-                result = CreateScope<D3D11Context>( config );
+            case GraphicsAPI::eD3D11:
+                result = eastl::make_unique<d3d11::Context>( config );
                 break;
-            case GraphicsAPI::DIRECTX_12:
-                result = CreateScope<D3D12Context>( config );
+            case GraphicsAPI::eD3D12:
+                result = eastl::make_unique<d3d12::Context>( config );
 #endif
-
             default:;
         }
 

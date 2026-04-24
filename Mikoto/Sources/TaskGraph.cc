@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,20 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <iostream>
-
 #include <Threading/TaskGraph.hh>
 
-namespace Mikoto {
+namespace mikoto::threading {
 
-    auto TaskGraph::Dump( DumpDst out ) -> void {
-        switch (out) {
-            case DumpDst::STANDARD_OUTPUT:
-                m_Taskflow.dump(std::cout);
-                break;
-            case DumpDst::STANDARD_ERROR:
-                m_Taskflow.dump(std::cerr);
-                break;
-        }
-    }
+
 }

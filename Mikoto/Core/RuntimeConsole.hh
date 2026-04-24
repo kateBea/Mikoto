@@ -15,72 +15,77 @@
 #ifndef MIKOTO_CONSOLE_MANAGER_HH
 #define MIKOTO_CONSOLE_MANAGER_HH
 
-#include <string>
-#include <string_view>
-#include <vector>
-#include <unordered_map>
-#include <functional>
-#include <Common/Common.hh>
-#include <Common/Service.hh>
-#include <Common/Singleton.hh>
+#include <mutex>
 
-namespace Mikoto {
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
+#include <EASTL/string_view.h>
+#include <EASTL/functional.h>
+
+#include <ankerl/unordered_dense.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
+
+namespace mikoto::core {
 
     enum class ConsoleLogLevel {
-        CONSOLE_ERROR,
-        CONSOLE_INFO,
-        CONSOLE_DEBUG,
-        CONSOLE_WARNING,
-    };
-
-    struct ConsoleManagerCreateInfo {
-        std::string_view Name{};
+        eError,
+        eInfo,
+        eDebug,
+        eWarning,
     };
 
     struct ConsoleMessage {
         ConsoleLogLevel Level{};
-        std::string Message{};
+        eastl::string mMessage{};
     };
 
-    /**
-     * @brief A runtime console service that manages command registration and log output.
-     * Used by the ConsolePanel to display logs and execute commands interactively.
-     */
+    struct RuntimeConsoleCreateInfo {
+    };
+
     class RuntimeConsole final : public IService, public Singleton<RuntimeConsole> {
     public:
         struct Command {
-            std::string Name;
-            std::string Description;
-            std::function<void(const std::vector<std::string>& args)> Callback;
+            eastl::string mName{};
+            eastl::string mDescription{};
+            eastl::function<void(const eastl::vector<eastl::string>& args)> mCallback{};
         };
 
-        explicit RuntimeConsole(const ConsoleManagerCreateInfo& createInfo);
+        explicit RuntimeConsole(const RuntimeConsoleCreateInfo& createInfo);
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         auto RegisterCommand(
-            const std::string& name,
-            const std::string& desc,
-            std::function<void(const std::vector<std::string>&)> callback
+            const eastl::string& name,
+            const eastl::string& desc,
+            eastl::function<void(const eastl::vector<eastl::string>&)> callback
         ) -> void;
 
-        auto ExecuteCommand(const std::string& input) -> void;
+        auto ExecuteCommand(const eastl::string& input) -> void;
 
-        auto Error(std::string_view message) -> void;
-        auto Info(std::string_view message) -> void;
-        auto Debug(std::string_view message) -> void;
-        auto Warning(std::string_view message) -> void;
+        auto Info(eastl::string_view message) -> void;
+        auto Debug(eastl::string_view message) -> void;
+        auto Error(eastl::string_view message) -> void;
+        auto Warning(eastl::string_view message) -> void;
 
         auto AddLog(ConsoleMessage message) -> void;
-        auto AddLog(ConsoleLogLevel level, std::string_view message) -> void;
+        auto AddLog(ConsoleLogLevel level, eastl::string_view message) -> void;
 
-        MKT_NODISCARD auto GetLogs() const -> const std::vector<std::string>& { return m_LogEntries; }
+        MKT_NODISCARD auto GetLogs() const -> const eastl::vector<eastl::string>&;
 
     private:
-        std::unordered_map<std::string, Command> m_Commands;
-        std::vector<std::string> m_LogEntries{};
-        std::string m_Name{};
+        auto RegisterDefaultCommands() -> void;
+
+    private:
+        eastl::string m_Name{};
+        eastl::vector<eastl::string> mLogEntries{};
+
+        std::mutex mCommandRegisterMutex{};
+        ankerl::unordered_dense::map<eastl::string, Command> mRegisteredCommands{};
     };
 }
 #endif // MIKOTO_CONSOLE_MANAGER_HH

@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,20 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Specify windows target for asio
-#define _WIN32_WINDOWS 0x0A00
+#include <string>
+#include <exception>
+
+#include <EASTL/atomic.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
+#include <Platform/PlatformWin32.hh>
+
+#include <asio.hpp>
+#if defined( MIKOTO_OPENSSL_AVAILABLE )
+#include <asio/ssl.hpp>
+#endif
 
 #include <Core/Exception.hh>
 #include <Networking/Socket.hh>
 
-namespace Mikoto {
+namespace mikoto::network {
 
-    TcpSocket::TcpSocket( asio::io_context &ctx, std::string_view address, UInt16 port, bool wait )
-        : m_Socket{ ctx }, m_Port{ port }, m_HostName{ address }, m_InitSync{ wait } {
+    using namespace mikoto::core;
+
+    TcpSocket::TcpSocket( asio::io_context &ctx, eastl::string_view address, u16 port, bool wait )
+        : mSocket{ ctx }, mPort{ port }, mHostName{ address }, mInitSync{ wait } {
     }
 
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-    TcpSocket::TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, const std::string_view address, const UInt16 port, bool wait )
+    TcpSocket::TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, const eastl::string_view address, const UInt16 port, bool wait )
         : m_Socket{ ctx },
           m_SslSocket{
               new asio::ssl::stream<asio::ip::tcp::socket>{
@@ -40,12 +53,12 @@ namespace Mikoto {
 #endif
 
     TcpSocket::~TcpSocket() {
-        while (IsConnectionStatus( ConnectionStatus::PENDING )) {
+        while (IsConnectionStatus( ConnectionStatus::ePending )) {
             // If we made an async connection, and it is still pending
             // wait till it completes
         }
 
-        if (m_IsAllocated) {
+        if (mIsAllocated) {
             Release();
         }
     }
@@ -53,75 +66,75 @@ namespace Mikoto {
     auto TcpSocket::Disconnect() -> void {
         try {
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-            if (m_IsSsl) {
+            if (mIsSsl) {
                 m_SslSocket->shutdown();
                 delete m_SslSocket;
                 m_SslSocket = nullptr;
             }
 #endif
-            if (!m_IsSsl) {
-                m_Socket.close();
+            if (!mIsSsl) {
+                mSocket.close();
             }
 
         } catch ( const std::exception& e ) {
             MKT_CORE_LOGGER_ERROR( "TcpSocket::Disconnect - Error Disconnect. e.what() {}", e.what() );
         }
 
-        m_ConnectionStatus = ConnectionStatus::DISCONNECTED;
+        mConnectionStatus = ConnectionStatus::eDisconnected;
     }
 
     auto TcpSocket::IsConnected() const -> bool {
-        return IsConnectionStatus( ConnectionStatus::CONNECTED );
+        return IsConnectionStatus( ConnectionStatus::eConnected );
     }
 
-    auto TcpSocket::Connect( std::string_view address, UInt16 port ) -> bool {
-        if ( IsConnectionStatus( ConnectionStatus::CONNECTED ) ) {
+    auto TcpSocket::Connect( eastl::string_view address, u16 port ) -> bool {
+        if ( IsConnectionStatus( ConnectionStatus::eConnected ) ) {
             Disconnect();
         }
 
-        m_Port = port;
-        m_HostName = address;
+        mPort = port;
+        mHostName = address;
 
         Initialize();
-        return IsConnectionStatus( ConnectionStatus::CONNECTED );
+        return IsConnectionStatus( ConnectionStatus::eConnected );
     }
 
-    auto TcpSocket::SendSync( const std::string_view data ) -> void {
+    auto TcpSocket::SendSync( const eastl::string_view data ) -> void {
         SendSync( data.data(), data.size() );
     }
 
-    auto TcpSocket::SendSync( const void *data, const Size size ) -> void {
+    auto TcpSocket::SendSync( const void *data, const size_t size ) -> void {
         try {
-            if ( m_IsSsl ) {
+            if ( mIsSsl ) {
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
                 asio::write( *m_SslSocket, asio::buffer( data, size ) );
 #else
 #endif
             } else {
-                asio::write( m_Socket, asio::buffer( data, size ) );
+                asio::write( mSocket, asio::buffer( data, size ) );
             }
 
-            m_ErrorCode.clear();
+            mErrorCode.clear();
 
         } catch ( const std::exception &e ) {
             MKT_CORE_LOGGER_ERROR( "TcpSocket::SendSync - Send failed: {}", e.what() );
         }
     }
 
-    auto TcpSocket::ReceiveSync( void *buffer, const Size maxSize ) -> Size {
+    auto TcpSocket::ReceiveSync( void *buffer, const size_t maxSize ) -> size_t {
         try {
-            if ( m_ErrorCode == asio::error::eof ) {
+            if ( mErrorCode == asio::error::eof ) {
                 return 0;
             }
 
-            if ( m_IsSsl ) {
+            if ( mIsSsl ) {
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-                return m_SslSocket->read_some( asio::buffer( buffer, maxSize ), m_ErrorCode );
+                return m_SslSocket->read_some( asio::buffer( buffer, maxSize ), mErrorCode );
 #else
                 return 0;
 #endif
             } else {
-                return m_Socket.read_some( asio::buffer( buffer, maxSize ), m_ErrorCode );
+                return mSocket.read_some( asio::buffer( buffer, maxSize ), mErrorCode );
             }
 
         } catch ( const std::exception &e ) {
@@ -130,15 +143,15 @@ namespace Mikoto {
         }
     }
 
-    auto TcpSocket::GetHost() const -> const std::string & {
-        return m_HostName;
+    auto TcpSocket::GetHost() const -> const eastl::string & {
+        return mHostName;
     }
 
     auto TcpSocket::Initialize() -> void {
         // We will attempt to connect we set the connection as pending
-        m_ConnectionStatus = ConnectionStatus::PENDING;
+        mConnectionStatus = ConnectionStatus::ePending;
 
-        if (m_InitSync) {
+        if (mInitSync) {
             InitConnectionSync();
         } else {
             InitConnection();
@@ -148,85 +161,86 @@ namespace Mikoto {
     auto TcpSocket::Release() -> void {
         Disconnect();
 
-        m_IsAllocated = false;
+        mIsAllocated = false;
     }
 
     auto TcpSocket::InitConnection() -> void {
         try {
-            if ( m_IsSsl ) {
+            if ( mIsSsl ) {
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
                 asio::ip::tcp::resolver resolver( m_SslSocket->get_executor() );
-                const auto endpoints{ resolver.resolve( m_HostName, std::to_string( m_Port ) ) };
+                const auto endpoints{ resolver.resolve( mHostName.c_str(), std::to_string( mPort ) ) };
 
                 asio::async_connect( m_SslSocket->next_layer(), endpoints,
-                                     [this]( std::error_code ec, const asio::ip::tcp::endpoint & ) -> void {
-                                         if ( !ec ) {
-                                             MKT_CORE_LOGGER_INFO( "SSL Connected successfully to host {}", m_HostName );
+                     [this]( std::error_code ec, const asio::ip::tcp::endpoint & ) -> void {
+                         if ( !ec ) {
+                             MKT_CORE_LOGGER_INFO( "SSL Connected successfully to host {}", mHostName );
 
-                                             // Perform TLS handshake
-                                             m_SslSocket->handshake( asio::ssl::stream_base::client );
+                             // Perform TLS handshake
+                             mSslSocket->handshake( asio::ssl::stream_base::client );
 
-                                             m_ConnectionStatus = ConnectionStatus::CONNECTED;
-                                         } else {
-                                             MKT_CORE_LOGGER_ERROR( "SSL connection failed to host {}, message: {}",m_HostName, ec.message() );
+                             m_ConnectionStatus = ConnectionStatus::eConnected;
+                         } else {
+                             MKT_CORE_LOGGER_ERROR( "SSL connection failed to host {}, message: {}",mHostName, ec.message() );
 
-                                             m_ConnectionStatus = ConnectionStatus::DISCONNECTED;
-                                         }
-                                     } );
+                             mConnectionStatus = ConnectionStatus::eDisconnected;
+                         }
+                     } );
 
 #endif
             } else {
-                asio::ip::tcp::resolver resolver( m_Socket.get_executor() );
-                const auto endpoints{ resolver.resolve( m_HostName, std::to_string( m_Port ) ) };
+                asio::ip::tcp::resolver resolver( mSocket.get_executor() );
+                const auto endpoints{ resolver.resolve( mHostName.c_str(), std::to_string( mPort ) ) };
 
-                asio::async_connect( m_Socket, endpoints, [this]( std::error_code ec, const asio::ip::tcp::endpoint & ) {
+                asio::async_connect( mSocket, endpoints, [this]
+                    ( std::error_code ec, const asio::ip::tcp::endpoint & ) {
                     if ( !ec ) {
-                        MKT_CORE_LOGGER_INFO( "TCP Connected successfully to host {}", m_HostName );
+                        MKT_CORE_LOGGER_INFO( "TCP Connected successfully to host {}", mHostName );
 
-                        m_ConnectionStatus = ConnectionStatus::CONNECTED;
+                        mConnectionStatus = ConnectionStatus::eConnected;
                     } else {
-                        MKT_CORE_LOGGER_ERROR( "TCP connection failed to host{}, message: {}", m_HostName, ec.message() );
+                        MKT_CORE_LOGGER_ERROR( "TCP connection failed to host{}, message: {}", mHostName, ec.message() );
 
-                        m_ConnectionStatus = ConnectionStatus::DISCONNECTED;
+                        mConnectionStatus = ConnectionStatus::eDisconnected;
                     }
                 } );
             }
 
         } catch ( std::exception &e ) {
-            m_ConnectionStatus = ConnectionStatus::DISCONNECTED;
-            MKT_CORE_LOGGER_ERROR("Failed to initialize asynchronously to {}. Exception: ", m_HostName, e.what() );
+            mConnectionStatus = ConnectionStatus::eDisconnected;
+            MKT_CORE_LOGGER_ERROR("Failed to initialize asynchronously to {}. Exception: ", mHostName, e.what() );
         }
     }
 
     auto TcpSocket::InitConnectionSync() -> void {
         try {
-            if ( m_IsSsl ) {
+            if ( mIsSsl ) {
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
                 asio::ip::tcp::resolver resolver( m_SslSocket->get_executor() );
-                const auto endpoints{ resolver.resolve( m_HostName, std::to_string( m_Port ) ) };
+                const auto endpoints{ resolver.resolve( mHostName.c_str(), std::to_string( mPort ) ) };
 
                 asio::connect( m_SslSocket->next_layer(), endpoints);
 
-                m_SslSocket->handshake( asio::ssl::stream_base::client );
+                mSslSocket->handshake( asio::ssl::stream_base::client );
 
-                m_ConnectionStatus = ConnectionStatus::CONNECTED;
+                mConnectionStatus = ConnectionStatus::eConnected;
                 MKT_CORE_LOGGER_INFO( "SSL Connected successfully" );
 
 #else
                 throw RuntimeException("TcpSocket::InitConnectionSync - Trying to create SSL TCP Socket but OpenSSL is not available");
 #endif
             } else {
-                asio::ip::tcp::resolver resolver( m_Socket.get_executor() );
-                const auto endpoints{ resolver.resolve( m_HostName, std::to_string( m_Port ) ) };
+                asio::ip::tcp::resolver resolver( mSocket.get_executor() );
+                const auto endpoints{ resolver.resolve( mHostName.c_str(), std::to_string( mPort ) ) };
 
-                m_TcpEndpoint = asio::connect( m_Socket, endpoints );
+                mTcpEndpoint = asio::connect( mSocket, endpoints );
 
-                m_ConnectionStatus = ConnectionStatus::CONNECTED;
+                mConnectionStatus = ConnectionStatus::eConnected;
                 MKT_CORE_LOGGER_INFO( "TCP Connected successfully" );
             }
         } catch (std::exception& e) {
-            m_ConnectionStatus = ConnectionStatus::DISCONNECTED;
-            MKT_CORE_LOGGER_ERROR("Failed to initialize synchronously to {}. Excep: ", m_HostName, e.what() );
+            mConnectionStatus = ConnectionStatus::eDisconnected;
+            MKT_CORE_LOGGER_ERROR("Failed to initialize synchronously to {}. Excep: ", mHostName, e.what() );
         }
     }
 }// namespace Mikoto

@@ -15,43 +15,55 @@
 #ifndef MIKOTO_SCENE_MANAGER_HH
 #define MIKOTO_SCENE_MANAGER_HH
 
-#include <string_view>
+#include <mutex>
+
+#include <EASTL/unique_ptr.h>
+#include <EASTL/string_view.h>
 
 #include <ankerl/unordered_dense.h>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Service.hh>
+
 #include <Scene/Scene.hh>
-#include <Common/Service.hh>
-#include <Library/Utility/Types.hh>
 #include <Scene/SceneSerializer.hh>
 
-namespace Mikoto {
+namespace mikoto::scene {
+
+    class Scene;
+
+    using namespace mikoto::core;
 
     // Manages scenes currently active. Scenes are identified uniquely by their name for now.
-    class SceneManager final : public Singleton<SceneManager>, public IService {
+    class SceneManager final : public IService, public Singleton<SceneManager> {
     public:
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
-
-        // Opens a file dialog
-        auto LoadFromDisk() -> Scene*;
-        auto Load(const Path& path) -> Scene*;
 
         // Opens a file dialog
         auto SaveToDisk( const Scene* scene) -> void;
         auto Save( const Scene* scene, const Path& path ) -> void;
 
-        auto CreateScene( std::string_view name ) -> Scene*;
+        // Opens a file dialog
+        MKT_NODISCARD auto LoadFromDisk() -> Scene*;
+        MKT_NODISCARD auto Load(const Path& path) -> Scene*;
 
-        MKT_NODISCARD auto GetByName( std::string_view name ) -> Scene *;
+        MKT_NODISCARD auto CreateScene( eastl::string_view name ) -> Scene*;
+
+        MKT_NODISCARD auto GetByName( eastl::string_view name ) -> Scene*;
 
     private:
         // [Internal usage]
-        auto Register(std::string_view name, Unique<Scene>&& scene ) -> Scene*;
+        auto Register(eastl::string_view name, eastl::unique_ptr<Scene>&& scene ) -> Scene*;
 
     private:
-        SceneSerializer m_Serializer{};
-        ankerl::unordered_dense::map<std::string, Unique<Scene>> m_Scenes{};
+        SceneSerializer mSerializer{};
+        ankerl::unordered_dense::map<eastl::string, eastl::unique_ptr<Scene>> mScenes{};
+
+        std::mutex mSceneRegisterMutex{};
     };
 }
 

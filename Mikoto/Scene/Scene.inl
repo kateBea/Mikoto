@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef MIKOTO_SCENE_INL
+#define MIKOTO_SCENE_INL
+
 #include <Scene/Scene.hh>
 
-namespace Mikoto {
+namespace mikoto::scene {
 
     template<typename EntityFunction>
     auto Scene::ApplyToChildren( Entity* parent, const EntityFunction& callable ) -> void {
@@ -32,4 +35,14 @@ namespace Mikoto {
             }
         }
     }
+
+    template<typename Callback, typename... ComponentTypes>
+    auto Scene::ForAll(const Callback& c) -> void {
+        auto view{ mRegistry.view<ComponentTypes...>() };
+        for ( const auto& entity: view ) {
+            c(view.template get<ComponentTypes>(entity)...);
+        }
+    }
 }
+
+#endif

@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,29 +15,35 @@
 #ifndef MIKOTO_GPU_ALLOCATOR_H
 #define MIKOTO_GPU_ALLOCATOR_H
 
-#include <Library/Utility/Types.hh>
+#include <EASTL/unique_ptr.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
 #include <Memory/Allocator.hh>
 #include <Renderer/Core/GpuDevice.hh>
 
-namespace Mikoto {
-    class GpuAllocator : public Allocator {
+namespace mikoto::memory {
+
+    class IGpuAllocator {
     public:
-        ~GpuAllocator() override = default;
-        explicit GpuAllocator(GpuDevice* device)
-            : m_Device{ device }
+        explicit IGpuAllocator(renderer::GpuDevice* device)
+            : mDevice{ device }
         {}
 
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
-        MKT_NODISCARD virtual auto GetMemoryUsage() const -> Size = 0;
-        MKT_NODISCARD virtual auto GetMemoryTotal() const -> Size = 0;
-        MKT_NODISCARD virtual auto GetMemoryAvailable() const -> Size = 0;
+        MKT_NODISCARD virtual auto GetMemoryUsage() const -> size_t = 0;
+        MKT_NODISCARD virtual auto GetMemoryTotal() const -> size_t = 0;
+        MKT_NODISCARD virtual auto GetMemoryAvailable() const -> size_t = 0;
 
-        static auto Create(GpuDevice* device) -> Unique<GpuAllocator>;
+        virtual ~IGpuAllocator() = default;
+
+        static auto Create(renderer::GpuDevice* device) -> eastl::unique_ptr<IGpuAllocator>;
 
     protected:
-        GpuDevice* m_Device{};
+        renderer::GpuDevice* mDevice{};
     };
 }
 

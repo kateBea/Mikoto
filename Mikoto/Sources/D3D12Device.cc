@@ -12,86 +12,195 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Platform.hh>
+
+#include <Renderer/D3D12/D3D12Context.hh>
 #include <Renderer/D3D12/D3D12Device.hh>
+#include <Renderer/D3D12/Direct3D12Helpers.hh>
+
+#include <Renderer/Core/RenderSystem.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-namespace Mikoto {
+#include <Platform/PlatformWin32.hh>
 
-    D3D12Device::D3D12Device( const GpuDeviceCreateInfo &createInfo )
-        : GpuDevice{ createInfo.Api }
+#include <d3d12.h>
+#include <dxgi1_6.h>
+#include <d3dcompiler.h>
+#include <DirectXMath.h>
+
+// D3D12 extension library.
+//#include <d3dx12.h>
+
+namespace mikoto::renderer::d3d12 {
+
+    auto BindingLayout::IsBindless() const -> bool {
+        return false;
+    }
+
+    auto BindingLayout::GetRegisterSpace() const -> u32 {
+        return 0; // TODO
+    }
+
+    BindingLayout::~BindingLayout() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto BindingLayout::Initialize() -> void {
+        mIsAllocated = true;
+    }
+
+    auto BindingLayout::Release() -> void {
+        mIsAllocated = false;
+    }
+
+    auto PipelineLayout::GetBindPoint() const -> PipelineType {
+        return PipelineType::eInvalid;
+    }
+
+    Device::Device( const GpuDeviceCreateInfo &createInfo )
+        : GpuDevice{ createInfo.mApi, createInfo.mFeaturesSupport }
     {}
 
-    auto D3D12Device::Init() -> void {}
+    auto Device::Init() -> void {
+        IDXGIFactory4* factory{ checked_cast<Context*>( RenderSystem::Get()->GetContext() )->GetDxiFactory() };
+        for (UINT adapterIndex{}; DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(adapterIndex, &mAdapter); ++adapterIndex) {
+            DXGI_ADAPTER_DESC1 desc{};
+            mAdapter->GetDesc1(&desc);
 
-    auto D3D12Device::Shutdown() -> void {}
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
+                // Don't select the Basic Render Driver adapter.
+                continue;
+            }
 
-    auto D3D12Device::CreateTexture( const TextureDescription &description ) -> TextureHandle {
+            // Check to see if the adapter supports Direct3D 12, but don't create
+            // the actual device yet.
+            // Check to see if the adapter supports Direct3D 12, but don't create
+            // the actual device yet.
+            if ( SUCCEEDED( D3D12CreateDevice( mAdapter.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
+                break;
+            }
+        }
+
+        ThrowIfFailed(D3D12CreateDevice( mAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice)));
+        mDevice->SetName(L"Hello Triangle Device");
+
+#if defined(_DEBUG)
+        ThrowIfFailed(mDevice->QueryInterface( IID_PPV_ARGS(&mDebugDevice) ));
+#endif
+    }
+
+    auto Device::Shutdown() -> void {
+
+    }
+
+    auto Device::CreateTexture( const TextureCreateDescription &description ) -> TextureHandle {
         return TextureHandle::CreateEmpty();
     }
 
-    auto D3D12Device::CreateTexture( const TextureCubeCreateDescription &description ) -> TextureHandle {
+    auto Device::CreateTextureNative( ObjectType type, Object object, const TextureCreateDescription &description ) -> TextureHandle {
         return TextureHandle::CreateEmpty();
     }
 
-    auto D3D12Device::CreateBuffer( const BufferDescription &description ) -> BufferHandle {
-        return TextureHandle::CreateEmpty();
-    }
-
-    auto D3D12Device::CreateFrameBuffer( const FramebufferDescription &description ) -> FramebufferHandle {
+    auto Device::CreateFrameBuffer( const FramebufferDescription &description ) -> FramebufferHandle {
         return FramebufferHandle::CreateEmpty();
     }
 
-    auto D3D12Device::CreateSampler( const SamplerDescription &description ) -> SamplerHandle {
+    auto Device::CreateSampler( const SamplerCreateDescription &description ) -> SamplerHandle {
         return SamplerHandle::CreateEmpty();
     }
 
-    auto D3D12Device::CreatePipeline( const ComputePipelineDescription &description ) -> PipelineHandle {
-        return PipelineHandle::CreateEmpty();
+    auto Device::CreateAccelStructure( const AccelStructureCreateDescription &description ) -> AccelStructureHandle {
+        return AccelStructureHandle::CreateEmpty();
     }
 
-    auto D3D12Device::CreatePipeline( const GraphicsPipelineDescription &description ) -> PipelineHandle {
-        return PipelineHandle::CreateEmpty();
-    }
-
-    auto D3D12Device::CreateCommandList( QueueType queue, bool immediate ) -> CommandListHandle {
+    auto Device::CreateCommandList( QueueType queue ) -> CommandListHandle {
         return CommandListHandle::CreateEmpty();
     }
 
-    auto D3D12Device::LoadShader( const Path &path, ShaderStage stage ) -> ShaderModuleHandle {
+    auto Device::CreateCommandList( const CommandListParameters &parameters ) -> CommandListHandle {
+        return CommandListHandle::CreateEmpty();
+    }
+
+    auto Device::CreateShader( const ShaderModuleCreateDescription &desc ) -> ShaderModuleHandle {
         return ShaderModuleHandle::CreateEmpty();
     }
 
-    auto D3D12Device::GetDummySampler() const -> SamplerHandle {
-        return SamplerHandle::CreateEmpty();
+    auto Device::CreateShader( ShaderStage type, const void *code, size_t codeSize ) -> ShaderModuleHandle {
+        return ShaderModuleHandle::CreateEmpty();
     }
 
-    auto D3D12Device::GetDeviceName() const -> std::string_view {
-        return std::string_view{ "D3D12Device" };
+    auto Device::CreateInputLayout( const InputLayoutCreateDescription& desc ) -> InputLayoutHandle {
+        return InputLayoutHandle::CreateEmpty();
     }
 
-    auto D3D12Device::GetNativeHandle( ObjectType object ) -> Object {
-        return Object(m_Device.GetAddressOf());
+    auto Device::CreateBindingLayout( const BindingLayoutDescription &desc ) -> BindingLayoutHandle {
+        return BindingLayoutHandle::CreateEmpty();
     }
 
-    auto D3D12Device::GetMemoryUsage() const -> Size {
-        return Size{ 0 };
+    auto Device::CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle {
+        return PipelineLayoutHandle::CreateEmpty();
     }
 
-    auto D3D12Device::GetMemoryTotal() const -> Size {
-        return Size{ 0 };
+    auto Device::CreateBindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
+        return BindingSetHandle::CreateEmpty();
     }
 
-    auto D3D12Device::GetMemoryAvailable() const -> Size {
-        return Size{ 0 };
+    auto Device::UnMap( IBuffer *buffer ) -> void {
     }
 
-    auto D3D12Device::RunGarbageCollection() -> void {
+    auto Device::Map( IBuffer *buffer ) -> const void * {
+        return nullptr;
+    }
+
+    auto Device::CreateBindlessLayout( const BindlessLayoutDescription &desc ) -> BindingLayoutHandle {
+        return BindingLayoutHandle::CreateEmpty();
+    }
+
+    auto Device::CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle {
+        return DescriptorTableHandle::CreateEmpty();
+    }
+
+    auto Device::ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool {
+        return false;
+    }
+
+    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem &item ) -> bool {
+        return false;
+    }
+
+    auto Device::Flush() -> void {
 
     }
 
-    auto D3D12Device::SubmitCommands( CommandListHandle cmd ) -> void {
+    auto Device::ExecuteCommands( CommandListHandle cmdList ) -> void {
+    }
+
+    auto Device::WaitIdle() -> void {
+
+    }
+
+    auto Device::CreateBuffer( const BufferCreateDescription &description ) -> BufferHandle {
+        return BufferHandle::CreateEmpty();
+    }
+
+    auto Device::CreatePipeline( const ComputePipelineDescription &description ) -> PipelineHandle {
+        return PipelineHandle::CreateEmpty();
+    }
+
+    auto Device::CreatePipeline( const GraphicsPipelineDescription &description ) -> PipelineHandle {
+        return PipelineHandle::CreateEmpty();
+    }
+
+    auto Device::RunGarbageCollection() -> void {
+
+    }
+
+    auto Device::SubmitCommands( CommandListHandle cmd ) -> void {
 
     }
 }

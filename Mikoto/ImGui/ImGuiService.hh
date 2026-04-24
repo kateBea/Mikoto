@@ -15,25 +15,34 @@
 #ifndef MIKOTO_IMGUI_SERVICE_HH
 #define MIKOTO_IMGUI_SERVICE_HH
 
+#include <EASTL/array.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
 #include <imgui.h>
 
-#include <Common/Service.hh>
-#include <Assets/Texture.hh>
+#include <Core/Core.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
+#include <Core/Types.hh>
+
 #include <ImGui/ImGuiUtility.hh>
 
 #include <Platform/Window.hh>
 
-#include <Library/Utility/Types.hh>
-
 #include <Renderer/Core/GpuDevice.hh>
-#include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Core/Rhi.hh>
 
-namespace Mikoto {
+namespace mikoto::gui {
+
+    using namespace mikoto::core;
+    using namespace mikoto::platform;
+    using namespace mikoto::renderer;
 
     struct ImGuiBackendCreateInfo {
-        const Window* Handle{};
-        GraphicsAPI API{ GraphicsAPI::VULKAN_API };
-        GpuDevice* Device{ nullptr };
+        Window* mWindow{ nullptr };
+        GpuDevice* mDevice{ nullptr };
+        GraphicsAPI mApi{ GraphicsAPI::eVulkan };
     };
 
     /**
@@ -45,7 +54,7 @@ namespace Mikoto {
     class ImGuiBackend {
     public:
         explicit ImGuiBackend( const ImGuiBackendCreateInfo& createInfo )
-            : m_Window{ createInfo.Handle }, m_GpuDevice{ createInfo.Device }, m_Api{ createInfo.API }
+            : m_Window{ createInfo.mWindow }, mGpuDevice{ createInfo.mDevice }, mApi{ createInfo.mApi }
         {}
 
         virtual auto Init() -> void = 0;
@@ -56,28 +65,34 @@ namespace Mikoto {
 
         MKT_NODISCARD virtual auto GetFinalComposition() -> TextureHandle = 0;
 
-        auto SetClearColor(const Vec4F& color) -> void { m_ClearColor = color; }
+        auto SetClearColor(const float4& color) -> void { mClearColor = color; }
+        auto SetResolution( RenderResolution reso ) -> void { mResolution = reso; }
 
-        MKT_NODISCARD virtual auto ConstructImGuiTextureID(const Texture* texture) -> ImTextureID = 0;
+        MKT_NODISCARD virtual auto GetResolution() const -> RenderResolution { return mResolution; }
+
+        MKT_NODISCARD virtual auto ConstructImGuiTextureID(const ITexture* texture) -> ImTextureID = 0;
         MKT_NODISCARD virtual auto ConstructImGuiTextureID(TextureHandle texture) -> ImTextureID = 0;
 
         virtual ~ImGuiBackend() = default;
 
-        MKT_NODISCARD static auto Create(const ImGuiBackendCreateInfo& info) -> Unique<ImGuiBackend>;
+        MKT_NODISCARD static auto Create(const ImGuiBackendCreateInfo& info) -> eastl::unique_ptr<ImGuiBackend>;
 
     protected:
-        Vec4F m_ClearColor{ 0.9f, 0.6f, 0.85f, 1.0f };
-        bool m_IsInitialized{ false };
+        float4 mClearColor{ 0.9f, 0.6f, 0.85f, 1.0f };
+        bool mIsInitialized{ false };
 
-        const Window* m_Window{};
-        GpuDevice* m_GpuDevice{};
-        GraphicsAPI m_Api{ GraphicsAPI::VULKAN_API };
+        Window* m_Window{};
+        GpuDevice* mGpuDevice{};
+        GraphicsAPI mApi{ GraphicsAPI::eVulkan };
+        RenderResolution mResolution{ RenderResolution::e1080P };
     };
 
     struct ImGuiServiceDescription {
-        GpuDevice* Device{ nullptr };
-        GraphicsAPI BackendApi{ GraphicsAPI::VULKAN_API };
-        Window* TargetWindow{ nullptr };
+        // Will grab the device from the render service
+        // which is required to be initialized before this one
+        Window* mWindow{ nullptr };
+        GpuDevice* mDevice{ nullptr };
+        GraphicsAPI mApi{ GraphicsAPI::eVulkan };
     };
 
     class ImGuiService final : public IService, public Singleton<ImGuiService> {
@@ -87,7 +102,7 @@ namespace Mikoto {
 
         ~ImGuiService() override = default;
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         auto EndFrame() const -> void;
@@ -98,37 +113,39 @@ namespace Mikoto {
 
         MKT_NODISCARD auto GetFinalComposition() const -> TextureHandle;
 
-        auto SetImGuiBackGroundClearColor(const Vec4F& color) -> void;
+        auto SetImGuiBackGroundClearColor(const float4& color) -> void;
 
         MKT_NODISCARD auto GetTextureID(TextureHandle texture) -> ImTextureID;
-        MKT_NODISCARD auto GetTextureID(const Texture* texture) -> ImTextureID;
+        MKT_NODISCARD auto GetTextureID(const ITexture* texture) -> ImTextureID;
 
         MKT_NODISCARD auto GetBackend() -> ImGuiBackend*;
         MKT_NODISCARD auto GetBackend() const -> const ImGuiBackend*;
 
-        auto PushFont( std::string_view str ) -> ImGuiUtils::ImGuiScopedTextFont;
+        auto PushFont( eastl::string_view str ) -> ImGuiScopedTextFont;
 
     private:
 
         auto InitImplementation() -> void;
-        auto AddFont(float fontSize, const std::string &path, const ImFontConfig* config = nullptr, const std::array<ImWchar, 3>* iconRanges = nullptr ) -> void;
-        auto AddIconFont(float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges) -> void;
+        auto AddFont(float fontSize, const eastl::string &path, const ImFontConfig* config = nullptr, const ImWchar* glyphRanges = nullptr ) -> void;
+        auto AddIconFont(float fontSize, const eastl::string &path, const eastl::array<ImWchar, 3> &iconRanges) -> void;
 
     private:
-        static constexpr float FONT_BASE_SIZE{ 17.0f };
+        static constexpr float kFontBaseSize{ 19.0f };
 
     private:
-        GpuDevice* m_Device{ nullptr };
-        std::string m_ImGuiFilesRootDir{};
-        GraphicsAPI m_BackendApi{ GraphicsAPI::INVALID_API };
+        Window* mWindow{ nullptr };
+        GpuDevice* mDevice{ nullptr };
 
-        Window* m_Window{ nullptr };
+        eastl::unique_ptr<ImGuiBackend> mImplementation{ nullptr };
 
-        Unique<ImGuiBackend> m_Implementation{ nullptr };
+        Path mFontsRootDir{};
+        Path mImGuiFilesRootDir{};
 
         // index into ImGui internal font structures and
         // a path to keep track of where it is
-        ankerl::unordered_dense::map<std::string, Int8> m_ImGuiFonts{};
+        ankerl::unordered_dense::map<Path, i8> mImGuiFonts{};
+
+        GraphicsAPI mBackendApi{ GraphicsAPI::eInvalid };
     };
 
 }

@@ -12,23 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
+
 #include <Logging/Logger.hh>
 
+#include <Theme/Theme.hh>
 #include <Theme/ThemeManager.hh>
 
-namespace Mikoto {
+namespace mikoto::editor {
 
-    auto ThemeManager::Init() -> void {
+    auto ThemeManager::Initialize() -> void {
 
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto ThemeManager::Shutdown() -> void {
-        if (!m_IsInitialized) {
+        if (!mIsInitialized) {
             return;
         }
 
-        m_IsInitialized = false;
+        mIsInitialized = false;
     }
 
     auto ThemeManager::ApplyTheme( std::string_view name ) -> void {
@@ -45,7 +50,7 @@ namespace Mikoto {
         // Open file dialog and serialize the theme
     }
 
-    auto ThemeManager::GetTheme( std::string_view name ) -> Theme * {
+    auto ThemeManager::GetTheme( eastl::string_view name ) -> Theme * {
         return nullptr;
     }
 }

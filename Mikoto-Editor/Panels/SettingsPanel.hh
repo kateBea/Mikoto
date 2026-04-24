@@ -15,40 +15,41 @@
 #ifndef MIKOTO_SETTINGS_PANEL_HH
 #define MIKOTO_SETTINGS_PANEL_HH
 
-#include <memory>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
-#include <Common/Common.hh>
 #include <Panels/Panel.hh>
-#include <Library/Utility/Types.hh>
 
-namespace Mikoto {
+namespace mikoto::editor {
+
+    using namespace mikoto::core;
 
     struct EditorState;
 
     struct SettingsPanelData {
         // Camera
-        float EditorCameraMovementSpeed{ 70 };
-        float EditorCameraRotationSpeed{ 30 };
-        float NearPlane{ 0.1f };
-        float FarPlane{ 2000.0f };
-        float FieldOfView{ 45.0f };
-        float DampingFactor{ 6.0f };
-        bool WantXAxisRotation{ true };
-        bool WantYAxisRotation{ true };
+        f32 mEditorCameraMovementSpeed{ 70 };
+        f32 mEditorCameraRotationSpeed{ 30 };
+        f32 mNearPlane{ 0.1f };
+        f32 mFarPlane{ 5000.0f };
+        f32 mFieldOfView{ 45.0f };
+        f32 mDampingFactor{ 6.0f };
+        bool mWantXAxisRotation{ true };
+        bool mWantYAxisRotation{ true };
 
         // Selected entity
-        bool LockCameraToTarget{ false };
+        bool mLockCameraToTarget{ false };
 
         // Infinite grid
-        float GridSize{};
-        float GridCellSize{ 0.5f };
-        float GridMinPixelsBetweenCells{ 2.0f };
-        Vec4F GridColorThin{ 0.5f, 0.5f, 0.5f, 1.0f };
-        Vec4F GridColorThick{ 0.0f, 0.0f, 0.0f, 1.0f };
+        f32 mGridSize{};
+        f32 mGridCellSize{ 0.5f };
+        f32 mGridMinPixelsBetweenCells{ 2.0f };
+        float4 mGridColorThin{ 0.5f, 0.5f, 0.5f, 1.0f };
+        float4 mGridColorThick{ 0.0f, 0.0f, 0.0f, 1.0f };
     };
 
     struct SettingsPanelCreateInfo {
-        EditorState* State{};
+        EditorState* mState{};
     };
 
     class SettingsPanel final : public Panel {
@@ -57,17 +58,16 @@ namespace Mikoto {
 
         auto OnUpdate(float timeStep) -> void override;
 
-        MKT_NODISCARD auto GetData() -> SettingsPanelData& { return m_Data; }
-        MKT_NODISCARD auto GetData() const -> const SettingsPanelData& { return m_Data; }
+        MKT_NODISCARD auto GetData() -> SettingsPanelData&;
+        MKT_NODISCARD auto GetData() const -> const SettingsPanelData&;
 
     private:
         auto DrawCameraConfig() -> void;
         auto DrawCameraProperties() -> void;
 
     private:
-
-        EditorState* m_EditorState{};
-        SettingsPanelData m_Data{};
+        EditorState* mEditorState{};
+        SettingsPanelData mData{};
     };
 }
 

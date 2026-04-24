@@ -15,16 +15,12 @@
 #ifndef MIKOTO_ASSERT_HH
 #define MIKOTO_ASSERT_HH
 
-// C++ Standard Library
 #include <cstdlib>
 
-// Third-Party Libraries
 #include <fmt/format.h>
 #include <cpptrace/cpptrace.hpp>
 
-
-// Project Headers
-#include <Library/String/String.hh>
+#include <Core/String.hh>
 
 #if defined( WIN32 ) || defined( WIN64 )
 #define __PRETTY_FUNCTION__ __FUNCTION__

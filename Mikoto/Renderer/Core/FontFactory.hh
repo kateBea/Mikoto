@@ -24,76 +24,95 @@
 #undef max
 #endif
 
-#include <vector>
+#include <EASTL/vector.h>
+#include <EASTL/string_view.h>
+#include <EASTL/fixed_vector.h>
 
 #include <ankerl/unordered_dense.h>
 #include <msdf-atlas-gen/msdf-atlas-gen.h>
 
-#include <Common/Common.hh>
-#include <Common/Service.hh>
-#include <Common/Singleton.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
 
-#include <Assets/Font.hh>
+#include <Filesystem/File.hh>
+
+#include <Renderer/Text/Font.hh>
 #include <Renderer/Core/GpuDevice.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer {
+
+    struct FontLoadDescription {
+        FileHandle mFile{};
+        float mSize{ 48 };
+
+        auto WithFile( FileHandle file ) -> FontLoadDescription&;
+        auto WithPixelSize( float pixelSize ) -> FontLoadDescription&;
+    };
 
     struct FontFactoryCreateInfo {
-        GpuDevice *Device{ nullptr };
+        GpuDevice *mDevice{ nullptr };
     };
 
     class FontFactory final : public IService, public Singleton<FontFactory> {
     public:
         explicit FontFactory( const FontFactoryCreateInfo &options );
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         auto LoadFont(const FontLoadDescription& description ) -> FontHandle;
 
     private:
-        // =================================================================
-        using MsdfAtlasGen = msdf_atlas::ImmediateAtlasGenerator<
-                // pixel type of buffer for individual glyphs depends on generator function
-                float,
 
-                // number of atlas color channels
-                4,
-
-                // function to generate bitmaps for individual glyphs
-                msdf_atlas::mtsdfGenerator,
-
-                // Class that stores the atlas bitmap. For example, a custom atlas storage class that stores it in VRAM can be used.
-                msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>>;
-
-        using MsdfGlyphGeometryList = std::vector<msdf_atlas::GlyphGeometry>;
-
-        using MTSDFGen = msdf_atlas::ImmediateAtlasGenerator<float, 4, &msdf_atlas::mtsdfGenerator,
-            msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>>;
-
-        // =================================================================
+        using GeometryList = eastl::vector<msdf_atlas::GlyphGeometry>;
+        using AtlasGenerator = msdf_atlas::ImmediateAtlasGenerator<float, 4,
+            msdf_atlas::mtsdfGenerator, msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>>;
+        using BitmapAtlasStorage = msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>;
 
         struct CharsetRange {
-            Int32 Start{};
-            Int32 End{};
+            i32 mStart{};
+            i32 mEnd{};
+
+            MKT_NODISCARD static auto GetBasicLatinRange() -> CharsetRange;
+            MKT_NODISCARD static auto GetLatin1SupplementRange() -> CharsetRange;
+            MKT_NODISCARD static auto GetLatinExtendedARange() -> CharsetRange;
+            MKT_NODISCARD static auto GetCyrillicRange() -> CharsetRange;
+            MKT_NODISCARD static auto GetGreekRange() -> CharsetRange;
+            MKT_NODISCARD static auto GetHiraganaRange() -> CharsetRange;
+            MKT_NODISCARD static auto GetKatakanaRange() -> CharsetRange;
+            MKT_NODISCARD static auto GetKanjiCommonRange() -> CharsetRange;
         };
 
-        struct MsdfData {
+        struct FontProperties {
+            i32 mMaxHeight{};
+            i32 mMaxWidth{};
+            TextureHandle mAtlas{};
+            AtlasGenerator mAtlasProperties{};
 
-            Int32 MaxHeight{};
-            Int32 MaxWidth{};
-            TextureHandle TextureAtlas{};
-            MTSDFGen MTSDFAtlasInfo{};
-            ankerl::unordered_dense::map<msdf_atlas::unicode_t, FontGlyph> GlyphInfo{};
+            ankerl::unordered_dense::map<msdf_atlas::unicode_t, FontGlyph> mGlyphMap{};
+        };
+
+        struct AtlasGenerateDescription {
+            eastl::string_view mFilename{};
+
+            f32 mFontSize{};
+            f32 mFontScale{};
+
+            bool mUseCustomCharSet{ true }; // If false we use ASCII only
+            bool mExpensiveColoring{ false };
+
+            eastl::fixed_vector<CharsetRange, 10> mCharacterSetRanges{};
         };
 
     private:
-        auto GenerateAtlas( CStr fontFilename, Int32 fontSize, bool expensiveColoring = true ) const -> MsdfData;
-        auto SubmitAtlasBitmapAndLayout(const msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>& atlas,std::vector<msdf_atlas::GlyphGeometry> glyphs, MsdfData& data, Int32 fontSize ) const -> void;
+        MKT_NODISCARD auto GenerateAtlas( eastl::string_view fontFilename, i32 fontSize, bool expensiveColoring = true ) const -> FontProperties;
+        auto SubmitAtlasBitmapAndLayout(const BitmapAtlasStorage& atlas, GeometryList& glyphs, FontProperties& data, i32 fontSize ) const -> void;
 
     private:
-        GpuDevice *m_GpuDevice{ nullptr };
-        msdfgen::FreetypeHandle *m_FreeTypeHandle{ nullptr };
+        GpuDevice *mDevice{ nullptr };
+        msdfgen::FreetypeHandle *mFreeTypeHandle{ nullptr };
     };
 }
 

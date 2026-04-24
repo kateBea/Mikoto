@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Renderer/Core/ThumbnailRenderer.hh>
-
-namespace Mikoto {
-}// namespace Mikoto
+// #include <Renderer/Core/ThumbnailRenderer.hh>
+//
+// namespace mikoto {
+// }// namespace Mikoto

@@ -1,23 +1,29 @@
-/**
- * Event.hh
- * Created by kate on 5/25/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_EVENT_HH
 #define MIKOTO_EVENT_HH
 
-// C++ Standard Library
-#include <iostream>
-#include <string_view>
-#include <type_traits>
-#include <functional>
-#include <string>
+#include <EASTL/string_view.h>
+#include <EASTL/functional.h>
+#include <EASTL/string.h>
 
-// Project Headers
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Flag.hh>
+#include <Core/Types.hh>
 
-namespace Mikoto {
+namespace mikoto::core {
 
     /**
      * This concept ensures type safety determining in for the dispatcher method.
@@ -78,7 +84,7 @@ namespace Mikoto {
      * bit wise OR which is supported by integers, for simplicity sake, this structure
      * is not declared as an enum class
      * */
-    enum EventCategory : UInt32 {
+    enum EventCategory {
         EMPTY_EVENT_CATEGORY = BIT_SET( 0 ),
 
         APPLICATION_EVENT_CATEGORY = BIT_SET( 1 ),
@@ -90,6 +96,21 @@ namespace Mikoto {
         PANEL_EVENT_CATEGORY = BIT_SET( 8 ),
 
         EVENT_CATEGORY_COUNT = BIT_SET( 9 ),
+    };
+
+    struct EventCategoryFlagsProperties {
+        using Data = u32;
+    };
+
+    using EventCategoryFlags = Flags<EventCategoryFlagsProperties>;
+
+    struct EventCategoryFlagsBits {
+        static constexpr EventCategoryFlags APPLICATION{ BIT_SET( 1 ) };
+        static constexpr EventCategoryFlags INPUT{ BIT_SET( 2 ) };
+        static constexpr EventCategoryFlags WINDOW{ BIT_SET( 3 ) };
+        static constexpr EventCategoryFlags KEY{ BIT_SET( 4 ) };
+        static constexpr EventCategoryFlags MOUSE{ BIT_SET( 5 ) };
+        static constexpr EventCategoryFlags MOUSE_BUTTON{ BIT_SET( 7 ) };
     };
 
     /**
@@ -106,7 +127,7 @@ namespace Mikoto {
          * Creates a new event. The event is not handled on creation.
          * */
         Event( const EventType type, const EventCategory categories)
-            :   m_Type{ type }, m_Categories{ categories }, m_Handled{ false } {}
+            :   mType{ type }, mCategories{ categories }, mHandled{ false } {}
 
 
         Event(const Event& other) = default;
@@ -116,29 +137,29 @@ namespace Mikoto {
          * this event in scenarios where polymorphism is used
          * */
         MKT_NODISCARD virtual auto GetType() const -> EventType = 0;
-        MKT_NODISCARD virtual auto IsType( const EventType type) const -> bool { return m_Type == type; }
-        MKT_NODISCARD virtual auto GetCategoryFlags() const -> EventCategory { return m_Categories; };
+        MKT_NODISCARD virtual auto IsType( const EventType type) const -> bool { return mType == type; }
+        MKT_NODISCARD virtual auto GetCategoryFlags() const -> EventCategory { return mCategories; };
 
         /**
          * Returns the string representation of this Event.
          * Mainly for debugging purposes
          * */
-        MKT_NODISCARD auto GetName() const -> std::string_view { return ToString(); }
+        MKT_NODISCARD auto GetName() const -> eastl::string_view { return ToString(); }
 
         /**
          * Tells whether this event has been handled or not
          * @returns true if the event has been handled, false otherwise
          * */
-        MKT_NODISCARD auto IsHandled() const -> bool { return m_Handled; }
+        MKT_NODISCARD auto IsHandled() const -> bool { return mHandled; }
         MKT_NODISCARD auto IsInCategory(EventCategory cat) const -> bool { return GetCategoryFlags() & cat; }
 
         /**
          * Returns a formatted string representing the data, if any,
          * that this event holds. Used for debugging purposes
          * */
-        MKT_NODISCARD virtual auto DisplayData() const -> std::string = 0;
+        MKT_NODISCARD virtual auto DisplayData() const -> eastl::string = 0;
 
-        auto SetHandled( const bool value) -> void { m_Handled = value; }
+        auto SetHandled( const bool value) -> void { mHandled = value; }
 
         virtual ~Event() = default;
     private:
@@ -147,15 +168,15 @@ namespace Mikoto {
          * */
         friend class EventDispatcher;
 
-        EventType m_Type;
-        EventCategory m_Categories;
+        EventType mType;
+        EventCategory mCategories;
     protected:
         /**
          * This function should not be called directly by the user.
          * It is to be defined by the type of event that specializes this
          * interface
          * */
-        MKT_NODISCARD virtual auto ToString() const -> std::string_view = 0;
+        MKT_NODISCARD virtual auto ToString() const -> eastl::string_view = 0;
 
         /**
          * In case we want to avoid propagating an Event we mark it as handled.
@@ -166,14 +187,14 @@ namespace Mikoto {
          * If this event has been handled this variables holds true,
          * false if this Event has not been handled yet
          * */
-         bool m_Handled{};
+         bool mHandled{};
     };
 
     /**
      * Alias for event function. The function is supposed to return true if the
      * event has been handled successfully, false otherwise.
      * */
-    using HandlerFunc = std::function<bool(Event&)>;
+    using HandlerFunc = eastl::function<bool(Event&)>;
 
     /**
      * Returns the event category from the given event. The event could be part of
@@ -214,7 +235,7 @@ namespace Mikoto {
      * Returns the exact string representation of the given EventType enum
      * @returns EventType string representation
      * */
-    MKT_NODISCARD constexpr auto GetEventFormattedStr(EventType type) -> std::string_view {
+    MKT_NODISCARD constexpr auto GetEventFormattedStr(EventType type) -> eastl::string_view {
         switch(type) {
             case EventType::UNKNOWN_EVENT: return "EMPTY_EVENT";
 

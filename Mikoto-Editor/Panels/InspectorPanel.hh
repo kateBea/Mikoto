@@ -15,19 +15,15 @@
 #ifndef MIKOTO_INSPECTOR_PANEL_HH
 #define MIKOTO_INSPECTOR_PANEL_HH
 
-#include <memory>
-
-#include <ankerl/unordered_dense.h>
-
 #include <Panels/Panel.hh>
-#include <Scene/Entity.hh>
-#include <Assets/Texture.hh>
 
-namespace Mikoto {
+#include <Scene/Entity.hh>
+
+namespace mikoto::editor {
     struct EditorState;
 
     struct InspectorPanelCreateInfo {
-        EditorState* State{};
+        EditorState* mState{};
     };
 
     class InspectorPanel final : public Panel {
@@ -42,7 +38,7 @@ namespace Mikoto {
         auto DrawComponents( Entity* entity ) const -> void;
 
     private:
-        EditorState* m_State{};
+        EditorState* mState{};
     };
 }// namespace Mikoto
 

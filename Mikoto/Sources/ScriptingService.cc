@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,76 +13,89 @@
 // limitations under the License.
 
 #include <ranges>
-#include <atomic>
 #include <exception>
+
+#include <EASTL/atomic.h>
+#include <EASTL/vector.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
 #include <sol/sol.hpp>
 
-#include <Common/String.hh>
-#include <Core/Exception.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Core/Profiler.hh>
+#include <Core/Exception.hh>
 #include <Logging/Logger.hh>
 
 #include <Filesystem/FileService.hh>
+#include <Filesystem/FileWatcherService.hh>
+
+#include <Scene/Entity.hh>
+
+#include <Scripting/InputBinding.hh>
+#include <Scripting/MathBindings.hh>
+#include <Scripting/SceneBinding.hh>
+#include <Scripting/SystemBindings.hh>
+
 #include <Scripting/ScriptingService.hh>
 
-#include "Scripting/InputBinding.hh"
-#include "Scripting/MathBindings.hh"
-#include "Scripting/SceneBinding.hh"
-#include "Scripting/SystemBindings.hh"
-#include "Filesystem/FileWatcherService.hh"
+namespace mikoto::scripting {
 
-namespace Mikoto {
+    using namespace mikoto::core;
+    using namespace mikoto::scene;
+    using namespace mikoto::filesystem;
 
-    ScriptingService::ScriptingService( const ScriptingServiceDescription & ) {
-    }
+    ScriptingService::ScriptingService( const ScriptingServiceDescription& config )
+        : mBasePath{ config.mScriptBasePath }
+    {}
 
-    auto ScriptingService::Init() -> void {
+    auto ScriptingService::Initialize() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        MKT_CORE_LOGGER_INFO("Initializing LuaService...");
+        MKT_CORE_LOGGER_INFO("Initializing ScriptingService...");
 
         InitState();
-
         InitBindings();
 
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
     auto ScriptingService::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if (!m_IsInitialized) {
+        if (!mIsInitialized) {
             return;
         }
 
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
-        MKT_CORE_LOGGER_INFO( "Shutting down LuaService..." );
+        MKT_CORE_LOGGER_INFO( "Shutting down ScriptingService..." );
+
+        mScriptPool.Shutdown();
     }
 
     auto ScriptingService::Update( const float timeStep ) -> void {
-        for (auto& script : m_ScriptPool | std::ranges::views::values) {
+        for (auto& script : mScriptPool | std::ranges::views::values) {
             script.As<Script>()->Update( timeStep );
         }
     }
 
     auto ScriptingService::LoadScript( const Path &path, Entity* entity ) -> ScriptHandle {
-        ScriptHandle handle{ ScriptHandle::CreateEmpty() };
-
-        if (const File* file{ FileService::Get()->LoadFile( path ) }) {
+        ScriptHandle handle{};
+        if (FileHandle file{ FileService::Get()->LoadFile( path ) }) {
             try {
-                handle = m_ScriptPool.Allocate( file,  m_LuaState, entity );
-
-                FileWatcherService::Get()->Watch( file->GetPath(), 
+                handle = mScriptPool.Allocate( file,  mLuaState, entity );
+                FileWatcherService::Get()->Watch( file->GetPath(),
                 [handle, this](const Path& , FileWatchEvent event) mutable -> void {
-                    if (event == FileWatchEvent::MODIFIED) {
-                        handle->ReloadScript(m_LuaState);
+                    if (event == FileWatchEvent::eModified) {
+                        handle->ReloadScript(mLuaState);
                     }
                 } );
 
             } catch ( const std::exception &e ) {
-                MKT_CORE_LOGGER_ERROR( "ScriptingService::LoadScript. File {}. Exception: '{}'", file->GetPath(), e.what() );
+                MKT_CORE_LOGGER_ERROR( "ScriptingService::LoadScript. File {}. Exception: '{}'", file->GetPath().GetC_Str(), e.what() );
             }
         }
 
@@ -94,34 +107,35 @@ namespace Mikoto {
 
         // Move this logic to the asset service, by doing it that way we can benefit from unique hash IDs for the script asset
         // Need to properly give it a thought tho, a single script might be shared by multiple scene objects
-        std::string scriptName{ StringUtil::Format( "{}/Script.lua", m_ScriptsDirectory.string() ) };
-        if ( std::filesystem::exists( scriptName ) ) {
-            scriptName = StringUtil::Format( "{}/Script-{}.lua", m_ScriptsDirectory.string(), scriptCount.load() );
+        Path scriptPath{ string::Format( "{}/Script.lua", mBasePath.GetDirectoryName() ) };
+        if ( scriptPath.IsFile() ) {
+            scriptPath = Path{ string::Format( "{}/Script-{}.lua", mBasePath.GetDirectoryName(), scriptCount.load() ) };
+
             ++scriptCount;
         }
-        
-        ScriptHandle handle{ ScriptHandle::CreateEmpty() };
 
-        if ( File * file{ FileService::Get()->CreateNewFile( scriptName ) } ) {
+        ScriptHandle handle{};
+
+        if ( FileHandle file{ FileService::Get()->CreateNewFile( scriptPath ) } ) {
             // This script is an empty template used to create new scripts
-            const File* scriptBase{ FileService::Get()->LoadFile( "Resources/Script-Examples/base.lua" ) };
+            FileHandle scriptBase{ FileService::Get()->LoadFile( "Resources/Script-Examples/base.lua" ) };
 
             // Set contents by default does not flush
-            file->SetContents( std::string{ scriptBase->GetContentsString() } );
+            file->SetContents( scriptBase->GetContentsString().data() );
             file->FlushContents();
 
             try {
-                handle = m_ScriptPool.Allocate( file, m_LuaState, entity );
+                handle = mScriptPool.Allocate( file, mLuaState, entity );
 
                 FileWatcherService::Get()->Watch( file->GetPath(),
                 [handle, this]( const Path&, FileWatchEvent event ) mutable -> void {
-                    if ( event == FileWatchEvent::MODIFIED ) {
-                        handle->ReloadScript( m_LuaState );
+                    if ( event == FileWatchEvent::eModified ) {
+                        handle->ReloadScript( mLuaState );
                     }
                 } );
 
             } catch ( const std::exception& e ) {
-                MKT_CORE_LOGGER_ERROR( "ScriptingService::CreateScript. File {}. Exception: '{}'", file->GetPath(), e.what() );
+                MKT_CORE_LOGGER_ERROR( "ScriptingService::CreateScript. File {}. Exception: '{}'", file->GetPath().GetC_Str(), e.what() );
             }
         }
 
@@ -130,7 +144,7 @@ namespace Mikoto {
 
     auto ScriptingService::InitState() -> void {
         // Open basic libs
-        m_LuaState.open_libraries(
+        mLuaState.open_libraries(
             sol::lib::base,    // print, etc.
             sol::lib::package, // require
             sol::lib::string,  // string.* functions
@@ -141,13 +155,13 @@ namespace Mikoto {
     }
 
     auto ScriptingService::InitBindings() -> void {
-        m_Bindings.Register<InputBinding>();
-        m_Bindings.Register<SceneBinding>();
-        m_Bindings.Register<MathBinding>();
-        m_Bindings.Register<SystemBinding>();
+        mBindings.Register<InputBinding>();
+        mBindings.Register<SceneBinding>();
+        mBindings.Register<MathBinding>();
+        mBindings.Register<SystemBinding>();
 
-        for (auto& binding : m_Bindings | std::ranges::views::values) {
-            binding->Init( m_LuaState );
+        for (auto& binding : mBindings | std::ranges::views::values) {
+            binding->Init( mLuaState );
         }
     }
 }// namespace Mikoto

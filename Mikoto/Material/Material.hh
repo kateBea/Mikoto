@@ -1,53 +1,44 @@
-/**
- * StandardMaterial.hh
- * Created by kate on 6/30/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_MATERIAL_HH
 #define MIKOTO_MATERIAL_HH
 
-// C++ Standard Library
-#include <string>
-#include <string_view>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
-// Third-Party Headers
-#include <glm/glm.hpp>
+#include <Core/Core.hh>
+#include <Core/ReferenceCounted.hh>
 
-// Project Headers
-#include <Common/Common.hh>
-#include <Common/ReferenceCounted.hh>
-#include <Library/Data/ResourcePool.hh>
-#include <Library/Utility/Types.hh>
+namespace mikoto::material {
 
-namespace Mikoto {
-
-    class Material : public IResource {
+    class Material : public core::ReferenceCounted {
     public:
-        explicit Material(const std::string_view name = "Base Material")
-            :   m_Name{ name }
+        explicit Material(const eastl::string_view name = "Base Material")
+            :  mName{ name }
         {}
 
-        MKT_NODISCARD auto GetName() const -> const std::string& { return m_Name; }
-        MKT_NODISCARD auto GetColor() const -> const Vec4F& { return m_Color; }
-
-        // Material name
-        auto SetName(const std::string_view newName) -> void {
-            m_Name = newName;
-        }
-
-        // Material base color
-        auto SetColor( auto&&... args ) -> void {
-            m_Color = Vec4F( std::forward<decltype( args )>( args )... );
-        }
+        MKT_NODISCARD auto GetName() const -> const eastl::string& { return mName; }
+        auto SetName(const eastl::string_view newName) -> void { mName = newName; }
 
         ~Material() override = default;
 
     protected:
-        std::string m_Name{};
-        Vec4F m_Color{ 0.3f, 0.4f, 0.5f, 0.3f };
+        eastl::string mName{};
     };
 
-    using MaterialHandle = Ref<Material>;
+    using MaterialHandle = core::Ref<Material>;
 }
 
 

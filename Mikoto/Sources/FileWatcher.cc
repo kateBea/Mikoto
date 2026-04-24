@@ -13,67 +13,64 @@
 // limitations under the License.
 
 #include <ranges>
-#include <iostream>
 #include <filesystem>
+
+#include <EASTL/unique_ptr.h>
 
 #include <FileWatch.hh>
 
-#include <Logging/Logger.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Core/Exception.hh>
-#include <Filesystem/FileWatcher.hh>
-#include <Filesystem/FileSystem.hh>
 
-namespace Mikoto {
+#include <Filesystem/FileSystem.hh>
+#include <Filesystem/FileWatcher.hh>
+#include <Logging/Logger.hh>
+
+namespace mikoto::filesystem {
+
+    using namespace mikoto::core;
 
     MKT_NODISCARD static auto ConverEventType( filewatch::Event action ) -> FileWatchEvent {
         switch (action) {
             case filewatch::Event::added:
-                return FileWatchEvent::CREATED;
+                return FileWatchEvent::eCreated;
             case filewatch::Event::removed:
-                return FileWatchEvent::DELETED;
+                return FileWatchEvent::eDeleted;
             case filewatch::Event::modified:
-                return FileWatchEvent::MODIFIED;
+                return FileWatchEvent::eModified;
 
             case filewatch::Event::renamed_old:
             case filewatch::Event::renamed_new:
-                return FileWatchEvent::MOVED;
+                return FileWatchEvent::eMoved;
             default:
                 MKT_CORE_LOGGER_ERROR( "Error undefined backend file watch action!" );
         }
 
         // Make compiler happy
-        return FileWatchEvent::CREATED;
+        return FileWatchEvent::eCreated;
     }
 
-    FileWatcher::FileWatcher( const Path &path, UInt32 eventTimeOut )
-        : m_DebounceTime{ eventTimeOut}
+    FileWatcher::FileWatcher( const Path &path, u32 timeOut )
+        : mWatchedPath{ path }, mDebounceTime{ timeOut }
     {
-        m_WatchedPath = path.string();
-        const std::string watchedPathStr{ m_WatchedPath.string() };
+        mWatcher = eastl::make_unique<filewatch::FileWatch<std::string>>(
+                mWatchedPath.GetPathTyped<std::string>(), [this]( const std::string &, const filewatch::Event event ) -> void {
+                    const auto eventType{ ConverEventType( event ) };
 
-        m_Watcher = CreateScope<filewatch::FileWatch<std::string>>(
-                watchedPathStr, [this]( const std::string &, const filewatch::Event event ) -> void {
-                    auto eventType{ ConverEventType( event ) };
-
-                    // TODO: Debounce check does not behave as expected still getting duplicate events within same time span
-                    auto& info{ m_EventTypeInfos[eventType] };
-                    const auto now{ std::chrono::steady_clock::now() };
-
-                    if (now - info.lastEvent <= m_DebounceTime) {
-                        return;
-                    }
-
-                    // Last time I handled this event
-                    info.lastEvent = now;
+                    // TODO: handle multiple triggers of same event in very short intervals
+                    // Could address this issue using debouncing i.e. ignore same type of event
+                    // within a set interval (i.e.: cannot handle multiple modified event that happen within 500ms)
 
                     // Run handlers
-                    for (const auto& callback : m_Callbacks) {
-                        callback(m_WatchedPath, eventType);
+                    for (const auto& callback : mCallbacks) {
+                        callback(mWatchedPath, eventType);
                     }
                 });
     }
 
     auto FileWatcher::RegisterWatchCallback( WatcherCallback &&callback ) -> void {
-        m_Callbacks.emplace_back( std::move( callback ) );
+        mCallbacks.emplace_back( std::move( callback ) );
     }
 }

@@ -15,11 +15,46 @@
 #ifndef MIKOTO_DIRECT3D11HELPERS_HH
 #define MIKOTO_DIRECT3D11HELPERS_HH
 
-namespace Mikoto {
+#include <Core/Core.hh>
+#include <Core/Platform.hh>
+
+#if defined( MIKOTO_PLATFORM_WINDOWS )
+
+#include <d3d11.h>
+
+#include <Renderer/Core/Rhi.hh>
+
+namespace mikoto::renderer::d3d11 {
+
+    using namespace mikoto::renderer::rhi;
+
+    struct Semantic {
+        eastl::string_view mName{};
+        u32 mIndex{0};
+    };
 
     // For readability
 #define MKT_D3D11_NO_FLAGS 0
 
-}
+    MKT_NODISCARD auto GetUsageFromHeapType( HeapType type ) -> D3D11_USAGE;
+    MKT_NODISCARD auto GetBindFlags( BufferUsageFlags flags ) -> UINT;
+    MKT_NODISCARD auto GetFormat( Format format ) -> DXGI_FORMAT;
+    MKT_NODISCARD auto GetBindFlags( TextureUsageFlags flags ) -> D3D11_BIND_FLAG;
 
-#endif //MIKOTO_DIRECT3D11HELPERS_HH
+    MKT_NODISCARD auto GetPrimitiveTopology(  PrimitiveTopology topology ) -> D3D11_PRIMITIVE_TOPOLOGY ;
+
+    MKT_NODISCARD auto GetCullMode(  CullMode mode ) -> D3D11_CULL_MODE ;
+    MKT_NODISCARD auto GetComparisonFunc(  DepthCompareOp op ) -> D3D11_COMPARISON_FUNC;
+
+    MKT_NODISCARD auto GetFilter(SamplerFilter min, SamplerFilter mag) -> D3D11_FILTER;
+    MKT_NODISCARD auto GetAddressMode(SamplerWrapMode mode) -> D3D11_TEXTURE_ADDRESS_MODE;
+
+    MKT_NODISCARD auto GetInputElementDescription( const VertexAttributeDescription& desc, InputRate rate ) -> D3D11_INPUT_ELEMENT_DESC ;
+
+    MKT_NODISCARD auto ParseSemantic(eastl::string_view value) -> Semantic;
+
+}// namespace mikoto::renderer::d3d11
+
+#endif
+
+#endif//MIKOTO_DIRECT3D11HELPERS_HH

@@ -12,47 +12,53 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
+#include <Math/Math.hh>
+
+#include <Memory/Allocator.hh>
+
 #include <Logging/Logger.hh>
-#include <Library/Math/Math.hh>
 
 #include <Audio/AudioSource.hh>
 #include <Audio/AudioService.hh>
 
-namespace Mikoto {
+namespace mikoto::audio {
 
     // - The maximum number of listeners is restricted to MA_ENGINE_MAX_LISTENERS.
-    // - By default, sounds and sound groups have spatialization enabled. If you don't 
+    // - By default, sounds and sound groups have spatialization enabled. If you don't
     // ever want to spatialize your sounds, initialize the sound with the MA_SOUND_FLAG_NO_SPATIALIZATION flag
-    // - By default sounds will be spatialized based on the closest listener. If a sound should 
+    // - By default sounds will be spatialized based on the closest listener. If a sound should
     // always be spatialized relative to a specific listener it can be pinned to one:
     // https://miniaud.io/docs/manual/index.html
     AudioSource::AudioSource( AudioDevice *device, const Path &path )
-        : m_Path{ path }, m_Device{ device } {}
+        : mPath{ path }, mDevice{ device } {}
 
     auto AudioSource::GetVolume() const -> float {
-        return m_Volume;
+        return mVolume;
     }
 
     auto AudioSource::IsMuted() const -> bool {
-        return m_Muted;
+        return mMuted;
     }
 
     auto AudioSource::IsLooping() const -> bool {
-        return m_IsLooping;
+        return mIsLooping;
     }
 
     auto AudioSource::Mute( const bool value ) -> void {
-        m_Muted = value;
-        SetVolume( m_Volume );
+        mMuted = value;
+        SetVolume( mVolume );
     }
 
     auto AudioSource::SetVolume( const float volume ) -> void {
-        m_Volume = Math::Clamp( volume, 0.0f, 10.0f );
+        mVolume = math::Clamp( volume, 0.0f, 10.0f );
 
-        if (m_Muted) {
-            ma_sound_set_volume( &m_Sound, 0.0f );
+        if (mMuted) {
+            ma_sound_set_volume( &mSound, 0.0f );
         } else {
-            ma_sound_set_volume( &m_Sound, m_Volume );
+            ma_sound_set_volume( &mSound, mVolume );
         }
     }
 
@@ -69,16 +75,16 @@ namespace Mikoto {
             return;
         }
 
-        ma_sound_set_pinned_listener_index( MKT_ADDRESSOF( m_Sound ), listener->GetIndex() );
+        ma_sound_set_pinned_listener_index( MKT_ADDRESSOF( mSound ), listener->GetIndex() );
     }
 
     auto AudioSource::ResetListener() -> void {
     }
 
     auto AudioSource::SetLooping( const bool value ) -> void {
-        m_IsLooping = value;
+        mIsLooping = value;
 
-        ma_sound_set_looping( &m_Sound, m_IsLooping ? MA_TRUE : MA_FALSE );
+        ma_sound_set_looping( &mSound, mIsLooping ? MA_TRUE : MA_FALSE );
     }
 
     auto AudioSource::Play() -> void {
@@ -86,69 +92,69 @@ namespace Mikoto {
     }
 
     auto AudioSource::Pause() -> void {
-        if ( m_IsPlaying ) {
-            ma_sound_get_cursor_in_seconds( &m_Sound, &m_CurrentProgress );
-            ma_sound_stop( &m_Sound );
+        if ( mIsPlaying ) {
+            ma_sound_get_cursor_in_seconds( &mSound, &mCurrentProgress );
+            ma_sound_stop( &mSound );
 
-            m_IsPlaying = false;
+            mIsPlaying = false;
         }
     }
 
     auto AudioSource::Continue() -> void {
-        if ( !m_IsPlaying ) {
+        if ( !mIsPlaying ) {
 
-            ma_sound_start( &m_Sound );
-            ma_sound_seek_to_second( std::addressof( m_Sound ), m_CurrentProgress );
+            ma_sound_start( &mSound );
+            ma_sound_seek_to_second( std::addressof( mSound ), mCurrentProgress );
 
-            m_IsPlaying = true;
+            mIsPlaying = true;
         }
     }
 
     auto AudioSource::Stop() -> void {
-        ma_sound_stop( &m_Sound );
+        ma_sound_stop( &mSound );
 
-        m_IsPlaying = false;
+        mIsPlaying = false;
 
-        m_CurrentProgress = 0;
-        ma_sound_seek_to_second( std::addressof( m_Sound ), m_CurrentProgress );
+        mCurrentProgress = 0;
+        ma_sound_seek_to_second( std::addressof( mSound ), mCurrentProgress );
     }
 
     auto AudioSource::IsPlaying() const -> bool {
-        return m_IsPlaying && ma_sound_is_playing( &m_Sound ) == MA_TRUE;
+        return mIsPlaying && ma_sound_is_playing( &mSound ) == MA_TRUE;
     }
 
     auto AudioSource::SetPitch( const float pitch ) -> void {
-        m_Pitch = pitch;
-        ma_sound_set_pitch( &m_Sound, m_Pitch );
+        mPitch = pitch;
+        ma_sound_set_pitch( &mSound, mPitch );
     }
 
     auto AudioSource::GetPitch() const -> float {
-        return m_Pitch;
+        return mPitch;
     }
 
     auto AudioSource::SetSpatialization( const bool state ) -> void {
-        m_IsSpatialized = state;
-        ma_sound_set_spatialization_enabled( &m_Sound, m_IsSpatialized ? MA_TRUE : MA_FALSE );
+        mIsSpatialized = state;
+        ma_sound_set_spatialization_enabled( &mSound, mIsSpatialized ? MA_TRUE : MA_FALSE );
     }
 
     auto AudioSource::SetPosition( const float x, const float y, const float z ) -> void {
-        if ( m_IsSpatialized ) {
-            ma_sound_set_position( &m_Sound, x, y, z );
+        if ( mIsSpatialized ) {
+            ma_sound_set_position( &mSound, x, y, z );
         }
     }
 
-    auto AudioSource::SetPosition(const Vec3F& pos) -> void {
+    auto AudioSource::SetPosition(const float3& pos) -> void {
         SetPosition( pos.x, pos.y, pos.z );
     }
 
     auto AudioSource::IsSpatialized() const -> bool {
-        return m_IsSpatialized;
+        return mIsSpatialized;
     }
 
     auto AudioSource::GetAudioDuration() const -> float {
         float duration{ 0 };
 
-        ma_sound_get_length_in_seconds( &m_Sound, &duration );
+        ma_sound_get_length_in_seconds( &mSound, &duration );
 
         return duration;
     }
@@ -156,7 +162,7 @@ namespace Mikoto {
     auto AudioSource::GetCurrentProgress() const -> float {
         float duration{ 0 };
 
-        ma_sound_get_cursor_in_seconds( &m_Sound, &duration );
+        ma_sound_get_cursor_in_seconds( &mSound, &duration );
 
         return duration;
     }
@@ -174,18 +180,18 @@ namespace Mikoto {
             return false;
         }
 
-        return m_Path == source->m_Path;
+        return mPath == source->mPath;
     }
 
     auto AudioSource::SetDopplerFactor( const float value ) -> float {
-        m_DopplerEffect = Math::Clamp( value, 0.f, GetMaxVolume() );
-        ma_sound_set_doppler_factor(std::addressof( m_Sound ), m_DopplerEffect);
+        mDopplerEffect = math::Clamp( value, 0.f, GetMaxVolume() );
+        ma_sound_set_doppler_factor(std::addressof( mSound ), mDopplerEffect);
 
-        return m_DopplerEffect;
+        return mDopplerEffect;
     }
 
     auto AudioSource::GetDopplerFactor() const -> float {
-        return m_DopplerEffect;
+        return mDopplerEffect;
     }
 
     auto AudioSource::GetMaxVolume() -> float {
@@ -193,16 +199,16 @@ namespace Mikoto {
     }
 
     auto AudioSource::Initialize() -> void {
-        if ( m_Path.empty() ) {
+        if ( !mPath.IsFile() ) {
             return;
         }
 
         const ma_result result{ ma_sound_init_from_file(
-                std::addressof( m_Device->m_AudioEngine ),
-                m_Path.string().c_str(),
+                std::addressof( mDevice->mAudioEngine ),
+                mPath.GetC_Str(),
                 MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_ASYNC,
                 nullptr, nullptr,
-                std::addressof( m_Sound ) ) };
+                std::addressof( mSound ) ) };
 
         if ( result != MA_SUCCESS ) {
             MKT_CORE_LOGGER_ERROR( "AudioSource::Initialize - Failed to allocate audio source." );
@@ -210,12 +216,12 @@ namespace Mikoto {
         }
 
         // Pre setup miniaudio
-        SetVolume( m_Volume );
-        SetLooping( m_IsLooping );
-        SetPitch( m_Pitch );
-        SetSpatialization( m_IsSpatialized );
+        SetVolume( mVolume );
+        SetLooping( mIsLooping );
+        SetPitch( mPitch );
+        SetSpatialization( mIsSpatialized );
 
-        m_IsAllocated = true;
+        mIsAllocated = true;
     }
 
     auto AudioSource::Release() -> void {
@@ -223,10 +229,10 @@ namespace Mikoto {
             Stop();
         }
 
-        ma_sound_uninit( &m_Sound );
-        m_IsPlaying = false;
-        m_Sound = {};
+        ma_sound_uninit( &mSound );
+        mIsPlaying = false;
+        mSound = {};
 
-        m_IsAllocated = false;
+        mIsAllocated = false;
     }
 }

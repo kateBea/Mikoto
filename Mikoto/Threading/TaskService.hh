@@ -1,70 +1,79 @@
-/**
- * JobSystem.hh
- * Created by kate on 9/6/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef MIKOTO_TASK_MANAGER_HH
-#define MIKOTO_TASK_MANAGER_HH
+#ifndef MIKOTO_TASK_SERVICE_HH
+#define MIKOTO_TASK_SERVICE_HH
 
-// C++ Standard Library
-#include <thread>
-#include <atomic>
-#include <deque>
-#include <functional>
-#include <mutex>
-#include <condition_variable>
+#include <EASTL/functional.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/utility.h>
 
 #include <ankerl/unordered_dense.h>
 
-// Project Headers
-#include "Common/Common.hh"
-#include "Common/Subsystem.hh"
-#include <Library/Utility/Types.hh>
-
+#include <Core/Service.hh>
 #include <Threading/TaskGraph.hh>
 #include <Threading/TaskManager.hh>
+#include <functional>
+#include <utility>
 
-/**
- * Implements a simple job system.
- * This subsystem is still a WIP.
- * Will not be available/operative for some time in the engine.
- * */
-namespace Mikoto {
+
+
+namespace mikoto::threading {
+
+    using namespace mikoto::core;
 
     struct TaskServiceCreateInfo {
-        UInt32 WorkerThreadCount{0};
+        tf::Executor* mExecutor{};
     };
 
-    class TaskService final : public Subsystem, public Singleton<TaskService> {
+    class TaskService final : public IService, public Singleton<TaskService> {
     public:
         explicit TaskService( const TaskServiceCreateInfo& options );
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
-        auto Update( float dt ) -> void override;
+
+        template<typename KeyType, typename ValueType, typename Func>
+        auto ParallelFor(const ankerl::unordered_dense::map<KeyType, ValueType>& map, Func&& func) -> void {
+            tf::Taskflow flow{};
+            for (const auto& [key, value]: map) {
+                flow.emplace([key, value, f = std::forward<Func>(func)]() mutable {
+                    f(key, value);
+                });
+            }
+            mTaskManager->Execute( flow ).wait();
+        }
 
         template<typename Func, typename... Args>
         auto Submit( Func&& func, Args&&... args ) -> void {
             auto newTask{
-                std::function<void()>{ std::bind( std::forward<Func>( func ), std::forward<Args>( args )... ) }
+                std::function<void()>{
+                    std::bind( std::forward<Func>( func ),
+                    std::forward<Args>( args )... )
+                }
             };
 
-            m_TaskManager->SubmitTask( std::move( newTask ) );
+            mTaskManager->SubmitTask( std::move( newTask ) );
         }
 
-        auto WaitForExecution(TaskGraph& graph) -> void;
-
-        MKT_NODISCARD auto GetWorkersCount() const -> UInt32 { return m_ThreadCount; }
+        MKT_NODISCARD auto GetWorkersCount() const -> u32;
 
         ~TaskService() override = default;
 
     private:
-        auto SetupPeriodicTaskRunner() -> void;
-
-    private:
-        UInt32 m_ThreadCount{};
-        Unique<TaskManager> m_TaskManager{ nullptr };
+        eastl::unique_ptr<TaskManager> mTaskManager{};
     };
 }// namespace Mikoto
 
-#endif // MIKOTO_TASK_MANAGER_HH
+#endif // MIKOTO_TASK_SERVICE_HH

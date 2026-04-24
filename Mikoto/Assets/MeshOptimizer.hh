@@ -15,9 +15,8 @@
 #ifndef MIKOTO_MESHOPTIMIZER_HH
 #define MIKOTO_MESHOPTIMIZER_HH
 
-namespace Mikoto::MeshOptimizer {
-
-    auto OptimizerTestRun() -> void;
+namespace mikoto::asset {
+    auto OptimizerTest() -> void;
 
 }
 

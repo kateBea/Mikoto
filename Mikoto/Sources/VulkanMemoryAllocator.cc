@@ -12,50 +12,50 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-#include <memory>
-
+#include <EASTL/memory.h>
 #include <volk.h>
-#include <fmt/format.h>
 
 // Define VMA implementation in one source file
 #define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 
+#include <Memory/Allocator.hh>
+#include <Memory/GpuAllocator.hh>
+#include <Renderer/Core/RenderSystem.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer::vulkan {
 
-    VulkanMemoryAllocator::VulkanMemoryAllocator( GpuDevice *device )
-        : GpuAllocator{ device } {}
+    GpuMemoryAllocator::GpuMemoryAllocator( GpuDevice* device )
+        : IGpuAllocator{ device } {}
 
-    auto VulkanMemoryAllocator::Init() -> void {
+    auto GpuMemoryAllocator::Init() -> void {
+        Context* ctx{ as<Context*>( RenderSystem::Get()->GetContext() ) };
+        Device* device{ as<Device*>( mDevice ) };
+
         VmaAllocatorCreateInfo allocInfo{};
-        allocInfo.physicalDevice = dynamic_cast<VulkanDevice *>( m_Device )->GetPhysicalDevice();
-        allocInfo.device = dynamic_cast<VulkanDevice *>( m_Device )->GetLogicalDevice();
-        allocInfo.instance = VulkanContext::Get()->GetInstance();
-        allocInfo.vulkanApiVersion = VulkanContext::Get()->GetApiVersion();
+        allocInfo.instance = ctx->GetInstance().mInstance;
+        allocInfo.vulkanApiVersion = ctx->GetApiVersion();
+
+        allocInfo.device = device->GetDevice();
+        allocInfo.physicalDevice = device->GetPhysicalDevice()->mPhysicalDevice;
 
         //  VMA tries to fetch remaining pointers that are still null
         //  by calling vkGetInstanceProcAddr and vkGetDeviceProcAddr on its own.
         //  You need to only fill in VmaVulkanFunctions::vkGetInstanceProcAddr and
         //  VmaVulkanFunctions::vkGetDeviceProcAddr. Other pointers will be fetched automatically.
         VmaVulkanFunctions vulkanFuncs{
-            .vkGetInstanceProcAddr{ vkGetInstanceProcAddr },
-            .vkGetDeviceProcAddr{ vkGetDeviceProcAddr },
+            .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+            .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
         };
-        const VkResult resImportVkFunctions{ vmaImportVulkanFunctionsFromVolk( std::addressof( allocInfo ), std::addressof( vulkanFuncs ) ) };
-        if ( resImportVkFunctions != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "Failed to import Vulkan functions into VMA!" );
-        }
+        MKT_VK_CHECK( vmaImportVulkanFunctionsFromVolk( MKT_ADDRESSOF( allocInfo ), MKT_ADDRESSOF( vulkanFuncs ) ) );
 
-        allocInfo.pVulkanFunctions = std::addressof( vulkanFuncs );
+        allocInfo.pVulkanFunctions = MKT_ADDRESSOF( vulkanFuncs );
 
-        const VkResult resCreateAlloc{ vmaCreateAllocator( &allocInfo, &m_Allocator ) };
-        if ( resCreateAlloc != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "Failed to create VMA Allocator!" );
-        }
+        MKT_VK_CHECK( vmaCreateAllocator( &allocInfo, &mAllocator ) );
 
         // Note for public API:
         // By default, all calls to functions that take VmaAllocator as first parameter are safe to call
@@ -64,101 +64,79 @@ namespace Mikoto {
         // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/general_considerations.html
     }
 
-    auto VulkanMemoryAllocator::Shutdown() -> void {
-        // Check if we have stuff without freeing it first
-        // if (m_DebugNames.size() != 0) {
-        //     MKT_CORE_LOGGER_WARN( "VulkanMemoryAllocator::Shutdown - All resources were not freed previous to this allocator shutdown. Left {}", m_DebugNames.size() );
-        //
-        //     for (const auto& name : m_DebugNames) {
-        //         MKT_CORE_LOGGER_WARN( "VulkanMemoryAllocator::Shutdown - Did no free {}", name );
-        //     }
-        // }
-
-        // Shutdown VMA
-        vmaDestroyAllocator( m_Allocator );
+    auto GpuMemoryAllocator::Shutdown() -> void {
+        vmaDestroyAllocator( mAllocator );
     }
 
-    auto VulkanMemoryAllocator::AllocateImage( ImageAllocation& allocation ) -> VkResult {
+    auto GpuMemoryAllocator::AllocateImage( ImageAllocation& allocation ) -> VkResult {
         VkResult res{
             vmaCreateImage(
-                m_Allocator,
-                std::addressof( allocation.ImageCreateInfo ),
-                std::addressof( allocation.AllocationCreateInfo ),
-                std::addressof( allocation.Image ),
-                std::addressof( allocation.Allocation ),
-                std::addressof( allocation.AllocationInfo ) ) };
+                    mAllocator,
+                    MKT_ADDRESSOF( allocation.mImageCreateInfo ),
+                    MKT_ADDRESSOF( allocation.mAllocationCreateInfo ),
+                    MKT_ADDRESSOF( allocation.mImage ),
+                    MKT_ADDRESSOF( allocation.mAllocation ),
+                    MKT_ADDRESSOF( allocation.mAllocationInfo ) )
+        };
 
         return res;
     }
 
-    auto VulkanMemoryAllocator::AllocateBuffer( BufferAllocation& allocation ) -> VkResult {
+    auto GpuMemoryAllocator::AllocateBuffer( BufferAllocation& allocation ) -> VkResult {
         VkResult res{ vmaCreateBuffer(
-                m_Allocator,
-                std::addressof( allocation.BufferCreateInfo ),
-                std::addressof( allocation.AllocationCreateInfo ),
-                std::addressof( allocation.Buffer ),
-                std::addressof( allocation.Allocation ),
-                std::addressof( allocation.AllocationInfo ) ) };
+                mAllocator,
+                MKT_ADDRESSOF( allocation.mBufferCreateInfo ),
+                MKT_ADDRESSOF( allocation.mAllocationCreateInfo ),
+                MKT_ADDRESSOF( allocation.mBuffer ),
+                MKT_ADDRESSOF( allocation.mAllocation ),
+                MKT_ADDRESSOF( allocation.mAllocationInfo ) ) };
 
 
         return res;
     }
 
-    auto VulkanMemoryAllocator::FreeBuffer( BufferAllocation& allocation ) -> void {
-        vmaDestroyBuffer( m_Allocator, allocation.Buffer, allocation.Allocation );
+    auto GpuMemoryAllocator::FreeBuffer( BufferAllocation& allocation ) -> void {
+        vmaDestroyBuffer( mAllocator, allocation.mBuffer, allocation.mAllocation );
     }
 
-    auto VulkanMemoryAllocator::FreeImage( ImageAllocation& allocation ) -> void {
-        vmaDestroyImage( m_Allocator, allocation.Image, allocation.Allocation );
+    auto GpuMemoryAllocator::FreeImage( ImageAllocation& allocation ) -> void {
+        vmaDestroyImage( mAllocator, allocation.mImage, allocation.mAllocation );
     }
 
-    auto VulkanMemoryAllocator::MapBuffer( BufferAllocation& allocation ) const -> void {
+    auto GpuMemoryAllocator::MapBuffer( BufferAllocation& allocation ) const -> void {
         MapBuffer( allocation, true );
     }
 
-    auto VulkanMemoryAllocator::UnmapBuffer( BufferAllocation& allocation ) const -> void {
+    auto GpuMemoryAllocator::UnmapBuffer( BufferAllocation& allocation ) const -> void {
         MapBuffer( allocation, false );
     }
 
-    auto VulkanMemoryAllocator::IsValidAllocation( BufferAllocation& allocation ) const -> bool {
-        return allocation.Buffer != VK_NULL_HANDLE; // TODO: better vaidation
+    auto GpuMemoryAllocator::GetMemoryUsage() const -> size_t {
+        vmaCalculateStatistics( mAllocator, MKT_ADDRESSOF( mStats ) );
+        return mStats.total.statistics.allocationBytes;
     }
 
-    auto VulkanMemoryAllocator::GetMemoryUsage() const -> Size {
-        vmaCalculateStatistics( m_Allocator, std::addressof( m_Stats ) );
-        return m_Stats.total.statistics.allocationBytes;
-    }
-
-    auto VulkanMemoryAllocator::GetMemoryTotal() const -> Size {
-        vmaCalculateStatistics( m_Allocator, std::addressof( m_Stats ) );
+    auto GpuMemoryAllocator::GetMemoryTotal() const -> size_t {
+        vmaCalculateStatistics( mAllocator, MKT_ADDRESSOF( mStats ) );
         return 0;
     }
 
-    auto VulkanMemoryAllocator::GetMemoryAvailable() const -> Size {
-        vmaCalculateStatistics( m_Allocator, std::addressof( m_Stats ) );
-        return m_Stats.total.unusedRangeSizeMax;
+    auto GpuMemoryAllocator::GetMemoryAvailable() const -> size_t {
+        vmaCalculateStatistics( mAllocator, MKT_ADDRESSOF( mStats ) );
+        return mStats.total.unusedRangeSizeMax;
     }
 
-    auto VulkanMemoryAllocator::MapBuffer( BufferAllocation& allocation, const bool map ) const -> void {
-        if (map) {
-            const VkResult result{ vmaMapMemory(
-                m_Allocator,
-                allocation.Allocation,
-                std::addressof( allocation.AllocationInfo.pMappedData )
-            )};
-
-            if (result != VK_SUCCESS) {
-                MKT_THROW_RUNTIME_ERROR("Failed to map Vulkan buffer memory!");
-            }
-        }
-        else {
+    auto GpuMemoryAllocator::MapBuffer( BufferAllocation& allocation, const bool map ) const -> void {
+        if ( map ) {
+            MKT_VK_CHECK( vmaMapMemory( mAllocator, allocation.mAllocation, MKT_ADDRESSOF( allocation.mAllocationInfo.pMappedData ) ) );
+        } else {
             // Unmap buffer memory from CPU
-            if (allocation.AllocationInfo.pMappedData) {
-                vmaUnmapMemory(m_Allocator, allocation.Allocation);
-                allocation.AllocationInfo.pMappedData = nullptr;
+            if ( allocation.mAllocationInfo.pMappedData ) {
+                vmaUnmapMemory( mAllocator, allocation.mAllocation );
+                allocation.mAllocationInfo.pMappedData = nullptr;
             }
         }
     }
 
 
-}// namespace Mikoto
+}// namespace mikoto::renderer::vulkan

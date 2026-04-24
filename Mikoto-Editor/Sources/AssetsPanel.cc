@@ -12,37 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Common/Common.hh>
-#include <Panels/AssetsPanel.hh>
-#include <ImGui/ImGuiUtility.hh>
-#include <Layers/EditorLayer.hh>
-
-namespace Mikoto {
-
-    AssetsPanel::AssetsPanel( const AssetsPanelDescription &description )
-        : Panel{ "Assets" }, m_EditorState{ description.State }
-    {
-        // Icons for ICON_MD for assets U+F1B2, U+F1B3, U+F6D1
-        // TODO: find the actual ICON_MD macros
-        // U+F6D1  ->  63185
-        // U+F1B2  ->  61874
-        // U+F1B3  ->  61875
-        const std::string icon { ImGuiUtils::GetStringFromUnicode( 61875 ) };
-
-        m_PanelHeaderName = ImGuiUtils::MakePanelName( fmt::format("{}", icon), m_PanelName );
-    }
-
-    auto AssetsPanel::OnUpdate( float ) -> void {
-        if ( !m_PanelIsVisible ) {
-            return;
-        }
-
-        constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
-        ImGui::Begin( m_PanelHeaderName.c_str(), std::addressof( m_PanelIsVisible ), windowFlags );
-
-        m_PanelIsFocused = ImGui::IsWindowFocused();
-        m_PanelIsHovered = ImGui::IsWindowHovered();
-
-        ImGui::End();
-    }
-}
+//
+// #include <EASTL/string.h>
+// #include <EASTL/string_view.h>
+//
+// #include <Core/Core.hh>
+// #include <Core/Types.hh>
+//
+// #include <Memory/Allocator.hh>
+//
+// #include <ImGui/ImGuiUtility.hh>
+//
+// #include <Layers/EditorLayer.hh>
+// #include <Panels/AssetsPanel.hh>
+//
+// namespace mikoto::editor {
+//
+//     AssetsPanel::AssetsPanel( const AssetsPanelDescription &description )
+//         : Panel{ "Assets" }, mEditorState{ description.mState }
+//     {
+//         // Icons for ICON_MD for assets U+F1B2, U+F1B3, U+F6D1
+//         // TODO: find the actual ICON_MD macros
+//         // U+F6D1  ->  63185
+//         // U+F1B2  ->  61874
+//         // U+F1B3  ->  61875
+//         const eastl::string icon{ gui::GetStringFromUnicode( 61875 ) };
+//         mPanelHeaderName = gui::MakePanelName( string::Format("{}", icon.c_str()), mPanelName );
+//     }
+//
+//     auto AssetsPanel::OnUpdate( float ) -> void {
+//         if ( !mPanelIsVisible ) {
+//             return;
+//         }
+//
+//         constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
+//         ImGui::Begin( mPanelHeaderName.c_str(), MKT_ADDRESSOF( mPanelIsVisible ), windowFlags );
+//
+//         mPanelIsFocused = ImGui::IsWindowFocused();
+//         mPanelIsHovered = ImGui::IsWindowHovered();
+//
+//         ImGui::End();
+//     }
+// }

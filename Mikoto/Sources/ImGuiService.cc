@@ -12,34 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
+#include <EASTL/array.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
-#include <Core/Platform.hh>
+#include <imgui.h>
+
 #include <ImGui/IconsFontAwesome5.h>
 #include <ImGui/IconsMaterialDesign.h>
 #include <ImGui/IconsMaterialDesignIcons.h>
 
-#include <imgui_impl_vulkan.h>
+#include <Core/Platform.hh>
 
-#if defined(MIKOTO_PLATFORM_WINDOWS)
-#include <imgui_impl_dx11.h>
-#include <imgui_impl_dx12.h>
-#endif
-
-#include <Common/Common.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+
 #include <Logging/Logger.hh>
 
+#include <Filesystem/Path.hh>
 #include <Filesystem/FileService.hh>
-#include <Library/Utility/Types.hh>
-
-#include <Renderer/Core/RenderService.hh>
 
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <ImGui/ImGuiVulkanBackend.hh>
 
+#include <Renderer/Core/RenderSystem.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 #include <ImGui/ImGuiD3D11Backend.hh>
@@ -47,7 +45,7 @@
 #endif
 
 
-namespace Mikoto {
+namespace mikoto::gui {
 
     static auto ThemeDarkModeAlt() -> void {
         // Setup Dear ImGui style
@@ -130,8 +128,8 @@ namespace Mikoto {
         style.Colors[ImGuiCol_FrameBgHovered] = ImVec4( 0.2f, 0.2f, 0.2f, 1.0f );
         style.Colors[ImGuiCol_FrameBgActive] = ImVec4( 0.3f, 0.3f, 0.3f, 1.0f );
 
-        style.Colors[ImGuiCol_Border] = ImVec4( 0.01f, 0.01f, 0.01f, 0.3f );
-        style.Colors[ImGuiCol_BorderShadow] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
+        //style.Colors[ImGuiCol_Border] = ImVec4( 1.0f, 1.0f, 1.0f, 1.0f );
+        //style.Colors[ImGuiCol_BorderShadow] = ImVec4( 0.0f, 0.0f, 0.0f, 0.5f );
 
         style.Colors[ImGuiCol_SliderGrab] = ImVec4( 0.10f, 0.10f, 0.10f, 1.0f );
         style.Colors[ImGuiCol_SliderGrabActive] = ImVec4( 0.1f, 0.1f, 0.1f, 1.0f );
@@ -148,23 +146,27 @@ namespace Mikoto {
         style.PopupBorderSize = 0.0f;
 
         // Rounding values
-        style.FrameRounding = .5f;
-        style.GrabRounding = .5f;
-        style.ChildRounding = .5f;
-        style.WindowRounding = .5f;
-        style.PopupRounding = .5f;
-        style.ScrollbarRounding = .5f;
-        style.TabRounding = .5f;
+        style.FrameRounding = 2.5f;
+        style.GrabRounding = 2.5f;
+        style.ChildRounding = 2.5f;
+        style.WindowRounding = 2.5f;
+        style.PopupRounding = 2.5f;
+        style.ScrollbarRounding = 2.5f;
+        style.TabRounding = 2.5f;
     }
 
     ImGuiService::ImGuiService( const ImGuiServiceDescription &options )
-        : m_Device{ options.Device },
-         m_ImGuiFilesRootDir{ PathBuilder()
-        .WithPath( "Resources" )
-        .WithPath( "ImGui" )
-        .Build().string() },
-        m_BackendApi{ options.BackendApi },
-        m_Window{ options.TargetWindow }
+        : mDevice{ options.mDevice },
+         mImGuiFilesRootDir{ PathBuilder()
+            .SetPath( "Resources" )
+            .SetPath( "ImGui" )
+            .Build() },
+        mFontsRootDir{ PathBuilder()
+            .SetPath( "Resources" )
+            .SetPath( "Fonts" )
+            .Build() },
+        mBackendApi{ options.mApi },
+        mWindow{ options.mWindow }
     {}
 
     auto ImGuiService::SetThemeDarkModeDefault() -> void {
@@ -175,12 +177,13 @@ namespace Mikoto {
         ThemeDarkModeAlt();
     }
 
-    auto ImGuiService::Init() -> void {
+    auto ImGuiService::Initialize() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_CORE_LOGGER_INFO("Initializing ImGuiService...");
 
         IMGUI_CHECKVERSION();
+
         ImGui::CreateContext();
 
         ImGuiIO &io{ ImGui::GetIO() };
@@ -202,66 +205,83 @@ namespace Mikoto {
         ImGui::StyleColorsDark();
         ThemeDarkModeDefault();
 
-        // General look and feel
-
-        style.FrameRounding  = 6.0f;  // Buttons, sliders, etc.
-        style.GrabRounding   = 6.0f;  // Grabs on sliders
-        style.WindowRounding = 8.0f;  // Top-level windows
-        style.ChildRounding  = 8.0f;  // Child windows
-        style.PopupRounding  = 8.0f;  // Popups
-        style.ScrollbarRounding = 8.0f;
-
         // FontAwesome fonts need to have their sizes
         // reduced by 2.0f/3.0f in order to align correctly
-        constexpr float iconFontSize{ FONT_BASE_SIZE * 1.1f };
+        constexpr float iconFontSize{ kFontBaseSize * 1.01f };
 
-        const std::string path{ PathBuilder()
-                .WithPath( m_ImGuiFilesRootDir )
-                .WithPath( "JetBrainsMono/fonts/ttf/" )
-                .WithPath( "JetBrainsMono-Medium.ttf" )
-                .Build().string() };
+        const Path path{ PathBuilder()
+            .SetPath( mFontsRootDir.GetC_Str() )
+            .SetPath( "Noto_Sans_JP" )
+            .SetPath( "static" )
+            .SetPath( "NotoSansJP-Light.ttf" )
+            .Build() };
 
         // Add the main font
-        AddFont(FONT_BASE_SIZE, path);
+        AddFont(kFontBaseSize, path, nullptr, io.Fonts->GetGlyphRangesDefault() );
 
-        const std::string fontPath{
+        ImFontConfig jpConfig{};
+        jpConfig.MergeMode = true;
+        jpConfig.OversampleH = 2;
+        jpConfig.OversampleV = 2;
+        jpConfig.PixelSnapH = false;
+        AddFont(kFontBaseSize, path, MKT_ADDRESSOF( jpConfig ), io.Fonts->GetGlyphRangesJapanese() );
+
+        const Path fontPath{
             PathBuilder()
-            .WithPath( m_ImGuiFilesRootDir )
-            .Build().string() };
+            .SetPath( mImGuiFilesRootDir.GetC_Str() )
+            .Build() };
 
         // Made static because ImGui does not extend lifetime
-        static constexpr std::array<ImWchar, 3> iconRanges1{ ICON_MIN_FA, ICON_MAX_16_FA, 0 };
-        static const auto faRegular{ PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_FAS ).Build() };
-        AddIconFont(iconFontSize, faRegular.string(), iconRanges1);
+        static constexpr eastl::array<ImWchar, 3> iconRanges1{ ICON_MIN_FA, ICON_MAX_16_FA, 0 };
+        static const auto faRegular{
+            PathBuilder()
+                .SetPath( fontPath.GetC_Str() )
+                .SetPath( FONT_ICON_FILE_NAME_FAS )
+                .Build()
+            };
+
+        AddIconFont(iconFontSize, faRegular, iconRanges1);
 
         // See https://react-icons.github.io/react-icons/icons?name=md for icon previews
-        static constexpr std::array<ImWchar, 3> iconRanges2{ ICON_MIN_MD, ICON_MAX_16_MD, 0 };
-        static const auto materialIconsRegular{ PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_MD ).Build() };
-        AddIconFont(iconFontSize, materialIconsRegular.string(), iconRanges2);
+        static constexpr eastl::array<ImWchar, 3> iconRanges2{ ICON_MIN_MD, ICON_MAX_16_MD, 0 };
+        static const auto materialIconsRegular{
+            PathBuilder()
+                .SetPath( fontPath.GetC_Str() )
+                .SetPath( FONT_ICON_FILE_NAME_MD )
+                .Build()
+        };
 
-        static constexpr std::array<ImWchar, 3> iconRanges3{ ICON_MIN_MDI, ICON_MAX_16_MDI, 0 };
-        static const auto materialDesign{ PathBuilder().WithPath( fontPath ).WithPath( FONT_ICON_FILE_NAME_MDI ).Build() };
-        AddIconFont(iconFontSize, materialDesign.string(), iconRanges3);
+        AddIconFont(iconFontSize, materialIconsRegular, iconRanges2);
+
+        static constexpr eastl::array<ImWchar, 3> iconRanges3{ ICON_MIN_MDI, ICON_MAX_16_MDI, 0 };
+        static const auto materialDesign{
+            PathBuilder()
+                .SetPath( fontPath.GetC_Str() )
+                .SetPath( FONT_ICON_FILE_NAME_MDI )
+                .Build()
+            };
+
+        AddIconFont(iconFontSize, materialDesign, iconRanges3);
 
         InitImplementation();
 
-        m_IsInitialized = true;
+        mIsInitialized = true;
     }
 
-    auto ImGuiService::AddFont( float fontSize, const std::string &path, const ImFontConfig* config, const std::array<ImWchar, 3>* iconRanges ) -> void {
+    auto ImGuiService::AddFont( float fontSize, const eastl::string &path, const ImFontConfig* config, const ImWchar* glyphRanges ) -> void {
         ImGuiIO &io{ ImGui::GetIO() };
 
-        auto result{ io.Fonts->AddFontFromFileTTF(path.c_str(), fontSize, config, iconRanges->data() ) };
+        auto result{ io.Fonts->AddFontFromFileTTF(path.c_str(), fontSize, config, glyphRanges ) };
 
         // ImGui pushes new fonts into the io.Fonts array when we add them using MergeMode == true
         // see imgui_draw_.cpp ImFont* ImFontAtlas::AddFont(const ImFontConfig* font_cfg_in)
         // Also first font cannot have MergeMode == true
-        if (m_ImGuiFonts.empty() || result && (config == nullptr || !config->MergeMode)) {
-            m_ImGuiFonts.try_emplace( Filesystem::GetGetAbsolutePathString( Path{ path } ), static_cast<Int8>( m_ImGuiFonts.size() ) );
+        if (mImGuiFonts.empty() || result && (config == nullptr || !config->MergeMode)) {
+            mImGuiFonts.try_emplace( Path{ Path{ path }.GetAbsolute() }, as<i8>( mImGuiFonts.size() ) );
         }
     }
 
-    auto ImGuiService::AddIconFont( const float fontSize, const std::string &path, const std::array<ImWchar, 3> &iconRanges ) -> void {
+    auto ImGuiService::AddIconFont( const float fontSize, const eastl::string &path, const eastl::array<ImWchar, 3> &iconRanges ) -> void {
 
         ImFontConfig config{};
         config.MergeMode = true;
@@ -272,48 +292,47 @@ namespace Mikoto {
         config.OversampleH = config.OversampleV = 3.0f;
         config.SizePixels = 12.0f;
 
-        AddFont(fontSize, path, std::addressof( config ), std::addressof( iconRanges ));
+        AddFont(fontSize, path, std::addressof( config ), iconRanges.data() );
     }
 
-    auto ImGuiService::SetImGuiBackGroundClearColor( const Vec4F &color ) -> void {
-        m_Implementation->SetClearColor( color );
+    auto ImGuiService::SetImGuiBackGroundClearColor( const float4 &color ) -> void {
+        mImplementation->SetClearColor( color );
     }
 
     auto ImGuiService::GetTextureID( TextureHandle texture ) -> ImTextureID {
         return GetTextureID(texture.GetRaw());
     }
 
-    auto ImGuiService::GetTextureID( const Texture *texture ) -> ImTextureID {
-        return m_Implementation->ConstructImGuiTextureID( texture );
+    auto ImGuiService::GetTextureID( const ITexture *texture ) -> ImTextureID {
+        return mImplementation->ConstructImGuiTextureID( texture );
     }
 
     auto ImGuiService::GetBackend() -> ImGuiBackend * {
-        return m_Implementation.get();
+        return mImplementation.get();
     }
 
     auto ImGuiService::GetBackend() const -> const ImGuiBackend * {
-        return m_Implementation.get();
+        return mImplementation.get();
     }
 
-    auto ImGuiService::PushFont( std::string_view str ) -> ImGuiUtils::ImGuiScopedTextFont {
+    auto ImGuiService::PushFont( eastl::string_view str ) -> ImGuiScopedTextFont {
         MKT_BEGIN_PROFILER_NAMED();
 
-        auto it{ m_ImGuiFonts.find( std::string( str ) ) };
-        const File* fontFile{ FileService::Get()->LoadFile( Path{ str } ) };
+        auto it{ mImGuiFonts.find( Path{ Path{ str }.GetAbsolute() } ) };
+        FileHandle fontFile{ FileService::Get()->LoadFile( Path{ str } ) };
 
-        if ( it == m_ImGuiFonts.end() ) {
-
-            if (fontFile == nullptr) {
+        if ( it == mImGuiFonts.end() ) {
+            if (fontFile.IsEmpty()) {
                 MKT_CORE_LOGGER_WARN( "ImGuiService::PushFont - Failed to load font at {}", str );
-                return ImGuiUtils::ImGuiScopedTextFont( ImGuiUtils::ImGuiScopedTextFont::Invalid );
+                return ImGuiScopedTextFont( ImGuiScopedTextFont::Invalid );
             }
 
-            AddFont( FONT_BASE_SIZE, fontFile->GetPath() );
+            AddFont( kFontBaseSize, fontFile->GetPath() );
         }
 
         MKT_ASSERT( fontFile, "Font File does not exist" );
 
-        return ImGuiUtils::ImGuiScopedTextFont{ m_ImGuiFonts.at( fontFile->GetPath() ) };
+        return ImGuiScopedTextFont{ mImGuiFonts.at( fontFile->GetPath() ) };
     }
 
 
@@ -321,43 +340,42 @@ namespace Mikoto {
         ImGuiIO &io{ ImGui::GetIO() };
 
         // Load ini file (static because IniFilename is const char*)
-        // it will not extend iniFilePath lifetime
-        static const std::string iniFilePath{
+        // and it will not extend iniFilePath lifetime
+        static const Path iniFilePath{
             PathBuilder()
-                    .WithPath( m_ImGuiFilesRootDir )
-                    .WithPath( "imgui.ini" )
-                    .Build()
-                    .string()
+                .SetPath( mImGuiFilesRootDir.GetC_Str() )
+                .SetPath( "imgui.ini" )
+                .Build()
         };
 
-        io.IniFilename = iniFilePath.c_str();
+        io.IniFilename = iniFilePath.GetC_Str();
 
         // Create implementation
         const ImGuiBackendCreateInfo imGuiVulkanBackendCreateInfo{
-            .Handle{ m_Window },
-            .API{ m_BackendApi },
-            .Device{ m_Device },
+            .mWindow = mWindow,
+            .mDevice = mDevice,
+            .mApi = mBackendApi,
         };
 
-        m_Implementation = ImGuiBackend::Create( imGuiVulkanBackendCreateInfo );
+        mImplementation = ImGuiBackend::Create( imGuiVulkanBackendCreateInfo );
 
         // Initialize the implementation
-        if ( m_Implementation ) {
-            m_Implementation->Init();
+        if ( mImplementation ) {
+            mImplementation->Init();
         } else {
             MKT_CORE_LOGGER_ERROR( "Failed to initialize an ImGui backend!" );
         }
     }
 
-    auto ImGuiBackend::Create(const ImGuiBackendCreateInfo& info) -> Unique<ImGuiBackend> {
-        switch (info.API) {
-            case GraphicsAPI::VULKAN_API:
-                return CreateScope<ImGuiVulkanBackend>(info);
-#if defined(MIKOTO_PLATFORM_WINDOWS)
-            case GraphicsAPI::DIRECTX_11:
-                return CreateScope<ImGuiD3D11Backend>(info);
-            case GraphicsAPI::DIRECTX_12:
-                return CreateScope<ImGuiD3D12Backend>(info);
+    auto ImGuiBackend::Create( const ImGuiBackendCreateInfo &info ) -> eastl::unique_ptr<ImGuiBackend> {
+        switch ( info.mApi ) {
+            case GraphicsAPI::eVulkan:
+                return eastl::make_unique<ImGuiVulkanBackend>( info );
+#if defined( MIKOTO_PLATFORM_WINDOWS )
+            case GraphicsAPI::eD3D12:
+                return eastl::make_unique<ImGuiD3D12Backend>( info );
+            case GraphicsAPI::eD3D11:
+                return eastl::make_unique<ImGuiD3D11Backend>( info );
 #endif
 
             default:;
@@ -369,7 +387,7 @@ namespace Mikoto {
     auto ImGuiService::Shutdown() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if (!m_IsInitialized) {
+        if (!mIsInitialized) {
             return;
         }
 
@@ -377,26 +395,24 @@ namespace Mikoto {
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down ImGuiService..." );
 
-        m_Implementation->Shutdown();
-        m_Implementation = nullptr;
+        mImplementation->Shutdown();
+        mImplementation.reset();
 
         ImGui::DestroyContext();
     }
 
     auto ImGuiService::EndFrame() const -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        m_Implementation->EndFrame();
+        mImplementation->EndFrame();
     }
 
     auto ImGuiService::PrepareFrame() const -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        m_Implementation->BeginFrame();
+        mImplementation->BeginFrame();
     }
 
     auto ImGuiService::GetFinalComposition() const -> TextureHandle {
-        return m_Implementation->GetFinalComposition();
+        return mImplementation->GetFinalComposition();
     }
 
 }// namespace Mikoto

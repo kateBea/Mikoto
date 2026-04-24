@@ -15,634 +15,557 @@
 #ifndef MIKOTO_VULKAN_UTILS_HH
 #define MIKOTO_VULKAN_UTILS_HH
 
-#include <set>
-#include <vector>
-#include <memory>
-#include <string_view>
-#include <optional>
-#include <exception>
-#include <span>
-#include <map>
-
 #include <volk.h>
-#include <vk_mem_alloc.h>
-#include <fmt/format.h>
 
-#include <Common/Common.hh>
+#include <cpptrace/cpptrace.hpp>
+
+#include <Core/Core.hh>
+#include <Core/String.hh>
+#include <Core/Types.hh>
 #include <Core/Exception.hh>
 
-#include <Assets/Texture.hh>
+#include <Logging/Logger.hh>
 
-#include <Renderer/Core/Pipeline.hh>
-#include <Renderer/Core/RenderUtility.hh>
+#include <Renderer/Core/GpuDevice.hh>
 
-#include <Library/Utility/Types.hh>
+#define MKT_VK_FLAGS_NONE 0
 
-// Vulkan version
-#define MKT_VULKAN_VERSION_VARIANT 0
-#define MKT_VULKAN_VERSION_MAJOR 1
-#define MKT_VULKAN_VERSION_MINOR 3
-#define MKT_VULKAN_VERSION_PATCH 0
+namespace mikoto::renderer::vulkan {
 
-// For readability
-#define VK_FLAGS_NONE 0
+    using namespace mikoto::core;
 
-namespace Mikoto {
+    MKT_NODISCARD auto GetGpuDeviceType( GpuDeviceType type ) -> VkPhysicalDeviceType;
+    MKT_NODISCARD auto GetResultString( VkResult result ) -> const char*;
+    MKT_NODISCARD auto GetFormat( Format format ) -> VkFormat;
+    MKT_NODISCARD auto GetAspectMask( VkFormat format) -> VkImageAspectFlags;
+    MKT_NODISCARD auto GetAspectMask( Format format ) -> VkImageAspectFlags;
 
-    struct VulkanQueueData {
-        VkQueue Queue{};
-        UInt32 FamilyIndex{};
-    };
+    MKT_NODISCARD auto GetShaderModuleStage(ShaderType stage) -> VkShaderStageFlagBits;
+    MKT_NODISCARD auto GetShaderModuleStage(VkShaderStageFlagBits stage) -> ShaderType;
 
-    struct QueuesData {
-        std::optional<VulkanQueueData> Present{};
-        std::optional<VulkanQueueData> Graphics{};
-        std::optional<VulkanQueueData> Compute{};
-    };
+    MKT_NODISCARD auto GetTopology(PrimitiveTopology topology) -> VkPrimitiveTopology;
+    MKT_NODISCARD auto GetSampleCount(Multisampling msaa) -> VkSampleCountFlagBits;
+    MKT_NODISCARD auto GetCullMode(CullMode mode) -> VkCullModeFlags;
+    MKT_NODISCARD auto GetCompareOp(DepthCompareOp op) -> VkCompareOp;
 
-    struct FrameSynchronizationPrimitives {
-        VkSemaphore ImageAvailableSemaphore{ VK_NULL_HANDLE };
-        VkSemaphore RenderFinishedSemaphore{ VK_NULL_HANDLE };
-        VkFence RenderFence{ VK_NULL_HANDLE };
-    };
+    MKT_NODISCARD auto GetInputRate(InputRate rate) -> VkVertexInputRate;
 
-    struct SwapChainSupportDetails {
-        VkSurfaceCapabilitiesKHR Capabilities{};
-        std::vector<VkSurfaceFormatKHR> Formats{};
-        std::vector<VkPresentModeKHR> PresentModes{};
-    };
+    MKT_NODISCARD auto GetSamplerFilter( SamplerFilter filter ) -> VkFilter;
+    MKT_NODISCARD auto GetSamplerWrap( SamplerWrapMode wrap ) -> VkSamplerAddressMode;
 
-    static constexpr UInt32 TEXTURES_DESCRIPTOR_SET_INDEX{ 0 };
-    static constexpr UInt32 DYNAMIC_BUFFERS_SET_INDEX{ 2 };
-    static constexpr UInt32 DYNAMIC_RESOURCE_SET_INDEX{ 3 };
-    static constexpr UInt32 STATIC_RESOURCE_SET_INDEX{ 4 };
+    MKT_NODISCARD auto GetViewType( TextureDimension dimensions ) -> VkImageViewType;
+    MKT_NODISCARD auto GetTextureType( TextureDimension dimensions ) -> VkImageType;
 
+    MKT_NODISCARD auto GetImageLayout( ResourceStates state ) -> VkImageLayout;
+    MKT_NODISCARD auto GetResourceState( VkImageLayout layout ) -> ResourceStates;
+    MKT_NODISCARD auto GetStageMask(ResourceStates state) -> VkPipelineStageFlags2;
+    MKT_NODISCARD auto GetAccessMask(ResourceStates state) -> VkAccessFlags2;
 
-    static const int CONSTANTS_SET_INDEX = 7;
-    static const int IMAGE_VIEWS_SET_INDEX = 1;
-    static const int BUFFER_VIEWS_SET_INDEX = 2;
-    static const int UAV_SET_INDEX = 3;
-    static const int STATIC_SAMPLERS_SET_INDEX = 4;
-    static const int DYNAMIC_SAMPLERS_SET_INDEX = 5;
-    static const int UNBOUNDED_BV_SET_INDEX = 6;
-    static const int UNBOUNDED_IV_SAMPLERS_SET_INDEX = 0;
-    static const int INVALID_SET_INDEX = -1;
+    MKT_NODISCARD auto GetIndexType(Format format) -> VkIndexType;
 
-    static constexpr Int32 INVALID_BINDLESS_GROUP_INDEX{ -1 };
-    static constexpr Int32 MAX_BINDLESS_GROUP_INDEX{ 4096 };
+    MKT_NODISCARD auto GetShaderStageFlags( ShaderStage visibility ) -> VkShaderStageFlags;
+    MKT_NODISCARD auto GetDescriptorType( ResourceType type, TextureDimension dimension ) -> VkDescriptorType;
 
-    static constexpr UInt32 MINIMUM_REQUIRED_PUSH_CONSTANTS_SIZE{ 128 };
+    MKT_NODISCARD auto InferImageUsage(TextureUsageFlags flags ) -> VkFlags;
 
-}
-
-namespace Mikoto::VulkanHelpers {
-
-    static inline constexpr float STANDARD_POLYGON_LINE_WIDTH{ 1.0f };
-
-    // We take a set because for instance graphics queue and present queue could be the same, if u try to create two queues of same index program will crash
-    MKT_NODISCARD auto SetupDeviceQueueCreateInfo(const std::set<UInt32>& uniqueQueueFamilies) -> std::vector<VkDeviceQueueCreateInfo>;
-
-    auto CopyImageToImage(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D srcSize, VkExtent3D dstSize) -> void;
-    auto CopyImageToImageMultiSampled(VkCommandBuffer cmd, VkImage source, VkImage destination, VkExtent3D srcSize) -> void;
-    auto CopyImage(VkCommandBuffer cmd, VkImage srcImage, VkImageLayout srcLayout, VkImage dstImage, VkImageLayout dstLayout, VkExtent3D extent ) -> void;
-
-    MKT_NODISCARD auto GetSwapChainSupport( const VkPhysicalDevice& device, const VkSurfaceKHR& surface ) -> SwapChainSupportDetails;
-
-    MKT_NODISCARD auto HasGraphicsQueue( const VkQueueFamilyProperties& queueFamily ) -> bool;
-    MKT_NODISCARD auto HasComputeQueue( const VkQueueFamilyProperties& queueFamily ) -> bool;
-    MKT_NODISCARD auto HasPresentQueue( const VkPhysicalDevice& device, UInt32 queueFamilyIndex, const VkSurfaceKHR& surface, const VkQueueFamilyProperties& queueFamilyProperties ) -> bool;
-
-    MKT_NODISCARD auto GetVkFormatFromTextureFormat( TextureFormat format, TextureUsage usage, VkPhysicalDevice device ) -> VkFormat;
-
-    MKT_NODISCARD auto GetStorageBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
-    MKT_NODISCARD auto GetUniformBufferPadding(VkDeviceSize bufferOriginalSize, VkDeviceSize deviceMinOffsetAlignment) -> VkDeviceSize;
-
-    MKT_NODISCARD auto InferVulkanIndexType(BufferDataType format) -> VkIndexType;
-    MKT_NODISCARD auto FindSupportedFormat( VkPhysicalDevice device, std::span<const VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features ) -> VkFormat;
-
-    MKT_NODISCARD auto ToVkFormat(TextureFormat format) -> VkFormat;
-    MKT_NODISCARD auto ToTextureFormat(VkFormat format) -> TextureFormat;
-    MKT_NODISCARD auto ToVkShaderDataType(ShaderDataType type) -> VkFormat;
-    MKT_NODISCARD auto ToVkStage(ShaderStage stage) -> VkShaderStageFlagBits;
-    MKT_NODISCARD auto FromVkStage(VkShaderStageFlagBits stage) -> ShaderStage;
-    MKT_NODISCARD auto ToVkImageUsage(TextureUsage usage) -> VkImageUsageFlags;
-
-    MKT_NODISCARD auto ToVkRasterSamples(Multisampling samples) -> VkSampleCountFlagBits;
-
-    MKT_NODISCARD auto GetAspectMask(VkFormat format) -> VkImageAspectFlags;
-
-    auto ImageUsageFlagsToString(Texture* texture) -> void;
-    auto ImageLayoutToString(Texture* texture) -> void;
-
-    auto SetObjectDebugName(VkDevice device, VkObjectType objectType, UInt64 objectHandle, const char* name) -> void;
-
-    MKT_NODISCARD auto VkResultToString(VkResult result) -> const char*;
-
-
-#define MKT_VK_CHECK( expr )                                                                         \
-    do {                                                                                             \
-        VkResult _vk_result{ ( expr ) };                                                             \
-        if ( _vk_result != VK_SUCCESS ) {                                                            \
-            MKT_FILE_LOGGER_ERROR(                                                                   \
-                    "Vulkan error: {} (code: {}) at {}:{}",                                          \
-                    VulkanHelpers::VkResultToString( _vk_result ), static_cast<Int32>( _vk_result ), \
-                    __FILE__, __LINE__ );                                                            \
-                                                                                                     \
-            throw Mikoto::RuntimeException( fmt::format(                                             \
-                    "Vulkan call failed: {}\nFile: {}\nLine: {}",                                    \
-                    VulkanHelpers::VkResultToString( _vk_result ), __FILE__, __LINE__ ) );           \
-        }                                                                                            \
+#define MKT_VK_CHECK( expr )                                               \
+    do {                                                                   \
+        VkResult _vk_result{ ( expr ) };                                   \
+        if ( _vk_result != VK_SUCCESS ) {                                  \
+            MKT_FILE_LOGGER_ERROR(                                         \
+                    "Vulkan error: {} (code: {}) at {}:{}",                \
+                    GetResultString( _vk_result ), as<i32>( _vk_result ),  \
+                    __FILE__, __LINE__ );                                  \
+                                                                           \
+            cpptrace::generate_trace().print();                            \
+            throw mikoto::core::RuntimeException( string::Format(          \
+                    "Vulkan call failed: {}\nFile: {}\nLine: {}",          \
+                    GetResultString( _vk_result ), __FILE__, __LINE__ ) ); \
+        }                                                                  \
     } while ( 0 )
-}
 
-namespace Mikoto::VulkanHelpers::Reflection {
-
-    struct ReflectedBindingInfo {
-        std::string name{};
-        UInt32 set{};
-        UInt32 binding{};
-        VkDescriptorType type{};
-        UInt32 count{};
-        VkShaderStageFlags stageFlags{};
-        bool IsBindless{ false };
-    };
-
-    struct ReflectedData {
-        // Set index -> layout
-        ankerl::unordered_dense::map<UInt32, VkDescriptorSetLayout> setLayouts{};
-        std::vector<VkPushConstantRange> pushConstantRanges{};
-
-        VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
-
-        // Optional vertex input data (only filled if vertex shader provided)
-        std::vector<VkVertexInputBindingDescription> vertexBindings{};
-        std::vector<VkVertexInputAttributeDescription> vertexAttributes{};
-
-        // Map from (set,binding) -> descriptor info
-        std::map<std::pair<UInt32, UInt32>, ReflectedBindingInfo> bindingMap{};
-
-        UInt32 DynamicBuffersBindingCount{};
-    };
-
-    /**
-     * @brief Reflect SPIR-V modules (vertex/fragment/etc.) and build pipeline layouts.
-     * @param device Vulkan logical device.
-     * @param spirvModules Vector of SPIR-V binaries (vertex, fragment...).
-     * @param out ReflectedPipeline output struct.
-     * @return VkResult
-     */
-    auto ReflectSPIRV(
-        VkDevice device,
-        const std::vector<std::vector<UInt32>>& spirvModules,
-        ReflectedData& out) -> VkResult;
-
-    /**
-     * @brief Destroy all Vulkan objects inside a ReflectedPipeline.
-     */
-    auto DestroyReflectedPipeline(VkDevice device, ReflectedData& reflected) -> void;
-
-}
-
-namespace Mikoto::VulkanHelpers::Initializers {
-
-    MKT_NODISCARD inline auto ImageSubresourceRange(VkImageAspectFlags aspectMask) -> VkImageSubresourceRange {
-        VkImageSubresourceRange subImage {};
-        subImage.aspectMask = aspectMask;
-        subImage.baseMipLevel = 0;
-        subImage.levelCount = 1;
-        subImage.baseArrayLayer = 0;
-        subImage.layerCount = 1;
-
-        return subImage;
-    }
-
-    MKT_NODISCARD inline auto CreateDescriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, UInt32 binding) -> VkDescriptorSetLayoutBinding {
-        VkDescriptorSetLayoutBinding layoutBinding{};
-        layoutBinding.binding = binding;
-        layoutBinding.descriptorCount = 1;
-        layoutBinding.descriptorType = type;
-        layoutBinding.pImmutableSamplers = nullptr;
-        layoutBinding.stageFlags = stageFlags;
-
-        return layoutBinding;
-    }
-
-    /**
-     * Returns a default initialized VkApplicationInfo structure
-     * @returns default initialized VkApplicationInfo
-     * */
-    inline auto ApplicationInfo() -> VkApplicationInfo {
-        VkApplicationInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkApplicationInfo structure
-     * @returns default initialized VkApplicationInfo
-     * */
-    inline auto ComputePipelineCreateInfo() -> VkComputePipelineCreateInfo {
-        VkComputePipelineCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkInstanceCreateInfo structure
-     * @returns default initialized VkInstanceCreateInfo
-     * */
-    inline auto InstanceCreateInfo() -> VkInstanceCreateInfo {
-        VkInstanceCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkDebugUtilsMessengerCreateInfoEXT structure
-     * @returns default initialized VkDebugUtilsMessengerCreateInfoEXT
-     * */
-    inline auto DebugUtilsMessengerCreateInfoEXT() -> VkDebugUtilsMessengerCreateInfoEXT {
-        VkDebugUtilsMessengerCreateInfoEXT ret{};
-        ret.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkDeviceCreateInfo structure
-     * @returns default initialized VkDeviceCreateInfo
-     * */
-    inline auto DeviceCreateInfo() -> VkDeviceCreateInfo {
-        VkDeviceCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkDeviceQueueCreateInfo structure
-     * @returns default initialized VkDeviceQueueCreateInfo
-     * */
-    inline auto DeviceQueueCreateInfo() -> VkDeviceQueueCreateInfo {
-        VkDeviceQueueCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkSwapchainCreateInfoKHR structure
-     * @returns default initialized VkSwapchainCreateInfoKHR
-     * */
-    inline auto SwapchainCreateInfoKHR() -> VkSwapchainCreateInfoKHR {
-        VkSwapchainCreateInfoKHR ret{};
-        ret.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkImageViewCreateInfo structure
-     * @returns default initialized VkImageViewCreateInfo
-     * */
-    inline auto ImageViewCreateInfo() -> VkImageViewCreateInfo {
-        VkImageViewCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkImageCreateInfo structure
-     * @returns default initialized VkImageCreateInfo
-     * */
-    inline auto ImageCreateInfo() -> VkImageCreateInfo {
-        VkImageCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkSemaphoreCreateInfo structure
-     * @returns default initialized VkSemaphoreCreateInfo
-     * */
-    inline auto SemaphoreCreateInfo() -> VkSemaphoreCreateInfo {
-        VkSemaphoreCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkFenceCreateInfo structure
-     * @returns default initialized VkFenceCreateInfo
-     * */
-    inline auto FenceCreateInfo() -> VkFenceCreateInfo {
-        VkFenceCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkMemoryAllocateInfo structure
-     * @returns default initialized VkMemoryAllocateInfo
-     * */
-    inline auto MemoryAllocateInfo() -> VkMemoryAllocateInfo {
-        VkMemoryAllocateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkDescriptorPoolCreateInfo structure
-     * @returns default initialized VkDescriptorPoolCreateInfo
-     * */
-    inline auto DescriptorPoolCreateInfo() -> VkDescriptorPoolCreateInfo {
-        VkDescriptorPoolCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkCommandPoolCreateInfo structure
-     * @returns default initialized VkCommandPoolCreateInfo
-     * */
-    inline auto CommandPoolCreateInfo() -> VkCommandPoolCreateInfo {
-        VkCommandPoolCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkCommandBufferAllocateInfo structure
-     * @returns default initialized VkCommandBufferAllocateInfo
-     * */
-    inline auto CommandBufferAllocateInfo() -> VkCommandBufferAllocateInfo {
-        VkCommandBufferAllocateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkCommandBufferBeginInfo structure
-     * @returns default initialized VkCommandBufferBeginInfo
-     * */
-    inline auto CommandBufferBeginInfo() -> VkCommandBufferBeginInfo {
-        VkCommandBufferBeginInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkRenderPassBeginInfo structure
-     * @returns default initialized VkRenderPassBeginInfo
-     * */
-    inline auto RenderPassBeginInfo() -> VkRenderPassBeginInfo {
-        VkRenderPassBeginInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkRenderPassCreateInfo structure
-     * @returns default initialized VkRenderPassCreateInfo
-     * */
-    inline auto RenderPassCreateInfo() -> VkRenderPassCreateInfo {
-        VkRenderPassCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkFramebufferCreateInfo structure
-     * @returns default initialized VkFramebufferCreateInfo
-     * */
-    inline auto FramebufferCreateInfo() -> VkFramebufferCreateInfo {
-        VkFramebufferCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkDescriptorSetLayoutCreateInfo structure
-     * @returns default initialized VkDescriptorSetLayoutCreateInfo
-     * */
-    inline auto DescriptorSetLayoutCreateInfo() -> VkDescriptorSetLayoutCreateInfo {
-        VkDescriptorSetLayoutCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkPipelineLayoutCreateInfo structure
-     * @returns default initialized VkPipelineLayoutCreateInfo
-     * */
-    inline auto PipelineLayoutCreateInfo() -> VkPipelineLayoutCreateInfo {
-        VkPipelineLayoutCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkSubmitInfo structure
-     * @returns default initialized VkSubmitInfo
-     * */
-    inline auto SubmitInfo() -> VkSubmitInfo {
-        VkSubmitInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkShaderModuleCreateInfo structure
-     * @returns default initialized VkShaderModuleCreateInfo
-     * */
-    inline auto ShaderModuleCreateInfo() -> VkShaderModuleCreateInfo {
-        VkShaderModuleCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkPipelineShaderStageCreateInfo structure
-     * @returns default initialized VkPipelineShaderStageCreateInfo
-     * */
-    inline auto PipelineShaderStageCreateInfo() -> VkPipelineShaderStageCreateInfo {
-        VkPipelineShaderStageCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkGraphicsPipelineCreateInfo structure
-     * @returns default initialized VkGraphicsPipelineCreateInfo
-     * */
-    inline auto GraphicsPipelineCreateInfo() -> VkGraphicsPipelineCreateInfo {
-        VkGraphicsPipelineCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkPipelineVertexInputStateCreateInfo structure
-     * @returns default initialized VkPipelineVertexInputStateCreateInfo
-     * */
-    inline auto PipelineVertexInputStateCreateInfo() -> VkPipelineVertexInputStateCreateInfo {
-        VkPipelineVertexInputStateCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkSamplerCreateInfo structure
-     * @returns default initialized VkSamplerCreateInfo
-     * */
-    inline auto SamplerCreateInfo() -> VkSamplerCreateInfo {
-        VkSamplerCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-
-        return ret;
-    }
-
-    inline auto PushConstantRange(VkShaderStageFlags stageFlags, UInt32 size, UInt32 offset) -> VkPushConstantRange {
-        const VkPushConstantRange pushConstantRange {
-            .stageFlags{ stageFlags },
-            .offset{ offset },
-            .size{ size }
-        };
-
-        return pushConstantRange;
-    }
-
-    /**
-     * Returns a default initialized VkPresentInfoKHR structure
-     * @returns default initialized VkPresentInfoKHR
-     * */
-    inline auto PresentInfoKHR() -> VkPresentInfoKHR {
-        VkPresentInfoKHR ret{};
-        ret.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkBufferCreateInfo structure
-     * @returns default initialized VkBufferCreateInfo
-     * */
-    inline auto BufferCreateInfo() -> VkBufferCreateInfo {
-        VkBufferCreateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkImageMemoryBarrier structure
-     * @returns default initialized VkImageMemoryBarrier
-     * */
-    inline auto ImageMemoryBarrier() -> VkImageMemoryBarrier {
-        VkImageMemoryBarrier ret{};
-        ret.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkDescriptorSetAllocateInfo structure
-     * @returns default initialized VkDescriptorSetAllocateInfo
-     * */
-    inline auto DescriptorSetAllocateInfo() -> VkDescriptorSetAllocateInfo {
-        VkDescriptorSetAllocateInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkWriteDescriptorSet structure
-     * @returns default initialized VkWriteDescriptorSet
-     * */
-    inline auto WriteDescriptorSet() -> VkWriteDescriptorSet {
-        VkWriteDescriptorSet ret{};
-        ret.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkPhysicalDeviceVulkan13Features structure
-     * @returns default initialized VkPhysicalDeviceVulkan13Features
-     * */
-    inline auto PhysicalDeviceVulkan13Features() -> VkPhysicalDeviceVulkan13Features {
-        VkPhysicalDeviceVulkan13Features ret{};
-        ret.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkPhysicalDeviceVulkan12Features structure
-     * @returns default initialized VkPhysicalDeviceVulkan12Features
-     * */
-    inline auto PhysicalDeviceVulkan12Features() -> VkPhysicalDeviceVulkan12Features {
-        VkPhysicalDeviceVulkan12Features ret{};
-        ret.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkPhysicalDeviceFeatures2 structure
-     * @returns default initialized VkPhysicalDeviceFeatures2
-     * */
-    inline auto PhysicalDeviceFeatures2() -> VkPhysicalDeviceFeatures2 {
-        VkPhysicalDeviceFeatures2 ret{};
-        ret.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkRenderingAttachmentInfo structure
-     * @returns default initialized VkRenderingAttachmentInfo
-     * */
-    inline auto RenderingAttachmentInfo() -> VkRenderingAttachmentInfo {
-        VkRenderingAttachmentInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-
-        return ret;
-    }
-
-    /**
-     * Returns a default initialized VkRenderingInfo structure
-     * @returns default initialized VkRenderingInfo
-     * */
-    inline auto RenderingInfo() -> VkRenderingInfo {
-        VkRenderingInfo ret{};
-        ret.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-
-        return ret;
-    }
-}
-
-#endif // MIKOTO_VULKAN_UTILS_HH
+}// namespace mikoto::renderer::vulkan
+
+namespace mikoto::renderer::vulkan::initializers {
+
+    MKT_NODISCARD auto ApplicationInfo() -> VkApplicationInfo;
+    MKT_NODISCARD auto InstanceCreateInfo() -> VkInstanceCreateInfo;
+    MKT_NODISCARD auto SemaphoreCreateInfo() -> VkSemaphoreCreateInfo;
+    MKT_NODISCARD auto CommandPoolCreateInfo() -> VkCommandPoolCreateInfo;
+    MKT_NODISCARD auto FenceCreateInfo( VkFenceCreateFlags flags ) -> VkFenceCreateInfo;
+    MKT_NODISCARD auto CommandBufferAllocateInfo() -> VkCommandBufferAllocateInfo;
+    MKT_NODISCARD auto DebugUtilsMessengerCreateInfoEXT() -> VkDebugUtilsMessengerCreateInfoEXT;
+    MKT_NODISCARD auto DynamicRenderingFeature() -> VkPhysicalDeviceDynamicRenderingFeatures;
+    MKT_NODISCARD auto PhysicalDeviceFeatures2() -> VkPhysicalDeviceFeatures2;
+    MKT_NODISCARD auto DeviceCreateInfo() -> VkDeviceCreateInfo;
+    MKT_NODISCARD auto PhysicalDeviceVulkan13Features() -> VkPhysicalDeviceVulkan13Features;
+    MKT_NODISCARD auto PhysicalDeviceVulkan12Features() -> VkPhysicalDeviceVulkan12Features;
+    MKT_NODISCARD auto PhysicalDeviceVulkan11Features() -> VkPhysicalDeviceVulkan11Features;
+    MKT_NODISCARD auto DeviceQueueCreateInfo() -> VkDeviceQueueCreateInfo;
+    MKT_NODISCARD auto DescriptorPoolCreateInfo() -> VkDescriptorPoolCreateInfo;
+    MKT_NODISCARD auto SwapchainCreateInfoKHR() -> VkSwapchainCreateInfoKHR;
+    MKT_NODISCARD auto ImageViewCreateInfo() -> VkImageViewCreateInfo;
+    MKT_NODISCARD auto RenderingAttachmentInfo() -> VkRenderingAttachmentInfo;
+    MKT_NODISCARD auto PresentInfoKHR() -> VkPresentInfoKHR;
+    MKT_NODISCARD auto SamplerCreateInfo() -> VkSamplerCreateInfo;
+    MKT_NODISCARD auto ImageCreateInfo() -> VkImageCreateInfo;
+    MKT_NODISCARD auto RenderingInfo() -> VkRenderingInfo;
+    MKT_NODISCARD auto CommandBufferBeginInfo() -> VkCommandBufferBeginInfo;
+    MKT_NODISCARD auto SemaphoreTypeCreateInfo() -> VkSemaphoreTypeCreateInfo;
+    MKT_NODISCARD auto ImageBlit2() -> VkImageBlit2;
+    MKT_NODISCARD auto ImageCopy2() -> VkImageCopy2;
+    MKT_NODISCARD auto ShaderModuleCreateInfo() -> VkShaderModuleCreateInfo;
+    MKT_NODISCARD auto PipelineShaderStageCreateInfo() -> VkPipelineShaderStageCreateInfo;
+    MKT_NODISCARD auto FramebufferCreateInfo() -> VkFramebufferCreateInfo;
+    MKT_NODISCARD auto PipelineRenderingCreateInfo() -> VkPipelineRenderingCreateInfo;
+    MKT_NODISCARD auto GraphicsPipelineCreateInfo() -> VkGraphicsPipelineCreateInfo;
+    MKT_NODISCARD auto PipelineVertexInputStateCreateInfo() -> VkPipelineVertexInputStateCreateInfo;
+    MKT_NODISCARD auto PipelineLayoutCreateInfo() -> VkPipelineLayoutCreateInfo;
+    MKT_NODISCARD auto ComputePipelineCreateInfo() -> VkComputePipelineCreateInfo;
+    MKT_NODISCARD auto BufferCreateInfo() -> VkBufferCreateInfo;
+    MKT_NODISCARD auto WriteDescriptorSet() -> VkWriteDescriptorSet;
+}// namespace mikoto::renderer::vulkan::initializers
+
+// namespace mikoto::VulkanHelpers::Initializers {
+//
+//     MKT_NODISCARD inline auto ImageSubresourceRange(VkImageAspectFlags aspectMask) -> VkImageSubresourceRange {
+//         VkImageSubresourceRange subImage {};
+//         subImage.aspectMask = aspectMask;
+//         subImage.baseMipLevel = 0;
+//         subImage.levelCount = 1;
+//         subImage.baseArrayLayer = 0;
+//         subImage.layerCount = 1;
+//
+//         return subImage;
+//     }
+//
+//     MKT_NODISCARD inline auto CreateDescriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, UInt32 binding) -> VkDescriptorSetLayoutBinding {
+//         VkDescriptorSetLayoutBinding layoutBinding{};
+//         layoutBinding.binding = binding;
+//         layoutBinding.descriptorCount = 1;
+//         layoutBinding.descriptorType = type;
+//         layoutBinding.pImmutableSamplers = nullptr;
+//         layoutBinding.stageFlags = stageFlags;
+//
+//         return layoutBinding;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkApplicationInfo structure
+//      * @returns default initialized VkApplicationInfo
+//      * */
+//     inline auto ApplicationInfo() -> VkApplicationInfo {
+//         VkApplicationInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkApplicationInfo structure
+//      * @returns default initialized VkApplicationInfo
+//      * */
+//     inline auto ComputePipelineCreateInfo() -> VkComputePipelineCreateInfo {
+//         VkComputePipelineCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkInstanceCreateInfo structure
+//      * @returns default initialized VkInstanceCreateInfo
+//      * */
+//     inline auto InstanceCreateInfo() -> VkInstanceCreateInfo {
+//         VkInstanceCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkDebugUtilsMessengerCreateInfoEXT structure
+//      * @returns default initialized VkDebugUtilsMessengerCreateInfoEXT
+//      * */
+//     inline auto DebugUtilsMessengerCreateInfoEXT() -> VkDebugUtilsMessengerCreateInfoEXT {
+//         VkDebugUtilsMessengerCreateInfoEXT ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkDeviceCreateInfo structure
+//      * @returns default initialized VkDeviceCreateInfo
+//      * */
+//     inline auto DeviceCreateInfo() -> VkDeviceCreateInfo {
+//         VkDeviceCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkDeviceQueueCreateInfo structure
+//      * @returns default initialized VkDeviceQueueCreateInfo
+//      * */
+//     inline auto DeviceQueueCreateInfo() -> VkDeviceQueueCreateInfo {
+//         VkDeviceQueueCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkSwapchainCreateInfoKHR structure
+//      * @returns default initialized VkSwapchainCreateInfoKHR
+//      * */
+//     inline auto SwapchainCreateInfoKHR() -> VkSwapchainCreateInfoKHR {
+//         VkSwapchainCreateInfoKHR ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkImageViewCreateInfo structure
+//      * @returns default initialized VkImageViewCreateInfo
+//      * */
+//     inline auto ImageViewCreateInfo() -> VkImageViewCreateInfo {
+//         VkImageViewCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkImageCreateInfo structure
+//      * @returns default initialized VkImageCreateInfo
+//      * */
+//     inline auto ImageCreateInfo() -> VkImageCreateInfo {
+//         VkImageCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkSemaphoreCreateInfo structure
+//      * @returns default initialized VkSemaphoreCreateInfo
+//      * */
+//     inline auto SemaphoreCreateInfo() -> VkSemaphoreCreateInfo {
+//         VkSemaphoreCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkFenceCreateInfo structure
+//      * @returns default initialized VkFenceCreateInfo
+//      * */
+//     inline auto FenceCreateInfo() -> VkFenceCreateInfo {
+//         VkFenceCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkMemoryAllocateInfo structure
+//      * @returns default initialized VkMemoryAllocateInfo
+//      * */
+//     inline auto MemoryAllocateInfo() -> VkMemoryAllocateInfo {
+//         VkMemoryAllocateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkDescriptorPoolCreateInfo structure
+//      * @returns default initialized VkDescriptorPoolCreateInfo
+//      * */
+//     inline auto DescriptorPoolCreateInfo() -> VkDescriptorPoolCreateInfo {
+//         VkDescriptorPoolCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkCommandPoolCreateInfo structure
+//      * @returns default initialized VkCommandPoolCreateInfo
+//      * */
+//     inline auto CommandPoolCreateInfo() -> VkCommandPoolCreateInfo {
+//         VkCommandPoolCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkCommandBufferAllocateInfo structure
+//      * @returns default initialized VkCommandBufferAllocateInfo
+//      * */
+//     inline auto CommandBufferAllocateInfo() -> VkCommandBufferAllocateInfo {
+//         VkCommandBufferAllocateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkCommandBufferBeginInfo structure
+//      * @returns default initialized VkCommandBufferBeginInfo
+//      * */
+//     inline auto CommandBufferBeginInfo() -> VkCommandBufferBeginInfo {
+//         VkCommandBufferBeginInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkRenderPassBeginInfo structure
+//      * @returns default initialized VkRenderPassBeginInfo
+//      * */
+//     inline auto RenderPassBeginInfo() -> VkRenderPassBeginInfo {
+//         VkRenderPassBeginInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkRenderPassCreateInfo structure
+//      * @returns default initialized VkRenderPassCreateInfo
+//      * */
+//     inline auto RenderPassCreateInfo() -> VkRenderPassCreateInfo {
+//         VkRenderPassCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkFramebufferCreateInfo structure
+//      * @returns default initialized VkFramebufferCreateInfo
+//      * */
+//     inline auto FramebufferCreateInfo() -> VkFramebufferCreateInfo {
+//         VkFramebufferCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkDescriptorSetLayoutCreateInfo structure
+//      * @returns default initialized VkDescriptorSetLayoutCreateInfo
+//      * */
+//     inline auto DescriptorSetLayoutCreateInfo() -> VkDescriptorSetLayoutCreateInfo {
+//         VkDescriptorSetLayoutCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkPipelineLayoutCreateInfo structure
+//      * @returns default initialized VkPipelineLayoutCreateInfo
+//      * */
+//     inline auto PipelineLayoutCreateInfo() -> VkPipelineLayoutCreateInfo {
+//         VkPipelineLayoutCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkSubmitInfo structure
+//      * @returns default initialized VkSubmitInfo
+//      * */
+//     inline auto SubmitInfo() -> VkSubmitInfo {
+//         VkSubmitInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkShaderModuleCreateInfo structure
+//      * @returns default initialized VkShaderModuleCreateInfo
+//      * */
+//     inline auto ShaderModuleCreateInfo() -> VkShaderModuleCreateInfo {
+//         VkShaderModuleCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkPipelineShaderStageCreateInfo structure
+//      * @returns default initialized VkPipelineShaderStageCreateInfo
+//      * */
+//     inline auto PipelineShaderStageCreateInfo() -> VkPipelineShaderStageCreateInfo {
+//         VkPipelineShaderStageCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkGraphicsPipelineCreateInfo structure
+//      * @returns default initialized VkGraphicsPipelineCreateInfo
+//      * */
+//     inline auto GraphicsPipelineCreateInfo() -> VkGraphicsPipelineCreateInfo {
+//         VkGraphicsPipelineCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkPipelineVertexInputStateCreateInfo structure
+//      * @returns default initialized VkPipelineVertexInputStateCreateInfo
+//      * */
+//     inline auto PipelineVertexInputStateCreateInfo() -> VkPipelineVertexInputStateCreateInfo {
+//         VkPipelineVertexInputStateCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkSamplerCreateInfo structure
+//      * @returns default initialized VkSamplerCreateInfo
+//      * */
+//     inline auto SamplerCreateInfo() -> VkSamplerCreateInfo {
+//         VkSamplerCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     inline auto PushConstantRange(VkShaderStageFlags stageFlags, UInt32 size, UInt32 offset) -> VkPushConstantRange {
+//         const VkPushConstantRange pushConstantRange {
+//             .stageFlags{ stageFlags },
+//             .offset{ offset },
+//             .size{ size }
+//         };
+//
+//         return pushConstantRange;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkPresentInfoKHR structure
+//      * @returns default initialized VkPresentInfoKHR
+//      * */
+//     inline auto PresentInfoKHR() -> VkPresentInfoKHR {
+//         VkPresentInfoKHR ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkBufferCreateInfo structure
+//      * @returns default initialized VkBufferCreateInfo
+//      * */
+//     inline auto BufferCreateInfo() -> VkBufferCreateInfo {
+//         VkBufferCreateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkImageMemoryBarrier structure
+//      * @returns default initialized VkImageMemoryBarrier
+//      * */
+//     inline auto ImageMemoryBarrier() -> VkImageMemoryBarrier {
+//         VkImageMemoryBarrier ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkDescriptorSetAllocateInfo structure
+//      * @returns default initialized VkDescriptorSetAllocateInfo
+//      * */
+//     inline auto DescriptorSetAllocateInfo() -> VkDescriptorSetAllocateInfo {
+//         VkDescriptorSetAllocateInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkWriteDescriptorSet structure
+//      * @returns default initialized VkWriteDescriptorSet
+//      * */
+//     inline auto WriteDescriptorSet() -> VkWriteDescriptorSet {
+//         VkWriteDescriptorSet ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkPhysicalDeviceVulkan13Features structure
+//      * @returns default initialized VkPhysicalDeviceVulkan13Features
+//      * */
+//     inline auto PhysicalDeviceVulkan13Features() -> VkPhysicalDeviceVulkan13Features {
+//         VkPhysicalDeviceVulkan13Features ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkPhysicalDeviceVulkan12Features structure
+//      * @returns default initialized VkPhysicalDeviceVulkan12Features
+//      * */
+//     inline auto PhysicalDeviceVulkan12Features() -> VkPhysicalDeviceVulkan12Features {
+//         VkPhysicalDeviceVulkan12Features ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkPhysicalDeviceFeatures2 structure
+//      * @returns default initialized VkPhysicalDeviceFeatures2
+//      * */
+//     inline auto PhysicalDeviceFeatures2() -> VkPhysicalDeviceFeatures2 {
+//         VkPhysicalDeviceFeatures2 ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkRenderingAttachmentInfo structure
+//      * @returns default initialized VkRenderingAttachmentInfo
+//      * */
+//     inline auto RenderingAttachmentInfo() -> VkRenderingAttachmentInfo {
+//         VkRenderingAttachmentInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+//
+//         return ret;
+//     }
+//
+//     /**
+//      * Returns a default initialized VkRenderingInfo structure
+//      * @returns default initialized VkRenderingInfo
+//      * */
+//     inline auto RenderingInfo() -> VkRenderingInfo {
+//         VkRenderingInfo ret{};
+//         ret.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+//
+//         return ret;
+//     }
+// }
+
+#endif// MIKOTO_VULKAN_UTILS_HH

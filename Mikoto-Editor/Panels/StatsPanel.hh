@@ -1,23 +1,33 @@
-/**
- * StatsPanel.hh
- * Created by kate on 6/27/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_STATS_PANEL_HH
 #define MIKOTO_STATS_PANEL_HH
 
-// C++ Standard Library
-#include <memory>
+#include <EASTL/memory.h>
 
-// Project Headers
-#include <Common/Common.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Panels/Panel.hh>
 
-namespace Mikoto {
+namespace mikoto::editor {
+    using namespace mikoto::core;
+
     struct EditorState;
 
     struct StatsPanelCreateInfo {
-        EditorState *State{};
+        EditorState *mState{};
     };
 
     class StatsPanel final : public Panel {
@@ -27,19 +37,19 @@ namespace Mikoto {
         auto OnUpdate(float timeStep) -> void override;
 
     private:
-        auto DrawPerformance() -> void;
+        auto DrawUpdateInfo() -> void;
         auto DrawSystemInfo() -> void;
+        auto DrawPerformance( float timeStep ) -> void;
 
     private:
-        EditorState *m_State{};
+        EditorState *mState{};
 
-        float m_FrameRate{};
-        float m_FrameTime{};
+        f32 mFrameRate{};
+        f32 mFrameTime{};
 
-        float m_IntervalUpdate{ };
-        double m_LastTime{};
-
-        Int32 m_ColumCount{ 2 };
+        f64 mLastTime{};
+        f64 mCurrentTime{};
+        f32 mIntervalUpdate{ };
     };
 }
 

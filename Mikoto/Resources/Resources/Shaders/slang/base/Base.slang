@@ -20,96 +20,81 @@
 
 #pragma once
 
-// ============================================================================
-// Descriptor Set Indices
-// ============================================================================
-// Deprecated
-static const int TEXTURES_SET_INDEX = 0;
-static const int DYNAMIC_BUFFERS_SET_INDEX = 2;
-static const int DYNAMIC_RESOURCE_SET_INDEX = 3;
-static const int STATIC_RESOURCE_SET_INDEX = 4;
+#define MKT_DEFAULT_REGISTER_SPACE 0
 
-static const int PER_PASS_SET_INDEX = 5;
-static const int PER_FRAME_SET_INDEX = 6;
-static const int PER_MATERIAL_SET_INDEX = 7;
-static const int PER_MESH_INFO_SET_INDEX = 8;
+#define MKT_CONSTANT_BUFFER_BINDING 0
+#define MKT_STRUCTURED_BUFFER_BINDING 1
 
-static const int CONSTANTS_SET_INDEX = 7;
-static const int IMAGE_VIEWS_SET_INDEX = 1;
-static const int BUFFER_VIEWS_SET_INDEX = 2;
-static const int UAV_SET_INDEX = 3;
-static const int STATIC_SAMPLERS_SET_INDEX = 4;
-static const int DYNAMIC_SAMPLERS_SET_INDEX = 5;
-static const int UNBOUNDED_BV_SET_INDEX = 6;
-static const int UNBOUNDED_IV_SAMPLERS_SET_INDEX = 0;
+#define MKT_RW_CONSTANT_BUFFER_BINDING 2
+#define MKT_RW_STRUCTURED_BUFFER_BINDING 3
 
-static const int Slot_0 = 0;
-static const int Slot_1 = 1;
-static const int Slot_2 = 2;
-static const int Slot_3 = 3;
-static const int Slot_4 = 4;
-static const int Slot_5 = 5;
-static const int Slot_6 = 6;
-static const int Slot_7 = 7;
-static const int Slot_8 = 8;
+#define MKT_SAMPLER_BINDING 4
+#define MKT_TEXTURE_2D_BINDING 5
+#define MKT_TEXTURE_CUBE_BINDING 6
 
-static const int INVALID_TEXTURE_INDEX = -1;
+#define MKT_ACCELERATION_STRUCTURE_BINDING 7
 
-// ============================================================================
-// Boolean constants (to be removed)
-// ============================================================================
-static const int MKT_SHADER_TRUE  = 1;
-static const int MKT_SHADER_FALSE = 0;
+#if !defined(MKT_SUPPORT_D3D11)
+    #define MKT_DECLARE_PUSH_CONSTANT [[vk::push_constant]]
+    #define DECL_BINDING(BINDING, SET) [[vk::binding(BINDING, SET)]]
+#else
+    #define MKT_DECLARE_PUSH_CONSTANT
+    #define DECL_BINDING(BINDING, SET) [[vk::binding(BINDING, 0)]]
+#endif
 
-// ============================================================================
-// Math constants
-// ============================================================================
-static const float PI = 3.1415926535897932384626433832795;
+// TODO: Operators. Follow GLSL convention for unified interface
+//https://shader-slang.org/slang/user-guide/convenience-features#:~:text=Slang%20currently%20supports%20overloading%20the,%7C%7C%20operators%20is%20not%20supported.
+// I think operator helpers must go in global namespace so they are visible
 
-// ============================================================================
-// Structs
-// ============================================================================
+// Matrix * Vector
+// ============================================================
+// GLSL-style operator helpers (column-vector convention)
+// ============================================================
 
-// [DEPRECATED]
-struct MeshInfo {
-    float4x4 Transform;
-    float4x4 InverseModelView;
-    uint MaterialIndex;
+// Matrix * Vector
+float4 operator*(float4x4 m, float4 v) {
+    return mul(m, v);
+}
 
-    int AnimatorID;
+// Matrix * Matrix
+float4x4 operator*(float4x4 a, float4x4 b) {
+    return mul(a, b);
+}
 
-    float4 Albedo;
-    int AlbedoIndex;
+// 3x3
+float3 operator*(float3x3 m, float3 v) {
+    return mul(m, v);
+}
 
-    float AlphaCutoff;
-    float MetallicFactor;
-    float RoughnessFactor;
-    float OcclusionStrength;
+float3x3 operator*(float3x3 a, float3x3 b) {
+    return mul(a, b);
+}
 
-    float3 EmissiveFactors;
-    float EmissiveIntensity;
+// From: https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-semantics
+// Common vertex input semantics (HLSL / Slang):
+//
+// POSITION[n]      : float4  → Vertex position in object space
+// POSITIONT        : float4  → Transformed vertex position (post-projection)
+//
+// NORMAL[n]        : float3/4 → Vertex normal
+// BINORMAL[n]      : float3/4 → Bitangent (binormal)
+// TANGENT[n]       : float3/4 → Tangent vector
+//
+// COLOR[n]         : float4  → Vertex color (diffuse / specular)
+//
+// TEXCOORD[n]      : float1–4 → Texture coordinates (UV sets)
+//
+// BLENDINDICES[n]  : uint    → Bone indices for skinning
+// BLENDWEIGHT[n]   : float   → Bone weights for skinning
+//
+// PSIZE[n]         : float   → Point size (used for point primitives)
+//
+// Notes:
+// - [n] denotes multiple sets (e.g. TEXCOORD0, TEXCOORD1, BLENDINDICES0…)
+// - For skinning, each BLENDINDICES/BLENDWEIGHT pair typically represents 4 influences
+// - In Vulkan, semantics are ignored at runtime; explicit location bindings must match vertex input layout
+// - Types may vary (e.g. float3 vs float4), but must match pipeline input definitions
 
-    int NormalIndex;
-    int MetallicIndex;
-    int RoughnessIndex;
-    int AoIndex;
-    int EmissiveIndex;
-};
+namespace mikoto {
 
-// ============================================================================
-// Helper functions
-// ============================================================================
-float4x4 RemoveTranslation(float4x4 m) {
-    float3x3 r = float3x3(
-        m[0].xyz,
-        m[1].xyz,
-        m[2].xyz
-    );
-
-    return float4x4(
-        float4(r[0], 0.0),
-        float4(r[1], 0.0),
-        float4(r[2], 0.0),
-        float4(0.0, 0.0, 0.0, 1.0)
-    );
 }

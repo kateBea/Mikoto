@@ -1,26 +1,40 @@
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef MIKOTO_RUNTIME_EXCEPTION_HH
 #define MIKOTO_RUNTIME_EXCEPTION_HH
 
 #include <exception>
-#include <string>
-#include <utility>
 
-#include <fmt/format.h>
+#include <EASTL/string.h>
+#include <EASTL/utility.h>
+
 #include <cpptrace/cpptrace.hpp>
 
-#include <Common/Common.hh>
-#include <Library/Utility/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 
-namespace Mikoto {
+namespace mikoto::core {
+
     class RuntimeException : public std::exception {
     public:
-        // Construct from std::string
-        explicit RuntimeException( std::string msg )
-            : m_Message( std::move( msg ) ) {}
+        explicit RuntimeException( eastl::string msg )
+            : mMessage( eastl::move( msg ) ) {}
 
-        // Construct from const char*
         explicit RuntimeException( const char* msg )
-            : m_Message( msg ? msg : "" ) {}
+            : mMessage( msg ? msg : "" ) {}
 
         // Default copy and move support
         RuntimeException( const RuntimeException& ) = default;
@@ -29,20 +43,22 @@ namespace Mikoto {
         RuntimeException& operator=( RuntimeException&& ) noexcept = default;
 
         MKT_NODISCARD auto what() const noexcept -> const char* override {
-            return m_Message.c_str();
+            return mMessage.c_str();
         }
 
-        MKT_NODISCARD auto Message() const noexcept -> const std::string& {
-            return m_Message;
+        MKT_NODISCARD auto Message() const noexcept -> const eastl::string& {
+            return mMessage;
         }
 
     private:
-        std::string m_Message{};
+        i32 mLineNumber{};
+        eastl::string mLine{};
+        eastl::string mMessage{};
     };
 
 #define MKT_THROW_RUNTIME_ERROR(MESSAGE) \
     cpptrace::generate_trace().print(); \
-    throw Mikoto::RuntimeException( fmt::format( "Message: {}\n@File: {}\n@Line: {}", MESSAGE, __FILE__, __LINE__ ) )
+    throw core::RuntimeException( string::Format( "Message: {}\n@File: {}\n@Line: {}", MESSAGE, __FILE__, __LINE__ ) )
 }
 
 #endif // MIKOTO_RUNTIME_EXCEPTION_HH

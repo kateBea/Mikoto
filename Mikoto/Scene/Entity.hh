@@ -1,21 +1,34 @@
-/**
- * Entity.hh
- * Created by kate on 6/24/23.
- * */
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #ifndef MIKOTO_ENTITY_HH
 #define MIKOTO_ENTITY_HH
 
-// C++ Standard Library
 #include <utility>
 
-// Third-Party Libraries
 #include <entt/entt.hpp>
 
-// Project Headers
-#include <Common/Common.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
-namespace Mikoto {
+#include <Memory/Allocator.hh>
+
+namespace mikoto::scene {
+
+    // TODO: test flecs
+    // #if defined(MKT_USE_ECS_ENTT)
+    // # elif defined(MKT_USE_ECS_FLECS)
 
     class Entity {
     public:
@@ -131,7 +144,7 @@ namespace Mikoto {
 
     private:
         explicit Entity(entt::registry& registry)
-            :   m_Handle{ registry.create() }, m_Registry{ std::addressof(registry) }
+            :   m_Handle{ registry.create() }, m_Registry{ MKT_ADDRESSOF(registry) }
         {
             /**
              * See: Observe changes section from https://github.com/skypjack/entt/wiki/Entity-Component-System
@@ -157,6 +170,15 @@ namespace Mikoto {
         entt::entity m_Handle{ entt::null };
         entt::registry* m_Registry{ nullptr };
     };
+
+    template<typename ComponentType>
+    MKT_NODISCARD static inline auto IsPresent( Entity* entity ) -> bool {
+        if ( entity == nullptr ) {
+            return false;
+        }
+
+        return entity->HasComponent<ComponentType>();
+    }
 }
 
 #endif // MIKOTO_ENTITY_HH

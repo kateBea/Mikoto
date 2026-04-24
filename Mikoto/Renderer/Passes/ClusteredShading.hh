@@ -25,7 +25,7 @@
 #include <Renderer/Passes/CameraPass.hh>
 #include <Renderer/Passes/ShaderParameteres.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
     class ClusteredShading {
     public:
@@ -78,7 +78,7 @@ namespace Mikoto {
         CameraPass* m_CameraPass{ nullptr };
         ClusteredShadingParams m_ClusterShadingParams{};
 
-        RenderResolution m_Resolution{ RenderResolution::FHD_1080 };
+        RenderResolution m_Resolution{ RenderResolution::e1080P };
 
         std::vector<ShaderLightTypeParams> m_Lights{};
 

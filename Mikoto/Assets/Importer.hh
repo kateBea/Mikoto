@@ -15,70 +15,71 @@
 #ifndef MIKOTO_IMPORTER_HH
 #define MIKOTO_IMPORTER_HH
 
-#include <string>
-#include <vector>
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
 
-#include <Animation/SkinnedAnimation.hh>
 #include <Assets/Model.hh>
-#include <Library/Utility/Types.hh>
+
 #include <Renderer/Core/GpuDevice.hh>
-#include <Renderer/Core/DeviceObjectHandle.hh>
 
-namespace Mikoto {
+#include <Memory/BufferSpan.hh>
 
-    struct VertexData {
-        Vec3F Position{};
-        Vec3F Normals{};
-        Vec4F Colors{ 1.0f, 1.0f, 1.0f, 1.0f };
+#include <Animation/Animator.hh>
+#include <Animation/SkinnedAnimation.hh>
 
-        Vec2F UV_0{};
-        Vec2F UV_1{};
+namespace mikoto::asset {
 
-        // These 2 are vec4 because they need to match the bone influence
-        // which is maximum bones influence a vertex ( from what we support now )
-        Vec4F Joints{ -1.0f, -1.0f, -1.0f, -1.0f };
-        Vec4F Weights{};
+    struct VertexDescription {
+        float3 mPosition{};
+        float3 mNormals{};
+        float4 mColors{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+        float2 mUv0{};
+        float2 mUv1{};
+
+        float4 mJoints0{ -1.0f, -1.0f, -1.0f, -1.0f };
+        float4 mWeights0{};
+
+        float4 mJoints1{ -1.0f, -1.0f, -1.0f, -1.0f };
+        float4 mWeights1{};
     };
 
-    struct MeshNodeData {
-        std::string Name{};
+    struct MeshNodeDescription {
+        eastl::string mName{};
 
-        std::vector<VertexData> Vertices{};
-        std::vector<UInt32> Indices{};
+        float4x4 mTransform{ 1.0f }; // Identity by default
 
-        BufferSpanHandle IndicesSpan{};
-        BufferSpanHandle VerticesSpan{};
+        eastl::vector<u32> mIndices{};
+        eastl::vector<VertexDescription> mVertices{};
 
         // Unsigned because it needs at least one material
-        UInt32 MaterialIndex{};
+        u32 MaterialIndex{};
     };
 
-    struct ModelData {
-        std::string Name{};
+    struct ModelDataDescription {
+        eastl::string mName{};
 
-        std::vector<MeshNodeData> MeshNodes{};
-        std::vector<MaterialProperties> Materials{};
+        eastl::vector<MeshNodeDescription> mMeshNodes{};
+        eastl::vector<MaterialProperties> mMaterials{};
 
-        // For now we assume the
-        Skeleton SceneSkeleton{};
-
-        ankerl::unordered_dense::map<std::string, SkinnedAnimation> Animations{};
+        Skeleton mSceneSkeleton{};
+        AnimationList mAnimations{};
 
         // Texture URI the same way is stored in the materials
-        std::unordered_map<std::string, TextureHandle> Textures{};
+        ankerl::unordered_dense::map<Path, TextureHandle> mTextures{};
     };
 
     class ModelImporter {
     public:
         explicit ModelImporter(GpuDevice* device)
-            : m_Device{ device } {}
+            : mDevice{ device } {}
 
-        virtual auto Import(const ModelLoadDescription& description, ModelData& out) -> void = 0;
+        virtual auto Import(const ModelLoadDescription& description, ModelDataDescription& out) -> void = 0;
 
         virtual ~ModelImporter() = default;
 
     protected:
-        GpuDevice* m_Device{ nullptr };
+        GpuDevice* mDevice{ nullptr };
     };
 
 }

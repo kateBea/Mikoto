@@ -13,17 +13,18 @@
 // limitations under the License.
 
 #include <Core/Platform.hh>
-
 #include <ImGui/ImGuiD3D12Backend.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
 #include <imgui_impl_dx12.h>
+#include <imgui_impl_glfw.h>
 
-namespace Mikoto {
+namespace mikoto::gui {
 
     auto ImGuiD3D12Backend::Init() -> void {
-
+        //TODO: InitFullScreenQuadRender()
+        //This method will be used to render the final image on the swapchain
     }
 
     auto ImGuiD3D12Backend::Shutdown() -> void {
@@ -42,7 +43,7 @@ namespace Mikoto {
         return TextureHandle::CreateEmpty();
     }
 
-    auto ImGuiD3D12Backend::ConstructImGuiTextureID( const Texture *texture ) -> ImTextureID {
+    auto ImGuiD3D12Backend::ConstructImGuiTextureID( const ITexture *texture ) -> ImTextureID {
         return 0;
     }
 

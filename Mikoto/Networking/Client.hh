@@ -17,17 +17,20 @@
 
 #include <string_view>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
 #include <Networking/Socket.hh>
 #include <Networking/NetworkService.hh>
 #include <Networking/NetworkUtilities.hh>
 
-#include <Library/Utility/Types.hh>
+namespace mikoto::network {
+    using namespace mikoto::core;
 
-namespace Mikoto {
     class HttpClient {
     public:
         explicit HttpClient( std::string_view url );
-        HttpClient( std::string_view host, UInt16 port, SecurityProtocol sp = SecurityProtocol::NONE );
+        HttpClient( std::string_view host, UInt16 port, SecurityProtocol sp = SecurityProtocol::eInvalid );
 
         auto Get( std::string_view path, std::string_view contentType ) -> HttpResponse;
         auto Post( std::string_view path, std::string_view body, std::string_view contentType ) -> HttpResponse;
@@ -45,12 +48,13 @@ namespace Mikoto {
         auto InitSocket() -> void;
 
     private:
-        SocketHandle m_Socket{};
-        std::string m_Host{};
-        UInt16 m_Port{};
-        SecurityProtocol m_Security{ SecurityProtocol::NONE };
+        std::string mHost{};
+        SocketHandle mSocket{};
+
+        u16 mPort{};
+
+        SecurityProtocol mSecurity{ SecurityProtocol::eInvalid };
     };
 }
-
 
 #endif//MIKOTO_CLIENT_HH

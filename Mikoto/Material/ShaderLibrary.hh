@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,21 +15,30 @@
 #ifndef MIKOTO_SHADER_LIBRARY_HH
 #define MIKOTO_SHADER_LIBRARY_HH
 
-#include <string_view>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Service.hh>
-#include <Common/Singleton.hh>
-#include <Material/ShaderModule.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
 
-namespace Mikoto {
+#include <Filesystem/File.hh>
+#include <Filesystem/Path.hh>
 
-    inline constexpr std::string_view SLANG_FILE_EXTENSION{ ".slang" };
+#include <Renderer/Core/Rhi.hh>
+
+namespace mikoto::material {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer;
+    using namespace mikoto::filesystem;
+
+    inline constexpr eastl::string_view kSlangFileExtension{ ".slang" };
 
     struct ShaderLibraryDescription {
-        Path RootPath{};
-        GpuDevice* Device{ nullptr };
+        GpuDevice* mDevice{};
+        Path mRootPath{};
     };
 
     // Caches shaders loaded from disk files for a given GPU device
@@ -38,19 +47,19 @@ namespace Mikoto {
     public:
         explicit ShaderLibrary( const ShaderLibraryDescription &options );
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        auto GetShader( std::string_view uri ) -> ShaderModuleHandle;
-        auto LoadShader( const ShaderModuleDescription &loadInfo ) -> ShaderModuleHandle;
-        auto LoadShader( const Path &path, ShaderStage stage ) -> ShaderModuleHandle;
+        // This uri must be relative to the root path otherwise must be a full path
+        auto GetShader( eastl::string_view uri ) -> rhi::ShaderModuleHandle;
+        auto LoadShader( eastl::string_view uri, rhi::ShaderType type ) -> rhi::ShaderModuleHandle;
 
         ~ShaderLibrary() override = default;
 
     private:
-        Path m_RootPath{};
-        GpuDevice *m_Device{ nullptr };
-        ankerl::unordered_dense::map<std::string, ShaderModuleHandle> m_Shaders{};
+        Path mRootPath{};
+        GpuDevice *mDevice{ nullptr };
+        ankerl::unordered_dense::map<Path, rhi::ShaderModuleHandle> mShaders{};
     };
 
 }// namespace Mikoto

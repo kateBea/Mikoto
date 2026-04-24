@@ -15,87 +15,48 @@
 #ifndef MIKOTO_VULKAN_BUFFER_HH
 #define MIKOTO_VULKAN_BUFFER_HH
 
-#include <vector>
-
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
-#include <Common/Common.hh>
-#include <Renderer/Core/Buffer.hh>
-#include <Renderer/Core/DeviceObjectHandle.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
+#include <Renderer/Core/Rhi.hh>
 #include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer::vulkan {
 
-    class VulkanContext;
-
-    class VulkanBuffer final : public Buffer {
+    class Buffer final : public IBuffer {
     public:
-        explicit VulkanBuffer( const BufferDescription& createInfo );
-        explicit VulkanBuffer( const void* src, Size size );
-
-        auto CopyToHost( void* ptr, Size size ) -> void override;
-        auto CopyToDevice(const void* ptr, Size size) -> void override;
-        auto CopyToDevice( const void* ptr, Size size, Size offset ) -> void override;
-
-        // Copy from device to device
-        auto Copy( const void* ptr, Size size, CommandListHandle cmd ) -> void override;
+        explicit Buffer( const BufferCreateDescription& createInfo );
 
         auto PersistentMap() -> void;
         auto PersistentUnmap() -> void;
 
-        MKT_NODISCARD auto GetAlignedSize() const -> UInt32;
+        MKT_NODISCARD auto GetAlignedSize() const -> u32;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
-        MKT_NODISCARD auto IsMapped() const -> bool { return m_Allocation.AllocationInfo.pMappedData != nullptr; }
-        MKT_NODISCARD auto GetMappedAddress() const -> const void* { return m_Allocation.AllocationInfo.pMappedData; }
+        MKT_NODISCARD auto IsMapped() const -> bool;
+        MKT_NODISCARD auto GetMappedAddress() -> void*;
+        MKT_NODISCARD auto GetMappedAddress() const -> const void*;
 
-        ~VulkanBuffer() override;
+        ~Buffer() override;
 
     private:
         auto Release() -> void override;
         auto Initialize() -> void override;
 
-        auto InitializeAttributesBuffers() -> void;
-
-        auto ComputeAlignedSizeMaxFrames( Size sliceSize, Size bufferOffsetAlignment ) -> Size;
-
-        auto SetDebugInfo() -> void;
-
-        auto ComputeAllocationSize() -> void;
-
-        auto SetupIndirectBuffer() -> void;
-        auto SetupUniformBuffer() -> void;
-        auto SetupStorageBuffer() -> void;
-        auto SetupVertexBuffer() -> void;
-        auto SetupIndexBuffer() -> void;
-
     private:
-        // When creating uniforms we need specify a minimum size for GPU memory alignment
-        // S o basically store the size of the element individually and the count, this information is to be used later in the initialization
-        Size m_ElementSize{};
-        Size m_ElementCount{};
-
-        VulkanContext* m_Context{};
-
         // If the buffer is dynamic this value contains
         // the size of each frame in flight slice
-        Size m_AlignedSizeBytes{};
+        size_t mAlignedSizeBytes{};
+        size_t mStagingSliceSize{};
 
-        BufferAllocation m_Allocation{};
+        BufferAllocation mAllocation{};
 
-        Size m_StagingSliceSize{};
-        BufferHandle m_StagingForCopies{};
-
-        bool m_UsesScalarBlockLayout{ false };
-
-        BufferSpanHandle m_BufferViewHandle{};
+        bool mKeepInitializerResources{ false };
     };
-
-#define MKT_VK_BUFFER(BUFFER_HANDLE) dynamic_cast<VulkanBuffer*>(BUFFER_HANDLE.GetRaw())
-#define MKT_VK_BUFFER_PTR(BUFFER_PTR) dynamic_cast<VulkanBuffer*>(BUFFER_PTR)
 }
 
 #endif // MIKOTO_VULKAN_BUFFER_HH

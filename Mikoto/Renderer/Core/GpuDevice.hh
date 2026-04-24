@@ -15,109 +15,43 @@
 #ifndef MIKOTO_GPU_DEVICE_HH
 #define MIKOTO_GPU_DEVICE_HH
 
-#include <Assets/Texture.hh>
-#include <Library/Utility/Types.hh>
+#include <EASTL/span.h>
+#include <EASTL/memory.h>
+#include <EASTL/unique_ptr.h>
 
-#include <Material/Texture2D.hh>
-#include <Material/TextureCube.hh>
-#include <Material/ShaderModule.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
-#include <Renderer/Core/Buffer.hh>
-#include <Renderer/Core/RenderUtility.hh>
+#include <Filesystem/Path.hh>
 
-#include <Renderer/Core/Pipeline.hh>
-#include <Renderer/Core/Framebuffer.hh>
-#include <Renderer/Core/DeviceObject.hh>
+#include <Renderer/Core/Rhi.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
-    struct RenderInfo {
-        struct ColorRenderTargetInfo {
-            UInt32 MipLevel{ 0 };
-            TextureHandle ColorTarget{};
-        };
+    using namespace mikoto::filesystem;
+    using namespace mikoto::renderer::rhi;
 
-        LoadOp ColorLoadOp{ LoadOp::CLEAR };
-        LoadOp DephtLoadOp{ LoadOp::CLEAR };
-
-        TextureHandle DepthRenderTarget{};
-        Vec4F ClearColor{ 0.0f, 0.0f, 0.0f, 1.0f };
-        std::vector<ColorRenderTargetInfo> ColorRenderTargets{};
-
-        auto Clear() -> void;
+    enum class GpuDeviceType {
+        eInvalid = -1,
+        eDiscrete,
+        eIntegrated,
+        eSoftwareRasterizer
     };
 
-    class ICommandList : public DeviceObject {
-    public:
-        explicit ICommandList( const bool immediate, QueueType queueType )
-            : m_IsImmediate{ immediate }, m_QueueType{ queueType } {}
+    struct GpuFeatureSupport {
+        // Properties we want the device to support
+        // used to pick the appropriate physical device
+        bool mChooseDiscreteDevice{ true };
+        bool mAnisotropicFiltering{ true };
+        bool mHardwareWireframe{ true };
+        bool mEnablePresentation{ true };
 
-        virtual auto Begin() -> void = 0;
-        virtual auto End() -> void = 0;
-
-        virtual auto BeginRender(RenderInfo& info) -> void = 0;
-        virtual auto EndRender(RenderInfo& info) -> void = 0;
-
-        // Consider passing the handle instead, I am not sure if they will stay alive
-        virtual auto FillTexture(Buffer* src, Texture* dest) -> void = 0;
-        virtual auto FillTexture(const void* src, Size size, Texture* dest) -> void = 0;
-
-        virtual auto CopyBuffer(Buffer* src, Buffer* dest) -> void = 0;
-        virtual auto CopyBuffer(const void* src, Size size, Buffer* dest) -> void = 0;
-
-        virtual auto CopyBuffer( Buffer* src, Buffer* dest, Size dstOffset ) -> void = 0;
-
-        virtual auto CopyTexture(Texture* src, Texture* dest) -> void = 0;
-        virtual auto CopyTexture(Texture2D* src, TextureCube* dest, UInt32 mipLevel, UInt32 face) -> void = 0;
-
-        virtual auto SetPolygonLineWidth(float value) -> void = 0;
-
-        // Can be device local data
-        virtual auto WriteBuffer(Buffer* target, Byte* data, Size size) -> void = 0;
-        virtual auto WriteTexture(Texture* target, Byte* data, Size size) -> void = 0;
-
-        virtual auto SetViewport(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
-        virtual auto SetViewport( Int32 x, Int32 y, Int32 width, Int32 height, bool flip ) -> void = 0;
-
-        virtual auto SetScissor(Int32 x, Int32 y, Int32 width, Int32 height) -> void = 0;
-
-        virtual auto BindIndexBuffer( BufferHandle indexBuffer)-> void = 0;
-        virtual auto BindVertexBuffer( BufferHandle vertexBuffer, UInt32 binding) -> void = 0;
-
-        virtual auto Draw(UInt32 vertexCount, UInt32 instanceCount, UInt32 firstVertex, UInt32 firstInstance) -> void = 0;
-        virtual auto DrawIndexed( Size indexCount, UInt32 instanceCount, UInt32 firstIndex, UInt32 vertexOffset, UInt32 firstInstance)-> void = 0;
-
-        virtual auto DrawIndirect( BufferHandle indirect, UInt32 offset, UInt32 drawCount, UInt32 stride ) -> void = 0;
-        virtual auto DrawIndexedIndirect( BufferHandle indirect, UInt32 offset, UInt32 drawCount, UInt32 stride ) -> void = 0;
-
-        virtual auto Dispatch(UInt32 x, UInt32 y, UInt32 z) -> void = 0;
-
-        virtual auto BindPipeline(PipelineHandle pipeline) -> void = 0;
-
-        MKT_NODISCARD auto IsImmediate() const -> bool { return m_IsImmediate; }
-        MKT_NODISCARD auto GetQueueType() const -> QueueType { return m_QueueType; }
-
-        using DeviceObject::Initialize;
-
-    protected:
-        bool m_IsImmediate{ false };
-
-        QueueType m_QueueType{ QueueType::INVALID_QUEUE };
-    };
-
-    class IQueue {
-    public:
-
-        MKT_NODISCARD auto GetType() const -> QueueType { return m_Type; }
-
-    private:
-        QueueType m_Type{ QueueType::INVALID_QUEUE };
+        GpuDeviceType mDeviceType{ GpuDeviceType::eDiscrete };
     };
 
     struct GpuDeviceCreateInfo {
-        GraphicsAPI Api{ GraphicsAPI::VULKAN_API };
-
-        bool EnablePresentation{ true };
+        GraphicsAPI mApi{ GraphicsAPI::eVulkan };
+        GpuFeatureSupport mFeaturesSupport{};
     };
 
     class GpuDevice {
@@ -125,47 +59,72 @@ namespace Mikoto {
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
-        MKT_NODISCARD virtual auto CreateTexture(const TextureDescription& description) -> TextureHandle = 0;
-        MKT_NODISCARD virtual auto CreateTexture(const TextureCubeCreateDescription& description) -> TextureHandle = 0;
-        MKT_NODISCARD virtual auto CreateBuffer(const BufferDescription& description) -> BufferHandle = 0;
+        MKT_NODISCARD virtual auto CreateTexture( const TextureCreateDescription& description ) -> TextureHandle = 0;
+        MKT_NODISCARD virtual auto CreateTextureNative( ObjectType type, Object object, const TextureCreateDescription& description ) -> TextureHandle = 0;
+
         MKT_NODISCARD virtual auto CreateFrameBuffer(const FramebufferDescription& description) -> FramebufferHandle = 0;
-        MKT_NODISCARD virtual auto CreateSampler(const SamplerDescription& description) -> SamplerHandle = 0;
 
-        MKT_NODISCARD virtual auto CreatePipeline(const ComputePipelineDescription& description) -> PipelineHandle = 0;
-        MKT_NODISCARD virtual auto CreatePipeline(const GraphicsPipelineDescription& description) -> PipelineHandle = 0;
+        MKT_NODISCARD virtual auto CreateBuffer( const BufferCreateDescription& description ) -> BufferHandle = 0;
 
-        MKT_NODISCARD virtual auto LoadShader(const Path& path, ShaderStage stage) -> ShaderModuleHandle = 0;
+        MKT_NODISCARD virtual auto CreateSampler( const SamplerCreateDescription& description ) -> SamplerHandle = 0;
 
-        MKT_NODISCARD virtual auto GetDeviceName() const -> std::string_view = 0;
+        MKT_NODISCARD virtual auto CreatePipeline( const ComputePipelineDescription& description ) -> PipelineHandle = 0;
+        MKT_NODISCARD virtual auto CreatePipeline( const GraphicsPipelineDescription& description ) -> PipelineHandle = 0;
 
-        virtual auto SubmitCommands(CommandListHandle cmd) -> void = 0;
-        MKT_NODISCARD virtual auto CreateCommandList(QueueType queue, bool immediate) -> CommandListHandle = 0;
+        MKT_NODISCARD virtual auto CreateAccelStructure( const AccelStructureCreateDescription& description ) -> AccelStructureHandle = 0;
 
-        MKT_NODISCARD virtual auto GetNativeHandle( ObjectType ) -> Object { return Object(nullptr); }
+        MKT_NODISCARD virtual auto CreateCommandList( QueueType queue ) -> CommandListHandle = 0;
+        MKT_NODISCARD virtual auto CreateCommandList( const CommandListParameters& parameters ) -> CommandListHandle = 0;
 
-        MKT_NODISCARD virtual auto GetMemoryUsage() const -> Size = 0;
-        MKT_NODISCARD virtual auto GetMemoryTotal() const -> Size = 0;
-        MKT_NODISCARD virtual auto GetMemoryAvailable() const -> Size = 0;
+        MKT_NODISCARD virtual auto CreateShader( const ShaderModuleCreateDescription& desc ) -> ShaderModuleHandle = 0;
+        MKT_NODISCARD virtual auto CreateShader( ShaderStage type, const void* code, size_t codeSize ) -> ShaderModuleHandle = 0;
 
-        MKT_NODISCARD virtual auto GetDummySampler() const -> SamplerHandle = 0;
+        MKT_NODISCARD virtual auto CreateInputLayout(const InputLayoutCreateDescription& desc) -> InputLayoutHandle = 0;
 
+        // For data read back, user will probably need to handle synchronization externally
+        // or have the command lists do it. Map returns a buffer we can copy data from
+        // writes need to be done via command lists.
+        virtual auto UnMap( IBuffer* buffer ) -> void = 0;
+        MKT_NODISCARD virtual auto Map(IBuffer* buffer) -> const void* = 0;
+
+        // For backends that support it this allows us to create the layout from shader reflection
+        MKT_NODISCARD virtual auto CreateBindingLayout( const BindingLayoutDescription& desc ) -> BindingLayoutHandle = 0;
+        MKT_NODISCARD virtual auto CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle = 0;
+        MKT_NODISCARD virtual auto CreateBindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout ) -> BindingSetHandle = 0;
+
+        // To support bindless techniques in modern graphics APIs
+        MKT_NODISCARD virtual auto CreateBindlessLayout( const BindlessLayoutDescription& desc ) -> BindingLayoutHandle = 0;
+
+        MKT_NODISCARD virtual auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle = 0;
+        MKT_NODISCARD virtual auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool = 0;
+        MKT_NODISCARD virtual auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool = 0;
+
+        virtual auto Flush() -> void = 0;
         virtual auto RunGarbageCollection() -> void = 0;
+        virtual auto SubmitCommands( CommandListHandle cmdList ) -> void = 0;
+        virtual auto ExecuteCommands( CommandListHandle cmdList ) -> void = 0;
 
-        MKT_NODISCARD auto GetApi() const -> GraphicsAPI { return m_Api; }
-        MKT_NODISCARD auto IsInitialized() const -> bool { return m_IsInitialized; }
+        virtual auto WaitIdle() -> void = 0;
+
+        MKT_NODISCARD auto IsInitialized() const -> bool;
+        MKT_NODISCARD auto GetGraphicsApi() const -> GraphicsAPI;
+        MKT_NODISCARD auto GetDeviceName() const -> eastl::string_view;
 
         virtual ~GpuDevice() = default;
 
-        MKT_NODISCARD static auto Create(const GpuDeviceCreateInfo& createInfo) -> Unique<GpuDevice>;
+        MKT_NODISCARD static auto Create( const GpuDeviceCreateInfo& createInfo ) -> eastl::unique_ptr<GpuDevice>;
 
     protected:
-        explicit GpuDevice(GraphicsAPI api);
+        explicit GpuDevice( GraphicsAPI api, const GpuFeatureSupport& featuresSupport );
 
     protected:
-        GraphicsAPI m_Api{};
+        eastl::string mName{};
 
-        bool m_IsInitialized{ false };
+        GraphicsAPI mApi{};
+        GpuFeatureSupport mFeaturesSupport{};
+
+        bool mIsInitialized{ false };
     };
-}
+}// namespace mikoto::renderer
 
-#endif //MIKOTO_GPU_DEVICE_HH
+#endif//MIKOTO_GPU_DEVICE_HH

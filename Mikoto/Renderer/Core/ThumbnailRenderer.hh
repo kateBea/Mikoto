@@ -17,7 +17,7 @@
 
 #include <Renderer/Core/Renderer.hh>
 
-namespace Mikoto {
+namespace mikoto::renderer {
 
     // Not sure how I will tackle this, my first idea is to submit the scenes with a single model
     // to this renderer, render the objects with low resolution and then save the result to a file in disk

@@ -16,48 +16,49 @@
 #define MIKOTO_FILE_SERVICE_HH
 
 #include <mutex>
-#include <future>
+
+#include <EASTL/memory.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
 #include <ankerl/unordered_dense.h>
 
-#include <Common/Common.hh>
-#include <Common/Service.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
 #include <Filesystem/File.hh>
 
-#include <Library/IO/File.hh>
-#include <Library/Utility/Types.hh>
-
-namespace Mikoto {
+namespace mikoto::filesystem {
 
     struct FileServiceCreateInfo {};
 
-    class FileService final : public IService, public Singleton<FileService> {
+    class FileService final : public core::IService, public core::Singleton<FileService> {
     public:
         explicit FileService( const FileServiceCreateInfo& options );
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        auto SaveFile( const File* file ) -> bool;
+        MKT_NODISCARD auto LoadFile( const Path& path ) -> FileHandle;
 
-        MKT_NODISCARD auto LoadFile( const Path& path, FileMode mode = MKT_FILE_OPEN_MODE_BINARY ) -> File*;
+        MKT_NODISCARD auto CreateNewFile( const Path& path ) -> FileHandle;
+        MKT_NODISCARD auto CreateNewFile( eastl::string_view path ) -> FileHandle;
 
-        MKT_NODISCARD auto CreateNewFile( const Path& path ) -> File*;
-
-        MKT_NODISCARD auto GetFile( const Path& path ) -> File*;
-        MKT_NODISCARD auto GetFile( const Path& path ) const -> const File*;
+        MKT_NODISCARD auto GetFile( const Path& path ) -> FileHandle;
+        MKT_NODISCARD auto GetFile( const Path& path ) const -> const FileHandle;
 
         // TODO: move to Filesystem helpers
-        MKT_NODISCARD auto OpenDialog( const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path;
-        MKT_NODISCARD auto SaveDialog( const std::string& filename, const std::initializer_list<std::pair<std::string, std::string>>& filters ) -> Path;
+        MKT_NODISCARD auto OpenDialog( const std::initializer_list<eastl::pair<eastl::string, eastl::string>>& filters ) -> Path;
+        MKT_NODISCARD auto SaveDialog( const eastl::string& filename, const std::initializer_list<eastl::pair<eastl::string, eastl::string>>& filters ) -> Path;
 
         ~FileService() override = default;
 
     private:
-        std::mutex m_FileLoadMutex{};
+        std::mutex mFileLoadMutex{};
 
         // Change from Unique to Ref<File>
-        ankerl::unordered_dense::map<std::string, Unique<File>> m_Files{};
+        ankerl::unordered_dense::map<eastl::string, FileHandle> mFiles{};
     };
 }
 

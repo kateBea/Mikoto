@@ -63,7 +63,9 @@ namespace mikoto::renderer::vulkan {
 
     auto SwapChain::Present( u32 imageIndex, const BinarySemaphore &renderFinished ) const -> VkResult {
         const eastl::array swapChains{ mSwapChain };
-        const eastl::array waitSemaphores{ renderFinished.mSemaphore };
+
+        VkSemaphore semaphore{ renderFinished.GetNativeHandle( ObjectType::Vk_Semaphore ) };
+        const eastl::array waitSemaphores{ semaphore };
 
         VkPresentInfoKHR presentInfo{ initializers::PresentInfoKHR() };
 
@@ -83,8 +85,9 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto SwapChain::GetNextImage( u32 &imageIndex, const BinarySemaphore &imageAvailable ) const -> VkResult {
+        VkSemaphore semaphore{ imageAvailable.GetNativeHandle( ObjectType::Vk_Semaphore ) };
         return vkAcquireNextImageKHR( as<Device*>(mDevice)->GetDevice(), mSwapChain, ( eastl::numeric_limits<u64>::max )(),
-            imageAvailable.mSemaphore, VK_NULL_HANDLE, MKT_ADDRESSOF( imageIndex ) );;
+           semaphore, VK_NULL_HANDLE, MKT_ADDRESSOF( imageIndex ) );;
     }
 
     auto SwapChain::SetRefreshType( RefreshRate type ) -> void {

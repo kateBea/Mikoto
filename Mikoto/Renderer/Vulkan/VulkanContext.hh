@@ -84,9 +84,12 @@ namespace mikoto::renderer::vulkan {
         eastl::unique_ptr<Instance> mInstance{};
 
         struct FrameContext {
-            BinarySemaphore mImageAvailableSemaphore{};
-            BinarySemaphore mRenderFinishedSemaphore{};
+            u64 mSubmissionID{};
+            SemaphoreHandle mImageAvailableSemaphore{};
+            SemaphoreHandle mRenderFinishedSemaphore{};
         };
+
+        CommandListHandle mSwapChainRenderCmds{};
 
         eastl::vector<FrameContext> mFrames{};
     };

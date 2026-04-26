@@ -30,7 +30,7 @@
 
 namespace mikoto::renderer::vulkan {
 
-    struct BinarySemaphore;
+    class BinarySemaphore;
 
     using namespace mikoto::core;
 

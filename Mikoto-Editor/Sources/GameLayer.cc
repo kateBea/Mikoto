@@ -301,8 +301,14 @@ namespace mikoto::editor {
         // Create the command list
         mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
         mCommandList->SetEnableAutomaticBarriers( true );
+        mCommandList->SetDebugName( "GameLayer CommandList" );
 
-        mModelHandle = asset::AssetsService::Get()->LoadAsset<asset::Model>( "Resources/Prefabs/robot/gltf/scene.gltf" );
+        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/deadpool/scene.gltf" );
+        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/miss_galaxy/scene.gltf" );
+        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/bee/scene.gltf" );
+        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/robot/gltf/scene.gltf" );
+
+        mModelHandle = asset::AssetsService::Get()->LoadAsset<asset::Model>( "Resources/Models/Prefabs/cone/gltf/scene.gltf" );
 
         auto bindingSetDesc{ BindingSetDescription{}
             .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) )
@@ -312,7 +318,38 @@ namespace mikoto::editor {
     }
 
     auto GameLayer::OnDestroy() -> void {
+        // Ensure GPU is done
+        mDevice->WaitIdle();
 
+        // --- Pipeline stuff ---
+        mPipeline.Reset();
+        mPipelineLayoutHandle.Reset();
+        mBindingLayoutHandle.Reset();
+        mVertexInputLayout.Reset();
+
+        // --- Shaders ---
+        mVertexShader.Reset();
+        mPixelShader.Reset();
+
+        // --- Buffers ---
+        mConstantBuffer.Reset();
+
+        // --- Textures ---
+        mSimpleTexture.Reset();
+        mColorImage.Reset();
+        mDepthImage.Reset();
+
+        // --- Sampler ---
+        mSamplerState.Reset();
+
+        // --- Binding set ---
+        mBindingSetHandle.Reset();
+
+        // --- Models / assets ---
+        mModelHandle.Reset();
+
+        // --- Command resources ---
+        mCommandList.Reset();
     }
 
     auto GameLayer::OnEvent(Event& event) -> void {

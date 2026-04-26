@@ -65,7 +65,7 @@ namespace mikoto::asset {
             .SetPath( loadInfo.mFile->GetPath() )
             .SetName( data.mName )
             .SetAnimations( std::move( data.mAnimations ) )
-            .SetSkeleton( std::move( data.mSceneSkeleton ) );
+            .SetSkeleton( std::move( data.mSkeleton ) );
 
         // Here I load all images from disk and crate the GPU resource with a command
         // and write to the images all in one go instead of doing it individually
@@ -92,6 +92,7 @@ namespace mikoto::asset {
                         .SetFormat( Format::eRGBA8_UNORM ) };
 
                     pbrMapInfo.mTexture = mDevice->CreateTexture( textureDescription );
+                    pbrMapInfo.mTexture->SetDebugName( string::Format( "Texture: {}", pathToTexture.GetC_Str() ) );
 
                     // Data is always writen at mip zero and
                     // these textures are often loaded to be read from shaders

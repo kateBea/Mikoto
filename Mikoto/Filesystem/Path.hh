@@ -63,6 +63,8 @@ namespace mikoto::filesystem {
         MKT_NODISCARD auto GetExtension() const noexcept -> eastl::string_view;
         MKT_NODISCARD auto GetAbsolute() const noexcept -> eastl::string;
 
+        MKT_NODISCARD auto IsDirectoryEmpty() const -> bool;
+
         template<typename StringType>
         MKT_NODISCARD auto GetPathTyped() const noexcept -> StringType; // view, eastl::string, std::filesystem and const c_str, std::wstring
 

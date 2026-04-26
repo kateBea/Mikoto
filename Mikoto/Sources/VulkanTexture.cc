@@ -87,7 +87,7 @@ namespace mikoto::renderer::vulkan {
 
     // Vulkan Texture 2D  ------------------------------------------------------------------------------------------------
     Texture::Texture( const TextureCreateDescription& data )
-        : ITexture{ data } {
+        : ITexture{ data }, mKeepInitializerResources{ data.mKeepInitializerResources } {
 
         // Prepare mip levels
         mImageViews.resize( GetMipLevelCount() );
@@ -141,6 +141,17 @@ namespace mikoto::renderer::vulkan {
         mDevice->ExecuteCommands( cmd );
     }
 
+    auto Texture::SetDebugName( eastl::string_view name )  -> void {
+        mDebugName = name;
+
+        auto* device{ checked_cast<Device*>( mDevice ) };
+        device->SetDebugName( VK_OBJECT_TYPE_IMAGE, rc_cast<u64>( mImageAllocation.mImage ), mDebugName );
+
+        for (const auto& imageView: mImageViews ) {
+            device->SetDebugName( VK_OBJECT_TYPE_IMAGE_VIEW, rc_cast<u64>( imageView ), mDebugName );
+        }
+    }
+
     auto Texture::InitInitialDataCube() -> void {
 
     }
@@ -158,9 +169,6 @@ namespace mikoto::renderer::vulkan {
     auto Texture::GetView( u32 mipLevel ) const -> const VkImageView& {
         MKT_ASSERT( mipLevel < mImageViews.size(), "Mip level out of bounds" );
         return mImageViews[mipLevel];
-    }
-
-    auto Texture::SetDebugName( eastl::string_view name ) -> void {
     }
 
     auto Texture::IsSwapChainImage() const -> bool {
@@ -235,6 +243,10 @@ namespace mikoto::renderer::vulkan {
                     InitInitialData2D();
                 } else if (mDimension == TextureDimension::eTextureCube) {
                     InitInitialDataCube();
+                }
+
+                if (!mKeepInitializerResources) {
+                    mImageData.Reset();
                 }
             }
 

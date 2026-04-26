@@ -87,8 +87,8 @@ namespace mikoto::asset {
         return *this;
     }
 
-    auto ModelCreateDescription::SetSkeleton( Skeleton &&skeleton ) -> ModelCreateDescription & {
-        mSceneSkeleton = std::move( skeleton );
+    auto ModelCreateDescription::SetSkeleton( eastl::unique_ptr<Skeleton>&& skeleton ) -> ModelCreateDescription & {
+        mSkeleton = std::move( skeleton );
         return *this;
     }
 
@@ -123,15 +123,15 @@ namespace mikoto::asset {
     }
 
     auto Model::HasArmature() const -> bool {
-        return mSkeleton.IsArmaturePresent();
+        return mSkeleton->IsArmaturePresent();
     }
 
     auto Model::HasAnimations() const -> bool {
         return !mAnimations.empty();
     }
 
-    auto Model::GetSkeleton() const -> const Skeleton& {
-        return mSkeleton;
+    auto Model::GetSkeleton() const -> const Skeleton* {
+        return mSkeleton.get();
     }
 
     auto Model::GetAnimations() const -> const AnimationList& {
@@ -149,7 +149,7 @@ namespace mikoto::asset {
     auto Model::FindAnimation( eastl::string_view name ) const -> const SkinnedAnimation * {
         const auto it{ mAnimations.find( Path{ name } ) };
         if (it != mAnimations.end()) {
-            return MKT_ADDRESSOF( it->second );
+            return it->second.get();
         }
 
         return nullptr;

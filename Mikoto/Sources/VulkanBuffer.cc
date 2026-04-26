@@ -78,6 +78,23 @@ namespace mikoto::renderer::vulkan {
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         }
 
+        // UAV explicitly (optional but clearer intent)
+        if (mUsage.Has(BufferUsageFlagsBits::kUnorderedAccess)) {
+            mAllocation.mBufferCreateInfo.usage |=
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        }
+
+        // Explicit copy flags (this is what you were missing)
+        if (mUsage.Has(BufferUsageFlagsBits::kCopySrc)) {
+            mAllocation.mBufferCreateInfo.usage |=
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        }
+
+        if (mUsage.Has(BufferUsageFlagsBits::kCopyDst)) {
+            mAllocation.mBufferCreateInfo.usage |=
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        }
+
         // Look into VkUpdateBuffer when buffer is less than 64kb
     }
 
@@ -103,6 +120,10 @@ namespace mikoto::renderer::vulkan {
 
     auto Buffer::Initialize() -> void {
         mAllocation.mBufferCreateInfo.size = mElementSize;
+
+        if (mAllocation.mBufferCreateInfo.usage == 0) {
+            MKT_CORE_LOGGER_DEBUG( "error" );
+        }
 
         // Allocate memory
         auto* allocator{ checked_cast<Device*>( mDevice )->GetAllocator() };
@@ -176,6 +197,13 @@ namespace mikoto::renderer::vulkan {
         allocator->UnmapBuffer(  mAllocation );
 
         mAllocation.mAllocationInfo.pMappedData = nullptr;
+    }
+
+    auto Buffer::SetDebugName( eastl::string_view name )  -> void {
+        mDebugName = name;
+
+        auto* device{ checked_cast<Device*>( mDevice ) };
+        device->SetDebugName( VK_OBJECT_TYPE_BUFFER, rc_cast<u64>( mAllocation.mBuffer ), mDebugName );
     }
 
     auto Buffer::GetAlignedSize() const -> u32 {

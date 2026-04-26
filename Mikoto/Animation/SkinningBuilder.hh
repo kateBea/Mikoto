@@ -37,38 +37,36 @@
 
 namespace mikoto::animation {
 
-    struct OzzAnimationInfo {
-        eastl::string mName{};
-        ozz::unique_ptr<ozz::animation::Animation> mAnimation{};
+    struct SkinningDescription {
+        AnimationList mAnimations{};
+        eastl::unique_ptr<Skeleton> mSkeleton{};
     };
-
-    using AnimationList = eastl::vector<OzzAnimationInfo>;
 
     class SkinningBuilder final {
     public:
-        // This will  be a path to the mikoto asset file in the future for now it's just the actual asset file
-        explicit SkinningBuilder(const filesystem::Path& filename);
+        explicit SkinningBuilder() = default;
 
-        // [DEPRECATED]
-        auto FillModelData( asset::ModelDataDescription& data ) -> void;
+        auto SetPath( const filesystem::Path& path ) -> SkinningBuilder&;
+        auto SetImporter( ozz::animation::offline::OzzImporter& importer ) -> SkinningBuilder&;
 
-        MKT_NODISCARD auto Build(ozz::animation::offline::OzzImporter& importer, const filesystem::Path& filepath) -> bool;
+        auto Build() -> eastl::unique_ptr<SkinningDescription>;
 
     private:
         filesystem::Path mFilename{};
+        ozz::animation::offline::OzzImporter* mImporter{};
 
         // To construct the animations
         ozz::animation::offline::RawAnimation mRawAnimation{};
         ozz::animation::offline::AnimationBuilder mAnimationBuilder{};
 
-        eastl::vector<OzzAnimationInfo> mAnimations{};
+        AnimationList mAnimations{};
 
         // To construct the skeleton
         ozz::animation::offline::SkeletonBuilder mBuilder{};
         ozz::animation::offline::RawSkeleton mRawSkeleton{};
 
-        // Run time skeleton
-        ozz::animation::Skeleton mSkeleton{};
+        // Specifies the folder within the asset cache folder where animation files are stored
+        static constexpr eastl::string_view kAnimationsCachePath{ "Animations" };
     };
 }
 

@@ -177,7 +177,8 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
-    auto Device::ExecuteCommands( CommandListHandle cmdList ) -> void {
+    auto Device::ExecuteCommands( CommandListHandle cmdList ) -> u64 {
+        return 0;
     }
 
     auto Device::WaitIdle() -> void {
@@ -200,8 +201,8 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
-    auto Device::SubmitCommands( CommandListHandle cmd ) -> void {
-
+    auto Device::SubmitCommands( CommandListHandle cmd ) -> u64 {
+        return 0;
     }
 }
 

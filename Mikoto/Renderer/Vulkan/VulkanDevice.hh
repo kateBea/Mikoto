@@ -81,24 +81,46 @@ namespace mikoto::renderer::vulkan {
         VkPipelineStageFlags2 mSignalBinaryStage{};
     };
 
-    // TODO: Turn into Device object
-    struct TimelineSemaphore {
-        VkSemaphore mSemaphore{ VK_NULL_HANDLE };
+    class TimelineSemaphore final : public ISemaphore {
+    public:
+        explicit TimelineSemaphore(u64 initialValue);
 
-        u64 mTimeValue{ 0 };
+        auto SetDebugName( eastl::string_view name) -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle(ObjectType) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle(ObjectType) const -> Object override;
 
         // Increments by incVal and returns the current value
-        auto Increment( u64 incVal ) -> u64;
-        auto Create( VkDevice device, u32 initialValue = 0 ) -> void;
-        auto Destroy( VkDevice device ) -> void;
+        auto GetCurrentID() -> u64;
+        auto GetAndIncrement( u64 value ) -> u64;
+
+        ~TimelineSemaphore() override;
+
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+    private:
+        eastl::atomic<u64> mTimeline{ 0 };
+        VkSemaphore mSemaphore{ VK_NULL_HANDLE };
     };
 
-    // TODO: Turn into Device object
-    struct BinarySemaphore {
-        VkSemaphore mSemaphore{ VK_NULL_HANDLE };
+    class BinarySemaphore final : public ISemaphore {
+    public:
+        explicit BinarySemaphore();
 
-        auto Create( const VkSemaphoreCreateInfo& info, VkDevice device ) -> void;
-        auto Destroy( VkDevice device ) -> void;
+        auto SetDebugName( eastl::string_view name) -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle(ObjectType type) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle(ObjectType type) const -> Object override;
+
+        ~BinarySemaphore() override;
+
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+
+    private:
+        VkSemaphore mSemaphore{ VK_NULL_HANDLE };
     };
 
     struct DeletionQueue final {
@@ -124,6 +146,8 @@ namespace mikoto::renderer::vulkan {
         void* mMappedMemory{}; // This is the mapped address we should be writing to, it corresponds to the slice or range that is available within this buffer allocation
         size_t mSize{};
         size_t mOffset{};
+
+        eastl::atomic_flag mInUse{ true };
 
         Allocation mAllocation{};
     };
@@ -170,6 +194,8 @@ namespace mikoto::renderer::vulkan {
 
         auto Begin() -> void override;
         auto End() -> void override;
+
+        auto SetDebugName( eastl::string_view name) -> void override;
 
         auto BeginTrackingState( IBuffer* buffer, ResourceStates newState ) -> void override;
         auto BeginTrackingState( ITexture* texture, ResourceStates newState ) -> void override;
@@ -218,12 +244,11 @@ namespace mikoto::renderer::vulkan {
 
         auto SetPushConstants( const void* data, size_t byteSize, ShaderStage visibility ) -> void override;
 
-        auto SetDebugName( eastl::string_view name ) -> void override;
-
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
         // Vulkan specifics
         auto TransitionLayout( ITexture* texture, VkImageLayout newLayout ) -> void;
+        auto MarkSubmitted( u64 lastSubmissionID ) -> void;
 
         ~CommandList() override;
 
@@ -233,13 +258,24 @@ namespace mikoto::renderer::vulkan {
 
         auto InitializeArena() -> void;
 
+        auto ClearState() -> void;
+
+        auto TryRecycle(IQueue* queue) -> void;
+
+    private:
+        struct SubmissionItem {
+            u64 mId{};
+            VkCommandBuffer mCommandBuffer{};
+        };
+
     private:
         VkCommandBuffer mCmdBuffer{ VK_NULL_HANDLE };
         VkCommandBufferAllocateInfo mAllocInfo{};
 
         bool mEnableAutomaticBarriers{ true };
-
         bool mRenderPassIsActive{ false };
+
+        bool mIsSubmitted{ false };
 
         // State
         GraphicsState mCurrentGraphicsState{};
@@ -256,6 +292,11 @@ namespace mikoto::renderer::vulkan {
         // everytime we need to start consuming it again.
         static constexpr size_t kArenaInitialSize{ MKT_MEGABYTES( 10 ) };
         eastl::unique_ptr<memory::MemoryArena<IBuffer, LinearAllocator>> mMemoryArena{};
+
+        eastl::vector<GpuUploadAllocation*> mUploadAllocations{};
+
+        u64 mLastSubmissionID{ 0 };
+        eastl::fixed_vector<SubmissionItem, 10> mSubmissionItems{};
     };
 
     // The thread pool is not safe and may only be accessed by one thread at a time
@@ -297,13 +338,22 @@ namespace mikoto::renderer::vulkan {
         auto Initialize() -> void;
         auto Shutdown() -> void;
 
-        auto ClearCompletedCommands() -> void;
+        auto Flush() -> void;
 
-        auto Flush( const QueueSubmitSync* syncObjects = nullptr ) -> void;
+        auto ExecuteCommandList( CommandListHandle cmd ) -> u64;
+        auto SubmitCommandList( CommandListHandle cmd ) -> u64;
 
-        auto ExecuteCommandList( CommandListHandle cmd ) -> void;
-        auto SubmitCommandList( CommandListHandle cmd ) -> void;
         auto AllocateCmdList() -> CommandListHandle;
+
+        MKT_NODISCARD auto GetCompletedValue() const -> u64;
+
+        auto PushDelete( VkCommandBuffer cmd, VkCommandPool pool, u64 submitID ) -> void;
+
+        auto WaitForSubmission( u64 submissionID ) -> void;
+
+        auto AddQueueWaitFence( Fence* semaphore ) -> void;
+        auto AddQueueSignalSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void;
+        auto AddQueueWaitSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void;
 
         auto WaitIdle() const -> void;
 
@@ -315,13 +365,9 @@ namespace mikoto::renderer::vulkan {
         operator u32() const; // Queue family index
         operator VkQueue() const; // Logical
 
-    private:
-        struct SubmitionDescription {
-            Fence mFence{};
-            CommandListHandle mCmdList{};
-        };
-
         auto AcquireThreadCmdPool() -> CommandPoolHandle;
+
+        MKT_NODISCARD auto SubmitCommands( eastl::span<CommandListHandle> cmds ) -> u64;
 
     private:
         GpuDevice *mDevice{};
@@ -334,15 +380,20 @@ namespace mikoto::renderer::vulkan {
         float mPriority{ 1.0f };
         VkQueue mQueue{ VK_NULL_HANDLE };
 
-        // Controls the batch of work we submit to the GPU
-        TimelineSemaphore mTimelineSemaphore{};
+        eastl::fixed_vector<VkSemaphoreSubmitInfo, 10> mWaitInfos{};
+        eastl::fixed_vector<VkSemaphoreSubmitInfo, 10> mSignalInfos{};
 
-        eastl::hash_map<ICommandList*, SubmitionDescription> mSubmitionDescriptions{};
-
-        // Have not been submitted yet
-        // Submission ID and the CMD list
         std::mutex mPendingSubmitMutex{};
-        eastl::fixed_hash_map<u64, eastl::vector<Ref<CommandList>>, 10> mPendingCmdLists{};
+        SemaphoreHandle mTimelineSemaphore{};
+        eastl::fixed_vector<CommandListHandle, 100> mPendingSubmits{};
+
+        struct DeleteItem {
+            u64 mSubmissionID{};
+            VkCommandPool mPool{};
+            VkCommandBuffer mBuffer{};
+        };
+        std::mutex mDeleteCmdsMutex{};
+        eastl::fixed_vector<DeleteItem, 100> mDeleteCmds{};
 
         std::mutex mPoolsMutex{};
         ankerl::unordered_dense::map<std::thread::id, CommandPoolHandle> mPools{};
@@ -595,15 +646,23 @@ namespace mikoto::renderer::vulkan {
 
         auto Flush() -> void override;
         auto RunGarbageCollection() -> void override;
-        auto SubmitCommands( CommandListHandle cmdList ) -> void override;
-        auto ExecuteCommands( CommandListHandle cmd ) -> void override;
+        auto SubmitCommands( CommandListHandle cmdList ) -> u64 override;
+        auto ExecuteCommands( CommandListHandle cmd ) -> u64 override;
 
         auto WaitIdle() -> void override;
 
         // Vulkan specifics ================================================
         MKT_NODISCARD auto CreateTexture( const ExternalTextureDescription& info ) -> TextureHandle;
+        MKT_NODISCARD auto CreateTimelineSemaphore( u64 initialValue ) -> SemaphoreHandle;
+        MKT_NODISCARD auto CreateBinarySemaphore() -> SemaphoreHandle;
 
-        auto Flush( const QueueSubmitSync& submit, QueueType queueType ) -> void;
+        auto WaitForSubmission( QueueType queueType, u64 submissionID ) -> void;
+
+        auto AddQueueWaitFence( QueueType queueType, Fence* fence ) -> void;
+        auto AddQueueSignalSemaphore( QueueType queueType, BinarySemaphore* , VkPipelineStageFlags2 stageFlags ) -> void;
+        auto AddQueueWaitSemaphore( QueueType queueType, BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void;
+
+        auto SetDebugName( VkObjectType objectType, u64 handle, eastl::string_view name ) -> void;
 
         auto WaitQueuesIdle() const -> void;
 
@@ -659,10 +718,8 @@ namespace mikoto::renderer::vulkan {
 #endif
 
         // [Command list management]
-        // For every family index I keep track of the queue index
-        ankerl::unordered_dense::map<u32, u32> mQueuesIndices{};
-
         ankerl::unordered_dense::map<QueueType, eastl::unique_ptr<Queue>> mQueues{};
+        ankerl::unordered_dense::map<QueueType, eastl::unique_ptr<DeletionQueue>> mDeletionQueues{};
 
         // [Device management]
         VkDevice mLogicalDevice{};
@@ -675,7 +732,6 @@ namespace mikoto::renderer::vulkan {
         SamplerHandle mDummySampler{};
         VkDescriptorSetLayout mEmptyDescriptorSetLayout{};
 
-        eastl::unique_ptr<DeletionQueue> mDeletionQueue{};
         eastl::unique_ptr<IDescriptorAllocatorPool> mDescriptorAllocatorPool{};
 
         std::vector<eastl::string> mExtensions{};

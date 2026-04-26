@@ -48,7 +48,7 @@ namespace mikoto::editor {
                 .SetFormat( Format::eRGBA8_UNORM ) };
 
             auto result{ mDevice->CreateTexture( textureDesc ) };
-            result->SetDebugName( "Thumbnail" );
+            result->SetDebugName( string::Format( "Thumbnail {}", path.GetC_Str()) );
             return result;
         })};
 

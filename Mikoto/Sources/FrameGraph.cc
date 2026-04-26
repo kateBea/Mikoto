@@ -104,7 +104,7 @@ namespace mikoto::renderer {
         return *this;
     }
 
-    auto FrameGraphBufferDescription::SetCpuAccess( HeapType heap ) -> FrameGraphBufferDescription & {
+    auto FrameGraphBufferDescription::SetHeapType( HeapType heap ) -> FrameGraphBufferDescription & {
         mHeapType = heap;
         return *this;
     }
@@ -205,7 +205,7 @@ namespace mikoto::renderer {
         : mDevice{ device }, mGraphNode{ node }, mResourceManager{ resourceManager }, mShaderLibrary{ shaderLibrary }
     {}
 
-    auto FrameGraphNodeBuilder::Create( const FrameGraphPipelineDescription &desc ) -> ResourceID {
+    auto FrameGraphNodeBuilder::Create( const FrameGraphPipelineDescription &desc ) -> PipelineID {
         FrameGraphResource& result{ mResourceManager->Allocate() };
 
         // All pipelines are bindless
@@ -246,10 +246,10 @@ namespace mikoto::renderer {
             result.mHandle = mDevice->CreatePipeline( computePipelineDesc );
         }
 
-        return result.mResourceID;
+        return PipelineID{ result.mResourceID };
     }
 
-    auto FrameGraphNodeBuilder::Create( const FrameGraphBufferDescription &desc ) -> ResourceID {
+    auto FrameGraphNodeBuilder::Create( const FrameGraphBufferDescription &desc ) -> BufferID {
         auto& resource{ mResourceManager->Allocate() };
         auto bufferDesc{ BufferCreateDescription{}
             .SetBufferUsage( desc.mBufferUsageFlags )
@@ -261,10 +261,10 @@ namespace mikoto::renderer {
         };
 
         resource.mHandle = mDevice->CreateBuffer( bufferDesc );
-        return resource.mResourceID;
+        return BufferID{ resource.mResourceID };
     }
 
-    auto FrameGraphNodeBuilder::Create( const FrameGraphTextureDescription &desc ) -> ResourceID {
+    auto FrameGraphNodeBuilder::Create( const FrameGraphTextureDescription &desc ) -> TextureID {
         auto& resource{ mResourceManager->Allocate() };
         auto textureDesc{ TextureCreateDescription{}
             .SetName( desc.mName )
@@ -276,10 +276,14 @@ namespace mikoto::renderer {
             .SetFormat( desc.mFormat ) };
 
         resource.mHandle = mDevice->CreateTexture( textureDesc );
-        return resource.mResourceID;
+        return TextureID{ resource.mResourceID };
     }
 
     auto FrameGraphNodeBuilder::Write( ResourceID resource, FrameGraphResourceAccessType accessType, FrameGraphStageType shaderStage ) -> void {
+
+    }
+
+    auto FrameGraphNodeBuilder::Read( ResourceID resource, FrameGraphResourceAccessType accessType, FrameGraphStageType shaderStage ) -> void {
 
     }
 

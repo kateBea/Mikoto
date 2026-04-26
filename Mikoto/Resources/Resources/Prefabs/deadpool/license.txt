@@ -1,0 +1,11 @@
+Model Information:
+* title:	Deadpool Dancing
+* source:	https://sketchfab.com/3d-models/deadpool-dancing-0257cc47a19f46cd9f1e7dbf61b18dd7
+* author:	nitwit.friends (https://sketchfab.com/nitwit.friends)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Deadpool Dancing" (https://sketchfab.com/3d-models/deadpool-dancing-0257cc47a19f46cd9f1e7dbf61b18dd7) by nitwit.friends (https://sketchfab.com/nitwit.friends) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -114,6 +114,8 @@ namespace mikoto::renderer::vulkan {
             queue->Shutdown();
         }
 
+        mGpuAllocator->Shutdown();
+
         // Destroy the device
         vkDestroyDevice( mLogicalDevice, nullptr );
 
@@ -299,10 +301,60 @@ namespace mikoto::renderer::vulkan {
         return texture;
     }
 
-    auto Device::Flush( const QueueSubmitSync &submit, QueueType queueType ) -> void {
-        MKT_ASSERT( mQueues.contains( queueType ), "Device does not contain queue of the given type" );
-        auto& queue{ mQueues[queueType] };
-        queue->Flush( MKT_ADDRESSOF( submit ) );
+    auto Device::CreateBinarySemaphore() -> SemaphoreHandle {
+        SemaphoreHandle semaphore{ Ref<BinarySemaphore>::Spawn() };
+
+        if ( semaphore.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice - Failed to allocate texture" );
+            return TextureHandle::CreateEmpty();
+        }
+
+        semaphore->Initialize( this );
+
+        return semaphore;
+    }
+
+    auto Device::CreateTimelineSemaphore( u64 initialValue ) -> SemaphoreHandle {
+        SemaphoreHandle semaphore{ Ref<TimelineSemaphore>::Spawn(initialValue) };
+
+        if ( semaphore.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "VulkanDevice - Failed to allocate texture" );
+            return TextureHandle::CreateEmpty();
+        }
+
+        semaphore->Initialize( this );
+
+        return semaphore;
+    }
+
+    auto Device::WaitForSubmission( QueueType queueType, u64 submissionID ) -> void {
+        mQueues[queueType]->WaitForSubmission( submissionID );
+    }
+
+    auto Device::AddQueueWaitFence( QueueType queueType, Fence* fence ) -> void {
+        mQueues[queueType]->AddQueueWaitFence( fence );
+    }
+
+    auto Device::AddQueueSignalSemaphore( QueueType queueType, BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void {
+        mQueues[queueType]->AddQueueSignalSemaphore( semaphore, stageFlags );
+    }
+
+    auto Device::AddQueueWaitSemaphore( QueueType queueType, BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void {
+        mQueues[queueType]->AddQueueWaitSemaphore( semaphore, stageFlags );
+    }
+
+    auto Device::SetDebugName( VkObjectType objectType, u64 handle, eastl::string_view name ) -> void {
+        VkDebugUtilsObjectNameInfoEXT nameInfo{};
+        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        nameInfo.objectType = objectType;
+        nameInfo.objectHandle = handle;
+        nameInfo.pObjectName = name.data();
+
+        if ( vkSetDebugUtilsObjectNameEXT ) {
+            vkSetDebugUtilsObjectNameEXT( mLogicalDevice, MKT_ADDRESSOF( nameInfo ) );
+        } else {
+            MKT_CORE_LOGGER_WARN( "vkGetDeviceProcAddr is null, cannot set debug name." );
+        }
     }
 
     auto Device::CreatePipeline( const ComputePipelineDescription &description ) -> PipelineHandle {
@@ -348,20 +400,16 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::RunGarbageCollection() -> void {
         mUploadManager->ReclaimMemory();
-        for (auto& queue : mQueues | std::ranges::views::values ) {
-            queue->ClearCompletedCommands();
-        }
-
         mDescriptorAllocatorPool->Flip();
     }
 
-    auto Device::SubmitCommands( CommandListHandle cmd ) -> void {
+    auto Device::SubmitCommands( CommandListHandle cmd ) -> u64 {
         MKT_ASSERT( mQueues.contains( cmd->GetQueueType() ), "No queue" );
-        mQueues[cmd->GetQueueType()]->SubmitCommandList( cmd );
+        return mQueues[cmd->GetQueueType()]->SubmitCommandList( cmd );
     }
 
-    auto Device::ExecuteCommands( CommandListHandle cmd ) -> void {
-        mQueues[cmd->GetQueueType()]->ExecuteCommandList( cmd );
+    auto Device::ExecuteCommands( CommandListHandle cmd ) -> u64 {
+        return mQueues[cmd->GetQueueType()]->ExecuteCommandList( cmd );
     }
 
     auto Device::WaitIdle() -> void {
@@ -465,7 +513,7 @@ namespace mikoto::renderer::vulkan {
         // --- Vulkan 1.1 Features
         mEnabled11Features = initializers::PhysicalDeviceVulkan11Features();
         mEnabled11Features.pNext = MKT_ADDRESSOF( mEnabled12Features );
-        mEnabled11Features.shaderDrawParameters = VK_TRUE; // Because Slang requires it to pass parameters to shader programs
+        mEnabled11Features.shaderDrawParameters = VK_TRUE;
 
         // --- Core device features ---
         mEnabledFeatures.sampleRateShading = VK_TRUE;
@@ -533,29 +581,31 @@ namespace mikoto::renderer::vulkan {
         // Right now we do not have any proper filter for each type of queue
         // Just pick the first queue amongst the available queues that satisfies these operations,
         // in fact they might all end up being the same queue family
+        // For every family index I keep track of the queue index
+        ankerl::unordered_dense::map<u32, u32> queuesIndices{};
 
         // Graphics queue
         if (auto* graphicsQueueData{ mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kGraphics ) }) {
-            u32 queueIndex{ mQueuesIndices[graphicsQueueData->FamilyIndex]++ };
+            u32 queueIndex{ queuesIndices[graphicsQueueData->FamilyIndex]++ };
             mQueues[QueueType::eGraphics] = eastl::make_unique<Queue>( this, QueueType::eGraphics, graphicsQueueData->FamilyIndex, queueIndex);
         }
 
         // Compute queue
         if (auto* computeQueueData{ mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kCompute ) }) {
-            u32 queueIndex{ mQueuesIndices[computeQueueData->FamilyIndex]++ };
+            u32 queueIndex{ queuesIndices[computeQueueData->FamilyIndex]++ };
             mQueues[QueueType::eCompute] = eastl::make_unique<Queue>( this, QueueType::eCompute, computeQueueData->FamilyIndex, queueIndex);
         }
 
         // Transfer queue
         if (auto* transferQueueData{ mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kTransfer ) }) {
-            u32 queueIndex{ mQueuesIndices[transferQueueData->FamilyIndex]++ };
+            u32 queueIndex{ queuesIndices[transferQueueData->FamilyIndex]++ };
             mQueues[QueueType::eTransfer] = eastl::make_unique<Queue>( this, QueueType::eTransfer, transferQueueData->FamilyIndex, queueIndex);
         }
 
         // Presentation queue
         if (mFeaturesSupport.mEnablePresentation) {
             if (auto* presentQueueData{ mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kPresentation ) }) {
-                u32 queueIndex{ mQueuesIndices[presentQueueData->FamilyIndex]++ };
+                u32 queueIndex{ queuesIndices[presentQueueData->FamilyIndex]++ };
                 mQueues[QueueType::ePresent] = eastl::make_unique<Queue>( this, QueueType::ePresent, presentQueueData->FamilyIndex, queueIndex);
             }
         }
@@ -700,6 +750,12 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::Begin() -> void {
+        if (mIsSubmitted) {
+            TryRecycle( checked_cast<Device*>( mDevice )->GetQueue( mQueueType ) );
+        }
+
+        ClearState();
+
         VkCommandBufferBeginInfo beginInfo{ initializers::CommandBufferBeginInfo() };
         MKT_VK_CHECK( vkBeginCommandBuffer( mCmdBuffer, MKT_ADDRESSOF( beginInfo ) ) );
     }
@@ -858,6 +914,8 @@ namespace mikoto::renderer::vulkan {
                 &copyRegion );
 
         SetResourceState(texture, texturePreviousState == ResourceStates::eUnknown ? ResourceStates::eCommon : texturePreviousState);
+
+        mUploadAllocations.emplace_back( allocation );
     }
 
     auto CommandList::WriteBuffer( IBuffer *buffer, const void *data, size_t byteSize ) -> void {
@@ -910,6 +968,8 @@ namespace mikoto::renderer::vulkan {
                 1,
                 &copy
             );
+
+            mUploadAllocations.emplace_back( allocation );
         }
 
         SetResourceState(buffer, currentState == ResourceStates::eUnknown ? ResourceStates::eCommon : currentState);
@@ -941,7 +1001,10 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::SetDebugName( eastl::string_view name ) -> void {
+        mDebugName = name;
 
+        auto* device{ checked_cast<Device*>( mDevice ) };
+        device->SetDebugName( VK_OBJECT_TYPE_COMMAND_BUFFER, rc_cast<u64>( mCmdBuffer ), mDebugName );
     }
 
     auto CommandList::CopyBuffer( IBuffer *src, IBuffer *dest ) -> void {
@@ -1406,6 +1469,17 @@ namespace mikoto::renderer::vulkan {
         texture->SetResourceState( vulkan::GetResourceState( newLayout ) );
     }
 
+    auto CommandList::MarkSubmitted( u64 submissionID ) -> void {
+        mLastSubmissionID = submissionID;
+
+        mSubmissionItems.emplace_back(SubmissionItem{
+            submissionID,
+            mCmdBuffer
+        });
+
+        mIsSubmitted = true;
+    }
+
     CommandList::~CommandList() {
         if (mIsAllocated) {
             CommandList::Release();
@@ -1419,13 +1493,18 @@ namespace mikoto::renderer::vulkan {
             MKT_ADDRESSOF( mAllocInfo ),
             MKT_ADDRESSOF( mCmdBuffer ) ) );
 
-        mUploadManager = checked_cast<Device*>( mDevice )->GetUploadManager();
-
         mIsAllocated = true;
     }
 
     auto CommandList::Release() -> void {
-        vkFreeCommandBuffers( as<Device*>(mDevice)->GetDevice(), mAllocInfo.commandPool, 1, MKT_ADDRESSOF( mCmdBuffer ) );
+        ClearState();
+
+        Queue* queue{ checked_cast<Device*>( mDevice )->GetQueue( mQueueType ) };
+
+        for (const auto& item : mSubmissionItems ) {
+            queue->PushDelete( item.mCommandBuffer, mAllocInfo.commandPool, item.mId );
+        }
+
         mIsAllocated = false;
     }
 
@@ -1435,10 +1514,45 @@ namespace mikoto::renderer::vulkan {
             .SetCpuAccessType( CpuAccessType::eWrite )
             .SetHeapType( HeapType::eUpload )
             .SetResourceType( ResourceType::eInvalid ) // Is not a shader resource
-            .SetBufferUsage( BufferUsageFlagsBits::kStaging )
+            .SetBufferUsage( BufferUsageFlagsBits::kNone )
         };
         mMemoryArena =
             eastl::make_unique<memory::MemoryArena<IBuffer, LinearAllocator>>( mDevice->CreateBuffer( bufferDes ), kArenaInitialSize );
+    }
+
+    auto CommandList::ClearState() -> void {
+        for (auto& subAllocations : mUploadAllocations) {
+            // Set it to false we to tell the allocator
+            // this allocation can already be destroyed
+            subAllocations->mInUse.clear();
+        }
+
+        mIsSubmitted = false;
+        mRenderPassIsActive = false;
+    }
+
+    auto CommandList::TryRecycle( IQueue* queue ) -> void {
+        auto* vkQueue{ checked_cast<Queue*>( queue ) };
+        u64 completed{ vkQueue->GetCompletedValue() };
+
+        for (auto it{ mSubmissionItems.begin() }; it != mSubmissionItems.end(); ) {
+            if (completed >= it->mId) {
+                // GPU finished this buffer -> safe to reuse
+                vkResetCommandBuffer(it->mCommandBuffer, MKT_VK_FLAGS_NONE );
+                mCmdBuffer = it->mCommandBuffer;
+                it = mSubmissionItems.erase(it);
+                return;
+            }
+
+            ++it;
+        }
+
+        // allocate a fresh buffer for next recording
+        MKT_VK_CHECK(vkAllocateCommandBuffers(
+            as<Device*>(mDevice)->GetDevice(),
+            MKT_ADDRESSOF(mAllocInfo),
+            MKT_ADDRESSOF(mCmdBuffer)
+        ));
     }
 
     CommandPool::CommandPool( QueueType type, u32 queueFamilyIndex )
@@ -1452,7 +1566,6 @@ namespace mikoto::renderer::vulkan {
 
         return Object( mPool );
     }
-
 
     auto CommandPool::AllocateCmdList() -> CommandListHandle {
         MKT_BEGIN_PROFILER_NAMED();
@@ -1497,177 +1610,147 @@ namespace mikoto::renderer::vulkan {
 
     auto Queue::Initialize() -> void {
         MKT_ASSERT(  mDevice != nullptr, "GpuDevice cannot be null" );
-        vkGetDeviceQueue( as<Device*>(mDevice)->GetDevice(), mFamilyIndex, mQueueIndex, MKT_ADDRESSOF( mQueue ) );
+        auto* device{ checked_cast<Device*>(mDevice) };
+        vkGetDeviceQueue( device->GetDevice(), mFamilyIndex, mQueueIndex, MKT_ADDRESSOF( mQueue ) );
 
         MKT_ASSERT( mQueue != VK_NULL_HANDLE, "Queue is empty" );
 
-        mTimelineSemaphore.Create( as<Device*>(mDevice)->GetDevice() );
+        mTimelineSemaphore = device->CreateTimelineSemaphore( 0 );
+
+        TimelineSemaphore* timelineSemaphore{ checked_cast<TimelineSemaphore*>( mTimelineSemaphore.GetRaw() ) };
+        timelineSemaphore->GetAndIncrement( 1 ); // vkQueueSubmit2(): pSubmits[0].pSignalSemaphoreInfos[0].semaphore signal value (0) in VkQueue 0x1dec7ccca40 must be greater than current timeline semaphore VkSemaphore 0x50000000005 value (0).
     }
 
     auto Queue::Shutdown() -> void {
-        mPendingCmdLists.clear();
+        WaitIdle();
 
-        for (auto& item : mSubmitionDescriptions ) {
-            item.second.mFence.Destroy( checked_cast<Device*>( mDevice )->GetDevice() );
+        // Check the ones that are done
+        auto complete{ GetCompletedValue() };
+        for ( auto it{mDeleteCmds.begin()}; it != mDeleteCmds.end();) {
+            if (complete >= it->mSubmissionID) {
+                vkFreeCommandBuffers(
+                    as<Device*>(mDevice)->GetDevice(),
+                    it->mPool,
+                    1,
+                    MKT_ADDRESSOF(it->mBuffer)
+                );
+
+                it = mDeleteCmds.erase(it); // move to next safely
+            } else {
+                ++it; // only increment if NOT erased
+            }
         }
-        mSubmitionDescriptions.clear();
 
         mPools.clear();
-        mTimelineSemaphore.Destroy( as<Device*>(mDevice)->GetDevice() );
+        mTimelineSemaphore.Reset();
     }
 
-    auto Queue::ClearCompletedCommands() -> void {
-        for (auto& item : mSubmitionDescriptions ) {
-            auto& submission{ item.second };
-            VkResult status{ vkGetFenceStatus(checked_cast<Device*>( mDevice )->GetDevice(), submission.mFence.mFence) };
-            if (status == VK_SUCCESS) {
-                vkResetCommandBuffer( submission.mCmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ), MKT_VK_FLAGS_NONE );
-                vkResetFences( checked_cast<Device*>( mDevice )->GetDevice(), 1, &submission.mFence.mFence );
+    auto Queue::Flush() -> void {
+        std::lock_guard lock{ mPendingSubmitMutex };
 
-                submission.mCmdList.Reset();
-            }
-            else if (status == VK_NOT_READY) {
-            }
-            else {
-                MKT_ASSERT( false, "Fence wait error" );
-            }
-        }
-    }
-
-    auto Queue::Flush( const QueueSubmitSync* sync ) -> void {
-        // This is naive synchronization
-        // We basically wait on the last submitted batch of work to finish
-        VkSemaphoreWaitInfo waitInfo{
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-            .semaphoreCount = 1,
-            .pSemaphores = &mTimelineSemaphore.mSemaphore,
-            .pValues = &mTimelineSemaphore.mTimeValue
-        };
-
-        vkWaitSemaphores(as<Device*>(mDevice)->GetDevice(), &waitInfo, UINT32_MAX);
-        if (mPendingCmdLists.contains( mTimelineSemaphore.mTimeValue )) {
-            mPendingCmdLists.erase( mTimelineSemaphore.mTimeValue );
-        }
-
-        auto& currentSubmissionList{ mPendingCmdLists[mTimelineSemaphore.mTimeValue + 1] };
-        if ( currentSubmissionList.empty() ) {
+        if (mPendingSubmits.empty()) {
             return;
         }
 
-        eastl::vector<VkCommandBufferSubmitInfo> cmdInfos{};
-        cmdInfos.reserve( currentSubmissionList.size() );
-
-        for ( auto& commandBuffer: currentSubmissionList ) {
-            cmdInfos.emplace_back( VkCommandBufferSubmitInfo{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                .pNext = nullptr,
-                .commandBuffer = commandBuffer->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
-                .deviceMask = 0 } );
-        }
-
-        eastl::vector<VkSemaphoreSubmitInfo> waitInfos{};
-        eastl::vector<VkSemaphoreSubmitInfo> signalInfos{};
-
-        if (sync) {
-            // --- Binary wait semaphore (swapchain acquire) ---
-            if ( sync->mWaitBinarySemaphore != VK_NULL_HANDLE ) {
-                waitInfos.emplace_back( VkSemaphoreSubmitInfo{
-                        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                        .pNext = nullptr,
-                        .semaphore = sync->mWaitBinarySemaphore,
-                        .value = 0,// binary semaphore must be 0
-                        .stageMask = sync->mWaitBinaryStage,
-                        .deviceIndex = 0 } );
-            }
-
-            // --- Binary signal semaphore (present) ---
-            if ( sync->mSignalBinarySemaphore != VK_NULL_HANDLE ) {
-                signalInfos.emplace_back( VkSemaphoreSubmitInfo{
-                        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                        .pNext = nullptr,
-                        .semaphore = sync->mSignalBinarySemaphore,
-                        .value = 0,// binary semaphore must be 0
-                        .stageMask = sync->mSignalBinaryStage,
-                        .deviceIndex = 0 } );
-            }
-        }
-
-        // --- Timeline signal semaphore (frame completion) ---
-        if ( mTimelineSemaphore.mSemaphore != VK_NULL_HANDLE ) {
-            // I do not need to wait on this unless cross dependencies with other queues or the CPU
-            // Internal queue deps can use barriers
-            // waitInfos.emplace_back( VkSemaphoreSubmitInfo{
-            //         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-            //         .pNext = nullptr,
-            //         .semaphore = mTimelineSemaphore.mSemaphore,
-            //         .value = mTimelineSemaphore.mTimeValue,
-            //         .stageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-            //         .deviceIndex = 0 } );
-
-            signalInfos.emplace_back( VkSemaphoreSubmitInfo{
-                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                    .pNext = nullptr,
-                    .semaphore = mTimelineSemaphore.mSemaphore,
-                    .value = mTimelineSemaphore.Increment( 1 ),
-                    .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                    .deviceIndex = 0 } );
-        }
-
-        VkSubmitInfo2 submitInfo{
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-            .pNext = nullptr,
-            .flags = 0,
-            .waitSemaphoreInfoCount = as<u32>( waitInfos.size() ),
-            .pWaitSemaphoreInfos = waitInfos.data(),
-            .commandBufferInfoCount = as<u32>( cmdInfos.size() ),
-            .pCommandBufferInfos = cmdInfos.data(),
-            .signalSemaphoreInfoCount = as<u32>( signalInfos.size() ),
-            .pSignalSemaphoreInfos = signalInfos.data()
-        };
-
-        std::lock_guard lock{ mSubmissionMutex };
-        MKT_VK_CHECK( vkQueueSubmit2( *this, 1, &submitInfo, VK_NULL_HANDLE ) );
+        (void)SubmitCommands(mPendingSubmits);
     }
 
-    auto Queue::ExecuteCommandList( CommandListHandle cmd ) -> void {
-        MKT_ASSERT( !cmd.IsEmpty(), "Command List cannot be empty" );
+    auto Queue::ExecuteCommandList( CommandListHandle cmd ) -> u64 {
+        MKT_ASSERT(!cmd.IsEmpty(), "Command List cannot be empty");
 
-        eastl::vector cmds{
-            VkCommandBufferSubmitInfo{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                .commandBuffer = cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
-                .deviceMask = 0
-            }
-        };
+        // Flush current level (Current submissionID)
+        //Flush();
 
-        VkSubmitInfo2 submitInfo{
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-            .pNext = nullptr,
-            .flags = 0,
-            .commandBufferInfoCount = as<u32>( cmds.size() ),
-            .pCommandBufferInfos = cmds.data(),
-        };
+        // Register and Flush next submissionID
+        u64 id{ SubmitCommandList( cmd ) };
+        Flush();
 
-        auto& submitDes{ mSubmitionDescriptions[cmd.GetRaw()] };
-        submitDes.mCmdList = cmd;
-
-        VkFenceCreateInfo fenceInfo{ initializers::FenceCreateInfo( MKT_VK_FLAGS_NONE )};
-        if ( submitDes.mFence.mFence == VK_NULL_HANDLE ) {
-            submitDes.mFence.Create( fenceInfo, checked_cast<Device*>( mDevice )->GetDevice() );
-        }
-
-        std::lock_guard lock{ mSubmissionMutex };
-        MKT_VK_CHECK( vkQueueSubmit2( mQueue, 1, &submitInfo, submitDes.mFence.mFence ) );
+        return id;
     }
 
-    auto Queue::SubmitCommandList( CommandListHandle cmd ) -> void {
+    auto Queue::SubmitCommandList( CommandListHandle cmd ) -> u64 {
+        MKT_ASSERT(!cmd.IsEmpty(), "Command List cannot be empty");
+
         std::lock_guard lock{ mPendingSubmitMutex };
-        mPendingCmdLists[mTimelineSemaphore.mTimeValue + 1].emplace_back( cmd ); // Increase to 1 for next submission
+
+        mPendingSubmits.emplace_back(cmd);
+        TimelineSemaphore* timeline{ checked_cast<TimelineSemaphore*>(mTimelineSemaphore.GetRaw()) };
+
+        return timeline->GetCurrentID(); // ID of the batch it will belong to
     }
 
     auto Queue::AllocateCmdList() -> CommandListHandle {
         CommandPoolHandle pool{ AcquireThreadCmdPool() };
         return pool->AllocateCmdList();
+    }
+
+    auto Queue::GetCompletedValue() const -> u64 {
+        auto* device{ checked_cast<Device*>(mDevice) };
+        auto* timeline{ checked_cast<const TimelineSemaphore*>(mTimelineSemaphore.GetRaw()) };
+
+        VkSemaphore semaphore{ timeline->GetNativeHandle(ObjectType::Vk_Semaphore) };
+
+        u64 value{};
+        MKT_VK_CHECK(vkGetSemaphoreCounterValue(device->GetDevice(), semaphore, &value));
+
+        return value;
+    }
+
+    auto Queue::PushDelete( VkCommandBuffer cmd, VkCommandPool pool, u64 submitID ) -> void {
+        std::lock_guard lock{ mDeleteCmdsMutex };
+        mDeleteCmds.emplace_back( DeleteItem {
+            .mSubmissionID = submitID,
+            .mPool = pool,
+            .mBuffer = cmd
+        } );
+    }
+
+    auto Queue::WaitForSubmission( u64 submissionID ) -> void {
+        auto* device{ checked_cast<Device*>(mDevice) };
+        auto* timeline{
+            checked_cast<TimelineSemaphore*>(mTimelineSemaphore.GetRaw())
+        };
+
+        VkSemaphore semaphore{
+            timeline->GetNativeHandle(ObjectType::Vk_Semaphore)
+        };
+
+        u64 completed{};
+        vkGetSemaphoreCounterValue(device->GetDevice(), timeline->GetNativeHandle( ObjectType::Vk_Semaphore ), &completed);
+        MKT_ASSERT( submissionID <= timeline->GetCurrentID(), "Waiting for submission that was never submitted!");
+
+        VkSemaphoreWaitInfo waitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+            .semaphoreCount = 1,
+            .pSemaphores = &semaphore,
+            .pValues = &submissionID
+        };
+
+        vkWaitSemaphores(device->GetDevice(), &waitInfo, UINT64_MAX);
+    }
+
+    auto Queue::AddQueueWaitFence( Fence* semaphore ) -> void {
+        // TODO: Unused for now as i can use timeline for this too
+    }
+
+    auto Queue::AddQueueSignalSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void {
+        mSignalInfos.emplace_back( VkSemaphoreSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = semaphore->GetNativeHandle( ObjectType::Vk_Semaphore ),
+            .value = 0,
+            .stageMask = stageFlags,
+            .deviceIndex = 0 } );
+    }
+
+    auto Queue::AddQueueWaitSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void {
+        mWaitInfos.emplace_back( VkSemaphoreSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = semaphore->GetNativeHandle( ObjectType::Vk_Semaphore ),
+            .value = 0,
+            .stageMask = stageFlags,
+            .deviceIndex = 0 } );
     }
 
     Queue::operator u32() const {
@@ -1683,18 +1766,111 @@ namespace mikoto::renderer::vulkan {
 
         std::scoped_lock lock{ mPoolsMutex };
 
-        const auto it{ mPools.find(id) };
-        if (it != mPools.end()) {
+        const auto it{ mPools.find( id ) };
+        if ( it != mPools.end() ) {
             return it->second;
         }
 
-        auto [result, success] {
-            mPools.emplace(id, CommandPoolHandle::Spawn( mType, mFamilyIndex ) )
+        auto [result, success]{
+            mPools.emplace( id, CommandPoolHandle::Spawn( mType, mFamilyIndex ) )
         };
 
         result->second->Initialize( mDevice );
 
         return result->second;
+    }
+
+    auto Queue::SubmitCommands( eastl::span<CommandListHandle> cmds ) -> u64 {
+        if ( cmds.empty() ) {
+            return 0;
+        }
+
+        auto* device{ checked_cast<Device*>( mDevice ) };
+        auto* timeline{ checked_cast<TimelineSemaphore*>( mTimelineSemaphore.GetRaw() ) };
+
+        const u64 submissionID{ timeline->GetCurrentID() };
+
+        // --- Command buffers ---
+        eastl::vector<VkCommandBufferSubmitInfo> cmdInfos{};
+        cmdInfos.reserve( cmds.size() );
+
+        for ( auto& cmd: cmds ) {
+            cmdInfos.emplace_back( VkCommandBufferSubmitInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                .pNext = nullptr,
+                .commandBuffer = cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                .deviceMask = 0 } );
+        }
+
+        // --- Wait semaphores ---
+        eastl::vector<VkSemaphoreSubmitInfo> waitInfos{};
+        for ( const auto& w: mWaitInfos ) {
+            waitInfos.emplace_back( w );
+        }
+
+        // --- Signal semaphores ---
+        eastl::vector<VkSemaphoreSubmitInfo> signalInfos{};
+        for ( const auto& s: mSignalInfos ) {
+            signalInfos.emplace_back( s );
+        }
+
+        // --- Timeline signal ---
+        signalInfos.emplace_back( VkSemaphoreSubmitInfo{
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .pNext = nullptr,
+                .semaphore = timeline->GetNativeHandle( ObjectType::Vk_Semaphore ),
+                .value = submissionID,
+                .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                .deviceIndex = 0 } );
+
+        VkSubmitInfo2 submitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .pNext = nullptr,
+            .flags = 0,
+            .waitSemaphoreInfoCount = ( u32 )waitInfos.size(),
+            .pWaitSemaphoreInfos = waitInfos.data(),
+            .commandBufferInfoCount = ( u32 )cmdInfos.size(),
+            .pCommandBufferInfos = cmdInfos.data(),
+            .signalSemaphoreInfoCount = ( u32 )signalInfos.size(),
+            .pSignalSemaphoreInfos = signalInfos.data()
+        };
+
+        {
+            std::lock_guard lock{ mSubmissionMutex };
+            MKT_VK_CHECK( vkQueueSubmit2( mQueue, 1, &submitInfo, VK_NULL_HANDLE ) );
+        }
+
+        // Clear per-submit sync
+        mWaitInfos.clear();
+        mSignalInfos.clear();
+
+        for (auto& cmd : mPendingSubmits ) {
+            checked_cast<CommandList*>( cmd.GetRaw() )->MarkSubmitted( submissionID );
+        }
+
+        mPendingSubmits.clear();
+
+        // Check the ones that are done
+        auto complete{ GetCompletedValue() };
+        for ( auto it{mDeleteCmds.begin()}; it != mDeleteCmds.end();) {
+            if (complete >= it->mSubmissionID) {
+                vkFreeCommandBuffers(
+                    as<Device*>(mDevice)->GetDevice(),
+                    it->mPool,
+                    1,
+                    MKT_ADDRESSOF(it->mBuffer)
+                );
+
+                it = mDeleteCmds.erase(it); // move to next safely
+            } else {
+                ++it; // only increment if NOT erased
+            }
+        }
+
+        // Advance timeline
+        timeline->GetAndIncrement( 1 );
+
+        return submissionID;
     }
 
     auto Queue::WaitIdle() const -> void {
@@ -2003,33 +2179,114 @@ namespace mikoto::renderer::vulkan {
         return newHandle;
     }
 
-    auto TimelineSemaphore::Increment( u64 incVal ) -> u64 {
-        mTimeValue += incVal;
-        return mTimeValue;
+    TimelineSemaphore::TimelineSemaphore( u64 initialValue )
+        : mTimeline{ initialValue } {}
+
+    auto TimelineSemaphore::SetDebugName( eastl::string_view name ) -> void {
+        mDebugName = name;
+
+        auto* device{ checked_cast<Device*>( mDevice ) };
+        device->SetDebugName( VK_OBJECT_TYPE_SEMAPHORE, rc_cast<u64>( mSemaphore ), mDebugName );
     }
 
-    auto TimelineSemaphore::Create( VkDevice device, u32 initialValue  ) -> void {
-        mTimeValue = initialValue;
+    auto TimelineSemaphore::GetNativeHandle( ObjectType object ) -> Object {
+        switch ( object ) {
+            case ObjectType::Vk_Semaphore: return Object( mSemaphore );
+            default:;
+        }
+
+        return Object( nullptr );
+    }
+
+    auto TimelineSemaphore::GetNativeHandle( ObjectType object ) const -> Object {
+        switch ( object ) {
+            case ObjectType::Vk_Semaphore: return Object( mSemaphore );
+            default:;
+        }
+
+        return Object( nullptr );
+    }
+
+    auto TimelineSemaphore::GetCurrentID() -> u64 {
+        return mTimeline.load();
+    }
+
+    TimelineSemaphore::~TimelineSemaphore() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto TimelineSemaphore::Initialize() -> void {
+        auto* device{ checked_cast<Device*>( mDevice ) };
 
         VkSemaphoreTypeCreateInfo typeCreateInfo{ initializers::SemaphoreTypeCreateInfo() };
-        typeCreateInfo.initialValue = initialValue;
+        typeCreateInfo.initialValue = mTimeline.load();
 
         VkSemaphoreCreateInfo createInfo{ initializers::SemaphoreCreateInfo() };
         createInfo.pNext = MKT_ADDRESSOF( typeCreateInfo );
 
-        MKT_VK_CHECK( vkCreateSemaphore( device, MKT_ADDRESSOF( createInfo ), nullptr, MKT_ADDRESSOF( mSemaphore ) ) );
+        MKT_VK_CHECK( vkCreateSemaphore( device->GetDevice(), MKT_ADDRESSOF( createInfo ), nullptr, MKT_ADDRESSOF( mSemaphore ) ) );
+
+        mIsAllocated = true;
     }
 
-    auto TimelineSemaphore::Destroy( VkDevice device ) -> void {
-        vkDestroySemaphore(  device, mSemaphore, nullptr );
+    auto TimelineSemaphore::Release() -> void {
+        auto* device{ checked_cast<Device*>( mDevice ) };
+        vkDestroySemaphore(  device->GetDevice(), mSemaphore, nullptr );
+
+        mIsAllocated = false;
     }
 
-    auto BinarySemaphore::Create( const VkSemaphoreCreateInfo &info, VkDevice device ) -> void {
-        MKT_VK_CHECK( vkCreateSemaphore( device, MKT_ADDRESSOF( info ), nullptr, MKT_ADDRESSOF( mSemaphore ) ) );
+    BinarySemaphore::BinarySemaphore() {}
+
+    auto BinarySemaphore::SetDebugName( eastl::string_view name ) -> void {
+        mDebugName = name;
+
+        auto* device{ checked_cast<Device*>( mDevice ) };
+        device->SetDebugName( VK_OBJECT_TYPE_SEMAPHORE, rc_cast<u64>( mSemaphore ), mDebugName );
     }
 
-    auto BinarySemaphore::Destroy( VkDevice device ) -> void {
-        vkDestroySemaphore(  device, mSemaphore, nullptr );
+    auto BinarySemaphore::GetNativeHandle( ObjectType object ) -> Object {
+        switch ( object ) {
+            case ObjectType::Vk_Semaphore: return Object( mSemaphore );
+            default:;
+        }
+
+        return Object( nullptr );
+    }
+
+    auto BinarySemaphore::GetNativeHandle( ObjectType object ) const -> Object {
+        switch ( object ) {
+            case ObjectType::Vk_Semaphore: return Object( mSemaphore );
+            default:;
+        }
+
+        return Object( nullptr );
+    }
+
+    BinarySemaphore::~BinarySemaphore() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto BinarySemaphore::Initialize() -> void {
+        auto* device{ checked_cast<Device*>( mDevice ) };
+
+        VkSemaphoreCreateInfo info{ initializers::SemaphoreCreateInfo() };
+        MKT_VK_CHECK( vkCreateSemaphore( device->GetDevice(), MKT_ADDRESSOF( info ), nullptr, MKT_ADDRESSOF( mSemaphore ) ) );
+        mIsAllocated = true;
+    }
+    auto BinarySemaphore::Release() -> void {
+        auto* device{ checked_cast<Device*>( mDevice ) };
+        vkDestroySemaphore( device->GetDevice(), mSemaphore, nullptr );
+        mIsAllocated = false;
+    }
+
+    auto TimelineSemaphore::GetAndIncrement( u64 value ) -> u64 {
+        mTimeline += value;
+        return mTimeline;
     }
 
     GpuUploadManager::GpuUploadManager( GpuDevice *device )
@@ -2088,9 +2345,8 @@ namespace mikoto::renderer::vulkan {
         for ( auto& [buffer, subAllocations]: mSubAllocations ) {
             // Is it safe to return them back here?
             for (auto& subAllocation : subAllocations) {
-                if ( subAllocation ) {
+                if ( subAllocation && !subAllocation->mInUse.test() ) {
                     mBuffers[buffer]->mMemoryArena->Free(subAllocation->mAllocation);
-
                     subAllocation = nullptr;
                 }
             }
@@ -2110,7 +2366,7 @@ namespace mikoto::renderer::vulkan {
             .SetCpuAccessType( CpuAccessType::eWrite )
             .SetHeapType( HeapType::eUpload )
             .SetResourceType( ResourceType::eInvalid ) // Is not a shader resource
-            .SetBufferUsage( BufferUsageFlagsBits::kStaging )
+            .SetBufferUsage( BufferUsageFlagsBits::kNone )
         };
         BufferHandle result{ mDevice->CreateBuffer( bufferDes ) };
 

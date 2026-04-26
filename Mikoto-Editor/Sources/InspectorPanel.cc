@@ -1288,7 +1288,7 @@ namespace mikoto::editor {
             animationNames.reserve( animationList.size() );
 
             for ( const auto& [name, animation]: animationList )
-                animationNames.push_back( animation.GetName() );
+                animationNames.push_back( animation->GetName() );
 
             const i32 selectionIndex{
                 gui::Combo(

@@ -15,12 +15,12 @@
 #ifndef MIKOTO_FRAME_GRAPH_NODE_HH
 #define MIKOTO_FRAME_GRAPH_NODE_HH
 
-#include <EASTL/string.h>
 #include <EASTL/functional.h>
+#include <EASTL/string.h>
 
+#include <Core/Blackboard.hh>
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/Blackboard.hh>
 
 namespace mikoto::renderer {
 
@@ -28,8 +28,16 @@ namespace mikoto::renderer {
 
     class CommandContext;
 
+    enum class FrameGraphNodeType {
+        eGraphics,
+        eCompute,
+        eTransfer,
+        eGeneric, // For passes that not really need any kind of GPU work
+    };
+
     struct FrameGraphNode {
         eastl::string mName{};
+        FrameGraphNodeType mType{ FrameGraphNodeType::eGraphics };
         eastl::function<void( CommandContext &, Blackboard & )> mCallback{};
     };
 

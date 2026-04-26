@@ -91,15 +91,17 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Context::Shutdown() -> void {
-        mPresentTarget.Reset();
-        mSwapchain.Reset();
-
         Device* device{ as<Device*>(mDevice.get()) };
         device->WaitIdle();
 
+        mSwapChainRenderCmds.Reset();
+
+        mPresentTarget.Reset();
+        mSwapchain.Reset();
+
         for (auto& object : mFrames ) {
-            object.mImageAvailableSemaphore.Destroy( device->GetDevice() );
-            object.mRenderFinishedSemaphore.Destroy( device->GetDevice() );
+            object.mImageAvailableSemaphore.Reset();
+            object.mRenderFinishedSemaphore.Reset();
         }
 
         mDevice->Shutdown();
@@ -116,14 +118,16 @@ namespace mikoto::renderer::vulkan {
     auto Context::SubmitFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        auto& frame{ mFrames[mCurrentFrameIndex] };
+        auto device{ checked_cast<Device*>( mDevice.get() ) };
+
         // https://community.khronos.org/t/is-it-recommended-to-use-vkcmdcopyimage-to-copy-to-the-swapchain-image-instead-of-a-shader/112122
         // Most vendors recommend you draw the image onto the final output using a fullscreen triangle.
         // TODO: instead render a full quad sampling the final image
         // otherwise it is annoying as you ned ensure the texture you rendered to before is compatible with swap chain image to copy
         if (!mPresentTarget.IsEmpty()) {
             TextureHandle currentSwapchainImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
-            CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eGraphics ) };
-            cmd->Begin();
+            mSwapChainRenderCmds->Begin();
 
 
             // TODO: Here I will do my full quad render I can use my RHI the pass is pretty simple here i basically just build a command buffer and submit it then submit a transition too
@@ -135,33 +139,40 @@ namespace mikoto::renderer::vulkan {
                 .mHeight = (u32)mPresentTarget->GetHeight(),
             };
 
-            TextureSlice destSlice{
+            TextureSlice dstSlice{
                 .mWidth = (u32)currentSwapchainImage->GetWidth(),
                 .mHeight = (u32)currentSwapchainImage->GetHeight(),
             };
 
+            mSwapChainRenderCmds->CopyTexture(
+                    mPresentTarget.GetRaw(), srcSlice,
+                    currentSwapchainImage.GetRaw(), dstSlice );
 
-            cmd->CopyTexture( mPresentTarget.GetRaw(), srcSlice, currentSwapchainImage.GetRaw(), destSlice );
+            mSwapChainRenderCmds->SetResourceState(
+                    currentSwapchainImage.GetRaw(),
+                    ResourceStates::ePresent );
 
-            cmd->SetResourceState( currentSwapchainImage.GetRaw(), ResourceStates::ePresent );
+            mSwapChainRenderCmds->End();
 
-            cmd->End();
-            mDevice->SubmitCommands( cmd );
+            // enqueue instead of submit
+            frame.mSubmissionID = device->SubmitCommands( mSwapChainRenderCmds );
         }
 
-        // Submit swapchain work
-        const auto& frame{ mFrames[mCurrentFrameIndex] };
-        checked_cast<Device*>( mDevice.get() )->Flush(
-            QueueSubmitSync{
-                    .mWaitBinarySemaphore = frame.mImageAvailableSemaphore.mSemaphore,
-                    .mWaitBinaryStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        // External sync
+        device->AddQueueWaitSemaphore(
+            QueueType::eGraphics,
+            checked_cast<BinarySemaphore*>(frame.mImageAvailableSemaphore.GetRaw()),
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+        );
 
-                    .mSignalBinarySemaphore = frame.mRenderFinishedSemaphore.mSemaphore,
-                    .mSignalBinaryStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
-            }, QueueType::eGraphics );
+        device->AddQueueSignalSemaphore(
+            QueueType::eGraphics,
+            checked_cast<BinarySemaphore*>(frame.mRenderFinishedSemaphore.GetRaw()),
+            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+        );
 
-        // Flush rest of work
-        mDevice->Flush();
+        // SINGLE submission point
+        device->Flush();
 
         mCurrentFrameIndex = (mCurrentFrameIndex + 1) % mMaxFramesInFlight;
     }
@@ -169,10 +180,13 @@ namespace mikoto::renderer::vulkan {
     auto Context::PrepareFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        const auto& frame{ mFrames[mCurrentFrameIndex] };
+        auto device{ checked_cast<Device*>( mDevice.get() ) };
+
+        device->WaitForSubmission( QueueType::eGraphics, frame.mSubmissionID);
         mDevice->RunGarbageCollection();
 
-        const auto& frame{ mFrames[mCurrentFrameIndex] };
-        const auto ret{ mSwapchain->GetNextImage(mCurrentImageIndex, frame.mImageAvailableSemaphore ) };
+        const auto ret{ mSwapchain->GetNextImage(mCurrentImageIndex, *checked_cast<const BinarySemaphore*>( frame.mImageAvailableSemaphore.GetRaw() ) ) };
 
         if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
             mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
@@ -197,7 +211,7 @@ namespace mikoto::renderer::vulkan {
 
         // Because the frame index is advanced in the call to SubmitFrame(..)
         auto& frame{ mFrames[mCurrentImageIndex] };
-        const auto result{ mSwapchain->Present( mCurrentImageIndex, frame.mRenderFinishedSemaphore ) };
+        const auto result{ mSwapchain->Present( mCurrentImageIndex, *checked_cast<BinarySemaphore*>( frame.mRenderFinishedSemaphore.GetRaw() ) ) };
 
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
             mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
@@ -249,6 +263,10 @@ namespace mikoto::renderer::vulkan {
         };
 
         mSwapchain = as<Device*>(mDevice.get())->CreateSwapChain(createInfo);
+
+        // Prepare for swapchain render
+        mSwapChainRenderCmds = mDevice->CreateCommandList( QueueType::eGraphics );
+        mSwapChainRenderCmds->SetDebugName( "Context Swapchain CommandBuffer" );
     }
 
     auto Context::PrepareSynchronization() -> void {
@@ -256,10 +274,15 @@ namespace mikoto::renderer::vulkan {
 
         // --- Per-frame sync ---
         mFrames.resize(mMaxFramesInFlight);
-        VkSemaphoreCreateInfo binarySemaphoreCreateInfo{ initializers::SemaphoreCreateInfo() };
+        u32 frameIndex{ 0 };
         for (auto& frame : mFrames) {
-            frame.mImageAvailableSemaphore.Create(binarySemaphoreCreateInfo, device->GetDevice());
-            frame.mRenderFinishedSemaphore.Create(binarySemaphoreCreateInfo, device->GetDevice());
+            frame.mImageAvailableSemaphore = device->CreateBinarySemaphore();
+            frame.mImageAvailableSemaphore->SetDebugName( string::Format( "SwapChain BinSemaphore frame {}", frameIndex ) );
+
+            frame.mRenderFinishedSemaphore = device->CreateBinarySemaphore();
+            frame.mRenderFinishedSemaphore->SetDebugName( string::Format( "SwapChain BinSemaphore frame {}", frameIndex ) );
+
+            ++frameIndex;
         }
     }
 }// namespace mikoto::renderer::vulkan

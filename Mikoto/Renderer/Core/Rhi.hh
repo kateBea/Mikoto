@@ -18,23 +18,24 @@
 #include <EASTL/span.h>
 #include <EASTL/string.h>
 #include <EASTL/utility.h>
+#include <EASTL/shared_ptr.h>
 #include <EASTL/string_view.h>
 #include <EASTL/fixed_vector.h>
-#include <EASTL/any.h> // Any requires lot of shit from utility so it needs to go after
+#include <EASTL/any.h>// Any requires lot of shit from utility so it needs to go after
 
 #include <glm//glm.hpp>
 
+#include <Assets/Image.hh>
+
 #include <Core/Core.hh>
 #include <Core/Flag.hh>
-#include <Core/ResourcePool.hh>
 #include <Core/Types.hh>
-
-#include <Memory/BufferSpan.hh>
-
-#include <Assets/Image.hh>
+#include <Core/ResourcePool.hh>
 
 #include <Filesystem/File.hh>
 #include <Filesystem/Path.hh>
+
+#include <Memory/BufferSpan.hh>
 
 namespace mikoto::renderer {
     class GpuDevice;
@@ -68,6 +69,7 @@ namespace mikoto::renderer::rhi {
         Vk_DescriptorSet,
         Vk_Pipeline,
         Vk_PipelineLayout,
+        Vk_Semaphore,
 
         // D3D12
         D3D12_Device,
@@ -389,13 +391,23 @@ namespace mikoto::renderer::rhi {
     using BufferUsageFlags = Flags<BufferUsageFlagsProperties>;
 
     struct BufferUsageFlagsBits {
-        static constexpr BufferUsageFlags kInvalid{ BIT_SET( 0 ) };
-        static constexpr BufferUsageFlags kVertex{ BIT_SET( 1 ) };
-        static constexpr BufferUsageFlags kIndex{ BIT_SET( 2 ) };
-        static constexpr BufferUsageFlags kConstant{ BIT_SET( 3 ) };
-        static constexpr BufferUsageFlags kStructured{ BIT_SET( 4 ) };
-        static constexpr BufferUsageFlags kIndirectDraw{ BIT_SET( 5 ) };
-        static constexpr BufferUsageFlags kStaging{ BIT_SET( 7 ) };
+        static constexpr BufferUsageFlags kNone{ 0 };
+
+        // Pipeline bindings
+        static constexpr BufferUsageFlags kVertex{ BIT_SET(0) };
+        static constexpr BufferUsageFlags kIndex{ BIT_SET(1) };
+        static constexpr BufferUsageFlags kConstant{ BIT_SET(2) };
+        static constexpr BufferUsageFlags kStructured{ BIT_SET(3) };
+
+        // Compute / UAV
+        static constexpr BufferUsageFlags kUnorderedAccess{ BIT_SET(4) };
+
+        // Indirect
+        static constexpr BufferUsageFlags kIndirectDraw{ BIT_SET(5) };
+
+        // Transfer / copy
+        static constexpr BufferUsageFlags kCopySrc{ BIT_SET(6) };
+        static constexpr BufferUsageFlags kCopyDst{ BIT_SET(7) };
     };
 
     struct TextureFlagsProperties {
@@ -961,7 +973,7 @@ namespace mikoto::renderer::rhi {
         ResourceType mResourceType{ ResourceType::eConstantBuffer };
 
         BufferDataType mDataType{ BufferDataType::eInvalid };
-        BufferUsageFlags mUsageFlags{ BufferUsageFlagsBits::kInvalid };
+        BufferUsageFlags mUsageFlags{ BufferUsageFlagsBits::kNone };
 
         auto SetName( eastl::string_view name ) -> BufferCreateDescription&;
         auto ForElement( size_t byteSize, size_t count ) -> BufferCreateDescription&;
@@ -986,6 +998,18 @@ namespace mikoto::renderer::rhi {
             return *this;
         }
     };
+
+    class ISemaphore : public DeviceObject {
+    public:
+
+        using DeviceObject::Initialize;
+
+    protected:
+        auto Initialize() -> void override = 0;
+        auto Release() -> void override = 0;
+    };
+
+    using SemaphoreHandle = Ref<ISemaphore>;
 
     class IShaderModule : public DeviceObject {
     public:
@@ -1050,7 +1074,7 @@ namespace mikoto::renderer::rhi {
         size_t mElementSize{};
 
         BufferDataType mDataType{ BufferDataType::eInvalid };
-        BufferUsageFlags mUsage{ BufferUsageFlagsBits::kInvalid };
+        BufferUsageFlags mUsage{ BufferUsageFlagsBits::kNone };
 
         Format mFormat{ Format::eUnknown };
     };
@@ -1696,6 +1720,8 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD auto GetType() const -> QueueType { return mType; }
         MKT_NODISCARD auto GetOpSupportFlags() const -> QueueOpSupportFlags { return mOpSupportFlags; }
 
+        virtual ~IQueue() = default;
+
     protected:
         IQueue( QueueType type )
             : mType{ type } {}
@@ -1784,6 +1810,8 @@ namespace mikoto::renderer::rhi {
         virtual auto SetPushConstants( const void* data, size_t byteSize, ShaderStage stageVisibility ) -> void = 0;
 
         MKT_NODISCARD auto GetQueueType() const -> QueueType { return mQueueType; }
+
+        ~ICommandList() override = default;
 
         using DeviceObject::Initialize;
 

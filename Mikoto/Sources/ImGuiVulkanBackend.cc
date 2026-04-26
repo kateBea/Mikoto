@@ -61,7 +61,8 @@ namespace mikoto::gui {
         CreateImages();
         InitImGuiForVulkan();
 
-        mCommandList = mGpuDevice->CreateCommandList( QueueType::eGraphics );
+        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
+        mCommandList->SetDebugName( "ImGui Command Buffer" );
 
         mIsInitialized = true;
     }
@@ -72,6 +73,8 @@ namespace mikoto::gui {
         if ( !mIsInitialized ) {
             return;
         }
+
+        mDevice->WaitIdle();
 
         // Handles need to be disabled as the destruction of the graphics context
         // is deferred to the ImGuiService destruction where we might not have a context ready
@@ -89,7 +92,9 @@ namespace mikoto::gui {
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
 
-        vkDestroyDescriptorPool( as<Device*>( mGpuDevice )->GetDevice(), mImGuiDescriptorPool, nullptr );
+        mCommandList.Reset();
+
+        vkDestroyDescriptorPool( as<Device*>( mDevice )->GetDevice(), mImGuiDescriptorPool, nullptr );
 
         mIsInitialized = false;
     }
@@ -107,7 +112,7 @@ namespace mikoto::gui {
     auto ImGuiVulkanBackend::InitImGuiForVulkan() -> void {
         const auto window{ eastl::any_cast<GLFWwindow*>( m_Window->GetNativeWindow() ) };
 
-        Device* device{ as<Device*>( mGpuDevice ) };
+        Device* device{ as<Device*>( mDevice ) };
         Context* context{ as<Context*>( RenderSystem::Get()->GetContext() ) };
 
         eastl::array<VkDescriptorPoolSize, 11> poolSizes{
@@ -193,7 +198,7 @@ namespace mikoto::gui {
             .SetUsage( TextureUsageFlagsBits::kRenderTarget )
             .SetFormat( Format::eBGRA8_UNORM ) };
 
-        mColorImage = mGpuDevice->CreateTexture( colorDesc );
+        mColorImage = mDevice->CreateTexture( colorDesc );
         mColorImage->SetDebugName( "ImGui Color image" );
 
         // Depth attachment
@@ -205,14 +210,14 @@ namespace mikoto::gui {
             .SetUsage( TextureUsageFlagsBits::kDepthTarget )
             .SetFormat( Format::eD32 ) };
 
-        mDepthImage = mGpuDevice->CreateTexture( depthDesc );
+        mDepthImage = mDevice->CreateTexture( depthDesc );
         mDepthImage->SetDebugName( "ImGui Depth image" );
     }
 
     auto ImGuiVulkanBackend::EndFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        Device* device{ as<Device*>( mGpuDevice ) };
+        Device* device{ as<Device*>( mDevice ) };
         Context* context{ as<Context*>( RenderSystem::Get()->GetContext() ) };
 
         // If the swap chain has been resized, we need to recreate the framebuffers and images
@@ -227,13 +232,12 @@ namespace mikoto::gui {
         ImGui::Render();
 
         mCommandList->Begin();
-
         mCommandList->SetResourceState( mColorImage.GetRaw(), ResourceStates::eRenderTarget );
 
         RecordCommands( mCommandList );
 
         mCommandList->End();
-        mGpuDevice->SubmitCommands( mCommandList );
+        mDevice->SubmitCommands( mCommandList );
 
         if ( const ImGuiIO & io{ ImGui::GetIO() }; io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();
@@ -263,7 +267,7 @@ namespace mikoto::gui {
         if ( itFind != m_ImGuiSets.end() ) {
             result = reinterpret_cast<ImTextureID>(itFind->second.descriptorSet);
         } else {
-            ISampler* sampler{ checked_cast<vulkan::Device*>( mGpuDevice )->GetDummySampler() };
+            ISampler* sampler{ checked_cast<vulkan::Device*>( mDevice )->GetDummySampler() };
 
             const auto color{ as<const Texture*>( texture ) };
 

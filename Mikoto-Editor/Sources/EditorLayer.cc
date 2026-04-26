@@ -127,7 +127,7 @@ namespace mikoto::editor {
             { PrefabModelType::eCylinder, "Resources/Models/Prefabs/cylinder/gltf/scene.gltf" },
         };
 
-        // So each thread writes to its own slot, need to double check
+        // So each thread writes to its own slot, need to double-check
         for ( const auto &[type, path]: modelPaths ) {
             mEditorState->mPrefabPaths[type] = ModelHandle::CreateEmpty();
         }

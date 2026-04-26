@@ -1421,40 +1421,37 @@ namespace mikoto::asset {
         }
     }
 
-#if false
-
-    static auto LoadInverseBindMatrices( const tinygltf::Model& model, const tinygltf::Skin& skin ) -> std::vector<Mat4F> {
-        std::vector<Mat4F> inverseBindMats{};
+    static auto LoadInverseBindMatrices( const tinygltf::Model& model, const tinygltf::Skin& skin ) -> eastl::vector<float4x4> {
+        eastl::vector<float4x4> inverseBindMats{};
 
         if ( skin.inverseBindMatrices < 0 )
             return {};
 
-        const tinygltf::Accessor& accessor = model.accessors[skin.inverseBindMatrices];
-        const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
-        const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+        const tinygltf::Accessor& accessor{ model.accessors[skin.inverseBindMatrices] };
+        const tinygltf::BufferView& bufferView{ model.bufferViews[accessor.bufferView] };
+        const tinygltf::Buffer& buffer{ model.buffers[bufferView.buffer] };
         inverseBindMats.resize( accessor.count );
-        memcpy( inverseBindMats.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof( glm::mat4 ) );
+        std::memcpy( inverseBindMats.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof( float4x4 ) );
 
         return inverseBindMats;
     }
 
-    auto GLTFImporter::LoadAnimations( const tinygltf::Model& model, const ModelLoadDescription& description, ModelData& out ) -> void {
+    static auto LoadAnimations( const tinygltf::Model& model, const ModelLoadDescription& description, ModelDataDescription& out ) -> void {
         if ( model.animations.empty() ) {
             return;
         }
 
         GltfAnimImporter importer{};
-        SkinningBuilder builder{ description.ModelFile->GetPath() };
+        auto skinningData{ SkinningBuilder{}
+            .SetImporter( importer )
+            .SetPath( description.mFile->GetPath() )
+            .Build()
+        };
 
-        if ( !builder.Build( importer, description.ModelFile->GetPath() ) ) {
-            return;
-        }
-
-        builder.FillModelData( out );
-        out.SceneSkeleton.SetInverseBindMatrices( LoadInverseBindMatrices( model, model.skins[0] ) );
+        out.mAnimations = std::move( skinningData->mAnimations );
+        out.mSkeleton = std::move( skinningData->mSkeleton );
+        out.mSkeleton->SetInverseBindMatrices( LoadInverseBindMatrices( model, model.skins[0] ) );
     }
-
-#endif
 
     MKT_NODISCARD static auto GetLocalTransform( const tinygltf::Node& node ) -> float4x4 {
         if ( !node.matrix.empty() ) {
@@ -1488,15 +1485,15 @@ namespace mikoto::asset {
         if ( !node.scale.empty() ) {
             scale = glm::scale(
                 float4x4{ 1.0f },
-                float3{ as<float>( node.scale[0] ),
-                    as<float>( node.scale[1] ),
-                    as<float>( node.scale[2] ) } );
+                float3{ as<f32>( node.scale[0] ),
+                    as<f32>( node.scale[1] ),
+                    as<f32>( node.scale[2] ) } );
         }
 
         return translation * rotation * scale;
     }
 
-    static auto TraverseNode( const tinygltf::Model& model, i32 nodeIndex, const float4x4& parentTransform, ModelDataDescription& out ) -> void {
+    static auto TraverseNode( const tinygltf::Model& model, i32 nodeIndex, const float4x4& parentTransform, ModelDataDescription& description ) -> void {
         const tinygltf::Node& node{ model.nodes[nodeIndex] };
 
         float4x4 localTransform{ GetLocalTransform( node ) };
@@ -1504,13 +1501,13 @@ namespace mikoto::asset {
 
         // Store mesh transform
         if ( node.mesh >= 0 ) {
-            auto& meshNode{ out.mMeshNodes[node.mesh] };
+            auto& meshNode{ description.mMeshNodes[node.mesh] };
             meshNode.mTransform = worldTransform;
         }
 
         // Recurse children
         for ( i32 childIndex: node.children ) {
-            TraverseNode( model, childIndex, worldTransform, out );
+            TraverseNode( model, childIndex, worldTransform, description );
         }
     }
 
@@ -1565,7 +1562,7 @@ namespace mikoto::asset {
 
         LoadPrimitives( model, out );
         LoadMaterials( model, out );
-        // LoadAnimations( model, description, out );
+        LoadAnimations( model, description, out );
         LoadHierarchyTransform( model, out );
     }
 }// namespace mikoto

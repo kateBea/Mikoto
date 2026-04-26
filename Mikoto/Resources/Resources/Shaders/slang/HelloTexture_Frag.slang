@@ -26,10 +26,12 @@ struct FSOutput {
     float4 color : SV_Target;
 };
 
-struct MyCB {
-    int SamplerIndex;
+struct DrawParams {
     int TextureIndex;
+    int SamplerIndex;
 };
+
+MKT_DECLARE_PUSH_CONSTANT DrawParams uParams;
 
 MKT_DECLARE_CONSTANT_BUFFERS cBuffers;
 
@@ -39,16 +41,16 @@ MKT_DECLARE_TEXTURE_2D Texture2Ds;
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
-    MyCB cb = memory::LoadData<MyCB>(cBuffers, 0, 0, 5);
+    //MyCB cb = memory::LoadData<MyCB>(cBuffers, 0, 0, 5);
 
 #if !defined(MKT_SUPPORT_D3D11)
-    if (cb.TextureIndex != -1) {
-        o.color = Texture2Ds[cb.TextureIndex].Sample(Samplers[cb.SamplerIndex], input.texCoord);
+    if (uParams.TextureIndex != -1) {
+        o.color = Texture2Ds[uParams.TextureIndex].Sample(Samplers[uParams.SamplerIndex], input.texCoord);
     } else {
         o.color = float4(input.color, 1.0);
     }
 #else
-    if (cb.TextureIndex != -1) {
+    if (uParams.TextureIndex != -1) {
         o.color = Texture2Ds[0].Sample(Samplers[0], input.texCoord);
     } else {
         o.color = float4(input.color, 1.0);

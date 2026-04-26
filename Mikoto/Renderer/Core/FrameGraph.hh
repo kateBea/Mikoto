@@ -44,11 +44,40 @@ namespace mikoto::renderer {
 
     using ResourceID = u32;
 
-    enum class FrameGraphNodeType {
-        eGraphics,
-        eCompute,
-        eTransfer,
-        eGeneric, // For passes that not really need any kind of GPU work
+    // NOTE:
+    // These IDs represent *logical FrameGraph resources*, NOT GPU bindless indices.
+    //
+    // A ResourceID is used by the FrameGraph to track resource lifetime, dependencies,
+    // and scheduling (build phase). It does NOT correspond directly to a GPU descriptor.
+    //
+    // Before a resource can be accessed in shaders, it must be resolved to a physical
+    // GPU resource and then translated into a bindless descriptor index via the
+    // BindlessRegistry / CommandContext (e.g. ctx.GetIndex()).
+    //
+    // Separation:
+    //   ResourceID  -> FrameGraph (logical resource tracking)
+    //   BindlessIdx -> GPU access (descriptor array index used in shaders)
+    //
+    // Never pass ResourceID directly to shaders.
+
+    struct TextureID { ResourceID mId{};
+        operator ResourceID() { return mId; }
+        operator ResourceID() const { return mId; }
+    };
+
+    struct SamplerID { ResourceID mId{};
+        operator ResourceID() { return mId; }
+        operator ResourceID() const { return mId; }
+    };
+
+    struct BufferID  { ResourceID mId{};
+        operator ResourceID() { return mId; }
+        operator ResourceID() const { return mId; }
+    };
+
+    struct PipelineID  { ResourceID mId{};
+        operator ResourceID() { return mId; }
+        operator ResourceID() const { return mId; }
     };
 
     enum class FrameGraphResourceAccessType {
@@ -65,6 +94,8 @@ namespace mikoto::renderer {
 
         eTask,
         eMesh,
+
+        eTransfer,
 
         eCompute,
 
@@ -110,7 +141,7 @@ namespace mikoto::renderer {
         auto SetUsage( BufferUsageFlags flags ) -> FrameGraphBufferDescription&;
         auto SetSizeBytes( size_t byteSize ) -> FrameGraphBufferDescription&;
         auto SetElementsSize( u32 elementCount, size_t elementSizeBytes ) -> FrameGraphBufferDescription&;
-        auto SetCpuAccess( HeapType heap ) -> FrameGraphBufferDescription&;
+        auto SetHeapType( HeapType heap ) -> FrameGraphBufferDescription&;
         auto SetResourceType( ResourceType resource ) -> FrameGraphBufferDescription&;
     };
 
@@ -174,11 +205,12 @@ namespace mikoto::renderer {
         explicit FrameGraphNodeBuilder( material::ShaderLibrary* shaderLibrary,
             GpuDevice* device, FrameGraphNode* node, FrameGraphResourceManager* resourceManager);
 
-        auto Create( const FrameGraphPipelineDescription& desc) -> ResourceID;
-        auto Create( const FrameGraphBufferDescription& desc) -> ResourceID;
-        auto Create( const FrameGraphTextureDescription& desc) -> ResourceID;
+        auto Create( const FrameGraphPipelineDescription& desc) -> PipelineID;
+        auto Create( const FrameGraphBufferDescription& desc) -> BufferID;
+        auto Create( const FrameGraphTextureDescription& desc) -> TextureID;
 
         auto Write(ResourceID resource, FrameGraphResourceAccessType accessType, FrameGraphStageType shaderStage ) -> void;
+        auto Read(ResourceID resource, FrameGraphResourceAccessType accessType, FrameGraphStageType shaderStage ) -> void;
 
     private:
         GpuDevice* mDevice{};

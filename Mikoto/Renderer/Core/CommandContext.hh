@@ -36,8 +36,14 @@ namespace mikoto::renderer {
         auto BeginRender() -> void;
         auto EndRender() -> void;
 
-        auto BindPipeline( ResourceID pipelineID ) -> void;
+        auto GetIndex( ResourceID resourceID ) -> u32;
+
+        auto BindPipeline( PipelineID pipelineID ) -> void;
+
+        auto Draw( u32 instanceCount = 1) -> void;
         auto Dispatch( u32 groupX, u32 groupY, u32 groupZ ) -> void;
+
+        auto CopyBuffer( BufferID src, BufferID dest ) -> void;
 
         auto PushConstants( const auto& data ) -> void {
             mPushConstantsData->Push( data );

@@ -41,7 +41,7 @@ namespace mikoto::asset {
     using namespace mikoto::filesystem;
     using namespace mikoto::renderer::rhi;
 
-    using AnimationList = ankerl::unordered_dense::map<eastl::string, animation::SkinnedAnimation>;
+    using AnimationList = ankerl::unordered_dense::map<eastl::string, eastl::unique_ptr<animation::SkinnedAnimation>>;
 
     enum class VertexAttribute {
         ePositions,
@@ -127,14 +127,14 @@ namespace mikoto::asset {
         Path mPath{};
         eastl::string mName{};
 
-        Skeleton mSceneSkeleton{};
         AnimationList mAnimations{};
+        eastl::unique_ptr<Skeleton> mSkeleton{};
         ankerl::unordered_dense::map<u32, MeshNode> mMeshes{};
 
         auto SetPath(const Path& path) -> ModelCreateDescription&;
         auto AddMesh(u32 index, const MeshCreateDescription& desc) -> ModelCreateDescription&;
         auto SetName(eastl::string_view name) -> ModelCreateDescription&;
-        auto SetSkeleton(Skeleton&& skeleton) -> ModelCreateDescription&;
+        auto SetSkeleton(eastl::unique_ptr<Skeleton>&& skeleton) -> ModelCreateDescription&;
         auto SetAnimations(AnimationList&& animations) -> ModelCreateDescription&;
     };
 
@@ -143,7 +143,7 @@ namespace mikoto::asset {
         explicit Model( ModelCreateDescription&& desc )
             : mPath{ eastl::move( desc.mPath ) },
               mName{ eastl::move( desc.mName ) },
-              mSkeleton { eastl::move(desc.mSceneSkeleton) },
+              mSkeleton { eastl::move(desc.mSkeleton) },
               mAnimations{ eastl::move( desc.mAnimations ) },
               mMeshes{ eastl::move( desc.mMeshes ) }
         {}
@@ -160,7 +160,7 @@ namespace mikoto::asset {
         MKT_NODISCARD auto HasArmature() const -> bool;
         MKT_NODISCARD auto HasAnimations() const -> bool;
 
-        MKT_NODISCARD auto GetSkeleton() const -> const Skeleton&;
+        MKT_NODISCARD auto GetSkeleton() const -> const Skeleton*;
 
         MKT_NODISCARD auto FindAnimation( eastl::string_view name ) -> SkinnedAnimation*;
         MKT_NODISCARD auto FindAnimation( eastl::string_view name ) const -> const SkinnedAnimation*;
@@ -182,8 +182,8 @@ namespace mikoto::asset {
         eastl::string mName{};
 
         // Skinning
-        Skeleton mSkeleton{};
         AnimationList mAnimations{};
+        eastl::unique_ptr<Skeleton> mSkeleton{};
 
         // ( Mesh index, mesh node )
         ankerl::unordered_dense::map<u32, MeshNode> mMeshes{};

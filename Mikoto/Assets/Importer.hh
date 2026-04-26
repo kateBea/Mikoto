@@ -62,8 +62,8 @@ namespace mikoto::asset {
         eastl::vector<MeshNodeDescription> mMeshNodes{};
         eastl::vector<MaterialProperties> mMaterials{};
 
-        Skeleton mSceneSkeleton{};
         AnimationList mAnimations{};
+        eastl::unique_ptr<Skeleton> mSkeleton{};
 
         // Texture URI the same way is stored in the materials
         ankerl::unordered_dense::map<Path, TextureHandle> mTextures{};

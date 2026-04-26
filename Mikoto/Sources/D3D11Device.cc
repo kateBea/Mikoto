@@ -538,7 +538,13 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto CommandList::SetDebugName( eastl::string_view name ) -> void {
-        mCommandList->SetPrivateData(WKPDID_D3DDebugObjectName,as<UINT>(name.size()), name.data() );
+        if (mCommandList) {
+            mCommandList->SetPrivateData(WKPDID_D3DDebugObjectName,as<UINT>(name.size()), name.data() );
+        }
+
+        if (mDeviceContextDeferred) {
+            mDeviceContextDeferred->SetPrivateData(WKPDID_D3DDebugObjectName,as<UINT>(name.size()), name.data() );
+        }
     }
 
     auto CommandList::GetNativeHandle( ObjectType type ) -> Object {
@@ -926,11 +932,12 @@ namespace mikoto::renderer::d3d11 {
         }
     }
 
-    auto Device::ExecuteCommands( CommandListHandle cmdList ) -> void {
+    auto Device::ExecuteCommands( CommandListHandle cmdList ) -> u64 {
         ID3D11CommandList* native{ cmdList->GetNativeHandle(ObjectType::D3D11_CommandList) };
         MKT_ASSERT(native, "Command list is null");
 
         mDeviceContext->ExecuteCommandList(native, TRUE);
+        return 0;
     }
 
     auto Device::WaitIdle() -> void {
@@ -966,9 +973,10 @@ namespace mikoto::renderer::d3d11 {
     auto Device::RunGarbageCollection() -> void {
     }
 
-    auto Device::SubmitCommands( CommandListHandle cmd ) -> void {
+    auto Device::SubmitCommands( CommandListHandle cmd ) -> u64 {
         std::lock_guard lock{ mCmdListSubmitMutex };
         mNonSubmittedCommands.emplace_back( cmd );
+        return 0;
     }
 
     auto Device::GetDevice() const -> ID3D11Device * {

@@ -24,8 +24,30 @@
 namespace mikoto::renderer {
 
     CommandContext::CommandContext( GpuDevice* device, FrameGraphNode* pass, FrameGraphResourceManager* resourceManager )
-        : mDevice{ device }, mNode{ pass }, mResourceManager{ resourceManager }
-    {}
+        : mDevice{ device }, mNode{ pass }, mResourceManager{ resourceManager } {
+        MKT_ASSERT( mNode, "Frame graph node cannot be null" );
+        MKT_ASSERT( mDevice, "Gpu Device cannot be null" );
+        MKT_ASSERT( mResourceManager, "Resource manager cannot be null" );
+
+        QueueType type{ QueueType::eGraphics };
+        switch (pass->mType) {
+            case FrameGraphNodeType::eGraphics:
+                type = QueueType::eGraphics;
+                break;
+            case FrameGraphNodeType::eCompute:
+                type = QueueType::eCompute;
+                break;
+            case FrameGraphNodeType::eTransfer:
+                type = QueueType::eTransfer;
+                break;
+            case FrameGraphNodeType::eGeneric:
+                break;
+        }
+
+        if (pass->mType != FrameGraphNodeType::eGeneric) {
+            mCommands = mDevice->CreateCommandList( type );
+        }
+    }
 
     auto CommandContext::BeginRender() -> void {
 
@@ -35,12 +57,28 @@ namespace mikoto::renderer {
 
     }
 
-    auto CommandContext::BindPipeline( ResourceID pipelineID ) -> void {
+    auto CommandContext::GetIndex( ResourceID resourceID ) -> u32 {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        FrameGraphResource pipeline{ mResourceManager->Get( pipelineID ) };
+        FrameGraphResource pipeline{ mResourceManager->Get( resourceID ) };
+
+        // Create gpu descriptor ID handle
+
+        return 0; // TODO
+    }
+
+    auto CommandContext::BindPipeline( PipelineID pipelineID ) -> void {
+
+    }
+
+    auto CommandContext::Draw( u32 instanceCount ) -> void {
+
     }
 
     auto CommandContext::Dispatch( u32 groupX, u32 groupY, u32 groupZ ) -> void {
         mCommands->Dispatch( groupX, groupY, groupZ );
+    }
+
+    auto CommandContext::CopyBuffer( BufferID src, BufferID dest ) -> void {
+
     }
 }// namespace mikoto::renderer

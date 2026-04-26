@@ -294,6 +294,7 @@ namespace mikoto::renderer {
     }
 
     auto RenderSystem::PrepareSlangForVulkan() -> void {
+        // Need to be static I think session still references these when you shut it down
         slang::createGlobalSession( mSlangGlobalSession.writeRef() );
         static auto slangTargets{ eastl::to_array<slang::TargetDesc>( { {
             .format = SLANG_SPIRV,

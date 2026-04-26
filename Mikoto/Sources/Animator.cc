@@ -61,7 +61,7 @@ namespace mikoto::animation {
     }
 
     auto Animator::GetInverseBindMatrices() const -> const eastl::vector<float4x4>& {
-        return mModel->GetSkeleton().GetInverseBindMatrices();
+        return mModel->GetSkeleton()->GetInverseBindMatrices();
     }
 
     auto Animator::SetAnimatorState( AnimatorState state ) -> void {
@@ -127,7 +127,7 @@ namespace mikoto::animation {
 
     auto Animator::UpdateOzzAnimation( float ts ) -> void {
         // Get ozz skeleton and animation
-        auto* skeleton{ mModel->GetSkeleton().GetOzzSkeleton() };
+        auto* skeleton{ mModel->GetSkeleton()->GetOzzSkeleton() };
         auto playAnimation{ mCurrentAnimation->GetOzzAnimation() };
 
         // Update current animation time.
@@ -156,7 +156,7 @@ namespace mikoto::animation {
             return;
         }
 
-        const auto& inverseBindMats{ mModel->GetSkeleton().GetInverseBindMatrices() };
+        const auto& inverseBindMats{ mModel->GetSkeleton()->GetInverseBindMatrices() };
 
         size_t limit{ math::Min( mFinalMatrices.size(), inverseBindMats.size(), mModelMatrices.size() ) }; // ???
         for ( size_t i{}; i < limit; ++i ) {
@@ -169,7 +169,7 @@ namespace mikoto::animation {
     }
 
     auto Animator::InitializeOzzAnimation() -> void {
-        auto skeleton{ mModel->GetSkeleton().GetOzzSkeleton() };
+        auto skeleton{ mModel->GetSkeleton()->GetOzzSkeleton() };
         auto playAnimation{ mCurrentAnimation->GetOzzAnimation() };
 
         if ( skeleton->num_joints() != playAnimation->num_tracks() ) {

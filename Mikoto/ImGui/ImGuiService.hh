@@ -54,7 +54,7 @@ namespace mikoto::gui {
     class ImGuiBackend {
     public:
         explicit ImGuiBackend( const ImGuiBackendCreateInfo& createInfo )
-            : m_Window{ createInfo.mWindow }, mGpuDevice{ createInfo.mDevice }, mApi{ createInfo.mApi }
+            : m_Window{ createInfo.mWindow }, mDevice{ createInfo.mDevice }, mApi{ createInfo.mApi }
         {}
 
         virtual auto Init() -> void = 0;
@@ -82,7 +82,7 @@ namespace mikoto::gui {
         bool mIsInitialized{ false };
 
         Window* m_Window{};
-        GpuDevice* mGpuDevice{};
+        GpuDevice* mDevice{};
         GraphicsAPI mApi{ GraphicsAPI::eVulkan };
         RenderResolution mResolution{ RenderResolution::e1080P };
     };

@@ -101,8 +101,8 @@ namespace mikoto::renderer {
 
         virtual auto Flush() -> void = 0;
         virtual auto RunGarbageCollection() -> void = 0;
-        virtual auto SubmitCommands( CommandListHandle cmdList ) -> void = 0;
-        virtual auto ExecuteCommands( CommandListHandle cmdList ) -> void = 0;
+        virtual auto SubmitCommands( CommandListHandle cmdList ) -> u64 = 0;
+        virtual auto ExecuteCommands( CommandListHandle cmdList ) -> u64 = 0;
 
         virtual auto WaitIdle() -> void = 0;
 

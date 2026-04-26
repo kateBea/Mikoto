@@ -112,6 +112,13 @@ namespace mikoto::filesystem {
         return string::ToEA_Stl( std::filesystem::absolute( mPathUtf8.c_str() ).string() );
     }
 
+    auto Path::IsDirectoryEmpty() const -> bool {
+        namespace fs = std::filesystem;
+
+        return fs::is_directory( mPathUtf8.c_str() ) &&
+               fs::directory_iterator( mPathUtf8.c_str() ) == fs::directory_iterator{};
+    }
+
     auto Path::GetFilename() const noexcept -> eastl::string_view {
         return mFilename;
     }

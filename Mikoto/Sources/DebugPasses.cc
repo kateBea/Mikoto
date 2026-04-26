@@ -42,8 +42,8 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
 
         struct TrianglePassData {
-            ResourceID mBuffer{};
-            ResourceID mPipeline{};
+            BufferID mBuffer{};
+            PipelineID mPipeline{};
         };
 
         graph.RegisterPass<TrianglePassData>(
@@ -53,7 +53,7 @@ namespace mikoto::renderer {
                 auto bufferBuilder{ FrameGraphBufferDescription{}
                     .SetUsage( BufferUsageFlagsBits::kStructured ) // Type of buffer
                     .SetSizeBytes( 128 )
-                    .SetCpuAccess( HeapType::eReadback )
+                    .SetHeapType( HeapType::eReadback )
                     .SetResourceType( ResourceType::eConstantBuffer ) // How it is used in the shader
                 };
 
@@ -79,46 +79,52 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
 
         struct TexturePassData {
-            ResourceID mBuffer{};
-            ResourceID mPipeline{};
+            TextureID mTexture{};
+            SamplerID mSampler{};
+            PipelineID mPipeline{};
         };
 
         graph.RegisterPass<TexturePassData>(
-            "SimpleTexture",
-            FrameGraphNodeType::eCompute,
-            []( FrameGraphNodeBuilder &b, TexturePassData &data ) {
-                auto bufferBuilder{ FrameGraphBufferDescription{}
-                    .SetUsage( BufferUsageFlagsBits::kConstant ) // Type of buffer
-                    .SetSizeBytes( 128 )
-                    .SetCpuAccess( HeapType::eReadback )
-                    .SetResourceType( ResourceType::eConstantBuffer ) // How it is used in the shader
-                };
+                "SimpleTexture",
+                FrameGraphNodeType::eGraphics,
+                []( FrameGraphNodeBuilder &b, TexturePassData &data ) {
+                    auto pipelineBuilder{ FrameGraphPipelineDescription{}
+                        .SetName( "Texture_Pipeline" )
+                        .SetPipelineType( PipelineType::eGraphics )
+                        .PushShader( "HelloTexture_Vert.slang", FrameGraphStageType::eVertex )
+                        .PushShader( "HelloTexture_Frag.slang", FrameGraphStageType::eFragment ) };
 
-                data.mBuffer = b.Create( bufferBuilder );
+                    data.mPipeline = b.Create( pipelineBuilder );
 
-                auto pipelineBuilder{ FrameGraphPipelineDescription{}
-                    .SetName( "Texture_Pipeline" )
-                    .SetPipelineType( PipelineType::eGraphics )
-                    .PushShader( "HelloTexture_Vert.slang", FrameGraphStageType::eVertex )
-                    .PushShader( "HelloTexture_Frag.slang", FrameGraphStageType::eFragment )
-                };
+                    b.Read( data.mTexture, FrameGraphResourceAccessType::eRead, FrameGraphStageType::eFragment );
+                    b.Read( data.mSampler, FrameGraphResourceAccessType::eRead, FrameGraphStageType::eFragment );
+                },
+                []( CommandContext &ctx, Blackboard &blackboard ) -> void {
+                    const auto &data{ blackboard.Get<TexturePassData>() };
 
-                data.mPipeline = b.Create( pipelineBuilder );
+                    struct DrawParams {
+                        u32 mTextureIndex{};
+                        u32 mSamplerIndex{};
+                    };
 
-                b.Write( data.mBuffer, FrameGraphResourceAccessType::eWrite, FrameGraphStageType::eVertex );
-            },
-            []( CommandContext &ctx, Blackboard &blackboard ) -> void {
-                const auto &data{ blackboard.Get<TexturePassData>() };
-                ctx.BindPipeline( data.mPipeline );
-            } );
+                    DrawParams params{
+                        .mTextureIndex = ctx.GetIndex( data.mTexture ),
+                        .mSamplerIndex = ctx.GetIndex( data.mSampler ),
+                    };
+
+                    ctx.PushConstants( params );
+                    ctx.BindPipeline( data.mPipeline );
+                    ctx.Draw( 4 );
+                } );
     }
 
     auto DebugPasses::RegisterSimpleComputePass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         struct SimpleCompute {
-            ResourceID mBuffer{};
-            ResourceID mPipeline{};
+            BufferID mBuffer{};        // GPU buffer (UAV, device local)
+            BufferID mReadbackBuffer{};// CPU-visible buffer
+            PipelineID mPipeline{};
 
             u32 mLocalSize{ 64 };
             u32 mNumbersCount{ 30 };
@@ -128,32 +134,59 @@ namespace mikoto::renderer {
         graph.RegisterPass<SimpleCompute>(
             "SimpleCompute",
             FrameGraphNodeType::eCompute,
+
             []( FrameGraphNodeBuilder &b, SimpleCompute &data ) {
-                auto bufferBuilder{ FrameGraphBufferDescription{}
-                    .SetUsage( BufferUsageFlagsBits::kStructured ) // Type of buffer
-                    .SetElementsSize( MKT_SIZEOF( u32 ), data.mLocalSize )
-                    .SetCpuAccess( HeapType::eReadback )
-                    .SetResourceType( ResourceType::eStructuredBuffer_UAV ) // How it is used in the shader
-                };
+                // GPU buffer (fast, written by compute shader)
+                auto gpuBufferDesc{ FrameGraphBufferDescription{}
+                     .SetUsage( BufferUsageFlagsBits::kStructured | BufferUsageFlagsBits::kUnorderedAccess )
+                     .SetElementsSize( MKT_SIZEOF( u32 ), data.mNumbersCount )
+                     .SetHeapType( HeapType::eDeviceLocal )
+                     .SetResourceType( ResourceType::eStructuredBuffer_UAV ) };
 
-                data.mBuffer = b.Create( bufferBuilder );
+                data.mBuffer = b.Create( gpuBufferDesc );
 
+                // Readback buffer (CPU visible, copy destination)
+                auto readbackDesc{ FrameGraphBufferDescription{}
+                    .SetUsage( BufferUsageFlagsBits::kCopyDst )
+                    .SetElementsSize( MKT_SIZEOF( u32 ), data.mNumbersCount )
+                    .SetHeapType( HeapType::eReadback )
+                    .SetResourceType( ResourceType::eStructuredBuffer_UAV ) };
+
+                data.mReadbackBuffer = b.Create( readbackDesc );
+
+                // Pipeline
                 auto pipelineBuilder{ FrameGraphPipelineDescription{}
-                    .SetName( "SimpleCompute_Pipeline" )
-                    .SetPipelineType( PipelineType::eCompute )
-                    .PushShader( "BasicCompute_Comp.slang", FrameGraphStageType::eCompute )
-                };
+                   .SetName( "SimpleCompute_Pipeline" )
+                   .SetPipelineType( PipelineType::eCompute )
+                   .PushShader( "BasicCompute_Comp.slang", FrameGraphStageType::eCompute ) };
 
                 data.mPipeline = b.Create( pipelineBuilder );
 
+                // Resource usage
+                b.Read( data.mBuffer, FrameGraphResourceAccessType::eRead, FrameGraphStageType::eTransfer );
                 b.Write( data.mBuffer, FrameGraphResourceAccessType::eWrite, FrameGraphStageType::eCompute );
+                b.Write( data.mReadbackBuffer, FrameGraphResourceAccessType::eWrite, FrameGraphStageType::eTransfer );
             },
-            []( CommandContext &ctx, Blackboard &blackboard ) -> void {
+
+            []( CommandContext &ctx, Blackboard &blackboard ) {
                 const auto &data{ blackboard.Get<SimpleCompute>() };
 
-                ctx.PushConstants( data.mBuffer );
+                // Push bindless index (NOT raw ResourceID)
+                struct ComputeParams {
+                    u32 mBufferIndex{};
+                };
+
+                ComputeParams params{};
+                params.mBufferIndex = ctx.GetIndex( data.mBuffer );
+
+                ctx.PushConstants( params );
                 ctx.BindPipeline( data.mPipeline );
+
+                // Dispatch compute
                 ctx.Dispatch( data.mGroupCount, 1, 1 );
+
+                // Copy GPU -> CPU buffer
+                ctx.CopyBuffer( data.mBuffer, data.mReadbackBuffer );
             } );
     }
 }// namespace mikoto::renderer

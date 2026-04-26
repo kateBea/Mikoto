@@ -54,7 +54,7 @@ namespace mikoto::gui {
         }
 
         // Grab device and device context
-        Device* device{ as<Device*>( mGpuDevice ) };
+        Device* device{ as<Device*>( mDevice ) };
 
         if (!ImGui_ImplDX11_Init(device->GetDevice(), device->GetDeviceContext()) ) {
             MKT_THROW_RUNTIME_ERROR( "Failed ImGui_ImplDX11_Init" );
@@ -90,7 +90,7 @@ namespace mikoto::gui {
             .SetUsage( TextureUsageFlagsBits::kRenderTarget )
             .SetFormat( Format::eBGRA8_UNORM ) };
 
-        mColorImage = mGpuDevice->CreateTexture( colorDesc );
+        mColorImage = mDevice->CreateTexture( colorDesc );
         mColorImage->SetDebugName( "ImGui Color image" );
 
         // Depth attachment
@@ -102,7 +102,7 @@ namespace mikoto::gui {
             .SetUsage( TextureUsageFlagsBits::kDepthTarget )
             .SetFormat( Format::eD32 ) };
 
-        mDepthImage = mGpuDevice->CreateTexture( depthDesc );
+        mDepthImage = mDevice->CreateTexture( depthDesc );
         mDepthImage->SetDebugName( "ImGui Depth image" );
     }
 
@@ -152,7 +152,7 @@ namespace mikoto::gui {
         ImGui::Render();
 
         // Grab device and device context
-        Device* device{ as<Device*>( mGpuDevice ) };
+        Device* device{ as<Device*>( mDevice ) };
 
         const eastl::array clearColor{ mClearColor.r, mClearColor.g, mClearColor.b, mClearColor.a };
 

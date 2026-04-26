@@ -91,6 +91,8 @@ namespace mikoto::renderer::vulkan {
         VkImageViewCreateInfo mImageViewCreateInfo{};
 
         bool mIsImageExternal{ false };
+
+        bool mKeepInitializerResources{ false };
     };
 }// namespace mikoto::renderer::vulkan
 

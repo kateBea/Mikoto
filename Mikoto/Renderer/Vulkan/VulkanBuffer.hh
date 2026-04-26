@@ -33,6 +33,8 @@ namespace mikoto::renderer::vulkan {
         auto PersistentMap() -> void;
         auto PersistentUnmap() -> void;
 
+        auto SetDebugName( eastl::string_view name) -> void override;
+
         MKT_NODISCARD auto GetAlignedSize() const -> u32;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;

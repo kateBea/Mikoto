@@ -281,8 +281,8 @@ namespace mikoto::renderer::d3d11 {
 
         auto Flush() -> void override;
         auto RunGarbageCollection() -> void override;
-        auto SubmitCommands( CommandListHandle cmdList ) -> void override;
-        auto ExecuteCommands( CommandListHandle cmdList ) -> void override;
+        auto SubmitCommands( CommandListHandle cmdList ) -> u64 override;
+        auto ExecuteCommands( CommandListHandle cmdList ) -> u64 override;
 
         auto WaitIdle() -> void override;
 

@@ -450,6 +450,10 @@ namespace mikoto::renderer::rhi {
         return mDesc;
     }
 
+    auto IComputePipeline::GetDescription() const noexcept -> const ComputePipelineDescription & {
+        return mDesc;
+    }
+
     auto GraphicsState::SetRenderArea( const Rect &rec ) -> GraphicsState & {
         mRenderArea = rec;
         return *this;

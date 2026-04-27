@@ -18,6 +18,8 @@
 #include <tracy/Tracy.hpp>
 #include <Logging/Assert.hh>
 
+#include <Core/Timer.hh>
+
 namespace mikoto::core {
 
     // This should use Tracy ZoneMacros, must be used with tracy profiler on
@@ -26,7 +28,11 @@ namespace mikoto::core {
 #if defined( MIKOTO_ENABLE_TRACY )
 #define MKT_BEGIN_PROFILER_NAMED() ZoneScopedNS( __PRETTY_FUNCTION__, 30 );
 #else
-#define MKT_BEGIN_PROFILER_NAMED()
+#if !defined(NDEBUG)
+    #define MKT_BEGIN_PROFILER_NAMED() MKT_PROFILE_SCOPE()
+#else
+    #define MKT_BEGIN_PROFILER_NAMED()
+#endif
 #endif
 
 }// namespace mikoto::core

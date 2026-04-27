@@ -53,9 +53,6 @@ namespace mikoto::core {
 
         MKT_NODISCARD auto GetClipBoardContents() const -> eastl::string;
 
-        // Returns a list of directories dropped on a window
-        MKT_NODISCARD auto GetDroppedPaths(platform::Window* window) const -> eastl::vector<eastl::string>;
-
         auto SetFocus( platform::Window* newHandle ) -> void;
 
         ~InputSystem() override = default;

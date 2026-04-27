@@ -111,26 +111,32 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER_NAMED();
 
         AddHandler<WindowCloseEvent>(
-            [this]( Event &event ) -> bool {
+            [this]( IEvent &event ) -> bool {
                 mState = ApplicationStatus::eStopped;
                 event.SetHandled( true );
                 return true;
             } );
 
         AddHandler<KeyPressedEvent>(
-            [this]( Event &event ) -> bool {
+            [this]( IEvent &event ) -> bool {
                 mLayerStack.OnEvent( event );
                 return event.IsHandled();
             } );
 
         AddHandler<MouseButtonPressedEvent>(
-            [this]( Event &event ) -> bool {
+            [this]( IEvent &event ) -> bool {
                 mLayerStack.OnEvent( event );
                 return event.IsHandled();
             } );
 
         AddHandler<MouseButtonReleasedEvent>(
-            [this]( Event &event ) -> bool {
+            [this]( IEvent &event ) -> bool {
+                mLayerStack.OnEvent( event );
+                return event.IsHandled();
+            } );
+
+        AddHandler<ContentDroppedEvent>(
+            [this]( IEvent &event ) -> bool {
                 mLayerStack.OnEvent( event );
                 return event.IsHandled();
             } );

@@ -29,9 +29,13 @@ namespace mikoto::asset {
 
     using AssetID = u64;
 
-    MKT_NODISCARD inline auto GetHashedAssetID(const Path& path) -> AssetID {
-        return eastl::hash<eastl::string>{}(path.GetPathTyped<eastl::string>());
-    }
+    MKT_NODISCARD auto GetHashedAssetID(const Path& path) -> AssetID;
+
+    MKT_NODISCARD auto IsFileImage( const Path& path ) -> bool;
+    MKT_NODISCARD auto IsFileModel( const Path& path ) -> bool;
+    MKT_NODISCARD auto IsFileAudio( const Path& path ) -> bool;
+    MKT_NODISCARD auto IsFileFont( const Path& path ) -> bool;
+    MKT_NODISCARD auto IsFileMaterial( const Path& path ) -> bool;
 
 }
 #endif//MIKOTO_ASSET_HH

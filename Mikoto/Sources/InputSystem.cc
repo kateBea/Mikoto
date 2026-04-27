@@ -114,14 +114,15 @@ namespace mikoto::core {
     }
 
     auto InputSystem::GetClipBoardContents() const -> eastl::string {
-        // glfwSetClipboardString
-        return "";
-    }
+        try {
+            const auto window{ eastl::any_cast<GLFWwindow*>( mHandle->GetNativeWindow() ) };
+            const char* contents{ glfwGetClipboardString(window) };
+            return contents ? eastl::string{ contents } : eastl::string{};
+        } catch ( const std::exception& exception ) {
+            MKT_CORE_LOGGER_ERROR( "InputManager - {}", exception.what() );
+        }
 
-    auto InputSystem::GetDroppedPaths( Window *window ) const -> eastl::vector<eastl::string> {
-        // It will return the last files dropped on the target window
-        // glfwSetDropCallback
-        return {};
+        return eastl::string{};
     }
 
     auto InputSystem::GetMouseX() const -> double {

@@ -21,6 +21,8 @@
 #include <Core/CoreEvents.hh>
 #include <Core/Exception.hh>
 #include <Core/InputSystem.hh>
+#include <Core/Timer.hh>
+#include <Core/TimeService.hh>
 #include <Core/LocalizationService.hh>
 
 #include <Memory/Allocator.hh>
@@ -51,6 +53,49 @@ namespace mikoto::editor {
     using namespace mikoto::gui;
     using namespace mikoto::core;
     using namespace mikoto::platform;
+
+    auto DrawProfilerWindow(TimeService* timeService) -> void {
+        if (!ImGui::Begin("Profiler")) {
+            ImGui::End();
+            return;
+        }
+
+        const auto& times = timeService->GetTimes();
+
+        for (const auto& [name, history] : times) {
+            if (history.empty())
+                continue;
+
+            // --- Convert to float buffer ---
+            static eastl::vector<float> values;
+            values.clear();
+            values.reserve(history.size());
+
+            for (const auto& t : history) {
+                values.push_back(static_cast<float>(t.Convert(TimeUnit::eMilliseconds)));
+            }
+
+            // --- Latest value ---
+            float latest = values.back();
+
+            // --- Label ---
+            ImGui::Text("%s: %.3f ms", name.c_str(), latest);
+
+            // --- Graph ---
+            ImGui::PlotLines(
+                ("##" + name).c_str(), // hidden label
+                values.data(),
+                static_cast<int>(values.size()),
+                0,
+                nullptr,
+                0.0f,
+                50.0f, // max ms scale (adjust)
+                ImVec2(0, 120)
+            );
+        }
+
+        ImGui::End();
+    }
 
     auto EditorState::GetPrefab( PrefabModelType model ) -> ModelHandle {
         return mPrefabPaths[model];
@@ -92,9 +137,11 @@ namespace mikoto::editor {
 
         ShowDockSpace();
         ShowDockSpacePanels( timeStep );
+
+        //DrawProfilerWindow( TimeService::GetPtr() );
     }
 
-    auto EditorLayer::OnEvent( Event &event ) -> void {
+    auto EditorLayer::OnEvent( IEvent &event ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if (event.IsType( EventType::MOUSE_BUTTON_PRESSED_EVENT )) {
@@ -113,6 +160,20 @@ namespace mikoto::editor {
 
             if (mouseButtongEvent->GetMouseButton() == Mouse_Button_Right) {
                 mWindow->SetCursorMode( CursorMode::eNormal );
+            }
+        }
+
+        if (event.IsType( EventType::CONTENT_DROPPED_EVENT )) {
+            auto* contentDropped{ as<ContentDroppedEvent*>(MKT_ADDRESSOF( event )) };
+            for (const auto& c : contentDropped->GetContents() ) {
+                MKT_CORE_LOGGER_DEBUG( "User dropper {}", c.c_str() );
+
+                Path path{ c };
+                if (asset::IsFileImage( path )) {
+                    asset::AssetsService::Get()->LoadAssetAsync<ITexture>( path, TextureDimension::eTexture2D );
+                } else if (asset::IsFileModel( path )) {
+                    asset::AssetsService::Get()->LoadAssetAsync<Model>( path );
+                }
             }
         }
     }

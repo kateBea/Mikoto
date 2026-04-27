@@ -57,8 +57,8 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetImage( size_t index ) -> TextureHandle;
         MKT_NODISCARD auto GetFormat() -> Format;
 
-        MKT_NODISCARD auto Present( u32 imageIndex, const BinarySemaphore& renderFinished ) const -> VkResult;
-        MKT_NODISCARD auto GetNextImage( u32& imageIndex, const BinarySemaphore& imageAvailable ) const -> VkResult;
+        MKT_NODISCARD auto Present( u32 imageIndex, const BinarySemaphore& signalSemaphore ) const -> VkResult;
+        MKT_NODISCARD auto GetNextImage( u32& imageIndex, const BinarySemaphore& waitSemaphore ) const -> VkResult;
 
         // If changed a call to OnResize is required to apply changes
         auto SetRefreshType( RefreshRate type ) -> void;

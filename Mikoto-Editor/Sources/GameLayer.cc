@@ -17,6 +17,7 @@
 #include <Core/Core.hh>
 #include <Core/Event.hh>
 #include <Core/Types.hh>
+#include <Core/Timer.hh>
 
 #include <Math/Math.hh>
 
@@ -51,6 +52,7 @@ namespace mikoto::editor {
     }
 
     auto GameLayer::OnUpdate( float deltaTime ) -> void {
+        //MKT_PROFILE_SCOPE_MARKED( "GameLayer::OnUpdate" );
         mCommandList->Begin();
 
         // Fill the constant buffer
@@ -94,6 +96,7 @@ namespace mikoto::editor {
 
             // Issue draw call
             const auto drawArguments{ DrawArguments{}
+                .SetInstanceCount( 200 )
                 .SetIndexCount( mesh->GetIndexBuffer()->GetSizeBytes() / MKT_SIZEOF( u32 ) )
                 .SetVertexCount( mesh->GetVertexBuffer()->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription ) ) };
             mCommandList->DrawIndexed( drawArguments );
@@ -321,38 +324,30 @@ namespace mikoto::editor {
         // Ensure GPU is done
         mDevice->WaitIdle();
 
-        // --- Pipeline stuff ---
         mPipeline.Reset();
         mPipelineLayoutHandle.Reset();
         mBindingLayoutHandle.Reset();
         mVertexInputLayout.Reset();
 
-        // --- Shaders ---
         mVertexShader.Reset();
         mPixelShader.Reset();
 
-        // --- Buffers ---
         mConstantBuffer.Reset();
 
-        // --- Textures ---
         mSimpleTexture.Reset();
         mColorImage.Reset();
         mDepthImage.Reset();
 
-        // --- Sampler ---
         mSamplerState.Reset();
 
-        // --- Binding set ---
         mBindingSetHandle.Reset();
 
-        // --- Models / assets ---
         mModelHandle.Reset();
 
-        // --- Command resources ---
         mCommandList.Reset();
     }
 
-    auto GameLayer::OnEvent(Event& event) -> void {
+    auto GameLayer::OnEvent(IEvent& event) -> void {
         if (event.IsType(EventType::MOUSE_BUTTON_PRESSED_EVENT)) {
             auto* mouseButtonEvent{
                 as<MouseButtonPressedEvent*>(MKT_ADDRESSOF(event))

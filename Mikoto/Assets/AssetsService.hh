@@ -80,7 +80,7 @@ namespace mikoto::asset {
         auto RequestLoad(const Path& path, LoaderFn&& loader) -> void {
             std::unique_lock lock{ mMutex };
 
-            auto it{ mEntries.find(path) };
+            auto it{ mEntries.find(GetHashedAssetID(path)) };
 
             // Already loading or ready -> do nothing
             if (it != mEntries.end()) {
@@ -92,7 +92,7 @@ namespace mikoto::asset {
             entry->mState = LoadState::eLoading;
 
             Entry* entryPtr{ entry.get() };
-            mEntries.emplace(path, eastl::move(entry));
+            mEntries.emplace(GetHashedAssetID(path), eastl::move(entry));
 
             lock.unlock();
 
@@ -114,13 +114,13 @@ namespace mikoto::asset {
             {
                 std::unique_lock lock{ mMutex };
 
-                auto it{ mEntries.find( path ) };
+                auto it{ mEntries.find( GetHashedAssetID(path) ) };
                 if ( it == mEntries.end() ) {
                     // Create entry ONLY here
                     auto newEntry{ eastl::make_unique<Entry>() };
                     newEntry->mState = LoadState::eLoading;
 
-                    auto [insertIt, _]{ mEntries.emplace( path, eastl::move( newEntry ) ) };
+                    auto [insertIt, _]{ mEntries.emplace( GetHashedAssetID(path), eastl::move( newEntry ) ) };
                     entryPtr = insertIt->second.get();
                     // We are the loader -> continue below
                 } else {
@@ -158,7 +158,7 @@ namespace mikoto::asset {
         MKT_NODISCARD auto GetIfReady( const Path& path ) const -> Ref<AssetType> {
             std::lock_guard lock{ mMutex };
 
-            auto it{ mEntries.find( path ) };
+            auto it{ mEntries.find( GetHashedAssetID(path) ) };
             if ( it == mEntries.end() ) {
                 return Ref<AssetType>::CreateEmpty();
             }
@@ -193,7 +193,7 @@ namespace mikoto::asset {
 
     private:
         mutable std::mutex mMutex{};
-        ankerl::unordered_dense::map<Path, eastl::unique_ptr<Entry>> mEntries{};
+        ankerl::unordered_dense::map<AssetID, eastl::unique_ptr<Entry>> mEntries{};
     };
 
     struct AssetsServiceDescription {};

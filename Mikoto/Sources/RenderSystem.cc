@@ -83,7 +83,8 @@ namespace mikoto::renderer {
     }
 
     auto RenderSystem::PrepareFrame() const -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+        //MKT_BEGIN_PROFILER_NAMED();
+        //MKT_PROFILE_SCOPE_MARKED( "RenderSystem::PrepareFrame" );
 
         mContext->PrepareFrame();
 
@@ -95,8 +96,9 @@ namespace mikoto::renderer {
     }
 
     auto RenderSystem::SubmitFrame() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+        //MKT_BEGIN_PROFILER_NAMED();
 
+        //MKT_PROFILE_SCOPE_MARKED( "RenderSystem::SubmitFrame" );
         if (mEnableImGui && mImguiService) {
             mImguiService->EndFrame();
         }
@@ -105,6 +107,7 @@ namespace mikoto::renderer {
     }
 
     auto RenderSystem::PresentFrame() -> void {
+        //MKT_PROFILE_SCOPE_MARKED( "RenderSystem::PresentFrame" );
         mContext->Present();
     }
 

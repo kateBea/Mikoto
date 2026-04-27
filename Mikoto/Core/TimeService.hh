@@ -18,6 +18,7 @@
 #include <EASTL/chrono.h>
 #include <EASTL/ratio.h>
 #include <EASTL/string.h>
+#include <EASTL/vector.h>
 #include <EASTL/string_view.h>
 
 #include <fmt/chrono.h>
@@ -38,13 +39,14 @@ namespace mikoto::core {
     };
 
     struct Time {
-        double Value{};
-        TimeUnit Unit{ TimeUnit::eSeconds };
+        double mValue{};
+        TimeUnit mUnit{ TimeUnit::eSeconds };
 
         MKT_NODISCARD auto GetUnitString() const -> eastl::string_view;
         MKT_NODISCARD auto Convert( TimeUnit unit = TimeUnit::eSeconds) const -> double;
 
         MKT_NODISCARD static auto GetUnitString(TimeUnit unit) -> eastl::string_view;
+
 
     private:
         MKT_NODISCARD static auto Convert( TimeUnit src, TimeUnit dst, double value ) -> double;
@@ -66,6 +68,12 @@ namespace mikoto::core {
         auto Shutdown() -> void override;
 
         auto Tick() -> void;
+
+        // TODO: Add a system that uses MKT_BEGIN_PROFILER_NAMED() and stores the time every function took
+        // can use that to do some nice visualizations on ImGui
+        auto PushTime( const eastl::string& tag, Time time ) -> void;
+
+        MKT_NODISCARD auto GetTimes() const -> const auto& { return mTimeMap; }
 
         MKT_NODISCARD auto GetDefaultUnit() const -> TimeUnit;
         MKT_NODISCARD auto GetTimeStep( TimeUnit unit = TimeUnit::eSeconds) const -> double;
@@ -97,6 +105,9 @@ namespace mikoto::core {
         TimePoint mInitTimePoint{};
 
         TimeUnit mDefaultUnits{ TimeUnit::eSeconds };
+
+        std::mutex mTimeMutex{};
+        ankerl::unordered_dense::map<eastl::string, eastl::vector<Time>> mTimeMap;
     };
 }
 

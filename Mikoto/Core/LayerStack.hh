@@ -38,7 +38,7 @@ namespace mikoto::core {
         // Layers are not subscribers, instead subscribers can propagate
         // events to them through the layer stack. An event could be
         // marked as handled if we do not want to further propagate it down the layer stack
-        virtual auto OnEvent( Event& event ) -> void = 0;
+        virtual auto OnEvent( IEvent& event ) -> void = 0;
 
     private:
         eastl::string mName{ "BaseLayer" };
@@ -71,7 +71,7 @@ namespace mikoto::core {
         // Call OnUpdate on all registered layers
         auto OnUpdate(float deltaTime) -> void;
 
-        auto OnEvent(Event& event) -> void;
+        auto OnEvent(IEvent& event) -> void;
 
         // Iteration over registered layers
         MKT_NODISCARD constexpr auto begin() -> decltype(auto) { return mLayers.begin(); }

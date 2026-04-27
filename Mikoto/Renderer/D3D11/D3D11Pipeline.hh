@@ -37,8 +37,6 @@ namespace mikoto::renderer::d3d11 {
 
         explicit GraphicsPipeline( const rhi::GraphicsPipelineDescription& desc );
 
-        MKT_NODISCARD auto GetDescription() const noexcept -> const rhi::GraphicsPipelineDescription&;
-
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 

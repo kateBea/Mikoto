@@ -39,11 +39,11 @@ namespace mikoto::core {
     }
 
     Timer::Timer(bool printOnExit)
-        : m_TimeSinceStart{ Clock::now() }, m_PrintOnExit{ printOnExit }
+        : mTimeSinceStart{ Clock::now() }, mPrintOnExit{ printOnExit }
     {}
 
     Timer::Timer(eastl::string_view scopeName, eastl::string_view startMessage, bool showStartMessage)
-        :   m_TimeSinceStart{ Clock::now() }, m_ScopeName{ scopeName }
+        :   mTimeSinceStart{ Clock::now() }, mScopeName{ scopeName }, mPrintOnExit{ showStartMessage }
     {
         if (showStartMessage) {
             MKT_CORE_LOGGER_DEBUG("{}", startMessage);
@@ -52,23 +52,31 @@ namespace mikoto::core {
 
     auto Timer::GetCurrentProgress( const TimeUnit defaultUnit ) const -> double {
         switch (defaultUnit) {
-            case TimeUnit::eSeconds:         return eastl::chrono::duration_cast<Sec>(Clock::now() - m_TimeSinceStart).count();
-            case TimeUnit::eMilliseconds:    return eastl::chrono::duration_cast<Milli>(Clock::now() - m_TimeSinceStart).count();
-            case TimeUnit::eMicroseconds:    return eastl::chrono::duration_cast<Micro>(Clock::now() - m_TimeSinceStart).count();
-            case TimeUnit::eNanoseconds:     return eastl::chrono::duration_cast<Nano>(Clock::now() - m_TimeSinceStart).count();
+            case TimeUnit::eSeconds:         return eastl::chrono::duration_cast<Sec>(Clock::now() - mTimeSinceStart).count();
+            case TimeUnit::eMilliseconds:    return eastl::chrono::duration_cast<Milli>(Clock::now() - mTimeSinceStart).count();
+            case TimeUnit::eMicroseconds:    return eastl::chrono::duration_cast<Micro>(Clock::now() - mTimeSinceStart).count();
+            case TimeUnit::eNanoseconds:     return eastl::chrono::duration_cast<Nano>(Clock::now() - mTimeSinceStart).count();
         }
 
-        return eastl::chrono::duration_cast<Sec>(Clock::now() - m_TimeSinceStart).count();;
+        return eastl::chrono::duration_cast<Sec>(Clock::now() - mTimeSinceStart).count();;
     }
 
     auto Timer::Restart() -> void {
-        m_TimeSinceStart = Clock::now();
+        mTimeSinceStart = Clock::now();
     }
 
     Timer::~Timer() {
-        if (m_PrintOnExit) {
+        if (mPrintOnExit) {
             const auto units{ TimeUnit::eSeconds };
-            MKT_CORE_LOGGER_DEBUG("[END] Profiling Scope {}. Elapsed {:.10f} {}", m_ScopeName, GetCurrentProgress(units), GetUnitStr(units));
+            MKT_CORE_LOGGER_DEBUG("[END] Profiling Scope {}. Elapsed {:.10f} {}", mScopeName, GetCurrentProgress(units), GetUnitStr(units));
         }
+
+        // FIXME:
+        // if (TimeService::GetPtr()) {
+        //     TimeService::Get()->PushTime( mScopeName, Time {
+        //         .mValue = GetCurrentProgress(TimeUnit::eSeconds),
+        //         .mUnit = TimeUnit::eSeconds,
+        //     } );
+        // }
     }
 }

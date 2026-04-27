@@ -60,7 +60,8 @@ namespace mikoto::filesystem {
         MKT_NODISCARD auto GetPath() const noexcept -> eastl::string_view;
         MKT_NODISCARD auto GetC_Str() const noexcept -> const char*;
         MKT_NODISCARD auto GetStem() const noexcept -> eastl::string_view;
-        MKT_NODISCARD auto GetExtension() const noexcept -> eastl::string_view;
+        MKT_NODISCARD auto GetExtension() const noexcept -> const eastl::string&;
+        MKT_NODISCARD auto GetNormalizedExtension() const noexcept ->  const eastl::string&;
         MKT_NODISCARD auto GetAbsolute() const noexcept -> eastl::string;
 
         MKT_NODISCARD auto IsDirectoryEmpty() const -> bool;
@@ -95,6 +96,7 @@ namespace mikoto::filesystem {
         eastl::string mStem{};
         eastl::string mPathUtf8{};
         eastl::string mExtension{};
+        eastl::string mNormalizedExtension{};
 
         eastl::string mFilename{};
 

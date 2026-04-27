@@ -48,19 +48,19 @@ namespace mikoto::core {
         using TimePoint = eastl::chrono::time_point<Clock>;
 
     private:
-        eastl::string m_ScopeName{};
-        TimePoint m_TimeSinceStart{};
-        bool m_PrintOnExit{ true };
+        eastl::string mScopeName{};
+        TimePoint mTimeSinceStart{};
+        bool mPrintOnExit{ true };
     };
+
 }
 
 #if !defined(NDEBUG)
-    #define MKT_PROFILE_SCOPE()  Timer _Timer{ __PRETTY_FUNCTION__, string::Format("[START] Profiling: {}", __PRETTY_FUNCTION__ ) }
-    #define MKT_PROFILE_SCOPE_MARKED(MARK)  Timer _Timer{ MARK, string::Format("[START] Profiling: {}. Mark {}", __PRETTY_FUNCTION__, MARK ) }
+    #define MKT_PROFILE_SCOPE()  mikoto::core::Timer _Timer{ __PRETTY_FUNCTION__, mikoto::string::Format("[START] Profiling: {}", __PRETTY_FUNCTION__ ) }
+    #define MKT_PROFILE_SCOPE_MARKED(MARK)  mikoto::core::Timer _Timer{ MARK, mikoto::string::Format("[START] Profiling: {}. Mark {}", __PRETTY_FUNCTION__, MARK ), true }
 #else
     #define MKT_PROFILE_SCOPE()
     #define MKT_PROFILE_SCOPE_MARKED()
 #endif
-
 
 #endif // MIKOTO_TIMER_HH

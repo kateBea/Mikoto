@@ -167,6 +167,11 @@ namespace mikoto::platform {
                     InputSystem::Get()->SetFocus( data );
                 }
             });
+
+        glfwSetDropCallback(mWindow,
+            [](GLFWwindow *, int pathCount, const char** paths) -> void {
+                EventSystem::Get()->Queue<ContentDroppedEvent>( as<i32>( pathCount ), paths);
+            });
     }
 
     auto MainWindow::SetCustomTitle() -> void {

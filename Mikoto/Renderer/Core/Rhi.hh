@@ -46,6 +46,10 @@ namespace mikoto::renderer::rhi {
     using namespace mikoto::core;
     using namespace mikoto::memory;
 
+    // TODO: List of RHI improvements
+    // - Specify which description parameters are required to speak the same language for all supported APIs,
+    // for example when calling BindVertexBuffer the vertex description must specify SetElementStride(...)
+
     // ==================================================================================================================
     // Enums
     // ==================================================================================================================
@@ -535,6 +539,7 @@ namespace mikoto::renderer::rhi {
     static inline constexpr u32 kMaxViewports{ 16 };
     static inline constexpr u32 kMaxScissors{ 10 };
     static inline constexpr u32 kMaxShaders{ 15 };
+    static inline constexpr u32 kMaxColorFormats{ 10 };
     static inline constexpr u32 kMaxCubeFaces{ 6 };
     static inline constexpr u32 kMaxRenderTargets{ 8 };
     static inline constexpr u32 kMaxVertexAttributes{ 16 };
@@ -1675,7 +1680,7 @@ namespace mikoto::renderer::rhi {
         eastl::fixed_hash_map<ShaderType, ShaderModuleHandle, kMaxShaders> mShaders{};
 
         Format mDepthFormat{};
-        eastl::vector<Format> mColorFormats{};
+        eastl::fixed_vector<Format, kMaxColorFormats> mColorFormats{};
 
         auto SetPipelineLayout( PipelineLayoutHandle handle ) -> GraphicsPipelineDescription&;
         auto SetInputLayout( InputLayoutHandle handle ) -> GraphicsPipelineDescription&;
@@ -1711,6 +1716,8 @@ namespace mikoto::renderer::rhi {
         explicit IComputePipeline(const ComputePipelineDescription& desc)
             : IPipeline{ PipelineType::eCompute }, mDesc{ desc } {}
 
+        MKT_NODISCARD auto GetDescription() const noexcept -> const ComputePipelineDescription&;
+
     protected:
         ComputePipelineDescription mDesc{};
     };
@@ -1723,7 +1730,7 @@ namespace mikoto::renderer::rhi {
         virtual ~IQueue() = default;
 
     protected:
-        IQueue( QueueType type )
+        explicit IQueue( QueueType type )
             : mType{ type } {}
 
     protected:

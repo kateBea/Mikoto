@@ -129,7 +129,6 @@ namespace mikoto::renderer::vulkan {
             TextureHandle currentSwapchainImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
             mSwapChainRenderCmds->Begin();
 
-
             // TODO: Here I will do my full quad render I can use my RHI the pass is pretty simple here i basically just build a command buffer and submit it then submit a transition too
             // when I call flush it will start execution all those commands that i just queued but I never submitted actually to the GPU to be executed
             // I do it like this because this way i do one big submit instead of multiple submits in a single frame
@@ -178,7 +177,9 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Context::PrepareFrame() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+        //MKT_BEGIN_PROFILER_NAMED();
+
+        //MKT_PROFILE_SCOPE_MARKED( "Context::PrepareFrame" );
 
         const auto& frame{ mFrames[mCurrentFrameIndex] };
         auto device{ checked_cast<Device*>( mDevice.get() ) };

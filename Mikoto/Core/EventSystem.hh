@@ -37,7 +37,7 @@ namespace mikoto::core {
     using namespace mikoto::math::random;
 
     template<typename EventClassType>
-    concept IsEventDerived = std::is_base_of_v<Event, EventClassType>;
+    concept IsEventDerived = std::is_base_of_v<IEvent, EventClassType>;
 
     class EventHandler {
     public:
@@ -52,7 +52,7 @@ namespace mikoto::core {
         EventHandler( EventHandler&& other ) = default;
         auto operator=( EventHandler&& other ) noexcept -> EventHandler& = default;
 
-        auto Exec( Event& event ) const -> bool {
+        auto Exec( IEvent& event ) const -> bool {
             return m_Handler( event );
         }
 
@@ -173,7 +173,7 @@ namespace mikoto::core {
     private:
         template<typename EventType, typename... Args>
             requires IsEventDerived<EventType>
-        MKT_NODISCARD static auto MakeEvent( Args&&... args ) -> eastl::unique_ptr<Event> {
+        MKT_NODISCARD static auto MakeEvent( Args&&... args ) -> eastl::unique_ptr<IEvent> {
             return eastl::make_unique<EventType>( eastl::forward<Args>( args )... );
         }
 
@@ -192,7 +192,7 @@ namespace mikoto::core {
         auto ProcessEvents() -> void;
 
     private:
-        eastl::vector<eastl::unique_ptr<Event>> mEventQueue{};
+        eastl::vector<eastl::unique_ptr<IEvent>> mEventQueue{};
         ankerl::unordered_dense::map<u64, Subscriber*> mSubscribers{};
     };
 }

@@ -86,7 +86,7 @@ namespace mikoto::editor {
         auto OnDestroy() -> void override;
         auto OnUpdate(float timeStep) -> void override;
 
-        auto OnEvent(Event &event) -> void override;
+        auto OnEvent(IEvent &event) -> void override;
 
     private:
         auto InitAssets() -> void;

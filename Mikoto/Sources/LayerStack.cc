@@ -37,7 +37,7 @@ namespace mikoto::core {
         }
     }
 
-    auto LayerStack::OnEvent( Event &event ) -> void {
+    auto LayerStack::OnEvent( IEvent &event ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         for ( const auto &layerPtr: mLayers | std::views::values ) {

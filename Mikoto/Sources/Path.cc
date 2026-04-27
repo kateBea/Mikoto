@@ -21,8 +21,11 @@
 #include <Logging/Assert.hh>
 
 namespace mikoto::filesystem {
-    namespace {
 
+    using namespace mikoto::core;
+
+    // Empty namespaces give internal linkage
+    namespace {
         auto ToStdPath( eastl::string_view path ) -> std::filesystem::path {
             return std::filesystem::path{ path.data() };
         }
@@ -44,8 +47,7 @@ namespace mikoto::filesystem {
 
             return PathFileType::eInvalid;
         }
-
-    }// namespace
+    }
 
     Path::Path()
         : mPathObjectType{ PathFileType::eInvalid } {
@@ -74,10 +76,19 @@ namespace mikoto::filesystem {
 
         mStem = std::filesystem::path{ mPathUtf8.c_str() }.stem().string().c_str();
 
-        mExtension = ToEastlString( stdPath.extension() );
         mFilename = ToEastlString( stdPath.filename() );
         mPathObjectType = DetermineFileType( stdPath );
         mIsAbsolutePath = stdPath.is_absolute();
+
+        mExtension = ToEastlString( stdPath.extension() );
+
+        mNormalizedExtension = mExtension;
+        if (!mNormalizedExtension.empty() && mNormalizedExtension[0] == '.') {
+            mNormalizedExtension.erase(mNormalizedExtension.begin());
+        }
+
+        eastl::transform(mNormalizedExtension.begin(), mNormalizedExtension.end(), mNormalizedExtension.begin(),
+            [](char c) { return as<char>(::tolower(c)); });
     }
 
     auto Path::operator==( const Path& other ) const -> bool {
@@ -104,8 +115,12 @@ namespace mikoto::filesystem {
         return mStem;
     }
 
-    auto Path::GetExtension() const noexcept -> eastl::string_view {
+    auto Path::GetExtension() const noexcept -> const eastl::string& {
         return mExtension;
+    }
+
+    auto Path::GetNormalizedExtension() const noexcept -> const eastl::string& {
+        return mNormalizedExtension;
     }
 
     auto Path::GetAbsolute() const noexcept -> eastl::string {

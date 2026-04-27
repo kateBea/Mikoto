@@ -61,10 +61,10 @@ namespace mikoto::renderer::vulkan {
         return mFormat;
     }
 
-    auto SwapChain::Present( u32 imageIndex, const BinarySemaphore &renderFinished ) const -> VkResult {
+    auto SwapChain::Present( u32 imageIndex, const BinarySemaphore &signalSemaphore ) const -> VkResult {
         const eastl::array swapChains{ mSwapChain };
 
-        VkSemaphore semaphore{ renderFinished.GetNativeHandle( ObjectType::Vk_Semaphore ) };
+        VkSemaphore semaphore{ signalSemaphore.GetNativeHandle( ObjectType::Vk_Semaphore ) };
         const eastl::array waitSemaphores{ semaphore };
 
         VkPresentInfoKHR presentInfo{ initializers::PresentInfoKHR() };
@@ -84,8 +84,8 @@ namespace mikoto::renderer::vulkan {
         return vkQueuePresentKHR( *presentQueue, MKT_ADDRESSOF( presentInfo ) );
     }
 
-    auto SwapChain::GetNextImage( u32 &imageIndex, const BinarySemaphore &imageAvailable ) const -> VkResult {
-        VkSemaphore semaphore{ imageAvailable.GetNativeHandle( ObjectType::Vk_Semaphore ) };
+    auto SwapChain::GetNextImage( u32 &imageIndex, const BinarySemaphore &waitSemaphore ) const -> VkResult {
+        VkSemaphore semaphore{ waitSemaphore.GetNativeHandle( ObjectType::Vk_Semaphore ) };
         return vkAcquireNextImageKHR( as<Device*>(mDevice)->GetDevice(), mSwapChain, ( eastl::numeric_limits<u64>::max )(),
            semaphore, VK_NULL_HANDLE, MKT_ADDRESSOF( imageIndex ) );;
     }

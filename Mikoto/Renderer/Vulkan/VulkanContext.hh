@@ -91,7 +91,7 @@ namespace mikoto::renderer::vulkan {
 
         CommandListHandle mSwapChainRenderCmds{};
 
-        eastl::vector<FrameContext> mFrames{};
+        eastl::fixed_vector<FrameContext, kMaxFramesInFlight> mFrames{};
     };
 }// namespace mikoto::renderer::vulkan
 

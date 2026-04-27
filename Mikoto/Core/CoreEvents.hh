@@ -17,6 +17,9 @@
 
 #include <EASTL/array.h>
 #include <EASTL/string.h>
+#include <EASTL/vector.h>
+#include <EASTL/span.h>
+#include <EASTL/fixed_vector.h>
 #include <EASTL/string_view.h>
 
 #include <fmt/core.h>
@@ -27,10 +30,10 @@
 #include <Core/String.hh>
 
 namespace mikoto::core {
-    class WindowResizedEvent final : public Event {
+    class WindowResizedEvent final : public IEvent {
     public:
         WindowResizedEvent(i32 newWidth, i32 newHeight)
-            :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
+            :   IEvent{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
             ,   mWidth{ newWidth }
             ,   mHeight{ newHeight }
         {
@@ -54,10 +57,10 @@ namespace mikoto::core {
         i32 mHeight{};
     };
 
-    class WindowCloseEvent final : public Event {
+    class WindowCloseEvent final : public IEvent {
     public:
         explicit WindowCloseEvent()
-            :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
+            :   IEvent{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
         {
 
         }
@@ -74,10 +77,10 @@ namespace mikoto::core {
         MKT_NODISCARD auto ToString() const -> eastl::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class AppTick final : public Event {
+    class AppTick final : public IEvent {
     public:
         explicit AppTick()
-            :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
+            :   IEvent{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
         {
 
         }
@@ -94,10 +97,10 @@ namespace mikoto::core {
         MKT_NODISCARD auto ToString() const -> eastl::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class CameraEnableRotation final : public Event {
+    class CameraEnableRotation final : public IEvent {
     public:
         explicit CameraEnableRotation()
-            :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
+            :   IEvent{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
         {
 
         }
@@ -114,10 +117,10 @@ namespace mikoto::core {
         MKT_NODISCARD auto ToString() const -> eastl::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class AppClose final : public Event {
+    class AppClose final : public IEvent {
     public:
         explicit AppClose()
-            :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
+            :   IEvent{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
         {
 
         }
@@ -134,10 +137,10 @@ namespace mikoto::core {
         MKT_NODISCARD auto ToString() const -> eastl::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class AppUpdate final : public Event {
+    class AppUpdate final : public IEvent {
     public:
         explicit AppUpdate()
-            :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
+            :   IEvent{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
         {
 
         }
@@ -154,10 +157,10 @@ namespace mikoto::core {
         MKT_NODISCARD auto ToString() const -> eastl::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class AppRender final : public Event {
+    class AppRender final : public IEvent {
     public:
         explicit AppRender()
-            :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
+            :   IEvent{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
         {
 
         }
@@ -175,13 +178,13 @@ namespace mikoto::core {
     };
 
 
-    class KeyEvent : public Event {
+    class KeyEvent : public IEvent {
     public:
         MKT_NODISCARD auto GetKeyCode() const -> i32 { return mKeyCode; }
 
     protected:
         KeyEvent(EventType type, i32 keyCode)
-            :   Event{ type, GetCategoryFromType(type) }
+            :   IEvent{ type, GetCategoryFromType(type) }
             ,   mKeyCode{ keyCode }
         {
 
@@ -236,10 +239,10 @@ namespace mikoto::core {
         MKT_NODISCARD auto ToString() const -> eastl::string_view override { return GetEventFormattedStr(GetType()); }
     };
 
-    class KeyCharEvent final : public Event {
+    class KeyCharEvent final : public IEvent {
     public:
         explicit KeyCharEvent(u32 charCode)
-            :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
+            :   IEvent{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
             ,   mKeyChar{ charCode }
         {
 
@@ -259,10 +262,59 @@ namespace mikoto::core {
         u32 mKeyChar{};
     };
 
-    class MouseMovedEvent final : public Event {
+    class ClipboardSetEvent final : public IEvent {
+    public:
+        explicit ClipboardSetEvent(eastl::span<eastl::string> contents)
+            :  IEvent{ GetStaticType(), GetCategoryFromType(GetStaticType()) },
+            mContents{ contents.begin(), contents.end() }
+        {}
+
+        MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
+
+        MKT_NODISCARD auto GetContents() const -> const auto& { return mContents; }
+        MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::CLIPBOARD_EVENT; }
+
+        MKT_NODISCARD auto DisplayData() const -> eastl::string override {
+            return "NOT_IMPLEMENTED";
+        }
+    protected:
+        MKT_NODISCARD auto ToString() const -> eastl::string_view override { return GetEventFormattedStr(GetType()); }
+
+    protected:
+        static constexpr u32 kMaxContents{ 15 };
+        eastl::fixed_vector<eastl::string, kMaxContents> mContents{};
+    };
+
+    class ContentDroppedEvent final : public IEvent {
+    public:
+        explicit ContentDroppedEvent(i32 count, const char** contents)
+            :  IEvent{ GetStaticType(), GetCategoryFromType(GetStaticType()) } {
+            mContents.reserve(count);
+            for (i32 i{}; i < count; ++i) {
+                mContents.emplace_back(contents[i]);
+            }
+        }
+
+        MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
+
+        MKT_NODISCARD auto GetContents() const -> const auto& { return mContents; }
+        MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::CONTENT_DROPPED_EVENT; }
+
+        MKT_NODISCARD auto DisplayData() const -> eastl::string override {
+            return "NOT_IMPLEMENTED";
+        }
+    protected:
+        MKT_NODISCARD auto ToString() const -> eastl::string_view override { return GetEventFormattedStr(GetType()); }
+
+    protected:
+        static constexpr u32 kMaxContents{ 15 };
+        eastl::fixed_vector<eastl::string, kMaxContents> mContents{};
+    };
+
+    class MouseMovedEvent final : public IEvent {
     public:
         MouseMovedEvent(double x, double y)
-            :   Event{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
+            :   IEvent{ GetStaticType(), GetCategoryFromType(GetStaticType()) }
             ,   mPositionX{ x }
             ,   mPositionY{ y }
         {
@@ -286,10 +338,10 @@ namespace mikoto::core {
         f64 mPositionY{};
     };
 
-    class MouseEvent : public Event {
+    class MouseEvent : public IEvent {
     protected:
         explicit MouseEvent(EventType type)
-            :   Event{ type, GetCategoryFromType(type) }
+            :   IEvent{ type, GetCategoryFromType(type) }
         {
 
         }

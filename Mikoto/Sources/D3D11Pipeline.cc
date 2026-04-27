@@ -30,10 +30,6 @@ namespace mikoto::renderer::d3d11 {
         : IGraphicsPipeline{ desc }
     {}
 
-    auto GraphicsPipeline::GetDescription() const noexcept -> const rhi::GraphicsPipelineDescription& {
-        return mDesc;
-    }
-
     auto GraphicsPipeline::GetNativeHandle( rhi::ObjectType type ) -> rhi::Object {
         switch (type) {
             case rhi::ObjectType::D3D11_BlendState:

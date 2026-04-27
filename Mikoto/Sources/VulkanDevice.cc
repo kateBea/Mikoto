@@ -88,7 +88,7 @@ namespace mikoto::renderer::vulkan {
         // Init descriptor manager
         InitDescriptorAllocator();
 
-        InitDummyResources();
+        CreateDummyResources();
 
         mIsInitialized = true;
     }
@@ -306,7 +306,7 @@ namespace mikoto::renderer::vulkan {
 
         if ( semaphore.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice - Failed to allocate texture" );
-            return TextureHandle::CreateEmpty();
+            return SemaphoreHandle::CreateEmpty();
         }
 
         semaphore->Initialize( this );
@@ -319,7 +319,7 @@ namespace mikoto::renderer::vulkan {
 
         if ( semaphore.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice - Failed to allocate texture" );
-            return TextureHandle::CreateEmpty();
+            return SemaphoreHandle::CreateEmpty();
         }
 
         semaphore->Initialize( this );
@@ -430,8 +430,8 @@ namespace mikoto::renderer::vulkan {
         return checked_cast<Sampler*>( mDummySampler.GetRaw() );
     }
 
-    auto Device::GetGetLayoutForEmptySet() -> VkDescriptorSetLayout {
-        return mEmptyDescriptorSetLayout;
+    auto Device::GetLayoutForEmptySet() -> VkDescriptorSetLayout {
+        return mEmptyBindingLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout );
     }
 
     auto Device::GetUploadManager() -> GpuUploadManager * {
@@ -626,22 +626,6 @@ namespace mikoto::renderer::vulkan {
         mGpuAllocator->Init();
     }
 
-    auto Device::InitDummyResources() -> void {
-        VkDescriptorSetLayoutCreateInfo emptyInfo{
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = 0,
-            .pBindings = nullptr
-        };
-
-        MKT_VK_CHECK( vkCreateDescriptorSetLayout(
-            mLogicalDevice,
-            MKT_ADDRESSOF( emptyInfo ),
-            nullptr,
-            MKT_ADDRESSOF( mEmptyDescriptorSetLayout ) ) );
-
-        mDummySampler = CreateSampler( SamplerCreateDescription{} );
-    }
-
     auto Device::InitDescriptorAllocator() -> void {
         Context *ctx{ as<Context *>( RenderSystem::Get()->GetContext() ) };
         mDescriptorAllocatorPool = IDescriptorAllocatorPool::Create( mLogicalDevice, ctx->GetMaxFramesInFlight() );
@@ -668,18 +652,24 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::GetPrimaryPhysicalDevice() -> void {
     }
+
     auto Device::CreatePrimaryLogicalDevice() -> void {
     }
+
     auto Device::InitTracyContext() -> void {
     }
+
     auto Device::ShutdownTracyContext() -> void {
     }
+
     auto Device::CreateDummyResources() -> void {
+        mDummySampler = CreateSampler( SamplerCreateDescription{} );
+        mEmptyBindingLayout = CreateBindingLayout( BindingLayoutDescription{} );
     }
 
     auto Device::DestroyDummyResources() -> void {
         mDummySampler.Reset();
-        vkDestroyDescriptorSetLayout( mLogicalDevice, mEmptyDescriptorSetLayout, nullptr );
+        mEmptyBindingLayout.Reset();
     }
 
     auto Device::IsDeviceSuitable( const PhysicalDevice& device ) -> bool {
@@ -767,8 +757,10 @@ namespace mikoto::renderer::vulkan {
     auto CommandList::BeginTrackingState( IBuffer *buffer, ResourceStates newState ) -> void {
         auto oldState{ buffer->GetResourceState() };
 
-        if (oldState == newState)
-            return;
+        // Before any read access you need to make sure the previous writes
+        // are completed and the image is in the correct layout hence why we insert a barrier even if it has proper layout
+        // if (oldState == newState)
+        //     return;
 
         VkBufferMemoryBarrier2 barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
@@ -795,8 +787,10 @@ namespace mikoto::renderer::vulkan {
     auto CommandList::BeginTrackingState( ITexture *texture, ResourceStates newState ) -> void {
         auto oldState{ texture->GetResourceState() };
 
-        if (oldState == newState)
-            return;
+        // Before any read access you need to make sure the previous writes
+        // are completed and the image is in the correct layout hence why we insert a barrier even if it has proper layout
+        // if (oldState == newState)
+        //     return;
 
         VkImageMemoryBarrier2 barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -878,7 +872,9 @@ namespace mikoto::renderer::vulkan {
     auto CommandList::WriteTexture( ITexture *texture, u32 mipLevel, const void *data, size_t byteSize ) -> void {
         auto texturePreviousState{ texture->GetResourceState() };
 
-        SetResourceState( texture, ResourceStates::eCopyDest );
+        if (mEnableAutomaticBarriers) {
+            SetResourceState( texture, ResourceStates::eCopyDest );
+        }
 
         GpuUploadAllocation* allocation{ mUploadManager->SubAllocate( byteSize ) };
         SetResourceState( allocation->mBuffer, ResourceStates::eCopySource );
@@ -913,7 +909,9 @@ namespace mikoto::renderer::vulkan {
                 1,
                 &copyRegion );
 
-        SetResourceState(texture, texturePreviousState == ResourceStates::eUnknown ? ResourceStates::eCommon : texturePreviousState);
+        if (mEnableAutomaticBarriers) {
+            SetResourceState(texture, texturePreviousState == ResourceStates::eUnknown ? ResourceStates::eCommon : texturePreviousState);
+        }
 
         mUploadAllocations.emplace_back( allocation );
     }
@@ -929,8 +927,10 @@ namespace mikoto::renderer::vulkan {
         }
 
         auto currentState{ buffer->GetResourceState() };
-        if (buffer->GetResourceState() != ResourceStates::eCopyDest) {
-            SetResourceState(buffer, ResourceStates::eCopyDest);
+        if (mEnableAutomaticBarriers) {
+            if (buffer->GetResourceState() != ResourceStates::eCopyDest) {
+                SetResourceState(buffer, ResourceStates::eCopyDest);
+            }
         }
 
         const VkBuffer vkBuffer{ buffer->GetNativeHandle(ObjectType::Vk_Buffer) };
@@ -947,10 +947,10 @@ namespace mikoto::renderer::vulkan {
                 data
             );
         } else {
+            // TODO: Use local linear allocator for frequently updated data
             // Instead of using the GPU default allocator I can declare a linear allocator for every command buffer
             // On first usage (lazy create) I create the buffer with a large enough size
             // every time I call End() I just reset the allocator
-            // Use local linear allocator
             GpuUploadAllocation* allocation{ mUploadManager->SubAllocate( byteSize ) };
             SetResourceState( allocation->mBuffer, ResourceStates::eCopySource );
 
@@ -972,7 +972,9 @@ namespace mikoto::renderer::vulkan {
             mUploadAllocations.emplace_back( allocation );
         }
 
-        SetResourceState(buffer, currentState == ResourceStates::eUnknown ? ResourceStates::eCommon : currentState);
+        if (mEnableAutomaticBarriers) {
+            SetResourceState(buffer, currentState == ResourceStates::eUnknown ? ResourceStates::eCommon : currentState);
+        }
     }
 
     auto CommandList::Draw( const DrawArguments &args ) -> void {
@@ -981,13 +983,12 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::DrawIndexed( const DrawArguments &args ) -> void {
         vkCmdDrawIndexed(
-                mCmdBuffer,
-                args.mIndexCount,
-                args.mInstanceCount,
-                args.mFirstIndex,
-                args.mVertexOffset,
-                args.mFirstInstance
-            );
+            mCmdBuffer,
+            args.mIndexCount,
+            args.mInstanceCount,
+            args.mFirstIndex,
+            args.mVertexOffset,
+            args.mFirstInstance );
     }
 
     auto CommandList::DrawIndirect( u32 offset, u32 drawCount ) -> void {
@@ -1023,8 +1024,10 @@ namespace mikoto::renderer::vulkan {
         auto srcPreviousState{ src->GetResourceState() };
         auto destPreviousState{ dest->GetResourceState() };
 
-        SetResourceState(src, ResourceStates::eCopySource);
-        SetResourceState(dest, ResourceStates::eCopyDest);
+        if (mEnableAutomaticBarriers) {
+            SetResourceState(src, ResourceStates::eCopySource);
+            SetResourceState(dest, ResourceStates::eCopyDest);
+        }
 
         VkBufferCopy region{};
         region.srcOffset = 0;
@@ -1039,8 +1042,10 @@ namespace mikoto::renderer::vulkan {
             &region
         );
 
-        SetResourceState(src,  srcPreviousState);
-        SetResourceState(dest, destPreviousState);
+        if (mEnableAutomaticBarriers) {
+            SetResourceState(src,  srcPreviousState);
+            SetResourceState(dest, destPreviousState);
+        }
     }
 
     auto CommandList::BeginRendering( GraphicsState& state ) -> void {
@@ -1470,8 +1475,6 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::MarkSubmitted( u64 submissionID ) -> void {
-        mLastSubmissionID = submissionID;
-
         mSubmissionItems.emplace_back(SubmissionItem{
             submissionID,
             mCmdBuffer
@@ -1652,14 +1655,11 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        (void)SubmitCommands(mPendingSubmits);
+        (void)SubmitCommands();
     }
 
     auto Queue::ExecuteCommandList( CommandListHandle cmd ) -> u64 {
         MKT_ASSERT(!cmd.IsEmpty(), "Command List cannot be empty");
-
-        // Flush current level (Current submissionID)
-        //Flush();
 
         // Register and Flush next submissionID
         u64 id{ SubmitCommandList( cmd ) };
@@ -1780,8 +1780,8 @@ namespace mikoto::renderer::vulkan {
         return result->second;
     }
 
-    auto Queue::SubmitCommands( eastl::span<CommandListHandle> cmds ) -> u64 {
-        if ( cmds.empty() ) {
+    auto Queue::SubmitCommands() -> u64 {
+        if ( mPendingSubmits.empty() ) {
             return 0;
         }
 
@@ -1791,25 +1791,26 @@ namespace mikoto::renderer::vulkan {
         const u64 submissionID{ timeline->GetCurrentID() };
 
         // --- Command buffers ---
-        eastl::vector<VkCommandBufferSubmitInfo> cmdInfos{};
-        cmdInfos.reserve( cmds.size() );
+        eastl::fixed_vector<VkCommandBufferSubmitInfo, kMaxSubmits> cmdInfos{};
 
-        for ( auto& cmd: cmds ) {
+        for ( auto& cmd: mPendingSubmits ) {
             cmdInfos.emplace_back( VkCommandBufferSubmitInfo{
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                 .pNext = nullptr,
                 .commandBuffer = cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
                 .deviceMask = 0 } );
+
+            checked_cast<CommandList*>( cmd.GetRaw() )->MarkSubmitted( submissionID );
         }
 
         // --- Wait semaphores ---
-        eastl::vector<VkSemaphoreSubmitInfo> waitInfos{};
+        eastl::fixed_vector<VkSemaphoreSubmitInfo, 15> waitInfos{};
         for ( const auto& w: mWaitInfos ) {
             waitInfos.emplace_back( w );
         }
 
         // --- Signal semaphores ---
-        eastl::vector<VkSemaphoreSubmitInfo> signalInfos{};
+        eastl::fixed_vector<VkSemaphoreSubmitInfo, 15> signalInfos{};
         for ( const auto& s: mSignalInfos ) {
             signalInfos.emplace_back( s );
         }
@@ -1843,10 +1844,6 @@ namespace mikoto::renderer::vulkan {
         // Clear per-submit sync
         mWaitInfos.clear();
         mSignalInfos.clear();
-
-        for (auto& cmd : mPendingSubmits ) {
-            checked_cast<CommandList*>( cmd.GetRaw() )->MarkSubmitted( submissionID );
-        }
 
         mPendingSubmits.clear();
 
@@ -2344,10 +2341,12 @@ namespace mikoto::renderer::vulkan {
         // Check fence, I'm not sure maybe timeline semaphores can be used instead
         for ( auto& [buffer, subAllocations]: mSubAllocations ) {
             // Is it safe to return them back here?
-            for (auto& subAllocation : subAllocations) {
-                if ( subAllocation && !subAllocation->mInUse.test() ) {
-                    mBuffers[buffer]->mMemoryArena->Free(subAllocation->mAllocation);
-                    subAllocation = nullptr;
+            for (auto it{subAllocations.begin()}; it != subAllocations.end(); ) {
+                if (it->get() && !(*it)->mInUse.test()) {
+                    mBuffers[buffer]->mMemoryArena->Free((*it)->mAllocation);
+                    it = subAllocations.erase( it );
+                } else {
+                    ++it;
                 }
             }
         }
@@ -2842,7 +2841,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         // Initialize everything with "holes" and fill accordingly
-        VkDescriptorSetLayout emptySetLayout{ device->GetGetLayoutForEmptySet() };
+        VkDescriptorSetLayout emptySetLayout{ device->GetLayoutForEmptySet() };
         eastl::vector<VkDescriptorSetLayout> setLayouts( maxSet + 1, emptySetLayout );
 
         // Place set layouts at correct set indices

@@ -76,8 +76,6 @@ namespace mikoto::core {
     auto Engine::Initialize() -> void {
         MKT_PROFILE_SCOPE();
 
-        MKT_BEGIN_PROFILER_NAMED();
-
         MKT_CORE_LOGGER_DEBUG( "Initializing Engine..." );
 
         if (mEnableAllServices) {

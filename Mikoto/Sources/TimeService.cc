@@ -32,15 +32,15 @@
 namespace mikoto::core {
 
     auto Time::GetUnitString() const -> eastl::string_view {
-        return GetUnitString( this->Unit );
+        return GetUnitString( this->mUnit );
     }
 
     auto Time::Convert( TimeUnit unit ) const -> double {
-        if (unit == Unit) {
-            return Value;
+        if (unit == mUnit) {
+            return mValue;
         }
 
-        return Convert(this->Unit, unit, Value);
+        return Convert(this->mUnit, unit, mValue);
     }
 
     auto Time::GetUnitString( TimeUnit unit ) -> eastl::string_view {
@@ -112,6 +112,18 @@ namespace mikoto::core {
         const auto now{ Clock::now() };
         mTimeStep = eastl::chrono::duration_cast<Sec>( now - mLastFrameTime ).count();
         mLastFrameTime = now;
+    }
+
+    auto TimeService::PushTime( const eastl::string& tag, Time time ) -> void {
+        constexpr size_t kMaxSamples{ 120 }; // ~2 seconds at 60fps
+
+        auto& history { mTimeMap[tag] };
+
+        history.push_back(time);
+
+        if (history.size() > kMaxSamples) {
+            history.erase(history.begin()); // simple, fine for now
+        }
     }
 
     auto TimeService::GetDefaultUnit() const -> TimeUnit {

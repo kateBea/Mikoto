@@ -40,7 +40,7 @@ namespace mikoto::editor {
         auto OnUpdate( float deltaTime ) -> void override;
         auto OnCreate() -> void override;
         auto OnDestroy() -> void override;
-        auto OnEvent( core::Event &event ) -> void override;
+        auto OnEvent( core::IEvent &event ) -> void override;
 
     private:
         struct ConstantBuffer {

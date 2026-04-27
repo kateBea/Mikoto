@@ -183,7 +183,7 @@ namespace mikoto::renderer::vulkan {
 
         GpuDevice* mDevice{};
         ankerl::unordered_dense::map<IBuffer*, eastl::unique_ptr<StagingAllocation>> mBuffers{};
-        ankerl::unordered_dense::map<IBuffer*, eastl::vector<eastl::unique_ptr<GpuUploadAllocation>>> mSubAllocations{};
+        ankerl::unordered_dense::map<IBuffer*, eastl::fixed_vector<eastl::unique_ptr<GpuUploadAllocation>, kMaxSubAllocations>> mSubAllocations{};
     };
 
     // Keeps tract of bound resources
@@ -293,9 +293,7 @@ namespace mikoto::renderer::vulkan {
         static constexpr size_t kArenaInitialSize{ MKT_MEGABYTES( 10 ) };
         eastl::unique_ptr<memory::MemoryArena<IBuffer, LinearAllocator>> mMemoryArena{};
 
-        eastl::vector<GpuUploadAllocation*> mUploadAllocations{};
-
-        u64 mLastSubmissionID{ 0 };
+        eastl::fixed_vector<GpuUploadAllocation*, 10> mUploadAllocations{};
         eastl::fixed_vector<SubmissionItem, 10> mSubmissionItems{};
     };
 
@@ -345,8 +343,6 @@ namespace mikoto::renderer::vulkan {
 
         auto AllocateCmdList() -> CommandListHandle;
 
-        MKT_NODISCARD auto GetCompletedValue() const -> u64;
-
         auto PushDelete( VkCommandBuffer cmd, VkCommandPool pool, u64 submitID ) -> void;
 
         auto WaitForSubmission( u64 submissionID ) -> void;
@@ -356,6 +352,8 @@ namespace mikoto::renderer::vulkan {
         auto AddQueueWaitSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void;
 
         auto WaitIdle() const -> void;
+
+        MKT_NODISCARD auto GetCompletedValue() const -> u64;
 
         MKT_NODISCARD auto GetQueue() const -> VkQueue;
         MKT_NODISCARD auto GetQueueIndex() const -> u32;
@@ -367,7 +365,7 @@ namespace mikoto::renderer::vulkan {
 
         auto AcquireThreadCmdPool() -> CommandPoolHandle;
 
-        MKT_NODISCARD auto SubmitCommands( eastl::span<CommandListHandle> cmds ) -> u64;
+        MKT_NODISCARD auto SubmitCommands() -> u64;
 
     private:
         GpuDevice *mDevice{};
@@ -383,9 +381,10 @@ namespace mikoto::renderer::vulkan {
         eastl::fixed_vector<VkSemaphoreSubmitInfo, 10> mWaitInfos{};
         eastl::fixed_vector<VkSemaphoreSubmitInfo, 10> mSignalInfos{};
 
+        static constexpr u32 kMaxSubmits{ 115 };
         std::mutex mPendingSubmitMutex{};
         SemaphoreHandle mTimelineSemaphore{};
-        eastl::fixed_vector<CommandListHandle, 100> mPendingSubmits{};
+        eastl::fixed_vector<CommandListHandle, kMaxSubmits> mPendingSubmits{};
 
         struct DeleteItem {
             u64 mSubmissionID{};
@@ -669,7 +668,7 @@ namespace mikoto::renderer::vulkan {
         auto SubmitDeletion( eastl::function<void( GpuDevice* )>&& callback ) -> void;
 
         MKT_NODISCARD auto GetDummySampler() -> Sampler*;
-        MKT_NODISCARD auto GetGetLayoutForEmptySet() -> VkDescriptorSetLayout;
+        MKT_NODISCARD auto GetLayoutForEmptySet() -> VkDescriptorSetLayout;
 
         MKT_NODISCARD auto GetUploadManager() -> GpuUploadManager*;
         MKT_NODISCARD auto GetDescriptorAllocator() -> DescriptorAllocatorHandle;
@@ -697,7 +696,6 @@ namespace mikoto::renderer::vulkan {
         auto InitLogicalDevice() -> void;
         auto InitLogicalQueues() -> void;
         auto InitMemoryAllocator() -> void;
-        auto InitDummyResources() -> void;
         auto InitDescriptorAllocator() -> void;
         auto GetPrimaryPhysicalDevice() -> void;
         auto CreatePrimaryLogicalDevice() -> void;
@@ -730,7 +728,7 @@ namespace mikoto::renderer::vulkan {
         eastl::unique_ptr<GpuUploadManager> mUploadManager{};
 
         SamplerHandle mDummySampler{};
-        VkDescriptorSetLayout mEmptyDescriptorSetLayout{};
+        BindingLayoutHandle mEmptyBindingLayout{};
 
         eastl::unique_ptr<IDescriptorAllocatorPool> mDescriptorAllocatorPool{};
 

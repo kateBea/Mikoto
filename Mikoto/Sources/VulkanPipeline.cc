@@ -55,7 +55,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         // Initialize everything with "holes" and fill accordingly
-        VkDescriptorSetLayout emptySetLayout{ device->GetGetLayoutForEmptySet() };
+        VkDescriptorSetLayout emptySetLayout{ device->GetLayoutForEmptySet() };
         eastl::vector<VkDescriptorSetLayout> setLayouts( maxSet + 1, emptySetLayout );
 
         // Place set layouts at correct set indices

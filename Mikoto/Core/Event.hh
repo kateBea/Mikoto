@@ -44,6 +44,8 @@ namespace mikoto::core {
         WINDOW_RESIZE_EVENT,
         WINDOW_CLOSE_EVENT,
         WINDOW_MOVED_EVENT,
+        CLIPBOARD_EVENT,
+        CONTENT_DROPPED_EVENT,
 
         // Application events.
         // Category [APPLICATION_EVENT_CATEGORY]
@@ -121,16 +123,16 @@ namespace mikoto::core {
      * system is Even queueing where we dispatch events to a queue and can
      * handle them when we consider appropriate
      * */
-    class Event {
+    class IEvent {
     public:
         /**
          * Creates a new event. The event is not handled on creation.
          * */
-        Event( const EventType type, const EventCategory categories)
+        IEvent( const EventType type, const EventCategory categories)
             :   mType{ type }, mCategories{ categories }, mHandled{ false } {}
 
 
-        Event(const Event& other) = default;
+        IEvent(const IEvent& other) = default;
 
         /**
          * Returns the type of this event. Can be used to query the type of
@@ -161,7 +163,7 @@ namespace mikoto::core {
 
         auto SetHandled( const bool value) -> void { mHandled = value; }
 
-        virtual ~Event() = default;
+        virtual ~IEvent() = default;
     private:
         /**
          * For easy access to Event private data
@@ -194,7 +196,7 @@ namespace mikoto::core {
      * Alias for event function. The function is supposed to return true if the
      * event has been handled successfully, false otherwise.
      * */
-    using HandlerFunc = eastl::function<bool(Event&)>;
+    using HandlerFunc = eastl::function<bool(IEvent&)>;
 
     /**
      * Returns the event category from the given event. The event could be part of

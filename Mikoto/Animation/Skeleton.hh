@@ -32,12 +32,6 @@
 
 namespace mikoto::animation {
 
-    // These 2 are vec4 because they need to match the bone influence
-    // which is maximum bones influence a vertex ( from what we support now )
-    inline constexpr u32 kMaxBoneInfluence{ 4 };
-    inline constexpr u32 kMaxBonesPerMesh{ 256 }; // Needs to match shader's
-    inline constexpr u32 kMaxSkinnedMeshes{ 1000 };
-
     class Skeleton final {
     public:
         explicit Skeleton( ozz::unique_ptr<ozz::animation::Skeleton>&& data = nullptr );

@@ -16,31 +16,61 @@
 
 #include "Base.slang"
 
-static const uint kArrayMaxSize = 10;
-
 #ifdef MKT_SUPPORT_D3D11
-        #define MKT_DECLARE_CONSTANT_BUFFERS DECL_BINDING(MKT_CONSTANT_BUFFER_BINDING, MKT_DEFAULT_REGISTER_SPACE) ByteAddressBuffer[kArrayMaxSize]
-        #define MKT_DECLARE_STRUCTURED_BUFFERS DECL_BINDING(MKT_STRUCTURED_BUFFER_BINDING, MKT_DEFAULT_REGISTER_SPACE) ByteAddressBuffer[kArrayMaxSize]
+        #define MKT_DECLARE_CONSTANT_BUFFERS \
+            ByteAddressBuffer ConstantBuffers[kArrayMaxSize] : register(t32)
 
-        #define MKT_DECLARE_RW_CONSTANT_BUFFERS DECL_BINDING(MKT_RW_CONSTANT_BUFFER_BINDING, MKT_DEFAULT_REGISTER_SPACE) RWByteAddressBuffer[kArrayMaxSize]
-        #define MKT_DECLARE_RW_STRUCTURED_BUFFERS DECL_BINDING(MKT_RW_STRUCTURED_BUFFER_BINDING, MKT_DEFAULT_REGISTER_SPACE) RWByteAddressBuffer[kArrayMaxSize]
+        #define MKT_DECLARE_STRUCTURED_BUFFERS \
+            ByteAddressBuffer StructuredBuffers[kArrayMaxSize] : register(t32)
 
-        #define MKT_DECLARE_SAMPLERS DECL_BINDING(MKT_SAMPLER_BINDING, MKT_DEFAULT_REGISTER_SPACE) SamplerState[kArrayMaxSize]
-        #define MKT_DECLARE_TEXTURE_2D DECL_BINDING(MKT_TEXTURE_2D_BINDING, MKT_DEFAULT_REGISTER_SPACE) Texture2D[kArrayMaxSize]
-        #define MKT_DECLARE_TEXTURES_CUBE DECL_BINDING(MKT_TEXTURE_CUBE_BINDING, MKT_DEFAULT_REGISTER_SPACE) TextureCube[kArrayMaxSize]
+        #define MKT_DECLARE_RW_CONSTANT_BUFFERS \
+            RWByteAddressBuffer RWConstantBuffers[kArrayMaxSize] : register(u0)
+
+        #define MKT_DECLARE_RW_STRUCTURED_BUFFERS \
+            RWByteAddressBuffer sBuffers[kArrayMaxSize] : register(u0)
+
+        #define MKT_DECLARE_TEXTURE_2D \
+            Texture2D Texture2Ds[kArrayMaxSize] : register(t0)
+
+        #define MKT_DECLARE_TEXTURES_CUBE \
+            TextureCube TextureCubes[kArrayMaxSize] : register(t16)
+
+        #define MKT_DECLARE_SAMPLERS \
+            SamplerState Samplers[kArrayMaxSize] : register(s0)
 #else
-    #define MKT_DECLARE_CONSTANT_BUFFERS DECL_BINDING(MKT_CONSTANT_BUFFER_BINDING, MKT_DEFAULT_REGISTER_SPACE) ByteAddressBuffer[]
-    #define MKT_DECLARE_STRUCTURED_BUFFERS DECL_BINDING(MKT_STRUCTURED_BUFFER_BINDING, MKT_DEFAULT_REGISTER_SPACE) ByteAddressBuffer[]
-
-    #define MKT_DECLARE_RW_CONSTANT_BUFFERS DECL_BINDING(MKT_RW_CONSTANT_BUFFER_BINDING, MKT_DEFAULT_REGISTER_SPACE) RWByteAddressBuffer[]
-    #define MKT_DECLARE_RW_STRUCTURED_BUFFERS DECL_BINDING(MKT_RW_STRUCTURED_BUFFER_BINDING, MKT_DEFAULT_REGISTER_SPACE) RWByteAddressBuffer[]
+    // TODO: these 2 will be removed, we will declare a single binding for a constant buffers maybe a some so the user can push few different constant buffers
+    //#define MKT_DECLARE_CONSTANT_BUFFERS(binding, type) DECL_BINDING(MKT_CONSTANT_BUFFER_BINDING, 3) ConstantBuffer<Type>  // leave them at set 3 for instance
+    #define MKT_DECLARE_STRUCTURED_SRV DECL_BINDING(MKT_STRUCTURED_SRV_BINDING, MKT_DEFAULT_REGISTER_SPACE) ByteAddressBuffer[]
+    #define MKT_DECLARE_STRUCTURED_UAV DECL_BINDING(MKT_STRUCTURED_UAV_BINDING, MKT_DEFAULT_REGISTER_SPACE) RWByteAddressBuffer[]
 
     #define MKT_DECLARE_SAMPLERS DECL_BINDING(MKT_SAMPLER_BINDING, MKT_DEFAULT_REGISTER_SPACE) SamplerState[]
-    #define MKT_DECLARE_TEXTURE_2D DECL_BINDING(MKT_TEXTURE_2D_BINDING, MKT_DEFAULT_REGISTER_SPACE) Texture2D[]
-    #define MKT_DECLARE_TEXTURES_CUBE DECL_BINDING(MKT_TEXTURE_CUBE_BINDING, MKT_DEFAULT_REGISTER_SPACE) TextureCube[]
+
+    #define MKT_DECLARE_TEXTURE_SRV(DIMENSION) DECL_BINDING(MKT_TEXTURE_SRV_BINDING, MKT_DEFAULT_REGISTER_SPACE) DIMENSION[]
+    #define MKT_DECLARE_TEXTURE_UAV(DIMENSION) DECL_BINDING(MKT_TEXTURE_UAV_BINDING, MKT_DEFAULT_REGISTER_SPACE) DIMENSION[]
 
     #define MKT_DECLARE_ACCEL_STRUCTURES DECL_BINDING(MKT_ACCELERATION_STRUCTURE_BINDING, MKT_DEFAULT_REGISTER_SPACE) TextureCube[]
 #endif
+
+// Extensions
+extension RWByteAddressBuffer {
+    void Write<T>(uint baseOffset, uint index, T element) {
+        uint offset = baseOffset + (index * sizeof(T));
+        this.Store<T>(offset, element);
+    }
+
+    T Read<T>(uint baseOffset, uint index) {
+        uint offset = baseOffset + (index * sizeof(T));
+        return this.Load<T>(offset);
+    }
+}
+
+extension ByteAddressBuffer {
+    T Read<T>(uint baseOffset, uint index) {
+        uint offset = baseOffset + (index * sizeof(T));
+        return this.LoadByteOffset<T>(offset);
+    }
+}
+
 
 namespace mikoto::memory {
 #ifndef MKT_SUPPORT_D3D11
@@ -53,6 +83,13 @@ namespace mikoto::memory {
     void  WriteData<T>( RWByteAddressBuffer[] sbs, uint bufferID, uint baseOffset, uint index, T element) {
         sbs[bufferID].StoreByteOffset<T>((baseOffset + index) * sizeof(T), element );
         //sbs[bufferID].StoreAligned<T>((baseOffset + index) * sizeof(T), element );
+    }
+
+
+    T Load<T>( ByteAddressBuffer sb, uint baseOffset, uint index) {
+        return sb.LoadByteOffset<T>(
+            (baseOffset + index) * sizeof(T)
+        );
     }
 
 #else

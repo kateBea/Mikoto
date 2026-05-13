@@ -203,15 +203,24 @@ namespace mikoto::renderer {
     auto RenderSystem::PrepareSlangForD3D11() -> void {
         slang::createGlobalSession(mSlangGlobalSession.writeRef());
 
-        slang::TargetDesc target{};
-        target.format  = SLANG_HLSL;
-        target.profile = mSlangGlobalSession->findProfile("sm_5_0");
+        static auto slangTargets{ eastl::to_array<slang::TargetDesc>( { {
+            .format = SLANG_HLSL,
+            .profile = mSlangGlobalSession->findProfile("sm_5_0")
+        } } ) };
 
-        slang::SessionDesc sessionDesc{};
-        sessionDesc.targets = &target;
-        sessionDesc.targetCount = 1;
-        sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
+        static auto slangOptions{ eastl::to_array<slang::CompilerOptionEntry>( {
+            { slang::CompilerOptionName::ForceCLayout, { slang::CompilerOptionValueKind::Int, 1 } }
+        } ) };
 
+        static slang::SessionDesc sessionDesc{
+            .targets = slangTargets.data(),
+            .targetCount = as<SlangInt>( slangTargets.size() ),
+            .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+            .compilerOptionEntries = slangOptions.data(),
+            .compilerOptionEntryCount = as<u32>( slangOptions.size() ),
+        };
+
+        // Macros
         slang::PreprocessorMacroDesc macros[] = {
             { "MKT_SUPPORT_D3D11", "1" },
 #if !defined(NDEBUG)
@@ -251,15 +260,24 @@ namespace mikoto::renderer {
     auto RenderSystem::PrepareSlangForD3D12() -> void {
         slang::createGlobalSession(mSlangGlobalSession.writeRef());
 
-        slang::TargetDesc target{};
-        target.format  = SLANG_HLSL;
-        target.profile = mSlangGlobalSession->findProfile("sm_5_1");
+        static auto slangTargets{ eastl::to_array<slang::TargetDesc>( { {
+            .format = SLANG_HLSL,
+            .profile = mSlangGlobalSession->findProfile("sm_5_1")
+        } } ) };
 
-        slang::SessionDesc sessionDesc{};
-        sessionDesc.targets = &target;
-        sessionDesc.targetCount = 1;
-        sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
+        static auto slangOptions{ eastl::to_array<slang::CompilerOptionEntry>( {
+            { slang::CompilerOptionName::ForceCLayout, { slang::CompilerOptionValueKind::Int, 1 } }
+        } ) };
 
+        static slang::SessionDesc sessionDesc{
+            .targets = slangTargets.data(),
+            .targetCount = as<SlangInt>( slangTargets.size() ),
+            .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+            .compilerOptionEntries = slangOptions.data(),
+            .compilerOptionEntryCount = as<u32>( slangOptions.size() ),
+        };
+
+        // Macros
         slang::PreprocessorMacroDesc macros[] = {
             { "MKT_SUPPORT_D3D12", "1" },
 #if !defined(NDEBUG)
@@ -304,12 +322,10 @@ namespace mikoto::renderer {
             .profile = mSlangGlobalSession->findProfile( "spirv_1_4" )
         } } ) };
 
-        static auto slangOptions{ eastl::to_array<slang::CompilerOptionEntry>( { {
-            slang::CompilerOptionName::EmitSpirvDirectly,
-            {
-                slang::CompilerOptionValueKind::Int,
-                1
-            } } } ) };
+        static auto slangOptions{ eastl::to_array<slang::CompilerOptionEntry>( {
+            { slang::CompilerOptionName::EmitSpirvDirectly, { slang::CompilerOptionValueKind::Int, 1 } },
+            { slang::CompilerOptionName::ForceCLayout, { slang::CompilerOptionValueKind::Int, 1 } },
+        } ) };
 
         static slang::SessionDesc sessionDesc{
             .targets = slangTargets.data(),
@@ -319,6 +335,7 @@ namespace mikoto::renderer {
             .compilerOptionEntryCount = as<u32>( slangOptions.size() ),
         };
 
+        // Macros
         slang::PreprocessorMacroDesc macros[] = {
             { "MKT_SUPPORT_VULKAN", "1" },
 #if !defined(NDEBUG)

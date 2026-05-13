@@ -13,17 +13,22 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
 
-[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
-ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
+MKT_DECLARE_STRUCTURED_SRV SRV_Buffers;
+MKT_DECLARE_STRUCTURED_UAV UAV_Buffers;
 
-[[vk::binding(Slot_0, UAV_SET_INDEX)]]
-RWStructuredBuffer<Cluster, ScalarDataLayout> Clusters;
+struct ClusteredParams {
+    float4 GridSize;
+    uint ClusterBufferID;
+    uint CameraInfoBufferID;
 
-[[vk::push_constant]]
-ClusteredShadingParams u_Params;
+    uint ActiveLightCount;
+};
+
+MKT_DECLARE_PUSH_CONSTANT(ClusteredParams) Parameters;
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
@@ -31,27 +36,31 @@ void main(uint3 groupID: SV_GroupID,
           uint3 groupIndex: SV_GroupThreadID,
           uint3 dispatchID: SV_DispatchThreadID)
 {
+    // Get the buffers
+    RWByteAddressBuffer clusters = UAV_Buffers[Parameters.ClusterBufferID];
+    CameraInfo camera = SRV_Buffers[Parameters.CameraInfoBufferID].Read<CameraInfo>(0, 0);
+
     uint tileIndex =
         groupID.x +
-        groupID.y * uint(u_Params.GridSize.x) +
-        groupID.z * uint(u_Params.GridSize.x * u_Params.GridSize.y);
+        groupID.y * uint(Parameters.GridSize.x) +
+        groupID.z * uint(Parameters.GridSize.x * Parameters.GridSize.y);
 
-    float2 tileSize = u_Camera.ScreenDimensions / u_Params.GridSize.xy;
+    float2 tileSize = camera.ScreenDimensions.xy / Parameters.GridSize.xy;
 
     // Tile in screen-space
     float2 minTile_screen = float2(groupID.xy) * tileSize;
     float2 maxTile_screen = float2(groupID.xy + 1) * tileSize;
 
     // Convert tile to view space sitting on the near plane
-    float3 minTile = ScreenToView(minTile_screen, u_Camera.ScreenDimensions, u_Camera.InverseProjection);
-    float3 maxTile = ScreenToView(maxTile_screen, u_Camera.ScreenDimensions, u_Camera.InverseProjection);
+    float3 minTile = ScreenToView(minTile_screen, camera.ScreenDimensions.xy, camera.InverseProjection);
+    float3 maxTile = ScreenToView(maxTile_screen, camera.ScreenDimensions.xy, camera.InverseProjection);
 
     // Depth slice slicing
-    float nearZ = u_Camera.Planes.y;
-    float farZ = u_Camera.Planes.x;
+    float nearZ = camera.Planes.y;
+    float farZ = camera.Planes.x;
 
-    float planeNear = nearZ * pow(farZ / nearZ, float(groupID.z) / u_Params.GridSize.z);
-    float planeFar = nearZ * pow(farZ / nearZ, float(groupID.z + 1) / u_Params.GridSize.z);
+    float planeNear = nearZ * pow(farZ / nearZ, float(groupID.z) / Parameters.GridSize.z);
+    float planeFar = nearZ * pow(farZ / nearZ, float(groupID.z + 1) / Parameters.GridSize.z);
 
     float3 cameraPosViewSpace = float3(0, 0, 0);
 
@@ -62,6 +71,9 @@ void main(uint3 groupID: SV_GroupID,
     float3 maxPointFar = LineIntersectionWithZPlane(cameraPosViewSpace, maxTile, planeFar);
 
     // Store cluster AABB
-    Clusters[tileIndex].MinPoint = float4(min(minPointNear, minPointFar), 0.0);
-    Clusters[tileIndex].MaxPoint = float4(max(maxPointNear, maxPointFar), 0.0);
+    Cluster c;
+    c.MinPoint = float4(min(minPointNear, minPointFar), 0.0);
+    c.MaxPoint = float4(max(maxPointNear, maxPointFar), 0.0);
+
+    clusters.Write(0, tileIndex, c);
 }

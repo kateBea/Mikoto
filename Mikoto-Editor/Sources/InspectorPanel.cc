@@ -17,35 +17,36 @@
 #include <EASTL/string_view.h>
 #include <EASTL/fixed_string.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include <imgui.h>
 #include <imgui_internal.h>
-
-#include <glm/gtc/type_ptr.hpp>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/String.hh>
+#include <Core/Reflect.hh>
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
-
-#include <Memory/Allocator.hh>
-
-#include <ImGui/ImGuiWidget.hh>
-#include <ImGui/ImGuiUtility.hh>
-#include <ImGui/ImGuiService.hh>
-#include <ImGui/IconsMaterialDesign.h>
-
-#include <Scripting/ScriptingService.hh>
-
-#include <Animation/SkinnedAnimation.hh>
-#include <Animation/AnimationSystem.hh>
-
-#include <Layers/EditorLayer.hh>
 
 #include <Scene/Scene.hh>
 #include <Scene/Entity.hh>
 
+#include <Animation/AnimationSystem.hh>
+#include <Animation/SkinnedAnimation.hh>
+
+#include <ImGui/ImGuiWidget.hh>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiUtility.hh>
+#include <ImGui/IconsMaterialDesign.h>
+
+#include <Memory/Allocator.hh>
+
+#include <Layers/EditorLayer.hh>
+
 #include <Panels/InspectorPanel.hh>
+
+#include <Scripting/ScriptingService.hh>
 
 namespace mikoto::editor {
 
@@ -1135,9 +1136,10 @@ namespace mikoto::editor {
         constexpr u32 kInputNameLength{ 1024 };
         constexpr ImGuiTextFlags flags{ ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll };
 
-        eastl::fixed_string<char, kInputNameLength> name{ tag.GetTag().c_str() };
-        if ( ImGui::InputText( "##DrawNameTextInputTag", name.data(), name.capacity(), flags ) ) {
-            tag.SetTag( name );
+        eastl::array<char, kInputNameLength> name{};
+        eastl::copy( name.begin(), name.end(), name.begin() );
+        if ( ImGui::InputText( "##DrawNameTextInputTag", name.data(), kInputNameLength, flags ) ) {
+            tag.SetTag( name.data() );
         }
     }
 

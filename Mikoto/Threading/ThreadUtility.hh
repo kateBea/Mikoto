@@ -31,5 +31,9 @@ namespace mikoto::threading {
     MKT_NODISCARD auto inline GetThreadConcurrency() -> u32 {
         return std::thread::hardware_concurrency();
     }
+
+    MKT_NODISCARD auto inline GetHashedID( const std::thread::id id) -> u32 {
+        return std::hash<std::thread::id>{}( id );
+    }
 }
 #endif//MIKOTO_THREAD_UTILITY_HH

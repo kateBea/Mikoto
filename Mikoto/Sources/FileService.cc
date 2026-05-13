@@ -138,7 +138,13 @@ namespace mikoto::filesystem {
             return FileHandle::CreateEmpty();
         }
 
-        FileHandle result{ FileHandle::Spawn( absolutePath ) };
+        FileHandle result{};
+        try {
+            result = FileHandle::Spawn( absolutePath, false );
+        } catch ( const std::exception& e ) {
+            MKT_CORE_LOGGER_ERROR( "CreateNewFile exception. e.what()", e.what() );
+            return FileHandle::CreateEmpty();
+        }
 
         {
             std::lock_guard lock{ mFileLoadMutex };
@@ -166,36 +172,40 @@ namespace mikoto::filesystem {
     }
 
     auto FileService::CreateNewFile( const Path& path ) -> FileHandle {
-        FileHandle result{ nullptr };
+        MKT_BEGIN_PROFILER_NAMED();
 
-        // const auto absolutePath{ filesystem::GetGetAbsolutePathString( path ) };
-        // const auto findIt{ m_Files.find( absolutePath ) };
-        // if ( findIt != m_Files.end() ) {
-        //     return findIt->second.get();
-        // }
-        //
-        // if ( auto newFile{ File::Create( path, MKT_FILE_OPEN_MODE_TRUNCATE ) } ) {
-        //     {
-        //         std::lock_guard lock{ m_FileLoadMutex };
-        //         const auto [insertIt, success]{
-        //             m_Files.try_emplace( absolutePath, std::move( newFile ) )
-        //         };
-        //
-        //         if ( success ) {
-        //             result = m_Files[absolutePath].get();
-        //
-        //             FileWatcherService::Get()->Watch( result->GetPath(),
-        //                                               [result]( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
-        //                                                   if ( event == FileWatchEvent::MODIFIED ) {
-        //                                                       result->UpdateContentsFromDisk();
-        //                                                       MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.string() );
-        //                                                   }
-        //                                               } );
-        //         }
-        //     }
-        // } else {
-        //     MKT_CORE_LOGGER_ERROR( "Could not create file at {}", path.string() );
-        // }
+        const auto& absolutePath{ path.GetAbsolute() };
+        const auto findIt{ mFiles.find( absolutePath ) };
+
+        if ( findIt != mFiles.end() ) {
+            return findIt->second;
+        }
+
+        FileHandle result{};
+
+        try {
+            result = FileHandle::Spawn( absolutePath, true );
+        } catch ( const std::exception& e ) {
+            MKT_CORE_LOGGER_ERROR( "CreateNewFile exception. e.what()", e.what() );
+        }
+
+        {
+            std::lock_guard lock{ mFileLoadMutex };
+            const auto [insertIt, success]{
+                mFiles.try_emplace( absolutePath, result )
+            };
+
+            if ( success ) {
+                //If we managed to load the file listen on update notifications to update the file contents
+                FileWatcherService::Get()->Watch( result->GetPath(),
+                    [result]( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
+                    if ( event == FileWatchEvent::eModified ) {
+                    result->UpdateContentsFromDisk();
+                    MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.GetC_Str() );
+                    }
+                } );
+            }
+        }
 
         return result;
     }

@@ -67,6 +67,10 @@ namespace mikoto::threading {
             mTaskManager->SubmitTask( std::move( newTask ) );
         }
 
+        auto Submit( tf::Taskflow& flow, bool wait ) -> void {
+            mTaskManager->Submit( flow, wait );
+        }
+
         MKT_NODISCARD auto GetWorkersCount() const -> u32;
 
         ~TaskService() override = default;

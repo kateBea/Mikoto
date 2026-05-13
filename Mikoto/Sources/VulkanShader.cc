@@ -17,6 +17,8 @@
 
 #include <volk.h>
 
+#include <spirv_glsl.hpp>
+
 #include <spirv_reflect.h>
 
 #include <slang.h>
@@ -36,6 +38,28 @@
 #include <Renderer/Vulkan/VulkanShader.hh>
 
 namespace mikoto::renderer::vulkan {
+
+    MKT_NODISCARD auto GetGlslFromSpirv(const u32* ptr, size_t count) -> eastl::string {
+        // Create the compiler instance with the SPIR-V data
+        spirv_cross::CompilerGLSL glslCompiler(ptr, count);
+
+        // Set options for the GLSL output
+        spirv_cross::CompilerGLSL::Options options;
+        options.version = 450;                     // Set GLSL version (e.g., 450 for Vulkan/Desktop)
+        options.es = false;                        // Set to true for OpenGL ES (mobile)
+        options.vulkan_semantics = true;          // Set to true if targeting Vulkan GLSL specifically
+
+        glslCompiler.set_common_options(options);
+
+        try {
+            return glslCompiler.compile().c_str();
+        }
+        catch (const spirv_cross::CompilerError& e) {
+            MKT_CORE_LOGGER_ERROR( "Error decompile vulkan shader. e.what(): {}", e.what() );
+        }
+
+        return {};
+    }
 
     Shader::Shader( const ShaderModuleCreateDescription& desc )
         : IShaderModule{ desc.mType, desc.mEntryPoint }, mFile{ desc.mFile }, mUseSlang{ desc.mIsSlangShader } {
@@ -70,7 +94,7 @@ namespace mikoto::renderer::vulkan {
     auto Shader::Initialize() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // For now, we default to slang only
+        // https://docs.shader-slang.org/en/latest/compilation-api.html
         auto session{ RenderSystem::Get()->GetSlangCurrentSession() };
         const eastl::string_view modulePath{ mFile->GetPath() };
         const eastl::string_view moduleName{ mFile->GetName() };
@@ -79,11 +103,11 @@ namespace mikoto::renderer::vulkan {
         mSlangModule->getTargetCode( 0, mSlangSpirv.writeRef() );
 
         auto src{ mSlangSpirv->getBufferPointer() };
-        auto byteSize{ mSlangSpirv->getBufferSize() };
+        auto size{ mSlangSpirv->getBufferSize() };
 
         // Check client specified correctly the stage
         SpvReflectShaderModule module{};
-        SpvReflectResult result{ spvReflectCreateShaderModule(byteSize, src, &module) };
+        SpvReflectResult result{ spvReflectCreateShaderModule(size, src, &module) };
         if (result == SPV_REFLECT_RESULT_SUCCESS) {
             VkShaderStageFlagBits moduleStage{ as<VkShaderStageFlagBits>( module.shader_stage ) };
             if (GetShaderModuleStage( mStage ) != moduleStage) {
@@ -93,7 +117,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         VkShaderModuleCreateInfo moduleCreateInfo{ initializers::ShaderModuleCreateInfo() };
-        moduleCreateInfo.codeSize = byteSize;
+        moduleCreateInfo.codeSize = size;
         moduleCreateInfo.pCode = as<u32*>( src );
 
         MKT_VK_CHECK( vkCreateShaderModule(
@@ -111,8 +135,7 @@ namespace mikoto::renderer::vulkan {
         mStageCreateInfo.pSpecializationInfo = nullptr;
 
 #if !defined(NDEBUG)
-        // FIXME: This is not what I want, I want the GLSL here for debugging
-        mShaderCode = as<const char*>( mSlangSpirv->getBufferPointer() );
+        mShaderCode = GetGlslFromSpirv( as<const u32*>(mSlangSpirv->getBufferPointer()), as<size_t>(mSlangSpirv->getBufferSize()) / MKT_SIZEOF( u32 ) );
         DumpShaderCode();
 #endif
 

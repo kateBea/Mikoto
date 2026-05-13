@@ -73,7 +73,7 @@ namespace mikoto::asset {
         // otherwise we can look for them in the textures folder at the same level
         if (loadInfo.mExtractTextures) {
             CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
-            cmd->Begin();
+            cmd->Begin( {} );
 
             for (auto& material : data.mMaterials) {
                 for (auto& [relativePath, pbrMapInfo] : material.mTexturesByUri) {
@@ -88,7 +88,7 @@ namespace mikoto::asset {
                         .SetHeight( as<i32>( image->mHeight ) )
                         .SetDimensions( TextureDimension::eTexture2D )
                         .SetMultisampling( Multisampling::eMsaaX1 )
-                        .SetUsage( TextureUsageFlagsBits::kShaderResource )
+                        .SetUsage( TextureUsageFlagsBits::kShaderResource | TextureUsageFlagsBits::kCopyDst )
                         .SetFormat( Format::eRGBA8_UNORM ) };
 
                     pbrMapInfo.mTexture = mDevice->CreateTexture( textureDescription );
@@ -97,7 +97,7 @@ namespace mikoto::asset {
                     // Data is always writen at mip zero and
                     // these textures are often loaded to be read from shaders
                     // hence why we transition to shaderResource
-                    cmd->WriteTexture( pbrMapInfo.mTexture.GetRaw(), 0, image->mBufferSpan->GetData(), image->mBufferSpan->GetSize() );
+                    cmd->Write( pbrMapInfo.mTexture.GetRaw(), 0, image->mBufferSpan->GetData(), image->mBufferSpan->GetSize() );
                     cmd->SetResourceState( pbrMapInfo.mTexture.GetRaw(), ResourceStates::eShaderResource );
                 }
             }
@@ -112,7 +112,7 @@ namespace mikoto::asset {
 
             // Create vertices buffer (WindingOrder counter-clockwise)
             auto verticesDesc{ BufferCreateDescription{}
-                .SetBufferUsage( BufferUsageFlagsBits::kVertex )
+                .SetBufferUsage( BufferUsageFlagsBits::kVertex | BufferUsageFlagsBits::kCopyDst | BufferUsageFlagsBits::kCopySrc )
                 .SetHeapType( HeapType::eDeviceLocal )
                 .SetCpuAccessType( CpuAccessType::eRead )
                 .SetInitialData( BufferSpanHandle::Spawn(
@@ -122,7 +122,7 @@ namespace mikoto::asset {
 
             // Create indices buffer
             auto indicesDesc{ BufferCreateDescription{}
-                .SetBufferUsage( BufferUsageFlagsBits::kIndex )
+                .SetBufferUsage( BufferUsageFlagsBits::kIndex | BufferUsageFlagsBits::kCopyDst | BufferUsageFlagsBits::kCopySrc )
                 .SetHeapType( HeapType::eDeviceLocal )
                 .SetCpuAccessType( CpuAccessType::eRead )
                 .SetFormat( Format::eR32_UINT )

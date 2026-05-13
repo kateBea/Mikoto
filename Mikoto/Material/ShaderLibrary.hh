@@ -41,6 +41,7 @@ namespace mikoto::material {
         Path mRootPath{};
     };
 
+    // TODO: Move to renderer namespace
     // Caches shaders loaded from disk files for a given GPU device
     // It is a singleton for now as Mikoto only manages one GPU device across the entire application
     class ShaderLibrary final : public IService, public Singleton<ShaderLibrary> {
@@ -52,6 +53,8 @@ namespace mikoto::material {
 
         // This uri must be relative to the root path otherwise must be a full path
         auto GetShader( eastl::string_view uri ) -> rhi::ShaderModuleHandle;
+
+        // TODO: extend to cached the compiled shaders
         auto LoadShader( eastl::string_view uri, rhi::ShaderType type ) -> rhi::ShaderModuleHandle;
 
         ~ShaderLibrary() override = default;

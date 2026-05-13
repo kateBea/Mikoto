@@ -31,53 +31,110 @@ namespace mikoto::renderer {
         : mDevice{ createInfo.mDevice } {}
 
     auto SceneRenderer::Init() -> void {
-        mFrameGraph = FrameGraph::Create( mDevice );
+        // Init shader library
+        const ShaderLibraryDescription description{
+            .mDevice = mDevice,
+            .mRootPath{ "Resources/Shaders/slang" },
+        };
 
-        // Initialize passes
+        mShaderLibrary = eastl::make_unique<ShaderLibrary>( description );
+        if (mShaderLibrary) {
+            mShaderLibrary->Initialize();
+        }
+
+        mFrameGraph = FrameGraph::Create( mDevice, mShaderLibrary.get() );
+
+        // Scene pre-passes
+        mCameraPass.RegisterPasses( *mFrameGraph );
+        mGeometryManagement.RegisterPasses( *mFrameGraph );
+
+        mRenderPrepass.RegisterPasses( *mFrameGraph );
+        //mShadowMapping.RegisterPasses( *mFrameGraph );
+
+        mParticleRendering.RegisterPasses( *mFrameGraph );
+
+        //mGeometryShading.RegisterPasses( *mFrameGraph );
+
+        // Raytracing
+        mPathTracing.RegisterPasses( *mFrameGraph );
+        mRayTracingPass.RegisterPasses( *mFrameGraph );
+
+        // Post process
+        //mTextRendering.RegisterPasses( *mFrameGraph );
+        mPostEffectsPasses.RegisterPasses( *mFrameGraph );
+
+        // Some debug passes
+        mMaterialModule.RegisterPasses( *mFrameGraph );
         mDebugPasses.RegisterPasses( *mFrameGraph );
+
+        // Render final contents into specified images
+        //mPresentationModule.RegisterPasses( *mFrameGraph );
 
         // Build graph
         mFrameGraph->Compile();
+
+        // Set geometry manager
+        // The geometry manager prepares the GPU side scene structures
+        // and knows how to submit indexed draws or indirect draws
+        mGeometryShading.SetGeometryManagement( mGeometryManagement );
+        mRenderPrepass.SetGeometryManager( mGeometryManagement );
     }
 
     auto SceneRenderer::Shutdown() -> void {
+        mFrameGraph = nullptr;
         mCamera = nullptr;
         mDevice = nullptr;
     }
 
-    auto SceneRenderer::Render( Scene* scene ) -> void {
+    auto SceneRenderer::Render( const Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        mRenderPrepass.SetScene( scene );
+        mGeometryManagement.SetScene( scene );
 
         mFrameGraph->Execute();
     }
 
-    auto SceneRenderer::SetMainCamera( SceneCamera *camera ) -> void {
-
+    auto SceneRenderer::SetMainCamera( const SceneCamera *camera ) -> void {
+        mCameraPass.SetCamera( camera );
+        mRenderPrepass.SetCamera( camera );
+        mTextRendering.SetCamera( camera );
+        mShadowMapping.SetCamera( camera );
+        mGeometryManagement.SetCamera( camera );
     }
 
-    auto SceneRenderer::SetClearColor( const float4 &color ) -> void {
-
+    auto SceneRenderer::SetClearColor( const Color& color ) -> void {
+        mGeometryShading.SetClearColor( color );
     }
 
-    auto SceneRenderer::GetTexture( eastl::string_view name ) const -> TextureHandle {
-        return TextureHandle::CreateEmpty();
+    auto SceneRenderer::GetRenderGraph() const -> const FrameGraph & {
+        return *mFrameGraph;
     }
 
-    auto SceneRenderer::GetBuffer( eastl::string_view name ) const -> BufferHandle {
-        return BufferHandle::CreateEmpty();
+    auto SceneRenderer::GetTexture( FGTextureHandle handle ) const -> TextureHandle {
+        return mFrameGraph->GetTexture( handle );
+    }
+
+    auto SceneRenderer::GetBuffer( FGBufferHandle handle ) const -> BufferHandle {
+        return mFrameGraph->GetBuffer( handle );
     }
 
     auto SceneRenderer::Create( const SceneRendererCreateInfo &spec ) -> eastl::unique_ptr<SceneRenderer> {
         return eastl::make_unique<SceneRenderer>( spec );
     }
 
-    auto SceneRendererCreateInfo::WithName( eastl::string_view name ) -> SceneRendererCreateInfo & {
+    auto SceneRendererCreateInfo::SetName( eastl::string_view name ) -> SceneRendererCreateInfo & {
         this->mName = name;
         return *this;
     }
 
-    auto SceneRendererCreateInfo::WithDevice( GpuDevice *device ) -> SceneRendererCreateInfo & {
+    auto SceneRendererCreateInfo::SetDevice( GpuDevice *device ) -> SceneRendererCreateInfo & {
         this->mDevice = device;
+        return *this;
+    }
+
+    auto SceneRendererCreateInfo::AddPresentImage( TextureHandle texture ) -> SceneRendererCreateInfo & {
+        mPresentTextures.push_back( texture );
         return *this;
     }
 }// namespace Mikoto

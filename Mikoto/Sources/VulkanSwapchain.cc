@@ -131,7 +131,7 @@ namespace mikoto::renderer::vulkan {
         // NOTE: if we only have one format, and it is VK_FORMAT_UNDEFINED, it means the surface supports all formats
         mSurfaceSupportedFormat = vulkan::GetFormat( mFormat );
 
-        // Pick the first format and color space available if our picked combo is not supported
+        // Pick the first format and color space available if our picked format/color-space combo is not supported
         if (!std::ranges::any_of(mPhysicalDevice->mFormats, [&](const VkSurfaceFormatKHR& sf) {
             return sf.format == mSurfaceSupportedFormat && sf.colorSpace == mColorSpace;
         } )) {
@@ -140,7 +140,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         // Pick a present mode
-        // If this device supports presenting this mode is always guaranteed
+        // If this device supports presenting VK_PRESENT_MODE_FIFO_KHR is always guaranteed
         VkPresentModeKHR presentMode{ VK_PRESENT_MODE_FIFO_KHR };
         if (mRefreshRate == RefreshRate::eUnlimited) {
             const auto it{ std::ranges::find_if(mPhysicalDevice->mPresentModes, [](const VkPresentModeKHR& pm) {
@@ -200,7 +200,7 @@ namespace mikoto::renderer::vulkan {
         // Swap chain images are used for drawing or copying to it (in case we render first to a texture and copy to it for presentation)
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-        // Swapchain images go to a que that specializes in presentation
+        // Swapchain images are presented via a queue that supports presentation
         Queue* presentQueue{ as<Device*>(mDevice)->GetQueue( QueueType::ePresent ) };
         MKT_ASSERT( presentQueue, "No valid presentation queue" );
 
@@ -211,7 +211,7 @@ namespace mikoto::renderer::vulkan {
         createInfo.queueFamilyIndexCount = 0;
         createInfo.pQueueFamilyIndices = nullptr;
 
-        // In case we want swapchain images to be shared across queues
+        // In case we want swapchain images to be shared across queue family indices
         // createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         // createInfo.queueFamilyIndexCount = queueFamilyIndices.size();
         // createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
@@ -243,7 +243,7 @@ namespace mikoto::renderer::vulkan {
         eastl::vector<VkImage> images{ imageCount };
         vkGetSwapchainImagesKHR( device->GetDevice(), mSwapChain, MKT_ADDRESSOF( imageCount ), images.data() );
 
-        for ( const VkImage& image: images ) {
+        for ( u32 index{}; const VkImage& image: images ) {
             VkImageViewCreateInfo createInfo{ initializers::ImageViewCreateInfo() };
             createInfo.image = image;
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -268,8 +268,7 @@ namespace mikoto::renderer::vulkan {
 
             TextureHandle presentImage{ device->CreateTexture( spec ) };
             if (!presentImage.IsEmpty()) {
-
-                presentImage->SetDebugName( string::Format( "Swapchain Img" ) );
+                presentImage->SetDebugName( string::Format( "Swapchain Img. Index {}", index++ ) );
                 mImages.emplace_back(presentImage);
             }
         }

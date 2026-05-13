@@ -352,7 +352,7 @@ namespace mikoto::renderer::vulkan {
             case ShaderType::eVertex:
                 return VK_SHADER_STAGE_VERTEX_BIT;
 
-            case ShaderType::eFragment:
+            case ShaderType::ePixel:
                 return VK_SHADER_STAGE_FRAGMENT_BIT;
 
             case ShaderType::eCompute:
@@ -361,10 +361,10 @@ namespace mikoto::renderer::vulkan {
             case ShaderType::eGeometry:
                 return VK_SHADER_STAGE_GEOMETRY_BIT;
 
-            case ShaderType::eTessellationEvaluation:
+            case ShaderType::eDomain:
                 return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 
-            case ShaderType::eTessellationControl:
+            case ShaderType::eHull:
                 return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
 
             case ShaderType::eRayGeneration:
@@ -386,7 +386,7 @@ namespace mikoto::renderer::vulkan {
                 return ShaderType::eVertex;
 
             case VK_SHADER_STAGE_FRAGMENT_BIT:
-                return ShaderType::eFragment;
+                return ShaderType::ePixel;
 
             case VK_SHADER_STAGE_COMPUTE_BIT:
                 return ShaderType::eCompute;
@@ -395,10 +395,10 @@ namespace mikoto::renderer::vulkan {
                 return ShaderType::eGeometry;
 
             case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT:
-                return ShaderType::eTessellationControl;
+                return ShaderType::eHull;
 
             case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT:
-                return ShaderType::eTessellationEvaluation;
+                return ShaderType::eDomain;
 
             case VK_SHADER_STAGE_RAYGEN_BIT_KHR:
                 return ShaderType::eRayGeneration;
@@ -455,7 +455,7 @@ namespace mikoto::renderer::vulkan {
 
     auto GetCullMode(CullMode mode) -> VkCullModeFlags {
         switch (mode) {
-            case CullMode::eInvalid:
+            case CullMode::eNone:
                 return VK_CULL_MODE_NONE;
 
             case CullMode::eCullFront:
@@ -516,7 +516,7 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto GetDescriptorType( ResourceType type, TextureDimension dimension ) -> VkDescriptorType {
+    auto GetDescriptorType( ResourceType type ) -> VkDescriptorType {
         switch (type) {
             case ResourceType::eTexture_SRV:
                 return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
@@ -557,26 +557,29 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto InferImageUsage( TextureUsageFlags flags ) -> VkFlags {
+    auto GetImageUsage( TextureUsageFlags flags ) -> VkImageUsageFlags {
+        VkImageUsageFlags result{};
         if (flags & TextureUsageFlagsBits::kRenderTarget) {
-            return VK_IMAGE_USAGE_SAMPLED_BIT |
-                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                        VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                            VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            result |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         }
 
         if (flags & TextureUsageFlagsBits::kDepthTarget) {
-            return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
-                       VK_IMAGE_USAGE_SAMPLED_BIT |
-                       VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
         }
 
         if (flags & TextureUsageFlagsBits::kShaderResource) {
-            // Textures that I load from disc that are meant to be read from within shaders
-            return VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            result |= VK_IMAGE_USAGE_SAMPLED_BIT;
         }
 
-        return VK_IMAGE_USAGE_SAMPLED_BIT;
+        if (flags & TextureUsageFlagsBits::kCopySrc) {
+            result |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        }
+
+        if (flags & TextureUsageFlagsBits::kCopyDst) {
+            result |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        }
+
+        return result;
     }
 
     auto GetSamplerFilter( SamplerFilter filter ) -> VkFilter {
@@ -607,6 +610,18 @@ namespace mikoto::renderer::vulkan {
         }
 
         return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    }
+
+    auto GetQueueName( QueueType type ) -> eastl::string_view {
+        switch ( type ) {
+            case QueueType::eGraphics: return "Graphics";
+            case QueueType::eCompute: return "Compute";
+            case QueueType::eTransfer: return "Transfer";
+            case QueueType::ePresent: return "Present";
+            default:;
+        }
+
+        return eastl::string_view{};
     }
 
     auto GetViewType( TextureDimension dimensions ) -> VkImageViewType {
@@ -763,7 +778,7 @@ namespace mikoto::renderer::vulkan {
             flags |= VK_SHADER_STAGE_VERTEX_BIT;
         }
 
-        if ( visibility & ShaderFlagsBits::kFragment ) {
+        if ( visibility & ShaderFlagsBits::kPixel ) {
             flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
         }
 
@@ -775,7 +790,7 @@ namespace mikoto::renderer::vulkan {
             flags |= VK_SHADER_STAGE_GEOMETRY_BIT;
         }
 
-        if ( visibility & ShaderFlagsBits::kTesselationControl ) {
+        if ( visibility & ShaderFlagsBits::kHull ) {
             flags |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
             flags |= VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
         }

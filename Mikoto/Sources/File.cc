@@ -68,17 +68,38 @@ namespace mikoto::filesystem {
 
     File::File( const Path &path, bool create )
         : mPath{ path } {
-        LoadContents();
+        if (!create) {
+            LoadContents();
+        } else {
+            mFileStream = std::fstream{ mPath.GetC_Str(), std::ios::out | std::ios::trunc | std::ios::binary };
+            mFileStream.close();
+        }
+
+        mType = InferFileType( InferExtensionFromFileSignature(mContents) );
     }
 
     File::File( const eastl::string &path, bool create )
         : mPath{ path } {
-        LoadContents();
+        if (!create) {
+            LoadContents();
+        } else {
+            mFileStream = std::fstream{ mPath.GetC_Str(), std::ios::out | std::ios::trunc | std::ios::binary };
+            mFileStream.close();
+        }
+
+        mType = InferFileType( InferExtensionFromFileSignature(mContents) );
     }
 
     File::File( eastl::string_view path, bool create )
         : mPath{ path } {
-        LoadContents();
+        if (!create) {
+            LoadContents();
+        } else {
+            mFileStream = std::fstream{ mPath.GetC_Str(), std::ios::out | std::ios::trunc | std::ios::binary };
+            mFileStream.close();
+        }
+
+        mType = InferFileType( InferExtensionFromFileSignature(mContents) );
     }
 
     auto File::LoadContents() -> void {
@@ -101,8 +122,6 @@ namespace mikoto::filesystem {
 
         // Close stream
         mFileStream.close();
-
-        mType = InferFileType( InferExtensionFromFileSignature(mContents) );
     }
 
     auto File::InferFileType( eastl::string_view extension ) -> FileType {
@@ -135,7 +154,7 @@ namespace mikoto::filesystem {
         return mPath;
     }
 
-    auto File::GetDirectory() const -> const Path & {
+    auto File::GetDirectory() const -> Path {
         return mPath.GetDirectory();
     }
 
@@ -168,9 +187,23 @@ namespace mikoto::filesystem {
     }
 
     auto File::FlushContents() -> void {
+        mFileStream = std::fstream{ mPath.GetC_Str(), std::ios::out | std::ios::trunc | std::ios::binary };
+        mFileStream.write(as<const char*>(mContents.data()), as<std::streamsize>( mContents.size() ));
+        mFileStream.flush();
+        mFileStream.close();
     }
 
     auto File::SetContents( eastl::string &&contents ) -> void {
+        // Open to overwrite
+        mContents = std::move( contents );
+    }
+
+    auto File::Write( const void *ptr, size_t sizeBytes ) -> void {
+        // Open to overwrite
+        mFileStream = std::fstream{ mPath.GetC_Str(), std::ios::out | std::ios::trunc | std::ios::binary };
+        mFileStream.write(as<const char*>(ptr), as<std::streamsize>( sizeBytes ));
+        mFileStream.flush();
+        mFileStream.close();
     }
 
     auto File::UpdateContentsFromDisk() -> void {

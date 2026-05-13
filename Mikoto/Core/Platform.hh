@@ -103,4 +103,16 @@
     #define MIKOTO_LITTLE_ENDIAN 1
 #endif
 
+// =======================
+//  Debug
+// =======================
+#if defined(_MSC_VER)
+    #define MKT_DEBUG_BREAK() __debugbreak()
+#elif defined(__clang__) || defined(__GNUC__)
+    #define MKT_DEBUG_BREAK() __builtin_trap()
+#else
+    #include <csignal>
+    #define MKT_DEBUG_BREAK() std::raise(SIGTRAP)
+#endif
+
 #endif//MIKOTO_PLATFORM_H

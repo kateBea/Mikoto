@@ -176,17 +176,20 @@ namespace mikoto::renderer::vulkan {
             .pDisabledValidationFeatures = nullptr
         };
 
+        // Sync validations??
+        // https://vulkan.lunarg.com/doc/view/latest/windows/synchronization_usage.html
+
         // When core validations are passed check GPU assisted ones, cannot enable both, GPU assisted validations are very slow
         VkInstanceCreateInfo createInfo{ initializers::InstanceCreateInfo() };
-        createInfo.pNext = std::addressof( debugCreateInfo );
-        createInfo.pApplicationInfo = std::addressof( appInfo );
+        createInfo.pNext = MKT_ADDRESSOF( debugCreateInfo );
+        createInfo.pApplicationInfo = MKT_ADDRESSOF( appInfo );
 
         switch (builder.mValidationLevel) {
             case InstanceBuilder::ValidationLevel::eCore:
-                createInfo.pNext = std::addressof( debugCreateInfo );
+                createInfo.pNext = MKT_ADDRESSOF( debugCreateInfo );
                 break;
             case InstanceBuilder::ValidationLevel::eGpuAssisted:
-                createInfo.pNext = std::addressof( validationFeatures );
+                createInfo.pNext = MKT_ADDRESSOF( validationFeatures );
                 break;
         }
 

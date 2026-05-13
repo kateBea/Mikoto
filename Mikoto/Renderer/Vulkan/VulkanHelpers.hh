@@ -53,6 +53,8 @@ namespace mikoto::renderer::vulkan {
     MKT_NODISCARD auto GetSamplerFilter( SamplerFilter filter ) -> VkFilter;
     MKT_NODISCARD auto GetSamplerWrap( SamplerWrapMode wrap ) -> VkSamplerAddressMode;
 
+    MKT_NODISCARD auto GetQueueName( QueueType type ) -> eastl::string_view;
+
     MKT_NODISCARD auto GetViewType( TextureDimension dimensions ) -> VkImageViewType;
     MKT_NODISCARD auto GetTextureType( TextureDimension dimensions ) -> VkImageType;
 
@@ -64,9 +66,9 @@ namespace mikoto::renderer::vulkan {
     MKT_NODISCARD auto GetIndexType(Format format) -> VkIndexType;
 
     MKT_NODISCARD auto GetShaderStageFlags( ShaderStage visibility ) -> VkShaderStageFlags;
-    MKT_NODISCARD auto GetDescriptorType( ResourceType type, TextureDimension dimension ) -> VkDescriptorType;
+    MKT_NODISCARD auto GetDescriptorType( ResourceType type ) -> VkDescriptorType;
 
-    MKT_NODISCARD auto InferImageUsage(TextureUsageFlags flags ) -> VkFlags;
+    MKT_NODISCARD auto GetImageUsage(TextureUsageFlags flags ) -> VkImageUsageFlags;
 
 #define MKT_VK_CHECK( expr )                                               \
     do {                                                                   \

@@ -256,6 +256,7 @@ namespace mikoto::scene {
 
         MKT_NODISCARD auto HasMaterial() const -> bool { return !m_Material.IsEmpty(); }
         MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return m_Material; }
+        MKT_NODISCARD auto GetMaterial() const -> MaterialHandle { return m_Material; }
 
         auto SetMaterial( const MaterialHandle& mat ) -> void {
             if ( !mat.IsEmpty() ) {
@@ -656,7 +657,7 @@ namespace mikoto::scene {
         MKT_NODISCARD auto GetCamera() const -> const Camera* { return mCamera; }
 
         MKT_NODISCARD auto GetFont() const -> const Font* { return mFont.GetRaw(); }
-        //MKT_NODISCARD auto GetFontHandle() const -> FontHandle { return m_Font; }
+        MKT_NODISCARD auto GetFontHandle() const -> FontHandle { return mFont; }
         MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return mColor; }
 
         MKT_NODISCARD auto GetSize() const -> float { return mSize; }

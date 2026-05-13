@@ -68,7 +68,7 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto HasExternalImage() const -> bool;
 
-        MKT_NODISCARD auto GetView( u32 mipLevel ) const -> const VkImageView&;
+        MKT_NODISCARD auto GetView( u32 mipLevel, u32 face = 0 ) const -> const VkImageView&;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
@@ -86,8 +86,11 @@ namespace mikoto::renderer::vulkan {
     private:
         ImageAllocation mImageAllocation{};
 
+        // For every face we keep a list of mips
         // For every mip we keep a view
-        eastl::vector<VkImageView> mImageViews{};
+        // This account for stuff like IBL Prefilter map where you have
+        // multiple mips per face
+        eastl::vector<eastl::vector<VkImageView>> mImageViews{};
         VkImageViewCreateInfo mImageViewCreateInfo{};
 
         bool mIsImageExternal{ false };

@@ -13,38 +13,62 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
 #include "base/Tonemap_Helpers.slang"
 
+static const uint kBGTypeSkybox = 0;
+static const uint kBGTypePrefilter = 1;
+
 struct FSInput {
     float3 Direction : TEXCOORD0;
-    float  Exposure  : TEXCOORD1;
-    float  Gamma     : TEXCOORD2;
 };
 
 struct FSOutput {
     float4 Color : SV_Target0;
 };
 
-[[vk::binding(Slot_0, DYNAMIC_SAMPLERS_SET_INDEX)]]
-SamplerCube g_SkyboxTex;
+struct DrawParams {
+    uint CameraBufferID;
+    uint BasicSamplerID;
 
-[[vk::push_constant]]
-SkyBoxParameters u_IBLParams;
+    uint SkyboxCubeRtID;
+    uint PrefilterCubeRtID;
+
+    uint BackGroundType; // Prefilter map, Original skybox, clear color
+
+    uint MaxMipLevel;
+    uint Exposure;
+    uint Gamma;
+};
+
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
+
+MKT_DECLARE_SAMPLERS Samplers;
+MKT_DECLARE_TEXTURE_SRV(TextureCube) Textures;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
 
+    SamplerState sampler = Samplers[Parameters.BasicSamplerID];
+    TextureCube texture;
+
+    if (Parameters.BackGroundType == kBGTypeSkybox) {
+        texture = Textures[Parameters.SkyboxCubeRtID];
+    } else if (Parameters.BackGroundType == kBGTypePrefilter) {
+        texture = Textures[Parameters.PrefilterCubeRtID];
+    }
+
     const float blur = 4.5;
     float3 color;
 
-    if (u_IBLParams.MaxMipLevel > blur) {
-        color = g_SkyboxTex.SampleLevel(input.Direction, blur).rgb;
+    if (Parameters.MaxMipLevel > blur) {
+        color = texture.SampleLevel(sampler, input.Direction, blur).rgb;
     }
     else {
-        color = g_SkyboxTex.Sample(input.Direction).rgb;
+        color = texture.Sample(sampler, input.Direction).rgb;
     }
 
     o.Color = float4(color, 1.0);

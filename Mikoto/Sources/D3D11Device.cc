@@ -109,7 +109,7 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = true;
     }
 
-    auto BindingSet::Bind( ID3D11DeviceContext *ctx, ShaderStage visibility ) -> void {
+    auto BindingSet::Bind( ID3D11DeviceContext *ctx, ShaderStage visibility ) const -> void {
 
         // Slots start from 0 for each type of register and increment in order
         u32 constantBuffrSlotIndex{ 0 };
@@ -152,16 +152,16 @@ namespace mikoto::renderer::d3d11 {
                     if ( visibility & ShaderFlagsBits::kVertex )
                         bindSRV( [&]( auto... args ) { ctx->VSSetShaderResources( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kFragment )
+                    if ( visibility & ShaderFlagsBits::kPixel )
                         bindSRV( [&]( auto... args ) { ctx->PSSetShaderResources( args... ); } );
 
                     if ( visibility & ShaderFlagsBits::kGeometry )
                         bindSRV( [&]( auto... args ) { ctx->GSSetShaderResources( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kTesselationControl )
+                    if ( visibility & ShaderFlagsBits::kHull )
                         bindSRV( [&]( auto... args ) { ctx->HSSetShaderResources( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kTesselationEvaluation )
+                    if ( visibility & ShaderFlagsBits::kDomain )
                         bindSRV( [&]( auto... args ) { ctx->DSSetShaderResources( args... ); } );
 
                     if ( visibility & ShaderFlagsBits::kCompute )
@@ -173,16 +173,16 @@ namespace mikoto::renderer::d3d11 {
                     if ( visibility & ShaderFlagsBits::kVertex )
                         bindCB( [&]( auto... args ) { ctx->VSSetConstantBuffers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kFragment )
+                    if ( visibility & ShaderFlagsBits::kPixel )
                         bindCB( [&]( auto... args ) { ctx->PSSetConstantBuffers( args... ); } );
 
                     if ( visibility & ShaderFlagsBits::kGeometry )
                         bindCB( [&]( auto... args ) { ctx->GSSetConstantBuffers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kTesselationControl )
+                    if ( visibility & ShaderFlagsBits::kHull )
                         bindCB( [&]( auto... args ) { ctx->HSSetConstantBuffers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kTesselationEvaluation )
+                    if ( visibility & ShaderFlagsBits::kDomain )
                         bindCB( [&]( auto... args ) { ctx->DSSetConstantBuffers( args... ); } );
 
                     if ( visibility & ShaderFlagsBits::kCompute )
@@ -194,16 +194,16 @@ namespace mikoto::renderer::d3d11 {
                     if ( visibility & ShaderFlagsBits::kVertex )
                         bindSampler( [&]( auto... args ) { ctx->VSSetSamplers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kFragment )
+                    if ( visibility & ShaderFlagsBits::kPixel )
                         bindSampler( [&]( auto... args ) { ctx->PSSetSamplers( args... ); } );
 
                     if ( visibility & ShaderFlagsBits::kGeometry )
                         bindSampler( [&]( auto... args ) { ctx->GSSetSamplers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kTesselationControl )
+                    if ( visibility & ShaderFlagsBits::kHull )
                         bindSampler( [&]( auto... args ) { ctx->HSSetSamplers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kTesselationEvaluation )
+                    if ( visibility & ShaderFlagsBits::kDomain )
                         bindSampler( [&]( auto... args ) { ctx->DSSetSamplers( args... ); } );
 
                     if ( visibility & ShaderFlagsBits::kCompute )
@@ -224,10 +224,6 @@ namespace mikoto::renderer::d3d11 {
     PipelineLayout::PipelineLayout( const PipelineLayoutCreateDescription& desc )
         : mDesc{ desc }
     {}
-
-    auto PipelineLayout::GetBindPoint() const -> PipelineType {
-        return PipelineType::eInvalid;
-    }
 
     auto PipelineLayout::GetDescription() const -> const PipelineLayoutCreateDescription & {
         return mDesc;
@@ -251,7 +247,7 @@ namespace mikoto::renderer::d3d11 {
         : ICommandList{ type }
     {}
 
-    auto CommandList::Begin() -> void {
+    auto CommandList::Begin( const CommandListBeginDescription &desc ) -> void {
         // Reset state before recording new commands
         ClearState();
     }
@@ -263,6 +259,26 @@ namespace mikoto::renderer::d3d11 {
         if (FAILED(mDeviceContextDeferred->FinishCommandList(FALSE, &mCommandList))) {
             MKT_ASSERT( false, "Failed to finish command list" );
         }
+    }
+    auto CommandList::BeginParallel() -> void {
+    }
+    auto CommandList::EndParallel() -> void {
+    }
+
+    auto CommandList::PushBarrier( const BufferBarrierDescription &barrier ) -> void {
+
+    }
+
+    auto CommandList::PushBarrier( const TextureBarrierDescription &barrier ) -> void {
+
+    }
+
+    auto CommandList::SetBarrier( const BufferBarrierDescription &barrier ) -> void {
+
+    }
+
+    auto CommandList::SetBarrier( const TextureBarrierDescription &barrier ) -> void {
+
     }
 
     auto CommandList::BeginTrackingState( IBuffer *buffer, ResourceStates stateBits ) -> void {
@@ -292,6 +308,10 @@ namespace mikoto::renderer::d3d11 {
     auto CommandList::SetClearColor( TextureHandle renderTargets, Color color ) -> void {
     }
 
+    auto CommandList::WriteVolatile( IBuffer *target, const void *data, size_t byteSize ) -> void {
+
+    }
+
     auto CommandList::ClearState() -> void {
         mDeviceContextDeferred->ClearState();
 
@@ -308,19 +328,23 @@ namespace mikoto::renderer::d3d11 {
         mCurrentClearColor = Color{};
     }
 
-    auto CommandList::WriteTexture( IBuffer *src, ITexture *dest, u32 mipLevel ) -> void {
+    auto CommandList::Write( IBuffer *src, ITexture *dest, u32 mipLevel ) -> void {
 
     }
 
-    auto CommandList::WriteTexture( ITexture *target, u32 mipLevel, const void *data, size_t byteSize ) -> void {
+    auto CommandList::Write( ITexture *target, u32 mipLevel, const void *data, size_t byteSize ) -> void {
 
     }
 
-    auto CommandList::CopyTexture( ITexture *src, const TextureSlice &srcSlice, ITexture *dest, const TextureSlice &destSlice ) -> void {
+    auto CommandList::Copy( ITexture *src, const TextureSlice &srcSlice, ITexture *dest, const TextureSlice &destSlice ) -> void {
 
     }
 
-    auto CommandList::WriteBuffer( IBuffer *target, const void *data, size_t byteSize ) -> void {
+    auto CommandList::Write( IBuffer *target, size_t destOffset, const void *data, size_t byteSize ) -> void {
+
+    }
+
+    auto CommandList::Write( IBuffer *target, const void *data, size_t byteSize ) -> void {
         D3D11_MAPPED_SUBRESOURCE mappedResource{};
         ID3D11Buffer *buffer{ target->GetNativeHandle( ObjectType::D3D11_Buffer ) };
 
@@ -332,11 +356,11 @@ namespace mikoto::renderer::d3d11 {
         }
     }
 
-    auto CommandList::CopyBuffer( IBuffer *src, IBuffer *dest ) -> void {
+    auto CommandList::Copy( IBuffer *src, IBuffer *dest ) -> void {
 
     }
 
-    auto CommandList::CopyBuffer( IBuffer *src, IBuffer *dest, size_t destOffset ) -> void {
+    auto CommandList::Copy( IBuffer *src, IBuffer *dest, size_t destOffset ) -> void {
 
     }
 
@@ -399,7 +423,7 @@ namespace mikoto::renderer::d3d11 {
         MKT_ASSERT( description.mShaders.contains(ShaderType::eVertex), "No vertex shader found" );
 
         auto vertexShaderHandle{ description.mShaders.at(ShaderType::eVertex) };
-        auto pixelShaderHandle{ description.mShaders.at(ShaderType::eFragment) };
+        auto pixelShaderHandle{ description.mShaders.at(ShaderType::ePixel) };
 
         ID3D11VertexShader *vertexShader{ vertexShaderHandle->GetNativeHandle( ObjectType::D3D11_Shader ) };
         ID3D11PixelShader *pixelShader{ pixelShaderHandle->GetNativeHandle( ObjectType::D3D11_Shader ) };
@@ -491,24 +515,23 @@ namespace mikoto::renderer::d3d11 {
         );
     }
 
-    auto CommandList::BindIndirectBuffer( IBuffer *buffer, u32 stride ) -> void {
+    auto CommandList::BindPipelineResources( const BindResourcesDescription& desc ) -> void {
+        PipelineLayout* pl{ checked_cast<PipelineLayout*>( desc.mPipelineLayout ) };
 
-    }
+        for (const auto& resourceSet : desc.mResourceSets) {
+            const BindingSet* set{ checked_cast<const BindingSet*>( resourceSet.second.mResourceSet ) };
 
-    auto CommandList::BindPipelineResources( IPipelineLayout* pipelineLayout, IBindingSet* resourceSet, u32 bindingSlot ) -> void {
-        if (!resourceSet) {
-            return;
+            // For D3D11 we default to making resources visible to all stages
+            set->Bind(mDeviceContextDeferred.Get(), ShaderFlagsBits::kAll);
         }
-
-        PipelineLayout* pl{ checked_cast<PipelineLayout*>( pipelineLayout ) };
-        BindingSet* set{ checked_cast<BindingSet*>( resourceSet ) };
-
-        // For D3D11 we default to making resources visible to all stages
-        set->Bind(mDeviceContextDeferred.Get(), ShaderFlagsBits::kAll);
     }
 
     auto CommandList::Draw( const DrawArguments &args ) -> void {
         mDeviceContextDeferred->DrawInstanced( args.mVertexCount, args.mInstanceCount, args.mFirstVertex, args.mFirstInstance);
+    }
+
+    auto CommandList::BindIndirectBuffer( IBuffer *buffer ) -> void {
+
     }
 
     auto CommandList::DrawIndexed( const DrawArguments &args ) -> void {
@@ -533,7 +556,7 @@ namespace mikoto::renderer::d3d11 {
         mDeviceContextDeferred->Dispatch( groupsX, groupsY, groupsZ );
     }
 
-    auto CommandList::SetPushConstants( const void *data, size_t byteSize, ShaderStage visibility ) -> void {
+    auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, size_t byteSize, ShaderStage visibility ) -> void {
 
     }
 
@@ -894,6 +917,10 @@ namespace mikoto::renderer::d3d11 {
         return set;
     }
 
+    auto Device::CreateFence( u64 fenceInitialValue ) -> FenceHandle {
+        return FenceHandle::CreateEmpty();
+    }
+
     auto Device::UnMap( IBuffer *buffer ) -> void {
     }
 
@@ -917,6 +944,10 @@ namespace mikoto::renderer::d3d11 {
         return false;
     }
 
+    auto Device::Wait( FenceHandle handle, u64 fenceValue ) -> void {
+
+    }
+
     auto Device::Flush() -> void {
         eastl::fixed_vector<CommandListHandle, kMaxNonSubmittedCmds> pendingCommands{};
 
@@ -932,12 +963,12 @@ namespace mikoto::renderer::d3d11 {
         }
     }
 
-    auto Device::ExecuteCommands( CommandListHandle cmdList ) -> u64 {
+    auto Device::ExecuteCommands( CommandListHandle cmdList ) -> void {
         ID3D11CommandList* native{ cmdList->GetNativeHandle(ObjectType::D3D11_CommandList) };
         MKT_ASSERT(native, "Command list is null");
 
+        std::lock_guard lock{ mCommandsExecuteMutex };
         mDeviceContext->ExecuteCommandList(native, TRUE);
-        return 0;
     }
 
     auto Device::WaitIdle() -> void {

@@ -17,7 +17,7 @@
 
 using namespace mikoto;
 
-MKT_DECLARE_RW_STRUCTURED_BUFFERS sBuffers;
+MKT_DECLARE_STRUCTURED_UAV sBuffers;
 
 bool IsPrime(uint n) {
     if (n < 2) return false;
@@ -35,29 +35,32 @@ bool IsPrime(uint n) {
 struct MyStruct {
     int x;
     int y;
-    int z;
+    int prime;
+    int _pad;
 };
 
 struct ShaderParameters {
     int BufferID;
 };
 
-MKT_DECLARE_PUSH_CONSTANT
-ShaderParameters uParams;
+MKT_DECLARE_PUSH_CONSTANT(ShaderParameters) uParams;
 
 [numthreads(64, 1, 1)]
 [shader("compute")]
 void main(uint3 gid: SV_DispatchThreadID) {
     MyStruct s;
-    s.x = 1;
-    s.y = 1;
-    s.z = 1;
+    s.x = gid.x;
+    s.y = gid.y;
 
-#ifdef MKT_SUPPORT_D3D11
-    // Nee to handle properly bufferID must be a constant expression known at compile time
-    memory::WriteData<MyStruct>(sBuffers, 0, 0, 5, s);
-#else
-    memory::WriteData<MyStruct>(sBuffers, uParams.BufferID, 0, 5, s);
-#endif
+    uint idx = gid.x;
+
+    uint value = 0;
+    if (IsPrime(idx))
+        value = idx;
+
+    s.prime = value;
+
+    RWByteAddressBuffer buf = sBuffers[uParams.BufferID];
+    buf.Write<MyStruct>(0, idx, s);
 
 }

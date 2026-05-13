@@ -79,7 +79,7 @@ namespace mikoto::gui {
 
         // Swapchain images are very limited we want a format similar to
         // the one used to create the swap chain image
-        Format swapChainForma{ ctx->GetSwapChain()->GetFormat() };
+        Format swapChainFormat{ ctx->GetSwapChain()->GetFormat() };
 
         // Color Device attachment
         auto colorDesc{ TextureCreateDescription{}
@@ -87,8 +87,8 @@ namespace mikoto::gui {
             .SetHeight( as<i32>( mExtentHeight ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget )
-            .SetFormat( Format::eBGRA8_UNORM ) };
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kCopySrc ) // I will copy from this guy to swapchain image
+            .SetFormat( swapChainFormat ) };
 
         mColorImage = mDevice->CreateTexture( colorDesc );
         mColorImage->SetDebugName( "ImGui Color image" );
@@ -170,9 +170,6 @@ namespace mikoto::gui {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
-
-        // [ DEBUG ]
-        RenderSystem::Get()->SetPresentTarget( mColorImage );
     }
 
     auto ImGuiD3D11Backend::GetFinalComposition() -> TextureHandle {

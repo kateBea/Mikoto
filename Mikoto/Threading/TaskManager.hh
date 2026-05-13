@@ -28,6 +28,7 @@ namespace mikoto::threading {
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
+        auto Submit( tf::Taskflow& flow, bool wait ) -> void;
         auto SubmitTask(std::function<void()>&& task) -> void;
         auto Execute(tf::Taskflow& flow ) -> tf::Future<void>;
 

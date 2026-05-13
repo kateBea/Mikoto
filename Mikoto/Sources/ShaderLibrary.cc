@@ -69,6 +69,10 @@ namespace mikoto::material {
             return it->second;
         }
 
+        // When shader is cached we look in the asset cache folders see if we find the
+        // compiled byte code and feed it to the API, shader compilation takes long,
+        // we already have a way to do it on the fly at runtime, but it is ideal not to do it
+        // everytime we launch the app
         auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
             .SetFile( FileService::Get()->LoadFile( path ) )
             .SetStage( type )

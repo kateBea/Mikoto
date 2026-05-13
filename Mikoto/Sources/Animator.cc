@@ -34,6 +34,7 @@
 
 #include <Memory/Allocator.hh>
 
+#include <Assets/Model.hh>
 #include <Animation/Animator.hh>
 
 namespace mikoto::animation {

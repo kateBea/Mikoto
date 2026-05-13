@@ -14,95 +14,48 @@
 
 #include <imgui.h>
 
+#include <Assets/ImageProcessor.hh>
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Event.hh>
-#include <Core/Profiler.hh>
 #include <Core/CoreEvents.hh>
+#include <Core/Event.hh>
 #include <Core/Exception.hh>
 #include <Core/InputSystem.hh>
-#include <Core/Timer.hh>
-#include <Core/TimeService.hh>
 #include <Core/LocalizationService.hh>
-
-#include <Memory/Allocator.hh>
-
-#include <Assets/ImageProcessor.hh>
-
+#include <Core/Profiler.hh>
+#include <Core/TimeService.hh>
+#include <Core/Timer.hh>
+#include <Core/Types.hh>
+#include <Filesystem/FileWatcherService.hh>
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
-
 #include <Layers/EditorLayer.hh>
-
-#include <Filesystem/FileWatcherService.hh>
-
+#include <Memory/Allocator.hh>
+#include <Panels/ContentBrowserPanel.hh>
+#include <Panels/HierarchyPanel.hh>
+#include <Panels/InspectorPanel.hh>
+#include <Panels/RuntimeConsolePanel.hh>
+#include <Panels/ScenePanel.hh>
+#include <Panels/SettingsPanel.hh>
+#include <Panels/StatsPanel.hh>
 #include <Renderer/Core/RenderSystem.hh>
-
+#include <Renderer/Passes/DebugModule.hh>
 #include <Scene/SceneManager.hh>
 
-#include <Panels/StatsPanel.hh>
-#include <Panels/ScenePanel.hh>
-#include <Panels/InspectorPanel.hh>
-#include <Panels/HierarchyPanel.hh>
-#include <Panels/SettingsPanel.hh>
-#include <Panels/RuntimeConsolePanel.hh>
-#include <Panels/ContentBrowserPanel.hh>
-
 namespace mikoto::editor {
+
+    // https://traineq.org/imgui_bundle_explorer/
+    // https://pthom.github.io/imgui_explorer/
 
     using namespace mikoto::gui;
     using namespace mikoto::core;
     using namespace mikoto::platform;
-
-    auto DrawProfilerWindow(TimeService* timeService) -> void {
-        if (!ImGui::Begin("Profiler")) {
-            ImGui::End();
-            return;
-        }
-
-        const auto& times = timeService->GetTimes();
-
-        for (const auto& [name, history] : times) {
-            if (history.empty())
-                continue;
-
-            // --- Convert to float buffer ---
-            static eastl::vector<float> values;
-            values.clear();
-            values.reserve(history.size());
-
-            for (const auto& t : history) {
-                values.push_back(static_cast<float>(t.Convert(TimeUnit::eMilliseconds)));
-            }
-
-            // --- Latest value ---
-            float latest = values.back();
-
-            // --- Label ---
-            ImGui::Text("%s: %.3f ms", name.c_str(), latest);
-
-            // --- Graph ---
-            ImGui::PlotLines(
-                ("##" + name).c_str(), // hidden label
-                values.data(),
-                static_cast<int>(values.size()),
-                0,
-                nullptr,
-                0.0f,
-                50.0f, // max ms scale (adjust)
-                ImVec2(0, 120)
-            );
-        }
-
-        ImGui::End();
-    }
 
     auto EditorState::GetPrefab( PrefabModelType model ) -> ModelHandle {
         return mPrefabPaths[model];
     }
 
     EditorLayer::EditorLayer( Window *window )
-        : ILayer{ "EditorLayer" }, mWindow{ window }
+        : ILayer{ "EditorLayer" }, mWindow{ window }, mDevice{ RenderSystem::Get()->GetGpuDevice() }
     {}
 
     auto EditorLayer::OnCreate() -> void {
@@ -120,25 +73,47 @@ namespace mikoto::editor {
         InitEditorCamera();
 
         InitEditorPanels();
+
+        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
     }
 
     auto EditorLayer::OnDestroy() -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        // Ensure GPU is done
+        mDevice->WaitIdle();
+
+        mPanelRegistry.Clear();
+
+        mEditorState.reset();
+        mEditorCamera.reset();
+
+        mSceneRenderer->Shutdown();
+        mSceneRenderer.reset();
+
+        mCommandList.Reset();
+
+        mDevice = nullptr;
+        mWindow = nullptr;
     }
 
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        //TODO:Integrate project load, no render panels just dockspace if no project
+
         UpdateCameraState( timeStep );
         UpdateRendererState( timeStep );
         UpdateSceneState( timeStep );
 
+        UpdateDockSpace();
+        UpdateDockSpacePanels( timeStep );
+
         RenderScene( timeStep );
+        UpdateViewportState( timeStep );
 
-        ShowDockSpace();
-        ShowDockSpacePanels( timeStep );
-
-        //DrawProfilerWindow( TimeService::GetPtr() );
+        // TODO: Handle properly
+        RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
     }
 
     auto EditorLayer::OnEvent( IEvent &event ) -> void {
@@ -151,6 +126,7 @@ namespace mikoto::editor {
             if (mouseButtongEvent->GetMouseButton() == Mouse_Button_Right && scenePanel && scenePanel->IsHovered() ) {
                 if (!mWindow->IsCursorMode( CursorMode::eDisabled )) {
                     mWindow->SetCursorMode( CursorMode::eDisabled );
+                    mEditorCamera->EnableCamera( true );
                 }
             }
         }
@@ -160,6 +136,7 @@ namespace mikoto::editor {
 
             if (mouseButtongEvent->GetMouseButton() == Mouse_Button_Right) {
                 mWindow->SetCursorMode( CursorMode::eNormal );
+                mEditorCamera->EnableCamera( false );
             }
         }
 
@@ -167,17 +144,33 @@ namespace mikoto::editor {
             auto* contentDropped{ as<ContentDroppedEvent*>(MKT_ADDRESSOF( event )) };
             for (const auto& c : contentDropped->GetContents() ) {
                 MKT_CORE_LOGGER_DEBUG( "User dropper {}", c.c_str() );
-
                 Path path{ c };
-                if (asset::IsFileImage( path )) {
+
+                if ( asset::IsFileImage( path ) ) {
+                    // Ideally
+                    // Dropped on mesh -> 2D texture
+                    // Dropped on sky -> cubemap
                     asset::AssetsService::Get()->LoadAssetAsync<ITexture>( path, TextureDimension::eTexture2D );
-                } else if (asset::IsFileModel( path )) {
-                    asset::AssetsService::Get()->LoadAssetAsync<Model>( path );
+                } else if ( asset::IsFileModel( path ) ) {
+                    threading::TaskService::Get()->Submit( [this, path]() -> void {
+                        ModelLoadDescription description{
+                            .mFile = FileService::Get()->LoadFile( path ),
+                            .mExtractTextures = true,
+                        };
+                        const ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( description ) };
+
+                        const EntityCreateInfo entityCreateInfo{
+                            .mRoot = nullptr,
+                            .mName{ description.mFile->GetName() },
+                            .mModel = model,
+                        };
+
+                        mEditorState->mActiveScene->PushEntity( entityCreateInfo );
+                    } );
                 }
             }
         }
     }
-
     auto EditorLayer::InitAssets() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -204,11 +197,22 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::InitSceneRenderer() -> void {
-        SceneRendererCreateInfo spec{};
-        spec.WithName( "Scene renderer" )
-            .WithDevice( RenderSystem::Get()->GetGpuDevice() );
+        auto colorDesc{ TextureCreateDescription{}
+            .SetWidth( as<i32>( 1920 ) )
+            .SetHeight( as<i32>( 1080 ) )
+            .SetDimensions( TextureDimension::eTexture2D )
+            .SetMultisampling( Multisampling::eMsaaX1 )
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetFormat( Format::eBGRA8_UNORM ) };
 
-        mSceneRenderer = SceneRenderer::Create( spec );
+        mEditorState->mFinalComposition = mDevice->CreateTexture( colorDesc );
+        mEditorState->mFinalComposition->SetDebugName( "EditorColor" );
+
+        auto description{ SceneRendererCreateInfo{}
+            .SetName( "MainSceneRenderer" )
+            .AddPresentImage( mEditorState->mFinalComposition )
+            .SetDevice( RenderSystem::Get()->GetGpuDevice() ) };
+        mSceneRenderer = SceneRenderer::Create( description );
 
         if (mSceneRenderer) {
             mSceneRenderer->Init();
@@ -285,7 +289,7 @@ namespace mikoto::editor {
         mEditorState->mActiveScene = SceneManager::Get()->CreateScene( "Scene" );
     }
 
-    auto EditorLayer::ShowDockSpace() -> void {
+    auto EditorLayer::UpdateDockSpace() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         constexpr auto optPadding{ false };
@@ -472,7 +476,7 @@ namespace mikoto::editor {
         ImGui::End();
     }
 
-    auto EditorLayer::ShowDockSpacePanels( float ts ) -> void {
+    auto EditorLayer::UpdateDockSpacePanels( float ts ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         for (const auto &panel: mPanelRegistry | std::ranges::views::values) {
@@ -482,6 +486,11 @@ namespace mikoto::editor {
 
     auto EditorLayer::RenderScene( float ) -> void {
         mSceneRenderer->Render( mEditorState->mActiveScene );
+    }
+
+    auto EditorLayer::UpdateViewportState( float ) -> void {
+        ScenePanel* panel{ mPanelRegistry.Get<ScenePanel>() };
+        panel->SetTexture( mEditorState->mFinalComposition );
     }
 
     auto EditorLayer::UpdateSceneState( float ts  ) -> void {
@@ -512,13 +521,6 @@ namespace mikoto::editor {
             mEditorCamera->SetViewportSize( scenePanel->GetWidth(), scenePanel->GetHeight() );
         } else {
             mEditorCamera->SetViewportSize( mWindow->GetWidth(), mWindow->GetHeight() );
-        }
-
-        if ((InputSystem::Get()->IsMouseKeyPressed( Mouse_Button_Right ) && scenePanel->IsHovered()) ||
-            mScreenPresentTarget == ScreenPresentTarget::eFinalImage) {
-            mEditorCamera->EnableCamera( true );
-        } else {
-            mEditorCamera->EnableCamera( false );
         }
 
         // Camera target

@@ -35,12 +35,6 @@ static const float LIGHT_MIN_INFLUENCE = 0.001f;
 // STRUCTS 
 // ============================================================================
 
-struct ClusteredShadingParams {
-    float4 GridSize;
-    uint ShowHeatMap;
-    uint ActiveLightCount;
-};
-
 struct Cluster {
     float4 Center;
     float4 ClosestPoint;

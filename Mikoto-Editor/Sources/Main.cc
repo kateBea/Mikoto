@@ -19,17 +19,20 @@
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+
 #include <Logging/Logger.hh>
-
-#include <Platform/Window.hh>
-#include <Platform/WindowsService.hh>
-
-#include <Layers/GameLayer.hh>
-#include <Layers/EditorLayer.hh>
 
 #include <Application/EditorApp.hh>
 #include <Application/Configuration.hh>
+
+#include <Layers/EditorLayer.hh>
+#include <Layers/EditorDebugLayer.hh>
+
+#include <Platform/Window.hh>
+#include <Platform/WindowsService.hh>
 
 using namespace mikoto::core;
 using namespace mikoto::editor;
@@ -78,7 +81,7 @@ auto InitEditor() -> bool {
 
     try {
         gApplication->Init();
-        gApplication->PushLayer<GameLayer>( gWindow );
+        gApplication->PushLayer<EditorDebugLayer>( gWindow );
         gApplication->PushLayer<EditorLayer>( gWindow );
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Ini App exception - e.what(): {}", e.what() );

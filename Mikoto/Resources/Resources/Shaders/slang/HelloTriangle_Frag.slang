@@ -22,7 +22,21 @@ struct FSInput {
 DECL_BINDING(0, 0) SamplerState sampler;
 DECL_BINDING(1, 0) Texture2D texture;
 
+DECL_BINDING(0, 1) Texture2D textures[];
+DECL_BINDING(1, 1) SamplerState samplers[];
+
+struct MyData {
+    float4x4 model;
+    float4x4 view;
+    float4x4 projection;
+
+    int textureIndex;
+    int samplerIndex;
+};
+
+DECL_BINDING(2, 0) ConstantBuffer<MyData> Matrices;
+
 [shader("fragment")]
 float4 main(FSInput input) : SV_TARGET {
-    return float4(texture.Sample(sampler, input.uv).xyz, 1.0);
+    return float4(textures[Matrices.textureIndex].Sample(samplers[Matrices.samplerIndex], input.uv).xyz * texture.Sample(sampler, input.uv).xyz, 1.0);
 }

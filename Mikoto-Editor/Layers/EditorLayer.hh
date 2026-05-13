@@ -98,11 +98,12 @@ namespace mikoto::editor {
 
         auto InitEmptyScene() -> void;
 
-        auto ShowDockSpace() -> void;
-        auto ShowDockSpacePanels( float ts ) -> void;
+        auto UpdateDockSpace() -> void;
+        auto UpdateDockSpacePanels( float ts ) -> void;
 
         auto RenderScene( float ts ) -> void;
 
+        auto UpdateViewportState( float ts ) -> void;
         auto UpdateSceneState( float ts ) -> void;
         auto UpdateCameraState( float ts  ) -> void;
         auto UpdateRendererState( float ts  ) -> void;
@@ -114,6 +115,10 @@ namespace mikoto::editor {
         eastl::unique_ptr<EditorState> mEditorState{};
         eastl::unique_ptr<SceneCamera> mEditorCamera{};
         eastl::unique_ptr<SceneRenderer> mSceneRenderer{};
+
+        CommandListHandle mCommandList{};
+
+        GpuDevice* mDevice{};
 
         ScreenPresentTarget mScreenPresentTarget{ ScreenPresentTarget::ePanels };
     };

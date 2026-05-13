@@ -14,7 +14,9 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Core/Profiler.hh>
+#include <Core/Platform.hh>
 
 #include <Memory/Allocator.hh>
 
@@ -23,62 +25,280 @@
 
 namespace mikoto::renderer {
 
-    CommandContext::CommandContext( GpuDevice* device, FrameGraphNode* pass, FrameGraphResourceManager* resourceManager )
-        : mDevice{ device }, mNode{ pass }, mResourceManager{ resourceManager } {
-        MKT_ASSERT( mNode, "Frame graph node cannot be null" );
-        MKT_ASSERT( mDevice, "Gpu Device cannot be null" );
-        MKT_ASSERT( mResourceManager, "Resource manager cannot be null" );
+    MKT_NODISCARD constexpr auto GetResourceState(FGResourceState state) -> ResourceStates {
+    switch (state) {
+        case FGResourceState::eUnknown:                return ResourceStates::eUnknown;
 
-        QueueType type{ QueueType::eGraphics };
-        switch (pass->mType) {
-            case FrameGraphNodeType::eGraphics:
-                type = QueueType::eGraphics;
-                break;
-            case FrameGraphNodeType::eCompute:
-                type = QueueType::eCompute;
-                break;
-            case FrameGraphNodeType::eTransfer:
-                type = QueueType::eTransfer;
-                break;
-            case FrameGraphNodeType::eGeneric:
-                break;
-        }
+        // Buffers
+        case FGResourceState::eConstantBuffer:         return ResourceStates::eConstantBuffer;
+        case FGResourceState::eVertexBuffer:           return ResourceStates::eVertexBuffer;
+        case FGResourceState::eIndexBuffer:            return ResourceStates::eIndexBuffer;
+        case FGResourceState::eIndirectArgument:       return ResourceStates::eIndirectArgument;
+        case FGResourceState::eShaderResource:         return ResourceStates::eShaderResource;
+        case FGResourceState::eUnorderedAccess:        return ResourceStates::eUnorderedAccess;
 
-        if (pass->mType != FrameGraphNodeType::eGeneric) {
-            mCommands = mDevice->CreateCommandList( type );
-        }
+        // Images
+        case FGResourceState::eRenderTarget:           return ResourceStates::eRenderTarget;
+        case FGResourceState::eDepthWrite:             return ResourceStates::eDepthWrite;
+        case FGResourceState::eDepthRead:              return ResourceStates::eDepthRead;
+
+        // Transfer
+        case FGResourceState::eCopyDest:               return ResourceStates::eCopyDest;
+        case FGResourceState::eCopySource:             return ResourceStates::eCopySource;
+        case FGResourceState::eResolveDest:            return ResourceStates::eResolveDest;
+        case FGResourceState::eResolveSource:          return ResourceStates::eResolveSource;
+
+        // Present
+        case FGResourceState::ePresent:                return ResourceStates::ePresent;
+
+        // Raytracing
+        case FGResourceState::eAccelStructRead:        return ResourceStates::eAccelStructRead;
+        case FGResourceState::eAccelStructWrite:       return ResourceStates::eAccelStructWrite;
+        case FGResourceState::eAccelStructBuildInput:  return ResourceStates::eAccelStructBuildInput;
+        case FGResourceState::eAccelStructBuildBlas:   return ResourceStates::eAccelStructBuildBlas;
     }
 
-    auto CommandContext::BeginRender() -> void {
+    // Fallback (should never happen if enum is exhaustive)
+    return ResourceStates::eUnknown;
+}
 
+    auto DrawIndirectState::SetBuffer( FGBufferHandle handle ) -> DrawIndirectState& {
+        mIndirectBuffer = handle;
+        return *this;
+    }
+
+    auto DrawIndirectState::SetDrawCount( u32 count ) -> DrawIndirectState& {
+        mInstanceCount = count;
+        return *this;
+    }
+    auto ContextRenderState::Clear() -> void {
+        mCurrentRenderTargets.clear();
+        mDepthTarget = {};
+        mRenderArea = {};
+    }
+
+    auto ContextRenderState::SetRenderArea( const Rect &rec ) -> ContextRenderState & {
+        mRenderArea = rec;
+        return *this;
+    }
+
+    auto ContextRenderState::AddDepthTarget( FGTextureHandle target, LoadOp op ) -> ContextRenderState & {
+        mDepthTarget = RenderTargetState{
+            .mClearColor = kColorWhite,
+            .mLoadOp = op,
+            .mRenderTarget = target,
+        };
+
+        return *this;
+    }
+
+    auto ContextRenderState::AddRenderTarget( FGTextureHandle target, const Color &c, LoadOp op, u32 faceIndex, u32 mipLevel ) -> ContextRenderState & {
+        mCurrentRenderTargets.emplace_back( RenderTargetState{
+            .mClearColor = c,
+            .mLoadOp = op,
+            .mRenderTarget = target,
+        });
+
+        return *this;
+    }
+
+    CommandContext::CommandContext(  FGNode* pass, FGResourceManager* resourceManager )
+        : mNode{ pass }, mResourceManager{ resourceManager } {
+        MKT_ASSERT( mNode, "Frame graph node cannot be null" );
+        MKT_ASSERT( mResourceManager, "Resource manager cannot be null" );
+    }
+
+    auto CommandContext::BeginPass( CommandListHandle cmd ) -> void {
+        mCommands = cmd;
+    }
+
+    auto CommandContext::EndPass() -> void {
+
+    }
+
+    auto CommandContext::BeginRender( const ContextRenderState &gs ) -> void {
+        auto graphicsState{ GraphicsState{}
+            .SetRenderArea( gs.mRenderArea )
+            .SetScopeName( string::Format( "Render: {}", mNode->mName ))
+            .AddDepthTarget( mResourceManager->Get( gs.mDepthTarget.mRenderTarget.mHandle ).mResource )
+        };
+
+        for (const auto& colorImage : gs.mCurrentRenderTargets) {
+            TextureHandle texture{ mResourceManager->Get( colorImage.mRenderTarget.mHandle ).mResource };
+            graphicsState.AddRenderTarget( texture, colorImage.mClearColor, colorImage.mLoadOp );
+        }
+
+        mCommands->BeginRendering( graphicsState );
     }
 
     auto CommandContext::EndRender() -> void {
-
+        mCommands->EndRendering();
     }
 
-    auto CommandContext::GetIndex( ResourceID resourceID ) -> u32 {
+    auto CommandContext::SetViewportState( const ViewportState &vs ) -> void {
+        mCommands->SetViewportState( vs );
+    }
+
+    auto CommandContext::PushTexture_SRV( FGTextureHandle handle ) -> u32 {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        FrameGraphResource pipeline{ mResourceManager->Get( resourceID ) };
-
-        // Create gpu descriptor ID handle
-
-        return 0; // TODO
+        FGResource resource{ mResourceManager->Get( handle.mHandle ) };
+        TextureHandle texture{ resource.mResource };
+        return mResourceManager->PushTexture_SRV( handle.mHandle );
     }
 
-    auto CommandContext::BindPipeline( PipelineID pipelineID ) -> void {
-
+    auto CommandContext::PushSampler( FGSamplerHandle handle ) -> u32 {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        return mResourceManager->PushSampler( handle.mHandle );
     }
 
-    auto CommandContext::Draw( u32 instanceCount ) -> void {
+    auto CommandContext::PushBuffer_SRV( FGBufferHandle handle ) -> u32 {
+        // TODO: add checks if u registered the resource to use as SRV in the setup lambda
 
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        return mResourceManager->PushBuffer_SRV( handle.mHandle );
+    }
+
+    auto CommandContext::PushBuffer_UAV( FGBufferHandle handle ) -> u32 {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        return mResourceManager->PushBuffer_UAV( handle.mHandle );
+    }
+
+    auto CommandContext::PushBuffer_Constant( FGBufferHandle handle ) -> u32 {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        return mResourceManager->PushBuffer_Constant( handle.mHandle );
+    }
+
+    auto CommandContext::CommitBarriers( eastl::span<const FGBarrier> barriers ) -> void {
+        if (barriers.empty()) {
+            return;
+        }
+
+        for (const auto& barrier : barriers) {
+            FGResource resource{ mResourceManager->Get( barrier.mResourceID ) };
+            auto desired{ GetResourceState(barrier.mNewState) };
+
+            switch (resource.mType) {
+                case FGResourceType::eTexture:
+                    mCommands->BeginTrackingState( checked_cast<ITexture*>( resource.mResource.GetRaw() ), desired );
+                    break;
+                case FGResourceType::eBuffer:
+                    mCommands->BeginTrackingState( checked_cast<IBuffer*>( resource.mResource.GetRaw() ), desired );
+                    break;
+                default:
+                    MKT_ASSERT( false, "Unknown resource type" );
+                    break;
+            }
+        }
+
+        mCommands->CommitBarriers();
+    }
+
+    auto CommandContext::ImportTexture( TextureHandle handle ) -> FGTextureHandle {
+        // Imported textures need to be synchronized externally
+        // Before the frame graph runs the client needs to make sure the resource
+        // is in the specific state the resource will be used in
+        return mResourceManager->ImportTexture( handle );
+    }
+
+    auto CommandContext::ImportSampler( SamplerHandle handle ) -> FGSamplerHandle {
+        return {};
+    }
+
+    auto CommandContext::ImportBuffer( BufferHandle handle ) -> FGBufferHandle {
+        return {};
+    }
+
+    auto CommandContext::BindPipeline( FGPipelineHandle handle ) -> void {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        FGResource pipeline{ mResourceManager->Get( handle.mHandle ) };
+        mCommands->BindPipeline( checked_cast<IPipeline*>( pipeline.mResource.GetRaw()) );
+
+        mCurrentPipeline = checked_cast<IPipeline*>( pipeline.mResource.GetRaw());
+    }
+
+    auto CommandContext::Draw( u32 vertexCount, u32 instanceCount ) -> void {
+        // Resources are only bound if
+        // you need them in the shader
+        BindResources();
+
+        IPipelineLayout* layout{ mCurrentPipeline->GetPipelineLayout().GetRaw() };
+        mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
+        mCommands->Draw( DrawArguments{}
+            .SetVertexCount( vertexCount )
+            .SetInstanceCount( instanceCount ) );
+    }
+
+    auto CommandContext::DrawIndirect( const DrawIndirectState& state ) -> void {
+        if (state.mInstanceCount == 0) {
+            return;
+        }
+
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        FGResource resource{ mResourceManager->Get( state.mIndirectBuffer.mHandle ) };
+
+        BindResources();
+
+        IPipelineLayout* layout{ mCurrentPipeline->GetPipelineLayout().GetRaw() };
+        mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
+        mCommands->BindIndirectBuffer( checked_cast<IBuffer*>( resource.mResource.GetRaw() ) );
+        mCommands->DrawIndirect( 0, state.mInstanceCount );
     }
 
     auto CommandContext::Dispatch( u32 groupX, u32 groupY, u32 groupZ ) -> void {
+        // Resources are only bound if
+        // you need them in the shader
+        BindResources();
+
+        IPipelineLayout* layout{ mCurrentPipeline->GetPipelineLayout().GetRaw() };
+        mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
         mCommands->Dispatch( groupX, groupY, groupZ );
     }
 
-    auto CommandContext::CopyBuffer( BufferID src, BufferID dest ) -> void {
+    auto CommandContext::RequestReadBack( void* ptr, size_t sizeBytes ) -> void {
 
+    }
+
+    auto CommandContext::BindResources() -> void {
+        MKT_ASSERT( mNode->mType == FGPassType::eGraphics || mNode->mType == FGPassType::eCompute,
+            "Bind resources is meant for passes that need them in the shaders");
+
+        PipelineType bindPoint{ PipelineType::eInvalid };
+        switch (mNode->mType) {
+            case FGPassType::eGraphics:
+                bindPoint = PipelineType::eGraphics;
+                break;
+            case FGPassType::eCompute:
+                bindPoint = PipelineType::eCompute;
+                break;
+            default:;
+        }
+
+        DescriptorTableHandle table{ mResourceManager->GetDescriptorTable() };
+        PipelineLayoutHandle layout{ mResourceManager->GetPipelineLayout() };
+
+        mCommands->BindPipelineResources( BindResourcesDescription{}
+            .AddResourceSet( 0, table.GetRaw() )
+            .SetPipelineLayout( layout.GetRaw() )
+            .SetBindPoint( bindPoint )
+        );
+    }
+
+    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        FGResource srcResource{ mResourceManager->Get( srcBuffer.mHandle ) };
+        FGResource dstResource{ mResourceManager->Get( dstBuffer.mHandle ) };
+        mCommands->Copy( checked_cast<IBuffer*>( srcResource.mResource.GetRaw() ), checked_cast<IBuffer*>( dstResource.mResource.GetRaw() ) );
+    }
+
+    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, IBuffer* src, size_t dstOffset ) -> void {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        FGResource resource{ mResourceManager->Get( dstBuffer.mHandle ) };
+        mCommands->Copy( src, checked_cast<IBuffer*>( resource.mResource.GetRaw() ), dstOffset );
+    }
+
+    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, size_t offset, const void* ptr, size_t sizeBytes ) -> void {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        FGResource resource{ mResourceManager->Get( dstBuffer.mHandle ) };
+        mCommands->Write( checked_cast<IBuffer*>( resource.mResource.GetRaw() ), offset, ptr, sizeBytes );
     }
 }// namespace mikoto::renderer

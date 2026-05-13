@@ -60,7 +60,6 @@ namespace mikoto::asset {
 
     struct TextureLoadDescription {
         Path mPath{};
-
         TextureDimension mDimension{ TextureDimension::eTexture2D };
 
         auto SetPath( const Path& path ) -> TextureLoadDescription&;
@@ -273,7 +272,7 @@ namespace mikoto::asset {
         auto LoadModel( const ModelLoadDescription& description) -> ModelHandle;
 
         auto LoadTexture( const Path& uri, TextureDimension dimension ) -> TextureHandle;
-        auto LoadTexture( const TextureLoadDescription& desc ) -> TextureHandle;
+        auto LoadTexture( const TextureLoadDescription& description ) -> TextureHandle;
 
         auto LoadAudio( const AudioLoadDescription& description) -> AudioHandle;
 
@@ -287,7 +286,7 @@ namespace mikoto::asset {
         auto CreateAssetCacheFolder(const Path& path) -> void;
 
     private:
-        static inline const Path kDummyTexturePath{ "./Resources/Textures/texture.png" };
+        static inline const Path kDummyTexturePath{ "Resources/Textures/texture.png" };
 
     private:
         eastl::unique_ptr<MeshFactory> mMeshFactory{};

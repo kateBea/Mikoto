@@ -153,7 +153,7 @@ namespace mikoto::renderer::d3d11 {
             result |= D3D11_BIND_CONSTANT_BUFFER;
         }
 
-        if (flags.Has( BufferUsageFlagsBits::kStructured )) {
+        if (flags.Has( BufferUsageFlagsBits::kStorage )) {
             result |= D3D11_BIND_UNORDERED_ACCESS;
         }
 

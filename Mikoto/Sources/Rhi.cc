@@ -18,6 +18,7 @@
 
 #include <Core/String.hh>
 #include <Renderer/Core/Rhi.hh>
+#include <utility>
 
 namespace mikoto::renderer::rhi {
 
@@ -53,7 +54,7 @@ namespace mikoto::renderer::rhi {
     }
 
     // Format mapping table. The rows must be in the exactly same order as Format enum members are defined.
-    static const FormatInfo c_FormatInfo[] = {
+    static constexpr FormatInfo kFormatInfo[]{
         //        format                   name             bytes blk         kind               red   green   blue  alpha  depth  stencil signed  srgb
         { Format::eUnknown, "UNKNOWN", 0, 0, FormatKind::Integer, false, false, false, false, false, false, false, false },
         { Format::eR8_UINT, "R8_UINT", 1, 1, FormatKind::Integer, true, false, false, false, false, false, false, false },
@@ -129,14 +130,14 @@ namespace mikoto::renderer::rhi {
 
 
     auto GetFormatInfo( Format format ) -> const FormatInfo & {
-        static_assert( sizeof( c_FormatInfo ) / sizeof( FormatInfo ) == size_t( Format::eCount ),
+        static_assert( sizeof( kFormatInfo ) / sizeof( FormatInfo ) == size_t( Format::eCount ),
                        "The format info table doesn't have the right number of elements" );
 
         if ( uint32_t( format ) >= uint32_t( Format::eCount ) )
-            return c_FormatInfo[0];// UNKNOWN
+            return kFormatInfo[0];// UNKNOWN
 
-        const FormatInfo &info = c_FormatInfo[uint32_t( format )];
-        assert( info.format == format );
+        const FormatInfo &info = kFormatInfo[uint32_t( format )];
+        assert( info.mFormat == format );
         return info;
     }
 
@@ -179,7 +180,7 @@ namespace mikoto::renderer::rhi {
 
     auto InferElementCount( Format dataType, size_t sizeBytes ) -> size_t {
         const FormatInfo &info{ GetFormatInfo( dataType ) };
-        return sizeBytes / info.bytesPerBlock;
+        return sizeBytes / info.mBytesPerBlock;
     }
 
     auto BindingSetItem::Texture_SRV( u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingSetItem {
@@ -198,6 +199,24 @@ namespace mikoto::renderer::rhi {
             .mResource = sampler,
             .mSlot = slot,
             .mType = ResourceType::eSampler,
+        };
+    }
+
+    auto BindingSetItem::StructuredBuffer_SRV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingSetItem {
+        return BindingSetItem{
+            .mResource = buffer,
+            .mSlot = slot,
+            .mRange = range,
+            .mType = ResourceType::eStructuredBuffer_SRV,
+        };
+    }
+
+    auto BindingSetItem::StructuredBuffer_UAV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingSetItem {
+        return BindingSetItem{
+            .mResource = buffer,
+            .mSlot = slot,
+            .mRange = range,
+            .mType = ResourceType::eStructuredBuffer_UAV,
         };
     }
 
@@ -238,6 +257,23 @@ namespace mikoto::renderer::rhi {
         BindingLayoutItem result{
             .mSlot = slot,
             .mType = ResourceType::eConstantBuffer,
+        };
+
+        return result;
+    }
+    auto BindingLayoutItem::StructuredBuffer_SRV( u32 slot ) -> BindingLayoutItem {
+        BindingLayoutItem result{
+            .mSlot = slot,
+            .mType = ResourceType::eStructuredBuffer_SRV,
+        };
+
+        return result;
+    }
+
+    auto BindingLayoutItem::StructuredBuffer_UAV( u32 slot ) -> BindingLayoutItem {
+        BindingLayoutItem result{
+            .mSlot = slot,
+            .mType = ResourceType::eStructuredBuffer_UAV,
         };
 
         return result;
@@ -284,12 +320,22 @@ namespace mikoto::renderer::rhi {
     }
 
     auto TextureCreateDescription::SetImageData( asset::ImageHandle image ) -> TextureCreateDescription & {
-        mImageHandle = image;
+        mImageHandle = std::move(image);
+
+        // If you specify initial data it means you to copy it to this
+        // resource which means it must support being a copy Dest resource
+        SetUsage( TextureUsageFlagsBits::kCopyDst );
+
         return *this;
     }
 
     auto TextureCreateDescription::SetBufferData( BufferSpanHandle buffer ) -> TextureCreateDescription & {
-        mBufferSpan = buffer;
+        mBufferSpan = std::move(buffer);
+
+        // If you specify initial data it means you to copy it to this
+        // resource which means it must support being a copy Dest resource
+        SetUsage( TextureUsageFlagsBits::kCopyDst );
+
         return *this;
     }
 
@@ -309,7 +355,7 @@ namespace mikoto::renderer::rhi {
     }
 
     auto TextureCreateDescription::SetUsage( TextureUsageFlags usage ) -> TextureCreateDescription & {
-        mUsage = usage;
+        mUsage |= usage;
         return *this;
     }
 
@@ -344,11 +390,16 @@ namespace mikoto::renderer::rhi {
     auto BufferCreateDescription::SetInitialData( BufferSpanHandle data ) -> BufferCreateDescription & {
         mSpanHandle = data;
         mElementSize = data->GetSize();
+
+        // If you specify initial data it means you to copy it to this
+        // resource which means it must support being a copy Dest resource
+        SetBufferUsage( BufferUsageFlagsBits::kCopyDst );
+
         return *this;
     }
 
     auto BufferCreateDescription::SetBufferUsage( BufferUsageFlags usage ) -> BufferCreateDescription & {
-        mUsageFlags = usage;
+        mUsageFlags |= usage;
         return *this;
     }
 
@@ -380,6 +431,16 @@ namespace mikoto::renderer::rhi {
 
     auto BufferCreateDescription::SetKeepInitializerResources( bool value ) -> BufferCreateDescription & {
         mKeepInitializerResources = value;
+        return *this;
+    }
+
+    auto BufferCreateDescription::SetIsVolatile( bool value ) -> BufferCreateDescription & {
+        mIsVolatile = value;
+        return *this;
+    }
+
+    auto BufferCreateDescription::SetMaxVersions( u32 count ) -> BufferCreateDescription & {
+        mMaxVersions = count;
         return *this;
     }
 
@@ -428,6 +489,21 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    auto GraphicsPipelineDescription::SetCullMode( CullMode mode ) -> GraphicsPipelineDescription & {
+        mCullMode = mode;
+        return *this;
+    }
+
+    auto GraphicsPipelineDescription::SetDepthTest( bool value ) -> GraphicsPipelineDescription & {
+        mEnableDepthTest = value;
+        return *this;
+    }
+
+    auto GraphicsPipelineDescription::SetDepthWrite( bool value ) -> GraphicsPipelineDescription & {
+        mEnableDepthWrite = value;
+        return *this;
+    }
+
     auto GraphicsPipelineDescription::SetDepthFormat( Format format ) -> GraphicsPipelineDescription & {
         mDepthFormat = format;
         return *this;
@@ -450,8 +526,21 @@ namespace mikoto::renderer::rhi {
         return mDesc;
     }
 
+    auto IGraphicsPipeline::GetPipelineLayout() const -> PipelineLayoutHandle {
+        return mDesc.mPipelineLayout;
+    }
+
     auto IComputePipeline::GetDescription() const noexcept -> const ComputePipelineDescription & {
         return mDesc;
+    }
+
+    auto IComputePipeline::GetPipelineLayout() const -> PipelineLayoutHandle {
+        return mDesc.mPipelineLayout;
+    }
+
+    auto GraphicsState::SetScopeName( eastl::string_view name ) -> GraphicsState & {
+        mName = name;
+        return *this;
     }
 
     auto GraphicsState::SetRenderArea( const Rect &rec ) -> GraphicsState & {
@@ -469,11 +558,38 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto GraphicsState::AddRenderTarget( TextureHandle target, const Color &c, LoadOp op ) -> GraphicsState & {
+    auto GraphicsState::AddRenderTarget( TextureHandle target, const Color &c, LoadOp op, TextureSubresourceSet set ) -> GraphicsState & {
         mCurrentRenderTargets.emplace_back( RenderTargetState{
             .mClearColor = c,
             .mLoadOp = op,
             .mRenderTarget = std::move(target),
+            .mSubresourceSet = set,
+        });
+
+        return *this;
+    }
+
+    auto BindResourcesDescription::SetPipelineLayout( IPipelineLayout *layout ) -> BindResourcesDescription & {
+        mPipelineLayout = layout;
+        return *this;
+    }
+
+    auto BindResourcesDescription::SetBindPoint(PipelineType bindPoint) -> BindResourcesDescription& {
+        mBindPoint = bindPoint;
+        return *this;
+    }
+
+    auto BindResourcesDescription::SetPushConstants( const void *ptr, size_t sizeBytes, ShaderStage stage ) -> BindResourcesDescription & {
+        MKT_ASSERT( sizeBytes <= sizeof( mPushConstants ), "Exceeded push constants size" );
+        mPushConstantVisibility = stage;
+        eastl::copy_n( as<byte_t*>( ptr ), sizeBytes, mPushConstants.data() );
+        return *this;
+    }
+
+    auto BindResourcesDescription::AddResourceSet( u32 bindingIndex, IBindingSet* set ) -> BindResourcesDescription& {
+        MKT_ASSERT(set, "ResourceSet is null");
+        mResourceSets.insert_or_assign(bindingIndex, ResourceSet{
+            .mResourceSet = set
         });
 
         return *this;
@@ -496,11 +612,6 @@ namespace mikoto::renderer::rhi {
 
     auto ShaderModuleCreateDescription::SetIsSlang( bool value ) -> ShaderModuleCreateDescription & {
         mIsSlangShader = value;
-        return *this;
-    }
-
-    auto PipelineLayoutCreateDescription::SetBindPoint( PipelineType bindPoint ) -> PipelineLayoutCreateDescription & {
-        mBindPoint = bindPoint;
         return *this;
     }
 
@@ -645,32 +756,29 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-
     // --- Textures ---
-    auto BindlessLayoutItem::Texture2D_SRV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
+    auto BindlessLayoutItem::Texture_SRV( u32 slot, u32 maxCapacity) -> BindlessLayoutItem {
         return {
             .mSlot = slot,
             .mMaxCapacity = maxCapacity,
             .mType = ResourceType::eTexture_SRV,
-            .mDimension = TextureDimension::eTexture2D,
         };
     }
 
-    auto BindlessLayoutItem::TextureCube_SRV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
+    auto BindlessLayoutItem::Texture_UAV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
         return {
             .mSlot = slot,
             .mMaxCapacity = maxCapacity,
-            .mType = ResourceType::eTexture_SRV,
-            .mDimension = TextureDimension::eTextureCube,
+            .mType = ResourceType::eTexture_UAV,
         };
     }
 
     // --- Constant Buffers ---
-    auto BindlessLayoutItem::ConstantBuffer_SRV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
+    auto BindlessLayoutItem::ConstantBuffer( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
         return {
             .mSlot = slot,
             .mMaxCapacity = maxCapacity,
-            .mType = ResourceType::eStructuredBuffer_UAV
+            .mType = ResourceType::eConstantBuffer
         };
     }
 

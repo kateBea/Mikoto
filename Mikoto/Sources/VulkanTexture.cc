@@ -85,7 +85,6 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    // Vulkan Texture 2D  ------------------------------------------------------------------------------------------------
     Texture::Texture( const TextureCreateDescription& data )
         : ITexture{ data }, mKeepInitializerResources{ data.mKeepInitializerResources } {
 
@@ -105,9 +104,6 @@ namespace mikoto::renderer::vulkan {
         mImageAllocation.mImage = mImageViewCreateInfo.image;
 
         mDebugName = string::Format( "Mikoto Swap chain Texture. Id:", GetHandle() );
-
-        // Prepare mip levels
-        mImageViews.resize( GetMipLevelCount() );
     }
 
     auto Texture::Release() -> void {
@@ -115,8 +111,10 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        for ( auto& imageView: mImageViews ) {
-            vkDestroyImageView( as<Device*>( mDevice )->GetDevice(), imageView, nullptr );
+        for ( auto& faces: mImageViews ) {
+            for (auto& face : faces ) {
+                vkDestroyImageView( as<Device*>( mDevice )->GetDevice(), face, nullptr );
+            }
         }
 
         if ( !mIsImageExternal ) {
@@ -129,10 +127,10 @@ namespace mikoto::renderer::vulkan {
 
     auto Texture::InitInitialData2D() -> void {
         CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
-        cmd->Begin();
+        cmd->Begin( {} );
 
         // Data is always writen at mip zero
-        cmd->WriteTexture( this, 0, mImageData->mBufferSpan->GetData(), mImageData->mBufferSpan->GetSize() );
+        cmd->Write( this, 0, mImageData->mBufferSpan->GetData(), mImageData->mBufferSpan->GetSize() );
 
         // These textures are often loaded to be read from shaders
         cmd->SetResourceState( this, ResourceStates::eShaderResource );
@@ -147,8 +145,10 @@ namespace mikoto::renderer::vulkan {
         auto* device{ checked_cast<Device*>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_IMAGE, rc_cast<u64>( mImageAllocation.mImage ), mDebugName );
 
-        for (const auto& imageView: mImageViews ) {
-            device->SetDebugName( VK_OBJECT_TYPE_IMAGE_VIEW, rc_cast<u64>( imageView ), mDebugName );
+        for (const auto& faces: mImageViews ) {
+            for (auto& face : faces ) {
+                device->SetDebugName( VK_OBJECT_TYPE_IMAGE_VIEW, rc_cast<u64>( face ), mDebugName );
+            }
         }
     }
 
@@ -166,9 +166,9 @@ namespace mikoto::renderer::vulkan {
         return mIsImageExternal;
     }
 
-    auto Texture::GetView( u32 mipLevel ) const -> const VkImageView& {
+    auto Texture::GetView( u32 mipLevel, u32 face ) const -> const VkImageView& {
         MKT_ASSERT( mipLevel < mImageViews.size(), "Mip level out of bounds" );
-        return mImageViews[mipLevel];
+        return mImageViews[face][mipLevel];
     }
 
     auto Texture::IsSwapChainImage() const -> bool {
@@ -181,7 +181,7 @@ namespace mikoto::renderer::vulkan {
                 return Object( mImageAllocation.mImage );
 
             case ObjectType::Vk_ImageView:
-                return Object( mImageViews[0] );// Returns view at mip 0
+                return Object( mImageViews[0][0] );// Returns view at mip 0
 
             case ObjectType::Vk_Format:
                 return Object( std::addressof( mImageAllocation.mImageCreateInfo.format ) );
@@ -211,7 +211,7 @@ namespace mikoto::renderer::vulkan {
 
             // This texture is a 2D image always
             mImageAllocation.mImageCreateInfo.imageType = GetTextureType(mDimension);
-            mImageAllocation.mImageCreateInfo.usage = InferImageUsage( mTextureUsage );
+            mImageAllocation.mImageCreateInfo.usage = GetImageUsage( mTextureUsage );
 
             mImageAllocation.mImageCreateInfo.mipLevels = mMipCount;
             mImageAllocation.mImageCreateInfo.arrayLayers = 1;
@@ -225,14 +225,23 @@ namespace mikoto::renderer::vulkan {
             mImageAllocation.mImageCreateInfo.flags = 0;
 
             if (mDimension == TextureDimension::eTextureCube ) {
-                mImageAllocation.mImageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+                mImageAllocation.mImageCreateInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
             }
 
             mImageAllocation.mAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-            // I still do not have a reason to not make images to be in device local
-            // memory so this stays as VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT
-            mImageAllocation.mAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+            // vkBindImageMemory(): Trying to bind VkImage 0x3d500000003d5 to a memory block which is fully consumed by the image.
+            // The required size of the allocation is 16384, but smaller images like this should be sub-allocated from larger
+            // memory blocks. (Current threshold is 1048576 bytes)
+            // const size_t threshHold{ MKT_MIBIBYTES( 1 ) };
+            // const auto& formatInfo{ rhi::GetFormatInfo( mFormat ) };
+            // const auto imageSize{ mWidth * mHeight * formatInfo.bytesPerBlock };
+            // if ( imageSize >= threshHold) {
+            //     mImageAllocation.mAllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+            // }
+
+            mImageAllocation.mAllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+
             mImageAllocation.mAllocationCreateInfo.priority = 1.0f;
 
             auto* allocator{ as<Device*>( mDevice )->GetAllocator() };
@@ -251,9 +260,9 @@ namespace mikoto::renderer::vulkan {
             }
 
             VkImageAspectFlags aspectFlags{};
-            if ( mTextureUsage == TextureUsageFlagsBits::kDepthTarget ) {
+            if ( mTextureUsage & TextureUsageFlagsBits::kDepthTarget ) {
                 aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-            } else if ( mTextureUsage == TextureUsageFlagsBits::kDepthStencilTarget ) {
+            } else if ( mTextureUsage & TextureUsageFlagsBits::kDepthStencilTarget ) {
                 aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
             } else {
                 aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -272,9 +281,26 @@ namespace mikoto::renderer::vulkan {
             mImageViewCreateInfo.subresourceRange.layerCount = mDimension == TextureDimension::eTextureCube ? kMaxCubeFaces : 1;
         }
 
-        for ( size_t mipLevelIndex{ 0 }; mipLevelIndex < GetMipLevelCount(); ++mipLevelIndex ) {
-            mImageViewCreateInfo.subresourceRange.baseMipLevel = mipLevelIndex;
-            MKT_VK_CHECK( vkCreateImageView( as<Device*>( mDevice )->GetDevice(), MKT_ADDRESSOF( mImageViewCreateInfo ), nullptr, MKT_ADDRESSOF( mImageViews[mipLevelIndex] ) ) );
+        u32 faceCount{ 1u };
+        if (mDimension == TextureDimension::eTextureCube) {
+            faceCount = 6u;
+        }
+
+        // Prepare mip levels
+        mImageViews.resize( faceCount );
+        for (auto& faces: mImageViews ) {
+            faces.resize( GetMipLevelCount() );
+        }
+
+        for (u32 faceIndex{}; faceIndex < faceCount; faceIndex++) {
+            for ( size_t mipLevelIndex{ 0 }; mipLevelIndex < GetMipLevelCount(); ++mipLevelIndex ) {
+                mImageViewCreateInfo.subresourceRange.baseMipLevel = mipLevelIndex;
+                mImageViewCreateInfo.subresourceRange.baseArrayLayer = faceIndex; // 0=+X, 1=-X, 2=+Y, 3=-Y, 4=+Z, 5=-Z
+
+                MKT_VK_CHECK( vkCreateImageView( as<Device*>( mDevice )->GetDevice(),
+                    MKT_ADDRESSOF( mImageViewCreateInfo ), nullptr,
+                    MKT_ADDRESSOF( mImageViews[faceIndex][mipLevelIndex] ) ) );
+            }
         }
 
         mIsAllocated = true;

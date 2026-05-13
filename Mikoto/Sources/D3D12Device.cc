@@ -58,8 +58,8 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = false;
     }
 
-    auto PipelineLayout::GetBindPoint() const -> PipelineType {
-        return PipelineType::eInvalid;
+    auto CommandList::BindIndirectBuffer( IBuffer *buffer ) -> void {
+
     }
 
     Device::Device( const GpuDeviceCreateInfo &createInfo )
@@ -150,6 +150,10 @@ namespace mikoto::renderer::d3d12 {
         return BindingSetHandle::CreateEmpty();
     }
 
+    auto Device::CreateFence( u64 fenceInitialValue ) -> FenceHandle {
+        return FenceHandle::CreateEmpty();
+    }
+
     auto Device::UnMap( IBuffer *buffer ) -> void {
     }
 
@@ -173,12 +177,16 @@ namespace mikoto::renderer::d3d12 {
         return false;
     }
 
+    auto Device::Wait( FenceHandle handle, u64 fenceValue ) -> void {
+
+    }
+
     auto Device::Flush() -> void {
 
     }
 
-    auto Device::ExecuteCommands( CommandListHandle cmdList ) -> u64 {
-        return 0;
+    auto Device::ExecuteCommands( CommandListHandle cmdList ) -> void {
+
     }
 
     auto Device::WaitIdle() -> void {

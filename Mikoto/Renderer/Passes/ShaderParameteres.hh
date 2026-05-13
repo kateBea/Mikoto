@@ -23,14 +23,10 @@
 #include <string_view>
 #include <vector>
 
-#define MKT_SHADER_TRUE 1
-#define MKT_SHADER_FALSE 0
-
 namespace mikoto::renderer {
 
     static constexpr Int32 INVALID_TEXTURE_INDEX{ -1 };
     static constexpr UInt32 MAX_LIGHTS{ 10000 };
-    static constexpr UInt32 MAX_CUBE_MAP_FACES{ 6 };
     static constexpr UInt32 MAX_RENDERABLE_ENTITIES{ 500'000 };
     static constexpr UInt32 MAX_NUM_JOINTS{ 128 };
 
@@ -79,29 +75,6 @@ namespace mikoto::renderer {
 
         Int32 MatricesIndex{ -1 };
         Int32 HasArmature{ MKT_SHADER_FALSE };
-    };
-
-    struct FinalShadingConstants {
-        Mat4F LightViewProjection{};
-
-        Vec4F GridSize{};
-        float Exposure{ 1.0f };
-        float Gamma{ 2.0f };
-        float MaxReflectionLOD{};
-
-        UInt32 ActiveLights{};
-
-        Int32 EnableSSAO{ MKT_SHADER_FALSE };
-        Int32 UseBlurred{ MKT_SHADER_FALSE };
-        float SSAOIntensity{ 1.f };
-
-        Int32 PrefilteredCubeMipLevels{};
-        float ScaleIBLAmbient{ 1.0f };
-        Int32 Step{ 1 };
-
-        Int32 IsSkyboxActive{};
-
-        Int32 ToneMap{};
     };
 
     struct ShaderLightTypeParams {

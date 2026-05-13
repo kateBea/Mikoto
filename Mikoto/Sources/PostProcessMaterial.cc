@@ -11,36 +11,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-// #include <Material/PostProcessMaterial.hh>
-//
-// namespace mikoto {
-//     PostProcessMaterial::PostProcessMaterial( std::string_view name )
-//         : Material{ name }
-//     {}
-//
-//     auto PostProcessMaterial::SetTargetImage( TextureHandle handle ) -> void {
-//         if (!handle.IsEmpty()) {
-//             m_TargetTexture = handle;
-//         }
-//     }
-//
-//     auto PostProcessMaterial::GetTargetImage() -> TextureHandle {
-//         return m_TargetTexture;
-//     }
-//
-//     PostProcessMaterial::~PostProcessMaterial() {
-//         if (m_IsAllocated) {
-//             Release();
-//         }
-//     }
-//
-//     auto PostProcessMaterial::Initialize() -> void {
-//         m_IsAllocated = true;
-//     }
-//
-//     auto PostProcessMaterial::Release() -> void {
-//
-//         m_IsAllocated = false;
-//     }
-// }// namespace Mikoto
+
+#include <EASTL/string_view.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
+#include <Material/Material.hh>
+#include <Renderer/Core/Rhi.hh>
+
+#include <Material/PostProcessMaterial.hh>
+
+namespace mikoto::material {
+
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
+
+    PostProcessMaterial::PostProcessMaterial( eastl::string_view name )
+        : Material{ name }
+    {}
+
+    PostProcessMaterial::~PostProcessMaterial() = default;
+
+}// namespace Mikoto

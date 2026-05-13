@@ -64,7 +64,7 @@ namespace mikoto::renderer::vulkan {
 
     private:
         auto CreateSwapchain() -> void;
-        auto PrepareSynchronization() -> void;
+        auto InitSynchronization() -> void;
 
     private:
         static constexpr u32 kVersionMajor{ 1 };

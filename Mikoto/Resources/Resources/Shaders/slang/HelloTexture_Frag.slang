@@ -31,31 +31,22 @@ struct DrawParams {
     int SamplerIndex;
 };
 
-MKT_DECLARE_PUSH_CONSTANT DrawParams uParams;
-
-MKT_DECLARE_CONSTANT_BUFFERS cBuffers;
-
 MKT_DECLARE_SAMPLERS Samplers;
-MKT_DECLARE_TEXTURE_2D Texture2Ds;
+
+MKT_DECLARE_TEXTURE_SRV(Texture2D) Texture2Ds;
+MKT_DECLARE_TEXTURE_SRV(TextureCube) TextureCubes;
+
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) uParams;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
-    //MyCB cb = memory::LoadData<MyCB>(cBuffers, 0, 0, 5);
 
-#if !defined(MKT_SUPPORT_D3D11)
     if (uParams.TextureIndex != -1) {
         o.color = Texture2Ds[uParams.TextureIndex].Sample(Samplers[uParams.SamplerIndex], input.texCoord);
     } else {
         o.color = float4(input.color, 1.0);
     }
-#else
-    if (uParams.TextureIndex != -1) {
-        o.color = Texture2Ds[0].Sample(Samplers[0], input.texCoord);
-    } else {
-        o.color = float4(input.color, 1.0);
-    }
-#endif
 
     return o;
 }

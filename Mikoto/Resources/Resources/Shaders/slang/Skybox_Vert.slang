@@ -13,44 +13,50 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/BoxModel.slang"
+#include "base/Math_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
 
-struct VSInput {
-    float3 Position : ATTRIBUTE0;
-};
-
 struct VSOutput {
     float3 Direction : TEXCOORD0;
-    float  Exposure  : TEXCOORD1;
-    float  Gamma     : TEXCOORD2;
-
     float4 PositionH : SV_Position;
 };
 
-[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
-ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
+struct DrawParams {
+    uint CameraBufferID;
+    uint BasicSamplerID;
 
-[[vk::push_constant]]
-SkyBoxParameters u_IBLParams;
+    uint SkyboxCubeRtID;
+    uint PrefilterCubeRtID;
+
+    uint BackGroundType; // Prefilter map, Original skybox, clear color
+
+    uint MaxMipLevel;
+    uint Exposure;
+    uint Gamma;
+};
+
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
+MKT_DECLARE_STRUCTURED_SRV SRV_Buffers;
 
 [shader("vertex")]
-VSOutput main(VSInput input) {
+VSOutput main(uint vID: SV_VertexID) {
     VSOutput o;
 
-    o.Exposure = u_IBLParams.Exposure;
-    o.Gamma    = u_IBLParams.Gamma;
+    float3 pos = boxPositions[vID];
 
-    float3 pos = input.Position;
+    CameraInfo camera = SRV_Buffers[Parameters.CameraBufferID].Read<CameraInfo>(0, 0);
 
     // Remove translation from view matrix
-    float4x4 viewNoTrans = RemoveTranslation(u_Camera.ViewMatrix);
+    float4x4 viewNoTrans = RemoveTranslation(camera.ViewMatrix);
 
     // Skybox direction
     o.Direction = pos;
 
     // Project to clip space
-    float4 clip = mul(u_Camera.Projection, mul(viewNoTrans, float4(pos, 1.0)));
+    float4 clip = mul(camera.Projection, mul(viewNoTrans, float4(pos, 1.0)));
     o.PositionH = clip;
 
     return o;

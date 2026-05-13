@@ -43,6 +43,11 @@ namespace mikoto::asset {
 
     using AnimationList = ankerl::unordered_dense::map<eastl::string, eastl::unique_ptr<animation::SkinnedAnimation>>;
 
+    // These 2 are vec4 because they need to match the bone influence
+    // which is maximum bones influence a vertex ( from what we support now )
+    inline constexpr u32 kMaxBoneInfluence{ 4 };
+    inline constexpr u32 kMaxBonesPerMesh{ 256 }; // Needs to match shader's
+
     enum class VertexAttribute {
         ePositions,
         eNormals,

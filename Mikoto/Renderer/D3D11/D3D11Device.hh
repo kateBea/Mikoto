@@ -82,7 +82,7 @@ namespace mikoto::renderer::d3d11 {
 
         explicit BindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout );
 
-        auto Bind(ID3D11DeviceContext* ctx, ShaderStage stage) -> void;
+        auto Bind(ID3D11DeviceContext* ctx, ShaderStage stage ) const -> void;
 
         ~BindingSet() override;
 
@@ -101,7 +101,6 @@ namespace mikoto::renderer::d3d11 {
     public:
         explicit PipelineLayout( const PipelineLayoutCreateDescription& desc );
 
-        MKT_NODISCARD auto GetBindPoint() const -> PipelineType override;
         MKT_NODISCARD auto GetDescription() const -> const PipelineLayoutCreateDescription&;
 
         ~PipelineLayout() override;
@@ -116,7 +115,7 @@ namespace mikoto::renderer::d3d11 {
 
     class DescriptorTable : public IDescriptorTable {
     public:
-        MKT_NODISCARD auto GetCapacity() const -> u32 override;
+        MKT_NODISCARD auto GetCapacity( u32 slot ) const -> u32 override;
     };
 
     // https://gamedev.stackexchange.com/questions/204429/difference-between-command-lists-and-deferred-context
@@ -124,27 +123,42 @@ namespace mikoto::renderer::d3d11 {
     public:
         explicit CommandList( QueueType type );
 
-        auto Begin() -> void override;
+        auto Begin( const CommandListBeginDescription& desc ) -> void override;
         auto End() -> void override;
 
-        auto BeginTrackingState( IBuffer* buffer, ResourceStates stateBits ) -> void override;
-        auto BeginTrackingState( ITexture* texture, ResourceStates stateBits ) -> void override;
-        auto SetResourceState( IBuffer* buffer, ResourceStates stateBits ) -> void override;
-        auto SetResourceState( ITexture* texture, ResourceStates stateBits ) -> void override;
+        auto BeginParallel() -> void override;
+        auto EndParallel() -> void override;
+
+        // More relaxed versions of SetResourceState
+        auto PushBarrier( const BufferBarrierDescription& barrier ) -> void override;
+        auto PushBarrier( const TextureBarrierDescription& barrier ) -> void override;
+
+        auto BeginTrackingState(IBuffer* buffer, ResourceStates stateBits) -> void override;
+        auto BeginTrackingState(ITexture* buffer, ResourceStates stateBits) -> void override;
+
+        auto SetResourceState(IBuffer* buffer, ResourceStates stateBits) -> void override;
+        auto SetResourceState(ITexture* buffer, ResourceStates stateBits) -> void override;
+
+        auto SetBarrier( const BufferBarrierDescription& barrier ) -> void override;
+        auto SetBarrier( const TextureBarrierDescription& barrier ) -> void override;
 
         auto CommitBarriers() -> void override;
+
         auto SetEnableAutomaticBarriers(  bool enable ) -> void override;
 
         auto SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void override;
         auto SetClearColor( TextureHandle renderTargets, Color color ) -> void override;
 
-        auto WriteTexture( IBuffer* src, ITexture* dest, u32 mipLevel ) -> void override;
-        auto WriteTexture( ITexture* target, u32 mipLevel,const void* data, size_t byteSize ) -> void override;
-        auto CopyTexture( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
+        auto WriteVolatile( IBuffer* target, const void* data, size_t byteSize ) -> void override;
 
-        auto WriteBuffer( IBuffer* target, const void* data, size_t byteSize ) -> void override;
-        auto CopyBuffer( IBuffer* src, IBuffer* dest ) -> void override;
-        auto CopyBuffer( IBuffer* src, IBuffer* dest, size_t destOffset ) -> void override;
+        auto Write( IBuffer* src, ITexture* dest, u32 mipLevel ) -> void override;
+        auto Write( ITexture* target, u32 mipLevel,const void* data, size_t byteSize ) -> void override;
+        auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
+
+        auto Write( IBuffer* target, size_t destOffset, const void* data, size_t byteSize ) -> void override;
+        auto Write( IBuffer* target, const void* data, size_t byteSize ) -> void override;
+        auto Copy( IBuffer* src, IBuffer* dest ) -> void override;
+        auto Copy( IBuffer* src, IBuffer* dest, size_t destOffset ) -> void override;
 
         auto BeginRendering( GraphicsState& state ) -> void override;
         auto EndRendering() -> void override;
@@ -160,11 +174,10 @@ namespace mikoto::renderer::d3d11 {
         auto BindIndexBuffer( IBuffer* buffer ) -> void override;
         auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void override;
 
-        auto BindIndirectBuffer( IBuffer* buffer, u32 stride ) -> void override;
-
-        auto BindPipelineResources( IPipelineLayout* pipelineLayout, IBindingSet* resourceSet, u32 bindingSlot ) -> void override;
+        auto BindPipelineResources( const BindResourcesDescription& desc ) -> void override;
 
         auto Draw( const DrawArguments& args ) -> void override;
+        auto BindIndirectBuffer( IBuffer* buffer ) -> void override;
         auto DrawIndexed( const DrawArguments& args ) -> void override;
 
         auto DrawIndirect( u32 offset, u32 drawCount ) -> void override;
@@ -172,7 +185,7 @@ namespace mikoto::renderer::d3d11 {
 
         auto Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) -> void override;
 
-        auto SetPushConstants( const void* data, size_t byteSize, ShaderStage visibility ) -> void override;
+        auto SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, ShaderStage visibility ) -> void override;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
@@ -269,6 +282,8 @@ namespace mikoto::renderer::d3d11 {
         MKT_NODISCARD auto CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle override;
         MKT_NODISCARD auto CreateBindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout ) -> BindingSetHandle override;
 
+        MKT_NODISCARD auto CreateFence( u64 fenceInitialValue ) -> FenceHandle override;
+
         auto UnMap( IBuffer* buffer ) -> void override;
         MKT_NODISCARD auto Map(IBuffer* buffer) -> const void* override;
 
@@ -279,10 +294,12 @@ namespace mikoto::renderer::d3d11 {
         MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
         MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool override;
 
+        auto Wait(FenceHandle handle, u64 fenceValue) -> void override;
+
         auto Flush() -> void override;
         auto RunGarbageCollection() -> void override;
         auto SubmitCommands( CommandListHandle cmdList ) -> u64 override;
-        auto ExecuteCommands( CommandListHandle cmdList ) -> u64 override;
+        auto ExecuteCommands( CommandListHandle cmdList ) -> void override;
 
         auto WaitIdle() -> void override;
 
@@ -316,6 +333,7 @@ namespace mikoto::renderer::d3d11 {
         Microsoft::WRL::ComPtr<ID3D11Device> mDevice{};
         Microsoft::WRL::ComPtr<ID3D11Device3> mDevice3{};
 
+        std::mutex mCommandsExecuteMutex{};
         Microsoft::WRL::ComPtr<ID3D11DeviceContext> mDeviceContext{};
         Microsoft::WRL::ComPtr<ID3D11DeviceContext3> mDeviceContext3{};
     };

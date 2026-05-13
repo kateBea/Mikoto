@@ -12,34 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <EASTL/algorithm.h>
+#include <volk.h>
+#include <GLFW/glfw3.h>
+
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/utility.h>
 #include <EASTL/vector.h>
-#include <GLFW/glfw3.h>
-#include <volk.h>
 
 #include <Core/Core.hh>
-#include <Core/Profiler.hh>
 #include <Core/String.hh>
 #include <Core/Timer.hh>
 #include <Core/Types.hh>
+#include <Core/Profiler.hh>
+
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
+
 #include <Memory/Allocator.hh>
+
 #include <Platform/Window.hh>
-#include <Renderer/Core/RenderSystem.hh>
+
 #include <Renderer/Core/Rhi.hh>
+#include <Renderer/Core/RenderSystem.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
-#include <any>
-#include <memory>
-#include <numeric>
-#include <ranges>
-#include <vector>
 
 namespace mikoto::renderer::vulkan {
 
@@ -57,7 +56,7 @@ namespace mikoto::renderer::vulkan {
 #if !defined( NDEBUG )
             .EnableValidationLayers( true )
 #else
-            .EnableValidationLayers( true )
+            .EnableValidationLayers( false )
 #endif
             .QueryGLFWExtensions( true )
             .QuerySurfaceSupport( mWindow )
@@ -74,8 +73,6 @@ namespace mikoto::renderer::vulkan {
                 // If  the context was created with a window
                 // we request for a device with support for presentation
                 .mEnablePresentation = mWindow != nullptr,
-
-                // Rest are default values
             },
         });
 
@@ -85,13 +82,13 @@ namespace mikoto::renderer::vulkan {
         mDevice->Init();
 
         CreateSwapchain();
-        PrepareSynchronization();
+        InitSynchronization();
 
         return mInstance->mIsReady && mDevice && mDevice->IsInitialized();
     }
 
     auto Context::Shutdown() -> void {
-        Device* device{ as<Device*>(mDevice.get()) };
+        Device* device{ checked_cast<Device*>(mDevice.get()) };
         device->WaitIdle();
 
         mSwapChainRenderCmds.Reset();
@@ -99,10 +96,7 @@ namespace mikoto::renderer::vulkan {
         mPresentTarget.Reset();
         mSwapchain.Reset();
 
-        for (auto& object : mFrames ) {
-            object.mImageAvailableSemaphore.Reset();
-            object.mRenderFinishedSemaphore.Reset();
-        }
+        mFrames.clear();
 
         mDevice->Shutdown();
         mDevice.reset();
@@ -127,11 +121,13 @@ namespace mikoto::renderer::vulkan {
         // otherwise it is annoying as you ned ensure the texture you rendered to before is compatible with swap chain image to copy
         if (!mPresentTarget.IsEmpty()) {
             TextureHandle currentSwapchainImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
-            mSwapChainRenderCmds->Begin();
+            mSwapChainRenderCmds->Begin( { .mScopeName = "Blit Swapchain" } );
 
             // TODO: Here I will do my full quad render I can use my RHI the pass is pretty simple here i basically just build a command buffer and submit it then submit a transition too
             // when I call flush it will start execution all those commands that i just queued but I never submitted actually to the GPU to be executed
             // I do it like this because this way i do one big submit instead of multiple submits in a single frame
+
+            // See SwapChainRender.hh for the pass to render directly to swapchain if requested
 
             TextureSlice srcSlice{
                 .mWidth = (u32)mPresentTarget->GetWidth(),
@@ -143,7 +139,7 @@ namespace mikoto::renderer::vulkan {
                 .mHeight = (u32)currentSwapchainImage->GetHeight(),
             };
 
-            mSwapChainRenderCmds->CopyTexture(
+            mSwapChainRenderCmds->Copy(
                     mPresentTarget.GetRaw(), srcSlice,
                     currentSwapchainImage.GetRaw(), dstSlice );
 
@@ -164,21 +160,19 @@ namespace mikoto::renderer::vulkan {
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
         );
 
+        auto& semaphore{ frame.mRenderFinishedSemaphore };
         device->AddQueueSignalSemaphore(
             QueueType::eGraphics,
-            checked_cast<BinarySemaphore*>(frame.mRenderFinishedSemaphore.GetRaw()),
+            checked_cast<BinarySemaphore*>(semaphore.GetRaw()),
             VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
         );
 
         // SINGLE submission point
         device->Flush();
-
-        mCurrentFrameIndex = (mCurrentFrameIndex + 1) % mMaxFramesInFlight;
     }
 
     auto Context::PrepareFrame() -> void {
         //MKT_BEGIN_PROFILER_NAMED();
-
         //MKT_PROFILE_SCOPE_MARKED( "Context::PrepareFrame" );
 
         const auto& frame{ mFrames[mCurrentFrameIndex] };
@@ -210,8 +204,7 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        // Because the frame index is advanced in the call to SubmitFrame(..)
-        auto& frame{ mFrames[mCurrentImageIndex] };
+        auto& frame{ mFrames[mCurrentFrameIndex] };
         const auto result{ mSwapchain->Present( mCurrentImageIndex, *checked_cast<BinarySemaphore*>( frame.mRenderFinishedSemaphore.GetRaw() ) ) };
 
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
@@ -219,6 +212,9 @@ namespace mikoto::renderer::vulkan {
         } else if ( result != VK_SUCCESS ) {
             MKT_ASSERT( false, "VulkanDevice Error failed present images to swapchain." );
         }
+
+        // Frame is advanced if we work with the swap chain
+        mCurrentFrameIndex = (mCurrentFrameIndex + 1) % mMaxFramesInFlight;
     }
 
     auto Context::GetMaxFramesInFlight() const -> u32 {
@@ -266,22 +262,23 @@ namespace mikoto::renderer::vulkan {
         mSwapchain = as<Device*>(mDevice.get())->CreateSwapChain(createInfo);
 
         // Prepare for swapchain render
+        // This command buffer is created here because it is only
+        // used to submit swapchain work
         mSwapChainRenderCmds = mDevice->CreateCommandList( QueueType::eGraphics );
         mSwapChainRenderCmds->SetDebugName( "Context Swapchain CommandBuffer" );
     }
 
-    auto Context::PrepareSynchronization() -> void {
+    auto Context::InitSynchronization() -> void {
         Device* device{ as<Device*>(mDevice.get()) };
 
-        // --- Per-frame sync ---
         mFrames.resize(mMaxFramesInFlight);
-        u32 frameIndex{ 0 };
-        for (auto& frame : mFrames) {
+
+        for (u32 frameIndex{ 0 }; auto& frame : mFrames) {
             frame.mImageAvailableSemaphore = device->CreateBinarySemaphore();
-            frame.mImageAvailableSemaphore->SetDebugName( string::Format( "SwapChain BinSemaphore frame {}", frameIndex ) );
+            frame.mImageAvailableSemaphore->SetDebugName( string::Format( "SwapChain Img Avail. BinSemaphore frame {}", frameIndex ) );
 
             frame.mRenderFinishedSemaphore = device->CreateBinarySemaphore();
-            frame.mRenderFinishedSemaphore->SetDebugName( string::Format( "SwapChain BinSemaphore frame {}", frameIndex ) );
+            frame.mRenderFinishedSemaphore->SetDebugName( string::Format( "SwapChain Render Done BinSemaphore frame {}", frameIndex ) );
 
             ++frameIndex;
         }

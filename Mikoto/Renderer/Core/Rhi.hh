@@ -15,12 +15,13 @@
 #ifndef MIKOTO_RHI_HH
 #define MIKOTO_RHI_HH
 
-#include <EASTL/span.h>
-#include <EASTL/string.h>
-#include <EASTL/utility.h>
-#include <EASTL/shared_ptr.h>
-#include <EASTL/string_view.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/shared_ptr.h>
+#include <EASTL/span.h>
+#include <EASTL/atomic.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/utility.h>
 #include <EASTL/any.h>// Any requires lot of shit from utility so it needs to go after
 
 #include <glm//glm.hpp>
@@ -56,6 +57,68 @@ namespace mikoto::renderer::rhi {
 
     using MipLevel = u32;
     using ArraySlice = u32;
+
+    // Synchronization
+    struct PipelineStageFlagsProperties {
+        using Data = u32;
+    };
+    using PipelineStageFlags = Flags<PipelineStageFlagsProperties>;
+
+    struct PipelineStageFlagsBits {
+        static constexpr PipelineStageFlags kNone{ 0 };
+        static constexpr PipelineStageFlags kTop{ BIT_SET(0) };
+        static constexpr PipelineStageFlags kDrawIndirect{ BIT_SET(1) };
+        static constexpr PipelineStageFlags kVertexInput{ BIT_SET(2) };
+        static constexpr PipelineStageFlags kVertexShader{ BIT_SET(3) };
+        static constexpr PipelineStageFlags kHullShader{ BIT_SET(4) };
+        static constexpr PipelineStageFlags kDomainShader{ BIT_SET(5) };
+        static constexpr PipelineStageFlags kGeometryShader{ BIT_SET(6) };
+        static constexpr PipelineStageFlags kPixelShader{ BIT_SET(7) };
+        static constexpr PipelineStageFlags kComputeShader{ BIT_SET(8) };
+        static constexpr PipelineStageFlags kColorAttachment{ BIT_SET(9) };
+        static constexpr PipelineStageFlags kDepthStencil{ BIT_SET(10) };
+        static constexpr PipelineStageFlags kCopy{ BIT_SET(11) };
+        static constexpr PipelineStageFlags kBottom{ BIT_SET(12) };
+        static constexpr PipelineStageFlags kAll{ 0xFFFFFFFF };
+    };
+
+    struct AccessFlagsProperties {
+        using Data = u32;
+    };
+    using AccessFlags = Flags<AccessFlagsProperties>;
+
+    struct AccessFlagsBits {
+        static constexpr AccessFlags kNone{ 0 };
+        static constexpr AccessFlags kIndirectRead{ BIT_SET(0) };
+        static constexpr AccessFlags kIndexRead{ BIT_SET(1) };
+        static constexpr AccessFlags kVertexRead{ BIT_SET(2) };
+        static constexpr AccessFlags kConstantRead{ BIT_SET(3) };
+        static constexpr AccessFlags kShaderRead{ BIT_SET(4) };
+        static constexpr AccessFlags kShaderWrite{ BIT_SET(5) };
+        static constexpr AccessFlags kRenderTargetRead{ BIT_SET(6) };
+        static constexpr AccessFlags kRenderTargetWrite{ BIT_SET(7) };
+        static constexpr AccessFlags kDepthStencilRead{ BIT_SET(8) };
+        static constexpr AccessFlags kDepthStencilWrite{ BIT_SET(9) };
+        static constexpr AccessFlags kCopyRead{ BIT_SET(10) };
+        static constexpr AccessFlags kCopyWrite{ BIT_SET(11) };
+    };
+
+    struct TextureLayoutProperties {
+        using Data = u32;
+    };
+    using TextureLayout = Flags<TextureLayoutProperties>;
+
+    struct TextureLayoutBits {
+        static constexpr TextureLayout kUnknown{ 0 };
+        static constexpr TextureLayout kGeneral{ 1 };
+        static constexpr TextureLayout kColorAttachment{ 2 };
+        static constexpr TextureLayout kDepthStencil{ 3 };
+        static constexpr TextureLayout kShaderResource{ 4 };
+        static constexpr TextureLayout kUnorderedAccess{ 5 }; // For RW textures
+        static constexpr TextureLayout kCopySrc{ 6 };
+        static constexpr TextureLayout kCopyDst{ 7 };
+        static constexpr TextureLayout kPresent{ 8 };
+    };
 
     enum class ObjectType {
         // Vulkan
@@ -132,7 +195,7 @@ namespace mikoto::renderer::rhi {
     };
 
     enum class CullMode {
-        eInvalid = -1,
+        eNone,
         eCullFront,
         eCullBack,
     };
@@ -364,8 +427,7 @@ namespace mikoto::renderer::rhi {
         eFloat32,
     };
 
-    enum class FormatKind
-    {
+    enum class FormatKind {
         Integer,
         Normalized,
         Float,
@@ -373,19 +435,19 @@ namespace mikoto::renderer::rhi {
     };
 
     struct FormatInfo {
-        Format format;
-        const char* name;
-        uint8_t bytesPerBlock;
-        uint8_t blockSize;
-        FormatKind kind;
-        bool hasRed : 1;
-        bool hasGreen : 1;
-        bool hasBlue : 1;
-        bool hasAlpha : 1;
-        bool hasDepth : 1;
-        bool hasStencil : 1;
-        bool isSigned : 1;
-        bool isSRGB : 1;
+        Format mFormat;
+        const char* mName;
+        u8 mBytesPerBlock;
+        u8 mBlockSize;
+        FormatKind mKind;
+        bool mHasRed : 1;
+        bool mHasGreen : 1;
+        bool mHasBlue : 1;
+        bool mHasAlpha : 1;
+        bool mHasDepth : 1;
+        bool mHasStencil : 1;
+        bool mIsSigned : 1;
+        bool mIsSRGB : 1;
     };
 
     struct BufferUsageFlagsProperties {
@@ -401,10 +463,7 @@ namespace mikoto::renderer::rhi {
         static constexpr BufferUsageFlags kVertex{ BIT_SET(0) };
         static constexpr BufferUsageFlags kIndex{ BIT_SET(1) };
         static constexpr BufferUsageFlags kConstant{ BIT_SET(2) };
-        static constexpr BufferUsageFlags kStructured{ BIT_SET(3) };
-
-        // Compute / UAV
-        static constexpr BufferUsageFlags kUnorderedAccess{ BIT_SET(4) };
+        static constexpr BufferUsageFlags kStorage{ BIT_SET(3) };
 
         // Indirect
         static constexpr BufferUsageFlags kIndirectDraw{ BIT_SET(5) };
@@ -421,11 +480,16 @@ namespace mikoto::renderer::rhi {
     using TextureUsageFlags = Flags<TextureFlagsProperties>;
 
     struct TextureUsageFlagsBits {
+        static constexpr TextureUsageFlags kNone{ 0 };
+
         static constexpr TextureUsageFlags kRenderTarget{ BIT_SET( 0 ) };
         static constexpr TextureUsageFlags kDepthTarget{ BIT_SET( 1 ) };
         static constexpr TextureUsageFlags kStencilTarget{ BIT_SET( 2 ) };
         static constexpr TextureUsageFlags kDepthStencilTarget{ BIT_SET( 3 ) };
         static constexpr TextureUsageFlags kShaderResource{ BIT_SET( 4 ) };
+
+        static constexpr TextureUsageFlags kCopySrc{ BIT_SET(5) };
+        static constexpr TextureUsageFlags kCopyDst{ BIT_SET(6) };
     };
 
     struct ShaderFlagsProperties {
@@ -437,38 +501,41 @@ namespace mikoto::renderer::rhi {
     // For resource visibility
     struct ShaderFlagsBits {
         static constexpr ShaderStage kVertex{ BIT_SET( 0 ) };
-        static constexpr ShaderStage kFragment{ BIT_SET( 1 ) };
-
+        static constexpr ShaderStage kPixel{ BIT_SET( 1 ) };
         static constexpr ShaderStage kCompute{ BIT_SET( 2 ) };
 
         static constexpr ShaderStage kGeometry{ BIT_SET( 3 ) };
 
-        static constexpr ShaderStage kTesselationControl{ BIT_SET( 4 ) };
-        static constexpr ShaderStage kTesselationEvaluation{ BIT_SET( 5 ) };
+        static constexpr ShaderStage kHull{ BIT_SET( 4 ) };
+        static constexpr ShaderStage kDomain{ BIT_SET( 5 ) };
 
-        static constexpr ShaderStage kMiss{ BIT_SET( 6 ) };
-        static constexpr ShaderStage kRayGeneration{ BIT_SET( 7 ) };
-        static constexpr ShaderStage kClosestHit{ BIT_SET( 8 ) };
+        static constexpr ShaderStage kRayGeneration{ BIT_SET( 6 ) };
+        static constexpr ShaderStage kIntersection{ BIT_SET( 7 ) };
+        static constexpr ShaderStage kAnyHit{ BIT_SET( 8 ) };
+        static constexpr ShaderStage kClosestHit{ BIT_SET( 9 ) };
+        static constexpr ShaderStage kMiss{ BIT_SET( 10 ) };
 
-        static constexpr ShaderStage kAll{ kVertex | kFragment | kCompute | kGeometry | kTesselationControl | kTesselationEvaluation | kMiss | kRayGeneration | kClosestHit };
+        static constexpr ShaderStage kAll{ ~0U };
     };
 
     enum class ShaderType {
         eInvalid = -1,
 
         eVertex,
-        eFragment,
+        ePixel,
         eCompute,
 
         eGeometry,
 
-        eTessellationControl,
-        eTessellationEvaluation,
+        eHull,
+        eDomain,
 
         // Ray tracing
         eRayGeneration,
-        eMiss,
+        eIntersection,
+        eAnyHit,
         eClosestHit,
+        eMiss,
 
         eCount
     };
@@ -539,6 +606,7 @@ namespace mikoto::renderer::rhi {
     static inline constexpr u32 kMaxViewports{ 16 };
     static inline constexpr u32 kMaxScissors{ 10 };
     static inline constexpr u32 kMaxShaders{ 15 };
+    static inline constexpr u32 kMaxSlotsPerTable{ 15 };
     static inline constexpr u32 kMaxColorFormats{ 10 };
     static inline constexpr u32 kMaxCubeFaces{ 6 };
     static inline constexpr u32 kMaxRenderTargets{ 8 };
@@ -590,10 +658,46 @@ namespace mikoto::renderer::rhi {
         auto operator!=( const Color& other ) const -> bool {
             return !( *this == other );
         }
+
+        friend auto operator/( const Color& color, float value ) -> Color {
+            return { color.mR / value, color.mG / value, color.mB / value, color.mA / value };
+        }
+
+        friend auto operator+( const Color& color, float value ) -> Color {
+            return { color.mR + value, color.mG + value, color.mB + value, color.mA + value };
+        }
+
+        friend auto operator+( float value, const Color& color ) -> Color {
+            return { color.mR + value, color.mG + value, color.mB + value, color.mA + value };
+        }
+
+        friend auto operator/( float value, const Color& color ) -> Color {
+            return { color.mR / value, color.mG / value, color.mB / value, color.mA / value };
+        }
+
+        friend auto operator/( const Color& lhs, const Color& rhs ) -> Color {
+            return { lhs.mR / rhs.mR, lhs.mG / rhs.mG, lhs.mB / rhs.mB, lhs.mA / rhs.mA };
+        }
     };
 
     static const inline Color kColorWhite{ 1.f };
     static const inline Color kColorBlack{ 0.f };
+    static const inline Color kColorTransparent{ 0.f, 0.f, 0.f, 0.f };
+
+    static const inline Color kColorRed{ 1.f, 0.f, 0.f, 1.f };
+    static const inline Color kColorGreen{ 0.f, 1.f, 0.f, 1.f };
+    static const inline Color kColorBlue{ 0.f, 0.f, 1.f, 1.f };
+
+    static const inline Color kColorYellow{ 1.f, 1.f, 0.f, 1.f };
+    static const inline Color kColorCyan{ 0.f, 1.f, 1.f, 1.f };
+    static const inline Color kColorMagenta{ 1.f, 0.f, 1.f, 1.f };
+
+    static const inline Color kColorGray{ 0.5f, 0.5f, 0.5f, 1.f };
+    static const inline Color kColorLightGray{ 0.75f, 0.75f, 0.75f, 1.f };
+    static const inline Color kColorDarkGray{ 0.25f, 0.25f, 0.25f, 1.f };
+
+    static const inline Color kColorOrange{ 1.f, 0.5f, 0.f, 1.f };
+    static const inline Color kColorPink{ 1.f, 0.75f, 0.8f, 1.f };
 
     struct Viewport {
         f32 mMinX{};
@@ -740,11 +844,11 @@ namespace mikoto::renderer::rhi {
     };
 
     struct CommandListParameters {
-        bool mAllowParallelExecution{ false };
+        u32 mMaxThreadConcurrency{}; // Set to value > 0 to support recording from multiple threads from same command buffer
         QueueType mQueueType{ QueueType::eGraphics };
 
         auto SetQueueType(QueueType value) -> CommandListParameters& { mQueueType = value; return *this; }
-        auto SetEnableParallelExecution(bool value) -> CommandListParameters& { mAllowParallelExecution = value; return *this; }
+        auto SetMaxThreadConcurrency(u32 value) -> CommandListParameters& { mMaxThreadConcurrency = value; return *this; }
     };
 
     struct Object {
@@ -782,8 +886,8 @@ namespace mikoto::renderer::rhi {
             Initialize();
         }
 
-        auto SetResourceState( ResourceStates state ) -> void { mResourceState = state; }
-        MKT_NODISCARD auto GetResourceState() const -> ResourceStates { return mResourceState; }
+        auto SetResourceState( ResourceStates state ) -> void { mResourceState.store( state ); }
+        MKT_NODISCARD auto GetResourceState() const -> ResourceStates { return mResourceState.load(); }
 
         virtual auto SetDebugName(const eastl::string_view name) -> void { mDebugName = name; }
 
@@ -808,7 +912,7 @@ namespace mikoto::renderer::rhi {
         eastl::string mDebugName{};
 
         ResourceType mResourceType{ ResourceType::eInvalid };
-        ResourceStates mResourceState{ ResourceStates::eUnknown };
+        eastl::atomic<ResourceStates> mResourceState{ ResourceStates::eUnknown };
 
         // By default, the resource is device local
         // lives in memory "only accessible by device"
@@ -964,8 +1068,8 @@ namespace mikoto::renderer::rhi {
         size_t mElementCount{};
         size_t mElementSize{};
 
-        // For Vulkan when we need to manage
-        // frequently updating buffers
+        // For Vulkan and D3D12 when we need to manage
+        // frequently updating uniform/constant buffers
         size_t mMaxVersions{ 0 };
         bool mIsVolatile{};
 
@@ -1004,6 +1108,7 @@ namespace mikoto::renderer::rhi {
         }
     };
 
+    // GPU to GPU sync
     class ISemaphore : public DeviceObject {
     public:
 
@@ -1015,6 +1120,19 @@ namespace mikoto::renderer::rhi {
     };
 
     using SemaphoreHandle = Ref<ISemaphore>;
+
+    // CPU to GPU sync
+    class IFence : public DeviceObject {
+    public:
+
+        using DeviceObject::Initialize;
+
+    protected:
+        auto Initialize() -> void override = 0;
+        auto Release() -> void override = 0;
+    };
+
+    using FenceHandle = Ref<IFence>;
 
     class IShaderModule : public DeviceObject {
     public:
@@ -1046,11 +1164,11 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD auto GetDataType() const -> BufferDataType { return mDataType; }
 
         MKT_NODISCARD auto GetData() const -> BufferSpanHandle { return mSpan; }
-        MKT_NODISCARD auto GetSizeBytes() const -> size_t { return mElementSize; }
+        MKT_NODISCARD auto GetSizeBytes() const -> size_t { return mElementCount == 0 ? mElementSize : mElementCount * mElementSize; }
 
         MKT_NODISCARD auto GetFormat() const -> Format { return mFormat; }
 
-        // FIXME: does not work
+        // FIXME: does not produce expected results
         MKT_NODISCARD auto GetCount() const -> size_t {
             return mElementCount == 0 ? InferElementCount(mFormat, mElementSize) : mElementCount * mElementSize;
         }
@@ -1065,6 +1183,8 @@ namespace mikoto::renderer::rhi {
               mElementSize{ desc.mElementSize },
               mDataType{ desc.mDataType },
               mUsage{ desc.mUsageFlags },
+              mIsVolatile{ desc.mIsVolatile },
+              mMaxVersions{ desc.mMaxVersions },
               mFormat{ desc.mFormat } {}
 
     protected:
@@ -1080,6 +1200,9 @@ namespace mikoto::renderer::rhi {
 
         BufferDataType mDataType{ BufferDataType::eInvalid };
         BufferUsageFlags mUsage{ BufferUsageFlagsBits::kNone };
+
+        bool mIsVolatile{};
+        size_t mMaxVersions{ 0 };
 
         Format mFormat{ Format::eUnknown };
     };
@@ -1147,7 +1270,7 @@ namespace mikoto::renderer::rhi {
         Format mFormat{ Format::eRGBA8_SNORM };
         TextureDimension mDimension{ TextureDimension::eTexture2D };
 
-        TextureUsageFlags mUsage{ TextureUsageFlagsBits::kShaderResource };
+        TextureUsageFlags mUsage{ TextureUsageFlagsBits::kNone };
 
         ResourceType mResourceType{ ResourceType::eInvalid };
 
@@ -1407,13 +1530,16 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD static auto Sampler( u32 slot ) -> BindingLayoutItem;
         MKT_NODISCARD static auto Texture_SRV( u32 slot ) -> BindingLayoutItem;
         MKT_NODISCARD static auto ConstantBuffer( u32 slot ) -> BindingLayoutItem;
+
+        MKT_NODISCARD static auto StructuredBuffer_SRV(u32 slot) -> BindingLayoutItem;
+        MKT_NODISCARD static auto StructuredBuffer_UAV(u32 slot) -> BindingLayoutItem;
     };
 
     struct BindingSetItem {
         IResource* mResource{};
 
         u32 mSlot{};
-        u32 mArrayElement{};
+        BufferRange mRange{};
 
         ResourceType mType{ ResourceType::eInvalid };
         Format mFormat{ Format::eUnknown };
@@ -1458,19 +1584,17 @@ namespace mikoto::renderer::rhi {
         u32 mSlot{};
         u32 mMaxCapacity{};
 
-        Format mFormat{ Format::eUnknown };
         ResourceType mType{ ResourceType::eInvalid };
-        TextureDimension mDimension{ TextureDimension::eInvalid };
 
         // --- Samplers ---
         MKT_NODISCARD static auto Samplers(u32 slot, u32 maxCapacity) -> BindlessLayoutItem;
 
         // --- Textures ---
-        MKT_NODISCARD static auto Texture2D_SRV(u32 slot, u32 maxCapacity) -> BindlessLayoutItem;
-        MKT_NODISCARD static auto TextureCube_SRV(u32 slot, u32 maxCapacity) -> BindlessLayoutItem;
+        MKT_NODISCARD static auto Texture_SRV(u32 slot, u32 maxCapacity ) -> BindlessLayoutItem;
+        MKT_NODISCARD static auto Texture_UAV(u32 slot, u32 maxCapacity ) -> BindlessLayoutItem;
 
         // --- Constant Buffers ---
-        MKT_NODISCARD static auto ConstantBuffer_SRV(u32 slot, u32 maxCapacity) -> BindlessLayoutItem;
+        MKT_NODISCARD static auto ConstantBuffer(u32 slot, u32 maxCapacity) -> BindlessLayoutItem;
         MKT_NODISCARD static auto ConstantBuffer_UAV(u32 slot, u32 maxCapacity) -> BindlessLayoutItem;
 
         // --- Raw / ByteAddress Buffers ---
@@ -1553,8 +1677,6 @@ namespace mikoto::renderer::rhi {
     class IPipelineLayout : public DeviceObject {
     public:
 
-        MKT_NODISCARD virtual auto GetBindPoint() const -> PipelineType = 0;
-
         using DeviceObject::Initialize;
 
     protected:
@@ -1580,7 +1702,7 @@ namespace mikoto::renderer::rhi {
     public:
         // How many indices it holds for instance on Vulkan when we
         // say the descriptor set size for bindless descriptor indexing
-        MKT_NODISCARD virtual auto GetCapacity() const -> u32 = 0;
+        MKT_NODISCARD virtual auto GetCapacity( u32 slot ) const -> u32 = 0;
     };
 
     using DescriptorTableHandle = Ref<IDescriptorTable>;
@@ -1615,11 +1737,9 @@ namespace mikoto::renderer::rhi {
     };
 
     struct PipelineLayoutCreateDescription {
-        PipelineType mBindPoint{ PipelineType::eInvalid };
         ShaderStage mPushConstantsVisibility{ ShaderFlagsBits::kAll };
         eastl::fixed_vector<BindingLayoutHandle, kMaxBindingLayouts> mBindingLayouts;
 
-        auto SetBindPoint( PipelineType bindPoint ) -> PipelineLayoutCreateDescription&;
         auto SetPushConstantsVisibility( ShaderStage stage ) -> PipelineLayoutCreateDescription&;
         auto AddBindingLayout( BindingLayoutHandle layout ) -> PipelineLayoutCreateDescription&;
     };
@@ -1631,6 +1751,8 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD auto GetPipelineType() const -> PipelineType {
             return mPipelineType;
         }
+
+        MKT_NODISCARD virtual auto GetPipelineLayout() const -> PipelineLayoutHandle = 0;
 
     protected:
         explicit IPipeline(const PipelineType pipelineType)
@@ -1666,7 +1788,7 @@ namespace mikoto::renderer::rhi {
         f32 mPolygonLineWidth{ 1.0f };
 
         Multisampling mMultisampling{ Multisampling::eMsaaX1 };
-        CullMode mCullMode{ CullMode::eInvalid };
+        CullMode mCullMode{ CullMode::eNone };
         PolygonMode mPolygonMode{ PolygonMode::eFill };
         PrimitiveTopology mPrimitiveTopology{ PrimitiveTopology::eTriangleList };
         WindingOrder mWindingOrder{ WindingOrder::eCounterClockwise };
@@ -1692,7 +1814,12 @@ namespace mikoto::renderer::rhi {
 
         auto AddShader( ShaderModuleHandle handle ) -> GraphicsPipelineDescription&;
 
+        auto SetCullMode( CullMode mode ) -> GraphicsPipelineDescription&;
+
+        auto SetDepthTest( bool value ) -> GraphicsPipelineDescription&;
+        auto SetDepthWrite( bool value ) -> GraphicsPipelineDescription&;
         auto SetDepthFormat( Format format ) -> GraphicsPipelineDescription&;
+
         auto AddColorFormat( Format format ) -> GraphicsPipelineDescription&;
         auto SetWindingOrder( WindingOrder order ) -> GraphicsPipelineDescription&;
     };
@@ -1707,6 +1834,8 @@ namespace mikoto::renderer::rhi {
 
         MKT_NODISCARD auto GetDescription() const noexcept -> const GraphicsPipelineDescription&;
 
+        MKT_NODISCARD auto GetPipelineLayout() const -> PipelineLayoutHandle override;
+
     protected:
         GraphicsPipelineDescription mDesc{};
     };
@@ -1717,6 +1846,8 @@ namespace mikoto::renderer::rhi {
             : IPipeline{ PipelineType::eCompute }, mDesc{ desc } {}
 
         MKT_NODISCARD auto GetDescription() const noexcept -> const ComputePipelineDescription&;
+
+        MKT_NODISCARD auto GetPipelineLayout() const -> PipelineLayoutHandle override;
 
     protected:
         ComputePipelineDescription mDesc{};
@@ -1743,18 +1874,83 @@ namespace mikoto::renderer::rhi {
             Color mClearColor{ kColorWhite };
             LoadOp mLoadOp{ LoadOp::eLoad };
             TextureHandle mRenderTarget{};
+            TextureSubresourceSet mSubresourceSet{};
         };
+
+        eastl::string mName{};
 
         Rect mRenderArea{};
         RenderTargetState mDepthTarget{};
         eastl::fixed_vector<RenderTargetState, kMaxRenderTargets> mCurrentRenderTargets{};
 
+        auto SetScopeName( eastl::string_view name ) -> GraphicsState&;
         auto SetRenderArea( const Rect& rec ) -> GraphicsState&;
         auto AddDepthTarget(TextureHandle target, LoadOp op = LoadOp::eClear ) -> GraphicsState&;
-        auto AddRenderTarget(TextureHandle target, const Color& c, LoadOp op = LoadOp::eClear) -> GraphicsState&;
+        auto AddRenderTarget(TextureHandle target, const Color& c, LoadOp op = LoadOp::eClear, TextureSubresourceSet set = AllSubResources) -> GraphicsState&;
     };
 
+    struct BindResourcesDescription {
+        struct ResourceSet {
+            IBindingSet* mResourceSet{};
+        };
 
+        size_t mPushConstantSize{ 0 };
+        ShaderStage mPushConstantVisibility{};
+        eastl::fixed_vector<byte_t, kMaxPushConstantSize> mPushConstants{};
+
+        static constexpr u32 kMaxResourceSets{32};
+
+        // key = binding index (set index)
+        eastl::fixed_hash_map<u32, ResourceSet, kMaxResourceSets> mResourceSets{};
+
+        IPipelineLayout* mPipelineLayout{};
+        PipelineType     mBindPoint{};
+
+        auto SetPipelineLayout(IPipelineLayout* layout) -> BindResourcesDescription&;
+        auto SetBindPoint(PipelineType bindPoint) -> BindResourcesDescription&;
+
+        auto SetPushConstants( const void* ptr, size_t sizeBytes, ShaderStage stage ) -> BindResourcesDescription&;
+
+        auto AddResourceSet(u32 bindingIndex, IBindingSet* set) -> BindResourcesDescription&;
+    };
+
+    struct BufferBarrierDescription {
+        IBuffer*           mBuffer       { nullptr };
+        u64                mOffset       { 0 };
+        u64                mSize         { 0xFFFFFFFFFFFFFFFFULL };
+
+        // Previous State
+        ResourceStates     mStateBefore  { ResourceStates::eUnknown };
+        PipelineStageFlags mStageBefore  { PipelineStageFlagsBits::kNone };
+        AccessFlags        mAccessBefore { AccessFlagsBits::kNone };
+
+        // New State
+        ResourceStates     mStateAfter   { ResourceStates::eUnknown };
+        PipelineStageFlags mStageAfter   { PipelineStageFlagsBits::kNone };
+        AccessFlags        mAccessAfter  { AccessFlagsBits::kNone };
+    };
+
+    struct TextureBarrierDescription {
+        ITexture*          mTexture      { nullptr };
+
+        TextureSubresourceSet   mSubresourceSet{ AllSubResources };
+
+        // Previous State
+        ResourceStates     mStateBefore  { ResourceStates::eUnknown };
+        TextureLayout      mLayoutBefore { TextureLayoutBits::kUnknown };
+        PipelineStageFlags mStageBefore  { PipelineStageFlagsBits::kNone };
+        AccessFlags        mAccessBefore { AccessFlagsBits::kNone };
+
+        // New State
+        ResourceStates     mStateAfter   { ResourceStates::eUnknown };
+        TextureLayout      mLayoutAfter  { TextureLayoutBits::kUnknown };
+        PipelineStageFlags mStageAfter   { PipelineStageFlagsBits::kNone };
+        AccessFlags        mAccessAfter  { AccessFlagsBits::kNone };
+    };
+
+    struct CommandListBeginDescription {
+        eastl::string mScopeName{};
+    };
 
     // When creating the command buffer we will specify parameters
     // methods that can be called from multiple thread will be specified
@@ -1763,14 +1959,25 @@ namespace mikoto::renderer::rhi {
         explicit ICommandList( QueueType queueType )
             : mQueueType{ queueType } {}
 
-        virtual auto Begin() -> void = 0;
+        virtual auto Begin( const CommandListBeginDescription& desc ) -> void = 0;
         virtual auto End() -> void = 0;
 
-        virtual auto BeginTrackingState(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
-        virtual auto BeginTrackingState(ITexture* buffer, ResourceStates stateBits) -> void = 0;
+        virtual auto BeginParallel() -> void = 0;
+        virtual auto EndParallel() -> void = 0;
+
+        // More relaxed versions of SetResourceState (PushBarrier needs
+        // CommitBarrier() called, SetBarrier() automatically flushes the barrier)
+        virtual auto PushBarrier( const BufferBarrierDescription& barrier ) -> void = 0;
+        virtual auto PushBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
+
+        virtual auto SetBarrier( const BufferBarrierDescription& barrier ) -> void = 0;
+        virtual auto SetBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
 
         virtual auto SetResourceState(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
         virtual auto SetResourceState(ITexture* buffer, ResourceStates stateBits) -> void = 0;
+
+        virtual auto BeginTrackingState(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
+        virtual auto BeginTrackingState(ITexture* buffer, ResourceStates stateBits) -> void = 0;
 
         virtual auto CommitBarriers() -> void = 0;
 
@@ -1779,13 +1986,17 @@ namespace mikoto::renderer::rhi {
         virtual auto SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void = 0;
         virtual auto SetClearColor( TextureHandle renderTargets, Color color ) -> void = 0;
 
-        virtual auto WriteTexture( IBuffer* src, ITexture* dest, u32 mipLevel ) -> void = 0;
-        virtual auto WriteTexture( ITexture* target, u32 mipLevel, const void* data, size_t byteSize ) -> void = 0;
-        virtual auto CopyTexture( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void = 0;
+        virtual auto Write( IBuffer* src, ITexture* dest, u32 mipLevel ) -> void = 0;
+        virtual auto Write( ITexture* target, u32 mipLevel, const void* data, size_t byteSize ) -> void = 0;
+        virtual auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void = 0;
 
-        virtual auto WriteBuffer( IBuffer* target, const void* data, size_t byteSize ) -> void = 0;
-        virtual auto CopyBuffer( IBuffer* src, IBuffer* dest ) -> void = 0;
-        virtual auto CopyBuffer( IBuffer* src, IBuffer* dest, size_t destOffset ) -> void = 0;
+        virtual auto WriteVolatile( IBuffer* target, const void* data, size_t byteSize ) -> void = 0;
+
+        virtual auto Write( IBuffer* target, const void* data, size_t byteSize ) -> void = 0;
+        virtual auto Write( IBuffer* target, size_t destOffset, const void* data, size_t byteSize ) -> void = 0;
+
+        virtual auto Copy( IBuffer* src, IBuffer* dest ) -> void = 0;
+        virtual auto Copy( IBuffer* src, IBuffer* dest, size_t destOffset ) -> void = 0;
 
         virtual auto BeginRendering( GraphicsState& state ) -> void = 0;
         virtual auto EndRendering() -> void = 0;
@@ -1799,11 +2010,10 @@ namespace mikoto::renderer::rhi {
         virtual auto SetScissors( eastl::span<const Rect> scissorRects ) -> void = 0;
 
         virtual auto BindIndexBuffer( IBuffer* buffer ) -> void = 0;
+        virtual auto BindIndirectBuffer( IBuffer* buffer ) -> void = 0;
         virtual auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void = 0;
 
-        virtual auto BindIndirectBuffer( IBuffer* buffer, u32 stride ) -> void = 0;
-
-        virtual auto BindPipelineResources( IPipelineLayout* pipelineLayout, IBindingSet* resourceSet, u32 bindingSlot ) -> void = 0;
+        virtual auto BindPipelineResources( const BindResourcesDescription& desc ) -> void = 0;
 
         virtual auto Draw( const DrawArguments& args ) -> void = 0;
         virtual auto DrawIndexed( const DrawArguments& args ) -> void = 0;
@@ -1814,7 +2024,7 @@ namespace mikoto::renderer::rhi {
 
         virtual auto Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) -> void = 0;
 
-        virtual auto SetPushConstants( const void* data, size_t byteSize, ShaderStage stageVisibility ) -> void = 0;
+        virtual auto SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, ShaderStage stageVisibility ) -> void = 0;
 
         MKT_NODISCARD auto GetQueueType() const -> QueueType { return mQueueType; }
 

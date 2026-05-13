@@ -45,7 +45,7 @@ namespace mikoto::renderer::d3d11 {
             mTarget = "vs_5_0";
             mShader = Microsoft::WRL::ComPtr<ID3D11VertexShader>{};
         }
-        else if (mStage == ShaderType::eFragment) {
+        else if (mStage == ShaderType::ePixel) {
             mTarget = "ps_5_0";
             mShader = Microsoft::WRL::ComPtr<ID3D11PixelShader>{};
         }
@@ -57,11 +57,11 @@ namespace mikoto::renderer::d3d11 {
             mTarget = "gs_5_0";
             mShader = Microsoft::WRL::ComPtr<ID3D11GeometryShader>{};
         }
-        else if (mStage == ShaderType::eTessellationEvaluation) {
+        else if (mStage == ShaderType::eDomain) {
             mTarget = "hs_5_0";
             mShader = Microsoft::WRL::ComPtr<ID3D11HullShader>{};
         }
-        else if (mStage == ShaderType::eTessellationControl) {
+        else if (mStage == ShaderType::eHull) {
             mTarget = "ds_5_0";
             mShader = Microsoft::WRL::ComPtr<ID3D11DomainShader>{};
         }
@@ -127,7 +127,7 @@ namespace mikoto::renderer::d3d11 {
         const eastl::string_view moduleName{ mFile->GetName() };
 
         mSlangModule = session->loadModuleFromSource( moduleName.data(), modulePath.data(), nullptr, nullptr );
-        MKT_ASSERT( mSlangModule, "Failed to load Slang module" );
+        MKT_ASSERT( mSlangModule, string::Format( "Failed to load Slang module {}", modulePath.data()) );
 
         // Create program
         Slang::ComPtr<slang::IEntryPoint> entryPoint{};
@@ -191,7 +191,7 @@ namespace mikoto::renderer::d3d11 {
                     nullptr,
                     &shader );
         }
-        else if ( mStage == ShaderType::eFragment ) {
+        else if ( mStage == ShaderType::ePixel ) {
             auto& shader{ eastl::get<Microsoft::WRL::ComPtr<ID3D11PixelShader>>( mShader ) };
             shaderCreateResult = device3->CreatePixelShader(
                     mBytecode->GetBufferPointer(),

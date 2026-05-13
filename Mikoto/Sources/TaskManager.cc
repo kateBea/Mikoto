@@ -81,6 +81,14 @@ namespace mikoto::threading {
         mIsInitialized = false;
     }
 
+    auto TaskManager::Submit( tf::Taskflow& flow, bool wait ) -> void {
+        if (wait) {
+            mExecutor->run( flow ).wait();
+        } else {
+            mExecutor->run( flow );
+        }
+    }
+
     auto TaskManager::SubmitTask( std::function<void()>&& task ) -> void {
         mExecutor->silent_async( std::move( task ) );
     }

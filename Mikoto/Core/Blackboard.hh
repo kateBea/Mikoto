@@ -19,6 +19,8 @@
 #include <typeinfo>
 #include <typeindex>
 
+// eastl::any requires utility to be included before
+#include <EASTL/utility.h>
 #include <EASTL/any.h>
 
 #include <ankerl/unordered_dense.h>
@@ -42,42 +44,42 @@ namespace mikoto::core {
         template <typename T, typename... Args>
         auto Add(Args &&...args) -> T&{
             MKT_ASSERT(!Contains<T>(), "Cannot register already existing type.");
-            return m_Storage[typeid(T)].emplace<T>(eastl::forward<Args>(args)...);
+            return mStorage[typeid(T)].emplace<T>(eastl::forward<Args>(args)...);
         }
 
         template <typename T>
         MKT_NODISCARD auto Contains() const -> bool {
-            return m_Storage.contains(typeid(T));
+            return mStorage.contains(typeid(T));
         }
 
         template <typename T>
         MKT_NODISCARD auto Get() -> T& {
             MKT_ASSERT(Contains<T>(), "Type not found in Blackboard.");
-            return eastl::any_cast<T&>(m_Storage.at(typeid(T)));
+            return eastl::any_cast<T&>(mStorage.at(typeid(T)));
         }
 
         template <typename T>
         MKT_NODISCARD auto TryGet() -> T* {
-            const auto it{ m_Storage.find( typeid(T) ) };
-            return it != m_Storage.cend() ? eastl::any_cast<T>(&it->second) : nullptr;
+            const auto it{ mStorage.find( typeid(T) ) };
+            return it != mStorage.cend() ? eastl::any_cast<T>(&it->second) : nullptr;
         }
 
         template <typename T>
         MKT_NODISCARD auto Get() const -> const T& {
             MKT_ASSERT(Contains<T>(), "Type not found in Blackboard.");
-            return eastl::any_cast<const T&>(m_Storage.at(typeid(T)));
+            return eastl::any_cast<const T&>(mStorage.at(typeid(T)));
         }
 
         template <typename T>
         MKT_NODISCARD auto TryGet() const -> const T* {
-            const auto it{ m_Storage.find( typeid(T) ) };
-            return it != m_Storage.cend() ? eastl::any_cast<const T>(&it->second) : nullptr;
+            const auto it{ mStorage.find( typeid(T) ) };
+            return it != mStorage.cend() ? eastl::any_cast<const T>(&it->second) : nullptr;
         }
 
         ~Blackboard() = default;
 
     private:
-        ankerl::unordered_dense::map<std::type_index, eastl::any> m_Storage{};
+        ankerl::unordered_dense::map<std::type_index, eastl::any> mStorage{};
     };
 }
 

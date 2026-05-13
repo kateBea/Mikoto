@@ -19,11 +19,10 @@
 #include <imgui_internal.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
+#include <Core/Reflect.hh>
 #include <Core/String.hh>
-
+#include <Core/Types.hh>
 #include <Logging/Assert.hh>
-
 #include <glm/gtc/type_ptr.hpp>
 
 namespace mikoto::gui {
@@ -179,6 +178,7 @@ namespace mikoto::gui {
         }
     }
 
+    // TODO: Use enum reflection for this
     template<typename EnumType>
     MKT_NODISCARD auto Combo(std::span<std::string> choices, EnumType currentSelection) -> EnumType {
         MKT_ASSERT( static_cast<u32>( currentSelection ) < choices.size(), "Enum value must be lower than choices size" );

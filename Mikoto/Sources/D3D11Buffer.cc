@@ -90,7 +90,7 @@ namespace mikoto::renderer::d3d11 {
         }
 
         // Structured buffer
-        if (mUsage.Has( BufferUsageFlagsBits::kStructured )) {
+        if (mUsage.Has( BufferUsageFlagsBits::kStorage )) {
             desc.StructureByteStride = mElementSize;
             desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
         }

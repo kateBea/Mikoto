@@ -177,6 +177,9 @@ namespace mikoto::core {
         auto operator->() -> RefCountedType* { return mPtr; }
         auto operator->() const -> const RefCountedType* { return mPtr; }
 
+        auto operator*() -> RefCountedType& { return *mPtr; }
+        auto operator*() const -> const RefCountedType& { return *mPtr; }
+
         auto operator==(const Ref& other) const -> bool { return mPtr == other.mPtr; }
 
         operator bool() const {

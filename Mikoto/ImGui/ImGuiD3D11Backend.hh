@@ -55,8 +55,6 @@ namespace mikoto::gui {
         u32 mExtentWidth{};
         u32 mExtentHeight{};
 
-        FontHandle mDebugFont{};
-
         TextureHandle mColorImage{};
         TextureHandle mDepthImage{};
 

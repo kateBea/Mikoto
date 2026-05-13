@@ -26,6 +26,7 @@ static const int PBR_ALPHA_MASK = 1;
 static const int PBR_ALPHA_BLEND = 2;
 
 static const int INVALID_UV_SET = -1;
+static const int INVALID_TEXTURE_INDEX = -1;
 
 static const float MIN_ROUGHNESS = 0.04;
 
@@ -78,16 +79,38 @@ struct MeshParameters {
     int HasArmature;
 };
 
-struct VertexData {
-    float3 Position;
-    float3 Normal;
-    float4 Color;
-    
-    float2 TexCoord0;
-    float2 TexCoord1;
+struct VertexDescription {
+    float3 position   : POSITION;
+    float3 normal     : NORMAL;
+    float4 color      : COLOR;
 
-    float4 Joint;
-    float4 Weight;
+    float2 uv0        : TEXCOORD0;
+    float2 uv1        : TEXCOORD1;
+
+    float4 joints0    : BLENDINDICES0;
+    float4 weights0   : BLENDWEIGHT0;
+
+    float4 joints1    : BLENDINDICES1;
+    float4 weights1   : BLENDWEIGHT1;
+};
+
+struct MeshGeometryInfo {
+    float4x4 Transform;
+    float4x4 InverseModelView; // inverse(view * model) computed in CPU for performance
+
+    // For vertex pulling, this tells the
+    // offset into the array of vertices
+    uint IndexOffset;
+    uint VertexOffset;
+
+    // Index into the buffer
+    // of list of skinning matrices
+    int SkinningMatricesID;
+    int HasArmature;
+
+    // TODO: add a list of shadow casters. This will be an index into the array of shadow casters
+    // buffer to know from which lights this entity needs shadows casted from, ofc there will be a limit you cannot
+    // just slap a unlimited amount of shadow casters
 };
 
 // ============================================================================

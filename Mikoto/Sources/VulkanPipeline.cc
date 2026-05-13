@@ -18,13 +18,15 @@
 #include <EASTL/vector.h>
 #include <EASTL/algorithm.h>
 
+#include <Core/Timer.hh>
+
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
 
 namespace mikoto::renderer::vulkan {
 
-    MKT_NODISCARD static auto CreatePipelineLayout(
+    static auto CreatePipelineLayout(
         Device* device,
         PipelineReflection& mPipelineReflection,
         BindingSetLayoutsMap& bindingLayoutsMap,
@@ -157,8 +159,8 @@ namespace mikoto::renderer::vulkan {
         return result;
     }
 
-    GraphicsPipeline::GraphicsPipeline( const GraphicsPipelineDescription &info )
-        : IGraphicsPipeline{ info } {
+    GraphicsPipeline::GraphicsPipeline( const GraphicsPipelineDescription &info, VkPipelineCache pipelineCache )
+        : IGraphicsPipeline{ info }, mPipelineCache{ pipelineCache } {
         // [Input assembly]
         mInputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         mInputAssemblyInfo.topology = GetTopology(mDesc.mPrimitiveTopology);;
@@ -287,7 +289,10 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto GraphicsPipeline::SetDebugName( eastl::string_view name ) -> void {
-        IGraphicsPipeline::SetDebugName( name );
+        mDebugName = name;
+
+        auto* device{ checked_cast<Device*>( mDevice ) };
+        device->SetDebugName( VK_OBJECT_TYPE_PIPELINE, rc_cast<u64>( mPipeline ), mDebugName );
     }
 
     GraphicsPipeline::~GraphicsPipeline() {
@@ -297,6 +302,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto GraphicsPipeline::Initialize() -> void {
+        MKT_PROFILE_SCOPE_MARKED( "GraphicsPipeline::Initialize" );
         eastl::fixed_vector<ShaderModuleHandle, kMaxShaders> shaders{};
         for (const auto& [type, shader] : mDesc.mShaders) {
             shaders.emplace_back(shader);
@@ -370,7 +376,7 @@ namespace mikoto::renderer::vulkan {
 
         MKT_VK_CHECK( vkCreateGraphicsPipelines(
             checked_cast<Device*>( mDevice )->GetDevice(),
-            VK_NULL_HANDLE,
+            mPipelineCache,
             1,
             MKT_ADDRESSOF( pipelineInfo ),
             nullptr,
@@ -397,8 +403,8 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = false;
     }
 
-    ComputePipeline::ComputePipeline( const ComputePipelineDescription &info )
-        : IComputePipeline{ info }
+    ComputePipeline::ComputePipeline( const ComputePipelineDescription &info, VkPipelineCache pipelineCache )
+        : IComputePipeline{ info }, mPipelineCache{ pipelineCache }
     {}
 
     auto ComputePipeline::GetNativeHandle( ObjectType type ) -> Object {
@@ -428,7 +434,10 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto ComputePipeline::SetDebugName( eastl::string_view name ) -> void {
+        mDebugName = name;
 
+        auto* device{ checked_cast<Device*>( mDevice ) };
+        device->SetDebugName( VK_OBJECT_TYPE_PIPELINE, rc_cast<u64>( mPipeline ), mDebugName );
     }
 
     ComputePipeline::~ComputePipeline() {
@@ -460,7 +469,7 @@ namespace mikoto::renderer::vulkan {
 
         MKT_VK_CHECK( vkCreateComputePipelines(
             checked_cast<Device*>( mDevice )->GetDevice(),
-            VK_NULL_HANDLE,
+            mPipelineCache,
             1,
             MKT_ADDRESSOF( pipelineInfo ),
             nullptr,

@@ -24,9 +24,17 @@ namespace mikoto::renderer::vulkan {
 
         mAllocation.mBufferCreateInfo =  initializers::BufferCreateInfo();
 
+        // Perf. Warn: vkBindBufferMemory(): Trying to bind VkBuffer 0x2780000000278 to a memory block which is
+        // fully consumed by the buffer. The required size of the allocation is 2880, but smaller buffers like
+        // this should be sub-allocated from larger memory blocks. (Current threshold is 1048576 bytes)
+        const size_t threshHold{ MKT_MIBIBYTES( 1 ) };
+        mAllocation.mBufferCreateInfo.size = mElementCount == 0 ? mElementSize : mElementCount * mElementSize;
+
         switch (mHeapType) {
             case HeapType::eDeviceLocal:
-                mAllocation.mAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+                if ( mAllocation.mBufferCreateInfo.size >= threshHold) {
+                    mAllocation.mAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+                }
                 break;
             case HeapType::eUpload:
                 mAllocation.mBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -45,43 +53,28 @@ namespace mikoto::renderer::vulkan {
 
         if (mUsage.Has( BufferUsageFlagsBits::kVertex )) {
             mAllocation.mBufferCreateInfo.usage |=
-                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         }
 
         if (mUsage.Has( BufferUsageFlagsBits::kIndex )) {
             mAllocation.mBufferCreateInfo.usage |=
-                VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         }
 
-        if (mUsage.Has( BufferUsageFlagsBits::kStructured )) {
+        if (mUsage.Has( BufferUsageFlagsBits::kStorage )) {
             mAllocation.mBufferCreateInfo.usage |=
-                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         }
 
         if (mUsage.Has( BufferUsageFlagsBits::kConstant )) {
             mAllocation.mBufferCreateInfo.usage |=
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         }
 
         if (mUsage.Has( BufferUsageFlagsBits::kIndirectDraw )) {
             // Mark as storage because it can be used to read and write from compute shaders
             mAllocation.mBufferCreateInfo.usage |=
-                VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-        }
-
-        // UAV explicitly (optional but clearer intent)
-        if (mUsage.Has(BufferUsageFlagsBits::kUnorderedAccess)) {
-            mAllocation.mBufferCreateInfo.usage |=
-                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+                VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
         }
 
         // Explicit copy flags (this is what you were missing)
@@ -119,11 +112,8 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Buffer::Initialize() -> void {
-        mAllocation.mBufferCreateInfo.size = mElementSize;
-
-        if (mAllocation.mBufferCreateInfo.usage == 0) {
-            MKT_CORE_LOGGER_DEBUG( "error" );
-        }
+        MKT_ASSERT( mAllocation.mBufferCreateInfo.usage != MKT_VK_FLAGS_NONE, "Buffer usage must be specified" );
+        MKT_ASSERT( mAllocation.mBufferCreateInfo.size != 0, "Buffer size must be different than 0" );
 
         // Allocate memory
         auto* allocator{ checked_cast<Device*>( mDevice )->GetAllocator() };
@@ -131,10 +121,10 @@ namespace mikoto::renderer::vulkan {
 
         if (!mSpan.IsEmpty()) {
             CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
-            cmd->Begin();
+            cmd->Begin( {} );
 
             // Data is always writen at mip zero
-            cmd->WriteBuffer( this, mSpan->GetData(), mSpan->GetSize() );
+            cmd->Write( this, mSpan->GetData(), mSpan->GetSize() );
 
             cmd->End();
             mDevice->ExecuteCommands( cmd );

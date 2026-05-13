@@ -195,7 +195,7 @@ namespace mikoto::gui {
             .SetHeight( as<i32>( mDimensions.height ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget )
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kCopySrc ) // I will copy from this guy to swapchain image
             .SetFormat( Format::eBGRA8_UNORM ) };
 
         mColorImage = mDevice->CreateTexture( colorDesc );
@@ -231,7 +231,7 @@ namespace mikoto::gui {
 
         ImGui::Render();
 
-        mCommandList->Begin();
+        mCommandList->Begin( { .mScopeName = "ImGui Render" } );
         mCommandList->SetResourceState( mColorImage.GetRaw(), ResourceStates::eRenderTarget );
 
         RecordCommands( mCommandList );
@@ -243,9 +243,6 @@ namespace mikoto::gui {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
-
-        // [ DEBUG ]
-        RenderSystem::Get()->SetPresentTarget( mColorImage );
     }
 
     auto ImGuiVulkanBackend::GetFinalComposition() -> TextureHandle {

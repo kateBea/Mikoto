@@ -27,22 +27,25 @@ namespace mikoto::material {
 
     using namespace mikoto::renderer;
 
-    // This will be used for effects applied on top of an image, usually the final image but we can specify the target image this is applied on
-    // a good example is the chromatic aberration effect, takes as input the final HDR shading image
+    // This will be used for effects applied on top of an image
+    // a good example is the chromatic aberration effect,
+    // takes as input the final HDR shading image
+    // the idea is that an effect like this is achieved only by tweaking
+    // parameters from this material and apply those properties on the target image
+    // See the PostProcessModule in the frame graph
     class PostProcessMaterial final : public Material {
     public:
 
         explicit PostProcessMaterial( eastl::string_view name = "PostProcessMaterial" );
 
-        auto SetTargetImage(rhi::TextureHandle handle) -> void;
-
-        MKT_NODISCARD auto GetTargetImage() -> rhi::TextureHandle;
 
         ~PostProcessMaterial() override;
 
     private:
-        // Post process is applied on top of an image
-        rhi::TextureHandle mTargetTexture{};
+
+        float mContrast{};
+        float mSaturation{};
+        rhi::Color mTintColor{};
     };
 
 }// namespace Mikoto

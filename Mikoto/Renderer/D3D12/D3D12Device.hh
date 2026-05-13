@@ -53,7 +53,7 @@ namespace mikoto::renderer::d3d12 {
 
     class DescriptorTable : public IDescriptorTable {
     public:
-        MKT_NODISCARD auto GetCapacity() const -> u32 override;
+        MKT_NODISCARD auto GetCapacity( u32 ) const -> u32 override;
     };
 
     class InputLayout : public IInputLayout {
@@ -76,11 +76,91 @@ namespace mikoto::renderer::d3d12 {
     class PipelineLayout : public IPipelineLayout {
     public:
 
-        MKT_NODISCARD auto GetBindPoint() const -> PipelineType override;
-
     protected:
         auto Initialize() -> void override;
         auto Release() -> void override;
+    };
+
+    class CommandList final : public ICommandList {
+    public:
+        explicit CommandList( QueueType type );
+        explicit CommandList( QueueType type, const CommandListParameters& desc );
+
+        auto Begin( const CommandListBeginDescription& desc ) -> void override;
+        auto End() -> void override;
+
+        auto BeginParallel() -> void override;
+        auto EndParallel() -> void override;
+
+        auto SetDebugName( eastl::string_view name) -> void override;
+
+        // More relaxed versions of SetResourceState
+        // https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12
+        auto PushBarrier( const BufferBarrierDescription& barrier ) -> void override;
+        auto PushBarrier( const TextureBarrierDescription& barrier ) -> void override;
+
+        auto BeginTrackingState(IBuffer* buffer, ResourceStates stateBits) -> void override;
+        auto BeginTrackingState(ITexture* buffer, ResourceStates stateBits) -> void override;
+
+        auto SetResourceState(IBuffer* buffer, ResourceStates stateBits) -> void override;
+        auto SetResourceState(ITexture* buffer, ResourceStates stateBits) -> void override;
+
+        auto SetBarrier( const BufferBarrierDescription& barrier ) -> void override;
+        auto SetBarrier( const TextureBarrierDescription& barrier ) -> void override;
+
+        auto CommitBarriers() -> void override;
+
+        auto SetEnableAutomaticBarriers(  bool enable  ) -> void override;
+
+        auto SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void override;
+        auto SetClearColor( TextureHandle renderTargets, Color color ) -> void override;
+
+        auto Write( IBuffer* src, ITexture* dest, u32 mipLevel ) -> void override;
+        auto Write( ITexture* texture, u32 mipLevel,const void* data, size_t byteSize ) -> void override;
+        auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
+
+        auto WriteVolatile( IBuffer* target, const void* data, size_t byteSize ) -> void override;
+
+        auto Write( IBuffer* buffer, size_t destOffset, const void* data, size_t byteSize ) -> void override;
+        auto Write( IBuffer* buffer, const void* data, size_t byteSize ) -> void override;
+        auto Copy( IBuffer* src, IBuffer* dest ) -> void override;
+        auto Copy( IBuffer* src, IBuffer* dest, size_t destOffset ) -> void override;
+
+        auto BeginRendering( GraphicsState& state ) -> void override;
+        auto EndRendering() -> void override;
+
+        auto BindPipeline( IPipeline* pipeline ) -> void override;
+
+        // I am not sure if I wanna have these because the viewport is set on the images we
+        // render to so it makes more sense to tie them to the graphics state when we specify the render targets
+        auto SetViewport( eastl::span<const Viewport> viewports ) -> void override;
+        auto SetScissors( eastl::span<const Rect> scissorRects ) -> void override;
+        auto SetViewportState( const ViewportState& vs ) -> void override;
+
+        auto BindIndexBuffer( IBuffer* buffer ) -> void override;
+        auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void override;
+
+        auto BindPipelineResources( const BindResourcesDescription& desc ) -> void override;
+
+        auto Draw( const DrawArguments& args ) -> void override;
+        auto BindIndirectBuffer( IBuffer* buffer ) -> void override;
+        auto DrawIndexed( const DrawArguments& args ) -> void override;
+
+        auto DrawIndirect( u32 offset, u32 drawCount ) -> void override;
+        auto DrawIndexedIndirect( u32 offset, u32 drawCount ) -> void override;
+
+        auto Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) -> void override;
+
+        auto SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, ShaderStage visibility ) -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+
+        ~CommandList() override;
+
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+
     };
 
     class Device final : public GpuDevice {
@@ -116,6 +196,8 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle override;
         MKT_NODISCARD auto CreateBindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout ) -> BindingSetHandle override;
 
+        MKT_NODISCARD auto CreateFence( u64 fenceInitialValue ) -> FenceHandle override;
+
         auto UnMap( IBuffer* buffer ) -> void override;
         MKT_NODISCARD auto Map(IBuffer* buffer) -> const void* override;
 
@@ -126,10 +208,12 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
         MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool override;
 
+        auto Wait(FenceHandle handle, u64 fenceValue) -> void override;
+
         auto Flush() -> void override;
         auto RunGarbageCollection() -> void override;
         auto SubmitCommands( CommandListHandle cmdList ) -> u64 override;
-        auto ExecuteCommands( CommandListHandle cmdList ) -> u64 override;
+        auto ExecuteCommands( CommandListHandle cmdList ) -> void override;
 
         auto WaitIdle() -> void override;
 

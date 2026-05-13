@@ -22,23 +22,21 @@
 
 #define MKT_DEFAULT_REGISTER_SPACE 0
 
-#define MKT_CONSTANT_BUFFER_BINDING 0
-#define MKT_STRUCTURED_BUFFER_BINDING 1
+#define MKT_STRUCTURED_SRV_BINDING 0
+#define MKT_STRUCTURED_UAV_BINDING 1
 
-#define MKT_RW_CONSTANT_BUFFER_BINDING 2
-#define MKT_RW_STRUCTURED_BUFFER_BINDING 3
+#define MKT_SAMPLER_BINDING 2
 
-#define MKT_SAMPLER_BINDING 4
-#define MKT_TEXTURE_2D_BINDING 5
-#define MKT_TEXTURE_CUBE_BINDING 6
+#define MKT_TEXTURE_SRV_BINDING 3
+#define MKT_TEXTURE_UAV_BINDING 4
 
-#define MKT_ACCELERATION_STRUCTURE_BINDING 7
+#define MKT_ACCELERATION_STRUCTURE_BINDING 5
 
 #if !defined(MKT_SUPPORT_D3D11)
-    #define MKT_DECLARE_PUSH_CONSTANT [[vk::push_constant]]
+    #define MKT_DECLARE_PUSH_CONSTANT(Type) [[vk::push_constant]] Type
     #define DECL_BINDING(BINDING, SET) [[vk::binding(BINDING, SET)]]
 #else
-    #define MKT_DECLARE_PUSH_CONSTANT
+    #define MKT_DECLARE_PUSH_CONSTANT(Type) ConstantBuffer<Type>
     #define DECL_BINDING(BINDING, SET) [[vk::binding(BINDING, 0)]]
 #endif
 
@@ -95,6 +93,32 @@ float3x3 operator*(float3x3 a, float3x3 b) {
 // - In Vulkan, semantics are ignored at runtime; explicit location bindings must match vertex input layout
 // - Types may vary (e.g. float3 vs float4), but must match pipeline input definitions
 
-namespace mikoto {
 
+// D3D11 Stuff
+
+static const uint kArrayMaxSize = 40;
+
+#define X10(n) X(n) X(n+1) X(n+2) X(n+3) X(n+4) X(n+5) X(n+6) X(n+7) X(n+8) X(n+9)
+#define MKT_TEXTURE_LIST \
+    X10(0)  \
+    X10(10) \
+    X10(20) \
+    X10(30)
+
+namespace mikoto {
+    float4 SampleTexture(
+        Texture2D textures[kArrayMaxSize],
+        int texIndex,
+        SamplerState samplers[kArrayMaxSize],
+        int samplerIndex,
+        float2 uv)
+    {
+        switch(texIndex) {
+            #define X(n) case n: return textures[n].Sample(samplers[samplerIndex], uv);
+                MKT_TEXTURE_LIST
+            #undef X
+
+            default: return float4(0, 0, 0, 1); // Color de error
+        }
+    }
 }

@@ -1560,6 +1560,9 @@ namespace mikoto::asset {
             return;
         }
 
+        out.mName = model.scenes[model.defaultScene].name.empty() ?
+            description.mFile->GetName().data() : model.scenes[model.defaultScene].name.c_str();
+
         LoadPrimitives( model, out );
         LoadMaterials( model, out );
         LoadAnimations( model, description, out );

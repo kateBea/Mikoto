@@ -108,7 +108,7 @@ namespace mikoto::filesystem {
         MKT_NODISCARD auto GetName() const -> eastl::string_view;
 
         MKT_NODISCARD auto GetPath() const -> const Path&;
-        MKT_NODISCARD auto GetDirectory() const -> const Path&;
+        MKT_NODISCARD auto GetDirectory() const -> Path;
 
         MKT_NODISCARD auto HasContents() const -> bool;
         MKT_NODISCARD auto GetContentsBytes() -> void*;
@@ -123,6 +123,9 @@ namespace mikoto::filesystem {
 
         auto FlushContents() -> void;
         auto SetContents( eastl::string&& contents ) -> void;
+
+        // Set contents and flush
+        auto Write( const void* ptr, size_t sizeBytes) -> void;
 
         auto UpdateContentsFromDisk() -> void;
 

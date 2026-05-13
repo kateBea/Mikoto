@@ -154,6 +154,16 @@ set(SPIRV_REFLECT_INSTALL OFF CACHE BOOL "Disable SPIRV-Reflect install targets"
 set(SPIRV_REFLECT_EXECUTABLE OFF CACHE BOOL "Build spirv-reflect executable")
 
 # ======================================
+# SPIR-V Cross
+# ======================================
+set(SPIRV_CROSS_STATIC ON CACHE BOOL "" FORCE)
+set(SPIRV_CROSS_CLI OFF CACHE BOOL "" FORCE)
+set(SPIRV_CROSS_ENABLE_GLSL ON CACHE BOOL "" FORCE)
+set(SPIRV_CROSS_ENABLE_HLSL OFF CACHE BOOL "" FORCE)
+set(SPIRV_CROSS_ENABLE_MSL OFF CACHE BOOL "" FORCE)
+set(SPIRV_CROSS_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+
+# ======================================
 # MSDFGEN / MSDF Atlas options
 # ======================================
 set(MSDF_ATLAS_BUILD_STANDALONE OFF)
@@ -290,7 +300,7 @@ FetchContent_MakeAvailable(glfw)
 # ImGui (docking branch)
 FetchContent_Declare(imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui.git
-        GIT_TAG docking
+        GIT_TAG v1.92.8-docking
 )
 FetchContent_MakeAvailable(imgui)
 #set_property(TARGET imgui PROPERTY FOLDER "ThirdParty")
@@ -298,7 +308,7 @@ FetchContent_MakeAvailable(imgui)
 # ImGuizmo
 FetchContent_Declare(ImGuizmo
         GIT_REPOSITORY https://github.com/CedricGuillemet/ImGuizmo.git
-        GIT_TAG master
+        GIT_TAG 1.10
 )
 FetchContent_MakeAvailable(ImGuizmo)
 #set_property(TARGET ImGuizmo PROPERTY FOLDER "ThirdParty")
@@ -383,6 +393,14 @@ FetchContent_Declare(spirv_reflect
 )
 FetchContent_MakeAvailable(spirv_reflect)
 #set_property(TARGET spirv_reflect PROPERTY FOLDER "ThirdParty")
+
+# Spirv Cross
+FetchContent_Declare(
+        spirv_cross
+        GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
+        GIT_TAG        main
+)
+FetchContent_MakeAvailable(spirv_cross)
 
 # volk
 FetchContent_Declare(volk
@@ -653,6 +671,28 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(tinygltf)
 
 # -------------------------------------------------------
+# Magic-Enum
+# -------------------------------------------------------
+FetchContent_Declare(
+        magic_enum
+        GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+        GIT_TAG        v0.9.7
+)
+
+FetchContent_MakeAvailable(magic_enum)
+
+# -------------------------------------------------------
+# Magic-Enum
+# -------------------------------------------------------
+FetchContent_Declare(
+        reflect
+        GIT_REPOSITORY https://github.com/qlibs/reflect.git
+        GIT_TAG        v1.2.6
+)
+
+FetchContent_MakeAvailable(reflect)
+
+# -------------------------------------------------------
 # KTX-Software
 # -------------------------------------------------------
 FetchContent_Declare(
@@ -701,11 +741,11 @@ endif ()
 
 # ImGuizmo sources
 set(IMGUIZMO_SOURCES
-        ${imguizmo_SOURCE_DIR}/ImGuizmo.cpp
-        ${imguizmo_SOURCE_DIR}/GraphEditor.cpp
-        ${imguizmo_SOURCE_DIR}/ImCurveEdit.cpp
-        ${imguizmo_SOURCE_DIR}/ImGradient.cpp
-        ${imguizmo_SOURCE_DIR}/ImSequencer.cpp
+        ${imguizmo_SOURCE_DIR}/src/ImGuizmo.cpp
+        ${imguizmo_SOURCE_DIR}/src/GraphEditor.cpp
+        ${imguizmo_SOURCE_DIR}/src/ImCurveEdit.cpp
+        ${imguizmo_SOURCE_DIR}/src/ImGradient.cpp
+        ${imguizmo_SOURCE_DIR}/src/ImSequencer.cpp
 )
 
 set(IMGUI_NODES_SOURCES
@@ -769,6 +809,9 @@ set(LIBRARIES
         EASTL
         EABase
         FreeImage
+        magic_enum::magic_enum
+        spirv-cross-core
+        spirv-cross-glsl
 )
 
 # ======================================
@@ -821,7 +864,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC .)
 target_include_directories(${PROJECT_NAME} PUBLIC
         ${imgui_SOURCE_DIR}
         ${imgui_SOURCE_DIR}/backends
-        ${imguizmo_SOURCE_DIR}
+        ${imguizmo_SOURCE_DIR}/src
         ${spirv_reflect_SOURCE_DIR}
         ${miniaudio_SOURCE_DIR}
         ${fmt_SOURCE_DIR}/include
@@ -860,6 +903,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${SLANG_INCLUDE_DIR}
         ${eastl_SOURCE_DIR}/include
         ${freeimage_SOURCE_DIR}/Source
+        ${magic_enum_SOURCE_DIR}/include
+        ${reflect_SOURCE_DIR}
+        ${spirv_cross_SOURCE_DIR}
 )
 
 # ======================================

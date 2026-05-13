@@ -34,7 +34,7 @@ namespace mikoto::renderer::vulkan {
 
     class GraphicsPipeline final :  public IGraphicsPipeline {
     public:
-        explicit GraphicsPipeline( const GraphicsPipelineDescription& info );
+        explicit GraphicsPipeline( const GraphicsPipelineDescription& info, VkPipelineCache pipelineCache );
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
@@ -52,6 +52,8 @@ namespace mikoto::renderer::vulkan {
 
     private:
         VkPipeline mPipeline{};
+
+        VkPipelineCache mPipelineCache{};
 
         VkPipelineLayout mReflectedPipelineLayout{};
 
@@ -83,7 +85,7 @@ namespace mikoto::renderer::vulkan {
 
     class ComputePipeline final :  public IComputePipeline {
     public:
-        explicit ComputePipeline( const ComputePipelineDescription& info );
+        explicit ComputePipeline( const ComputePipelineDescription& info, VkPipelineCache pipelineCache );
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
@@ -101,6 +103,8 @@ namespace mikoto::renderer::vulkan {
 
     private:
         VkPipeline mPipeline{};
+
+        VkPipelineCache mPipelineCache{};
 
         VkPipelineLayout mReflectedPipelineLayout{};
 

@@ -1343,6 +1343,55 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
+    auto CommandList::Copy( IBuffer* dest, ITexture* src ) -> void {
+        if (mEnableAutomaticBarriers) {
+            BeginTrackingState( src, ResourceStates::eCopySource  );
+            BeginTrackingState( dest, ResourceStates::eCopyDest  );
+            CommitBarriers();
+        }
+
+        VkBufferImageCopy region{
+            // Start of data in the buffer (in bytes).
+            // Must be a multiple of the pixel size (e.g., 4 bytes for R32_UINT).
+            .bufferOffset = 0,
+
+            // Number of pixels in a row for buffer layout.
+            // Set to 0 if data is tightly packed with no extra padding.
+            .bufferRowLength = 0,
+
+            // Number of rows in the buffer for 3D layout padding.
+            // Set to 0 if data is tightly packed with no extra padding.
+            .bufferImageHeight = 0,
+
+            // Target texture subresource options (mip levels, array layers).
+            .imageSubresource = {
+                .aspectMask = checked_cast<Texture*>( src )->GetAspectMask(), // Target is color data
+                .mipLevel = 0,                           // Base mipmap level
+                .baseArrayLayer = 0,                     // Target the first layer
+                .layerCount = 1                          // Copying exactly 1 layer
+            },
+
+            // Destination starting coordinates (x, y, z) within the image.
+            .imageOffset = {0, 0, 0},
+
+            // Size of the pixel region to copy.
+            .imageExtent = {
+                .width =
+                src->GetWidth(),            // Width of the region in pixels
+                .height = src->GetHeight(), // Height of the region in pixels
+                .depth = 1                  // Depth is 1 for standard 2D textures
+            }
+        };
+
+        eastl::array regions{ region };
+
+        auto* ctx{ GetThreadContext() };
+
+        VkImage image{ src->GetNativeHandle( ObjectType::Vk_Image ) };
+        VkBuffer buffer{ dest->GetNativeHandle( ObjectType::Vk_Buffer ) };
+        vkCmdCopyImageToBuffer( ctx->mCommandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, as<u32>(regions.size()), regions.data());
+    }
+
     auto CommandList::BeginRendering( GraphicsState& state ) -> void {
         if (mEnableAutomaticBarriers) {
             for (auto& rt : state.mCurrentRenderTargets ) {

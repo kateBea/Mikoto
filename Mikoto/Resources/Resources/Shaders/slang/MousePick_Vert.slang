@@ -25,24 +25,13 @@ struct VSInput {
 };
 
 struct VSOutput {
-    float3 FragmentViewPos : TEXCOORD0;
-    float3 FragmentWorldPos : TEXCOORD1;
-    float3 VertexNormal : TEXCOORD2;
-    float2 Uv0 : TEXCOORD3;
-    float2 Uv1 : TEXCOORD4;
-    float4 Color : TEXCOORD5;
-
-    uint MaterialIndex : TEXTCOORD6;
-
-    float4 PositionH : SV_Position;
+    uint ObjectID : ATTRIBUTE0;
+    float4 Position : SV_Position;
 };
 
 struct DrawParams {
     uint GeometryID;
-    uint MaterialsID;
     uint SkinningID;
-
-    uint BasicSamplerID;
 
     uint IndexID;
     uint VertexID;
@@ -52,7 +41,6 @@ struct DrawParams {
 
 MKT_DECLARE_STRUCTURED_SRV Buffers;
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
-
 
 [shader("vertex")]
 VSOutput main(VSInput input) {
@@ -98,27 +86,16 @@ VSOutput main(VSInput input) {
         normal = vertex.normal;
     }
 
-    CameraInfo camera = Buffers[Parameters.CameraInfoBufferID].Read<CameraInfo>(0, 0);
-
     float4 worldPos = mul(model, locPos);
     float3 worldNormal = normalize(mul((float3x3)model, normal));
 
-    float4 viewPos = mul(camera.ViewMatrix, mul(model, float4(vertex.position, 1.0)));
-    o.FragmentViewPos = viewPos.xyz;
+    CameraInfo camera = Buffers[Parameters.CameraInfoBufferID].Read<CameraInfo>(0, 0);
 
-    o.FragmentWorldPos = worldPos.xyz;
-    o.VertexNormal = worldNormal;
-
-    // Interpolated per-vertex data
-    o.Color = vertex.color;
-    o.Uv0 = vertex.uv0;
-    o.Uv1 = vertex.uv1;
-    o.MaterialIndex = instanceIndex;
-
-    // Final clip position
-    o.PositionH =
+    o.Position =
         mul(camera.Projection,
             mul(camera.ViewMatrix, worldPos));
+
+    o.ObjectID = meshInfo.ObjectID;
 
     return o;
 }

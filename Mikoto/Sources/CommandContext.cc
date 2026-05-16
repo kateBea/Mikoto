@@ -120,12 +120,17 @@ namespace mikoto::renderer {
         auto graphicsState{ GraphicsState{}
             .SetRenderArea( gs.mRenderArea )
             .SetScopeName( string::Format( "Render: {}", mNode->mName ))
-            .AddDepthTarget( mResourceManager->Get( gs.mDepthTarget.mRenderTarget.mHandle ).mResource )
         };
+
+        if ( gs.mDepthTarget.mRenderTarget.mHandle != FGResourceManager::kInvalidResourceHandle ) {
+            graphicsState.AddDepthTarget( mResourceManager->Get( gs.mDepthTarget.mRenderTarget.mHandle ).mResource );
+        }
 
         for (const auto& colorImage : gs.mCurrentRenderTargets) {
             TextureHandle texture{ mResourceManager->Get( colorImage.mRenderTarget.mHandle ).mResource };
-            graphicsState.AddRenderTarget( texture, colorImage.mClearColor, colorImage.mLoadOp );
+            if (!texture.IsEmpty()) {
+                graphicsState.AddRenderTarget( texture, colorImage.mClearColor, colorImage.mLoadOp );
+            }
         }
 
         mCommands->BeginRendering( graphicsState );
@@ -168,12 +173,12 @@ namespace mikoto::renderer {
         return mResourceManager->PushBuffer_Constant( handle.mHandle );
     }
 
-    auto CommandContext::CommitBarriers( eastl::span<const FGBarrier> barriers ) -> void {
+    auto CommandContext::CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>& barriers ) -> void {
         if (barriers.empty()) {
             return;
         }
 
-        for (const auto& barrier : barriers) {
+        for (const auto& [resourceID, barrier] : barriers) {
             FGResource resource{ mResourceManager->Get( barrier.mResourceID ) };
             auto desired{ GetResourceState(barrier.mNewState) };
 
@@ -294,6 +299,14 @@ namespace mikoto::renderer {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource resource{ mResourceManager->Get( dstBuffer.mHandle ) };
         mCommands->Copy( src, checked_cast<IBuffer*>( resource.mResource.GetRaw() ), dstOffset );
+    }
+
+    auto CommandContext::Copy( FGBufferHandle dstBuffer, FGTextureHandle srcImage ) -> void {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        FGResource buffer{ mResourceManager->Get( dstBuffer.mHandle ) };
+        FGResource image{ mResourceManager->Get( srcImage.mHandle ) };
+
+        mCommands->Copy( checked_cast<IBuffer*>( buffer.mResource.GetRaw() ), checked_cast<ITexture*>( image.mResource.GetRaw() ) );
     }
 
     auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, size_t offset, const void* ptr, size_t sizeBytes ) -> void {

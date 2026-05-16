@@ -20,6 +20,9 @@
 
 #pragma once
 
+#define MKT_SHADER_TRUE 1
+#define MKT_SHADER_FALSE 0
+
 #define MKT_DEFAULT_REGISTER_SPACE 0
 
 #define MKT_STRUCTURED_SRV_BINDING 0

@@ -40,12 +40,17 @@ namespace mikoto::renderer {
     inline constexpr u32 kMaxSkinnedMeshes{ 1000 };
     inline constexpr u32 kMaxRenderableEntities{ 500'000 };
 
+    inline constexpr u32 kVertexBufferSizeMB{ 200 };
+    inline constexpr u32 kIndexBufferSizeMB{ 200 };
+
     // Material information
     struct MeshMaterialInfo {
         float4 mBaseColorFactor{};
         float4 mEmissiveFactor{};
         float4 mDiffuseFactor{};
         float4 mSpecularFactor{};
+
+        i32 mWorkflow{};
 
         f32 mMetallicFactor{};
         f32 mRoughnessFactor{};
@@ -71,8 +76,6 @@ namespace mikoto::renderer {
         i32 mMetallicRoughnessIndex{ kInvalidTextureID };
         i32 mSpecularGlossinessIndex{ kInvalidTextureID };
 
-        i32 mWorkflow{};
-
         i32 mIsBloomy{ MKT_SHADER_FALSE };
     };
 
@@ -94,12 +97,14 @@ namespace mikoto::renderer {
         // TODO: add a list of shadow casters. This will be an index into the array of shadow casters
         // buffer to know from which lights this entity needs shadows casted from, ofc there will be a limit you cannot
         // just slap a unlimited amount of shadow casters
+
+        u32 mObjectID{};
     };
 
     // Info that I pass per mesh
     // that needs to be animated
     struct MeshSkinningInfo {
-        eastl::array<float4x4, asset::kMaxSkinnedMeshes> BoneTransforms{};
+        eastl::array<float4x4, asset::kMaxBonesPerMesh> mBoneTransforms{};
     };
 
     struct GeometryAllocation {
@@ -137,7 +142,7 @@ namespace mikoto::renderer {
         auto GetOrAllocate(const asset::MeshNode* mesh, GeometryAllocation& outAlloc) -> bool;
 
     private:
-        GeometryBufferAllocator mAllocator{ MKT_MEGABYTES( 200 ), MKT_MEGABYTES( 200 ) };
+        GeometryBufferAllocator mAllocator{ MKT_MEGABYTES( kVertexBufferSizeMB ), MKT_MEGABYTES( kIndexBufferSizeMB ) };
         ankerl::unordered_dense::map<const asset::MeshNode*, GeometryAllocation> mAllocations{};
     };
 
@@ -151,6 +156,7 @@ namespace mikoto::renderer {
 
         FGBufferHandle mIndirectBuffer{};
 
+        FGSamplerHandle mBasicSampler{};
     };
 
     struct MeshNodeInstancesInfo {
@@ -190,6 +196,8 @@ namespace mikoto::renderer {
 
         auto PrepareSkinning( CommandContext& context, Blackboard& b ) -> void;
         auto PrepareIndirectDraw( CommandContext& context, Blackboard& b  ) -> void;
+
+        auto PushTextureID( CommandContext& ctx, TextureHandle handle ) -> i32;
 
     private:
         const scene::Scene* mScene{};

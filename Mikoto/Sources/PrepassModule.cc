@@ -333,8 +333,7 @@ namespace mikoto::renderer {
             .PushShader( "GBuffer_Vert.slang", FGStageType::eVertex )
             .PushShader( "GBuffer_Frag.slang", FGStageType::eFragment ) };
 
-        // TODO: review the messy shaders
-        //info.mGBufferPipeline = graph.Create( pipelineBuilder );
+        info.mGBufferPipeline = graph.Create( pipelineBuilder );
 
         graph.RegisterPass(
             "GBuffer",
@@ -364,13 +363,12 @@ namespace mikoto::renderer {
                 CameraModuleInfo& cameraPassInfo{ b.Get<CameraModuleInfo>() };
                 GeometryManagementModuleInfo& geometryInfo{ b.Get<GeometryManagementModuleInfo>() };
 
-                // FIXME
-                return;
-
                 struct DrawParams {
                     u32 mGeometryInfoBufferID{};
                     u32 mMaterialsInfoBufferID{};
                     u32 mSkinningInfoBufferID{};
+
+                    u32 mBasicSamplerID{};
 
                     u32 mIndexID{};
                     u32 mVertexID{};
@@ -380,6 +378,8 @@ namespace mikoto::renderer {
                     .mGeometryInfoBufferID = ctx.PushBuffer_SRV( geometryInfo.mGeometryBuffer ),
                     .mMaterialsInfoBufferID = ctx.PushBuffer_SRV( geometryInfo.mMaterialsBuffer ),
                     .mSkinningInfoBufferID = ctx.PushBuffer_SRV( geometryInfo.mSkinningBuffer ),
+
+                    .mBasicSamplerID = ctx.PushSampler( geometryInfo.mBasicSampler ),
 
                     .mIndexID = ctx.PushBuffer_SRV( geometryInfo.mIndicesBuffer ),
                     .mVertexID = ctx.PushBuffer_SRV( geometryInfo.mVerticesBuffer ),
@@ -394,9 +394,9 @@ namespace mikoto::renderer {
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
                     .AddDepthTarget( prepassInfo.mDepthPrepassDepthTarget, LoadOp::eLoad )
-                    .AddRenderTarget( prepassInfo.mGBufferColorTarget, kColorBlack, LoadOp::eClear )
                     .AddRenderTarget( prepassInfo.mGBufferPositionTarget, kColorBlack, LoadOp::eClear )
                     .AddRenderTarget( prepassInfo.mGBufferNormalTarget, kColorBlack, LoadOp::eClear )
+                    .AddRenderTarget( prepassInfo.mGBufferColorTarget, kColorBlack, LoadOp::eClear )
                     .AddRenderTarget( prepassInfo.mGBufferEmissiveTarget, kColorBlack, LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );
 
@@ -510,7 +510,7 @@ namespace mikoto::renderer {
 
                 ctx.BindPipeline( prepassInfo.mDepthPrepassPipeline );
 
-                //mGeometryManagement->DrawInstancesIndirect( ctx );
+                mGeometryManagement->DrawInstancesIndirect( ctx );
 
                 ctx.EndRender();
             } );

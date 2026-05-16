@@ -364,6 +364,10 @@ namespace mikoto::renderer::d3d11 {
 
     }
 
+    auto CommandList::Copy( IBuffer *dest, ITexture *src ) -> void {
+
+    }
+
     auto CommandList::BeginRendering( GraphicsState &state ) -> void {
         // Render targets
         eastl::fixed_vector<ID3D11RenderTargetView*, kMaxRenderTargets> renderTargetViews{};

@@ -28,7 +28,9 @@
 namespace mikoto::renderer {
 
     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo )
-        : mDevice{ createInfo.mDevice } {}
+        : mDevice{ createInfo.mDevice },
+        mPresentTexture{ createInfo.mPresentTexture },
+        mTargetResolution{ createInfo.mResolution } {}
 
     auto SceneRenderer::Init() -> void {
         // Init shader library
@@ -55,6 +57,8 @@ namespace mikoto::renderer {
 
         //mGeometryShading.RegisterPasses( *mFrameGraph );
 
+        mMousePickingModule.RegisterPasses( *mFrameGraph );
+
         // Raytracing
         mPathTracing.RegisterPasses( *mFrameGraph );
         mRayTracingPass.RegisterPasses( *mFrameGraph );
@@ -68,7 +72,8 @@ namespace mikoto::renderer {
         mDebugPasses.RegisterPasses( *mFrameGraph );
 
         // Render final contents into specified images
-        //mPresentationModule.RegisterPasses( *mFrameGraph );
+        mPresentationModule.RegisterPasses( *mFrameGraph );
+        mPresentationModule.RegisterPresentImage( *mFrameGraph, mPresentTexture );
 
         // Build graph
         mFrameGraph->Compile();
@@ -78,9 +83,12 @@ namespace mikoto::renderer {
         // and knows how to submit indexed draws or indirect draws
         mGeometryShading.SetGeometryManagement( mGeometryManagement );
         mRenderPrepass.SetGeometryManager( mGeometryManagement );
+        mMousePickingModule.SetGeometryManager( mGeometryManagement );
     }
 
     auto SceneRenderer::Shutdown() -> void {
+        mPresentTexture.Reset();
+
         mFrameGraph = nullptr;
         mCamera = nullptr;
         mDevice = nullptr;
@@ -133,8 +141,13 @@ namespace mikoto::renderer {
         return *this;
     }
 
-    auto SceneRendererCreateInfo::AddPresentImage( TextureHandle texture ) -> SceneRendererCreateInfo & {
-        mPresentTextures.push_back( texture );
+    auto SceneRendererCreateInfo::SetPresentImage( TextureHandle texture ) -> SceneRendererCreateInfo & {
+        mPresentTexture = texture;
+        return *this;
+    }
+
+    auto SceneRendererCreateInfo::SetRenderResolution( RenderResolution resolution ) -> SceneRendererCreateInfo & {
+        mResolution = resolution;
         return *this;
     }
 }// namespace Mikoto

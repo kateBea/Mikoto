@@ -25,12 +25,11 @@ struct VSInput {
 };
 
 struct VSOutput {
-    float4 PositionH : SV_Position;
+    float4 Position : SV_Position;
 };
 
 struct DrawParams {
     uint GeometryID;
-    uint MaterialsID;
     uint SkinningID;
 
     uint IndexID;
@@ -91,7 +90,7 @@ VSOutput main(VSInput input) {
 
     CameraInfo camera = Buffers[Parameters.CameraInfoBufferID].Read<CameraInfo>(0, 0);
 
-    o.PositionH =
+    o.Position =
         mul(camera.Projection,
             mul(camera.ViewMatrix, worldPos));
 

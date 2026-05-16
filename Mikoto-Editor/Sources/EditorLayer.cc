@@ -63,11 +63,12 @@ namespace mikoto::editor {
 
         InitEditorState();
 
+        InitAssets();
+
         InitEmptyScene();
 
         InitDockingSpace();
 
-        InitAssets();
         InitSceneRenderer();
 
         InitEditorCamera();
@@ -197,9 +198,11 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::InitSceneRenderer() -> void {
+        const auto dimensions{ InferDimensions( mEditorState->mResolution ) };
+
         auto colorDesc{ TextureCreateDescription{}
-            .SetWidth( as<i32>( 1920 ) )
-            .SetHeight( as<i32>( 1080 ) )
+            .SetWidth( as<i32>( dimensions.first ) )
+            .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
@@ -210,7 +213,8 @@ namespace mikoto::editor {
 
         auto description{ SceneRendererCreateInfo{}
             .SetName( "MainSceneRenderer" )
-            .AddPresentImage( mEditorState->mFinalComposition )
+            .SetPresentImage( mEditorState->mFinalComposition )
+            .SetRenderResolution( mEditorState->mResolution )
             .SetDevice( RenderSystem::Get()->GetGpuDevice() ) };
         mSceneRenderer = SceneRenderer::Create( description );
 
@@ -287,6 +291,41 @@ namespace mikoto::editor {
 
     auto EditorLayer::InitEmptyScene() -> void {
         mEditorState->mActiveScene = SceneManager::Get()->CreateScene( "Scene" );
+
+        InitSphereMaterialsScene();
+    }
+
+    auto EditorLayer::InitSphereMaterialsScene() -> void {
+        Entity *root{ mEditorState->mActiveScene->CreateEntity( "Spheres Grid" ) };
+
+        EntityCreateInfo info{
+            .mRoot = root,
+            .mModel = mEditorState->GetPrefab( PrefabModelType::eSphere )
+        };
+
+        constexpr u32 gridSize{ 5 };    // gridSize * gridSize spheres
+        constexpr f32 spacing{ 30.0f }; // Distance between spheres
+
+        for (u32 x{}; x < gridSize; ++x) {
+            for ( u32 y{}; y < gridSize; ++y ) {
+                info.mName = string::Format( "Sphere_{}_{}", x, y );
+
+                if ( Entity * e{ mEditorState->mActiveScene->CreateEntity( info ) } ) {
+                    auto &t{ e->GetComponent<TransformComponent>() };
+                    t.SetTranslation(
+                            { as<f32>( x ) * spacing,
+                              as<f32>( y ) * spacing, 0.0f } );
+                    auto& materialComponent{ e->GetComponent<MaterialComponent>() };
+                    PhysicalMaterial *material{ checked_cast<PhysicalMaterial*>( materialComponent.GetMaterial().GetRaw() ) };
+                    if (material) {
+                        material->SetAlphaMaskCutoff( 1.0f );
+                        material->SetMetallicFactor( static_cast<float>( x ) / static_cast<float>( gridSize - 1 ) );
+                        material->SetRoughnessFactor( static_cast<float>( y ) / static_cast<float>( gridSize - 1 ) );
+                    }
+                }
+
+            }
+        }
     }
 
     auto EditorLayer::UpdateDockSpace() -> void {
@@ -485,7 +524,16 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::RenderScene( float ) -> void {
+        // External textures are not managed by the frame graph
+        mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - RenderTarget" } );
+        mCommandList->SetResourceState( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eRenderTarget );
+
         mSceneRenderer->Render( mEditorState->mActiveScene );
+
+        mCommandList->SetResourceState( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eShaderResource );
+        mCommandList->End();
+
+        mDevice->SubmitCommands( mCommandList );
     }
 
     auto EditorLayer::UpdateViewportState( float ) -> void {

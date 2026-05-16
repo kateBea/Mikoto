@@ -68,6 +68,8 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto HasExternalImage() const -> bool;
 
+        MKT_NODISCARD auto GetAspectMask() const -> VkImageAspectFlags;
+
         MKT_NODISCARD auto GetView( u32 mipLevel, u32 face = 0 ) const -> const VkImageView&;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
@@ -84,6 +86,7 @@ namespace mikoto::renderer::vulkan {
         auto InitInitialDataCube() -> void;
 
     private:
+        VkImageAspectFlags mAspectFlags{};
         ImageAllocation mImageAllocation{};
 
         // For every face we keep a list of mips

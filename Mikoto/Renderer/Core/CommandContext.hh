@@ -92,7 +92,7 @@ namespace mikoto::renderer {
         auto PushBuffer_UAV( FGBufferHandle handle ) -> u32;
         auto PushBuffer_Constant( FGBufferHandle handle ) -> u32;
 
-        auto CommitBarriers( eastl::span<const FGBarrier> barriers ) -> void;
+        auto CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>& barriers ) -> void;
 
         MKT_NODISCARD auto ImportTexture( TextureHandle handle ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportSampler( SamplerHandle handle ) -> FGSamplerHandle;
@@ -114,6 +114,8 @@ namespace mikoto::renderer {
 
         auto CopyBuffer( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void;
         auto CopyBuffer( FGBufferHandle dstBuffer, IBuffer* src, size_t dstOffset ) -> void;
+
+        auto Copy( FGBufferHandle dstBuffer, FGTextureHandle srcImage ) -> void;
 
         auto CopyBuffer( FGBufferHandle dstBuffer, const auto& data, size_t offset ) -> void {
             CopyBuffer( dstBuffer, offset, MKT_ADDRESSOF( data ), MKT_SIZEOF( data ) );

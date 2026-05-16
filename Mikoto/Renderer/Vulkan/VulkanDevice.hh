@@ -261,6 +261,8 @@ namespace mikoto::renderer::vulkan {
         auto Copy( IBuffer* src, IBuffer* dest ) -> void override;
         auto Copy( IBuffer* src, IBuffer* dest, size_t destOffset ) -> void override;
 
+        auto Copy( IBuffer *dest, ITexture *src ) -> void override;
+
         auto BeginRendering( GraphicsState& state ) -> void override;
         auto EndRendering() -> void override;
 

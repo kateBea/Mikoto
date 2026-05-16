@@ -494,6 +494,11 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    auto GraphicsPipelineDescription::SetBlendEnable( bool value ) -> GraphicsPipelineDescription & {
+        mEnableAlphaBlending = value;
+        return *this;
+    }
+
     auto GraphicsPipelineDescription::SetDepthTest( bool value ) -> GraphicsPipelineDescription & {
         mEnableDepthTest = value;
         return *this;

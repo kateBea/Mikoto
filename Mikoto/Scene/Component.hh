@@ -60,7 +60,7 @@ namespace mikoto::scene {
         explicit TagComponent() = default;
 
         explicit TagComponent( const eastl::string_view tag, bool active = true )
-            : m_Tag{ tag }, m_IsActive{ active } {}
+            : mTag{ tag }, mIsActive{ active } {}
 
         TagComponent( const TagComponent& other ) = default;
         TagComponent( TagComponent&& other ) noexcept = default;
@@ -68,18 +68,18 @@ namespace mikoto::scene {
         auto operator=( const TagComponent& other ) -> TagComponent& = default;
         auto operator=( TagComponent&& other ) -> TagComponent& = default;
 
-        MKT_NODISCARD auto IsActive() const -> bool { return m_IsActive; }
-        MKT_NODISCARD auto GetTag() const -> const eastl::string& { return m_Tag; }
-        MKT_NODISCARD auto GetGUID() const -> u64 { return m_GUID.Get(); }
+        MKT_NODISCARD auto IsActive() const -> bool { return mIsActive; }
+        MKT_NODISCARD auto GetTag() const -> const eastl::string& { return mTag; }
+        MKT_NODISCARD auto GetGUID() const -> u32 { return mGuid; }
 
-        auto SetTag( const eastl::string_view newName ) -> void { m_Tag = newName; }
-        auto SetActive( const bool value ) -> void { m_IsActive = value; }
+        auto SetTag( const eastl::string_view newName ) -> void { mTag = newName; }
+        auto SetActive( const bool value ) -> void { mIsActive = value; }
 
     private:
-        eastl::string m_Tag{};
-        GlobalUniqueID m_GUID{};
+        eastl::string mTag{};
+        Guid mGuid{};
         
-        bool m_IsActive{};
+        bool mIsActive{};
     };
 
     // Used to identify objects that must be highlighted or

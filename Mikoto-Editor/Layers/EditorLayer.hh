@@ -71,6 +71,7 @@ namespace mikoto::editor {
 
         // Image that will be used for presentation
         TextureHandle mFinalComposition{};
+        RenderResolution mResolution{ RenderResolution::e1080P };
 
         // List of prefab models
         ankerl::unordered_dense::map<PrefabModelType, ModelHandle> mPrefabPaths{};
@@ -97,6 +98,8 @@ namespace mikoto::editor {
         auto InitDockingSpace() -> void;
 
         auto InitEmptyScene() -> void;
+
+        auto InitSphereMaterialsScene() -> void;
 
         auto UpdateDockSpace() -> void;
         auto UpdateDockSpacePanels( float ts ) -> void;

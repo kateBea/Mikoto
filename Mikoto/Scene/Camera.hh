@@ -140,7 +140,7 @@ namespace mikoto::scene {
         float m_Pitch{ 0.0f };
 
         // [Misc]
-        math::random::GlobalUniqueID m_Guid{};
+        math::random::Guid m_Guid{};
 
         glm::mat4 m_Projection{};
         glm::mat4 m_Transform{};

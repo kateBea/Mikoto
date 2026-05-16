@@ -43,6 +43,8 @@ struct DrawParams {
     uint MaterialsID;
     uint SkinningID;
 
+    uint BasicSamplerID;
+
     uint IndexID;
     uint VertexID;
 
@@ -70,7 +72,7 @@ FSOutput main(FSInput input)
     float2 normalUvs = materialInfo.NormalTextureSet == 0 ? input.Uv0 : input.Uv1;
     float3 N = (materialInfo.NormalIndex != INVALID_TEXTURE_INDEX)
                    ? GetNormalFromMap(Textures[materialInfo.NormalIndex],
-                            Samplers[materialInfo.S]
+                            Samplers[Parameters.BasicSamplerID],
                            normalUvs,
                            input.Normal,
                            input.WorldPos)
@@ -79,7 +81,7 @@ FSOutput main(FSInput input)
     o.Normal = float4(normalize(N) * 0.5 + 0.5, 1.0);
 
     // POSITION (view-space + depth)
-    o.Position = normalize(float4(input.ViewPos, LinearDepth(input.ScreenPos.z, camera.Planes)));
+    o.Position = normalize(float4(input.ViewPos, LinearDepth(input.ScreenPos.z, camera.Planes.xy)));
 
     // ALBEDO
     if (materialInfo.Workflow == PBR_WORKFLOW_METALLIC_ROUGHNESS) {
@@ -87,7 +89,7 @@ FSOutput main(FSInput input)
 
         float4 albedo =
             (materialInfo.AlbedoIndex != INVALID_TEXTURE_INDEX)
-                ? pow(Textures[materialInfo.AlbedoIndex].Sample(baseColorUvs), float4(2.2))
+                ? pow(Textures[materialInfo.AlbedoIndex].Sample(Samplers[Parameters.BasicSamplerID], baseColorUvs), float4(2.2))
                 : materialInfo.BaseColorFactor;
 
         o.Color = float4(albedo.xyz, 1.0);
@@ -98,7 +100,7 @@ FSOutput main(FSInput input)
 
         float4 diffuse =
             (materialInfo.DiffuseIndex != INVALID_TEXTURE_INDEX)
-                ? pow(Textures[materialInfo.DiffuseIndex].Sample(diffuseUvs), float4(2.2))
+                ? pow(Textures[materialInfo.DiffuseIndex].Sample(Samplers[Parameters.BasicSamplerID], diffuseUvs), float4(2.2))
                 : materialInfo.DiffuseFactor;
 
         o.Color = float4(diffuse.xyz, 1.0);
@@ -110,10 +112,10 @@ FSOutput main(FSInput input)
         float3 emissiveContrib = materialInfo.EmissiveFactor.xyz * materialInfo.EmissiveStrength * materialInfo.BaseColorFactor.xyz;
 
         if (materialInfo.EmissiveIndex != INVALID_TEXTURE_INDEX) {
-            Sampler2D emissiveMap = Textures[materialInfo.EmissiveIndex];
+            Texture2D emissiveMap = Textures[materialInfo.EmissiveIndex];
             float2 emissiveUvSet = materialInfo.EmissiveTextureSet == 0 ? input.Uv0 : input.Uv1;
 
-            float3 emissive = emissiveMap.Sample(emissiveUvSet).rgb;
+            float3 emissive = emissiveMap.Sample(Samplers[Parameters.BasicSamplerID], emissiveUvSet).rgb;
 
             emissiveContrib *= emissive;
         }

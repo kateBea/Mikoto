@@ -166,6 +166,10 @@ namespace mikoto::renderer::vulkan {
         return mIsImageExternal;
     }
 
+    auto Texture::GetAspectMask() const -> VkImageAspectFlags {
+        return mAspectFlags;
+    }
+
     auto Texture::GetView( u32 mipLevel, u32 face ) const -> const VkImageView& {
         MKT_ASSERT( mipLevel < mImageViews.size(), "Mip level out of bounds" );
         return mImageViews[face][mipLevel];
@@ -259,13 +263,12 @@ namespace mikoto::renderer::vulkan {
                 }
             }
 
-            VkImageAspectFlags aspectFlags{};
             if ( mTextureUsage & TextureUsageFlagsBits::kDepthTarget ) {
-                aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+                mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
             } else if ( mTextureUsage & TextureUsageFlagsBits::kDepthStencilTarget ) {
-                aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+                mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
             } else {
-                aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+                mAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
             }
 
             // Prepare for view creation
@@ -274,7 +277,7 @@ namespace mikoto::renderer::vulkan {
             mImageViewCreateInfo.viewType = vulkan::GetViewType(mDimension);
             mImageViewCreateInfo.format = mImageAllocation.mImageCreateInfo.format;
 
-            mImageViewCreateInfo.subresourceRange.aspectMask = aspectFlags;
+            mImageViewCreateInfo.subresourceRange.aspectMask = mAspectFlags;
             mImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
             mImageViewCreateInfo.subresourceRange.levelCount = mMipCount;
             mImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;

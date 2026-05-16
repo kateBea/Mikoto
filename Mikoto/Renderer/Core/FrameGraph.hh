@@ -344,12 +344,15 @@ namespace mikoto::renderer {
 
         bool mEnableDepthTest{ true };
         bool mEnableDepthWrite{ true };
+        bool mEnableBlend{ true };
 
         auto SetCullMode( CullMode mode ) -> FGPipelineDescription&;
 
         auto SetDepthTest( bool value ) -> FGPipelineDescription&;
         auto SetDepthWrite( bool value ) -> FGPipelineDescription&;
         auto SetDepthFormat( Format format ) -> FGPipelineDescription&;
+
+        auto SetBlendEnable( bool value ) -> FGPipelineDescription&;
 
         auto AddColorFormat( Format format ) -> FGPipelineDescription&;
         auto SetName( eastl::string_view name ) -> FGPipelineDescription&;
@@ -412,6 +415,8 @@ namespace mikoto::renderer {
 
     class FGResourceManager final {
     public:
+        static constexpr FGResourceHandle kInvalidResourceHandle{ 0 };
+
         explicit FGResourceManager( GpuDevice* device );
 
         MKT_NODISCARD auto Get( FGResourceHandle handle ) -> FGResource&;
@@ -422,7 +427,7 @@ namespace mikoto::renderer {
 
         MKT_NODISCARD auto GetDescriptorTable() const -> DescriptorTableHandle;
 
-        MKT_NODISCARD auto Allocate( FGResourceType type ) -> FGResource&;
+        MKT_NODISCARD auto Allocate( FGResourceType type, IResource* resource = nullptr ) -> FGResource&;
         MKT_NODISCARD auto Free( FGResourceHandle name ) -> bool;
 
         // Make resource available to shaders
@@ -443,6 +448,8 @@ namespace mikoto::renderer {
 
         std::mutex mResourceMutex{};
         eastl::atomic<u32> mResourceCount{};
+
+        ankerl::unordered_dense::map<IResource*, FGResourceHandle> mImportedResources{};
         ankerl::unordered_dense::map<FGResourceHandle, eastl::unique_ptr<FGResource>> mResources{};
 
         // Gpu side resources
@@ -505,7 +512,7 @@ namespace mikoto::renderer {
         eastl::vector<eastl::string> mSorted{};
 
         // barriers[passName] -> pre-pass transitions
-        ankerl::unordered_dense::map<eastl::string, eastl::vector<FGBarrier>> mBarriers{};
+        ankerl::unordered_dense::map<eastl::string, ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>> mBarriers{};
 
         // Execution task graph
         tf::Taskflow mExecutionGraph{};

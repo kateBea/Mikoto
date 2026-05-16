@@ -101,7 +101,7 @@ namespace mikoto::core {
     class Subscriber {
     public:
 
-        MKT_NODISCARD auto GetID() const -> const GlobalUniqueID&;
+        MKT_NODISCARD auto GetID() const -> const Guid&;
 
         auto GetHandler(EventType type) -> HandlerFunc;
         auto GetHandler(EventCategory type) -> HandlerFunc;
@@ -118,7 +118,7 @@ namespace mikoto::core {
         auto AddHandler(EventCategory category, HandlerFunc&& handler) -> void;
 
     protected:
-        GlobalUniqueID m_UniqueID{};
+        Guid m_UniqueID{};
         ankerl::unordered_dense::map<EventType, EventHandler> m_HandlersByType{};
         ankerl::unordered_dense::map<EventCategory, EventHandler> m_HandlersByCategory{};
     };

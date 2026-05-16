@@ -35,6 +35,7 @@
 #include <Renderer/Passes/RayTracingModule.hh>
 #include <Renderer/Passes/ShadowMappingModule.hh>
 #include <Renderer/Passes/TextRenderModule.hh>
+#include <Renderer/Passes/MousePickingModule.hh>
 
 namespace mikoto::renderer {
 
@@ -47,13 +48,14 @@ namespace mikoto::renderer {
 
         // Scene renderer does a full quad render on these
         // Just edit the final pass to specify what gets rendered onto these
-        eastl::vector<TextureHandle> mPresentTextures{};
+        TextureHandle mPresentTexture{};
 
-        RenderResolution mTargetResolution{ RenderResolution::e1080P };
+        RenderResolution mResolution{ RenderResolution::e1080P };
 
         auto SetName(eastl::string_view name) -> SceneRendererCreateInfo&;
         auto SetDevice(GpuDevice* device) -> SceneRendererCreateInfo&;
-        auto AddPresentImage(TextureHandle texture) -> SceneRendererCreateInfo&;
+        auto SetPresentImage(TextureHandle texture) -> SceneRendererCreateInfo&;
+        auto SetRenderResolution(RenderResolution resolution) -> SceneRendererCreateInfo&;
     };
 
     class SceneRenderer final : public Renderer {
@@ -79,6 +81,8 @@ namespace mikoto::renderer {
         GpuDevice* mDevice{};
         SceneCamera* mCamera{};
 
+        TextureHandle mPresentTexture{};
+
         RenderResolution mTargetResolution{ RenderResolution::e1080P };
 
         // Passes
@@ -86,9 +90,11 @@ namespace mikoto::renderer {
         DebugModule mDebugPasses{ mTargetResolution };
         PrepassModule mRenderPrepass{ mTargetResolution };
 
-        PresentationModule mPresentationModule{};
         GeometryCullModule mGeometryManagement{};
         GeometryShadingModule mGeometryShading{ mTargetResolution };
+        PresentationModule mPresentationModule{ mTargetResolution };
+
+        MousePickingModule mMousePickingModule{ mTargetResolution };
 
         MaterialModule mMaterialModule{ mTargetResolution };
         ShadowMappingModule mShadowMapping{ mTargetResolution };

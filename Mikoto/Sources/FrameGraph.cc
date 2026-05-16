@@ -177,6 +177,11 @@ namespace mikoto::renderer {
         return *this;
     }
 
+    auto FGPipelineDescription::SetBlendEnable( bool value ) -> FGPipelineDescription& {
+        mEnableBlend = value;
+        return *this;
+    }
+
     auto FGPipelineDescription::AddColorFormat( Format format ) -> FGPipelineDescription & {
         mColorFormats.push_back( format );
         return *this;
@@ -336,9 +341,19 @@ namespace mikoto::renderer {
         return mDescriptorTable;
     }
 
-    auto FGResourceManager::Allocate( FGResourceType type ) -> FGResource& {
+    auto FGResourceManager::Allocate( FGResourceType type, IResource* resource ) -> FGResource& {
         std::lock_guard lock{ mResourceMutex };
+
+        const auto it{ mImportedResources.find( resource ) };
+        if (it != mImportedResources.end()) {
+            return *mResources[it->second];
+        }
+
         auto id{ ++mResourceCount };
+        if (resource) {
+            mImportedResources[resource] = id;
+        }
+
         auto& result{ mResources[id] = eastl::make_unique<FGResource>(
             FGResource{
                 .mHandle = id,
@@ -439,9 +454,9 @@ namespace mikoto::renderer {
     }
 
     auto FGResourceManager::ImportTexture( TextureHandle handle ) -> FGTextureHandle {
-        auto& resource{ Allocate( FGResourceType::eTexture ) };
+        auto& resource{ Allocate( FGResourceType::eTexture, handle.GetRaw() ) };
 
-        resource.mResource = handle.GetRaw();
+        resource.mResource = handle;
 
         return FGTextureHandle{ .mHandle = resource.mHandle };
     }
@@ -644,6 +659,12 @@ namespace mikoto::renderer {
             }
 
             auto recordTransition = [&]( FGResourceHandle h ) -> void {
+                // You cannot set a barrier twice for the same resource
+                // in the same pass
+                if (mExecutionPlan.mBarriers[passName].contains( h )) {
+                    return;
+                }
+
                 // Improve this, this is better, put barriers only if needed
                 // if a resource is always read from no need to sync access
                 // insert barrier only for layout transitions or
@@ -663,27 +684,20 @@ namespace mikoto::renderer {
                     // First use -> just set state, no barrier
                     // I think I wil probably remove this and transition all resources to general layout so the
                     // i only do the next check for barriers for each pass
-                    //mNodeControl->mResources[h].mCurrentState = next;
-                }
-
-                if (prev != next || isWrite(prev) || isWrite(next)) {
-                    mExecutionPlan.mBarriers[passName].push_back(FGBarrier{
+                    mNodeControl->mResources[h].mCurrentState = next;
+                    mExecutionPlan.mBarriers[passName][h] = FGBarrier{
                         h,
                         prev,
-                        next });
+                        next };
+                }
+                else if (prev != next || isWrite(prev) || isWrite(next)) {
+                    mExecutionPlan.mBarriers[passName][h] = FGBarrier{
+                        h,
+                        prev,
+                        next };
 
                     mNodeControl->mResources[h].mCurrentState = next;
                 }
-
-                // This is bad
-                FGResourceState needed{ mNodeControl->mNodes[passName].mResourceStates[h].mState };
-
-                mExecutionPlan.mBarriers[passName].push_back( FGBarrier{
-                    h,
-                    mNodeControl->mResources[h].mCurrentState,
-                    needed } );
-
-                mNodeControl->mResources[h].mCurrentState = needed;
             };
 
             for ( auto& h: pass.mReadResources ) {
@@ -871,6 +885,7 @@ namespace mikoto::renderer {
                 .SetPipelineLayout( mResourceManager->GetPipelineLayout() )
                 .SetTopology( desc.mTopology )
                 .SetCullMode( desc.mCullMode )
+                .SetBlendEnable( desc.mEnableBlend )
                 .SetDepthTest( desc.mEnableDepthTest )
                 .SetDepthWrite( desc.mEnableDepthWrite )
                 .SetDepthFormat( desc.mDepthFormat )
@@ -967,7 +982,7 @@ namespace mikoto::renderer {
         TextureHandle texture{ mDevice->CreateTexture( textureDesc ) };
         texture->SetDebugName( string::Format( "FG Loaded Texture {}", path.GetC_Str() ) );
 
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture ) };
+        auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture, texture.GetRaw() ) };
         resource.mResource = texture;
 
         mNodeControl->mResources[resource.mHandle] = FGNodeResource {
@@ -988,7 +1003,7 @@ namespace mikoto::renderer {
             return {};
         }
 
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture ) };
+        auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture, handle.GetRaw() ) };
         resource.mResource = handle;
 
         mNodeControl->mResources[resource.mHandle] = FGNodeResource {

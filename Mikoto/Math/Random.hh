@@ -33,10 +33,9 @@ namespace mikoto::math::random {
      * @returns seed
      * */
     MKT_NODISCARD inline auto GetSeed() -> std::random_device& {
-        static std::random_device seed{};
+        thread_local std::random_device seed{};
         return seed;
     }
-
 
     /**
      * Returns a random 64-bit integer
@@ -121,80 +120,17 @@ namespace mikoto::math::random {
         return result;
     }
 
-    inline auto GetGUIDs() -> std::unordered_set<u64>& {
-        static std::unordered_set<u64> guids{};
-
-        return guids;
-    }
-
-    /**
-     * Inserts guid to the list of valid guids
-     * @param guid new guid
-     * */
-    inline auto ValidateGUID(u64 guid) -> void {
-        GetGUIDs().emplace(guid);
-    }
-
-    /**
-     * Removes guid from the list of valid guids
-     * @param guid id to be removed
-     * */
-    inline auto InvalidateGUID(u64 guid) -> void {
-        GetGUIDs().erase(guid);
-    }
-
-    /**
-     * Returns a seed for random number generation
-     * @returns seed
-     * */
-    MKT_NODISCARD inline auto GetGUIDSeed() -> std::random_device& {
-        static std::random_device seed{};
-        return seed;
-    }
-
-    /**
-     * Returns true if a guid has not been generated yet, false otherwise
-     * @returns if a guid is valid or not
-     * */
-    MKT_NODISCARD inline auto IsUse(u64 guid) -> bool {
-        return GetGUIDs().contains(guid);
-    }
-
-    /**
-     * Returns a unique 64-bit integer every time it is called. This
-     * function is used for the purpose of GUID's
-     * @returns universally unique integer
-     * */
-    MKT_NODISCARD inline auto GenerateGUID() -> u64 {
-        static auto& seed{ GetGUIDSeed() };
-
-        u64 result{ 0 };
-
-        do {
-            result = GetRandomUInt64(seed);
-        }
-        while(IsUse(result));
-
-        ValidateGUID(result);
-
-        return result;
-    }
-
-    class GlobalUniqueID {
+    class Guid {
     public:
-        explicit GlobalUniqueID()
-            :   m_Id{  GenerateGUID() }
-        {
-        }
+        explicit Guid()
+            : mId{  GetRandomUInt32() } {}
 
-        explicit operator u64 () const { return m_Id; }
+        MKT_NODISCARD operator u32 () const { return mId; }
 
-        MKT_NODISCARD auto Get() const -> u64 { return m_Id; }
-
-        ~GlobalUniqueID() { InvalidateGUID(m_Id); }
+        ~Guid() = default;
 
     private:
-        u64 m_Id{};
+        u32 mId{};
     };
 }
 #endif // MIKOTO_RANDOM_HH

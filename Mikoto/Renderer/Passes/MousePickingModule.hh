@@ -12,42 +12,49 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SWAPCHAIN_RENDER_HH
-#define MIKOTO_SWAPCHAIN_RENDER_HH
+#ifndef MIKOTO_MOUSE_PICKING_MODULE_HH
+#define MIKOTO_MOUSE_PICKING_MODULE_HH
 
-#include <EASTL/vector.h>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
+#include <Math/Random.hh>
 
 #include <Renderer/Core/Rhi.hh>
+
 #include <Renderer/Core/FrameGraph.hh>
+
+#include <Renderer/Passes/GeometryCullModule.hh>
 
 namespace mikoto::renderer {
 
-    struct PresentationPassData {
-        // Textures we will render the final image into
-        eastl::vector<FGTextureHandle> mPresentTextures{};
+    struct MousePickingModuleInfo {
+        FGTextureHandle mColorImage{};
+        FGBufferHandle mReadBackBuffer{};
 
         FGPipelineHandle mPipeline{};
     };
 
-    class PresentationModule {
+    class MousePickingModule {
     public:
-        explicit PresentationModule( RenderResolution resolution );
+        explicit MousePickingModule(rhi::RenderResolution resolution);
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
-        auto RegisterPresentImage( FrameGraph& graph, TextureHandle texture ) -> void;
+        MKT_NODISCARD auto ReadPixel( u32 x, u32 y ) -> core::u32;
+
+        auto SetGeometryManager( GeometryCullModule& geom ) -> void;
 
     private:
-
-        auto RegisterTransition( FrameGraph& graph ) -> void;
-        auto RegisterFullQuadRender( FrameGraph& graph ) -> void;
+        auto RegisterSelectionBuffer( FrameGraph& graph ) -> void;
 
     private:
-        FGTextureHandle mPresentTexture{};
+        GeometryCullModule* mGeometryCullModule{};
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
 
-        RenderResolution mResolution{};
+        eastl::vector<u32> mData{};
     };
 
 }// namespace mikoto
 
-#endif//MIKOTO_SWAPCHAIN_RENDER_HH
+#endif//MIKOTO_MOUSE_PICKING_MODULE_HH

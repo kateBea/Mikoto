@@ -33,7 +33,7 @@
 
 namespace mikoto::core {
 
-    auto Subscriber::GetID() const -> const GlobalUniqueID& { return m_UniqueID; }
+    auto Subscriber::GetID() const -> const Guid& { return m_UniqueID; }
 
     auto Subscriber::GetHandler( const EventType type ) -> HandlerFunc {
 

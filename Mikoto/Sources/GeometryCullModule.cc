@@ -204,6 +204,14 @@ namespace mikoto::renderer {
         info.mIndirectBuffer = graph.Create( indirectCommandsDesc );
         mIndirectBuffer = info.mIndirectBuffer;
 
+        auto samplerDes{ FGSamplerDescription{}
+            .SetName( "BasicSampler_Sampler01" )
+            .SetFilter( rhi::SamplerFilter::eNearest )
+            .SetWrap( SamplerWrapMode::eRepeat )
+            .SetBorderColor( kColorWhite ) };
+
+        info.mBasicSampler = graph.Create( samplerDes );
+
         mIndirectCmds.resize( kMaxIndirectCommands );
         mSkinningInfo.resize( kMaxSkinnedMeshes );
 
@@ -220,7 +228,7 @@ namespace mikoto::renderer {
         auto vertexDesc{ FGBufferDescription{}
             .SetName( "Geometry_VerticesBuffer01" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
-            .SetSizeBytes( MKT_MEGABYTES( 200 ) )
+            .SetSizeBytes( MKT_MEGABYTES( kVertexBufferSizeMB ) )
             .SetHeapType( HeapType::eDeviceLocal )};
 
         geometryFilterInfo.mVerticesBuffer = graph.Create( vertexDesc );
@@ -228,7 +236,7 @@ namespace mikoto::renderer {
         auto indexDesc{ FGBufferDescription{}
             .SetName( "Geometry_IndicesBuffer01" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
-            .SetSizeBytes( MKT_MEGABYTES( 200 ) )
+            .SetSizeBytes( MKT_MEGABYTES( kIndexBufferSizeMB ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
 
         geometryFilterInfo.mIndicesBuffer = graph.Create( indexDesc );
@@ -325,14 +333,16 @@ namespace mikoto::renderer {
                 meshBatch.mMaterialsList.emplace_back();
             }
 
-            MeshGeometryInfo& geometry{ meshBatch.mGeometryList.back() };
-            MeshMaterialInfo& material{ meshBatch.mMaterialsList.back() };
+            MeshGeometryInfo& geometry{ meshBatch.mGeometryList[meshBatch.mInstanceCount] };
+            MeshMaterialInfo& material{ meshBatch.mMaterialsList[meshBatch.mInstanceCount] };
 
             geometry.mIndexOffset = meshBatch.mGeometryInfo.mIndexOffset;
             geometry.mVertexOffset = meshBatch.mGeometryInfo.mVertexOffset;
 
             geometry.mTransform = transformComponent.GetWorldTransform();
             geometry.mInverseModelView = glm::inverse( glm::mat3( mCamera->GetViewMatrix() * geometry.mTransform ) );
+
+            geometry.mObjectID = tagComponent.GetGUID();
 
             if (meshComponent.IsSkinned()) {
                 // Instead of uploading the animator final matrices we want to upload matrices that deform the object if any
@@ -367,6 +377,17 @@ namespace mikoto::renderer {
             material.mOcclusionTextureSet = meshMaterial->GetOcclusionTextureSet();
             material.mEmissiveTextureSet = meshMaterial->GetEmissiveTextureSet();
 
+            // Texture
+            material.mAlbedoIndex = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eBaseColor ) );
+            material.mDiffuseIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eDiffuse ) );
+            material.mNormalIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eNormal ) );
+            material.mEmissiveIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eEmissive ) );
+            material.mAoIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eAmbientOcclusion ) );
+            material.mMetallicIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eMetallic ) );
+            material.mRoughnessIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eRoughness ) );
+            material.mMetallicRoughnessIndex   = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eMetallicRoughness ) );
+            material.mSpecularGlossinessIndex   = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eSpecularGlossiness ) );
+
             meshBatch.mInstanceCount += 1;
         }
 
@@ -382,7 +403,7 @@ namespace mikoto::renderer {
         for (const auto& index : mActiveFinalMatsIndices) {
             if ( Animator * animator{ AnimationSystem::Get()->GetAnimator( index ) } ) {
                 auto &finalMats{ animator->GetFinalBoneMatrices() };
-                std::memcpy( mSkinningInfo[index - 1].BoneTransforms.data(), finalMats.data(), finalMats.size() * MKT_SIZEOF( float4x4 ) );
+                std::memcpy( mSkinningInfo[index - 1].mBoneTransforms.data(), finalMats.data(), finalMats.size() * MKT_SIZEOF( float4x4 ) );
             }
         }
 
@@ -430,6 +451,14 @@ namespace mikoto::renderer {
         if (mDrawCount != 0) {
             context.CopyBuffer( mIndirectBuffer, 0, mIndirectCmds.data(), mDrawCount * MKT_SIZEOF(DrawIndirectCommand) );
         }
+    }
+
+    auto GeometryCullModule::PushTextureID( CommandContext& ctx, TextureHandle handle ) -> i32 {
+        if (handle.IsEmpty()) {
+            return kInvalidTextureID;
+        }
+
+        return ctx.PushTexture_SRV( ctx.ImportTexture( handle ) );
     }
 
     auto GeometryCullModule::DrawInstancesIndirect( CommandContext &context ) -> void {

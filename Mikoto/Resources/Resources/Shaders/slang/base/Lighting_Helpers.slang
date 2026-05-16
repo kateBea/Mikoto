@@ -49,6 +49,23 @@ float3 GetNormalFromMap(Sampler2D normalMap, float2 uv, float3 inNormal, float3 
     return normalize(mul(tangentNormal, TBN));
 }
 
+float3 GetNormalFromMap(Texture2D normalMap, SamplerState normalMapSampler, float2 uv, float3 inNormal, float3 worldPos) {
+    // Perturb normal, see http://www.thetenthplanet.de/archives/1180
+    float3 tangentNormal = normalMap.Sample(normalMapSampler, uv).xyz * 2.0 - 1.0;
+
+    float3 q1 = ddx(worldPos);
+    float3 q2 = ddy(worldPos);
+    float2 st1 = ddx(uv);
+    float2 st2 = ddy(uv);
+
+    float3 N = normalize(inNormal);
+    float3 T = normalize(q1 * st2.y - q2 * st1.y);
+    float3 B = -normalize(cross(N, T));
+    float3x3 TBN = float3x3(T, B, N);
+
+    return normalize(mul(tangentNormal, TBN));
+}
+
 float LinearDepth(float depth, float2 planes) {
     float z = depth * 2.0 - 1.0;
 

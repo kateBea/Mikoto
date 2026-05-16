@@ -111,6 +111,8 @@ struct MeshGeometryInfo {
     // TODO: add a list of shadow casters. This will be an index into the array of shadow casters
     // buffer to know from which lights this entity needs shadows casted from, ofc there will be a limit you cannot
     // just slap a unlimited amount of shadow casters
+
+    uint ObjectID;
 };
 
 // ============================================================================

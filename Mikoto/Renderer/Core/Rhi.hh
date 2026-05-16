@@ -1816,6 +1816,8 @@ namespace mikoto::renderer::rhi {
 
         auto SetCullMode( CullMode mode ) -> GraphicsPipelineDescription&;
 
+        auto SetBlendEnable( bool value ) -> GraphicsPipelineDescription&;
+
         auto SetDepthTest( bool value ) -> GraphicsPipelineDescription&;
         auto SetDepthWrite( bool value ) -> GraphicsPipelineDescription&;
         auto SetDepthFormat( Format format ) -> GraphicsPipelineDescription&;
@@ -1997,6 +1999,8 @@ namespace mikoto::renderer::rhi {
 
         virtual auto Copy( IBuffer* src, IBuffer* dest ) -> void = 0;
         virtual auto Copy( IBuffer* src, IBuffer* dest, size_t destOffset ) -> void = 0;
+
+        virtual auto Copy( IBuffer* dest, ITexture* src ) -> void = 0;
 
         virtual auto BeginRendering( GraphicsState& state ) -> void = 0;
         virtual auto EndRendering() -> void = 0;

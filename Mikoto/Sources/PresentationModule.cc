@@ -15,24 +15,31 @@
 #include <Core/Core.hh>
 #include <Core/Profiler.hh>
 #include <Core/Types.hh>
+
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/DebugModule.hh>
+
+#include <Renderer/Passes/PrepassModule.hh>
 #include <Renderer/Passes/PresentationModule.hh>
+#include <Renderer/Passes/GeometryCullModule.hh>
 
 namespace mikoto::renderer {
 
     using namespace mikoto::core;
+
+    PresentationModule::PresentationModule( RenderResolution resolution )
+        : mResolution{ resolution }
+    {}
 
     auto PresentationModule::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         RegisterTransition( graph );
         RegisterFullQuadRender( graph );
-        //RegisterRenderToSwapchain( graph );
     }
 
-    auto PresentationModule::AddPresentTexture( TextureHandle texture ) -> void {
-        mPresentTextures.emplace_back( texture );
+    auto PresentationModule::RegisterPresentImage( FrameGraph& graph, TextureHandle texture ) -> void {
+        mPresentTexture = graph.ImportTexture( texture );
     }
 
     auto PresentationModule::RegisterTransition( FrameGraph &graph ) -> void {
@@ -57,7 +64,6 @@ namespace mikoto::renderer {
             .SetName( "ResourceTransition_Pipeline01" )
             .SetPipelineType( PipelineType::eGraphics )
             .SetTopology( PrimitiveTopology::eTriangleStrip )
-            .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eBGRA8_UNORM )
             .PushShader( "FullQuad_Vert.slang", FGStageType::eVertex )
             .PushShader( "FullQuad_Frag.slang", FGStageType::eFragment ) };
@@ -68,45 +74,48 @@ namespace mikoto::renderer {
             "FullQuadRender",
             FGPassType::eGraphics,
             []( FGNodeBuilder &builder, Blackboard &blackboard ) {
+
+                // Specify the target you want to present
+                // The color target used in this pass is externally managed
+                // The frame graph does not control access to it nor does it make sure the
+                // image is in proper layout
+                const auto& prepass{ blackboard.Get<PrepassModuleInfo>() };
                 const auto& trianglePassData{ blackboard.Get<TrianglePassData>() };
+
                 builder.Read( trianglePassData.mColorTarget, FGResourceState::eShaderResource );
-
-                const auto& data{ blackboard.Get<PresentationPassData>() };
-                for ( const auto& image : data.mPresentTextures ) {
-                    builder.Write( image, FGResourceState::eShaderResource );
-                }
+                builder.Read( prepass.mGBufferNormalTarget, FGResourceState::eShaderResource );
+                builder.Read( prepass.mGBufferColorTarget, FGResourceState::eShaderResource );
+                builder.Read( prepass.mDepthPrepassColorTarget, FGResourceState::eShaderResource );
             },
-            []( CommandContext & ctx, Blackboard &b ) {
-                const auto& data{ b.Get<PresentationPassData>() };
-                for ( const auto& image : data.mPresentTextures ) {
-                    struct DrawParams {
-                        u32 mTextureIndex{};
-                        u32 mSamplerIndex{};
-                    } params{
-                        .mTextureIndex = ctx.PushTexture_SRV( image ),
-                        .mSamplerIndex = ctx.PushSampler( data.mSampler ),
-                    };
+            [this]( CommandContext &ctx, Blackboard &b ) {
+                const auto &data{ b.Get<PresentationPassData>() };
+                const auto& prepass{ b.Get<PrepassModuleInfo>() };
+                const auto &geom{ b.Get<GeometryManagementModuleInfo>() };
 
-                    ctx.PushConstants( params );
+                struct DrawParams {
+                    u32 mTextureIndex{};
+                    u32 mSamplerIndex{};
+                } params{
+                    .mTextureIndex = ctx.PushTexture_SRV( prepass.mGBufferColorTarget ),
+                    .mSamplerIndex = ctx.PushSampler( geom.mBasicSampler ),
+                };
 
-                    auto graphicsState{ ContextRenderState{}
-                        .SetRenderArea( Rect{ 1920, 1080 } )
-                        .AddRenderTarget( image, kColorCyan, LoadOp::eClear ) };
-                    ctx.BeginRender( graphicsState );
+                ctx.PushConstants( params );
 
-                    ctx.SetViewportState( ViewportState{}
-                        .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
+                const auto dimensions{ InferDimensions( mResolution ) };
 
-                    ctx.BindPipeline( data.mPipeline );
-                    ctx.Draw( 3 );
+                auto graphicsState{ ContextRenderState{}
+                    .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
+                    .AddRenderTarget( mPresentTexture, Color{ .0f }, LoadOp::eClear ) };
+                ctx.BeginRender( graphicsState );
 
-                    ctx.EndRender();
-                }
+                ctx.SetViewportState( ViewportState{}
+                    .AddViewportAndScissorRect( Viewport( as<f32>( dimensions.first ), as<f32>( dimensions.second ) ) ) );
+
+                ctx.BindPipeline( data.mPipeline );
+                ctx.Draw( 3 );
+
+                ctx.EndRender();
             } );
-    }
-
-    auto PresentationModule::RegisterRenderToSwapchain( FrameGraph &graph ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
     }
 }// namespace mikoto

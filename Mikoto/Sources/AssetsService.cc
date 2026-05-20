@@ -254,7 +254,7 @@ namespace mikoto::asset {
 
         CreateAssetCacheFolder( path );
 
-        return mFonts.LoadOrGet( path, [description, path, fontFile = description.mFile]() -> ModelHandle {
+        return mFonts.LoadOrGet( path, [description, path, fontFile = description.mFile] {
             // This lambda runs ONLY once (per asset)
             auto fontDesc{ FontLoadDescription{}
                 .SetFile( fontFile )

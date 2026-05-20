@@ -302,7 +302,6 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto GraphicsPipeline::Initialize() -> void {
-        MKT_PROFILE_SCOPE_MARKED( "GraphicsPipeline::Initialize" );
         eastl::fixed_vector<ShaderModuleHandle, kMaxShaders> shaders{};
         for (const auto& [type, shader] : mDesc.mShaders) {
             shaders.emplace_back(shader);

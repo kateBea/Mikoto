@@ -43,10 +43,6 @@ VSOutput main(VSInput input) {
 
     o.Pos = boxPositions[input.vID];
 
-    // Rotate by the Y axis for Vulkan otherwise 
-    // cube appears upside down
-    o.Pos.y *= -1.0;
-
     o.PositionH = mul(Parameters.Mvp, float4(boxPositions[input.vID], 1.0));
 
     return o;

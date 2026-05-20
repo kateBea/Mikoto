@@ -142,7 +142,8 @@ namespace mikoto::asset {
         // to simplify the API we do not expose arbitrary image formats
         result->mChannels = 4;
 
-        if (file->GetType() == FileType::eHdr) {
+        // TODO: temporarily disabled, it loads HDRs weirdly
+        if (file->GetType() == FileType::eHdr && false) {
             constexpr int targetChannelCount{ STBI_rgb_alpha };
             float* data{ stbi_loadf_from_memory(
                     r_cast<const stbi_uc*>( file->GetContentsBytes() ),

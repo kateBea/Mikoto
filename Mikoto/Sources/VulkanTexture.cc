@@ -89,7 +89,7 @@ namespace mikoto::renderer::vulkan {
         : ITexture{ data }, mKeepInitializerResources{ data.mKeepInitializerResources } {
 
         // Prepare mip levels
-        mImageViews.resize( GetMipLevelCount() );
+        mImageView_RTVs.resize( GetMipLevelCount() );
     }
 
     Texture::Texture( const ExternalTextureDescription& info )
@@ -111,7 +111,9 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        for ( auto& faces: mImageViews ) {
+        vkDestroyImageView( as<Device*>( mDevice )->GetDevice(), mImageView_SRV, nullptr );
+
+        for ( auto& faces: mImageView_RTVs ) {
             for (auto& face : faces ) {
                 vkDestroyImageView( as<Device*>( mDevice )->GetDevice(), face, nullptr );
             }
@@ -145,7 +147,7 @@ namespace mikoto::renderer::vulkan {
         auto* device{ checked_cast<Device*>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_IMAGE, rc_cast<u64>( mImageAllocation.mImage ), mDebugName );
 
-        for (const auto& faces: mImageViews ) {
+        for (const auto& faces: mImageView_RTVs ) {
             for (auto& face : faces ) {
                 device->SetDebugName( VK_OBJECT_TYPE_IMAGE_VIEW, rc_cast<u64>( face ), mDebugName );
             }
@@ -170,9 +172,9 @@ namespace mikoto::renderer::vulkan {
         return mAspectFlags;
     }
 
-    auto Texture::GetView( u32 mipLevel, u32 face ) const -> const VkImageView& {
-        MKT_ASSERT( mipLevel < mImageViews.size(), "Mip level out of bounds" );
-        return mImageViews[face][mipLevel];
+    auto Texture::GetRenderView( u32 mipLevel, u32 face ) const -> const VkImageView& {
+        MKT_ASSERT( mipLevel < mImageView_RTVs.size(), "Mip level out of bounds" );
+        return mImageView_RTVs[mipLevel][face];
     }
 
     auto Texture::IsSwapChainImage() const -> bool {
@@ -185,7 +187,7 @@ namespace mikoto::renderer::vulkan {
                 return Object( mImageAllocation.mImage );
 
             case ObjectType::Vk_ImageView:
-                return Object( mImageViews[0][0] );// Returns view at mip 0
+                return Object( mImageView_SRV );// Returns view at mip 0
 
             case ObjectType::Vk_Format:
                 return Object( std::addressof( mImageAllocation.mImageCreateInfo.format ) );
@@ -218,7 +220,7 @@ namespace mikoto::renderer::vulkan {
             mImageAllocation.mImageCreateInfo.usage = GetImageUsage( mTextureUsage );
 
             mImageAllocation.mImageCreateInfo.mipLevels = mMipCount;
-            mImageAllocation.mImageCreateInfo.arrayLayers = 1;
+            mImageAllocation.mImageCreateInfo.arrayLayers = vulkan::GetArraLayerCount(mDimension);
             mImageAllocation.mImageCreateInfo.samples = vulkan::GetSampleCount(mMultisampling);
             mImageAllocation.mImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
             mImageAllocation.mImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -280,8 +282,12 @@ namespace mikoto::renderer::vulkan {
             mImageViewCreateInfo.subresourceRange.aspectMask = mAspectFlags;
             mImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
             mImageViewCreateInfo.subresourceRange.levelCount = mMipCount;
-            mImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-            mImageViewCreateInfo.subresourceRange.layerCount = mDimension == TextureDimension::eTextureCube ? kMaxCubeFaces : 1;
+
+            // This is one because for cube images we use one image view per face which is
+            // basically one flat image per face, we do not have a whole image view for the whole image cube
+            // in the case of using cube images
+            //mImageViewCreateInfo.subresourceRange.layerCount = mDimension == TextureDimension::eTextureCube ? kMaxCubeFaces : 1;
+            mImageViewCreateInfo.subresourceRange.layerCount = 1;
         }
 
         u32 faceCount{ 1u };
@@ -290,21 +296,30 @@ namespace mikoto::renderer::vulkan {
         }
 
         // Prepare mip levels
-        mImageViews.resize( faceCount );
-        for (auto& faces: mImageViews ) {
-            faces.resize( GetMipLevelCount() );
+        mImageView_RTVs.resize( GetMipLevelCount() );
+        for (auto& faces: mImageView_RTVs ) {
+            faces.resize( faceCount );
         }
 
-        for (u32 faceIndex{}; faceIndex < faceCount; faceIndex++) {
-            for ( size_t mipLevelIndex{ 0 }; mipLevelIndex < GetMipLevelCount(); ++mipLevelIndex ) {
+        for ( size_t mipLevelIndex{ 0 }; mipLevelIndex < GetMipLevelCount(); ++mipLevelIndex ) {
+            for (u32 faceIndex{}; faceIndex < faceCount; faceIndex++) {
+                mImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
                 mImageViewCreateInfo.subresourceRange.baseMipLevel = mipLevelIndex;
                 mImageViewCreateInfo.subresourceRange.baseArrayLayer = faceIndex; // 0=+X, 1=-X, 2=+Y, 3=-Y, 4=+Z, 5=-Z
 
                 MKT_VK_CHECK( vkCreateImageView( as<Device*>( mDevice )->GetDevice(),
                     MKT_ADDRESSOF( mImageViewCreateInfo ), nullptr,
-                    MKT_ADDRESSOF( mImageViews[faceIndex][mipLevelIndex] ) ) );
+                    MKT_ADDRESSOF( mImageView_RTVs[mipLevelIndex][faceIndex] ) ) );
             }
         }
+
+        // Create main image view
+        mImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        mImageViewCreateInfo.viewType = vulkan::GetViewType(mDimension);
+        mImageViewCreateInfo.subresourceRange.layerCount = mDimension == TextureDimension::eTextureCube ? kMaxCubeFaces : 1;
+        MKT_VK_CHECK( vkCreateImageView( as<Device*>( mDevice )->GetDevice(),
+                    MKT_ADDRESSOF( mImageViewCreateInfo ), nullptr,
+                    MKT_ADDRESSOF( mImageView_SRV ) ) );
 
         mIsAllocated = true;
     }

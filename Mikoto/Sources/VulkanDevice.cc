@@ -1420,7 +1420,7 @@ namespace mikoto::renderer::vulkan {
             VkAttachmentLoadOp loadOp{ renderTargetProps.mLoadOp == LoadOp::eClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
             VkRenderingAttachmentInfo &colorAttachment{ colorImages.emplace_back( VkRenderingAttachmentInfo{} ) };
             colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-            colorAttachment.imageView = texture->GetView( 0 );
+            colorAttachment.imageView = texture->GetRenderView( renderTargetProps.mSubresourceSet.mBaseMipLevel, renderTargetProps.mSubresourceSet.mBaseArraySlice );
             colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             colorAttachment.loadOp = loadOp;
             colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -2216,12 +2216,12 @@ namespace mikoto::renderer::vulkan {
 
         // --- Timeline signal ---
         signalInfos.emplace_back( VkSemaphoreSubmitInfo{
-                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                .pNext = nullptr,
-                .semaphore = timeline->GetNativeHandle( ObjectType::Vk_Semaphore ),
-                .value = submissionID,
-                .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                .deviceIndex = 0 } );
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = timeline->GetNativeHandle( ObjectType::Vk_Semaphore ),
+            .value = submissionID,
+            .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            .deviceIndex = 0 } );
 
         VkSubmitInfo2 submitInfo{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
@@ -2964,7 +2964,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto BindingLayout::GetBindlessLayoutDesc() const -> const BindlessLayoutDescription& {
-    return mBindlessLayoutDesc;
+        return mBindlessLayoutDesc;
     }
 
     auto BindingLayout::SetDebugName( eastl::string_view name ) -> void {

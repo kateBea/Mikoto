@@ -28,7 +28,6 @@
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
 
-#include <Renderer/Passes/CameraModule.hh>
 #include <Renderer/Passes/PrepassModule.hh>
 #include <Renderer/Passes/TextRenderModule.hh>
 #include <Renderer/Passes/GeometryShadingModule.hh>
@@ -83,20 +82,6 @@ namespace mikoto::renderer {
 
         info.mMsdfPipeline = graph.Create( pipelineBuilder );
 
-        auto verticesDesc{ FGBufferDescription{}
-            .SetName( "MSDFText_Vertices" )
-            .SetUsage( BufferUsageFlagsBits::kCopyDst )
-            .SetHeapType( HeapType::eDeviceLocal )
-            .SetInitialData( BufferSpanHandle::Spawn( mTextVertices.data(), MKT_VECTOR_SIZE_BYTES( mTextVertices ) ) ) };
-        info.mMsdfVertices = graph.Create( verticesDesc );
-
-        auto indicesDesc{ FGBufferDescription{}
-            .SetName( "MSDFText_Indices" )
-            .SetUsage( BufferUsageFlagsBits::kCopyDst )
-            .SetHeapType( HeapType::eDeviceLocal )
-            .SetInitialData( BufferSpanHandle::Spawn( mTextIndices.data(), MKT_VECTOR_SIZE_BYTES( mTextIndices ) ) ) };
-        info.mMsdfIndices = graph.Create( indicesDesc );
-
         auto textDataBufferDesc{ FGBufferDescription{}
             .SetName( "MSDFText_RenderData" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
@@ -114,49 +99,40 @@ namespace mikoto::renderer {
             [this]( CommandContext& ctx, Blackboard& b ) -> void {
                 SetupTextRenderData( ctx, b );
 
-                if (mGlyphCount == 0) {
+                if (mGlyphCount != 0) {
                     TextRenderingPassParameters& textInfo{ b.Get<TextRenderingPassParameters>() };
                     ctx.CopyBuffer( textInfo.mMsdfTextRenderData,0,  mTextInfo.data(), sizeof( TextDrawParameters ) * mGlyphCount );
                 }
             } );
 
         graph.RegisterPass(
-            "MSDFTextPass_Graphics",
+            "MSDFTextPass_Render",
             FGPassType::eGraphics,
             []( FGNodeBuilder& builder, Blackboard& blackboard ) {
-                CameraModuleInfo& camInfo{ blackboard.Get<CameraModuleInfo>() };
                 PrepassModuleInfo& prepass{ blackboard.Get<PrepassModuleInfo>() };
                 GeomShadingModuleInfo& finalImageInfo{ blackboard.Get<GeomShadingModuleInfo>() };
                 TextRenderingPassParameters& textInfo{ blackboard.Get<TextRenderingPassParameters>() };
 
-                builder.Read( camInfo.mCameraData, FGResourceState::eShaderResource );
-                builder.Read( textInfo.mMsdfVertices, FGResourceState::eShaderResource );
-                builder.Read( textInfo.mMsdfIndices, FGResourceState::eShaderResource );
                 builder.Read( textInfo.mMsdfTextRenderData, FGResourceState::eShaderResource );
 
                 builder.Write( finalImageInfo.mShadingColorImage, FGResourceState::eRenderTarget );
-                builder.Read( prepass.mDepthPrepassDepthTarget, FGResourceState::eDepthRead );
+                builder.Write( prepass.mDepthPrepassDepthTarget, FGResourceState::eDepthWrite );
             },
         [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
             if (mGlyphCount == 0) {
                 return;
             }
 
-            CameraModuleInfo& camInfo{ blackboard.Get<CameraModuleInfo>() };
             PrepassModuleInfo& prepass{ blackboard.Get<PrepassModuleInfo>() };
             GeomShadingModuleInfo& finalImageInfo{ blackboard.Get<GeomShadingModuleInfo>() };
             TextRenderingPassParameters& textInfo{ blackboard.Get<TextRenderingPassParameters>() };
 
             struct DrawParams {
-                u32 mCameraInfoBufferID{};
-                u32 mMsdfVerticesID{};
-                u32 mMsdfIndicesID{};
-
+                u32 mTextSamplerID{};
+                u32 mTextParametersID{};
             } params{
-                .mCameraInfoBufferID = ctx.PushBuffer_SRV( camInfo.mCameraData ),
-
-                .mMsdfVerticesID = ctx.PushBuffer_SRV( textInfo.mMsdfVertices ),
-                .mMsdfIndicesID = ctx.PushBuffer_SRV( textInfo.mMsdfIndices ),
+                .mTextSamplerID = ctx.PushSampler( finalImageInfo.mBasicSampler ),
+                .mTextParametersID = ctx.PushBuffer_SRV( textInfo.mMsdfTextRenderData ),
             };
 
             ctx.PushConstants( params );
@@ -174,8 +150,7 @@ namespace mikoto::renderer {
 
             ctx.BindPipeline( textInfo.mMsdfPipeline );
 
-            // For vertex pulling draw count = indices count
-            ctx.Draw( mTextIndices.size() );
+            ctx.Draw( 6 );
 
             ctx.EndRender();
         } );

@@ -162,6 +162,11 @@ namespace mikoto::renderer {
         return *this;
     }
 
+    auto FGPipelineDescription::SetPolygonMode(PolygonMode mode) -> FGPipelineDescription& {
+        mPolygonMode = mode;
+        return *this;
+    }
+
     auto FGPipelineDescription::SetDepthTest( bool value ) -> FGPipelineDescription& {
         mEnableDepthTest = value;
         return *this;
@@ -461,6 +466,12 @@ namespace mikoto::renderer {
         return FGTextureHandle{ .mHandle = resource.mHandle };
     }
 
+    auto FGNodeControl::Clear() -> void {
+        mContexts.clear();
+        mResources.clear();
+        mNodes.clear();
+    }
+
     FGNodeBuilder::FGNodeBuilder( FGNode& node, FGNodeControl& control )
         : mGraphNode{ MKT_ADDRESSOF( node ) }, mNodeControl{ MKT_ADDRESSOF( control ) }
     {}
@@ -591,7 +602,138 @@ namespace mikoto::renderer {
     auto FrameGraph::Compile() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        mExecutionPlan.mBarriers.clear();
+        mExecutionPlan.mExecutionGraph.clear();
+        mExecutionPlan.mSorted.clear();
+        mExecutionPlan.mTaskMap.clear();
+
         // Build edges
+        BuildNodeEdges();
+
+        // Cull nodes
+        CullGraphNodes();
+
+        // Barriers
+        // I do not think I wil go this way I think the passes will specify the
+        // state they need the resource to be in and access type will be inferred
+        BuildNodeBarriers();
+
+        // Create the contexts and executions tasks
+        BuildExecutionTasks();
+
+#if !defined(NDEBUG)
+        std::ostringstream oss{};
+        mExecutionPlan.mExecutionGraph.dump(oss);
+        mExecutionPlan.mExecutionGraph.name("FrameGraph TaskExecution");
+
+        // to file example
+        // std::ofstream file("taskflow.dot");
+        // mExecutionPlan.mExecutionGraph.dump(file);
+        // dot -Tpng taskflow.dot -o taskflow.png
+
+        MKT_COLOR_PRINT_FORMATTED_FLUSH( MKT_FMT_COLOR_CYAN, "FG Dependencies:\n{}", oss.str() );
+#endif
+
+    }
+
+    auto FrameGraph::Execute() -> void {
+        //MKT_BEGIN_PROFILER_NAMED();
+
+        mGraphicsCommands->Begin( { .mScopeName = "FG Graphics Record" } );
+        mComputeCommands->Begin( { .mScopeName = "FG Compute Record" } );
+        mTransferCommands->Begin( { .mScopeName = "FG Transfer Record" } );
+
+        // Parallel
+        if (false) {
+            threading::TaskService::Get()->Submit( mExecutionPlan.mExecutionGraph, true );
+        } else {
+            // Sequential execution
+            for ( auto& passName: mExecutionPlan.mSorted ) {
+                if ( !mNodeControl->mNodes[passName].mIsAlive )
+                    continue;
+
+                auto& pass = mNodeControl->mNodes[passName];
+                auto& ctx = mNodeControl->mContexts[passName];
+
+                CommandListHandle cmd{};
+
+                switch (pass.mType) {
+                    case FGPassType::eGraphics:
+                        cmd = mGraphicsCommands;
+                        break;
+                    case FGPassType::eCompute:
+                        cmd = mComputeCommands;
+                        break;
+                    case FGPassType::eTransfer:
+                        cmd = mTransferCommands;
+                        break;
+                    default:;
+                }
+
+                // Off load this work to workers threads
+                // Vulkan could use secondary command buffers here
+                ctx->BeginPass( cmd );
+
+                // Place pass barriers
+                auto& barriers = mExecutionPlan.mBarriers[passName];
+                ctx->CommitBarriers( barriers );
+
+                pass.mExecuteCallback( *ctx, mBlackboard );
+                ctx->EndPass();
+            }
+        }
+
+        mGraphicsCommands->End();
+        mComputeCommands->End();
+        mTransferCommands->End();
+
+        mDevice->SubmitCommands( mGraphicsCommands );
+        mDevice->SubmitCommands( mComputeCommands );
+        mDevice->SubmitCommands( mTransferCommands );
+    }
+
+    auto FrameGraph::SetExecutionPolicy( eastl::string_view passName, FGExecutionPolicy policy ) -> void {
+        MKT_ASSERT( mNodeControl->mNodes.contains( passName.data() ), string::Format( "Pass '{}' does not exist", passName.data() ) );
+        mNodeControl->mNodes[passName.data()].mExecutionPolicy = policy;
+    }
+
+    auto FrameGraph::DisablePass( eastl::string_view passName ) -> void {
+        MKT_ASSERT( mNodeControl->mNodes.contains( passName.data() ), string::Format( "Pass '{}' does not exist", passName.data() ) );
+        mNodeControl->mNodes[passName.data()].mIsAlive = false;
+
+        CullGraphNodes();
+    }
+
+    auto FrameGraph::EnablePass( eastl::string_view passName ) -> void {
+        MKT_ASSERT( mNodeControl->mNodes.contains( passName.data() ), string::Format( "Pass '{}' does not exist", passName.data() ) );
+        mNodeControl->mNodes[passName.data()].mIsAlive = true;
+
+        CullGraphNodes();
+    }
+
+    auto FrameGraph::RecordCommands( CommandListHandle cmd ) -> void {
+        cmd->Begin( {} );
+
+        // TODO: Record all commands for specific queue type
+
+        cmd->End();
+        mDevice->SubmitCommands( cmd );
+    }
+
+    auto FrameGraph::GetTexture( FGTextureHandle handle ) const -> TextureHandle {
+        return mResourceManager->Get( handle.mHandle ).mResource;
+    }
+
+    auto FrameGraph::GetBuffer( FGBufferHandle handle ) const -> BufferHandle {
+        return mResourceManager->Get( handle.mHandle ).mResource;
+    }
+
+    auto FrameGraph::Create( GpuDevice* device, ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph> {
+        MKT_BEGIN_PROFILER_NAMED();
+        return eastl::make_unique<FrameGraph>( device, shaderLibrary );
+    }
+
+    auto FrameGraph::BuildNodeEdges() -> void {
         for (auto& pass : mNodeControl->mNodes | std::views::values ) {
             ankerl::unordered_dense::set<eastl::string> seenPasses{};
 
@@ -630,15 +772,20 @@ namespace mikoto::renderer {
 
         // If we didn't visit every pass, the graph has a cycle, invalid.
         MKT_ASSERT( mExecutionPlan.mSorted.size() == passesMap.size(), "Cycle detected!" );
+    }
+
+    auto FrameGraph::CullGraphNodes() -> void {
+        auto& passesMap{ mNodeControl->mNodes };
 
         // Cull Passes
         // This step is done if we for instance remove or disable a pass
         // we need to disable the ones depending on it
         if (!mExecutionPlan.mSorted.empty()) {
-            // last pass = the final output (e.g. Present)
-            mNodeControl->mNodes[mExecutionPlan.mSorted.back()].mIsAlive = true;
             for(auto reverseIt{ mExecutionPlan.mSorted.rbegin() }; reverseIt != mExecutionPlan.mSorted.rend(); ++reverseIt) {
                 if (!passesMap[*reverseIt].mIsAlive) {
+                    for (auto& succ : passesMap[*reverseIt].mSuccessors ) {
+                        passesMap[succ].mIsAlive = false; // Kill people that depend on me
+                    }
                     continue; // skip dead passes
                 }
 
@@ -647,11 +794,9 @@ namespace mikoto::renderer {
                 }
             }
         }
+    }
 
-        // Barriers
-        // I do not think I wil go this way I think the passes will specify the
-        // state they need the resource to be in and access type will be inferred
-
+    auto FrameGraph::BuildNodeBarriers() -> void {
         for ( const auto& passName : mExecutionPlan.mSorted ) {
             const auto& pass{ mNodeControl->mNodes[passName] };
             if ( !pass.mIsAlive ) {
@@ -708,8 +853,9 @@ namespace mikoto::renderer {
                 recordTransition( h );
             }
         }
+    }
 
-        // Create the contexts
+    auto FrameGraph::BuildExecutionTasks() -> void {
         for (auto& [passName, node] : mNodeControl->mNodes ) {
             mNodeControl->mContexts[passName] = Ref<CommandContext>::Spawn( MKT_ADDRESSOF( node ), mResourceManager.get() );
         }
@@ -785,95 +931,6 @@ namespace mikoto::renderer {
                 mExecutionPlan.mTaskMap[&succ].succeed(task);
             }
         }
-
-#if !defined(NDEBUG)
-        std::ostringstream oss{};
-        mExecutionPlan.mExecutionGraph.dump(oss);
-        mExecutionPlan.mExecutionGraph.name("FrameGraph TaskExecution");
-
-        // to file example
-        // std::ofstream file("taskflow.dot");
-        // mExecutionPlan.mExecutionGraph.dump(file);
-        // dot -Tpng taskflow.dot -o taskflow.png
-
-        MKT_COLOR_PRINT_FORMATTED_FLUSH( MKT_FMT_COLOR_CYAN, "FG Dependencies:\n{}", oss.str() );
-#endif
-
-    }
-
-    auto FrameGraph::Execute() -> void {
-        //MKT_BEGIN_PROFILER_NAMED();
-
-        // The core idea is, here we first execute a command that transitions all resources into a common state
-        // then in the command list we introduce state changes as we see fit
-
-        //MKT_PROFILE_SCOPE_MARKED( "FrameGraph::Execute() Parallel" );
-        //MKT_PROFILE_SCOPE_MARKED( "FrameGraph::Execute() Sequential" );
-
-        mGraphicsCommands->Begin( { .mScopeName = "FG Graphics Record" } );
-        mComputeCommands->Begin( { .mScopeName = "FG Compute Record" } );
-        mTransferCommands->Begin( { .mScopeName = "FG Transfer Record" } );
-
-        // Parallel
-        if (false) {
-            threading::TaskService::Get()->Submit( mExecutionPlan.mExecutionGraph, true );
-        } else {
-            // Sequential execution
-            for ( auto& passName: mExecutionPlan.mSorted ) {
-                if ( !mNodeControl->mNodes[passName].mIsAlive )
-                    continue;
-
-                auto& pass = mNodeControl->mNodes[passName];
-                auto& ctx = mNodeControl->mContexts[passName];
-
-                CommandListHandle cmd{};
-
-                switch (pass.mType) {
-                    case FGPassType::eGraphics:
-                        cmd = mGraphicsCommands;
-                        break;
-                    case FGPassType::eCompute:
-                        cmd = mComputeCommands;
-                        break;
-                    case FGPassType::eTransfer:
-                        cmd = mTransferCommands;
-                        break;
-                    default:;
-                }
-
-                // Off load this work to workers threads
-                // Vulkan could use secondary command buffers here
-                ctx->BeginPass( cmd );
-
-                // Place pass barriers
-                auto& barriers = mExecutionPlan.mBarriers[passName];
-                ctx->CommitBarriers( barriers );
-
-                pass.mExecuteCallback( *ctx, mBlackboard );
-                ctx->EndPass();
-            }
-        }
-
-        mGraphicsCommands->End();
-        mComputeCommands->End();
-        mTransferCommands->End();
-
-        mDevice->SubmitCommands( mGraphicsCommands );
-        mDevice->SubmitCommands( mComputeCommands );
-        mDevice->SubmitCommands( mTransferCommands );
-    }
-
-    auto FrameGraph::GetTexture( FGTextureHandle handle ) const -> TextureHandle {
-        return mResourceManager->Get( handle.mHandle ).mResource;
-    }
-
-    auto FrameGraph::GetBuffer( FGBufferHandle handle ) const -> BufferHandle {
-        return mResourceManager->Get( handle.mHandle ).mResource;
-    }
-
-    auto FrameGraph::Create( GpuDevice* device, ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph> {
-        MKT_BEGIN_PROFILER_NAMED();
-        return eastl::make_unique<FrameGraph>( device, shaderLibrary );
     }
 
     auto FrameGraph::Create( const FGPipelineDescription &desc ) -> FGPipelineHandle {
@@ -885,6 +942,7 @@ namespace mikoto::renderer {
                 .SetPipelineLayout( mResourceManager->GetPipelineLayout() )
                 .SetTopology( desc.mTopology )
                 .SetCullMode( desc.mCullMode )
+                .SetPolygonMode( desc.mPolygonMode )
                 .SetBlendEnable( desc.mEnableBlend )
                 .SetDepthTest( desc.mEnableDepthTest )
                 .SetDepthWrite( desc.mEnableDepthWrite )
@@ -1028,6 +1086,7 @@ namespace mikoto::renderer {
             .SetName( desc.mName )
             .SetWidth( desc.mWidth )
             .SetHeight( desc.mHeight )
+            .SetMipCount( desc.mMipCount )
             .SetDimensions( desc.mDimension )
             .SetMultisampling( desc.mMSAA )
             .SetUsage( desc.mUsage )

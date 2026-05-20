@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/FontRender_Helpers.slang"
 
 struct FSInput {
@@ -25,8 +26,15 @@ struct FSOutput {
     float4 Color : SV_Target0;
 };
 
-[[vk::binding(Slot_0, UNBOUNDED_IV_SAMPLERS_SET_INDEX)]]
-Sampler2D g_BindlessTextures[];
+struct DrawParams {
+    uint TextSamplerID;
+    uint TextParametersID;
+};
+
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+
+MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+MKT_DECLARE_SAMPLERS samplers;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
@@ -34,10 +42,13 @@ FSOutput main(FSInput input) {
 
     float threshold = 0.5;
 
-    float3 msdf = g_BindlessTextures[input.AtlasIndex].Sample(input.TexCoord).rgb;
+    Texture2D msdfTexture = textures[input.AtlasIndex];
+    SamplerState textSampler = samplers[parameters.TextSamplerID];
+
+    float3 msdf = msdfTexture.Sample(textSampler, input.TexCoord).rgb;
     float sd = Median(msdf);
 
-    float pxRange = ScreenPxRange3D(g_BindlessTextures[input.AtlasIndex], input.TexCoord);
+    float pxRange = ScreenPxRange3D(msdfTexture, textSampler, input.TexCoord);
     float screenPxDist = pxRange * (sd - threshold);
 
     float opacity = clamp(screenPxDist + threshold, 0.0, 1.0);

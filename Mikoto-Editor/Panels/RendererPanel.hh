@@ -15,8 +15,11 @@
 #ifndef MIKOTO_RENDERER_PANEL_HH
 #define MIKOTO_RENDERER_PANEL_HH
 
-#include <../../Mikoto/ImGui/GraphEditor.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
 #include <Panels/Panel.hh>
+#include <ImGui/GraphEditor.hh>
 
 namespace mikoto::editor {
     struct EditorState;
@@ -40,10 +43,6 @@ namespace mikoto::editor {
         explicit RendererPanel(const RendererPanelCreateInfo& info);
 
         auto OnUpdate(float timeStep) -> void override;
-
-        MKT_NODISCARD auto IsVsyncEnabled() const -> bool;
-
-        MKT_NODISCARD auto EnableSkyboxLDR() const -> bool;
 
         ~RendererPanel() override = default;
 
@@ -75,11 +74,12 @@ namespace mikoto::editor {
         // SSAO
         bool m_EnableSSAO{ false };
         bool m_EnableSSAOBlur{ true };
-        UInt32 m_SSAODimensions{ 8 }; // m_SSAODimensions * m_SSAODimensions
-        float m_KernelSize{ 0.5f };
-        float m_SSAORadius{ 0.5f };
-        float m_SSAOBias{ 0.5f };
-        float m_SSAOStrength{ 1.5f };
+
+        core::f32 m_KernelSize{ 0.5f };
+        core::f32 m_SSAORadius{ 0.5f };
+        core::f32 m_SSAOBias{ 0.5f };
+        core::f32 m_SSAOStrength{ 1.5f };
+        core::u32 m_SSAODimensions{ 8 }; // m_SSAODimensions * m_SSAODimensions
 
         FinalCompositionTarget m_FinalCompositionTarget{ FinalCompositionTarget::FINAL_IMAGE };
 

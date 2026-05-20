@@ -70,6 +70,9 @@ namespace mikoto::renderer {
         auto SetMainCamera( const SceneCamera* camera ) -> void;
         auto SetClearColor(const Color& color) -> void;
 
+        auto SetSkyboxEquirectangular( TextureHandle texture ) -> void;
+        auto SetRenderBackground(SceneBackgroundType bg) -> void;
+
         MKT_NODISCARD auto GetRenderGraph() const -> const FrameGraph&;
 
         MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> TextureHandle;

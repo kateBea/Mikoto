@@ -185,7 +185,7 @@ namespace mikoto::renderer::vulkan {
 
         if (mDesc.mPolygonMode == PolygonMode::eLines) {
             mRasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
-            mDynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
+            //mDynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH ); // Not all hardware support width != 1
         }
 
         // The maximum line width that is supported depends on the hardware,

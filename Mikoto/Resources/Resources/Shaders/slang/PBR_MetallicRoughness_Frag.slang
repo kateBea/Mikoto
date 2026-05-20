@@ -16,33 +16,54 @@
 // https://github.com/KhronosGroup/glTF-Sample-Viewer.git (branch glTF-WebGL-PBR)
 #include "base/Base.slang"
 #include "base/Math_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Tonemap_Helpers.slang"
 #include "base/Material_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
 
-struct FinalShadingParameters {
-    float4x4 LightViewProjection;
+struct DrawParams {
+    uint mCameraDataID;
+    uint mVerticesBufferID;
+    uint mIndicesBufferID;
 
-    float4 GridSize;
-    float Exposure;
-    float Gamma;
-    float MaxReflectionLOD;
+    uint mGeometryBufferID;
+    uint mMaterialsBufferID;
+    uint mSkinningBufferID;
+    uint mClusterBufferID;
 
-    uint ActiveLights;
+    uint mLightCullingBufferID;
+    uint mBrdfColorTargetID;
+    uint mPrefilterCubeRtID;
+    uint mIrradianceCubeRtID;
 
-    int EnableSSAO;
-    int UseBlurred;
-    float SSAOIntensity;
+    uint mSamplerCubeID;
+    uint mSamplerBasicID;
 
-    int PrefilteredCubeMipLevels;
-    float ScaleIBLAmbient;
-    int Step; // for debug
+    float4 mGridSize;
+    float mExposure;
+    float mGamma;
 
-    int IsSkyboxActive;
-    int ToneMapType;
+    uint mActiveLightCount;
+
+    uint mEnableSsao;
+    float mSsaoIntensity;
+
+    uint mPrefilteredCubeMipLevels;
+    float mScaleIblAmbient;
+
+    uint mIsSkyboxActive;
 };
+
+MKT_DECLARE_STRUCTURED_SRV buffers;
+
+MKT_DECLARE_TEXTURE_SRV(Texture2D) textures2D;
+MKT_DECLARE_TEXTURE_SRV(TextureCube) texturesCube;
+
+MKT_DECLARE_SAMPLERS samplers;
+
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 // Encapsulate the various inputs used by the various functions in the shading equation
 // We store values in this struct to simplify the integration of alternative implementations
@@ -74,34 +95,6 @@ struct BaseInputs {
     float3 specularColor;
 };
 
-// Camera
-[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
-ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
-
-// Materials
-[[vk::binding(Slot_0, UNBOUNDED_IV_SAMPLERS_SET_INDEX)]] Sampler2D g_BindlessTextures[];
-
-[[vk::binding(Slot_2, UAV_SET_INDEX)]] StructuredBuffer<MaterialParameters, ScalarDataLayout> Materials;
-
-// Lighting
-[[vk::binding(Slot_3, UAV_SET_INDEX)]] StructuredBuffer<Cluster, ScalarDataLayout> Clusters;
-[[vk::binding(Slot_4, UAV_SET_INDEX)]] StructuredBuffer<LightInfo, ScalarDataLayout> Lights;
-
-// IBL
-[[vk::binding(Slot_0, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SamplerBRDFLUT;
-[[vk::binding(Slot_1, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_PrefilteredMap;
-[[vk::binding(Slot_2, STATIC_SAMPLERS_SET_INDEX)]] SamplerCube u_SamplerIrradiance;
-
-// SSAO
-[[vk::binding(Slot_3, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAO;
-[[vk::binding(Slot_4, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SSAOBlur;
-
-// Shadow maps
-[[vk::binding(Slot_0, DYNAMIC_SAMPLERS_SET_INDEX)]] Sampler2D u_ShadowMap;
-
-[[vk::push_constant]]
-FinalShadingParameters u_Constants;
-
 struct FSInput {
     float3 FragmentViewPos : TEXCOORD0;
     float3 FragmentWorldPos : TEXCOORD1;
@@ -119,21 +112,21 @@ struct FSInput {
 };
 
 // Calculation of the lighting contribution from an optional Image Based Light source.
-float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor, float perceptualRoughness, float3 n, float3 reflection) {
+float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor, float perceptualRoughness, float3 n, float3 reflection, Texture2D brdf, TextureCube irradianceMap, TextureCube prefilterMap, SamplerState sampler) {
     // Avoid rough reflections sample invalid mip levels
-    float lod = perceptualRoughness * (u_Constants.PrefilteredCubeMipLevels - 1);
+    float lod = perceptualRoughness * (parameters.mPrefilteredCubeMipLevels - 1);
 
     // retrieve a scale and bias to F0. See [1], Figure 3
-    float3 brdf = u_SamplerBRDFLUT.Sample(float2(NdotV, 1.0 - perceptualRoughness)).rgb;
+    float3 brdf = brdf.Sample(sampler, float2(NdotV, 1.0 - perceptualRoughness)).rgb;
 
-    float3 diffuseLight = SRGBtoLINEAR(Tonemap_Uncharted2(u_SamplerIrradiance.Sample(n), u_Constants.Exposure, u_Constants.Gamma)).rgb;
-    float3 specularLight = SRGBtoLINEAR(Tonemap_Uncharted2(u_PrefilteredMap.SampleLevel(reflection, lod), u_Constants.Exposure, u_Constants.Gamma)).rgb;
+    float3 diffuseLight = SRGBtoLINEAR(Tonemap_Uncharted2(irradianceMap.Sample(sampler, n), parameters.mExposure, parameters.mGamma)).rgb;
+    float3 specularLight = SRGBtoLINEAR(Tonemap_Uncharted2(prefilterMap.SampleLevel(sampler, reflection, lod), parameters.mExposure, parameters.mGamma)).rgb;
 
     float3 diffuse = diffuseLight * diffuseColor;
     float3 specular = specularLight * (specularColor * brdf.x + brdf.y);
 
-    diffuse *= u_Constants.ScaleIBLAmbient;
-    specular *= u_Constants.ScaleIBLAmbient;
+    diffuse *= parameters.mScaleIblAmbient;
+    specular *= parameters.mScaleIblAmbient;
 
     return diffuse + specular;
 }
@@ -363,7 +356,7 @@ struct FSOutput {
     float4 Color : SV_Target0;
 };
 
-float ComputeShadow(float4 fragLightSpaceCoord, LightInfo light, float3 normal) {
+float ComputeShadow(float4 fragLightSpaceCoord, LightInfo light, float3 normal, Texture2D shadowMap, SamplerState sampler) {
     const float shadowVal = 0.2f;
     const float noShadowVal = 1.0f;
 
@@ -383,7 +376,7 @@ float ComputeShadow(float4 fragLightSpaceCoord, LightInfo light, float3 normal) 
     }
 
     float currentDpeth = projCoords.z;
-    float closestDepth = u_ShadowMap.Sample( projCoords.xy ).r;
+    float closestDepth = shadowMap.Sample( sampler, projCoords.xy ).r;
 
     float bias = max(0.05 * (1.0 - dot(normal, -light.Direction.xyz)), 0.005);
     float shadow = (currentDpeth - bias) > closestDepth ? noShadowVal : shadowVal;
@@ -395,7 +388,23 @@ float ComputeShadow(float4 fragLightSpaceCoord, LightInfo light, float3 normal) 
 FSOutput main(FSInput input) {
     FSOutput output;
 
-    MaterialParameters material = Materials[input.MaterialIndex];
+    // Fecth buffers
+    ByteAddressBuffer materialsBuffer = buffers[parameters.mMaterialsBufferID];
+    MaterialParameters material = materialsBuffer.Read<MaterialParameters>(0, input.MaterialIndex);
+
+    ByteAddressBuffer clusterBuffer = buffers[parameters.mClusterBufferID];
+    ByteAddressBuffer lightCullingBuffer = buffers[parameters.mLightCullingBufferID];
+
+    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+
+    // Fectch textures and samplers as needed, based on the material properties
+    SamplerState samplerCube = samplers[parameters.mSamplerCubeID];
+    TextureCube prefilteredMap = texturesCube[parameters.mPrefilterCubeRtID];
+    TextureCube irradianceMap = texturesCube[parameters.mIrradianceCubeRtID];
+
+    Texture2D brdfLUT = textures2D[parameters.mBrdfColorTargetID];
+
+    SamplerState samplerBasic = samplers[parameters.mSamplerBasicID];
 
     float4 baseColor = float4(0.0, 0.0, 0.0, 0.0);
 
@@ -407,10 +416,10 @@ FSOutput main(FSInput input) {
     // value during framebuffer blending which is handled via pipeline state.
     if (material.AlphaMask == PBR_ALPHA_MASK) {
         if (material.AlbedoIndex != INVALID_UV_SET) {
-            Sampler2D colorMap = g_BindlessTextures[material.AlbedoIndex];
+            Texture2D colorMap = textures2D[material.AlbedoIndex];
             float2 uvSet = material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1;
 
-            baseColor = SRGBtoLINEAR(colorMap.Sample(uvSet)) * material.BaseColorFactor;
+            baseColor = SRGBtoLINEAR(colorMap.Sample(samplerBasic, uvSet)) * material.BaseColorFactor;
         } else {
             baseColor = material.BaseColorFactor;
         }
@@ -433,8 +442,8 @@ FSOutput main(FSInput input) {
         if (material.MetallicRoughnessIndex != INVALID_TEXTURE_INDEX) {
             // Roughness is stored in the 'g' channel, metallic is stored in the 'b' channel.
             // This layout intentionally reserves the 'r' channel for (optional) occlusion map data
-            Sampler2D metallicRoughnessMap = g_BindlessTextures[material.MetallicRoughnessIndex];
-            float4 mrSample = metallicRoughnessMap.Sample(material.MetallicRoughnessTextureSet == 0 ? input.TexCoord0 : input.TexCoord1);
+            Texture2D metallicRoughnessMap = textures2D[material.MetallicRoughnessIndex];
+            float4 mrSample = metallicRoughnessMap.Sample(samplerBasic, material.MetallicRoughnessTextureSet == 0 ? input.TexCoord0 : input.TexCoord1);
 
             perceptualRoughness = mrSample.g * perceptualRoughness;
             metallic = mrSample.b * metallic;
@@ -447,8 +456,8 @@ FSOutput main(FSInput input) {
 
         // The albedo may be defined from a base texture or a flat color
         if (material.AlbedoIndex != INVALID_TEXTURE_INDEX) {
-            Sampler2D colorMap = g_BindlessTextures[material.AlbedoIndex];
-            baseColor = SRGBtoLINEAR(colorMap.Sample(material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1)) * material.BaseColorFactor;
+            Texture2D colorMap = textures2D[material.AlbedoIndex];
+            baseColor = SRGBtoLINEAR(colorMap.Sample(samplerBasic, material.BaseColorTextureSet == 0 ? input.TexCoord0 : input.TexCoord1)) * material.BaseColorFactor;
         } else {
             baseColor = material.BaseColorFactor;
         }
@@ -457,8 +466,8 @@ FSOutput main(FSInput input) {
     if (material.Workflow == PBR_WORKFLOW_SPECULAR_GLOSSINESS) {
         // Values from specular glossiness workflow are converted to metallic roughness
         if (material.SpecularGlossinessIndex != INVALID_TEXTURE_INDEX) {
-            Sampler2D specularGlossinessMap = g_BindlessTextures[material.SpecularGlossinessIndex];
-            perceptualRoughness = 1.0 - specularGlossinessMap.Sample(material.SpecularGlossinessSet == 0 ? input.TexCoord0 : input.TexCoord1).a;
+            Texture2D specularGlossinessMap = textures2D[material.SpecularGlossinessIndex];
+            perceptualRoughness = 1.0 - specularGlossinessMap.Sample(samplerBasic, material.SpecularGlossinessSet == 0 ? input.TexCoord0 : input.TexCoord1).a;
         } else {
             perceptualRoughness = 0.0;
         }
@@ -466,11 +475,11 @@ FSOutput main(FSInput input) {
         const float epsilon = 1e-6;
 
         // Diffuse index because specular glossiness
-        Sampler2D colorMap = g_BindlessTextures[material.DiffuseIndex];
-        Sampler2D specularGlossinessMap = g_BindlessTextures[material.SpecularGlossinessIndex];
+        Texture2D colorMap = textures2D[material.DiffuseIndex];
+        Texture2D specularGlossinessMap = textures2D[material.SpecularGlossinessIndex];
 
-        float4 diffuse = SRGBtoLINEAR(colorMap.Sample(input.TexCoord0));
-        float3 specular = SRGBtoLINEAR(specularGlossinessMap.Sample(input.TexCoord0)).rgb;
+        float4 diffuse = SRGBtoLINEAR(colorMap.Sample(samplerBasic, input.TexCoord0));
+        float3 specular = SRGBtoLINEAR(specularGlossinessMap.Sample(samplerBasic, input.TexCoord0)).rgb;
 
         float maxSpecular = max(max(specular.r, specular.g), specular.b);
 
@@ -504,14 +513,14 @@ FSOutput main(FSInput input) {
 
     float2 normalUvSet = material.NormalTextureSet == 0 ? input.TexCoord0 : input.TexCoord1;
     float3 n = (material.NormalIndex != INVALID_UV_SET) ? 
-        GetNormalFromMap(g_BindlessTextures[material.NormalIndex], normalUvSet, input.Normal, input.FragmentWorldPos) : 
+        GetNormalFromMap(textures2D[material.NormalIndex], samplerBasic, normalUvSet, input.Normal, input.FragmentWorldPos) : 
         normalize(input.Normal);
 
     if (!input.IsFrontFace) {
         n.y *= -1.0f;
     }
 
-    float3 v = normalize(u_Camera.ViewPosition.xyz - input.FragmentWorldPos); // Vector from surface point to camera
+    float3 v = normalize(camera.ViewPosition.xyz - input.FragmentWorldPos); // Vector from surface point to camera
     float3 reflection = normalize(reflect(-v, n));
 
     BaseInputs inputs;
@@ -527,18 +536,19 @@ FSOutput main(FSInput input) {
 
     // Cluster resolve
     // TODO: Check first if there are active lights 
-    uint clusterIndex = ComputeTileIndex(input.FragmentViewPos, u_Constants.GridSize.xyz, 
-        u_Camera.Planes, input.ScreenPos, u_Camera.ScreenDimensions);
+    uint clusterIndex = ComputeTileIndex(input.FragmentViewPos, parameters.mGridSize.xyz, 
+        camera.Planes.xy, input.ScreenPos, camera.ScreenDimensions.xy);
 
-    Cluster cluster = Clusters[clusterIndex];
+    Cluster cluster = clusterBuffer.Read<Cluster>(0, clusterIndex);
 
-    for (uint i = 0; i < cluster.Count && u_Constants.ActiveLights != 0; ++i) {
+    for (uint i = 0; i < cluster.Count && parameters.mActiveLightCount != 0; ++i) {
         uint lightIndex = cluster.LightIndices[i];
-        LightInfo light = Lights[lightIndex];
+        LightInfo light = lightCullingBuffer.Read<LightInfo>(0, lightIndex);
 
         if (light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL) {
-            float shadow = ComputeShadow(input.FragPosLightSpace, light, n);
-            lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs) * (1.0f - shadow);
+            // float shadow = ComputeShadow(input.FragPosLightSpace, light, n, textures2D[material.ShadowMapIndex], samplerBasic);
+            // lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs) * (1.0f - shadow);
+            lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs);
             continue;
         }
 
@@ -556,8 +566,8 @@ FSOutput main(FSInput input) {
     float NdotV = clamp(dot(n, v), 0.001, 1.0);
     float3 iblLighting = float3(0.0);
 
-    if (u_Constants.IsSkyboxActive == MKT_SHADER_TRUE) {
-        iblLighting = GetIBLContribution(NdotV, diffuseColor, specularColor, perceptualRoughness, n, reflection);
+    if (parameters.mIsSkyboxActive == MKT_SHADER_TRUE) {
+        iblLighting = GetIBLContribution(NdotV, diffuseColor, specularColor, perceptualRoughness, n, reflection, brdfLUT, irradianceMap, prefilteredMap, samplerCube);
     }
 
     // Final color
@@ -566,31 +576,31 @@ FSOutput main(FSInput input) {
     // AO
     float ssao = 1.0f;
 
-    if (u_Constants.EnableSSAO != MKT_SHADER_FALSE) {
-        float2 uv = input.ScreenPos.xy / u_Camera.ScreenDimensions;
+    if (parameters.mEnableSsao != MKT_SHADER_FALSE) {
+        float2 uv = input.ScreenPos.xy / camera.ScreenDimensions.xy;
 
-        ssao = u_Constants.UseBlurred == MKT_SHADER_TRUE ? u_SSAOBlur.Sample(uv).r : u_SSAO.Sample(uv).r;
-        ssao = pow(ssao, u_Constants.SSAOIntensity);
+        //ssao = parameters.mBl == MKT_SHADER_TRUE ? u_SSAOBlur.Sample(uv).r : u_SSAO.Sample(uv).r;
+        //ssao = pow(ssao, u_Constants.SSAOIntensity);
     }
 
     float3 ssaoContrib = float3(ssao, ssao, ssao);
 
     if (material.AoIndex != INVALID_TEXTURE_INDEX) {
-        Sampler2D aoMap = g_BindlessTextures[material.AoIndex];
+        Texture2D aoMap = textures2D[material.AoIndex];
         float2 aoUVSet = material.OcclusionTextureSet == 0 ? input.TexCoord0 : input.TexCoord1;
 
-        float ao = aoMap.Sample(aoUVSet) .r;
+        float ao = aoMap.Sample(samplerBasic, aoUVSet).r;
 
-        color *= lerp(color, color * ao, u_Constants.SSAOIntensity) * ssaoContrib;
+        color *= lerp(color, color * ao, parameters.mSsaoIntensity) * ssaoContrib;
     }
 
     // Emission
     float3 emissiveContrib = material.EmissiveFactor.xyz * material.EmissiveStrength;
     if (material.EmissiveIndex != INVALID_TEXTURE_INDEX) {
-        Sampler2D emissiveMap = g_BindlessTextures[material.EmissiveIndex];
+        Texture2D emissiveMap = textures2D[material.EmissiveIndex];
         float2 emissiveUvSet = material.EmissiveTextureSet == 0 ? input.TexCoord0 : input.TexCoord1;
 
-        float3 emissive = emissiveMap.Sample(emissiveUvSet).rgb;
+        float3 emissive = emissiveMap.Sample(samplerBasic, emissiveUvSet).rgb;
 
         emissiveContrib *= emissive;
     }

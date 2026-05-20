@@ -204,12 +204,12 @@ namespace mikoto::renderer {
         data.mAtlas = mDevice->CreateTexture( textureDesc );
     }
 
-    auto FontLoadDescription::WithFile( FileHandle file ) -> FontLoadDescription & {
+    auto FontLoadDescription::SetFile( FileHandle file ) -> FontLoadDescription & {
         mFile = file;
         return *this;
     }
 
-    auto FontLoadDescription::WithPixelSize( float pixelSize ) -> FontLoadDescription & {
+    auto FontLoadDescription::SetSize( float pixelSize ) -> FontLoadDescription & {
         mSize = pixelSize;
         return *this;
     }

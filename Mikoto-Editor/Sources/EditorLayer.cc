@@ -103,18 +103,31 @@ namespace mikoto::editor {
 
         //TODO:Integrate project load, no render panels just dockspace if no project
 
+        static bool first{ true };
+        if (first) {
+            first = false;
+
+            TextureHandle handle{ AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/newport_loft.hdr", TextureDimension::eTexture2D ) };
+            mSceneRenderer->SetSkyboxEquirectangular( handle );
+            mSceneRenderer->SetRenderBackground( SceneBackgroundType::eSkybox );
+        }
+
         UpdateCameraState( timeStep );
         UpdateRendererState( timeStep );
         UpdateSceneState( timeStep );
 
-        UpdateDockSpace();
-        UpdateDockSpacePanels( timeStep );
-
         RenderScene( timeStep );
-        UpdateViewportState( timeStep );
 
-        // TODO: Handle properly
-        RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
+        if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
+            RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
+
+            UpdateDockSpace();
+            UpdateDockSpacePanels( timeStep );
+
+            UpdateViewportState( timeStep );
+        } else {
+            RenderSystem::Get()->SetPresentTarget( mEditorState->mFinalComposition );
+        }
     }
 
     auto EditorLayer::OnEvent( IEvent &event ) -> void {
@@ -171,6 +184,31 @@ namespace mikoto::editor {
                 }
             }
         }
+
+        if (event.IsType( EventType::KEY_PRESSED_EVENT )) {
+            // To store panels visibility state to restore later, when switching back to panel rendering
+            static eastl::hash_map<Panel*, bool> panelsVisibilityState{};
+
+            if (const auto *keyPressed{ dynamic_cast<KeyPressedEvent *>( std::addressof( event ) ) }) {
+                if (keyPressed->GetKeyCode() == KeyCode::Key_F11) {
+                    if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
+                        mScreenPresentTarget = ScreenPresentTarget::eFinalImage;
+
+                        // Save panel visibility state before hiding them
+                        for ( const auto &panel: mPanelRegistry | std::ranges::views::values ) {
+                            panelsVisibilityState[panel.get()] = panel->IsVisible();
+                        }
+                    } else {
+                        mScreenPresentTarget = ScreenPresentTarget::ePanels;
+
+                        // Restore panel visibility state
+                        for ( const auto &panel: mPanelRegistry | std::ranges::views::values ) {
+                            panel->SetVisible( panelsVisibilityState[panel.get()] );
+                        }
+                    }
+                }
+            }
+        }
     }
     auto EditorLayer::InitAssets() -> void {
         MKT_BEGIN_PROFILER_NAMED();
@@ -205,7 +243,9 @@ namespace mikoto::editor {
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget |
+                TextureUsageFlagsBits::kShaderResource |
+                TextureUsageFlagsBits::kCopySrc )
             .SetFormat( Format::eBGRA8_UNORM ) };
 
         mEditorState->mFinalComposition = mDevice->CreateTexture( colorDesc );
@@ -319,8 +359,8 @@ namespace mikoto::editor {
                     PhysicalMaterial *material{ checked_cast<PhysicalMaterial*>( materialComponent.GetMaterial().GetRaw() ) };
                     if (material) {
                         material->SetAlphaMaskCutoff( 1.0f );
-                        material->SetMetallicFactor( static_cast<float>( x ) / static_cast<float>( gridSize - 1 ) );
-                        material->SetRoughnessFactor( static_cast<float>( y ) / static_cast<float>( gridSize - 1 ) );
+                        material->SetMetallicFactor( as<f32>( x ) / as<f32>( gridSize - 1 ) );
+                        material->SetRoughnessFactor( as<f32>( y ) / as<f32>( gridSize - 1 ) );
                     }
                 }
 
@@ -530,7 +570,14 @@ namespace mikoto::editor {
 
         mSceneRenderer->Render( mEditorState->mActiveScene );
 
-        mCommandList->SetResourceState( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eShaderResource );
+        // On panel mode this image is sampled by ImGui to render as viewport
+        // otherwise it is copied to the swapchain image
+        if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
+            mCommandList->SetResourceState( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eShaderResource );
+        } else {
+            mCommandList->SetResourceState( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eCopySource );
+        }
+
         mCommandList->End();
 
         mDevice->SubmitCommands( mCommandList );
@@ -564,8 +611,8 @@ namespace mikoto::editor {
 
         // Set viewport to the currently active window we can either expand
         // the final composition to occupy the whole screen or just an ImGui viewport
-        ScenePanel *scenePanel{ mPanelRegistry.Get<ScenePanel>() };
         if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
+            ScenePanel *scenePanel{ mPanelRegistry.Get<ScenePanel>() };
             mEditorCamera->SetViewportSize( scenePanel->GetWidth(), scenePanel->GetHeight() );
         } else {
             mEditorCamera->SetViewportSize( mWindow->GetWidth(), mWindow->GetHeight() );

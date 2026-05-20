@@ -42,19 +42,6 @@ namespace mikoto::renderer {
     }
 
     auto ShadowMappingModule::RegisterPasses( FrameGraph &graph ) -> void {
-        // These would ideally render and update the shadow maps
-        // for dynamic shadow casters in a shadow texture atlas
-        // TODO: investigate. Start by first integrating shadows for one dir light and proceed with atlas integration
-        //https://www.adriancourreges.com/blog/2016/09/09/doom-2016-graphics-study/
-        RegisterLightsSetup( graph );
-        RegisterDirShadowMap( graph );
-        RegisterSpotShadowMap( graph );
-        RegisterPointShadowMap( graph );
-    }
-
-    auto ShadowMappingModule::RegisterLightsSetup( FrameGraph& graph ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
         ShadowMapInfo& info{ graph.GetOrCreate<ShadowMapInfo>() };
 
         // This buffer contains a list of structures that hold
@@ -66,6 +53,33 @@ namespace mikoto::renderer {
             .SetHeapType( HeapType::eDeviceLocal )};
 
         info.mShadowsBuffer = graph.Create( bufferDesc );
+
+        // Create shadow maps
+        for (u32 count{}; count < kMaxShadowMaps; ++count) {
+            // Depth images for directional light shadows
+            auto depthImage{ FGTextureDescription{}
+                .SetName( string::Format( "DirDepthImage_{}", count ) )
+                .SetWidth( as<i32>( 1980 ) )
+                .SetHeight( as<i32>( 1080 ) )
+                .SetDimensions( TextureDimension::eTexture2D )
+                .SetMultisampling( Multisampling::eMsaaX1 )
+                .SetUsage( TextureUsageFlagsBits::kDepthTarget | TextureUsageFlagsBits::kShaderResource )
+                .SetFormat( Format::eD32 ) };
+
+            info.mDirShadowMaps.emplace_back( graph.Create( depthImage ) );
+
+            // Depth images for point light shadows
+            // Depth images for spotlight shadows
+        }
+
+
+        // These would ideally render and update the shadow maps
+        // for dynamic shadow casters in a shadow texture atlas
+        // TODO: investigate. Start by first integrating shadows for one dir light and proceed with atlas integration
+        //https://www.adriancourreges.com/blog/2016/09/09/doom-2016-graphics-study/
+        RegisterDirShadowMap( graph );
+        RegisterSpotShadowMap( graph );
+        RegisterPointShadowMap( graph );
     }
 
     auto ShadowMappingModule::RegisterDirShadowMap( FrameGraph &graph ) -> void {
@@ -91,24 +105,6 @@ namespace mikoto::renderer {
             .SetBorderColor( kColorWhite ) };
 
         info.mDirShadowSampler = graph.Create( samplerDes );
-
-        // Create shadow maps
-        for (u32 count{}; count < kMaxShadowMaps; ++count) {
-            // Depth images for directional light shadows
-            auto depthImage{ FGTextureDescription{}
-                .SetName( string::Format( "DirDepthImage_{}", count ) )
-                .SetWidth( as<i32>( 1980 ) )
-                .SetHeight( as<i32>( 1080 ) )
-                .SetDimensions( TextureDimension::eTexture2D )
-                .SetMultisampling( Multisampling::eMsaaX1 )
-                .SetUsage( TextureUsageFlagsBits::kDepthTarget | TextureUsageFlagsBits::kShaderResource )
-                .SetFormat( Format::eD32 ) };
-
-            info.mDirShadowMaps.emplace_back( graph.Create( depthImage ) );
-
-            // Depth images for point light shadows
-            // Depth images for spotlight shadows
-        }
 
         graph.RegisterPass(
             "DirectionalShadowMapPass",

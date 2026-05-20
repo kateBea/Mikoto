@@ -59,8 +59,6 @@ namespace mikoto::renderer {
     struct TextRenderingPassParameters {
         FGPipelineHandle mMsdfPipeline{};
 
-        FGBufferHandle mMsdfVertices{};
-        FGBufferHandle mMsdfIndices{};
         FGBufferHandle mMsdfTextRenderData{};
     };
 
@@ -77,19 +75,6 @@ namespace mikoto::renderer {
         auto RegisterTextRender( FrameGraph& graph ) -> void;
 
         auto SetupTextRenderData( CommandContext& ctx, Blackboard& b ) -> void;
-
-    private:
-        eastl::array<TextVertexDescription, 4> mTextVertices{
-            TextVertexDescription{ { 0.0f, 0.0f, 0.0f }, 0 },
-            TextVertexDescription{ { 1.0f, 0.0f, 0.0f }, 1 },
-            TextVertexDescription{ { 1.0f, 1.0f, 0.0f }, 2 },
-            TextVertexDescription{ { 0.0f, 1.0f, 0.0f }, 3 }
-        };
-
-        eastl::array<u32, 6> mTextIndices{
-            0, 1, 2,// first triangle
-            2, 3, 0 // second triangle
-        };
 
     private:
         const scene::Scene* mScene{};

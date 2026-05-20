@@ -337,6 +337,7 @@ namespace mikoto::renderer {
         eastl::fixed_hash_map<FGStageType, Path,
             as<u32>( FGStageType::eCount )> mShaders{};
 
+        PolygonMode mPolygonMode{ PolygonMode::eFill };
         CullMode mCullMode{ CullMode::eCullBack };
 
         Format mDepthFormat{};
@@ -347,6 +348,7 @@ namespace mikoto::renderer {
         bool mEnableBlend{ true };
 
         auto SetCullMode( CullMode mode ) -> FGPipelineDescription&;
+        auto SetPolygonMode( PolygonMode mode ) -> FGPipelineDescription&;
 
         auto SetDepthTest( bool value ) -> FGPipelineDescription&;
         auto SetDepthWrite( bool value ) -> FGPipelineDescription&;
@@ -476,6 +478,8 @@ namespace mikoto::renderer {
         ankerl::unordered_dense::map<eastl::string, FGNode> mNodes{};
         ankerl::unordered_dense::map<eastl::string, Ref<CommandContext>> mContexts{};
         ankerl::unordered_dense::map<FGResourceHandle, FGNodeResource> mResources{};
+
+        auto Clear() -> void;
     };
 
     class FGNodeBuilder final {
@@ -525,6 +529,11 @@ namespace mikoto::renderer {
 
         auto Compile() -> void;
         auto Execute() -> void;
+
+        auto SetExecutionPolicy( eastl::string_view passName, FGExecutionPolicy policy ) -> void;
+
+        auto DisablePass( eastl::string_view passName ) -> void;
+        auto EnablePass( eastl::string_view passName ) -> void;
 
         MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> TextureHandle;
         MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> BufferHandle;
@@ -597,6 +606,14 @@ namespace mikoto::renderer {
         }
 
         MKT_NODISCARD static auto Create( GpuDevice* device, material::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph>;
+
+    private:
+        auto BuildNodeEdges() -> void;
+        auto CullGraphNodes() -> void;
+        auto BuildNodeBarriers() -> void;
+        auto BuildExecutionTasks() -> void;
+
+        auto RecordCommands( CommandListHandle cmd ) -> void;
 
     private:
         GpuDevice* mDevice{};

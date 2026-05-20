@@ -51,11 +51,11 @@ namespace mikoto::renderer {
         mGeometryManagement.RegisterPasses( *mFrameGraph );
 
         mRenderPrepass.RegisterPasses( *mFrameGraph );
-        //mShadowMapping.RegisterPasses( *mFrameGraph );
+        mShadowMapping.RegisterPasses( *mFrameGraph );
 
         mParticleRendering.RegisterPasses( *mFrameGraph );
 
-        //mGeometryShading.RegisterPasses( *mFrameGraph );
+        mGeometryShading.RegisterPasses( *mFrameGraph );
 
         mMousePickingModule.RegisterPasses( *mFrameGraph );
 
@@ -64,7 +64,7 @@ namespace mikoto::renderer {
         mRayTracingPass.RegisterPasses( *mFrameGraph );
 
         // Post process
-        //mTextRendering.RegisterPasses( *mFrameGraph );
+        mTextRendering.RegisterPasses( *mFrameGraph );
         mPostEffectsPasses.RegisterPasses( *mFrameGraph );
 
         // Some debug passes
@@ -81,9 +81,17 @@ namespace mikoto::renderer {
         // Set geometry manager
         // The geometry manager prepares the GPU side scene structures
         // and knows how to submit indexed draws or indirect draws
-        mGeometryShading.SetGeometryManagement( mGeometryManagement );
+        mShadowMapping.SetGeometryManager( mGeometryManagement );
+        mGeometryShading.SetGeometryManager( mGeometryManagement );
         mRenderPrepass.SetGeometryManager( mGeometryManagement );
         mMousePickingModule.SetGeometryManager( mGeometryManagement );
+
+        // Execution policies
+        mFrameGraph->SetExecutionPolicy( "BRDFLut", FGExecutionPolicy::eOnce );
+
+        mFrameGraph->SetExecutionPolicy( "PrefilterPass", FGExecutionPolicy::eOnChange );
+        mFrameGraph->SetExecutionPolicy( "IrradiancePass", FGExecutionPolicy::eOnChange );
+        mFrameGraph->SetExecutionPolicy( "SkyboxProjection", FGExecutionPolicy::eOnChange );
     }
 
     auto SceneRenderer::Shutdown() -> void {
@@ -97,7 +105,9 @@ namespace mikoto::renderer {
     auto SceneRenderer::Render( const Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        mShadowMapping.SetScene( scene );
         mRenderPrepass.SetScene( scene );
+        mTextRendering.SetScene( scene );
         mGeometryManagement.SetScene( scene );
 
         mFrameGraph->Execute();
@@ -113,6 +123,19 @@ namespace mikoto::renderer {
 
     auto SceneRenderer::SetClearColor( const Color& color ) -> void {
         mGeometryShading.SetClearColor( color );
+    }
+
+    auto SceneRenderer::SetSkyboxEquirectangular( TextureHandle texture ) -> void {
+        if (texture.IsEmpty()) {
+            return;
+        }
+
+        FGTextureHandle handle{ mFrameGraph->ImportTexture( texture ) };
+        mGeometryShading.SetEquirectangular( handle );
+    }
+
+    auto SceneRenderer::SetRenderBackground( SceneBackgroundType bg ) -> void {
+        mGeometryShading.SetRenderBackground( bg );
     }
 
     auto SceneRenderer::GetRenderGraph() const -> const FrameGraph & {

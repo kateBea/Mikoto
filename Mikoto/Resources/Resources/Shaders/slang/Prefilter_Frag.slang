@@ -13,12 +13,16 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
 
-struct PrefilterConstants {
+struct DrawParams {
     float4x4 MVP;
     float Roughness;
     uint NumSamples;
+
+    uint mCubeID;
+    uint mSamplerID;
 };
 
 struct FSInput {
@@ -29,23 +33,22 @@ struct FSOutput {
     float4 Color : SV_Target0;
 };
 
-[[vk::push_constant]]
-PrefilterConstants u_Parameters;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
-[[vk::binding(Slot_0, DYNAMIC_SAMPLERS_SET_INDEX)]]
-SamplerCube u_SamplerEnv;
+MKT_DECLARE_TEXTURE_SRV(TextureCube) textures;
+MKT_DECLARE_SAMPLERS samplers;
 
 // Normal distribution
 float D_GGX(float dotNH, float roughness) {
     float alpha = roughness * roughness;
     float alpha2 = alpha * alpha;
     float denom = dotNH * dotNH * (alpha2 - 1.0) + 1.0;
-    return alpha2 / (PI * denom * denom);
+    return alpha2 / (PI_Value * denom * denom);
 }
 
 // Main filtering function
 float3 PrefilterEnvMap(float3 R, float roughness) {
-    uint NumSamples = u_Parameters.NumSamples;
+    uint NumSamples = parameters.NumSamples;
 
     float3 N = R;
     float3 V = R;
@@ -57,7 +60,7 @@ float3 PrefilterEnvMap(float3 R, float roughness) {
     float textureHeight;
     float levelCount;
     const uint lod = 0u;
-    u_SamplerEnv.GetDimensions(lod, textureWidth, textureHeight, levelCount);
+    textures[parameters.mCubeID].GetDimensions(lod, textureWidth, textureHeight, levelCount);
     float envMapDim = float(textureWidth);
 
     for (uint i = 0; i < NumSamples; i++) {
@@ -79,7 +82,7 @@ float3 PrefilterEnvMap(float3 R, float roughness) {
             float omegaS = 1.0 / (float(NumSamples) * pdf);
 
             // Solid angle of 1 pixel across all cube faces
-            float omegaP = 4.0 * PI / (6.0 * envMapDim * envMapDim);
+            float omegaP = 4.0 * PI_Value / (6.0 * envMapDim * envMapDim);
 
             // Biased (+1.0) mip level for better result
             float mipLevel =
@@ -87,7 +90,7 @@ float3 PrefilterEnvMap(float3 R, float roughness) {
                     ? 0.0
                     : max(0.5 * log2(omegaS / omegaP) + 1.0, 0.0);
 
-            float3 sampleColor = u_SamplerEnv.SampleLevel(L, mipLevel).rgb;
+            float3 sampleColor = textures[parameters.mCubeID].SampleLevel(samplers[parameters.mSamplerID], L, mipLevel).rgb;
 
             color += sampleColor * dotNL;
             totalWeight += dotNL;
@@ -102,7 +105,7 @@ FSOutput main(FSInput input) {
     FSOutput o;
 
     float3 N = normalize(input.Pos);
-    float3 result = PrefilterEnvMap(N, u_Parameters.Roughness);
+    float3 result = PrefilterEnvMap(N, parameters.Roughness);
 
     o.Color = float4(result, 1.0);
     return o;

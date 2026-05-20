@@ -70,7 +70,7 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto GetAspectMask() const -> VkImageAspectFlags;
 
-        MKT_NODISCARD auto GetView( u32 mipLevel, u32 face = 0 ) const -> const VkImageView&;
+        MKT_NODISCARD auto GetRenderView( u32 mipLevel, u32 face = 0 ) const -> const VkImageView&;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
@@ -93,7 +93,9 @@ namespace mikoto::renderer::vulkan {
         // For every mip we keep a view
         // This account for stuff like IBL Prefilter map where you have
         // multiple mips per face
-        eastl::vector<eastl::vector<VkImageView>> mImageViews{};
+        eastl::vector<eastl::vector<VkImageView>> mImageView_RTVs{};
+        VkImageView mImageView_SRV{}; // For cube images this view is used to sample in shaders
+
         VkImageViewCreateInfo mImageViewCreateInfo{};
 
         bool mIsImageExternal{ false };

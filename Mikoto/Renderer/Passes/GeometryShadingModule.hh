@@ -43,6 +43,11 @@ namespace mikoto::renderer {
         eClearColor,
     };
 
+    struct WireframeData {
+        FGTextureHandle mColorImage{};
+        FGPipelineHandle mPipeline{};
+    };
+
     struct GeomShadingModuleInfo {
         FGTextureHandle mBrdfColorTarget{};
 
@@ -51,8 +56,6 @@ namespace mikoto::renderer {
         FGTextureHandle mSkyboxCubeRT{};
         FGTextureHandle mPrefilterCubeRT{};
         FGTextureHandle mIrradianceCubeRT{};
-
-        FGTextureHandle mImportedEquirectangular{};
 
         FGPipelineHandle mShadingPipeline{};
         FGPipelineHandle mSkyboxRenderPipeline{};
@@ -81,7 +84,7 @@ namespace mikoto::renderer {
 
         auto SetScene( const scene::Scene* scene ) -> void;
         auto SetCamera( const scene::Camera *camera ) -> void;
-        auto SetGeometryManagement( GeometryCullModule& geom) -> void;
+        auto SetGeometryManager( GeometryCullModule& geom) -> void;
 
         // SSAO
         auto SetEnableSsao( bool enable ) -> void;
@@ -90,11 +93,13 @@ namespace mikoto::renderer {
         // HDR
         auto SetGamma( float value ) -> void;
         auto SetExposure( float value ) -> void;
-        auto SetEquirectangular(TextureHandle texture2D) -> void;
+        auto SetEquirectangular(FGTextureHandle texture) -> void;
         auto SetRenderBackground(SceneBackgroundType bg) -> void;
 
     private:
         auto RegisterShading( FrameGraph& graph ) -> void;
+
+        auto RegisterWireframe( FrameGraph& graph ) -> void;
 
         auto RegisterSkyboxRender( FrameGraph& graph ) -> void;
         auto RegisterSkyboxProjection( FrameGraph& graph ) -> void;
@@ -108,8 +113,8 @@ namespace mikoto::renderer {
         inline static const eastl::fixed_vector<float4x4, kMaxCubeFaces> kMatrices{
             glm::lookAt( float3( 0 ), float3( 1, 0, 0 ), float3( 0, -1, 0 ) ), // +X
             glm::lookAt( float3( 0 ), float3( -1, 0, 0 ), float3( 0, -1, 0 ) ),// -X
-            glm::lookAt( float3( 0 ), float3( 0, 1, 0 ), float3( 0, 0, 1 ) ),  // +Y
-            glm::lookAt( float3( 0 ), float3( 0, -1, 0 ), float3( 0, 0, -1 ) ),// -Y
+            glm::lookAt( float3( 0 ), float3( 0, -1, 0 ), float3( 0, 0, -1 ) ),  // +Y // Is this correct? Vulkan needs center pointing downwards
+            glm::lookAt( float3( 0 ), float3( 0, 1, 0 ), float3( 0, 0, 1 ) ),// -Y
             glm::lookAt( float3( 0 ), float3( 0, 0, 1 ), float3( 0, -1, 0 ) ), // +Z
             glm::lookAt( float3( 0 ), float3( 0, 0, -1 ), float3( 0, -1, 0 ) ),// -Z
         };
@@ -138,6 +143,7 @@ namespace mikoto::renderer {
         // IBL
         f32 mGamma{ 1.0f };
         f32 mExposure{ 1.0f };
+        FGTextureHandle mEquirectangularTexture{};
     };
 }
 

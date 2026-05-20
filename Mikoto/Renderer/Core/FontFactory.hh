@@ -47,8 +47,8 @@ namespace mikoto::renderer {
         FileHandle mFile{};
         float mSize{ 48 };
 
-        auto WithFile( FileHandle file ) -> FontLoadDescription&;
-        auto WithPixelSize( float pixelSize ) -> FontLoadDescription&;
+        auto SetFile( FileHandle file ) -> FontLoadDescription&;
+        auto SetSize( float pixelSize ) -> FontLoadDescription&;
     };
 
     struct FontFactoryCreateInfo {

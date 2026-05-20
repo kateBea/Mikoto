@@ -40,39 +40,12 @@ namespace mikoto::scene {
 
         SceneCamera( float fov, float aspectRatio, float nearClip, float farClip );
 
-        /**
-         * @brief Updates the camera state using the elapsed time.
-         * @param timeStep Elapsed time since the last frame.
-         * */
-        auto Update( double timeStep ) -> void;
+        auto Update( f64 timeStep ) -> void;
 
-        /**
-         * @brief Sets the size of the viewport for the camera.
-         * @param width The width of the viewport.
-         * @param height The height of the viewport.
-         * */
-        auto SetViewportSize( float width, float height ) -> void;
+        auto SetMovementSpeed( float value ) -> void { mMovementSpeed = value; }
 
-        /**
-         * @brief Sets the movement speed of the camera.
-         * This value determines the speed at which we can move the camera
-         * with Key_W, Key_A, Key_S and Key_D.
-         * @param value The new movement speed value to set.
-         * */
-        auto SetMovementSpeed( float value ) -> void { m_MovementSpeed = value; }
-
-        /**
-         * @brief Sets the rotation speed of the camera. Sets the speed at which we can rotate the camera with the mouse.
-         * @param value The new rotation speed value to set.
-         * */
-        auto SetRotationSpeed( float value ) -> void { m_RotationSpeed = value; }
-        auto SetDampingFactor( float value ) -> void { m_DampingFactor = value; }
-
-        /**
-         * @brief Sets the field of view of the camera.
-         * @param value The new field of view value to set.
-         * */
-        auto SetFieldOfView( float value ) -> void { m_FieldOfView = value; }
+        auto SetRotationSpeed( float value ) -> void { mRotationSpeed = value; }
+        auto SetDampingFactor( float value ) -> void { mDampingFactor = value; }
 
         auto SetTargetWindow( const platform::Window* window ) -> void;
 
@@ -82,23 +55,8 @@ namespace mikoto::scene {
         auto LockCameraToTarget(bool enable) -> void;
         auto SetOrbitDistance(float orbitDistance = 10.0f) -> void;
 
-        /**
-         * @brief Sets the far clipping plane distance of the camera.
-         * @param value The new far clipping plane value to set.
-         * */
-        auto SetFarPlane( float value ) -> void { m_FarClip = value; }
-
-        /**
-         * @brief Sets the near clipping plane distance of the camera.
-         * @param value The new near clipping plane value to set.
-         * */
-        auto SetNearPlane( float value ) -> void { m_NearClip = value; }
-
-        /**
-         * @brief Enables or disables camera movement and rotation.
-         * @param value If true, camera movement and rotation are allowed; otherwise, they are not.
-         * */
-        auto EnableCamera( const bool value ) { m_AllowCameraMovementAndRotation = value; }
+        // Enable camera rotation and movement
+        auto EnableCamera( bool value ) -> void;
 
         // Vignette
         // Size
@@ -121,30 +79,30 @@ namespace mikoto::scene {
     private:
         // This kind of camera responds to input from a window
         // in order to compute translations and rotations
-        const platform::Window* m_TargetWindow{ nullptr };
+        const platform::Window* mTargetWindow{ nullptr };
 
-        float3 m_TargetPosition{ 0.0f, 0.0f, 0.0f };
-        float3 m_TargetForwardVector{ 0.0f, 0.0f, -1.0f };
+        float3 mTargetPosition{ 0.0f, 0.0f, 0.0f };
+        float3 mTargetForwardVector{ 0.0f, 0.0f, -1.0f };
 
         // Controls how quickly the camera moves towards the target. Higher values mean faster smoothing.
-        float m_DampingFactor{ 15.0f };
+        float mDampingFactor{ 15.0f };
 
-        bool m_WantCameraRotationX{ true };
-        bool m_WantCameraRotationY{ true };
+        bool mWantCameraRotationX{ true };
+        bool mWantCameraRotationY{ true };
 
-        float2 m_LastMousePosition{ 0.0f, 0.0f };
+        float2 mLastMousePosition{ 0.0f, 0.0f };
 
-        float m_RotationSpeed{ 2.f };
-        float m_MovementSpeed{ 2.f };
+        float mRotationSpeed{ 2.f };
+        float mMovementSpeed{ 2.f };
 
         // Avoid speedy rotations. Compensate rotation speed
-        float m_RotationFactor{ 0.03f };
+        float mRotationFactor{ 0.03f };
 
-        bool m_AllowCameraMovementAndRotation{ false };
+        bool mAllowCameraMovementAndRotation{ false };
 
-        float3 m_CameraTarget{ 0.0f, 0.0f, 0.0f };
-        float m_OrbitDistance{ 10.f };
-        bool m_LockCameraToTarget{ false };
+        float3 mCameraTarget{ 0.0f, 0.0f, 0.0f };
+        float mOrbitDistance{ 10.f };
+        bool mLockCameraToTarget{ false };
     };
 }// namespace Mikoto
 

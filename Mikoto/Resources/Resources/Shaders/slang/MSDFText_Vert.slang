@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/FontRender_Helpers.slang"
 
 // NOTE (Migration from GLSL): https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/a2-01-spirv-target-specific.html
@@ -35,12 +36,11 @@
      SV_StartInstanceLocation(or SV_StartVertexLocation) semantics:
 */
 
-// At the moment it is valid to acces glyph data via instance ID
+// At the moment it is valid to access glyph data via instance ID
 // because we submit one draw call that has all the instances IDs
 
 struct VSInput {
-    float3 Position : ATTRIBUTE0;
-    uint TexCoordIndex : ATTRIBUTE1;
+    uint VertexID : SV_VertexID;
     uint InstanceIndex : SV_InstanceID;
 };
 
@@ -52,20 +52,29 @@ struct VSOutput {
     float4 PositionH : SV_Position;
 };
 
-[[vk::binding(Slot_0, UAV_SET_INDEX)]]
-StructuredBuffer<FontRenderParams, ScalarDataLayout> Params;
+struct DrawParams {
+    uint TextSamplerID;
+    uint TextParametersID;
+};
+
+MKT_DECLARE_STRUCTURED_SRV buffers;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
 
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    FontRenderParams p = Params[input.InstanceIndex];
+    uint vertexIndex = kTextIndices[input.VertexID];
+    TextVertexDescription vertex = kTextVertices[vertexIndex];
 
-    o.TexCoord = p.TextureCoords[input.TexCoordIndex];
+    ByteAddressBuffer textBuffer = buffers[Parameters.TextParametersID];
+    FontRenderParams p = textBuffer.Read<FontRenderParams>(0, input.InstanceIndex);
+
+    o.TexCoord = p.TextureCoords[vertex.mTextureIndex];
     o.AtlasIndex = p.TextureIndex;
     o.Color = p.Color;
 
-    float3 pos = input.Position * p.Size.xyz + p.Position.xyz;
+    float3 pos = vertex.mPosition * p.Size.xyz + p.Position.xyz;
 
     o.PositionH =
         mul(p.Projection,

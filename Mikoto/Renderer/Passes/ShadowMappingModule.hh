@@ -27,7 +27,7 @@
 
 namespace mikoto::renderer {
 
-    inline constexpr u32 kMaxShadowMaps{ 32 };
+    inline constexpr u32 kMaxShadowMaps{ 5 };
 
     struct ShadowMapInfo {
 
@@ -70,7 +70,6 @@ namespace mikoto::renderer {
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
     private:
-        auto RegisterLightsSetup( FrameGraph& graph ) -> void;
         auto RegisterDirShadowMap( FrameGraph& graph ) -> void;
         auto RegisterPointShadowMap( FrameGraph& graph ) -> void;
         auto RegisterSpotShadowMap( FrameGraph& graph ) -> void;

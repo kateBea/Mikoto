@@ -97,6 +97,8 @@ namespace mikoto::renderer {
             .mClearColor = c,
             .mLoadOp = op,
             .mRenderTarget = target,
+            .mFaceIndex = faceIndex,
+            .mMipLevel = mipLevel,
         });
 
         return *this;
@@ -113,7 +115,10 @@ namespace mikoto::renderer {
     }
 
     auto CommandContext::EndPass() -> void {
-
+        if (mNode->mExecutionPolicy == FGExecutionPolicy::eOnce ||
+            mNode->mExecutionPolicy == FGExecutionPolicy::eOnChange) {
+            mNode->mIsAlive = false;
+        }
     }
 
     auto CommandContext::BeginRender( const ContextRenderState &gs ) -> void {
@@ -129,7 +134,12 @@ namespace mikoto::renderer {
         for (const auto& colorImage : gs.mCurrentRenderTargets) {
             TextureHandle texture{ mResourceManager->Get( colorImage.mRenderTarget.mHandle ).mResource };
             if (!texture.IsEmpty()) {
-                graphicsState.AddRenderTarget( texture, colorImage.mClearColor, colorImage.mLoadOp );
+                graphicsState.AddRenderTarget( texture, colorImage.mClearColor, colorImage.mLoadOp, TextureSubresourceSet{
+                    colorImage.mMipLevel,       // mBaseMipLevel
+                    1,                          // mNumMipLevels
+                    colorImage.mFaceIndex,      // mBaseArraySlice (0 = +X, 1 = -X, etc.)
+                    1                           // mNumArraySlices (Face count)
+                } );
             }
         }
 

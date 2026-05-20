@@ -23,6 +23,8 @@
 #include <Renderer/Passes/PresentationModule.hh>
 #include <Renderer/Passes/GeometryCullModule.hh>
 
+#include <Renderer/Passes/GeometryShadingModule.hh>
+
 namespace mikoto::renderer {
 
     using namespace mikoto::core;
@@ -79,24 +81,29 @@ namespace mikoto::renderer {
                 // The color target used in this pass is externally managed
                 // The frame graph does not control access to it nor does it make sure the
                 // image is in proper layout
+                const auto& wireframe{ blackboard.Get<WireframeData>() };
                 const auto& prepass{ blackboard.Get<PrepassModuleInfo>() };
                 const auto& trianglePassData{ blackboard.Get<TrianglePassData>() };
+                const auto& shading{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 builder.Read( trianglePassData.mColorTarget, FGResourceState::eShaderResource );
                 builder.Read( prepass.mGBufferNormalTarget, FGResourceState::eShaderResource );
                 builder.Read( prepass.mGBufferColorTarget, FGResourceState::eShaderResource );
+                builder.Read( wireframe.mColorImage, FGResourceState::eShaderResource );
+                builder.Read( shading.mShadingColorImage, FGResourceState::eShaderResource );
                 builder.Read( prepass.mDepthPrepassColorTarget, FGResourceState::eShaderResource );
             },
             [this]( CommandContext &ctx, Blackboard &b ) {
                 const auto &data{ b.Get<PresentationPassData>() };
                 const auto& prepass{ b.Get<PrepassModuleInfo>() };
+                const auto& shading{ b.Get<GeomShadingModuleInfo>() };
                 const auto &geom{ b.Get<GeometryManagementModuleInfo>() };
 
                 struct DrawParams {
                     u32 mTextureIndex{};
                     u32 mSamplerIndex{};
                 } params{
-                    .mTextureIndex = ctx.PushTexture_SRV( prepass.mGBufferColorTarget ),
+                    .mTextureIndex = ctx.PushTexture_SRV( shading.mShadingColorImage ),
                     .mSamplerIndex = ctx.PushSampler( geom.mBasicSampler ),
                 };
 

@@ -42,113 +42,114 @@ namespace mikoto::scene {
         auto operator=(const Camera& other) -> Camera& = default;
         auto operator=(Camera&& other) -> Camera& = default;
 
-        auto SetViwMatrix(const glm::mat4& matrix) -> void { m_ViewMatrix = matrix; }
+        auto SetViwMatrix(const glm::mat4& matrix) -> void { mView = matrix; }
 
-        MKT_NODISCARD auto GetProjection() const -> const glm::mat4& { return m_Projection; }
-        MKT_NODISCARD auto GetViewMatrix() const -> const glm::mat4& { return m_ViewMatrix; }
+        MKT_NODISCARD auto GetProjection() const -> const glm::mat4& { return mProjection; }
+        MKT_NODISCARD auto GetViewMatrix() const -> const glm::mat4& { return mView; }
 
-        auto SetProjection(const glm::mat4& projection = glm::mat4(1.0)) -> void { m_Projection = projection; }
+        MKT_NODISCARD auto GetTransform() const -> const glm::mat4& { return mTransform; }
+        MKT_NODISCARD auto GetTransform() -> glm::mat4& { return mTransform; }
+        auto SetTransform(const glm::mat4& transform) -> void { mTransform = transform; }
 
-        MKT_NODISCARD auto GetTransform() const -> const glm::mat4& { return m_Transform; }
-        MKT_NODISCARD auto GetTransform() -> glm::mat4& { return m_Transform; }
-        auto SetTransform(const glm::mat4& transform) -> void { m_Transform = transform; }
-
-        MKT_NODISCARD auto GetTargetForward() const -> const glm::vec3& { return m_ForwardVector; }
-        MKT_NODISCARD auto GetFOV() const -> float { return m_FieldOfView; }
-        MKT_NODISCARD auto GetNearPlane() const -> float { return m_NearClip; }
-        MKT_NODISCARD auto GetFarPlane() const -> float { return m_FarClip; }
-        MKT_NODISCARD auto GetAspectRatio() const -> float { return m_ViewportWidth / m_ViewportHeight; }
-        MKT_NODISCARD auto GetViewPort() const -> decltype(auto) { return std::make_pair(m_ViewportWidth, m_ViewportHeight); }
+        MKT_NODISCARD auto GetTargetForward() const -> const glm::vec3& { return mForward; }
+        MKT_NODISCARD auto GetFOV() const -> float { return mFov; }
+        MKT_NODISCARD auto GetNearPlane() const -> float { return mNearPlane; }
+        MKT_NODISCARD auto GetFarPlane() const -> float { return mFarPlane; }
+        MKT_NODISCARD auto GetAspectRatio() const -> float { return mViewportWidth / mViewportHeight; }
+        MKT_NODISCARD auto GetViewPort() const -> decltype(auto) { return std::make_pair(mViewportWidth, mViewportHeight); }
 
 
-        /**
-         * @brief Retrieve the view projection matrix.
-         * @return The result of the projection matrix multiplied by the view matrix.
-         * */
-        MKT_NODISCARD auto GetViewProjection() const -> glm::mat4 { return GetProjection() * m_ViewMatrix; }
+        MKT_NODISCARD auto GetViewProjection() const -> glm::mat4 { return GetProjection() * mView; }
 
-        MKT_NODISCARD auto GetPosition() const -> const glm::vec3& { return m_Position; }
-        MKT_NODISCARD auto GetRotation() const -> const glm::vec3& { return m_Rotation; }
+        MKT_NODISCARD auto GetPosition() const -> const glm::vec3& { return mPosition; }
+        MKT_NODISCARD auto GetRotation() const -> const glm::vec3& { return mRotation; }
 
-        auto SetPosition(const glm::vec3& position) -> void {
-            m_Translation = position;
-            m_Transform = glm::translate(m_Transform, m_Translation);
+        auto SetFieldOfView( float value ) -> void { mFov = value; }
+
+        auto SetFarPlane( float value ) -> void { mFarPlane = value; }
+        auto SetNearPlane( float value ) -> void { mNearPlane = value; }
+
+        auto SetPosition(const core::float3& position) -> void {
+            mTranslation = position;
+            mTransform = glm::translate(mTransform, mTranslation);
         }
 
-        auto SetRotation(const glm::vec3& angles = glm::vec3(0.0f)) -> void {
-            m_Rotation = angles;
+        auto SetRotation(const core::float3& angles = glm::vec3(0.0f)) -> void {
+            mRotation = angles;
 
-            m_Transform = rotate(m_Transform, glm::radians( m_Rotation[0] ), core::float3{ 1.0f, 0.0f, 0.0f });
-            m_Transform =  rotate(m_Transform, glm::radians( m_Rotation[1] ), core::float3{ .0f, 1.0f, 0.0f } );
-            m_Transform =  rotate(m_Transform, glm::radians( m_Rotation[2] ), core::float3{ 0.0f, 0.0f, 1.0f });
+            // ADL, namespace skipped
+            mTransform = rotate(mTransform, glm::radians( mRotation[0] ), core::float3{ 1.0f, 0.0f, 0.0f });
+            mTransform =  rotate(mTransform, glm::radians( mRotation[1] ), core::float3{ .0f, 1.0f, 0.0f } );
+            mTransform =  rotate(mTransform, glm::radians( mRotation[2] ), core::float3{ 0.0f, 0.0f, 1.0f });
         }
 
-        MKT_NODISCARD auto GetProjectionType() const -> ProjectionType { return m_ProjectionType; }
-        MKT_NODISCARD auto IsOrthographic() const -> bool { return m_ProjectionType == ProjectionType::ORTHOGRAPHIC; }
+        auto SetViewportSize( const core::f32 width, const core::f32 height ) -> void {
+            if ( mViewportWidth == width && mViewportHeight == height ) {
+                return;
+            }
+
+            mViewportWidth = width;
+            mViewportHeight = height;
+        }
+
+        MKT_NODISCARD auto GetProjectionType() const -> ProjectionType { return mProjectionType; }
+        MKT_NODISCARD auto IsOrthographic() const -> bool { return mProjectionType == ProjectionType::ORTHOGRAPHIC; }
 
         auto SetProjectionType( const ProjectionType type ) -> void {
-            m_ProjectionType = type;
-
-            UpdateProjection();
+            mProjectionType = type;
         }
 
         ~Camera() = default;
 
     protected:
         explicit Camera(const glm::mat4& projection = glm::mat4(1.0f), const glm::mat4& transform = glm::mat4(1.0f), ProjectionType projectionType = ProjectionType::PERSPECTIVE )
-            :   m_Projection{ projection }, m_Transform{ transform }, m_ProjectionType{ projectionType }
+            :   mProjection{ projection }, mTransform{ transform }, mProjectionType{ projectionType }
         {
             UpdateProjection();
         }
 
         auto UpdateProjection() -> void {
-            m_AspectRatio = m_ViewportWidth / m_ViewportHeight;
+            mAspectRatio = mViewportWidth / mViewportHeight;
 
-            switch(m_ProjectionType) {
+            switch(mProjectionType) {
                 case ProjectionType::ORTHOGRAPHIC:
-                    SetProjection(glm::ortho(0.0f, m_ViewportWidth, 0.0f, m_ViewportHeight));
+                    mProjection = glm::ortho(0.0f, mViewportWidth, 0.0f, mViewportHeight);
                 break;
                 case ProjectionType::PERSPECTIVE:
-                    SetProjection(glm::perspective(glm::radians(m_FieldOfView), m_AspectRatio, m_NearClip, m_FarClip));
+                    mProjection = glm::perspective(glm::radians(mFov), mAspectRatio, mNearPlane, mFarPlane);
                 break;
             }
         }
 
     protected:
-        float m_ViewportWidth{ 1920 };
-        float m_ViewportHeight{ 1080 };
+        float mViewportWidth{ 1920 };
+        float mViewportHeight{ 1080 };
 
         // [Projection Data]
-        float m_NearClip{ 0.1f };
-        float m_FarClip{ 1000.0f };
-        float m_FieldOfView{ 45.0f };
-        float m_AspectRatio{ m_ViewportWidth / m_ViewportHeight };
+        float mNearPlane{ 0.1f };
+        float mFarPlane{ 1000.0f };
+        float mFov{ 45.0f };
+        float mAspectRatio{ mViewportWidth / mViewportHeight };
 
         // [Matrices]
-        glm::mat4 m_ViewMatrix{};
-        glm::mat4 m_ProjectionMatrix{};
+        core::float4x4 mView{};
+        core::float4x4 mProjection{};
+        core::float4x4 mTransform{};
 
         // [Vectors]
-        glm::vec3 m_Position{ -15.0f, 5.0f, 30.0f };
-        glm::vec3 m_RightVector{ 1.0f, 0.0f, 0.0f };
-        glm::vec3 m_CameraUpVector{ core::float3{ .0f, 1.0f, 0.0f } };
-        glm::vec3 m_ForwardVector{ 15.0f, -5.0f, -30.0f };
+        core::float3 mPosition{ -15.0f, 5.0f, 30.0f };
+        core::float3 mRightVector{ 1.0f, 0.0f, 0.0f };
+        core::float3 mUp{ core::float3{ .0f, 1.0f, 0.0f } };
+        core::float3 mForward{ 15.0f, -5.0f, -30.0f };
+        core::float3 mTranslation{};
+        core::float3 mRotation{};
 
         // [Rotations]
-        float m_Yaw{ 0.0f };
-        float m_Roll{ 0.0f };
-        float m_Pitch{ 0.0f };
+        float mYaw{ 0.0f };
+        float mRoll{ 0.0f };
+        float mPitch{ 0.0f };
 
-        // [Misc]
-        math::random::Guid m_Guid{};
-
-        glm::mat4 m_Projection{};
-        glm::mat4 m_Transform{};
-
-        glm::vec3 m_Translation{};
-        glm::vec3 m_Rotation{};
-
-        ProjectionType m_ProjectionType{ ProjectionType::PERSPECTIVE };
+        ProjectionType mProjectionType{ ProjectionType::PERSPECTIVE };
     };
 }
 

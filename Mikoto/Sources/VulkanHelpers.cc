@@ -557,6 +557,32 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
+    auto GetArraLayerCount( TextureDimension dimension, u32 requestedLayers ) -> u32 {
+        switch (dimension) {
+            case TextureDimension::eTexture1D:
+            case TextureDimension::eTexture2D:
+            case TextureDimension::eTexture2DMS:
+            case TextureDimension::eTexture3D:
+                return 1;
+
+            case TextureDimension::eTextureCube:
+                return 6;
+
+            case TextureDimension::eTexture1DArray:
+            case TextureDimension::eTexture2DArray:
+            case TextureDimension::eTexture2DMSArray:
+                return requestedLayers;
+
+            case TextureDimension::eTextureCubeArray:
+                // Must be a multiple of 6 for cubemap arrays
+                return requestedLayers * 6;
+
+            case TextureDimension::eInvalid:
+            default:
+                return 0;
+        }
+    }
+
     auto GetImageUsage( TextureUsageFlags flags ) -> VkImageUsageFlags {
         VkImageUsageFlags result{};
         if (flags & TextureUsageFlagsBits::kRenderTarget) {
@@ -629,14 +655,14 @@ namespace mikoto::renderer::vulkan {
             case TextureDimension::eTexture1D:
                 return VK_IMAGE_VIEW_TYPE_1D;
 
+            case TextureDimension::eTextureCube:
+                return VK_IMAGE_VIEW_TYPE_CUBE;
+
             case TextureDimension::eTexture2D:
                 return VK_IMAGE_VIEW_TYPE_2D;
 
             case TextureDimension::eTexture3D:
                 return VK_IMAGE_VIEW_TYPE_3D;
-
-            case TextureDimension::eTextureCube:
-                return VK_IMAGE_VIEW_TYPE_CUBE;
 
             case TextureDimension::eTexture1DArray:
                 return VK_IMAGE_VIEW_TYPE_1D_ARRAY;

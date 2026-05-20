@@ -13,23 +13,36 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
+#include "base/Camera_Helpers.slang"
+#include "base/Lighting_Helpers.slang"
 
 struct FSOutput {
     float4 Color : SV_Target0;
 };
 
-struct WireframeParams {
-    float4 LineColor;
+struct FSInput {
+    float4 ScreenPos : SV_Position;
 };
 
-[[vk::push_constant]]
-WireframeParams u_Parameters;
+struct DrawParams {
+    uint GeometryID;
+    uint SkinningID;
+
+    uint IndexID;
+    uint VertexID;
+
+    uint CameraInfoBufferID;
+};
+
+MKT_DECLARE_STRUCTURED_SRV Buffers;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
 
 [shader("fragment")]
-FSOutput main() {
+FSOutput main(FSInput input) {
     FSOutput o;
 
-    o.Color = u_Parameters.LineColor;
+    o.Color = float4(0.0, 0.0, 0.0, 1.0);
 
     return o;
 }

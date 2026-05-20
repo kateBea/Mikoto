@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
 
@@ -24,17 +25,29 @@ struct FSInput {
     float4 ScreenPos : SV_Position;
 };
 
-[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
-ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
+struct DrawParams {
+    uint GeometryID;
+    uint SkinningID;
+
+    uint IndexID;
+    uint VertexID;
+
+    uint CameraInfoBufferID;
+};
+
+MKT_DECLARE_STRUCTURED_SRV Buffers;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
 
-    float depth = LinearDepth(input.ScreenPos.z, u_Camera.Planes);
+    CameraInfo camera = Buffers[Parameters.CameraInfoBufferID].Read<CameraInfo>(0, 0);
 
-    float near = u_Camera.Planes.x;
-    float far = u_Camera.Planes.y;
+    float depth = LinearDepth(input.ScreenPos.z, camera.Planes.xy);
+
+    float near = camera.Planes.x;
+    float far = camera.Planes.y;
 
     float depthNormalized = (depth - near) / (far - near);
 

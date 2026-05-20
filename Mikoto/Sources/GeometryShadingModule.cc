@@ -46,7 +46,7 @@ namespace mikoto::renderer {
         mCamera = camera;
     }
 
-    auto GeometryShadingModule::SetGeometryManagement( GeometryCullModule &geom ) -> void {
+    auto GeometryShadingModule::SetGeometryManager( GeometryCullModule &geom ) -> void {
         mGeometryManagement = MKT_ADDRESSOF( geom );
     }
 
@@ -60,8 +60,8 @@ namespace mikoto::renderer {
         mResolution = resolution;
     }
 
-    auto GeometryShadingModule::SetEquirectangular( TextureHandle texture2D ) -> void {
-
+    auto GeometryShadingModule::SetEquirectangular( FGTextureHandle texture ) -> void {
+        mEquirectangularTexture = texture;
     }
 
     auto GeometryShadingModule::SetRenderBackground( SceneBackgroundType bg ) -> void {
@@ -82,11 +82,11 @@ namespace mikoto::renderer {
         // Prepare external resources
         GeomShadingModuleInfo& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
 
-        auto samplerDes{ FGSamplerDescription{}
+        auto iblSampler{ FGSamplerDescription{}
             .SetName( "IBLCubeSampler_Sampler01" )
             .SetBorderColor( kColorBlack ) };
 
-        info.mIBLCubeSampler = graph.Create( samplerDes );
+        info.mIBLCubeSampler = graph.Create( iblSampler );
 
         // Create shared resources
         const auto dimensions{ InferDimensions( mResolution ) };
@@ -101,6 +101,14 @@ namespace mikoto::renderer {
 
         info.mShadingColorImage = graph.Create( colorImage );
 
+        auto samplerDesc{ FGSamplerDescription{}
+            .SetName( "SkyboxProjection_Sampler01" )
+            .SetFilter( rhi::SamplerFilter::eNearest )
+            .SetWrap( SamplerWrapMode::eRepeat )
+            .SetBorderColor( kColorWhite ) };
+
+        info.mBasicSampler = graph.Create( iblSampler );
+
         auto skyboxCube{ FGTextureDescription{}
             .SetName( "SkyboxProjection_CubeRT" )
             .SetWidth( as<i32>( 2540 ) )
@@ -111,6 +119,8 @@ namespace mikoto::renderer {
             .SetFormat( Format::eRGBA32_FLOAT ) }; // For HDR values
 
         info.mSkyboxCubeRT = graph.Create( skyboxCube );
+
+        RegisterWireframe( graph );
 
         RegisterSkyboxProjection( graph );
 
@@ -132,6 +142,7 @@ namespace mikoto::renderer {
             .SetName( "Irradiance_CubeRT" )
             .SetWidth( as<i32>( kIrradianceDimensions ) )
             .SetHeight( as<i32>( kIrradianceDimensions ) )
+            .SetMipCount( as<i32>( kIrradianceMipLevels ) )
             .SetDimensions( TextureDimension::eTextureCube )
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
@@ -162,7 +173,8 @@ namespace mikoto::renderer {
                 struct DrawParams {
                     float4x4 mMvp{};
                     f32 mDeltaTheta{};
-                    u32 mDeltaPhi{};
+                    f32 mDeltaPhi{};
+
                     u32 mSkyboxCubeID{};
                     u32 mBasicSamplerID{};
                 } params{
@@ -210,6 +222,7 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( kPrefilterDimensions ) )
             .SetDimensions( TextureDimension::eTextureCube )
             .SetMultisampling( Multisampling::eMsaaX1 )
+            .SetMipCount( mPrefilterMipLevels )
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
             .SetFormat( Format::eRGBA16_FLOAT ) }; // For HDR values
 
@@ -240,6 +253,7 @@ namespace mikoto::renderer {
                     float4x4 mMvp{};
                     f32 mRoughness{};
                     u32 mNumSamples{};
+
                     u32 mSkyboxCubeID{};
                     u32 mBasicSamplerID{};
 
@@ -352,22 +366,18 @@ namespace mikoto::renderer {
 
         info.mSkyboxProjectionPipeline = graph.Create( pipelineBuilder );
 
-        auto samplerDes{ FGSamplerDescription{}
-            .SetName( "SkyboxProjection_Sampler01" )
-            .SetFilter( rhi::SamplerFilter::eNearest )
-            .SetWrap( SamplerWrapMode::eClampToBorder )
-            .SetBorderColor( kColorWhite ) };
-
-        info.mBasicSampler = graph.Create( samplerDes );
-
         graph.RegisterPass<GeomShadingModuleInfo>(
             "SkyboxProjection",
             FGPassType::eGraphics,
-            []( FGNodeBuilder& b, GeomShadingModuleInfo& info ) {
-                b.Write( info.mSkyboxCubeRT, FGResourceState::eRenderTarget );
+            [](FGNodeBuilder& b, GeomShadingModuleInfo& info) {
+                b.Write(info.mSkyboxCubeRT, FGResourceState::eRenderTarget);
             },
-    []( CommandContext &ctx, Blackboard &blackboard ) {
-                GeomShadingModuleInfo& info{ blackboard.Get<GeomShadingModuleInfo>() };
+            [this](CommandContext& ctx, Blackboard& blackboard){
+                if (mEquirectangularTexture.mHandle == FGResourceManager::kInvalidResourceHandle) {
+                    return;
+                }
+
+                GeomShadingModuleInfo& info{blackboard.Get<GeomShadingModuleInfo>()};
 
                 struct DrawParams {
                     float4x4 mMvp{};
@@ -375,32 +385,31 @@ namespace mikoto::renderer {
                     u32 mEquirectangularID{};
                 } params{
                     .mMvp = math::constants::Identity<float4x4>(),
-                    .mBasicSamplerID = ctx.PushSampler( info.mBasicSampler ),
-                    .mEquirectangularID = ctx.PushTexture_SRV( info.mImportedEquirectangular ),
+                    .mBasicSamplerID = ctx.PushSampler(info.mBasicSampler),
+                    .mEquirectangularID = ctx.PushTexture_SRV(mEquirectangularTexture),
                 };
 
-                for ( u32 mipLevel{}; mipLevel < 1; mipLevel++ ) {
-                    for ( u32 face{}; face < rhi::kMaxCubeFaces; ++face ) {
-                        params.mMvp = glm::perspective( as<f32>( math::constants::kPi / 2.0 ),
-                            1.0f, 0.1f, 512.0f ) * kMatrices[face];
-
-                        ctx.PushConstants( params );
+                for (u32 mipLevel{}; mipLevel < 1; mipLevel++) {
+                    for (u32 face{}; face < rhi::kMaxCubeFaces; ++face) {
+                        params.mMvp = glm::perspective(as<f32>(math::constants::kPi / 2.0),
+                                                       1.0f, 0.1f, 512.0f) * kMatrices[face];
+                        ctx.PushConstants(params);
 
                         auto graphicsState{ ContextRenderState{}
-                            .SetRenderArea( Rect{ 2540, 2540 } )
-                            .AddRenderTarget( info.mSkyboxCubeRT, kColorCyan, LoadOp::eClear, face, mipLevel ) };
-                        ctx.BeginRender( graphicsState );
+                            .SetRenderArea(Rect{2540, 2540})
+                            .AddRenderTarget(info.mSkyboxCubeRT, kColorCyan, LoadOp::eClear, face, mipLevel) };
+                        ctx.BeginRender(graphicsState);
 
-                        ctx.SetViewportState( ViewportState{}
-                            .AddViewportAndScissorRect( Viewport( 2540, 2540 ) ) );
+                        ctx.SetViewportState(ViewportState{}
+                            .AddViewportAndScissorRect(Viewport(2540, 2540)));
 
-                        ctx.BindPipeline( info.mSkyboxProjectionPipeline );
-                        ctx.Draw( 36 );
+                        ctx.BindPipeline(info.mSkyboxProjectionPipeline);
+                        ctx.Draw(36);
 
                         ctx.EndRender();
                     }
                 }
-        } );
+            });
     }
 
     auto GeometryShadingModule::RegisterSkyboxRender( FrameGraph &graph ) -> void {
@@ -515,7 +524,7 @@ namespace mikoto::renderer {
             .SetPipelineType( PipelineType::eGraphics )
             .SetTopology( PrimitiveTopology::eTriangleList )
             .SetDepthFormat( Format::eD32 )
-            .AddColorFormat( Format::eRGBA8_UNORM )
+            .AddColorFormat( Format::eRGBA16_FLOAT )
             .SetCullMode( CullMode::eCullBack )
             .PushShader( "PBR_MetallicRoughness_Vert.slang", FGStageType::eVertex )
             .PushShader( "PBR_MetallicRoughness_Frag.slang", FGStageType::eFragment ) };
@@ -554,12 +563,6 @@ namespace mikoto::renderer {
 
                 // Shadow mapping stuff here
                 const auto& shadow{ blackboard.Get<ShadowMapInfo>() };
-
-                for (const auto& map : shadow.mSpotShadowMaps) {
-                    if (map.mHandle != 0) {
-                        builder.Read( map, FGResourceState::eDepthRead );
-                    }
-                }
             },
             [this]( CommandContext &ctx, Blackboard& blackboard ) -> void {
                 CameraModuleInfo& cam{ blackboard.Get<CameraModuleInfo>() };
@@ -586,6 +589,7 @@ namespace mikoto::renderer {
                     u32 mIrradianceCubeRtID{};
 
                     u32 mSamplerCubeID{};
+                    u32 mSamplerBasicID{};
 
                     float4 mGridSize{};
                     f32 mExposure{ 1.0f };
@@ -618,6 +622,7 @@ namespace mikoto::renderer {
                     .mIrradianceCubeRtID = ctx.PushTexture_SRV( finalImage.mIrradianceCubeRT ),
 
                     .mSamplerCubeID = ctx.PushSampler( finalImage.mBasicSampler ),
+                    .mSamplerBasicID = ctx.PushSampler( finalImage.mBasicSampler ),
 
                     .mGridSize = prepass.mGridSize,
                     .mExposure = mExposure,
@@ -648,6 +653,105 @@ namespace mikoto::renderer {
                     .AddViewportAndScissorRect( Viewport( as<i32>(dimensions.first), as<i32>(dimensions.second) ) ) );
 
                 ctx.BindPipeline( finalImage.mShadingPipeline );
+
+                mGeometryManagement->DrawInstancesIndirect( ctx );
+
+                ctx.EndRender();
+            } );
+    }
+
+    auto GeometryShadingModule::RegisterWireframe(FrameGraph& graph) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        WireframeData& info{ graph.GetOrCreate<WireframeData>() };
+
+        auto dimensions{ InferDimensions( mResolution ) };
+
+        // Color attachment for debugging
+        auto colorImage{ FGTextureDescription{}
+            .SetName( "Wireframe_ColorImage01" )
+            .SetWidth( as<i32>( dimensions.first ) )
+            .SetHeight( as<i32>( dimensions.second ) )
+            .SetDimensions( TextureDimension::eTexture2D )
+            .SetMultisampling( Multisampling::eMsaaX1 )
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetFormat( Format::eRGBA8_UNORM ) };
+
+        info.mColorImage = graph.Create( colorImage );
+
+        auto pipelineBuilder{ FGPipelineDescription{}
+            .SetName( "Wireframe_Pipeline" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .SetPolygonMode( PolygonMode::eLines )
+            .SetDepthFormat( Format::eD32 )
+            .SetCullMode( CullMode::eNone )
+            .AddColorFormat( Format::eRGBA8_UNORM )
+            .PushShader( "Wireframe_Vert.slang", FGStageType::eVertex )
+            .PushShader( "Wireframe_Frag.slang", FGStageType::eFragment ) };
+
+        info.mPipeline = graph.Create( pipelineBuilder );
+
+        graph.RegisterPass(
+            "WireframePass",
+            FGPassType::eGraphics,
+            []( FGNodeBuilder&builder, Blackboard& blackboard ) {
+                WireframeData& info{ blackboard.Get<WireframeData>() };
+                PrepassModuleInfo& prepassInfo{ blackboard.Get<PrepassModuleInfo>() };
+                CameraModuleInfo& cameraPassInfo{ blackboard.Get<CameraModuleInfo>() };
+                GeometryManagementModuleInfo& geometryInfo{ blackboard.Get<GeometryManagementModuleInfo>() };
+
+                builder.Write( info.mColorImage, FGResourceState::eRenderTarget );
+
+                builder.Read( prepassInfo.mDepthPrepassDepthTarget, FGResourceState::eDepthRead );
+
+                builder.Read( cameraPassInfo.mCameraData, FGResourceState::eShaderResource );
+
+                builder.Read( geometryInfo.mGeometryBuffer, FGResourceState::eShaderResource );
+                builder.Read( geometryInfo.mSkinningBuffer, FGResourceState::eShaderResource );
+
+                builder.Read( geometryInfo.mVerticesBuffer, FGResourceState::eShaderResource );
+                builder.Read( geometryInfo.mIndicesBuffer, FGResourceState::eShaderResource );
+            },
+
+            [this]( CommandContext& ctx, Blackboard& b ) -> void {
+                WireframeData& info{ b.Get<WireframeData>() };
+                PrepassModuleInfo& prepassInfo{ b.Get<PrepassModuleInfo>() };
+                CameraModuleInfo& cameraPassInfo{ b.Get<CameraModuleInfo>() };
+                GeometryManagementModuleInfo& geometryInfo{ b.Get<GeometryManagementModuleInfo>() };
+
+                struct DrawParams {
+                    u32 mGeometryInfoBufferID{};
+                    u32 mSkinningInfoBufferID{};
+
+                    u32 mIndexID{};
+                    u32 mVertexID{};
+
+                    u32 mCameraInfoBufferID{};
+                } params{
+                    .mGeometryInfoBufferID = ctx.PushBuffer_SRV( geometryInfo.mGeometryBuffer ),
+                    .mSkinningInfoBufferID = ctx.PushBuffer_SRV( geometryInfo.mSkinningBuffer ),
+
+                    .mIndexID = ctx.PushBuffer_SRV( geometryInfo.mIndicesBuffer ),
+                    .mVertexID = ctx.PushBuffer_SRV( geometryInfo.mVerticesBuffer ),
+
+                    .mCameraInfoBufferID = ctx.PushBuffer_SRV( cameraPassInfo.mCameraData ),
+                };
+
+                ctx.PushConstants( params );
+
+                const auto dimensions{ InferDimensions( mResolution ) };
+
+                const auto graphicsState{ ContextRenderState{}
+                    .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
+                    .AddDepthTarget( prepassInfo.mDepthPrepassDepthTarget, LoadOp::eLoad )
+                    .AddRenderTarget( info.mColorImage, kColorWhite, LoadOp::eClear ) };
+                ctx.BeginRender( graphicsState );
+
+                ctx.SetViewportState( ViewportState{}
+                    .AddViewportAndScissorRect( Viewport( as<f32>( dimensions.first ), as<f32>( dimensions.second ) ) ) );
+
+                ctx.BindPipeline( info.mPipeline );
 
                 mGeometryManagement->DrawInstancesIndirect( ctx );
 

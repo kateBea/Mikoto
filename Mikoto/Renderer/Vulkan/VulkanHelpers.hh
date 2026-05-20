@@ -68,6 +68,8 @@ namespace mikoto::renderer::vulkan {
     MKT_NODISCARD auto GetShaderStageFlags( ShaderStage visibility ) -> VkShaderStageFlags;
     MKT_NODISCARD auto GetDescriptorType( ResourceType type ) -> VkDescriptorType;
 
+    MKT_NODISCARD auto GetArraLayerCount( TextureDimension dimension, u32 requestedLayers = 1 ) -> u32;
+
     MKT_NODISCARD auto GetImageUsage(TextureUsageFlags flags ) -> VkImageUsageFlags;
 
 #define MKT_VK_CHECK( expr )                                               \

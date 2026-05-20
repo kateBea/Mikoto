@@ -34,8 +34,8 @@ struct DrawParams {
     uint BackGroundType; // Prefilter map, Original skybox, clear color
 
     uint MaxMipLevel;
-    uint Exposure;
-    uint Gamma;
+    float Exposure;
+    float Gamma;
 };
 
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;

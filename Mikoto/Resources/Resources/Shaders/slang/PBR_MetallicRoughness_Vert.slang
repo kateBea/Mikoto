@@ -13,45 +13,46 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Material_Helpers.slang"
 #include "base/Animation_Helpers.slang"
 
-struct FinalShadingParameters {
-    float4x4 LightViewProjection;
+struct DrawParams {
+    uint mCameraDataID;
+    uint mVerticesBufferID;
+    uint mIndicesBufferID;
 
-    float4 GridSize;
-    float Exposure;
-    float Gamma;
-    float MaxReflectionLOD;
+    uint mGeometryBufferID;
+    uint mMaterialsBufferID;
+    uint mSkinningBufferID;
+    uint mClusterBufferID;
 
-    uint ActiveLights;
+    uint mLightCullingBufferID;
+    uint mBrdfColorTargetID;
+    uint mPrefilterCubeRtID;
+    uint mIrradianceCubeRtID;
 
-    int EnableSSAO;
-    int UseBlurred;
-    float SSAOIntensity;
+    uint mSamplerCubeID;
+    uint mSamplerBasicID;
 
-    int PrefilteredCubeMipLevels;
-    float ScaleIBLAmbient;
-    int Step; // for debug
+    float4 mGridSize;
+    float mExposure;
+    float mGamma;
 
-    int IsSkyboxActive;
+    uint mActiveLightCount;
 
-    int ToneMapType;
+    uint mEnableSsao;
+    float mSsaoIntensity;
+
+    uint mPrefilteredCubeMipLevels;
+    float mScaleIblAmbient;
+
+    uint mIsSkyboxActive;
 };
 
-[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
-ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
-
-[[vk::binding(Slot_0, UAV_SET_INDEX)]] StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
-[[vk::binding(Slot_1, UAV_SET_INDEX)]] StructuredBuffer<BoneData, ScalarDataLayout> Bones;
-
-// Vertex pullign data
-[[vk::binding(Slot_5, UAV_SET_INDEX)]] ByteAddressBuffer[] Vertices;
-[[vk::binding(Slot_6, UAV_SET_INDEX)]] ByteAddressBuffer[] Indices;
-
-[[vk::push_constant]]
-FinalShadingParameters u_Constants;
+MKT_DECLARE_STRUCTURED_SRV buffers;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 struct VSInput {
     uint VertexID : SV_VertexID;
@@ -69,42 +70,36 @@ struct VSOutput {
 
     uint MaterialIndex : TEXCOORD6;
 
-    float4 FragPosLightSpace : TEXCOORD7;
-
     float4 PositionH : SV_Position;
 };
-
-T LoadData<T>(uint bufferID, uint baseOffset, uint index) {
-    return Vertices[bufferID].LoadByteOffset<T>(
-        (baseOffset + index) * sizeof(T)
-    );
-}
 
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    // Compute instance index
-    uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
-    MeshParameters meshInfo = Meshes[instanceIndex];
-    o.MaterialIndex = instanceIndex;
+    ByteAddressBuffer GeometryBuffer = buffers[parameters.mGeometryBufferID];
+    ByteAddressBuffer SkinningBuffer = buffers[parameters.mSkinningBufferID];
 
-    // Compute attribute index
-    uint index = Indices[0].LoadByteOffset<uint>( (meshInfo.IndexOffset + input.VertexID) * sizeof(uint) );
-    VertexData vertex = LoadData<VertexData>( 0, meshInfo.VertexOffset, index );
+    uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
+    MeshGeometryInfo meshInfo = GeometryBuffer.Read<MeshGeometryInfo>(0, instanceIndex);
+
+    ByteAddressBuffer Vertices = buffers[parameters.mVerticesBufferID];
+    ByteAddressBuffer Indices = buffers[parameters.mIndicesBufferID];
+
+    uint index = Indices.Read<uint>(meshInfo.IndexOffset, input.VertexID);
+    VertexDescription vertex = Vertices.Read<VertexDescription>(meshInfo.VertexOffset, index);
 
     float4x4 model = meshInfo.Transform;
 
-    float4 inWeight0 = vertex.Weight;
-    float4 inJoint0 = vertex.Joint;
+    float4 inWeight0 = vertex.weights0;
+    float4 inJoint0 = vertex.joints0;
 
     float4 locPos = float4(0, 0, 0, 0);
     float3 normal = float3(0, 0, 0);
-    if (meshInfo.AnimatorID != -1) {
-        // Mesh is animated or has armature
-        uint animatorIndex = meshInfo.AnimatorID - 1;
+    if (meshInfo.SkinningMatricesID != -1) {
+        uint animatorIndex = meshInfo.SkinningMatricesID - 1;
 
-        BoneData bonePalette = Bones[animatorIndex];
+        BoneData bonePalette = SkinningBuffer.Read<BoneData>(0, animatorIndex);
 
         float4x4 skinMat =
             inWeight0.x * bonePalette.BoneMatrices[(uint)inJoint0.x] +
@@ -112,31 +107,33 @@ VSOutput main(VSInput input) {
             inWeight0.z * bonePalette.BoneMatrices[(uint)inJoint0.z] +
             inWeight0.w * bonePalette.BoneMatrices[(uint)inJoint0.w];
 
-        locPos = mul(skinMat, float4(vertex.Position, 1.0));
-        normal = normalize(mul((float3x3)skinMat, vertex.Normal));
-        
+        locPos = mul(skinMat, float4(vertex.position, 1.0));
+
+        normal = normalize(
+            mul((float3x3)skinMat, vertex.normal));
     }
     else {
-        locPos = float4(vertex.Position, 1.0);
-        normal = vertex.Normal;
+        locPos = float4(vertex.position, 1.0);
+        normal = vertex.normal;
     }
 
     float4 worldPos = mul(model, locPos);
     float3 worldNormal = normalize(mul((float3x3)model, normal));
 
-    o.TexCoord0 = vertex.TexCoord0;
-    o.TexCoord1 = vertex.TexCoord1;
-    o.Color = vertex.Color;
+    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+
+    o.TexCoord0 = vertex.uv0;
+    o.TexCoord1 = vertex.uv1;
+    o.Color = vertex.color;
 
     o.FragmentWorldPos = worldPos.xyz;
-    o.FragmentViewPos = mul(u_Camera.ViewMatrix, worldPos).xyz;
+    o.FragmentViewPos = mul(camera.ViewMatrix, worldPos).xyz;
     o.Normal = worldNormal;
 
-    o.FragPosLightSpace = mul(u_Constants.LightViewProjection, worldPos);
 
     o.PositionH =
-        mul(u_Camera.Projection,
-            mul(u_Camera.ViewMatrix, worldPos));
+        mul(camera.Projection,
+            mul(camera.ViewMatrix, worldPos));
 
     return o;
 }

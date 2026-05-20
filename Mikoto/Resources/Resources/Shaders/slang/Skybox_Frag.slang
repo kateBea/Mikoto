@@ -39,8 +39,8 @@ struct DrawParams {
     uint BackGroundType; // Prefilter map, Original skybox, clear color
 
     uint MaxMipLevel;
-    uint Exposure;
-    uint Gamma;
+    float Exposure;
+    float Gamma;
 };
 
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
@@ -61,7 +61,7 @@ FSOutput main(FSInput input) {
         texture = Textures[Parameters.PrefilterCubeRtID];
     }
 
-    const float blur = 4.5;
+    const float blur = 1;
     float3 color;
 
     if (Parameters.MaxMipLevel > blur) {

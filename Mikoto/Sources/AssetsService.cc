@@ -233,11 +233,45 @@ namespace mikoto::asset {
     }
 
     auto AssetsService::LoadFont( const Path& uri ) -> FontHandle {
-        return FontHandle::CreateEmpty();
+        MKT_BEGIN_PROFILER_NAMED();
+
+        const FontLoadDescription fontLoadDescription{
+            .mFile = FileService::Get()->LoadFile( uri ),
+            .mSize = 24.0f
+        };
+
+        return LoadFont( fontLoadDescription );
     }
 
     auto AssetsService::LoadFont( const FontLoadDescription& description ) -> FontHandle {
-        return FontHandle::CreateEmpty();
+        MKT_BEGIN_PROFILER_NAMED();
+
+        if ( description.mFile.IsEmpty() ) {
+            return FontHandle::CreateEmpty();
+        }
+
+        const Path& path{ Path{ description.mFile->GetDirectory() }.GetAbsolute() };
+
+        CreateAssetCacheFolder( path );
+
+        return mFonts.LoadOrGet( path, [description, path, fontFile = description.mFile]() -> ModelHandle {
+            // This lambda runs ONLY once (per asset)
+            auto fontDesc{ FontLoadDescription{}
+                .SetFile( fontFile )
+                .SetSize( description.mFile ) };
+
+            FontHandle fontHandle{ FontFactory::Get()->LoadFont( fontDesc ) };
+
+            if ( !fontHandle.IsEmpty() ) {
+                FileWatcherService::Get()->Watch( path,
+                    []( const Path& pathCallable, FileWatchEvent event ) -> void {
+                     if (event == FileWatchEvent::eModified) {
+                         MKT_CORE_LOGGER_INFO( "Font file at [{}] has been updated", pathCallable.GetC_Str() );
+                     } } );
+            }
+
+            return fontHandle;
+        } );
     }
 
     auto AssetsService::LoadMaterial( const Path& uri ) -> MaterialHandle {

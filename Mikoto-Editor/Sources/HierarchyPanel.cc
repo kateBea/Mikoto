@@ -365,6 +365,10 @@ namespace mikoto::editor {
             };
 
             const Path path{ FileService::Get()->OpenDialog( filters ) };
+            if (path.IsEmpty()) {
+                return;
+            }
+
             ModelLoadDescription description{
                 .mFile = FileService::Get()->LoadFile( path ),
                 .mExtractTextures = true,

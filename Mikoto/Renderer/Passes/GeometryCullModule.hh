@@ -40,8 +40,8 @@ namespace mikoto::renderer {
     inline constexpr u32 kMaxSkinnedMeshes{ 1000 };
     inline constexpr u32 kMaxRenderableEntities{ 500'000 };
 
-    inline constexpr u32 kVertexBufferSizeMB{ 200 };
-    inline constexpr u32 kIndexBufferSizeMB{ 200 };
+    inline constexpr u32 kVertexBufferSizeMB{ 512 };
+    inline constexpr u32 kIndexBufferSizeMB{ 512 };
 
     // Material information
     struct MeshMaterialInfo {

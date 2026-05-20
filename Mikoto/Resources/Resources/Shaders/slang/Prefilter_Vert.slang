@@ -13,15 +13,16 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/BoxModel.slang"
+#include "base/Memory_Helpers.slang"
 
-struct PrefilterConstants {
+struct DrawParams {
     float4x4 MVP;
     float Roughness;
     uint NumSamples;
-};
 
-struct VSInput {
-    float3 Position : ATTRIBUTE0;
+    uint mCubeID;
+    uint mSamplerID;
 };
 
 struct VSOutput {
@@ -29,13 +30,15 @@ struct VSOutput {
     float4 PositionH : SV_Position;
 };
 
-[[vk::push_constant]]
-PrefilterConstants u_Parameters;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("vertex")]
-VSOutput main(VSInput input) {
+VSOutput main(uint vertexID : SV_VertexID) {
     VSOutput o;
-    o.Pos = input.Position;
-    o.PositionH = mul(u_Parameters.MVP, float4(input.Position, 1.0));
+    o.Pos = boxPositions[vertexID];
+    o.PositionH = mul(parameters.MVP, float4(boxPositions[vertexID], 1.0));
+#ifdef MKT_SUPPORT_VULKAN
+    o.PositionH.y = -o.PositionH.y;
+#endif
     return o;
 }

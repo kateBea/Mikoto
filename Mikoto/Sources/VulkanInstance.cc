@@ -219,6 +219,18 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
+    auto PhysicalDevice::GetFamilyIndexWithSupport( QueueOpSupportFlags ops ) const -> i32 {
+        const auto it{ std::ranges::find_if(mQueueInfos, [ops](const std::pair<const u32, VulkanQueueData>& data) {
+            return data.second.mOpSupportFlags.Has(ops);
+        }) };
+
+        if (it != mQueueInfos.end()) {
+            return it->second.FamilyIndex;
+        }
+
+        return kInvalidQueueFamilyIndex;
+    }
+
     auto PhysicalDevice::GetQueueWithSupport( QueueOpSupportFlags ops ) const -> const VulkanQueueData* {
         const auto it{ std::ranges::find_if(mQueueInfos, [ops](const std::pair<const u32, VulkanQueueData>& data) {
             return data.second.mOpSupportFlags.Has(ops);

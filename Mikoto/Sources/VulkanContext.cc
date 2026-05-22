@@ -32,6 +32,8 @@
 
 #include <Memory/Allocator.hh>
 
+#include <Filesystem/FileService.hh>
+
 #include <Platform/Window.hh>
 
 #include <Renderer/Core/Rhi.hh>
@@ -84,6 +86,8 @@ namespace mikoto::renderer::vulkan {
         CreateSwapchain();
         InitSynchronization();
 
+        InitSwapchainRender();
+
         return mInstance->mIsReady && mDevice && mDevice->IsInitialized();
     }
 
@@ -91,7 +95,21 @@ namespace mikoto::renderer::vulkan {
         Device* device{ checked_cast<Device*>(mDevice.get()) };
         device->WaitIdle();
 
-        mSwapChainRenderCmds.Reset();
+        mPipeline.Reset();
+        mPipelineLayoutHandle.Reset();
+        mBindingLayoutHandle.Reset();
+
+        mBindlessLayout.Reset();
+        mDescriptorTable.Reset();
+
+        mVertexShader.Reset();
+        mPixelShader.Reset();
+
+        mSamplerState.Reset();
+
+        mBindingSetHandle.Reset();
+
+        mCommandList.Reset();
 
         mPresentTarget.Reset();
         mSwapchain.Reset();
@@ -106,7 +124,10 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Context::SetPresentTarget( TextureHandle texture ) -> void {
-        mPresentTarget = texture;
+        if (texture.GetRaw() != mPresentTarget.GetRaw()) {
+            mPresentTarget = texture;
+            mTableUpdateRequired = true;
+        }
     }
 
     auto Context::SubmitFrame() -> void {
@@ -116,41 +137,49 @@ namespace mikoto::renderer::vulkan {
         auto device{ checked_cast<Device*>( mDevice.get() ) };
 
         // https://community.khronos.org/t/is-it-recommended-to-use-vkcmdcopyimage-to-copy-to-the-swapchain-image-instead-of-a-shader/112122
-        // Most vendors recommend you draw the image onto the final output using a fullscreen triangle.
-        // TODO: instead render a full quad sampling the final image
-        // otherwise it is annoying as you ned ensure the texture you rendered to before is compatible with swap chain image to copy
         if (!mPresentTarget.IsEmpty()) {
-            TextureHandle currentSwapchainImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
-            mSwapChainRenderCmds->Begin( { .mScopeName = "Blit Swapchain" } );
+            TextureHandle colorImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
+            mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
 
-            // TODO: Here I will do my full quad render I can use my RHI the pass is pretty simple here i basically just build a command buffer and submit it then submit a transition too
-            // when I call flush it will start execution all those commands that i just queued but I never submitted actually to the GPU to be executed
-            // I do it like this because this way i do one big submit instead of multiple submits in a single frame
+            //const ResourceStates previousState{ mPresentTarget->GetResourceState() };
+            if (mTableUpdateRequired) {
+                mCommandList->SetResourceState( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
+                (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( 0, mPresentTarget.GetRaw() ) );
+                mTableUpdateRequired = false;
+            }
 
-            // See SwapChainRender.hh for the pass to render directly to swapchain if requested
-
-            TextureSlice srcSlice{
-                .mWidth = (u32)mPresentTarget->GetWidth(),
-                .mHeight = (u32)mPresentTarget->GetHeight(),
+            auto graphicsState{ GraphicsState{}
+                .SetRenderArea( Rect{ as<i32>(mSwapchain->GetWidth()), as<i32>(mSwapchain->GetHeight()) } )
+                .AddRenderTarget( colorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } )
             };
 
-            TextureSlice dstSlice{
-                .mWidth = (u32)currentSwapchainImage->GetWidth(),
-                .mHeight = (u32)currentSwapchainImage->GetHeight(),
-            };
+            mCommandList->BeginRendering( graphicsState );
 
-            mSwapChainRenderCmds->Copy(
-                    mPresentTarget.GetRaw(), srcSlice,
-                    currentSwapchainImage.GetRaw(), dstSlice );
+            mCommandList->BindPipeline( mPipeline.GetRaw() );
+            mCommandList->BindPipelineResources( BindResourcesDescription{}
+                .AddResourceSet( 0, mBindingSetHandle.GetRaw() )
+                .AddResourceSet( 1, mDescriptorTable.GetRaw() )
+                .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
+                .SetBindPoint( PipelineType::eGraphics ));
 
-            mSwapChainRenderCmds->SetResourceState(
-                    currentSwapchainImage.GetRaw(),
-                    ResourceStates::ePresent );
+            mCommandList->SetViewportState( ViewportState{}
+                .AddViewportAndScissorRect( Viewport( mSwapchain->GetWidth(), mSwapchain->GetHeight() ) ) );
 
-            mSwapChainRenderCmds->End();
+            // Issue draw call
+            constexpr auto drawArguments{ DrawArguments{}
+                .SetVertexCount( 3 ) };
+            mCommandList->Draw( drawArguments );
+
+            mCommandList->EndRendering();
+
+            mCommandList->SetResourceState( colorImage.GetRaw(), ResourceStates::ePresent );
+
+            // Optionally transition back mPresentTarget to whatever state it was?
+
+            mCommandList->End();
 
             // enqueue instead of submit
-            frame.mSubmissionID = device->SubmitCommands( mSwapChainRenderCmds );
+            frame.mSubmissionID = device->SubmitCommands( mCommandList );
         }
 
         // External sync
@@ -264,8 +293,72 @@ namespace mikoto::renderer::vulkan {
         // Prepare for swapchain render
         // This command buffer is created here because it is only
         // used to submit swapchain work
-        mSwapChainRenderCmds = mDevice->CreateCommandList( QueueType::eGraphics );
-        mSwapChainRenderCmds->SetDebugName( "Context Swapchain CommandBuffer" );
+        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
+        mCommandList->SetDebugName( "Context Swapchain CommandBuffer" );
+    }
+
+    auto Context::InitSwapchainRender() -> void {
+        // Create shaders
+        auto vertexShaderDescription{ ShaderModuleCreateDescription{}
+            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Vert.slang" ) )
+            .SetStage( ShaderType::eVertex )
+        };
+        mVertexShader = mDevice->CreateShader( vertexShaderDescription );
+
+        auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
+            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Frag.slang" ) )
+            .SetStage( ShaderType::ePixel )
+        };
+        mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
+
+        // We will upload a texture and a buffer to do some effects, see Triangle_Frag
+        // Ideally we want to automate this process by allowing each backend to be able to use shader reflection
+        auto layoutDesc{ BindingLayoutDescription{}
+            .SetRegisterSpace( 0 )
+            .SetShaderVisibility(ShaderFlagsBits::kAll)
+            .AddItem(BindingLayoutItem::Sampler(0))};
+        mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
+
+        auto bindlessLayout{ BindlessLayoutDescription{}
+            .SetVisibility(ShaderFlagsBits::kAll)
+            .SetRegisterSpace( 1 )
+            .AddBindlessItem(BindlessLayoutItem::Texture_SRV(0, 1)) }; // I just need one image slot I can update
+        mBindlessLayout = mDevice->CreateBindlessLayout( bindlessLayout );
+
+        mPipelineLayoutHandle = mDevice->CreatePipelineLayout( PipelineLayoutCreateDescription{}
+            .AddBindingLayout( mBindingLayoutHandle )
+            .AddBindingLayout( mBindlessLayout ));
+
+        auto graphicsPipelineDescription{ GraphicsPipelineDescription{}
+            .AddShader( mPixelShader )
+            .AddShader( mVertexShader )
+
+            .AddColorFormat( Format::eBGRA8_UNORM )
+
+            .SetPolygonMode( PolygonMode::eFill )
+            .SetCullMode( CullMode::eCullBack )
+            .SetWindingOrder( WindingOrder::eCounterClockwise )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .SetPipelineLayout( mPipelineLayoutHandle )
+        };
+
+        mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
+
+        // Sampler
+        auto samplerDes{ SamplerCreateDescription{}
+            .SetFilter( rhi::SamplerFilter::eLinear )
+            .SetWrap( SamplerWrapMode::eClampToBorder )
+            .SetBorderColor( kColorWhite ),
+        };
+        mSamplerState = mDevice->CreateSampler( samplerDes );
+
+        // Bindless set
+        mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
+
+        // Non bindless set
+        auto bindingSetDesc{ BindingSetDescription{}
+            .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
+        mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
     }
 
     auto Context::InitSynchronization() -> void {

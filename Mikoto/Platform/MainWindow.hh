@@ -42,6 +42,10 @@ namespace mikoto::platform {
         auto SetCursorMode( CursorMode mode ) -> void override;
         auto SetCursorType( CursorType type ) -> void override;
 
+        auto SetWidth( i32 width ) -> void override;
+        auto SetHeight( i32 height ) -> void override;
+        auto SetTitle( eastl::string_view title ) -> void override;
+
         auto ResetCursorType() -> void override;
 
         MKT_NODISCARD auto IsKeyPressed( KeyCode keyCode ) const -> bool override;

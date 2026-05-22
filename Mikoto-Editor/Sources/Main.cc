@@ -81,7 +81,11 @@ auto InitEditor() -> bool {
 
     try {
         gApplication->Init();
+
+#if defined(MKT_EDITOR_ENABLE_EDBUG_LAYER)
         gApplication->PushLayer<EditorDebugLayer>( gWindow );
+#endif
+
         gApplication->PushLayer<EditorLayer>( gWindow );
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Ini App exception - e.what(): {}", e.what() );

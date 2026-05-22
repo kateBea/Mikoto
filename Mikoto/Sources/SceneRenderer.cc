@@ -92,6 +92,9 @@ namespace mikoto::renderer {
         mFrameGraph->SetExecutionPolicy( "PrefilterPass", FGExecutionPolicy::eOnChange );
         mFrameGraph->SetExecutionPolicy( "IrradiancePass", FGExecutionPolicy::eOnChange );
         mFrameGraph->SetExecutionPolicy( "SkyboxProjection", FGExecutionPolicy::eOnChange );
+
+        mFrameGraph->DisablePass( "PBR_Radiance" );
+        mFrameGraph->DisablePass( "WireframePass" );
     }
 
     auto SceneRenderer::Shutdown() -> void {
@@ -136,6 +139,10 @@ namespace mikoto::renderer {
 
     auto SceneRenderer::SetRenderBackground( SceneBackgroundType bg ) -> void {
         mGeometryShading.SetRenderBackground( bg );
+    }
+
+    auto SceneRenderer::GetNodeControl() const -> const FGNodeControl & {
+        return mFrameGraph->GetNodeControl();
     }
 
     auto SceneRenderer::GetRenderGraph() const -> const FrameGraph & {

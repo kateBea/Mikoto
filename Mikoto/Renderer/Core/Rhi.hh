@@ -648,6 +648,9 @@ namespace mikoto::renderer::rhi {
         Color( f32 c )
             : mR{ c }, mG{ c }, mB{ c }, mA{ c } {}
 
+        Color( const float4& c )
+            : mR{ c.r }, mG{ c.g }, mB{ c.b }, mA{ c.a } {}
+
         Color( f32 r, f32 g, f32 b, f32 a )
             : mR{ r }, mG{ g }, mB{ b }, mA{ a } {}
 
@@ -1855,12 +1858,14 @@ namespace mikoto::renderer::rhi {
         ComputePipelineDescription mDesc{};
     };
 
-    class IQueue {
+    class IQueue : public DeviceObject {
     public:
         MKT_NODISCARD auto GetType() const -> QueueType { return mType; }
         MKT_NODISCARD auto GetOpSupportFlags() const -> QueueOpSupportFlags { return mOpSupportFlags; }
 
-        virtual ~IQueue() = default;
+        ~IQueue() override = default;
+
+        using DeviceObject::Initialize;
 
     protected:
         explicit IQueue( QueueType type )
@@ -1870,6 +1875,8 @@ namespace mikoto::renderer::rhi {
         QueueType mType{ QueueType::eInvalid };
         QueueOpSupportFlags mOpSupportFlags{ QueueOpSupportFlagsBits::kGraphics };
     };
+
+    using QueueHandle = Ref<IQueue>;
 
     struct GraphicsState {
         struct RenderTargetState {
@@ -1992,7 +1999,7 @@ namespace mikoto::renderer::rhi {
         virtual auto Write( ITexture* target, u32 mipLevel, const void* data, size_t byteSize ) -> void = 0;
         virtual auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void = 0;
 
-        virtual auto WriteVolatile( IBuffer* target, const void* data, size_t byteSize ) -> void = 0;
+        virtual auto WriteVolatile( IBuffer* target, size_t dstOffset, const void* data, size_t byteSize ) -> void = 0;
 
         virtual auto Write( IBuffer* target, const void* data, size_t byteSize ) -> void = 0;
         virtual auto Write( IBuffer* target, size_t destOffset, const void* data, size_t byteSize ) -> void = 0;
@@ -2041,6 +2048,14 @@ namespace mikoto::renderer::rhi {
     };
 
     using CommandListHandle = Ref<ICommandList>;
+
+    class ISwapchain : public ReferenceCounted {
+    public:
+
+        ~ISwapchain() override = default;
+    };
+
+    using SwapchainHandle = Ref<ISwapchain>;
 }// namespace mikoto::renderer::rhi
 
 #endif// MIKOTO_RHI_HH

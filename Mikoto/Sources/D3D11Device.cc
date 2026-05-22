@@ -308,7 +308,7 @@ namespace mikoto::renderer::d3d11 {
     auto CommandList::SetClearColor( TextureHandle renderTargets, Color color ) -> void {
     }
 
-    auto CommandList::WriteVolatile( IBuffer *target, const void *data, size_t byteSize ) -> void {
+    auto CommandList::WriteVolatile( IBuffer *target, size_t dstOffset, const void *data, size_t byteSize ) -> void {
 
     }
 

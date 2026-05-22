@@ -711,6 +711,10 @@ namespace mikoto::renderer {
         CullGraphNodes();
     }
 
+    auto FrameGraph::GetNodeControl() const -> const FGNodeControl& {
+        return *mNodeControl;
+    }
+
     auto FrameGraph::RecordCommands( CommandListHandle cmd ) -> void {
         cmd->Begin( {} );
 
@@ -783,15 +787,15 @@ namespace mikoto::renderer {
         if (!mExecutionPlan.mSorted.empty()) {
             for(auto reverseIt{ mExecutionPlan.mSorted.rbegin() }; reverseIt != mExecutionPlan.mSorted.rend(); ++reverseIt) {
                 if (!passesMap[*reverseIt].mIsAlive) {
-                    for (auto& succ : passesMap[*reverseIt].mSuccessors ) {
-                        passesMap[succ].mIsAlive = false; // Kill people that depend on me
-                    }
                     continue; // skip dead passes
                 }
 
-                for (const auto& pass: passesMap[*reverseIt].mDependsOn) {
-                    passesMap[pass].mIsAlive = true; // my dependency is needed -> keep it alive
-                }
+                // Commenting this works for now because all frame graph resources
+                // are persistent across frames so I can disable a node and not
+                // have to worry about resource lifetime if needed somewhere else
+                // for (const auto& pass: passesMap[*reverseIt].mDependsOn) {
+                //     passesMap[pass].mIsAlive = true; // my dependency is needed -> keep it alive
+                // }
             }
         }
     }

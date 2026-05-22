@@ -176,7 +176,6 @@ namespace mikoto::gui {
                     .depthAttachmentFormat = GetFormat(mDepthImage->GetFormat() ),
                 },
             },
-
             // Mikoto defaults to vulkan 1.3 where dynamic rendering is core
             .UseDynamicRendering = true,
         };
@@ -187,7 +186,6 @@ namespace mikoto::gui {
     }
 
     auto ImGuiVulkanBackend::CreateImages() -> void {
-
         // Color Device attachment. Since we will manage these textures here we can set
         // the tracking state to manual so we will handle the transitions and barriers ourselves
         auto colorDesc{ TextureCreateDescription{}
@@ -195,7 +193,7 @@ namespace mikoto::gui {
             .SetHeight( as<i32>( mDimensions.height ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kCopySrc ) // I will copy from this guy to swapchain image
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kCopySrc | TextureUsageFlagsBits::kShaderResource ) // I will copy from this guy to swapchain image
             .SetFormat( Format::eBGRA8_UNORM ) };
 
         mColorImage = mDevice->CreateTexture( colorDesc );

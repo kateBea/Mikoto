@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_FREE_LIST_ALLOCATOR_HH
-#define MIKOTOROOT_FREE_LIST_ALLOCATOR_HH
+#ifndef MIKOTO_FREE_LIST_ALLOCATOR_HH
+#define MIKOTO_FREE_LIST_ALLOCATOR_HH
 
 #include <EASTL/optional.h>
 
@@ -79,4 +79,4 @@ namespace mikoto::memory {
     };
 }
 
-#endif//MIKOTOROOT_FREE_LIST_ALLOCATOR_HH
+#endif//MIKOTO_FREE_LIST_ALLOCATOR_HH

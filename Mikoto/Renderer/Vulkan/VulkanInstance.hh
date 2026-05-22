@@ -47,6 +47,8 @@ namespace mikoto::renderer::vulkan {
     };
 
     struct PhysicalDevice {
+        static constexpr i32 kInvalidQueueFamilyIndex{ -1 };
+
         VkPhysicalDevice mPhysicalDevice{};
 
         // Swapchain capabilities
@@ -63,6 +65,7 @@ namespace mikoto::renderer::vulkan {
         ankerl::unordered_dense::set<eastl::string> mAvailableExtensions{};
         ankerl::unordered_dense::map<u32, VulkanQueueData> mQueueInfos{};
 
+        MKT_NODISCARD auto GetFamilyIndexWithSupport( QueueOpSupportFlags ops ) const -> i32;
         MKT_NODISCARD auto GetQueueWithSupport( QueueOpSupportFlags ops ) const -> const VulkanQueueData*;
         MKT_NODISCARD auto HasQueueSupport( QueueOpSupportFlags ops ) const -> bool;
         MKT_NODISCARD auto IsExtensionAvailable( eastl::string_view name ) const -> bool;

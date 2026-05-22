@@ -11,102 +11,111 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-// #include <ImGuizmo.h>
-// #include <imgui.h>
-// #include <imgui_node_editor.h>
-//
-// #include <../../Mikoto/ImGui/GraphEditor.hh>
-// #include <Core/String.hh>
-// #include <cmath>
-// #include <string>
-// #include <string_view>
-//
-// namespace mikoto {
-//
-//     static auto MakeId(const std::string& key) -> Int32 {
-//         return static_cast<Int32>( std::hash<std::string>{}( key ) );
-//     }
-//
-//     auto GraphEditorBuilder::PushNode( std::string_view node ) -> void {
-//         const auto key{ StringUtil::From( node ) };
-//         if ( !m_Nodes.contains( key ) ) {
-//             GraphNode nodeData{
-//                 .ID{ MakeId( key ) },
-//                 .Key{ StringUtil::From(node) },
-//                 .DisplayName{ key },
-//             };
-//
-//             m_Nodes.emplace(nodeData.Key, std::move(nodeData));
-//         }
-//     }
-//
-//     GraphEditor::GraphEditor( std::string_view name )
-//         : m_Name{ name } {
-//
-//         namespace ed = ax::NodeEditor;
-//
-//         // The library saves the layout to a JSON, if we do not specify
-//         // one it uses one called NodeEditor or something by default
-//         // This can make it so that widgets etc don't show up because of not proper layout saved
-//         m_ConfigLayoutFile = StringUtil::Format( "{}.json", m_Name);
-//         m_Config.SettingsFile = m_ConfigLayoutFile.c_str();
-//         m_Config.EnableSmoothZoom = true;
-//         m_Context = ed::CreateEditor( std::addressof( m_Config ) );
-//     }
-//
-//     auto GraphEditor::Build( GraphEditorBuilder& builder ) -> void {
-//         namespace ed = ax::NodeEditor;
-//
-//         m_Nodes = std::move( builder.m_Nodes );
-//     }
-//
-//     auto GraphEditor::Render() -> void {
-//         namespace ed = ax::NodeEditor;
-//
-//         ImGui::Begin("Graph Editor");
-//         auto& io = ImGui::GetIO();
-//
-//         ImGui::Text("FPS: %.2f (%.2gms)", io.Framerate, io.Framerate ? 1000.0f / io.Framerate : 0.0f);
-//
-//         ImGui::Separator();
-//
-//         ed::SetCurrentEditor(m_Context);
-//
-//         ed::Begin("FrameGraph");
-//
-//         for ( const auto& [name, node] : m_Nodes) {
-//             RenderNode( node );
-//         }
-//
-//         ed::End();
-//
-//         ed::SetCurrentEditor(nullptr);
-//
-//         ImGui::End();
-//     }
-//
-//     auto GraphEditor::GetName() const -> const std::string& {
-//         return m_Name;
-//     }
-//
-//     auto GraphEditor::RenderNode( const GraphNode& node ) -> void {
-//         namespace ed = ax::NodeEditor;
-//         ed::BeginNode(node.ID);
-//
-//
-//         ImGui::TextUnformatted(node.DisplayName.c_str());
-//
-//         ImGui::TextColored( ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ), "Reads" );
-//         for ( const auto& input: node.Inputs ) {
-//             ImGui::TextUnformatted( "%s", input.c_str() );
-//         }
-//
-//         ImGui::TextColored( ImVec4( 0.5f, 0.25f, 0.25f, 1.0f ), "Writes");
-//         for ( const auto& output: node.Outputs ) {
-//             ImGui::TextUnformatted( "%s", output.c_str() );
-//         }
-//
-//         ed::EndNode();
-//     }
-// }
+
+#include <cmath>
+
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
+#include <EASTL/string_view.h>
+#include <EASTL/fixed_vector.h>
+
+#include <imgui.h>
+#include <ImGuizmo.h>
+#include <imgui_node_editor.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+
+#include <ImGui/GraphEditor.hh>
+
+namespace mikoto::gui {
+
+    using namespace mikoto::core;
+
+    static auto MakeId(const eastl::string& key) -> core::i32 {
+        return as<core::i32>( eastl::hash<eastl::string>{}( key ) );
+    }
+
+    auto GraphEditorBuilder::PushNode( eastl::string_view node ) -> void {
+        const auto key{ string::From( node ) };
+        if ( !mNodes.contains( key ) ) {
+            GraphNode nodeData{
+                .mID = MakeId( key ),
+                .mKey{ string::From(node) },
+                .mDisplayName{ key },
+            };
+
+            mNodes.emplace(nodeData.mKey, std::move(nodeData));
+        }
+    }
+
+    GraphEditor::GraphEditor( eastl::string_view name )
+        : mName{ name } {
+
+        namespace ed = ax::NodeEditor;
+
+        // The library saves the layout to a JSON, if we do not specify
+        // one it uses one called NodeEditor or something by default
+        // This can make it so that widgets etc don't show up because of not proper layout saved
+        mConfigLayoutFile = string::Format( "{}.json", mName);
+        mConfig.SettingsFile = mConfigLayoutFile.c_str();
+        mConfig.EnableSmoothZoom = true;
+        mContext = ed::CreateEditor( std::addressof( mConfig ) );
+    }
+
+    auto GraphEditor::Build( GraphEditorBuilder& builder ) -> void {
+        namespace ed = ax::NodeEditor;
+
+        mNodes = std::move( builder.mNodes );
+    }
+
+    auto GraphEditor::Render() -> void {
+        namespace ed = ax::NodeEditor;
+
+        ImGui::Begin("Graph Editor");
+        auto& io = ImGui::GetIO();
+
+        ImGui::Text("FPS: %.2f (%.2gms)", io.Framerate, io.Framerate ? 1000.0f / io.Framerate : 0.0f);
+
+        ImGui::Separator();
+
+        ed::SetCurrentEditor(mContext);
+
+        ed::Begin("FrameGraph");
+
+        for ( const auto& [name, node] : mNodes) {
+            RenderNode( node );
+        }
+
+        ed::End();
+
+        ed::SetCurrentEditor(nullptr);
+
+        ImGui::End();
+    }
+
+    auto GraphEditor::GetName() const -> const eastl::string& {
+        return mName;
+    }
+
+    auto GraphEditor::RenderNode( const GraphNode& node ) -> void {
+        namespace ed = ax::NodeEditor;
+        ed::BeginNode(node.mID);
+
+
+        ImGui::TextUnformatted(node.mDisplayName.c_str());
+
+        ImGui::TextColored( ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ), "Reads" );
+        for ( const auto& input: node.mInputs ) {
+            ImGui::TextUnformatted( "%s", input.c_str() );
+        }
+
+        ImGui::TextColored( ImVec4( 0.5f, 0.25f, 0.25f, 1.0f ), "Writes");
+        for ( const auto& output: node.mOutputs ) {
+            ImGui::TextUnformatted( "%s", output.c_str() );
+        }
+
+        ed::EndNode();
+    }
+}

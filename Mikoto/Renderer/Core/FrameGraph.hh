@@ -535,6 +535,8 @@ namespace mikoto::renderer {
         auto DisablePass( eastl::string_view passName ) -> void;
         auto EnablePass( eastl::string_view passName ) -> void;
 
+        MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl&;
+
         MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> TextureHandle;
         MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> BufferHandle;
 

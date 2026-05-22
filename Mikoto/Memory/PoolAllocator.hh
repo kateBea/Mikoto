@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_POOL_ALLOCATOR_HH
-#define MIKOTOROOT_POOL_ALLOCATOR_HH
+#ifndef MIKOTO_POOL_ALLOCATOR_HH
+#define MIKOTO_POOL_ALLOCATOR_HH
 
 #include <EASTL/optional.h>
 
@@ -54,4 +54,4 @@ namespace mikoto::memory {
 }
 
 
-#endif//MIKOTOROOT_POOL_ALLOCATOR_HH
+#endif//MIKOTO_POOL_ALLOCATOR_HH

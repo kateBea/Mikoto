@@ -16,9 +16,10 @@
 #define MIKOTO_MODEL_HH
 
 #include <EASTL/string.h>
-#include <EASTL/string_view.h>
-#include <EASTL/utility.h>
 #include <EASTL/vector.h>
+#include <EASTL/utility.h>
+#include <EASTL/string_view.h>
+
 #include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>

@@ -254,7 +254,7 @@ namespace mikoto::renderer::vulkan {
         auto Write( ITexture* texture, u32 mipLevel,const void* data, size_t byteSize ) -> void override;
         auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
 
-        auto WriteVolatile( IBuffer* target, const void* data, size_t byteSize ) -> void override;
+        auto WriteVolatile( IBuffer* target, size_t dstOffset, const void* data, size_t byteSize ) -> void override;
 
         auto Write( IBuffer* buffer, size_t destOffset, const void* data, size_t byteSize ) -> void override;
         auto Write( IBuffer* buffer, const void* data, size_t byteSize ) -> void override;
@@ -303,7 +303,7 @@ namespace mikoto::renderer::vulkan {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
-        auto InitializeArena() -> void;
+        auto InitializeArenaAllocators() -> void;
 
         auto ClearState() -> void;
 
@@ -324,8 +324,14 @@ namespace mikoto::renderer::vulkan {
         // And reset it everytime we call End(). The arena remains initialized until it is actually needed.
         // The reason why this belongs to the Command is that it makes it easier to reset the allocator
         // everytime we need to start consuming it again.
-        static constexpr size_t kArenaInitialSize{ MKT_MEGABYTES( 10 ) };
-        eastl::unique_ptr<memory::MemoryArena<IBuffer, LinearAllocator>> mMemoryArena{};
+
+        static constexpr size_t kMaxVolatileBufferVersions{ 4 };
+        static constexpr size_t kArenaInitialSize{ MKT_MEGABYTES( 64 ) };
+
+        u32 mCurrentVolatileVersion{ 0 };
+
+        ankerl::unordered_dense::map<u32,
+            eastl::unique_ptr<memory::MemoryArena<IBuffer, LinearAllocator>>> mArenasAllocators{};
 
         std::mutex mUploadAllocationsMutex{};
         eastl::fixed_vector<GpuUploadAllocation*, 10> mUploadAllocations{};
@@ -387,12 +393,11 @@ namespace mikoto::renderer::vulkan {
 
     using CommandPoolHandle = Ref<CommandPool>;
 
+    // Internally multiple queues might map to the exact same
+    // VkQueue from the same family index
     class Queue final : public IQueue {
     public:
-        explicit Queue(GpuDevice* device, QueueType type,  u32 queueFamilyIndex, u32 queueIndex = 0);
-
-        auto Initialize() -> void;
-        auto Shutdown() -> void;
+        explicit Queue(QueueType type,  u32 queueFamilyIndex, u32 queueIndex = 0);
 
         auto Flush() -> void;
 
@@ -425,13 +430,17 @@ namespace mikoto::renderer::vulkan {
         operator u32() const; // Queue family index
         operator VkQueue() const; // Logical
 
+        ~Queue() override;
+
     private:
         MKT_NODISCARD auto SubmitCommands() -> u64;
         MKT_NODISCARD auto AcquireThreadCmdPool() -> CommandPoolHandle;
 
-    private:
-        GpuDevice *mDevice{};
+    protected:
+        auto Release() -> void override;
+        auto Initialize() -> void override;
 
+    private:
         std::mutex mSubmissionMutex{};
 
         u32 mFamilyIndex{ 0 };
@@ -812,12 +821,15 @@ namespace mikoto::renderer::vulkan {
 #endif
 
         // [Command list management]
-        ankerl::unordered_dense::map<QueueType, eastl::unique_ptr<Queue>> mQueues{};
-        ankerl::unordered_dense::map<QueueType, eastl::unique_ptr<DeletionQueue>> mDeletionQueues{};
+        // One queue per family index
+        ankerl::unordered_dense::map<QueueType, Ref<Queue>> mQueues{};
 
         // [Device management]
         VkDevice mLogicalDevice{};
         PhysicalDevice* mPhysicalDevice{};
+
+        static constexpr u32 kMaxQueuesPerFamily{ 1 };
+        static constexpr f32 kQueueDefaultPriority{ 1.0f };
 
         // [Memory management]
         eastl::unique_ptr<IGpuAllocator> mGpuAllocator{};
@@ -833,7 +845,7 @@ namespace mikoto::renderer::vulkan {
 
         eastl::unique_ptr<IDescriptorAllocatorPool> mDescriptorAllocatorPool{};
 
-        std::vector<eastl::string> mExtensions{};
+        eastl::vector<eastl::string> mExtensions{};
 
         // Presentation support (only if requested)
         VkSurfaceKHR mSurface{};

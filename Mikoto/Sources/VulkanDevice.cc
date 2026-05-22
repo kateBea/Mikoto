@@ -15,13 +15,12 @@
 #include <ranges>
 #include <vector>
 
-// Vector for very
-// specific usage. See queue creation
-#include <EASTL/array.h>
-#include <EASTL/unordered_map.h>
 #include <EASTL/utility.h>
 #include <EASTL/vector.h>
 #include <EASTL/sort.h>
+#include <EASTL/array.h>
+#include <EASTL/unordered_map.h>
+#include <EASTL/unordered_set.h>
 #include <EASTL/algorithm.h>
 
 #include <volk.h>
@@ -44,7 +43,9 @@
 #include <Math/Math.hh>
 #include <Math/Random.hh>
 
+#include <Renderer/Core/Rhi.hh>
 #include <Renderer/Core/RenderSystem.hh>
+
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
@@ -119,7 +120,7 @@ namespace mikoto::renderer::vulkan {
         mUploadManager.reset();
 
         for (auto& queue : mQueues | std::ranges::views::values ) {
-            queue->Shutdown();
+            queue.Reset();
         }
 
         mGpuAllocator->Shutdown();
@@ -259,7 +260,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateFence( u64 fenceInitialValue ) -> FenceHandle {
-        return FenceHandle{};
+        return FenceHandle::CreateEmpty();
     }
 
     auto Device::UnMap( IBuffer* buffer ) -> void {
@@ -493,7 +494,7 @@ namespace mikoto::renderer::vulkan {
         mUploadManager->ReclaimMemory();
         mDescriptorAllocatorPool->Flip();
 
-        for (const auto& queue : mQueues | std::ranges::views::values ) {
+        for (auto& queue : mQueues | std::ranges::views::values ) {
             queue->RunGarbageCollection();
         }
     }
@@ -551,7 +552,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::GetQueue( QueueType type ) const -> const Queue* {
         const auto it{ mQueues.find(type) };
-        return it != mQueues.end() ? it->second.get() : nullptr;
+        return it != mQueues.end() ? it->second.GetRaw() : nullptr;
     }
 
     auto Device::GetActivePhysicalDeviceFeatures() const -> const VkPhysicalDeviceFeatures & {
@@ -632,18 +633,30 @@ namespace mikoto::renderer::vulkan {
         createInfo.pEnabledFeatures = nullptr;
 
         // Prepare queue infos
-        // All queues with same priority
-        eastl::unordered_map<u32, eastl::vector<float>> mQueuePriorities{};
-        eastl::vector<VkDeviceQueueCreateInfo> queueCreateInfos{ mPhysicalDevice->mQueueInfos.size() };
-        for (auto& [familyIndex, queueData] : mPhysicalDevice->mQueueInfos) {
-            MKT_ASSERT( familyIndex < queueCreateInfos.size(), "Queue index out of bounds." );
-            queueCreateInfos[familyIndex] = initializers::DeviceQueueCreateInfo();
+        // I find a queue family index that supports the operations I want to perform
+        // Right we are only looking for graphics, transfer, compute and optionally present
+        eastl::unordered_set<u32> queueFamilies{};
+        queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kGraphics ) );
+        queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kCompute ) );
+        queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kTransfer ) );
 
-            queueCreateInfos[familyIndex].queueFamilyIndex = familyIndex;
+        if (mFeaturesSupport.mEnablePresentation) {
+            queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kPresentation ) );
+        }
 
-            mQueuePriorities[familyIndex] = eastl::vector<float>(queueData.mProperties.queueCount, 1.0f);
-            queueCreateInfos[familyIndex].queueCount = as<u32>(mQueuePriorities[familyIndex].size());
-            queueCreateInfos[familyIndex].pQueuePriorities = mQueuePriorities[familyIndex].data();
+        MKT_ASSERT( !queueFamilies.contains( PhysicalDevice::kInvalidQueueFamilyIndex ) && !queueFamilies.empty(),
+            "Queue family requires at least one valid family index");
+
+        eastl::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+        eastl::array queuePriority{ kQueueDefaultPriority };
+
+        for (const auto& familyIndex : queueFamilies) {
+            auto& queueCreateInfo{ queueCreateInfos.emplace_back( initializers::DeviceQueueCreateInfo() ) };
+
+            queueCreateInfo.queueFamilyIndex = familyIndex;
+
+            queueCreateInfo.queueCount = kMaxQueuesPerFamily;
+            queueCreateInfo.pQueuePriorities = queuePriority.data();
         }
 
         createInfo.queueCreateInfoCount = as<u32>( queueCreateInfos.size() );
@@ -676,40 +689,38 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::InitLogicalQueues() -> void {
-        // Right now we do not have any proper filter for each type of queue
-        // Just pick the first queue amongst the available queues that satisfies these operations,
-        // in fact they might all end up being the same queue family
-        // For every family index I keep track of the queue index
-        ankerl::unordered_dense::map<u32, u32> queuesIndices{};
+        // Right now I do not have any proper filter for each type of queue
+        // Just pick the first queue amongst the available queues that satisfies the operations I need.
+        // I am not sure if I will benefit from multiple VkQueue's, stick to single queue for now
+        // as it also simplifies synchronization, work from different queues needs to be synchronized via
+        // semaphores even if they belong to same family.
 
-        // Graphics queue
-        if (auto* graphicsQueueData{ mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kGraphics ) }) {
-            u32 queueIndex{ queuesIndices[graphicsQueueData->FamilyIndex]++ };
-            mQueues[QueueType::eGraphics] = eastl::make_unique<Queue>( this, QueueType::eGraphics, graphicsQueueData->FamilyIndex, queueIndex);
-        }
+        // One queue per family index multiple queue types can map
+        // to the same underlying queue
+        ankerl::unordered_dense::map<QueueType, u32> queuesIndices{};
+        queuesIndices[QueueType::eGraphics] = mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kGraphics );
+        queuesIndices[QueueType::eCompute] = mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kCompute );
+        queuesIndices[QueueType::eTransfer] = mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kTransfer );
 
-        // Compute queue
-        if (auto* computeQueueData{ mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kCompute ) }) {
-            u32 queueIndex{ queuesIndices[computeQueueData->FamilyIndex]++ };
-            mQueues[QueueType::eCompute] = eastl::make_unique<Queue>( this, QueueType::eCompute, computeQueueData->FamilyIndex, queueIndex);
-        }
-
-        // Transfer queue
-        if (auto* transferQueueData{ mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kTransfer ) }) {
-            u32 queueIndex{ queuesIndices[transferQueueData->FamilyIndex]++ };
-            mQueues[QueueType::eTransfer] = eastl::make_unique<Queue>( this, QueueType::eTransfer, transferQueueData->FamilyIndex, queueIndex);
-        }
-
-        // Presentation queue
         if (mFeaturesSupport.mEnablePresentation) {
-            if (auto* presentQueueData{ mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kPresentation ) }) {
-                u32 queueIndex{ queuesIndices[presentQueueData->FamilyIndex]++ };
-                mQueues[QueueType::ePresent] = eastl::make_unique<Queue>( this, QueueType::ePresent, presentQueueData->FamilyIndex, queueIndex);
-            }
+            queuesIndices[QueueType::ePresent] = mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kPresentation );
         }
 
-        for (const auto& queue : mQueues | std::ranges::views::values) {
-            queue->Initialize();
+        // Keep track of families that already have a queue
+        ankerl::unordered_dense::map<u32, Ref<Queue>> queueFamilyTracking{};
+
+        // Always grab the first VkQueue within a family
+        for (constexpr u32 kQueueIndex{ 0 }; const auto& [queueType, familyIndex] : queuesIndices) {
+            const auto it{ queueFamilyTracking.find( familyIndex ) };
+            if (it == queueFamilyTracking.end()) {
+                QueueHandle queue{ Ref<Queue>::Spawn( queueType, familyIndex, kQueueIndex ) };
+                queue->Initialize( this );
+
+                mQueues[queueType] = queue;
+                queueFamilyTracking[familyIndex] = queue;
+            } else {
+                mQueues[queueType] = it->second;
+            }
         }
     }
 
@@ -1393,6 +1404,11 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::BeginRendering( GraphicsState& state ) -> void {
+        bool hasColorTarget{ !state.mCurrentRenderTargets.empty() };
+        bool hasDepthTarget{ !state.mDepthTarget.mRenderTarget.IsEmpty() };
+
+        MKT_ASSERT( hasColorTarget || hasDepthTarget, "Must provide either depth target or color targets" );
+
         if (mEnableAutomaticBarriers) {
             for (auto& rt : state.mCurrentRenderTargets ) {
                 if (rt.mRenderTarget->GetResourceState() != ResourceStates::eRenderTarget) {
@@ -1400,17 +1416,12 @@ namespace mikoto::renderer::vulkan {
                 }
             }
 
-            if (state.mDepthTarget.mRenderTarget->GetResourceState() != ResourceStates::eDepthWrite) {
+            if (!state.mDepthTarget.mRenderTarget.IsEmpty() && state.mDepthTarget.mRenderTarget->GetResourceState() != ResourceStates::eDepthWrite) {
                 BeginTrackingState( state.mDepthTarget.mRenderTarget.GetRaw(), ResourceStates::eDepthWrite );
             }
 
             CommitBarriers();
         }
-
-        bool hasColorTarget{ !state.mCurrentRenderTargets.empty() };
-        bool hasDepthTarget{ !state.mDepthTarget.mRenderTarget.IsEmpty() };
-
-        MKT_ASSERT( hasColorTarget || hasDepthTarget, "Must provide either depth target or color targets" );
 
         eastl::fixed_vector<VkRenderingAttachmentInfo, kMaxRenderTargets> colorImages{};
 
@@ -1728,8 +1739,43 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto CommandList::WriteVolatile( IBuffer* target, const void* data, size_t byteSize ) -> void {
+    auto CommandList::WriteVolatile( IBuffer* target, size_t dstOffset, const void* data, size_t byteSize ) -> void {
+        if (mArenasAllocators.empty()) {
+            InitializeArenaAllocators();
+        }
 
+        auto* ctx{ GetThreadContext() };
+
+        // You cannot record transfer operations inside rendering
+        if (ctx->mIsRenderScopeActive) {
+            EndRendering();
+        }
+
+        if (mEnableAutomaticBarriers) {
+            SetResourceState( target, ResourceStates::eCopyDest );
+        }
+
+        auto& allocator{ mArenasAllocators[mCurrentVolatileVersion] };
+        auto allocation{ allocator->Allocate( byteSize, 1 ) };
+
+        Buffer* staging{ checked_cast<Buffer*>( mArenasAllocators[mCurrentVolatileVersion]->GetBuffer().GetRaw() ) };
+
+        SetResourceState( staging, ResourceStates::eCopySource );
+
+        std::memcpy( as<byte_t*>(staging->GetMappedAddress()) + allocation->mOffset, data, byteSize );
+
+        VkBufferCopy copy{};
+        copy.srcOffset = allocation->mOffset;
+        copy.dstOffset = dstOffset;
+        copy.size = byteSize;
+
+        vkCmdCopyBuffer(
+            ctx->mCommandBuffer,
+            staging->GetNativeHandle( ObjectType::Vk_Buffer ),
+            target->GetNativeHandle( ObjectType::Vk_Buffer ),
+            1,
+            &copy
+        );
     }
 
     auto CommandList::Dispatch( u32 x, u32 y, u32 z ) -> void {
@@ -1800,17 +1846,18 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = false;
     }
 
-    auto CommandList::InitializeArena() -> void {
-        // TODO: not used for now but access should be sync-ed
-        auto bufferDes{ BufferCreateDescription{}
-            .SetByteSize( kArenaInitialSize ) // Later we can specify a size for better optimization
-            .SetCpuAccessType( CpuAccessType::eWrite )
-            .SetHeapType( HeapType::eUpload )
-            .SetResourceType( ResourceType::eInvalid ) // Is not a shader resource
-            .SetBufferUsage( BufferUsageFlagsBits::kNone )
-        };
-        mMemoryArena =
-            eastl::make_unique<memory::MemoryArena<IBuffer, LinearAllocator>>( mDevice->CreateBuffer( bufferDes ), kArenaInitialSize );
+    auto CommandList::InitializeArenaAllocators() -> void {
+        for (u32 count{}; count < kMaxVolatileBufferVersions; count++) {
+            auto bufferDes{ BufferCreateDescription{}
+                .SetByteSize( kArenaInitialSize ) // Later we can specify a size for better optimization
+                .SetCpuAccessType( CpuAccessType::eWrite )
+                .SetHeapType( HeapType::eUpload )
+                .SetResourceType( ResourceType::eInvalid ) // Is not a shader resource
+                .SetBufferUsage( BufferUsageFlagsBits::kNone )
+            };
+            mArenasAllocators[count] =
+                eastl::make_unique<memory::MemoryArena<IBuffer, LinearAllocator>>( mDevice->CreateBuffer( bufferDes ), kArenaInitialSize );
+        }
     }
 
     auto CommandList::ClearState() -> void {
@@ -1819,6 +1866,15 @@ namespace mikoto::renderer::vulkan {
             // this allocation can already be destroyed
             subAllocations->mInUse.clear();
         }
+
+        // Reset it so we can use it next time when it is ready
+        // we are not checking if it is ready just optimistic assume it is because of the versioning
+        const auto it{ mArenasAllocators.find( mCurrentVolatileVersion ) };
+        if (it != mArenasAllocators.end()) {
+            it->second->Reset();
+        }
+
+        mCurrentVolatileVersion = mCurrentVolatileVersion % kMaxVolatileBufferVersions;
 
         mIsSubmitted = false;
 
@@ -1925,8 +1981,8 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = false;
     }
 
-    Queue::Queue( GpuDevice *device, QueueType type, u32 queueFamilyIndex, u32 queueIndex)
-        : IQueue{ type }, mDevice{ device }, mFamilyIndex{ queueFamilyIndex }, mQueueIndex{ queueIndex } {
+    Queue::Queue( QueueType type, u32 queueFamilyIndex, u32 queueIndex)
+        : IQueue{ type }, mFamilyIndex{ queueFamilyIndex }, mQueueIndex{ queueIndex } {
         switch ( type ) {
             case QueueType::eTransfer:
                 mSubmissionLabelColor = Color( 0.2f, 0.6f, 1.0f, 0.5f );
@@ -1959,15 +2015,19 @@ namespace mikoto::renderer::vulkan {
         // value (0) in VkQueue 0x1dec7ccca40 must be greater than current
         // timeline semaphore VkSemaphore 0x50000000005 value (0).
         timelineSemaphore->GetAndIncrement( 1 );
+
+        mIsAllocated = true;
     }
 
-    auto Queue::Shutdown() -> void {
+    auto Queue::Release() -> void {
         WaitIdle();
 
         RunGarbageCollection();
 
         mPools.clear();
         mTimelineSemaphore.Reset();
+
+        mIsAllocated = false;
     }
 
     auto Queue::Flush() -> void {
@@ -2159,6 +2219,12 @@ namespace mikoto::renderer::vulkan {
 
     Queue::operator VkQueue() const {
         return mQueue;
+    }
+
+    Queue::~Queue() {
+        if (mIsAllocated) {
+            Release();
+        }
     }
 
     auto Queue::AcquireThreadCmdPool() -> CommandPoolHandle {

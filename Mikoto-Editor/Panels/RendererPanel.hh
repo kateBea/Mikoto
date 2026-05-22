@@ -25,22 +25,26 @@ namespace mikoto::editor {
     struct EditorState;
 
     struct RendererPanelCreateInfo {
-        EditorState* State{};
+        EditorState* mState{};
     };
 
-    enum class FinalCompositionTarget {
-        COLOR,
-        EMISSIVE,
-        NORMALS,
-        POSITION,
-        DEPTH_PASS,
-        FINAL_IMAGE,
-        ENUM_MAX,
+    enum class PresentTargetType {
+        eColor,
+        eEmissive,
+        eNormals,
+        ePosition,
+        eDepthPrepass,
+
+        eWireframe,
+
+        eFinalImage,
+
+        eCount,
     };
 
     class RendererPanel final : public Panel {
     public:
-        explicit RendererPanel(const RendererPanelCreateInfo& info);
+        explicit RendererPanel(const RendererPanelCreateInfo& createInfo);
 
         auto OnUpdate(float timeStep) -> void override;
 
@@ -63,27 +67,22 @@ namespace mikoto::editor {
 
     private:
 
-        EditorState* m_EditorState{};
+        EditorState* mEditorState{};
 
-        bool m_EnableSkyboxLDR{ false };
-        bool m_ShowPassGraph{ false };
-        bool m_IsWireframeEnabled{ false };
-
-        bool m_EnableVSync{ false };
+        bool mShowPassGraph{ false };
 
         // SSAO
-        bool m_EnableSSAO{ false };
-        bool m_EnableSSAOBlur{ true };
+        bool mEnableSSAO{ false };
 
-        core::f32 m_KernelSize{ 0.5f };
-        core::f32 m_SSAORadius{ 0.5f };
-        core::f32 m_SSAOBias{ 0.5f };
-        core::f32 m_SSAOStrength{ 1.5f };
-        core::u32 m_SSAODimensions{ 8 }; // m_SSAODimensions * m_SSAODimensions
+        core::f32 mKernelSize{ 0.5f };
+        core::f32 mSsaoRadius{ 0.5f };
+        core::f32 mSsaoBias{ 0.5f };
+        core::f32 mSsaoStrength{ 1.5f };
+        core::u32 mSsaoDimensions{ 8 }; // m_SSAODimensions * m_SSAODimensions
 
-        FinalCompositionTarget m_FinalCompositionTarget{ FinalCompositionTarget::FINAL_IMAGE };
+        PresentTargetType mPresentTargetType{ PresentTargetType::eFinalImage };
 
-        GraphEditor m_GraphEditor{ "Pass Graph" };
+        gui::GraphEditor mGraphEditor{ "Pass Graph" };
     };
 }
 

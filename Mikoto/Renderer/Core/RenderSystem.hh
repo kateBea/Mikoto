@@ -84,7 +84,6 @@ namespace mikoto::renderer {
         auto InitContext() -> void;
 
         auto InitializeSlang() -> void; 
-        auto InitShaderLibrary() -> void;
 
         auto InitGuiService() -> void;
 

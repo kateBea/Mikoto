@@ -14,32 +14,40 @@
 
 #include <imgui.h>
 
-#include <Assets/ImageProcessor.hh>
 #include <Core/Core.hh>
-#include <Core/CoreEvents.hh>
-#include <Core/Event.hh>
-#include <Core/Exception.hh>
-#include <Core/InputSystem.hh>
-#include <Core/LocalizationService.hh>
-#include <Core/Profiler.hh>
-#include <Core/TimeService.hh>
 #include <Core/Timer.hh>
 #include <Core/Types.hh>
+#include <Core/Event.hh>
+#include <Core/Profiler.hh>
+#include <Core/Exception.hh>
+#include <Core/CoreEvents.hh>
+#include <Core/InputSystem.hh>
+#include <Core/TimeService.hh>
+#include <Core/LocalizationService.hh>
+
+#include <Assets/ImageProcessor.hh>
+
+#include <Scene/SceneManager.hh>
+
 #include <Filesystem/FileWatcherService.hh>
+
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
+
 #include <Layers/EditorLayer.hh>
+
 #include <Memory/Allocator.hh>
-#include <Panels/ContentBrowserPanel.hh>
+
+#include <Renderer/Core/RenderSystem.hh>
+
+#include <Panels/ScenePanel.hh>
+#include <Panels/StatsPanel.hh>
+#include <Panels/RendererPanel.hh>
+#include <Panels/SettingsPanel.hh>
 #include <Panels/HierarchyPanel.hh>
 #include <Panels/InspectorPanel.hh>
+#include <Panels/ContentBrowserPanel.hh>
 #include <Panels/RuntimeConsolePanel.hh>
-#include <Panels/ScenePanel.hh>
-#include <Panels/SettingsPanel.hh>
-#include <Panels/StatsPanel.hh>
-#include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/Passes/DebugModule.hh>
-#include <Scene/SceneManager.hh>
 
 namespace mikoto::editor {
 
@@ -163,7 +171,7 @@ namespace mikoto::editor {
                 if ( asset::IsFileImage( path ) ) {
                     // Ideally
                     // Dropped on mesh -> 2D texture
-                    // Dropped on sky -> cubemap
+                    // Dropped on sky -> cube-map
                     asset::AssetsService::Get()->LoadAssetAsync<ITexture>( path, TextureDimension::eTexture2D );
                 } else if ( asset::IsFileModel( path ) ) {
                     threading::TaskService::Get()->Submit( [this, path]() -> void {
@@ -323,6 +331,11 @@ namespace mikoto::editor {
         contentsBrowserPanelCreateInfo.mProjectBasePath = ".";
         contentsBrowserPanelCreateInfo.mResourcesBasePath = "Resources";
         mPanelRegistry.Register<ContentBrowserPanel>( contentsBrowserPanelCreateInfo );
+
+        // Renderer panel
+        RendererPanelCreateInfo rendererPanelCreateInfo{};
+        rendererPanelCreateInfo.mState = mEditorState.get();
+        //mPanelRegistry.Register<RendererPanel>( rendererPanelCreateInfo );
     }
 
     auto EditorLayer::InitDockingSpace() -> void {

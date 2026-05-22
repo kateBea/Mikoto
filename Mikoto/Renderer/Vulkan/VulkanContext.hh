@@ -64,6 +64,8 @@ namespace mikoto::renderer::vulkan {
 
     private:
         auto CreateSwapchain() -> void;
+
+        auto InitSwapchainRender() -> void;
         auto InitSynchronization() -> void;
 
     private:
@@ -74,6 +76,8 @@ namespace mikoto::renderer::vulkan {
         static constexpr u32 kMaxFramesInFlight{ 3 };
 
         TextureHandle mPresentTarget{};
+        bool mTableUpdateRequired{ false };
+
         SwapChainHandle mSwapchain{};
 
         // Current frame
@@ -89,9 +93,22 @@ namespace mikoto::renderer::vulkan {
             SemaphoreHandle mRenderFinishedSemaphore{};
         };
 
-        CommandListHandle mSwapChainRenderCmds{};
+        CommandListHandle mCommandList{};
 
         eastl::fixed_vector<FrameContext, kMaxFramesInFlight> mFrames{};
+
+        // Swapchain blit objects
+        renderer::rhi::SamplerHandle mSamplerState{};
+
+        renderer::rhi::ShaderModuleHandle mVertexShader{};
+        renderer::rhi::ShaderModuleHandle mPixelShader{};
+
+        renderer::rhi::PipelineHandle mPipeline{};
+        renderer::rhi::BindingSetHandle mBindingSetHandle{};
+        renderer::rhi::BindingLayoutHandle mBindlessLayout{};
+        renderer::rhi::DescriptorTableHandle mDescriptorTable{};
+        renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};
+        renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
     };
 }// namespace mikoto::renderer::vulkan
 

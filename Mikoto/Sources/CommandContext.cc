@@ -322,6 +322,6 @@ namespace mikoto::renderer {
     auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, size_t offset, const void* ptr, size_t sizeBytes ) -> void {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource resource{ mResourceManager->Get( dstBuffer.mHandle ) };
-        mCommands->Write( checked_cast<IBuffer*>( resource.mResource.GetRaw() ), offset, ptr, sizeBytes );
+        mCommands->WriteVolatile( checked_cast<IBuffer*>( resource.mResource.GetRaw() ), offset, ptr, sizeBytes );
     }
 }// namespace mikoto::renderer

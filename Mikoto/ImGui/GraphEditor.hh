@@ -14,62 +14,64 @@
 
 #ifndef MIKOTO_GRAPH_EDITOR_HH
 #define MIKOTO_GRAPH_EDITOR_HH
-#include <ankerl/unordered_dense.h>
+
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
+#include <EASTL/string_view.h>
+#include <EASTL/fixed_vector.h>
+
 #include <imgui_node_editor.h>
+#include <ankerl/unordered_dense.h>
 
-#include <Core/Common.hh>
-#include <Library/Utility/Types.hh>
-#include <string>
-#include <string_view>
-#include <vector>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 
-// TODO: move to core engine
-
-namespace mikoto {
+namespace mikoto::gui {
 
     struct GraphNode {
-        Int32 ID{};
-        std::string Key{};
-        std::string DisplayName{};
+        core::i32 mID{};
+        eastl::string mKey{};
+        eastl::string mDisplayName{};
 
-        std::vector<std::string> Inputs{};
-        std::vector<std::string> Outputs{};
+        eastl::vector<eastl::string> mInputs{};
+        eastl::vector<eastl::string> mOutputs{};
     };
 
     class GraphEditorBuilder {
     public:
 
-        auto PushNode( std::string_view node ) -> void;
+        auto PushNode( eastl::string_view node ) -> void;
 
     private:
         friend class GraphEditor;
 
     private:
-        ankerl::unordered_dense::map<std::string, GraphNode> m_Nodes{};
+        ankerl::unordered_dense::map<eastl::string, GraphNode> mNodes{};
     };
 
     // TODO: investigate how we can properly use multiple
     class GraphEditor {
     public:
-        explicit GraphEditor( std::string_view name );
+        explicit GraphEditor( eastl::string_view name );
 
         auto Render() -> void;
 
         auto Build( GraphEditorBuilder& builder ) -> void;
 
-        MKT_NODISCARD auto GetName() const -> const std::string&;
+        MKT_NODISCARD auto GetName() const -> const eastl::string&;
 
     private:
         static auto RenderNode( const GraphNode& node ) -> void;
 
     private:
-        std::string m_Name{};
-        std::string m_ConfigLayoutFile{};
+        eastl::string mName{};
+        eastl::string mConfigLayoutFile{};
 
-        ax::NodeEditor::Config m_Config{};
-        ax::NodeEditor::EditorContext* m_Context{};
+        ax::NodeEditor::Config mConfig{};
+        ax::NodeEditor::EditorContext* mContext{};
 
-        ankerl::unordered_dense::map<std::string, GraphNode> m_Nodes{};
+        ankerl::unordered_dense::map<eastl::string, GraphNode> mNodes{};
     };
 }
 

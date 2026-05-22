@@ -41,8 +41,13 @@ namespace mikoto::renderer {
 
         MKT_CORE_LOGGER_INFO("Initializing RenderSystem...");
 
+
+        // Still need to decide whether this will also be available for HLSL
+        // right is being used mostly for Vulkan, but it is also possible to use it for DX12, DX11, etc
+        // https://github.com/shader-slang/slang
+        InitializeSlang();
+
         InitContext();
-        InitShaderLibrary();
 
         mIsInitialized = true;
     }
@@ -76,7 +81,7 @@ namespace mikoto::renderer {
         mIsInitialized = false;
     }
 
-    auto RenderSystem::Update(float) -> void {
+    auto RenderSystem::Update(float ts) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         mContext->Update();
@@ -175,17 +180,6 @@ namespace mikoto::renderer {
                 InitGuiService();
             }
         }
-    }
-
-    auto RenderSystem::InitShaderLibrary() -> void {
-        using namespace mikoto::material;
-
-        MKT_CORE_LOGGER_INFO( "Initializing ShaderLibrary..." );
-
-        // Still need to decide whether this will also be available for HLSL
-        // right is being used mostly for Vulkan, but it is also possible to use it for DX12, DX11, etc
-        // https://github.com/shader-slang/slang
-        InitializeSlang();
     }
 
     auto RenderSystem::InitGuiService() -> void {

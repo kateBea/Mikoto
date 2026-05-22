@@ -73,8 +73,9 @@ namespace mikoto::platform {
               mBackend{ props.mBackend },
               mIsResizable{ props.mResizable } {}
 
-        auto SetWidth( const i32 width ) -> void { mWidth = width; }
-        auto SetHeight( const i32 height ) -> void { mHeight = height; }
+        virtual auto SetWidth( i32 width ) -> void = 0;
+        virtual auto SetHeight( i32 height ) -> void = 0;
+        virtual auto SetTitle( eastl::string_view title ) -> void = 0;
 
         MKT_NODISCARD auto GetWidth() const -> i32 { return mWidth; }
         MKT_NODISCARD auto GetHeight() const -> i32 { return mHeight; }

@@ -119,7 +119,7 @@ namespace mikoto::renderer::d3d12 {
         auto Write( ITexture* texture, u32 mipLevel,const void* data, size_t byteSize ) -> void override;
         auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
 
-        auto WriteVolatile( IBuffer* target, const void* data, size_t byteSize ) -> void override;
+        auto WriteVolatile( IBuffer* target, size_t dstOffset, const void* data, size_t byteSize ) -> void override;
 
         auto Write( IBuffer* buffer, size_t destOffset, const void* data, size_t byteSize ) -> void override;
         auto Write( IBuffer* buffer, const void* data, size_t byteSize ) -> void override;

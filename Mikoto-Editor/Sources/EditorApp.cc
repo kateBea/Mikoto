@@ -98,6 +98,12 @@ namespace mikoto::editor {
             // Start a new frame
             RenderSystem::Get()->PrepareFrame();
 
+            if (TimeService::Get()->GetTime( TimeUnit::eMilliseconds ) - mLastUpdateTime >= kUpdateInterval ) {
+                mLastUpdateTime = TimeService::Get()->GetTime( TimeUnit::eMilliseconds );
+                static eastl::string originalTitle{ mWindow->GetTitle() };
+                mWindow->SetTitle( string::Format( "{} - FPS: {:.2f}", originalTitle, 1.0f / timeStep ));
+            }
+
             mLayerStack.OnUpdate( as<f32>( timeStep ) );
             mEngine->Update();
 

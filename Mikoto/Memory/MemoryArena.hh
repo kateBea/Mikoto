@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_MEMORY_ARENA_HH
-#define MIKOTOROOT_MEMORY_ARENA_HH
+#ifndef MIKOTO_MEMORY_ARENA_HH
+#define MIKOTO_MEMORY_ARENA_HH
 
 #include <EASTL/optional.h>
 #include <EASTL/utility.h>
@@ -61,4 +61,4 @@ namespace mikoto::memory {
 
 }// namespace mikoto
 
-#endif//MIKOTOROOT_MEMORY_ARENA_HH
+#endif//MIKOTO_MEMORY_ARENA_HH

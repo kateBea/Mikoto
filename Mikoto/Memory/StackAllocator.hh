@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_STACK_ALLOCATOR_HH
-#define MIKOTOROOT_STACK_ALLOCATOR_HH
+#ifndef MIKOTO_STACK_ALLOCATOR_HH
+#define MIKOTO_STACK_ALLOCATOR_HH
 
 #include <EASTL/optional.h>
 
@@ -51,4 +51,4 @@ namespace mikoto::memory {
 
 }// namespace mikoto
 
-#endif//MIKOTOROOT_STACK_ALLOCATOR_HH
+#endif//MIKOTO_STACK_ALLOCATOR_HH

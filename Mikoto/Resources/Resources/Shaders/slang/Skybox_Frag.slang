@@ -53,13 +53,15 @@ FSOutput main(FSInput input) {
     FSOutput o;
 
     SamplerState sampler = Samplers[Parameters.BasicSamplerID];
-    TextureCube texture;
 
+    uint index = 0;
     if (Parameters.BackGroundType == kBGTypeSkybox) {
-        texture = Textures[Parameters.SkyboxCubeRtID];
+        index = Parameters.SkyboxCubeRtID;
     } else if (Parameters.BackGroundType == kBGTypePrefilter) {
-        texture = Textures[Parameters.PrefilterCubeRtID];
+        index = Parameters.PrefilterCubeRtID;
     }
+
+    TextureCube texture = Textures[index];
 
     const float blur = 1;
     float3 color;

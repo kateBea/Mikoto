@@ -304,7 +304,6 @@ namespace mikoto::renderer::vulkan {
         for ( size_t mipLevelIndex{ 0 }; mipLevelIndex < GetMipLevelCount(); ++mipLevelIndex ) {
             for (u32 faceIndex{}; faceIndex < faceCount; faceIndex++) {
                 mImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                mImageViewCreateInfo.subresourceRange.baseMipLevel = mipLevelIndex;
                 mImageViewCreateInfo.subresourceRange.baseArrayLayer = faceIndex; // 0=+X, 1=-X, 2=+Y, 3=-Y, 4=+Z, 5=-Z
 
                 MKT_VK_CHECK( vkCreateImageView( as<Device*>( mDevice )->GetDevice(),

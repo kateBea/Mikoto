@@ -73,6 +73,8 @@ namespace mikoto::renderer {
         auto SetSkyboxEquirectangular( TextureHandle texture ) -> void;
         auto SetRenderBackground(SceneBackgroundType bg) -> void;
 
+        MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl&;
+
         MKT_NODISCARD auto GetRenderGraph() const -> const FrameGraph&;
 
         MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> TextureHandle;

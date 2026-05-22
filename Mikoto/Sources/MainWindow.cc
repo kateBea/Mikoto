@@ -331,6 +331,21 @@ namespace mikoto::platform {
         mCursorType = type;
     }
 
+    auto MainWindow::SetWidth( i32 width ) -> void {
+        mWidth = width;
+        glfwSetWindowSize( mWindow, mWidth, mHeight );
+    }
+
+    auto MainWindow::SetHeight( i32 height ) -> void {
+        mHeight = height;
+        glfwSetWindowSize( mWindow, mWidth, mHeight );
+    }
+
+    auto MainWindow::SetTitle( eastl::string_view title ) -> void {
+        mTitle = title;
+        glfwSetWindowTitle(mWindow, mTitle.c_str());
+    }
+
     auto MainWindow::ResetCursorType() -> void {
         GLFWcursor *cursor{ glfwCreateStandardCursor( GLFW_ARROW_CURSOR ) };
         glfwSetCursor( mWindow, cursor );

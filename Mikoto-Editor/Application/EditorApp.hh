@@ -50,6 +50,12 @@ namespace mikoto::editor {
 
         eastl::unique_ptr<Engine> mEngine{};
         eastl::unique_ptr<ThemeManager> mThemeManager{};
+
+
+        // Time in ms since last time
+        // frame-time was updated
+        u32 mLastUpdateTime{ 0 };
+        static constexpr u32 kUpdateInterval{ 1000 }; // 1s
     };
 }// namespace mikoto::editor
 

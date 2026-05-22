@@ -149,7 +149,7 @@ namespace mikoto::renderer::d3d11 {
         auto SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void override;
         auto SetClearColor( TextureHandle renderTargets, Color color ) -> void override;
 
-        auto WriteVolatile( IBuffer* target, const void* data, size_t byteSize ) -> void override;
+        auto WriteVolatile( IBuffer* target, size_t dstOffset, const void* data, size_t byteSize ) -> void override;
 
         auto Write( IBuffer* src, ITexture* dest, u32 mipLevel ) -> void override;
         auto Write( ITexture* target, u32 mipLevel,const void* data, size_t byteSize ) -> void override;

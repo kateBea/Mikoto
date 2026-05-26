@@ -83,10 +83,10 @@ namespace mikoto::renderer {
 
     enum class FGStageType {
         eVertex,
-        eTessellationControl,
-        eTessellationEvaluation,
+        eHull,
+        eDomain,
         eGeometry,
-        eFragment,
+        ePixel,
 
         eTask,
         eMesh,
@@ -110,6 +110,7 @@ namespace mikoto::renderer {
     };
 
     /*
+     * TODO: deprecate we will use access type instead
         FrameGraph Resource State Rules
 
         - Each pass declares HOW it uses a resource (not future usage).
@@ -261,7 +262,8 @@ namespace mikoto::renderer {
     };
 
     struct FGResourceTrack {
-        FGResourceState mState{}; // Compute, Fragment, vertex, color attachment output or whatever see the TexturePipelinedescription in RHI
+        FGStageType mStage{};
+        FGResourceState mState{};
         FGResourceAccess mAccess{};
     };
 
@@ -424,6 +426,8 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto Get( FGResourceHandle handle ) -> FGResource&;
         MKT_NODISCARD auto Get( FGResourceHandle name ) const -> const FGResource&;
 
+        MKT_NODISCARD auto GetBufferMappedAddress( FGBufferHandle handle ) const -> const void*;
+
         MKT_NODISCARD auto GetBindlessLayout() const -> BindingLayoutHandle;
         MKT_NODISCARD auto GetPipelineLayout() const -> PipelineLayoutHandle;
 
@@ -431,9 +435,6 @@ namespace mikoto::renderer {
 
         MKT_NODISCARD auto Allocate( FGResourceType type, IResource* resource = nullptr ) -> FGResource&;
         MKT_NODISCARD auto Free( FGResourceHandle name ) -> bool;
-
-        // Make resource available to shaders
-        auto PushContantBuffer( FGResourceHandle name ) -> u32;
 
         auto PushSampler( FGResourceHandle name ) -> u32;
         auto PushTexture_SRV( FGResourceHandle name ) -> u32;
@@ -474,6 +475,37 @@ namespace mikoto::renderer {
         ResourceTable mResourceTable{};
     };
 
+    struct FGReadbackTask {
+        using Callback = eastl::function<void(Blackboard&, const FGResourceManager&)>;
+        Callback mCallback{};
+        u64 mFenceValue{};
+
+
+        // It starts as ready so we can update
+        // the fence value for the first submission
+        bool mIsReady{ true };
+
+        bool mRunsEveryFrame{ false };
+    };
+
+    // Manages GPU to CPU readbacks
+    class FGReadbackManager final {
+    public:
+        static constexpr u32 kMaxReadbacks{ 15 };
+
+        explicit FGReadbackManager( Blackboard& blackboard, FGResourceManager& manager );
+
+        auto ExecuteCallbacks(  u64 fenceValue  ) -> void;
+
+        auto UpdateTaskFenceValue( u32 taskID, u64 fenceValue ) -> void;
+        auto RegisterCallback(const FGReadbackTask::Callback& callback, bool runEveryFrame = false) -> u32;
+
+    private:
+        Blackboard* mBlackboard{};
+        FGResourceManager* mResourceManager{};
+        ankerl::unordered_dense::map<u32, FGReadbackTask> mReadbackTasks{};
+    };
+
     struct FGNodeControl {
         ankerl::unordered_dense::map<eastl::string, FGNode> mNodes{};
         ankerl::unordered_dense::map<eastl::string, Ref<CommandContext>> mContexts{};
@@ -486,6 +518,8 @@ namespace mikoto::renderer {
     public:
         explicit FGNodeBuilder( FGNode& node, FGNodeControl& control );
 
+        // I am not sure if I wanna keep these two. The second set of
+        // methods offers more relaxed barriers
         auto Read( FGTextureHandle handle, FGResourceState state ) -> void;
         auto Write( FGTextureHandle handle, FGResourceState state ) -> void;
         auto ReadWrite( FGTextureHandle handle, FGResourceState state ) -> void;
@@ -493,6 +527,14 @@ namespace mikoto::renderer {
         auto Read( FGBufferHandle handle, FGResourceState state )  -> void;
         auto Write( FGBufferHandle handle, FGResourceState state )  -> void;
         auto ReadWrite( FGBufferHandle handle, FGResourceState state )  -> void;
+
+        auto Read( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void;
+        auto Write( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void;
+        auto ReadWrite( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void;
+
+        auto Read( FGBufferHandle handle, FGStageType stage, FGResourceAccess access )  -> void;
+        auto Write( FGBufferHandle handle, FGStageType stage, FGResourceAccess access )  -> void;
+        auto ReadWrite( FGBufferHandle handle, FGStageType stage, FGResourceAccess access )  -> void;
 
     private:
         auto Read( FGResourceHandle handle )  -> void;
@@ -530,6 +572,8 @@ namespace mikoto::renderer {
         auto Compile() -> void;
         auto Execute() -> void;
 
+        auto ExecuteReadbacks() -> void;
+
         auto SetExecutionPolicy( eastl::string_view passName, FGExecutionPolicy policy ) -> void;
 
         auto DisablePass( eastl::string_view passName ) -> void;
@@ -549,9 +593,6 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto Create( const FGBufferDescription& desc ) -> FGBufferHandle;
         MKT_NODISCARD auto Create( const FGPipelineDescription& desc ) -> FGPipelineHandle;
         MKT_NODISCARD auto Create( const FGSamplerDescription& desc ) -> FGSamplerHandle;
-
-        // Graph is marked as dirty and recompiled on the next call to Execute
-        auto SetEnablePass( bool enable, eastl::string_view name ) -> void;
 
         template<typename PassData, typename SetupFunc, typename ExecuteFunc>
         auto RegisterPass( eastl::string_view name, FGPassType nodeType, SetupFunc &&setup, ExecuteFunc &&execute ) -> void {
@@ -588,6 +629,8 @@ namespace mikoto::renderer {
             node.mBuilderCallback();
         }
 
+        auto RegisterReadback( FGReadbackTask::Callback &&execute, bool runEveryFrame = false ) -> void;
+
         template<typename T, typename... Args>
         auto GetOrCreate(Args&&... args) -> T& {
             if (mBlackboard.Contains<T>()) {
@@ -618,6 +661,15 @@ namespace mikoto::renderer {
         auto RecordCommands( CommandListHandle cmd ) -> void;
 
     private:
+        struct ReadbackTask {
+            u32 mTaskID{};
+            FGReadbackTask::Callback mTask{};
+
+            bool mRunsPerFrame{};
+            bool mHasBeenRegistered{};
+        };
+
+    private:
         GpuDevice* mDevice{};
         material::ShaderLibrary* mShaderLibrary{};
 
@@ -628,6 +680,13 @@ namespace mikoto::renderer {
         FGCompiledPlan mExecutionPlan{};
         eastl::unique_ptr<FGNodeControl> mNodeControl{};
         eastl::unique_ptr<FGResourceManager> mResourceManager{};
+        eastl::unique_ptr<FGReadbackManager> mReadbackManager{};
+
+        u64 mFenceValue{};
+        FenceHandle mFence{};
+
+        // Callback, runsEveryFrame
+        eastl::vector<ReadbackTask> mReadbackTasks{};
 
         CommandListHandle mGraphicsCommands{};
         CommandListHandle mComputeCommands{};

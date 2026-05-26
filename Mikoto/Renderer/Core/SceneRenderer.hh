@@ -36,6 +36,7 @@
 #include <Renderer/Passes/ShadowMappingModule.hh>
 #include <Renderer/Passes/TextRenderModule.hh>
 #include <Renderer/Passes/MousePickingModule.hh>
+#include <Renderer/Passes/HelperModule.hh>
 
 namespace mikoto::renderer {
 
@@ -67,11 +68,18 @@ namespace mikoto::renderer {
 
         auto Render( const Scene* scene ) -> void override;
 
+        auto SetPresentType( PresentTarget type ) -> void;
+
         auto SetMainCamera( const SceneCamera* camera ) -> void;
         auto SetClearColor(const Color& color) -> void;
 
+        auto SetTonemapType( ToneMappingType type ) -> void;
+
         auto SetSkyboxEquirectangular( TextureHandle texture ) -> void;
         auto SetRenderBackground(SceneBackgroundType bg) -> void;
+
+        MKT_NODISCARD auto ReadPixel( u32 x, u32 y) const -> u32;
+        MKT_NODISCARD auto ReadPixel( const ReadPixelViewportInfo& ínfo ) const -> core::u32;
 
         MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl&;
 
@@ -109,6 +117,8 @@ namespace mikoto::renderer {
         ParticleSimulationModule mParticleRendering{ mTargetResolution };
 
         TextRenderModule mTextRendering{ mTargetResolution };
+
+        HelperModule mHelperModule{};
 
         // Raytracing
         PathTracingModule mPathTracing{};

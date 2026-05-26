@@ -86,7 +86,7 @@ namespace mikoto::renderer {
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eBGRA8_UNORM )
             .PushShader( "HelloTriangleFG_Vert.slang", FGStageType::eVertex )
-            .PushShader( "HelloTriangleFG_Frag.slang", FGStageType::eFragment )
+            .PushShader( "HelloTriangleFG_Frag.slang", FGStageType::ePixel )
         };
 
         trianglePassData.mPipeline = graph.Create( pipelineBuilder );
@@ -159,7 +159,7 @@ namespace mikoto::renderer {
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eBGRA8_UNORM )
             .PushShader( "HelloTexture_Vert.slang", FGStageType::eVertex )
-            .PushShader( "HelloTexture_Frag.slang", FGStageType::eFragment ) };
+            .PushShader( "HelloTexture_Frag.slang", FGStageType::ePixel ) };
 
         trianglePassData.mPipeline = graph.Create( pipelineBuilder );
 
@@ -282,6 +282,18 @@ namespace mikoto::renderer {
             []( CommandContext &ctx, Blackboard &blackboard ) {
                 const auto &data{ blackboard.Get<SimpleCompute>() };
                 ctx.CopyBuffer( data.mReadbackBuffer, data.mComputeBuffer );
+            } );
+
+        graph.RegisterReadback(
+            []( Blackboard &blackboard, const FGResourceManager& manager ) {
+                const auto &data{ blackboard.Get<SimpleCompute>() };
+
+                eastl::vector<MyStruct> myStructs( data.mNumbersCount );
+                const size_t sizeBytes{ data.mNumbersCount * MKT_SIZEOF( MyStruct ) };
+
+                if ( const void *mappedAddress{ manager.GetBufferMappedAddress( data.mReadbackBuffer ) } ) {
+                    std::memcpy( myStructs.data(), mappedAddress, sizeBytes );
+                }
             } );
     }
 }// namespace mikoto::renderer

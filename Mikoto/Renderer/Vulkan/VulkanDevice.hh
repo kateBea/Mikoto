@@ -74,6 +74,8 @@ namespace mikoto::renderer::vulkan {
     public:
         explicit Fence(u64 initialValue);
 
+        MKT_NODISCARD auto GetCompletionValue() const -> u64 override;
+
         auto SetDebugName( eastl::string_view name) -> void override;
 
         MKT_NODISCARD auto GetNativeHandle(ObjectType) -> Object override;
@@ -201,17 +203,13 @@ namespace mikoto::renderer::vulkan {
     struct CommandThreadContext {
         u64 mSubmissionId{};
         VkCommandBuffer mCommandBuffer{};
-
-        eastl::fixed_vector<VkBufferMemoryBarrier2, kMaxBarriers> mBufferBarriers{};
-        eastl::fixed_vector<VkImageMemoryBarrier2, kMaxBarriers> mImageBarriers{};
-
         IBuffer* mIndirectBuffer{};
-
         bool mIsRenderScopeActive{};
     };
 
     class CommandPool;
 
+    // https://github.com/KhronosGroup/Vulkan-Samples/tree/main/samples/performance/command_buffer_usage
     // Keeps tract of bound resources
     // for pipelines that match the same layout could be useful to avoid rebinding same resources twice for compatible pipeline
     // Recycles submitted command buffers when they are done
@@ -248,7 +246,7 @@ namespace mikoto::renderer::vulkan {
         auto SetEnableAutomaticBarriers(  bool enable  ) -> void override;
 
         auto SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void override;
-        auto SetClearColor( TextureHandle renderTargets, Color color ) -> void override;
+        auto SetClearColor( TextureHandle image, Color color ) -> void override;
 
         auto Write( IBuffer* src, ITexture* dest, u32 mipLevel ) -> void override;
         auto Write( ITexture* texture, u32 mipLevel,const void* data, size_t byteSize ) -> void override;
@@ -293,9 +291,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
-        // Vulkan specifics
-        auto MarkSubmitted( u64 lastSubmissionID ) -> void;
-        auto MarkSubmitted( const FencePlain& fence ) -> void;
+        MKT_NODISCARD auto GetPool() const -> const CommandPool*;
 
         ~CommandList() override;
 
@@ -315,8 +311,9 @@ namespace mikoto::renderer::vulkan {
         CommandPool* mCommandPool{ nullptr };
         VkCommandBufferAllocateInfo mAllocInfo{};
 
-        bool mIsSubmitted{ false };
         bool mEnableAutomaticBarriers{ true };
+        eastl::fixed_vector<VkBufferMemoryBarrier2, kMaxBarriers> mBufferBarriers{};
+        eastl::fixed_vector<VkImageMemoryBarrier2, kMaxBarriers> mImageBarriers{};
 
         GpuUploadManager* mUploadManager{ nullptr };
 
@@ -324,21 +321,17 @@ namespace mikoto::renderer::vulkan {
         // And reset it everytime we call End(). The arena remains initialized until it is actually needed.
         // The reason why this belongs to the Command is that it makes it easier to reset the allocator
         // everytime we need to start consuming it again.
-
         static constexpr size_t kMaxVolatileBufferVersions{ 4 };
         static constexpr size_t kArenaInitialSize{ MKT_MEGABYTES( 64 ) };
-
         u32 mCurrentVolatileVersion{ 0 };
-
         ankerl::unordered_dense::map<u32,
             eastl::unique_ptr<memory::MemoryArena<IBuffer, LinearAllocator>>> mArenasAllocators{};
 
         std::mutex mUploadAllocationsMutex{};
         eastl::fixed_vector<GpuUploadAllocation*, 10> mUploadAllocations{};
 
-        static constexpr size_t kMaxCmdConcurrency{ 16 };
-
         // Multithread
+        static constexpr size_t kMaxCmdConcurrency{ 16 };
         u32 mMaxThreadConcurrency{ 0 };
 
         // The guy who called Begin(), he is responsible of
@@ -364,6 +357,7 @@ namespace mikoto::renderer::vulkan {
         explicit CommandPool( QueueType type, u32 queueFamilyIndex );
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
         auto SetDebugName( eastl::string_view name) -> void override;
 
@@ -401,6 +395,8 @@ namespace mikoto::renderer::vulkan {
 
         auto Flush() -> void;
 
+        MKT_NODISCARD auto Present( const VkPresentInfoKHR& info ) -> VkResult;
+
         auto RunGarbageCollection() -> void;
 
         auto ExecuteCommandList( CommandListHandle cmd ) -> void;
@@ -415,6 +411,8 @@ namespace mikoto::renderer::vulkan {
         auto WaitForSubmission( u64 submissionID ) -> void;
 
         auto AddQueueWaitFence( FencePlain* semaphore ) -> void;
+
+        auto AddQueueSignalSemaphore( Fence* semaphore, u64 value, VkPipelineStageFlags2 stageFlags ) -> void;
         auto AddQueueSignalSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void;
         auto AddQueueWaitSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void;
 
@@ -455,7 +453,7 @@ namespace mikoto::renderer::vulkan {
         static constexpr u32 kMaxSubmits{ 115 };
         std::mutex mPendingSubmitMutex{};
         SemaphoreHandle mTimelineSemaphore{};
-        eastl::fixed_vector<CommandListHandle, kMaxSubmits> mPendingSubmits{};
+        eastl::fixed_vector<VkCommandBuffer, kMaxSubmits> mPendingSubmits{};
 
         struct DeleteItem {
             FencePlain mFence{};
@@ -745,9 +743,10 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
         MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool override;
 
-        auto Wait(FenceHandle handle, u64 fenceValue) -> void override;
+        auto Wait( QueueType type, FenceHandle handle, u64 fenceValue ) -> void override;
+        auto Signal( QueueType type, FenceHandle handle, u64 fenceValue ) -> void override;
 
-        auto Flush() -> void override;
+        auto ExecutePendingCommands() -> void override;
         auto RunGarbageCollection() -> void override;
         auto SubmitCommands( CommandListHandle cmdList ) -> u64 override;
         auto ExecuteCommands( CommandListHandle cmd ) -> void override;
@@ -806,7 +805,7 @@ namespace mikoto::renderer::vulkan {
         auto InitTracyContext() -> void;
         auto ShutdownTracyContext() -> void;
 
-        auto CreateDummyResources() -> void;
+        auto InitDummyResources() -> void;
         auto DestroyDummyResources() -> void;
 
         auto SerializePipelineCache() -> void;
@@ -828,7 +827,7 @@ namespace mikoto::renderer::vulkan {
         VkDevice mLogicalDevice{};
         PhysicalDevice* mPhysicalDevice{};
 
-        static constexpr u32 kMaxQueuesPerFamily{ 1 };
+        static constexpr u32 kMaxQueuesPerFamily{ 4 };
         static constexpr f32 kQueueDefaultPriority{ 1.0f };
 
         // [Memory management]

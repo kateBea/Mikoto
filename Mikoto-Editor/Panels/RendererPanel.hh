@@ -52,33 +52,7 @@ namespace mikoto::editor {
 
     private:
 
-        auto DrawPassInfo() -> void;
-        auto DrawRendererConfig() -> void;
-
-        auto DrawSSAOSettings() -> void;
-
-        auto DrawPostProcessing() -> void;
-        auto DrawToneMapSettings() -> void;
-
-        auto DrawRayTracingSettings() -> void;
-
-        auto DrawIBLSettings() -> void;
-        auto DrawShadowMappingSettings() -> void;
-
-    private:
-
         EditorState* mEditorState{};
-
-        bool mShowPassGraph{ false };
-
-        // SSAO
-        bool mEnableSSAO{ false };
-
-        core::f32 mKernelSize{ 0.5f };
-        core::f32 mSsaoRadius{ 0.5f };
-        core::f32 mSsaoBias{ 0.5f };
-        core::f32 mSsaoStrength{ 1.5f };
-        core::u32 mSsaoDimensions{ 8 }; // m_SSAODimensions * m_SSAODimensions
 
         PresentTargetType mPresentTargetType{ PresentTargetType::eFinalImage };
 

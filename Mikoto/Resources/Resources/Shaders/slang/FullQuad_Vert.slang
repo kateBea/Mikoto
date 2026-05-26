@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "base/Base.slang"
+
 struct VSOutput {
     float2 UV : TEXCOORD0;
     float4 Position : SV_Position;

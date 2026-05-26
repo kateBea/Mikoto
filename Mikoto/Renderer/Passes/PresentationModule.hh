@@ -22,6 +22,22 @@
 
 namespace mikoto::renderer {
 
+    enum class PresentTarget {
+        eGBuffer_Color,
+        eGBuffer_Emissive,
+        eGBuffer_Normals,
+        eGBuffer_Position,
+
+        eWireframe,
+        eDepthPrepass,
+
+        ePBRadiance_Output,
+
+        eTonemap_Output,
+
+        eCount,
+    };
+
     struct PresentationPassData {
         // Textures we will render the final image into
         eastl::vector<FGTextureHandle> mPresentTextures{};
@@ -35,17 +51,23 @@ namespace mikoto::renderer {
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
+        auto SetPresentType( PresentTarget type ) -> void;
+
         auto RegisterPresentImage( FrameGraph& graph, TextureHandle texture ) -> void;
 
     private:
 
         auto RegisterTransition( FrameGraph& graph ) -> void;
+
+        auto GetTargetImage( Blackboard& ctx ) -> FGTextureHandle;
         auto RegisterFullQuadRender( FrameGraph& graph ) -> void;
 
     private:
         FGTextureHandle mPresentTexture{};
 
         RenderResolution mResolution{};
+
+        PresentTarget mPresentTarget{ PresentTarget::ePBRadiance_Output };
     };
 
 }// namespace mikoto

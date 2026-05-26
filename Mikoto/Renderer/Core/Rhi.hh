@@ -1128,6 +1128,8 @@ namespace mikoto::renderer::rhi {
     class IFence : public DeviceObject {
     public:
 
+        MKT_NODISCARD virtual auto GetCompletionValue() const -> u64 = 0;
+
         using DeviceObject::Initialize;
 
     protected:

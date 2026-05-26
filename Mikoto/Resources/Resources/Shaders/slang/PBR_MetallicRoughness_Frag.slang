@@ -606,7 +606,8 @@ FSOutput main(FSInput input) {
     }
 
     color += emissiveContrib;
-    output.Color = float4(color, baseColor.a);
+    // output.Color = float4(color, baseColor.a);
+    output.Color = baseColor;
     
     return output;
 }

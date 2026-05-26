@@ -95,7 +95,10 @@ namespace mikoto::renderer::vulkan {
 
         eastl::vector<PhysicalDevice> mPhysicalDevices{};
 
-        eastl::vector<const char*> mValidationLayers{ "VK_LAYER_KHRONOS_validation" };
+        eastl::vector<const char*> mValidationLayers{
+            "VK_LAYER_KHRONOS_validation",
+            //"VK_LAYER_LUNARG_crash_diagnostic"
+        };
         eastl::vector<const char*> mInstanceExtensions{
             VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
             VK_EXT_DEBUG_UTILS_EXTENSION_NAME

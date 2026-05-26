@@ -96,7 +96,7 @@ namespace mikoto::renderer {
     MKT_NODISCARD constexpr auto GetShaderFlagsFromStage( FGStageType type ) -> ShaderType {
         switch (type) {
             case FGStageType::eVertex: return ShaderType::eVertex;
-            case FGStageType::eFragment: return ShaderType::ePixel;
+            case FGStageType::ePixel: return ShaderType::ePixel;
             case FGStageType::eCompute: return ShaderType::eCompute;
             default:;
         }
@@ -334,6 +334,12 @@ namespace mikoto::renderer {
         return *mResources.at( handle );
     }
 
+    auto FGResourceManager::GetBufferMappedAddress( FGBufferHandle handle ) const -> const void* {
+        auto& resource{ Get(handle.mHandle) };
+        BufferHandle buffer{ resource.mResource };
+        return mDevice->Map( buffer.GetRaw() ); // Maps whole buffer, not parts of it
+    }
+
     auto FGResourceManager::GetBindlessLayout() const -> BindingLayoutHandle {
         return mBindlessLayout;
     }
@@ -466,6 +472,49 @@ namespace mikoto::renderer {
         return FGTextureHandle{ .mHandle = resource.mHandle };
     }
 
+    FGReadbackManager::FGReadbackManager( Blackboard& blackboard, FGResourceManager& manager )
+        : mBlackboard{ MKT_ADDRESSOF( blackboard ) }, mResourceManager{ MKT_ADDRESSOF( manager ) }
+    {}
+
+    auto FGReadbackManager::ExecuteCallbacks( u64 fenceValue ) -> void {
+        auto it{ mReadbackTasks.begin() };
+        while ( it != mReadbackTasks.end() ) {
+            auto& pair{ *it };
+
+            if (fenceValue >= pair.second.mFenceValue) {
+                pair.second.mCallback( *mBlackboard, *mResourceManager );
+                pair.second.mIsReady = true;
+
+                if (!pair.second.mRunsEveryFrame) {
+                    it = mReadbackTasks.erase( it );
+                } else {
+                    ++it;
+                }
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    auto FGReadbackManager::UpdateTaskFenceValue( u32 taskID, u64 fenceValue ) -> void {
+        MKT_ASSERT( mReadbackTasks.contains( taskID ), "Task with specified ID does not exist" );
+
+        if (mReadbackTasks[taskID].mIsReady) {
+            mReadbackTasks[taskID].mIsReady = false;
+            mReadbackTasks[taskID].mFenceValue = fenceValue;
+        }
+    }
+
+    auto FGReadbackManager::RegisterCallback( const FGReadbackTask::Callback& callback, bool runEveryFrame ) -> u32 {
+        u32 taskID{ (u32)mReadbackTasks.size() + 1 };
+        mReadbackTasks[taskID] = FGReadbackTask{
+            .mCallback = callback,
+            .mRunsEveryFrame = runEveryFrame,
+        };
+
+        return taskID;
+    }
+
     auto FGNodeControl::Clear() -> void {
         mContexts.clear();
         mResources.clear();
@@ -510,6 +559,30 @@ namespace mikoto::renderer {
             .mState = state,
             .mAccess = FGResourceAccess::eReadWrite
         };
+    }
+
+    auto FGNodeBuilder::Read( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
+
+    }
+
+    auto FGNodeBuilder::Write( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
+
+    }
+
+    auto FGNodeBuilder::ReadWrite( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
+
+    }
+
+    auto FGNodeBuilder::Read( FGBufferHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
+
+    }
+
+    auto FGNodeBuilder::Write( FGBufferHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
+
+    }
+
+    auto FGNodeBuilder::ReadWrite( FGBufferHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
+
     }
 
     auto FGNodeBuilder::Read( FGBufferHandle handle, FGResourceState state ) -> void {
@@ -584,6 +657,9 @@ namespace mikoto::renderer {
         : mDevice{ device }, mShaderLibrary{ library } {
         mNodeControl = eastl::make_unique<FGNodeControl>();
         mResourceManager = eastl::make_unique<FGResourceManager>( mDevice );
+        mReadbackManager = eastl::make_unique<FGReadbackManager>( mBlackboard, *mResourceManager );
+
+        mFence = mDevice->CreateFence( mFenceValue );
 
         mGraphicsCommands = mDevice->CreateCommandList( { threading::GetThreadConcurrency(), QueueType::eGraphics } );
         mComputeCommands = mDevice->CreateCommandList( { threading::GetThreadConcurrency(), QueueType::eCompute } );
@@ -690,6 +766,40 @@ namespace mikoto::renderer {
         mDevice->SubmitCommands( mGraphicsCommands );
         mDevice->SubmitCommands( mComputeCommands );
         mDevice->SubmitCommands( mTransferCommands );
+
+        // Register callbacks
+        mFenceValue++;
+
+#if true
+        auto it{ mReadbackTasks.begin() };
+        while ( it != mReadbackTasks.end() ) {
+            if (!it->mHasBeenRegistered) {
+                it->mHasBeenRegistered = true;
+                it->mTaskID = mReadbackManager->RegisterCallback( it->mTask, it->mRunsPerFrame );
+            }
+
+            // Update the submission fence value
+            mReadbackManager->UpdateTaskFenceValue( it->mTaskID, mFenceValue );
+
+            if (!it->mRunsPerFrame) {
+                // Runs only once, delete to not
+                // update submission fence value again
+                it = mReadbackTasks.erase( it );
+            } else {
+                ++it;
+            }
+        }
+
+        // Signal() will signal the specified value
+        // when the last batch of SubmitCommands() finishes executing
+        mDevice->Signal( QueueType::eTransfer, mFence, mFenceValue );
+#endif
+    }
+
+    auto FrameGraph::ExecuteReadbacks() -> void {
+        const u64 currentValue{ mFence->GetCompletionValue() };
+        // Execute readback callbacks first if any
+        mReadbackManager->ExecuteCallbacks( currentValue );
     }
 
     auto FrameGraph::SetExecutionPolicy( eastl::string_view passName, FGExecutionPolicy policy ) -> void {
@@ -832,7 +942,7 @@ namespace mikoto::renderer {
                 if (prev == FGResourceState::eUnknown) {
                     // First use -> just set state, no barrier
                     // I think I wil probably remove this and transition all resources to general layout so the
-                    // i only do the next check for barriers for each pass
+                    // I only do the next check for barriers for each pass
                     mNodeControl->mResources[h].mCurrentState = next;
                     mExecutionPlan.mBarriers[passName][h] = FGBarrier{
                         h,
@@ -1005,6 +1115,7 @@ namespace mikoto::renderer {
             .SetBufferUsage( desc.mBufferUsageFlags )
             .SetName( desc.mName )
             .ForElement( desc.mElementSizeBytes, desc.mElementCount )
+            .SetHeapType( desc.mHeapType )
             .SetCpuAccessType( desc.mHeapType == HeapType::eUpload ? CpuAccessType::eWrite : CpuAccessType::eRead )
             .SetByteSize( desc.mElementSizeBytes )
         };
@@ -1139,7 +1250,11 @@ namespace mikoto::renderer {
         return FGSamplerHandle{ .mHandle = resource.mHandle };
     }
 
-    auto FrameGraph::SetEnablePass( bool enable, eastl::string_view name ) -> void {
-
+    auto FrameGraph::RegisterReadback( FGReadbackTask::Callback&& execute, bool runEveryFrame ) -> void {
+        mReadbackTasks.emplace_back( ReadbackTask {
+            .mTask = eastl::move( execute ),
+            .mRunsPerFrame = runEveryFrame,
+            .mHasBeenRegistered = false,
+        });
     }
 }// namespace Mikoto

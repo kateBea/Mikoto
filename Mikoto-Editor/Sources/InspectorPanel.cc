@@ -1956,7 +1956,7 @@ namespace mikoto::editor {
                     Path path{ FileService::Get()->OpenDialog( filters ) };
                     if ( !path.IsEmpty() ) {
                         AudioHandle newClip{ AssetsService::Get()->LoadAsset<Audio>( AudioLoadDescription {
-                            .mAudioFile{ FileService::Get()->LoadFile( path ) }
+                            .mFile{ FileService::Get()->LoadFile( path ) }
                         } ) };
 
                         if ( !newClip.IsEmpty() ) {

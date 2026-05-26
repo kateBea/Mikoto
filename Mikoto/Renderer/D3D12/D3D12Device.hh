@@ -210,9 +210,10 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
         MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool override;
 
-        auto Wait(FenceHandle handle, u64 fenceValue) -> void override;
+        auto Wait( QueueType type, FenceHandle handle, u64 fenceValue ) -> void override;
+        auto Signal( QueueType type, FenceHandle handle, u64 fenceValue ) -> void override;
 
-        auto Flush() -> void override;
+        auto ExecutePendingCommands() -> void override;
         auto RunGarbageCollection() -> void override;
         auto SubmitCommands( CommandListHandle cmdList ) -> u64 override;
         auto ExecuteCommands( CommandListHandle cmdList ) -> void override;

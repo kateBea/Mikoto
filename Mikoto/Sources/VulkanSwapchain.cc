@@ -81,7 +81,7 @@ namespace mikoto::renderer::vulkan {
         Queue* presentQueue{ as<Device*>(mDevice)->GetQueue( QueueType::ePresent ) };
         MKT_ASSERT( presentQueue, "No valid presentation queue" );
 
-        return vkQueuePresentKHR( *presentQueue, MKT_ADDRESSOF( presentInfo ) );
+        return presentQueue->Present( presentInfo );
     }
 
     auto SwapChain::GetNextImage( u32 &imageIndex, const BinarySemaphore &waitSemaphore ) const -> VkResult {
@@ -161,7 +161,7 @@ namespace mikoto::renderer::vulkan {
         // size is defined, and you should use currentExtent.
         // If it is equal to the maximum unsigned integer, you need to define the extent yourself within the bounds
         // of minImageExtent and maxImageExtent.
-        // For now it gets ignored
+        // For now, it gets ignored
         MKT_VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice->mPhysicalDevice, mSurface, &mPhysicalDevice->mCapabilities));
 
         VkExtent2D actualExtent{};
@@ -200,21 +200,20 @@ namespace mikoto::renderer::vulkan {
         // Swap chain images are used for drawing or copying to it (in case we render first to a texture and copy to it for presentation)
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-        // Swapchain images are presented via a queue that supports presentation
-        Queue* presentQueue{ as<Device*>(mDevice)->GetQueue( QueueType::ePresent ) };
-        MKT_ASSERT( presentQueue, "No valid presentation queue" );
-
-        eastl::vector<u32> queueFamilyIndices{ presentQueue->GetFamilyIndex() };
-
         // Right now we assume they belong to same queue family index
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         createInfo.queueFamilyIndexCount = 0;
         createInfo.pQueueFamilyIndices = nullptr;
 
         // In case we want swapchain images to be shared across queue family indices
+        // Swapchain images are presented via a queue that supports presentation
+        // Queue* presentQueue{ as<Device*>(mDevice)->GetQueue( QueueType::ePresent ) };
+        // MKT_ASSERT( presentQueue, "No valid presentation queue" );
+        //
+        // eastl::vector<u32> uniqueQueueFamilyIndices{ presentQueue->GetFamilyIndex() };
         // createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        // createInfo.queueFamilyIndexCount = queueFamilyIndices.size();
-        // createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
+        // createInfo.queueFamilyIndexCount = uniqueQueueFamilyIndices.size();
+        // createInfo.pQueueFamilyIndices = uniqueQueueFamilyIndices.data();
 
         createInfo.clipped = VK_TRUE;
         createInfo.presentMode = presentMode;

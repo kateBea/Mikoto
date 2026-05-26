@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Tonemap_Helpers.slang"
 
@@ -31,36 +32,48 @@ struct TonemapParameters {
     int ToneMapType;
 };
 
-[[vk::binding(Slot_0, DYNAMIC_SAMPLERS_SET_INDEX)]] 
-Sampler2D u_FinalComposition;
+struct DrawParams {
+    uint TextureSamplerID;
+    uint BasicSamplerID;
 
-[[vk::push_constant]] 
-TonemapParameters u_Constants;
+    float Exposure;
+    float Gamma;
+
+    int ToneMapType;
+};
+
+MKT_DECLARE_SAMPLERS samplers;
+MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput output;
 
-    float4 color = u_FinalComposition.Sample(input.UV);
+    Texture2D texture = textures[parameters.TextureSamplerID];
+    SamplerState sampler = samplers[parameters.BasicSamplerID];
 
-    switch (u_Constants.ToneMapType) {
+    float4 color = texture.Sample(sampler, input.UV);
+
+    switch (parameters.ToneMapType) {
     case c_ToneMapLinear:
-        output.Color = Tonemap_Linear(color, u_Constants.Exposure, u_Constants.Gamma);
+        output.Color = Tonemap_Linear(color, parameters.Exposure, parameters.Gamma);
         break;
     case c_ToneMapReinhard:
         output.Color = float4(Tonemap_Reinhard(color.xyz), color.a);
         break;
     case c_ToneMapUncharted2:
-        output.Color = Tonemap_Uncharted2(color, u_Constants.Exposure, u_Constants.Gamma);
+        output.Color = Tonemap_Uncharted2(color, parameters.Exposure, parameters.Gamma);
         break;
     case c_ToneMapACES:
-        output.Color = Tonemap_Aces(color, u_Constants.Exposure, u_Constants.Gamma);
+        output.Color = Tonemap_Aces(color, parameters.Exposure, parameters.Gamma);
         break;
     case c_ToneMapKhronosNeutral:
-        output.Color = Tonemap_KhronosNeutral(color, u_Constants.Exposure, u_Constants.Gamma);
+        output.Color = Tonemap_KhronosNeutral(color, parameters.Exposure, parameters.Gamma);
         break;
     default:
-        output.Color = Tonemap_Aces(color, u_Constants.Exposure, u_Constants.Gamma);
+        output.Color = Tonemap_Aces(color, parameters.Exposure, parameters.Gamma);
         break;
     }
 

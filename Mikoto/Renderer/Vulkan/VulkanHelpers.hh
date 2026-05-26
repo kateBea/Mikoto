@@ -65,6 +65,8 @@ namespace mikoto::renderer::vulkan {
 
     MKT_NODISCARD auto GetIndexType(Format format) -> VkIndexType;
 
+    MKT_NODISCARD auto GetPolygonMode(PolygonMode mode) -> VkPolygonMode;
+
     MKT_NODISCARD auto GetShaderStageFlags( ShaderStage visibility ) -> VkShaderStageFlags;
     MKT_NODISCARD auto GetDescriptorType( ResourceType type ) -> VkDescriptorType;
 

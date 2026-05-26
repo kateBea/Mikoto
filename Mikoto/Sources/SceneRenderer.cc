@@ -33,6 +33,11 @@ namespace mikoto::renderer {
         mTargetResolution{ createInfo.mResolution } {}
 
     auto SceneRenderer::Init() -> void {
+        if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11)) {
+            MKT_CORE_LOGGER_WARN( "Scene renderer expects DirectX12 or Vulkan" );
+            return;
+        }
+
         // Init shader library
         const ShaderLibraryDescription description{
             .mDevice = mDevice,
@@ -71,6 +76,8 @@ namespace mikoto::renderer {
         mMaterialModule.RegisterPasses( *mFrameGraph );
         mDebugPasses.RegisterPasses( *mFrameGraph );
 
+        mHelperModule.RegisterPasses( *mFrameGraph );
+
         // Render final contents into specified images
         mPresentationModule.RegisterPasses( *mFrameGraph );
         mPresentationModule.RegisterPresentImage( *mFrameGraph, mPresentTexture );
@@ -93,7 +100,12 @@ namespace mikoto::renderer {
         mFrameGraph->SetExecutionPolicy( "IrradiancePass", FGExecutionPolicy::eOnChange );
         mFrameGraph->SetExecutionPolicy( "SkyboxProjection", FGExecutionPolicy::eOnChange );
 
-        mFrameGraph->DisablePass( "PBR_Radiance" );
+        // mFrameGraph->DisablePass( "PBR_Radiance" );
+        // mFrameGraph->DisablePass( "DepthPrePass" );
+        // mFrameGraph->DisablePass( "GBuffer" );
+        // mFrameGraph->DisablePass( "ObjectSelection_Render" );
+
+        // For some reason this makes subsequent passes to render in Wireframe mode
         mFrameGraph->DisablePass( "WireframePass" );
     }
 
@@ -108,12 +120,21 @@ namespace mikoto::renderer {
     auto SceneRenderer::Render( const Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        if (!mFrameGraph) {
+            return;
+        }
+
         mShadowMapping.SetScene( scene );
         mRenderPrepass.SetScene( scene );
         mTextRendering.SetScene( scene );
         mGeometryManagement.SetScene( scene );
 
         mFrameGraph->Execute();
+        mFrameGraph->ExecuteReadbacks();
+    }
+
+    auto SceneRenderer::SetPresentType( PresentTarget type ) -> void {
+        mPresentationModule.SetPresentType( type );
     }
 
     auto SceneRenderer::SetMainCamera( const SceneCamera *camera ) -> void {
@@ -128,8 +149,12 @@ namespace mikoto::renderer {
         mGeometryShading.SetClearColor( color );
     }
 
+    auto SceneRenderer::SetTonemapType( ToneMappingType type ) -> void {
+        mGeometryShading.SetToneMapping( type );
+    }
+
     auto SceneRenderer::SetSkyboxEquirectangular( TextureHandle texture ) -> void {
-        if (texture.IsEmpty()) {
+        if (texture.IsEmpty() || !mFrameGraph) {
             return;
         }
 
@@ -139,6 +164,14 @@ namespace mikoto::renderer {
 
     auto SceneRenderer::SetRenderBackground( SceneBackgroundType bg ) -> void {
         mGeometryShading.SetRenderBackground( bg );
+    }
+
+    auto SceneRenderer::ReadPixel( u32 x, u32 y) const -> u32 {
+        return mMousePickingModule.ReadPixel( x, y );
+    }
+
+    auto SceneRenderer::ReadPixel( const ReadPixelViewportInfo &ínfo ) const -> core::u32 {
+        return mMousePickingModule.ReadPixel( ínfo );
     }
 
     auto SceneRenderer::GetNodeControl() const -> const FGNodeControl & {

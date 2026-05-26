@@ -252,6 +252,9 @@ namespace mikoto::renderer::vulkan {
                 return VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 
             case ResourceStates::eDepthWrite:
+                return VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                       VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+
             case ResourceStates::eDepthRead:
                 return VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
                        VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
@@ -283,7 +286,8 @@ namespace mikoto::renderer::vulkan {
                 return VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
 
             case ResourceStates::eDepthWrite:
-                return VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                return VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
             case ResourceStates::eDepthRead:
                 return VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
@@ -326,6 +330,17 @@ namespace mikoto::renderer::vulkan {
                 MKT_ASSERT(false, "Invalid format for index buffer");
                 return VK_INDEX_TYPE_UINT32;
         }
+    }
+
+    auto GetPolygonMode( PolygonMode mode ) -> VkPolygonMode {
+        switch (mode) {
+            case PolygonMode::eLines: return VK_POLYGON_MODE_LINE;
+            case PolygonMode::ePoint: return VK_POLYGON_MODE_POINT;
+            case PolygonMode::eFill: return VK_POLYGON_MODE_FILL;
+            default:;
+        }
+
+        return VK_POLYGON_MODE_MAX_ENUM;
     }
 
     auto GetAspectMask( Format format ) -> VkImageAspectFlags {

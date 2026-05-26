@@ -24,7 +24,7 @@ namespace mikoto::audio {
     using namespace mikoto::core;
 
     Audio::Audio( const AudioLoadDescription& description )
-        : mFileSource{ description.mAudioFile }
+        : mFileSource{ description.mFile }
     {}
 
     auto Audio::CreateSource() -> AudioSourceHandle {

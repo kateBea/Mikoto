@@ -109,7 +109,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Context::SubmitFrame() -> void {
-        mDevice->Flush();
+        mDevice->ExecutePendingCommands();
 
         if (mWindow->GetWidth() != mSwapChain->GetWidth() || mWindow->GetHeight() != mSwapChain->GetHeight()) {
             mSwapChain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );

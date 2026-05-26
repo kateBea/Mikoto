@@ -36,17 +36,6 @@ namespace mikoto::renderer {
     static constexpr u32 kSsaoKernelSize{ 64 };
     static constexpr u32 kMaxBloomChainImages{ 4 };
 
-    // Index order matches shader
-    // See base/Tonemap_Helpers.slang
-    enum class ToneMappingType {
-        Linear,
-        Reinhard,
-        Uncharted2,
-        Aces,
-        Khronos_Neutral,
-        Max_Count,
-    };
-
     struct PostProcessModuleInfo {
         // SSAO
         FGSamplerHandle mSsaoSampler{};
@@ -62,13 +51,6 @@ namespace mikoto::renderer {
         // Resolution decreases as we move towards end of vector
         eastl::fixed_vector<FGTextureHandle, kMaxBloomChainImages> mBloomChainImages{};
 
-        // Tonemap
-        f32 mExposure{};
-        f32 mGamma{};
-        i32 mToneMapType{};
-        FGTextureHandle mTonemapColor{};
-        FGPipelineHandle mTonemapPipeline{};
-
         // Post-process
     };
 
@@ -81,14 +63,11 @@ namespace mikoto::renderer {
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
-        auto SetToneMapping( ToneMappingType type ) -> void;
-
         auto SetEnableBloom( bool value ) -> void;
 
     private:
         auto RegisterSsao( FrameGraph& graph ) -> void;
         auto RegisterBloom( FrameGraph& graph ) -> void;
-        auto RegisterTonemap( FrameGraph& graph ) -> void;
 
         auto RegisterPostProcess( FrameGraph& graph ) -> void;
 
@@ -102,7 +81,6 @@ namespace mikoto::renderer {
         const scene::Camera* mCamera{};
 
         RenderResolution mResolution{ RenderResolution::e1080P };
-        ToneMappingType mToneMapType{ ToneMappingType::Aces };
 
         // Bloom
         bool mEnableBloom{};

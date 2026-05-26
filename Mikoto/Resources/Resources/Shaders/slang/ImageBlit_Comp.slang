@@ -13,24 +13,18 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 
-struct VSOutput {
-    float2 UV : TEXCOORD0;
-    float4 Position : SV_Position;
-};
+DECL_BINDING(0,0) Texture2D<float4> inputImage;
+DECL_BINDING(0,1) RWTexture2D<float4> outputImage;
 
-[shader("vertex")]
-VSOutput main(uint vertexID: SV_VertexID) {
-    VSOutput o;
+[numthreads(8,8,1)]
+[shader("compute")]
+void main(uint3 tid : SV_DispatchThreadID)
+{
+    uint2 pixel = tid.xy;
 
-    float2 uv = float2((vertexID << 1) & 2, (vertexID) & 2);
+    float4 color = inputImage.Load(int3(pixel,0));
 
-    o.UV = uv;
-    o.Position = float4(uv * 2.0f - 1.0f, 0.0f, 1.0f);
-
-#ifdef MKT_SUPPORT_VULKAN
-    o.Position.y *= -1.0f;
-#endif
-
-    return o;
-} 
+    outputImage[pixel] = color;
+}

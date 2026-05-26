@@ -93,7 +93,7 @@ namespace mikoto::renderer::vulkan {
 
         InitTracyContext();
 
-        CreateDummyResources();
+        InitDummyResources();
 
         mIsInitialized = true;
     }
@@ -260,14 +260,28 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateFence( u64 fenceInitialValue ) -> FenceHandle {
-        return FenceHandle::CreateEmpty();
+        FenceHandle fence{ Ref<Fence>::Spawn( fenceInitialValue ) };
+
+        if ( fence.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate fence resource." );
+            return FenceHandle::CreateEmpty();
+        }
+
+        fence->Initialize( this );
+
+        return fence;
     }
 
     auto Device::UnMap( IBuffer* buffer ) -> void {
     }
 
     auto Device::Map( IBuffer* buffer ) -> const void* {
-        return nullptr;
+        Buffer* b{ checked_cast<Buffer*>( buffer ) };
+        if (!b->IsMapped()) {
+            b->PersistentMap();
+        }
+
+        return b->GetMappedAddress();
     }
 
     auto Device::CreateBindlessLayout( const BindlessLayoutDescription &desc ) -> BindingLayoutHandle {
@@ -363,11 +377,25 @@ namespace mikoto::renderer::vulkan {
         return true;
     }
 
-    auto Device::Wait( FenceHandle handle, u64 fenceValue ) -> void {
+    auto Device::Wait( QueueType type, FenceHandle handle, u64 fenceValue ) -> void {
+        VkSemaphore semaphore{ handle->GetNativeHandle(ObjectType::Vk_Semaphore) };
 
+        VkSemaphoreWaitInfo waitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+            .semaphoreCount = 1,
+            .pSemaphores = &semaphore,
+            .pValues = &fenceValue
+        };
+
+        vkWaitSemaphores(mLogicalDevice, &waitInfo, UINT64_MAX);
     }
 
-    auto Device::Flush() -> void {
+    auto Device::Signal( QueueType type, FenceHandle handle, u64 fenceValue ) -> void {
+        Fence* fence{ checked_cast<Fence*>( handle.GetRaw() ) };
+        mQueues[type]->AddQueueSignalSemaphore( fence, fenceValue, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT );
+    }
+
+    auto Device::ExecutePendingCommands() -> void {
         for (auto& queue : mQueues | std::ranges::views::values ) {
             queue->Flush();
         }
@@ -648,7 +676,7 @@ namespace mikoto::renderer::vulkan {
             "Queue family requires at least one valid family index");
 
         eastl::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
-        eastl::array queuePriority{ kQueueDefaultPriority };
+        eastl::vector queuePriority( kMaxQueuesPerFamily, kQueueDefaultPriority );
 
         for (const auto& familyIndex : queueFamilies) {
             auto& queueCreateInfo{ queueCreateInfos.emplace_back( initializers::DeviceQueueCreateInfo() ) };
@@ -695,8 +723,6 @@ namespace mikoto::renderer::vulkan {
         // as it also simplifies synchronization, work from different queues needs to be synchronized via
         // semaphores even if they belong to same family.
 
-        // One queue per family index multiple queue types can map
-        // to the same underlying queue
         ankerl::unordered_dense::map<QueueType, u32> queuesIndices{};
         queuesIndices[QueueType::eGraphics] = mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kGraphics );
         queuesIndices[QueueType::eCompute] = mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kCompute );
@@ -709,8 +735,19 @@ namespace mikoto::renderer::vulkan {
         // Keep track of families that already have a queue
         ankerl::unordered_dense::map<u32, Ref<Queue>> queueFamilyTracking{};
 
-        // Always grab the first VkQueue within a family
+        // For testing purposes, keep track of queue index per family
+        ankerl::unordered_dense::map<u32, u32> queueIndexTracking{};
+
         for (constexpr u32 kQueueIndex{ 0 }; const auto& [queueType, familyIndex] : queuesIndices) {
+#if false
+            // Multiple queues per family
+            QueueHandle queue{ Ref<Queue>::Spawn( queueType, familyIndex, queueIndexTracking[familyIndex]++ ) };
+            queue->Initialize( this );
+            mQueues[queueType] = queue;
+#endif
+
+#if true
+            // Single queue per family
             const auto it{ queueFamilyTracking.find( familyIndex ) };
             if (it == queueFamilyTracking.end()) {
                 QueueHandle queue{ Ref<Queue>::Spawn( queueType, familyIndex, kQueueIndex ) };
@@ -721,6 +758,7 @@ namespace mikoto::renderer::vulkan {
             } else {
                 mQueues[queueType] = it->second;
             }
+#endif
         }
     }
 
@@ -795,7 +833,7 @@ namespace mikoto::renderer::vulkan {
 
     }
 
-    auto Device::CreateDummyResources() -> void {
+    auto Device::InitDummyResources() -> void {
         mDummySampler = CreateSampler( SamplerCreateDescription{} );
         mEmptyBindingLayout = CreateBindingLayout( BindingLayoutDescription{} );
     }
@@ -908,13 +946,12 @@ namespace mikoto::renderer::vulkan {
     auto CommandList::Begin( const CommandListBeginDescription& desc ) -> void {
         mHostThread = std::this_thread::get_id();
 
-        if (mIsSubmitted) {
-            //TryRecycle( checked_cast<Device*>( mDevice )->GetQueue( mQueueType ) );
-        }
-
         ClearState();
 
         if (mMaxThreadConcurrency != 0) {
+            // TODO: instead of doing this allocate secondary command buffer from the queue kind of like you are doing with AllocateCommandList but instead we get just the VkCommandHandle, every worker thread to its pool
+            // This should happen when we call BeginParallel the thread creates its context and its command buffer
+
             // Access to pool must be synchronized, only one thread can allocate at a time
             // we allocate as many as concurrency value specified. Worker thread will only have to grab from this
             // pool of already allocated secondary command buffers
@@ -1030,8 +1067,7 @@ namespace mikoto::renderer::vulkan {
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-        auto* ctx{ GetThreadContext() };
-        ctx->mBufferBarriers.push_back( barrier );
+        mBufferBarriers.push_back( barrier );
 
         buffer->SetResourceState(newState);
     }
@@ -1070,32 +1106,30 @@ namespace mikoto::renderer::vulkan {
 
         barrier.subresourceRange = range;
 
-        auto* ctx{ GetThreadContext() };
-        ctx->mImageBarriers.push_back( barrier );
+        mImageBarriers.push_back( barrier );
 
         texture->SetResourceState(newState);
     }
 
     auto CommandList::CommitBarriers() -> void {
-        auto* ctx{ GetThreadContext() };
-
-        if (ctx->mBufferBarriers.empty() && ctx->mImageBarriers.empty())
+        if (mBufferBarriers.empty() && mImageBarriers.empty())
             return;
 
         VkDependencyInfo depInfo{};
 
         depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
 
-        depInfo.imageMemoryBarrierCount = as<u32>(ctx->mImageBarriers.size());
-        depInfo.pImageMemoryBarriers = ctx->mImageBarriers.data();
+        depInfo.imageMemoryBarrierCount = as<u32>(mImageBarriers.size());
+        depInfo.pImageMemoryBarriers = mImageBarriers.data();
 
-        depInfo.bufferMemoryBarrierCount = as<u32>(ctx->mBufferBarriers.size());
-        depInfo.pBufferMemoryBarriers = ctx->mBufferBarriers.data();
+        depInfo.bufferMemoryBarrierCount = as<u32>(mBufferBarriers.size());
+        depInfo.pBufferMemoryBarriers = mBufferBarriers.data();
 
+        auto* ctx{ GetThreadContext() };
         vkCmdPipelineBarrier2( ctx->mCommandBuffer, &depInfo);
 
-        ctx->mBufferBarriers.clear();
-        ctx->mImageBarriers.clear();
+        mBufferBarriers.clear();
+        mImageBarriers.clear();
     }
 
     auto CommandList::SetResourceState( IBuffer *buffer, ResourceStates newState ) -> void {
@@ -1113,14 +1147,47 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void {
+        for (auto image : frameBuffer->GetColorAttachments()) {
+            if (mEnableAutomaticBarriers) {
+                SetResourceState( image.GetRaw(), ResourceStates::eCopyDest );
+            }
 
+            VkClearColorValue clearColor{{color.mR, color.mB, color.mB, color.mA}};
+            VkImageSubresourceRange range{};
+            range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            range.baseMipLevel = 0;
+            range.levelCount = 1;
+            range.baseArrayLayer = 0;
+            range.layerCount = 1;
+
+            // Image needs to be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+
+            auto* ctx{ GetThreadContext() };
+            vkCmdClearColorImage(ctx->mCommandBuffer, image->GetNativeHandle( ObjectType::Vk_Image ), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range);
+        }
     }
 
-    auto CommandList::SetClearColor( TextureHandle renderTargets, Color color ) -> void {
+    auto CommandList::SetClearColor( TextureHandle image, Color color ) -> void {
+        if (mEnableAutomaticBarriers) {
+            SetResourceState( image.GetRaw(), ResourceStates::eCopyDest );
+        }
 
+        VkClearColorValue clearColor{{color.mR, color.mB, color.mB, color.mA}};
+        VkImageSubresourceRange range{};
+        range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        range.baseMipLevel = 0;
+        range.levelCount = 1;
+        range.baseArrayLayer = 0;
+        range.layerCount = 1;
+
+        // Image needs to be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+
+        auto* ctx{ GetThreadContext() };
+        vkCmdClearColorImage(ctx->mCommandBuffer, image->GetNativeHandle( ObjectType::Vk_Image ), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range);
     }
 
     auto CommandList::Write( IBuffer *src, ITexture *dest, u32 mipLevel ) -> void {
+
     }
 
     auto CommandList::Write( ITexture *texture, u32 mipLevel, const void *data, size_t byteSize ) -> void {
@@ -1799,28 +1866,8 @@ namespace mikoto::renderer::vulkan {
         return Object( mPrimaryCommandBuffer );
     }
 
-    auto CommandList::MarkSubmitted( u64 submissionID ) -> void {
-        Queue* queue{ checked_cast<Device*>( mDevice )->GetQueue( mQueueType ) };
-        for (const auto& item : mThreadContexts | std::views::values ) {
-            queue->PushDelete( item->mCommandBuffer, mAllocInfo.commandPool, submissionID );
-        }
-
-        mIsSubmitted = true;
-    }
-
-    auto CommandList::MarkSubmitted( const FencePlain& fence ) -> void {
-        Queue* queue{ checked_cast<Device*>( mDevice )->GetQueue( mQueueType ) };
-        for (const auto& item : mThreadContexts | std::views::values ) {
-            queue->PushDelete( item->mCommandBuffer, mAllocInfo.commandPool, fence );
-        }
-
-        // Send the rest to be cleared too even if unused
-        for (const auto& item : mSecondaryCommandBuffersPool ) {
-            queue->PushDelete( item, mAllocInfo.commandPool, fence );
-        }
-        mSecondaryCommandBuffersPool.clear();
-
-        mIsSubmitted = true;
+    auto CommandList::GetPool() const -> const CommandPool* {
+        return mCommandPool;
     }
 
     CommandList::~CommandList() {
@@ -1876,8 +1923,6 @@ namespace mikoto::renderer::vulkan {
 
         mCurrentVolatileVersion = mCurrentVolatileVersion % kMaxVolatileBufferVersions;
 
-        mIsSubmitted = false;
-
         mThreadContexts.clear();
     }
 
@@ -1916,6 +1961,14 @@ namespace mikoto::renderer::vulkan {
     {}
 
     auto CommandPool::GetNativeHandle( ObjectType type ) -> Object {
+        if ( type != ObjectType::Vk_CmdPool ) {
+            return Object( nullptr );
+        }
+
+        return Object( mPool );
+    }
+
+    auto CommandPool::GetNativeHandle( ObjectType type ) const -> Object {
         if ( type != ObjectType::Vk_CmdPool ) {
             return Object( nullptr );
         }
@@ -2040,6 +2093,11 @@ namespace mikoto::renderer::vulkan {
         (void)SubmitCommands();
     }
 
+    auto Queue::Present( const VkPresentInfoKHR& info ) -> VkResult {
+        std::lock_guard lock{ mSubmissionMutex };
+        return vkQueuePresentKHR( mQueue, MKT_ADDRESSOF( info ) );
+    }
+
     auto Queue::RunGarbageCollection() -> void {
         eastl::fixed_vector<DeleteItem, 100> deleteCmds{};
         {
@@ -2110,7 +2168,9 @@ namespace mikoto::renderer::vulkan {
 
             MKT_VK_CHECK( vkQueueSubmit2( mQueue, 1, &submitInfo, fence.mFence ) );
 
-            checked_cast<CommandList*>( cmd.GetRaw() )->MarkSubmitted( fence );
+            CommandList* cmdList{  checked_cast<CommandList*>( cmd.GetRaw() ) };
+            PushDelete( cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                cmdList->GetPool()->GetNativeHandle( ObjectType::Vk_CmdPool ), fence );
         }
     }
 
@@ -2119,10 +2179,17 @@ namespace mikoto::renderer::vulkan {
 
         std::lock_guard lock{ mPendingSubmitMutex };
 
-        mPendingSubmits.emplace_back(cmd);
-        TimelineSemaphore* timeline{ checked_cast<TimelineSemaphore*>(mTimelineSemaphore.GetRaw()) };
+        VkCommandBuffer commandBuffer{ cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        mPendingSubmits.emplace_back( commandBuffer );
 
-        return timeline->GetCurrentID(); // ID of the batch it will belong to
+        CommandList* cmdList{  checked_cast<CommandList*>( cmd.GetRaw() ) };
+
+        TimelineSemaphore* timeline{ checked_cast<TimelineSemaphore*>(mTimelineSemaphore.GetRaw()) };
+        u64 currentTimeline{ timeline->GetCurrentID() };
+
+        PushDelete( commandBuffer, cmdList->GetPool()->GetNativeHandle( ObjectType::Vk_CmdPool ), currentTimeline );
+
+        return currentTimeline; // ID of the batch it will belong to
     }
 
     auto Queue::AllocateCmdList() -> CommandListHandle {
@@ -2193,6 +2260,16 @@ namespace mikoto::renderer::vulkan {
         // TODO: Unused for now as i can use timeline for this too
     }
 
+    auto Queue::AddQueueSignalSemaphore( Fence* semaphore, u64 value, VkPipelineStageFlags2 stageFlags ) -> void {
+        mSignalInfos.emplace_back( VkSemaphoreSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = semaphore->GetNativeHandle( ObjectType::Vk_Semaphore ),
+            .value = value,
+            .stageMask = stageFlags,
+            .deviceIndex = 0 } );
+    }
+
     auto Queue::AddQueueSignalSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void {
         mSignalInfos.emplace_back( VkSemaphoreSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
@@ -2252,7 +2329,6 @@ namespace mikoto::renderer::vulkan {
             return 0;
         }
 
-        auto* device{ checked_cast<Device*>( mDevice ) };
         auto* timeline{ checked_cast<TimelineSemaphore*>( mTimelineSemaphore.GetRaw() ) };
 
         const u64 submissionID{ timeline->GetCurrentID() };
@@ -2264,7 +2340,7 @@ namespace mikoto::renderer::vulkan {
             cmdInfos.emplace_back( VkCommandBufferSubmitInfo{
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                 .pNext = nullptr,
-                .commandBuffer = cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                .commandBuffer = cmd,
                 .deviceMask = 0 } );
         }
 
@@ -2317,11 +2393,6 @@ namespace mikoto::renderer::vulkan {
             MKT_VK_CHECK( vkQueueSubmit2( mQueue, 1, &submitInfo, VK_NULL_HANDLE ) );
 
             vkQueueEndDebugUtilsLabelEXT(mQueue);
-        }
-
-        // Clear per-submit sync
-        for ( auto& cmd: mPendingSubmits ) {
-            checked_cast<CommandList*>( cmd.GetRaw() )->MarkSubmitted( submissionID );
         }
 
         mWaitInfos.clear();
@@ -2858,6 +2929,15 @@ namespace mikoto::renderer::vulkan {
 
     Fence::Fence( u64 initialValue )
         : mTimeline{ initialValue } {}
+
+    auto Fence::GetCompletionValue() const -> u64 {
+        auto* device{ checked_cast<Device*>(mDevice) };
+
+        u64 value{};
+        MKT_VK_CHECK(vkGetSemaphoreCounterValue(device->GetDevice(), mSemaphore, MKT_ADDRESSOF( value )));
+
+        return value;
+    }
 
     auto Fence::SetDebugName( eastl::string_view name ) -> void {
         mDebugName = name;

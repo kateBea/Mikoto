@@ -94,7 +94,7 @@ namespace mikoto::renderer {
             .SetCullMode( CullMode::eCullBack )
             .AddColorFormat( Format::eBGRA8_UNORM )
             .PushShader( "DirLightShadows_Vert.slang", FGStageType::eVertex )
-            .PushShader( "DirLightShadows_Frag.slang", FGStageType::eFragment ) };
+            .PushShader( "DirLightShadows_Frag.slang", FGStageType::ePixel ) };
 
         info.mDirShadowMapPipeline = graph.Create( pipelineBuilder );
 

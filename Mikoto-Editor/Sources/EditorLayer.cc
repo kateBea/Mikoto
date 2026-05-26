@@ -115,7 +115,7 @@ namespace mikoto::editor {
         if (first) {
             first = false;
 
-            TextureHandle handle{ AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/newport_loft.hdr", TextureDimension::eTexture2D ) };
+            TextureHandle handle{ AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/boma_4k.hdr", TextureDimension::eTexture2D ) };
             mSceneRenderer->SetSkyboxEquirectangular( handle );
             mSceneRenderer->SetRenderBackground( SceneBackgroundType::eSkybox );
         }
@@ -126,6 +126,9 @@ namespace mikoto::editor {
 
         RenderScene( timeStep );
 
+        // [DEBUG]
+        u32 entityID{};
+        auto mousePos{ mWindow->GetMousePos() };
         if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
             RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
 
@@ -133,8 +136,19 @@ namespace mikoto::editor {
             UpdateDockSpacePanels( timeStep );
 
             UpdateViewportState( timeStep );
+
+            auto scenePanel{ mPanelRegistry.Get<ScenePanel>() };
+            const auto& viewportInfo{ scenePanel->GetViewport() };
+
         } else {
+            entityID = mSceneRenderer->ReadPixel( (u32)mousePos.first, (u32)mousePos.second);
             RenderSystem::Get()->SetPresentTarget( mEditorState->mFinalComposition );
+        }
+
+        // [DEBUG]
+        if (auto* ent{ mEditorState->mActiveScene->FindByID( entityID ) } ) {
+            eastl::string_view name{ent->GetComponent<TagComponent>().GetTag().data()};
+            MKT_CORE_LOGGER_DEBUG( "Hovering over {}", name.data() );
         }
     }
 
@@ -145,7 +159,8 @@ namespace mikoto::editor {
             auto* scenePanel{ mPanelRegistry.Get<ScenePanel>() };
             auto* mouseButtongEvent{ as<MouseButtonPressedEvent*>(MKT_ADDRESSOF( event )) };
 
-            if (mouseButtongEvent->GetMouseButton() == Mouse_Button_Right && scenePanel && scenePanel->IsHovered() ) {
+            if (mouseButtongEvent->GetMouseButton() == Mouse_Button_Right && scenePanel &&
+                (scenePanel->IsHovered() || mScreenPresentTarget == ScreenPresentTarget::eFinalImage) ) {
                 if (!mWindow->IsCursorMode( CursorMode::eDisabled )) {
                     mWindow->SetCursorMode( CursorMode::eDisabled );
                     mEditorCamera->EnableCamera( true );
@@ -346,6 +361,43 @@ namespace mikoto::editor {
         mEditorState->mActiveScene = SceneManager::Get()->CreateScene( "Scene" );
 
         InitSphereMaterialsScene();
+        //InitInstancingTestScene();
+    }
+
+    auto EditorLayer::InitInstancingTestScene() -> void {
+        Entity *root{ mEditorState->mActiveScene->CreateEntity( "Instancing Grid" ) };
+
+        EntityCreateInfo info{
+            .mRoot = root,
+            .mModel = mEditorState->GetPrefab( PrefabModelType::eCube )
+        };
+
+        constexpr u32 gridSize{ 40 };    // gridSize * gridSize * gridSize boxes
+        constexpr f32 spacing{ 30.0f }; // Distance between boxes
+
+        for ( u32 x{}; x < gridSize; ++x ) {
+            for ( u32 y{}; y < gridSize; ++y ) {
+                for ( u32 z{}; z < gridSize; ++z ) {
+
+                    info.mName = string::Format( "Cube_{}_{}_{}", x, y, z );
+
+                    if ( Entity * e{ mEditorState->mActiveScene->CreateEntity( info ) } ) {
+                        auto &t{ e->GetComponent<TransformComponent>() };
+                        t.SetTranslation(
+                                { as<f32>( x ) * spacing,
+                                  as<f32>( y ) * spacing,
+                                  as<f32>( z ) * spacing } );
+
+                        auto &pbr{ e->GetComponent<MaterialComponent>() };
+                        PhysicalMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PhysicalMaterial>() };
+                        if ( pbrMat ) {
+                            // Randomize color
+                        }
+                    }
+
+                }
+            }
+        }
     }
 
     auto EditorLayer::InitSphereMaterialsScene() -> void {
@@ -580,19 +632,18 @@ namespace mikoto::editor {
         // External textures are not managed by the frame graph
         mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - RenderTarget" } );
         mCommandList->SetResourceState( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eRenderTarget );
+        mCommandList->End();
+        mDevice->SubmitCommands( mCommandList );
 
         mSceneRenderer->Render( mEditorState->mActiveScene );
 
+        mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - ShaderResource" } );
         // On panel mode this image is sampled by ImGui to render as viewport
         // otherwise it is copied to the swapchain image
         if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
             mCommandList->SetResourceState( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eShaderResource );
-        } else {
-            mCommandList->SetResourceState( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eCopySource );
         }
-
         mCommandList->End();
-
         mDevice->SubmitCommands( mCommandList );
     }
 

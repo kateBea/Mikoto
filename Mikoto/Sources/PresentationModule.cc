@@ -40,6 +40,10 @@ namespace mikoto::renderer {
         RegisterFullQuadRender( graph );
     }
 
+    auto PresentationModule::SetPresentType( PresentTarget type ) -> void {
+        mPresentTarget = type;
+    }
+
     auto PresentationModule::RegisterPresentImage( FrameGraph& graph, TextureHandle texture ) -> void {
         mPresentTexture = graph.ImportTexture( texture );
     }
@@ -56,6 +60,22 @@ namespace mikoto::renderer {
             } );
     }
 
+    auto PresentationModule::GetTargetImage( Blackboard &b ) -> FGTextureHandle {
+        switch ( mPresentTarget ) {
+            case PresentTarget::eGBuffer_Color: return b.Get<PrepassModuleInfo>().mGBufferColorTarget;
+            case PresentTarget::eGBuffer_Position: return b.Get<PrepassModuleInfo>().mGBufferPositionTarget;
+            case PresentTarget::eGBuffer_Normals: return b.Get<PrepassModuleInfo>().mGBufferNormalTarget;
+            case PresentTarget::eGBuffer_Emissive: return b.Get<PrepassModuleInfo>().mGBufferEmissiveTarget;
+            case PresentTarget::eWireframe: return b.Get<WireframeData>().mColorImage;
+            case PresentTarget::eDepthPrepass: return b.Get<PrepassModuleInfo>().mDepthPrepassColorTarget;
+            case PresentTarget::ePBRadiance_Output: return b.Get<GeomShadingModuleInfo>().mShadingColorImage;
+            case PresentTarget::eTonemap_Output: return b.Get<GeomShadingModuleInfo>().mTonemapColor;
+            default:;
+        }
+
+        return { FGResourceManager::kInvalidResourceHandle };
+    }
+
     auto PresentationModule::RegisterFullQuadRender( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -68,7 +88,7 @@ namespace mikoto::renderer {
             .SetTopology( PrimitiveTopology::eTriangleStrip )
             .AddColorFormat( Format::eBGRA8_UNORM )
             .PushShader( "FullQuad_Vert.slang", FGStageType::eVertex )
-            .PushShader( "FullQuad_Frag.slang", FGStageType::eFragment ) };
+            .PushShader( "FullQuad_Frag.slang", FGStageType::ePixel ) };
 
         presentationPassData.mPipeline = graph.Create( pipelineBuilder );
 
@@ -95,15 +115,13 @@ namespace mikoto::renderer {
             },
             [this]( CommandContext &ctx, Blackboard &b ) {
                 const auto &data{ b.Get<PresentationPassData>() };
-                const auto& prepass{ b.Get<PrepassModuleInfo>() };
-                const auto& shading{ b.Get<GeomShadingModuleInfo>() };
                 const auto &geom{ b.Get<GeometryManagementModuleInfo>() };
 
                 struct DrawParams {
                     u32 mTextureIndex{};
                     u32 mSamplerIndex{};
                 } params{
-                    .mTextureIndex = ctx.PushTexture_SRV( shading.mShadingColorImage ),
+                    .mTextureIndex = ctx.PushTexture_SRV( GetTargetImage( b ) ),
                     .mSamplerIndex = ctx.PushSampler( geom.mBasicSampler ),
                 };
 

@@ -171,12 +171,10 @@ namespace mikoto::core {
 
         // Dispatch rest of modules
         // Do I need to wait this?
-        // For now I am waiting because the system do not support multithreading yet
+        // For now, I am waiting because the system do not support multithreading yet
         // the idea would be submitting work to the systems so they are able to start working
         // when I call run()
         mExecutor.run(mExecTaskGraph).wait();
-
-        //MKT_CORE_LOGGER_DEBUG( "Frame time {}", timeStep );
     }
 
     auto Engine::BuildInitTasks() -> void {

@@ -331,7 +331,7 @@ namespace mikoto::renderer {
             .AddColorFormat( Format::eRGBA8_UNORM )
             .AddColorFormat( Format::eRGBA16_FLOAT )
             .PushShader( "GBuffer_Vert.slang", FGStageType::eVertex )
-            .PushShader( "GBuffer_Frag.slang", FGStageType::eFragment ) };
+            .PushShader( "GBuffer_Frag.slang", FGStageType::ePixel ) };
 
         info.mGBufferPipeline = graph.Create( pipelineBuilder );
 
@@ -448,7 +448,7 @@ namespace mikoto::renderer {
             .SetCullMode( CullMode::eNone )
             .AddColorFormat( Format::eRGBA8_UNORM )
             .PushShader( "ZPass_Vert.slang", FGStageType::eVertex )
-            .PushShader( "ZPass_Frag.slang", FGStageType::eFragment ) };
+            .PushShader( "ZPass_Frag.slang", FGStageType::ePixel ) };
 
         info.mDepthPrepassPipeline = graph.Create( pipelineBuilder );
 

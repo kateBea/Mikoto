@@ -26,13 +26,13 @@ struct FSInput {
 };
 
 struct DrawParams {
-    uint GeometryID;
-    uint SkinningID;
+    uint mGeometryBufferID;
+    uint mSkinningBufferID;
 
-    uint IndexID;
-    uint VertexID;
+    uint mIndicesBufferID;
+    uint mVerticesBufferID;
 
-    uint CameraInfoBufferID;
+    uint mCameraDataID;
 };
 
 MKT_DECLARE_STRUCTURED_SRV Buffers;
@@ -42,7 +42,7 @@ MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
 FSOutput main(FSInput input) {
     FSOutput o;
 
-    CameraInfo camera = Buffers[Parameters.CameraInfoBufferID].Read<CameraInfo>(0, 0);
+    CameraInfo camera = Buffers[Parameters.mCameraDataID].Read<CameraInfo>(0, 0);
 
     float depth = LinearDepth(input.ScreenPos.z, camera.Planes.xy);
 

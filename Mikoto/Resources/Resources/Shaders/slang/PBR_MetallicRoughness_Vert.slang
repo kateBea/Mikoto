@@ -98,14 +98,18 @@ VSOutput main(VSInput input) {
     float3 normal = float3(0, 0, 0);
     if (meshInfo.SkinningMatricesID != -1) {
         uint animatorIndex = meshInfo.SkinningMatricesID - 1;
+        uint boneBase = animatorIndex * sizeof(float4x4) * MAX_BONES;
 
-        BoneData bonePalette = SkinningBuffer.Read<BoneData>(0, animatorIndex);
+        float4x4 inJoinx = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.x);
+        float4x4 inJoiny = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.y);
+        float4x4 inJoinz = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.z);
+        float4x4 inJoinw = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.w);
 
         float4x4 skinMat =
-            inWeight0.x * bonePalette.BoneMatrices[(uint)inJoint0.x] +
-            inWeight0.y * bonePalette.BoneMatrices[(uint)inJoint0.y] +
-            inWeight0.z * bonePalette.BoneMatrices[(uint)inJoint0.z] +
-            inWeight0.w * bonePalette.BoneMatrices[(uint)inJoint0.w];
+            inWeight0.x * inJoinx +
+            inWeight0.y * inJoiny +
+            inWeight0.z * inJoinz +
+            inWeight0.w * inJoinw;
 
         locPos = mul(skinMat, float4(vertex.position, 1.0));
 

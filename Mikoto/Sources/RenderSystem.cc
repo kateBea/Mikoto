@@ -176,7 +176,7 @@ namespace mikoto::renderer {
         } else {
             // If we managed to create a valid API
             // context we can initialize the GUI library
-            if (mEnableImGui) {
+            if (mEnableImGui && mWindow) {
                 InitGuiService();
             }
         }

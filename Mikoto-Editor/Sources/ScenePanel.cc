@@ -83,6 +83,16 @@ namespace mikoto::editor {
         mPanelIsFocused = ImGui::IsWindowFocused();
         mPanelIsHovered = ImGui::IsWindowHovered();
 
+        ImVec2 viewportMin{ ImGui::GetItemRectMin()};
+        ImVec2 viewportSize{ ImGui::GetContentRegionAvail() };
+
+        mViewport = ViewportInfo{
+            .mX = viewportMin.x,
+            .mY = viewportMin.y,
+            .mWidth = viewportSize.x,
+            .mHeight = viewportSize.y
+        };
+
         UpdateViewport();
         UpdateManipulation();
 

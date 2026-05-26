@@ -38,7 +38,12 @@ namespace mikoto::renderer {
 
     }
 
-    auto MousePickingModule::ReadPixel( u32 x, u32 y ) -> core::u32 {
+    auto MousePickingModule::SetReadRegion( f32 x, f32 y, f32 width, f32 height ) -> void {
+
+    }
+
+    auto MousePickingModule::ReadPixel( u32 x, u32 y ) const -> core::u32 {
+        // Assumes full width and height viewport
         // ReadPixel(x=2, y=1)
         // Array: [1 1 5 5 1 3 [3] 5 7 7 3 9]
         //                      ^
@@ -50,8 +55,31 @@ namespace mikoto::renderer {
         // |  7 |  7 |  3 |  9 |
         // +----+----+----+----+
         auto dimensions{ InferDimensions( mResolution ) };
+        if (x > dimensions.first || y > dimensions.second ) {
+            return 0;
+        }
+
         u32 width{ as<u32>(dimensions.first) };
         return mData[ y * width + x];
+    }
+
+    auto MousePickingModule::ReadPixel( const ReadPixelViewportInfo& viewport ) const -> core::u32 {
+        u32 x{ (u32)(viewport.mX) };
+        u32 y{ (u32)(viewport.mY) };
+
+        auto dimensions{ InferDimensions( mResolution ) };
+        if (x > dimensions.first || y > dimensions.second ) {
+            return 0;
+        }
+
+        f32 localX{ (viewport.mX - viewport.mViewportX) };
+        f32 localY{ (viewport.mY - viewport.mViewportY) };
+
+        u32 uvX{ (u32)((localX - viewport.mViewportWidth) / dimensions.first) };
+        u32 uvY{ (u32)((localY - viewport.mViewportHeight) / dimensions.second ) };
+
+        u32 width{ as<u32>(dimensions.first) };
+        return mData[ uvY * width + uvX];
     }
 
     auto MousePickingModule::SetGeometryManager( GeometryCullModule &geom ) -> void {
@@ -84,6 +112,7 @@ namespace mikoto::renderer {
             .SetHeapType( HeapType::eReadback ) };
 
         info.mReadBackBuffer = graph.Create( bufferDesc );
+        mData.resize( dimensions.first * dimensions.second * formatInfo.mBytesPerBlock );
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( "ObjectSelection_Pipeline" )
@@ -94,12 +123,12 @@ namespace mikoto::renderer {
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eR32_UINT )
             .PushShader( "MousePick_Vert.slang", FGStageType::eVertex )
-            .PushShader( "MousePick_Frag.slang", FGStageType::eFragment ) };
+            .PushShader( "MousePick_Frag.slang", FGStageType::ePixel ) };
 
         info.mPipeline = graph.Create( pipelineBuilder );
 
         graph.RegisterPass(
-    "ObjectSelection_Render",
+            "ObjectSelection_Render",
             FGPassType::eGraphics,
             []( FGNodeBuilder &builder, Blackboard & blackboard ) {
                 const auto& prepass{ blackboard.Get<PrepassModuleInfo>() };
@@ -164,17 +193,26 @@ namespace mikoto::renderer {
             } );
 
         graph.RegisterPass(
-    "ObjectSelection_Readback",
+            "ObjectSelection_Readback",
             FGPassType::eTransfer,
             []( FGNodeBuilder &builder, Blackboard & blackboard ) {
                 const auto& mousePicking{ blackboard.Get<MousePickingModuleInfo>() };
 
                 builder.Write( mousePicking.mReadBackBuffer, FGResourceState::eCopyDest );
-                //builder.Read( mousePicking.mColorImage, FGResourceState::eCopySource );
+                builder.Read( mousePicking.mColorImage, FGResourceState::eCopySource );
             },
             []( CommandContext &ctx, Blackboard & b ) {
                 const auto& mousePicking{ b.Get<MousePickingModuleInfo>() };
-                //ctx.Copy( mousePicking.mReadBackBuffer, mousePicking.mColorImage );
+                ctx.Copy( mousePicking.mReadBackBuffer, mousePicking.mColorImage );
             } );
+
+        graph.RegisterReadback(
+            [this]( Blackboard &blackboard, const FGResourceManager& manager ) {
+                const auto &data{ blackboard.Get<MousePickingModuleInfo>() };
+
+                if ( const void *mappedAddress{ manager.GetBufferMappedAddress( data.mReadBackBuffer ) } ) {
+                    std::memcpy( mData.data(), mappedAddress, mData.size() * MKT_SIZEOF( u32 ) );
+                }
+            }, true );
     }
 }// namespace mikoto

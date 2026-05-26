@@ -397,7 +397,7 @@ namespace mikoto::scene {
                 MKT_CORE_LOGGER_ERROR( "AudioSourceComponent - Failed to load audio file: {}", path.GetC_Str() );
             } else {
                 const AudioLoadDescription desc{
-                    .mAudioFile{ file },
+                    .mFile{ file },
                     .mVolume{ 0.5f }
                 };
 

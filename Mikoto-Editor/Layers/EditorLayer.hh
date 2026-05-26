@@ -99,6 +99,7 @@ namespace mikoto::editor {
 
         auto InitEmptyScene() -> void;
 
+        auto InitInstancingTestScene() -> void;
         auto InitSphereMaterialsScene() -> void;
 
         auto UpdateDockSpace() -> void;

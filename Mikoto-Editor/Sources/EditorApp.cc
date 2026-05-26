@@ -15,7 +15,6 @@
 #include <ranges>
 
 #include <EASTL/string.h>
-#include <EASTL/utility.h>
 #include <EASTL/unique_ptr.h>
 
 #include <Core/Core.hh>
@@ -31,6 +30,7 @@
 namespace mikoto::editor {
 
     using namespace mikoto::core;
+    using namespace mikoto::platform;
 
     EditorApp::EditorApp( Window *window )
         : mWindow{ window }

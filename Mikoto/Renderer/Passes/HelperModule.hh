@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,25 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "base/Base.slang"
+#ifndef MIKOTO_HELPER_MODULE_HH
+#define MIKOTO_HELPER_MODULE_HH
 
-struct VSOutput {
-    float2 UV : TEXCOORD0;
-    float4 Position : SV_Position;
-};
+#include <Renderer/Core/FrameGraph.hh>
 
-[shader("vertex")]
-VSOutput main(uint vertexID: SV_VertexID) {
-    VSOutput o;
+namespace mikoto::renderer {
 
-    float2 uv = float2((vertexID << 1) & 2, (vertexID) & 2);
+    struct ImageBlitModuleInfo {
+        FGTextureHandle mInputImageHandle{};
+        FGTextureHandle mOutputImageHandle{};
 
-    o.UV = uv;
-    o.Position = float4(uv * 2.0f - 1.0f, 0.0f, 1.0f);
+        FGPipelineHandle mPipelineHandle{};
+    };
 
-#ifdef MKT_SUPPORT_VULKAN
-    o.Position.y *= -1.0f;
+    class HelperModule final {
+    public:
+        auto RegisterPasses( FrameGraph& graph ) -> void;
+
+    private:
+
+        auto RegisterImageBlitPass( FrameGraph& graph ) -> void;
+    };
+}
+
 #endif
-
-    return o;
-} 

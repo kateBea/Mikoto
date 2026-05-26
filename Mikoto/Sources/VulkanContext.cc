@@ -75,6 +75,7 @@ namespace mikoto::renderer::vulkan {
                 // If  the context was created with a window
                 // we request for a device with support for presentation
                 .mEnablePresentation = mWindow != nullptr,
+                .mDeviceType = GpuDeviceType::eDiscrete,
             },
         });
 
@@ -137,7 +138,7 @@ namespace mikoto::renderer::vulkan {
         auto device{ checked_cast<Device*>( mDevice.get() ) };
 
         // https://community.khronos.org/t/is-it-recommended-to-use-vkcmdcopyimage-to-copy-to-the-swapchain-image-instead-of-a-shader/112122
-        if (!mPresentTarget.IsEmpty()) {
+        if (!mPresentTarget.IsEmpty() && !mSwapchain.IsEmpty()) {
             TextureHandle colorImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
 
@@ -150,7 +151,7 @@ namespace mikoto::renderer::vulkan {
 
             auto graphicsState{ GraphicsState{}
                 .SetRenderArea( Rect{ as<i32>(mSwapchain->GetWidth()), as<i32>(mSwapchain->GetHeight()) } )
-                .AddRenderTarget( colorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } )
+                .AddRenderTarget( colorImage, Color{ .0f } )
             };
 
             mCommandList->BeginRendering( graphicsState );
@@ -179,7 +180,7 @@ namespace mikoto::renderer::vulkan {
             mCommandList->End();
 
             // enqueue instead of submit
-            frame.mSubmissionID = device->SubmitCommands( mCommandList );
+            device->SubmitCommands( mCommandList );
         }
 
         // External sync
@@ -196,8 +197,11 @@ namespace mikoto::renderer::vulkan {
             VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
         );
 
+        frame.mFenceValue++;
+        mDevice->Signal( QueueType::eGraphics, frame.mFence, frame.mFenceValue );
+
         // SINGLE submission point
-        device->Flush();
+        device->ExecutePendingCommands();
     }
 
     auto Context::PrepareFrame() -> void {
@@ -207,7 +211,7 @@ namespace mikoto::renderer::vulkan {
         const auto& frame{ mFrames[mCurrentFrameIndex] };
         auto device{ checked_cast<Device*>( mDevice.get() ) };
 
-        device->WaitForSubmission( QueueType::eGraphics, frame.mSubmissionID);
+        device->Wait( QueueType::eGraphics, frame.mFence, frame.mFenceValue );
         mDevice->RunGarbageCollection();
 
         const auto ret{ mSwapchain->GetNextImage(mCurrentImageIndex, *checked_cast<const BinarySemaphore*>( frame.mImageAvailableSemaphore.GetRaw() ) ) };
@@ -367,6 +371,8 @@ namespace mikoto::renderer::vulkan {
         mFrames.resize(mMaxFramesInFlight);
 
         for (u32 frameIndex{ 0 }; auto& frame : mFrames) {
+            frame.mFence = mDevice->CreateFence( frame.mFenceValue );
+
             frame.mImageAvailableSemaphore = device->CreateBinarySemaphore();
             frame.mImageAvailableSemaphore->SetDebugName( string::Format( "SwapChain Img Avail. BinSemaphore frame {}", frameIndex ) );
 

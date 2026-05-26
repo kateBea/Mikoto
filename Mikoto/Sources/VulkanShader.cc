@@ -135,8 +135,8 @@ namespace mikoto::renderer::vulkan {
         mStageCreateInfo.pSpecializationInfo = nullptr;
 
 #if !defined(NDEBUG)
-        //mShaderCode = GetGlslFromSpirv( as<const u32*>(mSlangSpirv->getBufferPointer()), as<size_t>(mSlangSpirv->getBufferSize()) / MKT_SIZEOF( u32 ) );
-        DumpShaderCode();
+        mShaderCode = GetGlslFromSpirv( as<const u32*>(mSlangSpirv->getBufferPointer()), as<size_t>(mSlangSpirv->getBufferSize()) / MKT_SIZEOF( u32 ) );
+        //DumpShaderCode();
 #endif
 
         mIsAllocated = true;

@@ -45,6 +45,7 @@ namespace mikoto::renderer {
         bool mAnisotropicFiltering{ true };
         bool mHardwareWireframe{ true };
         bool mEnablePresentation{ true };
+        bool mEnableRayTracingSupport{ true };
 
         GpuDeviceType mDeviceType{ GpuDeviceType::eDiscrete };
     };
@@ -86,6 +87,7 @@ namespace mikoto::renderer {
         // For data read back, user will probably need to handle synchronization externally
         // or have the command lists do it. Map returns a buffer we can copy data from
         // writes need to be done via command lists.
+        // These map the whole buffer, might need to look into variants to maybe map regions
         virtual auto UnMap( IBuffer* buffer ) -> void = 0;
         MKT_NODISCARD virtual auto Map(IBuffer* buffer) -> const void* = 0;
 
@@ -102,17 +104,23 @@ namespace mikoto::renderer {
         MKT_NODISCARD virtual auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool = 0;
 
         // Synchronization
-        virtual auto Wait(FenceHandle handle, u64 fenceValue) -> void = 0;
+        virtual auto Wait( QueueType type, FenceHandle handle, u64 fenceValue ) -> void = 0;
+
+        // GPU signals the specified value when it has finished executing last batch of SubmitCommands(...)
+        virtual auto Signal( QueueType type, FenceHandle handle, u64 fenceValue ) -> void = 0;
 
         // Rework to account for sync objects
-        virtual auto Flush() -> void = 0;
         virtual auto RunGarbageCollection() -> void = 0;
+
         virtual auto SubmitCommands( CommandListHandle cmdList ) -> u64 = 0;
+
+        virtual auto ExecutePendingCommands() -> void = 0;
         virtual auto ExecuteCommands( CommandListHandle cmdList ) -> void = 0;
 
         virtual auto WaitIdle() -> void = 0;
 
         MKT_NODISCARD auto IsInitialized() const -> bool;
+        MKT_NODISCARD auto IsGraphicsApi(GraphicsAPI api) const -> bool;
         MKT_NODISCARD auto GetGraphicsApi() const -> GraphicsAPI;
         MKT_NODISCARD auto GetDeviceName() const -> eastl::string_view;
 

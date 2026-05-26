@@ -19,8 +19,16 @@
 #include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
+#include <Core/Types.hh>
 
 namespace mikoto::editor {
+
+    struct ViewportInfo {
+        core::f32 mX{};
+        core::f32 mY{};
+        core::f32 mWidth{};
+        core::f32 mHeight{};
+    };
 
     /**
      * General interface for panels. Panels are windows that
@@ -65,6 +73,7 @@ namespace mikoto::editor {
          * */
         auto SetVisible( const bool value ) -> void { mPanelIsVisible = value; }
 
+        MKT_NODISCARD auto GetViewport() const -> const ViewportInfo& { return mViewport; }
 
         /**
          * @brief Tells whether this panel is hovered or not.
@@ -103,6 +112,8 @@ namespace mikoto::editor {
         bool mPanelIsHovered{};
         bool mPanelIsFocused{};
         bool mPanelIsVisible{};
+
+        ViewportInfo mViewport{};
     };
 }// namespace Mikoto
 

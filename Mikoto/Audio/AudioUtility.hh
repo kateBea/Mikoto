@@ -23,10 +23,10 @@ namespace mikoto::audio {
     using namespace mikoto::filesystem;
 
     struct AudioLoadDescription {
-        FileHandle mAudioFile{};
+        FileHandle mFile{};
         float mVolume{ 1.4f };
 
-        auto WithFile( FileHandle source ) -> AudioLoadDescription&;
+        auto SetFile( FileHandle source ) -> AudioLoadDescription&;
         auto SetVolume( float volume ) -> AudioLoadDescription&;
     };
 

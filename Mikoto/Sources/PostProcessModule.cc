@@ -55,17 +55,12 @@ namespace mikoto::renderer {
 
         RegisterBloom( graph );
         RegisterSsao( graph );
-        //RegisterTonemap( graph );
 
         RegisterObjectOutline( graph );
 
         RegisterDepthOfField( graph );
 
         RegisterPostProcess( graph );
-    }
-
-    auto PostEffectsPass::SetToneMapping( ToneMappingType type ) -> void {
-        mToneMapType = type;
     }
 
     auto PostEffectsPass::SetEnableBloom( bool value ) -> void {
@@ -214,7 +209,7 @@ namespace mikoto::renderer {
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eRGBA8_UNORM )
             .PushShader( "HelloModel_Vert.slang", FGStageType::eVertex )
-            .PushShader( "HelloModel_Frag.slang", FGStageType::eFragment ) };
+            .PushShader( "HelloModel_Frag.slang", FGStageType::ePixel ) };
 
         renderModelPass.mPipeline = graph.Create( pipelineBuilder );
 
@@ -456,7 +451,7 @@ namespace mikoto::renderer {
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eRGBA8_UNORM )
             .PushShader( "HelloModel_Vert.slang", FGStageType::eVertex )
-            .PushShader( "HelloModel_Frag.slang", FGStageType::eFragment ) };
+            .PushShader( "HelloModel_Frag.slang", FGStageType::ePixel ) };
 
         renderModelPass.mPipeline = graph.Create( pipelineBuilder );
 
@@ -611,81 +606,6 @@ namespace mikoto::renderer {
                 ctx.EndRender();
             } );
 #endif
-    }
-
-    auto PostEffectsPass::RegisterTonemap( FrameGraph& graph ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        PostProcessModuleInfo& info{ graph.GetOrCreate<PostProcessModuleInfo>() };
-
-        const auto dimensions{ InferDimensions( mResolution ) };
-
-        auto colorImage{ FGTextureDescription{}
-            .SetName( "Tonemap_ColorImage01" )
-            .SetWidth( as<i32>( dimensions.first ) )
-            .SetHeight( as<i32>( dimensions.second ) )
-            .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
-            .SetFormat( Format::eRGBA8_UNORM ) };
-
-        info.mTonemapColor = graph.Create( colorImage );
-
-        auto pipelineBuilder{ FGPipelineDescription{}
-            .SetName( "Tonemap_Pipeline" )
-            .SetPipelineType( PipelineType::eGraphics )
-            .SetTopology( PrimitiveTopology::eTriangleList )
-            .SetDepthFormat( Format::eD32 )
-            .AddColorFormat( Format::eRGBA8_UNORM )
-            .SetCullMode( CullMode::eNone )
-            .PushShader( "Tonemap_Vert.slang", FGStageType::eVertex )
-            .PushShader( "Tonemap_Frag.slang", FGStageType::eFragment ) };
-
-        info.mTonemapPipeline = graph.Create( pipelineBuilder );
-
-        graph.RegisterPass(
-            "Tonemap",
-            FGPassType::eGraphics,
-            []( FGNodeBuilder& builder, Blackboard& blackboard ) {
-                GeomShadingModuleInfo& geom{ blackboard.Get<GeomShadingModuleInfo>() };
-                PostProcessModuleInfo& postProcess{ blackboard.Get<PostProcessModuleInfo>() };
-
-                builder.Read( geom.mShadingColorImage, FGResourceState::eShaderResource );
-                builder.Write( postProcess.mTonemapColor, FGResourceState::eRenderTarget );
-            },
-            [this]( CommandContext &ctx, Blackboard& blackboard ) -> void {
-                GeomShadingModuleInfo& geom{ blackboard.Get<GeomShadingModuleInfo>() };
-                PostProcessModuleInfo& postProcess{ blackboard.Get<PostProcessModuleInfo>() };
-
-                struct DrawParams {
-                    f32 mExposure{};
-                    f32 mGamma{};
-                    i32 mToneMapType{};
-                    u32 mFinalImageID{};
-                } params{
-                    .mExposure = geom.mExposure,
-                    .mGamma = geom.mExposure,
-                    .mToneMapType = as<i32>(mToneMapType),
-                    .mFinalImageID = ctx.PushTexture_SRV( geom.mShadingColorImage ),
-                };
-
-                ctx.PushConstants( params );
-
-                const auto dimensions{ InferDimensions( mResolution ) };
-                const auto graphicsState{ ContextRenderState{}
-                    .SetRenderArea( Rect{ as<i32>(dimensions.first), as<i32>(dimensions.second) } )
-                    .AddRenderTarget( postProcess.mTonemapColor, kColorCyan, LoadOp::eClear ) };
-                ctx.BeginRender( graphicsState );
-
-                ctx.SetViewportState( ViewportState{}
-                    .AddViewportAndScissorRect( Viewport( as<i32>(dimensions.first), as<i32>(dimensions.second) ) ) );
-
-                ctx.BindPipeline( postProcess.mTonemapPipeline );
-
-                ctx.Draw( 3 );
-
-                ctx.EndRender();
-            } );
     }
 
     auto PostEffectsPass::RegisterPostProcess( FrameGraph& graph ) -> void {

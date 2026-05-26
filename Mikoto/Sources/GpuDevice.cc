@@ -34,6 +34,10 @@ namespace mikoto::renderer {
         return mIsInitialized;
     }
 
+    auto GpuDevice::IsGraphicsApi( GraphicsAPI api ) const -> bool {
+        return mApi == api;
+    }
+
     auto GpuDevice::GetDeviceName() const -> eastl::string_view {
         return mName;
     }

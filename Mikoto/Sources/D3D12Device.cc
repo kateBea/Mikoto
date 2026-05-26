@@ -177,11 +177,15 @@ namespace mikoto::renderer::d3d12 {
         return false;
     }
 
-    auto Device::Wait( FenceHandle handle, u64 fenceValue ) -> void {
+    auto Device::Wait( QueueType type, FenceHandle handle, u64 fenceValue ) -> void {
 
     }
 
-    auto Device::Flush() -> void {
+    auto Device::Signal( QueueType type, FenceHandle handle, u64 fenceValue ) -> void {
+
+    }
+
+    auto Device::ExecutePendingCommands() -> void {
 
     }
 

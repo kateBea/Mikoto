@@ -400,20 +400,16 @@ namespace mikoto::renderer {
 
         GeometryManagementModuleInfo& info{ b.Get<GeometryManagementModuleInfo>() };
 
-        // Every ID takes up an index, just copy up to maximum index
-        u32 maxIndex{};
-
         for (const auto& index : mActiveFinalMatsIndices) {
             if ( Animator * animator{ AnimationSystem::Get()->GetAnimator( index ) } ) {
                 auto &finalMats{ animator->GetFinalBoneMatrices() };
                 std::memcpy( mSkinningInfo[index - 1].mBoneTransforms.data(), finalMats.data(), finalMats.size() * MKT_SIZEOF( float4x4 ) );
 
-                maxIndex = math::Max( maxIndex, index );
             }
         }
 
         if (!mActiveFinalMatsIndices.empty()) {
-            context.CopyBuffer( info.mSkinningBuffer, 0, mSkinningInfo.data(), maxIndex * MKT_SIZEOF( MeshSkinningInfo ) );
+            context.CopyBuffer( info.mSkinningBuffer, 0, mSkinningInfo.data(), kMaxSkinnedMeshes * MKT_SIZEOF( MeshSkinningInfo ) );
             mActiveFinalMatsIndices.clear();
         }
     }

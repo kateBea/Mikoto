@@ -26,13 +26,13 @@ struct FSInput {
 };
 
 struct DrawParams {
-    uint GeometryID;
-    uint SkinningID;
+    uint mGeometryBufferID;
+    uint mSkinningBufferID;
 
-    uint IndexID;
-    uint VertexID;
+    uint mIndicesBufferID;
+    uint mVerticesBufferID;
 
-    uint CameraInfoBufferID;
+    uint mCameraDataID;
 };
 
 MKT_DECLARE_STRUCTURED_SRV Buffers;

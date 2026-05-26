@@ -78,7 +78,7 @@ namespace mikoto::renderer {
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eRGBA8_UNORM )
             .PushShader( "MSDFText_Vert.slang", FGStageType::eVertex )
-            .PushShader( "MSDFText_Frag.slang", FGStageType::eFragment ) };
+            .PushShader( "MSDFText_Frag.slang", FGStageType::ePixel ) };
 
         info.mMsdfPipeline = graph.Create( pipelineBuilder );
 
@@ -116,7 +116,7 @@ namespace mikoto::renderer {
                 builder.Read( textInfo.mMsdfTextRenderData, FGResourceState::eShaderResource );
 
                 builder.Write( finalImageInfo.mShadingColorImage, FGResourceState::eRenderTarget );
-                builder.Write( prepass.mDepthPrepassDepthTarget, FGResourceState::eDepthWrite );
+                builder.Write( prepass.mDepthPrepassDepthTarget, FGResourceState::eDepthRead );
             },
         [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
             if (mGlyphCount == 0) {

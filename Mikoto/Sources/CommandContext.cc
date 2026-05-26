@@ -128,7 +128,7 @@ namespace mikoto::renderer {
         };
 
         if ( gs.mDepthTarget.mRenderTarget.mHandle != FGResourceManager::kInvalidResourceHandle ) {
-            graphicsState.AddDepthTarget( mResourceManager->Get( gs.mDepthTarget.mRenderTarget.mHandle ).mResource );
+            graphicsState.AddDepthTarget( mResourceManager->Get( gs.mDepthTarget.mRenderTarget.mHandle ).mResource, gs.mDepthTarget.mLoadOp );
         }
 
         for (const auto& colorImage : gs.mCurrentRenderTargets) {
@@ -322,6 +322,6 @@ namespace mikoto::renderer {
     auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, size_t offset, const void* ptr, size_t sizeBytes ) -> void {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource resource{ mResourceManager->Get( dstBuffer.mHandle ) };
-        mCommands->WriteVolatile( checked_cast<IBuffer*>( resource.mResource.GetRaw() ), offset, ptr, sizeBytes );
+        mCommands->Write( checked_cast<IBuffer*>( resource.mResource.GetRaw() ), offset, ptr, sizeBytes );
     }
 }// namespace mikoto::renderer

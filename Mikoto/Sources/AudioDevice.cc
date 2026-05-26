@@ -50,7 +50,7 @@ namespace mikoto::audio {
     }
 
     auto AudioDevice::LoadAudio( const AudioLoadDescription& description ) -> AudioHandle {
-        if ( !description.mAudioFile ) {
+        if ( !description.mFile ) {
             MKT_CORE_LOGGER_ERROR( "AudioDevice::LoadAudio - Audio file is null." );
             return AudioHandle::CreateEmpty();
         }

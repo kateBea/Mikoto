@@ -177,14 +177,13 @@ namespace mikoto::renderer::vulkan {
         mRasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         mRasterizationInfo.depthClampEnable = VK_FALSE;
         mRasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
-        mRasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+        mRasterizationInfo.polygonMode = vulkan::GetPolygonMode(mDesc.mPolygonMode);
         mRasterizationInfo.cullMode = GetCullMode(mDesc.mCullMode);
 
         constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
         mRasterizationInfo.lineWidth = GPU_STANDARD_LINE_WIDTH;
 
         if (mDesc.mPolygonMode == PolygonMode::eLines) {
-            mRasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
             //mDynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH ); // Not all hardware support width != 1
         }
 

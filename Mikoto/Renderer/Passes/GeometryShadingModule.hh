@@ -43,6 +43,17 @@ namespace mikoto::renderer {
         eClearColor,
     };
 
+    // Index order matches shader
+    // See base/Tonemap_Helpers.slang
+    enum class ToneMappingType {
+        Aces,
+        Linear,
+        Reinhard,
+        Uncharted2,
+        Khronos_Neutral,
+        Max_Count,
+    };
+
     struct WireframeData {
         FGTextureHandle mColorImage{};
         FGPipelineHandle mPipeline{};
@@ -71,7 +82,9 @@ namespace mikoto::renderer {
         f32 mExposure{};
         f32 mGamma{};
 
-        SceneBackgroundType mBackground{ SceneBackgroundType::eClearColor };
+        // Tonemap
+        FGTextureHandle mTonemapColor{};
+        FGPipelineHandle mTonemapPipeline{};
     };
 
     class GeometryShadingModule {
@@ -86,6 +99,9 @@ namespace mikoto::renderer {
         auto SetCamera( const scene::Camera *camera ) -> void;
         auto SetGeometryManager( GeometryCullModule& geom) -> void;
 
+        // Tonemap
+        auto SetToneMapping( ToneMappingType type ) -> void;
+
         // SSAO
         auto SetEnableSsao( bool enable ) -> void;
         auto SetSsaoIntensity( float value ) -> void;
@@ -98,6 +114,7 @@ namespace mikoto::renderer {
 
     private:
         auto RegisterShading( FrameGraph& graph ) -> void;
+        auto RegisterTonemap( FrameGraph& graph ) -> void;
 
         auto RegisterWireframe( FrameGraph& graph ) -> void;
 
@@ -144,6 +161,9 @@ namespace mikoto::renderer {
         f32 mGamma{ 1.0f };
         f32 mExposure{ 1.0f };
         FGTextureHandle mEquirectangularTexture{};
+
+        // Tonemap
+        ToneMappingType mToneMapType{ ToneMappingType::Aces };
     };
 }
 

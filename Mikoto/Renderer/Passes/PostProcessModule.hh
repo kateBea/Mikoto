@@ -65,6 +65,9 @@ namespace mikoto::renderer {
 
         auto SetEnableBloom( bool value ) -> void;
 
+        auto SetGamma( f32 gamma ) -> void;
+        auto SetExposure( f32 exposure ) -> void;
+
     private:
         auto RegisterSsao( FrameGraph& graph ) -> void;
         auto RegisterBloom( FrameGraph& graph ) -> void;
@@ -84,6 +87,10 @@ namespace mikoto::renderer {
 
         // Bloom
         bool mEnableBloom{};
+
+        // Tonemap
+        f32 mGamma{ 1.0f };
+        f32 mExposure{ 1.0f };
     };
 
 }// namespace Mikoto

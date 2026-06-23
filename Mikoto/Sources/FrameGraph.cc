@@ -55,44 +55,6 @@ namespace mikoto::renderer {
     using namespace mikoto::memory;
     using namespace mikoto::material;
 
-
-    MKT_NODISCARD constexpr auto GetResourceState(FGResourceState state) -> ResourceStates {
-        switch (state) {
-            case FGResourceState::eUnknown:                return ResourceStates::eUnknown;
-
-            // Buffers
-            case FGResourceState::eConstantBuffer:         return ResourceStates::eConstantBuffer;
-            case FGResourceState::eVertexBuffer:           return ResourceStates::eVertexBuffer;
-            case FGResourceState::eIndexBuffer:            return ResourceStates::eIndexBuffer;
-            case FGResourceState::eIndirectArgument:       return ResourceStates::eIndirectArgument;
-            case FGResourceState::eShaderResource:         return ResourceStates::eShaderResource;
-            case FGResourceState::eUnorderedAccess:        return ResourceStates::eUnorderedAccess;
-
-            // Images
-            case FGResourceState::eRenderTarget:           return ResourceStates::eRenderTarget;
-            case FGResourceState::eDepthWrite:             return ResourceStates::eDepthWrite;
-            case FGResourceState::eDepthRead:              return ResourceStates::eDepthRead;
-
-            // Transfer
-            case FGResourceState::eCopyDest:               return ResourceStates::eCopyDest;
-            case FGResourceState::eCopySource:             return ResourceStates::eCopySource;
-            case FGResourceState::eResolveDest:            return ResourceStates::eResolveDest;
-            case FGResourceState::eResolveSource:          return ResourceStates::eResolveSource;
-
-            // Present
-            case FGResourceState::ePresent:                return ResourceStates::ePresent;
-
-            // Raytracing
-            case FGResourceState::eAccelStructRead:        return ResourceStates::eAccelStructRead;
-            case FGResourceState::eAccelStructWrite:       return ResourceStates::eAccelStructWrite;
-            case FGResourceState::eAccelStructBuildInput:  return ResourceStates::eAccelStructBuildInput;
-            case FGResourceState::eAccelStructBuildBlas:   return ResourceStates::eAccelStructBuildBlas;
-        }
-
-        // Fallback (should never happen if enum is exhaustive)
-        return ResourceStates::eUnknown;
-    }
-
     MKT_NODISCARD constexpr auto GetShaderFlagsFromStage( FGStageType type ) -> ShaderType {
         switch (type) {
             case FGStageType::eVertex: return ShaderType::eVertex;
@@ -319,6 +281,7 @@ namespace mikoto::renderer {
 
         mBindlessLayout = mDevice->CreateBindlessLayout( layoutDesc );
         mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
+        mDescriptorTable->SetDebugName( "FrameGraph Resource Table" );
 
         mPipelineLayout = mDevice->CreatePipelineLayout( PipelineLayoutCreateDescription{}
             .AddBindingLayout( mBindlessLayout ));
@@ -470,6 +433,14 @@ namespace mikoto::renderer {
         resource.mResource = handle;
 
         return FGTextureHandle{ .mHandle = resource.mHandle };
+    }
+
+    auto FGResourceManager::ImportBuffer( BufferHandle handle ) -> FGBufferHandle {
+        auto& resource{ Allocate( FGResourceType::eBuffer, handle.GetRaw() ) };
+
+        resource.mResource = handle;
+
+        return FGBufferHandle{ .mHandle = resource.mHandle };
     }
 
     FGReadbackManager::FGReadbackManager( Blackboard& blackboard, FGResourceManager& manager )
@@ -713,50 +684,47 @@ namespace mikoto::renderer {
     }
 
     auto FrameGraph::Execute() -> void {
-        //MKT_BEGIN_PROFILER_NAMED();
+        MKT_BEGIN_PROFILER_NAMED();
 
         mGraphicsCommands->Begin( { .mScopeName = "FG Graphics Record" } );
         mComputeCommands->Begin( { .mScopeName = "FG Compute Record" } );
         mTransferCommands->Begin( { .mScopeName = "FG Transfer Record" } );
 
-        // Parallel
-        if (false) {
-            threading::TaskService::Get()->Submit( mExecutionPlan.mExecutionGraph, true );
-        } else {
-            // Sequential execution
-            for ( auto& passName: mExecutionPlan.mSorted ) {
-                if ( !mNodeControl->mNodes[passName].mIsAlive )
-                    continue;
+        BindResources( mGraphicsCommands );
+        BindResources( mComputeCommands );
 
-                auto& pass = mNodeControl->mNodes[passName];
-                auto& ctx = mNodeControl->mContexts[passName];
+        for ( auto& passName: mExecutionPlan.mSorted ) {
+            if ( !mNodeControl->mNodes[passName].mIsAlive )
+                continue;
 
-                CommandListHandle cmd{};
+            auto& pass = mNodeControl->mNodes[passName];
+            auto& ctx = mNodeControl->mContexts[passName];
 
-                switch (pass.mType) {
-                    case FGPassType::eGraphics:
-                        cmd = mGraphicsCommands;
-                        break;
-                    case FGPassType::eCompute:
-                        cmd = mComputeCommands;
-                        break;
-                    case FGPassType::eTransfer:
-                        cmd = mTransferCommands;
-                        break;
-                    default:;
-                }
+            CommandListHandle cmd{};
 
-                // Off load this work to workers threads
-                // Vulkan could use secondary command buffers here
-                ctx->BeginPass( cmd );
-
-                // Place pass barriers
-                auto& barriers = mExecutionPlan.mBarriers[passName];
-                ctx->CommitBarriers( barriers );
-
-                pass.mExecuteCallback( *ctx, mBlackboard );
-                ctx->EndPass();
+            switch (pass.mType) {
+                case FGPassType::eGraphics:
+                    cmd = mGraphicsCommands;
+                    break;
+                case FGPassType::eCompute:
+                    cmd = mComputeCommands;
+                    break;
+                case FGPassType::eTransfer:
+                    cmd = mTransferCommands;
+                    break;
+                default:;
             }
+
+            // Off load this work to workers threads
+            // Vulkan could use secondary command buffers here
+            ctx->BeginPass( cmd );
+
+            // Place pass barriers
+            auto& barriers{ mExecutionPlan.mBarriers[passName] };
+            ctx->CommitBarriers( barriers );
+
+            pass.mExecuteCallback( *ctx, mBlackboard );
+            ctx->EndPass();
         }
 
         mGraphicsCommands->End();
@@ -845,6 +813,34 @@ namespace mikoto::renderer {
     auto FrameGraph::Create( GpuDevice* device, ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph> {
         MKT_BEGIN_PROFILER_NAMED();
         return eastl::make_unique<FrameGraph>( device, shaderLibrary );
+    }
+
+    auto FrameGraph::BindResources( CommandListHandle cmd ) -> void {
+        PipelineType bindPoint{ PipelineType::eInvalid };
+        switch (cmd->GetQueueType()) {
+            case QueueType::eGraphics:
+                bindPoint = PipelineType::eGraphics;
+                break;
+            case QueueType::eCompute:
+                bindPoint = PipelineType::eCompute;
+                break;
+            default:
+                ;
+        }
+
+        // Just sanity check
+        if (bindPoint == PipelineType::eInvalid) {
+            return;
+        }
+
+        DescriptorTableHandle table{ mResourceManager->GetDescriptorTable() };
+        PipelineLayoutHandle layout{ mResourceManager->GetPipelineLayout() };
+
+        cmd->BindPipelineResources( BindResourcesDescription{}
+            .AddResourceSet( 0, table.GetRaw() )
+            .SetPipelineLayout( layout.GetRaw() )
+            .SetBindPoint( bindPoint )
+        );
     }
 
     auto FrameGraph::BuildNodeEdges() -> void {

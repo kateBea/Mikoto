@@ -51,10 +51,6 @@ namespace mikoto::renderer::rhi {
     // - Specify which description parameters are required to speak the same language for all supported APIs,
     // for example when calling BindVertexBuffer the vertex description must specify SetElementStride(...)
 
-    // ==================================================================================================================
-    // Enums
-    // ==================================================================================================================
-
     using MipLevel = u32;
     using ArraySlice = u32;
 
@@ -110,14 +106,14 @@ namespace mikoto::renderer::rhi {
 
     struct TextureLayoutBits {
         static constexpr TextureLayout kUnknown{ 0 };
-        static constexpr TextureLayout kGeneral{ 1 };
-        static constexpr TextureLayout kColorAttachment{ 2 };
-        static constexpr TextureLayout kDepthStencil{ 3 };
-        static constexpr TextureLayout kShaderResource{ 4 };
-        static constexpr TextureLayout kUnorderedAccess{ 5 }; // For RW textures
-        static constexpr TextureLayout kCopySrc{ 6 };
-        static constexpr TextureLayout kCopyDst{ 7 };
-        static constexpr TextureLayout kPresent{ 8 };
+        static constexpr TextureLayout kGeneral{ BIT_SET(1) };
+        static constexpr TextureLayout kColorAttachment{ BIT_SET(2) };
+        static constexpr TextureLayout kDepthStencil{ BIT_SET(3) };
+        static constexpr TextureLayout kShaderResource{ BIT_SET(4) };
+        static constexpr TextureLayout kUnorderedAccess{ BIT_SET(5) }; // For RW textures
+        static constexpr TextureLayout kCopySrc{ BIT_SET(6) };
+        static constexpr TextureLayout kCopyDst{ BIT_SET(7) };
+        static constexpr TextureLayout kPresent{ BIT_SET(8) };
     };
 
     enum class ObjectType {
@@ -594,11 +590,11 @@ namespace mikoto::renderer::rhi {
 
         TextureSubresourceSet() = default;
 
-        TextureSubresourceSet(MipLevel _baseMipLevel, MipLevel _numMipLevels, ArraySlice _baseArraySlice, ArraySlice _numArraySlices)
-            : mBaseMipLevel(_baseMipLevel)
-            , mNumMipLevels(_numMipLevels)
-            , mBaseArraySlice(_baseArraySlice)
-            , mNumArraySlices(_numArraySlices)
+        TextureSubresourceSet(MipLevel baseMipLevel, MipLevel numMipLevels, ArraySlice baseArraySlice, ArraySlice numArraySlices)
+            : mBaseMipLevel(baseMipLevel)
+            , mNumMipLevels(numMipLevels)
+            , mBaseArraySlice(baseArraySlice)
+            , mNumArraySlices(numArraySlices)
         {
         }
     };
@@ -1860,26 +1856,6 @@ namespace mikoto::renderer::rhi {
         ComputePipelineDescription mDesc{};
     };
 
-    class IQueue : public DeviceObject {
-    public:
-        MKT_NODISCARD auto GetType() const -> QueueType { return mType; }
-        MKT_NODISCARD auto GetOpSupportFlags() const -> QueueOpSupportFlags { return mOpSupportFlags; }
-
-        ~IQueue() override = default;
-
-        using DeviceObject::Initialize;
-
-    protected:
-        explicit IQueue( QueueType type )
-            : mType{ type } {}
-
-    protected:
-        QueueType mType{ QueueType::eInvalid };
-        QueueOpSupportFlags mOpSupportFlags{ QueueOpSupportFlagsBits::kGraphics };
-    };
-
-    using QueueHandle = Ref<IQueue>;
-
     struct GraphicsState {
         struct RenderTargetState {
             Color mClearColor{ kColorWhite };
@@ -2050,6 +2026,31 @@ namespace mikoto::renderer::rhi {
     };
 
     using CommandListHandle = Ref<ICommandList>;
+
+    class IQueue : public DeviceObject {
+    public:
+        MKT_NODISCARD auto GetType() const -> QueueType;
+        MKT_NODISCARD auto GetOpSupportFlags() const -> QueueOpSupportFlags;
+
+        virtual auto Wait( IFence* fence, u64 value ) -> void = 0;
+        virtual auto Signal( IFence* fence, u64 value ) -> void = 0;
+
+        virtual auto ExecuteCommandLists( eastl::span<CommandListHandle> commands ) -> void = 0;
+
+        ~IQueue() override = default;
+
+        using DeviceObject::Initialize;
+
+    protected:
+        explicit IQueue( QueueType type, QueueOpSupportFlags flags )
+            : mType{ type }, mOpSupportFlags{ flags } {}
+
+    protected:
+        QueueType mType{ QueueType::eInvalid };
+        QueueOpSupportFlags mOpSupportFlags{ QueueOpSupportFlagsBits::kGraphics };
+    };
+
+    using QueueHandle = Ref<IQueue>;
 
     class ISwapchain : public ReferenceCounted {
     public:

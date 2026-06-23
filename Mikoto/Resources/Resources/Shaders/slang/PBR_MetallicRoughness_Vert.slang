@@ -134,6 +134,7 @@ VSOutput main(VSInput input) {
     o.FragmentViewPos = mul(camera.ViewMatrix, worldPos).xyz;
     o.Normal = worldNormal;
 
+    o.MaterialIndex = instanceIndex;
 
     o.PositionH =
         mul(camera.Projection,

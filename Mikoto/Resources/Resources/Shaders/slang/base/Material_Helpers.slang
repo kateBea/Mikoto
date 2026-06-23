@@ -38,22 +38,20 @@ struct MaterialParameters {
     float4 EmissiveFactor;
     float4 DiffuseFactor;
     float4 SpecularFactor;
-
-    int    Workflow;
-
+    
     float  MetallicFactor;
     float  RoughnessFactor;
     float  AlphaMask;
     float  AlphaMaskCutoff;
     float  EmissiveStrength;
-
+    
     int    BaseColorTextureSet;
     int    MetallicRoughnessTextureSet;
     int    SpecularGlossinessSet;
     int    NormalTextureSet;
     int    OcclusionTextureSet;
     int    EmissiveTextureSet;
-
+    
     int    AlbedoIndex;
     int    DiffuseIndex;
     int    NormalIndex;
@@ -63,8 +61,10 @@ struct MaterialParameters {
     int    EmissiveIndex;
     int    MetallicRoughnessIndex;
     int    SpecularGlossinessIndex;
-
+    
     int    IsBloomy;
+
+    int    Workflow;
 };
 
 struct MeshParameters {
@@ -80,18 +80,18 @@ struct MeshParameters {
 };
 
 struct VertexDescription {
-    float3 position   : POSITION;
-    float3 normal     : NORMAL;
-    float4 color      : COLOR;
+    float3 position;
+    float3 normal;
+    float4 color;
 
-    float2 uv0        : TEXCOORD0;
-    float2 uv1        : TEXCOORD1;
+    float2 uv0;
+    float2 uv1;
 
-    float4 joints0    : BLENDINDICES0;
-    float4 weights0   : BLENDWEIGHT0;
+    float4 joints0;
+    float4 weights0;
 
-    float4 joints1    : BLENDINDICES1;
-    float4 weights1   : BLENDWEIGHT1;
+    float4 joints11;
+    float4 weights1;
 };
 
 struct MeshGeometryInfo {

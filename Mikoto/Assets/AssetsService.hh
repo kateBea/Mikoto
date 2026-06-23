@@ -41,6 +41,7 @@
 
 #include <Filesystem/FileSystem.hh>
 
+#include <Material/SkyboxMaterial.hh>
 #include <Material/PhysicalMaterial.hh>
 #include <Material/PostProcessMaterial.hh>
 
@@ -263,7 +264,9 @@ namespace mikoto::asset {
             });
         }
 
-        MKT_NODISCARD auto CreateMaterial( const MaterialProperties& spec = {} ) -> MaterialHandle;
+        MKT_NODISCARD auto CreateMaterial( const PhysicMaterialDescription& spec) -> MaterialHandle;
+        MKT_NODISCARD auto CreateMaterial( const SkyboxMaterialDescription& desc) -> MaterialHandle;
+        MKT_NODISCARD auto CreateMaterial( const PostProcessMaterialDescription& desc) -> MaterialHandle;
 
         ~AssetsService() override = default;
 
@@ -279,7 +282,7 @@ namespace mikoto::asset {
         auto LoadFont( const Path& uri ) -> FontHandle;
         auto LoadFont( const FontLoadDescription& description) -> FontHandle;
 
-        auto LoadMaterial( const Path& uri) -> MaterialHandle;
+        auto LoadMaterial( const Path& uri ) -> MaterialHandle;
 
         auto LoadDummyAssets() -> void;
 
@@ -287,6 +290,12 @@ namespace mikoto::asset {
 
     private:
         static inline const Path kDummyTexturePath{ "Resources/Textures/texture.png" };
+
+        static inline const Path kDefaultAssetsPath{ "Assets/Materials" };
+        static inline const Path kAnimationCachePathBase{ "Assets/.cache" };
+
+        static inline const Path kMaterialsDefaultPath{ "Assets/Materials" };
+
 
     private:
         eastl::unique_ptr<MeshFactory> mMeshFactory{};
@@ -302,8 +311,6 @@ namespace mikoto::asset {
 
         AssetCache<ITexture> mTextures2D{};
         AssetCache<ITexture> mTexturesCubes{};
-
-        Path mAnimationCachePathBase{ "AssetCache" };
     };
 }
 

@@ -34,6 +34,7 @@
 
 #include <Renderer/Core/Rhi.hh>
 #include <Renderer/Core/SceneRenderer.hh>
+#include <Renderer/Core/ThumbnailRenderer.hh>
 
 #include <Scene/Scene.hh>
 #include <Scene/Entity.hh>
@@ -66,6 +67,7 @@ namespace mikoto::editor {
         Entity *mSelectedEntity{};
         SceneCamera* mActiveCamera{};
         SceneRenderer *mSceneRenderer{};
+        ThumbnailRenderer *mThumbnailRenderer{};
 
         Theme* mActiveTheme{};
 
@@ -114,15 +116,18 @@ namespace mikoto::editor {
 
     private:
         Window* mWindow{};
+        GpuDevice* mDevice{};
         Registry<Panel> mPanelRegistry{};
 
         eastl::unique_ptr<EditorState> mEditorState{};
         eastl::unique_ptr<SceneCamera> mEditorCamera{};
         eastl::unique_ptr<SceneRenderer> mSceneRenderer{};
+        eastl::unique_ptr<ThumbnailRenderer> mThumbnailRenderer{};
 
         CommandListHandle mCommandList{};
 
-        GpuDevice* mDevice{};
+        // [DEBUG] To remove
+        TextureHandle mTestSkybox{};
 
         ScreenPresentTarget mScreenPresentTarget{ ScreenPresentTarget::ePanels };
     };

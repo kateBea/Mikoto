@@ -30,6 +30,7 @@
 
 #include <Layers/EditorLayer.hh>
 #include <Layers/EditorDebugLayer.hh>
+#include <Layers/EditorRayTraceLayer.hh>
 
 #include <Platform/Window.hh>
 #include <Platform/WindowsService.hh>
@@ -82,8 +83,9 @@ auto InitEditor() -> bool {
     try {
         gApplication->Init();
 
-#if defined(MKT_EDITOR_ENABLE_EDBUG_LAYER)
+#if defined(MKT_EDITOR_ENABLE_EDBUG_LAYERS)
         gApplication->PushLayer<EditorDebugLayer>( gWindow );
+        gApplication->PushLayer<EditorRayTraceLayer>( gWindow );
 #endif
 
         gApplication->PushLayer<EditorLayer>( gWindow );

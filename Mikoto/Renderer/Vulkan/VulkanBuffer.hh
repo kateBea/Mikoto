@@ -16,7 +16,6 @@
 #define MIKOTO_VULKAN_BUFFER_HH
 
 #include <volk.h>
-#include <vk_mem_alloc.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>

@@ -83,7 +83,6 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        // Create the logical device
         InitLogicalDevice();
         InitLogicalQueues();
         InitMemoryAllocator();
@@ -440,10 +439,6 @@ namespace mikoto::renderer::vulkan {
         return semaphore;
     }
 
-    auto Device::WaitForSubmission( QueueType queueType, u64 submissionID ) -> void {
-        mQueues[queueType]->WaitForSubmission( submissionID );
-    }
-
     auto Device::AddQueueWaitFence( QueueType queueType, FencePlain* fence ) -> void {
         mQueues[queueType]->AddQueueWaitFence( fence );
     }
@@ -457,6 +452,10 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::SetDebugName( VkObjectType objectType, u64 handle, eastl::string_view name ) -> void {
+        if (name.empty()) {
+            return;
+        }
+
         VkDebugUtilsObjectNameInfoEXT nameInfo{};
         nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
         nameInfo.objectType = objectType;
@@ -534,6 +533,10 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::ExecuteCommands( CommandListHandle cmd ) -> void {
         mQueues[cmd->GetQueueType()]->ExecuteCommandList( cmd );
+    }
+    
+    auto Device::ExecuteCommands( eastl::span<CommandListHandle> cmdList ) -> void {
+
     }
 
     auto Device::WaitIdle() -> void {
@@ -658,8 +661,6 @@ namespace mikoto::renderer::vulkan {
         VkDeviceCreateInfo createInfo{ initializers::DeviceCreateInfo() };
         createInfo.pNext = MKT_ADDRESSOF( mEnabledFeatures2 );
 
-        createInfo.pEnabledFeatures = nullptr;
-
         // Prepare queue infos
         // I find a queue family index that supports the operations I want to perform
         // Right we are only looking for graphics, transfer, compute and optionally present
@@ -723,42 +724,29 @@ namespace mikoto::renderer::vulkan {
         // as it also simplifies synchronization, work from different queues needs to be synchronized via
         // semaphores even if they belong to same family.
 
-        ankerl::unordered_dense::map<QueueType, u32> queuesIndices{};
-        queuesIndices[QueueType::eGraphics] = mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kGraphics );
-        queuesIndices[QueueType::eCompute] = mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kCompute );
-        queuesIndices[QueueType::eTransfer] = mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kTransfer );
+        ankerl::unordered_dense::map<QueueType, const VulkanQueueData*> queuesIndices{};
+        queuesIndices[QueueType::eGraphics] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kGraphics );
+        queuesIndices[QueueType::eCompute] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kCompute );
+        queuesIndices[QueueType::eTransfer] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kTransfer );
 
         if (mFeaturesSupport.mEnablePresentation) {
-            queuesIndices[QueueType::ePresent] = mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kPresentation );
+            queuesIndices[QueueType::ePresent] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kPresentation );
         }
 
         // Keep track of families that already have a queue
         ankerl::unordered_dense::map<u32, Ref<Queue>> queueFamilyTracking{};
 
-        // For testing purposes, keep track of queue index per family
-        ankerl::unordered_dense::map<u32, u32> queueIndexTracking{};
-
-        for (constexpr u32 kQueueIndex{ 0 }; const auto& [queueType, familyIndex] : queuesIndices) {
-#if false
-            // Multiple queues per family
-            QueueHandle queue{ Ref<Queue>::Spawn( queueType, familyIndex, queueIndexTracking[familyIndex]++ ) };
-            queue->Initialize( this );
-            mQueues[queueType] = queue;
-#endif
-
-#if true
-            // Single queue per family
-            const auto it{ queueFamilyTracking.find( familyIndex ) };
+        for (constexpr u32 kQueueIndex{ 0 }; const auto& [queueType, queueData] : queuesIndices) {
+            const auto it{ queueFamilyTracking.find( queueData->FamilyIndex ) };
             if (it == queueFamilyTracking.end()) {
-                QueueHandle queue{ Ref<Queue>::Spawn( queueType, familyIndex, kQueueIndex ) };
+                QueueHandle queue{ Ref<Queue>::Spawn( queueType, queueData->mOpSupportFlags, queueData->FamilyIndex, kQueueIndex ) };
                 queue->Initialize( this );
 
                 mQueues[queueType] = queue;
-                queueFamilyTracking[familyIndex] = queue;
+                queueFamilyTracking[queueData->FamilyIndex] = queue;
             } else {
                 mQueues[queueType] = it->second;
             }
-#endif
         }
     }
 
@@ -790,8 +778,7 @@ namespace mikoto::renderer::vulkan {
             file = FileService::Get()->CreateNewFile( mPipelineCachePath );
         }
 
-        VkPipelineCacheCreateInfo cacheInfo = {};
-        cacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+        VkPipelineCacheCreateInfo cacheInfo{ initializers::PipelineCacheCreateInfo() };
 
         if (!file.IsEmpty() && file->HasContents()) {
             cacheInfo.initialDataSize = file->GetSize();
@@ -1048,6 +1035,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::BeginTrackingState( IBuffer *buffer, ResourceStates newState ) -> void {
+        // https://docs.vulkan.org/guide/latest/synchronization.html#synchronization
         // https://docs.vulkan.org/samples/latest/samples/performance/pipeline_barriers/README.html
         auto oldState{ buffer->GetResourceState() };
 
@@ -1191,8 +1179,6 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::Write( ITexture *texture, u32 mipLevel, const void *data, size_t byteSize ) -> void {
-        auto texturePreviousState{ texture->GetResourceState() };
-
         if (mEnableAutomaticBarriers) {
             SetResourceState( texture, ResourceStates::eCopyDest );
         }
@@ -1233,10 +1219,6 @@ namespace mikoto::renderer::vulkan {
             1,
             &copyRegion );
 
-        if (mEnableAutomaticBarriers) {
-            SetResourceState(texture, texturePreviousState == ResourceStates::eUnknown ? ResourceStates::eCommon : texturePreviousState);
-        }
-
         std::lock_guard lock{ mUploadAllocationsMutex };
         mUploadAllocations.emplace_back( allocation );
     }
@@ -1273,11 +1255,13 @@ namespace mikoto::renderer::vulkan {
                 data
             );
         } else {
-            // TODO: Use local linear allocator for frequently updated data
             // Instead of using the GPU default allocator I can declare a linear allocator for every command buffer
             // On first usage (lazy create) I create the buffer with a large enough size
             // every time I call End() I just reset the allocator
             GpuUploadAllocation* allocation{ mUploadManager->SubAllocate( byteSize ) };
+
+            // TODO: Implement a set resource state internal version that specifies ranges
+            // to be protected, SetResourceState() by default protects the whole range of the buffer
             SetResourceState( allocation->mBuffer, ResourceStates::eCopySource );
 
             std::memcpy(allocation->mMappedMemory, data, byteSize);
@@ -1298,10 +1282,6 @@ namespace mikoto::renderer::vulkan {
             std::lock_guard lock{ mUploadAllocationsMutex };
             mUploadAllocations.emplace_back( allocation );
         }
-
-        if (mEnableAutomaticBarriers) {
-            SetResourceState(buffer, currentState == ResourceStates::eUnknown ? ResourceStates::eCommon : currentState);
-        }
     }
 
     auto CommandList::Write( IBuffer *buffer, const void *data, size_t byteSize ) -> void {
@@ -1314,9 +1294,6 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::DrawIndexed( const DrawArguments &args ) -> void {
-        const auto& threadID{ std::this_thread::get_id() };
-        const auto cmd{ GetThreadContext() };
-
         auto* ctx{ GetThreadContext() };
 
         vkCmdDrawIndexed(
@@ -1335,7 +1312,9 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::DrawIndexedIndirect( u32 offset, u32 drawCount ) -> void {
-
+        auto* ctx{ GetThreadContext() };
+        vkCmdDrawIndexedIndirect( ctx->mCommandBuffer,
+            ctx->mIndirectBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), offset, drawCount, MKT_SIZEOF( VkDrawIndirectCommand ) );
     }
 
     auto CommandList::SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, ShaderStage visibility ) -> void {
@@ -1348,12 +1327,12 @@ namespace mikoto::renderer::vulkan {
         auto* ctx{ GetThreadContext() };
 
         vkCmdPushConstants(
-        ctx->mCommandBuffer,
-        pipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout ),
-        pcShaderStages,
-        0,
-        as<u32>(byteSize),
-        data);
+            ctx->mCommandBuffer,
+            pipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout ),
+            pcShaderStages,
+            0,
+            as<u32>(byteSize),
+            data);
     }
 
     auto CommandList::SetDebugName( eastl::string_view name ) -> void {
@@ -1389,9 +1368,6 @@ namespace mikoto::renderer::vulkan {
         // The data I’m copying fits inside the destination buffer, starting at dstOffset
         MKT_ASSERT(size <= (dest->GetSizeBytes() - dstOffset), "Destination buffer is too small");
 
-        auto srcPreviousState{ src->GetResourceState() };
-        auto destPreviousState{ dest->GetResourceState() };
-
         if (mEnableAutomaticBarriers) {
             BeginTrackingState(src, ResourceStates::eCopySource);
             BeginTrackingState(dest, ResourceStates::eCopyDest);
@@ -1413,12 +1389,6 @@ namespace mikoto::renderer::vulkan {
             1,
             &region
         );
-
-        if (mEnableAutomaticBarriers) {
-            BeginTrackingState(src,  srcPreviousState);
-            BeginTrackingState(dest, destPreviousState);
-            CommitBarriers();
-        }
     }
 
     auto CommandList::Copy( IBuffer* dest, ITexture* src ) -> void {
@@ -1467,6 +1437,7 @@ namespace mikoto::renderer::vulkan {
 
         VkImage image{ src->GetNativeHandle( ObjectType::Vk_Image ) };
         VkBuffer buffer{ dest->GetNativeHandle( ObjectType::Vk_Buffer ) };
+
         vkCmdCopyImageToBuffer( ctx->mCommandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, as<u32>(regions.size()), regions.data());
     }
 
@@ -1474,7 +1445,7 @@ namespace mikoto::renderer::vulkan {
         bool hasColorTarget{ !state.mCurrentRenderTargets.empty() };
         bool hasDepthTarget{ !state.mDepthTarget.mRenderTarget.IsEmpty() };
 
-        MKT_ASSERT( hasColorTarget || hasDepthTarget, "Must provide either depth target or color targets" );
+        MKT_ASSERT( hasColorTarget || hasDepthTarget, "Must provide either depth target or color target(s)" );
 
         if (mEnableAutomaticBarriers) {
             for (auto& rt : state.mCurrentRenderTargets ) {
@@ -1537,11 +1508,6 @@ namespace mikoto::renderer::vulkan {
         auto* ctx{ GetThreadContext() };
         vkCmdBeginRendering( ctx->mCommandBuffer, std::addressof( renderingInfo ) );
 
-        // TODO: Transition back the attachments
-        if (mEnableAutomaticBarriers) {
-
-        }
-
         ctx->mIsRenderScopeActive = true;
     }
 
@@ -1584,6 +1550,7 @@ namespace mikoto::renderer::vulkan {
             // Vulkan is flipped by default
             // Rest of API supported by my RHI work just fine with OpenGL
             // If I do not do this models appear upside down
+            // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
             if (!viewport.mFlip) {
                 value.x = viewport.mMinX;
                 value.y = viewport.GetHeight();
@@ -1660,12 +1627,12 @@ namespace mikoto::renderer::vulkan {
             VkShaderStageFlags pcShaderStages{ GetShaderStageFlags( desc.mPushConstantVisibility ) };
 
             vkCmdPushConstants(
-             ctx->mCommandBuffer,
-            desc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout ),
-            pcShaderStages,
-            0,
-            as<u32>(desc.mPushConstants.size()),
-            desc.mPushConstants.data());
+                 ctx->mCommandBuffer,
+                desc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout ),
+                pcShaderStages,
+                0,
+                as<u32>(desc.mPushConstants.size()),
+                desc.mPushConstants.data());
         }
 
         VkPipelineLayout layout{ desc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout ) };
@@ -1689,29 +1656,17 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void {
-        MKT_ASSERT( src != nullptr, "Source texture cannot be null" );
-        MKT_ASSERT( dest != nullptr, "Destination texture cannot be null" );
-
         const auto srcTexture{ checked_cast<Texture *>( src ) };
         const auto dstTexture{ checked_cast<Texture *>( dest ) };
 
         MKT_ASSERT( srcTexture != nullptr, "Source Vulkan texture cannot be null" );
         MKT_ASSERT( dstTexture != nullptr, "Destination Vulkan texture cannot be null" );
 
-        const VkImage srcImage{
-            srcTexture->GetNativeHandle( ObjectType::Vk_Image )
-        };
-
-        const VkImage dstImage{
-            dstTexture->GetNativeHandle( ObjectType::Vk_Image )
-        };
+        const VkImage srcImage{ srcTexture->GetNativeHandle( ObjectType::Vk_Image ) };
+        const VkImage dstImage{ dstTexture->GetNativeHandle( ObjectType::Vk_Image ) };
 
         MKT_ASSERT( srcImage != VK_NULL_HANDLE, "Source Vulkan image is null" );
         MKT_ASSERT( dstImage != VK_NULL_HANDLE, "Destination Vulkan image is null" );
-
-        // Transition to transfer layouts
-        auto srcPreviousState{ src->GetResourceState() };
-        auto destPreviousState{ dest->GetResourceState() };
 
         if (mEnableAutomaticBarriers) {
             BeginTrackingState(srcTexture, ResourceStates::eCopySource);
@@ -1758,6 +1713,7 @@ namespace mikoto::renderer::vulkan {
                 .pRegions = &copyRegion
             };
 
+            // Requires vulkan 1.3
             vkCmdCopyImage2( ctx->mCommandBuffer, MKT_ADDRESSOF( copyInfo ) );
         } else {
             VkImageBlit2 blitRegion{ initializers::ImageBlit2() };
@@ -1797,12 +1753,6 @@ namespace mikoto::renderer::vulkan {
             };
 
             vkCmdBlitImage2( ctx->mCommandBuffer, MKT_ADDRESSOF( blitInfo ) );
-        }
-
-        if (mEnableAutomaticBarriers) {
-            // Restore previous layouts if known
-            SetResourceState(srcTexture, srcPreviousState);
-            SetResourceState(dstTexture, destPreviousState == ResourceStates::eUnknown ? ResourceStates::eCommon : destPreviousState);
         }
     }
 
@@ -1877,7 +1827,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::Initialize() -> void {
-        mUploadManager = as<Device*>(mDevice)->GetUploadManager();
+        mUploadManager = checked_cast<Device*>(mDevice)->GetUploadManager();
 
         mIsAllocated = true;
     }
@@ -1927,11 +1877,13 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::TryRecycle( IQueue* queue ) -> void {
-        auto* vkQueue{ checked_cast<Queue*>( queue ) };
+
 
     }
 
     auto CommandList::GetThreadContext( bool isSecondary ) -> CommandThreadContext* {
+        // https://docs.vulkan.org/guide/latest/threading.html
+        // https://docs.vulkan.org/spec/latest/chapters/fundamentals.html#fundamentals-threadingbehavior
         auto id{ std::this_thread::get_id() };
 
         std::scoped_lock lock{ mSecondaryCmdsAllocMutex };
@@ -2034,8 +1986,8 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = false;
     }
 
-    Queue::Queue( QueueType type, u32 queueFamilyIndex, u32 queueIndex)
-        : IQueue{ type }, mFamilyIndex{ queueFamilyIndex }, mQueueIndex{ queueIndex } {
+    Queue::Queue( QueueType type, QueueOpSupportFlags opFlags, u32 queueFamilyIndex, u32 queueIndex)
+        : IQueue{ type, opFlags }, mFamilyIndex{ queueFamilyIndex }, mQueueIndex{ queueIndex } {
         switch ( type ) {
             case QueueType::eTransfer:
                 mSubmissionLabelColor = Color( 0.2f, 0.6f, 1.0f, 0.5f );
@@ -2051,6 +2003,18 @@ namespace mikoto::renderer::vulkan {
                 break;
             default:;
         }
+    }
+
+    auto Queue::Wait( IFence* fence, u64 value ) -> void {
+
+    }
+
+    auto Queue::Signal( IFence* fence, u64 value ) -> void {
+
+    }
+
+    auto Queue::ExecuteCommandLists( eastl::span<CommandListHandle> commands ) -> void {
+
     }
 
     auto Queue::Initialize() -> void {
@@ -2232,30 +2196,6 @@ namespace mikoto::renderer::vulkan {
         } );
     }
 
-    auto Queue::WaitForSubmission( u64 submissionID ) -> void {
-        auto* device{ checked_cast<Device*>(mDevice) };
-        auto* timeline{
-            checked_cast<TimelineSemaphore*>(mTimelineSemaphore.GetRaw())
-        };
-
-        VkSemaphore semaphore{
-            timeline->GetNativeHandle(ObjectType::Vk_Semaphore)
-        };
-
-        u64 completed{};
-        vkGetSemaphoreCounterValue(device->GetDevice(), timeline->GetNativeHandle( ObjectType::Vk_Semaphore ), &completed);
-        MKT_ASSERT( submissionID <= timeline->GetCurrentID(), "Waiting for submission that was never submitted!");
-
-        VkSemaphoreWaitInfo waitInfo{
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-            .semaphoreCount = 1,
-            .pSemaphores = &semaphore,
-            .pValues = &submissionID
-        };
-
-        vkWaitSemaphores(device->GetDevice(), &waitInfo, UINT64_MAX);
-    }
-
     auto Queue::AddQueueWaitFence( FencePlain* semaphore ) -> void {
         // TODO: Unused for now as i can use timeline for this too
     }
@@ -2387,9 +2327,9 @@ namespace mikoto::renderer::vulkan {
             labelInfo.color[2] = mSubmissionLabelColor.mB;
             labelInfo.color[3] = mSubmissionLabelColor.mA;
 
-            vkQueueBeginDebugUtilsLabelEXT(mQueue, &labelInfo);
-
             std::lock_guard lock{ mSubmissionMutex };
+
+            vkQueueBeginDebugUtilsLabelEXT(mQueue, &labelInfo);
             MKT_VK_CHECK( vkQueueSubmit2( mQueue, 1, &submitInfo, VK_NULL_HANDLE ) );
 
             vkQueueEndDebugUtilsLabelEXT(mQueue);
@@ -3335,8 +3275,8 @@ namespace mikoto::renderer::vulkan {
     {}
 
     auto DescriptorTable::SetDebugName( eastl::string_view name ) -> void {
-        IDescriptorTable::SetDebugName( name );
-
+        auto* device{ checked_cast<Device*>( mDevice ) };
+        device->SetDebugName( VK_OBJECT_TYPE_DESCRIPTOR_SET, rc_cast<u64>( mDescriptorSet ), mDebugName );
     }
 
     auto DescriptorTable::GetCapacity( u32 slot ) const -> u32 {
@@ -3443,8 +3383,8 @@ namespace mikoto::renderer::vulkan {
 
             mVertexAttributeDescriptions.emplace_back(vkAttr);
         }
-
     }
+
     auto InputLayout::GetVertexBindingDesc() const -> const eastl::fixed_vector<VkVertexInputBindingDescription, kMaxVertexBindings>& {
         return mVertexBindingDescriptions;
     }

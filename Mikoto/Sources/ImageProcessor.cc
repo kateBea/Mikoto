@@ -138,12 +138,10 @@ namespace mikoto::asset {
         // actual image channel count
         i32 width{}, height{}, channels{};
 
-        // Because we work with RGBA formats by default if not HDR values
-        // to simplify the API we do not expose arbitrary image formats
+        // Work with RGBA formats by default to simplify usage
         result->mChannels = 4;
 
-        // TODO: temporarily disabled, it loads HDRs weirdly
-        if (file->GetType() == FileType::eHdr && false) {
+        if (file->GetType() == FileType::eHdr) {
             constexpr int targetChannelCount{ STBI_rgb_alpha };
             float* data{ stbi_loadf_from_memory(
                     r_cast<const stbi_uc*>( file->GetContentsBytes() ),
@@ -153,8 +151,10 @@ namespace mikoto::asset {
                     MKT_ADDRESSOF( channels ),
                     targetChannelCount ) };
 
-            result->mFormat = ImageFormat::eRGBA_32F;
-            result->mBufferSpan = BufferSpanHandle::Spawn( rc_cast<byte_t*>( data ), size_t{ as<size_t>( width * height * result->mChannels ) } );
+            result->mFormat = ImageFormat::eRGBA32_FLOAT;
+            result->mBufferSpan = BufferSpanHandle::Spawn(
+                rc_cast<byte_t*>( data ),
+                size_t{ as<size_t>( width * height * result->mChannels * MKT_SIZEOF( f32 ) ) } );
 
             stbi_image_free( data );
         } else {
@@ -167,8 +167,10 @@ namespace mikoto::asset {
                     MKT_ADDRESSOF( channels ),
                     targetChannelCount ) };
 
-            result->mFormat = ImageFormat::eRGBA_8;
-            result->mBufferSpan = BufferSpanHandle::Spawn( as<byte_t*>( data ), size_t{ as<size_t>( width * height * result->mChannels ) } );
+            result->mFormat = ImageFormat::eRGBA8_UINT;
+            result->mBufferSpan = BufferSpanHandle::Spawn(
+                as<byte_t*>( data ),
+                size_t{ as<size_t>( width * height * result->mChannels * MKT_SIZEOF( byte_t ) ) } );
 
             stbi_image_free( data );
         }
@@ -244,7 +246,7 @@ namespace mikoto::asset {
         result->mWidth = widthInPixels;
         result->mHeight = heightInPixels;
         result->mChannels = targetBPP / 8; // Because we use RGBA
-        result->mFormat = ImageFormat::eRGBA_8;
+        result->mFormat = ImageFormat::eRGBA8_UINT;
 
         if (imageType == FREE_IMAGE_TYPE::FIT_BITMAP && originalBPP != targetBPP) {
             // Because we work with RGBA formats by default if not HDR values

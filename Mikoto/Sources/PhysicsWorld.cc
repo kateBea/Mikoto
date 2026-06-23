@@ -44,6 +44,7 @@
 #include <Memory/Allocator.hh>
 
 #include <Physics/PhysicsWorld.hh>
+#include <Physics/PhysicSystem.hh>
 
 #include <Threading/ThreadUtility.hh>
 
@@ -63,12 +64,7 @@ namespace mikoto::physics {
         // B.t.w. 10 MB is way too much for this example but it is a typical value you can use.
         // If you don't want to pre-allocate you can also use TempAllocatorMalloc to fall back to
         // malloc / free.
-        mSimulationInfo.TempAllocator = eastl::make_unique<JPH::TempAllocatorImpl>( 10 * 1024 * 1024 );
-
-        // We need a job system that will execute physics jobs on multiple threads. Typically
-        // you would implement the JobSystem interface yourself and let Jolt Physics run on top
-        // of your own job scheduler. JobSystemThreadPool is an example implementation.
-        mSimulationInfo.JobSystem = eastl::make_unique<JPH::JobSystemThreadPool>( JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, threading::GetThreadConcurrency() );
+        mSimulationInfo.mTempAllocator = eastl::make_unique<JPH::TempAllocatorImpl>( 10 * 1024 * 1024 );
 
         // This is the max amount of rigid bodies that you can add to the physics system. If you try to add more you'll get an error.
         // Note: This value is low because this is a simple test. For a real project use something in the order of 65536.
@@ -81,45 +77,45 @@ namespace mikoto::physics {
         // body pairs based on their bounding boxes and will insert them into a queue for the narrowphase). If you make this buffer
         // too small the queue will fill up and the broad phase jobs will start to do narrow phase work. This is slightly less efficient.
         // Note: This value is low because this is a simple test. For a real project use something in the order of 65536.
-        constexpr u32 cMaxBodyPairs{ 1024 };
+        constexpr u32 kMaxBodyPairs{ 1024 };
 
         // This is the maximum size of the contact constraint buffer. If more contacts (collisions between bodies) are detected than this
         // number then these contacts will be ignored and bodies will start interpenetrating / fall through the world.
         // Note: This value is low because this is a simple test. For a real project use something in the order of 10240.
-        constexpr u32 cMaxContactConstraints{ 1024 };
+        constexpr u32 kMaxContactConstraints{ 1024 };
 
         // Initialize physics system
-        mSimulationInfo.PhysicsSystem.Init(
+        mSimulationInfo.mPhysicsSystem.Init(
                 kMaxBodies,
                 kNumBodyMutexes,
-                cMaxBodyPairs,
-                cMaxContactConstraints,
+                kMaxBodyPairs,
+                kMaxContactConstraints,
 
                 // These need to be alive for as long as the physics system needs it
-                mSimulationInfo.BroadPhaseLayerInterface,
-                mSimulationInfo.ObjectVsBroadPhaseLayerFilter,
-                mSimulationInfo.ObjectLayerPairFilter );
+                mSimulationInfo.mBroadPhaseLayerInterface,
+                mSimulationInfo.mObjectVsBroadPhaseLayerFilter,
+                mSimulationInfo.mObjectLayerPairFilter );
 
-        mSimulationInfo.BodyInterface = MKT_ADDRESSOF( mSimulationInfo.PhysicsSystem.GetBodyInterface() );
+        mSimulationInfo.mBodyInterface = MKT_ADDRESSOF( mSimulationInfo.mPhysicsSystem.GetBodyInterface() );
 
-        mSimulationInfo.PhysicsSystem.SetGravity( JPH::Vec3( mGravity.x, mGravity.y, mGravity.z ) );
+        mSimulationInfo.mPhysicsSystem.SetGravity( JPH::Vec3( mGravity.x, mGravity.y, mGravity.z ) );
 
-#if false
+#if !defined(NDEBUG)
         // A body activation listener gets notified when bodies activate and go to sleep
         // Note that this is called from a job so whatever you do here needs to be thread safe.
         // Registering one is entirely optional.
-        mSimulationInfo.PhysicsSystem.SetBodyActivationListener( MKT_ADDRESSOF( m_SimulationInfo.BodyActivationListener ) );
+        mSimulationInfo.mPhysicsSystem.SetBodyActivationListener( MKT_ADDRESSOF( mSimulationInfo.mBodyActivationListener ) );
 
         // A contact listener gets notified when bodies (are about to) collide, and when they separate again.
         // Note that this is called from a job so whatever you do here needs to be thread safe.
         // Registering one is entirely optional.
-        mSimulationInfo.PhysicsSystem.SetContactListener( MKT_ADDRESSOF( m_SimulationInfo.ContactListener ) );
+        mSimulationInfo.mPhysicsSystem.SetContactListener( MKT_ADDRESSOF( mSimulationInfo.mContactListener ) );
 #endif
 
         // Optional step: Before starting the physics simulation you can optimize the broad phase. This improves collision detection performance (it's pointless here because we only have 2 bodies).
         // You should definitely not call this every frame or when e.g. streaming in a new level section as it is an expensive operation.
         // Instead, insert all new objects in batches instead of 1 at a time to keep the broad phase efficient.
-        mSimulationInfo.PhysicsSystem.OptimizeBroadPhase();
+        mSimulationInfo.mPhysicsSystem.OptimizeBroadPhase();
 
         mIsInitialized = true;
     }
@@ -132,43 +128,120 @@ namespace mikoto::physics {
         MKT_CORE_LOGGER_INFO( "Shutting down PhysicsWorld..." );
 
         for ( auto &val: mBodies | std::views::values ) {
-            mSimulationInfo.BodyInterface->RemoveBody(val->GetID());
-            mSimulationInfo.BodyInterface->DestroyBody(val->GetID());
+            mSimulationInfo.mBodyInterface->RemoveBody(val->GetID());
+            mSimulationInfo.mBodyInterface->DestroyBody(val->GetID());
         }
 
-        mSimulationInfo.JobSystem.reset();
-        mSimulationInfo.TempAllocator.reset();
+        mSimulationInfo.mTempAllocator.reset();
 
 
         mIsInitialized = false;
     }
 
     auto PhysicsWorld::Update( float dt ) -> void {
-        MKT_ASSERT( mSimulationInfo.BodyInterface, "BodyInterface is NULL forgot to call PhysicsWorld::Init()" );
-        MKT_ASSERT( mSimulationInfo.JobSystem, "JobSystem is NULL forgot to call PhysicsWorld::Init()" );
-        MKT_ASSERT( mSimulationInfo.TempAllocator, "TempAllocator is NULL forgot to call PhysicsWorld::Init()" );
+        MKT_ASSERT( mSimulationInfo.mBodyInterface, "BodyInterface is NULL forgot to call PhysicsWorld::Init()" );
+        MKT_ASSERT( mSimulationInfo.mTempAllocator, "TempAllocator is NULL forgot to call PhysicsWorld::Init()" );
 
         PreUpdate();
 
         constexpr i32 collisionSteps{ 1 };
-        mSimulationInfo.PhysicsSystem.Update( dt, collisionSteps, mSimulationInfo.TempAllocator.get(), mSimulationInfo.JobSystem.get() );
+        mSimulationInfo.mPhysicsSystem.Update( dt, collisionSteps, mSimulationInfo.mTempAllocator.get(), PhysicSystem::Get()->GetJoltJobSystem() );
 
         PostUpdate();
     }
 
     auto PhysicsWorld::PreUpdate() -> void {
         // Here we line up ECS and Jolt
+        // Here we line up ECS and Jolt
+        auto &registry{ mScene->GetRegistry() };
+
+        for ( const auto& [entity, rb, tr]: registry.view<RigidBodyComponent, TransformComponent>().each() ) {
+            if ( !rb.IsValidBodyID() ) {
+                continue;
+            }
+
+            const auto body{ GetJoltBody( rb.GetBodyID() ) };
+
+            UpdateBodyProperties( body->GetID(), tr, rb );
+
+            // Jolt puts bodies to sleep to save resources
+            if (!rb.IsBodyType( RigidBodyComponent::BodyType::eStatic ) && !mSimulationInfo.mBodyInterface->IsActive( body->GetID() ) ) {
+                mSimulationInfo.mBodyInterface->ActivateBody( body->GetID() );
+            }
+        }
+
 
     }
 
-    auto PhysicsWorld::UpdateBodyProperties(JPH::Body& body, RigidBodyComponent& rb ) const -> void {
-        const auto motionType{ ConvertToJoltMotionType( rb.GetBodyType( ) ) };
+    auto PhysicsWorld::UpdateBodyProperties(JPH::BodyID id, TransformComponent& tr, RigidBodyComponent& rb ) const -> void {
+        const auto& lockInterface{ mSimulationInfo.mPhysicsSystem.GetBodyLockInterface() };
+        // Scoped lock
+        {
+            JPH::BodyLockWrite lock(lockInterface, id);
 
+            // body_id may no longer be valid
+            if (lock.Succeeded())  {
+                JPH::Body &body{ lock.GetBody() };
+
+                // should only be called by the BodyInterface since it also requires updating the broadphase
+                mSimulationInfo.mBodyInterface->SetPositionAndRotation(
+                    id, GetFloat3F( tr.GetTranslation() ),
+                    GetQuatF( tr.GetRotation() ), JPH::EActivation::Activate );
+
+                const auto motionType{ GetJoltMotionType( rb.GetBodyType( ) ) };
+
+                // Line up motion types if it has been updated
+                if (motionType != body.GetMotionType()) {
+                    body.SetMotionType( motionType );
+                }
+
+                if (rb.IsBodyType( RigidBodyComponent::BodyType::eKinematic )) {
+                    body.SetAngularVelocity( GetFloat3F( rb.GetAngularVelocity() ) );
+                    body.SetLinearVelocity(GetFloat3F( rb.GetLinearVelocity() ) );
+                }
+
+                // Mass and friction
+                if (rb.IsBodyType(RigidBodyComponent::BodyType::eDynamic) && (1.0f / rb.GetMass()) != body.GetMotionProperties()->GetInverseMass()) {
+                    JPH::MassProperties	massPropertiesOverride{};
+                    massPropertiesOverride.mMass = rb.GetMass(); // Jolt uses kg, see docs
+                    body.GetMotionProperties()->SetMassProperties( body.GetMotionProperties()->GetAllowedDOFs(), massPropertiesOverride );
+                }
+
+                // Degrees of freedom dynamic objects (which axis the object is allowed to rotate, translate
+
+
+                // Restitution
+                body.SetRestitution( rb.GetRestitution() );
+            }
+        }
 
     }
 
     auto PhysicsWorld::PostUpdate() -> void {
+        auto& registry{ mScene->GetRegistry() };
 
+        const auto& lockInterface{ mSimulationInfo.mPhysicsSystem.GetBodyLockInterface() };
+        for ( auto [entity, rb, tr]: registry.view<RigidBodyComponent, TransformComponent>().each() ) {
+            if ( !rb.IsValidBodyID() )
+                continue;
+
+            const auto b{ GetJoltBody( rb.GetBodyID() ) };
+            {
+                // Scoped lock
+                JPH::BodyLockRead lock(lockInterface, b->GetID());
+                if (lock.Succeeded()) {
+                    const JPH::Body &body{ lock.GetBody() };
+
+                    const JPH::RMat44 transform{ body.GetCenterOfMassTransform() };
+
+                    const JPH::Vec3 position{ transform.GetTranslation() };
+                    const JPH::Quat rotation{ transform.GetRotation().GetQuaternion() };
+
+                    tr.SetTranslation( GetFloat3F( position ) );
+                    tr.SetRotation( GetQuatF( rotation ) );
+                }
+            }
+        }
     }
 
     auto PhysicsWorld::GenerateBodyID() -> u64 {
@@ -188,8 +261,8 @@ namespace mikoto::physics {
         RigidBodyComponent& rb{ entity->GetComponent<RigidBodyComponent>() };
 
         const auto body{ GetJoltBody( rb.GetBodyID() ) };
-        mSimulationInfo.BodyInterface->RemoveBody( body->GetID() );
-        mSimulationInfo.BodyInterface->DestroyBody( body->GetID() );
+        mSimulationInfo.mBodyInterface->RemoveBody( body->GetID() );
+        mSimulationInfo.mBodyInterface->DestroyBody( body->GetID() );
 
         mBodies.erase( rb.GetBodyID() );
 
@@ -207,7 +280,7 @@ namespace mikoto::physics {
         // The size expect the half extent, dimensions defined from the center outwards
         float3 halfExtent{ tc.GetScale() / 2.0f };
 
-        JPH::Vec3 size{ ToVec3( halfExtent ) };
+        JPH::Vec3 size{ GetFloat3F( halfExtent ) };
         JPH::Vec3 position{ tc.GetTranslation().x, tc.GetTranslation().y, tc.GetTranslation().z };
 
         // Simple shape for now (box)
@@ -218,7 +291,7 @@ namespace mikoto::physics {
             shape,
             position,
             JPH::Quat::sIdentity(),
-            ConvertToJoltMotionType( rb.GetBodyType() ),
+            GetJoltMotionType( rb.GetBodyType() ),
             Layers::MOVING
         };
 
@@ -233,8 +306,8 @@ namespace mikoto::physics {
         // Motion quality, or how well it detects collisions when it has a high velocity
         settings.mMotionQuality = JPH::EMotionQuality::LinearCast;
 
-        JPH::Body *body{ mSimulationInfo.BodyInterface->CreateBody( settings ) };
-        mSimulationInfo.BodyInterface->AddBody( body->GetID(), JPH::EActivation::Activate );
+        JPH::Body *body{ mSimulationInfo.mBodyInterface->CreateBody( settings ) };
+        mSimulationInfo.mBodyInterface->AddBody( body->GetID(), JPH::EActivation::Activate );
 
         const auto [it, success]{ mBodies.try_emplace( GenerateBodyID(), body ) };
 
@@ -251,7 +324,7 @@ namespace mikoto::physics {
 
     auto PhysicsWorld::SetGravity( const float3 &gravity ) -> void {
         mGravity = gravity;
-        mSimulationInfo.PhysicsSystem.SetGravity( JPH::Vec3( mGravity.x, mGravity.y, mGravity.z ) );
+        mSimulationInfo.mPhysicsSystem.SetGravity( JPH::Vec3( mGravity.x, mGravity.y, mGravity.z ) );
     }
 
     auto PhysicsWorld::SetGravityBody( GravityBody body ) -> void {
@@ -279,7 +352,7 @@ namespace mikoto::physics {
         return eastl::make_unique<PhysicsWorld>( spec );
     }
 
-    auto PhysicsWorld::ToMat4F( const JPH::RMat44 &m ) -> glm::mat4 {
+    auto PhysicsWorld::GetFloat4x4F( const JPH::RMat44 &m ) -> glm::mat4 {
         float4x4 out{};
 
         for (i32 c{}; c < 4; ++c) {
@@ -293,24 +366,24 @@ namespace mikoto::physics {
         return out;
     }
 
-    auto PhysicsWorld::ToVec3F( const JPH::Vec3 &v ) -> float3 {
+    auto PhysicsWorld::GetFloat3F( const JPH::Vec3 &v ) -> float3 {
         return float3{ v.GetX(), v.GetY(), v.GetZ() };
     }
 
-    auto PhysicsWorld::ToQuatF( const JPH::Quat &q ) -> quat {
+    auto PhysicsWorld::GetQuatF( const JPH::Quat &q ) -> quat {
         return quat{ q.GetW(), q.GetX(), q.GetY(), q.GetZ() };
     }
 
-    auto PhysicsWorld::ToVec3( const float3 &v ) -> JPH::Vec3 {
+    auto PhysicsWorld::GetFloat3F( const float3 &v ) -> JPH::Vec3 {
         return JPH::Vec3{ v.x, v.y, v.z };
     }
 
-    auto PhysicsWorld::ToQuat( const float3 &vec3EulerAnglesGLM ) -> JPH::Quat {
+    auto PhysicsWorld::GetQuatF( const float3 &vec3EulerAnglesGLM ) -> JPH::Quat {
         quat gq{ quat{vec3EulerAnglesGLM} }; // requires GLM_FORCE_RADIANS
-        return ToQuat(gq);
+        return GetQuatF(gq);
     }
 
-    auto PhysicsWorld::ToQuat( const quat &q ) -> JPH::Quat {
+    auto PhysicsWorld::GetQuatF( const quat &q ) -> JPH::Quat {
         // glm stores (w, x, y, z)
         return JPH::Quat{ q.x, q.y, q.z, q.w };
     }

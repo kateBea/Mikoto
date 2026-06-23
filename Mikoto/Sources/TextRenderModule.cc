@@ -67,7 +67,6 @@ namespace mikoto::renderer {
 
     auto TextRenderModule::RegisterTextRender( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-        mTextInfo.resize( kMaxGlyphs );
 
         TextRenderingPassParameters& info{ graph.GetOrCreate<TextRenderingPassParameters>() };
 
@@ -91,7 +90,7 @@ namespace mikoto::renderer {
         info.mMsdfTextRenderData = graph.Create( textDataBufferDesc );
 
         graph.RegisterPass<TextRenderingPassParameters>(
-            "TextPass_Upload",
+            "MSDFText_Upload",
             FGPassType::eTransfer,
             []( FGNodeBuilder& b, TextRenderingPassParameters& info ) -> void {
                 b.Write( info.mMsdfTextRenderData, FGResourceState::eCopyDest );
@@ -116,7 +115,7 @@ namespace mikoto::renderer {
                 builder.Read( textInfo.mMsdfTextRenderData, FGResourceState::eShaderResource );
 
                 builder.Write( finalImageInfo.mShadingColorImage, FGResourceState::eRenderTarget );
-                builder.Write( prepass.mDepthPrepassDepthTarget, FGResourceState::eDepthRead );
+                builder.Write( prepass.mDepthPrepassDepthTarget, FGResourceState::eDepthWrite );
             },
         [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
             if (mGlyphCount == 0) {
@@ -156,8 +155,7 @@ namespace mikoto::renderer {
         } );
     }
 
-
-    auto TextRenderModule::SetupTextRenderData( CommandContext& ctx, Blackboard& b ) -> void {
+    auto TextRenderModule::SetupTextRenderData( CommandContext& ctx, Blackboard& ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         auto& registry{ mScene->GetRegistry() };
@@ -188,7 +186,7 @@ namespace mikoto::renderer {
 
             double lineHeight{ font->GetMaxHeight() * scale };
 
-            auto decoded{ text::DecodeUTF8( textComponent.GetContents() ) };
+            auto decoded{ text::GetUnicodeFromUtf8( textComponent.GetContents() ) };
 
             for ( const auto& character: decoded ) {
                 const bool isLineFeed{ character == as<u32>( U'\n' ) ||
@@ -212,10 +210,10 @@ namespace mikoto::renderer {
 
                         // UV Coordinates
                         TextureHandle atlas{ font->GetAtlas() };
-                        f64 s0{ glyph.mAtlasBounds.x / atlas->GetWidth() };
-                        f64 t0{ glyph.mAtlasBounds.w / atlas->GetHeight() };
-                        f64 s1{ glyph.mAtlasBounds.z / atlas->GetWidth() };
-                        f64 t1{ glyph.mAtlasBounds.y / atlas->GetHeight() };
+                        f64 s0{ glyph.mAtlasBounds.x / as<f32>( atlas->GetWidth() ) };
+                        f64 t0{ glyph.mAtlasBounds.w / as<f32>( atlas->GetHeight() ) };
+                        f64 s1{ glyph.mAtlasBounds.z / as<f32>( atlas->GetWidth() ) };
+                        f64 t1{ glyph.mAtlasBounds.y / as<f32>( atlas->GetHeight() ) };
 
                         // Imported textures need to be synchronized externally
                         // Before the frame graph runs the client needs to make sure the resource
@@ -251,7 +249,13 @@ namespace mikoto::renderer {
                         fontParams.mProjection = view;
                         fontParams.mView = projection;
 
-                        mTextInfo[mGlyphCount++] = fontParams;
+                        MKT_ASSERT( mGlyphCount <= kMaxGlyphs, "Exceeded max glyphs" );
+
+                        if (mGlyphCount > mTextInfo.size()) {
+                            mTextInfo.emplace_back( fontParams );
+                        } else {
+                            mTextInfo[mGlyphCount++] = fontParams;
+                        }
                     }
 
                     advance = glyph.mAdvanceX * fontSize;

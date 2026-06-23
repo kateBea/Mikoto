@@ -372,6 +372,7 @@ namespace mikoto::renderer::vulkan {
         pipelineInfo.pColorBlendState = MKT_ADDRESSOF( mColorBlendInfo );
         pipelineInfo.pDepthStencilState = MKT_ADDRESSOF( mDepthStencilInfo );
 
+        MKT_PROFILE_SCOPE_MARKED( "Create graphics pipeline" );
         MKT_VK_CHECK( vkCreateGraphicsPipelines(
             checked_cast<Device*>( mDevice )->GetDevice(),
             mPipelineCache,

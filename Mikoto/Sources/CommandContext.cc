@@ -215,12 +215,13 @@ namespace mikoto::renderer {
         return mResourceManager->ImportTexture( handle );
     }
 
-    auto CommandContext::ImportSampler( SamplerHandle handle ) -> FGSamplerHandle {
+    auto CommandContext::ImportSampler( SamplerHandle ) -> FGSamplerHandle {
         return {};
     }
 
     auto CommandContext::ImportBuffer( BufferHandle handle ) -> FGBufferHandle {
-        return {};
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        return mResourceManager->ImportBuffer(handle);
     }
 
     auto CommandContext::BindPipeline( FGPipelineHandle handle ) -> void {
@@ -232,10 +233,6 @@ namespace mikoto::renderer {
     }
 
     auto CommandContext::Draw( u32 vertexCount, u32 instanceCount ) -> void {
-        // Resources are only bound if
-        // you need them in the shader
-        BindResources();
-
         IPipelineLayout* layout{ mCurrentPipeline->GetPipelineLayout().GetRaw() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
         mCommands->Draw( DrawArguments{}
@@ -251,8 +248,6 @@ namespace mikoto::renderer {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource resource{ mResourceManager->Get( state.mIndirectBuffer.mHandle ) };
 
-        BindResources();
-
         IPipelineLayout* layout{ mCurrentPipeline->GetPipelineLayout().GetRaw() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
         mCommands->BindIndirectBuffer( checked_cast<IBuffer*>( resource.mResource.GetRaw() ) );
@@ -260,42 +255,9 @@ namespace mikoto::renderer {
     }
 
     auto CommandContext::Dispatch( u32 groupX, u32 groupY, u32 groupZ ) -> void {
-        // Resources are only bound if
-        // you need them in the shader
-        BindResources();
-
         IPipelineLayout* layout{ mCurrentPipeline->GetPipelineLayout().GetRaw() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
         mCommands->Dispatch( groupX, groupY, groupZ );
-    }
-
-    auto CommandContext::RequestReadBack( void* ptr, size_t sizeBytes ) -> void {
-
-    }
-
-    auto CommandContext::BindResources() -> void {
-        MKT_ASSERT( mNode->mType == FGPassType::eGraphics || mNode->mType == FGPassType::eCompute,
-            "Bind resources is meant for passes that need them in the shaders");
-
-        PipelineType bindPoint{ PipelineType::eInvalid };
-        switch (mNode->mType) {
-            case FGPassType::eGraphics:
-                bindPoint = PipelineType::eGraphics;
-                break;
-            case FGPassType::eCompute:
-                bindPoint = PipelineType::eCompute;
-                break;
-            default:;
-        }
-
-        DescriptorTableHandle table{ mResourceManager->GetDescriptorTable() };
-        PipelineLayoutHandle layout{ mResourceManager->GetPipelineLayout() };
-
-        mCommands->BindPipelineResources( BindResourcesDescription{}
-            .AddResourceSet( 0, table.GetRaw() )
-            .SetPipelineLayout( layout.GetRaw() )
-            .SetBindPoint( bindPoint )
-        );
     }
 
     auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void {

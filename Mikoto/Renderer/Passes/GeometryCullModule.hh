@@ -50,8 +50,6 @@ namespace mikoto::renderer {
         float4 mDiffuseFactor{};
         float4 mSpecularFactor{};
 
-        i32 mWorkflow{};
-
         f32 mMetallicFactor{};
         f32 mRoughnessFactor{};
         f32 mAlphaMask{};
@@ -77,6 +75,8 @@ namespace mikoto::renderer {
         i32 mSpecularGlossinessIndex{ kInvalidTextureID };
 
         i32 mIsBloomy{ MKT_SHADER_FALSE };
+
+        i32 mWorkflow{};
     };
 
     // Geometry information
@@ -146,7 +146,7 @@ namespace mikoto::renderer {
         ankerl::unordered_dense::map<const asset::MeshNode*, GeometryAllocation> mAllocations{};
     };
 
-    struct GeometryManagementModuleInfo {
+    struct GeometryCullModuleInfo {
         FGBufferHandle mVerticesBuffer{};
         FGBufferHandle mIndicesBuffer{};
 
@@ -209,7 +209,7 @@ namespace mikoto::renderer {
         static constexpr u32 kMaxIndirectCommands{ 1000000 };
 
         u32 mDrawCount{};
-        FGBufferHandle mIndirectBuffer{};
+        FGBufferHandle mIndirectBuffer{}; // TODO: remove this and retrieve it via blackboard
         eastl::vector<DrawIndirectCommand> mIndirectCmds{};
 
         // Animation

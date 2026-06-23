@@ -12,7 +12,51 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #include <Renderer/Core/ThumbnailRenderer.hh>
-//
-// namespace mikoto {
-// }// namespace Mikoto
+#include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/Renderer.hh>
+#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Core/ThumbnailRenderer.hh>
+
+namespace mikoto::renderer {
+
+    auto ThumbnailRendererCreateInfo::SetName( eastl::string_view name ) -> ThumbnailRendererCreateInfo & {
+        mName = name;
+        return *this;
+    }
+
+    auto ThumbnailRendererCreateInfo::SetDevice( GpuDevice *device ) -> ThumbnailRendererCreateInfo & {
+        mDevice = device;
+        return *this;
+    }
+
+    auto ThumbnailRendererCreateInfo::SetShaderBasePath( eastl::string_view path ) -> ThumbnailRendererCreateInfo & {
+        mShaderBasePath = path;
+        return *this;
+    }
+
+    auto ThumbnailRendererCreateInfo::SetRenderResolution( RenderResolution resolution ) -> ThumbnailRendererCreateInfo & {
+        mResolution = resolution;
+        return *this;
+    }
+
+    ThumbnailRenderer::ThumbnailRenderer( const ThumbnailRendererCreateInfo & ) {
+
+    }
+
+    auto ThumbnailRenderer::Init() -> void {
+
+    }
+
+    auto ThumbnailRenderer::Shutdown() -> void {
+
+    }
+
+    auto ThumbnailRenderer::Render( const scene::Scene *scene ) -> void {
+
+    }
+
+    auto ThumbnailRenderer::Create( const ThumbnailRendererCreateInfo &spec ) -> eastl::unique_ptr<ThumbnailRenderer> {
+        return eastl::make_unique<ThumbnailRenderer>( spec );
+    }
+}// namespace Mikoto

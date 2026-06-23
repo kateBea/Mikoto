@@ -130,6 +130,7 @@ namespace mikoto::renderer::vulkan::initializers {
     MKT_NODISCARD auto ComputePipelineCreateInfo() -> VkComputePipelineCreateInfo;
     MKT_NODISCARD auto BufferCreateInfo() -> VkBufferCreateInfo;
     MKT_NODISCARD auto WriteDescriptorSet() -> VkWriteDescriptorSet;
+    MKT_NODISCARD auto PipelineCacheCreateInfo() -> VkPipelineCacheCreateInfo;
 }// namespace mikoto::renderer::vulkan::initializers
 
 // namespace mikoto::VulkanHelpers::Initializers {

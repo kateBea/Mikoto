@@ -115,6 +115,8 @@ VSOutput main(VSInput input) {
     o.ViewPos = mul(camera.ViewMatrix, worldPos).xyz;
     o.Normal = worldNormal;
 
+    o.MaterialIndex = instanceIndex;
+
     o.Position =
         mul(camera.Projection,
             mul(camera.ViewMatrix, worldPos));

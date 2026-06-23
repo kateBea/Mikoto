@@ -341,7 +341,7 @@ namespace mikoto::renderer {
             []( FGNodeBuilder& builder, Blackboard& blackboard ) {
                 PrepassModuleInfo& prepassInfo{ blackboard.Get<PrepassModuleInfo>() };
                 CameraModuleInfo& cameraPassInfo{ blackboard.Get<CameraModuleInfo>() };
-                GeometryManagementModuleInfo& geometryInfo{ blackboard.Get<GeometryManagementModuleInfo>() };
+                GeometryCullModuleInfo& geometryInfo{ blackboard.Get<GeometryCullModuleInfo>() };
 
                 builder.Write( prepassInfo.mGBufferColorTarget, FGResourceState::eRenderTarget );
                 builder.Write( prepassInfo.mGBufferPositionTarget, FGResourceState::eRenderTarget );
@@ -361,7 +361,7 @@ namespace mikoto::renderer {
             [this]( CommandContext &ctx, Blackboard& b ) -> void {
                 PrepassModuleInfo& prepassInfo{ b.Get<PrepassModuleInfo>() };
                 CameraModuleInfo& cameraPassInfo{ b.Get<CameraModuleInfo>() };
-                GeometryManagementModuleInfo& geometryInfo{ b.Get<GeometryManagementModuleInfo>() };
+                GeometryCullModuleInfo& geometryInfo{ b.Get<GeometryCullModuleInfo>() };
 
                 struct DrawParams {
                     u32 mGeometryInfoBufferID{};
@@ -458,7 +458,7 @@ namespace mikoto::renderer {
             []( FGNodeBuilder&builder, Blackboard& blackboard ) {
                 PrepassModuleInfo& prepassInfo{ blackboard.Get<PrepassModuleInfo>() };
                 CameraModuleInfo& cameraPassInfo{ blackboard.Get<CameraModuleInfo>() };
-                GeometryManagementModuleInfo& geometryInfo{ blackboard.Get<GeometryManagementModuleInfo>() };
+                GeometryCullModuleInfo& geometryInfo{ blackboard.Get<GeometryCullModuleInfo>() };
 
                 builder.Write( prepassInfo.mDepthPrepassColorTarget, FGResourceState::eRenderTarget );
                 builder.Write( prepassInfo.mDepthPrepassDepthTarget, FGResourceState::eDepthWrite );
@@ -475,7 +475,7 @@ namespace mikoto::renderer {
             [this]( CommandContext& ctx, Blackboard& b ) -> void {
                 PrepassModuleInfo& prepassInfo{ b.Get<PrepassModuleInfo>() };
                 CameraModuleInfo& cameraPassInfo{ b.Get<CameraModuleInfo>() };
-                GeometryManagementModuleInfo& geometryInfo{ b.Get<GeometryManagementModuleInfo>() };
+                GeometryCullModuleInfo& geometryInfo{ b.Get<GeometryCullModuleInfo>() };
 
                 struct DrawParams {
                     u32 mGeometryInfoBufferID{};

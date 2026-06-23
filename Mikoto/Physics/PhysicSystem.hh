@@ -15,15 +15,20 @@
 #ifndef MIKOTO_PHYSICS_SERVICE_HH
 #define MIKOTO_PHYSICS_SERVICE_HH
 
-#include <memory>
-
+#include <EASTL/unique_ptr.h>
 #include <ankerl/unordered_dense.h>
 
-#include <EASTL/unique_ptr.h>
+// The Jolt headers don't include Jolt.h. Always include Jolt.h before including any other Jolt header.
+// You can use Jolt.h in your precompiled header to speed up compilation.
+#include <Jolt/Jolt.h>
+
+// Jolt includes
+#include <Jolt/Core/JobSystemThreadPool.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Subsystem.hh>
+#include <Core/Singleton.hh>
 
 namespace mikoto::scene {
     class Scene;
@@ -33,15 +38,13 @@ namespace mikoto::physics {
 
     class PhysicsWorld;
 
-    using namespace mikoto::core;
-
     struct PhysicServiceCreateInfo {
-        u32 mMaxBodies{ 1024 }; // Max simulation bodies
+        core::u32 mMaxBodies{ 1024 }; // Max simulation bodies
     };
 
     struct PhysicsWorldCreateInfo {
         scene::Scene* mScene{ nullptr };
-        float3 mGravity{ 0.0f, -9.81f, 0.0f };
+        core::float3 mGravity{ 0.0f, -9.81f, 0.0f };
     };
 
     class PhysicSystem final : public core::ISubsystem, public core::Singleton<PhysicSystem> {
@@ -53,6 +56,8 @@ namespace mikoto::physics {
         auto Update(float dt) -> void override;
 
         auto SetSimulationTarget( scene::Scene* scene ) -> void;
+
+        MKT_NODISCARD auto GetJoltJobSystem() -> JPH::JobSystemThreadPool*;
         MKT_NODISCARD auto CreatePhysicsWorld(const PhysicsWorldCreateInfo& spec) -> PhysicsWorld*;
 
         ~PhysicSystem() override = default;
@@ -60,6 +65,7 @@ namespace mikoto::physics {
     private:
 
         PhysicsWorld* mActiveWorld{};
+        eastl::unique_ptr<JPH::JobSystemThreadPool> mJobSystem{};
         ankerl::unordered_dense::map<scene::Scene*, eastl::unique_ptr<PhysicsWorld>> mWorlds{};
     };
 }

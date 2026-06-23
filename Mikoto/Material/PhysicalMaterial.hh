@@ -81,7 +81,7 @@ namespace mikoto::material {
         MapType MapType{ MapType::eInvalid };
     };
 
-    struct MaterialProperties {
+    struct PhysicMaterialDescription {
         eastl::string mName{};
 
         AlphaMode AlphaMask{ AlphaMode::Opaque };
@@ -121,7 +121,7 @@ namespace mikoto::material {
     class PhysicalMaterial final : public Material {
     public:
         explicit PhysicalMaterial( eastl::string_view name = "PBR" );
-        explicit PhysicalMaterial( const MaterialProperties& props );
+        explicit PhysicalMaterial( const PhysicMaterialDescription& props );
 
         auto RemoveTexture( MapType type ) -> void;
         auto SetTexture( MapType type, const rhi::TextureHandle& texture ) -> void;

@@ -87,8 +87,7 @@ namespace mikoto::editor {
             .AddResourceSet( 0, mBindingSetHandle.GetRaw() )
             .AddResourceSet( 1, mDescriptorTable.GetRaw() )
             .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-            .SetBindPoint( PipelineType::eGraphics )
-        );
+            .SetBindPoint( PipelineType::eGraphics ));
 
         for (u32 meshIndex{}; meshIndex < mModelHandle->GetMeshNodeCount(); ++meshIndex) {
             asset::MeshNode* mesh{ MKT_ADDRESSOF( mModelHandle->GetMeshNode( meshIndex ) ) };

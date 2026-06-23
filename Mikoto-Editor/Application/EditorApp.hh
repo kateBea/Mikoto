@@ -46,7 +46,7 @@ namespace mikoto::editor {
 
         // Time in ms since last time
         // frame-time was updated
-        u32 mLastUpdateTime{ 0 };
+        f64 mLastUpdateTime{ 0 };
         static constexpr u32 kUpdateInterval{ 1000 }; // 1s
     };
 }// namespace mikoto::editor

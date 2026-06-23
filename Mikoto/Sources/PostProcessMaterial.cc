@@ -31,6 +31,10 @@ namespace mikoto::material {
         : Material{ name }
     {}
 
+    PostProcessMaterial::PostProcessMaterial( const PostProcessMaterialDescription &desc )
+        : Material{ desc.mName }
+    {}
+
     PostProcessMaterial::~PostProcessMaterial() = default;
 
 }// namespace Mikoto

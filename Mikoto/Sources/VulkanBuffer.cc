@@ -123,7 +123,6 @@ namespace mikoto::renderer::vulkan {
             CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
             cmd->Begin( {} );
 
-            // Data is always writen at mip zero
             cmd->Write( this, mSpan->GetData(), mSpan->GetSize() );
 
             cmd->End();

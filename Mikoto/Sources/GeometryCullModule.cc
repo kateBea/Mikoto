@@ -172,7 +172,7 @@ namespace mikoto::renderer {
             .mGeometryInfo = mGeometryAllocator.GetOrAllocate( node ),
         }) };
 
-        auto& info{ b.Get<GeometryManagementModuleInfo>() };
+        auto& info{ b.Get<GeometryCullModuleInfo>() };
 
         ctx.CopyBuffer( info.mVerticesBuffer, node->GetVertexBuffer().GetRaw(), result.first->second.mGeometryInfo.mVertexOffset );
         ctx.CopyBuffer( info.mIndicesBuffer, node->GetIndexBuffer().GetRaw(), result.first->second.mGeometryInfo.mIndexOffset );
@@ -193,7 +193,7 @@ namespace mikoto::renderer {
     auto GeometryCullModule::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        GeometryManagementModuleInfo& info{ graph.GetOrCreate<GeometryManagementModuleInfo>() };
+        GeometryCullModuleInfo& info{ graph.GetOrCreate<GeometryCullModuleInfo>() };
 
         auto indirectCommandsDesc{ FGBufferDescription{}
             .SetName( "GeometryIndirectCommands_Buffer" )
@@ -223,7 +223,7 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
 
         // Create the resources
-        GeometryManagementModuleInfo& geometryFilterInfo{ graph.GetOrCreate<GeometryManagementModuleInfo>() };
+        GeometryCullModuleInfo& geometryFilterInfo{ graph.GetOrCreate<GeometryCullModuleInfo>() };
 
         auto vertexDesc{ FGBufferDescription{}
             .SetName( "Geometry_VerticesBuffer01" )
@@ -251,9 +251,9 @@ namespace mikoto::renderer {
 
         auto geometryDesc{ FGBufferDescription{}
             .SetName( "Geometry_GeometryBuffer01" )
-           .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
-           .SetElementsSize( kMaxRenderableEntities, MKT_SIZEOF( MeshGeometryInfo ) )
-           .SetHeapType( HeapType::eDeviceLocal )};
+            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetElementsSize( kMaxRenderableEntities, MKT_SIZEOF( MeshGeometryInfo ) )
+            .SetHeapType( HeapType::eDeviceLocal ) };
 
         geometryFilterInfo.mGeometryBuffer = graph.Create( geometryDesc );
 
@@ -265,10 +265,10 @@ namespace mikoto::renderer {
 
         geometryFilterInfo.mSkinningBuffer = graph.Create( skinningDesc );
 
-        graph.RegisterPass<GeometryManagementModuleInfo>(
+        graph.RegisterPass<GeometryCullModuleInfo>(
             "GeometryFilter",
             FGPassType::eTransfer,
-            []( FGNodeBuilder &b, GeometryManagementModuleInfo& data ) -> void {
+            []( FGNodeBuilder &b, GeometryCullModuleInfo& data ) -> void {
                 // Geometry
                 b.Write( data.mVerticesBuffer, FGResourceState::eCopyDest );
                 b.Write( data.mIndicesBuffer, FGResourceState::eCopyDest );
@@ -286,10 +286,10 @@ namespace mikoto::renderer {
     auto GeometryCullModule::RegisterMeshCullingPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        graph.RegisterPass<GeometryManagementModuleInfo>(
+        graph.RegisterPass<GeometryCullModuleInfo>(
             "MeshCulling",
             FGPassType::eTransfer,
-            []( FGNodeBuilder &b, GeometryManagementModuleInfo& data ) -> void {
+            []( FGNodeBuilder &b, GeometryCullModuleInfo& data ) -> void {
                 b.Write( data.mGeometryBuffer, FGResourceState::eCopyDest );
                 b.Write( data.mMaterialsBuffer, FGResourceState::eCopyDest );
             },
@@ -398,7 +398,7 @@ namespace mikoto::renderer {
     auto GeometryCullModule::PrepareSkinning( CommandContext &context, Blackboard& b ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        GeometryManagementModuleInfo& info{ b.Get<GeometryManagementModuleInfo>() };
+        GeometryCullModuleInfo& info{ b.Get<GeometryCullModuleInfo>() };
 
         for (const auto& index : mActiveFinalMatsIndices) {
             if ( Animator * animator{ AnimationSystem::Get()->GetAnimator( index ) } ) {
@@ -417,7 +417,7 @@ namespace mikoto::renderer {
     auto GeometryCullModule::PrepareIndirectDraw( CommandContext &context, Blackboard& b  ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        GeometryManagementModuleInfo& info{ b.Get<GeometryManagementModuleInfo>() };
+        GeometryCullModuleInfo& info{ b.Get<GeometryCullModuleInfo>() };
 
         size_t previousFirstInstance{};
         size_t indirectDrawCount{};

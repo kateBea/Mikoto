@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #include <Panels/AnimatorTimelinePanel.hh>
-//
-// namespace mikoto::editor {
-//
-//     auto AnimatorTimelinePanel::OnUpdate( float timeStep ) -> void {
-//
-//     }
-// }// namespace Mikoto
+#include <Panels/AnimatorTimelinePanel.hh>
+
+namespace mikoto::editor {
+
+    auto AnimatorTimelinePanel::OnUpdate( float timeStep ) -> void {
+
+    }
+}// namespace Mikoto

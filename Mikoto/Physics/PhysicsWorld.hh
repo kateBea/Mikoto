@@ -70,7 +70,7 @@ namespace mikoto::physics {
         static constexpr u32 NUM_LAYERS( 2 );
     };// namespace BroadPhaseLayers
 
-    static auto ConvertToJoltMotionType( RigidBodyComponent::BodyType bodyType ) -> JPH::EMotionType {
+    static auto GetJoltMotionType( RigidBodyComponent::BodyType bodyType ) -> JPH::EMotionType {
         switch ( bodyType ) {
             case RigidBodyComponent::BodyType::eStatic:
                 return JPH::EMotionType::Static;
@@ -223,30 +223,29 @@ namespace mikoto::physics {
 
     private:
         struct SimulationInfo {
-            JPH::PhysicsSystem PhysicsSystem{};
-            JPH::BodyInterface* BodyInterface{ nullptr };
+            JPH::PhysicsSystem mPhysicsSystem{};
+            JPH::BodyInterface* mBodyInterface{ nullptr };
 
-            eastl::unique_ptr<JPH::TempAllocatorImpl> TempAllocator{};
-            eastl::unique_ptr<JPH::JobSystemThreadPool> JobSystem{};
+            eastl::unique_ptr<JPH::TempAllocatorImpl> mTempAllocator{};
 
             // Create mapping table from object layer to broadphase layer
             // Note: As this is an interface, PhysicsSystem will take a reference to this so this instance needs to stay alive!
             // Also have a look at BroadPhaseLayerInterfaceTable or BroadPhaseLayerInterfaceMask for a simpler interface.
-            BPLayerInterfaceImpl BroadPhaseLayerInterface{};
+            BPLayerInterfaceImpl mBroadPhaseLayerInterface{};
 
             // Create class that filters object vs broadphase layers
             // Note: As this is an interface, PhysicsSystem will take a reference to this so this instance needs to stay alive!
             // Also have a look at ObjectVsBroadPhaseLayerFilterTable or ObjectVsBroadPhaseLayerFilterMask for a simpler interface.
-            ObjectVsBroadPhaseLayerFilterImpl ObjectVsBroadPhaseLayerFilter{};
+            ObjectVsBroadPhaseLayerFilterImpl mObjectVsBroadPhaseLayerFilter{};
 
             // Create class that filters object vs object layers
             // Note: As this is an interface, PhysicsSystem will take a reference to this so this instance needs to stay alive!
             // Also have a look at ObjectLayerPairFilterTable or ObjectLayerPairFilterMask for a simpler interface.
-            ObjectLayerPairFilterImpl ObjectLayerPairFilter{};
+            ObjectLayerPairFilterImpl mObjectLayerPairFilter{};
 
             // FOR DEBUG
-            DebugContactListener ContactListener{};
-            DebugBodyActivationListener BodyActivationListener{};
+            DebugContactListener mContactListener{};
+            DebugBodyActivationListener mBodyActivationListener{};
         };
 
 
@@ -259,15 +258,15 @@ namespace mikoto::physics {
 
         auto GetJoltBody(u64 id) -> JPH::Body*;
 
-        auto UpdateBodyProperties(JPH::Body& body, RigidBodyComponent& rbComponent ) const -> void;
+        auto UpdateBodyProperties(JPH::BodyID id, TransformComponent& tr, RigidBodyComponent& rbComponent ) const -> void;
 
-        MKT_NODISCARD static auto ToMat4F( const JPH::RMat44& jphMat ) -> float4x4;
-        MKT_NODISCARD static auto ToVec3F( const JPH::Vec3& jphVec3 ) -> float3;
-        MKT_NODISCARD static auto ToQuatF( const JPH::Quat& jphQuat ) -> quat;
+        MKT_NODISCARD static auto GetFloat4x4F( const JPH::RMat44& jphMat ) -> float4x4;
+        MKT_NODISCARD static auto GetFloat3F( const JPH::Vec3& jphVec3 ) -> float3;
+        MKT_NODISCARD static auto GetQuatF( const JPH::Quat& jphQuat ) -> quat;
 
-        MKT_NODISCARD static auto ToVec3( const float3& vec3GLM ) -> JPH::Vec3;
-        MKT_NODISCARD static auto ToQuat( const float3& vec3EulerAnglesGLM ) -> JPH::Quat;
-        MKT_NODISCARD static auto ToQuat( const quat &q ) -> JPH::Quat;
+        MKT_NODISCARD static auto GetFloat3F( const float3& vec3GLM ) -> JPH::Vec3;
+        MKT_NODISCARD static auto GetQuatF( const float3& vec3EulerAnglesGLM ) -> JPH::Quat;
+        MKT_NODISCARD static auto GetQuatF( const quat &q ) -> JPH::Quat;
 
     private:
 

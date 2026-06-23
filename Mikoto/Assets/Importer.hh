@@ -60,7 +60,7 @@ namespace mikoto::asset {
         eastl::string mName{};
 
         eastl::vector<MeshNodeDescription> mMeshNodes{};
-        eastl::vector<MaterialProperties> mMaterials{};
+        eastl::vector<PhysicMaterialDescription> mMaterials{};
 
         AnimationList mAnimations{};
         eastl::unique_ptr<Skeleton> mSkeleton{};

@@ -49,7 +49,7 @@ namespace mikoto::asset {
         return *this;
     }
 
-    auto MeshCreateDescription::SetMaterial( const MaterialProperties &mat ) -> MeshCreateDescription & {
+    auto MeshCreateDescription::SetMaterial( const PhysicMaterialDescription &mat ) -> MeshCreateDescription & {
         mProperties = mat;
         return *this;
     }

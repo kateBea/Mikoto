@@ -32,13 +32,14 @@
 #include <Core/String.hh>
 #include <Core/Profiler.hh>
 
+#include <Threading/ThreadUtility.hh>
+
 #include <Scene/Scene.hh>
 
 #include <Logging/Logger.hh>
 
 #include <Physics/PhysicSystem.hh>
 #include <Physics/PhysicsWorld.hh>
-
 
 namespace mikoto::physics {
 
@@ -89,6 +90,11 @@ namespace mikoto::physics {
         // initialize it before this function or else this function will create one for you.
         JPH::RegisterTypes();
 
+        // We need a job system that will execute physics jobs on multiple threads. Typically
+        // you would implement the JobSystem interface yourself and let Jolt Physics run on top
+        // of your own job scheduler. JobSystemThreadPool is an example implementation.
+        mJobSystem = eastl::make_unique<JPH::JobSystemThreadPool>( JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, threading::GetThreadConcurrency() );
+
         mIsInitialized = true;
     }
 
@@ -108,6 +114,8 @@ namespace mikoto::physics {
         }
 
         mWorlds.clear();
+
+        mJobSystem.reset();
 
         JPH::UnregisterTypes();
         delete JPH::Factory::sInstance;
@@ -131,6 +139,10 @@ namespace mikoto::physics {
         } else {
             MKT_ASSERT( false, string::Format( "No physics simulation world for scene {}", scene->GetName() ).c_str() );
         }
+    }
+
+    auto PhysicSystem::GetJoltJobSystem() -> JPH::JobSystemThreadPool * {
+        return mJobSystem.get();
     }
 
     auto PhysicSystem::CreatePhysicsWorld( const PhysicsWorldCreateInfo &spec ) -> PhysicsWorld* {

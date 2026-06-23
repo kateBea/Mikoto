@@ -16,6 +16,7 @@
 #define MIKOTO_TYPES_HH
 
 #include <cstdint>
+#include <cstddef>
 
 #include <EASTL/utility.h>
 
@@ -74,6 +75,7 @@ namespace mikoto::core {
 
     using size_t = std::size_t;
     using byte_t = unsigned char;
+    using unicode_t = char32_t;
 
     using c_str = const char *;
 }

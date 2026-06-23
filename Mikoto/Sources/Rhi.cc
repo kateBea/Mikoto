@@ -600,6 +600,14 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    auto IQueue::GetType() const -> QueueType {
+        return mType;
+    }
+
+    auto IQueue::GetOpSupportFlags() const -> QueueOpSupportFlags {
+        return mOpSupportFlags;
+    }
+
     auto ShaderModuleCreateDescription::SetFile( filesystem::FileHandle file ) -> ShaderModuleCreateDescription & {
         mFile = std::move( file );
         return *this;

@@ -25,6 +25,8 @@
 #include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
 
+#include <Assets/Model.hh>
+
 #include <Renderer/Core/Rhi.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
@@ -85,6 +87,12 @@ namespace mikoto::renderer {
         // Tonemap
         FGTextureHandle mTonemapColor{};
         FGPipelineHandle mTonemapPipeline{};
+
+        // Box
+        size_t mBoxIndicesCount{};
+        size_t mBoxVerticesCount{};
+        FGBufferHandle mBoxIndexBuffer{};
+        FGBufferHandle mBoxVertexBuffer{};
     };
 
     class GeometryShadingModule {
@@ -109,7 +117,14 @@ namespace mikoto::renderer {
         // HDR
         auto SetGamma( float value ) -> void;
         auto SetExposure( float value ) -> void;
+        auto SetAmbientScale( f32 ambient ) -> void;
+
+        // This guy will be deprecated as we
+        // will use skybox materials instead
         auto SetEquirectangular(FGTextureHandle texture) -> void;
+
+        auto SetSkyboxMaterial(material::MaterialHandle material) -> void;
+
         auto SetRenderBackground(SceneBackgroundType bg) -> void;
 
     private:
@@ -125,6 +140,7 @@ namespace mikoto::renderer {
         auto RegisterPrefilter( FrameGraph& graph ) -> void;
         auto RegisterIrradiance( FrameGraph& graph ) -> void;
 
+        auto PrepareGeometryShadingAssets( FrameGraph& graph ) -> void;
 
     private:
         inline static const eastl::fixed_vector<float4x4, kMaxCubeFaces> kMatrices{
@@ -134,6 +150,16 @@ namespace mikoto::renderer {
             glm::lookAt( float3( 0 ), float3( 0, 1, 0 ), float3( 0, 0, 1 ) ),// -Y
             glm::lookAt( float3( 0 ), float3( 0, 0, 1 ), float3( 0, -1, 0 ) ), // +Z
             glm::lookAt( float3( 0 ), float3( 0, 0, -1 ), float3( 0, -1, 0 ) ),// -Z
+        };
+
+        // This is used for debugging mainly so I can distinguish faces if texture sampling fails
+        inline static const eastl::fixed_vector<Color, kMaxCubeFaces> kFaceColors{
+            Color( 1.0f, 0.0f, 0.0f, 1.0f ), // +X : Red
+            Color( 0.0f, 1.0f, 1.0f, 1.0f ), // -X : Cyan
+            Color( 0.0f, 1.0f, 0.0f, 1.0f ), // +Y : Green (Vulkan Y points down)
+            Color( 1.0f, 0.0f, 1.0f, 1.0f ), // -Y : Magenta
+            Color( 0.0f, 0.0f, 1.0f, 1.0f ), // +Z : Blue
+            Color( 1.0f, 1.0f, 0.0f, 1.0f ), // -Z : Yellow
         };
 
     private:
@@ -160,7 +186,12 @@ namespace mikoto::renderer {
         // IBL
         f32 mGamma{ 1.0f };
         f32 mExposure{ 1.0f };
+        f32 mAbientScale{ 1.0f };
+        rhi::TextureHandle mSkyboxHdrTexture{};
         FGTextureHandle mEquirectangularTexture{};
+        material::MaterialHandle mSkyboxMaterial{};
+
+        asset::ModelHandle mBoxModel{};
 
         // Tonemap
         ToneMappingType mToneMapType{ ToneMappingType::Aces };

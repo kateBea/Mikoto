@@ -18,8 +18,8 @@
 #include <Core/String.hh>
 #include <Core/Types.hh>
 
-#include <Filesystem/FileService.hh>
 #include <Filesystem/FileSystem.hh>
+#include <Filesystem/FileService.hh>
 
 #include <Memory/Allocator.hh>
 
@@ -86,11 +86,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     Texture::Texture( const TextureCreateDescription& data )
-        : ITexture{ data }, mKeepInitializerResources{ data.mKeepInitializerResources } {
-
-        // Prepare mip levels
-        mImageView_RTVs.resize( GetMipLevelCount() );
-    }
+        : ITexture{ data }, mKeepInitializerResources{ data.mKeepInitializerResources } {}
 
     Texture::Texture( const ExternalTextureDescription& info )
         : ITexture{
@@ -101,8 +97,8 @@ namespace mikoto::renderer::vulkan {
           },
           mImageViewCreateInfo{ info.mImageViewCreateInfo },
           mIsImageExternal{ true } {
-        mImageAllocation.mImage = mImageViewCreateInfo.image;
 
+        mImageAllocation.mImage = mImageViewCreateInfo.image;
         mDebugName = string::Format( "Mikoto Swap chain Texture. Id:", GetHandle() );
     }
 
@@ -111,16 +107,16 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        vkDestroyImageView( as<Device*>( mDevice )->GetDevice(), mImageView_SRV, nullptr );
+        vkDestroyImageView( as<Device*>( mDevice )->GetDevice(), mImageViewSrv, nullptr );
 
-        for ( auto& faces: mImageView_RTVs ) {
+        for ( auto& faces: mImageViewRtvList ) {
             for (auto& face : faces ) {
-                vkDestroyImageView( as<Device*>( mDevice )->GetDevice(), face, nullptr );
+                vkDestroyImageView( checked_cast<Device*>( mDevice )->GetDevice(), face, nullptr );
             }
         }
 
         if ( !mIsImageExternal ) {
-            auto* allocator{ as<GpuMemoryAllocator*>( as<Device*>( mDevice )->GetAllocator() ) };
+            auto* allocator{ as<GpuMemoryAllocator*>( checked_cast<Device*>( mDevice )->GetAllocator() ) };
             allocator->FreeImage( mImageAllocation );
         }
 
@@ -144,10 +140,15 @@ namespace mikoto::renderer::vulkan {
     auto Texture::SetDebugName( eastl::string_view name )  -> void {
         mDebugName = name;
 
+        // There is no device before we call Initialize()
+        if (!mIsAllocated) {
+            return;
+        }
+
         auto* device{ checked_cast<Device*>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_IMAGE, rc_cast<u64>( mImageAllocation.mImage ), mDebugName );
 
-        for (const auto& faces: mImageView_RTVs ) {
+        for (const auto& faces: mImageViewRtvList ) {
             for (auto& face : faces ) {
                 device->SetDebugName( VK_OBJECT_TYPE_IMAGE_VIEW, rc_cast<u64>( face ), mDebugName );
             }
@@ -164,21 +165,13 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto Texture::HasExternalImage() const -> bool {
-        return mIsImageExternal;
-    }
-
     auto Texture::GetAspectMask() const -> VkImageAspectFlags {
         return mAspectFlags;
     }
 
     auto Texture::GetRenderView( u32 mipLevel, u32 face ) const -> const VkImageView& {
-        MKT_ASSERT( mipLevel < mImageView_RTVs.size(), "Mip level out of bounds" );
-        return mImageView_RTVs[mipLevel][face];
-    }
-
-    auto Texture::IsSwapChainImage() const -> bool {
-        return mIsImageExternal;
+        MKT_ASSERT( mipLevel < mImageViewRtvList.size(), "Mip level out of bounds" );
+        return mImageViewRtvList[mipLevel][face];
     }
 
     auto Texture::GetNativeHandle( ObjectType type ) -> Object {
@@ -187,7 +180,7 @@ namespace mikoto::renderer::vulkan {
                 return Object( mImageAllocation.mImage );
 
             case ObjectType::Vk_ImageView:
-                return Object( mImageView_SRV );// Returns view at mip 0
+                return Object( mImageViewSrv );
 
             case ObjectType::Vk_Format:
                 return Object( std::addressof( mImageAllocation.mImageCreateInfo.format ) );
@@ -280,8 +273,6 @@ namespace mikoto::renderer::vulkan {
             mImageViewCreateInfo.format = mImageAllocation.mImageCreateInfo.format;
 
             mImageViewCreateInfo.subresourceRange.aspectMask = mAspectFlags;
-            mImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-            mImageViewCreateInfo.subresourceRange.levelCount = mMipCount;
 
             // This is one because for cube images we use one image view per face which is
             // basically one flat image per face, we do not have a whole image view for the whole image cube
@@ -296,29 +287,42 @@ namespace mikoto::renderer::vulkan {
         }
 
         // Prepare mip levels
-        mImageView_RTVs.resize( GetMipLevelCount() );
-        for (auto& faces: mImageView_RTVs ) {
+        mImageViewRtvList.resize( GetMipLevelCount() );
+        for (auto& faces: mImageViewRtvList ) {
             faces.resize( faceCount );
         }
 
+        // Create main image render view (RTV)
+        // face 0 mip 0
+        // face 1 mip 0
+        // ...
+        // face 5 mip 0
+        //
+        // face 0 mip n
+        // face 1 mip n
+        // ...
         for ( size_t mipLevelIndex{ 0 }; mipLevelIndex < GetMipLevelCount(); ++mipLevelIndex ) {
             for (u32 faceIndex{}; faceIndex < faceCount; faceIndex++) {
                 mImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                mImageViewCreateInfo.subresourceRange.levelCount = 1;
+                mImageViewCreateInfo.subresourceRange.baseMipLevel = mipLevelIndex;
                 mImageViewCreateInfo.subresourceRange.baseArrayLayer = faceIndex; // 0=+X, 1=-X, 2=+Y, 3=-Y, 4=+Z, 5=-Z
 
-                MKT_VK_CHECK( vkCreateImageView( as<Device*>( mDevice )->GetDevice(),
+                MKT_VK_CHECK( vkCreateImageView( checked_cast<Device*>( mDevice )->GetDevice(),
                     MKT_ADDRESSOF( mImageViewCreateInfo ), nullptr,
-                    MKT_ADDRESSOF( mImageView_RTVs[mipLevelIndex][faceIndex] ) ) );
+                    MKT_ADDRESSOF( mImageViewRtvList[mipLevelIndex][faceIndex] ) ) );
             }
         }
 
-        // Create main image view
+        // Create main image view (SRV)
+        mImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
         mImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        mImageViewCreateInfo.subresourceRange.levelCount = mMipCount;
         mImageViewCreateInfo.viewType = vulkan::GetViewType(mDimension);
         mImageViewCreateInfo.subresourceRange.layerCount = mDimension == TextureDimension::eTextureCube ? kMaxCubeFaces : 1;
-        MKT_VK_CHECK( vkCreateImageView( as<Device*>( mDevice )->GetDevice(),
+        MKT_VK_CHECK( vkCreateImageView( checked_cast<Device*>( mDevice )->GetDevice(),
                     MKT_ADDRESSOF( mImageViewCreateInfo ), nullptr,
-                    MKT_ADDRESSOF( mImageView_SRV ) ) );
+                    MKT_ADDRESSOF( mImageViewSrv ) ) );
 
         mIsAllocated = true;
     }

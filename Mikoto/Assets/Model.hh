@@ -89,11 +89,11 @@ namespace mikoto::asset {
 
         float4x4 mTransform{};
         eastl::string_view mName{};
-        MaterialProperties mProperties{};
+        PhysicMaterialDescription mProperties{};
 
         auto SetName( eastl::string_view name ) -> MeshCreateDescription&;
         auto SetTransform( const float4x4& t ) -> MeshCreateDescription&;
-        auto SetMaterial( const MaterialProperties& mat ) -> MeshCreateDescription&;
+        auto SetMaterial( const PhysicMaterialDescription& mat ) -> MeshCreateDescription&;
         auto SetVertices( BufferHandle vertices ) -> MeshCreateDescription&;
         auto SetIndices( BufferHandle indices ) -> MeshCreateDescription&;
     };
@@ -113,7 +113,7 @@ namespace mikoto::asset {
         MKT_NODISCARD auto GetVertexBuffer() const -> BufferHandle { return mVertices; }
         MKT_NODISCARD auto GetIndexBuffer() const -> BufferHandle { return mIndices; }
 
-        MKT_NODISCARD auto GetProperties() const -> const MaterialProperties& { return mProperties; }
+        MKT_NODISCARD auto GetProperties() const -> const PhysicMaterialDescription& { return mProperties; }
 
         DISABLE_COPY_FOR( MeshNode );
 
@@ -124,7 +124,7 @@ namespace mikoto::asset {
         BufferHandle mIndices{};
         BufferHandle mVertices{};
 
-        MaterialProperties mProperties{};
+        PhysicMaterialDescription mProperties{};
 
         float4x4 mTransform{ 1.0f }; // Identity by default
     };

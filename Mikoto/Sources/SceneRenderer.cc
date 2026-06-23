@@ -17,11 +17,9 @@
 #include <EASTL/unique_ptr.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/String.hh>
 #include <Core/Profiler.hh>
-
-#include <Renderer/Core/Renderer.hh>
+#include <Core/String.hh>
+#include <Core/Types.hh>
 #include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/SceneRenderer.hh>
 
@@ -153,6 +151,20 @@ namespace mikoto::renderer {
         mGeometryShading.SetToneMapping( type );
     }
 
+    auto SceneRenderer::SetGamma( f32 gamma ) -> void {
+        mGeometryShading.SetGamma( gamma );
+        mPostEffectsPasses.SetGamma( gamma );
+    }
+
+    auto SceneRenderer::SetExposure( f32 exposure ) -> void {
+        mGeometryShading.SetExposure( exposure );
+        mPostEffectsPasses.SetExposure( exposure );
+    }
+
+    auto SceneRenderer::SetAmbientScale( f32 ambient ) -> void {
+        mGeometryShading.SetAmbientScale( ambient );
+    }
+
     auto SceneRenderer::SetSkyboxEquirectangular( TextureHandle texture ) -> void {
         if (texture.IsEmpty() || !mFrameGraph) {
             return;
@@ -160,10 +172,36 @@ namespace mikoto::renderer {
 
         FGTextureHandle handle{ mFrameGraph->ImportTexture( texture ) };
         mGeometryShading.SetEquirectangular( handle );
+        mFrameGraph->EnablePass( "PrefilterPass" );
+        mFrameGraph->EnablePass( "IrradiancePass" );
+        mFrameGraph->EnablePass( "SkyboxProjection" );
+    }
+
+    auto SceneRenderer::SetSkyboxMaterial( material::MaterialHandle material ) -> void {
+        if (material.IsEmpty() || !mFrameGraph) {
+            return;
+        }
+
+        mGeometryShading.SetSkyboxMaterial( material );
+
+        // This pass runs sleeps after every run,
+        // we need to re-enable it again so it runs once again
+        // on the next call to execute
+        mFrameGraph->EnablePass( "PrefilterPass" );
+        mFrameGraph->EnablePass( "IrradiancePass" );
+        mFrameGraph->EnablePass( "SkyboxProjection" );
     }
 
     auto SceneRenderer::SetRenderBackground( SceneBackgroundType bg ) -> void {
         mGeometryShading.SetRenderBackground( bg );
+    }
+
+    auto SceneRenderer::DisablePass( eastl::string_view passName ) -> void {
+        mFrameGraph->DisablePass( passName );
+    }
+
+    auto SceneRenderer::EnablePass( eastl::string_view passName ) -> void {
+        mFrameGraph->EnablePass( passName );
     }
 
     auto SceneRenderer::ReadPixel( u32 x, u32 y) const -> u32 {
@@ -176,10 +214,6 @@ namespace mikoto::renderer {
 
     auto SceneRenderer::GetNodeControl() const -> const FGNodeControl & {
         return mFrameGraph->GetNodeControl();
-    }
-
-    auto SceneRenderer::GetRenderGraph() const -> const FrameGraph & {
-        return *mFrameGraph;
     }
 
     auto SceneRenderer::GetTexture( FGTextureHandle handle ) const -> TextureHandle {

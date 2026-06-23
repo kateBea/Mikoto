@@ -237,7 +237,6 @@ namespace mikoto::renderer {
         ePipeline,
     };
 
-
     enum class FGPassType {
         eGraphics,
         eCompute,
@@ -445,6 +444,7 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto PushBuffer_Constant( FGResourceHandle name ) -> u32;
 
         MKT_NODISCARD auto ImportTexture( TextureHandle handle ) -> FGTextureHandle;
+        MKT_NODISCARD auto ImportBuffer( BufferHandle handle ) -> FGBufferHandle;
 
     private:
         GpuDevice* mDevice{};
@@ -653,6 +653,8 @@ namespace mikoto::renderer {
         MKT_NODISCARD static auto Create( GpuDevice* device, material::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph>;
 
     private:
+        auto BindResources( CommandListHandle cmd ) -> void;
+
         auto BuildNodeEdges() -> void;
         auto CullGraphNodes() -> void;
         auto BuildNodeBarriers() -> void;

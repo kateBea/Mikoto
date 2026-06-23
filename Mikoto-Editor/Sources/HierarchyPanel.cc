@@ -143,7 +143,7 @@ namespace mikoto::editor {
         // U+F1B3  ->  61875
         const eastl::string icon { GetStringFromUnicode( 63185 ) };
 
-        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<void*>( entityTag.GetGUID() ),
+        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<const void*>( entityTag.GetGUID() ),
             flags, "%s", fmt::format( " {} {}",  icon.data(), entityTag.GetTag() ).c_str() ) };
 
         if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
@@ -189,6 +189,11 @@ namespace mikoto::editor {
 
                 if ( ImGui::MenuItem( "Post-Process Material", menuItemShortcut, menuItemSelected, !IsPresent<PostProcessMaterialComponent>( entity ) ) ) {
                     entity->AddComponent<PostProcessMaterialComponent>();
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if ( ImGui::MenuItem( "Skybox Material", menuItemShortcut, menuItemSelected, !IsPresent<SkyboxMaterialComponent>( entity ) ) ) {
+                    entity->AddComponent<SkyboxMaterialComponent>();
                     ImGui::CloseCurrentPopup();
                 }
 

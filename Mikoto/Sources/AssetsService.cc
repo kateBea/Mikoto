@@ -63,8 +63,8 @@ namespace mikoto::asset {
 
         // We need to ensure animation folders exists
         // These are used to store the cached animations
-        if ( CreateIfNotExistsDirectory( mAnimationCachePathBase ) ) {
-            MKT_CORE_LOGGER_DEBUG( "Created directory to cache animation data. '{}'", mAnimationCachePathBase.GetC_Str() );
+        if ( CreateIfNotExistsDirectory( kAnimationCachePathBase ) ) {
+            MKT_CORE_LOGGER_DEBUG( "Created directory to cache animation data. '{}'", kAnimationCachePathBase.GetC_Str() );
         }
 
         // Model importer library
@@ -122,15 +122,33 @@ namespace mikoto::asset {
     }
 
     auto AssetsService::GetAssetCacheBasePath() const -> const Path& {
-        return mAnimationCachePathBase;
+        return kAnimationCachePathBase;
     }
 
     auto AssetsService::GetDummyTexture() -> TextureHandle {
         return mTextures2D[kDummyTexturePath];
     }
 
-    auto AssetsService::CreateMaterial( const MaterialProperties& props ) -> MaterialHandle {
-        MaterialHandle material{ Ref<PhysicalMaterial>::Spawn( props ) };
+    auto AssetsService::CreateMaterial( const PhysicMaterialDescription& desc ) -> MaterialHandle {
+        // TODO: store materials in the materials default path or user specified one
+        MaterialHandle material{ Ref<PhysicalMaterial>::Spawn( desc ) };
+        if ( material.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "AssetsService::CreateMaterial - Failed to create material" );
+        }
+
+        return material;
+    }
+    auto AssetsService::CreateMaterial( const SkyboxMaterialDescription& desc ) -> MaterialHandle {
+        MaterialHandle material{ Ref<SkyboxMaterial>::Spawn( desc ) };
+        if ( material.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "AssetsService::CreateMaterial - Failed to create material" );
+        }
+
+        return material;
+    }
+
+    auto AssetsService::CreateMaterial( const PostProcessMaterialDescription& desc ) -> MaterialHandle {
+        MaterialHandle material{ Ref<PostProcessMaterial>::Spawn( desc ) };
         if ( material.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "AssetsService::CreateMaterial - Failed to create material" );
         }
@@ -184,8 +202,8 @@ namespace mikoto::asset {
 
     auto AssetsService::LoadTexture( const Path& uri, TextureDimension dimension ) -> TextureHandle {
         auto desc{ TextureLoadDescription{}
-                           .SetPath( uri )
-                           .SetDimensions( dimension ) };
+           .SetPath( uri )
+           .SetDimensions( dimension ) };
 
         return LoadTexture( desc );
     }
@@ -211,7 +229,7 @@ namespace mikoto::asset {
                      .SetDimensions( TextureDimension::eTexture2D )
                      .SetMultisampling( Multisampling::eMsaaX1 )
                      .SetUsage( TextureUsageFlagsBits::kShaderResource | TextureUsageFlagsBits::kCopyDst )
-                     .SetFormat( image->mFormat == ImageFormat::eRGBA_8 ? Format::eRGBA8_UNORM : Format::eRGBA32_FLOAT ) };
+                     .SetFormat( image->mFormat == ImageFormat::eRGBA8_UINT ? Format::eRGBA8_UNORM : Format::eRGBA32_FLOAT ) };
 
                 TextureHandle texture{ mGpuDevice->CreateTexture( textureDescription ) };
 
@@ -280,13 +298,13 @@ namespace mikoto::asset {
 
         CreateAssetCacheFolder( path );
 
-        return mFonts.LoadOrGet( path, [description, path, fontFile = description.mFile] {
+        return mFonts.LoadOrGet( path, [this, description, path, fontFile = description.mFile] {
             // This lambda runs ONLY once (per asset)
             auto fontDesc{ FontLoadDescription{}
                 .SetFile( fontFile )
                 .SetSize( description.mFile ) };
 
-            FontHandle fontHandle{ FontFactory::Get()->LoadFont( fontDesc ) };
+            FontHandle fontHandle{ mFontFactory->LoadFont( fontDesc ) };
 
             if ( !fontHandle.IsEmpty() ) {
                 FileWatcherService::Get()->Watch( path,

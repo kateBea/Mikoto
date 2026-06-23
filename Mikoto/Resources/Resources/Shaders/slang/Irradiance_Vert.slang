@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include "base/Base.slang"
-#include "base/BoxModel.slang"
 #include "base/Memory_Helpers.slang"
+#include "base/Material_Helpers.slang"
 
 struct DrawParams {
     float4x4 MVP;
@@ -23,6 +23,9 @@ struct DrawParams {
 
     uint mCubeID;
     uint mSamplerID;
+
+    uint mVertexBufferID;
+    uint mIndexBufferID;
 };
 
 struct VSOutput {
@@ -30,15 +33,22 @@ struct VSOutput {
     float4 PositionH : SV_Position;
 };
 
+MKT_DECLARE_STRUCTURED_SRV buffers;
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("vertex")]
 VSOutput main(uint vertexID : SV_VertexID) {
     VSOutput o;
-    o.Pos = boxPositions[vertexID];
-    o.PositionH = mul(parameters.MVP, float4(boxPositions[vertexID], 1.0));
-#ifdef MKT_SUPPORT_VULKAN
-    o.PositionH.y = -o.PositionH.y;
-#endif
+
+    ByteAddressBuffer vertexBuffer = buffers[parameters.mVertexBufferID];
+    ByteAddressBuffer indexBuffer = buffers[parameters.mIndexBufferID];
+
+    uint index = indexBuffer.Read<uint>(0, vertexID);
+    VertexDescription vertex = vertexBuffer.Read<VertexDescription>(0, index);
+
+    o.Pos = vertex.position;
+
+    o.PositionH = mul(parameters.MVP, float4(vertex.position, 1.0));
+
     return o;
 }

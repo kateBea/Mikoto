@@ -104,10 +104,6 @@ namespace mikoto::renderer::vulkan {
             VK_EXT_DEBUG_UTILS_EXTENSION_NAME
         };
 
-        // Assumes everything is alright, otherwise
-        // this will be set to false if anything fails during construction
-        bool mIsReady{ true };
-
         // Initializes structures
         explicit Instance(  InstanceBuilder& builder );
 

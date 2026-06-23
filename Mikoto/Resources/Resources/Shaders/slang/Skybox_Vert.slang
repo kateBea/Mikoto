@@ -13,10 +13,10 @@
 // limitations under the License.
 
 #include "base/Base.slang"
-#include "base/BoxModel.slang"
 #include "base/Math_Helpers.slang"
 #include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
+#include "base/Material_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
 
 struct VSOutput {
@@ -27,6 +27,9 @@ struct VSOutput {
 struct DrawParams {
     uint CameraBufferID;
     uint BasicSamplerID;
+
+    uint mVertexBufferID;
+    uint mIndexBufferID;
 
     uint SkyboxCubeRtID;
     uint PrefilterCubeRtID;
@@ -45,7 +48,11 @@ MKT_DECLARE_STRUCTURED_SRV SRV_Buffers;
 VSOutput main(uint vID: SV_VertexID) {
     VSOutput o;
 
-    float3 pos = boxPositions[vID];
+    ByteAddressBuffer vertexBuffer = SRV_Buffers[Parameters.mVertexBufferID];
+    ByteAddressBuffer indexBuffer = SRV_Buffers[Parameters.mIndexBufferID];
+
+    uint index = indexBuffer.Read<uint>(0, vID);
+    VertexDescription vertex = vertexBuffer.Read<VertexDescription>(0, index);
 
     CameraInfo camera = SRV_Buffers[Parameters.CameraBufferID].Read<CameraInfo>(0, 0);
 
@@ -53,10 +60,10 @@ VSOutput main(uint vID: SV_VertexID) {
     float4x4 viewNoTrans = RemoveTranslation(camera.ViewMatrix);
 
     // Skybox direction
-    o.Direction = pos;
+    o.Direction = vertex.position;
 
     // Project to clip space
-    float4 clip = mul(camera.Projection, mul(viewNoTrans, float4(pos, 1.0)));
+    float4 clip = mul(camera.Projection, mul(viewNoTrans, float4(vertex.position, 1.0)));
     o.PositionH = clip;
 
     return o;

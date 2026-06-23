@@ -34,7 +34,7 @@ namespace mikoto::editor {
 
     struct ScenePanelCreateInfo {
         EditorState* mState{};
-        TextureHandle mImage{};
+        renderer::rhi::TextureHandle mImage{};
     };
 
     class ScenePanel final : public Panel {
@@ -44,7 +44,7 @@ namespace mikoto::editor {
         auto OnUpdate(float ts) -> void override;
 
         auto SetManipulation( gui::GuizmoType mode ) -> void;
-        auto SetTexture( TextureHandle texture ) -> void;
+        auto SetTexture( renderer::rhi::TextureHandle texture ) -> void;
 
         ~ScenePanel() override = default;
 

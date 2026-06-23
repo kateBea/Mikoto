@@ -23,6 +23,9 @@ struct DrawParams {
 
     uint mCubeID;
     uint mSamplerID;
+
+    uint mVertexBufferID;
+    uint mIndexBufferID;
 };
 
 struct FSInput {

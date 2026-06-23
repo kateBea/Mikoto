@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include "base/Base.slang"
-#include "base/BoxModel.slang"
-
+#include "base/Memory_Helpers.slang"
+#include "base/Material_Helpers.slang"
 
 struct SkyboxRenderConstants {
     float4x4 MVP;
@@ -33,17 +33,27 @@ struct DrawParams {
     float4x4 Mvp;
     uint BasicSamplerID;
     uint EquirectangularID;
+
+    uint mVertexBufferID;
+    uint mIndexBufferID;
 };
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
+MKT_DECLARE_STRUCTURED_SRV buffers;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    o.Pos = boxPositions[input.vID];
+    ByteAddressBuffer vertexBuffer = buffers[parameters.mVertexBufferID];
+    ByteAddressBuffer indexBuffer = buffers[parameters.mIndexBufferID];
 
-    o.PositionH = mul(Parameters.Mvp, float4(boxPositions[input.vID], 1.0));
+    uint index = indexBuffer.Read<uint>(0, input.vID);
+    VertexDescription vertex = vertexBuffer.Read<VertexDescription>(0, index);
+
+    o.Pos = vertex.position;
+
+    o.PositionH = mul(parameters.Mvp, float4(vertex.position, 1.0));
 
     return o;
 }

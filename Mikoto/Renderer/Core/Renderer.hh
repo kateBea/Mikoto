@@ -19,14 +19,14 @@
 
 namespace mikoto::renderer {
 
-    class Renderer {
+    class IRenderer {
     public:
-        virtual ~Renderer() = default;
+        virtual ~IRenderer() = default;
 
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
-        virtual auto Render( const scene::Scene *) -> void = 0;
+        virtual auto Render( const scene::Scene* scene ) -> void = 0;
     };
 }
 

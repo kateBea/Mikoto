@@ -98,19 +98,11 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto ImportSampler( SamplerHandle handle ) -> FGSamplerHandle;
         MKT_NODISCARD auto ImportBuffer( BufferHandle handle ) -> FGBufferHandle;
 
-        // User can bind constant buffers to specific slots for smaller data
-        auto PushConstant( FGBufferHandle handle, u32 slot ) -> void;
-
         auto BindPipeline( FGPipelineHandle handle ) -> void;
 
         auto Draw( u32 vertexCount, u32 instanceCount = 1 ) -> void;
         auto DrawIndirect( const DrawIndirectState& state ) -> void;
         auto Dispatch( u32 groupX, u32 groupY, u32 groupZ ) -> void;
-
-        // WIP: Projects on to a cube. It basically creates if needed a temporary texture that is cached and renders
-        // to it and then copies the data to "texture" at specified mip and face
-        // The cube needs to specify FGResourceUsage::CopyDst
-        auto DrawToCube( FGPipelineHandle pipeline, FGTextureHandle texture, u32 mip, u32 face ) -> void;
 
         auto CopyBuffer( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void;
         auto CopyBuffer( FGBufferHandle dstBuffer, IBuffer* src, size_t dstOffset ) -> void;
@@ -129,15 +121,6 @@ namespace mikoto::renderer {
 
             eastl::copy_n( as<byte_t*>( ptr ), size, mPushConstantsData.data() );
         }
-
-        // In order to handle synchronization internally
-        // We will check the submission ID to see if the buffer is done being written in the GPU
-        // to copy data back to a CPU writable memory
-        auto RequestReadBack(void* ptr, size_t sizeBytes ) -> void;
-
-    private:
-        // [Internal]
-        auto BindResources() -> void;
 
     private:
         FGNode* mNode{};

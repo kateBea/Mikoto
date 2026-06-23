@@ -303,6 +303,7 @@ namespace mikoto::renderer::d3d11 {
         auto RunGarbageCollection() -> void override;
         auto SubmitCommands( CommandListHandle cmdList ) -> u64 override;
         auto ExecuteCommands( CommandListHandle cmdList ) -> void override;
+        auto ExecuteCommands( eastl::span<CommandListHandle> cmdList ) -> void override;
 
         auto WaitIdle() -> void override;
 

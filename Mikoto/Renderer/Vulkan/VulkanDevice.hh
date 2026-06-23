@@ -157,13 +157,23 @@ namespace mikoto::renderer::vulkan {
 
     struct GpuUploadAllocation {
         IBuffer* mBuffer{};
-        void* mMappedMemory{}; // This is the mapped address we should be writing to, it corresponds to the slice or range that is available within this buffer allocation
+
+        // This is the mapped address we should be writing to,
+        // it corresponds to the beginning of the slice or
+        // range that is available within this allocation.
+        // You do not need to offset or anything
+        void* mMappedMemory{};
+
+        // Size of this sub-allocation
         size_t mSize{};
-        size_t mOffset{}; // I think this member should not be here, mMappedMemory already points to the start of the memory allocation we are allowed to write to
 
-        eastl::atomic_flag mInUse{ true };
+        // Specifies the offset of this allocation within the large
+        // buffer it was allocated from
+        size_t mOffset{};
 
+        // Metadata to track usage
         Allocation mAllocation{};
+        eastl::atomic_flag mInUse{ true };
     };
 
     // Manages intermediate buffers that are used to upload data from CPU
@@ -391,11 +401,14 @@ namespace mikoto::renderer::vulkan {
     // VkQueue from the same family index
     class Queue final : public IQueue {
     public:
-        explicit Queue(QueueType type,  u32 queueFamilyIndex, u32 queueIndex = 0);
+        explicit Queue(QueueType type, QueueOpSupportFlags opFlags, u32 queueFamilyIndex, u32 queueIndex = 0);
+
+        auto Wait( IFence* fence, u64 value ) -> void override;
+        auto Signal( IFence* fence, u64 value ) -> void override;
+
+        auto ExecuteCommandLists( eastl::span<CommandListHandle> commands ) -> void override;
 
         auto Flush() -> void;
-
-        MKT_NODISCARD auto Present( const VkPresentInfoKHR& info ) -> VkResult;
 
         auto RunGarbageCollection() -> void;
 
@@ -408,8 +421,6 @@ namespace mikoto::renderer::vulkan {
         auto PushDelete( VkCommandBuffer cmd, VkCommandPool pool, u64 submitID ) -> void;
         auto PushDelete( VkCommandBuffer cmd, VkCommandPool pool, const FencePlain& fence ) -> void;
 
-        auto WaitForSubmission( u64 submissionID ) -> void;
-
         auto AddQueueWaitFence( FencePlain* semaphore ) -> void;
 
         auto AddQueueSignalSemaphore( Fence* semaphore, u64 value, VkPipelineStageFlags2 stageFlags ) -> void;
@@ -417,6 +428,8 @@ namespace mikoto::renderer::vulkan {
         auto AddQueueWaitSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void;
 
         auto WaitIdle() const -> void;
+
+        MKT_NODISCARD auto Present( const VkPresentInfoKHR& info ) -> VkResult;
 
         MKT_NODISCARD auto GetCompletedValue() const -> u64;
 
@@ -743,22 +756,23 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
         MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool override;
 
+        auto WaitIdle() -> void override;
+
         auto Wait( QueueType type, FenceHandle handle, u64 fenceValue ) -> void override;
         auto Signal( QueueType type, FenceHandle handle, u64 fenceValue ) -> void override;
 
-        auto ExecutePendingCommands() -> void override;
         auto RunGarbageCollection() -> void override;
-        auto SubmitCommands( CommandListHandle cmdList ) -> u64 override;
-        auto ExecuteCommands( CommandListHandle cmd ) -> void override;
 
-        auto WaitIdle() -> void override;
+        auto SubmitCommands( CommandListHandle cmdList ) -> u64 override;
+
+        auto ExecutePendingCommands() -> void override;
+        auto ExecuteCommands( CommandListHandle cmd ) -> void override;
+        auto ExecuteCommands( eastl::span<CommandListHandle> cmdList ) -> void override;
 
         // Vulkan specifics ================================================
         MKT_NODISCARD auto CreateTexture( const ExternalTextureDescription& info ) -> TextureHandle;
         MKT_NODISCARD auto CreateTimelineSemaphore( u64 initialValue ) -> SemaphoreHandle;
         MKT_NODISCARD auto CreateBinarySemaphore() -> SemaphoreHandle;
-
-        auto WaitForSubmission( QueueType queueType, u64 submissionID ) -> void;
 
         auto AddQueueWaitFence( QueueType queueType, FencePlain* fence ) -> void;
         auto AddQueueSignalSemaphore( QueueType queueType, BinarySemaphore* , VkPipelineStageFlags2 stageFlags ) -> void;

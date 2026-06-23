@@ -24,10 +24,9 @@
 #include <Renderer/Core/Renderer.hh>
 #include <Renderer/Passes/CameraModule.hh>
 #include <Renderer/Passes/DebugModule.hh>
-#include <Renderer/Passes/GeometryCullModule.hh>
-#include <Renderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/Passes/HelperModule.hh>
 #include <Renderer/Passes/MaterialModule.hh>
-#include <Renderer/Passes/ParticleSimulationModule.hh>
+#include <Renderer/Passes/MousePickingModule.hh>
 #include <Renderer/Passes/PathTracingModule.hh>
 #include <Renderer/Passes/PostProcessModule.hh>
 #include <Renderer/Passes/PrepassModule.hh>
@@ -35,8 +34,11 @@
 #include <Renderer/Passes/RayTracingModule.hh>
 #include <Renderer/Passes/ShadowMappingModule.hh>
 #include <Renderer/Passes/TextRenderModule.hh>
-#include <Renderer/Passes/MousePickingModule.hh>
-#include <Renderer/Passes/HelperModule.hh>
+#include <Renderer/Passes/GeometryCullModule.hh>
+#include <Renderer/Passes/WaterSimulationModule.hh>
+#include <Renderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/Passes/ParticleSimulationModule.hh>
+#include <Renderer/Passes/AtmosphericScatteringModule.hh>
 
 namespace mikoto::renderer {
 
@@ -59,7 +61,7 @@ namespace mikoto::renderer {
         auto SetRenderResolution(RenderResolution resolution) -> SceneRendererCreateInfo&;
     };
 
-    class SceneRenderer final : public Renderer {
+    class SceneRenderer final : public IRenderer {
     public:
         explicit SceneRenderer( const SceneRendererCreateInfo& createInfo );
 
@@ -71,19 +73,26 @@ namespace mikoto::renderer {
         auto SetPresentType( PresentTarget type ) -> void;
 
         auto SetMainCamera( const SceneCamera* camera ) -> void;
-        auto SetClearColor(const Color& color) -> void;
+        auto SetClearColor( const Color& color ) -> void;
 
         auto SetTonemapType( ToneMappingType type ) -> void;
 
+        auto SetGamma( f32 gamma ) -> void;
+        auto SetExposure( f32 exposure ) -> void;
+        auto SetAmbientScale( f32 ambient ) -> void;
+
         auto SetSkyboxEquirectangular( TextureHandle texture ) -> void;
-        auto SetRenderBackground(SceneBackgroundType bg) -> void;
+        auto SetSkyboxMaterial(material::MaterialHandle material) -> void;
+
+        auto SetRenderBackground( SceneBackgroundType bg ) -> void;
+
+        auto DisablePass( eastl::string_view passName ) -> void;
+        auto EnablePass( eastl::string_view passName ) -> void;
 
         MKT_NODISCARD auto ReadPixel( u32 x, u32 y) const -> u32;
         MKT_NODISCARD auto ReadPixel( const ReadPixelViewportInfo& ínfo ) const -> core::u32;
 
         MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl&;
-
-        MKT_NODISCARD auto GetRenderGraph() const -> const FrameGraph&;
 
         MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> TextureHandle;
         MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> BufferHandle;
@@ -115,6 +124,9 @@ namespace mikoto::renderer {
         PostEffectsPass mPostEffectsPasses{ mTargetResolution };
 
         ParticleSimulationModule mParticleRendering{ mTargetResolution };
+
+        AtmosphericScatteringModule mAtmosModule{};
+        WaterSimulationModule mWaterSimulation{};
 
         TextRenderModule mTextRendering{ mTargetResolution };
 

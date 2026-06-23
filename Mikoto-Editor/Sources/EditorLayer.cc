@@ -42,12 +42,18 @@
 
 #include <Panels/ScenePanel.hh>
 #include <Panels/StatsPanel.hh>
+#include <Panels/ProjectPanel.hh>
+#include <Panels/LightingPanel.hh>
 #include <Panels/RendererPanel.hh>
 #include <Panels/SettingsPanel.hh>
 #include <Panels/HierarchyPanel.hh>
 #include <Panels/InspectorPanel.hh>
+#include <Panels/ScriptEditPanel.hh>
+#include <Panels/MaterialEditorPanel.hh>
 #include <Panels/ContentBrowserPanel.hh>
 #include <Panels/RuntimeConsolePanel.hh>
+#include <Panels/AnimatorTimelinePanel.hh>
+#include <Panels/ParticleSimulationPanel.hh>
 
 namespace mikoto::editor {
 
@@ -83,6 +89,9 @@ namespace mikoto::editor {
 
         InitEditorPanels();
 
+        // [DEBUG]
+        mTestSkybox = AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr", TextureDimension::eTexture2D );
+
         mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
     }
 
@@ -100,6 +109,9 @@ namespace mikoto::editor {
         mSceneRenderer->Shutdown();
         mSceneRenderer.reset();
 
+        mThumbnailRenderer->Shutdown();
+        mThumbnailRenderer.reset();
+
         mCommandList.Reset();
 
         mDevice = nullptr;
@@ -111,23 +123,34 @@ namespace mikoto::editor {
 
         //TODO:Integrate project load, no render panels just dockspace if no project
 
-        static bool first{ true };
-        if (first) {
-            first = false;
+        static i32 first{ 0 };
+        static bool run{ false };
+        if (first >= 3 && !run) {
+            // Skybox projection does not get the changes
+            // the HDR texture on the very first frame
+            // I am using this to delay that pass to later frames
+            run = true;
 
-            TextureHandle handle{ AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/boma_4k.hdr", TextureDimension::eTexture2D ) };
-            mSceneRenderer->SetSkyboxEquirectangular( handle );
-            mSceneRenderer->SetRenderBackground( SceneBackgroundType::eSkybox );
+            mSceneRenderer->SetSkyboxEquirectangular( mTestSkybox );
+            mSceneRenderer->SetRenderBackground( SceneBackgroundType::ePrefilterMap );
+        } else {
+            ++first;
         }
 
         UpdateCameraState( timeStep );
         UpdateRendererState( timeStep );
         UpdateSceneState( timeStep );
 
+        // [DEBUG]
+        mSceneRenderer->SetGamma( 1.0f );
+        mSceneRenderer->SetExposure( 2.0f );
+        mSceneRenderer->SetPresentType( PresentTarget::eTonemap_Output );
+
         RenderScene( timeStep );
 
         // [DEBUG]
         u32 entityID{};
+
         auto mousePos{ mWindow->GetMousePos() };
         if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
             RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
@@ -169,7 +192,7 @@ namespace mikoto::editor {
         }
 
         if (event.IsType( EventType::MOUSE_BUTTON_RELEASED_EVENT )) {
-            auto* mouseButtongEvent{ as<MouseButtonReleasedEvent*>(MKT_ADDRESSOF( event )) };
+            auto* mouseButtongEvent{ checked_cast<MouseButtonReleasedEvent*>(MKT_ADDRESSOF( event )) };
 
             if (mouseButtongEvent->GetMouseButton() == Mouse_Button_Right) {
                 mWindow->SetCursorMode( CursorMode::eNormal );
@@ -178,7 +201,7 @@ namespace mikoto::editor {
         }
 
         if (event.IsType( EventType::CONTENT_DROPPED_EVENT )) {
-            auto* contentDropped{ as<ContentDroppedEvent*>(MKT_ADDRESSOF( event )) };
+            auto* contentDropped{ checked_cast<ContentDroppedEvent*>(MKT_ADDRESSOF( event )) };
             for (const auto& c : contentDropped->GetContents() ) {
                 MKT_CORE_LOGGER_DEBUG( "User dropper {}", c.c_str() );
                 Path path{ c };
@@ -244,7 +267,7 @@ namespace mikoto::editor {
         };
 
         // So each thread writes to its own slot, need to double-check
-        for ( const auto &[type, path]: modelPaths ) {
+        for ( const auto &type: modelPaths | std::views::keys ) {
             mEditorState->mPrefabPaths[type] = ModelHandle::CreateEmpty();
         }
 
@@ -274,6 +297,7 @@ namespace mikoto::editor {
         mEditorState->mFinalComposition = mDevice->CreateTexture( colorDesc );
         mEditorState->mFinalComposition->SetDebugName( "EditorColor" );
 
+        // Scene renderer
         auto description{ SceneRendererCreateInfo{}
             .SetName( "MainSceneRenderer" )
             .SetPresentImage( mEditorState->mFinalComposition )
@@ -285,7 +309,20 @@ namespace mikoto::editor {
             mSceneRenderer->Init();
         }
 
+        // Thumbnails renderer
+        auto thumbnailRendererDesc{ ThumbnailRendererCreateInfo{}
+            .SetName( "MainThumbnailRenderer" )
+            .SetShaderBasePath( "Resources/Shaders/slang" )
+            .SetRenderResolution( mEditorState->mResolution )
+            .SetDevice( RenderSystem::Get()->GetGpuDevice() ) };
+        mThumbnailRenderer = ThumbnailRenderer::Create( thumbnailRendererDesc );
+
+        if (mThumbnailRenderer) {
+            mThumbnailRenderer->Init();
+        }
+
         mEditorState->mSceneRenderer = mSceneRenderer.get();
+        mEditorState->mThumbnailRenderer = mThumbnailRenderer.get();
     }
 
     auto EditorLayer::InitEditorCamera() -> void {
@@ -606,12 +643,6 @@ namespace mikoto::editor {
 
                 ImGui::EndMenu();
             }
-
-#if !defined(NDEBUG)
-            ImGui::TextUnformatted( string::Format(" | Build type [DEBUG]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
-#else
-            ImGui::TextUnformatted( string::Format( " | Build type [RELEASE]. Framerate: {:.1f}", ImGui::GetIO().Framerate ).c_str() );
-#endif
 
             ImGui::EndMenuBar();
             ImGui::PopStyleVar();

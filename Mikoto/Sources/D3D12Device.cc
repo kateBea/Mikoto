@@ -193,6 +193,10 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
+    auto Device::ExecuteCommands( eastl::span<CommandListHandle> cmdList ) -> void {
+
+    }
+
     auto Device::WaitIdle() -> void {
 
     }

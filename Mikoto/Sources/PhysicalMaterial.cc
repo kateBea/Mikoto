@@ -29,7 +29,7 @@ namespace mikoto::material {
         : Material{ name } {
     }
 
-    PhysicalMaterial::PhysicalMaterial( const MaterialProperties& props ) {
+    PhysicalMaterial::PhysicalMaterial( const PhysicMaterialDescription& props ) {
         m_AlphaMask = props.AlphaMask;
         m_Workflow = props.Workflow;
 

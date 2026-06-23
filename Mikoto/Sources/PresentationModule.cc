@@ -106,16 +106,20 @@ namespace mikoto::renderer {
                 const auto& trianglePassData{ blackboard.Get<TrianglePassData>() };
                 const auto& shading{ blackboard.Get<GeomShadingModuleInfo>() };
 
-                builder.Read( trianglePassData.mColorTarget, FGResourceState::eShaderResource );
+                builder.Read( prepass.mGBufferPositionTarget, FGResourceState::eShaderResource );
                 builder.Read( prepass.mGBufferNormalTarget, FGResourceState::eShaderResource );
                 builder.Read( prepass.mGBufferColorTarget, FGResourceState::eShaderResource );
+                builder.Read( prepass.mGBufferEmissiveTarget, FGResourceState::eShaderResource );
+
                 builder.Read( wireframe.mColorImage, FGResourceState::eShaderResource );
+
+                builder.Read( shading.mTonemapColor, FGResourceState::eShaderResource );
                 builder.Read( shading.mShadingColorImage, FGResourceState::eShaderResource );
                 builder.Read( prepass.mDepthPrepassColorTarget, FGResourceState::eShaderResource );
             },
             [this]( CommandContext &ctx, Blackboard &b ) {
                 const auto &data{ b.Get<PresentationPassData>() };
-                const auto &geom{ b.Get<GeometryManagementModuleInfo>() };
+                const auto &geom{ b.Get<GeometryCullModuleInfo>() };
 
                 struct DrawParams {
                     u32 mTextureIndex{};

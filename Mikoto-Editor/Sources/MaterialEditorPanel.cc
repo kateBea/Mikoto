@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// #include <Layers/EditorLayer.hh>
-// #include <Panels/MaterialEditorPanel.hh>
-//
-// namespace mikoto::editor {
-//
-//     MaterialEditorPanel::MaterialEditorPanel( const MaterialEditorPanelDescription & ) {
-//     }
-//
-//     auto MaterialEditorPanel::OnUpdate( float timeStep ) -> void {
-//     }
-// }// namespace Mikoto
+#include <Layers/EditorLayer.hh>
+#include <Panels/MaterialEditorPanel.hh>
+
+namespace mikoto::editor {
+
+    MaterialEditorPanel::MaterialEditorPanel( const MaterialEditorPanelDescription & ) {
+    }
+
+    auto MaterialEditorPanel::OnUpdate( float timeStep ) -> void {
+    }
+}// namespace Mikoto

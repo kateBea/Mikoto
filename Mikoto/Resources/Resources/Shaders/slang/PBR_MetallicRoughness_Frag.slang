@@ -398,13 +398,13 @@ FSOutput main(FSInput input) {
     CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
 
     // Fectch textures and samplers as needed, based on the material properties
-    SamplerState samplerCube = samplers[parameters.mSamplerCubeID];
+    SamplerState samplerCube = samplers[parameters.mSamplerCubeID]; // nearest clamped sampler for cube maps
     TextureCube prefilteredMap = texturesCube[parameters.mPrefilterCubeRtID];
     TextureCube irradianceMap = texturesCube[parameters.mIrradianceCubeRtID];
 
     Texture2D brdfLUT = textures2D[parameters.mBrdfColorTargetID];
 
-    SamplerState samplerBasic = samplers[parameters.mSamplerBasicID];
+    SamplerState samplerBasic = samplers[parameters.mSamplerBasicID]; // Normal 2D samplers
 
     float4 baseColor = float4(0.0, 0.0, 0.0, 0.0);
 
@@ -606,8 +606,7 @@ FSOutput main(FSInput input) {
     }
 
     color += emissiveContrib;
-    // output.Color = float4(color, baseColor.a);
-    output.Color = baseColor;
+    output.Color = float4(color, baseColor.a);
     
     return output;
 }

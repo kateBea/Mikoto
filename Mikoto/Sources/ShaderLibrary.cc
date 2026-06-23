@@ -78,7 +78,6 @@ namespace mikoto::material {
             .SetStage( type )
         };
         ShaderModuleHandle shaderModuleHandle{ mDevice->CreateShader( fragmentShaderDescription ) };
-        shaderModuleHandle->DumpShaderCode();
         if ( !shaderModuleHandle.IsEmpty() ) {
             mShaders.try_emplace( path, shaderModuleHandle );
             return mShaders.at( path );

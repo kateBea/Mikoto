@@ -62,6 +62,11 @@ namespace mikoto::scene {
         }
     }
 
+    static auto OnSkyboxMaterialAdded( entt::registry& reg, entt::entity e ) -> void {
+        auto& sbComponent{ reg.get<SkyboxMaterialComponent>( e ) };
+        sbComponent.SetMaterial( AssetsService::Get()->CreateMaterial( SkyboxMaterialDescription{} ) );
+    }
+
     static auto OnMeshRendererAdded( entt::registry& reg, entt::entity e ) -> void {
         if ( !reg.any_of<MaterialComponent>( e ) ) {
             reg.emplace<MaterialComponent>( e );
@@ -75,7 +80,7 @@ namespace mikoto::scene {
         if (meshNode) {
             material.SetMaterial( AssetsService::Get()->CreateMaterial( meshNode->GetProperties() ) );
         } else {
-            material.SetMaterial( AssetsService::Get()->CreateMaterial() );
+            material.SetMaterial( AssetsService::Get()->CreateMaterial( PhysicMaterialDescription{} ) );
         }
     }
 
@@ -107,6 +112,8 @@ namespace mikoto::scene {
 
         // Renderer
         mRegistry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
+
+        mRegistry.on_construct<SkyboxMaterialComponent>().connect<&OnSkyboxMaterialAdded>();
 
         // Animation
         mRegistry.on_construct<AnimatorComponent>().connect<&OnAnimatorAdded>();

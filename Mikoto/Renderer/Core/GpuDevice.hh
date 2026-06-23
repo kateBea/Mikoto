@@ -112,10 +112,12 @@ namespace mikoto::renderer {
         // Rework to account for sync objects
         virtual auto RunGarbageCollection() -> void = 0;
 
+        // I think I will remove these it is a bit confusing which one to use
+        virtual auto ExecutePendingCommands() -> void = 0;
         virtual auto SubmitCommands( CommandListHandle cmdList ) -> u64 = 0;
 
-        virtual auto ExecutePendingCommands() -> void = 0;
         virtual auto ExecuteCommands( CommandListHandle cmdList ) -> void = 0;
+        virtual auto ExecuteCommands( eastl::span<CommandListHandle> cmdList ) -> void = 0;
 
         virtual auto WaitIdle() -> void = 0;
 

@@ -29,6 +29,9 @@ struct DrawParams {
     float4x4 Mvp;
     uint BasicSamplerID;
     uint EquirectangularID;
+
+    uint mVertexBufferID;
+    uint mIndexBufferID;
 };
 
 MKT_DECLARE_SAMPLERS Samplers;

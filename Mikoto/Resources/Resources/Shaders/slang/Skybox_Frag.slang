@@ -33,6 +33,9 @@ struct DrawParams {
     uint CameraBufferID;
     uint BasicSamplerID;
 
+    uint mVertexBufferID;
+    uint mIndexBufferID;
+
     uint SkyboxCubeRtID;
     uint PrefilterCubeRtID;
 

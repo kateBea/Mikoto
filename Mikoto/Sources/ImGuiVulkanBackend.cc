@@ -41,6 +41,7 @@
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
+#include <utility>
 
 namespace mikoto::gui {
 
@@ -358,6 +359,6 @@ namespace mikoto::gui {
     auto ImGuiVulkanBackend::RecordCommands( CommandListHandle cmdList ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        RecordDynamicRenderCommands( cmdList );
+        RecordDynamicRenderCommands( std::move(cmdList) );
     }
 }

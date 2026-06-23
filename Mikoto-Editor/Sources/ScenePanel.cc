@@ -94,8 +94,8 @@ namespace mikoto::editor {
         };
 
         UpdateViewport();
-        UpdateManipulation();
 
+        UpdateManipulation();
         DrawManipulationGuizmos();
         DrawOrientationAxis();
 
@@ -165,7 +165,7 @@ namespace mikoto::editor {
         }
 
         Entity *currentSelection{ mEditorState->mSelectedEntity };
-        if (currentSelection->IsValid() || !currentSelection->GetComponent<TagComponent>().IsActive()) {
+        if (!currentSelection->IsValid() || !currentSelection->GetComponent<TagComponent>().IsActive()) {
             return;
         }
 

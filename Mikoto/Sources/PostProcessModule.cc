@@ -67,6 +67,14 @@ namespace mikoto::renderer {
         mEnableBloom = value;
     }
 
+    auto PostEffectsPass::SetGamma( f32 gamma ) -> void {
+        mGamma = gamma;
+    }
+
+    auto PostEffectsPass::SetExposure( f32 exposure ) -> void {
+        mExposure = exposure;
+    }
+
     auto PostEffectsPass::RegisterObjectOutline( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 

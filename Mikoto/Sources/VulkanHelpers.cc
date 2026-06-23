@@ -1011,6 +1011,11 @@ namespace mikoto::renderer::vulkan {
         return ret;
     }
 
+    auto initializers::PipelineCacheCreateInfo() -> VkPipelineCacheCreateInfo {
+        VkPipelineCacheCreateInfo ret{ VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
+        return ret;
+    }
+
     auto initializers::CommandPoolCreateInfo() -> VkCommandPoolCreateInfo {
         VkCommandPoolCreateInfo ret{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
         return ret;

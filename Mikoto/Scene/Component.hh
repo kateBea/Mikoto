@@ -23,19 +23,27 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
+#include <Math/Math.hh>
 #include <Math/Random.hh>
-#include <Assets/AssetsService.hh>
+
 #include <Assets/Model.hh>
+#include <Assets/AssetsService.hh>
+
 #include <Audio/AudioClip.hh>
 #include <Audio/AudioDevice.hh>
 #include <Audio/AudioListener.hh>
+
 #include <Filesystem/FileService.hh>
+
 #include <Material/Material.hh>
-#include <Math/Math.hh>
+#include <Material/PhysicalMaterial.hh>
+
 #include <Physics/PhysicsUtility.hh>
+
+#include <Renderer/Text/Font.hh>
 #include <Renderer/Core/Light.hh>
 #include <Renderer/Particle/ParticleEmitter.hh>
-#include <Renderer/Text/Font.hh>
+
 #include <Scene/SceneCamera.hh>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -242,32 +250,29 @@ namespace mikoto::scene {
         ankerl::unordered_dense::set<u64> m_ChildrenIDs{};
     };
 
-    /**
-     * Contains the material information of an entity. It describes how this object looks like
-     * */
     class MaterialComponent {
     public:
         explicit MaterialComponent( MaterialHandle mat = MaterialHandle::CreateEmpty() )
-            : m_Material{ std::move( mat ) } {
+            : mMaterial{ std::move( mat ) } {
         }
 
         MaterialComponent( MaterialComponent&& ) = default;
         auto operator=( MaterialComponent&& ) -> MaterialComponent& = default;
 
-        MKT_NODISCARD auto HasMaterial() const -> bool { return !m_Material.IsEmpty(); }
-        MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return m_Material; }
-        MKT_NODISCARD auto GetMaterial() const -> MaterialHandle { return m_Material; }
+        MKT_NODISCARD auto HasMaterial() const -> bool { return !mMaterial.IsEmpty(); }
+        MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return mMaterial; }
+        MKT_NODISCARD auto GetMaterial() const -> MaterialHandle { return mMaterial; }
 
         auto SetMaterial( const MaterialHandle& mat ) -> void {
             if ( !mat.IsEmpty() ) {
-                m_Material = mat;
+                mMaterial = mat;
             }
         }
 
         ~MaterialComponent() = default;
 
     private:
-        MaterialHandle m_Material{};
+        MaterialHandle mMaterial{};
     };
 
     /**
@@ -783,12 +788,32 @@ namespace mikoto::scene {
         auto operator=( const PostProcessMaterialComponent& other ) -> PostProcessMaterialComponent& = default;
         auto operator=( PostProcessMaterialComponent&& other ) -> PostProcessMaterialComponent& = default;
 
-        MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return m_Material; }
+        MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return mMaterial; }
 
         ~PostProcessMaterialComponent() = default;
 
     private:
-        MaterialHandle m_Material{};
+        MaterialHandle mMaterial{};
+    };
+
+    class SkyboxMaterialComponent {
+    public:
+        explicit SkyboxMaterialComponent() = default;
+
+        SkyboxMaterialComponent( const SkyboxMaterialComponent& other ) = default;
+        SkyboxMaterialComponent( SkyboxMaterialComponent&& other ) = default;
+
+        auto operator=( const SkyboxMaterialComponent& other ) -> SkyboxMaterialComponent& = default;
+        auto operator=( SkyboxMaterialComponent&& other ) -> SkyboxMaterialComponent& = default;
+
+        MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return mMaterial; }
+
+        auto SetMaterial( MaterialHandle material ) -> void { mMaterial = material; }
+
+        ~SkyboxMaterialComponent() = default;
+
+    private:
+        MaterialHandle mMaterial{};
     };
 
     class ParticleEmitterComponent {
@@ -805,7 +830,7 @@ namespace mikoto::scene {
 
     private:
         Ref<renderer::ParticleEmitter> m_Emitter{};
-        bool m_IsPlaying{ true };
+        bool mIsPlaying{ true };
     };
 }
 

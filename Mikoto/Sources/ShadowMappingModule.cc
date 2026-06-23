@@ -110,7 +110,7 @@ namespace mikoto::renderer {
             "DirectionalShadowMapPass",
             FGPassType::eGraphics,
         []( FGNodeBuilder&b, Blackboard& blackboard ) {
-            const auto& geom{ blackboard.Get<GeometryManagementModuleInfo>() };
+            const auto& geom{ blackboard.Get<GeometryCullModuleInfo>() };
             const auto& cam{ blackboard.Get<CameraModuleInfo>() };
             const auto& shadow{ blackboard.Get<ShadowMapInfo>() };
 
@@ -149,7 +149,7 @@ namespace mikoto::renderer {
             "PointLightShadowMapPass",
             FGPassType::eGraphics,
             []( FGNodeBuilder& b, Blackboard& blackboard ) -> void {
-                const auto& geom{ blackboard.Get<GeometryManagementModuleInfo>() };
+                const auto& geom{ blackboard.Get<GeometryCullModuleInfo>() };
                 const auto& cam{ blackboard.Get<CameraModuleInfo>() };
                 const auto& shadow{ blackboard.Get<ShadowMapInfo>() };
 
@@ -174,7 +174,7 @@ namespace mikoto::renderer {
             "SpotLightShadowMapPass",
             FGPassType::eGraphics,
             []( FGNodeBuilder& b, Blackboard& blackboard ) -> void {
-                const auto& geom{ blackboard.Get<GeometryManagementModuleInfo>() };
+                const auto& geom{ blackboard.Get<GeometryCullModuleInfo>() };
                 const auto& cam{ blackboard.Get<CameraModuleInfo>() };
                 const auto& shadow{ blackboard.Get<ShadowMapInfo>() };
 

@@ -101,7 +101,12 @@ namespace mikoto::editor {
             if (TimeService::Get()->GetTime( TimeUnit::eMilliseconds ) - mLastUpdateTime >= kUpdateInterval ) {
                 mLastUpdateTime = TimeService::Get()->GetTime( TimeUnit::eMilliseconds );
                 static eastl::string originalTitle{ mWindow->GetTitle() };
-                mWindow->SetTitle( string::Format( "{} - FPS: {:.2f}", originalTitle, 1.0f / timeStep ));
+
+#if !defined(NDEBUG)
+                mWindow->SetTitle( string::Format( "{} | BuildType: DEBUG | FPS: {:.2f}", originalTitle, 1.0f / timeStep ));
+#else
+                mWindow->SetTitle( string::Format( "{} | BuildType: RELEASE | FPS: {:.2f}", originalTitle, 1.0f / timeStep ));
+#endif
             }
 
             mLayerStack.OnUpdate( as<f32>( timeStep ) );

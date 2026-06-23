@@ -1296,7 +1296,7 @@ namespace mikoto::asset {
         modelData.mMaterials.reserve( model.materials.size() );
 
         for ( const auto& gltfMaterial: model.materials ) {
-            MaterialProperties props{
+            PhysicMaterialDescription props{
                 .mName = gltfMaterial.name.c_str(),
                 .mIsDoubleSided = gltfMaterial.doubleSided,
             };

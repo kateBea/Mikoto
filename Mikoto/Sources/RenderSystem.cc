@@ -230,25 +230,6 @@ namespace mikoto::renderer {
         if (SLANG_FAILED(result)) {
             MKT_CORE_LOGGER_ERROR("Failed to initialize Slang session for D3D11.");
         }
-
-#if false
-        auto session{ GetSlangCurrentSession() };
-
-        Path glslFile{ "Resources/Shaders/slang/Wireframe_Vert.slang" };
-
-        Slang::ComPtr<ISlangBlob> mSlangSpirv{};
-        Slang::ComPtr<slang::IModule> mSlangModule{};
-        mSlangModule = session->loadModuleFromSource( glslFile.GetFilename().data(), glslFile.GetPath().data(), nullptr, nullptr );
-        mSlangModule->getTargetCode( 0, mSlangSpirv.writeRef() );
-
-        auto contentsSize = mSlangSpirv->getBufferSize();
-        auto contents = static_cast<const char*>( mSlangSpirv->getBufferPointer() );
-        eastl::string_view contentsView{ contents };
-
-        if (!contentsView.empty()) {
-            MKT_CORE_LOGGER_DEBUG( "{}", contentsView.data() );
-        }
-#endif
     }
 
     auto RenderSystem::PrepareSlangForD3D12() -> void {
@@ -287,25 +268,6 @@ namespace mikoto::renderer {
         if (SLANG_FAILED(result)) {
             MKT_CORE_LOGGER_ERROR("Failed to initialize Slang session for D3D11.");
         }
-
-#if false
-        auto session{ GetSlangCurrentSession() };
-
-        Path glslFile{ "Resources/Shaders/slang/Wireframe_Vert.slang" };
-
-        Slang::ComPtr<ISlangBlob> mSlangSpirv{};
-        Slang::ComPtr<slang::IModule> mSlangModule{};
-        mSlangModule = session->loadModuleFromSource( glslFile.GetFilename().data(), glslFile.GetPath().data(), nullptr, nullptr );
-        mSlangModule->getTargetCode( 0, mSlangSpirv.writeRef() );
-
-        auto contentsSize = mSlangSpirv->getBufferSize();
-        auto contents = static_cast<const char*>( mSlangSpirv->getBufferPointer() );
-        eastl::string_view contentsView{ contents };
-
-        if (!contentsView.empty()) {
-            MKT_CORE_LOGGER_DEBUG( "{}", contentsView.data() );
-        }
-#endif
     }
 
     auto RenderSystem::PrepareSlangForVulkan() -> void {

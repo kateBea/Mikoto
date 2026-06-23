@@ -979,6 +979,10 @@ namespace mikoto::renderer::d3d11 {
         mDeviceContext->ExecuteCommandList(native, TRUE);
     }
 
+    auto Device::ExecuteCommands( eastl::span<CommandListHandle> cmdList ) -> void {
+
+    }
+
     auto Device::WaitIdle() -> void {
 
     }

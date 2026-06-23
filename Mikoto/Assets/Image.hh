@@ -35,8 +35,8 @@ namespace mikoto::asset {
     enum class ImageFormat {
         eInvalid = -1,
 
-        eRGBA_8, // 8 bits per channel
-        eRGBA_32F, // 32 bit signet float
+        eRGBA8_UINT,    // 8 bits per channel
+        eRGBA32_FLOAT,  // 32 bit signet float
     };
 
     enum class ImageCubeFace {
@@ -59,7 +59,7 @@ namespace mikoto::asset {
         u32 mHeight{};
         u32 mChannels{};
 
-        ImageFormat mFormat{ ImageFormat::eRGBA_8 };
+        ImageFormat mFormat{ ImageFormat::eRGBA8_UINT };
 
         ~Image() override = default;
     };

@@ -27,6 +27,10 @@ namespace mikoto::material {
 
     using namespace mikoto::renderer;
 
+    struct PostProcessMaterialDescription {
+        eastl::string_view mName{};
+    };
+
     // This will be used for effects applied on top of an image
     // a good example is the chromatic aberration effect,
     // takes as input the final HDR shading image
@@ -37,6 +41,7 @@ namespace mikoto::material {
     public:
 
         explicit PostProcessMaterial( eastl::string_view name = "PostProcessMaterial" );
+        explicit PostProcessMaterial( const PostProcessMaterialDescription& desc );
 
 
         ~PostProcessMaterial() override;

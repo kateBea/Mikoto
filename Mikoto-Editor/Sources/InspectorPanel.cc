@@ -173,6 +173,24 @@ namespace mikoto::editor {
         }
     }
 
+    static auto LoadMaterialTexture( SkyboxMaterial& skyboxMat, SkyboxFace face ) -> void {
+        const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+                { "Textures", "jpg,jpeg,png" },
+                { "JPG", "jpg" },
+                { "JPEG", "jpeg" },
+                { "PNG", "png" }
+        };
+
+        const Path path{ FileService::Get()->OpenDialog( filters ) };
+
+        if ( !path.IsEmpty() ) {
+            TextureHandle textureHandle{ AssetsService::Get()->LoadAsset<ITexture>( path, TextureDimension::eTexture2D ) };
+            if ( !textureHandle.IsEmpty() ) {
+                skyboxMat.SetFace( face, textureHandle );
+            }
+        }
+    }
+
     static auto DisplayTextureEditTreeNode( const std::string_view title, PhysicalMaterial& standardMat, const std::function<void( PhysicalMaterial& standardMat )>& func ) -> void {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
                                                     ImGuiTreeNodeFlags_Framed |
@@ -298,8 +316,7 @@ namespace mikoto::editor {
         if ( material.HasTexture( MapType::eBaseColor ) ) {
             gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( material.GetTexture( MapType::eBaseColor ).GetRaw() );
-            },
-                                 ImGui::IsItemHovered() );
+            }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
@@ -885,8 +902,18 @@ namespace mikoto::editor {
             constexpr bool menuItemSelected{ false };
             const char* menuItemShortcut{ nullptr };
 
-            if ( ImGui::MenuItem( "Material", menuItemShortcut, menuItemSelected, !IsPresent<MaterialComponent>( entity ) ) ) {
+            if ( ImGui::MenuItem( "Physical Material", menuItemShortcut, menuItemSelected, !IsPresent<MaterialComponent>( entity ) ) ) {
                 entity->AddComponent<MaterialComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Post-Process Material", menuItemShortcut, menuItemSelected, !IsPresent<PostProcessMaterialComponent>( entity ) ) ) {
+                entity->AddComponent<PostProcessMaterialComponent>();
+                ImGui::CloseCurrentPopup();
+            }
+
+            if ( ImGui::MenuItem( "Skybox Material", menuItemShortcut, menuItemSelected, !IsPresent<SkyboxMaterialComponent>( entity ) ) ) {
+                entity->AddComponent<SkyboxMaterialComponent>();
                 ImGui::CloseCurrentPopup();
             }
 
@@ -2262,6 +2289,82 @@ namespace mikoto::editor {
         }
     }
 
+    static auto SetupSkyboxComponentTab( Entity& entity) -> void {
+        if (!entity.HasComponent<SkyboxMaterialComponent>()) {
+            return;
+        }
+
+        SkyboxMaterialComponent& sbComponent{ entity.GetComponent<SkyboxMaterialComponent>() };
+        SkyboxMaterial* material{ checked_cast<SkyboxMaterial*>( sbComponent.GetMaterial().GetRaw() ) };
+
+        // Select type of skybox texture (equirectangular or cube faces)
+
+
+        constexpr auto columnCount{ 2 };
+        constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None | ImGuiTableFlags_BordersInner };
+
+        ImGui::Spacing();
+
+        if ( ImGui::BeginTable( "SetupSkyboxComponentTable", columnCount, specularTableFlags ) ) {
+            static constexpr eastl::array<eastl::pair<SkyboxFace, eastl::string_view>, 6> kCubeFaces{{
+                { SkyboxFace::eTop,    "Top"    },
+                { SkyboxFace::eBottom, "Bottom" },
+                { SkyboxFace::eBack,   "Back"   },
+                { SkyboxFace::eFront,  "Front"  },
+                { SkyboxFace::eLeft,   "Left"   },
+                { SkyboxFace::eRight,  "Right"  }
+            }};
+
+
+            for (size_t i{}; i < kCubeFaces.size(); ++i ) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex( 0 );
+
+                TextureHandle face{ material ? material->GetFace( kCubeFaces[i].first ) : TextureHandle::CreateEmpty() };
+
+                ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
+                ImGui::SameLine();
+                ImGui::TextUnformatted( string::Format( " Face {}", kCubeFaces[i].second ).c_str() );
+
+                if ( face.IsEmpty() ) {
+                    face = AssetsService::Get()->GetDummyTexture();
+                }
+
+                if ( PushImageButton( string::Format( "##SetupSkyboxComponentTab:{}", kCubeFaces[i].second ), ImGuiService::Get()->GetTextureID( face.GetRaw() ), ImVec2{ 64, 64 } ) ) {
+                    if (material) {
+                        LoadMaterialTexture( *material, kCubeFaces[i].first );
+                    }
+                }
+
+                if ( ImGui::IsItemHovered() ) {
+                    if ( material->GetFace( kCubeFaces[i].first ).IsEmpty() ) {
+                        gui::ToolTip( "Click me to load a texture." );
+                    } else {
+                        gui::ToolTip( [&]() -> void {
+                            ShowTextureHoverTooltip( material->GetFace( kCubeFaces[i].first ).GetRaw() );
+                        }, ImGui::IsItemHovered() );
+                    }
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+
+                ImGui::TableSetColumnIndex( 1 );
+
+                gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+                gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
+                if ( ImGui::Button( string::Format("Remove {}", kCubeFaces[i].second ).c_str() ) ) {
+
+                }
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
     auto InspectorPanel::DrawComponents( Entity* entity ) const -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -2269,9 +2372,11 @@ namespace mikoto::editor {
             return;
         }
 
-        DrawComponent<TransformComponent>( fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), *entity, [&]( Entity& target ) -> void { SetupTransformComponentTab( target, mState->mActiveScene ); }, false );
+        DrawComponent<TransformComponent>( fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), *entity,
+            [&]( Entity& target ) -> void { SetupTransformComponentTab( target, mState->mActiveScene ); }, false );
         DrawComponent<MaterialComponent>( fmt::format( "{} Material", ICON_MD_INSIGHTS ), *entity, SetupMaterialComponentTab );
-        DrawComponent<MeshComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), *entity, [&]( Entity& target ) -> void { SetupRenderComponentTab( target, mState->mActiveScene ); } );
+        DrawComponent<MeshComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), *entity,
+            [&]( Entity& target ) -> void { SetupRenderComponentTab( target, mState->mActiveScene ); } );
         DrawComponent<RigidBodyComponent>( fmt::format( "{} Physics", ICON_MD_FITNESS_CENTER ), *entity, SetupPhysicsComponentTab );
         DrawComponent<LightComponent>( fmt::format( "{} Light", ICON_MD_LIGHT ), *entity, SetupLightComponentTab );
         DrawComponent<AudioListenerComponent>( fmt::format( "{} Audio Listener", ICON_MD_AUTO_GRAPH ), *entity, SetupAudioListenerComponentTab );
@@ -2282,6 +2387,8 @@ namespace mikoto::editor {
 
         DrawComponent<AnimatorComponent>( fmt::format( "{} Animator", ICON_MD_ANIMATION ), *entity, SetupAnimatorComponentTab );
         DrawComponent<SkinnedMeshRenderer>( fmt::format( "{} SkinRenderer", ICON_MD_COOKIE ), *entity, SetupSkinMeshComponentTab );
+
+        DrawComponent<SkyboxMaterialComponent>( fmt::format( "{} Skybox", ICON_MD_CLOUD ), *entity, SetupSkyboxComponentTab );
     }
 
     InspectorPanel::InspectorPanel( const InspectorPanelCreateInfo& createInfo )

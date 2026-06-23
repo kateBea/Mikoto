@@ -89,7 +89,7 @@ namespace mikoto::renderer::vulkan {
 
         InitSwapchainRender();
 
-        return mInstance->mIsReady && mDevice && mDevice->IsInitialized();
+        return mDevice && mDevice->IsInitialized();
     }
 
     auto Context::Shutdown() -> void {
@@ -139,12 +139,15 @@ namespace mikoto::renderer::vulkan {
 
         // https://community.khronos.org/t/is-it-recommended-to-use-vkcmdcopyimage-to-copy-to-the-swapchain-image-instead-of-a-shader/112122
         if (!mPresentTarget.IsEmpty() && !mSwapchain.IsEmpty()) {
+#if true
+            // Blit via full quad render
             TextureHandle colorImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
 
             //const ResourceStates previousState{ mPresentTarget->GetResourceState() };
+            mCommandList->SetResourceState( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
+
             if (mTableUpdateRequired) {
-                mCommandList->SetResourceState( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
                 (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( 0, mPresentTarget.GetRaw() ) );
                 mTableUpdateRequired = false;
             }
@@ -175,12 +178,37 @@ namespace mikoto::renderer::vulkan {
 
             mCommandList->SetResourceState( colorImage.GetRaw(), ResourceStates::ePresent );
 
-            // Optionally transition back mPresentTarget to whatever state it was?
-
             mCommandList->End();
 
             // enqueue instead of submit
             device->SubmitCommands( mCommandList );
+#else
+            // Blit via copy command
+            TextureHandle currentSwapchainImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
+            mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
+
+            TextureSlice srcSlice{
+                .mWidth = (u32)mPresentTarget->GetWidth(),
+                .mHeight = (u32)mPresentTarget->GetHeight(),
+            };
+
+            TextureSlice dstSlice{
+                .mWidth = (u32)currentSwapchainImage->GetWidth(),
+                .mHeight = (u32)currentSwapchainImage->GetHeight(),
+            };
+
+            mCommandList->Copy(
+                    mPresentTarget.GetRaw(), srcSlice,
+                    currentSwapchainImage.GetRaw(), dstSlice );
+
+            mCommandList->SetResourceState(
+                    currentSwapchainImage.GetRaw(),
+                    ResourceStates::ePresent );
+
+            mCommandList->End();
+
+            device->SubmitCommands( mCommandList );
+#endif
         }
 
         // External sync

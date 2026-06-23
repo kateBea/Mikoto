@@ -66,15 +66,11 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
-        MKT_NODISCARD auto HasExternalImage() const -> bool;
-
         MKT_NODISCARD auto GetAspectMask() const -> VkImageAspectFlags;
 
         MKT_NODISCARD auto GetRenderView( u32 mipLevel, u32 face = 0 ) const -> const VkImageView&;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
-
-        MKT_NODISCARD auto IsSwapChainImage() const -> bool;
 
         ~Texture() override;
 
@@ -93,8 +89,8 @@ namespace mikoto::renderer::vulkan {
         // For every mip we keep a view
         // This account for stuff like IBL Prefilter map where you have
         // multiple mips per face
-        eastl::vector<eastl::vector<VkImageView>> mImageView_RTVs{};
-        VkImageView mImageView_SRV{}; // For cube images this view is used to sample in shaders
+        eastl::vector<eastl::vector<VkImageView>> mImageViewRtvList{};
+        VkImageView mImageViewSrv{};
 
         VkImageViewCreateInfo mImageViewCreateInfo{};
 

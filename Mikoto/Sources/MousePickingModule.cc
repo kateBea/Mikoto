@@ -43,6 +43,10 @@ namespace mikoto::renderer {
     }
 
     auto MousePickingModule::ReadPixel( u32 x, u32 y ) const -> core::u32 {
+        if (mData.empty()) {
+            return 0;
+        }
+
         // Assumes full width and height viewport
         // ReadPixel(x=2, y=1)
         // Array: [1 1 5 5 1 3 [3] 5 7 7 3 9]
@@ -134,7 +138,7 @@ namespace mikoto::renderer {
                 const auto& prepass{ blackboard.Get<PrepassModuleInfo>() };
                 const auto& cameraInfo{ blackboard.Get<CameraModuleInfo>() };
                 const auto& mousePicking{ blackboard.Get<MousePickingModuleInfo>() };
-                const auto& geometryInfo{ blackboard.Get<GeometryManagementModuleInfo>() };
+                const auto& geometryInfo{ blackboard.Get<GeometryCullModuleInfo>() };
 
                 builder.Read( cameraInfo.mCameraData, FGResourceState::eShaderResource );
 
@@ -152,7 +156,7 @@ namespace mikoto::renderer {
                 const auto& prepassInfo{ b.Get<PrepassModuleInfo>() };
                 const auto& mousePicking{ b.Get<MousePickingModuleInfo>() };
                 const auto& cameraPassInfo{ b.Get<CameraModuleInfo>() };
-                const auto& geometryInfo{ b.Get<GeometryManagementModuleInfo>() };
+                const auto& geometryInfo{ b.Get<GeometryCullModuleInfo>() };
 
                 struct DrawParams {
                     u32 mGeometryInfoBufferID{};
@@ -203,6 +207,9 @@ namespace mikoto::renderer {
             },
             []( CommandContext &ctx, Blackboard & b ) {
                 const auto& mousePicking{ b.Get<MousePickingModuleInfo>() };
+
+                // Try doing this with a compute shader instead
+                // This takes a lot, in Nsight Graphics this shows 0.32ms
                 ctx.Copy( mousePicking.mReadBackBuffer, mousePicking.mColorImage );
             } );
 

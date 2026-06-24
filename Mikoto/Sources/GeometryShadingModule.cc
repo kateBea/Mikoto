@@ -753,7 +753,7 @@ namespace mikoto::renderer {
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( ViewportState{}
-                    .AddViewportAndScissorRect( Viewport( as<i32>(dimensions.first), as<i32>(dimensions.second) ) ) );
+                    .AddViewportAndScissorRect( Viewport( as<f32>(dimensions.first), as<f32>(dimensions.second) ) ) );
 
                 ctx.BindPipeline( finalImage.mShadingPipeline );
 

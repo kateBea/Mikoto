@@ -1184,16 +1184,21 @@ namespace mikoto::editor {
 
         bool uniformScale{ entity.GetComponent<TransformComponent>().HasUniformScale() };
         DrawVec3Transform( "Scale", newScale, 1.0, 100.0, uniformScale );
-        ImGui::SameLine();
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
 
         if ( gui::CheckBox( "##SetupTransformComponentTab:UniformScale", uniformScale ) ) {
             entity.GetComponent<TransformComponent>().SetUniformSale( uniformScale );
         }
 
         if ( ImGui::IsItemHovered() ) {
-            gui::ToolTip( "Enable uniform scaling" );
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
         }
+
+        ImGui::SameLine();
+        ImGui::TextUnformatted( "Enable uniform scaling" );
 
         transformComponent.SetTranslation( newTranslation );
         transformComponent.SetRotation( newRotation );

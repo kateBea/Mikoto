@@ -15,16 +15,17 @@
 #ifndef MIKOTO_RHI_HH
 #define MIKOTO_RHI_HH
 
-#include <EASTL/fixed_vector.h>
-#include <EASTL/shared_ptr.h>
 #include <EASTL/span.h>
 #include <EASTL/atomic.h>
 #include <EASTL/string.h>
+#include <EASTL/shared_ptr.h>
 #include <EASTL/string_view.h>
+#include <EASTL/fixed_vector.h>
+
 #include <EASTL/utility.h>
 #include <EASTL/any.h>// Any requires lot of shit from utility so it needs to go after
 
-#include <glm//glm.hpp>
+#include <glm/glm.hpp>
 
 #include <Assets/Image.hh>
 
@@ -580,13 +581,13 @@ namespace mikoto::renderer::rhi {
     };
 
     struct TextureSubresourceSet {
-        static constexpr MipLevel AllMipLevels = MipLevel(-1);
-        static constexpr ArraySlice AllArraySlices = ArraySlice(-1);
+        static constexpr MipLevel AllMipLevels{ MipLevel(-1) };
+        static constexpr ArraySlice AllArraySlices{ ArraySlice(-1) };
 
-        MipLevel mBaseMipLevel = 0;
-        MipLevel mNumMipLevels = 1;
-        ArraySlice mBaseArraySlice = 0;
-        ArraySlice mNumArraySlices = 1;
+        MipLevel mBaseMipLevel{ 0 };
+        MipLevel mNumMipLevels{ 1 };
+        ArraySlice mBaseArraySlice{ 0 };
+        ArraySlice mNumArraySlices{ 1 };
 
         TextureSubresourceSet() = default;
 
@@ -616,10 +617,6 @@ namespace mikoto::renderer::rhi {
     static inline const BufferRange EntireBuffer{ BufferRange(0, ~0ull) };
     static inline const TextureSubresourceSet AllSubResources{ TextureSubresourceSet(0, TextureSubresourceSet::AllMipLevels, 0, TextureSubresourceSet::AllArraySlices) };
 
-    // ==================================================================================================================
-    // Helpers
-    // ==================================================================================================================
-
     MKT_NODISCARD auto InferAPI( eastl::string_view apiName ) -> GraphicsAPI;
 
     MKT_NODISCARD auto GetFormatInfo(Format format) -> const FormatInfo&;
@@ -630,9 +627,6 @@ namespace mikoto::renderer::rhi {
 
     MKT_NODISCARD auto InferElementCount( Format dataType, size_t sizeBytes ) -> size_t;
 
-    // ==================================================================================================================
-    // Structs
-    // ==================================================================================================================
     struct Color {
         f32 mR{};
         f32 mG{};
@@ -917,139 +911,6 @@ namespace mikoto::renderer::rhi {
         // lives in memory "only accessible by device"
         HeapType mHeapType{ HeapType::eDeviceLocal };
         CpuAccessType mCpuAccess{ CpuAccessType::eNone };
-    };
-
-    class BufferAttributeElement {
-    public:
-        BufferAttributeElement(ShaderDataType type, eastl::string_view name, bool normalized = false)
-            :   mName{ name }, mType{ type }, mSize{GetSizeFromShaderType(type) }, mOffset{ 0 }, mNormalized{ normalized } {}
-
-        BufferAttributeElement(ShaderDataType type, u32 size, eastl::string_view name, bool normalized = false)
-            :   mName{ name }, mType{ type }, mSize{ size }, mOffset{ 0 }, mNormalized{ normalized } {}
-
-        MKT_NODISCARD auto GetAttributeCount() const -> u32 { return GetComponentCount(mType); }
-        MKT_NODISCARD auto GetAttributeSize() const -> u32 { return mSize; }
-
-        /*  Getters */
-        MKT_NODISCARD auto GetName() const -> const eastl::string& { return mName; }
-        MKT_NODISCARD auto GetType() const -> ShaderDataType { return mType; }
-        MKT_NODISCARD auto GetSize() const -> u32 { return mSize; }
-        MKT_NODISCARD auto GetOffset() const -> u32 { return mOffset; }
-        MKT_NODISCARD auto IsNormalized() const  { return mNormalized; }
-
-        /*  Setters */
-        auto SetName(eastl::string_view name) -> void { mName = name; }
-        auto SetType(ShaderDataType type) -> void { mType = type; }
-        auto SetSize(u32 size) -> void { mSize = size; }
-        auto SetOffset(u32 offset) -> void { mOffset = offset; }
-        auto SetNormalized() -> void { mNormalized = true; }
-        auto UnsetNormalized() -> void { mNormalized = false; }
-
-    private:
-        static constexpr u32 kShaderIntSizeBytes{ 4 };
-        static constexpr u32 kShaderFloatSizeBytes{ 4 };
-
-    private:
-        u32 mSize{};
-        u32 mOffset{};
-        eastl::string mName{};
-        ShaderDataType  mType{};
-        bool mNormalized{ false };
-
-        static constexpr auto GetSizeFromShaderType(ShaderDataType type) -> u32 {
-            switch (type) {
-                case ShaderDataType::eFloat:    return kShaderFloatSizeBytes;
-                case ShaderDataType::eFloat2:   return kShaderFloatSizeBytes * 2;
-                case ShaderDataType::eFloat3:   return kShaderFloatSizeBytes * 3;
-                case ShaderDataType::eFloat4:   return kShaderFloatSizeBytes * 4;
-
-                case ShaderDataType::eFloat3x3:     return kShaderFloatSizeBytes * (3 * 3);
-                case ShaderDataType::eFloat4x4:     return kShaderFloatSizeBytes * (4 * 4);
-
-                case ShaderDataType::eUInt:
-                case ShaderDataType::eInt:      return kShaderIntSizeBytes;
-
-                case ShaderDataType::eInt2:     return kShaderIntSizeBytes * 2;
-                case ShaderDataType::eInt3:     return kShaderIntSizeBytes * 3;
-                case ShaderDataType::eInt4:     return kShaderIntSizeBytes * 4;
-                case ShaderDataType::eBool:     return 1;
-                default:;
-            }
-
-            return 0;
-        }
-
-        static constexpr auto GetComponentCount(ShaderDataType type) -> u32 {
-            switch(type) {
-                case ShaderDataType::eFloat:    return 1;
-                case ShaderDataType::eFloat2:   return 2;
-                case ShaderDataType::eFloat3:   return 3;
-                case ShaderDataType::eFloat4:   return 4;
-
-                case ShaderDataType::eFloat3x3:     return 3 * 3;
-                case ShaderDataType::eFloat4x4:     return 4 * 4;
-
-                case ShaderDataType::eUInt:
-                case ShaderDataType::eInt:      return 1;
-                case ShaderDataType::eInt2:     return 2;
-                case ShaderDataType::eInt3:     return 3;
-                case ShaderDataType::eInt4:     return 4;
-                case ShaderDataType::eBool:     return 1;
-                default:;
-            }
-
-            return 0;
-        }
-    };
-
-    class AttributeBufferLayout {
-    public:
-        AttributeBufferLayout( std::initializer_list<BufferAttributeElement>&& items)
-            : mItems(eastl::forward<std::initializer_list<BufferAttributeElement>>(items))
-        {
-            ComputeOffsetAndStride();
-        }
-
-        MKT_NODISCARD auto HasElements() const -> bool { return mItems.size() != 0; }
-        MKT_NODISCARD auto GetElements() const -> const eastl::vector<BufferAttributeElement>& { return mItems; }
-        MKT_NODISCARD auto GetCount() const -> size_t { return mItems.size(); }
-        MKT_NODISCARD auto GetStride() const { return mStride; }
-
-        auto operator[]( const u32 index) -> BufferAttributeElement& { return mItems[index]; }
-        auto operator[]( const u32 index) const -> const BufferAttributeElement& { return mItems[index]; }
-
-        auto begin() -> eastl::vector<BufferAttributeElement>::iterator { return mItems.begin(); }
-        auto end() -> eastl::vector<BufferAttributeElement>::iterator { return mItems.end(); }
-
-        MKT_NODISCARD auto begin() const -> eastl::vector<BufferAttributeElement>::const_iterator { return mItems.begin(); }
-        MKT_NODISCARD auto end() const -> eastl::vector<BufferAttributeElement>::const_iterator { return mItems.end(); }
-
-        auto rbegin() -> eastl::vector<BufferAttributeElement>::reverse_iterator { return mItems.rbegin(); }
-        auto rend() -> eastl::vector<BufferAttributeElement>::reverse_iterator { return mItems.rend(); }
-
-        MKT_NODISCARD auto rbegin() const -> eastl::vector<BufferAttributeElement>::const_reverse_iterator { return mItems.rbegin(); }
-        MKT_NODISCARD auto rend() const -> eastl::vector<BufferAttributeElement>::const_reverse_iterator { return mItems.rend(); }
-    private:
-        auto ComputeOffsetAndStride() -> void {
-            u32 offset{ 0 };
-
-            for (BufferAttributeElement& bufferElement : mItems) {
-                bufferElement.SetOffset(offset);
-
-                offset += bufferElement.GetSize();
-                mStride += bufferElement.GetSize();
-            }
-        }
-
-    private:
-        // The size in bytes for all the elements contained
-        // within this buffer layout, e.g: if this buffer layout has
-        // 2 buffer elements (1 float and 1 mat4), mStride = Size(float) + Size(mat4)
-        // where Size yields the size in bytes of the element, see `BufferElement` for sizes
-        u32 mStride{};
-
-        // The buffer elements
-        eastl::vector<BufferAttributeElement> mItems{};
     };
 
     struct BufferCreateDescription {

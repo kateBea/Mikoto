@@ -62,7 +62,7 @@ namespace mikoto::material {
         eSpecularGlossiness,
     };
 
-    // I need to lead the sampler specifications for this materials
+    // I need to lead the sampler specifications for these materials
     // some mesh are properly rendered with specific type of sampler properties
     // I had issues rendering Sponza because I was using clamp to edge whereas
     // the wall bricks needed repeat
@@ -204,43 +204,43 @@ namespace mikoto::material {
         ~PhysicalMaterial() override = default;
 
     private:
-        AlphaMode m_AlphaMask{ AlphaMode::Opaque };
-        Workflow m_Workflow{ Workflow::eMetallicRoughness };
+        AlphaMode mAlphaMask{ AlphaMode::Opaque };
+        Workflow mWorkflow{ Workflow::eMetallicRoughness };
 
         // Base color/Albedo
-        float4 m_BaseColorFactor{ 1.f, 1.f, 1.f, 1.f };
-        float4 m_DiffuseFactor{ 1.f, 1.f, 1.f, 1.f };
-        float4 m_SpecularFactor{ 0.f, 0.f, 0.f, 0.f };
-        float3 m_EmissiveFactor{ 0.f, 0.f, 0.f };
+        float4 mBaseColorFactor{ 1.f, 1.f, 1.f, 1.f };
+        float4 mDiffuseFactor{ 1.f, 1.f, 1.f, 1.f };
+        float4 mSpecularFactor{ 0.f, 0.f, 0.f, 0.f };
+        float3 mEmissiveFactor{ 0.f, 0.f, 0.f };
 
         // Scalars
-        f32 m_AoFactor{ 1.f };
-        f32 m_MetallicFactor{ 1.f };
-        f32 m_RoughnessFactor{ 1.f };
-        f32 m_GlossinessFactor{ 1.f };
-        f32 m_NormalScale{ 1.f };
-        f32 m_OcclusionStrength{ 1.f };
-        f32 m_EmissiveStrength{ 0.f };
-        f32 m_AlphaMaskCutoff{ 1.0f };
+        f32 mAoFactor{ 1.f };
+        f32 mMetallicFactor{ 1.f };
+        f32 mRoughnessFactor{ 1.f };
+        f32 mGlossinessFactor{ 1.f };
+        f32 mNormalScale{ 1.f };
+        f32 mOcclusionStrength{ 1.f };
+        f32 mEmissiveStrength{ 0.f };
+        f32 mAlphaMaskCutoff{ 1.0f };
 
         // UV sets
-        i32 m_BaseColorTextureSet{};
-        i32 m_MetallicRoughnessTextureSet{};
-        i32 m_SpecularGlossinessTextureSet{};
-        i32 m_NormalTextureSet{};
-        i32 m_OcclusionTextureSet{};
-        i32 m_EmissiveTextureSet{};
+        i32 mBaseColorTextureSet{};
+        i32 mMetallicRoughnessTextureSet{};
+        i32 mSpecularGlossinessTextureSet{};
+        i32 mNormalTextureSet{};
+        i32 mOcclusionTextureSet{};
+        i32 mEmissiveTextureSet{};
 
-        bool m_IsBloomy{ false };
-        bool m_IsDoubleSided{ false };
+        bool mIsBloomy{ false };
+        bool mIsDoubleSided{ false };
 
         // Note: Materials reference both textures and samplers.
         // Textures provide the image data, while samplers define how that data is read
         // (filtering, addressing, LOD behavior, etc.).
         // This separation allows the same texture to be reused across materials
         // with different sampling settings.
-        ankerl::unordered_dense::map<MapType, rhi::TextureHandle> m_Textures{};
-        ankerl::unordered_dense::map<MapType, rhi::SamplerHandle> m_Samplers{};
+        ankerl::unordered_dense::map<MapType, rhi::TextureHandle> mTextures{};
+        ankerl::unordered_dense::map<MapType, rhi::SamplerHandle> mSamplers{};
     };
 }
 

@@ -30,30 +30,30 @@ namespace mikoto::material {
     }
 
     PhysicalMaterial::PhysicalMaterial( const PhysicMaterialDescription& props ) {
-        m_AlphaMask = props.AlphaMask;
-        m_Workflow = props.Workflow;
+        mAlphaMask = props.AlphaMask;
+        mWorkflow = props.Workflow;
 
-        m_BaseColorFactor = props.BaseColorFactor;
-        m_DiffuseFactor = props.DiffuseFactor;
-        m_SpecularFactor = props.SpecularFactor;
-        m_EmissiveFactor = props.EmissiveFactor;
+        mBaseColorFactor = props.BaseColorFactor;
+        mDiffuseFactor = props.DiffuseFactor;
+        mSpecularFactor = props.SpecularFactor;
+        mEmissiveFactor = props.EmissiveFactor;
 
-        m_MetallicFactor = props.MetallicFactor;
-        m_RoughnessFactor = props.RoughnessFactor;
-        m_GlossinessFactor = props.GlossinessFactor;
-        m_NormalScale = props.NormalScale;
-        m_OcclusionStrength = props.OcclusionStrength;
-        m_EmissiveStrength = props.EmissiveStrength;
-        m_AlphaMaskCutoff = props.AlphaMaskCutoff;
+        mMetallicFactor = props.MetallicFactor;
+        mRoughnessFactor = props.RoughnessFactor;
+        mGlossinessFactor = props.GlossinessFactor;
+        mNormalScale = props.NormalScale;
+        mOcclusionStrength = props.OcclusionStrength;
+        mEmissiveStrength = props.EmissiveStrength;
+        mAlphaMaskCutoff = props.AlphaMaskCutoff;
 
-        m_BaseColorTextureSet = props.BaseColorTextureSet;
-        m_MetallicRoughnessTextureSet = props.MetallicRoughnessTextureSet;
-        m_SpecularGlossinessTextureSet = props.SpecularGlossinessSet;
-        m_NormalTextureSet = props.NormalTextureSet;
-        m_OcclusionTextureSet = props.OcclusionTextureSet;
-        m_EmissiveTextureSet = props.EmissiveTextureSet;
+        mBaseColorTextureSet = props.BaseColorTextureSet;
+        mMetallicRoughnessTextureSet = props.MetallicRoughnessTextureSet;
+        mSpecularGlossinessTextureSet = props.SpecularGlossinessSet;
+        mNormalTextureSet = props.NormalTextureSet;
+        mOcclusionTextureSet = props.OcclusionTextureSet;
+        mEmissiveTextureSet = props.EmissiveTextureSet;
 
-        m_IsDoubleSided = props.mIsDoubleSided;
+        mIsDoubleSided = props.mIsDoubleSided;
 
         for ( const auto& texture: props.mTexturesByUri | std::ranges::views::values ) {
             SetTexture( texture.MapType, texture.mTexture );
@@ -61,187 +61,187 @@ namespace mikoto::material {
     }
 
     auto PhysicalMaterial::RemoveTexture( MapType type ) -> void {
-        m_Textures.erase( type );
+        mTextures.erase( type );
     }
 
     auto PhysicalMaterial::GetAlphaMask() const -> AlphaMode {
-        return m_AlphaMask;
+        return mAlphaMask;
     }
 
     auto PhysicalMaterial::SetAlphaMask( AlphaMode mode ) -> void {
-        m_AlphaMask = mode;
+        mAlphaMask = mode;
     }
 
     auto PhysicalMaterial::GetWorkflow() const -> Workflow {
-        return m_Workflow;
+        return mWorkflow;
     }
 
     auto PhysicalMaterial::SetWorkflow( Workflow mode ) -> void {
-        m_Workflow = mode;
+        mWorkflow = mode;
     }
 
     auto PhysicalMaterial::GetBaseColorFactor() const -> const float4& {
-        return m_BaseColorFactor;
+        return mBaseColorFactor;
     }
 
     auto PhysicalMaterial::SetBaseColorFactor( const float4& value ) -> void {
-        m_BaseColorFactor = value;
+        mBaseColorFactor = value;
     }
 
     auto PhysicalMaterial::GetDiffuseFactor() const -> const float4& {
-        return m_DiffuseFactor;
+        return mDiffuseFactor;
     }
 
     auto PhysicalMaterial::SetDiffuseFactor( const float4& value ) -> void {
-        m_DiffuseFactor = value;
+        mDiffuseFactor = value;
     }
 
     auto PhysicalMaterial::GetSpecularFactor() const -> const float4& {
-        return m_SpecularFactor;
+        return mSpecularFactor;
     }
 
     auto PhysicalMaterial::SetSpecularFactor( const float4& value ) -> void {
-        m_SpecularFactor = value;
+        mSpecularFactor = value;
     }
 
     auto PhysicalMaterial::GetEmissiveFactor() const -> const float3& {
-        return m_EmissiveFactor;
+        return mEmissiveFactor;
     }
 
     auto PhysicalMaterial::GetAoFactor() const -> float {
-        return m_AoFactor;
+        return mAoFactor;
     }
 
     auto PhysicalMaterial::SetEmissiveFactor( const float3& value ) -> void {
-        m_EmissiveFactor = value;
+        mEmissiveFactor = value;
     }
 
     auto PhysicalMaterial::SetAoFactor( float v ) -> void {
-        m_AoFactor = v;
+        mAoFactor = v;
     }
 
     auto PhysicalMaterial::GetMetallicFactor() const -> float {
-        return m_MetallicFactor;
+        return mMetallicFactor;
     }
 
     auto PhysicalMaterial::SetMetallicFactor( float v ) -> void {
-        m_MetallicFactor = v;
+        mMetallicFactor = v;
     }
 
     auto PhysicalMaterial::GetRoughnessFactor() const -> float {
-        return m_RoughnessFactor;
+        return mRoughnessFactor;
     }
 
     auto PhysicalMaterial::SetRoughnessFactor( float v ) -> void {
-        m_RoughnessFactor = v;
+        mRoughnessFactor = v;
     }
 
     auto PhysicalMaterial::GetGlossinessFactor() const -> float {
-        return m_GlossinessFactor;
+        return mGlossinessFactor;
     }
 
     auto PhysicalMaterial::SetGlossinessFactor( float v ) -> void {
-        m_GlossinessFactor = v;
+        mGlossinessFactor = v;
     }
 
     auto PhysicalMaterial::GetNormalScale() const -> float {
-        return m_NormalScale;
+        return mNormalScale;
     }
 
     auto PhysicalMaterial::SetNormalScale( float v ) -> void {
-        m_NormalScale = v;
+        mNormalScale = v;
     }
 
     auto PhysicalMaterial::GetOcclusionStrength() const -> float {
-        return m_OcclusionStrength;
+        return mOcclusionStrength;
     }
 
     auto PhysicalMaterial::SetOcclusionStrength( float v ) -> void {
-        m_OcclusionStrength = v;
+        mOcclusionStrength = v;
     }
 
     auto PhysicalMaterial::GetEmissiveStrength() const -> float {
-        return m_EmissiveStrength;
+        return mEmissiveStrength;
     }
 
     auto PhysicalMaterial::SetEmissiveStrength( float v ) -> void {
-        m_EmissiveStrength = v;
+        mEmissiveStrength = v;
     }
 
     auto PhysicalMaterial::GetAlphaMaskCutoff() const -> float {
-        return m_AlphaMaskCutoff;
+        return mAlphaMaskCutoff;
     }
 
     auto PhysicalMaterial::SetAlphaMaskCutoff( float v ) -> void {
-        m_AlphaMaskCutoff = v;
+        mAlphaMaskCutoff = v;
     }
 
     auto PhysicalMaterial::SetIsDoubleSided( bool v ) -> void {
-        m_IsDoubleSided = v;
+        mIsDoubleSided = v;
     }
 
     auto PhysicalMaterial::GetBaseColorTextureSet() const -> i32 {
-        return m_BaseColorTextureSet;
+        return mBaseColorTextureSet;
     }
 
     auto PhysicalMaterial::SetBaseColorTextureSet( i32 set ) -> void {
-        m_BaseColorTextureSet = set;
+        mBaseColorTextureSet = set;
     }
 
     auto PhysicalMaterial::GetSpecularGlossinessSet() const -> i32 {
-        return m_SpecularGlossinessTextureSet;
+        return mSpecularGlossinessTextureSet;
     }
 
     auto PhysicalMaterial::GetMetallicRoughnessTextureSet() const -> i32 {
-        return m_MetallicRoughnessTextureSet;
+        return mMetallicRoughnessTextureSet;
     }
 
     auto PhysicalMaterial::SetMetallicRoughnessTextureSet( i32 set ) -> void {
-        m_MetallicRoughnessTextureSet = set;
+        mMetallicRoughnessTextureSet = set;
     }
 
     auto PhysicalMaterial::SetSpecularGlossinessSet( i32 set ) -> void {
-        m_SpecularGlossinessTextureSet = set;
+        mSpecularGlossinessTextureSet = set;
     }
 
     auto PhysicalMaterial::GetNormalTextureSet() const -> i32 {
-        return m_NormalTextureSet;
+        return mNormalTextureSet;
     }
 
     auto PhysicalMaterial::SetNormalTextureSet( i32 set ) -> void {
-        m_NormalTextureSet = set;
+        mNormalTextureSet = set;
     }
 
     auto PhysicalMaterial::GetOcclusionTextureSet() const -> i32 {
-        return m_OcclusionTextureSet;
+        return mOcclusionTextureSet;
     }
 
     auto PhysicalMaterial::SetOcclusionTextureSet( i32 set ) -> void {
-        m_OcclusionTextureSet = set;
+        mOcclusionTextureSet = set;
     }
 
     auto PhysicalMaterial::GetEmissiveTextureSet() const -> i32 {
-        return m_EmissiveTextureSet;
+        return mEmissiveTextureSet;
     }
 
     auto PhysicalMaterial::IsDoubleSided() const -> bool {
-        return m_IsDoubleSided;
+        return mIsDoubleSided;
     }
 
     auto PhysicalMaterial::IsBloomy() const -> bool {
-        return m_IsBloomy;
+        return mIsBloomy;
     }
 
     auto PhysicalMaterial::SetEmissiveTextureSet( i32 set ) -> void {
-        m_EmissiveTextureSet = set;
+        mEmissiveTextureSet = set;
     }
 
     auto PhysicalMaterial::EnableBloom( bool enable ) -> void {
-        m_IsBloomy = enable;
+        mIsBloomy = enable;
     }
 
     auto PhysicalMaterial::SetTexture( const MapType type, const rhi::TextureHandle& texture ) -> void {
-        m_Textures[type] = texture;
+        mTextures[type] = texture;
     }
 
     auto PhysicalMaterial::IsOpaque() const -> bool {
@@ -249,15 +249,15 @@ namespace mikoto::material {
     }
 
     auto PhysicalMaterial::IsTransparent() const -> bool {
-        return m_AlphaMaskCutoff != 1.0f;
+        return mAlphaMaskCutoff != 1.0f;
     }
 
     auto PhysicalMaterial::HasTexture( MapType type ) const -> bool {
-        return m_Textures.contains( type );
+        return mTextures.contains( type );
     }
 
     auto PhysicalMaterial::GetTexture( const MapType type ) const -> rhi::TextureHandle {
-        if ( const auto it{ m_Textures.find( type ) }; it != m_Textures.end() ) {
+        if ( const auto it{ mTextures.find( type ) }; it != mTextures.end() ) {
             return it->second;
         }
 

@@ -851,7 +851,7 @@ namespace mikoto::renderer::vulkan {
         // [Cache]
         VkPipelineCache mPipelineCache{};
         Path mPipelineCachePath{};
-        static constexpr eastl::string_view kPipelineCacheDirectory{ "AssetCache/Vulkan" };
+        static constexpr eastl::string_view kPipelineCacheDirectory{ "Assets/.vulkan/" };
 
         SamplerHandle mDummySampler{};
         BindingLayoutHandle mEmptyBindingLayout{};

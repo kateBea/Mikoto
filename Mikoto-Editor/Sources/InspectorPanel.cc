@@ -1186,7 +1186,13 @@ namespace mikoto::editor {
         DrawVec3Transform( "Scale", newScale, 1.0, 100.0, uniformScale );
 
         ImGui::Spacing();
+
+        // Make separator take up whole window
+        // just like separator for components
+        ImGui::Unindent();
         ImGui::Separator();
+        ImGui::Indent();
+
         ImGui::Spacing();
 
         if ( gui::CheckBox( "##SetupTransformComponentTab:UniformScale", uniformScale ) ) {

@@ -118,9 +118,9 @@ namespace mikoto::core {
         auto AddHandler(EventCategory category, HandlerFunc&& handler) -> void;
 
     protected:
-        Guid m_UniqueID{};
-        ankerl::unordered_dense::map<EventType, EventHandler> m_HandlersByType{};
-        ankerl::unordered_dense::map<EventCategory, EventHandler> m_HandlersByCategory{};
+        Guid mGuid{};
+        ankerl::unordered_dense::map<EventType, EventHandler> mHandlersByType{};
+        ankerl::unordered_dense::map<EventCategory, EventHandler> mHandlersByCategory{};
     };
 
     struct EventServiceCreateInfo {

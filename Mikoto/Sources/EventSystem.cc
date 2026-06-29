@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ranges>
+
 #include <EASTL/algorithm.h>
 #include <EASTL/functional.h>
 #include <EASTL/iterator.h>
@@ -21,23 +23,24 @@
 #include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Event.hh>
-#include <Core/EventSystem.hh>
 #include <Core/Profiler.hh>
 #include <Core/Singleton.hh>
 #include <Core/Subsystem.hh>
-#include <Core/Types.hh>
-#include <Logging/Logger.hh>
+#include <Core/EventSystem.hh>
+
 #include <Math/Random.hh>
-#include <ranges>
+
+#include <Logging/Logger.hh>
 
 namespace mikoto::core {
 
-    auto Subscriber::GetID() const -> const Guid& { return m_UniqueID; }
+    auto Subscriber::GetID() const -> const Guid& { return mGuid; }
 
     auto Subscriber::GetHandler( const EventType type ) -> HandlerFunc {
 
-        if ( const auto it{ m_HandlersByType.find( type ) }; it != m_HandlersByType.end() ) {
+        if ( const auto it{ mHandlersByType.find( type ) }; it != mHandlersByType.end() ) {
             return it->second.GetHandler();
         }
 
@@ -45,7 +48,7 @@ namespace mikoto::core {
     }
 
     auto Subscriber::GetHandler( const EventCategory type ) -> HandlerFunc {
-        if ( const auto it{ m_HandlersByCategory.find( type ) }; it != m_HandlersByCategory.end() ) {
+        if ( const auto it{ mHandlersByCategory.find( type ) }; it != mHandlersByCategory.end() ) {
             return it->second.GetHandler();
         }
 
@@ -65,7 +68,7 @@ namespace mikoto::core {
         RegisterSelf();
 
         const auto [it, success] {
-            m_HandlersByType.try_emplace( type, EventHandler{ type, std::move(handler) } )
+            mHandlersByType.try_emplace( type, EventHandler{ type, std::move(handler) } )
         };
 
         if ( !success ) {
@@ -80,7 +83,7 @@ namespace mikoto::core {
         RegisterSelf();
 
         const auto [it, success] {
-            m_HandlersByCategory.try_emplace( category, EventHandler{ category, std::move(handler) } )
+            mHandlersByCategory.try_emplace( category, EventHandler{ category, std::move(handler) } )
         };
 
         if ( !success ) {
@@ -118,7 +121,6 @@ namespace mikoto::core {
     auto EventSystem::Update(float dt) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // Process pending events if any
         ProcessEvents();
     }
 

@@ -33,15 +33,14 @@ namespace mikoto::editor {
     using namespace mikoto::platform;
 
     EditorApp::EditorApp( Window *window )
-        : mWindow{ window }
-    {}
+        : mWindow{ window } {
+        MKT_ASSERT( mWindow, "Window must not be null" );
+    }
 
     auto EditorApp::Init() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_CORE_LOGGER_DEBUG( "Initializing Mikoto Editor..." );
-
-        MKT_ASSERT( mWindow, "Window must not be null" );
 
         const EngineDescription config{
             .mEnableAllServices = true,

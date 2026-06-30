@@ -237,10 +237,9 @@ namespace mikoto::gui {
             PathBuilder()
                 .SetPath( fontPath.GetC_Str() )
                 .SetPath( FONT_ICON_FILE_NAME_FAS )
-                .Build()
-            };
+                .Build() };
 
-        AddIconFont(iconFontSize, faRegular, iconRanges1);
+        AddIconFont( iconFontSize, faRegular, iconRanges1 );
 
         // See https://react-icons.github.io/react-icons/icons?name=md for icon previews
         static constexpr eastl::array<ImWchar, 3> iconRanges2{ ICON_MIN_MD, ICON_MAX_16_MD, 0 };
@@ -248,20 +247,18 @@ namespace mikoto::gui {
             PathBuilder()
                 .SetPath( fontPath.GetC_Str() )
                 .SetPath( FONT_ICON_FILE_NAME_MD )
-                .Build()
-        };
+                .Build() };
 
-        AddIconFont(iconFontSize, materialIconsRegular, iconRanges2);
+        AddIconFont( iconFontSize, materialIconsRegular, iconRanges2 );
 
         static constexpr eastl::array<ImWchar, 3> iconRanges3{ ICON_MIN_MDI, ICON_MAX_16_MDI, 0 };
         static const auto materialDesign{
             PathBuilder()
                 .SetPath( fontPath.GetC_Str() )
                 .SetPath( FONT_ICON_FILE_NAME_MDI )
-                .Build()
-            };
+                .Build() };
 
-        AddIconFont(iconFontSize, materialDesign, iconRanges3);
+        AddIconFont( iconFontSize, materialDesign, iconRanges3 );
 
         InitImplementation();
 

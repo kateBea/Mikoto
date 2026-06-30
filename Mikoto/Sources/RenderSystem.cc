@@ -41,7 +41,6 @@ namespace mikoto::renderer {
 
         MKT_CORE_LOGGER_INFO("Initializing RenderSystem...");
 
-
         // Still need to decide whether this will also be available for HLSL
         // right is being used mostly for Vulkan, but it is also possible to use it for DX12, DX11, etc
         // https://github.com/shader-slang/slang
@@ -211,8 +210,7 @@ namespace mikoto::renderer {
             .targetCount = as<SlangInt>( slangTargets.size() ),
             .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
             .compilerOptionEntries = slangOptions.data(),
-            .compilerOptionEntryCount = as<u32>( slangOptions.size() ),
-        };
+            .compilerOptionEntryCount = as<u32>( slangOptions.size() ) };
 
         // Macros
         slang::PreprocessorMacroDesc macros[] = {
@@ -249,8 +247,7 @@ namespace mikoto::renderer {
             .targetCount = as<SlangInt>( slangTargets.size() ),
             .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
             .compilerOptionEntries = slangOptions.data(),
-            .compilerOptionEntryCount = as<u32>( slangOptions.size() ),
-        };
+            .compilerOptionEntryCount = as<u32>( slangOptions.size() ) };
 
         // Macros
         slang::PreprocessorMacroDesc macros[] = {
@@ -288,8 +285,7 @@ namespace mikoto::renderer {
             .targetCount = as<SlangInt>( slangTargets.size() ),
             .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
             .compilerOptionEntries = slangOptions.data(),
-            .compilerOptionEntryCount = as<u32>( slangOptions.size() ),
-        };
+            .compilerOptionEntryCount = as<u32>( slangOptions.size() ) };
 
         // Macros
         slang::PreprocessorMacroDesc macros[] = {

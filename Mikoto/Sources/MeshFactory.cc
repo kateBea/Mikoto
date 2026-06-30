@@ -93,9 +93,8 @@ namespace mikoto::asset {
                     pbrMapInfo.mTexture = mDevice->CreateTexture( textureDescription );
                     pbrMapInfo.mTexture->SetDebugName( string::Format( "Texture: {}", pathToTexture.GetC_Str() ) );
 
-                    // Data is always writen at mip zero and
-                    // these textures are often loaded to be read from shaders
-                    // hence why we transition to shaderResource
+                    // Always written to mip 0 for simplicity.
+                    // These textures are primarily shaders read resources
                     cmd->Write( pbrMapInfo.mTexture.GetRaw(), 0, image->mBufferSpan->GetData(), image->mBufferSpan->GetSize() );
                     cmd->SetResourceState( pbrMapInfo.mTexture.GetRaw(), ResourceStates::eShaderResource );
                 }

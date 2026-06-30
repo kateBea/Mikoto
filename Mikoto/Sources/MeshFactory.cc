@@ -68,8 +68,8 @@ namespace mikoto::asset {
             .SetSkeleton( std::move( data.mSkeleton ) );
 
         // Here I load all images from disk and crate the GPU resource.
-        // We assume the texture images are placed in the same folder as the model
-        // otherwise: TODO(kate): look for them in the "/textures" folder at the same level
+        // Importer already extracted the correct path for all texture images.
+        // They are assumed to be relative paths to the model root directory.
         if (loadInfo.mExtractTextures) {
             CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
             cmd->Begin( {} );

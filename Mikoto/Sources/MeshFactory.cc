@@ -67,10 +67,9 @@ namespace mikoto::asset {
             .SetAnimations( std::move( data.mAnimations ) )
             .SetSkeleton( std::move( data.mSkeleton ) );
 
-        // Here I load all images from disk and crate the GPU resource with a command
-        // and write to the images all in one go instead of doing it individually
-        // We assume the textures are placed in the same folder as the model
-        // otherwise we can look for them in the textures folder at the same level
+        // Here I load all images from disk and crate the GPU resource.
+        // We assume the texture images are placed in the same folder as the model
+        // otherwise: TODO(kate): look for them in the "/textures" folder at the same level
         if (loadInfo.mExtractTextures) {
             CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
             cmd->Begin( {} );

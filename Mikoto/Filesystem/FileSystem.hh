@@ -46,11 +46,33 @@ namespace mikoto::filesystem {
     MKT_NODISCARD auto IsAbsolutePath(const Path& path) -> bool;
     MKT_NODISCARD auto IsRelativePath(const Path& path) -> bool;
 
-    auto Notify( std::string_view message ) -> void;
+    struct FileDialogPair {
+        eastl::string mPattern{};
+        eastl::string mDescription{};
+    };
 
-    //MKT_NODISCARD auto OpenFile( /**/ ) -> filesystem::Path;
-    //MKT_NODISCARD auto SaveFile( /**/ ) -> filesystem::Path;
-    //MKT_NODISCARD auto SelectFolder( /**/ ) -> filesystem::Path;
+    enum class PopUpChoice {
+        eOk = 0,
+        eOkCancel,
+        eYesNo,
+        eYesNoCancel,
+        eRetryCancel,
+        eAbortRetryIgnore,
+    };
+
+    enum class PopUpIcon {
+        eInfo = 0,
+        eWarning,
+        eError,
+        eQuestion,
+    };
+
+    MKT_NODISCARD auto OpenFolderDialog() -> eastl::string;
+    MKT_NODISCARD auto OpenFileDialog( const FileDialogPair &filter ) -> eastl::string;
+    MKT_NODISCARD auto OpenFileDialog( std::initializer_list<FileDialogPair> filters ) -> eastl::string;
+
+    // 1s timeout default, hangs calling thread on the popup for timeout milliseconds or until OK button is clicked
+    auto DisplayPopUp( eastl::string_view title, eastl::string_view message, PopUpChoice choice, PopUpIcon icon, core::i32 timeOut = 1000 ) -> void;
 }
 
 #endif //MIKOTO_FILESYSTEM_HH

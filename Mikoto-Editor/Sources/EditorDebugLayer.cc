@@ -77,8 +77,7 @@ namespace mikoto::editor {
         auto graphicsState{ GraphicsState{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
-            .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } )
-        };
+            .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
 
         mCommandList->BeginRendering( graphicsState );
 
@@ -144,15 +143,13 @@ namespace mikoto::editor {
         // Create shaders
         auto vertexShaderDescription{ ShaderModuleCreateDescription{}
             .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangle_Vert.slang" ) )
-            .SetStage( ShaderType::eVertex )
-        };
+            .SetStage( ShaderType::eVertex ) };
         mVertexShader = mDevice->CreateShader( vertexShaderDescription );
         mVertexShader->DumpShaderCode();
 
         auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
             .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangle_Frag.slang" ) )
-            .SetStage( ShaderType::ePixel )
-        };
+            .SetStage( ShaderType::ePixel ) };
         mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
         mPixelShader->DumpShaderCode();
 
@@ -161,8 +158,8 @@ namespace mikoto::editor {
     rhi::VertexBindingDescription{}
             .SetBinding( 0 )
             .SetStride( sizeof( asset::VertexDescription ) )
-            .SetInputRate( InputRate::ePerVertex )
-        };
+            .SetInputRate( InputRate::ePerVertex ) };
+
         eastl::array<rhi::VertexAttributeDescription, 9> attributes{
     rhi::VertexAttributeDescription{}
             .SetName( "POSITION" )
@@ -225,8 +222,7 @@ namespace mikoto::editor {
             .SetLocation( 8 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mWeights1 ) ),
-        };
+            .SetOffset( offsetof( asset::VertexDescription, mWeights1 ) ), };
         mVertexInputLayout = mDevice->CreateInputLayout( InputLayoutCreateDescription{}
             .SetBindings( bindings )
             .SetAttributes( attributes )
@@ -242,7 +238,6 @@ namespace mikoto::editor {
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kShaderResource )
             .SetFormat( Format::eRGBA8_UNORM ) };
-
         mSimpleTexture = mDevice->CreateTexture( textureDbug );
 
         auto constantBufferDesc{ BufferCreateDescription{}
@@ -255,9 +250,7 @@ namespace mikoto::editor {
         auto samplerDes{ SamplerCreateDescription{}
             .SetFilter( rhi::SamplerFilter::eNearest )
             .SetWrap( SamplerWrapMode::eRepeat )
-            .SetBorderColor( kColorWhite ),
-        };
-
+            .SetBorderColor( kColorWhite ) };
         mSamplerState = mDevice->CreateSampler( samplerDes );
 
         // Create the command list
@@ -281,7 +274,6 @@ namespace mikoto::editor {
             .AddItem(BindingLayoutItem::Sampler(0))
             .AddItem(BindingLayoutItem::Texture_SRV(1))
             .AddItem(BindingLayoutItem::ConstantBuffer(2)) };
-
         mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
 
         // Bindless setup
@@ -315,9 +307,7 @@ namespace mikoto::editor {
             .SetCullMode( CullMode::eCullBack )
             .SetWindingOrder( WindingOrder::eCounterClockwise )
             .SetTopology( PrimitiveTopology::eTriangleList )
-            .SetPipelineLayout( mPipelineLayoutHandle )
-        };
-
+            .SetPipelineLayout( mPipelineLayoutHandle ) };
         mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
 
         auto bindingSetDesc{ BindingSetDescription{}
@@ -334,8 +324,7 @@ namespace mikoto::editor {
             .mAspectRatio = as<float>( mWindow->GetWidth() ) / as<float>( mWindow->GetHeight() ),
             .mNearPlane = 0.1f,
             .mFarPlane = 3000.0f,
-            .mWindow = mWindow
-        };
+            .mWindow = mWindow };
 
         mEditorCamera = eastl::make_unique<SceneCamera>( cameraDescription );
     }

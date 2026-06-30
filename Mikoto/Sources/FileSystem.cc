@@ -55,20 +55,72 @@ namespace mikoto {
         return created;
     }
 
-    //     auto filesystem::Notify( std::string_view message ) -> void {
-//         // Check that a backend is available
-//         if (!pfd::settings::available()) {
-//             MKT_CORE_LOGGER_ERROR( "Portable File Dialogs are not available on this platform." );
-//         }
-//
-//         // Set verbosity to true
-//         pfd::settings::verbose(true);
-//
-//         pfd::notify("Important Notification",
-//                 "This is ' a message, pay \" attention \\ to it!",
-//                 pfd::icon::info);
-//     }
-//
+    auto filesystem::DisplayPopUp( eastl::string_view title, eastl::string_view message, PopUpChoice choice, PopUpIcon icon, core::i32 timeOut ) -> void {
+        constexpr auto kChoiceConvert{
+            [](PopUpChoice choice) -> pfd::choice {
+                switch ( choice ) {
+                    case PopUpChoice::eOk: return pfd::choice::ok;
+                    case PopUpChoice::eOkCancel: return pfd::choice::ok_cancel;
+                    case PopUpChoice::eYesNo: return pfd::choice::yes_no;
+                    case PopUpChoice::eYesNoCancel: return pfd::choice::yes_no_cancel;
+                    case PopUpChoice::eRetryCancel: return pfd::choice::retry_cancel;
+                    case PopUpChoice::eAbortRetryIgnore: return pfd::choice::abort_retry_ignore;
+                }
+
+                return pfd::choice::ok;
+            }
+        };
+
+         constexpr auto kIconConvert{
+             [](PopUpIcon choice) -> pfd::icon {
+                 switch ( choice ) {
+                     case PopUpIcon::eError: return pfd::icon::error;
+                     case PopUpIcon::eInfo: return pfd::icon::info;
+                     case PopUpIcon::eQuestion: return pfd::icon::question;
+                     case PopUpIcon::eWarning: return pfd::icon::warning;
+                 }
+
+                 return pfd::icon::info;
+             }
+         };
+
+         auto m{ pfd::message(title.data(),
+                     message.data(),
+                     kChoiceConvert(choice),
+                     kIconConvert(icon)) };
+
+         (void)m.ready( timeOut );
+    }
+
+    auto filesystem::OpenFolderDialog() -> eastl::string {
+         auto result{ pfd::select_folder( "Select a folder", pfd::path::home() ).result() };
+         if ( !result.empty() ) {
+             return result.c_str();
+         }
+         return {};
+    }
+
+    auto filesystem::OpenFileDialog( const FileDialogPair &filter ) -> eastl::string {
+         auto result = pfd::open_file( filter.mDescription.c_str(), filter.mPattern.c_str() ).result();
+         if ( !result.empty() ) {
+             return result[0].c_str();
+         }
+         return {};
+    }
+
+    auto filesystem::OpenFileDialog( std::initializer_list<FileDialogPair> filters ) -> eastl::string {
+         std::vector<std::string> filterList{};
+         for ( const auto &filter: filters ) {
+             filterList.push_back( filter.mDescription.c_str() );
+             filterList.push_back( filter.mPattern.c_str() );
+         }
+         auto result{ pfd::open_file( "Select a file", "", filterList ).result() };
+         if ( !result.empty() ) {
+             return result[0].c_str();
+         }
+         return {};
+    }
+
     auto filesystem::OpenInExplorer( const Path &path ) -> void {
 #if defined( MIKOTO_PLATFORM_WINDOWS )
         if ( std::filesystem::is_regular_file( path.GetPathTyped<std::filesystem::path>() ) ) {

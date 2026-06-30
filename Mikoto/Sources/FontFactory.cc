@@ -34,10 +34,10 @@
 
 namespace mikoto::renderer {
 
-    auto FontFactory::GenerateAtlas( eastl::string_view fontFilename, i32 fontSize, bool expensiveColoring ) const -> FontProperties {
+    auto FontFactory::GenerateAtlas( eastl::string_view fontFilename, f32 fontSize, bool expensiveColoring, bool customCharset ) const -> FontProperties {
         FontProperties result{};
 
-        if ( mFreeTypeHandle == nullptr ) {
+        if ( !mFreeTypeHandle ) {
             return result;
         }
 
@@ -59,7 +59,6 @@ namespace mikoto::renderer {
         msdf_atlas::FontGeometry fontGeometry( std::addressof( v ) );
 
         constexpr float fontScale{ 2.0f };
-        constexpr bool customCharset{ true };
 
         if ( customCharset ) {
             // Specify a set of character glyphs
@@ -101,13 +100,12 @@ namespace mikoto::renderer {
 
             constexpr double maxCornerAngle{ 3.0 };
 
-            msdf_atlas::Workload( [&glyphs = glyphs, &coloringSeed, &LCG_MULTIPLIER, &LCG_INCREMENT, &glyphSeed]( int i, int threadNo ) -> bool {
+            msdf_atlas::Workload( [&glyphs, &glyphSeed]( int i, int threadNo ) -> bool {
                 glyphSeed = ( LCG_MULTIPLIER * ( coloringSeed ^ i ) + LCG_INCREMENT ) * !!coloringSeed;
                 glyphs[i].edgeColoring( msdfgen::edgeColoringInkTrap, maxCornerAngle, glyphSeed );
                 return true;
-            },
-                                  glyphs.size() )
-                    .finish( std::thread::hardware_concurrency() );
+            }, glyphs.size() )
+            .finish( std::thread::hardware_concurrency() );
         } else {
             constexpr double maxCornerAngle{ 3.0 };
 

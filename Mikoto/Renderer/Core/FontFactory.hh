@@ -43,6 +43,20 @@
 
 namespace mikoto::renderer {
 
+    struct CharsetRange {
+        i32 mStart{};
+        i32 mEnd{};
+
+        MKT_NODISCARD static auto GetBasicLatinRange() -> CharsetRange;
+        MKT_NODISCARD static auto GetLatin1SupplementRange() -> CharsetRange;
+        MKT_NODISCARD static auto GetLatinExtendedARange() -> CharsetRange;
+        MKT_NODISCARD static auto GetCyrillicRange() -> CharsetRange;
+        MKT_NODISCARD static auto GetGreekRange() -> CharsetRange;
+        MKT_NODISCARD static auto GetHiraganaRange() -> CharsetRange;
+        MKT_NODISCARD static auto GetKatakanaRange() -> CharsetRange;
+        MKT_NODISCARD static auto GetKanjiCommonRange() -> CharsetRange;
+    };
+
     struct FontLoadDescription {
         FileHandle mFile{};
         float mSize{ 48 };
@@ -71,20 +85,6 @@ namespace mikoto::renderer {
             msdf_atlas::mtsdfGenerator, msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>>;
         using BitmapAtlasStorage = msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>;
 
-        struct CharsetRange {
-            i32 mStart{};
-            i32 mEnd{};
-
-            MKT_NODISCARD static auto GetBasicLatinRange() -> CharsetRange;
-            MKT_NODISCARD static auto GetLatin1SupplementRange() -> CharsetRange;
-            MKT_NODISCARD static auto GetLatinExtendedARange() -> CharsetRange;
-            MKT_NODISCARD static auto GetCyrillicRange() -> CharsetRange;
-            MKT_NODISCARD static auto GetGreekRange() -> CharsetRange;
-            MKT_NODISCARD static auto GetHiraganaRange() -> CharsetRange;
-            MKT_NODISCARD static auto GetKatakanaRange() -> CharsetRange;
-            MKT_NODISCARD static auto GetKanjiCommonRange() -> CharsetRange;
-        };
-
         struct FontProperties {
             i32 mMaxHeight{};
             i32 mMaxWidth{};
@@ -107,7 +107,7 @@ namespace mikoto::renderer {
         };
 
     private:
-        MKT_NODISCARD auto GenerateAtlas( eastl::string_view fontFilename, i32 fontSize, bool expensiveColoring = true ) const -> FontProperties;
+        MKT_NODISCARD auto GenerateAtlas( eastl::string_view fontFilename, f32 fontSize, bool expensiveColoring = true, bool customCharset = true ) const -> FontProperties;
         auto SubmitAtlasBitmapAndLayout(const BitmapAtlasStorage& atlas, GeometryList& glyphs, FontProperties& data, i32 fontSize ) const -> void;
 
     private:

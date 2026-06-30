@@ -39,10 +39,9 @@ using namespace mikoto::core;
 using namespace mikoto::editor;
 using namespace mikoto::platform;
 
-Window* gWindow{ nullptr };
 EditorApp* gApplication{ nullptr };
 
-// Core engine and Services
+Window* gWindow{ nullptr };
 WindowsService* gWindowsService{ nullptr };
 
 constexpr eastl::string_view kConfigPath{ "app-config.toml" };

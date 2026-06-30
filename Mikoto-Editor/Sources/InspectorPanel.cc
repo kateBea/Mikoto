@@ -1154,17 +1154,17 @@ namespace mikoto::editor {
     static auto DrawNameTextInput( Entity* entity ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if ( entity == nullptr ) {
+        if ( !entity ) {
             return;
         }
 
         TagComponent& tag{ entity->GetComponent<TagComponent>() };
 
-        constexpr u32 kInputNameLength{ 1024 };
+        constexpr u32 kInputNameLength{ 512 };
         constexpr ImGuiTextFlags flags{ ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll };
 
         eastl::array<char, kInputNameLength> name{};
-        eastl::copy( name.begin(), name.end(), name.begin() );
+        eastl::copy( tag.GetTag().begin(), tag.GetTag().end(), name.begin() );
         if ( ImGui::InputText( "##DrawNameTextInputTag", name.data(), kInputNameLength, flags ) ) {
             tag.SetTag( name.data() );
         }

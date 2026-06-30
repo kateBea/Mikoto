@@ -114,8 +114,7 @@ namespace mikoto::asset {
                 .SetHeapType( HeapType::eDeviceLocal )
                 .SetCpuAccessType( CpuAccessType::eRead )
                 .SetInitialData( BufferSpanHandle::Spawn(
-                    meshNode.mVertices.data(), MKT_VECTOR_SIZE_BYTES(meshNode.mVertices) ) )
-            };
+                    meshNode.mVertices.data(), MKT_VECTOR_SIZE_BYTES(meshNode.mVertices) ) ) };
             BufferHandle vertices{ mDevice->CreateBuffer( verticesDesc ) };
 
             // Create indices buffer
@@ -124,8 +123,7 @@ namespace mikoto::asset {
                 .SetHeapType( HeapType::eDeviceLocal )
                 .SetCpuAccessType( CpuAccessType::eRead )
                 .SetFormat( Format::eR32_UINT )
-                .SetInitialData( BufferSpanHandle::Spawn( meshNode.mIndices.data(), MKT_VECTOR_SIZE_BYTES(meshNode.mIndices) ) )
-            };
+                .SetInitialData( BufferSpanHandle::Spawn( meshNode.mIndices.data(), MKT_VECTOR_SIZE_BYTES(meshNode.mIndices) ) ) };
             BufferHandle indices{ mDevice->CreateBuffer( indicesDesc ) };
 
             auto meshCreateInfo{ MeshCreateDescription{}
@@ -133,8 +131,7 @@ namespace mikoto::asset {
                 .SetVertices( vertices )
                 .SetIndices( indices )
                 .SetTransform( meshNode.mTransform )
-                .SetMaterial( data.mMaterials[meshNode.MaterialIndex] )
-            };
+                .SetMaterial( data.mMaterials[meshNode.MaterialIndex] ) };
 
             modelDescription.AddMesh( meshIndex++, meshCreateInfo );
         }

@@ -77,7 +77,11 @@ namespace mikoto::renderer {
         MKT_NODISCARD virtual auto CreateCommandList( QueueType queue ) -> CommandListHandle = 0;
         MKT_NODISCARD virtual auto CreateCommandList( const CommandListParameters& parameters ) -> CommandListHandle = 0;
 
+        // [DEPRECATED]: File CreateShader( const ShaderModuleCreateDescription& desc ) is deprecated because backends should ideally expect the bytecode
+        // as that is what ultimately they work with. Vulkan expects Spir-V, both Direct3D backends expect DXBC. The current implementation is of this overload
+        // expects and slang file as it generates the appropriate bytecode from it.
         MKT_NODISCARD virtual auto CreateShader( const ShaderModuleCreateDescription& desc ) -> ShaderModuleHandle = 0;
+
         MKT_NODISCARD virtual auto CreateShader( ShaderStage type, const void* code, size_t codeSize ) -> ShaderModuleHandle = 0;
 
         MKT_NODISCARD virtual auto CreateInputLayout(const InputLayoutCreateDescription& desc) -> InputLayoutHandle = 0;

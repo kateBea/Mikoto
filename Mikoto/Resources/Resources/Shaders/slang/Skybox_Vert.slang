@@ -62,6 +62,11 @@ VSOutput main(uint vID: SV_VertexID) {
     // Skybox direction
     o.Direction = vertex.position;
 
+    // Rotate by the Y axis for Vulkan otherwise cube appears upside down
+#if defined(MKT_SUPPORT_VULKAN)
+    o.Direction.y *= -1.0;
+#endif
+
     // Project to clip space
     float4 clip = mul(camera.Projection, mul(viewNoTrans, float4(vertex.position, 1.0)));
     o.PositionH = clip;

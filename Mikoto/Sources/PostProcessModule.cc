@@ -84,7 +84,7 @@ namespace mikoto::renderer {
         // Filter objects that mush appear outlined
         graph.RegisterPass(
             "OutlineObjectsFilter",
-            FGPassType::eGraphics,
+            FGPassType::eTransfer,
             []( FGNodeBuilder&, Blackboard & ) {
 
             },

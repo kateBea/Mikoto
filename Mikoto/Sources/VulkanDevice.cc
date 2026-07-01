@@ -1231,11 +1231,8 @@ namespace mikoto::renderer::vulkan {
             EndRendering();
         }
 
-        auto currentState{ buffer->GetResourceState() };
         if (mEnableAutomaticBarriers) {
-            if (buffer->GetResourceState() != ResourceStates::eCopyDest) {
-                SetResourceState(buffer, ResourceStates::eCopyDest);
-            }
+            SetResourceState(buffer, ResourceStates::eCopyDest);
         }
 
         VkBuffer vkBuffer{ buffer->GetNativeHandle(ObjectType::Vk_Buffer) };

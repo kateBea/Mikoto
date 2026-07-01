@@ -144,12 +144,18 @@ namespace mikoto::renderer {
 
     private:
         inline static const eastl::fixed_vector<float4x4, kMaxCubeFaces> kMatrices{
-            glm::lookAt( float3( 0 ), float3( 1, 0, 0 ), float3( 0, -1, 0 ) ), // +X
-            glm::lookAt( float3( 0 ), float3( -1, 0, 0 ), float3( 0, -1, 0 ) ),// -X
-            glm::lookAt( float3( 0 ), float3( 0, -1, 0 ), float3( 0, 0, -1 ) ),  // +Y // Is this correct? Vulkan needs center pointing downwards
-            glm::lookAt( float3( 0 ), float3( 0, 1, 0 ), float3( 0, 0, 1 ) ),// -Y
-            glm::lookAt( float3( 0 ), float3( 0, 0, 1 ), float3( 0, -1, 0 ) ), // +Z
-            glm::lookAt( float3( 0 ), float3( 0, 0, -1 ), float3( 0, -1, 0 ) ),// -Z
+            // POSITIVE_X
+            glm::rotate(glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // NEGATIVE_X
+            glm::rotate(glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // POSITIVE_Y
+            glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // NEGATIVE_Y
+            glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // POSITIVE_Z
+            glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+            // NEGATIVE_Z
+            glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
         };
 
         // This is used for debugging mainly so I can distinguish faces if texture sampling fails

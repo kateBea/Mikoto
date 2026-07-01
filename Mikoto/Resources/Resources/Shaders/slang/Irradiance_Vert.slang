@@ -50,5 +50,10 @@ VSOutput main(uint vertexID : SV_VertexID) {
 
     o.PositionH = mul(parameters.MVP, float4(vertex.position, 1.0));
 
+    // Rotate by the Y axis for Vulkan otherwise cube appears upside down
+#if defined(MKT_SUPPORT_VULKAN)
+    o.PositionH.y *= -1.0;
+#endif
+
     return o;
 }

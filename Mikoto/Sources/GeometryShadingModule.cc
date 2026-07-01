@@ -455,9 +455,9 @@ namespace mikoto::renderer {
                     return;
                 }
 
-                if (mSkyboxMaterial.IsEmpty()) {
-                    return;
-                }
+                // if (mSkyboxMaterial.IsEmpty()) {
+                //     return;
+                // }
 
                 GeomShadingModuleInfo& info{ blackboard.Get<GeomShadingModuleInfo>() };
 

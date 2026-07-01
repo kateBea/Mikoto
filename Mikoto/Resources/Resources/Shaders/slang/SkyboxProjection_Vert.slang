@@ -52,8 +52,12 @@ VSOutput main(VSInput input) {
     VertexDescription vertex = vertexBuffer.Read<VertexDescription>(0, index);
 
     o.Pos = vertex.position;
-
     o.PositionH = mul(parameters.Mvp, float4(vertex.position, 1.0));
 
+    // Rotate by the Y axis for Vulkan otherwise cube appears upside down
+#if defined(MKT_SUPPORT_VULKAN)
+    o.PositionH.y *= -1.0;
+#endif
+    
     return o;
 }

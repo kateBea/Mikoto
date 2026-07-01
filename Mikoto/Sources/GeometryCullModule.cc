@@ -398,12 +398,12 @@ namespace mikoto::renderer {
             if ( Animator * animator{ AnimationSystem::Get()->GetAnimator( index ) } ) {
                 auto &finalMats{ animator->GetFinalBoneMatrices() };
                 std::memcpy( mSkinningInfo[index - 1].mBoneTransforms.data(), finalMats.data(), finalMats.size() * MKT_SIZEOF( float4x4 ) );
-
             }
         }
 
         if (!mActiveFinalMatsIndices.empty()) {
-            context.CopyBuffer( info.mSkinningBuffer, 0, mSkinningInfo.data(), kMaxSkinnedMeshes * MKT_SIZEOF( MeshSkinningInfo ) );
+            u32 highestIndex{ *(--mActiveFinalMatsIndices.end()) + 1u };
+            context.CopyBuffer( info.mSkinningBuffer, 0, mSkinningInfo.data(), highestIndex * MKT_SIZEOF( MeshSkinningInfo ) );
             mActiveFinalMatsIndices.clear();
         }
     }
@@ -431,6 +431,7 @@ namespace mikoto::renderer {
 
             context.CopyBuffer( info.mGeometryBuffer, previousFirstInstance * MKT_SIZEOF( MeshGeometryInfo ),
                 instanceInfo.mGeometryList.data(), instanceInfo.mInstanceCount * MKT_SIZEOF( MeshGeometryInfo ) );
+
             context.CopyBuffer( info.mMaterialsBuffer, previousFirstInstance * MKT_SIZEOF( MeshMaterialInfo ),
                 instanceInfo.mMaterialsList.data(), instanceInfo.mInstanceCount * MKT_SIZEOF( MeshMaterialInfo ) );
 

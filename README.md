@@ -58,12 +58,12 @@ passes, amongst other features.
 
 ### **Platform Support**
 
-| Platform / Toolchain              | Architecture | Status                 | Notes    |
-|-----------------------------------|--------------|------------------------|----------|
-| **Ubuntu 24.04 LTS** (GCC 13.3.0) | x86_64       | **Supported (Tested)** | Tested   |
-| Other Linux Distros               | x86_64       | **Untested**           | Untested |
-| **Windows (MSVC)**                | x86_64       | **Supported (Tested)** | Tested   |
-| Windows (MinGW-w64)               | x86_64       | **Untested**           | Untested |
+| Platform / Toolchain              | Architecture | Status                 | Notes |
+|-----------------------------------|--------------|------------------------|-------|
+| **Ubuntu 24.04 LTS** (GCC 13.3.0) | x86_64       | **Supported (Tested)** | -     |
+| Other Linux Distros               | x86_64       | **Untested**           | -     |
+| **Windows (MSVC)**                | x86_64       | **Supported (Tested)** | -     |
+| Windows (MinGW-w64)               | x86_64       | **Untested**           | -     |
 
 > Note: This project has been tested on Ubuntu 24.04 for Linux compatibility. While it 
 > works properly on Windows, other Linux distributions are currently untested.

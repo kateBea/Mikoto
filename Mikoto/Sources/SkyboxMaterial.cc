@@ -28,6 +28,10 @@ namespace mikoto::material {
         mCubeFaces[face] = texture;
     }
 
+    auto SkyboxMaterial::IsType( SkyboxType type ) const -> bool {
+        return false;
+    }
+
     auto SkyboxMaterial::GetFace( SkyboxFace face ) -> renderer::rhi::TextureHandle {
         return mCubeFaces[face];
     }

@@ -63,19 +63,19 @@ namespace mikoto::renderer::vulkan {
 
         // Prepare context info
         Context *ctx{ as<Context *>( RenderSystem::Get()->GetContext() ) };
-        Instance& vulkanInstance{ ctx->GetInstance() };
+        Instance& instance{ ctx->GetInstance() };
 
         // Choose primary physical device
         if ( mFeaturesSupport.mEnablePresentation ) {
-            mSurface = vulkanInstance.mSurface;
+            mSurface = instance.mSurface;
             mExtensions.emplace_back( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
         }
 
-        const auto pdIt{ std::ranges::find_if( vulkanInstance.mPhysicalDevices, [this](PhysicalDevice& dev) {
+        const auto pdIt{ std::ranges::find_if( instance.mPhysicalDevices, [this](PhysicalDevice& dev) {
             return IsDeviceSuitable( dev );
         } ) };
 
-        if (pdIt != vulkanInstance.mPhysicalDevices.end()) {
+        if (pdIt != instance.mPhysicalDevices.end()) {
             mPhysicalDevice = MKT_ADDRESSOF( *pdIt );
             mName = mPhysicalDevice->mProperties.deviceName;
         } else {
@@ -89,9 +89,7 @@ namespace mikoto::renderer::vulkan {
         InitDescriptorAllocator();
 
         InitPipelineCache();
-
         InitTracyContext();
-
         InitDummyResources();
 
         mIsInitialized = true;
@@ -845,7 +843,6 @@ namespace mikoto::renderer::vulkan {
             }
         }
 
-        // 5. NOW it is safe to destroy the object
         vkDestroyPipelineCache(mLogicalDevice, mPipelineCache, nullptr);
     }
 
@@ -861,12 +858,12 @@ namespace mikoto::renderer::vulkan {
             return false;
         }
 
-        // By default, we look for a device that supports graphics and transfer and optionally presentation
+        // By default, we look for a device that supports
+        // compute, graphics, transfer and optionally presentation
         QueueOpSupportFlags opSupportFlags{
-                QueueOpSupportFlagsBits::kGraphics |
-                QueueOpSupportFlagsBits::kCompute |
-                QueueOpSupportFlagsBits::kTransfer
-        };
+            QueueOpSupportFlagsBits::kGraphics |
+            QueueOpSupportFlagsBits::kCompute |
+            QueueOpSupportFlagsBits::kTransfer };
 
         // Dynamic rendering is mandatory because Mikoto targets
         // Vulkan 1.3 by default where this feature is core, this should be just a sanity check
@@ -875,19 +872,18 @@ namespace mikoto::renderer::vulkan {
 
         VkPhysicalDeviceFeatures2 features2{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .pNext = MKT_ADDRESSOF( dynamicRenderingFeature )
-        };
+            .pNext = MKT_ADDRESSOF( dynamicRenderingFeature ) };
         vkGetPhysicalDeviceFeatures2( device.mPhysicalDevice, MKT_ADDRESSOF( features2 ) );
         if (dynamicRenderingFeature.dynamicRendering != VK_TRUE) {
             return false;
         }
 
-        // Wireframe support
+        // Wireframe support if requested
         if (mFeaturesSupport.mHardwareWireframe && !device.mFeatures.fillModeNonSolid) {
             return false;
         }
 
-        // Improved texture quality
+        // Improved texture quality if requested
         if (mFeaturesSupport.mAnisotropicFiltering && !device.mFeatures.samplerAnisotropy ) {
             return false;
         }

@@ -53,8 +53,7 @@ namespace mikoto::renderer {
         outAlloc = {
             .mVertexOffset = static_cast<u32>(alloc->mVertexOffset),
             .mIndexOffset  = static_cast<u32>(alloc->mIndexOffset),
-            .mOffsetID     = static_cast<u32>(mAllocations.size())
-        };
+            .mOffsetID     = static_cast<u32>(mAllocations.size()) };
 
         mAllocations.emplace(mesh, outAlloc);
         return true; // newly allocated
@@ -76,8 +75,7 @@ namespace mikoto::renderer {
             .mVertexSize = (u32)vertexBytes,
             .mIndexOffset  = static_cast<u32>(alloc->mIndexOffset),
             .mIndexSize = (u32)alloc->mIndexSize,
-            .mOffsetID     = static_cast<u32>(mAllocations.size()) // simple ID
-        };
+            .mOffsetID  = static_cast<u32>(mAllocations.size()) };
 
         mAllocations.emplace(mesh, result);
         return result;
@@ -87,17 +85,16 @@ namespace mikoto::renderer {
             u64 vertexBufferSize,
             u64 indexBufferSize ) {
         mVertexFreeList.push_back( FreeRange{
-                .mOffset = 0,
-                .mSize = vertexBufferSize } );
+            .mOffset = 0,
+            .mSize = vertexBufferSize } );
 
         mIndexFreeList.push_back( FreeRange{
-                .mOffset = 0,
-                .mSize = indexBufferSize } );
+            .mOffset = 0,
+            .mSize = indexBufferSize } );
     }
 
-    auto GeometryBufferAllocator::AllocateFrom(
-            eastl::vector<FreeRange> &freeList,
-            u64 size ) -> eastl::optional<u64> {
+    auto GeometryBufferAllocator::AllocateFrom(eastl::vector<FreeRange> &freeList, u64 size )
+    -> eastl::optional<u64> {
         for ( auto it = freeList.begin(); it != freeList.end(); ++it ) {
             if ( it->mSize >= size ) {
                 u64 allocOffset = it->mOffset;
@@ -116,9 +113,7 @@ namespace mikoto::renderer {
         return {};// out of space
     }
 
-    auto GeometryBufferAllocator::Allocate(
-            u64 vertexBytes,
-            u64 indexBytes ) -> eastl::optional<GeometryAllocation> {
+    auto GeometryBufferAllocator::Allocate( u64 vertexBytes, u64 indexBytes ) -> eastl::optional<GeometryAllocation> {
         auto vertexAlloc = AllocateFrom( mVertexFreeList, vertexBytes );
         if ( !vertexAlloc.has_value() ) {
             return {};
@@ -128,8 +123,8 @@ namespace mikoto::renderer {
         if ( !indexAlloc.has_value() ) {
             // rollback vertex allocation
             mVertexFreeList.push_back( FreeRange{
-                    .mOffset = vertexAlloc.value(),
-                    .mSize = vertexBytes } );
+                .mOffset = vertexAlloc.value(),
+                .mSize = vertexBytes } );
 
             return {};
         }
@@ -138,19 +133,18 @@ namespace mikoto::renderer {
             .mVertexOffset = (u32)vertexAlloc.value(),
             .mVertexSize = (u32)vertexBytes,
             .mIndexOffset = (u32)indexAlloc.value(),
-            .mIndexSize = (u32)indexBytes
-        };
+            .mIndexSize = (u32)indexBytes };
     }
 
     auto GeometryBufferAllocator::Free( const GeometryAllocation &alloc ) -> void {
         // NOTE: no merging (simple first-fit allocator)
         mVertexFreeList.push_back( FreeRange{
-                .mOffset = alloc.mVertexOffset,
-                .mSize = alloc.mVertexSize } );
+            .mOffset = alloc.mVertexOffset,
+            .mSize = alloc.mVertexSize } );
 
         mIndexFreeList.push_back( FreeRange{
-                .mOffset = alloc.mIndexOffset,
-                .mSize = alloc.mIndexSize } );
+            .mOffset = alloc.mIndexOffset,
+            .mSize = alloc.mIndexSize } );
     }
 
     auto GeometryBatch::Get( const asset::MeshNode *node, CommandContext& ctx, Blackboard& b ) -> MeshNodeInstancesInfo & {
@@ -199,7 +193,7 @@ namespace mikoto::renderer {
             .SetName( "GeometryIndirectCommands_Buffer" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kIndirectDraw | BufferUsageFlagsBits::kCopyDst )
             .SetElementsSize( kMaxIndirectCommands, MKT_SIZEOF( DrawIndirectCommand ) )
-            .SetHeapType( HeapType::eDeviceLocal )};
+            .SetHeapType( HeapType::eDeviceLocal ) };
 
         info.mIndirectBuffer = graph.Create( indirectCommandsDesc );
         mIndirectBuffer = info.mIndirectBuffer;
@@ -229,7 +223,7 @@ namespace mikoto::renderer {
             .SetName( "Geometry_VerticesBuffer01" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetSizeBytes( MKT_MEGABYTES( kVertexBufferSizeMB ) )
-            .SetHeapType( HeapType::eDeviceLocal )};
+            .SetHeapType( HeapType::eDeviceLocal ) };
 
         geometryFilterInfo.mVerticesBuffer = graph.Create( vertexDesc );
 
@@ -245,7 +239,7 @@ namespace mikoto::renderer {
             .SetName( "Geometry_MaterialsBuffer01" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetElementsSize( kMaxRenderableEntities, MKT_SIZEOF( MeshMaterialInfo ) )
-            .SetHeapType( HeapType::eDeviceLocal )};
+            .SetHeapType( HeapType::eDeviceLocal ) };
 
         geometryFilterInfo.mMaterialsBuffer = graph.Create( materialsDesc );
 
@@ -435,8 +429,10 @@ namespace mikoto::renderer {
             mIndirectCmds[indirectDrawCount].mVertexCount = node->GetIndexBuffer()->GetSizeBytes() / MKT_SIZEOF( u32 ); // For vertex pulling it is the indices count
             mIndirectCmds[indirectDrawCount].mFirstInstance = previousFirstInstance;
 
-            context.CopyBuffer( info.mGeometryBuffer, previousFirstInstance * MKT_SIZEOF( MeshGeometryInfo ), instanceInfo.mGeometryList.data(), instanceInfo.mInstanceCount * MKT_SIZEOF( MeshGeometryInfo ) );
-            context.CopyBuffer( info.mMaterialsBuffer, previousFirstInstance * MKT_SIZEOF( MeshMaterialInfo ), instanceInfo.mMaterialsList.data(), instanceInfo.mInstanceCount * MKT_SIZEOF( MeshMaterialInfo ) );
+            context.CopyBuffer( info.mGeometryBuffer, previousFirstInstance * MKT_SIZEOF( MeshGeometryInfo ),
+                instanceInfo.mGeometryList.data(), instanceInfo.mInstanceCount * MKT_SIZEOF( MeshGeometryInfo ) );
+            context.CopyBuffer( info.mMaterialsBuffer, previousFirstInstance * MKT_SIZEOF( MeshMaterialInfo ),
+                instanceInfo.mMaterialsList.data(), instanceInfo.mInstanceCount * MKT_SIZEOF( MeshMaterialInfo ) );
 
             // Advance base instance
             previousFirstInstance += instanceInfo.mInstanceCount;
@@ -466,8 +462,7 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
         const auto params{ DrawIndirectState{}
             .SetDrawCount( mDrawCount )
-            .SetBuffer( mIndirectBuffer )
-        };
+            .SetBuffer( mIndirectBuffer ) };
 
         context.DrawIndirect( params );
     }

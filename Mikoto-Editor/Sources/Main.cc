@@ -82,7 +82,8 @@ auto InitEditor() -> bool {
     try {
         gApplication->Init();
 
-#if defined(MKT_EDITOR_ENABLE_EDBUG_LAYERS)
+//#if defined(MKT_EDITOR_ENABLE_EDBUG_LAYERS)
+#if true
         gApplication->PushLayer<EditorDebugLayer>( gWindow );
         gApplication->PushLayer<EditorRayTraceLayer>( gWindow );
 #endif

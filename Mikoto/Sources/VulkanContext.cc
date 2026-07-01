@@ -154,8 +154,7 @@ namespace mikoto::renderer::vulkan {
 
             auto graphicsState{ GraphicsState{}
                 .SetRenderArea( Rect{ as<i32>(mSwapchain->GetWidth()), as<i32>(mSwapchain->GetHeight()) } )
-                .AddRenderTarget( colorImage, Color{ .0f } )
-            };
+                .AddRenderTarget( colorImage, Color{ .0f } ) };
 
             mCommandList->BeginRendering( graphicsState );
 
@@ -167,7 +166,7 @@ namespace mikoto::renderer::vulkan {
                 .SetBindPoint( PipelineType::eGraphics ));
 
             mCommandList->SetViewportState( ViewportState{}
-                .AddViewportAndScissorRect( Viewport( mSwapchain->GetWidth(), mSwapchain->GetHeight() ) ) );
+                .AddViewportAndScissorRect( Viewport( (f32)mSwapchain->GetWidth(), (f32)mSwapchain->GetHeight() ) ) );
 
             // Issue draw call
             constexpr auto drawArguments{ DrawArguments{}
@@ -189,21 +188,19 @@ namespace mikoto::renderer::vulkan {
 
             TextureSlice srcSlice{
                 .mWidth = (u32)mPresentTarget->GetWidth(),
-                .mHeight = (u32)mPresentTarget->GetHeight(),
-            };
+                .mHeight = (u32)mPresentTarget->GetHeight() };
 
             TextureSlice dstSlice{
                 .mWidth = (u32)currentSwapchainImage->GetWidth(),
-                .mHeight = (u32)currentSwapchainImage->GetHeight(),
-            };
+                .mHeight = (u32)currentSwapchainImage->GetHeight() };
 
             mCommandList->Copy(
-                    mPresentTarget.GetRaw(), srcSlice,
-                    currentSwapchainImage.GetRaw(), dstSlice );
+                mPresentTarget.GetRaw(), srcSlice,
+                currentSwapchainImage.GetRaw(), dstSlice );
 
             mCommandList->SetResourceState(
-                    currentSwapchainImage.GetRaw(),
-                    ResourceStates::ePresent );
+                currentSwapchainImage.GetRaw(),
+                ResourceStates::ePresent );
 
             mCommandList->End();
 
@@ -317,10 +314,9 @@ namespace mikoto::renderer::vulkan {
             .mHeight = as<u32>( mWindow->GetHeight() ),
             .mSurface = mInstance->mSurface,
             .mRefreshRate = mRefreshRate,
-            .mFormat = Format::eBGRA8_UNORM,
-        };
+            .mFormat = Format::eBGRA8_UNORM };
 
-        mSwapchain = as<Device*>(mDevice.get())->CreateSwapChain(createInfo);
+        mSwapchain = checked_cast<Device*>(mDevice.get())->CreateSwapChain(createInfo);
 
         // Prepare for swapchain render
         // This command buffer is created here because it is only
@@ -333,14 +329,12 @@ namespace mikoto::renderer::vulkan {
         // Create shaders
         auto vertexShaderDescription{ ShaderModuleCreateDescription{}
             .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Vert.slang" ) )
-            .SetStage( ShaderType::eVertex )
-        };
+            .SetStage( ShaderType::eVertex ) };
         mVertexShader = mDevice->CreateShader( vertexShaderDescription );
 
         auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
             .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Frag.slang" ) )
-            .SetStage( ShaderType::ePixel )
-        };
+            .SetStage( ShaderType::ePixel ) };
         mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
 
         // We will upload a texture and a buffer to do some effects, see Triangle_Frag
@@ -371,8 +365,7 @@ namespace mikoto::renderer::vulkan {
             .SetCullMode( CullMode::eCullBack )
             .SetWindingOrder( WindingOrder::eCounterClockwise )
             .SetTopology( PrimitiveTopology::eTriangleList )
-            .SetPipelineLayout( mPipelineLayoutHandle )
-        };
+            .SetPipelineLayout( mPipelineLayoutHandle ) };
 
         mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
 
@@ -380,14 +373,13 @@ namespace mikoto::renderer::vulkan {
         auto samplerDes{ SamplerCreateDescription{}
             .SetFilter( rhi::SamplerFilter::eLinear )
             .SetWrap( SamplerWrapMode::eClampToBorder )
-            .SetBorderColor( kColorWhite ),
-        };
+            .SetBorderColor( kColorWhite ) };
         mSamplerState = mDevice->CreateSampler( samplerDes );
 
         // Bindless set
         mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
 
-        // Non bindless set
+        // Non-bindless set
         auto bindingSetDesc{ BindingSetDescription{}
             .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
         mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );

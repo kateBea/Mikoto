@@ -203,7 +203,7 @@ namespace mikoto::scene {
         MKT_SERIALIZE_COMPONENT_IF_PRESENT( TextComponent, "TextComponent" );
         MKT_SERIALIZE_COMPONENT_IF_PRESENT( ScriptComponent, "ScriptComponent" );
 
-        // I do not serialize the relationship component the hierarchy is stored splicitly by the nesting of the nodes in the yaml file.
+        // I do not serialize the relationship component the hierarchy is stored explicitly by the nesting of the nodes in the yaml file.
         // So if an entity has children they will be nested under it in the yaml file and if it does not have children it will just be a leaf node.
         for ( const auto& childID: root->GetComponent<RelationComponent>().GetChildren() ) {
             SerializeNode( emitter, secene.FindByID( childID ), secene );

@@ -738,7 +738,6 @@ namespace mikoto::renderer {
         // Register callbacks
         mFenceValue++;
 
-#if true
         auto it{ mReadbackTasks.begin() };
         while ( it != mReadbackTasks.end() ) {
             if (!it->mHasBeenRegistered) {
@@ -761,7 +760,6 @@ namespace mikoto::renderer {
         // Signal() will signal the specified value
         // when the last batch of SubmitCommands() finishes executing
         mDevice->Signal( QueueType::eTransfer, mFence, mFenceValue );
-#endif
     }
 
     auto FrameGraph::ExecuteReadbacks() -> void {

@@ -455,7 +455,13 @@ namespace mikoto::renderer {
                     return;
                 }
 
+                if (mSkyboxMaterial.IsEmpty()) {
+                    return;
+                }
+
                 GeomShadingModuleInfo& info{ blackboard.Get<GeomShadingModuleInfo>() };
+
+                SkyboxMaterial* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
 
                 struct DrawParams {
                     float4x4 mMvp{};
@@ -473,9 +479,9 @@ namespace mikoto::renderer {
                     .mIndexBufferID = ctx.PushBuffer_SRV(info.mBoxIndexBuffer),
                 };
 
-                // NOTE: the material has either a rectangular image or 6 cube images
-                // instead of expecting an actual cube image we can just use the 6 faces in the
-                // skybox render pass and avoid this pass as we do not need to project anything
+                // Project onto the skybox cube image if the material uses an
+                // equirectangular image, otherwise if material consists of 6 flat images
+                // we copy them instead
 
                 for (u32 mipLevel{}; mipLevel < 1; mipLevel++) {
                     for (u32 face{}; face < rhi::kMaxCubeFaces; ++face) {

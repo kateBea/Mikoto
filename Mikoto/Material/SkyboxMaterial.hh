@@ -67,6 +67,8 @@ namespace mikoto::material {
 
         auto SetFace( SkyboxFace face, renderer::rhi::TextureHandle texture ) -> void;
 
+        MKT_NODISCARD auto IsType( SkyboxType type ) const -> bool;
+
         MKT_NODISCARD auto GetFace(SkyboxFace face) -> renderer::rhi::TextureHandle;
         MKT_NODISCARD auto GetEquirectangular() -> renderer::rhi::TextureHandle;
 

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ranges>
-
 #include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
 
@@ -45,8 +43,7 @@ namespace mikoto::editor {
         const EngineDescription config{
             .mEnableAllServices = true,
             .mEnableAllSubsystems = true,
-            .mWindow = mWindow,
-        };
+            .mWindow = mWindow };
 
         mEngine = eastl::make_unique<Engine>( config );
         mEngine->Initialize();
@@ -97,6 +94,7 @@ namespace mikoto::editor {
             // Start a new frame
             RenderSystem::Get()->PrepareFrame();
 
+            // Update window header with current FPS. Framerate is updated at intervals
             if (TimeService::Get()->GetTime( TimeUnit::eMilliseconds ) - mLastUpdateTime >= kUpdateInterval ) {
                 mLastUpdateTime = TimeService::Get()->GetTime( TimeUnit::eMilliseconds );
                 static eastl::string originalTitle{ mWindow->GetTitle() };

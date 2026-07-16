@@ -127,7 +127,7 @@ namespace mikoto::editor {
         static bool run{ false };
         if (first >= 3 && !run) {
             // Skybox projection does not get the changes
-            // the HDR texture on the very first frame
+            // from the HDR texture for some reason on the very first frame
             // I am using this to delay that pass to later frames
             run = true;
 
@@ -159,10 +159,6 @@ namespace mikoto::editor {
             UpdateDockSpacePanels( timeStep );
 
             UpdateViewportState( timeStep );
-
-            auto scenePanel{ mPanelRegistry.Get<ScenePanel>() };
-            const auto& viewportInfo{ scenePanel->GetViewport() };
-
         } else {
             entityID = mSceneRenderer->ReadPixel( (u32)mousePos.first, (u32)mousePos.second);
             RenderSystem::Get()->SetPresentTarget( mEditorState->mFinalComposition );
@@ -215,16 +211,13 @@ namespace mikoto::editor {
                     threading::TaskService::Get()->Submit( [this, path]() -> void {
                         ModelLoadDescription description{
                             .mFile = FileService::Get()->LoadFile( path ),
-                            .mExtractTextures = true,
-                        };
+                            .mExtractTextures = true };
                         const ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( description ) };
 
                         const EntityCreateInfo entityCreateInfo{
                             .mRoot = nullptr,
                             .mName{ description.mFile->GetName() },
-                            .mModel = model,
-                        };
-
+                            .mModel = model };
                         mEditorState->mActiveScene->PushEntity( entityCreateInfo );
                     } );
                 }
@@ -653,8 +646,7 @@ namespace mikoto::editor {
 
     auto EditorLayer::UpdateDockSpacePanels( float ts ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-
-        for (const auto &panel: mPanelRegistry | std::ranges::views::values) {
+        for ( const auto &panel: mPanelRegistry | std::ranges::views::values ) {
             panel->OnUpdate( ts );
         }
     }
@@ -668,14 +660,15 @@ namespace mikoto::editor {
 
         mSceneRenderer->Render( mEditorState->mActiveScene );
 
-        mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - ShaderResource" } );
-        // On panel mode this image is sampled by ImGui to render as viewport
-        // otherwise it is copied to the swapchain image
         if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
+            mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - ShaderResource" } );
+            // On panel mode this image is sampled by ImGui to render as viewport hence why the transition,
+            // otherwise it is copied directly to the swapchain image
             mCommandList->SetResourceState( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eShaderResource );
+
+            mCommandList->End();
+            mDevice->SubmitCommands( mCommandList );
         }
-        mCommandList->End();
-        mDevice->SubmitCommands( mCommandList );
     }
 
     auto EditorLayer::UpdateViewportState( float ) -> void {

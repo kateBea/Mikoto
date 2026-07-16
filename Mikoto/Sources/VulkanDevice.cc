@@ -1057,6 +1057,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::BeginTrackingState( ITexture *texture, ResourceStates newState ) -> void {
+        // https://www.rastergrid.com/blog/gpu-tech/2026/03/vulkan-memory-barriers-and-image-layouts-explained/
         // https://docs.vulkan.org/samples/latest/samples/performance/pipeline_barriers/README.html
         // https://gpuopen.com/learn/vulkan-barriers-explained/
         // https://cpp-rendering.io/barriers-vulkan-not-difficult/
@@ -1145,7 +1146,6 @@ namespace mikoto::renderer::vulkan {
             range.layerCount = 1;
 
             // Image needs to be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-
             auto* ctx{ GetThreadContext() };
             vkCmdClearColorImage(ctx->mCommandBuffer, image->GetNativeHandle( ObjectType::Vk_Image ), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range);
         }
@@ -1165,7 +1165,6 @@ namespace mikoto::renderer::vulkan {
         range.layerCount = 1;
 
         // Image needs to be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-
         auto* ctx{ GetThreadContext() };
         vkCmdClearColorImage(ctx->mCommandBuffer, image->GetNativeHandle( ObjectType::Vk_Image ), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range);
     }

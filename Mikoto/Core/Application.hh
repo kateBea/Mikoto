@@ -15,8 +15,6 @@
 #ifndef MIKOTO_APPLICATION_HH
 #define MIKOTO_APPLICATION_HH
 
-#include <EASTL/utility.h>
-
 #include <Core/LayerStack.hh>
 #include <Core/Singleton.hh>
 

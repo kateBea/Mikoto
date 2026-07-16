@@ -73,6 +73,9 @@ namespace mikoto::editor {
 
         // Image that will be used for presentation
         TextureHandle mFinalComposition{};
+
+        // Current desired resolution. If changed a resize on the final
+        // composition should be performed.
         RenderResolution mResolution{ RenderResolution::e1080P };
 
         // List of prefab models

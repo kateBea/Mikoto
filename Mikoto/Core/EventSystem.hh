@@ -42,23 +42,23 @@ namespace mikoto::core {
     class EventHandler {
     public:
         EventHandler( const EventType type, HandlerFunc&& func )
-            : m_Type{ type }, m_Category{ GetCategoryFromType( type ) }, m_Handler{ eastl::move( func ) } {
+            : mType{ type }, mCategory{ GetCategoryFromType( type ) }, mHandler{ eastl::move( func ) } {
         }
 
         EventHandler( const EventCategory category, HandlerFunc&& func )
-            : m_Category{ category }, m_Handler{ eastl::move( func ) } {
+            : mCategory{ category }, mHandler{ eastl::move( func ) } {
         }
 
-        EventHandler( EventHandler&& other ) = default;
+        EventHandler( EventHandler&& other )  noexcept = default;
         auto operator=( EventHandler&& other ) noexcept -> EventHandler& = default;
 
         auto Exec( IEvent& event ) const -> bool {
-            return m_Handler( event );
+            return mHandler( event );
         }
 
-        MKT_NODISCARD auto GetType() const -> EventType { return m_Type; }
-        MKT_NODISCARD auto GetCategory() const -> EventCategory { return m_Category; }
-        MKT_NODISCARD auto GetHandler() const -> HandlerFunc { return m_Handler; }
+        MKT_NODISCARD auto GetType() const -> EventType { return mType; }
+        MKT_NODISCARD auto GetCategory() const -> EventCategory { return mCategory; }
+        MKT_NODISCARD auto GetHandler() const -> HandlerFunc { return mHandler; }
 
         /**
          * Returns true if this EventHandlerWrapper and other are the same, meaning
@@ -67,13 +67,13 @@ namespace mikoto::core {
          * @returns true if this EventHandlerWrapper and other are the same, false otherwise
          * */
         auto operator==( const EventHandler& other ) const -> bool {
-            return m_Type == other.m_Type && m_Category == other.m_Category;
+            return mType == other.mType && mCategory == other.mCategory;
         }
 
     private:
-        EventType m_Type{ EventType::UNKNOWN_EVENT };
-        EventCategory m_Category{ EMPTY_EVENT_CATEGORY };
-        HandlerFunc m_Handler{};
+        EventType mType{ EventType::UNKNOWN_EVENT };
+        EventCategory mCategory{ EMPTY_EVENT_CATEGORY };
+        HandlerFunc mHandler{};
     };
 
     /**

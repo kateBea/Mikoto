@@ -210,14 +210,15 @@ namespace mikoto::renderer::vulkan {
         ankerl::unordered_dense::map<IBuffer*, eastl::fixed_vector<eastl::unique_ptr<GpuUploadAllocation>, kMaxSubAllocations>> mSubAllocations{};
     };
 
+    class CommandPool;
+
     struct CommandThreadContext {
         u64 mSubmissionId{};
-        VkCommandBuffer mCommandBuffer{};
         IBuffer* mIndirectBuffer{};
         bool mIsRenderScopeActive{};
-    };
 
-    class CommandPool;
+        VkCommandBuffer mCommandBuffer{};
+    };
 
     // https://github.com/KhronosGroup/Vulkan-Samples/tree/main/samples/performance/command_buffer_usage
     // Keeps tract of bound resources
@@ -310,22 +311,25 @@ namespace mikoto::renderer::vulkan {
         auto Release() -> void override;
 
         auto InitializeArenaAllocators() -> void;
+        auto GetThreadContext( bool isSecondary = true ) -> CommandThreadContext*;
 
         auto ClearState() -> void;
-
         auto TryRecycle(IQueue* queue) -> void;
-
-        auto GetThreadContext( bool isSecondary = true ) -> CommandThreadContext*;
 
     private:
         CommandPool* mCommandPool{ nullptr };
         VkCommandBufferAllocateInfo mAllocInfo{};
 
+        GpuUploadManager* mUploadManager{ nullptr };
+
         bool mEnableAutomaticBarriers{ true };
+
+        // TODO(kate): It would be interesting to expose pool management
+        // through the RHI or have it be handled automatically just like barriers
+        bool mEnableCommandPoolManagement{ true };
+
         eastl::fixed_vector<VkBufferMemoryBarrier2, kMaxBarriers> mBufferBarriers{};
         eastl::fixed_vector<VkImageMemoryBarrier2, kMaxBarriers> mImageBarriers{};
-
-        GpuUploadManager* mUploadManager{ nullptr };
 
         // We will be using a bump allocator for data that needs to copied to GPU per frame (bigger than 64KB)
         // And reset it everytime we call End(). The arena remains initialized until it is actually needed.
@@ -333,25 +337,21 @@ namespace mikoto::renderer::vulkan {
         // everytime we need to start consuming it again.
         static constexpr size_t kMaxVolatileBufferVersions{ 4 };
         static constexpr size_t kArenaInitialSize{ MKT_MEGABYTES( 64 ) };
+
         u32 mCurrentVolatileVersion{ 0 };
-        ankerl::unordered_dense::map<u32,
-            eastl::unique_ptr<memory::MemoryArena<IBuffer, LinearAllocator>>> mArenasAllocators{};
+        ankerl::unordered_dense::map<u32, eastl::unique_ptr<memory::MemoryArena<IBuffer, LinearAllocator>>> mArenasAllocators{};
 
         std::mutex mUploadAllocationsMutex{};
         eastl::fixed_vector<GpuUploadAllocation*, 10> mUploadAllocations{};
 
         // Multithread
-        static constexpr size_t kMaxCmdConcurrency{ 16 };
-        u32 mMaxThreadConcurrency{ 0 };
-
-        // The guy who called Begin(), he is responsible of
-        // merging stuff from workers in the call to End()
         std::thread::id mHostThread{};
+        u32 mMaxThreadConcurrency{ 0 };
+        static constexpr size_t kMaxCmdConcurrency{ 16 };
 
         // It holds the main command buffer that can be submitted
         // after recording is done (once we call End())
         VkCommandBuffer mPrimaryCommandBuffer{};
-
         eastl::vector<VkCommandBuffer> mSecondaryCommandBuffersPool{};
 
         std::mutex mSecondaryCmdsAllocMutex{};

@@ -298,8 +298,7 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
 
         auto &registry{ mScene->GetRegistry() };
-        const auto renderables{
-            registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
+        const auto renderables{ registry.view<TagComponent, TransformComponent, MaterialComponent, MeshComponent>() };
 
         for ( const auto& [entity,
             tagComponent,

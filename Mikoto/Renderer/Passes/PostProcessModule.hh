@@ -74,6 +74,8 @@ namespace mikoto::renderer {
 
         auto RegisterPostProcess( FrameGraph& graph ) -> void;
 
+        auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
+
         auto RegisterObjectOutline( FrameGraph& graph ) -> void;
         auto RegisterDepthOfField( FrameGraph& graph ) -> void;
 

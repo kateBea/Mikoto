@@ -18,25 +18,9 @@
 // =========================================================================
 
 #include "base/Base.slang"
-#include "base/Camera_Helpers.slang"
 #include "base/Math_Helpers.slang"
-
-[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
-ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
-
-struct InfiniteGridProperties {
-    float4 OuterSquareColor ;
-    float4 InnerSquareColor ;
-
-    float4 XAxisColor;
-    float4 ZAxisColor;
-
-    float OuterSquareWidth;
-    float InnerSquareWidth;
-
-    float XAxisWidth;
-    float ZAxisWidth;
-};
+#include "base/Memory_Helpers.slang"
+#include "base/Camera_Helpers.slang"
 
 struct FSInput {
     float2 TexCoord : TEXCOORD0;
@@ -52,8 +36,24 @@ struct FSOutput {
     float FragDepth : SV_Depth;
 };
 
-[[vk::push_constant]]
-InfiniteGridProperties u_Params;
+struct DrawParams {
+    uint mCameraDataID;
+
+    float4 OuterSquareColor;
+    float4 InnerSquareColor;
+
+    float4 XAxisColor;
+    float4 ZAxisColor;
+
+    float OuterSquareWidth;
+    float InnerSquareWidth;
+
+    float XAxisWidth;
+    float ZAxisWidth;
+};
+
+MKT_DECLARE_STRUCTURED_SRV buffers;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 float4 Grid(float3 fragPos, float scale, float thickness, float3 lineColor) {
     const float2 coords = fragPos.xz * scale;
@@ -63,19 +63,19 @@ float4 Grid(float3 fragPos, float scale, float thickness, float3 lineColor) {
 
     float4 color = float4(lineColor, 1.0 - min(line, 1.0));
 
-    const float axisWidthX = u_Params.XAxisWidth;
-    const float axisWidthZ = u_Params.ZAxisWidth;
+    const float axisWidthX = parameters.XAxisWidth;
+    const float axisWidthZ = parameters.ZAxisWidth;
 
     // X axis
     const float minX = min(fd.x, 1.0);
     if (fragPos.x > -axisWidthX * minX && fragPos.x < axisWidthX * minX) {
-        color = float4(u_Params.XAxisColor);
+        color = float4(parameters.XAxisColor);
     }
 
     // Z axis
     const float minZ = min(fd.y, 1.0);
     if (fragPos.z > -axisWidthZ * minZ && fragPos.z < axisWidthZ * minZ) {
-        color = float4(u_Params.ZAxisColor);
+        color = float4(parameters.ZAxisColor);
     }
     return color;
 }
@@ -98,17 +98,19 @@ float3 WorldToNDC(float4 v, float4x4 camViewProj) {
 FSOutput main(FSInput input) {
     FSOutput o;
 
+    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+
     const float t = -input.Near.y / (input.Far.y - input.Near.y);
     const float3 fragPos = input.Near + t * (input.Far - input.Near);
 
-    const float3 ndc = float3(WorldToNDC(float4(fragPos, 1.0), mul(u_Camera.Projection, u_Camera.ViewMatrix)));
+    const float3 ndc = float3(WorldToNDC(float4(fragPos, 1.0), mul(camera.Projection, camera.ViewMatrix)));
     if (ndc.z >= 1.0) discard;
 
     o.FragDepth = ndc.z - EPSILON;
 
-    o.Color = (Grid(fragPos, 0.01, 0.5, u_Params.InnerSquareColor.xyz) + Grid(fragPos, 0.5, 1, u_Params.OuterSquareColor.xyz)) * float(t > 0.0);
+    o.Color = (Grid(fragPos, 0.01, 0.5, parameters.InnerSquareColor.xyz) + Grid(fragPos, 0.5, 1, parameters.OuterSquareColor.xyz)) * float(t > 0.0);
 
-    const float linearDepth = LinearizeDepth(u_Camera.Planes.x, u_Camera.Planes.y, ndc.z) / u_Camera.Planes.y;
+    const float linearDepth = LinearizeDepth(camera.Planes.x, camera.Planes.y, ndc.z) / camera.Planes.y;
     o.Color.a *= max(0.0, (0.5 - linearDepth));
 
     return o;

@@ -584,7 +584,6 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> TextureHandle;
         MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> BufferHandle;
 
-        // Loads the texture using asset service
         MKT_NODISCARD auto ImportTexture( const Path& path ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportTexture( TextureHandle handle ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportBuffer( BufferHandle handle ) -> FGBufferHandle;
@@ -629,8 +628,6 @@ namespace mikoto::renderer {
             node.mBuilderCallback();
         }
 
-        auto RegisterReadback( FGReadbackTask::Callback &&execute, bool runEveryFrame = false ) -> void;
-
         template<typename T, typename... Args>
         auto GetOrCreate(Args&&... args) -> T& {
             if (mBlackboard.Contains<T>()) {
@@ -649,6 +646,8 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto Exists() const -> bool {
             return mBlackboard.Contains<T>();
         }
+
+        auto RegisterReadback( FGReadbackTask::Callback &&execute, bool runEveryFrame = false ) -> void;
 
         MKT_NODISCARD static auto Create( GpuDevice* device, material::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph>;
 

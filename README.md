@@ -72,7 +72,6 @@ passes, amongst other features.
 ## Requirements
 
 ### Software Requirements
-### **Software Requirements**
 
 - **CMake 3.22+** – Required for configuring and building the project.
 - **Vulkan SDK** – Install from the official [LunarG SDK](https://vulkan.lunarg.com/).

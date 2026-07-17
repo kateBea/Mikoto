@@ -128,7 +128,6 @@ namespace mikoto::renderer::rhi {
         { Format::eBC7_UNORM_SRGB, "BC7_UNORM_SRGB", 16, 4, FormatKind::Normalized, true, true, true, true, false, false, false, true },
     };
 
-
     auto GetFormatInfo( Format format ) -> const FormatInfo & {
         static_assert( sizeof( kFormatInfo ) / sizeof( FormatInfo ) == size_t( Format::eCount ),
                        "The format info table doesn't have the right number of elements" );

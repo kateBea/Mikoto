@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 
 struct VSOutput {
@@ -24,11 +25,28 @@ struct VSOutput {
     float4 PositionH : SV_Position;
 };
 
-[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
-ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
+struct DrawParams {
+    uint mCameraDataID;
+
+    float4 OuterSquareColor;
+    float4 InnerSquareColor;
+
+    float4 XAxisColor;
+    float4 ZAxisColor;
+
+    float OuterSquareWidth;
+    float InnerSquareWidth;
+
+    float XAxisWidth;
+    float ZAxisWidth;
+};
+
+MKT_DECLARE_STRUCTURED_SRV buffers;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 float3 NDCToWorld(float4 v) {
-    const float4 P = mul(u_Camera.InverseViewProjection, v);
+    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+    const float4 P = mul(camera.InverseViewProjection, v);
     return P.xyz / P.w;
 }
 

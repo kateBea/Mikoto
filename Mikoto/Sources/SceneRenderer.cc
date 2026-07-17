@@ -31,18 +31,18 @@ namespace mikoto::renderer {
         mTargetResolution{ createInfo.mResolution } {}
 
     auto SceneRenderer::Init() -> void {
+        // Temporary, as the Direct3D 11 backend does not offer support for
+        // bindless which the frame graph relies on for most of its functionality
         if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11)) {
             MKT_CORE_LOGGER_WARN( "Scene renderer expects DirectX12 or Vulkan" );
             return;
         }
 
-        // Init shader library
         const ShaderLibraryDescription description{
             .mDevice = mDevice,
-            .mRootPath{ "Resources/Shaders/slang" },
-        };
-
+            .mRootPath{ "Resources/Shaders/slang" } };
         mShaderLibrary = eastl::make_unique<ShaderLibrary>( description );
+
         if (mShaderLibrary) {
             mShaderLibrary->Initialize();
         }
@@ -74,6 +74,9 @@ namespace mikoto::renderer {
         mMaterialModule.RegisterPasses( *mFrameGraph );
         mDebugPasses.RegisterPasses( *mFrameGraph );
 
+        // I am not sure about this pass, this one was designed to
+        // ideally serve as helper for passes that required image blit-ting
+        // which could be achieved with compute shaders for instance
         mHelperModule.RegisterPasses( *mFrameGraph );
 
         // Render final contents into specified images
@@ -184,7 +187,7 @@ namespace mikoto::renderer {
 
         mGeometryShading.SetSkyboxMaterial( material );
 
-        // This pass runs sleeps after every run,
+        // These passes sleep after every run,
         // we need to re-enable it again so it runs once again
         // on the next call to execute
         mFrameGraph->EnablePass( "PrefilterPass" );

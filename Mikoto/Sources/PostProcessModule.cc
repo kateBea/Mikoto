@@ -61,6 +61,8 @@ namespace mikoto::renderer {
         RegisterDepthOfField( graph );
 
         RegisterPostProcess( graph );
+
+        RegisterInfiniteGrid( graph );
     }
 
     auto PostEffectsPass::SetEnableBloom( bool value ) -> void {
@@ -73,6 +75,20 @@ namespace mikoto::renderer {
 
     auto PostEffectsPass::SetExposure( f32 exposure ) -> void {
         mExposure = exposure;
+    }
+
+    auto PostEffectsPass::RegisterInfiniteGrid( FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        graph.RegisterPass(
+            "InfiniteGrid",
+            FGPassType::eGraphics,
+            []( FGNodeBuilder& builder, Blackboard& blackboard ) {
+
+            },
+            []( CommandContext& ctx, Blackboard& b ) {
+                // Nothing
+            } );
     }
 
     auto PostEffectsPass::RegisterObjectOutline( FrameGraph& graph ) -> void {

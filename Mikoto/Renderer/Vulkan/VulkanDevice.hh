@@ -217,6 +217,7 @@ namespace mikoto::renderer::vulkan {
         IBuffer* mIndirectBuffer{};
         bool mIsRenderScopeActive{};
 
+        CommandPool* mPool{};
         VkCommandBuffer mCommandBuffer{};
     };
 
@@ -311,7 +312,7 @@ namespace mikoto::renderer::vulkan {
         auto Release() -> void override;
 
         auto InitializeArenaAllocators() -> void;
-        auto GetThreadContext( bool isSecondary = true ) -> CommandThreadContext*;
+        auto GetThreadContext() -> CommandThreadContext*;
 
         auto ClearState() -> void;
         auto TryRecycle(IQueue* queue) -> void;
@@ -352,9 +353,6 @@ namespace mikoto::renderer::vulkan {
         // It holds the main command buffer that can be submitted
         // after recording is done (once we call End())
         VkCommandBuffer mPrimaryCommandBuffer{};
-        eastl::vector<VkCommandBuffer> mSecondaryCommandBuffersPool{};
-
-        std::mutex mSecondaryCmdsAllocMutex{};
         ankerl::unordered_dense::map<std::thread::id, eastl::unique_ptr<CommandThreadContext>> mThreadContexts{};
 
         // For debug
@@ -417,6 +415,8 @@ namespace mikoto::renderer::vulkan {
 
         auto AllocateCmdList() -> CommandListHandle;
         auto AllocateCmdList( const CommandListParameters& params ) -> CommandListHandle;
+
+        auto AllocateSecondaryCmdList() -> eastl::pair<VkCommandBuffer, CommandPool*>;
 
         auto PushDelete( VkCommandBuffer cmd, VkCommandPool pool, u64 submitID ) -> void;
         auto PushDelete( VkCommandBuffer cmd, VkCommandPool pool, const FencePlain& fence ) -> void;

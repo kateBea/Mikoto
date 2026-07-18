@@ -52,6 +52,9 @@ namespace mikoto::renderer {
         eastl::fixed_vector<FGTextureHandle, kMaxBloomChainImages> mBloomChainImages{};
 
         // Post-process
+
+        // Infinite grid
+        FGPipelineHandle mInfiniteGridPipeline{};
     };
 
     class PostEffectsPass {

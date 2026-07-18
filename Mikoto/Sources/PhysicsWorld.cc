@@ -86,15 +86,15 @@ namespace mikoto::physics {
 
         // Initialize physics system
         mSimulationInfo.mPhysicsSystem.Init(
-                kMaxBodies,
-                kNumBodyMutexes,
-                kMaxBodyPairs,
-                kMaxContactConstraints,
+            kMaxBodies,
+            kNumBodyMutexes,
+            kMaxBodyPairs,
+            kMaxContactConstraints,
 
-                // These need to be alive for as long as the physics system needs it
-                mSimulationInfo.mBroadPhaseLayerInterface,
-                mSimulationInfo.mObjectVsBroadPhaseLayerFilter,
-                mSimulationInfo.mObjectLayerPairFilter );
+            // These need to be alive for as long as the physics world needs them
+            mSimulationInfo.mBroadPhaseLayerInterface,
+            mSimulationInfo.mObjectVsBroadPhaseLayerFilter,
+            mSimulationInfo.mObjectLayerPairFilter );
 
         mSimulationInfo.mBodyInterface = MKT_ADDRESSOF( mSimulationInfo.mPhysicsSystem.GetBodyInterface() );
 

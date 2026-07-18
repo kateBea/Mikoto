@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -73,6 +73,8 @@ namespace mikoto::renderer {
         // Some debug passes
         mMaterialModule.RegisterPasses( *mFrameGraph );
         mDebugPasses.RegisterPasses( *mFrameGraph );
+
+        mTonemapModule.RegisterPasses( *mFrameGraph );
 
         // I am not sure about this pass, this one was designed to
         // ideally serve as helper for passes that required image blit-ting
@@ -151,7 +153,7 @@ namespace mikoto::renderer {
     }
 
     auto SceneRenderer::SetTonemapType( ToneMappingType type ) -> void {
-        mGeometryShading.SetToneMapping( type );
+        mTonemapModule.SetToneMapping( type );
     }
 
     auto SceneRenderer::SetGamma( f32 gamma ) -> void {

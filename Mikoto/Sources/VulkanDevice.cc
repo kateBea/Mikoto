@@ -534,7 +534,9 @@ namespace mikoto::renderer::vulkan {
     }
     
     auto Device::ExecuteCommands( eastl::span<CommandListHandle> cmdList ) -> void {
-
+        for (auto& cmd : cmdList) {
+            ExecuteCommands( cmd );
+        }
     }
 
     auto Device::WaitIdle() -> void {
@@ -931,31 +933,7 @@ namespace mikoto::renderer::vulkan {
 
         ClearState();
 
-        if (mMaxThreadConcurrency != 0) {
-            // TODO: instead of doing this allocate secondary command buffer from the queue kind of like you are doing with AllocateCommandList but instead we get just the VkCommandHandle, every worker thread to its pool
-            // This should happen when we call BeginParallel the thread creates its context and its command buffer
-
-            // Access to pool must be synchronized, only one thread can allocate at a time
-            // we allocate as many as concurrency value specified. Worker thread will only have to grab from this
-            // pool of already allocated secondary command buffers
-
-            // Insert as many as we need to reach mMaxThreadConcurrency
-            size_t missingCmdsCount{ mMaxThreadConcurrency - mSecondaryCommandBuffersPool.size() };
-            for (size_t i{}; i < missingCmdsCount; ++i) {
-                VkCommandBufferAllocateInfo allocInfo{ initializers::CommandBufferAllocateInfo() };
-                allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-                allocInfo.commandPool = mAllocInfo.commandPool;
-                allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-                allocInfo.commandBufferCount = 1;
-
-                VkCommandBuffer cmd{};
-                MKT_VK_CHECK( vkAllocateCommandBuffers(checked_cast<Device*>(mDevice)->GetDevice(), &allocInfo, &cmd) );
-
-                mSecondaryCommandBuffersPool.emplace_back(cmd);
-            }
-        }
-
-        auto* ctx{ GetThreadContext( false ) };
+        auto* ctx{ GetThreadContext() };
 
         // Store the primary command buffer for the duration of the record
         // frame (a record frame is set of commands between Begin() and End())
@@ -1006,6 +984,11 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::BeginParallel() -> void {
+        // Begin() must have been called before this method
+        // because we need a valid primary command buffer we will
+        // execute secondary command buffers on
+
+        MKT_ASSERT( mHostThread != std::thread::id{} != 0, "A primary command buffer is required, must call Begin() first" );
         MKT_ASSERT( mMaxThreadConcurrency != 0, "Command buffer does not allow parallel execution" );
 
         auto* ctx{ GetThreadContext() };
@@ -1873,24 +1856,28 @@ namespace mikoto::renderer::vulkan {
 
     }
 
-    auto CommandList::GetThreadContext( bool isSecondary ) -> CommandThreadContext* {
+    auto CommandList::GetThreadContext() -> CommandThreadContext* {
         // https://docs.vulkan.org/guide/latest/threading.html
         // https://docs.vulkan.org/spec/latest/chapters/fundamentals.html#fundamentals-threadingbehavior
-        auto id{ std::this_thread::get_id() };
-
-        std::scoped_lock lock{ mSecondaryCmdsAllocMutex };
+        const auto id{ std::this_thread::get_id() };
+        const auto isSecondary{ id != mHostThread };
 
         if (!mThreadContexts.contains( id )) {
             auto result{ mThreadContexts.emplace( id, eastl::make_unique<CommandThreadContext>() ) };
 
             if (isSecondary) {
-                result.first->second->mCommandBuffer = mSecondaryCommandBuffersPool.back();
-                mSecondaryCommandBuffersPool.pop_back();
+                // TODO(kate): grab a new command buffer from a pool for this thread
+                Queue* queue{ checked_cast<Device*>( mDevice )->GetQueue( mQueueType ) };
+                auto properties{ queue->AllocateSecondaryCmdList() };
+                result.first->second->mPool = properties.second;
+                result.first->second->mCommandBuffer = properties.first;
             } else {
                 MKT_VK_CHECK( vkAllocateCommandBuffers(
                    as<Device*>(mDevice)->GetDevice(),
                    MKT_ADDRESSOF( mAllocInfo ),
                    MKT_ADDRESSOF( result.first->second->mCommandBuffer ) ) );
+
+                result.first->second->mPool = mCommandPool;
             }
 
             auto* device{ checked_cast<Device*>( mDevice ) };
@@ -2156,6 +2143,23 @@ namespace mikoto::renderer::vulkan {
     auto Queue::AllocateCmdList( const CommandListParameters& params ) -> CommandListHandle {
         CommandPoolHandle pool{ AcquireThreadCmdPool() };
         return pool->AllocateCmdList( params );
+    }
+
+    auto Queue::AllocateSecondaryCmdList() -> eastl::pair<VkCommandBuffer, CommandPool*> {
+        CommandPoolHandle pool{ AcquireThreadCmdPool() };
+
+        VkCommandBufferAllocateInfo allocInfo{ initializers::CommandBufferAllocateInfo() };
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = pool->GetNativeHandle(ObjectType::Vk_CmdPool);
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+        allocInfo.commandBufferCount = 1;
+
+        VkCommandBuffer cmd{};
+        MKT_VK_CHECK( vkAllocateCommandBuffers(checked_cast<Device*>(mDevice)->GetDevice(),
+            MKT_ADDRESSOF( allocInfo ),
+            MKT_ADDRESSOF( cmd )) );
+
+        return eastl::make_pair( cmd, pool.GetRaw() );
     }
 
     auto Queue::GetCompletedValue() const -> u64 {

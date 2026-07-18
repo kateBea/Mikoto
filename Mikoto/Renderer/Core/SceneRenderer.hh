@@ -25,6 +25,7 @@
 #include <Renderer/Passes/CameraModule.hh>
 #include <Renderer/Passes/DebugModule.hh>
 #include <Renderer/Passes/HelperModule.hh>
+#include <Renderer/Passes/TonemapModule.hh>
 #include <Renderer/Passes/MaterialModule.hh>
 #include <Renderer/Passes/MousePickingModule.hh>
 #include <Renderer/Passes/PathTracingModule.hh>
@@ -115,6 +116,8 @@ namespace mikoto::renderer {
         GeometryCullModule mGeometryManagement{};
         GeometryShadingModule mGeometryShading{ mTargetResolution };
         PresentationModule mPresentationModule{ mTargetResolution };
+
+        TonemapModule mTonemapModule{ mTargetResolution };
 
         MousePickingModule mMousePickingModule{ mTargetResolution };
 

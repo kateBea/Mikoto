@@ -62,7 +62,7 @@ namespace mikoto::renderer {
 
         RegisterPostProcess( graph );
 
-        RegisterInfiniteGrid( graph );
+        //RegisterInfiniteGrid( graph );
     }
 
     auto PostEffectsPass::SetEnableBloom( bool value ) -> void {
@@ -80,14 +80,73 @@ namespace mikoto::renderer {
     auto PostEffectsPass::RegisterInfiniteGrid( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        PostProcessModuleInfo& info{ graph.GetOrCreate<PostProcessModuleInfo>() };
+
+        auto pipelineBuilder{ FGPipelineDescription{}
+            .SetName( "InfiniteGrid_Pipeline" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .SetPolygonMode( PolygonMode::eFill )
+            .SetDepthFormat( Format::eD32 )
+            .AddColorFormat( Format::eRGBA16_FLOAT )
+            .PushShader( "InfiniteGrid_Vert.slang", FGStageType::eVertex )
+            .PushShader( "InfiniteGrid_Frag.slang", FGStageType::ePixel ) };
+
+        info.mInfiniteGridPipeline = graph.Create( pipelineBuilder );
+
         graph.RegisterPass(
             "InfiniteGrid",
             FGPassType::eGraphics,
             []( FGNodeBuilder& builder, Blackboard& blackboard ) {
+                CameraModuleInfo& cam{ blackboard.Get<CameraModuleInfo>() };
+                GeomShadingModuleInfo& shading{ blackboard.Get<GeomShadingModuleInfo>() };
+                PrepassModuleInfo& prepass{ blackboard.Get<PrepassModuleInfo>() };
 
+                builder.Read( cam.mCameraData, FGResourceState::eShaderResource );
+                builder.Read( prepass.mDepthPrepassDepthTarget, FGResourceState::eDepthRead );
+                builder.Write( shading.mShadingColorImage, FGResourceState::eRenderTarget );
             },
-            []( CommandContext& ctx, Blackboard& b ) {
-                // Nothing
+            [this]( CommandContext& ctx, Blackboard& b ) {
+                CameraModuleInfo& cam{ b.Get<CameraModuleInfo>() };
+                PrepassModuleInfo& prepass{ b.Get<PrepassModuleInfo>() };
+                GeomShadingModuleInfo& shading{ b.Get<GeomShadingModuleInfo>() };
+                PostProcessModuleInfo& info{ b.Get<PostProcessModuleInfo>() };
+
+                const auto dimensions{ InferDimensions( mResolution ) };
+
+                const auto graphicsState{ ContextRenderState{}
+                    .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
+                    .AddDepthTarget( prepass.mDepthPrepassDepthTarget, LoadOp::eLoad )
+                    .AddRenderTarget( shading.mShadingColorImage, kColorGreen, LoadOp::eLoad ) };
+                ctx.BeginRender( graphicsState );
+
+                struct DrawParams {
+                    u32 mCameraBufferID{};
+
+                    float4 OuterSquareColor{ 0.8f, 0.8f, 0.8f, 0.8f };
+                    float4 InnerSquareColor{ 0.8f, 0.8f, 0.8f, 0.8f };
+
+                    float4 XAxisColor{ 0.0, 0.0, 1.0, 1.0 };
+                    float4 ZAxisColor{ 1.0, 0.0, 0.0, 1.0 };
+
+                    f32 OuterSquareWidth{ 0.5f };
+                    f32 InnerSquareWidth{ 1.0f };
+
+                    f32 XAxisWidth{ 6.0f };
+                    f32 ZAxisWidth{ 6.0f };
+                } params{
+                    .mCameraBufferID = ctx.PushBuffer_SRV( cam.mCameraData ),
+                };
+
+                ctx.PushConstants( params );
+
+                ctx.SetViewportState( ViewportState{}
+                    .AddViewportAndScissorRect( Viewport( as<f32>( dimensions.first ), as<f32>( dimensions.second ) ) ) );
+
+                ctx.BindPipeline( info.mInfiniteGridPipeline );
+                ctx.Draw( 3 );
+
+                ctx.EndRender();
             } );
     }
 

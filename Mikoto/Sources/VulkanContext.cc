@@ -143,8 +143,6 @@ namespace mikoto::renderer::vulkan {
             // Blit via full quad render
             TextureHandle colorImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
-
-            //const ResourceStates previousState{ mPresentTarget->GetResourceState() };
             mCommandList->SetResourceState( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
 
             if (mTableUpdateRequired) {
@@ -166,9 +164,8 @@ namespace mikoto::renderer::vulkan {
                 .SetBindPoint( PipelineType::eGraphics ));
 
             mCommandList->SetViewportState( ViewportState{}
-                .AddViewportAndScissorRect( Viewport( (f32)mSwapchain->GetWidth(), (f32)mSwapchain->GetHeight() ) ) );
+                .AddViewportAndScissorRect( Viewport( as<f32>( mSwapchain->GetWidth() ), as<f32>( mSwapchain->GetHeight() ) ) ) );
 
-            // Issue draw call
             constexpr auto drawArguments{ DrawArguments{}
                 .SetVertexCount( 3 ) };
             mCommandList->Draw( drawArguments );
@@ -179,7 +176,6 @@ namespace mikoto::renderer::vulkan {
 
             mCommandList->End();
 
-            // enqueue instead of submit
             device->SubmitCommands( mCommandList );
 #else
             // Blit via copy command
@@ -230,8 +226,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Context::PrepareFrame() -> void {
-        //MKT_BEGIN_PROFILER_NAMED();
-        //MKT_PROFILE_SCOPE_MARKED( "Context::PrepareFrame" );
+        MKT_BEGIN_PROFILER_NAMED();
 
         const auto& frame{ mFrames[mCurrentFrameIndex] };
         auto device{ checked_cast<Device*>( mDevice.get() ) };
@@ -249,7 +244,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Context::Update() -> void {
-
+        // Nothing
     }
 
     auto Context::SetRefreshRate( RefreshRate rate ) -> void {
@@ -337,8 +332,6 @@ namespace mikoto::renderer::vulkan {
             .SetStage( ShaderType::ePixel ) };
         mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
 
-        // We will upload a texture and a buffer to do some effects, see Triangle_Frag
-        // Ideally we want to automate this process by allowing each backend to be able to use shader reflection
         auto layoutDesc{ BindingLayoutDescription{}
             .SetRegisterSpace( 0 )
             .SetShaderVisibility(ShaderFlagsBits::kAll)

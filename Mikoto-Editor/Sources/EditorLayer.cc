@@ -321,36 +321,32 @@ namespace mikoto::editor {
     auto EditorLayer::InitEditorCamera() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        SceneCameraDescription cameraDescription{
-            .mFov = 45.0,
-            .mAspectRatio = as<float>( mWindow->GetWidth() ) / as<float>( mWindow->GetHeight() ),
-            .mNearPlane = 0.1f,
-            .mFarPlane = 3000.0f,
-            .mWindow = mWindow
-        };
+        auto cameraDesc{ SceneCameraDescription{}
+            .SetFieldOfView( 45.0f )
+            .SetFarPlane( 0.1f )
+            .SetNearPlane( 3000.0f )
+            .SetTargetWindow( mWindow )
+            .SetAspectRatio( as<f32>( mWindow->GetWidth() ), as<f32>( mWindow->GetHeight() ) ) };
+        mEditorCamera = eastl::make_unique<SceneCamera>( cameraDesc );
 
-        mEditorCamera = eastl::make_unique<SceneCamera>( cameraDescription );
         mEditorState->mActiveCamera = mEditorCamera.get();
     }
 
     auto EditorLayer::InitEditorPanels() -> void {
         // Stats panel
         StatsPanelCreateInfo statsCreateInfo{
-            .mState = mEditorState.get(),
-        };
+            .mState = mEditorState.get() };
         mPanelRegistry.Register<StatsPanel>( statsCreateInfo );
 
         // Console runtime panel
         RuntimeConsolePanelCreateInfo consoleCreateInfo{
-            .mState = mEditorState.get(),
-        };
+            .mState = mEditorState.get() };
         mPanelRegistry.Register<RuntimeConsolePanel>( consoleCreateInfo );
 
         // Scene viewport panel
         ScenePanelCreateInfo scenePanelCreateInfo{
             .mState = mEditorState.get(),
-            .mImage = TextureHandle::CreateEmpty(),
-        };
+            .mImage = TextureHandle::CreateEmpty() };
         mPanelRegistry.Register<ScenePanel>( scenePanelCreateInfo );
 
         // Inspector panel

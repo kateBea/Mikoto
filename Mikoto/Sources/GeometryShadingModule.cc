@@ -50,10 +50,6 @@ namespace mikoto::renderer {
         mGeometryManagement = MKT_ADDRESSOF( geom );
     }
 
-    auto GeometryShadingModule::SetToneMapping( ToneMappingType type ) -> void {
-        mToneMapType = type;
-    }
-
     auto GeometryShadingModule::SetClearColor( const Color& color ) -> void {
         // Not sure if this is correct but otherwise clear colors look weird when tone-mapped.
         // Clear color is assumed to be in LDR we just conver it to an HDR value.
@@ -144,8 +140,6 @@ namespace mikoto::renderer {
         RegisterSkyboxRender( graph );
 
         RegisterShading( graph );
-
-        RegisterTonemap( graph );
     }
 
     auto GeometryShadingModule::RegisterIrradiance( FrameGraph &graph ) -> void {
@@ -863,84 +857,6 @@ namespace mikoto::renderer {
                 ctx.BindPipeline( info.mPipeline );
 
                 mGeometryManagement->DrawInstancesIndirect( ctx );
-
-                ctx.EndRender();
-            } );
-    }
-
-    auto GeometryShadingModule::RegisterTonemap( FrameGraph& graph ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        GeomShadingModuleInfo& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
-
-        const auto dimensions{ InferDimensions( mResolution ) };
-
-        auto colorImage{ FGTextureDescription{}
-            .SetName( "Tonemap_ColorImage01" )
-            .SetWidth( as<i32>( dimensions.first ) )
-            .SetHeight( as<i32>( dimensions.second ) )
-            .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
-            .SetFormat( Format::eRGBA8_UNORM ) };
-
-        info.mTonemapColor = graph.Create( colorImage );
-
-        auto pipelineBuilder{ FGPipelineDescription{}
-            .SetName( "Tonemap_Pipeline" )
-            .SetPipelineType( PipelineType::eGraphics )
-            .SetTopology( PrimitiveTopology::eTriangleList )
-            .AddColorFormat( Format::eRGBA8_UNORM )
-            .SetCullMode( CullMode::eNone )
-            .PushShader( "Tonemap_Vert.slang", FGStageType::eVertex )
-            .PushShader( "Tonemap_Frag.slang", FGStageType::ePixel ) };
-
-        info.mTonemapPipeline = graph.Create( pipelineBuilder );
-
-        graph.RegisterPass(
-            "Tonemap",
-            FGPassType::eGraphics,
-            []( FGNodeBuilder& builder, Blackboard& blackboard ) {
-                GeomShadingModuleInfo& geom{ blackboard.Get<GeomShadingModuleInfo>() };
-
-                builder.Read( geom.mShadingColorImage, FGResourceState::eShaderResource );
-                builder.Write( geom.mTonemapColor, FGResourceState::eRenderTarget );
-            },
-            [this]( CommandContext &ctx, Blackboard& blackboard ) {
-                GeomShadingModuleInfo& geom{ blackboard.Get<GeomShadingModuleInfo>() };
-
-                struct DrawParams {
-                    u32 mFinalImageID{};
-                    u32 mBasicSamplerID{};
-
-                    f32 mExposure{};
-                    f32 mGamma{};
-
-                    i32 mToneMapType{};
-                } params{
-                    .mFinalImageID = ctx.PushTexture_SRV( geom.mShadingColorImage ),
-                    .mBasicSamplerID = ctx.PushSampler( geom.mBasicSampler ),
-
-                    .mExposure = geom.mExposure,
-                    .mGamma = geom.mExposure,
-
-                    .mToneMapType = as<i32>(mToneMapType),
-                };
-
-                ctx.PushConstants( params );
-
-                const auto dimensions{ InferDimensions( mResolution ) };
-                const auto graphicsState{ ContextRenderState{}
-                    .SetRenderArea( Rect{ as<i32>(dimensions.first), as<i32>(dimensions.second) } )
-                    .AddRenderTarget( geom.mTonemapColor, kColorCyan, LoadOp::eClear ) };
-                ctx.BeginRender( graphicsState );
-
-                ctx.SetViewportState( ViewportState{}
-                    .AddViewportAndScissorRect( Viewport( as<f32>(dimensions.first), as<f32>(dimensions.second) ) ) );
-
-                ctx.BindPipeline( geom.mTonemapPipeline );
-
-                ctx.Draw( 3 );
 
                 ctx.EndRender();
             } );

@@ -1,0 +1,131 @@
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <EASTL/array.h>
+#include <EASTL/fixed_vector.h>
+
+#include <Core/Core.hh>
+#include <Core/Profiler.hh>
+#include <Core/String.hh>
+#include <Core/Types.hh>
+
+#include <Math/Math.hh>
+#include <Math/Random.hh>
+
+#include <Scene/Scene.hh>
+#include <Scene/Component.hh>
+
+#include <Renderer/Core/CommandContext.hh>
+
+#include <Renderer/Passes/CameraModule.hh>
+#include <Renderer/Passes/PrepassModule.hh>
+#include <Renderer/Passes/PostProcessModule.hh>
+#include <Renderer/Passes/GeometryShadingModule.hh>
+
+#include <Renderer/Passes/TonemapModule.hh>
+
+namespace mikoto::renderer {
+    TonemapModule::TonemapModule( RenderResolution resolution )
+        : mResolution{ resolution }
+    {}
+
+    auto TonemapModule::RegisterPasses( FrameGraph &graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        RegisterTonemapPass( graph );
+    }
+
+
+    auto TonemapModule::SetToneMapping( ToneMappingType type ) -> void {
+        mToneMapType = type;
+    }
+
+    auto TonemapModule::RegisterTonemapPass( FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        GeomShadingModuleInfo& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+
+        const auto dimensions{ InferDimensions( mResolution ) };
+
+        auto colorImage{ FGTextureDescription{}
+            .SetName( "Tonemap_ColorImage01" )
+            .SetWidth( as<i32>( dimensions.first ) )
+            .SetHeight( as<i32>( dimensions.second ) )
+            .SetDimensions( TextureDimension::eTexture2D )
+            .SetMultisampling( Multisampling::eMsaaX1 )
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetFormat( Format::eRGBA8_UNORM ) };
+
+        info.mTonemapColor = graph.Create( colorImage );
+
+        auto pipelineBuilder{ FGPipelineDescription{}
+            .SetName( "Tonemap_Pipeline" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .AddColorFormat( Format::eRGBA8_UNORM )
+            .SetCullMode( CullMode::eNone )
+            .PushShader( "Tonemap_Vert.slang", FGStageType::eVertex )
+            .PushShader( "Tonemap_Frag.slang", FGStageType::ePixel ) };
+
+        info.mTonemapPipeline = graph.Create( pipelineBuilder );
+
+        graph.RegisterPass(
+            "Tonemap",
+            FGPassType::eGraphics,
+            []( FGNodeBuilder& builder, Blackboard& blackboard ) {
+                GeomShadingModuleInfo& geom{ blackboard.Get<GeomShadingModuleInfo>() };
+
+                builder.Read( geom.mShadingColorImage, FGResourceState::eShaderResource );
+                builder.Write( geom.mTonemapColor, FGResourceState::eRenderTarget );
+            },
+            [this]( CommandContext &ctx, Blackboard& blackboard ) {
+                GeomShadingModuleInfo& geom{ blackboard.Get<GeomShadingModuleInfo>() };
+
+                struct DrawParams {
+                    u32 mFinalImageID{};
+                    u32 mBasicSamplerID{};
+
+                    f32 mExposure{};
+                    f32 mGamma{};
+
+                    i32 mToneMapType{};
+                } params{
+                    .mFinalImageID = ctx.PushTexture_SRV( geom.mShadingColorImage ),
+                    .mBasicSamplerID = ctx.PushSampler( geom.mBasicSampler ),
+
+                    .mExposure = geom.mExposure,
+                    .mGamma = geom.mExposure,
+
+                    .mToneMapType = as<i32>(mToneMapType),
+                };
+
+                ctx.PushConstants( params );
+
+                const auto dimensions{ InferDimensions( mResolution ) };
+                const auto graphicsState{ ContextRenderState{}
+                    .SetRenderArea( Rect{ as<i32>(dimensions.first), as<i32>(dimensions.second) } )
+                    .AddRenderTarget( geom.mTonemapColor, kColorCyan, LoadOp::eClear ) };
+                ctx.BeginRender( graphicsState );
+
+                ctx.SetViewportState( ViewportState{}
+                    .AddViewportAndScissorRect( Viewport( as<f32>(dimensions.first), as<f32>(dimensions.second) ) ) );
+
+                ctx.BindPipeline( geom.mTonemapPipeline );
+
+                ctx.Draw( 3 );
+
+                ctx.EndRender();
+            } );
+    }
+} // mikoto

@@ -32,9 +32,34 @@ namespace mikoto::scene {
     using namespace mikoto::core;
     using namespace mikoto::platform;
 
+    auto SceneCameraDescription::SetFarPlane( core::f32 value ) -> SceneCameraDescription & {
+        mFarPlane = value;
+        return *this;
+    }
+
+    auto SceneCameraDescription::SetNearPlane( core::f32 value ) -> SceneCameraDescription & {
+        mNearPlane = value;
+        return *this;
+    }
+
+    auto SceneCameraDescription::SetTargetWindow( platform::Window *window ) -> SceneCameraDescription & {
+        mWindow = window;
+        return *this;
+    }
+
+    auto SceneCameraDescription::SetFieldOfView( core::f32 value ) -> SceneCameraDescription & {
+        mFov = value;
+        return *this;
+    }
+
+    auto SceneCameraDescription::SetAspectRatio( core::f32 width, core::f32 height ) -> SceneCameraDescription & {
+        mAspectRatio = width / height;
+        return *this;
+    }
+
     SceneCamera::SceneCamera( const SceneCameraDescription &desc )
         : Camera{ glm::perspective( glm::radians( desc.mFov ), desc.mAspectRatio, desc.mNearPlane, desc.mFarPlane ) },
-        mTargetWindow{ desc.mWindow } {
+        mWindow{ desc.mWindow } {
 
         mPosition = float3{ 100.0f, 100.5f, 100.0f };
         mForward = float3{ 1.0f, 1.0f, 1.0f };
@@ -43,7 +68,7 @@ namespace mikoto::scene {
         UpdateViewMatrix();
     }
 
-    SceneCamera::SceneCamera( const float fov, const float aspectRatio, const float nearClip, const float farClip )
+    SceneCamera::SceneCamera( f32 fov, f32 aspectRatio, f32 nearClip, f32 farClip )
         : Camera{ glm::perspective( glm::radians( fov ), aspectRatio, nearClip, farClip ) } {
         mNearPlane = nearClip;
         mFarPlane = farClip;
@@ -59,7 +84,7 @@ namespace mikoto::scene {
 
     auto SceneCamera::SetTargetWindow( const Window* window ) -> void {
         if (window != nullptr) {
-            mTargetWindow = window;
+            mWindow = window;
         }
     }
 
@@ -75,7 +100,7 @@ namespace mikoto::scene {
     }
 
     auto SceneCamera::ProcessMouseInput( const double timeStep ) -> void {
-        const glm::vec2 mousePos{ mTargetWindow->GetMouseX(), mTargetWindow->GetMouseY() };
+        const glm::vec2 mousePos{ mWindow->GetMouseX(), mWindow->GetMouseY() };
         const glm::vec2 delta{ (mousePos - mLastMousePosition) * mRotationFactor };
 
         // Still update the last camera pos,
@@ -103,12 +128,12 @@ namespace mikoto::scene {
     auto SceneCamera::ProcessKeyboardInput( const double timeStep ) -> void {
 
         const float speed{ mMovementSpeed * static_cast<float>( timeStep ) };
-        if ( mTargetWindow->IsKeyPressed( Key_W ) ) mTargetPosition += mForward * speed;
-        if ( mTargetWindow->IsKeyPressed( Key_S ) ) mTargetPosition -= mForward * speed;
-        if ( mTargetWindow->IsKeyPressed( Key_A ) ) mTargetPosition -= mRightVector * speed;
-        if ( mTargetWindow->IsKeyPressed( Key_D ) ) mTargetPosition += mRightVector * speed;
-        if ( mTargetWindow->IsKeyPressed( Key_Space ) || mTargetWindow->IsKeyPressed( Key_E ) ) mTargetPosition.y += speed;
-        if ( mTargetWindow->IsKeyPressed( Key_Q ) ) mTargetPosition.y -= speed;
+        if ( mWindow->IsKeyPressed( Key_W ) ) mTargetPosition += mForward * speed;
+        if ( mWindow->IsKeyPressed( Key_S ) ) mTargetPosition -= mForward * speed;
+        if ( mWindow->IsKeyPressed( Key_A ) ) mTargetPosition -= mRightVector * speed;
+        if ( mWindow->IsKeyPressed( Key_D ) ) mTargetPosition += mRightVector * speed;
+        if ( mWindow->IsKeyPressed( Key_Space ) || mWindow->IsKeyPressed( Key_E ) ) mTargetPosition.y += speed;
+        if ( mWindow->IsKeyPressed( Key_Q ) ) mTargetPosition.y -= speed;
     }
 
     auto SceneCamera::Interpolate( const double timeStep ) -> void {
@@ -123,7 +148,7 @@ namespace mikoto::scene {
         UpdateViewMatrix();
 
         if ( !mAllowCameraMovementAndRotation ) {
-            mLastMousePosition = { mTargetWindow->GetMouseX(), mTargetWindow->GetMouseY() };
+            mLastMousePosition = { mWindow->GetMouseX(), mWindow->GetMouseY() };
 
             // Continue interpolation if they aren't equal
             if ( mPosition != mTargetPosition || mForward != mTargetForwardVector ) {
@@ -133,7 +158,7 @@ namespace mikoto::scene {
             return;
         }
 
-        if (mTargetWindow == nullptr) {
+        if (mWindow == nullptr) {
             MKT_CORE_LOGGER_WARN( "SceneCamera::UpdateState - Camera has no target window. Forgot to call SetTargetWindow(...)?" );
             return;
         }

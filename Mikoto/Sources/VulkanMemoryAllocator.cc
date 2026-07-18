@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <EASTL/memory.h>
 #include <volk.h>
+
+#include <EASTL/memory.h>
 
 // Define VMA implementation in one source file
 #define VMA_IMPLEMENTATION
@@ -33,8 +34,8 @@ namespace mikoto::renderer::vulkan {
         : IGpuAllocator{ device } {}
 
     auto GpuMemoryAllocator::Init() -> void {
-        Context* ctx{ as<Context*>( RenderSystem::Get()->GetContext() ) };
         Device* device{ as<Device*>( mDevice ) };
+        Context* ctx{ as<Context*>( RenderSystem::Get()->GetContext() ) };
 
         VmaAllocatorCreateInfo allocInfo{};
         allocInfo.instance = ctx->GetInstance().mInstance;
@@ -49,8 +50,7 @@ namespace mikoto::renderer::vulkan {
         //  VmaVulkanFunctions::vkGetDeviceProcAddr. Other pointers will be fetched automatically.
         VmaVulkanFunctions vulkanFuncs{
             .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-            .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
-        };
+            .vkGetDeviceProcAddr = vkGetDeviceProcAddr };
         MKT_VK_CHECK( vmaImportVulkanFunctionsFromVolk( MKT_ADDRESSOF( allocInfo ), MKT_ADDRESSOF( vulkanFuncs ) ) );
 
         allocInfo.pVulkanFunctions = MKT_ADDRESSOF( vulkanFuncs );

@@ -93,10 +93,9 @@ namespace mikoto::renderer::vulkan {
               TextureCreateDescription{}
                       .SetWidth( info.mWidth )
                       .SetHeight( info.mHeight )
-                      .SetFormat( info.mSurfaceFormat )
-          },
-          mImageViewCreateInfo{ info.mImageViewCreateInfo },
-          mIsImageExternal{ true } {
+                      .SetFormat( info.mSurfaceFormat ) },
+                  mImageViewCreateInfo{ info.mImageViewCreateInfo },
+                  mIsImageExternal{ true } {
 
         mImageAllocation.mImage = mImageViewCreateInfo.image;
         mDebugName = string::Format( "Mikoto Swap chain Texture. Id:", GetHandle() );
@@ -107,7 +106,7 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        vkDestroyImageView( as<Device*>( mDevice )->GetDevice(), mImageViewSrv, nullptr );
+        vkDestroyImageView( checked_cast<Device*>( mDevice )->GetDevice(), mImageViewSrv, nullptr );
 
         for ( auto& faces: mImageViewRtvList ) {
             for (auto& face : faces ) {

@@ -24,7 +24,8 @@
 // For readability
 #define MKT_D3D12_NO_FLAGS 0
 
-#include <d3d12.h>
+// D3D12 extension library.
+#include <directx/d3d12.h>
 
 namespace mikoto::renderer::d3d12 {
 

@@ -309,17 +309,26 @@ namespace mikoto::physics {
         JPH::Body *body{ mSimulationInfo.mBodyInterface->CreateBody( settings ) };
         mSimulationInfo.mBodyInterface->AddBody( body->GetID(), JPH::EActivation::Activate );
 
-        const auto [it, success]{ mBodies.try_emplace( GenerateBodyID(), body ) };
-
+        const auto [it, success] {
+            mBodies.try_emplace( GenerateBodyID(), body ) };
         if ( success ) {
             rb.SetBodyID( it->first );
         }
     }
 
     auto PhysicsWorld::AddCollider( Entity *entity ) -> void {
+        if (!entity) {
+            return;
+        }
+
+        ColliderComponent& colliderComponent{ entity->GetComponent<ColliderComponent>() };
+        physics::ColliderType colliderType{ colliderComponent.GetColliderType() };
     }
 
     auto PhysicsWorld::RemoveColliderBody( Entity *entity ) -> void {
+        if (!entity) {
+            return;
+        }
     }
 
     auto PhysicsWorld::SetGravity( const float3 &gravity ) -> void {

@@ -166,8 +166,7 @@ namespace mikoto::renderer {
         const RenderContextCreateInfo createInfo{
             .mWindow = mWindow,
             .mRefreshRate = mRefreshRate,
-            .mApi = mApi,
-        };
+            .mApi = mApi };
 
         mContext = RenderContext::Create(createInfo);
         if (!mContext->Init()) {

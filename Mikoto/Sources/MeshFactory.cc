@@ -94,7 +94,7 @@ namespace mikoto::asset {
                     pbrMapInfo.mTexture->SetDebugName( string::Format( "Texture: {}", pathToTexture.GetC_Str() ) );
 
                     // Always written to mip 0 for simplicity.
-                    // These textures are primarily shaders read resources
+                    // These textures are shader read resources
                     cmd->Write( pbrMapInfo.mTexture.GetRaw(), 0, image->mBufferSpan->GetData(), image->mBufferSpan->GetSize() );
                     cmd->SetResourceState( pbrMapInfo.mTexture.GetRaw(), ResourceStates::eShaderResource );
                 }
@@ -136,7 +136,7 @@ namespace mikoto::asset {
             modelDescription.AddMesh( meshIndex++, meshCreateInfo );
         }
 
-        return ModelHandle::Spawn( std::move( modelDescription ) );
+        return ModelHandle::Spawn( eastl::move( modelDescription ) );
     }
 
     auto MeshFactory::Initialize() -> void {

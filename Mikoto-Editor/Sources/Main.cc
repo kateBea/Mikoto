@@ -62,8 +62,7 @@ auto InitWindow() -> bool {
         .mWidth = as<i32>( gConfiguration.Get<i64>( "application.width" ) ),
         .mHeight = as<i32>( gConfiguration.Get<i64>( "application.height" )),
         .mBackend = InferAPI( gConfiguration.Get<eastl::string>( "renderer.api" ) ),
-        .mResizable = gConfiguration.Get<bool>( "application.resizable" ),
-    };
+        .mResizable = gConfiguration.Get<bool>( "application.resizable" ) };
 
     gWindow = gWindowsService->Create( properties );
 

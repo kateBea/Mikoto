@@ -22,14 +22,18 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-#include <Renderer/D3D12/D3D12SwapChain.hh>
+// D3D12 extension library.
+#include <directx/d3d12.h>
 
 #include <dxgi1_4.h>
 #include <dxgidebug.h>
 #include <wrl.h>
 
+#include <Renderer/D3D12/D3D12SwapChain.hh>
+
 namespace mikoto::renderer::d3d12 {
 
+    // Refs: https://alain.xyz/blog/raw-directx12
     class Context final : public RenderContext {
     public:
         explicit Context(const RenderContextCreateInfo& createInfo)
@@ -62,7 +66,6 @@ namespace mikoto::renderer::d3d12 {
         Microsoft::WRL::ComPtr<ID3D12Debug> mDebug{};
         Microsoft::WRL::ComPtr<ID3D12Debug1> mDebugController{};
 #endif
-
     };
 }
 

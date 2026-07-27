@@ -147,8 +147,8 @@ namespace mikoto::scene {
 
         auto OnScriptAdded(entt::registry& reg, entt::entity e ) -> void;
 
-        auto OnRigidBodyAdded(entt::registry& reg, entt::entity e ) const -> void;
-        auto OnColliderAdded(entt::registry& reg, entt::entity e ) const -> void;
+        auto OnRigidBodyAdded(entt::registry& reg, entt::entity e ) -> void;
+        auto OnColliderAdded(entt::registry& reg, entt::entity e ) -> void;
         auto OnRigidBodyRemoved(entt::registry& reg, entt::entity e ) const -> void;
         auto OnColliderRemoved(entt::registry& reg, entt::entity e ) const -> void;
 

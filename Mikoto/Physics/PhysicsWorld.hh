@@ -208,7 +208,7 @@ namespace mikoto::physics {
         auto Update( float timeStep ) -> void override;
 
         auto AddRigidBody( Entity* entity ) -> void;
-        auto AddCollider( Entity* entity ) -> void; // Can have collider and no rigid body
+        auto AddCollider( Entity* entity ) -> void;
 
         auto RemoveRigidBody( Entity* entity ) -> void;
         auto RemoveColliderBody( Entity* entity ) -> void;

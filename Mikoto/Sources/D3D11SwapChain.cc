@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Platform.hh>
+
 #include <Renderer/D3D11/D3D11Device.hh>
 #include <Renderer/D3D11/D3D11SwapChain.hh>
 #include <Renderer/D3D11/Direct3D11Helpers.hh>

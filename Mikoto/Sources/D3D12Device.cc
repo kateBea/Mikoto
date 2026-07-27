@@ -26,13 +26,12 @@
 
 #include <Platform/PlatformWin32.hh>
 
-#include <d3d12.h>
+// D3D12 extension library.
+#include <directx/d3d12.h>
+
 #include <dxgi1_6.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
-
-// D3D12 extension library.
-//#include <d3dx12.h>
 
 namespace mikoto::renderer::d3d12 {
 
@@ -68,6 +67,8 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::Init() -> void {
         IDXGIFactory4* factory{ checked_cast<Context*>( RenderSystem::Get()->GetContext() )->GetDxiFactory() };
+        MKT_ASSERT( factory, "A valid DirectX factory interface is required to create the device." );
+
         for (UINT adapterIndex{}; DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(adapterIndex, &mAdapter); ++adapterIndex) {
             DXGI_ADAPTER_DESC1 desc{};
             mAdapter->GetDesc1(&desc);
@@ -77,10 +78,7 @@ namespace mikoto::renderer::d3d12 {
                 continue;
             }
 
-            // Check to see if the adapter supports Direct3D 12, but don't create
-            // the actual device yet.
-            // Check to see if the adapter supports Direct3D 12, but don't create
-            // the actual device yet.
+            // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
             if ( SUCCEEDED( D3D12CreateDevice( mAdapter.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
                 break;
             }

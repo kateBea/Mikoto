@@ -38,7 +38,7 @@ namespace mikoto::renderer::d3d12 {
 
     class SwapChain final : public rhi::DeviceObject {
     public:
-        explicit SwapChain(Window* window, Microsoft::WRL::ComPtr<IDXGIFactory2> mDxgiFactory);
+        explicit SwapChain(Window* window, Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory);
 
         auto Present() -> void;
 

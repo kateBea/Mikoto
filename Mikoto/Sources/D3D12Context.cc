@@ -32,7 +32,8 @@ namespace mikoto::renderer::d3d12 {
 #endif
 
         UINT dxgiFactoryFlags{ DXGI_CREATE_FACTORY_DEBUG };
-        MKT_ASSERT( SUCCEEDED( CreateDXGIFactory2( dxgiFactoryFlags, IID_PPV_ARGS( &mDxgiFactory ) ) ), "Failed to create factory" );
+        HRESULT factoryCreateResult{ SUCCEEDED( CreateDXGIFactory2( dxgiFactoryFlags, IID_PPV_ARGS( &mDxgiFactory ) ) ) };
+        MKT_ASSERT( factoryCreateResult, "Failed to create factory" );
 
         // Init the device when the context is ready
         mDevice = GpuDevice::Create( { .mApi = GraphicsAPI::eD3D12 } );

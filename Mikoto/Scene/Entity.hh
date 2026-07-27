@@ -33,7 +33,7 @@ namespace mikoto::scene {
     class Entity {
     public:
 
-        MKT_NODISCARD auto Get() const -> decltype( auto ) { return (m_Handle); }
+        MKT_NODISCARD auto Get() const -> decltype( auto ) { return (mHandle); }
 
         /**
          * Returns true if this entity contains all the components listed in the parameter pack
@@ -42,7 +42,7 @@ namespace mikoto::scene {
          * */
         template<typename... ComponentTypeList>
         MKT_NODISCARD auto HasAllComponents() const -> bool {
-            return m_Registry->all_of<ComponentTypeList...>(m_Handle);
+            return mRegistry->all_of<ComponentTypeList...>(mHandle);
         }
 
         /**
@@ -52,7 +52,7 @@ namespace mikoto::scene {
          * */
         template<typename... ComponentTypeList>
         MKT_NODISCARD auto HasAnyOfComponents() const -> bool {
-            return m_Registry->any_of<ComponentTypeList...>(m_Handle);
+            return mRegistry->any_of<ComponentTypeList...>(mHandle);
         }
 
         /**
@@ -70,7 +70,7 @@ namespace mikoto::scene {
          * @returns true if the implicit parameter is a valid entity
          * */
         MKT_NODISCARD auto IsValid() const -> bool {
-            return m_Registry != nullptr && m_Registry->valid(m_Handle);
+            return mRegistry != nullptr && mRegistry->valid(mHandle);
         }
 
         /**
@@ -80,7 +80,7 @@ namespace mikoto::scene {
          * */
         template<typename ComponentType>
         auto GetComponent() -> ComponentType& {
-            return m_Registry->get<ComponentType>(m_Handle);
+            return mRegistry->get<ComponentType>(mHandle);
         }
 
         /**
@@ -90,7 +90,7 @@ namespace mikoto::scene {
          * */
         template<typename ComponentType>
         auto GetComponent() const -> const ComponentType& {
-            return m_Registry->get<ComponentType>(m_Handle);
+            return mRegistry->get<ComponentType>(mHandle);
         }
 
         /**
@@ -99,7 +99,7 @@ namespace mikoto::scene {
          * */
         template<typename... ComponentTypeList>
         auto GetComponentList() -> decltype(auto) {
-            return std::forward_as_tuple(m_Registry->get<ComponentTypeList...>(m_Handle));
+            return std::forward_as_tuple(mRegistry->get<ComponentTypeList...>(mHandle));
         }
 
         /**
@@ -111,7 +111,7 @@ namespace mikoto::scene {
          * */
         template<typename ComponentType, typename... Args>
         auto AddComponent(Args&&... args) -> ComponentType& {
-            ComponentType& newComponent{ m_Registry->emplace_or_replace<ComponentType>(m_Handle, std::forward<Args>(args)...) };
+            ComponentType& newComponent{ mRegistry->emplace_or_replace<ComponentType>(mHandle, std::forward<Args>(args)...) };
 
             return newComponent;
         }
@@ -126,7 +126,7 @@ namespace mikoto::scene {
                 return;
             }
 
-            m_Registry->remove<ComponentType>(m_Handle);
+            mRegistry->remove<ComponentType>(mHandle);
         }
 
         /**
@@ -135,7 +135,7 @@ namespace mikoto::scene {
          * @param other entity to compare the implicit parameter to
          * */
         auto operator==(const Entity& other) const -> bool {
-            return m_Handle == other.m_Handle && m_Registry == other.m_Registry;
+            return mHandle == other.mHandle && mRegistry == other.mRegistry;
         }
 
         ~Entity() {
@@ -144,7 +144,7 @@ namespace mikoto::scene {
 
     private:
         explicit Entity(entt::registry& registry)
-            :   m_Handle{ registry.create() }, m_Registry{ MKT_ADDRESSOF(registry) }
+            :   mHandle{ registry.create() }, mRegistry{ MKT_ADDRESSOF(registry) }
         {
             /**
              * See: Observe changes section from https://github.com/skypjack/entt/wiki/Entity-Component-System
@@ -160,15 +160,15 @@ namespace mikoto::scene {
         auto Invalidate() -> void {
             // This entity does not belong to any scene anymore
             // it can be safely removed from entt structures
-            m_Registry = nullptr;
-            m_Handle = entt::null;
+            mRegistry = nullptr;
+            mHandle = entt::null;
         }
 
         friend class Scene;
 
     private:
-        entt::entity m_Handle{ entt::null };
-        entt::registry* m_Registry{ nullptr };
+        entt::entity mHandle{ entt::null };
+        entt::registry* mRegistry{ nullptr };
     };
 
     template<typename ComponentType>

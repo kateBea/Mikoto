@@ -837,8 +837,7 @@ namespace mikoto::renderer {
         cmd->BindPipelineResources( BindResourcesDescription{}
             .AddResourceSet( 0, table.GetRaw() )
             .SetPipelineLayout( layout.GetRaw() )
-            .SetBindPoint( bindPoint )
-        );
+            .SetBindPoint( bindPoint ) );
     }
 
     auto FrameGraph::BuildNodeEdges() -> void {

@@ -50,6 +50,14 @@ namespace mikoto::renderer {
         mGeometryManagement = MKT_ADDRESSOF( geom );
     }
 
+    auto GeometryShadingModule::SetMergeWireframeToFinalOutput( bool merge ) -> void {
+
+    }
+
+    auto GeometryShadingModule::SetEnableWireframe( bool enable ) -> void {
+
+    }
+
     auto GeometryShadingModule::SetClearColor( const Color& color ) -> void {
         // Not sure if this is correct but otherwise clear colors look weird when tone-mapped.
         // Clear color is assumed to be in LDR we just conver it to an HDR value.
@@ -129,8 +137,6 @@ namespace mikoto::renderer {
 
         info.mSkyboxCubeRT = graph.Create( skyboxCube );
 
-        RegisterWireframe( graph );
-
         RegisterSkyboxProjection( graph );
 
         RegisterBrdfLut( graph );
@@ -140,6 +146,8 @@ namespace mikoto::renderer {
         RegisterSkyboxRender( graph );
 
         RegisterShading( graph );
+
+        RegisterWireframe( graph );
     }
 
     auto GeometryShadingModule::RegisterIrradiance( FrameGraph &graph ) -> void {
@@ -601,7 +609,7 @@ namespace mikoto::renderer {
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( ViewportState{}
-                    .AddViewportAndScissorRect( Viewport( as<i32>(dimensions.first), as<i32>(dimensions.second) ) ) );
+                    .AddViewportAndScissorRect( Viewport( as<f32>(dimensions.first), as<f32>(dimensions.second) ) ) );
 
                 // For no clear color use background cube
                 // otherwise just clear the image with specified solid color

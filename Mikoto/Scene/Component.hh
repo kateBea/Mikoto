@@ -573,17 +573,18 @@ namespace mikoto::scene {
 
         ~ColliderComponent() = default;
 
-        MKT_NODISCARD auto GetRadius() const -> float { return m_Radius; }
-        MKT_NODISCARD auto GetHeight() const -> float { return m_Height; }
-        MKT_NODISCARD auto IsTrigger() const -> bool { return m_IsTrigger; }
+        MKT_NODISCARD auto GetRadius() const -> core::f32 { return mRadius; }
+        MKT_NODISCARD auto GetHeight() const -> core::f32 { return mHeight; }
+        MKT_NODISCARD auto IsTrigger() const -> core::f32 { return mIsTrigger; }
+        MKT_NODISCARD auto GetColliderType() const -> physics::ColliderType { return mType; }
 
     private:
-        physics::ColliderType m_Type{ physics::ColliderType::eBox };
+        physics::ColliderType mType{ physics::ColliderType::eBox };
 
-        float m_Radius{};
-        float m_Height{};
+        core::f32 mRadius{};
+        core::f32 mHeight{};
 
-        bool m_IsTrigger{false};
+        bool mIsTrigger{false};
     };
 
     class CameraComponent {

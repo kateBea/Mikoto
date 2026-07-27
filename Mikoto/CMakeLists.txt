@@ -98,6 +98,14 @@ set(MESHOPT_WERROR OFF CACHE BOOL "" FORCE)
 set(MESHOPT_INSTALL OFF CACHE BOOL "" FORCE)
 
 # ======================================
+# Direct3D 12 headers (According to their cmake comments this is technically
+# not needed because they are set if its cmake is top level)
+# ======================================
+set(DXHEADERS_BUILD_TEST OFF CACHE INTERNAL "")
+set(DXHEADERS_INSTALL OFF CACHE INTERNAL "")
+set(DXHEADERS_BUILD_GOOGLE_TEST OFF CACHE INTERNAL "")
+
+# ======================================
 # tinigltf
 # ======================================
 set(TINYGLTF_BUILD_LOADER_EXAMPLE        OFF  CACHE BOOL "" FORCE)
@@ -358,6 +366,18 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(flecs)
 #set_property(TARGET flecs PROPERTY FOLDER "ThirdParty")
+
+# -------------------------------------------------------
+# Direct3D Headers
+# -------------------------------------------------------
+FetchContent_Declare(
+        DirectX-Headers
+        GIT_REPOSITORY https://github.com/microsoft/DirectX-Headers.git
+        GIT_TAG        v1.619.4
+)
+
+FetchContent_MakeAvailable(DirectX-Headers)
+#set_property(TARGET DirectX-Headers PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # PFD
@@ -812,6 +832,7 @@ set(LIBRARIES
         magic_enum::magic_enum
         spirv-cross-core
         spirv-cross-glsl
+        Microsoft::DirectX-Headers
 )
 
 # ======================================
@@ -906,6 +927,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${magic_enum_SOURCE_DIR}/include
         ${reflect_SOURCE_DIR}
         ${spirv_cross_SOURCE_DIR}
+        ${directx-headers_SOURCE_DIR}/include
 )
 
 # ======================================

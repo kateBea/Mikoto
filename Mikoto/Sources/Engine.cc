@@ -109,8 +109,7 @@ namespace mikoto::core {
                  .mWindow = mWindow,
                  .mRefreshRate = RefreshRate::eUnlimited,
                  .mApi = mWindow->GetApi(),
-                 .mEnableImGui = true,
-             };
+                 .mEnableImGui = true };
             PushService<RenderSystem>( renderServiceCreateInfo );
 
             PushService<ScriptingService>( ScriptingServiceDescription{ .mScriptBasePath{ "Assets/Scripts" }} );

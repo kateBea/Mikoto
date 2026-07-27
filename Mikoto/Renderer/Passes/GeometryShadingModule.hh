@@ -96,6 +96,11 @@ namespace mikoto::renderer {
         auto SetCamera( const scene::Camera *camera ) -> void;
         auto SetGeometryManager( GeometryCullModule& geom) -> void;
 
+        // Wireframe
+        // Makes it so that our final composition image is merged with wireframe view
+        auto SetMergeWireframeToFinalOutput( bool merge ) -> void;
+        auto SetEnableWireframe( bool enable ) -> void;
+
         // SSAO
         auto SetEnableSsao( bool enable ) -> void;
         auto SetSsaoIntensity( float value ) -> void;

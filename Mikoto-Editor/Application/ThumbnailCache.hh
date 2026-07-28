@@ -43,7 +43,7 @@ namespace mikoto::editor {
     class ThumbnailCache {
     public:
 
-        explicit ThumbnailCache(GpuDevice* device);
+        explicit ThumbnailCache(IGpuDevice* device);
 
         MKT_NODISCARD auto Contains(const filesystem::Path& path ) const -> bool;
         MKT_NODISCARD auto GetThumbnail(const filesystem::Path& path) const -> Thumbnail;
@@ -52,7 +52,7 @@ namespace mikoto::editor {
         MKT_NODISCARD auto CreateThumbnail(const filesystem::Path& path) -> Thumbnail;
 
     private:
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
         AssetCache<ITexture> mThumbnails{};
     };
 

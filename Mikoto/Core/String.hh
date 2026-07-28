@@ -262,13 +262,18 @@ namespace mikoto::string {
     }
 
     MKT_NODISCARD
-    inline auto FromWChar( wchar_t* begin, wchar_t* end ) -> eastl::string {
+    inline auto FromWChar( const wchar_t* begin, const wchar_t* end ) -> eastl::string {
         eastl::string str( static_cast<long>( eastl::distance( begin, end ) ), '\0' );
 
         eastl::transform( begin, end, str.begin(),
             []( wchar_t c ) { return static_cast<char>( c ); } );
 
         return str;
+    }
+
+    MKT_NODISCARD
+    inline auto FromWChar( const wchar_t* str  ) -> eastl::string {
+        return FromWChar(str, str + std::char_traits<wchar_t>::length(str));
     }
 
     /**

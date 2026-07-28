@@ -69,7 +69,7 @@ namespace mikoto::renderer::vulkan {
 
         // Initialize the device
         // Init the device when the context is ready
-        mDevice = GpuDevice::Create({
+        mDevice = IGpuDevice::Create({
             .mApi = GraphicsAPI::eVulkan,
             .mFeaturesSupport{
                 // If  the context was created with a window

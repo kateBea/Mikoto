@@ -46,7 +46,7 @@ namespace mikoto::renderer {
     using namespace mikoto::scene;
 
     struct SceneRendererCreateInfo {
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
         eastl::string_view mName{};
         eastl::string_view mShaderBasePath{};
 
@@ -57,7 +57,7 @@ namespace mikoto::renderer {
         RenderResolution mResolution{ RenderResolution::e1080P };
 
         auto SetName(eastl::string_view name) -> SceneRendererCreateInfo&;
-        auto SetDevice(GpuDevice* device) -> SceneRendererCreateInfo&;
+        auto SetDevice(IGpuDevice* device) -> SceneRendererCreateInfo&;
         auto SetPresentImage(TextureHandle texture) -> SceneRendererCreateInfo&;
         auto SetRenderResolution(RenderResolution resolution) -> SceneRendererCreateInfo&;
     };
@@ -101,7 +101,7 @@ namespace mikoto::renderer {
         MKT_NODISCARD static auto Create( const SceneRendererCreateInfo& spec) -> eastl::unique_ptr<SceneRenderer>;
 
     private:
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
         SceneCamera* mCamera{};
 
         TextureHandle mPresentTexture{};

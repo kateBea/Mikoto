@@ -15,18 +15,25 @@
 #ifndef MIKOTO_D3D12DEVICE_HH
 #define MIKOTO_D3D12DEVICE_HH
 
+#include <EASTL/unique_ptr.h>
+
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Platform.hh>
 
-#include <Filesystem/Path.hh>
+#include <Memory/Allocator.hh>
+#include <Memory/MemoryArena.hh>
+#include <Memory/FreeListAllocator.hh>
+
 #include <Renderer/Core/GpuDevice.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
 #include <d3d12.h>
-#include <dxgi.h>
+#include <dxgi1_6.h>
 #include <wrl.h>
+
+#include <Renderer/D3D12/D3D12MemoryAllocator.hh>
 
 namespace mikoto::renderer::d3d12 {
 
@@ -165,7 +172,62 @@ namespace mikoto::renderer::d3d12 {
 
     };
 
-    class Device final : public GpuDevice {
+    struct GpuUploadAllocation {
+        IBuffer* mBuffer{};
+
+        // This is the mapped address we should be writing to,
+        // it corresponds to the beginning of the slice or
+        // range that is available within this allocation.
+        // You do not need to offset or anything
+        void* mMappedMemory{};
+
+        // Size of this sub-allocation
+        size_t mSize{};
+
+        // Specifies the offset of this allocation within the large
+        // buffer it was allocated from
+        size_t mOffset{};
+
+        // Metadata to track usage
+        Allocation mAllocation{};
+        eastl::atomic_flag mInUse{ true };
+    };
+
+    // Manages intermediate buffers that are used to upload data from CPU
+    // to CPU, whenever we want to upload data from the CPU to the GPU
+    // if the GPU buffer is not writeable from CPU we copy to this intermediate buffer
+    // and issue a copy command. In order to implement this we can use a first fit or best fit
+    // allocator approach, see the GeometryAllocator in the MeshCulling.hh file
+    // we can just have a huge chunk that grows as we need??
+    class GpuUploadManager final {
+    public:
+        explicit GpuUploadManager( IGpuDevice* device );
+
+        auto SubAllocate( size_t byteSize ) -> GpuUploadAllocation*;
+        auto ReclaimMemory() -> void;
+
+        ~GpuUploadManager();
+    private:
+        struct StagingAllocation {
+            BufferHandle mBuffer{};
+            eastl::unique_ptr<memory::MemoryArena<IBuffer, memory::FreeListFirstFitAllocator>> mMemoryArena{};
+        };
+
+        static constexpr u32 kMaxBuffers{ 32 };
+        static constexpr u32 kMaxSubAllocations{ 100 };
+
+        auto CreateBuffer() -> StagingAllocation*;
+        auto CreateSubAllocation( IBuffer* buffer ) -> GpuUploadAllocation*;
+
+    private:
+        std::mutex mMutex{};
+
+        IGpuDevice* mDevice{};
+        ankerl::unordered_dense::map<IBuffer*, eastl::unique_ptr<StagingAllocation>> mBuffers{};
+        ankerl::unordered_dense::map<IBuffer*, eastl::fixed_vector<eastl::unique_ptr<GpuUploadAllocation>, kMaxSubAllocations>> mSubAllocations{};
+    };
+
+    class Device final : public IGpuDevice {
     public:
         explicit Device( const GpuDeviceCreateInfo& createInfo );
 
@@ -221,11 +283,26 @@ namespace mikoto::renderer::d3d12 {
 
         auto WaitIdle() -> void override;
 
+        // D3D12 Specifics
+        MKT_NODISCARD auto GetDevice() -> ID3D12Device*;
+        MKT_NODISCARD auto GetAdapter() -> IDXGIAdapter4*;
+
         ~Device() override = default;
 
     private:
+        // [Internal usage]
+        auto InitMemoryAllocator() -> void;
+
+    private:
         Microsoft::WRL::ComPtr<ID3D12Device2> mDevice{};
-        Microsoft::WRL::ComPtr<IDXGIAdapter1> mAdapter{};
+        Microsoft::WRL::ComPtr<IDXGIAdapter1> mAdapter1{};
+        Microsoft::WRL::ComPtr<IDXGIAdapter4> mAdapter4{};
+
+        DXGI_ADAPTER_DESC3 mDeviceDescription3{};
+
+        // [Memory management]
+        eastl::unique_ptr<IGpuAllocator> mGpuAllocator{};
+        eastl::unique_ptr<GpuUploadManager> mUploadManager{};
 
 #if defined(_DEBUG)
         Microsoft::WRL::ComPtr<ID3D12Debug1> mDebugController{};

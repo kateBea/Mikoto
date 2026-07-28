@@ -25,7 +25,7 @@ namespace mikoto::renderer {
         return *this;
     }
 
-    auto ThumbnailRendererCreateInfo::SetDevice( GpuDevice *device ) -> ThumbnailRendererCreateInfo & {
+    auto ThumbnailRendererCreateInfo::SetDevice( IGpuDevice *device ) -> ThumbnailRendererCreateInfo & {
         mDevice = device;
         return *this;
     }

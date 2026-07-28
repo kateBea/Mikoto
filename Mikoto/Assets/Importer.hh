@@ -71,7 +71,7 @@ namespace mikoto::asset {
 
     class ModelImporter {
     public:
-        explicit ModelImporter(GpuDevice* device)
+        explicit ModelImporter(IGpuDevice* device)
             : mDevice{ device } {}
 
         virtual auto Import(const ModelLoadDescription& description, ModelDataDescription& out) -> void = 0;
@@ -79,7 +79,7 @@ namespace mikoto::asset {
         virtual ~ModelImporter() = default;
 
     protected:
-        GpuDevice* mDevice{ nullptr };
+        IGpuDevice* mDevice{ nullptr };
     };
 
 }

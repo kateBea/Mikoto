@@ -28,7 +28,7 @@
 namespace mikoto::asset {
 
     struct MeshFactoryCreateInfo {
-        GpuDevice* mDevice{ nullptr };
+        IGpuDevice* mDevice{ nullptr };
     };
 
     class MeshFactory final : public Singleton<MeshFactory>, public IService {
@@ -45,7 +45,7 @@ namespace mikoto::asset {
         auto ConstructModel(ModelDataDescription& data, const ModelLoadDescription &loadInfo  ) -> ModelHandle;
 
     private:
-        GpuDevice* mDevice{ nullptr };
+        IGpuDevice* mDevice{ nullptr };
 
         eastl::unique_ptr<ModelImporter> mMainImporter{};
         eastl::unique_ptr<ModelImporter> mGltfImporter{};

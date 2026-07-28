@@ -251,7 +251,7 @@ namespace mikoto::renderer::d3d11 {
         eastl::fixed_vector<D3D11_INPUT_ELEMENT_DESC, kMaxVertexAttributes> mInputDescriptions{};
     };
 
-    class Device final : public GpuDevice {
+    class Device final : public IGpuDevice {
     public:
         explicit Device( const GpuDeviceCreateInfo& createInfo );
 

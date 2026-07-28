@@ -36,7 +36,7 @@ namespace mikoto::renderer::d3d12 {
         MKT_ASSERT( factoryCreateResult, "Failed to create factory" );
 
         // Init the device when the context is ready
-        mDevice = GpuDevice::Create( { .mApi = GraphicsAPI::eD3D12 } );
+        mDevice = IGpuDevice::Create( { .mApi = GraphicsAPI::eD3D12 } );
         if ( !mDevice ) {
             MKT_THROW_RUNTIME_ERROR( "Could not initialize D3D12 GPU Device." );
         }

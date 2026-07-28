@@ -119,7 +119,7 @@ namespace mikoto::editor {
 
     private:
         Window* mWindow{};
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
         Registry<Panel> mPanelRegistry{};
 
         eastl::unique_ptr<EditorState> mEditorState{};

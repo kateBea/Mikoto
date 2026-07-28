@@ -72,8 +72,8 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto GetContext() -> RenderContext*;
         MKT_NODISCARD auto GetContext() const -> const RenderContext*;
 
-        MKT_NODISCARD auto GetGpuDevice() -> GpuDevice*;
-        MKT_NODISCARD auto GetGpuDevice() const -> const GpuDevice*;
+        MKT_NODISCARD auto GetGpuDevice() -> IGpuDevice*;
+        MKT_NODISCARD auto GetGpuDevice() const -> const IGpuDevice*;
 
         MKT_NODISCARD auto IsApiActive( GraphicsAPI api ) const -> bool;
         MKT_NODISCARD auto GetActiveGraphicsApi() const -> GraphicsAPI;

@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,42 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_VULKAN_MEMORY_ALLOCATOR_H
-#define MIKOTO_VULKAN_MEMORY_ALLOCATOR_H
+#ifndef MIKOTOROOT_D3D12_MEMORY_ALLOCATOR_HH
+#define MIKOTOROOT_D3D12_MEMORY_ALLOCATOR_HH
 
-// Volk must be included before VMA
-#include <volk.h>
-#include <vk_mem_alloc.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/Platform.hh>
 
 #include <Memory/GpuAllocator.hh>
 
-namespace mikoto::renderer::vulkan {
+#if defined( MIKOTO_PLATFORM_WINDOWS )
+
+#include <directx/d3d12.h>
+#include <D3D12MemAlloc.h>
+
+#include <Renderer/Core/Rhi.hh>
+
+namespace mikoto::renderer::d3d12 {
 
     struct BufferAllocation {
-        VkBuffer mBuffer{ VK_NULL_HANDLE };
-        VmaAllocation mAllocation{ VK_NULL_HANDLE };
-
-        VmaAllocationInfo mAllocationInfo{};
-
-        VkBufferCreateInfo mBufferCreateInfo{};
-        VmaAllocationCreateInfo mAllocationCreateInfo{};
+        D3D12_RESOURCE_DESC mDesc{};
+        ID3D12Resource* mResource{};
+        D3D12MA::Allocation* mAllocation{};
     };
 
     struct ImageAllocation {
-        VkImage mImage{ VK_NULL_HANDLE };
-        VmaAllocation mAllocation{ VK_NULL_HANDLE };
-
-        VkImageCreateInfo mImageCreateInfo{};
-        VmaAllocationInfo mAllocationInfo{};
-
-        VmaAllocationCreateInfo mAllocationCreateInfo{};
+        D3D12_RESOURCE_DESC mDesc{};
+        ID3D12Resource* mResource{};
+        D3D12MA::Allocation* mAllocation{};
     };
 
-    // Allocations are sync internally by VMA so it is safe
-    // to call Allocation functions from any thread
     class GpuMemoryAllocator final : public memory::IGpuAllocator {
     public:
         explicit GpuMemoryAllocator( IGpuDevice* device );
@@ -56,10 +51,10 @@ namespace mikoto::renderer::vulkan {
         auto Shutdown() -> void override;
 
         auto FreeImage( ImageAllocation& allocation ) -> void;
-        auto AllocateImage( ImageAllocation& allocation ) -> VkResult;
+        auto AllocateImage( ImageAllocation& allocation ) -> HRESULT ;
 
         auto FreeBuffer( BufferAllocation& allocation ) -> void;
-        auto AllocateBuffer( BufferAllocation& allocation ) -> VkResult;
+        auto AllocateBuffer( BufferAllocation& allocation ) -> HRESULT ;
 
         auto MapBuffer( BufferAllocation& allocation ) const -> void;
         auto UnmapBuffer( BufferAllocation& allocation ) const -> void;
@@ -74,9 +69,11 @@ namespace mikoto::renderer::vulkan {
         auto MapBuffer( BufferAllocation& allocation, bool map ) const -> void;
 
     private:
-        VmaAllocator mAllocator{};
-        mutable VmaTotalStatistics mStats{};
+        D3D12MA::Allocator* mAllocator{};
+        D3D12MA::TotalStatistics mStatistics{};
     };
-}// namespace Mikoto
+}
 
-#endif//MIKOTO_VULKAN_MEMORY_ALLOCATOR_H
+#endif
+
+#endif//MIKOTOROOT_D3D12_MEMORY_ALLOCATOR_HH

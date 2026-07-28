@@ -30,7 +30,7 @@
 
 namespace mikoto::renderer::vulkan {
 
-    GpuMemoryAllocator::GpuMemoryAllocator( GpuDevice* device )
+    GpuMemoryAllocator::GpuMemoryAllocator( IGpuDevice* device )
         : IGpuAllocator{ device } {}
 
     auto GpuMemoryAllocator::Init() -> void {

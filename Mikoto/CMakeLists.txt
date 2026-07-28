@@ -101,9 +101,15 @@ set(MESHOPT_INSTALL OFF CACHE BOOL "" FORCE)
 # Direct3D 12 headers (According to their cmake comments this is technically
 # not needed because they are set if its cmake is top level)
 # ======================================
-set(DXHEADERS_BUILD_TEST OFF CACHE INTERNAL "")
-set(DXHEADERS_INSTALL OFF CACHE INTERNAL "")
-set(DXHEADERS_BUILD_GOOGLE_TEST OFF CACHE INTERNAL "")
+set(DXHEADERS_BUILD_TEST OFF CACHE BOOL "")
+set(DXHEADERS_INSTALL OFF CACHE BOOL "")
+set(DXHEADERS_BUILD_GOOGLE_TEST OFF CACHE BOOL "")
+
+# ======================================
+# D3D12MemoryAllocator
+# ======================================
+set(BUILD_DOCUMENTATION OFF CACHE BOOL "")
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
 
 # ======================================
 # tinigltf
@@ -599,6 +605,18 @@ FetchContent_MakeAvailable(ozz-animation)
 #set_property(TARGET ozz-animation PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
+# D3D12MemoryAllocator
+# -------------------------------------------------------
+FetchContent_Declare(
+        D3D12MemoryAllocator
+        GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator.git
+        GIT_TAG v3.2.0
+)
+
+FetchContent_MakeAvailable(D3D12MemoryAllocator)
+#set_property(TARGET D3D12MemoryAllocator PROPERTY FOLDER "ThirdParty")
+
+# -------------------------------------------------------
 # Slang ( Target AMD64 architectures by default, see how to change this later)
 # -------------------------------------------------------
 if (MSVC)
@@ -833,6 +851,7 @@ set(LIBRARIES
         spirv-cross-core
         spirv-cross-glsl
         Microsoft::DirectX-Headers
+        D3D12MemoryAllocator
 )
 
 # ======================================
@@ -928,6 +947,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${reflect_SOURCE_DIR}
         ${spirv_cross_SOURCE_DIR}
         ${directx-headers_SOURCE_DIR}/include
+        ${d3d12memoryallocator_SOURCE_DIR}/include
 )
 
 # ======================================

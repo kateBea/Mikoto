@@ -55,7 +55,7 @@
 namespace mikoto::renderer::vulkan {
 
     Device::Device( const GpuDeviceCreateInfo& createInfo )
-        : GpuDevice{ createInfo.mApi, createInfo.mFeaturesSupport }{
+        : IGpuDevice{ createInfo.mApi, createInfo.mFeaturesSupport }{
     }
 
     auto Device::Init() -> void {
@@ -549,7 +549,7 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto Device::SubmitDeletion( eastl::function<void( GpuDevice * )> &&callback ) -> void {
+    auto Device::SubmitDeletion( eastl::function<void( IGpuDevice * )> &&callback ) -> void {
 
     }
 
@@ -2755,7 +2755,7 @@ namespace mikoto::renderer::vulkan {
         return mTimeline.fetch_add( value );
     }
 
-    GpuUploadManager::GpuUploadManager( GpuDevice *device )
+    GpuUploadManager::GpuUploadManager( IGpuDevice *device )
         : mDevice{ device }
     {}
 

@@ -59,7 +59,7 @@ namespace mikoto::editor {
         auto UpdateCameraState( float ts ) -> void;
 
     private:
-        renderer::GpuDevice* mDevice{};
+        renderer::IGpuDevice* mDevice{};
 
         asset::ModelHandle mModelHandle{};
 

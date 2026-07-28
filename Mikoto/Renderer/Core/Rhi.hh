@@ -40,7 +40,7 @@
 #include <Memory/BufferSpan.hh>
 
 namespace mikoto::renderer {
-    class GpuDevice;
+    class IGpuDevice;
 }
 
 namespace mikoto::renderer::rhi {
@@ -874,7 +874,7 @@ namespace mikoto::renderer::rhi {
 
         explicit DeviceObject() = default;
 
-        auto Initialize( GpuDevice* device ) -> void {
+        auto Initialize( IGpuDevice* device ) -> void {
             mDevice = device;
             Initialize();
         }
@@ -901,7 +901,7 @@ namespace mikoto::renderer::rhi {
         auto Release() -> void override = 0;
 
     protected:
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
         eastl::string mDebugName{};
 
         ResourceType mResourceType{ ResourceType::eInvalid };

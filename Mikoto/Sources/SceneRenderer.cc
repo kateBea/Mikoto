@@ -238,7 +238,7 @@ namespace mikoto::renderer {
         return *this;
     }
 
-    auto SceneRendererCreateInfo::SetDevice( GpuDevice *device ) -> SceneRendererCreateInfo & {
+    auto SceneRendererCreateInfo::SetDevice( IGpuDevice *device ) -> SceneRendererCreateInfo & {
         this->mDevice = device;
         return *this;
     }

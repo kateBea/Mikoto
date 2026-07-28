@@ -40,7 +40,7 @@ namespace mikoto::asset {
 
     class MainImporter final : public ModelImporter {
     public:
-        explicit MainImporter(GpuDevice* device);
+        explicit MainImporter(IGpuDevice* device);
 
         auto Import( const ModelLoadDescription &description, ModelDataDescription& out) -> void override;
 

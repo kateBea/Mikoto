@@ -27,14 +27,14 @@
 namespace mikoto::renderer {
 
     struct ThumbnailRendererCreateInfo {
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
         eastl::string_view mName{};
         eastl::string_view mShaderBasePath{};
 
         RenderResolution mResolution{ RenderResolution::e1080P };
 
         auto SetName(eastl::string_view name) -> ThumbnailRendererCreateInfo&;
-        auto SetDevice(GpuDevice* device) -> ThumbnailRendererCreateInfo&;
+        auto SetDevice(IGpuDevice* device) -> ThumbnailRendererCreateInfo&;
         auto SetShaderBasePath(eastl::string_view path) -> ThumbnailRendererCreateInfo&;
         auto SetRenderResolution(RenderResolution resolution) -> ThumbnailRendererCreateInfo&;
     };

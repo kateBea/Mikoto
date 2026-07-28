@@ -256,7 +256,7 @@ namespace mikoto::renderer {
         return *this;
     }
 
-    FGResourceManager::FGResourceManager( GpuDevice* device )
+    FGResourceManager::FGResourceManager( IGpuDevice* device )
         : mDevice{ device }
     {
         // TODO: Should I allow every pass to have the possibility to push one constant buffer?
@@ -624,7 +624,7 @@ namespace mikoto::renderer {
         mGraphNode->mReadWriteResources.push_back(handle);  // marks this handle as UAV for StateForUsage
     }
 
-    FrameGraph::FrameGraph( GpuDevice *device, ShaderLibrary* library )
+    FrameGraph::FrameGraph( IGpuDevice *device, ShaderLibrary* library )
         : mDevice{ device }, mShaderLibrary{ library } {
         mNodeControl = eastl::make_unique<FGNodeControl>();
         mResourceManager = eastl::make_unique<FGResourceManager>( mDevice );
@@ -808,7 +808,7 @@ namespace mikoto::renderer {
         return mResourceManager->Get( handle.mHandle ).mResource;
     }
 
-    auto FrameGraph::Create( GpuDevice* device, ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph> {
+    auto FrameGraph::Create( IGpuDevice* device, ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph> {
         MKT_BEGIN_PROFILER_NAMED();
         return eastl::make_unique<FrameGraph>( device, shaderLibrary );
     }

@@ -61,31 +61,69 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
+    GpuUploadManager::GpuUploadManager( IGpuDevice *device )
+        : mDevice{ device }
+    {
+    }
+
+    auto GpuUploadManager::SubAllocate( size_t byteSize ) -> GpuUploadAllocation * {
+        return nullptr;
+    }
+
+    auto GpuUploadManager::ReclaimMemory() -> void {
+
+    }
+
+    GpuUploadManager::~GpuUploadManager() {
+
+    }
+
+    auto GpuUploadManager::CreateBuffer() -> StagingAllocation* {
+        return nullptr;
+    }
+
+    auto GpuUploadManager::CreateSubAllocation( IBuffer *buffer ) -> GpuUploadAllocation * {
+        return nullptr;
+    }
+
     Device::Device( const GpuDeviceCreateInfo &createInfo )
-        : GpuDevice{ createInfo.mApi, createInfo.mFeaturesSupport }
+        : IGpuDevice{ createInfo.mApi, createInfo.mFeaturesSupport }
     {}
 
     auto Device::Init() -> void {
         IDXGIFactory4* factory{ checked_cast<Context*>( RenderSystem::Get()->GetContext() )->GetDxiFactory() };
         MKT_ASSERT( factory, "A valid DirectX factory interface is required to create the device." );
 
-        for (UINT adapterIndex{}; DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(adapterIndex, &mAdapter); ++adapterIndex) {
+        // We use adapter 1 to query available physical devices
+        for (UINT adapterIndex{};
+            DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(adapterIndex, &mAdapter1);
+            ++adapterIndex)
+        {
             DXGI_ADAPTER_DESC1 desc{};
-            mAdapter->GetDesc1(&desc);
+            mAdapter1->GetDesc1(&desc);
 
+            // Don't select the Basic Render Driver adapter.
             if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
-                // Don't select the Basic Render Driver adapter.
                 continue;
             }
 
             // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-            if ( SUCCEEDED( D3D12CreateDevice( mAdapter.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
+            if ( SUCCEEDED( D3D12CreateDevice( mAdapter1.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
                 break;
             }
         }
 
-        ThrowIfFailed(D3D12CreateDevice( mAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice)));
-        mDevice->SetName(L"Hello Triangle Device");
+        // Get our adapter 4 which is the
+        // default interface we work with
+        ThrowIfFailed( mAdapter1.As( &mAdapter4 ) );
+        ThrowIfFailed( mAdapter4->GetDesc3( &mDeviceDescription3 ) );
+
+        ThrowIfFailed( D3D12CreateDevice( mAdapter4.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS( &mDevice ) ) );
+        mDevice->SetName( mDeviceDescription3.Description );
+
+        mName = string::FromWChar( mDeviceDescription3.Description );
+
+        InitMemoryAllocator();
 
 #if defined(_DEBUG)
         ThrowIfFailed(mDevice->QueryInterface( IID_PPV_ARGS(&mDebugDevice) ));
@@ -94,6 +132,17 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::Shutdown() -> void {
 
+    }
+
+    auto Device::InitMemoryAllocator() -> void {
+        mGpuAllocator = IGpuAllocator::Create( this );
+        if ( !mGpuAllocator ) {
+            MKT_THROW_RUNTIME_ERROR( "D3D12Device - Could not create GPU Allocator." );
+        }
+
+        mUploadManager = eastl::make_unique<GpuUploadManager>( this );
+
+        mGpuAllocator->Init();
     }
 
     auto Device::CreateTexture( const TextureCreateDescription &description ) -> TextureHandle {
@@ -197,6 +246,14 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::WaitIdle() -> void {
 
+    }
+
+    auto Device::GetDevice() -> ID3D12Device * {
+        return mDevice.Get();
+    }
+
+    auto Device::GetAdapter() -> IDXGIAdapter4 * {
+        return mAdapter4.Get();
     }
 
     auto Device::CreateBuffer( const BufferCreateDescription &description ) -> BufferHandle {

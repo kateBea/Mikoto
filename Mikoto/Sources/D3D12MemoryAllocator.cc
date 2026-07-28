@@ -1,0 +1,98 @@
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Platform.hh>
+
+#include <Renderer/Core/Rhi.hh>
+
+#include <Memory/GpuAllocator.hh>
+
+#if defined( MIKOTO_PLATFORM_WINDOWS )
+
+#include <directx/d3d12.h>
+#include <D3D12MemAlloc.h>
+
+#include <Renderer/D3D12/D3D12Device.hh>
+#include <Renderer/D3D12/Direct3D12Helpers.hh>
+#include <Renderer/D3D12/D3D12MemoryAllocator.hh>
+
+// https://gpuopen-librariesandsdks.github.io/D3D12MemoryAllocator/html/quick_start.html
+
+namespace mikoto::renderer::d3d12 {
+
+    GpuMemoryAllocator::GpuMemoryAllocator( IGpuDevice *device )
+        : IGpuAllocator{ device }
+    {
+
+    }
+
+    auto GpuMemoryAllocator::Init() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+
+        D3D12MA::ALLOCATOR_DESC allocatorDesc{};
+        allocatorDesc.pDevice = device->GetDevice();
+        allocatorDesc.pAdapter = device->GetAdapter();
+        allocatorDesc.Flags = D3D12MA_RECOMMENDED_ALLOCATOR_FLAGS;
+
+        ThrowIfFailed(D3D12MA::CreateAllocator(&allocatorDesc, &mAllocator));
+    }
+
+    auto GpuMemoryAllocator::Shutdown() -> void {
+
+    }
+
+    auto GpuMemoryAllocator::FreeImage( ImageAllocation &allocation ) -> void {
+
+    }
+
+    auto GpuMemoryAllocator::AllocateImage( ImageAllocation &allocation ) -> HRESULT {
+        return SUCCEEDED( 0 );
+    }
+
+    auto GpuMemoryAllocator::FreeBuffer( BufferAllocation &allocation ) -> void {
+
+    }
+
+    auto GpuMemoryAllocator::AllocateBuffer( BufferAllocation &allocation ) -> HRESULT {
+        return SUCCEEDED( 0 );
+    }
+
+    auto GpuMemoryAllocator::MapBuffer( BufferAllocation &allocation ) const -> void {
+
+    }
+
+    auto GpuMemoryAllocator::UnmapBuffer( BufferAllocation &allocation ) const -> void {
+
+    }
+
+    auto GpuMemoryAllocator::MapBuffer( BufferAllocation &allocation, bool map ) const -> void {
+
+    }
+
+    auto GpuMemoryAllocator::GetMemoryUsage() const -> size_t {
+        return 0; // TODO
+    }
+
+    auto GpuMemoryAllocator::GetMemoryTotal() const -> size_t {
+        return 0; // TODO
+    }
+
+    auto GpuMemoryAllocator::GetMemoryAvailable() const -> size_t {
+        return 0; // TODO
+    }
+}// namespace mikoto::renderer::d3d12
+
+#endif

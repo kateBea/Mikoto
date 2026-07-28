@@ -21,7 +21,7 @@
 
 namespace mikoto::editor {
 
-    ThumbnailCache::ThumbnailCache( GpuDevice *device )
+    ThumbnailCache::ThumbnailCache( IGpuDevice *device )
         : mDevice{ device }
     {}
 

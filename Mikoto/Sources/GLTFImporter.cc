@@ -1141,7 +1141,7 @@ namespace mikoto::asset {
         }
     }
 
-    GLTFImporter::GLTFImporter( GpuDevice* device )
+    GLTFImporter::GLTFImporter( IGpuDevice* device )
         : ModelImporter{ device } {
         for ( i32 count{}; count < threading::GetThreadConcurrency(); ++count ) {
             mImporters.emplace_back( eastl::make_unique<LoaderData>( count ) );

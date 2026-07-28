@@ -66,7 +66,7 @@ namespace mikoto::renderer {
     };
 
     struct FontFactoryCreateInfo {
-        GpuDevice *mDevice{ nullptr };
+        IGpuDevice *mDevice{ nullptr };
     };
 
     class FontFactory final : public IService, public Singleton<FontFactory> {
@@ -111,7 +111,7 @@ namespace mikoto::renderer {
         auto SubmitAtlasBitmapAndLayout(const BitmapAtlasStorage& atlas, GeometryList& glyphs, FontProperties& data, i32 fontSize ) const -> void;
 
     private:
-        GpuDevice *mDevice{ nullptr };
+        IGpuDevice *mDevice{ nullptr };
         msdfgen::FreetypeHandle *mFreeTypeHandle{ nullptr };
     };
 }

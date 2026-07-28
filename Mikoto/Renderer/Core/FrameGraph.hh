@@ -420,7 +420,7 @@ namespace mikoto::renderer {
     public:
         static constexpr FGResourceHandle kInvalidResourceHandle{ 0 };
 
-        explicit FGResourceManager( GpuDevice* device );
+        explicit FGResourceManager( IGpuDevice* device );
 
         MKT_NODISCARD auto Get( FGResourceHandle handle ) -> FGResource&;
         MKT_NODISCARD auto Get( FGResourceHandle name ) const -> const FGResource&;
@@ -447,7 +447,7 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto ImportBuffer( BufferHandle handle ) -> FGBufferHandle;
 
     private:
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
 
         std::mutex mResourceMutex{};
         eastl::atomic<u32> mResourceCount{};
@@ -567,7 +567,7 @@ namespace mikoto::renderer {
 
     class FrameGraph final {
     public:
-        explicit FrameGraph( GpuDevice* device, material::ShaderLibrary* shaderLibrary );
+        explicit FrameGraph( IGpuDevice* device, material::ShaderLibrary* shaderLibrary );
 
         auto Compile() -> void;
         auto Execute() -> void;
@@ -649,7 +649,7 @@ namespace mikoto::renderer {
 
         auto RegisterReadback( FGReadbackTask::Callback &&execute, bool runEveryFrame = false ) -> void;
 
-        MKT_NODISCARD static auto Create( GpuDevice* device, material::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph>;
+        MKT_NODISCARD static auto Create( IGpuDevice* device, material::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph>;
 
     private:
         auto BindResources( CommandListHandle cmd ) -> void;
@@ -671,7 +671,7 @@ namespace mikoto::renderer {
         };
 
     private:
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
         material::ShaderLibrary* mShaderLibrary{};
 
         // TODO: use the FGBlackboard

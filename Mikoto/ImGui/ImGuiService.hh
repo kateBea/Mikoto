@@ -41,7 +41,7 @@ namespace mikoto::gui {
 
     struct ImGuiBackendCreateInfo {
         Window* mWindow{ nullptr };
-        GpuDevice* mDevice{ nullptr };
+        IGpuDevice* mDevice{ nullptr };
         GraphicsAPI mApi{ GraphicsAPI::eVulkan };
     };
 
@@ -82,7 +82,7 @@ namespace mikoto::gui {
         bool mIsInitialized{ false };
 
         Window* m_Window{};
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
         GraphicsAPI mApi{ GraphicsAPI::eVulkan };
         RenderResolution mResolution{ RenderResolution::e1080P };
     };
@@ -91,7 +91,7 @@ namespace mikoto::gui {
         // Will grab the device from the render service
         // which is required to be initialized before this one
         Window* mWindow{ nullptr };
-        GpuDevice* mDevice{ nullptr };
+        IGpuDevice* mDevice{ nullptr };
         GraphicsAPI mApi{ GraphicsAPI::eVulkan };
     };
 
@@ -134,7 +134,7 @@ namespace mikoto::gui {
 
     private:
         Window* mWindow{ nullptr };
-        GpuDevice* mDevice{ nullptr };
+        IGpuDevice* mDevice{ nullptr };
 
         eastl::unique_ptr<ImGuiBackend> mImplementation{ nullptr };
 

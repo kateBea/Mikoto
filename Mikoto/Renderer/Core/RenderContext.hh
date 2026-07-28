@@ -60,8 +60,8 @@ namespace mikoto::renderer {
 
         virtual auto SetPresentTarget(TextureHandle texture) -> void = 0;
 
-        MKT_NODISCARD auto GetGpuDevice() -> GpuDevice*;
-        MKT_NODISCARD auto GetGpuDevice() const -> const GpuDevice*;
+        MKT_NODISCARD auto GetGpuDevice() -> IGpuDevice*;
+        MKT_NODISCARD auto GetGpuDevice() const -> const IGpuDevice*;
         MKT_NODISCARD auto GetRefreshRate() const  -> RefreshRate;
         MKT_NODISCARD auto IsRefreshType(RefreshRate type) const  -> bool;
 
@@ -75,7 +75,7 @@ namespace mikoto::renderer {
 
     protected:
         Window* mWindow{ nullptr };
-        eastl::unique_ptr<GpuDevice> mDevice{ nullptr };
+        eastl::unique_ptr<IGpuDevice> mDevice{ nullptr };
 
         RefreshRate mRefreshRate{ RefreshRate::eSync };
     };

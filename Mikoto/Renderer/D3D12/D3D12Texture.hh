@@ -15,6 +15,12 @@
 #ifndef MIKOTO_D3D12_TEXTURE_HH
 #define MIKOTO_D3D12_TEXTURE_HH
 
+#include <Core/Platform.hh>
+
+#if defined( MIKOTO_PLATFORM_WINDOWS )
+
+#include <directx/d3d12.h>
+
 #include <Renderer/Core/Rhi.hh>
 
 namespace mikoto::renderer::d3d12 {
@@ -34,9 +40,23 @@ namespace mikoto::renderer::d3d12 {
     private:
     };
 
-    class Texture {
+    class Texture : public ITexture {
+    public:
+        explicit Texture( const TextureCreateDescription& desc );
+
+        ~Texture() override;
+
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+
+    private:
+        ID3D12Resource* mResource{};
+        D3D12MA::Allocation* mAllocation{};
     };
 
-}
+}// namespace mikoto::renderer::d3d12
+
+#endif
 
 #endif//MIKOTO_D3D12_TEXTURE_HH

@@ -301,7 +301,7 @@ namespace mikoto::asset {
         eastl::unique_ptr<MeshFactory> mMeshFactory{};
         eastl::unique_ptr<FontFactory> mFontFactory{};
 
-        GpuDevice* mGpuDevice{ nullptr };
+        IGpuDevice* mGpuDevice{ nullptr };
         AudioDevice* mAudioDevice{ nullptr };
 
         AssetCache<Font> mFonts{};

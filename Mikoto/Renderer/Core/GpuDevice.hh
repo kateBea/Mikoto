@@ -55,7 +55,7 @@ namespace mikoto::renderer {
         GpuFeatureSupport mFeaturesSupport{};
     };
 
-    class GpuDevice {
+    class IGpuDevice {
     public:
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
@@ -130,12 +130,12 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto GetGraphicsApi() const -> GraphicsAPI;
         MKT_NODISCARD auto GetDeviceName() const -> eastl::string_view;
 
-        virtual ~GpuDevice() = default;
+        virtual ~IGpuDevice() = default;
 
-        MKT_NODISCARD static auto Create( const GpuDeviceCreateInfo& createInfo ) -> eastl::unique_ptr<GpuDevice>;
+        MKT_NODISCARD static auto Create( const GpuDeviceCreateInfo& createInfo ) -> eastl::unique_ptr<IGpuDevice>;
 
     protected:
-        explicit GpuDevice( GraphicsAPI api, const GpuFeatureSupport& featuresSupport );
+        explicit IGpuDevice( GraphicsAPI api, const GpuFeatureSupport& featuresSupport );
 
     protected:
         eastl::string mName{};

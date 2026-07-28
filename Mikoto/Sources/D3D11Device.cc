@@ -725,7 +725,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     Device::Device( const GpuDeviceCreateInfo &createInfo )
-        : GpuDevice{ createInfo.mApi, createInfo.mFeaturesSupport }
+        : IGpuDevice{ createInfo.mApi, createInfo.mFeaturesSupport }
     {}
 
     auto Device::Init() -> void {

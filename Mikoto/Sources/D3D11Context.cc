@@ -81,7 +81,7 @@ namespace mikoto::renderer::d3d11 {
         }
 
         // Init the device when the context is ready
-        mDevice = GpuDevice::Create({ .mApi = GraphicsAPI::eD3D11 });
+        mDevice = IGpuDevice::Create({ .mApi = GraphicsAPI::eD3D11 });
         if (!mDevice) {
             MKT_CORE_LOGGER_ERROR( "D3D11Context::Init - Could not initialize DIRECTX_11 GPU Device." );
         }

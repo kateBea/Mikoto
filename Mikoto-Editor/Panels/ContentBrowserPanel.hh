@@ -54,7 +54,7 @@ namespace mikoto::editor {
     };
 
     struct ContentBrowserPanelDescription {
-        GpuDevice* mDevice{ nullptr };
+        IGpuDevice* mDevice{ nullptr };
         EditorState* mState{ nullptr };
 
         Path mProjectBasePath{};
@@ -79,7 +79,7 @@ namespace mikoto::editor {
         auto DrawCurrentDirItems() -> void;
 
     private:
-        GpuDevice* mDevice{ nullptr };
+        IGpuDevice* mDevice{ nullptr };
         EditorState* mEditorState{ nullptr };
 
         ImGuiTextFilter mSearchFilter{};

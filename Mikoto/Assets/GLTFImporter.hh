@@ -47,7 +47,7 @@ namespace mikoto::asset {
 
     class GLTFImporter final : public ModelImporter {
     public:
-        explicit GLTFImporter(GpuDevice* device);
+        explicit GLTFImporter(IGpuDevice* device);
 
         auto Import(const ModelLoadDescription& description, ModelDataDescription& out) -> void override;
 

@@ -138,19 +138,19 @@ namespace mikoto::renderer::vulkan {
     };
 
     struct DeletionQueue final {
-        using DeletionFunc = eastl::function<void( GpuDevice* )>;
+        using DeletionFunc = eastl::function<void( IGpuDevice* )>;
         using DeletionQueueList = eastl::deque<DeletionFunc>;
 
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
         RenderContext* mContext{};
 
         std::mutex mPushMutex{};
         DeletionQueueList mCallbacks{};
 
-        explicit DeletionQueue( GpuDevice* device );
+        explicit DeletionQueue( IGpuDevice* device );
 
         auto Flush() -> void;
-        auto Push( eastl::function<void( GpuDevice* )>&& callback ) -> void;
+        auto Push( eastl::function<void( IGpuDevice* )>&& callback ) -> void;
 
         auto Shutdown() -> void;
     };
@@ -184,7 +184,7 @@ namespace mikoto::renderer::vulkan {
     // we can just have a huge chunk that grows as we need??
     class GpuUploadManager final {
     public:
-        explicit GpuUploadManager( GpuDevice* device );
+        explicit GpuUploadManager( IGpuDevice* device );
 
         auto SubAllocate( size_t byteSize ) -> GpuUploadAllocation*;
         auto ReclaimMemory() -> void;
@@ -205,7 +205,7 @@ namespace mikoto::renderer::vulkan {
     private:
         std::mutex mMutex{};
 
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
         ankerl::unordered_dense::map<IBuffer*, eastl::unique_ptr<StagingAllocation>> mBuffers{};
         ankerl::unordered_dense::map<IBuffer*, eastl::fixed_vector<eastl::unique_ptr<GpuUploadAllocation>, kMaxSubAllocations>> mSubAllocations{};
     };
@@ -711,7 +711,7 @@ namespace mikoto::renderer::vulkan {
         PipelineLayoutCreateDescription mDesc{};
     };
 
-    class Device final : public GpuDevice {
+    class Device final : public IGpuDevice {
     public:
         explicit Device( const GpuDeviceCreateInfo& createInfo );
 
@@ -782,7 +782,7 @@ namespace mikoto::renderer::vulkan {
 
         auto WaitQueuesIdle() const -> void;
 
-        auto SubmitDeletion( eastl::function<void( GpuDevice* )>&& callback ) -> void;
+        auto SubmitDeletion( eastl::function<void( IGpuDevice* )>&& callback ) -> void;
 
         MKT_NODISCARD auto GetDummySampler() -> Sampler*;
         MKT_NODISCARD auto GetLayoutForEmptySet() -> VkDescriptorSetLayout;

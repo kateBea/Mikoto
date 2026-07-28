@@ -26,23 +26,23 @@
 
 namespace mikoto::renderer {
 
-    auto GpuDevice::GetGraphicsApi() const -> GraphicsAPI {
+    auto IGpuDevice::GetGraphicsApi() const -> GraphicsAPI {
         return mApi;
     }
 
-    auto GpuDevice::IsInitialized() const -> bool {
+    auto IGpuDevice::IsInitialized() const -> bool {
         return mIsInitialized;
     }
 
-    auto GpuDevice::IsGraphicsApi( GraphicsAPI api ) const -> bool {
+    auto IGpuDevice::IsGraphicsApi( GraphicsAPI api ) const -> bool {
         return mApi == api;
     }
 
-    auto GpuDevice::GetDeviceName() const -> eastl::string_view {
+    auto IGpuDevice::GetDeviceName() const -> eastl::string_view {
         return mName;
     }
 
-    auto GpuDevice::Create( const GpuDeviceCreateInfo &createInfo ) -> eastl::unique_ptr<GpuDevice> {
+    auto IGpuDevice::Create( const GpuDeviceCreateInfo &createInfo ) -> eastl::unique_ptr<IGpuDevice> {
         switch ( createInfo.mApi ) {
             case GraphicsAPI::eVulkan:
                 return eastl::make_unique<vulkan::Device>( createInfo );
@@ -58,7 +58,7 @@ namespace mikoto::renderer {
         return nullptr;
     }
 
-    GpuDevice::GpuDevice( const GraphicsAPI api, const GpuFeatureSupport& featuresSupport )
+    IGpuDevice::IGpuDevice( const GraphicsAPI api, const GpuFeatureSupport& featuresSupport )
         : mApi{ api }, mFeaturesSupport{ featuresSupport }
     {}
 }

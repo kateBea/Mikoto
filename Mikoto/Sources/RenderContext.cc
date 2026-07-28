@@ -26,11 +26,11 @@
 
 namespace mikoto::renderer {
 
-    auto RenderContext::GetGpuDevice() -> GpuDevice* {
+    auto RenderContext::GetGpuDevice() -> IGpuDevice* {
         return mDevice.get();
     }
 
-    auto RenderContext::GetGpuDevice() const -> const GpuDevice* {
+    auto RenderContext::GetGpuDevice() const -> const IGpuDevice* {
         return mDevice.get();
     }
 

@@ -37,7 +37,7 @@ namespace mikoto::material {
     inline constexpr eastl::string_view kSlangFileExtension{ ".slang" };
 
     struct ShaderLibraryDescription {
-        GpuDevice* mDevice{};
+        IGpuDevice* mDevice{};
         Path mRootPath{};
     };
 
@@ -61,7 +61,7 @@ namespace mikoto::material {
 
     private:
         Path mRootPath{};
-        GpuDevice *mDevice{ nullptr };
+        IGpuDevice *mDevice{ nullptr };
         ankerl::unordered_dense::map<Path, rhi::ShaderModuleHandle> mShaders{};
     };
 

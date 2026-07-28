@@ -15,6 +15,8 @@
 
 #include <EASTL/unique_ptr.h>
 
+#include <Core/Platform.hh>
+
 #include <Memory/GpuAllocator.hh>
 
 #include <Renderer/Core/GpuDevice.hh>
@@ -23,15 +25,22 @@
 #include <Memory/GpuAllocator.hh>
 #include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
 
+#if defined( MIKOTO_PLATFORM_WINDOWS )
+#include <Renderer/D3D12/D3D12MemoryAllocator.hh>
+#endif
+
 namespace mikoto::memory {
 
     using namespace mikoto::renderer;
-    using namespace mikoto::renderer::vulkan;
 
-    auto IGpuAllocator::Create(GpuDevice* device) -> eastl::unique_ptr<IGpuAllocator> {
+    auto IGpuAllocator::Create(IGpuDevice* device) -> eastl::unique_ptr<IGpuAllocator> {
         switch ( device->GetGraphicsApi() ) {
             case GraphicsAPI::eVulkan:
-                return eastl::make_unique<GpuMemoryAllocator>(device);
+                return eastl::make_unique<vulkan::GpuMemoryAllocator>(device);
+#if defined( MIKOTO_PLATFORM_WINDOWS )
+            case GraphicsAPI::eD3D12:
+                return eastl::make_unique<d3d12::GpuMemoryAllocator>(device);
+#endif
             default:;
         }
 

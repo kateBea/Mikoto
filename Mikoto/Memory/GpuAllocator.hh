@@ -27,7 +27,7 @@ namespace mikoto::memory {
 
     class IGpuAllocator {
     public:
-        explicit IGpuAllocator(renderer::GpuDevice* device)
+        explicit IGpuAllocator(renderer::IGpuDevice* device)
             : mDevice{ device }
         {}
 
@@ -40,10 +40,10 @@ namespace mikoto::memory {
 
         virtual ~IGpuAllocator() = default;
 
-        static auto Create(renderer::GpuDevice* device) -> eastl::unique_ptr<IGpuAllocator>;
+        static auto Create(renderer::IGpuDevice* device) -> eastl::unique_ptr<IGpuAllocator>;
 
     protected:
-        renderer::GpuDevice* mDevice{};
+        renderer::IGpuDevice* mDevice{};
     };
 }
 

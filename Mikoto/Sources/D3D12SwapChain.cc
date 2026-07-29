@@ -18,6 +18,11 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
+#include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/D3D12/D3D12Context.hh>
+#include <Renderer/D3D12/D3D12Device.hh>
+#include <Renderer/D3D12/Direct3D12Helpers.hh>
+
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_EXPOSE_NATIVE_WGL
 #define GLFW_NATIVE_INCLUDE_NONE
@@ -40,6 +45,10 @@ namespace mikoto::renderer::d3d12 {
     auto SwapChain::OnResize( u32 width, u32 height ) -> void {
         mWidth = width;
         mHeight = height;
+
+        Context* ctx{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
+        mSwapChain->ResizeBuffers(ctx->GetBackBufferCount(), mWidth, mHeight,
+                                 DXGI_FORMAT_R8G8B8A8_UNORM, 0);
     }
 
     auto SwapChain::SetRefreshRate( RefreshRate type ) -> void {
@@ -81,11 +90,100 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto SwapChain::Initialize() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        Context* ctx{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
+
+        mRenderTargetsViews.resize( (size_t)ctx->GetBackBufferCount() );
+
+        // Surface dimensions
+        mSurfaceSize.left = 0;
+        mSurfaceSize.top = 0;
+        mSurfaceSize.right = as<LONG>(mWidth);
+        mSurfaceSize.bottom = as<LONG>(mHeight);
+
+        // Viewport description
+        mViewportDescription.TopLeftX = 0.0f;
+        mViewportDescription.TopLeftY = 0.0f;
+        mViewportDescription.Width = as<f32>(mWidth);
+        mViewportDescription.Height = as<f32>(mHeight);
+        mViewportDescription.MinDepth = .1f;
+        mViewportDescription.MaxDepth = 1000.f;
+
+        // Swapchain description
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
+        swapChainDesc.Width = mWidth;
+        swapChainDesc.Height = mHeight;
+        swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        swapChainDesc.Stereo = FALSE;
+        swapChainDesc.SampleDesc = { 1, 0 };
+        swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        swapChainDesc.BufferCount = ctx->GetBackBufferCount();
+        swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+        swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+
+        // Window handle
+        HWND win32Handle{};
+        try {
+            auto window{ eastl::any_cast<GLFWwindow*>( mWindow->GetNativeWindow() ) };
+            win32Handle = glfwGetWin32Window(window);
+        } catch ( const std::exception& exception ) {
+            MKT_CORE_LOGGER_ERROR( "D3D11Context::CreateSwapChain - Cast exception: e.what(): {}", exception.what() );
+        }
+
+        // Command queue
+        Queue* queue{ device->GetQueue( QueueType::ePresent ) };
+        ID3D12CommandQueue* cmdQueue{ *queue };
+
+        Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain1{};
+        ThrowIfFailed(ctx->GetDxiFactory()->CreateSwapChainForHwnd(
+            cmdQueue,
+            win32Handle,
+            &swapChainDesc,
+            nullptr,
+            nullptr,
+            &swapChain1));
+
+        // Disable the Alt+Enter fullscreen toggle feature.
+        // Switching to fullscreen will be handled manually.
+        ThrowIfFailed(ctx->GetDxiFactory()->MakeWindowAssociation(win32Handle, DXGI_MWA_NO_ALT_ENTER));
+        ThrowIfFailed(swapChain1.As(&mSwapChain));
+
+        mCurrentBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
+
+        // Describe and create a render target view (RTV) descriptor heap.
+        // It allocates memory on the GPU to hold a list of descriptors (views).
+        D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
+        rtvHeapDesc.NumDescriptors = ctx->GetBackBufferCount();
+        rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+        rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        ThrowIfFailed(device->GetDevice()->CreateDescriptorHeap(
+            &rtvHeapDesc, IID_PPV_ARGS(&mRenderTargetViewHeap)));
+
+        // Here I ask my specific GPU hardware: "How many bytes wide is one single RTV slot?"
+        mRtvDescriptorSize = device->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+        // Frame resources
+        // Handle to beginning of render target descriptors
+        D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle{ mRenderTargetViewHeap->GetCPUDescriptorHandleForHeapStart() };
+
+        // Create an RTV for each frame.
+        // Pull the raw texture resource handles out of the DXGI swapchain and save them
+        // into mRenderTargetsViews array, create the actual view, link the raw texture
+        // (mRenderTargetsViews[index]) to the current slot pointer (rtvHandle). nullptr is used to let
+        // the method infer the format automatically from the texture description.
+        // Finally advance the pointer forward by the byte size of exactly one descriptor slot.
+        for (UINT index{}; index < ctx->GetBackBufferCount(); index++) {
+            ThrowIfFailed(mSwapChain->GetBuffer(index, IID_PPV_ARGS(&mRenderTargetsViews[index])));
+            device->GetDevice()->CreateRenderTargetView(mRenderTargetsViews[index], nullptr, rtvHandle);
+            rtvHandle.ptr += (1 * mRtvDescriptorSize);
+        }
+
         mIsAllocated = true;
     }
 
     auto SwapChain::Release() -> void {
-
+        mIsAllocated = false;
     }
 }// namespace mikoto::renderer::d3d12
 

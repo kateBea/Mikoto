@@ -27,9 +27,12 @@
 // D3D12 extension library.
 #include <directx/d3d12.h>
 
+#include <Renderer/Core/Rhi.hh>
+
 namespace mikoto::renderer::d3d12 {
 
     auto ThrowIfFailed(HRESULT hr) -> void;
+    MKT_NODISCARD auto GetQueueType( rhi::QueueType type ) -> D3D12_COMMAND_LIST_TYPE;
 
 }// namespace mikoto::renderer::d3d12
 

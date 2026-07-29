@@ -16,16 +16,20 @@
 #define MIKOTO_IMGUI_D3D12BACKEND_HH
 
 #include <Core/Platform.hh>
+
 #include <ImGui/ImGuiService.hh>
 
+#include <Renderer/Core/Rhi.hh>
+
 #if defined(MIKOTO_PLATFORM_WINDOWS)
+
+#include <directx/d3d12.h>
 
 namespace mikoto::gui {
 
     class ImGuiD3D12Backend final : public ImGuiBackend {
     public:
-        explicit ImGuiD3D12Backend( const ImGuiBackendCreateInfo& createInfo )
-           : ImGuiBackend{ createInfo } {}
+        explicit ImGuiD3D12Backend( const ImGuiBackendCreateInfo& createInfo );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
@@ -37,6 +41,19 @@ namespace mikoto::gui {
 
         MKT_NODISCARD auto ConstructImGuiTextureID( const ITexture* texture ) -> ImTextureID override;
         MKT_NODISCARD auto ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID override;
+
+    private:
+        // [Internal usage]
+        auto InitImages() -> void;
+        auto InitImGuiForD3D12() -> void;
+
+    private:
+        D3D12_RESOURCE_DESC mDimensions{};
+
+        CommandListHandle mCommandList{};
+
+        TextureHandle mColorImage{};
+        TextureHandle mDepthImage{};
 
     };
 }

@@ -17,6 +17,7 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
+#include <Renderer/D3D12/D3D12Device.hh>
 #include <Renderer/D3D12/D3D12Context.hh>
 #include <Renderer/D3D12/Direct3D12Helpers.hh>
 
@@ -41,6 +42,14 @@ namespace mikoto::renderer::d3d12 {
             MKT_THROW_RUNTIME_ERROR( "Could not initialize D3D12 GPU Device." );
         }
         mDevice->Init();
+
+        // If no window is provided we use D3D11 headless
+        if (mWindow) {
+            if (!InitializeSwapchain()) {
+                MKT_CORE_LOGGER_ERROR( "D3D12Context::Init - Failed to create swapchain" );
+                return false;
+            }
+        }
 
         return true;
     }
@@ -79,6 +88,19 @@ namespace mikoto::renderer::d3d12 {
 
     auto Context::GetDxiFactory() const -> IDXGIFactory4* {
         return mDxgiFactory.Get();
+    }
+
+    auto Context::GetBackBufferCount() const -> UINT {
+        return kBackBufferCount;
+    }
+
+    auto Context::InitializeSwapchain() -> bool {
+        mSwapChain = checked_cast<Device*>( GetGpuDevice() )->CreateSwapChain( mWindow, mDxgiFactory );
+        if (!mSwapChain.IsEmpty()) {
+            mSwapChain->SetRefreshRate( mRefreshRate );
+        }
+
+        return !mSwapChain.IsEmpty();
     }
 }// namespace Mikoto
 

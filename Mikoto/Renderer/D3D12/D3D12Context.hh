@@ -56,11 +56,19 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetSwapChain() const -> SwapChainHandle;
         MKT_NODISCARD auto GetDxiFactory() const -> IDXGIFactory4*;
 
+        MKT_NODISCARD auto GetBackBufferCount() const -> UINT;
+
         ~Context() override = default;
+
+    private:
+        // [Internal usage]
+        MKT_NODISCARD auto InitializeSwapchain() -> bool;
 
     private:
         SwapChainHandle mSwapChain{};
         Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory{};
+
+        static constexpr UINT kBackBufferCount{ 2 };
 
 #if !defined(NDEBUG)
         Microsoft::WRL::ComPtr<ID3D12Debug> mDebug{};

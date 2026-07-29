@@ -65,7 +65,7 @@ namespace mikoto::renderer::d3d11 {
         ~Context() override = default;
 
     private:
-        MKT_NODISCARD auto CreateSwapChain() -> bool;
+        MKT_NODISCARD auto InitializeSwapchain() -> bool;
 
     private:
         TextureHandle mPresentTarget{};

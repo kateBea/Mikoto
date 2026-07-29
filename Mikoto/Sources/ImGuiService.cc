@@ -342,8 +342,7 @@ namespace mikoto::gui {
             PathBuilder()
                 .SetPath( mImGuiFilesRootDir.GetC_Str() )
                 .SetPath( "imgui.ini" )
-                .Build()
-        };
+                .Build() };
 
         io.IniFilename = iniFilePath.GetC_Str();
 
@@ -351,9 +350,7 @@ namespace mikoto::gui {
         const ImGuiBackendCreateInfo imGuiVulkanBackendCreateInfo{
             .mWindow = mWindow,
             .mDevice = mDevice,
-            .mApi = mBackendApi,
-        };
-
+            .mApi = mBackendApi };
         mImplementation = ImGuiBackend::Create( imGuiVulkanBackendCreateInfo );
 
         // Initialize the implementation
@@ -374,7 +371,6 @@ namespace mikoto::gui {
             case GraphicsAPI::eD3D11:
                 return eastl::make_unique<ImGuiD3D11Backend>( info );
 #endif
-
             default:;
         }
 

@@ -41,7 +41,6 @@
 #include <Renderer/Vulkan/VulkanDevice.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
 #include <Renderer/Vulkan/VulkanHelpers.hh>
-#include <utility>
 
 namespace mikoto::gui {
 
@@ -84,11 +83,11 @@ namespace mikoto::gui {
         mDepthImage.Reset();
 
         // Clear texture IDs
-        for (auto& [descriptorSet] : m_ImGuiSets | std::ranges::views::values ) {
+        for (auto& [descriptorSet] : mImGuiSets | std::ranges::views::values ) {
             ImGui_ImplVulkan_RemoveTexture( descriptorSet );
         }
 
-        m_ImGuiSets.clear();
+        mImGuiSets.clear();
 
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
@@ -127,8 +126,7 @@ namespace mikoto::gui {
             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000,
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000,
             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000,
-            VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000
-        };
+            VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 };
 
         VkDescriptorPoolCreateInfo poolCreateInfo{ initializers::DescriptorPoolCreateInfo() };
         poolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
@@ -259,8 +257,8 @@ namespace mikoto::gui {
             return result;
         }
 
-        auto itFind{ m_ImGuiSets.find( texture ) };
-        if ( itFind != m_ImGuiSets.end() ) {
+        auto itFind{ mImGuiSets.find( texture ) };
+        if ( itFind != mImGuiSets.end() ) {
             result = reinterpret_cast<ImTextureID>(itFind->second.descriptorSet);
         } else {
             ISampler* sampler{ checked_cast<vulkan::Device*>( mDevice )->GetDummySampler() };
@@ -271,7 +269,7 @@ namespace mikoto::gui {
             VkDescriptorSet ds{ ImGui_ImplVulkan_AddTexture( sampler->GetNativeHandle( ObjectType::Vk_Sampler ), view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
 
             const auto [it, success] {
-                m_ImGuiSets.try_emplace( texture, ImGuiTextIDInfo{ ds } )
+                mImGuiSets.try_emplace( texture, ImGuiTextIDInfo{ ds } )
             };
 
             result = reinterpret_cast<ImTextureID>(it->second.descriptorSet);

@@ -185,9 +185,7 @@ namespace mikoto::renderer {
         ImGuiServiceDescription imguiServiceCreateInfo{
             .mWindow = mWindow,
             .mDevice = GetGpuDevice(),
-            .mApi = mApi,
-        };
-
+            .mApi = mApi };
         mImguiService = eastl::make_unique<ImGuiService>( imguiServiceCreateInfo );
         mImguiService->Initialize();
     }

@@ -56,6 +56,89 @@ namespace mikoto::renderer::d3d12 {
     auto BindingLayout::Release() -> void {
         mIsAllocated = false;
     }
+    Queue::Queue( QueueType type, QueueOpSupportFlags flags )
+        : IQueue{ type, flags }
+    {
+
+    }
+
+    auto Queue::Wait( IFence *fence, u64 value ) -> void {
+
+    }
+
+    auto Queue::Signal( IFence *fence, u64 value ) -> void {
+
+    }
+
+    auto Queue::ExecuteCommandLists( eastl::span<CommandListHandle> commands ) -> void {
+
+    }
+
+    auto Queue::Flush() -> void {
+
+    }
+
+    auto Queue::RunGarbageCollection() -> void {
+
+    }
+
+    auto Queue::ExecuteCommandList( CommandListHandle cmd ) -> void {
+
+    }
+
+    auto Queue::SubmitCommandList( CommandListHandle cmd ) -> u64 {
+        return 0;
+    }
+
+    auto Queue::AllocateCmdList() -> CommandListHandle {
+        return CommandListHandle::CreateEmpty();
+    }
+
+    auto Queue::AllocateCmdList( const CommandListParameters &params ) -> CommandListHandle {
+        return CommandListHandle::CreateEmpty();
+    }
+
+    auto Queue::WaitIdle() const -> void {
+
+    }
+
+    Queue::operator ID3D12CommandQueue*() const {
+        return mQueue.Get();
+    }
+
+    Queue::operator ID3D12CommandAllocator *() const {
+        return mAllocator.Get();
+    }
+
+    Queue::~Queue() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto Queue::Release() -> void {
+        mIsAllocated = false;
+    }
+
+    auto Queue::Initialize() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+
+        const D3D12_COMMAND_LIST_TYPE cmdQueueType{ d3d12::GetQueueType(mType) };
+
+        D3D12_COMMAND_QUEUE_DESC desc{};
+        desc.Type =     cmdQueueType;
+        desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+        desc.Flags =    D3D12_COMMAND_QUEUE_FLAG_NONE;
+        desc.NodeMask = 0;
+
+        // Command queue
+        ThrowIfFailed(device->GetDevice()->CreateCommandQueue(&desc, IID_PPV_ARGS(&mQueue)));
+
+        // Command allocator
+        ThrowIfFailed(device->GetDevice()->CreateCommandAllocator(cmdQueueType, IID_PPV_ARGS(&mAllocator)));
+
+        mIsAllocated = true;
+    }
 
     auto CommandList::BindIndirectBuffer( IBuffer *buffer ) -> void {
 
@@ -123,6 +206,7 @@ namespace mikoto::renderer::d3d12 {
 
         mName = string::FromWChar( mDeviceDescription3.Description );
 
+        InitCommandQueues();
         InitMemoryAllocator();
 
 #if defined(_DEBUG)
@@ -131,7 +215,26 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::Shutdown() -> void {
+        mQueues.clear();
+    }
 
+    auto Device::InitCommandQueues() -> void {
+        // D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_TYPE_COMPUTE and D3D12_COMMAND_LIST_TYPE_COPY
+        // are guaranteed to be supported which is all we need for Graphics, Compute, Transfer and Present.
+        // For the time being we will use one command queue type for all operations (D3D12_COMMAND_LIST_TYPE_DIRECT in this case)
+        QueueHandle queue{ Ref<Queue>::Spawn( QueueType::eGraphics,
+            QueueOpSupportFlagsBits::kGraphics | QueueOpSupportFlagsBits::kCompute |
+            QueueOpSupportFlagsBits::kTransfer | QueueOpSupportFlagsBits::kPresentation ) };
+
+        queue->Initialize(this);
+
+        // Same queue for all types
+        eastl::vector<QueueType> queueTypes{
+            QueueType::eGraphics, QueueType::eCompute,
+            QueueType::eTransfer, QueueType::ePresent };
+        for (const auto& type : queueTypes) {
+            mQueues[type] = queue;
+        }
     }
 
     auto Device::InitMemoryAllocator() -> void {
@@ -254,6 +357,25 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::GetAdapter() -> IDXGIAdapter4 * {
         return mAdapter4.Get();
+    }
+
+    auto Device::GetQueue( QueueType type ) -> Queue * {
+        MKT_ASSERT( mQueues.contains( type ), "Device does not contain requested type of queue" );
+        return mQueues.at(type).GetRaw();
+    }
+
+    auto Device::GetQueue( QueueType type ) const -> const Queue* {
+        MKT_ASSERT( mQueues.contains( type ), "Device does not contain requested type of queue" );
+        return mQueues.at(type).GetRaw();
+    }
+
+    auto Device::CreateSwapChain( Window *window, Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory ) -> SwapChainHandle {
+        auto handle{ SwapChainHandle::Spawn(window, dxgiFactory) };
+        if (!handle.IsEmpty()) {
+            handle->Initialize(this);
+        }
+
+        return handle;
     }
 
     auto Device::CreateBuffer( const BufferCreateDescription &description ) -> BufferHandle {

@@ -89,7 +89,7 @@ namespace mikoto::renderer::d3d11 {
 
         // If no window is provided we use D3D11 headless
         if (mWindow) {
-            if (!CreateSwapChain()) {
+            if (!InitializeSwapchain()) {
                 MKT_CORE_LOGGER_ERROR( "D3D11Context::Init - Failed to create swapchain" );
                 return false;
             }
@@ -161,8 +161,8 @@ namespace mikoto::renderer::d3d11 {
         return mDxgiFactory.Get();
     }
 
-    auto Context::CreateSwapChain() -> bool {
-        mSwapChain = as<Device*>( GetGpuDevice() )->CreateSwapChain( mWindow, mDxgiFactory );
+    auto Context::InitializeSwapchain() -> bool {
+        mSwapChain = checked_cast<Device*>( GetGpuDevice() )->CreateSwapChain( mWindow, mDxgiFactory );
         if (!mSwapChain.IsEmpty()) {
             mSwapChain->SetRefreshRate( mRefreshRate );
         }

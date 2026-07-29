@@ -32,6 +32,20 @@ namespace mikoto::renderer::d3d12 {
             MKT_THROW_RUNTIME_ERROR( "D3D12 Error" ); // TODO: improved errors
         }
     }
+
+    auto GetQueueType( rhi::QueueType type ) -> D3D12_COMMAND_LIST_TYPE {
+        switch (type) {
+            case rhi::QueueType::eGraphics:
+            case rhi::QueueType::ePresent:
+                return D3D12_COMMAND_LIST_TYPE_DIRECT;
+            case rhi::QueueType::eCompute:
+                return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+            case rhi::QueueType::eTransfer:
+                return D3D12_COMMAND_LIST_TYPE_COPY;
+            default:
+                return D3D12_COMMAND_LIST_TYPE_NONE;
+        }
+    }
 }// namespace mikoto::renderer::d3d12
 
 #endif

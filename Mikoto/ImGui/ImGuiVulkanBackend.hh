@@ -72,7 +72,7 @@ namespace mikoto::gui {
         struct ImGuiTextIDInfo {
             VkDescriptorSet descriptorSet{};
         };
-        ankerl::unordered_dense::map<const ITexture*, ImGuiTextIDInfo> m_ImGuiSets{};
+        ankerl::unordered_dense::map<const ITexture*, ImGuiTextIDInfo> mImGuiSets{};
     };
 }// namespace Mikoto
 

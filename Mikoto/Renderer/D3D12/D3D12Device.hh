@@ -33,6 +33,7 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
+#include <Renderer/D3D12/D3D12SwapChain.hh>
 #include <Renderer/D3D12/D3D12MemoryAllocator.hh>
 
 namespace mikoto::renderer::d3d12 {
@@ -86,6 +87,46 @@ namespace mikoto::renderer::d3d12 {
     protected:
         auto Initialize() -> void override;
         auto Release() -> void override;
+    };
+
+    class Queue final : public IQueue {
+    public:
+        explicit Queue( QueueType type, QueueOpSupportFlags flags );
+
+        auto Wait( IFence* fence, u64 value ) -> void override;
+        auto Signal( IFence* fence, u64 value ) -> void override;
+
+        auto ExecuteCommandLists( eastl::span<CommandListHandle> commands ) -> void override;
+
+        auto Flush() -> void;
+
+        auto RunGarbageCollection() -> void;
+
+        auto ExecuteCommandList( CommandListHandle cmd ) -> void;
+        auto SubmitCommandList( CommandListHandle cmd ) -> u64;
+
+        auto AllocateCmdList() -> CommandListHandle;
+        auto AllocateCmdList( const CommandListParameters& params ) -> CommandListHandle;
+
+        auto WaitIdle() const -> void;
+
+        // Conversion operators
+        operator ID3D12CommandQueue*() const; // Logical
+        operator ID3D12CommandAllocator*() const; // Logical
+
+        ~Queue() override;
+
+    private:
+        auto Release() -> void override;
+        auto Initialize() -> void override;
+
+    private:
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> mQueue{};
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mAllocator{};
+
+        // For debug
+        eastl::string mSubmissionLabel{};
+        Color mSubmissionLabelColor{};
     };
 
     class CommandList final : public ICommandList {
@@ -287,10 +328,16 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetDevice() -> ID3D12Device*;
         MKT_NODISCARD auto GetAdapter() -> IDXGIAdapter4*;
 
+        MKT_NODISCARD auto GetQueue( QueueType type ) -> Queue*;
+        MKT_NODISCARD auto GetQueue( QueueType type ) const -> const Queue*;
+
+        MKT_NODISCARD auto CreateSwapChain(Window* window, Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory) -> SwapChainHandle;
+
         ~Device() override = default;
 
     private:
         // [Internal usage]
+        auto InitCommandQueues() -> void;
         auto InitMemoryAllocator() -> void;
 
     private:
@@ -303,6 +350,9 @@ namespace mikoto::renderer::d3d12 {
         // [Memory management]
         eastl::unique_ptr<IGpuAllocator> mGpuAllocator{};
         eastl::unique_ptr<GpuUploadManager> mUploadManager{};
+
+        // [Command list management]
+        ankerl::unordered_dense::map<QueueType, Ref<Queue>> mQueues{};
 
 #if defined(_DEBUG)
         Microsoft::WRL::ComPtr<ID3D12Debug1> mDebugController{};

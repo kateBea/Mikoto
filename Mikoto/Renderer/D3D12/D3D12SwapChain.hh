@@ -15,6 +15,8 @@
 #ifndef MIKOTOROOT_D3D12_SWAPCHAIN_HH
 #define MIKOTOROOT_D3D12_SWAPCHAIN_HH
 
+#include <EASTL/vector.h>
+
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Platform.hh>
@@ -27,7 +29,7 @@
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
 #include <d3d12.h>
-#include <dxgi1_5.h>
+#include <dxgi1_6.h>
 #include <wrl.h>
 
 #include <Renderer/D3D12/Direct3D12Libraries.hh>
@@ -57,6 +59,8 @@ namespace mikoto::renderer::d3d12 {
 
         using DeviceObject::Initialize;
 
+        DISABLE_COPY_AND_MOVE_FOR( SwapChain );
+
     private:
         auto Initialize() -> void override;
         auto Release() -> void override;
@@ -69,6 +73,14 @@ namespace mikoto::renderer::d3d12 {
 
         rhi::Format mFormat{ Format::eBGRA8_UNORM };
         RefreshRate mRefreshRate{ RefreshRate::eUnlimited };
+
+        UINT mRtvDescriptorSize{};
+        UINT mCurrentBufferIndex{};
+        ID3D12DescriptorHeap* mRenderTargetViewHeap{};
+        eastl::vector<ID3D12Resource*> mRenderTargetsViews{};
+
+        D3D12_RECT mSurfaceSize{};
+        D3D12_VIEWPORT mViewportDescription{};
 
         Microsoft::WRL::ComPtr<IDXGISwapChain4> mSwapChain{};
         Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory{};

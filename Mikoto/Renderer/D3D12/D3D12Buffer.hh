@@ -15,12 +15,52 @@
 #ifndef MIKOTO_D3D12BUFFER_HH
 #define MIKOTO_D3D12BUFFER_HH
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Platform.hh>
+
+#if defined(MIKOTO_PLATFORM_WINDOWS)
+
+// D3D12 extension library.
+#include <directx/d3d12.h>
+
+#include <dxgi1_6.h>
+#include <dxgidebug.h>
+#include <wrl.h>
+
 #include <Renderer/Core/Rhi.hh>
+#include <Renderer/D3D12/D3D12MemoryAllocator.hh>
 
 namespace mikoto::renderer::d3d12 {
-    class Buffer {
-    };
 
+    class Buffer final : public rhi::IBuffer {
+    public:
+        explicit Buffer( const rhi::BufferCreateDescription& createInfo );
+
+        auto PersistentMap() -> void;
+        auto PersistentUnmap() -> void;
+
+        auto SetDebugName( eastl::string_view name) -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
+
+        MKT_NODISCARD auto IsMapped() const -> bool;
+        MKT_NODISCARD auto GetMappedAddress() -> void*;
+        MKT_NODISCARD auto GetMappedAddress() const -> const void*;
+
+        ~Buffer() override;
+
+    private:
+        auto Release() -> void override;
+        auto Initialize() -> void override;
+
+    private:
+        BufferAllocation mAllocation{};
+        bool mKeepInitializerResources{ false };
+    };
 }
+
+#endif
 
 #endif//MIKOTO_D3D12BUFFER_HH

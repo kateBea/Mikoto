@@ -110,7 +110,7 @@ namespace mikoto::gui {
     }
 
     auto ImGuiVulkanBackend::InitImGuiForVulkan() -> void {
-        const auto window{ eastl::any_cast<GLFWwindow*>( m_Window->GetNativeWindow() ) };
+        const auto window{ eastl::any_cast<GLFWwindow*>( mWindow->GetNativeWindow() ) };
 
         Device* device{ as<Device*>( mDevice ) };
         Context* context{ as<Context*>( RenderSystem::Get()->GetContext() ) };
@@ -214,11 +214,10 @@ namespace mikoto::gui {
     auto ImGuiVulkanBackend::EndFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        Device* device{ as<Device*>( mDevice ) };
         Context* context{ as<Context*>( RenderSystem::Get()->GetContext() ) };
 
         // If the swap chain has been resized, we need to recreate the framebuffers and images
-        SwapChainHandle swapChain{ context->GetSwapchain() };
+        SwapChainHandle swapChain{ context->GetSwapChain() };
         if ( swapChain->GetWidth() != mDimensions.width || swapChain->GetHeight() != mDimensions.height ) {
             mDimensions.width = swapChain->GetWidth();
             mDimensions.height = swapChain->GetHeight();
@@ -333,7 +332,7 @@ namespace mikoto::gui {
     auto ImGuiVulkanBackend::SetupViewportAndScissors( CommandListHandle cmdList ) -> void {
         const auto nativeCmdListHandle{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
-        SwapChainHandle vulkanSwapChain{ Context::Get()->GetSwapchain() };
+        SwapChainHandle vulkanSwapChain{ Context::Get()->GetSwapChain() };
 
         // Set Viewport and Scissor
         VkViewport viewport{

@@ -24,6 +24,7 @@
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
 
+#include <wrl.h>
 #include <directx/d3d12.h>
 #include <D3D12MemAlloc.h>
 
@@ -33,14 +34,18 @@ namespace mikoto::renderer::d3d12 {
 
     struct BufferAllocation {
         D3D12_RESOURCE_DESC mDesc{};
-        ID3D12Resource* mResource{};
+        Microsoft::WRL::ComPtr<ID3D12Resource> mResource{};
+
         D3D12MA::Allocation* mAllocation{};
+        D3D12MA::ALLOCATION_DESC mAllocDesc{};
     };
 
     struct ImageAllocation {
         D3D12_RESOURCE_DESC mDesc{};
-        ID3D12Resource* mResource{};
+        Microsoft::WRL::ComPtr<ID3D12Resource> mResource{};
+
         D3D12MA::Allocation* mAllocation{};
+        D3D12MA::ALLOCATION_DESC mAllocDesc{};
     };
 
     class GpuMemoryAllocator final : public memory::IGpuAllocator {
@@ -56,17 +61,13 @@ namespace mikoto::renderer::d3d12 {
         auto FreeBuffer( BufferAllocation& allocation ) -> void;
         auto AllocateBuffer( BufferAllocation& allocation ) -> HRESULT ;
 
-        auto MapBuffer( BufferAllocation& allocation ) const -> void;
-        auto UnmapBuffer( BufferAllocation& allocation ) const -> void;
+        auto MapBuffer( BufferAllocation& allocation ) -> void*;
+        auto UnmapBuffer( BufferAllocation& allocation ) -> void;
 
         // These are slow use for debug only
         MKT_NODISCARD auto GetMemoryUsage() const -> size_t override;
         MKT_NODISCARD auto GetMemoryTotal() const -> size_t override;
         MKT_NODISCARD auto GetMemoryAvailable() const -> size_t override;
-
-    private:
-        // Map/Unmap Device memory to cpu accessible memory (map = true to map, false to unmap)
-        auto MapBuffer( BufferAllocation& allocation, bool map ) const -> void;
 
     private:
         D3D12MA::Allocator* mAllocator{};

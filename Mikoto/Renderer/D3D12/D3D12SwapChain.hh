@@ -76,8 +76,8 @@ namespace mikoto::renderer::d3d12 {
 
         UINT mRtvDescriptorSize{};
         UINT mCurrentBufferIndex{};
-        ID3D12DescriptorHeap* mRenderTargetViewHeap{};
         eastl::vector<ID3D12Resource*> mRenderTargetsViews{};
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRenderTargetViewHeap{};
 
         D3D12_RECT mSurfaceSize{};
         D3D12_VIEWPORT mViewportDescription{};

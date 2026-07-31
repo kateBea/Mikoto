@@ -514,24 +514,6 @@ namespace mikoto::renderer {
         };
     }
 
-    auto FGNodeBuilder::ReadWrite( FGTextureHandle handle, FGResourceState state ) -> void {
-        ReadWrite( handle.mHandle );
-
-        mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
-            .mState = state,
-            .mAccess = FGResourceAccess::eReadWrite
-        };
-    }
-
-    auto FGNodeBuilder::ReadWrite( FGBufferHandle handle, FGResourceState state ) -> void {
-        ReadWrite( handle.mHandle );
-
-        mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
-            .mState = state,
-            .mAccess = FGResourceAccess::eReadWrite
-        };
-    }
-
     auto FGNodeBuilder::Read( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
 
     }
@@ -540,19 +522,11 @@ namespace mikoto::renderer {
 
     }
 
-    auto FGNodeBuilder::ReadWrite( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
-
-    }
-
     auto FGNodeBuilder::Read( FGBufferHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
 
     }
 
     auto FGNodeBuilder::Write( FGBufferHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
-
-    }
-
-    auto FGNodeBuilder::ReadWrite( FGBufferHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
 
     }
 
@@ -604,24 +578,6 @@ namespace mikoto::renderer {
         }
 
         mGraphNode->mWriteResources.push_back(handle);  // record for barrier insertion
-    }
-
-    auto FGNodeBuilder::ReadWrite( FGResourceHandle handle ) -> void {
-        MKT_ASSERT( handle != 0, "Invalid resource handle" );
-        auto& ver{ mNodeControl->mResources[handle].mVersions.back() };
-        if(ver.HasWriter()) {
-            mGraphNode->mDependsOn.emplace(ver.mWriterPass);  // RAW edge
-        }
-        for(const auto& reader : ver.mReaderPasses) {
-            mGraphNode->mDependsOn.emplace(reader);  // WAR edge
-        }
-
-        mNodeControl->mResources[handle].mVersions.push_back({});                   // bump version (it's a write)
-        mNodeControl->mResources[handle].mVersions.back().mWriterPass = mGraphNode->mName;
-
-        mGraphNode->mReadResources.push_back(handle);       // appears in both lists (for barriers + lifetimes)
-        mGraphNode->mWriteResources.push_back(handle);
-        mGraphNode->mReadWriteResources.push_back(handle);  // marks this handle as UAV for StateForUsage
     }
 
     FrameGraph::FrameGraph( IGpuDevice *device, ShaderLibrary* library )
@@ -871,8 +827,8 @@ namespace mikoto::renderer {
 
             mExecutionPlan.mSorted.push_back( cur );
             for ( const auto& succ: passesMap[cur].mSuccessors ) {
-                if ( --inDegrees[succ] == 0 ) {// all successors dependencies done?
-                    q.push( succ );      // succ is now ready
+                if ( --inDegrees[succ] == 0 ) { // all successors dependencies are done?
+                    q.push( succ );      // successor is now ready
                 }
             }
         }

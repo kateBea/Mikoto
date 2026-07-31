@@ -280,13 +280,12 @@ namespace mikoto::renderer {
         static constexpr u32 kMaxDependencies{ 32 };
         static constexpr u32 kMaxSuccessors{ 32 };
         static constexpr u32 kMaxResources{ 32 };
+
         eastl::fixed_vector<FGResourceHandle, kMaxResources> mReadResources{};
         eastl::fixed_vector<FGResourceHandle, kMaxResources> mWriteResources{};
-        eastl::fixed_vector<FGResourceHandle, kMaxResources> mReadWriteResources{}; // UAV
-
-        eastl::fixed_vector<eastl::string, kMaxSuccessors> mSuccessors{};
 
         ankerl::unordered_dense::set<eastl::string> mDependsOn{};
+        eastl::fixed_vector<eastl::string, kMaxSuccessors> mSuccessors{};
 
         ankerl::unordered_dense::map<FGResourceHandle, FGResourceTrack> mResourceStates{};
 
@@ -522,19 +521,15 @@ namespace mikoto::renderer {
         // methods offers more relaxed barriers
         auto Read( FGTextureHandle handle, FGResourceState state ) -> void;
         auto Write( FGTextureHandle handle, FGResourceState state ) -> void;
-        auto ReadWrite( FGTextureHandle handle, FGResourceState state ) -> void;
 
         auto Read( FGBufferHandle handle, FGResourceState state )  -> void;
         auto Write( FGBufferHandle handle, FGResourceState state )  -> void;
-        auto ReadWrite( FGBufferHandle handle, FGResourceState state )  -> void;
 
         auto Read( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void;
         auto Write( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void;
-        auto ReadWrite( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void;
 
         auto Read( FGBufferHandle handle, FGStageType stage, FGResourceAccess access )  -> void;
         auto Write( FGBufferHandle handle, FGStageType stage, FGResourceAccess access )  -> void;
-        auto ReadWrite( FGBufferHandle handle, FGStageType stage, FGResourceAccess access )  -> void;
 
     private:
         auto Read( FGResourceHandle handle )  -> void;

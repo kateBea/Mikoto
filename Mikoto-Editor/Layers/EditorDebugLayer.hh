@@ -33,8 +33,6 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::core;
-
     // Plays the game when the scene is simulating
     class EditorDebugLayer final : public core::ILayer {
     public:
@@ -48,12 +46,12 @@ namespace mikoto::editor {
 
     private:
         struct ConstantBuffer {
-            float4x4 mModel{ math::constants::Identity<float4x4>() };
-            float4x4 mView{};
-            float4x4 mProjection{};
+            core::float4x4 mModel{ math::constants::Identity<core::float4x4>() };
+            core::float4x4 mView{};
+            core::float4x4 mProjection{};
 
-            i32 mTextureIndex{ 0 };
-            i32 mSamplerIndex{ 0 };
+            core::i32 mTextureIndex{ 0 };
+            core::i32 mSamplerIndex{ 0 };
         };
 
         auto UpdateCameraState( float ts ) -> void;
@@ -65,10 +63,10 @@ namespace mikoto::editor {
 
         eastl::unique_ptr<scene::SceneCamera> mEditorCamera{};
 
-        float3 mPosition{ 0.0f };
-        float3 mScale{ 1.0f };
-        float3 mRotation{ 0.0f };// degrees
-        float3 mPivot{ 0.0, 0.1, 0.0f };
+        core::float3 mPosition{ 0.0f };
+        core::float3 mScale{ 1.0f };
+        core::float3 mRotation{ 0.0f };// degrees
+        core::float3 mPivot{ 0.0, 0.1, 0.0f };
         ConstantBuffer mCameraProps{};
         renderer::rhi::BufferHandle mConstantBuffer{};
 

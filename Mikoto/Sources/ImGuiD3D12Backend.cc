@@ -35,13 +35,53 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-#include <Renderer/D3D12/D3D12Device.hh>
-#include <Renderer/D3D12/D3D12Context.hh>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
+#define GLFW_NATIVE_INCLUDE_NONE
+#include <GLFW/glfw3native.h>
 
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_glfw.h>
+#include <imgui_impl_win32.h>
+
+#include <Renderer/D3D12/D3D12Device.hh>
+#include <Renderer/D3D12/D3D12Context.hh>
+#include <Renderer/D3D12/Direct3D12Helpers.hh>
 
 namespace mikoto::gui {
+
+    auto ExampleDescriptorHeapAllocator::Create( ID3D12Device* device, ID3D12DescriptorHeap* heap ) -> void {
+        IM_ASSERT( mHeap == nullptr && mFreeIndices.empty() );
+        mHeap = heap;
+        D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
+        mHeapType = desc.Type;
+        mHeapStartCpu = mHeap->GetCPUDescriptorHandleForHeapStart();
+        mHeapStartGpu = mHeap->GetGPUDescriptorHandleForHeapStart();
+        mHeapHandleIncrement = device->GetDescriptorHandleIncrementSize( mHeapType );
+        mFreeIndices.reserve( ( int )desc.NumDescriptors );
+        for ( int n = desc.NumDescriptors; n > 0; n-- )
+            mFreeIndices.push_back( n - 1 );
+    }
+
+    auto ExampleDescriptorHeapAllocator::Destroy() -> void {
+        mHeap = nullptr;
+        mFreeIndices.clear();
+    }
+
+    auto ExampleDescriptorHeapAllocator::Alloc( D3D12_CPU_DESCRIPTOR_HANDLE* outCpuDescHandle, D3D12_GPU_DESCRIPTOR_HANDLE* outGpuDescHandle ) -> void {
+        IM_ASSERT( mFreeIndices.Size > 0 );
+        int idx = mFreeIndices.back();
+        mFreeIndices.pop_back();
+        outCpuDescHandle->ptr = mHeapStartCpu.ptr + ( idx * mHeapHandleIncrement );
+        outGpuDescHandle->ptr = mHeapStartGpu.ptr + ( idx * mHeapHandleIncrement );
+    }
+
+    auto ExampleDescriptorHeapAllocator::Free( D3D12_CPU_DESCRIPTOR_HANDLE outCpuDescHandle, D3D12_GPU_DESCRIPTOR_HANDLE outGpuDescHandle ) -> void {
+        int cpu_idx = ( int )( ( outCpuDescHandle.ptr - mHeapStartCpu.ptr ) / mHeapHandleIncrement );
+        int gpu_idx = ( int )( ( outGpuDescHandle.ptr - mHeapStartGpu.ptr ) / mHeapHandleIncrement );
+        IM_ASSERT( cpu_idx == gpu_idx );
+        mFreeIndices.push_back( cpu_idx );
+    }
 
     ImGuiD3D12Backend::ImGuiD3D12Backend( const ImGuiBackendCreateInfo &createInfo )
         : ImGuiBackend{ createInfo }
@@ -54,6 +94,8 @@ namespace mikoto::gui {
     }
 
     auto ImGuiD3D12Backend::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         InitImages();
         InitImGuiForD3D12();
 
@@ -79,7 +121,7 @@ namespace mikoto::gui {
         mDepthImage.Reset();
 
         ImGui_ImplDX12_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
+        ImGui_ImplWin32_Shutdown();
 
         mCommandList.Reset();
 
@@ -87,15 +129,47 @@ namespace mikoto::gui {
     }
 
     auto ImGuiD3D12Backend::BeginFrame() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
+        ImGui_ImplDX12_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+        ImGui::NewFrame();
+
+        ImGuizmo::BeginFrame();
     }
 
     auto ImGuiD3D12Backend::EndFrame() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
+        d3d12::Context* context{ checked_cast<d3d12::Context*>( RenderSystem::Get()->GetContext() ) };
+
+        // If the swap chain has been resized, we need to recreate the framebuffers and images
+        d3d12::SwapChainHandle swapChain{ context->GetSwapChain() };
+        if ( swapChain->GetWidth() != mDimensions.Width || swapChain->GetHeight() != mDimensions.Height ) {
+            mDimensions.Width = swapChain->GetWidth();
+            mDimensions.Height = swapChain->GetHeight();
+
+            InitImages();
+        }
+
+        ImGui::Render();
+
+        mCommandList->Begin( { .mScopeName = "ImGui Render" } );
+        mCommandList->SetResourceState( mColorImage.GetRaw(), ResourceStates::eRenderTarget );
+
+        RecordCommands( mCommandList );
+
+        mCommandList->End();
+        mDevice->SubmitCommands( mCommandList );
+
+        if ( const ImGuiIO & io{ ImGui::GetIO() }; io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
     }
 
     auto ImGuiD3D12Backend::GetFinalComposition() -> TextureHandle {
-        return TextureHandle::CreateEmpty();
+        return mColorImage;
     }
 
     auto ImGuiD3D12Backend::ConstructImGuiTextureID( const ITexture *texture ) -> ImTextureID {
@@ -103,7 +177,7 @@ namespace mikoto::gui {
     }
 
     auto ImGuiD3D12Backend::ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID {
-        return 0;
+        return ConstructImGuiTextureID( texture.GetRaw() );
     }
 
     auto ImGuiD3D12Backend::InitImages() -> void {
@@ -134,10 +208,67 @@ namespace mikoto::gui {
     }
 
     auto ImGuiD3D12Backend::InitImGuiForD3D12() -> void {
-        const auto window{ eastl::any_cast<GLFWwindow*>( m_Window->GetNativeWindow() ) };
+        //const auto window{ eastl::any_cast<GLFWwindow*>( mWindow->GetNativeWindow() ) };
+
+        HWND win32Handle{};
+        try {
+            auto window{ eastl::any_cast<GLFWwindow*>( mWindow->GetNativeWindow() ) };
+            win32Handle = glfwGetWin32Window(window);
+        } catch ( const std::exception& exception ) {
+            MKT_THROW_RUNTIME_ERROR( string::Format( "ImGuiD3D12Backend::InitImGuiForD3D12 - Cast exception: e.what(): {}", exception.what() ) );
+        }
 
         d3d12::Device* device{ checked_cast<d3d12::Device*>( mDevice ) };
         d3d12::Context* context{ checked_cast<d3d12::Context*>( RenderSystem::Get()->GetContext() ) };
+
+        // Setup Platform/Renderer backends
+        if (!ImGui_ImplWin32_Init(win32Handle)) {
+            MKT_THROW_RUNTIME_ERROR( "ImGuiD3D12Backend - Failed to initialize Win32 for ImGui" );
+        }
+
+        d3d12::Queue* queue{ device->GetQueue( QueueType::eGraphics ) };
+        ID3D12CommandQueue* cmdQueue{ *queue };
+
+        ImGui_ImplDX12_InitInfo initInfo{};
+        initInfo.Device = device->GetDevice();
+        initInfo.CommandQueue = cmdQueue;
+        initInfo.NumFramesInFlight = context->GetBackBufferCount();
+        initInfo.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+        initInfo.DSVFormat = DXGI_FORMAT_UNKNOWN;
+
+        static constexpr u32 kSrvHeapSize{ 64u };
+
+        D3D12_DESCRIPTOR_HEAP_DESC desc{};
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        desc.NumDescriptors = kSrvHeapSize;
+        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        d3d12::ThrowIfFailed( device->GetDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&mSrvDescHeap)));
+        mSrvDescHeapAlloc.Create(device->GetDevice(), mSrvDescHeap.Get());
+
+        // Allocating SRV descriptors (for textures) is up to the application, so we provide callbacks.
+        // (current version of the backend will only allocate one descriptor, future versions will need to allocate more)
+        initInfo.SrvDescriptorHeap = mSrvDescHeap.Get();
+
+        initInfo.SrvDescriptorAllocFn =
+            [](ImGui_ImplDX12_InitInfo*,
+                D3D12_CPU_DESCRIPTOR_HANDLE* outCpuHandle,
+                D3D12_GPU_DESCRIPTOR_HANDLE* outGpuHandle) {
+            return mSrvDescHeapAlloc.Alloc(outCpuHandle, outGpuHandle);
+        };
+        initInfo.SrvDescriptorFreeFn =
+            [](ImGui_ImplDX12_InitInfo*,
+                D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
+                D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle) {
+                return mSrvDescHeapAlloc.Free(cpuHandle, gpuHandle);
+        };
+        if (!ImGui_ImplDX12_Init(&initInfo)) {
+            MKT_THROW_RUNTIME_ERROR( "ImGuiD3D12Backend - Failed to initialize D3D12 for ImGui" );
+        }
+    }
+
+    auto ImGuiD3D12Backend::RecordCommands( CommandListHandle cmdList ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
     }
 }// namespace mikoto::gui
 

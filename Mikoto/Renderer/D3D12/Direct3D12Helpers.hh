@@ -32,7 +32,15 @@
 namespace mikoto::renderer::d3d12 {
 
     auto ThrowIfFailed(HRESULT hr) -> void;
+    auto ThrowIfFailed(HRESULT hr, IGpuDevice* gpuDevice) -> void;
+
     MKT_NODISCARD auto GetQueueType( rhi::QueueType type ) -> D3D12_COMMAND_LIST_TYPE;
+
+    MKT_NODISCARD auto GetFormat( rhi::Format format ) -> DXGI_FORMAT;
+
+    MKT_NODISCARD auto GetDimension( rhi::TextureDimension dimension ) -> D3D12_RESOURCE_DIMENSION;
+    MKT_NODISCARD auto GetSampleCount( rhi::Multisampling multisampling ) -> UINT;
+    MKT_NODISCARD auto GetResourceFlags( rhi::TextureUsageFlags flags ) -> D3D12_RESOURCE_FLAGS;
 
 }// namespace mikoto::renderer::d3d12
 

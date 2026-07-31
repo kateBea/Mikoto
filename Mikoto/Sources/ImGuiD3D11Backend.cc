@@ -47,7 +47,7 @@ namespace mikoto::gui {
         using namespace mikoto::renderer;
         using namespace mikoto::renderer::d3d11;
 
-        const auto window{ eastl::any_cast<GLFWwindow*>( m_Window->GetNativeWindow() ) };
+        const auto window{ eastl::any_cast<GLFWwindow*>( mWindow->GetNativeWindow() ) };
 
         if (!ImGui_ImplGlfw_InitForOther(window, true)) {
             MKT_THROW_RUNTIME_ERROR( "Failed ImGui_ImplGlfw_InitForOther" );

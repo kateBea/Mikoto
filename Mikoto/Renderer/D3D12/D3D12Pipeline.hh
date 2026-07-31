@@ -15,10 +15,68 @@
 #ifndef MIKOTO_D3D12_PIPELINE_HH
 #define MIKOTO_D3D12_PIPELINE_HH
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Platform.hh>
+
+#include <Renderer/Core/Rhi.hh>
+
+#if defined(MIKOTO_PLATFORM_WINDOWS)
+
+// D3D12 extension library.
+#include <directx/d3d12.h>
+
+#include <dxgi1_6.h>
+#include <dxgidebug.h>
+#include <wrl.h>
+
 namespace mikoto::renderer::d3d12 {
-    class Pipeline {
+
+    class GraphicsPipeline final :  public rhi::IGraphicsPipeline {
+    public:
+        explicit GraphicsPipeline( const rhi::GraphicsPipelineDescription& info );
+
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
+
+        auto SetDebugName( eastl::string_view name ) -> void override;
+
+        ~GraphicsPipeline() override;
+
+    public:
+        DISABLE_COPY_AND_MOVE_FOR( GraphicsPipeline );
+
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+
+    private:
+
     };
 
+    class ComputePipeline final :  public rhi::IComputePipeline {
+    public:
+        explicit ComputePipeline( const rhi::ComputePipelineDescription& info );
+
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
+
+        auto SetDebugName( eastl::string_view name ) -> void override;
+
+        ~ComputePipeline() override;
+
+    public:
+        DISABLE_COPY_AND_MOVE_FOR( ComputePipeline );
+
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+
+    private:
+
+    };
 }
+
+#endif
 
 #endif//MIKOTO_D3D12_PIPELINE_HH

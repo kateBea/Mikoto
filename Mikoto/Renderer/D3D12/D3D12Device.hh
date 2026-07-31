@@ -38,6 +38,29 @@
 
 namespace mikoto::renderer::d3d12 {
 
+    class Fence final : public IFence {
+    public:
+        explicit Fence( u64 initialValue );
+
+        MKT_NODISCARD auto GetCompletionValue() const -> u64 override;
+
+        auto SetDebugName( eastl::string_view name ) -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
+
+        ~Fence() override;
+
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+
+    private:
+        HANDLE mFenceEvent{};
+        UINT64 mFenceValue{};
+        Microsoft::WRL::ComPtr<ID3D12Fence> mFence{};
+    };
+
     class BindingLayout final : IBindingLayout {
     public:
 
@@ -66,7 +89,7 @@ namespace mikoto::renderer::d3d12 {
 
     class InputLayout : public IInputLayout {
     public:
-        explicit InputLayout( eastl::span<const VertexAttributeDescription> desc );
+        explicit InputLayout( const InputLayoutCreateDescription& desc );
 
         MKT_NODISCARD auto GetNumAttributes() const -> u32 override;
         MKT_NODISCARD auto GetAttributeDescription(u32 index) const -> const VertexAttributeDescription& override;
@@ -78,6 +101,9 @@ namespace mikoto::renderer::d3d12 {
         auto Release() -> void override;
 
     private:
+        eastl::vector<D3D12_INPUT_ELEMENT_DESC> mInputElems{};
+
+        InputLayoutCreateDescription mDescription{};
         eastl::fixed_hash_map<u32, VertexAttributeDescription, kMaxVertexAttributes> mAttributes{};
     };
 
@@ -87,6 +113,10 @@ namespace mikoto::renderer::d3d12 {
     protected:
         auto Initialize() -> void override;
         auto Release() -> void override;
+    };
+
+    struct CommandAllocationContext {
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mAllocator{};
     };
 
     class Queue final : public IQueue {
@@ -112,7 +142,6 @@ namespace mikoto::renderer::d3d12 {
 
         // Conversion operators
         operator ID3D12CommandQueue*() const; // Logical
-        operator ID3D12CommandAllocator*() const; // Logical
 
         ~Queue() override;
 
@@ -122,17 +151,16 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> mQueue{};
-        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mAllocator{};
 
         // For debug
         eastl::string mSubmissionLabel{};
         Color mSubmissionLabelColor{};
     };
 
+    // https://learn.microsoft.com/en-us/windows/win32/direct3d12/recording-command-lists-and-bundles
     class CommandList final : public ICommandList {
     public:
-        explicit CommandList( QueueType type );
-        explicit CommandList( QueueType type, const CommandListParameters& desc );
+        explicit CommandList( const CommandListParameters& desc );
 
         auto Begin( const CommandListBeginDescription& desc ) -> void override;
         auto End() -> void override;
@@ -204,6 +232,7 @@ namespace mikoto::renderer::d3d12 {
         auto SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, ShaderStage visibility ) -> void override;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
         ~CommandList() override;
 
@@ -211,6 +240,9 @@ namespace mikoto::renderer::d3d12 {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
+    private:
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList{};
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mCommandAllocator{};
     };
 
     struct GpuUploadAllocation {
@@ -289,7 +321,7 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto CreateAccelStructure( const AccelStructureCreateDescription& description ) -> AccelStructureHandle override;
 
-        MKT_NODISCARD auto CreateCommandList( QueueType queue ) -> CommandListHandle override;
+        MKT_NODISCARD auto CreateCommandList( QueueType queueType ) -> CommandListHandle override;
         MKT_NODISCARD auto CreateCommandList( const CommandListParameters& parameters ) -> CommandListHandle override;
 
         MKT_NODISCARD auto CreateShader( const ShaderModuleCreateDescription& desc ) -> ShaderModuleHandle override;
@@ -325,11 +357,22 @@ namespace mikoto::renderer::d3d12 {
         auto WaitIdle() -> void override;
 
         // D3D12 Specifics
+        auto DumpMessages() -> void;
+
+        static auto CALLBACK DebugMessageCallback(
+                D3D12_MESSAGE_CATEGORY,
+                D3D12_MESSAGE_SEVERITY severity,
+                D3D12_MESSAGE_ID,
+                LPCSTR description,
+                void* ) -> void;
+
         MKT_NODISCARD auto GetDevice() -> ID3D12Device*;
         MKT_NODISCARD auto GetAdapter() -> IDXGIAdapter4*;
 
         MKT_NODISCARD auto GetQueue( QueueType type ) -> Queue*;
         MKT_NODISCARD auto GetQueue( QueueType type ) const -> const Queue*;
+
+        MKT_NODISCARD auto GetAllocator() -> GpuMemoryAllocator*;
 
         MKT_NODISCARD auto CreateSwapChain(Window* window, Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory) -> SwapChainHandle;
 
@@ -337,6 +380,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         // [Internal usage]
+        auto InitInfoQueue() -> void;
         auto InitCommandQueues() -> void;
         auto InitMemoryAllocator() -> void;
 
@@ -355,7 +399,11 @@ namespace mikoto::renderer::d3d12 {
         ankerl::unordered_dense::map<QueueType, Ref<Queue>> mQueues{};
 
 #if defined(_DEBUG)
-        Microsoft::WRL::ComPtr<ID3D12Debug1> mDebugController{};
+        DWORD mInfoQueueCallbackCookie{};
+
+        Microsoft::WRL::ComPtr<ID3D12InfoQueue> mInfoQueue{};
+        Microsoft::WRL::ComPtr<ID3D12InfoQueue1> mInfoQueue1{};
+
         Microsoft::WRL::ComPtr<ID3D12DebugDevice> mDebugDevice{};
 #endif
     };

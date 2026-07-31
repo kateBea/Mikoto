@@ -14,17 +14,22 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/Profiler.hh>
 #include <Core/Platform.hh>
-
-#include <Renderer/D3D12/D3D12Context.hh>
-#include <Renderer/D3D12/D3D12Device.hh>
-#include <Renderer/D3D12/Direct3D12Helpers.hh>
-
 #include <Renderer/Core/RenderSystem.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
 #include <Platform/PlatformWin32.hh>
+
+#include <Renderer/D3D12/D3D12Device.hh>
+#include <Renderer/D3D12/D3D12Context.hh>
+#include <Renderer/D3D12/D3D12Shader.hh>
+#include <Renderer/D3D12/D3D12Buffer.hh>
+#include <Renderer/D3D12/D3D12Texture.hh>
+#include <Renderer/D3D12/D3D12Pipeline.hh>
+#include <Renderer/D3D12/Direct3D12Helpers.hh>
+
 
 // D3D12 extension library.
 #include <directx/d3d12.h>
@@ -34,6 +39,45 @@
 #include <DirectXMath.h>
 
 namespace mikoto::renderer::d3d12 {
+
+    Fence::Fence( u64 initialValue ) {
+        mFenceValue = initialValue;
+    }
+
+    auto Fence::GetCompletionValue() const -> u64 {
+        return mFenceValue; // TODO
+    }
+
+    auto Fence::SetDebugName( eastl::string_view name ) -> void {
+
+    }
+
+    auto Fence::GetNativeHandle( ObjectType type ) -> Object {
+        return IFence::GetNativeHandle( type );
+    }
+
+    auto Fence::GetNativeHandle( ObjectType type ) const -> Object {
+        return IFence::GetNativeHandle( type );
+    }
+
+    Fence::~Fence() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto Fence::Initialize() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        ThrowIfFailed(device->GetDevice()->CreateFence(
+            mFenceValue, D3D12_FENCE_FLAG_NONE,
+            IID_PPV_ARGS(&mFence)));
+
+        mIsAllocated = true;
+    }
+
+    auto Fence::Release() -> void {
+        mIsAllocated = false;
+    }
 
     auto BindingLayout::IsBindless() const -> bool {
         return false;
@@ -56,6 +100,55 @@ namespace mikoto::renderer::d3d12 {
     auto BindingLayout::Release() -> void {
         mIsAllocated = false;
     }
+
+    InputLayout::InputLayout( const InputLayoutCreateDescription &desc )
+        : mDescription{ desc }
+    {
+        for (const auto& bindingDesc : desc.mVertexAttributeDescriptions) {
+            const auto bindingIt{ std::ranges::find_if(desc.mVertexBindingDescriptions,
+                [index = bindingDesc.mBinding](const VertexBindingDescription& item) {
+                return item.mBinding == index;
+            })};
+
+            MKT_ASSERT( bindingIt != desc.mVertexBindingDescriptions.end(), "No binding found for the given index");
+            const auto& binding{ *bindingIt };
+
+            D3D12_INPUT_ELEMENT_DESC description{
+                .SemanticName = bindingDesc.mName.c_str(),
+                .SemanticIndex = 0, // TODO: I am not sure how to treat this, technically comes from the name itself
+                .Format = d3d12::GetFormat( bindingDesc.mFormat ),
+                .InputSlot = bindingDesc.mBinding,
+                .AlignedByteOffset = bindingDesc.mOffset,
+                .InputSlotClass = (binding.mRate == InputRate::ePerVertex)
+                    ? D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA
+                    : D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA,
+                .InstanceDataStepRate = as<UINT>( binding.mRate == InputRate::ePerVertex ? 0 : 1 ) };
+            mInputElems.emplace_back( description );
+        }
+    }
+
+    auto InputLayout::GetNumAttributes() const -> u32 {
+        return mAttributes.size();
+    }
+
+    auto InputLayout::GetAttributeDescription( u32 index ) const -> const VertexAttributeDescription &{
+        return  mAttributes.at(index);
+    }
+
+    InputLayout::~InputLayout() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto InputLayout::Initialize() -> void {
+        mIsAllocated = true;
+    }
+
+    auto InputLayout::Release() -> void {
+        mIsAllocated = false;
+    }
+
     Queue::Queue( QueueType type, QueueOpSupportFlags flags )
         : IQueue{ type, flags }
     {
@@ -91,11 +184,25 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Queue::AllocateCmdList() -> CommandListHandle {
-        return CommandListHandle::CreateEmpty();
+        MKT_BEGIN_PROFILER_NAMED();
+
+        auto description{ CommandListParameters{}
+            .SetQueueType( mType )
+            .SetMaxThreadConcurrency( 0 ) };
+
+        CommandListHandle handle{ Ref<CommandList>::Spawn( description ) };
+        handle->Initialize( mDevice );
+
+        return handle;
     }
 
     auto Queue::AllocateCmdList( const CommandListParameters &params ) -> CommandListHandle {
-        return CommandListHandle::CreateEmpty();
+        MKT_BEGIN_PROFILER_NAMED();
+
+        CommandListHandle handle{ Ref<CommandList>::Spawn( params ) };
+        handle->Initialize( mDevice );
+
+        return handle;
     }
 
     auto Queue::WaitIdle() const -> void {
@@ -104,10 +211,6 @@ namespace mikoto::renderer::d3d12 {
 
     Queue::operator ID3D12CommandQueue*() const {
         return mQueue.Get();
-    }
-
-    Queue::operator ID3D12CommandAllocator *() const {
-        return mAllocator.Get();
     }
 
     Queue::~Queue() {
@@ -134,10 +237,207 @@ namespace mikoto::renderer::d3d12 {
         // Command queue
         ThrowIfFailed(device->GetDevice()->CreateCommandQueue(&desc, IID_PPV_ARGS(&mQueue)));
 
-        // Command allocator
-        ThrowIfFailed(device->GetDevice()->CreateCommandAllocator(cmdQueueType, IID_PPV_ARGS(&mAllocator)));
+        mIsAllocated = true;
+    }
+
+    CommandList::CommandList( const CommandListParameters &desc )
+        : ICommandList{ desc.mQueueType }
+    {
+    }
+
+    auto CommandList::Begin( const CommandListBeginDescription &desc ) -> void {
+
+    }
+
+    auto CommandList::End() -> void {
+
+    }
+
+    auto CommandList::BeginParallel() -> void {
+
+    }
+
+    auto CommandList::EndParallel() -> void {
+
+    }
+
+    auto CommandList::SetDebugName( eastl::string_view name ) -> void {
+    }
+
+    auto CommandList::PushBarrier( const BufferBarrierDescription &barrier ) -> void {
+
+    }
+
+    auto CommandList::PushBarrier( const TextureBarrierDescription &barrier ) -> void {
+
+    }
+
+    auto CommandList::BeginTrackingState( IBuffer *buffer, ResourceStates stateBits ) -> void {
+
+    }
+
+    auto CommandList::BeginTrackingState( ITexture *buffer, ResourceStates stateBits ) -> void {
+
+    }
+
+    auto CommandList::SetResourceState( IBuffer *buffer, ResourceStates stateBits ) -> void {
+
+    }
+
+    auto CommandList::SetResourceState( ITexture *buffer, ResourceStates stateBits ) -> void {
+
+    }
+
+    auto CommandList::SetBarrier( const BufferBarrierDescription &barrier ) -> void {
+
+    }
+
+    auto CommandList::SetBarrier( const TextureBarrierDescription &barrier ) -> void {
+
+    }
+
+    auto CommandList::CommitBarriers() -> void {
+
+    }
+
+    auto CommandList::SetEnableAutomaticBarriers( bool enable ) -> void {
+
+    }
+
+    auto CommandList::SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void {
+
+    }
+
+    auto CommandList::SetClearColor( TextureHandle renderTargets, Color color ) -> void {
+
+    }
+
+    auto CommandList::Write( IBuffer *src, ITexture *dest, u32 mipLevel ) -> void {
+
+    }
+
+    auto CommandList::Write( ITexture *texture, u32 mipLevel, const void *data, size_t byteSize ) -> void {
+
+    }
+
+    auto CommandList::Copy( ITexture *src, const TextureSlice &srcSlice, ITexture *dest, const TextureSlice &destSlice ) -> void {
+
+    }
+
+    auto CommandList::WriteVolatile( IBuffer *target, size_t dstOffset, const void *data, size_t byteSize ) -> void {
+
+    }
+
+    auto CommandList::Write( IBuffer *buffer, size_t destOffset, const void *data, size_t byteSize ) -> void {
+
+    }
+
+    auto CommandList::Write( IBuffer *buffer, const void *data, size_t byteSize ) -> void {
+
+    }
+
+    auto CommandList::Copy( IBuffer *src, IBuffer *dest ) -> void {
+
+    }
+
+    auto CommandList::Copy( IBuffer *src, IBuffer *dest, size_t destOffset ) -> void {
+
+    }
+
+    auto CommandList::Copy( IBuffer *dest, ITexture *src ) -> void {
+
+    }
+
+    auto CommandList::BeginRendering( GraphicsState &state ) -> void {
+
+    }
+
+    auto CommandList::EndRendering() -> void {
+
+    }
+
+    auto CommandList::BindPipeline( IPipeline *pipeline ) -> void {
+
+    }
+
+    auto CommandList::SetViewport( eastl::span<const Viewport> viewports ) -> void {
+
+    }
+
+    auto CommandList::SetScissors( eastl::span<const Rect> scissorRects ) -> void {
+
+    }
+
+    auto CommandList::SetViewportState( const ViewportState &vs ) -> void {
+
+    }
+
+    auto CommandList::BindIndexBuffer( IBuffer *buffer ) -> void {
+
+    }
+
+    auto CommandList::BindVertexBuffer( const VertexBufferBinding &binding ) -> void {
+
+    }
+
+    auto CommandList::BindPipelineResources( const BindResourcesDescription &desc ) -> void {
+
+    }
+
+    auto CommandList::Draw( const DrawArguments &args ) -> void {
+
+    }
+
+    auto CommandList::DrawIndexed( const DrawArguments &args ) -> void {
+
+    }
+
+    auto CommandList::DrawIndirect( u32 offset, u32 drawCount ) -> void {
+
+    }
+
+    auto CommandList::DrawIndexedIndirect( u32 offset, u32 drawCount ) -> void {
+
+    }
+
+    auto CommandList::Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) -> void {
+
+    }
+
+    auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, size_t byteSize, ShaderStage visibility ) -> void {
+    }
+
+    auto CommandList::GetNativeHandle( ObjectType type ) -> Object{
+        return ICommandList::GetNativeHandle( type );
+    }
+
+    auto CommandList::GetNativeHandle( ObjectType type ) const -> Object{
+        return ICommandList::GetNativeHandle( type );
+    }
+
+    CommandList::~CommandList() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto CommandList::Initialize() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+
+        const D3D12_COMMAND_LIST_TYPE cmdQueueType{ d3d12::GetQueueType(mQueueType) };
+
+        ThrowIfFailed(device->GetDevice()->CreateCommandAllocator(cmdQueueType, IID_PPV_ARGS(&mCommandAllocator)));
+
+        ThrowIfFailed(device->GetDevice()->CreateCommandList(
+            0, d3d12::GetQueueType( mQueueType ),
+            mCommandAllocator.Get(), nullptr,
+            IID_PPV_ARGS(&mCommandList)));
 
         mIsAllocated = true;
+    }
+
+    auto CommandList::Release() -> void {
+        mIsAllocated = false;
     }
 
     auto CommandList::BindIndirectBuffer( IBuffer *buffer ) -> void {
@@ -174,7 +474,7 @@ namespace mikoto::renderer::d3d12 {
     {}
 
     auto Device::Init() -> void {
-        IDXGIFactory4* factory{ checked_cast<Context*>( RenderSystem::Get()->GetContext() )->GetDxiFactory() };
+        IDXGIFactory4* factory{ checked_cast<Context*>( RenderSystem::Get()->GetContext() )->GetDxGIFactory() };
         MKT_ASSERT( factory, "A valid DirectX factory interface is required to create the device." );
 
         // We use adapter 1 to query available physical devices
@@ -206,6 +506,7 @@ namespace mikoto::renderer::d3d12 {
 
         mName = string::FromWChar( mDeviceDescription3.Description );
 
+        InitInfoQueue();
         InitCommandQueues();
         InitMemoryAllocator();
 
@@ -215,7 +516,40 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::Shutdown() -> void {
+        mDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
+
         mQueues.clear();
+
+        if ( mInfoQueue1 ) {
+            mInfoQueue1->UnregisterMessageCallback( mInfoQueueCallbackCookie );
+        }
+    }
+
+    auto Device::InitInfoQueue() -> void {
+        if ( FAILED( mDevice.As( &mInfoQueue ) ) ) {
+            MKT_CORE_LOGGER_DEBUG( "Failed to acquire ID3D12InfoQueue." );
+            return;
+        }
+
+        mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE );
+        mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_ERROR, TRUE );
+        mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_WARNING, TRUE );
+        mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_INFO, TRUE );
+        mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_MESSAGE, TRUE );
+
+        // https://github.com/microsoft/DirectX-Specs/blob/master/d3d/MessageCallback.md
+        if ( SUCCEEDED(mDevice.As(&mInfoQueue1) )) {
+            ThrowIfFailed(
+                mInfoQueue1->RegisterMessageCallback(
+                    &DebugMessageCallback,
+                    D3D12_MESSAGE_CALLBACK_FLAG_NONE,
+                    this,
+                    &mInfoQueueCallbackCookie ) );
+
+            MKT_CORE_LOGGER_DEBUG( "Using ID3D12InfoQueue1 message callback." );
+        } else {
+            MKT_CORE_LOGGER_DEBUG( "ID3D12InfoQueue1 unavailable, falling back to polling." );
+        }
     }
 
     auto Device::InitCommandQueues() -> void {
@@ -249,7 +583,16 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateTexture( const TextureCreateDescription &description ) -> TextureHandle {
-        return TextureHandle::CreateEmpty();
+        TextureHandle texture{ Ref<Texture>::Spawn(description) };
+
+        if ( texture.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "D3D12Device - Failed to allocate texture" );
+            return TextureHandle::CreateEmpty();
+        }
+
+        texture->Initialize( this );
+
+        return texture;
     }
 
     auto Device::CreateTextureNative( ObjectType type, Object object, const TextureCreateDescription &description ) -> TextureHandle {
@@ -268,8 +611,15 @@ namespace mikoto::renderer::d3d12 {
         return AccelStructureHandle::CreateEmpty();
     }
 
-    auto Device::CreateCommandList( QueueType queue ) -> CommandListHandle {
-        return CommandListHandle::CreateEmpty();
+    auto Device::CreateCommandList( QueueType queueType ) -> CommandListHandle {
+        Queue* queue{ GetQueue( queueType ) };
+
+        auto handle{ CommandListHandle::CreateEmpty() };
+        if (queue) {
+            handle = queue->AllocateCmdList();
+        }
+
+        return handle;
     }
 
     auto Device::CreateCommandList( const CommandListParameters &parameters ) -> CommandListHandle {
@@ -277,7 +627,16 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateShader( const ShaderModuleCreateDescription &desc ) -> ShaderModuleHandle {
-        return ShaderModuleHandle::CreateEmpty();
+        ShaderModuleHandle result{ Ref<Shader>::Spawn(desc) };
+
+        if ( result.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to create shader." );
+            return ShaderModuleHandle::CreateEmpty();
+        }
+
+        result->Initialize( this );
+
+        return result;
     }
 
     auto Device::CreateShader( ShaderStage type, const void *code, size_t codeSize ) -> ShaderModuleHandle {
@@ -285,7 +644,16 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateInputLayout( const InputLayoutCreateDescription& desc ) -> InputLayoutHandle {
-        return InputLayoutHandle::CreateEmpty();
+        InputLayoutHandle layout{ Ref<InputLayout>::Spawn( desc ) };
+
+        if ( layout.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate binding layout resource." );
+            return InputLayoutHandle::CreateEmpty();
+        }
+
+        layout->Initialize( this );
+
+        return layout;
     }
 
     auto Device::CreateBindingLayout( const BindingLayoutDescription &desc ) -> BindingLayoutHandle {
@@ -301,14 +669,32 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateFence( u64 fenceInitialValue ) -> FenceHandle {
-        return FenceHandle::CreateEmpty();
+        FenceHandle fence{ Ref<Fence>::Spawn( fenceInitialValue ) };
+
+        if ( fence.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate fence resource." );
+            return FenceHandle::CreateEmpty();
+        }
+
+        fence->Initialize( this );
+
+        return fence;
     }
 
     auto Device::UnMap( IBuffer *buffer ) -> void {
+        Buffer* b{ checked_cast<Buffer*>( buffer ) };
+        if (b->IsMapped()) {
+            b->PersistentUnmap();
+        }
     }
 
     auto Device::Map( IBuffer *buffer ) -> const void * {
-        return nullptr;
+        Buffer* b{ checked_cast<Buffer*>( buffer ) };
+        if (!b->IsMapped()) {
+            b->PersistentMap();
+        }
+
+        return b->GetMappedAddress();
     }
 
     auto Device::CreateBindlessLayout( const BindlessLayoutDescription &desc ) -> BindingLayoutHandle {
@@ -369,6 +755,87 @@ namespace mikoto::renderer::d3d12 {
         return mQueues.at(type).GetRaw();
     }
 
+    auto Device::GetAllocator() -> GpuMemoryAllocator * {
+        return checked_cast<GpuMemoryAllocator*>( mGpuAllocator.get() );
+    }
+
+    auto Device::DumpMessages() -> void {
+#if !defined(NDEBUG)
+
+        if (!mInfoQueue) {
+            return;
+        }
+
+        const UINT64 messageCount{ mInfoQueue->GetNumStoredMessages() };
+
+        for (UINT64 i{}; i < messageCount; ++i) {
+            SIZE_T messageSize{};
+            ThrowIfFailed( mInfoQueue->GetMessage( i, nullptr, &messageSize ) );
+
+            eastl::vector<std::byte> storage( messageSize );
+            auto* message{ reinterpret_cast<D3D12_MESSAGE*>( storage.data() ) };
+
+            ThrowIfFailed( mInfoQueue->GetMessage( i, message, &messageSize ) );
+
+            switch (message->Severity) {
+                case D3D12_MESSAGE_SEVERITY_CORRUPTION:
+                    MKT_CORE_LOGGER_CRITICAL( "[D3D12] {}", message->pDescription );
+                    break;
+
+                case D3D12_MESSAGE_SEVERITY_ERROR:
+                    MKT_CORE_LOGGER_ERROR( "[D3D12] {}", message->pDescription );
+                    break;
+
+                case D3D12_MESSAGE_SEVERITY_WARNING:
+                    MKT_CORE_LOGGER_WARN( "[D3D12] {}", message->pDescription );
+                    break;
+
+                case D3D12_MESSAGE_SEVERITY_INFO:
+                    MKT_CORE_LOGGER_INFO( "[D3D12] {}", message->pDescription );
+                    break;
+
+                case D3D12_MESSAGE_SEVERITY_MESSAGE:
+                    MKT_CORE_LOGGER_DEBUG( "[D3D12] {}", message->pDescription );
+                    break;
+
+                default:
+                    MKT_CORE_LOGGER_DEBUG( "[D3D12][UNKNOWN] {}", message->pDescription );
+                    break;
+            }
+        }
+
+        mInfoQueue->ClearStoredMessages();
+#endif
+    }
+
+    auto CALLBACK Device::DebugMessageCallback(
+            D3D12_MESSAGE_CATEGORY,
+            D3D12_MESSAGE_SEVERITY severity,
+            D3D12_MESSAGE_ID,
+            LPCSTR description,
+            void * ) -> void {
+        switch ( severity ) {
+            case D3D12_MESSAGE_SEVERITY_CORRUPTION:
+                MKT_CORE_LOGGER_CRITICAL( "[D3D12] [CORRUPTION] {}", description );
+                break;
+            case D3D12_MESSAGE_SEVERITY_ERROR:
+                MKT_CORE_LOGGER_ERROR( "[D3D12] [ERROR] {}", description );
+                break;
+            case D3D12_MESSAGE_SEVERITY_WARNING:
+                MKT_CORE_LOGGER_WARN( "[D3D12] [WARNING] {}", description );
+                break;
+            case D3D12_MESSAGE_SEVERITY_INFO:
+                MKT_CORE_LOGGER_INFO( "[D3D12] [INFO] {}", description );
+                break;
+            case D3D12_MESSAGE_SEVERITY_MESSAGE:
+                MKT_CORE_LOGGER_DEBUG( "[D3D12] [MESSAGE] {}", description );
+                break;
+            default:
+                MKT_CORE_LOGGER_DEBUG( "[D3D12][UNKNOWN] {}", description );
+                break;
+        }
+    }
+
     auto Device::CreateSwapChain( Window *window, Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory ) -> SwapChainHandle {
         auto handle{ SwapChainHandle::Spawn(window, dxgiFactory) };
         if (!handle.IsEmpty()) {
@@ -379,15 +846,42 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateBuffer( const BufferCreateDescription &description ) -> BufferHandle {
-        return BufferHandle::CreateEmpty();
+        BufferHandle buffer{ Ref<Buffer>::Spawn(description) };
+
+        if ( buffer.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate buffer resource." );
+            return BufferHandle::CreateEmpty();
+        }
+
+        buffer->Initialize( this );
+
+        return buffer;
     }
 
     auto Device::CreatePipeline( const ComputePipelineDescription &description ) -> PipelineHandle {
-        return PipelineHandle::CreateEmpty();
+        PipelineHandle computePipeline{ Ref<ComputePipeline>::Spawn( description ) };
+
+        if ( computePipeline.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate compute pipeline resource." );
+            return PipelineHandle::CreateEmpty();
+        }
+
+        computePipeline->Initialize( this );
+
+        return computePipeline;
     }
 
     auto Device::CreatePipeline( const GraphicsPipelineDescription &description ) -> PipelineHandle {
-        return PipelineHandle::CreateEmpty();
+        PipelineHandle graphicsPipeline{ Ref<GraphicsPipeline>::Spawn( description ) };
+
+        if ( graphicsPipeline.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate graphics pipeline resource." );
+            return PipelineHandle::CreateEmpty();
+        }
+
+        graphicsPipeline->Initialize( this );
+
+        return graphicsPipeline;
     }
 
     auto Device::RunGarbageCollection() -> void {

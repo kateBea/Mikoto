@@ -22,6 +22,7 @@
 #include <functional>
 #include <iterator>
 #include <string>
+#include <codecvt>
 #include <ranges>
 #include <string_view>
 
@@ -274,6 +275,15 @@ namespace mikoto::string {
     MKT_NODISCARD
     inline auto FromWChar( const wchar_t* str  ) -> eastl::string {
         return FromWChar(str, str + std::char_traits<wchar_t>::length(str));
+    }
+
+    MKT_NODISCARD
+    inline auto ToWide(eastl::string_view str) -> eastl::wstring {
+        // DEPRECATED
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter{};
+        return converter.from_bytes(
+            str.data(),
+            str.data() + str.size()).c_str();
     }
 
     /**

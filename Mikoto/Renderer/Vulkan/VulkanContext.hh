@@ -58,7 +58,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetInstance() -> Instance&;
         MKT_NODISCARD auto GetInstance() const -> const Instance&;
 
-        MKT_NODISCARD auto GetSwapchain() -> SwapChainHandle;
+        MKT_NODISCARD auto GetSwapChain() -> SwapChainHandle;
 
         MKT_NODISCARD auto GetApiVersion() const -> u32;
 

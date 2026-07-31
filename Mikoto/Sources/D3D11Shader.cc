@@ -119,8 +119,6 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Shader::Initialize() -> void {
-        // Here we assume we will load the shader from a file
-
         // Create Slang module
         auto session{ RenderSystem::Get().GetSlangCurrentSession() };
         const eastl::string_view modulePath{ mFile->GetPath() };

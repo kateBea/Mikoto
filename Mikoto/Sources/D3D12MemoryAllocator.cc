@@ -59,7 +59,12 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto GpuMemoryAllocator::AllocateImage( ImageAllocation &allocation ) -> HRESULT {
-        return SUCCEEDED( 0 );
+        HRESULT result{ mAllocator->CreateResource(
+            &allocation.mAllocDesc, &allocation.mDesc,
+            D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+            &allocation.mAllocation, IID_PPV_ARGS(&allocation.mResource)) };
+
+        return result;
     }
 
     auto GpuMemoryAllocator::FreeBuffer( BufferAllocation &allocation ) -> void {
@@ -67,19 +72,25 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto GpuMemoryAllocator::AllocateBuffer( BufferAllocation &allocation ) -> HRESULT {
-        return SUCCEEDED( 0 );
+        HRESULT result{ mAllocator->CreateResource(
+            &allocation.mAllocDesc, &allocation.mDesc,
+            D3D12_RESOURCE_STATE_COMMON, nullptr,
+            &allocation.mAllocation, IID_PPV_ARGS(&allocation.mResource)) };
+
+        return result;
     }
 
-    auto GpuMemoryAllocator::MapBuffer( BufferAllocation &allocation ) const -> void {
+    auto GpuMemoryAllocator::MapBuffer( BufferAllocation &allocation ) -> void* {
+        // Whole range
+        void* mapped{ nullptr };
+        D3D12_RANGE readRange{ 0, 0 };
+        ThrowIfFailed( allocation.mResource->Map(0, &readRange, rc_cast<void**>(&mapped)));
 
+        return mapped;
     }
 
-    auto GpuMemoryAllocator::UnmapBuffer( BufferAllocation &allocation ) const -> void {
-
-    }
-
-    auto GpuMemoryAllocator::MapBuffer( BufferAllocation &allocation, bool map ) const -> void {
-
+    auto GpuMemoryAllocator::UnmapBuffer( BufferAllocation &allocation ) -> void {
+        allocation.mResource->Unmap(0, nullptr);
     }
 
     auto GpuMemoryAllocator::GetMemoryUsage() const -> size_t {

@@ -270,6 +270,10 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::UnMap( IBuffer* buffer ) -> void {
+        Buffer* b{ checked_cast<Buffer*>( buffer ) };
+        if (b->IsMapped()) {
+            b->PersistentUnmap();
+        }
     }
 
     auto Device::Map( IBuffer* buffer ) -> const void* {
@@ -574,7 +578,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::GetAllocator() -> GpuMemoryAllocator * {
-        return as<GpuMemoryAllocator*>(mGpuAllocator.get());
+        return checked_cast<GpuMemoryAllocator*>(mGpuAllocator.get());
     }
 
     auto Device::GetQueue( QueueType type ) -> Queue * {

@@ -128,7 +128,7 @@ namespace mikoto::renderer::d3d12 {
             auto window{ eastl::any_cast<GLFWwindow*>( mWindow->GetNativeWindow() ) };
             win32Handle = glfwGetWin32Window(window);
         } catch ( const std::exception& exception ) {
-            MKT_CORE_LOGGER_ERROR( "D3D11Context::CreateSwapChain - Cast exception: e.what(): {}", exception.what() );
+            MKT_THROW_RUNTIME_ERROR( string::Format( "d3d12::SwapChain::Initialize - any_cast exception: e.what(): {}", exception.what() ) );
         }
 
         // Command queue
@@ -136,7 +136,7 @@ namespace mikoto::renderer::d3d12 {
         ID3D12CommandQueue* cmdQueue{ *queue };
 
         Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain1{};
-        ThrowIfFailed(ctx->GetDxiFactory()->CreateSwapChainForHwnd(
+        ThrowIfFailed(ctx->GetDxGIFactory()->CreateSwapChainForHwnd(
             cmdQueue,
             win32Handle,
             &swapChainDesc,
@@ -146,7 +146,7 @@ namespace mikoto::renderer::d3d12 {
 
         // Disable the Alt+Enter fullscreen toggle feature.
         // Switching to fullscreen will be handled manually.
-        ThrowIfFailed(ctx->GetDxiFactory()->MakeWindowAssociation(win32Handle, DXGI_MWA_NO_ALT_ENTER));
+        ThrowIfFailed(ctx->GetDxGIFactory()->MakeWindowAssociation(win32Handle, DXGI_MWA_NO_ALT_ENTER));
         ThrowIfFailed(swapChain1.As(&mSwapChain));
 
         mCurrentBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
@@ -176,7 +176,7 @@ namespace mikoto::renderer::d3d12 {
         for (UINT index{}; index < ctx->GetBackBufferCount(); index++) {
             ThrowIfFailed(mSwapChain->GetBuffer(index, IID_PPV_ARGS(&mRenderTargetsViews[index])));
             device->GetDevice()->CreateRenderTargetView(mRenderTargetsViews[index], nullptr, rtvHandle);
-            rtvHandle.ptr += (1 * mRtvDescriptorSize);
+            rtvHandle.ptr += 1 * mRtvDescriptorSize;
         }
 
         mIsAllocated = true;

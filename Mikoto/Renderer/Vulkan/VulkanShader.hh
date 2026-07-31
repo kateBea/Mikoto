@@ -50,8 +50,7 @@ namespace mikoto::renderer::vulkan {
         auto Initialize() -> void override;
 
     private:
-        Path mPath{};
-
+        filesystem::Path mPath{};
         filesystem::FileHandle mFile{};
 
         Slang::ComPtr<ISlangBlob> mSlangSpirv{};

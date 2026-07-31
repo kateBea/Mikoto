@@ -30,10 +30,67 @@
 
 namespace mikoto::renderer::d3d12 {
 
+    Sampler::Sampler( const rhi::SamplerCreateDescription& desc )
+        : ISampler{ desc }
+    {
+
+    }
+
+    auto Sampler::GetNativeHandle( rhi::ObjectType type ) -> rhi::Object {
+        return ISampler::GetNativeHandle( type );
+    }
+
+    auto Sampler::GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object {
+        return ISampler::GetNativeHandle( type );
+    }
+
+    Sampler::~Sampler() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+    auto Sampler::Release() -> void {
+        mIsAllocated = false;
+    }
+
+    auto Sampler::Initialize() -> void {
+        // TODO: revise Microsoft DirectX 12 examples
+        Device* device{ checked_cast<Device*>( mDevice ) };
+
+        // TODO: get descriptor handle
+
+        D3D12_SAMPLER_DESC wrapSamplerDesc{};
+        wrapSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        wrapSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        wrapSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        wrapSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        wrapSamplerDesc.MinLOD = 0;
+        wrapSamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+        wrapSamplerDesc.MipLODBias = 0.0f;
+        wrapSamplerDesc.MaxAnisotropy = 1;
+        wrapSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        wrapSamplerDesc.BorderColor[0] = wrapSamplerDesc.BorderColor[1] = wrapSamplerDesc.BorderColor[2] = wrapSamplerDesc.BorderColor[3] = 0;
+
+        device->GetDevice()->CreateSampler(&wrapSamplerDesc, mSamplerHandle);
+        mIsAllocated = true;
+    }
+
     Texture::Texture( const TextureCreateDescription& desc)
         : ITexture{ desc }
     {
 
+    }
+
+    auto Texture::SetDebugName( const eastl::string_view name ) -> void {
+        mImageAllocation.mResource->SetName( string::ToWide( name ).c_str() );
+    }
+
+    auto Texture::GetNativeHandle( ObjectType object ) -> Object {
+        return ITexture::GetNativeHandle( object );
+    }
+
+    auto Texture::GetNativeHandle( ObjectType object ) const -> Object {
+        return ITexture::GetNativeHandle( object );
     }
 
     Texture::~Texture() {
@@ -43,35 +100,61 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Texture::Initialize() -> void {
-        // TODO:
-        D3D12_RESOURCE_DESC resourceDesc{};
-        resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        resourceDesc.Alignment = 0;
-        resourceDesc.Width = 1024;
-        resourceDesc.Height = 1024;
-        resourceDesc.DepthOrArraySize = 1;
-        resourceDesc.MipLevels = 1;
-        resourceDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        resourceDesc.SampleDesc.Count = 1;
-        resourceDesc.SampleDesc.Quality = 0;
-        resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-        resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+        mImageAllocation.mDesc.Dimension = d3d12::GetDimension(mDimension);
+        mImageAllocation.mDesc.Alignment = 0;
+        mImageAllocation.mDesc.Width = mWidth;
+        mImageAllocation.mDesc.Height = mHeight;
+        mImageAllocation.mDesc.DepthOrArraySize = 1;
+        mImageAllocation.mDesc.MipLevels = mMipCount;
+        mImageAllocation.mDesc.Format = d3d12::GetFormat(mFormat);
 
-        D3D12MA::ALLOCATION_DESC allocDesc = {};
-        allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+        mImageAllocation.mDesc.SampleDesc.Quality = 0;
+        mImageAllocation.mDesc.SampleDesc.Count = d3d12::GetSampleCount(mMultisampling);
 
-        // D3D12Resource* resource;
-        // D3D12MA::Allocation* allocation;
-        // HRESULT hr = allocator->CreateResource(
-        //     &allocDesc, &resourceDesc,
-        //     D3D12_RESOURCE_STATE_COPY_DEST, NULL,
-        //     &allocation, IID_PPV_ARGS(&resource));
+        mImageAllocation.mDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        mImageAllocation.mDesc.Flags = d3d12::GetResourceFlags(mTextureUsage);
+
+        mImageAllocation.mAllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+        auto* allocator{ checked_cast<Device*>( mDevice )->GetAllocator() };
+        ThrowIfFailed( allocator->AllocateImage( mImageAllocation ) );
+
+        // Fill initial contents
+        if ( !mImageData.IsEmpty() ) {
+            if (mDimension == TextureDimension::eTexture2D) {
+                InitInitialData2D();
+            } else if (mDimension == TextureDimension::eTextureCube) {
+                InitInitialDataCube();
+            }
+
+            if (!mKeepInitializerResources) {
+                mImageData.Reset();
+            }
+        }
 
         mIsAllocated = true;
     }
 
     auto Texture::Release() -> void {
         mIsAllocated = false;
+    }
+
+    auto Texture::InitInitialData2D() -> void {
+        CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
+        cmd->Begin( {} );
+
+        // Data is always writen at mip zero
+        cmd->Write( this, 0, mImageData->mBufferSpan->GetData(), mImageData->mBufferSpan->GetSize() );
+
+        // These textures are often loaded to be read from shaders
+        cmd->SetResourceState( this, ResourceStates::eShaderResource );
+
+        cmd->End();
+        mDevice->ExecuteCommands( cmd );
+    }
+
+    auto Texture::InitInitialDataCube() -> void {
+
     }
 }// namespace mikoto::renderer::d3d12
 

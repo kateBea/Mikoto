@@ -30,6 +30,7 @@ namespace mikoto::renderer::d3d12 {
         explicit Sampler( const rhi::SamplerCreateDescription& desc );
 
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
         ~Sampler() override;
 
@@ -38,11 +39,17 @@ namespace mikoto::renderer::d3d12 {
         auto Initialize() -> void override;
 
     private:
+        D3D12_CPU_DESCRIPTOR_HANDLE mSamplerHandle{};
     };
 
     class Texture : public ITexture {
     public:
         explicit Texture( const TextureCreateDescription& desc );
+
+        auto SetDebugName( const eastl::string_view name ) -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle( ObjectType ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
         ~Texture() override;
 
@@ -50,9 +57,12 @@ namespace mikoto::renderer::d3d12 {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
+        auto InitInitialData2D() -> void;
+        auto InitInitialDataCube() -> void;
+
     private:
-        ID3D12Resource* mResource{};
-        D3D12MA::Allocation* mAllocation{};
+        ImageAllocation mImageAllocation{};
+        bool mKeepInitializerResources{ false };
     };
 
 }// namespace mikoto::renderer::d3d12

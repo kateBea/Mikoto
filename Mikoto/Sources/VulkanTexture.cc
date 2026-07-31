@@ -242,7 +242,7 @@ namespace mikoto::renderer::vulkan {
 
             mImageAllocation.mAllocationCreateInfo.priority = 1.0f;
 
-            auto* allocator{ as<Device*>( mDevice )->GetAllocator() };
+            auto* allocator{ checked_cast<Device*>( mDevice )->GetAllocator() };
             MKT_VK_CHECK( allocator->AllocateImage( mImageAllocation ) );
 
             if ( !mImageData.IsEmpty() ) {

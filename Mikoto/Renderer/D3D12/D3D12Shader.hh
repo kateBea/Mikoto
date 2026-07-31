@@ -15,10 +15,67 @@
 #ifndef MIKOTO_D3D12_SHADER_HH
 #define MIKOTO_D3D12_SHADER_HH
 
+#include <EASTL/string.h>
+
+#include <slang.h>
+#include <slang-com-ptr.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Platform.hh>
+
+#include <Filesystem/Path.hh>
+#include <Filesystem/File.hh>
+
+#include <Renderer/Core/Rhi.hh>
+
+#if defined(MIKOTO_PLATFORM_WINDOWS)
+
+// D3D12 extension library.
+#include <directx/d3d12.h>
+
+#include <dxgi1_6.h>
+#include <dxgidebug.h>
+#include <wrl.h>
+#include <dxcapi.h>
+
 namespace mikoto::renderer::d3d12 {
-    class Shader {
+
+    class Shader final : public rhi::IShaderModule {
+    public:
+        explicit Shader(const rhi::ShaderModuleCreateDescription& desc);
+
+        auto DumpShaderCode() -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType object ) -> rhi::Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType object ) const -> rhi::Object override;
+
+        MKT_NODISCARD auto GetContents() const -> const void* override;
+        MKT_NODISCARD auto GetContentsByteSize() const -> size_t override;
+
+        ~Shader() override;
+
+    private:
+        auto Release() -> void override;
+        auto Initialize() -> void override;
+
+    private:
+        filesystem::Path mPath{};
+        filesystem::FileHandle mFile{};
+
+        Slang::ComPtr<slang::IModule> mModule{};
+        Slang::ComPtr<slang::IComponentType> mProgram {};
+
+        eastl::string mProfile{};
+        Microsoft::WRL::ComPtr<IDxcBlob> mBytecode{};
+#if !defined(NDEBUG)
+        eastl::string mShaderCode{};
+#endif
+        bool mUseSlang{ true };
     };
 
 }
+
+#endif
 
 #endif//MIKOTO_D3D12_SHADER_HH

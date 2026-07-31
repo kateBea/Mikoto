@@ -919,6 +919,7 @@ namespace mikoto::renderer {
     }
 
     auto FrameGraph::BuildExecutionTasks() -> void {
+        // TODO: Pending redesign, after parallel command recording is properly implemented
         for (auto& [passName, node] : mNodeControl->mNodes ) {
             mNodeControl->mContexts[passName] = Ref<CommandContext>::Spawn( MKT_ADDRESSOF( node ), mResourceManager.get() );
         }

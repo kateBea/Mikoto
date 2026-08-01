@@ -83,6 +83,34 @@ namespace mikoto::renderer::d3d12 {
         return false;
     }
 
+    auto BindingLayout::GetBindingLayoutDesc() const -> const BindingLayoutDescription & {
+        return mBindingLayoutDesc;
+    }
+
+    BindingLayout::BindingLayout( const BindingLayoutDescription &desc )
+        : mRegisterSpace{ desc.mRegisterSpace }, mIsBindless{ false }, mBindingLayoutDesc{ desc } {
+    }
+
+    BindingLayout::BindingLayout( const BindlessLayoutDescription &desc )
+        : mRegisterSpace{ desc.mRegisterSpace }, mIsBindless{ true }, mBindlessLayoutDesc{ desc } {
+    }
+
+    auto BindingLayout::GetBindlessLayoutDesc() const -> const BindlessLayoutDescription & {
+        return mBindlessLayoutDesc;
+    }
+
+    auto BindingLayout::SetDebugName( eastl::string_view name ) -> void {
+        IBindingLayout::SetDebugName( name );
+    }
+
+    auto BindingLayout::GetNativeHandle( ObjectType type ) -> Object {
+        return IBindingLayout::GetNativeHandle( type );
+    }
+
+    auto BindingLayout::GetNativeHandle( ObjectType type ) const -> Object {
+        return IBindingLayout::GetNativeHandle( type );
+    }
+
     auto BindingLayout::GetRegisterSpace() const -> u32 {
         return 0; // TODO
     }
@@ -146,6 +174,117 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto InputLayout::Release() -> void {
+        mIsAllocated = false;
+    }
+
+    PipelineLayout::PipelineLayout( const PipelineLayoutCreateDescription &description )
+        : mDescription{ description }
+    {
+
+    }
+
+    auto PipelineLayout::SetDebugName( const eastl::string_view name ) -> void {
+        mDebugName = name;
+        mRootSignature->SetName( string::ToWide( mDebugName ).c_str() );
+    }
+
+    auto PipelineLayout::GetNativeHandle( ObjectType type ) -> Object {
+        return IPipelineLayout::GetNativeHandle( type );
+    }
+
+    auto PipelineLayout::GetNativeHandle( ObjectType type ) const -> Object {
+        return IPipelineLayout::GetNativeHandle( type );
+    }
+
+    auto PipelineLayout::GetDescription() const -> const PipelineLayoutCreateDescription & {
+        return mDescription;
+    }
+
+    PipelineLayout::operator ID3D12RootSignature *() const {
+        return mRootSignature.Get();
+    }
+
+    PipelineLayout::~PipelineLayout() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto PipelineLayout::Initialize() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        ID3D12Device2* d3d12Device{ device->GetDevice() };
+
+        // Check root signature availability
+        D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData{};
+        featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+        if (FAILED(d3d12Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE,
+            MKT_ADDRESSOF( featureData ), MKT_SIZEOF(featureData))))
+        {
+            featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+        }
+
+        // To keep range objects alive because DescriptorTable takes raw pointers
+        struct RootParamDescription {
+            D3D12_ROOT_PARAMETER1 mParameter{};
+            eastl::vector<D3D12_DESCRIPTOR_RANGE1> mRange{};
+        };
+        ankerl::unordered_dense::map<u32, RootParamDescription> rootParametersStorage{};
+
+        // Non-bindless path
+        for (auto& item : mDescription.mBindingLayouts) {
+            BindingLayout* bindingLayout{ checked_cast<BindingLayout*>( item.GetRaw() ) };
+
+            if (!bindingLayout->IsBindless()) {
+                const BindingLayoutDescription& desc{ bindingLayout->GetBindingLayoutDesc() };
+                auto& rootParameter{ rootParametersStorage[desc.mRegisterSpace] };
+
+                for (const auto& descriptor : desc.mBindings) {
+                    D3D12_DESCRIPTOR_RANGE1 range{};
+                    range.BaseShaderRegister = desc.mRegisterSpace;
+                    range.RangeType = d3d12::GetDescriptorRangeType(descriptor.mType);
+                    range.NumDescriptors = 1;
+                    range.RegisterSpace = desc.mRegisterSpace;
+                    range.OffsetInDescriptorsFromTableStart = 0;
+                    range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+
+                    rootParameter.mRange.emplace_back( range );
+                }
+
+                rootParameter.mParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+                rootParameter.mParameter.ShaderVisibility = d3d12::GetShaderVisibility(desc.mStageVisibility);
+
+                rootParameter.mParameter.DescriptorTable.NumDescriptorRanges = as<UINT>(rootParameter.mRange.size());
+                rootParameter.mParameter.DescriptorTable.pDescriptorRanges = rootParameter.mRange.data();
+            }
+        }
+
+        eastl::vector<D3D12_ROOT_PARAMETER1> rootParameters{};
+        for (const auto& item : rootParametersStorage | std::views::values) {
+            rootParameters.emplace_back( item.mParameter );
+        }
+
+        D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{};
+        rootSignatureDesc.Version = featureData.HighestVersion;
+        rootSignatureDesc.Desc_1_1.Flags =
+            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+        rootSignatureDesc.Desc_1_1.NumParameters = as<UINT>(rootParameters.size());
+        rootSignatureDesc.Desc_1_1.pParameters = rootParameters.data();
+        rootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+        rootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+
+        // TODO: Root constants
+
+        ThrowIfFailed(D3D12SerializeVersionedRootSignature(&rootSignatureDesc,
+            &mSignatureBlob, &mErrorMessages));
+        ThrowIfFailed(d3d12Device->CreateRootSignature(0,
+            mSignatureBlob->GetBufferPointer(),
+            mSignatureBlob->GetBufferSize(),
+            IID_PPV_ARGS(&mRootSignature)));
+
+        mIsAllocated = true;
+    }
+
+    auto PipelineLayout::Release() -> void {
         mIsAllocated = false;
     }
 
@@ -657,11 +796,29 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateBindingLayout( const BindingLayoutDescription &desc ) -> BindingLayoutHandle {
-        return BindingLayoutHandle::CreateEmpty();
+        BindingLayoutHandle layout{ Ref<BindingLayout>::Spawn( desc ) };
+
+        if ( layout.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate binding layout resource." );
+            return BindingLayoutHandle::CreateEmpty();
+        }
+
+        layout->Initialize( this );
+
+        return layout;
     }
 
     auto Device::CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle {
-        return PipelineLayoutHandle::CreateEmpty();
+        PipelineLayoutHandle layout{ Ref<PipelineLayout>::Spawn( desc ) };
+
+        if ( layout.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate pipeline layout resource." );
+            return PipelineLayoutHandle::CreateEmpty();
+        }
+
+        layout->Initialize( this );
+
+        return layout;
     }
 
     auto Device::CreateBindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
@@ -698,7 +855,16 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateBindlessLayout( const BindlessLayoutDescription &desc ) -> BindingLayoutHandle {
-        return BindingLayoutHandle::CreateEmpty();
+        BindingLayoutHandle layout{ Ref<BindingLayout>::Spawn( desc ) };
+
+        if ( layout.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate binding layout resource." );
+            return BindingLayoutHandle::CreateEmpty();
+        }
+
+        layout->Initialize( this );
+
+        return layout;
     }
 
     auto Device::CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle {
@@ -737,7 +903,7 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
-    auto Device::GetDevice() -> ID3D12Device * {
+    auto Device::GetDevice() -> ID3D12Device2 * {
         return mDevice.Get();
     }
 

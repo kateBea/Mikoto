@@ -51,7 +51,7 @@ namespace mikoto::renderer::d3d12 {
         auto Release() -> void override;
 
     private:
-
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC mD3D12PipelineDesc{};
     };
 
     class ComputePipeline final :  public rhi::IComputePipeline {
@@ -73,7 +73,7 @@ namespace mikoto::renderer::d3d12 {
         auto Release() -> void override;
 
     private:
-
+        D3D12_COMPUTE_PIPELINE_STATE_DESC mD3D12PipelineDesc{};
     };
 }
 

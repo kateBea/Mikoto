@@ -61,17 +61,34 @@ namespace mikoto::renderer::d3d12 {
         Microsoft::WRL::ComPtr<ID3D12Fence> mFence{};
     };
 
-    class BindingLayout final : IBindingLayout {
+    class BindingLayout final : public IBindingLayout {
     public:
+        explicit BindingLayout( const BindingLayoutDescription& desc );
+        explicit BindingLayout( const BindlessLayoutDescription& desc );
+
+        MKT_NODISCARD auto GetRegisterSpace() const -> u32 override;
 
         MKT_NODISCARD auto IsBindless() const -> bool override;
-        MKT_NODISCARD auto GetRegisterSpace() const -> u32 override;
+
+        MKT_NODISCARD auto GetBindingLayoutDesc() const -> const BindingLayoutDescription&;
+        MKT_NODISCARD auto GetBindlessLayoutDesc() const -> const BindlessLayoutDescription&;
+
+        auto SetDebugName( eastl::string_view name ) -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
         ~BindingLayout() override;
 
     private:
         auto Initialize() -> void override;
         auto Release() -> void override;
+
+    private:
+        u32 mRegisterSpace{};
+        bool mIsBindless{ false };
+        BindingLayoutDescription mBindingLayoutDesc{};
+        BindlessLayoutDescription mBindlessLayoutDesc{};
     };
 
     class BindingSet : public IBindingSet {
@@ -110,9 +127,28 @@ namespace mikoto::renderer::d3d12 {
     class PipelineLayout : public IPipelineLayout {
     public:
 
+        explicit PipelineLayout(const PipelineLayoutCreateDescription& description);
+
+        auto SetDebugName( const eastl::string_view name ) -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
+
+        MKT_NODISCARD auto GetDescription() const -> const PipelineLayoutCreateDescription&;
+
+        operator ID3D12RootSignature*() const;
+
+        ~PipelineLayout() override;
+
     protected:
         auto Initialize() -> void override;
         auto Release() -> void override;
+
+    private:
+        Microsoft::WRL::ComPtr<ID3DBlob> mSignatureBlob{};
+        Microsoft::WRL::ComPtr<ID3DBlob> mErrorMessages{};
+        Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature{};
+        PipelineLayoutCreateDescription mDescription{};
     };
 
     struct CommandAllocationContext {
@@ -366,7 +402,7 @@ namespace mikoto::renderer::d3d12 {
                 LPCSTR description,
                 void* ) -> void;
 
-        MKT_NODISCARD auto GetDevice() -> ID3D12Device*;
+        MKT_NODISCARD auto GetDevice() -> ID3D12Device2*;
         MKT_NODISCARD auto GetAdapter() -> IDXGIAdapter4*;
 
         MKT_NODISCARD auto GetQueue( QueueType type ) -> Queue*;

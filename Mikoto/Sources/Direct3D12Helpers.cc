@@ -55,6 +55,50 @@ namespace mikoto::renderer::d3d12 {
         }
     }
 
+    auto GetShaderVisibility( rhi::ShaderStage stage ) -> D3D12_SHADER_VISIBILITY {
+        // 1. If it's visible to everything or multiple overlapping stages, default to ALL
+        if (stage == rhi::ShaderFlagsBits::kAll) {
+            return D3D12_SHADER_VISIBILITY_ALL;
+        }
+
+        // 2. Count the number of active stages using a simple helper or checking combinations.
+        // If more than one bit is set, D3D12 requires using D3D12_SHADER_VISIBILITY_ALL.
+        u32 bitCount{ 0 };
+        if (stage & rhi::ShaderFlagsBits::kVertex)        bitCount++;
+        if (stage & rhi::ShaderFlagsBits::kPixel)         bitCount++;
+        if (stage & rhi::ShaderFlagsBits::kCompute)       bitCount++;
+        if (stage & rhi::ShaderFlagsBits::kGeometry)      bitCount++;
+        if (stage & rhi::ShaderFlagsBits::kHull)          bitCount++;
+        if (stage & rhi::ShaderFlagsBits::kDomain)        bitCount++;
+        if (stage & rhi::ShaderFlagsBits::kRayGeneration) bitCount++;
+        if (stage & rhi::ShaderFlagsBits::kIntersection)  bitCount++;
+        if (stage & rhi::ShaderFlagsBits::kAnyHit)        bitCount++;
+        if (stage & rhi::ShaderFlagsBits::kClosestHit)    bitCount++;
+        if (stage & rhi::ShaderFlagsBits::kMiss)          bitCount++;
+
+        if (bitCount > 1) {
+            return D3D12_SHADER_VISIBILITY_ALL;
+        }
+
+        // 3. If exactly one bit is set, map it to its dedicated hardware optimization slot
+        if (stage & rhi::ShaderFlagsBits::kVertex)        return D3D12_SHADER_VISIBILITY_VERTEX;
+        if (stage & rhi::ShaderFlagsBits::kPixel)         return D3D12_SHADER_VISIBILITY_PIXEL;
+        if (stage & rhi::ShaderFlagsBits::kGeometry)      return D3D12_SHADER_VISIBILITY_GEOMETRY;
+        if (stage & rhi::ShaderFlagsBits::kHull)          return D3D12_SHADER_VISIBILITY_HULL;
+        if (stage & rhi::ShaderFlagsBits::kDomain)        return D3D12_SHADER_VISIBILITY_DOMAIN;
+
+        // Note: Compute and Ray Tracing stages don't have separate explicit enum visibility values.
+        // D3D12 mandates using _ALL for Compute PSOs and Ray Tracing state objects.
+        if (stage & rhi::ShaderFlagsBits::kCompute)       return D3D12_SHADER_VISIBILITY_ALL;
+        if (stage & rhi::ShaderFlagsBits::kRayGeneration) return D3D12_SHADER_VISIBILITY_ALL;
+        if (stage & rhi::ShaderFlagsBits::kIntersection)  return D3D12_SHADER_VISIBILITY_ALL;
+        if (stage & rhi::ShaderFlagsBits::kAnyHit)        return D3D12_SHADER_VISIBILITY_ALL;
+        if (stage & rhi::ShaderFlagsBits::kClosestHit)    return D3D12_SHADER_VISIBILITY_ALL;
+        if (stage & rhi::ShaderFlagsBits::kMiss)          return D3D12_SHADER_VISIBILITY_ALL;
+
+        return D3D12_SHADER_VISIBILITY_ALL;
+    }
+
     auto GetFormat( rhi::Format format ) -> DXGI_FORMAT {
         switch ( format ) {
             case rhi::Format::eUnknown:            return DXGI_FORMAT_UNKNOWN;
@@ -147,6 +191,64 @@ namespace mikoto::renderer::d3d12 {
         }
     }
 
+    auto GetFillMode( rhi::PolygonMode type ) -> D3D12_FILL_MODE {
+        switch (type) {
+
+            case PolygonMode::eLines: return D3D12_FILL_MODE_WIREFRAME;
+
+            case PolygonMode::ePoint:
+            case PolygonMode::eFill: return D3D12_FILL_MODE_SOLID;
+        }
+
+        return D3D12_FILL_MODE_SOLID;
+    }
+
+    auto GetCullMode( rhi::CullMode type ) -> D3D12_CULL_MODE {
+        switch (type) {
+
+            case CullMode::eNone: return D3D12_CULL_MODE_NONE;
+            case CullMode::eCullFront: return D3D12_CULL_MODE_FRONT;
+            case CullMode::eCullBack: return D3D12_CULL_MODE_BACK;
+        }
+
+        return D3D12_CULL_MODE_NONE;
+    }
+
+    auto GetDepthCompareOp( rhi::DepthCompareOp op ) -> D3D12_COMPARISON_FUNC {
+        switch (op) {
+            case rhi::DepthCompareOp::eNever:          return D3D12_COMPARISON_FUNC_NEVER;
+            case rhi::DepthCompareOp::eLess:           return D3D12_COMPARISON_FUNC_LESS;
+            case rhi::DepthCompareOp::eEqual:          return D3D12_COMPARISON_FUNC_EQUAL;
+            case rhi::DepthCompareOp::eLessOrEqual:    return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+            case rhi::DepthCompareOp::eGreater:        return D3D12_COMPARISON_FUNC_GREATER;
+            case rhi::DepthCompareOp::eNotEqual:       return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+            case rhi::DepthCompareOp::eGreaterOrEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+            case rhi::DepthCompareOp::eAlways:         return D3D12_COMPARISON_FUNC_ALWAYS;
+            default:                                   return D3D12_COMPARISON_FUNC_NEVER;
+        }
+    }
+
+    auto GetTopologyType( rhi::PrimitiveTopology type ) -> D3D12_PRIMITIVE_TOPOLOGY_TYPE {
+        switch (type) {
+            case rhi::PrimitiveTopology::eInvalid:
+                return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+
+            case rhi::PrimitiveTopology::ePointList:
+                return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+
+            case rhi::PrimitiveTopology::eLineList:
+            case rhi::PrimitiveTopology::eLineStrip:
+                return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+
+            case rhi::PrimitiveTopology::eTriangleList:
+            case rhi::PrimitiveTopology::eTriangleStrip:
+            case rhi::PrimitiveTopology::eTriangleFan:
+                return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        }
+
+        return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+    }
+
     auto GetHeapType( rhi::HeapType type ) -> D3D12_HEAP_TYPE {
         switch (type) {
             case HeapType::eDeviceLocal: return D3D12_HEAP_TYPE_DEFAULT;
@@ -154,6 +256,31 @@ namespace mikoto::renderer::d3d12 {
             case HeapType::eReadback:     return D3D12_HEAP_TYPE_READBACK;
         }
         return D3D12_HEAP_TYPE_DEFAULT;
+    }
+
+    auto GetDescriptorRangeType( rhi::ResourceType type ) -> D3D12_DESCRIPTOR_RANGE_TYPE {
+        switch (type) {
+            case rhi::ResourceType::eTexture_SRV:
+            case rhi::ResourceType::eTypedBuffer_SRV:
+            case rhi::ResourceType::eStructuredBuffer_SRV:
+            case rhi::ResourceType::eRawBuffer_SRV:
+            case rhi::ResourceType::eRayTracingAccelStruct:       return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+            case rhi::ResourceType::eTexture_UAV:
+            case rhi::ResourceType::eTypedBuffer_UAV:
+            case rhi::ResourceType::eStructuredBuffer_UAV:
+            case rhi::ResourceType::eRawBuffer_UAV:
+            case rhi::ResourceType::eSamplerFeedbackTexture_UAV:  return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+
+            case rhi::ResourceType::eConstantBuffer:
+            case rhi::ResourceType::eVolatileConstantBuffer:     return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+
+            case rhi::ResourceType::eSampler:                    return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+
+            case rhi::ResourceType::ePushConstants:
+            case rhi::ResourceType::eInvalid:
+            default:                                              MKT_ASSERT( false, "Invalid range type or provided PS. Push constants belong in Root Constants, not a descriptor range!" );
+        }
     }
 
     auto GetDimension( rhi::TextureDimension dimension ) -> D3D12_RESOURCE_DIMENSION {

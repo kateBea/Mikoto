@@ -36,9 +36,16 @@ namespace mikoto::renderer::d3d12 {
 
     MKT_NODISCARD auto GetQueueType( rhi::QueueType type ) -> D3D12_COMMAND_LIST_TYPE;
 
+    MKT_NODISCARD auto GetShaderVisibility( rhi::ShaderStage stage ) -> D3D12_SHADER_VISIBILITY;
+
     MKT_NODISCARD auto GetFormat( rhi::Format format ) -> DXGI_FORMAT;
+    MKT_NODISCARD auto GetFillMode( rhi::PolygonMode type ) -> D3D12_FILL_MODE;
+    MKT_NODISCARD auto GetCullMode( rhi::CullMode type ) -> D3D12_CULL_MODE;
+    MKT_NODISCARD auto GetDepthCompareOp( rhi::DepthCompareOp op ) -> D3D12_COMPARISON_FUNC;
+    MKT_NODISCARD auto GetTopologyType( rhi::PrimitiveTopology type ) -> D3D12_PRIMITIVE_TOPOLOGY_TYPE;
 
     MKT_NODISCARD auto GetHeapType( rhi::HeapType type ) -> D3D12_HEAP_TYPE;
+    MKT_NODISCARD auto GetDescriptorRangeType( rhi::ResourceType type ) -> D3D12_DESCRIPTOR_RANGE_TYPE;
 
     MKT_NODISCARD auto GetDimension( rhi::TextureDimension dimension ) -> D3D12_RESOURCE_DIMENSION;
     MKT_NODISCARD auto GetSampleCount( rhi::Multisampling multisampling ) -> UINT;

@@ -38,6 +38,8 @@ namespace mikoto::renderer::d3d12 {
 
     MKT_NODISCARD auto GetFormat( rhi::Format format ) -> DXGI_FORMAT;
 
+    MKT_NODISCARD auto GetHeapType( rhi::HeapType type ) -> D3D12_HEAP_TYPE;
+
     MKT_NODISCARD auto GetDimension( rhi::TextureDimension dimension ) -> D3D12_RESOURCE_DIMENSION;
     MKT_NODISCARD auto GetSampleCount( rhi::Multisampling multisampling ) -> UINT;
     MKT_NODISCARD auto GetResourceFlags( rhi::TextureUsageFlags flags ) -> D3D12_RESOURCE_FLAGS;

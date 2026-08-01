@@ -148,8 +148,8 @@ namespace mikoto::renderer::d3d12 {
             .StripReflection()
 #endif
             .WarningsAsErrors()
-            .AddDefinition("USE_PBR", "1")
-            .AddDefinition("MAX_LIGHTS", "256") };
+            .AddDefinition("TEST_MACRO1", "1")
+            .AddDefinition("TEST_MACRO2", "256") };
         mBytecode = ctx->GetShaderCompiler()->Compile(description);
 
 #if !defined(NDEBUG)

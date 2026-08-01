@@ -63,6 +63,7 @@ namespace mikoto::renderer::d3d12 {
     auto GraphicsPipeline::Release() -> void {
         mIsAllocated = false;
     }
+
     ComputePipeline::ComputePipeline( const rhi::ComputePipelineDescription &info )
         : IComputePipeline{ info }
     {

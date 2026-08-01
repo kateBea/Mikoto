@@ -56,6 +56,7 @@ namespace mikoto::renderer::d3d12 {
         auto Initialize() -> void override;
 
     private:
+        void* mMappedAddress{};
         BufferAllocation mAllocation{};
         bool mKeepInitializerResources{ false };
     };

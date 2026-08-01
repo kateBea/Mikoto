@@ -41,12 +41,14 @@ namespace mikoto::renderer::d3d12 {
 
     auto Buffer::PersistentMap() -> void {
         auto allocator{ checked_cast<Device*>( mDevice )->GetAllocator() };
-        allocator->MapBuffer( mAllocation );
+        mMappedAddress = allocator->MapBuffer( mAllocation );
     }
 
     auto Buffer::PersistentUnmap() -> void {
         auto allocator{ checked_cast<Device*>( mDevice )->GetAllocator() };
         allocator->UnmapBuffer(  mAllocation );
+
+        mMappedAddress = nullptr;
     }
 
     auto Buffer::SetDebugName( eastl::string_view name ) -> void {
@@ -62,15 +64,15 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Buffer::IsMapped() const -> bool {
-        return false;
+        return mMappedAddress != nullptr;
     }
 
     auto Buffer::GetMappedAddress() -> void * {
-        return nullptr;
+        return mMappedAddress;
     }
 
     auto Buffer::GetMappedAddress() const -> const void * {
-        return nullptr;
+        return mMappedAddress;
     }
 
     Buffer::~Buffer() {
@@ -98,7 +100,7 @@ namespace mikoto::renderer::d3d12 {
         mAllocation.mDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
         mAllocation.mDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-        mAllocation.mAllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+        mAllocation.mAllocDesc.HeapType = d3d12::GetHeapType(mHeapType);
 
         auto* allocator{ checked_cast<Device*>( mDevice )->GetAllocator() };
         ThrowIfFailed( allocator->AllocateBuffer( mAllocation ) );

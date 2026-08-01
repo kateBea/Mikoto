@@ -147,6 +147,15 @@ namespace mikoto::renderer::d3d12 {
         }
     }
 
+    auto GetHeapType( rhi::HeapType type ) -> D3D12_HEAP_TYPE {
+        switch (type) {
+            case HeapType::eDeviceLocal: return D3D12_HEAP_TYPE_DEFAULT;
+            case HeapType::eUpload:      return D3D12_HEAP_TYPE_UPLOAD;
+            case HeapType::eReadback:     return D3D12_HEAP_TYPE_READBACK;
+        }
+        return D3D12_HEAP_TYPE_DEFAULT;
+    }
+
     auto GetDimension( rhi::TextureDimension dimension ) -> D3D12_RESOURCE_DIMENSION {
         switch (dimension) {
             case rhi::TextureDimension::eTexture1D:

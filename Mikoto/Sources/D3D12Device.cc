@@ -80,7 +80,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto BindingLayout::IsBindless() const -> bool {
-        return false;
+        return mIsBindless;
     }
 
     auto BindingLayout::GetBindingLayoutDesc() const -> const BindingLayoutDescription & {
@@ -97,6 +97,18 @@ namespace mikoto::renderer::d3d12 {
 
     auto BindingLayout::GetBindlessLayoutDesc() const -> const BindlessLayoutDescription & {
         return mBindlessLayoutDesc;
+    }
+
+    auto BindingLayout::GetDescriptorRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1> & {
+        return mDescriptorRanges;
+    }
+
+    auto BindingLayout::GetDescriptorSamplerRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1> & {
+        return mDescriptorRangesSamplers;
+    }
+
+    auto BindingLayout::GetNextIndexForDescriptor( D3D12_DESCRIPTOR_RANGE_TYPE descriptor ) const -> u32 {
+        return mNextRegisterForType[descriptor]++;
     }
 
     auto BindingLayout::SetDebugName( eastl::string_view name ) -> void {
@@ -122,6 +134,34 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto BindingLayout::Initialize() -> void {
+        if (!mIsBindless) {
+            for (const auto& descriptor : mBindingLayoutDesc.mBindings) {
+                D3D12_DESCRIPTOR_RANGE1 range{};
+
+                // Convert the RHI type to DX12 range type (SRV, UAV, CBV, or SAMPLER)
+                D3D12_DESCRIPTOR_RANGE_TYPE dx12Type{ d3d12::GetDescriptorRangeType(descriptor.mType) };
+
+                range.RangeType = dx12Type;
+                range.NumDescriptors = 1;
+                range.RegisterSpace = mRegisterSpace;
+
+                // Let DX12 calculate the offset automatically
+                range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+                range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+
+                // Automatically assign the next free register for this specific resource type
+                range.BaseShaderRegister = mNextRegisterForType[dx12Type]++;
+
+                // Separate Samplers because DX12 requires them in a dedicated Sampler Descriptor Heap
+                if (descriptor.mType == ResourceType::eSampler) {
+                    mDescriptorRangesSamplers.emplace_back(range);
+                } else {
+                    mDescriptorRanges.emplace_back(range);
+                }
+            }
+        }
+
         mIsAllocated = true;
     }
 
@@ -143,7 +183,7 @@ namespace mikoto::renderer::d3d12 {
 
             D3D12_INPUT_ELEMENT_DESC description{
                 .SemanticName = bindingDesc.mName.c_str(),
-                .SemanticIndex = 0, // TODO: I am not sure how to treat this, technically comes from the name itself
+                .SemanticIndex = mSemanticIndexPerName[bindingDesc.mName]++,
                 .Format = d3d12::GetFormat( bindingDesc.mFormat ),
                 .InputSlot = bindingDesc.mBinding,
                 .AlignedByteOffset = bindingDesc.mOffset,
@@ -161,6 +201,14 @@ namespace mikoto::renderer::d3d12 {
 
     auto InputLayout::GetAttributeDescription( u32 index ) const -> const VertexAttributeDescription &{
         return  mAttributes.at(index);
+    }
+
+    auto InputLayout::GetInputElements() -> const D3D12_INPUT_ELEMENT_DESC * {
+        return mInputElems.data();
+    }
+
+    auto InputLayout::GetInputElementsCount() -> UINT {
+        return as<UINT>(mInputElems.size());
     }
 
     InputLayout::~InputLayout() {
@@ -223,45 +271,54 @@ namespace mikoto::renderer::d3d12 {
             featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
         }
 
-        // To keep range objects alive because DescriptorTable takes raw pointers
-        struct RootParamDescription {
-            D3D12_ROOT_PARAMETER1 mParameter{};
-            eastl::vector<D3D12_DESCRIPTOR_RANGE1> mRange{};
-        };
-        ankerl::unordered_dense::map<u32, RootParamDescription> rootParametersStorage{};
+        u32 rootConstantsBufferIndex{};
 
         // Non-bindless path
+        eastl::vector<D3D12_ROOT_PARAMETER1> rootParameters{};
         for (auto& item : mDescription.mBindingLayouts) {
             BindingLayout* bindingLayout{ checked_cast<BindingLayout*>( item.GetRaw() ) };
 
+            // Root constants always at register space 0, just find
+            // the next available cBuffer index
+            const BindingLayoutDescription& desc{ bindingLayout->GetBindingLayoutDesc() };
+
             if (!bindingLayout->IsBindless()) {
-                const BindingLayoutDescription& desc{ bindingLayout->GetBindingLayoutDesc() };
-                auto& rootParameter{ rootParametersStorage[desc.mRegisterSpace] };
-
-                for (const auto& descriptor : desc.mBindings) {
-                    D3D12_DESCRIPTOR_RANGE1 range{};
-                    range.BaseShaderRegister = desc.mRegisterSpace;
-                    range.RangeType = d3d12::GetDescriptorRangeType(descriptor.mType);
-                    range.NumDescriptors = 1;
-                    range.RegisterSpace = desc.mRegisterSpace;
-                    range.OffsetInDescriptorsFromTableStart = 0;
-                    range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
-
-                    rootParameter.mRange.emplace_back( range );
+                if (desc.mRegisterSpace == 0) {
+                    rootConstantsBufferIndex = bindingLayout->GetNextIndexForDescriptor(D3D12_DESCRIPTOR_RANGE_TYPE_CBV);
                 }
 
-                rootParameter.mParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-                rootParameter.mParameter.ShaderVisibility = d3d12::GetShaderVisibility(desc.mStageVisibility);
+                const auto& descriptorRanges{ bindingLayout->GetDescriptorRanges() };
+                const auto& samplerDescriptorRanges{ bindingLayout->GetDescriptorSamplerRanges() };
 
-                rootParameter.mParameter.DescriptorTable.NumDescriptorRanges = as<UINT>(rootParameter.mRange.size());
-                rootParameter.mParameter.DescriptorTable.pDescriptorRanges = rootParameter.mRange.data();
+                auto& rootParameter{ rootParameters.emplace_back() };
+                rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+                rootParameter.ShaderVisibility = d3d12::GetShaderVisibility(desc.mStageVisibility);
+
+                rootParameter.DescriptorTable.NumDescriptorRanges = as<UINT>(descriptorRanges.size());
+                rootParameter.DescriptorTable.pDescriptorRanges = descriptorRanges.data();
+
+                if (!samplerDescriptorRanges.empty()) {
+                    auto& rootParameterSamplers{ rootParameters.emplace_back() };
+                    rootParameterSamplers.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+                    rootParameterSamplers.ShaderVisibility = d3d12::GetShaderVisibility(desc.mStageVisibility);
+
+                    rootParameterSamplers.DescriptorTable.NumDescriptorRanges = as<UINT>(samplerDescriptorRanges.size());
+                    rootParameterSamplers.DescriptorTable.pDescriptorRanges = samplerDescriptorRanges.data();
+                }
             }
         }
 
-        eastl::vector<D3D12_ROOT_PARAMETER1> rootParameters{};
-        for (const auto& item : rootParametersStorage | std::views::values) {
-            rootParameters.emplace_back( item.mParameter );
-        }
+        // For now we are always assuming root constant are available
+        D3D12_ROOT_PARAMETER1 rootParamConstants{};
+        rootParamConstants.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        rootParamConstants.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+        // Configure the layout metadata
+        rootParamConstants.Constants.ShaderRegister = rootConstantsBufferIndex;
+        rootParamConstants.Constants.RegisterSpace  = 0;
+        rootParamConstants.Constants.Num32BitValues = 32;
+
+        rootParameters.emplace_back( rootParamConstants );
 
         D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{};
         rootSignatureDesc.Version = featureData.HighestVersion;
@@ -272,10 +329,16 @@ namespace mikoto::renderer::d3d12 {
         rootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
         rootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
 
-        // TODO: Root constants
+        HRESULT hr{ D3D12SerializeVersionedRootSignature(&rootSignatureDesc,
+            &mSignatureBlob, &mErrorMessages) };
 
-        ThrowIfFailed(D3D12SerializeVersionedRootSignature(&rootSignatureDesc,
-            &mSignatureBlob, &mErrorMessages));
+        if (mErrorMessages && mErrorMessages->GetBufferSize() != 0) {
+            eastl::string msg{ (const char *)mErrorMessages->GetBufferPointer() };
+            MKT_CORE_LOGGER_ERROR( "D3D12SerializeVersionedRootSignature Errors: {}", msg.c_str() );
+        }
+
+        ThrowIfFailed( hr );
+
         ThrowIfFailed(d3d12Device->CreateRootSignature(0,
             mSignatureBlob->GetBufferPointer(),
             mSignatureBlob->GetBufferSize(),

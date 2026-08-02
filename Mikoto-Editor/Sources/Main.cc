@@ -86,7 +86,7 @@ auto InitEditor() -> bool {
         gApplication->PushLayer<EditorRayTraceLayer>( gWindow );
 #endif
 
-        //gApplication->PushLayer<EditorLayer>( gWindow );
+        gApplication->PushLayer<EditorLayer>( gWindow );
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Ini App exception - e.what(): {}", e.what() );
         return false;

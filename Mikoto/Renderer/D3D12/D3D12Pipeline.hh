@@ -51,6 +51,7 @@ namespace mikoto::renderer::d3d12 {
         auto Release() -> void override;
 
     private:
+        Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState{};
         D3D12_GRAPHICS_PIPELINE_STATE_DESC mD3D12PipelineDesc{};
     };
 

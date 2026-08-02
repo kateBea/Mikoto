@@ -73,6 +73,11 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetBindingLayoutDesc() const -> const BindingLayoutDescription&;
         MKT_NODISCARD auto GetBindlessLayoutDesc() const -> const BindlessLayoutDescription&;
 
+        MKT_NODISCARD auto GetDescriptorRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
+        MKT_NODISCARD auto GetDescriptorSamplerRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
+
+        MKT_NODISCARD auto GetNextIndexForDescriptor(D3D12_DESCRIPTOR_RANGE_TYPE descriptor ) const -> u32;
+
         auto SetDebugName( eastl::string_view name ) -> void override;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
@@ -89,6 +94,15 @@ namespace mikoto::renderer::d3d12 {
         bool mIsBindless{ false };
         BindingLayoutDescription mBindingLayoutDesc{};
         BindlessLayoutDescription mBindlessLayoutDesc{};
+
+        // Because for D3D12 Samplers cannot be mixed
+        // with other resource types in a descriptor table
+        eastl::vector<D3D12_DESCRIPTOR_RANGE1> mDescriptorRanges{};
+        eastl::vector<D3D12_DESCRIPTOR_RANGE1> mDescriptorRangesSamplers{};
+
+        // Track the next available register slot for each DX12 type category
+        // Default initializes all categories (SRV, UAV, CBV, Sampler) to 0
+        mutable ankerl::unordered_dense::map<D3D12_DESCRIPTOR_RANGE_TYPE, u32> mNextRegisterForType{};
     };
 
     class BindingSet : public IBindingSet {
@@ -111,6 +125,9 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetNumAttributes() const -> u32 override;
         MKT_NODISCARD auto GetAttributeDescription(u32 index) const -> const VertexAttributeDescription& override;
 
+        MKT_NODISCARD auto GetInputElements() -> const D3D12_INPUT_ELEMENT_DESC*;
+        MKT_NODISCARD auto GetInputElementsCount() -> UINT;
+
         ~InputLayout() override;
 
     private:
@@ -119,6 +136,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         eastl::vector<D3D12_INPUT_ELEMENT_DESC> mInputElems{};
+        ankerl::unordered_dense::map<eastl::string, u32> mSemanticIndexPerName{};
 
         InputLayoutCreateDescription mDescription{};
         eastl::fixed_hash_map<u32, VertexAttributeDescription, kMaxVertexAttributes> mAttributes{};

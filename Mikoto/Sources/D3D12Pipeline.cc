@@ -45,6 +45,16 @@ namespace mikoto::renderer::d3d12 {
         ID3D12RootSignature* rootSignature{ *pipelineLayout };
         mD3D12PipelineDesc.pRootSignature = rootSignature;
 
+        // Input layout
+        if (!mDesc.mInputLayout.IsEmpty()) {
+            InputLayout* inputLayout{ checked_cast<InputLayout*>( mDesc.mInputLayout.GetRaw() ) };
+
+            MKT_ASSERT( inputLayout->GetInputElementsCount() != 0, "Cannot pass an empty input layout.");
+
+            mD3D12PipelineDesc.InputLayout.NumElements = inputLayout->GetInputElementsCount();
+            mD3D12PipelineDesc.InputLayout.pInputElementDescs = inputLayout->GetInputElements();
+        }
+
         // Vertex Shader
         if (mDesc.mShaders.contains( ShaderType::eVertex )) {
             Shader* shader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::eVertex ).GetRaw() ) };
@@ -125,7 +135,11 @@ namespace mikoto::renderer::d3d12 {
             D3D12_BLEND_OP_ADD,
             D3D12_LOGIC_OP_NOOP,
             D3D12_COLOR_WRITE_ENABLE_ALL };
-        for ( UINT i{ 0 }; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i ) {
+
+        MKT_ASSERT( mDesc.mColorFormats.size() <= D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT,
+            "Number of color formats exceeds maximum concurrent RTV supported");
+
+        for ( UINT i{ 0 }; i < mDesc.mColorFormats.size(); ++i ) {
             blendDesc.RenderTarget[i] = defaultRenderTargetBlendDesc;
         }
         mD3D12PipelineDesc.BlendState = blendDesc;
@@ -138,7 +152,7 @@ namespace mikoto::renderer::d3d12 {
 
         // Output
         mD3D12PipelineDesc.NumRenderTargets = mDesc.mColorFormats.size();
-        for ( UINT i{ 0 }; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i ) {
+        for ( UINT i{ 0 }; i < mDesc.mColorFormats.size(); ++i ) {
             mD3D12PipelineDesc.RTVFormats[i] = d3d12::GetFormat( mDesc.mColorFormats[i] );
         }
         mD3D12PipelineDesc.DSVFormat = d3d12::GetFormat( mDesc.mDepthFormat );;
@@ -164,6 +178,13 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto GraphicsPipeline::Initialize() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        ID3D12Device2* d3d12Device{ device->GetDevice() };
+
+        ThrowIfFailed(d3d12Device->CreateGraphicsPipelineState(
+            &mD3D12PipelineDesc,
+            IID_PPV_ARGS(&mPipelineState)));
+
         mIsAllocated = true;
     }
 

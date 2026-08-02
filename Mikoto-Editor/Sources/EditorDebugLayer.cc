@@ -183,42 +183,42 @@ namespace mikoto::editor {
             .SetOffset( offsetof( asset::VertexDescription, mColors ) ),
 
             rhi::VertexAttributeDescription{}
-            .SetName( "TEXCOORD0" )
+            .SetName( "TEXCOORD" )
             .SetLocation( 3 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRG32_FLOAT )
             .SetOffset( offsetof( asset::VertexDescription, mUv0 ) ),
 
             rhi::VertexAttributeDescription{}
-            .SetName( "TEXCOORD1" )
+            .SetName( "TEXCOORD" )
             .SetLocation( 4 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRG32_FLOAT )
             .SetOffset( offsetof( asset::VertexDescription, mUv1 ) ),
 
     rhi::VertexAttributeDescription{}
-            .SetName( "BLENDINDICES0" )
+            .SetName( "BLENDINDICES" )
             .SetLocation( 5 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGBA32_FLOAT )
             .SetOffset( offsetof( asset::VertexDescription, mJoints0 ) ),
 
             rhi::VertexAttributeDescription{}
-            .SetName( "BLENDWEIGHT0" )
+            .SetName( "BLENDWEIGHT" )
             .SetLocation( 6 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGBA32_FLOAT )
             .SetOffset( offsetof( asset::VertexDescription, mWeights0 ) ),
 
             rhi::VertexAttributeDescription{}
-            .SetName( "BLENDINDICES1" )
+            .SetName( "BLENDINDICES" )
             .SetLocation( 7 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGBA32_FLOAT )
             .SetOffset( offsetof( asset::VertexDescription, mJoints1 ) ),
 
     rhi::VertexAttributeDescription{}
-            .SetName( "BLENDWEIGHT1" )
+            .SetName( "BLENDWEIGHT" )
             .SetLocation( 8 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGBA32_FLOAT )
@@ -257,14 +257,6 @@ namespace mikoto::editor {
         mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
         mCommandList->SetEnableAutomaticBarriers( true );
         mCommandList->SetDebugName( "GameLayer CommandList" );
-
-        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/deadpool/scene.gltf" );
-        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/miss_galaxy/scene.gltf" );
-        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/bee/scene.gltf" );
-
-        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/robot/gltf/scene.gltf" );
-
-        mModelHandle = asset::AssetsService::Get()->LoadAsset<asset::Model>( "Resources/Models/Prefabs/cone/gltf/scene.gltf" );
 
         // We will upload a texture and a buffer to do some effects, see Triangle_Frag
         // Ideally we want to automate this process by allowing each backend to be able to use shader reflection
@@ -327,6 +319,14 @@ namespace mikoto::editor {
             .mWindow = mWindow };
 
         mEditorCamera = eastl::make_unique<SceneCamera>( cameraDescription );
+
+        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/deadpool/scene.gltf" );
+        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/miss_galaxy/scene.gltf" );
+        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/bee/scene.gltf" );
+
+        asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/robot/gltf/scene.gltf" );
+
+        mModelHandle = asset::AssetsService::Get()->LoadAsset<asset::Model>( "Resources/Models/Prefabs/cone/gltf/scene.gltf" );
     }
 
     auto EditorDebugLayer::UpdateCameraState( float ts  ) -> void {

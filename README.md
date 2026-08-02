@@ -24,37 +24,38 @@ passes, amongst other features.
 
 ### Feature List
 
-| **Category**       | **Feature Name**               | **Feature Description**                                                                             | **Supported**              |
-|--------------------|--------------------------------|-----------------------------------------------------------------------------------------------------|----------------------------|
-| **Core Engine**    | Model Loading                  | Load 3D models via GLTF (for gltf scenes), defaults to Assimp for other formats                     | ✔️                         |
-|                    | Image Loading                  | Texture/Image loading via STB_Image                                                                 | ✔️                         |
-|                    | Cube maps                      | Load equirectangular HDR images and use them as cube maps, requires pass to project from 2D to Cube | ✔️                         |
-|                    | Entity Component System        | ECS for scene/game object management                                                                | ✔️                         |
-|                    | Scene Serialization            | Editor scene save/load                                                                              | ❌ (WIP)                    |
-|                    | Particle System                | GPU particle simulation (fire, smoke, sparks, etc.)                                                 | ❌                          |
-|                    | Vulkan Ray Tracing             | Hardware accelerated RT                                                                             | ❌                          |
-|                    | Physics Integration            | Basic collision detection with Jolt                                                                 | ✔️ (WIP)                   |
-|                    | UI Integration (ImGui)         | Runtime + editor ImGui                                                                              | ✔️                         |
-|                    | Animation System               | Skeletal animation, skinning                                                                        | ❌                          |
-|                    | Audio Support                  | Load and play audio                                                                                 | ✔️                         |
-|                    | Text Rendering / Overlay       | MSDF-based text rendering                                                                           | ✔️ (WIP)                   |
-| **Visual Effects** | Clustered Forward+             | Main render path with clustered/forward+ lighting                                                   | ✔️ (WIP)                   |
-|                    | Clustered Light Culling        | Per-tile/cluster light assignment                                                                   | ✔️                         |
-|                    | Mesh Culling                   | CPU mesh visibility culling                                                                         | ❌                          |
-|                    | IBL (Image-Based Lighting)     | Diffuse irradiance + specular reflections                                                           | ❌                          |
-|                    | Shadows                        | Directional, point, spot shadows                                                                    | ❌                          |
-|                    | Cascaded Shadow Maps (CSM)     | Multi-split directional shadows                                                                     | ❌                          |
-|                    | Outline Pass                   | Object outlining effect                                                                             | ❌                          |
-|                    | Infinite Grid                  | Procedural grid for editor/world                                                                    | ✔️ (WIP)                   |
-|                    | Bloom                          | Multi-pass bright blur                                                                              | ❌                          |
-|                    | Depth of Field (DoF)           | DoF effect                                                                                          | ❌                          |
-|                    | Screen-Space Reflections (SSR) | Reflections in screen space                                                                         | ❌                          |
-|                    | Screen-Space GI (SSGI)         | Screen-space diffuse bounce lighting                                                                | ❌                          |
-| **Editor / Tools** | Gizmos (ImGuizmo)              | Move/rotate/scale gizmos                                                                            | ✔️ (Translations only)     |
-|                    | Profiling / GPU Timers         | Pass timing, pipeline stats                                                                         | ❌ (WIP)                    |
-|                    | Asset Streaming                | Task-based async resource loading                                                                   | ❌                          |
-|                    | Shader hot reloading           | Shader hot reload                                                                                   | ❌                          |
-|                    | Asset hot reloading            | Asset hot reload for scripts, etc.                                                                  | ✔️ (Limited, Scripts only) |
+| **Category**       | **Feature Name**               | **Feature Description**                                                                             | **Supported** |
+|--------------------|--------------------------------|-----------------------------------------------------------------------------------------------------|---------------|
+| **Core Engine**    | Model Loading                  | Load 3D models via GLTF (for gltf scenes), defaults to Assimp for other formats                     | ✔️            |
+|                    | Image Loading                  | Texture/Image loading via STB_Image                                                                 | ✔️            |
+|                    | Cube maps                      | Load equirectangular HDR images and use them as cube maps, requires pass to project from 2D to Cube | ✔️            |
+|                    | Entity Component System        | ECS for scene/game object management                                                                | ✔️            |
+|                    | Scene Serialization            | Editor scene save/load                                                                              | ❌             |
+|                    | Particle System                | GPU particle simulation (fire, smoke, sparks, etc.)                                                 | ❌             |
+|                    | Ray Tracing                    | Hardware accelerated RT                                                                             | ❌             |
+|                    | Physics Integration            | Basic collision detection with Jolt                                                                 | ✔️            |
+|                    | UI Integration (ImGui)         | Runtime + editor ImGui                                                                              | ✔️            |
+|                    | Animation System               | Skeletal animation, skinning                                                                        | ❌             |
+|                    | Audio Support                  | Load and play audio                                                                                 | ✔️            |
+|                    | Text Rendering / Overlay       | MSDF-based text rendering                                                                           | ✔️            |
+| **Visual Effects** | Clustered Forward+             | Main render path with clustered/forward+ lighting                                                   | ✔️            |
+|                    | Clustered Light Culling        | Per-tile/cluster light assignment                                                                   | ✔️            |
+|                    | Mesh Culling                   | CPU mesh visibility culling                                                                         | ❌             |
+|                    | IBL (Image-Based Lighting)     | Diffuse irradiance + specular reflections                                                           | ❌             |
+|                    | Shadows                        | Directional, point, spot shadows                                                                    | ❌             |
+|                    | Cascaded Shadow Maps (CSM)     | Multi-split directional shadows                                                                     | ❌             |
+|                    | Outline Pass                   | Object outlining effect                                                                             | ❌             |
+|                    | Infinite Grid                  | Procedural grid for editor/world                                                                    | ✔️            |
+|                    | Bloom                          | Multi-pass bright blur                                                                              | ❌             |
+|                    | Depth of Field (DoF)           | DoF effect                                                                                          | ❌             |
+|                    | Screen-Space Reflections (SSR) | Reflections in screen space                                                                         | ❌             |
+|                    | Screen-Space GI (SSGI)         | Screen-space diffuse bounce lighting                                                                | ❌             |
+| **Editor / Tools** | Gizmos (ImGuizmo)              | Move/rotate/scale gizmos                                                                            | ✔️            |
+|                    | Profiling / GPU Timers         | Pass timing, pipeline stats                                                                         | ❌             |
+|                    | Asset Streaming                | Task-based async resource loading                                                                   | ❌             |
+|                    | Shader hot reloading           | Shader hot reload                                                                                   | ❌             |
+|                    | Asset hot reloading            | Asset hot reload for scripts, etc.                                                                  | ✔️            |
+
 
 ### **Platform Support**
 
@@ -77,7 +78,6 @@ passes, amongst other features.
 - **Vulkan SDK** – Install from the official [LunarG SDK](https://vulkan.lunarg.com/).
 - **C++20-compatible compiler** – Tested with **GCC 13.3.0**; other C++20 compilers should work but are untested.
 - **Visual Studio 2022 onwards (Windows)** – Recommended IDE and toolchain for Windows builds.
-- **GLSL-C (Optional)** – Only needed if you want to recompile shaders; precompiled SPIR-V binaries are already included.
 
 ---
 

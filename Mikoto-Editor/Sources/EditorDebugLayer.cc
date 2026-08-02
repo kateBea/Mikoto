@@ -275,7 +275,6 @@ namespace mikoto::editor {
             .AddBindlessItem(BindlessLayoutItem::Texture_SRV(0, 1024))
             .AddBindlessItem(BindlessLayoutItem::Samplers(1, 1024)) };
         mBindlessLayout = mDevice->CreateBindlessLayout( bindlessLayout );
-        mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
 
         // A pipeline layout describes what kind of group of resources we can bind
         // To a specific bind point. We can bind resources for Compute pipelines or Graphics pipelines, etc
@@ -302,6 +301,8 @@ namespace mikoto::editor {
             .SetPipelineLayout( mPipelineLayoutHandle ) };
         mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
 
+        mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
+        
         auto bindingSetDesc{ BindingSetDescription{}
             .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) )
             .AddItem( BindingSetItem::Texture_SRV( 1, mSimpleTexture.GetRaw() ) )

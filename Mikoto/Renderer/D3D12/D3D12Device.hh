@@ -76,6 +76,9 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetDescriptorRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
         MKT_NODISCARD auto GetDescriptorSamplerRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
 
+        MKT_NODISCARD auto GetBindlessDescriptorRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
+        MKT_NODISCARD auto GetBindlessDescriptorSamplerRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
+
         MKT_NODISCARD auto GetNextIndexForDescriptor(D3D12_DESCRIPTOR_RANGE_TYPE descriptor ) const -> u32;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
@@ -99,6 +102,9 @@ namespace mikoto::renderer::d3d12 {
         // with other resource types in a descriptor table
         eastl::vector<D3D12_DESCRIPTOR_RANGE1> mDescriptorRanges{};
         eastl::vector<D3D12_DESCRIPTOR_RANGE1> mDescriptorRangesSamplers{};
+
+        eastl::vector<D3D12_DESCRIPTOR_RANGE1> mBindlessDescriptorRanges{};
+        eastl::vector<D3D12_DESCRIPTOR_RANGE1> mBindlessDescriptorRangesSamplers{};
 
         // Track the next available register slot for each DX12 type category
         // Default initializes all categories (SRV, UAV, CBV, Sampler) to 0

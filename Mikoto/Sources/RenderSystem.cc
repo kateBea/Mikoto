@@ -232,7 +232,7 @@ namespace mikoto::renderer {
 
         static auto slangTargets{ eastl::to_array<slang::TargetDesc>( { {
             .format = SLANG_HLSL,
-            .profile = mSlangGlobalSession->findProfile("sm_5_1")
+            .profile = mSlangGlobalSession->findProfile("sm_6_5")
         } } ) };
 
         static auto slangOptions{ eastl::to_array<slang::CompilerOptionEntry>( {
@@ -246,8 +246,7 @@ namespace mikoto::renderer {
             .compilerOptionEntries = slangOptions.data(),
             .compilerOptionEntryCount = as<u32>( slangOptions.size() ) };
 
-        // Macros
-        slang::PreprocessorMacroDesc macros[] = {
+        slang::PreprocessorMacroDesc macros[]{
             { "MKT_SUPPORT_D3D12", "1" },
 #if !defined(NDEBUG)
             { "MKT_DEBUG", "1" }

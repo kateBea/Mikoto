@@ -107,6 +107,14 @@ namespace mikoto::renderer::d3d12 {
         return mDescriptorRangesSamplers;
     }
 
+    auto BindingLayout::GetBindlessDescriptorRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1> & {
+        return mBindlessDescriptorRanges;
+    }
+
+    auto BindingLayout::GetBindlessDescriptorSamplerRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1> & {
+        return mBindlessDescriptorRangesSamplers;
+    }
+
     auto BindingLayout::GetNextIndexForDescriptor( D3D12_DESCRIPTOR_RANGE_TYPE descriptor ) const -> u32 {
         return mNextRegisterForType[descriptor]++;
     }
@@ -158,6 +166,34 @@ namespace mikoto::renderer::d3d12 {
                     mDescriptorRangesSamplers.emplace_back(range);
                 } else {
                     mDescriptorRanges.emplace_back(range);
+                }
+            }
+        } else {
+            // Each bindless array gets its own space starting
+            // from the one we specified as base
+            u32 registerSpaceOffsetIndex{ mRegisterSpace };
+
+            for (const auto& descriptor : mBindlessLayoutDesc.mSlots) {
+                D3D12_DESCRIPTOR_RANGE1 range{};
+
+                // Convert the RHI type to DX12 range type (SRV, UAV, CBV, or SAMPLER)
+                D3D12_DESCRIPTOR_RANGE_TYPE dx12Type{ d3d12::GetDescriptorRangeType(descriptor.mType) };
+
+                range.RangeType = dx12Type;
+                range.BaseShaderRegister = 0;
+                range.NumDescriptors = UINT_MAX;
+                range.RegisterSpace = registerSpaceOffsetIndex++;
+
+                // Let DX12 calculate the offset automatically
+                range.OffsetInDescriptorsFromTableStart = 0;
+
+                range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+
+                // Separate Samplers because DX12 requires them in a dedicated Sampler Descriptor Heap
+                if (descriptor.mType == ResourceType::eSampler) {
+                    mBindlessDescriptorRangesSamplers.emplace_back(range);
+                } else {
+                    mBindlessDescriptorRanges.emplace_back(range);
                 }
             }
         }
@@ -280,15 +316,40 @@ namespace mikoto::renderer::d3d12 {
 
             // Root constants always at register space 0, just find
             // the next available cBuffer index
-            const BindingLayoutDescription& desc{ bindingLayout->GetBindingLayoutDesc() };
-
             if (!bindingLayout->IsBindless()) {
+                const BindingLayoutDescription& desc{ bindingLayout->GetBindingLayoutDesc() };
+
+                // Root constants go to space 0 and take the next available index for CBV
                 if (desc.mRegisterSpace == 0) {
                     rootConstantsBufferIndex = bindingLayout->GetNextIndexForDescriptor(D3D12_DESCRIPTOR_RANGE_TYPE_CBV);
                 }
 
                 const auto& descriptorRanges{ bindingLayout->GetDescriptorRanges() };
                 const auto& samplerDescriptorRanges{ bindingLayout->GetDescriptorSamplerRanges() };
+
+                auto& rootParameter{ rootParameters.emplace_back() };
+                rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+                rootParameter.ShaderVisibility = d3d12::GetShaderVisibility(desc.mStageVisibility);
+
+                rootParameter.DescriptorTable.NumDescriptorRanges = as<UINT>(descriptorRanges.size());
+                rootParameter.DescriptorTable.pDescriptorRanges = descriptorRanges.data();
+
+                if (!samplerDescriptorRanges.empty()) {
+                    auto& rootParameterSamplers{ rootParameters.emplace_back() };
+                    rootParameterSamplers.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+                    rootParameterSamplers.ShaderVisibility = d3d12::GetShaderVisibility(desc.mStageVisibility);
+
+                    rootParameterSamplers.DescriptorTable.NumDescriptorRanges = as<UINT>(samplerDescriptorRanges.size());
+                    rootParameterSamplers.DescriptorTable.pDescriptorRanges = samplerDescriptorRanges.data();
+                }
+            } else {
+                const BindlessLayoutDescription& desc{ bindingLayout->GetBindlessLayoutDesc() };
+                if (desc.mRegisterSpace == 0) {
+                    rootConstantsBufferIndex = bindingLayout->GetNextIndexForDescriptor(D3D12_DESCRIPTOR_RANGE_TYPE_CBV);
+                }
+
+                const auto& descriptorRanges{ bindingLayout->GetBindlessDescriptorRanges() };
+                const auto& samplerDescriptorRanges{ bindingLayout->GetBindlessDescriptorSamplerRanges() };
 
                 auto& rootParameter{ rootParameters.emplace_back() };
                 rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -464,6 +525,12 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::SetDebugName( eastl::string_view name ) -> void {
+        if (name.empty()) {
+            return;
+        }
+
+        mDebugName = name;
+        mCommandList->SetName( string::ToWide( mDebugName ).c_str() );
     }
 
     auto CommandList::PushBarrier( const BufferBarrierDescription &barrier ) -> void {

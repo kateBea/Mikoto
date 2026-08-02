@@ -78,6 +78,7 @@ namespace mikoto::renderer::d3d12 {
         auto WarningsAsErrors( bool value = true ) -> ShaderCompileDescription&;
     };
 
+    // https://github.com/microsoft/DirectXShaderCompiler/wiki/Using-dxc.exe-and-dxcompiler.dll
     class ShaderCompiler final : public Singleton<ShaderCompiler>, public IService {
     public:
         explicit ShaderCompiler() = default;

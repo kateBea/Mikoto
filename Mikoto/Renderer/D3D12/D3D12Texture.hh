@@ -32,6 +32,8 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
+        MKT_NODISCARD operator ID3D12DescriptorHeap*() const;
+
         ~Sampler() override;
 
     private:
@@ -40,6 +42,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         D3D12_CPU_DESCRIPTOR_HANDLE mSamplerHandle{};
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDescriptorHeap{};
     };
 
     class Texture : public ITexture {
@@ -50,6 +53,8 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
+
+        MKT_NODISCARD operator ID3D12DescriptorHeap*() const;
 
         ~Texture() override;
 
@@ -63,6 +68,10 @@ namespace mikoto::renderer::d3d12 {
     private:
         ImageAllocation mImageAllocation{};
         bool mKeepInitializerResources{ false };
+
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRtvDescriptorHeap{};
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvDescriptorHeap{};
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap{};
     };
 
 }// namespace mikoto::renderer::d3d12

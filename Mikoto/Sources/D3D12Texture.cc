@@ -44,6 +44,10 @@ namespace mikoto::renderer::d3d12 {
         return ISampler::GetNativeHandle( type );
     }
 
+    Sampler::operator ID3D12DescriptorHeap*() const {
+        return mDescriptorHeap.Get();
+    }
+
     Sampler::~Sampler() {
         if (mIsAllocated) {
             Release();
@@ -54,10 +58,15 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Sampler::Initialize() -> void {
-        // TODO: revise Microsoft DirectX 12 examples
         Device* device{ checked_cast<Device*>( mDevice ) };
+        ID3D12Device1* d3d12Device{ device->GetDevice() };
 
-        // TODO: get descriptor handle
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc{
+            .Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
+            .NumDescriptors = 1,
+            .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+            .NodeMask = 0 };
+        ThrowIfFailed(d3d12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mDescriptorHeap)));
 
         D3D12_SAMPLER_DESC wrapSamplerDesc{};
         wrapSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -81,6 +90,10 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
+    Texture::operator ID3D12DescriptorHeap*() const {
+        return mRtvDescriptorHeap.Get();
+    }
+
     auto Texture::SetDebugName( const eastl::string_view name ) -> void {
         mImageAllocation.mResource->SetName( string::ToWide( name ).c_str() );
     }
@@ -100,6 +113,36 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Texture::Initialize() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        ID3D12Device1* d3d12Device{ device->GetDevice() };
+
+        if (mTextureUsage & rhi::TextureUsageFlagsBits::kShaderResource) {
+            D3D12_DESCRIPTOR_HEAP_DESC heapDesc{
+                .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+                .NumDescriptors = 1,
+                .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+                .NodeMask = 0 };
+            ThrowIfFailed(d3d12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
+        }
+
+        if (mTextureUsage & rhi::TextureUsageFlagsBits::kRenderTarget) {
+            D3D12_DESCRIPTOR_HEAP_DESC heapDesc{
+                .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+                .NumDescriptors = 1,
+                .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+                .NodeMask = 0 };
+            ThrowIfFailed(d3d12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mRtvDescriptorHeap)));
+        }
+
+        if (mTextureUsage & rhi::TextureUsageFlagsBits::kDepthTarget || mTextureUsage & rhi::TextureUsageFlagsBits::kDepthStencilTarget) {
+            D3D12_DESCRIPTOR_HEAP_DESC heapDesc{
+                .Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
+                .NumDescriptors = 1,
+                .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+                .NodeMask = 0 };
+            ThrowIfFailed(d3d12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mDsvDescriptorHeap)));
+        }
+
         mImageAllocation.mDesc.Dimension = d3d12::GetDimension(mDimension);
         mImageAllocation.mDesc.Alignment = 0;
         mImageAllocation.mDesc.Width = mWidth;

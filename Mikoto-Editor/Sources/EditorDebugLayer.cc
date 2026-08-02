@@ -54,17 +54,17 @@ namespace mikoto::editor {
 
         // Fill the constant buffer
         mCameraProps.mView = glm::lookAt(
-                glm::vec3{ 0.0f, 0.0f, -50.0f },// camera position
-                glm::vec3{ 0.0f, 0.0f, 0.0f },// target (sphere center)
-                glm::vec3{ 0.0f, 1.0f, 0.0f } // up direction
+            glm::vec3{ 0.0f, 0.0f, -50.0f },// camera position
+            glm::vec3{ 0.0f, 0.0f, 0.0f },// target (sphere center)
+            glm::vec3{ 0.0f, 1.0f, 0.0f } // up direction
         );
 
         const f32 aspectRatio{ 1920.0f / 1080.0f };
         mCameraProps.mProjection = glm::perspective(
-                glm::radians( 60.0f ),// FOV
-                aspectRatio,          // width / height
-                0.1f,                 // near plane
-                100.0f                // far plane
+            glm::radians( 60.0f ),// FOV
+            aspectRatio,          // width / height
+            0.1f,                 // near plane
+            100.0f                // far plane
         );
 
         // Renders to the whole render area and spikes GPU usage
@@ -302,7 +302,7 @@ namespace mikoto::editor {
         mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
 
         mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
-        
+
         auto bindingSetDesc{ BindingSetDescription{}
             .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) )
             .AddItem( BindingSetItem::Texture_SRV( 1, mSimpleTexture.GetRaw() ) )

@@ -205,6 +205,36 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = false;
     }
 
+    BindingSet::BindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout )
+       : mBindingLayout{ layout }, mBindingDescription{ desc }
+    {}
+
+    auto BindingSet::SetDebugName( eastl::string_view name ) -> void {
+
+    }
+
+    auto BindingSet::GetNativeHandle( ObjectType type ) -> Object {
+        return IBindingSet::GetNativeHandle( type );
+    }
+
+    auto BindingSet::GetNativeHandle( ObjectType type ) const -> Object {
+        return IBindingSet::GetNativeHandle( type );
+    }
+
+    BindingSet::~BindingSet() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto BindingSet::Initialize() -> void {
+        mIsAllocated = true;
+    }
+
+    auto BindingSet::Release() -> void {
+        mIsAllocated = false;
+    }
+
     InputLayout::InputLayout( const InputLayoutCreateDescription &desc )
         : mDescription{ desc }
     {
@@ -384,7 +414,9 @@ namespace mikoto::renderer::d3d12 {
         D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{};
         rootSignatureDesc.Version = featureData.HighestVersion;
         rootSignatureDesc.Desc_1_1.Flags =
-            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+            D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
+            D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
         rootSignatureDesc.Desc_1_1.NumParameters = as<UINT>(rootParameters.size());
         rootSignatureDesc.Desc_1_1.pParameters = rootParameters.data();
         rootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
@@ -554,7 +586,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::SetResourceState( ITexture *buffer, ResourceStates stateBits ) -> void {
-
+        
     }
 
     auto CommandList::SetBarrier( const BufferBarrierDescription &barrier ) -> void {
@@ -952,7 +984,14 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateBindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
-        return BindingSetHandle::CreateEmpty();
+        BindingSetHandle set{ Ref<BindingSet>::Spawn( desc, layout ) };
+
+        if ( set.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate binding set resource." );
+            return BindingSetHandle::CreateEmpty();
+        }
+
+        set->Initialize( this );
     }
 
     auto Device::CreateFence( u64 fenceInitialValue ) -> FenceHandle {

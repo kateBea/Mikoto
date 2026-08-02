@@ -111,12 +111,24 @@ namespace mikoto::renderer::d3d12 {
         mutable ankerl::unordered_dense::map<D3D12_DESCRIPTOR_RANGE_TYPE, u32> mNextRegisterForType{};
     };
 
+    // https://learn.microsoft.com/en-us/windows/win32/direct3d12/descriptor-heaps-overview
     class BindingSet : public IBindingSet {
     public:
+        explicit BindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout );
+
+        auto SetDebugName( eastl::string_view name ) -> void override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
+
+        ~BindingSet() override;
 
     protected:
         auto Initialize() -> void override;
         auto Release() -> void override;
+
+    private:
+        BindingLayoutHandle mBindingLayout{};
+        BindingSetDescription mBindingDescription{};
     };
 
     class DescriptorTable : public IDescriptorTable {

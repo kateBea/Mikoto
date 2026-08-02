@@ -75,6 +75,10 @@ namespace mikoto::renderer::d3d12 {
         return mMappedAddress;
     }
 
+    Buffer::operator ID3D12DescriptorHeap*() const {
+        return mDescriptorHeap.Get();
+    }
+
     Buffer::~Buffer() {
         if (mIsAllocated) {
             Release();
@@ -86,6 +90,19 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Buffer::Initialize() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        ID3D12Device1* d3d12Device{ device->GetDevice() };
+
+        // Create descriptor heap if it's going to be used in shaders
+        if (d3d12::IsDescriptorHeapRequired( mResourceType )) {
+            D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+            heapDesc.NumDescriptors = 1;
+            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            heapDesc.Type = d3d12::GetDescriptorHeapType(mResourceType);
+            ThrowIfFailed(d3d12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mDescriptorHeap)));
+        }
+
+        // Allocate buffer memory
         mAllocation.mDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
         mAllocation.mDesc.Alignment = 0;
         mAllocation.mDesc.Width = mElementCount == 0 ? mElementSize :
@@ -102,7 +119,7 @@ namespace mikoto::renderer::d3d12 {
 
         mAllocation.mAllocDesc.HeapType = d3d12::GetHeapType(mHeapType);
 
-        auto* allocator{ checked_cast<Device*>( mDevice )->GetAllocator() };
+        auto* allocator{ device->GetAllocator() };
         ThrowIfFailed( allocator->AllocateBuffer( mAllocation ) );
 
         mIsAllocated = true;

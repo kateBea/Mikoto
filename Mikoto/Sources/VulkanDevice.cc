@@ -3179,7 +3179,6 @@ namespace mikoto::renderer::vulkan {
 
     auto BindingSet::SetDebugName( eastl::string_view name ) -> void {
         IBindingSet::SetDebugName( name );
-
     }
 
     auto BindingSet::GetNativeHandle( ObjectType type ) -> Object {

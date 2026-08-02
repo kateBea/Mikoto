@@ -258,6 +258,33 @@ namespace mikoto::renderer::d3d12 {
         return D3D12_HEAP_TYPE_DEFAULT;
     }
 
+    auto GetDescriptorHeapType( rhi::ResourceType type ) -> D3D12_DESCRIPTOR_HEAP_TYPE {
+        switch (type) {
+            case rhi::ResourceType::eTexture_SRV:
+            case rhi::ResourceType::eTypedBuffer_SRV:
+            case rhi::ResourceType::eStructuredBuffer_SRV:
+            case rhi::ResourceType::eRawBuffer_SRV:
+            case rhi::ResourceType::eRayTracingAccelStruct:
+            case rhi::ResourceType::eTexture_UAV:
+            case rhi::ResourceType::eTypedBuffer_UAV:
+            case rhi::ResourceType::eStructuredBuffer_UAV:
+            case rhi::ResourceType::eRawBuffer_UAV:
+            case rhi::ResourceType::eSamplerFeedbackTexture_UAV:
+            case rhi::ResourceType::eConstantBuffer:
+            case rhi::ResourceType::eVolatileConstantBuffer:
+                return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+            case rhi::ResourceType::eSampler:
+                return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+
+            case rhi::ResourceType::ePushConstants:
+            case rhi::ResourceType::eInvalid:
+            default:
+                MKT_ASSERT( false, "Invalid heap type requested. Push constants do not utilize descriptor heaps!" );
+                return as<D3D12_DESCRIPTOR_HEAP_TYPE>(-1);
+        }
+    }
+
     auto GetDescriptorRangeType( rhi::ResourceType type ) -> D3D12_DESCRIPTOR_RANGE_TYPE {
         switch (type) {
             case rhi::ResourceType::eTexture_SRV:
@@ -280,6 +307,30 @@ namespace mikoto::renderer::d3d12 {
             case rhi::ResourceType::ePushConstants:
             case rhi::ResourceType::eInvalid:
             default:                                              MKT_ASSERT( false, "Invalid range type or provided PS. Push constants belong in Root Constants, not a descriptor range!" );
+        }
+    }
+
+    auto IsDescriptorHeapRequired( rhi::ResourceType type ) -> bool {
+        switch (type) {
+            case rhi::ResourceType::eTexture_SRV:
+            case rhi::ResourceType::eTypedBuffer_SRV:
+            case rhi::ResourceType::eStructuredBuffer_SRV:
+            case rhi::ResourceType::eRawBuffer_SRV:
+            case rhi::ResourceType::eRayTracingAccelStruct:
+            case rhi::ResourceType::eTexture_UAV:
+            case rhi::ResourceType::eTypedBuffer_UAV:
+            case rhi::ResourceType::eStructuredBuffer_UAV:
+            case rhi::ResourceType::eRawBuffer_UAV:
+            case rhi::ResourceType::eSamplerFeedbackTexture_UAV:
+            case rhi::ResourceType::eConstantBuffer:
+            case rhi::ResourceType::eVolatileConstantBuffer:
+            case rhi::ResourceType::eSampler:
+                return true;
+
+            case rhi::ResourceType::ePushConstants:
+            case rhi::ResourceType::eInvalid:
+            default:
+                return false;
         }
     }
 

@@ -66,7 +66,6 @@ namespace mikoto::renderer::d3d12 {
         Slang::ComPtr<slang::IModule> mModule{};
         Slang::ComPtr<slang::IComponentType> mProgram {};
 
-        eastl::string mProfile{};
         Microsoft::WRL::ComPtr<IDxcBlob> mBytecode{};
 #if !defined(NDEBUG)
         eastl::string mShaderCode{};

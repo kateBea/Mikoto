@@ -232,7 +232,7 @@ namespace mikoto::renderer {
 
         static auto slangTargets{ eastl::to_array<slang::TargetDesc>( { {
             .format = SLANG_HLSL,
-            .profile = mSlangGlobalSession->findProfile("sm_6_5")
+            .profile = mSlangGlobalSession->findProfile("sm_6_6")
         } } ) };
 
         static auto slangOptions{ eastl::to_array<slang::CompilerOptionEntry>( {

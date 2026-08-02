@@ -90,12 +90,12 @@ namespace mikoto::renderer::d3d12 {
         ThrowIfFailed( mCompilerUtils->CreateDefaultIncludeHandler( &mCompilerIncHeader ) );
 
         mProfiles = {
-            { ShaderType::eVertex,   L"vs_6_5" },
-            { ShaderType::ePixel,    L"ps_6_5" },
-            { ShaderType::eGeometry, L"gs_6_5" },
-            { ShaderType::eHull,     L"hs_6_5" },
-            { ShaderType::eDomain,   L"ds_6_5" },
-            { ShaderType::eCompute,  L"cs_6_5" }
+            { ShaderType::eVertex,   L"vs_6_6" },
+            { ShaderType::ePixel,    L"ps_6_6" },
+            { ShaderType::eGeometry, L"gs_6_6" },
+            { ShaderType::eHull,     L"hs_6_6" },
+            { ShaderType::eDomain,   L"ds_6_6" },
+            { ShaderType::eCompute,  L"cs_6_6" }
         };
     }
 

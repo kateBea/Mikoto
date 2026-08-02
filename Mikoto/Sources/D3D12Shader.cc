@@ -41,27 +41,7 @@ namespace mikoto::renderer::d3d12 {
     Shader::Shader( const rhi::ShaderModuleCreateDescription &desc )
         : IShaderModule{ desc.mType, desc.mEntryPoint }, mFile{ desc.mFile }, mUseSlang{ desc.mIsSlangShader }
     {
-        if (mStage == ShaderType::eVertex) {
-            mProfile = "vs_6_0";
-        }
-        else if (mStage == ShaderType::ePixel) {
-            mProfile = "ps_6_0";
-        }
-        else if (mStage == ShaderType::eCompute) {
-            mProfile = "cs_6_0";
-        }
-        else if (mStage == ShaderType::eGeometry) {
-            mProfile = "gs_6_0";
-        }
-        else if (mStage == ShaderType::eDomain) {
-            mProfile = "hs_6_0";
-        }
-        else if (mStage == ShaderType::eHull) {
-            mProfile = "ds_6_0";
-        }
-        else {
-            MKT_ASSERT(false, "Unsupported shader stage");
-        }
+
     }
 
     auto Shader::DumpShaderCode() -> void {

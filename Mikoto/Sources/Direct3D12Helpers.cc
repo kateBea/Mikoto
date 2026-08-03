@@ -41,6 +41,7 @@ namespace mikoto::renderer::d3d12 {
         }
     }
 
+    // https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-error
     auto GetResultLabel( HRESULT value ) -> eastl::string {
         switch (value) {
             case S_OK:                           return "S_OK: Operation succeeded";

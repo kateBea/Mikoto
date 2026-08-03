@@ -52,6 +52,17 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
+    auto Fence::IsCompleted( u64 fenceValue ) const -> bool {
+        return mFence->GetCompletedValue() >= fenceValue;
+    }
+
+    auto Fence::WaitForFenceValue( u64 fenceValue ) -> void {
+        if (!IsCompleted( fenceValue )) {
+            ThrowIfFailed(mFence->SetEventOnCompletion(mFenceValue, mFenceEvent));
+            ::WaitForSingleObject(mFenceEvent, INFINITE);
+        }
+    }
+
     auto Fence::GetNativeHandle( ObjectType type ) -> Object {
         return IFence::GetNativeHandle( type );
     }
@@ -552,7 +563,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::Begin( const CommandListBeginDescription &desc ) -> void {
-
+        ClearState();
     }
 
     auto CommandList::End() -> void {

@@ -56,14 +56,14 @@ namespace mikoto::renderer::d3d12 {
         }
 
         // Vertex Shader
-        if (mDesc.mShaders.contains( ShaderType::eVertex )) {
-            Shader* shader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::eVertex ).GetRaw() ) };
+        MKT_ASSERT( mDesc.mShaders.contains( ShaderType::eVertex ),
+            "Vertex shader stage is required to construct the graphics pipeline.");
 
-            D3D12_SHADER_BYTECODE vsBytecode{};
-            vsBytecode.pShaderBytecode = shader->GetContents();
-            vsBytecode.BytecodeLength = shader->GetContentsByteSize();
-            mD3D12PipelineDesc.VS = vsBytecode; // NOTE: this is safe because the struct gets copied
-        }
+        Shader* vertexShader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::eVertex ).GetRaw() ) };
+        D3D12_SHADER_BYTECODE vsBytecode{};
+        vsBytecode.pShaderBytecode = vertexShader->GetContents();
+        vsBytecode.BytecodeLength = vertexShader->GetContentsByteSize();
+        mD3D12PipelineDesc.VS = vsBytecode; // NOTE: this is safe because the struct gets copied
 
         // Pixel Shader
         if (mDesc.mShaders.contains( ShaderType::ePixel )) {

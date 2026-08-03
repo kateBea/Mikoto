@@ -36,6 +36,8 @@ namespace mikoto::renderer::d3d12 {
     auto ThrowIfFailed(HRESULT hr) -> void;
     auto ThrowIfFailed(HRESULT hr, IGpuDevice* gpuDevice) -> void;
 
+    MKT_NODISCARD auto GetResultLabel( HRESULT value ) -> eastl::string;
+
     MKT_NODISCARD auto GetQueueType( rhi::QueueType type ) -> D3D12_COMMAND_LIST_TYPE;
 
     MKT_NODISCARD auto GetShaderVisibility( rhi::ShaderStage stage ) -> D3D12_SHADER_VISIBILITY;

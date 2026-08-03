@@ -43,9 +43,13 @@ namespace mikoto::renderer::d3d12 {
     public:
         explicit Fence( u64 initialValue );
 
-        MKT_NODISCARD auto GetCompletionValue() const -> u64 override;
+        auto WaitForFenceValue( u64 fenceValue ) -> void;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
+
+        MKT_NODISCARD auto IsCompleted( u64 fenceValue ) const -> bool;
+
+        MKT_NODISCARD auto GetCompletionValue() const -> u64 override;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;

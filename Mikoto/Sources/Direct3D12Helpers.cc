@@ -29,7 +29,7 @@
 namespace mikoto::renderer::d3d12 {
     auto ThrowIfFailed( HRESULT hr ) -> void {
         if (FAILED(hr)) {
-            MKT_THROW_RUNTIME_ERROR( "D3D12 Error" ); // TODO: improved errors
+            MKT_THROW_RUNTIME_ERROR( string::Format( "D3D12 Error: {}", GetResultLabel( hr ) ) );
         }
     }
 
@@ -37,7 +37,40 @@ namespace mikoto::renderer::d3d12 {
         if (FAILED(hr)) {
             Device* d3d12Device{ checked_cast<Device*>( gpuDevice ) };
             d3d12Device->DumpMessages();
-            MKT_THROW_RUNTIME_ERROR( "D3D12 Error" );
+            MKT_THROW_RUNTIME_ERROR( string::Format( "D3D12 Error: {}", GetResultLabel( hr ) ) );
+        }
+    }
+
+    auto GetResultLabel( HRESULT value ) -> eastl::string {
+        switch (value) {
+            case S_OK:                           return "S_OK: Operation succeeded";
+            case E_NOTIMPL:                      return "E_NOTIMPL: Not implemented";
+            case E_NOINTERFACE:                  return "E_NOINTERFACE: Interface not supported";
+            case E_POINTER:                      return "E_POINTER: Invalid pointer address";
+            case E_ABORT:                        return "E_ABORT: Operation aborted";
+            case E_FAIL:                         return "E_FAIL: Unspecified failure";
+            case E_INVALIDARG:                   return "E_INVALIDARG: One or more arguments are invalid";
+            case E_OUTOFMEMORY:                  return "E_OUTOFMEMORY: Failed to allocate necessary memory";
+
+            case D3D12_ERROR_ADAPTER_NOT_FOUND:  return "D3D12_ERROR_ADAPTER_NOT_FOUND: The specified data adapter could not be found";
+
+            case DXGI_ERROR_INVALID_CALL:        return "DXGI_ERROR_INVALID_CALL: The application made an invalid call sequence";
+            case DXGI_ERROR_WAS_STILL_DRAWING:   return "DXGI_ERROR_WAS_STILL_DRAWING: The previous GPU operation is still processing";
+            case DXGI_ERROR_UNSUPPORTED:         return "DXGI_ERROR_UNSUPPORTED: The requested feature or format is not supported";
+            case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE: return "DXGI_ERROR_NOT_CURRENTLY_AVAILABLE: The resource or target is temporarily unavailable";
+            case DXGI_ERROR_MORE_DATA:           return "DXGI_ERROR_MORE_DATA: The buffer is too small to hold the requested data";
+
+            case DXGI_ERROR_DEVICE_REMOVED:      return "DXGI_ERROR_DEVICE_REMOVED: The video card has been physically removed or a driver upgrade occurred";
+            case DXGI_ERROR_DEVICE_HUNG:         return "DXGI_ERROR_DEVICE_HUNG: The GPU failed due to badly formed commands (Infinite loop / Timeout)";
+            case DXGI_ERROR_DEVICE_RESET:        return "DXGI_ERROR_DEVICE_RESET: The hardware device was reset because of a poor command order";
+            case DXGI_ERROR_DRIVER_INTERNAL_ERROR: return "DXGI_ERROR_DRIVER_INTERNAL_ERROR: The driver encountered an unexpected internal breakdown";
+
+            case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE: return "DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE: Video present source is currently locked";
+            case DXGI_ERROR_NOT_FOUND:           return "DXGI_ERROR_NOT_FOUND: The requested item or output window could not be found";
+            case DXGI_ERROR_REMOTE_OUTOFMEMORY:  return "DXGI_ERROR_REMOTE_OUTOFMEMORY: The remote terminal encountered an out of memory state";
+            case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED: return "DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED: Remote rendering client terminated the connection";
+
+            default: return string::Format("UNKNOWN_HRESULT: Code 0x{:08X}", as<UINT>(value));
         }
     }
 

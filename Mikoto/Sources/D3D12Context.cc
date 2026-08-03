@@ -325,15 +325,11 @@ namespace mikoto::renderer::d3d12 {
         Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
 
         ID3D12Fence* fence{ *pFence };
-        HANDLE fenceEvent{ *pFence };
-
         ID3D12CommandQueue* commandQueue{ *queue };
+
         ThrowIfFailed(commandQueue->Signal(fence, ++mFenceValue));
 
-        if (fence->GetCompletedValue() < mFenceValue) {
-            ThrowIfFailed(fence->SetEventOnCompletion(mFenceValue, fenceEvent));
-            ::WaitForSingleObject(fenceEvent, INFINITE);
-        }
+        pFence->WaitForFenceValue( mFenceValue );
     }
 
     auto Context::PrepareFrame() -> void {

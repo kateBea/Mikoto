@@ -60,6 +60,14 @@ namespace mikoto::renderer::d3d12 {
         return IFence::GetNativeHandle( type );
     }
 
+    Fence::operator HANDLE() const {
+        return mFenceEvent;
+    }
+
+    Fence::operator ID3D12Fence*() const {
+        return mFence.Get();
+    }
+
     Fence::~Fence() {
         if (mIsAllocated) {
             Release();
@@ -71,6 +79,9 @@ namespace mikoto::renderer::d3d12 {
         ThrowIfFailed(device->GetDevice()->CreateFence(
             mFenceValue, D3D12_FENCE_FLAG_NONE,
             IID_PPV_ARGS(&mFence)));
+
+        mFenceEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+        MKT_ASSERT( mFenceEvent, "Failed to create fence event." );
 
         mIsAllocated = true;
     }
@@ -917,6 +928,10 @@ namespace mikoto::renderer::d3d12 {
 
     auto CommandList::GetNativeHandle( ObjectType type ) const -> Object{
         return ICommandList::GetNativeHandle( type );
+    }
+
+    CommandList::operator ID3D12GraphicsCommandList*() const {
+        return mCommandList.Get();
     }
 
     CommandList::~CommandList() {

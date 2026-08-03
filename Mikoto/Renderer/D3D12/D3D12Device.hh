@@ -50,6 +50,9 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
+        MKT_NODISCARD operator HANDLE() const;
+        MKT_NODISCARD operator ID3D12Fence*() const;
+
         ~Fence() override;
 
     private:
@@ -386,6 +389,8 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
+
+        MKT_NODISCARD operator ID3D12GraphicsCommandList*() const;
 
         ~CommandList() override;
 

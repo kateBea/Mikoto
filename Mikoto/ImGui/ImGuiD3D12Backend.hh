@@ -71,7 +71,7 @@ namespace mikoto::gui {
         auto InitImages() -> void;
         auto InitImGuiForD3D12() -> void;
 
-        auto RecordCommands( CommandListHandle cmdList  ) -> void;
+        auto RecordCommands() -> void;
 
     private:
         D3D12_RESOURCE_DESC mDimensions{};
@@ -83,6 +83,7 @@ namespace mikoto::gui {
 
         // Made inline static so the lambda does not require explicit capture
         // Lambdas deduce to function pointer only if capture list is empty
+        // I will have for now ImGui its own SRV descriptor heap and have it manage it
         inline static ExampleDescriptorHeapAllocator mSrvDescHeapAlloc{};
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mSrvDescHeap{};
 

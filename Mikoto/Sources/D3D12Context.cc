@@ -14,8 +14,15 @@
 
 #include <ranges>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Core/Exception.hh>
 #include <Core/Platform.hh>
+
+#include <Filesystem/File.hh>
+#include <Filesystem/Path.hh>
+#include <Filesystem/FileService.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
@@ -234,18 +241,99 @@ namespace mikoto::renderer::d3d12 {
             InitializeSwapchain();
         }
 
+        InitSwapchainRender();
         InitializeShaderCompiler();
 
         return true;
     }
 
     auto Context::Shutdown() -> void {
+
+        mFence.Reset();
+
+        mPipeline.Reset();
+        mPipelineLayoutHandle.Reset();
+        mBindingLayoutHandle.Reset();
+
+        mBindlessLayout.Reset();
+        mDescriptorTable.Reset();
+
+        mVertexShader.Reset();
+        mPixelShader.Reset();
+
+        mSamplerState.Reset();
+
+        mBindingSetHandle.Reset();
+
+        mCommandList.Reset();
+
+        mPresentTarget.Reset();
+        mSwapChain.Reset();
+
         mShaderCompiler->Shutdown();
         mShaderCompiler.reset();
     }
 
     auto Context::SubmitFrame() -> void {
+        Device* device{ checked_cast<Device*>( mDevice.get() ) };
+        Queue* queue{ device->GetQueue( QueueType::eGraphics ) };
 
+        // https://community.khronos.org/t/is-it-recommended-to-use-vkcmdcopyimage-to-copy-to-the-swapchain-image-instead-of-a-shader/112122
+        if (!mPresentTarget.IsEmpty() && !mSwapChain.IsEmpty()) {
+            // Blit via full quad render
+            TextureHandle colorImage{ mSwapChain->GetCurrentBackBufferImage() };
+            mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
+            mCommandList->SetResourceState( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
+
+            if (mTableUpdateRequired) {
+                (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( 0, mPresentTarget.GetRaw() ) );
+                mTableUpdateRequired = false;
+            }
+
+            auto graphicsState{ GraphicsState{}
+                .SetRenderArea( Rect{ as<i32>(mSwapChain->GetWidth()), as<i32>(mSwapChain->GetHeight()) } )
+                .AddRenderTarget( colorImage, Color{ .0f } ) };
+
+            mCommandList->BeginRendering( graphicsState );
+
+            mCommandList->BindPipeline( mPipeline.GetRaw() );
+            mCommandList->BindPipelineResources( BindResourcesDescription{}
+                .AddResourceSet( 0, mBindingSetHandle.GetRaw() )
+                .AddResourceSet( 1, mDescriptorTable.GetRaw() )
+                .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
+                .SetBindPoint( PipelineType::eGraphics ));
+
+            mCommandList->SetViewportState( ViewportState{}
+                .AddViewportAndScissorRect( Viewport( as<f32>( mSwapChain->GetWidth() ), as<f32>( mSwapChain->GetHeight() ) ) ) );
+
+            constexpr auto drawArguments{ DrawArguments{}
+                .SetVertexCount( 3 ) };
+            mCommandList->Draw( drawArguments );
+
+            mCommandList->EndRendering();
+
+            mCommandList->SetResourceState( colorImage.GetRaw(), ResourceStates::ePresent );
+
+            mCommandList->End();
+
+            device->SubmitCommands( mCommandList );
+        }
+
+        // SINGLE submission point
+        device->ExecutePendingCommands();
+
+        Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
+
+        ID3D12Fence* fence{ *pFence };
+        HANDLE fenceEvent{ *pFence };
+
+        ID3D12CommandQueue* commandQueue{ *queue };
+        ThrowIfFailed(commandQueue->Signal(fence, ++mFenceValue));
+
+        if (fence->GetCompletedValue() < mFenceValue) {
+            ThrowIfFailed(fence->SetEventOnCompletion(mFenceValue, fenceEvent));
+            ::WaitForSingleObject(fenceEvent, INFINITE);
+        }
     }
 
     auto Context::PrepareFrame() -> void {
@@ -257,15 +345,19 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Context::Present() -> void {
-
+        mSwapChain->Present();
     }
 
     auto Context::SetPresentTarget( TextureHandle texture ) -> void {
-        mPresentTarget = texture;
+        if (texture.GetRaw() != mPresentTarget.GetRaw()) {
+            mPresentTarget = texture;
+            mTableUpdateRequired = true;
+        }
     }
 
     auto Context::SetRefreshRate( RefreshRate rate ) -> void {
         mRefreshRate = rate;
+        mSwapChain->SetRefreshRate( mRefreshRate );
     }
 
     auto Context::GetSwapChain() const -> SwapChainHandle {
@@ -301,6 +393,66 @@ namespace mikoto::renderer::d3d12 {
         if (!mSwapChain.IsEmpty()) {
             mSwapChain->SetRefreshRate( mRefreshRate );
         }
+    }
+
+    auto Context::InitSwapchainRender() -> void {
+        mFence = mDevice->CreateFence( mFenceValue );
+
+         // Create shaders
+        auto vertexShaderDescription{ ShaderModuleCreateDescription{}
+            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Vert.slang" ) )
+            .SetStage( ShaderType::eVertex ) };
+        mVertexShader = mDevice->CreateShader( vertexShaderDescription );
+
+        auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
+            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Frag.slang" ) )
+            .SetStage( ShaderType::ePixel ) };
+        mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
+
+        auto layoutDesc{ BindingLayoutDescription{}
+            .SetRegisterSpace( 0 )
+            .SetShaderVisibility(ShaderFlagsBits::kAll)
+            .AddItem(BindingLayoutItem::Sampler(0))};
+        mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
+
+        auto bindlessLayout{ BindlessLayoutDescription{}
+            .SetVisibility(ShaderFlagsBits::kAll)
+            .SetRegisterSpace( 1 )
+            .AddBindlessItem(BindlessLayoutItem::Texture_SRV(0, 1)) }; // I just need one image slot I can update
+        mBindlessLayout = mDevice->CreateBindlessLayout( bindlessLayout );
+
+        mPipelineLayoutHandle = mDevice->CreatePipelineLayout( PipelineLayoutCreateDescription{}
+            .AddBindingLayout( mBindingLayoutHandle )
+            .AddBindingLayout( mBindlessLayout ));
+
+        auto graphicsPipelineDescription{ GraphicsPipelineDescription{}
+            .AddShader( mPixelShader )
+            .AddShader( mVertexShader )
+
+            .AddColorFormat( Format::eBGRA8_UNORM )
+
+            .SetPolygonMode( PolygonMode::eFill )
+            .SetCullMode( CullMode::eCullBack )
+            .SetWindingOrder( WindingOrder::eCounterClockwise )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .SetPipelineLayout( mPipelineLayoutHandle ) };
+
+        mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
+
+        // Sampler
+        auto samplerDes{ SamplerCreateDescription{}
+            .SetFilter( rhi::SamplerFilter::eLinear )
+            .SetWrap( SamplerWrapMode::eClampToBorder )
+            .SetBorderColor( kColorWhite ) };
+        mSamplerState = mDevice->CreateSampler( samplerDes );
+
+        // Bindless set
+        mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
+
+        // Non-bindless set
+        auto bindingSetDesc{ BindingSetDescription{}
+            .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
+        mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
     }
 
     auto Context::InitializeShaderCompiler() -> void {

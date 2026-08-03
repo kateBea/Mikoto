@@ -157,7 +157,7 @@ namespace mikoto::gui {
         mCommandList->Begin( { .mScopeName = "ImGui Render" } );
         mCommandList->SetResourceState( mColorImage.GetRaw(), ResourceStates::eRenderTarget );
 
-        RecordCommands( mCommandList );
+        RecordCommands();
 
         mCommandList->End();
         mDevice->SubmitCommands( mCommandList );
@@ -266,9 +266,25 @@ namespace mikoto::gui {
         }
     }
 
-    auto ImGuiD3D12Backend::RecordCommands( CommandListHandle cmdList ) -> void {
+    auto ImGuiD3D12Backend::RecordCommands() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        d3d12::CommandList* cmd{ checked_cast<d3d12::CommandList*>( mCommandList.GetRaw() ) };
+        ID3D12GraphicsCommandList* d3d12CmdList{ *cmd };
+
+        auto graphicsState{ GraphicsState{}
+            .SetRenderArea( Rect{ 1920, 1080 } )
+            .AddDepthTarget( mDepthImage )
+            .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
+
+        mCommandList->BeginRendering( graphicsState );
+        mCommandList->SetClearColor( mColorImage, mClearColor );
+
+        d3d12CmdList->SetDescriptorHeaps(1, &mSrvDescHeap);
+
+        ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), d3d12CmdList);
+
+        mCommandList->EndRendering();
     }
 }// namespace mikoto::gui
 

@@ -135,10 +135,15 @@ namespace mikoto::renderer::d3d12 {
     private:
         // [Internal usage]
         auto InitializeSwapchain() -> void;
+        auto InitSwapchainRender() -> void;
         auto InitializeShaderCompiler() -> void;
 
     private:
-        TextureHandle mPresentTarget{};
+        u64 mFenceValue{};
+        rhi::FenceHandle mFence{};
+
+        rhi::CommandListHandle mCommandList{};
+        rhi::TextureHandle mPresentTarget{};
 
         SwapChainHandle mSwapChain{};
         Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory{};
@@ -146,6 +151,19 @@ namespace mikoto::renderer::d3d12 {
         static constexpr UINT kBackBufferCount{ 2 };
 
         eastl::unique_ptr<ShaderCompiler> mShaderCompiler{};
+
+        // Swapchain blit objects
+        bool mTableUpdateRequired{};
+
+        rhi::SamplerHandle mSamplerState{};
+        rhi::ShaderModuleHandle mVertexShader{};
+        rhi::ShaderModuleHandle mPixelShader{};
+        rhi::PipelineHandle mPipeline{};
+        rhi::BindingSetHandle mBindingSetHandle{};
+        rhi::BindingLayoutHandle mBindlessLayout{};
+        rhi::DescriptorTableHandle mDescriptorTable{};
+        rhi::BindingLayoutHandle mBindingLayoutHandle{};
+        rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
 
 #if !defined(NDEBUG)
         Microsoft::WRL::ComPtr<IDXGIDebug1> mDxGIDebug{};

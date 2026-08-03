@@ -50,6 +50,8 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetWidth() const -> u32;
         MKT_NODISCARD auto GetHeight() const -> u32;
 
+        MKT_NODISCARD auto GetCurrentBackBufferImage() const -> TextureHandle;
+
         MKT_NODISCARD auto GetFormat() const -> Format;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
@@ -74,10 +76,13 @@ namespace mikoto::renderer::d3d12 {
         rhi::Format mFormat{ Format::eBGRA8_UNORM };
         RefreshRate mRefreshRate{ RefreshRate::eUnlimited };
 
+        // TODO: remove these, descriptor heaps are managed by the device
+        // the backbuffer resources will be part of the Texture class
         UINT mRtvDescriptorSize{};
-        UINT mCurrentBufferIndex{};
         eastl::vector<ID3D12Resource*> mRenderTargetsViews{};
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRenderTargetViewHeap{};
+
+        eastl::vector<TextureHandle> mBackBufferImages{};
 
         D3D12_RECT mSurfaceSize{};
         D3D12_VIEWPORT mViewportDescription{};

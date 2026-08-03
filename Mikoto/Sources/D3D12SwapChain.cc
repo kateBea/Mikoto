@@ -39,7 +39,18 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto SwapChain::Present() -> void {
+        // https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgiswapchain-present
+        // 0 - The presentation occurs immediately, there is no synchronization.
+        // 1 through 4 - Synchronize presentation after the nth vertical blank.
 
+        switch (mRefreshRate) {
+            case RefreshRate::eSync:
+                ThrowIfFailed( mSwapChain->Present(1, 0) );
+                break;
+            case RefreshRate::eUnlimited:
+                ThrowIfFailed( mSwapChain->Present(0, 0) );
+                break;
+        }
     }
 
     auto SwapChain::OnResize( u32 width, u32 height ) -> void {
@@ -61,6 +72,10 @@ namespace mikoto::renderer::d3d12 {
 
     auto SwapChain::GetHeight() const -> u32 {
         return mHeight;
+    }
+
+    auto SwapChain::GetCurrentBackBufferImage() const -> TextureHandle {
+        return mBackBufferImages[mSwapChain->GetCurrentBackBufferIndex()];
     }
 
     auto SwapChain::GetFormat() const -> Format {
@@ -149,8 +164,6 @@ namespace mikoto::renderer::d3d12 {
         ThrowIfFailed(ctx->GetDxGIFactory()->MakeWindowAssociation(win32Handle, DXGI_MWA_NO_ALT_ENTER));
         ThrowIfFailed(swapChain1.As(&mSwapChain));
 
-        mCurrentBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
-
         // Describe and create a render target view (RTV) descriptor heap.
         // It allocates memory on the GPU to hold a list of descriptors (views).
         D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
@@ -167,6 +180,7 @@ namespace mikoto::renderer::d3d12 {
         // Handle to beginning of render target descriptors
         D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle{ mRenderTargetViewHeap->GetCPUDescriptorHandleForHeapStart() };
 
+        // TODO: Move these ID3D12Resources to the Texture class
         // Create an RTV for each frame.
         // Pull the raw texture resource handles out of the DXGI swapchain and save them
         // into mRenderTargetsViews array, create the actual view, link the raw texture

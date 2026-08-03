@@ -102,15 +102,14 @@ namespace mikoto::renderer::vulkan {
         // Swapchain blit objects
         renderer::rhi::SamplerHandle mSamplerState{};
 
-        renderer::rhi::ShaderModuleHandle mVertexShader{};
-        renderer::rhi::ShaderModuleHandle mPixelShader{};
-
-        renderer::rhi::PipelineHandle mPipeline{};
-        renderer::rhi::BindingSetHandle mBindingSetHandle{};
-        renderer::rhi::BindingLayoutHandle mBindlessLayout{};
-        renderer::rhi::DescriptorTableHandle mDescriptorTable{};
-        renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};
-        renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
+        rhi::ShaderModuleHandle mVertexShader{};
+        rhi::ShaderModuleHandle mPixelShader{};
+        rhi::PipelineHandle mPipeline{};
+        rhi::BindingSetHandle mBindingSetHandle{};
+        rhi::BindingLayoutHandle mBindlessLayout{};
+        rhi::DescriptorTableHandle mDescriptorTable{};
+        rhi::BindingLayoutHandle mBindingLayoutHandle{};
+        rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
     };
 }// namespace mikoto::renderer::vulkan
 

@@ -34,6 +34,7 @@
 #include <wrl.h>
 #include <dxgidebug.h>
 
+// https://xeechou.net/posts/vulkan-vs-d3d12/
 // https://learn.microsoft.com/en-us/windows/win32/direct3d12/direct3d-12-graphics
 
 namespace mikoto::renderer::d3d11 {

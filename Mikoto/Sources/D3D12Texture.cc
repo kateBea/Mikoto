@@ -178,6 +178,14 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
+    Texture::operator D3D12_GPU_DESCRIPTOR_HANDLE() const {
+        return mGpuDescriptorHandle;
+    }
+
+    Texture::operator D3D12_CPU_DESCRIPTOR_HANDLE() const {
+        return mCpuDescriptorHandle;
+    }
+
     auto Texture::Release() -> void {
         mIsAllocated = false;
     }

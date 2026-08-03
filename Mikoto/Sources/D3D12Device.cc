@@ -586,7 +586,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::SetResourceState( ITexture *buffer, ResourceStates stateBits ) -> void {
-        
+
     }
 
     auto CommandList::SetBarrier( const BufferBarrierDescription &barrier ) -> void {
@@ -992,6 +992,8 @@ namespace mikoto::renderer::d3d12 {
         }
 
         set->Initialize( this );
+
+        return set;
     }
 
     auto Device::CreateFence( u64 fenceInitialValue ) -> FenceHandle {

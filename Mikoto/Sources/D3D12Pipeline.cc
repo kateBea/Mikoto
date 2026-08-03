@@ -195,6 +195,21 @@ namespace mikoto::renderer::d3d12 {
     ComputePipeline::ComputePipeline( const rhi::ComputePipelineDescription &info )
         : IComputePipeline{ info }
     {
+        // Resources
+        PipelineLayout* pipelineLayout{ checked_cast<PipelineLayout*>( mDesc.mPipelineLayout.GetRaw() ) };
+        ID3D12RootSignature* rootSignature{ *pipelineLayout };
+        mD3D12PipelineDesc.pRootSignature = rootSignature;
+
+        // Compute shader
+        Shader* shader{ checked_cast<Shader*>( mDesc.mStage.GetRaw() ) };
+
+        D3D12_SHADER_BYTECODE csBytecode{};
+        csBytecode.pShaderBytecode = shader->GetContents();
+        csBytecode.BytecodeLength = shader->GetContentsByteSize();
+        mD3D12PipelineDesc.CS = csBytecode;
+
+        mD3D12PipelineDesc.NodeMask = 0;
+        mD3D12PipelineDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
     }
 
     auto ComputePipeline::GetNativeHandle( rhi::ObjectType type ) -> rhi::Object {
@@ -206,7 +221,12 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto ComputePipeline::SetDebugName( eastl::string_view name ) -> void {
-        IComputePipeline::SetDebugName( name );
+        if (name.empty()) {
+            return;
+        }
+
+        mDebugName = name;
+        mPipelineState->SetName( string::ToWide( mDebugName ).c_str() );
     }
 
     ComputePipeline::~ComputePipeline() {
@@ -216,6 +236,13 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto ComputePipeline::Initialize() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        ID3D12Device2* d3d12Device{ device->GetDevice() };
+
+        ThrowIfFailed(d3d12Device->CreateComputePipelineState(
+            &mD3D12PipelineDesc,
+            IID_PPV_ARGS(&mPipelineState)));
+
         mIsAllocated = true;
     }
 

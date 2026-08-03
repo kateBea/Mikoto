@@ -55,6 +55,8 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
         MKT_NODISCARD operator ID3D12DescriptorHeap*() const;
+        MKT_NODISCARD operator D3D12_GPU_DESCRIPTOR_HANDLE() const;
+        MKT_NODISCARD operator D3D12_CPU_DESCRIPTOR_HANDLE() const;
 
         ~Texture() override;
 
@@ -72,6 +74,10 @@ namespace mikoto::renderer::d3d12 {
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRtvDescriptorHeap{};
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvDescriptorHeap{};
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap{};
+
+        // TODO: rethink
+        D3D12_GPU_DESCRIPTOR_HANDLE mGpuDescriptorHandle{};
+        D3D12_CPU_DESCRIPTOR_HANDLE mCpuDescriptorHandle{};
     };
 
 }// namespace mikoto::renderer::d3d12

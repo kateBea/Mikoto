@@ -1610,15 +1610,12 @@ namespace mikoto::renderer::rhi {
     public:
         ~IPipeline() override = default;
 
-        MKT_NODISCARD auto GetPipelineType() const -> PipelineType {
-            return mPipelineType;
-        }
+        MKT_NODISCARD auto GetPipelineType() const -> PipelineType;
 
         MKT_NODISCARD virtual auto GetPipelineLayout() const -> PipelineLayoutHandle = 0;
 
     protected:
-        explicit IPipeline(const PipelineType pipelineType)
-            : mPipelineType{ pipelineType } {}
+        explicit IPipeline(const PipelineType pipelineType);
 
     protected:
         const PipelineType mPipelineType{ PipelineType::eInvalid };
@@ -1706,8 +1703,7 @@ namespace mikoto::renderer::rhi {
 
     class IComputePipeline : public IPipeline {
     public:
-        explicit IComputePipeline(const ComputePipelineDescription& desc)
-            : IPipeline{ PipelineType::eCompute }, mDesc{ desc } {}
+        explicit IComputePipeline(const ComputePipelineDescription& desc);
 
         MKT_NODISCARD auto GetDescription() const noexcept -> const ComputePipelineDescription&;
 

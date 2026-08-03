@@ -27,6 +27,8 @@
 
 #include <Memory/Allocator.hh>
 
+// https://github.com/electronicarts/EASTL/blob/master/doc/FAQ.md
+
 void* operator new[](size_t size, const char*, int, unsigned, const char*, int) {
     return std::malloc(size);
 }

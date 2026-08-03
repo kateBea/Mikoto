@@ -32,6 +32,7 @@
 
 namespace mikoto::renderer::d3d12 {
 
+    // https://learn.microsoft.com/en-us/windows/win32/direct3d12/pipelines-and-shaders-with-directx-12
     class GraphicsPipeline final :  public rhi::IGraphicsPipeline {
     public:
         explicit GraphicsPipeline( const rhi::GraphicsPipelineDescription& info );
@@ -74,6 +75,7 @@ namespace mikoto::renderer::d3d12 {
         auto Release() -> void override;
 
     private:
+        Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState{};
         D3D12_COMPUTE_PIPELINE_STATE_DESC mD3D12PipelineDesc{};
     };
 }

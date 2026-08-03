@@ -534,6 +534,12 @@ namespace mikoto::renderer::rhi {
         return mDesc.mPipelineLayout;
     }
 
+    IComputePipeline::IComputePipeline( const ComputePipelineDescription &desc )
+        : IPipeline{ PipelineType::eCompute }, mDesc{ desc }
+    {
+
+    }
+
     auto IComputePipeline::GetDescription() const noexcept -> const ComputePipelineDescription & {
         return mDesc;
     }
@@ -636,6 +642,14 @@ namespace mikoto::renderer::rhi {
         mBindingLayouts.emplace_back( layout );
         return *this;
     }
+
+    auto IPipeline::GetPipelineType() const -> PipelineType {
+        return mPipelineType;
+    }
+
+    IPipeline::IPipeline( const PipelineType pipelineType )
+        : mPipelineType{ pipelineType } {}
+
 
     auto SamplerCreateDescription::SetMipLevels( float mipLevels ) -> SamplerCreateDescription & {
         mMipLevels = mipLevels;

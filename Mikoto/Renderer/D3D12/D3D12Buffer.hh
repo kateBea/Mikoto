@@ -50,6 +50,8 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetMappedAddress() const -> const void*;
 
         MKT_NODISCARD operator ID3D12DescriptorHeap*() const;
+        MKT_NODISCARD operator D3D12_GPU_DESCRIPTOR_HANDLE() const;
+        MKT_NODISCARD operator D3D12_CPU_DESCRIPTOR_HANDLE() const;
 
         ~Buffer() override;
 
@@ -62,7 +64,11 @@ namespace mikoto::renderer::d3d12 {
         BufferAllocation mAllocation{};
         bool mKeepInitializerResources{ false };
 
+        // TODO: Rethink, move to binding set or descriptor table
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDescriptorHeap{};
+
+        D3D12_GPU_DESCRIPTOR_HANDLE mGpuDescriptorHandle{};
+        D3D12_CPU_DESCRIPTOR_HANDLE mCpuDescriptorHandle{};
     };
 }
 

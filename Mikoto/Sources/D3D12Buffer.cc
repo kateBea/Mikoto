@@ -75,6 +75,10 @@ namespace mikoto::renderer::d3d12 {
         return mMappedAddress;
     }
 
+    Buffer::operator ID3D12Resource*() const {
+        return mAllocation.mResource.Get();
+    }
+
     Buffer::~Buffer() {
         if (mIsAllocated) {
             Release();

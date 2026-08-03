@@ -175,6 +175,7 @@ namespace mikoto::renderer::d3d11 {
 
         auto BindIndexBuffer( IBuffer* buffer ) -> void override;
         auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void override;
+        auto BindVertexBuffer( eastl::span<const VertexBufferBinding> binding ) -> void override;
 
         auto BindPipelineResources( const BindResourcesDescription& desc ) -> void override;
 

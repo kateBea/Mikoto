@@ -609,6 +609,7 @@ namespace mikoto::renderer::rhi {
     static inline constexpr u32 kMaxRenderTargets{ 8 };
     static inline constexpr u32 kMaxVertexAttributes{ 16 };
     static inline constexpr u32 kMaxVertexBindings{ 16 };
+    static inline constexpr u32 kMaxVertexBuffers{ 8 };
     static inline constexpr u32 kMaxBindingLayouts{ 8 };
     static inline constexpr u32 kMaxBarriers{ 25 };
     static inline constexpr u32 kMaxBindlessRegisterSpaces{ 16 };
@@ -1854,6 +1855,7 @@ namespace mikoto::renderer::rhi {
         virtual auto BindIndexBuffer( IBuffer* buffer ) -> void = 0;
         virtual auto BindIndirectBuffer( IBuffer* buffer ) -> void = 0;
         virtual auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void = 0;
+        virtual auto BindVertexBuffer( eastl::span<const VertexBufferBinding> binding ) -> void = 0;
 
         virtual auto BindPipelineResources( const BindResourcesDescription& desc ) -> void = 0;
 

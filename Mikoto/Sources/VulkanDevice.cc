@@ -1585,6 +1585,10 @@ namespace mikoto::renderer::vulkan {
         vkCmdBindVertexBuffers( ctx->mCommandBuffer, binding.mSlot, 1, vertexBuffers.data(), offsets.data() );
     }
 
+    auto CommandList::BindVertexBuffer( eastl::span<const VertexBufferBinding> binding ) -> void {
+
+    }
+
     auto CommandList::BindPipelineResources( const BindResourcesDescription& desc ) -> void {
         VkPipelineBindPoint bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM  };
         switch ( desc.mBindPoint ) {

@@ -177,6 +177,10 @@ namespace mikoto::renderer::d3d12 {
         }
     }
 
+    GraphicsPipeline::operator ID3D12PipelineState*() const {
+        return mPipelineState.Get();
+    }
+
     auto GraphicsPipeline::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device2* d3d12Device{ device->GetDevice() };
@@ -227,6 +231,10 @@ namespace mikoto::renderer::d3d12 {
 
         mDebugName = name;
         mPipelineState->SetName( string::ToWide( mDebugName ).c_str() );
+    }
+
+    ComputePipeline::operator ID3D12PipelineState*() const {
+        return mPipelineState.Get();
     }
 
     ComputePipeline::~ComputePipeline() {

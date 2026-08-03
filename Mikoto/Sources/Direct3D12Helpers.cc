@@ -249,6 +249,39 @@ namespace mikoto::renderer::d3d12 {
         return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
     }
 
+    auto GetResourceState( rhi::ResourceStates state ) -> D3D12_RESOURCE_STATES {
+        switch (state) {
+            case rhi::ResourceStates::eCommon:                return D3D12_RESOURCE_STATE_COMMON;
+
+            case rhi::ResourceStates::eConstantBuffer:
+            case rhi::ResourceStates::eVertexBuffer:          return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+
+            case rhi::ResourceStates::eIndexBuffer:           return D3D12_RESOURCE_STATE_INDEX_BUFFER;
+            case rhi::ResourceStates::eIndirectArgument:      return D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+            case rhi::ResourceStates::eShaderResource:        return D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
+            case rhi::ResourceStates::eUnorderedAccess:       return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+            case rhi::ResourceStates::eRenderTarget:          return D3D12_RESOURCE_STATE_RENDER_TARGET;
+            case rhi::ResourceStates::eDepthWrite:            return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+            case rhi::ResourceStates::eDepthRead:             return D3D12_RESOURCE_STATE_DEPTH_READ;
+            case rhi::ResourceStates::eCopyDest:              return D3D12_RESOURCE_STATE_COPY_DEST;
+            case rhi::ResourceStates::eCopySource:            return D3D12_RESOURCE_STATE_COPY_SOURCE;
+            case rhi::ResourceStates::eResolveDest:           return D3D12_RESOURCE_STATE_RESOLVE_DEST;
+            case rhi::ResourceStates::eResolveSource:         return D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+            case rhi::ResourceStates::ePresent:               return D3D12_RESOURCE_STATE_PRESENT;
+
+            case rhi::ResourceStates::eAccelStructRead:       return D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+            case rhi::ResourceStates::eAccelStructWrite:      return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+            case rhi::ResourceStates::eAccelStructBuildInput: return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            case rhi::ResourceStates::eAccelStructBuildBlas:  return D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+
+            case rhi::ResourceStates::eUnknown:
+            default:
+                MKT_ASSERT( false, "Not valid or trackable resource state" );
+                return D3D12_RESOURCE_STATE_COMMON;
+        }
+    }
+
+
     auto GetHeapType( rhi::HeapType type ) -> D3D12_HEAP_TYPE {
         switch (type) {
             case HeapType::eDeviceLocal: return D3D12_HEAP_TYPE_DEFAULT;

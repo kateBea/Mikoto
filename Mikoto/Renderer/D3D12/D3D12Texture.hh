@@ -58,6 +58,10 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetNativeHandle( ObjectType ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
+        MKT_NODISCARD operator ID3D12Resource*() const;
+
+        MKT_NODISCARD auto GetRtvDescriptorIndex() const -> DescriptorIndex;
+
         ~Texture() override;
 
     private:
@@ -74,7 +78,7 @@ namespace mikoto::renderer::d3d12 {
         DeviceResources* mResources{};
 
         DescriptorIndex mSrvDescriptorIndex{};
-        DescriptorIndex mRrvDescriptorIndex{};
+        DescriptorIndex mRtvDescriptorIndex{};
         DescriptorIndex mDrvDescriptorIndex{};
     };
 

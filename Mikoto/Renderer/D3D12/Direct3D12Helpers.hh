@@ -46,6 +46,8 @@ namespace mikoto::renderer::d3d12 {
     MKT_NODISCARD auto GetDepthCompareOp( rhi::DepthCompareOp op ) -> D3D12_COMPARISON_FUNC;
     MKT_NODISCARD auto GetTopologyType( rhi::PrimitiveTopology type ) -> D3D12_PRIMITIVE_TOPOLOGY_TYPE;
 
+    MKT_NODISCARD auto GetResourceState( rhi::ResourceStates type ) -> D3D12_RESOURCE_STATES;
+
     MKT_NODISCARD auto GetHeapType( rhi::HeapType type ) -> D3D12_HEAP_TYPE;
     MKT_NODISCARD auto GetDescriptorHeapType( rhi::ResourceType type ) -> D3D12_DESCRIPTOR_HEAP_TYPE;
     MKT_NODISCARD auto GetDescriptorRangeType( rhi::ResourceType type ) -> D3D12_DESCRIPTOR_RANGE_TYPE;

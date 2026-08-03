@@ -91,6 +91,14 @@ namespace mikoto::renderer::d3d12 {
         return ITexture::GetNativeHandle( object );
     }
 
+    auto Texture::GetRtvDescriptorIndex() const -> DescriptorIndex {
+        return mRtvDescriptorIndex;
+    }
+
+    Texture::operator ID3D12Resource*() const {
+        return mImageAllocation.mResource.Get();
+    }
+
     Texture::~Texture() {
         if (mIsAllocated) {
             Release();

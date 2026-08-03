@@ -52,6 +52,8 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetMappedAddress() -> void*;
         MKT_NODISCARD auto GetMappedAddress() const -> const void*;
 
+        MKT_NODISCARD operator ID3D12Resource*() const;
+
         ~Buffer() override;
 
     private:

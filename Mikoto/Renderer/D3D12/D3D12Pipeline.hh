@@ -42,6 +42,8 @@ namespace mikoto::renderer::d3d12 {
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
+        MKT_NODISCARD operator ID3D12PipelineState*() const;
+
         ~GraphicsPipeline() override;
 
     public:
@@ -64,6 +66,8 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
+
+        MKT_NODISCARD operator ID3D12PipelineState*() const;
 
         ~ComputePipeline() override;
 

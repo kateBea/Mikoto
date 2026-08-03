@@ -519,6 +519,10 @@ namespace mikoto::renderer::d3d11 {
         );
     }
 
+    auto CommandList::BindVertexBuffer( eastl::span<const VertexBufferBinding> binding ) -> void {
+
+    }
+
     auto CommandList::BindPipelineResources( const BindResourcesDescription& desc ) -> void {
         PipelineLayout* pl{ checked_cast<PipelineLayout*>( desc.mPipelineLayout ) };
 

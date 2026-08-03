@@ -205,8 +205,8 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = false;
     }
 
-    BindingSet::BindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout )
-       : mBindingLayout{ layout }, mBindingDescription{ desc }
+    BindingSet::BindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout, DeviceResources& resources )
+       : mBindingLayout{ layout }, mBindingDescription{ desc }, mDeviceResources{ MKT_ADDRESSOF( resources ) }
     {}
 
     auto BindingSet::SetDebugName( eastl::string_view name ) -> void {
@@ -545,7 +545,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::End() -> void {
-
+        ThrowIfFailed(mCommandList->Close());
     }
 
     auto CommandList::BeginParallel() -> void {
@@ -565,52 +565,153 @@ namespace mikoto::renderer::d3d12 {
         mCommandList->SetName( string::ToWide( mDebugName ).c_str() );
     }
 
-    auto CommandList::PushBarrier( const BufferBarrierDescription &barrier ) -> void {
+    auto CommandList::PushBarrier( const BufferBarrierDescription &barrierDescription ) -> void {
+        Buffer* buffer{ checked_cast<Buffer*>( barrierDescription.mBuffer ) };
+        ID3D12Resource* resource{ *buffer };
 
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = resource;
+        barrier.Transition.StateBefore = d3d12::GetResourceState( barrierDescription.mStateBefore );
+        barrier.Transition.StateAfter = d3d12::GetResourceState( barrierDescription.mStateAfter );
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+        mResourceBarriers.emplace_back( barrier );
     }
 
-    auto CommandList::PushBarrier( const TextureBarrierDescription &barrier ) -> void {
+    auto CommandList::PushBarrier( const TextureBarrierDescription &barrierDescription ) -> void {
+        Texture* texture{ checked_cast<Texture*>( barrierDescription.mTexture ) };
+        ID3D12Resource* resource{ *texture };
 
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = resource;
+        barrier.Transition.StateBefore = d3d12::GetResourceState( barrierDescription.mStateBefore );
+        barrier.Transition.StateAfter = d3d12::GetResourceState( barrierDescription.mStateAfter );
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+        mResourceBarriers.emplace_back( barrier );
     }
 
     auto CommandList::BeginTrackingState( IBuffer *buffer, ResourceStates stateBits ) -> void {
+        Buffer* d3d12Buffer{ checked_cast<Buffer*>( buffer ) };
+        ID3D12Resource* resource{ *d3d12Buffer };
 
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = resource;
+        barrier.Transition.StateBefore = d3d12::GetResourceState( buffer->GetResourceState() );
+        barrier.Transition.StateAfter = d3d12::GetResourceState( stateBits );
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+        mResourceBarriers.emplace_back( barrier );
     }
 
-    auto CommandList::BeginTrackingState( ITexture *buffer, ResourceStates stateBits ) -> void {
+    auto CommandList::BeginTrackingState( ITexture *texture, ResourceStates stateBits ) -> void {
+        Texture* d3d12Texture{ checked_cast<Texture*>( texture ) };
+        ID3D12Resource* resource{ *d3d12Texture };
 
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = resource;
+        barrier.Transition.StateBefore = d3d12::GetResourceState( texture->GetResourceState() );
+        barrier.Transition.StateAfter = d3d12::GetResourceState( stateBits );
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+        mResourceBarriers.emplace_back( barrier );
     }
 
     auto CommandList::SetResourceState( IBuffer *buffer, ResourceStates stateBits ) -> void {
+        Buffer* d3d12Buffer{ checked_cast<Buffer*>( buffer ) };
+        ID3D12Resource* resource{ *d3d12Buffer };
 
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = resource;
+        barrier.Transition.StateBefore = d3d12::GetResourceState( buffer->GetResourceState() );
+        barrier.Transition.StateAfter = d3d12::GetResourceState( stateBits );
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+        mCommandList->ResourceBarrier(1, &barrier);
     }
 
-    auto CommandList::SetResourceState( ITexture *buffer, ResourceStates stateBits ) -> void {
+    auto CommandList::SetResourceState( ITexture *texture, ResourceStates stateBits ) -> void {
+        // CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        //     backBuffer.Get(),
+        //     D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
+        Texture* d3d12Texture{ checked_cast<Texture*>( texture ) };
+        ID3D12Resource* resource{ *d3d12Texture };
+
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = resource;
+        barrier.Transition.StateBefore = d3d12::GetResourceState( texture->GetResourceState() );
+        barrier.Transition.StateAfter = d3d12::GetResourceState( stateBits );
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+        mCommandList->ResourceBarrier(1, &barrier);
     }
 
-    auto CommandList::SetBarrier( const BufferBarrierDescription &barrier ) -> void {
+    auto CommandList::SetBarrier( const BufferBarrierDescription &barrierDescription ) -> void {
+        Buffer* buffer{ checked_cast<Buffer*>( barrierDescription.mBuffer ) };
+        ID3D12Resource* resource{ *buffer };
 
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = resource;
+        barrier.Transition.StateBefore = d3d12::GetResourceState( barrierDescription.mStateBefore );
+        barrier.Transition.StateAfter = d3d12::GetResourceState( barrierDescription.mStateAfter );
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+        mCommandList->ResourceBarrier(1, &barrier);
     }
 
-    auto CommandList::SetBarrier( const TextureBarrierDescription &barrier ) -> void {
+    auto CommandList::SetBarrier( const TextureBarrierDescription &barrierDescription ) -> void {
+        Texture* texture{ checked_cast<Texture*>( barrierDescription.mTexture ) };
+        ID3D12Resource* resource{ *texture };
 
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = resource;
+        barrier.Transition.StateBefore = d3d12::GetResourceState( barrierDescription.mStateBefore );
+        barrier.Transition.StateAfter = d3d12::GetResourceState( barrierDescription.mStateAfter );
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+        mCommandList->ResourceBarrier(1, &barrier);
     }
 
     auto CommandList::CommitBarriers() -> void {
-
+        mCommandList->ResourceBarrier(as<UINT>(mResourceBarriers.size()), mResourceBarriers.data());
     }
 
     auto CommandList::SetEnableAutomaticBarriers( bool enable ) -> void {
-
+        mEnableAutomaticBarriers = enable;
     }
 
     auto CommandList::SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void {
 
     }
 
-    auto CommandList::SetClearColor( TextureHandle renderTargets, Color color ) -> void {
+    auto CommandList::SetClearColor( TextureHandle renderTarget, Color color ) -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        Texture* texture{ checked_cast<Texture*>( renderTarget.GetRaw() ) };
 
+        const DeviceResources* deviceResources{ device->GetHeapResources() };
+        D3D12_CPU_DESCRIPTOR_HANDLE rtvHandler{
+            deviceResources->mRenderTargetViewHeap
+            .GetCpuHandle( texture->GetRtvDescriptorIndex() ) };
+
+        const float clearColor[]{ color.mR, color.mG, color.mB, color.mA };
+        mCommandList->ClearRenderTargetView(rtvHandler, clearColor, 0, nullptr);
     }
 
     auto CommandList::Write( IBuffer *src, ITexture *dest, u32 mipLevel ) -> void {
@@ -658,27 +759,89 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::BindPipeline( IPipeline *pipeline ) -> void {
-
+        switch (pipeline->GetPipelineType()) {
+            case PipelineType::eGraphics:
+                mCommandList->SetPipelineState(*checked_cast<GraphicsPipeline*>( pipeline ));
+                break;
+            case PipelineType::eCompute:
+                mCommandList->SetPipelineState(*checked_cast<ComputePipeline*>( pipeline ));
+                break;
+            default:
+                break;
+        }
     }
 
     auto CommandList::SetViewport( eastl::span<const Viewport> viewports ) -> void {
+        eastl::fixed_vector<D3D12_VIEWPORT, kMaxViewports> d3dViewports{};
+        for ( const auto &viewport: viewports ) {
+            D3D12_VIEWPORT value{
+                .TopLeftX = viewport.mMinX,
+                .TopLeftY = viewport.mMinY,
+                .Width = viewport.GetWidth(),
+                .Height = viewport.GetHeight(),
+                .MinDepth = viewport.mMinZ,
+                .MaxDepth = viewport.mMaxZ
+            };
 
+            d3dViewports.emplace_back( value );
+        }
+
+        mCommandList->RSSetViewports( as<UINT>( d3dViewports.size() ), d3dViewports.data() );
     }
 
-    auto CommandList::SetScissors( eastl::span<const Rect> scissorRects ) -> void {
 
+    auto CommandList::SetScissors( eastl::span<const Rect> scissorRects ) -> void {
+        eastl::fixed_vector<D3D12_RECT, kMaxScissors> scissors{};
+        for (const auto& scissor : scissorRects) {
+            scissors.emplace_back( D3D12_RECT{
+                .left   = scissor.mMinX,
+                .top    = scissor.mMinY,
+                .right  = scissor.mMinX + as<LONG>(scissor.ComputeWidth()),
+                .bottom = scissor.mMinY + as<LONG>(scissor.ComputeHeight())
+            } );
+        }
+
+        mCommandList->RSSetScissorRects(as<UINT>(scissors.size()), scissors.data());
     }
 
     auto CommandList::SetViewportState( const ViewportState &vs ) -> void {
-
+        SetViewport( vs.mViewports );
+        SetScissors( vs.mScissorRects );
     }
 
     auto CommandList::BindIndexBuffer( IBuffer *buffer ) -> void {
+        Buffer* indexBuffer{ checked_cast<Buffer*>( buffer ) };
+        ID3D12Resource* resource{ *indexBuffer };
 
+        D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+
+        indexBufferView.BufferLocation = resource->GetGPUVirtualAddress();
+        indexBufferView.Format = d3d12::GetFormat( indexBuffer->GetFormat() );
+        indexBufferView.SizeInBytes = indexBuffer->GetSizeBytes();
+
+        mCommandList->IASetIndexBuffer(&indexBufferView);
     }
 
     auto CommandList::BindVertexBuffer( const VertexBufferBinding &binding ) -> void {
+        BindVertexBuffer(eastl::array{ binding } );
+    }
 
+    auto CommandList::BindVertexBuffer( eastl::span<const VertexBufferBinding> binding ) -> void {
+        eastl::fixed_vector<D3D12_VERTEX_BUFFER_VIEW, kMaxVertexBuffers> vertexBufferViews{};
+
+        for (const auto& vertexBuffer : binding) {
+            Buffer* buffer{ checked_cast<Buffer*>( vertexBuffer.mBuffer ) };
+            ID3D12Resource* resource{ *buffer };
+
+            D3D12_VERTEX_BUFFER_VIEW bufferView{};
+            bufferView.SizeInBytes = buffer->GetSizeBytes();
+            bufferView.BufferLocation = resource->GetGPUVirtualAddress();
+            bufferView.StrideInBytes = vertexBuffer.mElementStride;
+
+            vertexBufferViews.emplace_back( bufferView );
+        }
+
+        mCommandList->IASetVertexBuffers(0, as<UINT>(vertexBufferViews.size()), vertexBufferViews.data());
     }
 
     auto CommandList::BindPipelineResources( const BindResourcesDescription &desc ) -> void {
@@ -715,11 +878,22 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::Draw( const DrawArguments &args ) -> void {
-
+        mCommandList->DrawInstanced(
+            args.mVertexCount,
+            args.mInstanceCount,
+            args.mFirstVertex,
+            args.mFirstInstance
+        );
     }
 
     auto CommandList::DrawIndexed( const DrawArguments &args ) -> void {
-
+        mCommandList->DrawIndexedInstanced(
+            args.mIndexCount,
+            args.mInstanceCount,
+            args.mFirstIndex,
+            args.mVertexOffset,
+            args.mFirstInstance
+        );
     }
 
     auto CommandList::DrawIndirect( u32 offset, u32 drawCount ) -> void {
@@ -731,7 +905,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) -> void {
-
+        mCommandList->Dispatch( groupsX, groupsY, groupsZ );
     }
 
     auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, size_t byteSize, ShaderStage visibility ) -> void {
@@ -768,6 +942,11 @@ namespace mikoto::renderer::d3d12 {
 
     auto CommandList::Release() -> void {
         mIsAllocated = false;
+    }
+
+    auto CommandList::ClearState() -> void {
+        ThrowIfFailed( mCommandAllocator->Reset() );
+        ThrowIfFailed(mCommandList->Reset(mCommandAllocator.Get(), nullptr));
     }
 
     auto CommandList::BindIndirectBuffer( IBuffer *buffer ) -> void {
@@ -1022,7 +1201,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateBindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
-        BindingSetHandle set{ Ref<BindingSet>::Spawn( desc, layout ) };
+        BindingSetHandle set{ Ref<BindingSet>::Spawn( desc, layout, mResourceHeaps ) };
 
         if ( set.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding set resource." );

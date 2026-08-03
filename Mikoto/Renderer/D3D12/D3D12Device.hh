@@ -62,6 +62,81 @@ namespace mikoto::renderer::d3d12 {
         Microsoft::WRL::ComPtr<ID3D12Fence> mFence{};
     };
 
+    class IDescriptorHeap {
+    public:
+        virtual auto AllocateDescriptors( u32 count ) -> DescriptorIndex = 0;
+        virtual auto AllocateDescriptor() -> DescriptorIndex = 0;
+
+        virtual auto ReleaseDescriptors( DescriptorIndex baseIndex, u32 count ) -> void = 0;
+        virtual auto ReleaseDescriptor( DescriptorIndex index ) -> void = 0;
+
+        MKT_NODISCARD virtual auto GetHeap() const -> ID3D12DescriptorHeap* = 0;
+        MKT_NODISCARD virtual auto GetShaderVisibleHeap() const -> ID3D12DescriptorHeap* = 0;
+        MKT_NODISCARD virtual auto GetCpuHandle( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE = 0;
+        MKT_NODISCARD virtual auto GetCpuHandleShaderVisible( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE = 0;
+        MKT_NODISCARD virtual auto GetGpuHandle( DescriptorIndex index ) const -> D3D12_GPU_DESCRIPTOR_HANDLE = 0;
+
+        virtual ~IDescriptorHeap() = default;
+
+        DISABLE_COPY_AND_MOVE_FOR( IDescriptorHeap );
+
+    protected:
+        IDescriptorHeap() = default;
+    };
+
+    class StaticDescriptorHeap final : public IDescriptorHeap {
+    public:
+        explicit StaticDescriptorHeap();
+
+        auto CopyToShaderVisibleHeap( DescriptorIndex index, u32 count = 1 ) -> void;
+
+        auto AllocateDescriptor() -> DescriptorIndex override;
+        auto AllocateDescriptors( u32 count ) -> DescriptorIndex override;
+
+        auto ReleaseDescriptor( DescriptorIndex index ) -> void override;
+        auto ReleaseDescriptors( DescriptorIndex baseIndex, u32 count ) -> void override;
+
+        auto AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE heapType, u32 numDescriptors, bool shaderVisible ) -> HRESULT;
+
+        MKT_NODISCARD auto GetHeap() const -> ID3D12DescriptorHeap* override;
+        MKT_NODISCARD auto GetHeapType() const -> D3D12_DESCRIPTOR_HEAP_TYPE;
+        MKT_NODISCARD auto GetCpuHandle( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE override;
+        MKT_NODISCARD auto GetCpuHandleShaderVisible( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE override;
+        MKT_NODISCARD auto GetGpuHandle( DescriptorIndex index ) const -> D3D12_GPU_DESCRIPTOR_HANDLE override;
+        MKT_NODISCARD auto GetShaderVisibleHeap() const -> ID3D12DescriptorHeap* override;
+
+    private:
+        auto Grow( u32 minRequiredSize ) -> HRESULT;
+
+    private:
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mHeap{};
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mShaderVisibleHeap{};
+
+        D3D12_DESCRIPTOR_HEAP_TYPE mHeapType{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
+
+        D3D12_CPU_DESCRIPTOR_HANDLE mStartCpuHandle{};
+        D3D12_CPU_DESCRIPTOR_HANDLE mStartCpuHandleShaderVisible{};
+        D3D12_GPU_DESCRIPTOR_HANDLE mStartGpuHandleShaderVisible{};
+
+        u32 mStride{};
+        u32 mNumDescriptors{};
+
+        eastl::vector<bool> mAllocatedDescriptors{};
+
+        DescriptorIndex mSearchStart{};
+        u32 mNumAllocatedDescriptors{};
+
+        std::mutex mMutex{};
+    };
+
+    class DeviceResources {
+    public:
+        StaticDescriptorHeap mRenderTargetViewHeap{};
+        StaticDescriptorHeap mDepthStencilViewHeap{};
+        StaticDescriptorHeap mShaderResourceViewHeap{};
+        StaticDescriptorHeap mSamplerHeap{};
+    };
+
     class BindingLayout final : public IBindingLayout {
     public:
         explicit BindingLayout( const BindingLayoutDescription& desc );
@@ -114,7 +189,7 @@ namespace mikoto::renderer::d3d12 {
 
     class BindingSet : public IBindingSet {
     public:
-        explicit BindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout );
+        explicit BindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout, DeviceResources& resources );
 
         auto SetDebugName( eastl::string_view name ) -> void override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
@@ -129,6 +204,11 @@ namespace mikoto::renderer::d3d12 {
     private:
         BindingLayoutHandle mBindingLayout{};
         BindingSetDescription mBindingDescription{};
+
+        DeviceResources* mDeviceResources{};
+
+        D3D12_GPU_DESCRIPTOR_HANDLE mShaderResourceHandle{};
+        D3D12_GPU_DESCRIPTOR_HANDLE mSamplerResourceHandle{};
     };
 
     class DescriptorTable : public IDescriptorTable {
@@ -244,24 +324,24 @@ namespace mikoto::renderer::d3d12 {
 
         // More relaxed versions of SetResourceState
         // https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12
-        auto PushBarrier( const BufferBarrierDescription& barrier ) -> void override;
+        auto PushBarrier( const BufferBarrierDescription& barrierDescription ) -> void override;
         auto PushBarrier( const TextureBarrierDescription& barrier ) -> void override;
 
         auto BeginTrackingState(IBuffer* buffer, ResourceStates stateBits) -> void override;
-        auto BeginTrackingState(ITexture* buffer, ResourceStates stateBits) -> void override;
+        auto BeginTrackingState(ITexture* texture, ResourceStates stateBits) -> void override;
 
         auto SetResourceState(IBuffer* buffer, ResourceStates stateBits) -> void override;
-        auto SetResourceState(ITexture* buffer, ResourceStates stateBits) -> void override;
+        auto SetResourceState(ITexture* texture, ResourceStates stateBits) -> void override;
 
-        auto SetBarrier( const BufferBarrierDescription& barrier ) -> void override;
-        auto SetBarrier( const TextureBarrierDescription& barrier ) -> void override;
+        auto SetBarrier( const BufferBarrierDescription& barrierDescription ) -> void override;
+        auto SetBarrier( const TextureBarrierDescription& barrierDescription ) -> void override;
 
         auto CommitBarriers() -> void override;
 
         auto SetEnableAutomaticBarriers(  bool enable  ) -> void override;
 
         auto SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void override;
-        auto SetClearColor( TextureHandle renderTargets, Color color ) -> void override;
+        auto SetClearColor( TextureHandle renderTarget, Color color ) -> void override;
 
         auto Write( IBuffer* src, ITexture* dest, u32 mipLevel ) -> void override;
         auto Write( ITexture* texture, u32 mipLevel,const void* data, size_t byteSize ) -> void override;
@@ -289,6 +369,7 @@ namespace mikoto::renderer::d3d12 {
 
         auto BindIndexBuffer( IBuffer* buffer ) -> void override;
         auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void override;
+        auto BindVertexBuffer( eastl::span<const VertexBufferBinding> binding ) -> void override;
 
         auto BindPipelineResources( const BindResourcesDescription& desc ) -> void override;
 
@@ -309,12 +390,19 @@ namespace mikoto::renderer::d3d12 {
         ~CommandList() override;
 
     private:
+        // [Internal usage]
         auto Initialize() -> void override;
         auto Release() -> void override;
+
+        auto ClearState() -> void;
 
     private:
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList{};
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mCommandAllocator{};
+
+        bool mEnableAutomaticBarriers{ true };
+
+        eastl::fixed_vector<D3D12_RESOURCE_BARRIER, rhi::kMaxBarriers> mResourceBarriers{};
     };
 
     struct GpuUploadAllocation {
@@ -370,81 +458,6 @@ namespace mikoto::renderer::d3d12 {
         IGpuDevice* mDevice{};
         ankerl::unordered_dense::map<IBuffer*, eastl::unique_ptr<StagingAllocation>> mBuffers{};
         ankerl::unordered_dense::map<IBuffer*, eastl::fixed_vector<eastl::unique_ptr<GpuUploadAllocation>, kMaxSubAllocations>> mSubAllocations{};
-    };
-
-    class IDescriptorHeap {
-    public:
-        virtual auto AllocateDescriptors( u32 count ) -> DescriptorIndex = 0;
-        virtual auto AllocateDescriptor() -> DescriptorIndex = 0;
-
-        virtual auto ReleaseDescriptors( DescriptorIndex baseIndex, u32 count ) -> void = 0;
-        virtual auto ReleaseDescriptor( DescriptorIndex index ) -> void = 0;
-
-        MKT_NODISCARD virtual auto GetHeap() const -> ID3D12DescriptorHeap* = 0;
-        MKT_NODISCARD virtual auto GetShaderVisibleHeap() const -> ID3D12DescriptorHeap* = 0;
-        MKT_NODISCARD virtual auto GetCpuHandle( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE = 0;
-        MKT_NODISCARD virtual auto GetCpuHandleShaderVisible( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE = 0;
-        MKT_NODISCARD virtual auto GetGpuHandle( DescriptorIndex index ) const -> D3D12_GPU_DESCRIPTOR_HANDLE = 0;
-
-        virtual ~IDescriptorHeap() = default;
-
-        DISABLE_COPY_AND_MOVE_FOR( IDescriptorHeap );
-
-    protected:
-        IDescriptorHeap() = default;
-    };
-
-    class StaticDescriptorHeap final : public IDescriptorHeap {
-    public:
-        explicit StaticDescriptorHeap();
-
-        auto CopyToShaderVisibleHeap( DescriptorIndex index, u32 count = 1 ) -> void;
-
-        auto AllocateDescriptor() -> DescriptorIndex override;
-        auto AllocateDescriptors( u32 count ) -> DescriptorIndex override;
-
-        auto ReleaseDescriptor( DescriptorIndex index ) -> void override;
-        auto ReleaseDescriptors( DescriptorIndex baseIndex, u32 count ) -> void override;
-
-        auto AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE heapType, u32 numDescriptors, bool shaderVisible ) -> HRESULT;
-
-        MKT_NODISCARD auto GetHeap() const -> ID3D12DescriptorHeap* override;
-        MKT_NODISCARD auto GetHeapType() const -> D3D12_DESCRIPTOR_HEAP_TYPE;
-        MKT_NODISCARD auto GetCpuHandle( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE override;
-        MKT_NODISCARD auto GetCpuHandleShaderVisible( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE override;
-        MKT_NODISCARD auto GetGpuHandle( DescriptorIndex index ) const -> D3D12_GPU_DESCRIPTOR_HANDLE override;
-        MKT_NODISCARD auto GetShaderVisibleHeap() const -> ID3D12DescriptorHeap* override;
-
-    private:
-        auto Grow( u32 minRequiredSize ) -> HRESULT;
-
-    private:
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mHeap{};
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mShaderVisibleHeap{};
-
-        D3D12_DESCRIPTOR_HEAP_TYPE mHeapType{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
-
-        D3D12_CPU_DESCRIPTOR_HANDLE mStartCpuHandle{};
-        D3D12_CPU_DESCRIPTOR_HANDLE mStartCpuHandleShaderVisible{};
-        D3D12_GPU_DESCRIPTOR_HANDLE mStartGpuHandleShaderVisible{};
-
-        u32 mStride{};
-        u32 mNumDescriptors{};
-
-        eastl::vector<bool> mAllocatedDescriptors{};
-
-        DescriptorIndex mSearchStart{};
-        u32 mNumAllocatedDescriptors{};
-
-        std::mutex mMutex{};
-    };
-
-    class DeviceResources {
-    public:
-        StaticDescriptorHeap mRenderTargetViewHeap{};
-        StaticDescriptorHeap mDepthStencilViewHeap{};
-        StaticDescriptorHeap mShaderResourceViewHeap{};
-        StaticDescriptorHeap mSamplerHeap{};
     };
 
     class Device final : public IGpuDevice {

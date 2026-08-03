@@ -702,7 +702,16 @@ namespace mikoto::renderer::d3d12 {
         mCommandList->SetDescriptorHeaps(as<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
 
         //D3D12_GPU_DESCRIPTOR_HANDLE cbvHandle{ constantBuffersHeap->GetGPUDescriptorHandleForHeapStart() };
-        //mCommandList->SetGraphicsRootDescriptorTable(0, cbvHandle);
+        switch (desc.mBindPoint) {
+            case PipelineType::eGraphics:
+                //mCommandList->SetGraphicsRootDescriptorTable(0, cbvHandle);
+                break;
+            case PipelineType::eCompute:
+                //mCommandList->SetComputeRootDescriptorTable(0, cbvHandle);
+                break;
+            default:
+                MKT_ASSERT( false, "Invalid bind point" );
+        }
     }
 
     auto CommandList::Draw( const DrawArguments &args ) -> void {
@@ -830,6 +839,7 @@ namespace mikoto::renderer::d3d12 {
         InitInfoQueue();
         InitCommandQueues();
         InitMemoryAllocator();
+        InitDescriptorHeapManager();
 
 #if defined(_DEBUG)
         ThrowIfFailed(mDevice->QueryInterface( IID_PPV_ARGS(&mDebugDevice) ));
@@ -901,6 +911,14 @@ namespace mikoto::renderer::d3d12 {
         mUploadManager = eastl::make_unique<GpuUploadManager>( this );
 
         mGpuAllocator->Init();
+    }
+
+    auto Device::InitDescriptorHeapManager() -> void {
+        mResourceHeaps.mRenderTargetViewHeap.AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 100, false );
+        mResourceHeaps.mDepthStencilViewHeap.AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 100, false );
+
+        mResourceHeaps.mSamplerHeap.AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 100, true );
+        mResourceHeaps.mShaderResourceViewHeap.AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 100, true );
     }
 
     auto Device::CreateTexture( const TextureCreateDescription &description ) -> TextureHandle {

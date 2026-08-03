@@ -31,6 +31,8 @@
 
 namespace mikoto::renderer::d3d12 {
 
+    using DescriptorIndex = core::u32;
+
     auto ThrowIfFailed(HRESULT hr) -> void;
     auto ThrowIfFailed(HRESULT hr, IGpuDevice* gpuDevice) -> void;
 

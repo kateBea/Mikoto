@@ -34,11 +34,10 @@
 #include <wrl.h>
 
 #include <Renderer/D3D12/D3D12SwapChain.hh>
+#include <Renderer/D3D12/Direct3D12Helpers.hh>
 #include <Renderer/D3D12/D3D12MemoryAllocator.hh>
 
 namespace mikoto::renderer::d3d12 {
-
-    using DescriptorIndex = core::u32;
 
     class Fence final : public IFence {
     public:
@@ -405,14 +404,14 @@ namespace mikoto::renderer::d3d12 {
         auto AllocateDescriptors( u32 count ) -> DescriptorIndex override;
 
         auto ReleaseDescriptor( DescriptorIndex index ) -> void override;
-        auto ReleaseDescriptors(DescriptorIndex baseIndex, u32 count ) -> void override;
+        auto ReleaseDescriptors( DescriptorIndex baseIndex, u32 count ) -> void override;
 
-        auto AllocateResources(D3D12_DESCRIPTOR_HEAP_TYPE heapType, u32 numDescriptors, bool shaderVisible ) -> HRESULT;
+        auto AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE heapType, u32 numDescriptors, bool shaderVisible ) -> HRESULT;
 
         MKT_NODISCARD auto GetHeap() const -> ID3D12DescriptorHeap* override;
         MKT_NODISCARD auto GetHeapType() const -> D3D12_DESCRIPTOR_HEAP_TYPE;
         MKT_NODISCARD auto GetCpuHandle( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE override;
-        MKT_NODISCARD auto GetCpuHandleShaderVisible(DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE override;
+        MKT_NODISCARD auto GetCpuHandleShaderVisible( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE override;
         MKT_NODISCARD auto GetGpuHandle( DescriptorIndex index ) const -> D3D12_GPU_DESCRIPTOR_HANDLE override;
         MKT_NODISCARD auto GetShaderVisibleHeap() const -> ID3D12DescriptorHeap* override;
 
@@ -533,6 +532,7 @@ namespace mikoto::renderer::d3d12 {
         auto InitInfoQueue() -> void;
         auto InitCommandQueues() -> void;
         auto InitMemoryAllocator() -> void;
+        auto InitDescriptorHeapManager() -> void;
 
     private:
         Microsoft::WRL::ComPtr<ID3D12Device2> mDevice{};

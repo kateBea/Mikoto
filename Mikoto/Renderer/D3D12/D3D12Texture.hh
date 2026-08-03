@@ -17,11 +17,13 @@
 
 #include <Core/Platform.hh>
 
+#include <Renderer/Core/Rhi.hh>
+
 #if defined( MIKOTO_PLATFORM_WINDOWS )
 
 #include <directx/d3d12.h>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/D3D12/Direct3D12Helpers.hh>
 
 namespace mikoto::renderer::d3d12 {
 
@@ -34,8 +36,6 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
-        MKT_NODISCARD operator ID3D12DescriptorHeap*() const;
-
         ~Sampler() override;
 
     private:
@@ -44,9 +44,9 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         D3D12_CPU_DESCRIPTOR_HANDLE mSamplerHandle{};
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDescriptorHeap{};
 
         DeviceResources* mResources{};
+        DescriptorIndex mSamplerDescriptorIndex{};
     };
 
     class Texture : public ITexture {
@@ -72,6 +72,10 @@ namespace mikoto::renderer::d3d12 {
         bool mKeepInitializerResources{ false };
 
         DeviceResources* mResources{};
+
+        DescriptorIndex mSrvDescriptorIndex{};
+        DescriptorIndex mRrvDescriptorIndex{};
+        DescriptorIndex mDrvDescriptorIndex{};
     };
 
 }// namespace mikoto::renderer::d3d12

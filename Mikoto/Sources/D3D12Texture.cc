@@ -44,10 +44,6 @@ namespace mikoto::renderer::d3d12 {
         return ISampler::GetNativeHandle( type );
     }
 
-    Sampler::operator ID3D12DescriptorHeap*() const {
-        return mDescriptorHeap.Get();
-    }
-
     Sampler::~Sampler() {
         if (mIsAllocated) {
             Release();

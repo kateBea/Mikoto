@@ -29,6 +29,7 @@
 #include <wrl.h>
 
 #include <Renderer/Core/Rhi.hh>
+#include <Renderer/D3D12/Direct3D12Helpers.hh>
 #include <Renderer/D3D12/D3D12MemoryAllocator.hh>
 
 namespace mikoto::renderer::d3d12 {
@@ -63,6 +64,8 @@ namespace mikoto::renderer::d3d12 {
         bool mKeepInitializerResources{ false };
 
         DeviceResources* mResources{};
+
+        DescriptorIndex mSrvDescriptorIndex{};
     };
 }
 

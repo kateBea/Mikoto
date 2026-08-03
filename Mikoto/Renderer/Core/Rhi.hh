@@ -1734,10 +1734,6 @@ namespace mikoto::renderer::rhi {
     };
 
     struct BindResourcesDescription {
-        struct ResourceSet {
-            IBindingSet* mResourceSet{};
-        };
-
         size_t mPushConstantSize{ 0 };
         ShaderStage mPushConstantVisibility{};
         eastl::fixed_vector<byte_t, kMaxPushConstantSize> mPushConstants{};
@@ -1745,7 +1741,7 @@ namespace mikoto::renderer::rhi {
         static constexpr u32 kMaxResourceSets{32};
 
         // key = binding index (set index)
-        eastl::fixed_hash_map<u32, ResourceSet, kMaxResourceSets> mResourceSets{};
+        eastl::fixed_hash_map<u32, IBindingSet*, kMaxResourceSets> mResourceSets{};
 
         IPipelineLayout* mPipelineLayout{};
         PipelineType     mBindPoint{};

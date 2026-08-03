@@ -682,7 +682,27 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::BindPipelineResources( const BindResourcesDescription &desc ) -> void {
+        // https://learn.microsoft.com/en-us/windows/win32/direct3d12/descriptor-heaps-overview
 
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        PipelineLayout* pipelineLayout{ checked_cast<PipelineLayout*>( desc.mPipelineLayout ) };
+
+        // Root signature
+        ID3D12RootSignature* rootSignature{ *pipelineLayout };
+        mCommandList->SetGraphicsRootSignature(rootSignature);
+
+        const DeviceResources* deviceResources{ device->GetHeapResources() };
+        eastl::vector<ID3D12DescriptorHeap*> descriptorHeaps{};
+
+        descriptorHeaps.emplace_back( deviceResources->mSamplerHeap.GetHeap() );
+        descriptorHeaps.emplace_back( deviceResources->mShaderResourceViewHeap.GetHeap() );
+
+        // At most one CBV/SRV/UAV combined heap and one Sampler heap can be bound at any one time.
+        // These heaps are shared between both the graphics and compute pipelines (described in their PSOs).
+        mCommandList->SetDescriptorHeaps(as<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
+
+        //D3D12_GPU_DESCRIPTOR_HANDLE cbvHandle{ constantBuffersHeap->GetGPUDescriptorHandleForHeapStart() };
+        //mCommandList->SetGraphicsRootDescriptorTable(0, cbvHandle);
     }
 
     auto CommandList::Draw( const DrawArguments &args ) -> void {
@@ -884,7 +904,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateTexture( const TextureCreateDescription &description ) -> TextureHandle {
-        TextureHandle texture{ Ref<Texture>::Spawn(description) };
+        TextureHandle texture{ Ref<Texture>::Spawn(description, mResourceHeaps) };
 
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "D3D12Device - Failed to allocate texture" );
@@ -1082,6 +1102,10 @@ namespace mikoto::renderer::d3d12 {
         return mAdapter4.Get();
     }
 
+    auto Device::GetHeapResources() const -> const DeviceResources * {
+        return MKT_ADDRESSOF( mResourceHeaps );
+    }
+
     auto Device::GetQueue( QueueType type ) -> Queue * {
         MKT_ASSERT( mQueues.contains( type ), "Device does not contain requested type of queue" );
         return mQueues.at(type).GetRaw();
@@ -1183,7 +1207,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateBuffer( const BufferCreateDescription &description ) -> BufferHandle {
-        BufferHandle buffer{ Ref<Buffer>::Spawn(description) };
+        BufferHandle buffer{ Ref<Buffer>::Spawn(description, mResourceHeaps ) };
 
         if ( buffer.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate buffer resource." );

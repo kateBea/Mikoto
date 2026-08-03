@@ -598,9 +598,7 @@ namespace mikoto::renderer::rhi {
 
     auto BindResourcesDescription::AddResourceSet( u32 bindingIndex, IBindingSet* set ) -> BindResourcesDescription& {
         MKT_ASSERT(set, "ResourceSet is null");
-        mResourceSets.insert_or_assign(bindingIndex, ResourceSet{
-            .mResourceSet = set
-        });
+        mResourceSets.insert_or_assign(bindingIndex, set);
 
         return *this;
     }

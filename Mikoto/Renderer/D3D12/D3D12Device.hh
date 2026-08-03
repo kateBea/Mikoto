@@ -38,6 +38,8 @@
 
 namespace mikoto::renderer::d3d12 {
 
+    using DescriptorIndex = core::u32;
+
     class Fence final : public IFence {
     public:
         explicit Fence( u64 initialValue );
@@ -111,7 +113,6 @@ namespace mikoto::renderer::d3d12 {
         mutable ankerl::unordered_dense::map<D3D12_DESCRIPTOR_RANGE_TYPE, u32> mNextRegisterForType{};
     };
 
-    // https://learn.microsoft.com/en-us/windows/win32/direct3d12/descriptor-heaps-overview
     class BindingSet : public IBindingSet {
     public:
         explicit BindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout );
@@ -372,6 +373,81 @@ namespace mikoto::renderer::d3d12 {
         ankerl::unordered_dense::map<IBuffer*, eastl::fixed_vector<eastl::unique_ptr<GpuUploadAllocation>, kMaxSubAllocations>> mSubAllocations{};
     };
 
+    class IDescriptorHeap {
+    public:
+        virtual auto AllocateDescriptors( u32 count ) -> DescriptorIndex = 0;
+        virtual auto AllocateDescriptor() -> DescriptorIndex = 0;
+
+        virtual auto ReleaseDescriptors( DescriptorIndex baseIndex, u32 count ) -> void = 0;
+        virtual auto ReleaseDescriptor( DescriptorIndex index ) -> void = 0;
+
+        MKT_NODISCARD virtual auto GetHeap() const -> ID3D12DescriptorHeap* = 0;
+        MKT_NODISCARD virtual auto GetShaderVisibleHeap() const -> ID3D12DescriptorHeap* = 0;
+        MKT_NODISCARD virtual auto GetCpuHandle( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE = 0;
+        MKT_NODISCARD virtual auto GetCpuHandleShaderVisible( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE = 0;
+        MKT_NODISCARD virtual auto GetGpuHandle( DescriptorIndex index ) const -> D3D12_GPU_DESCRIPTOR_HANDLE = 0;
+
+        virtual ~IDescriptorHeap() = default;
+
+        DISABLE_COPY_AND_MOVE_FOR( IDescriptorHeap );
+
+    protected:
+        IDescriptorHeap() = default;
+    };
+
+    class StaticDescriptorHeap final : public IDescriptorHeap {
+    public:
+        explicit StaticDescriptorHeap();
+
+        auto CopyToShaderVisibleHeap( DescriptorIndex index, u32 count = 1 ) -> void;
+
+        auto AllocateDescriptor() -> DescriptorIndex override;
+        auto AllocateDescriptors( u32 count ) -> DescriptorIndex override;
+
+        auto ReleaseDescriptor( DescriptorIndex index ) -> void override;
+        auto ReleaseDescriptors(DescriptorIndex baseIndex, u32 count ) -> void override;
+
+        auto AllocateResources(D3D12_DESCRIPTOR_HEAP_TYPE heapType, u32 numDescriptors, bool shaderVisible ) -> HRESULT;
+
+        MKT_NODISCARD auto GetHeap() const -> ID3D12DescriptorHeap* override;
+        MKT_NODISCARD auto GetHeapType() const -> D3D12_DESCRIPTOR_HEAP_TYPE;
+        MKT_NODISCARD auto GetCpuHandle( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE override;
+        MKT_NODISCARD auto GetCpuHandleShaderVisible(DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE override;
+        MKT_NODISCARD auto GetGpuHandle( DescriptorIndex index ) const -> D3D12_GPU_DESCRIPTOR_HANDLE override;
+        MKT_NODISCARD auto GetShaderVisibleHeap() const -> ID3D12DescriptorHeap* override;
+
+    private:
+        auto Grow( u32 minRequiredSize ) -> HRESULT;
+
+    private:
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mHeap{};
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mShaderVisibleHeap{};
+
+        D3D12_DESCRIPTOR_HEAP_TYPE mHeapType{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
+
+        D3D12_CPU_DESCRIPTOR_HANDLE mStartCpuHandle{};
+        D3D12_CPU_DESCRIPTOR_HANDLE mStartCpuHandleShaderVisible{};
+        D3D12_GPU_DESCRIPTOR_HANDLE mStartGpuHandleShaderVisible{};
+
+        u32 mStride{};
+        u32 mNumDescriptors{};
+
+        eastl::vector<bool> mAllocatedDescriptors{};
+
+        DescriptorIndex mSearchStart{};
+        u32 mNumAllocatedDescriptors{};
+
+        std::mutex mMutex{};
+    };
+
+    class DeviceResources {
+    public:
+        StaticDescriptorHeap mRenderTargetViewHeap{};
+        StaticDescriptorHeap mDepthStencilViewHeap{};
+        StaticDescriptorHeap mShaderResourceViewHeap{};
+        StaticDescriptorHeap mSamplerHeap{};
+    };
+
     class Device final : public IGpuDevice {
     public:
         explicit Device( const GpuDeviceCreateInfo& createInfo );
@@ -441,6 +517,8 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetDevice() -> ID3D12Device2*;
         MKT_NODISCARD auto GetAdapter() -> IDXGIAdapter4*;
 
+        MKT_NODISCARD auto GetHeapResources() const -> const DeviceResources*;
+
         MKT_NODISCARD auto GetQueue( QueueType type ) -> Queue*;
         MKT_NODISCARD auto GetQueue( QueueType type ) const -> const Queue*;
 
@@ -464,6 +542,7 @@ namespace mikoto::renderer::d3d12 {
         DXGI_ADAPTER_DESC3 mDeviceDescription3{};
 
         // [Memory management]
+        DeviceResources mResourceHeaps{};
         eastl::unique_ptr<IGpuAllocator> mGpuAllocator{};
         eastl::unique_ptr<GpuUploadManager> mUploadManager{};
 

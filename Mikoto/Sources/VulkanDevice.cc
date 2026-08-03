@@ -1618,7 +1618,7 @@ namespace mikoto::renderer::vulkan {
 
         for (const auto& resourceSet : desc.mResourceSets) {
             // Get the interface because descriptor tables can also be IBindingSet
-            const IBindingSet* set{ checked_cast<const IBindingSet*>( resourceSet.second.mResourceSet ) };
+            const IBindingSet* set{ checked_cast<const IBindingSet*>( resourceSet.second ) };
 
             std::array<VkDescriptorSet, 1> sets{ set->GetNativeHandle( ObjectType::Vk_DescriptorSet ) };
 

@@ -25,9 +25,11 @@
 
 namespace mikoto::renderer::d3d12 {
 
+    class DeviceResources;
+
     class Sampler final : public rhi::ISampler {
     public:
-        explicit Sampler( const rhi::SamplerCreateDescription& desc );
+        explicit Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources* resources );
 
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
@@ -43,20 +45,18 @@ namespace mikoto::renderer::d3d12 {
     private:
         D3D12_CPU_DESCRIPTOR_HANDLE mSamplerHandle{};
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDescriptorHeap{};
+
+        DeviceResources* mResources{};
     };
 
     class Texture : public ITexture {
     public:
-        explicit Texture( const TextureCreateDescription& desc );
+        explicit Texture( const TextureCreateDescription& desc, DeviceResources& resources );
 
         auto SetDebugName( const eastl::string_view name ) -> void override;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
-
-        MKT_NODISCARD operator ID3D12DescriptorHeap*() const;
-        MKT_NODISCARD operator D3D12_GPU_DESCRIPTOR_HANDLE() const;
-        MKT_NODISCARD operator D3D12_CPU_DESCRIPTOR_HANDLE() const;
 
         ~Texture() override;
 
@@ -71,13 +71,7 @@ namespace mikoto::renderer::d3d12 {
         ImageAllocation mImageAllocation{};
         bool mKeepInitializerResources{ false };
 
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRtvDescriptorHeap{};
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvDescriptorHeap{};
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap{};
-
-        // TODO: rethink
-        D3D12_GPU_DESCRIPTOR_HANDLE mGpuDescriptorHandle{};
-        D3D12_CPU_DESCRIPTOR_HANDLE mCpuDescriptorHandle{};
+        DeviceResources* mResources{};
     };
 
 }// namespace mikoto::renderer::d3d12

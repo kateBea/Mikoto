@@ -30,8 +30,8 @@
 
 namespace mikoto::renderer::d3d12 {
 
-    Sampler::Sampler( const rhi::SamplerCreateDescription& desc )
-        : ISampler{ desc }
+    Sampler::Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources* resources )
+        : ISampler{ desc }, mResources{ resources }
     {
 
     }
@@ -61,13 +61,6 @@ namespace mikoto::renderer::d3d12 {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device1* d3d12Device{ device->GetDevice() };
 
-        D3D12_DESCRIPTOR_HEAP_DESC heapDesc{
-            .Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
-            .NumDescriptors = 1,
-            .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-            .NodeMask = 0 };
-        ThrowIfFailed(d3d12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mDescriptorHeap)));
-
         D3D12_SAMPLER_DESC wrapSamplerDesc{};
         wrapSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
         wrapSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -80,18 +73,14 @@ namespace mikoto::renderer::d3d12 {
         wrapSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
         wrapSamplerDesc.BorderColor[0] = wrapSamplerDesc.BorderColor[1] = wrapSamplerDesc.BorderColor[2] = wrapSamplerDesc.BorderColor[3] = 0;
 
-        device->GetDevice()->CreateSampler(&wrapSamplerDesc, mSamplerHandle);
+        d3d12Device->CreateSampler(&wrapSamplerDesc, mSamplerHandle);
         mIsAllocated = true;
     }
 
-    Texture::Texture( const TextureCreateDescription& desc)
-        : ITexture{ desc }
+    Texture::Texture( const TextureCreateDescription& desc, DeviceResources& resources)
+        : ITexture{ desc }, mResources{ MKT_ADDRESSOF( resources ) }
     {
 
-    }
-
-    Texture::operator ID3D12DescriptorHeap*() const {
-        return mRtvDescriptorHeap.Get();
     }
 
     auto Texture::SetDebugName( const eastl::string_view name ) -> void {
@@ -114,33 +103,17 @@ namespace mikoto::renderer::d3d12 {
 
     auto Texture::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
-        ID3D12Device1* d3d12Device{ device->GetDevice() };
 
         if (mTextureUsage & rhi::TextureUsageFlagsBits::kShaderResource) {
-            D3D12_DESCRIPTOR_HEAP_DESC heapDesc{
-                .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-                .NumDescriptors = 1,
-                .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-                .NodeMask = 0 };
-            ThrowIfFailed(d3d12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
+
         }
 
         if (mTextureUsage & rhi::TextureUsageFlagsBits::kRenderTarget) {
-            D3D12_DESCRIPTOR_HEAP_DESC heapDesc{
-                .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-                .NumDescriptors = 1,
-                .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
-                .NodeMask = 0 };
-            ThrowIfFailed(d3d12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mRtvDescriptorHeap)));
+
         }
 
         if (mTextureUsage & rhi::TextureUsageFlagsBits::kDepthTarget || mTextureUsage & rhi::TextureUsageFlagsBits::kDepthStencilTarget) {
-            D3D12_DESCRIPTOR_HEAP_DESC heapDesc{
-                .Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
-                .NumDescriptors = 1,
-                .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
-                .NodeMask = 0 };
-            ThrowIfFailed(d3d12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mDsvDescriptorHeap)));
+
         }
 
         mImageAllocation.mDesc.Dimension = d3d12::GetDimension(mDimension);
@@ -159,7 +132,7 @@ namespace mikoto::renderer::d3d12 {
 
         mImageAllocation.mAllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
-        auto* allocator{ checked_cast<Device*>( mDevice )->GetAllocator() };
+        auto* allocator{ device->GetAllocator() };
         ThrowIfFailed( allocator->AllocateImage( mImageAllocation ) );
 
         // Fill initial contents
@@ -176,14 +149,6 @@ namespace mikoto::renderer::d3d12 {
         }
 
         mIsAllocated = true;
-    }
-
-    Texture::operator D3D12_GPU_DESCRIPTOR_HANDLE() const {
-        return mGpuDescriptorHandle;
-    }
-
-    Texture::operator D3D12_CPU_DESCRIPTOR_HANDLE() const {
-        return mCpuDescriptorHandle;
     }
 
     auto Texture::Release() -> void {

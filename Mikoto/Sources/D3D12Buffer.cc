@@ -34,8 +34,8 @@
 
 namespace mikoto::renderer::d3d12 {
 
-    Buffer::Buffer( const rhi::BufferCreateDescription &createInfo )
-        : IBuffer{ createInfo }
+    Buffer::Buffer( const rhi::BufferCreateDescription &createInfo, DeviceResources& resources )
+        : IBuffer{ createInfo }, mResources{ MKT_ADDRESSOF( resources ) }
     {
     }
 
@@ -75,18 +75,6 @@ namespace mikoto::renderer::d3d12 {
         return mMappedAddress;
     }
 
-    Buffer::operator ID3D12DescriptorHeap*() const {
-        return mDescriptorHeap.Get();
-    }
-
-    Buffer::operator D3D12_GPU_DESCRIPTOR_HANDLE() const {
-        return mGpuDescriptorHandle;
-    }
-
-    Buffer::operator D3D12_CPU_DESCRIPTOR_HANDLE() const {
-        return mCpuDescriptorHandle;
-    }
-
     Buffer::~Buffer() {
         if (mIsAllocated) {
             Release();
@@ -103,11 +91,7 @@ namespace mikoto::renderer::d3d12 {
 
         // Create descriptor heap if it's going to be used in shaders
         if (d3d12::IsDescriptorHeapRequired( mResourceType )) {
-            D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
-            heapDesc.NumDescriptors = 1;
-            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            heapDesc.Type = d3d12::GetDescriptorHeapType(mResourceType);
-            ThrowIfFailed(d3d12Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mDescriptorHeap)));
+
         }
 
         // Allocate buffer memory

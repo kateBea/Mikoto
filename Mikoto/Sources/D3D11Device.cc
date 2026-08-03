@@ -523,7 +523,7 @@ namespace mikoto::renderer::d3d11 {
         PipelineLayout* pl{ checked_cast<PipelineLayout*>( desc.mPipelineLayout ) };
 
         for (const auto& resourceSet : desc.mResourceSets) {
-            const BindingSet* set{ checked_cast<const BindingSet*>( resourceSet.second.mResourceSet ) };
+            const BindingSet* set{ checked_cast<const BindingSet*>( resourceSet.second ) };
 
             // For D3D11 we default to making resources visible to all stages
             set->Bind(mDeviceContextDeferred.Get(), ShaderFlagsBits::kAll);

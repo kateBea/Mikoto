@@ -498,17 +498,33 @@ namespace mikoto::renderer::d3d11 {
         mDeviceContextDeferred->IASetIndexBuffer(
             d3dBuffer,
             format,
-            0 // offset (you can expose this later)
+            0
         );
     }
 
     auto CommandList::BindVertexBuffer( const VertexBufferBinding& binding ) -> void {
+        BindVertexBuffer( eastl::span<const VertexBufferBinding>{ &binding, 1 } );
+    }
 
-        ID3D11Buffer* d3dBuffer{ binding.mBuffer->GetNativeHandle(ObjectType::D3D11_Buffer) };
+    auto CommandList::BindVertexBuffer( eastl::span<const VertexBufferBinding> bindings ) -> void {
+        if (bindings.empty()) {
+            return;
+        }
 
-        eastl::array strides{ UINT(binding.mElementStride) };
-        eastl::array offsets{ UINT( binding.mOffset ) };
-        eastl::array buffers{ d3dBuffer };
+        eastl::fixed_vector<ID3D11Buffer*, 8> buffers{};
+        eastl::fixed_vector<UINT, 8> strides{};
+        eastl::fixed_vector<UINT, 8> offsets{};
+
+        buffers.reserve(bindings.size());
+        strides.reserve(bindings.size());
+        offsets.reserve(bindings.size());
+
+        for (const auto& binding : bindings) {
+            ID3D11Buffer* d3dBuffer{ binding.mBuffer->GetNativeHandle(ObjectType::D3D11_Buffer) };
+            buffers.push_back(d3dBuffer);
+            strides.push_back(as<UINT>(binding.mElementStride));
+            offsets.push_back(as<UINT>(binding.mOffset));
+        }
 
         mDeviceContextDeferred->IASetVertexBuffers(
             0,
@@ -517,10 +533,6 @@ namespace mikoto::renderer::d3d11 {
             strides.data(),
             offsets.data()
         );
-    }
-
-    auto CommandList::BindVertexBuffer( eastl::span<const VertexBufferBinding> binding ) -> void {
-
     }
 
     auto CommandList::BindPipelineResources( const BindResourcesDescription& desc ) -> void {
@@ -539,7 +551,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto CommandList::BindIndirectBuffer( IBuffer *buffer ) -> void {
-
+        mCurrentIndirectBuffer = buffer;
     }
 
     auto CommandList::DrawIndexed( const DrawArguments &args ) -> void {
@@ -553,11 +565,13 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto CommandList::DrawIndirect( u32 offset, u32 drawCount ) -> void {
-
+        ID3D11Buffer* d3dBuffer{ mCurrentIndirectBuffer->GetNativeHandle(ObjectType::D3D11_Buffer) };
+        mDeviceContextDeferred->DrawInstancedIndirect(d3dBuffer, 0);
     }
 
     auto CommandList::DrawIndexedIndirect( u32 offset, u32 drawCount ) -> void {
-
+        ID3D11Buffer* d3dBuffer{ mCurrentIndirectBuffer->GetNativeHandle(ObjectType::D3D11_Buffer) };
+        mDeviceContextDeferred->DrawIndexedInstancedIndirect(d3dBuffer, 0);
     }
 
     auto CommandList::Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) -> void {
@@ -607,8 +621,6 @@ namespace mikoto::renderer::d3d11 {
 
     InputLayout::InputLayout( const InputLayoutCreateDescription& desc )
         : mDesc{ desc } {
-
-
     }
 
     auto InputLayout::GetNativeHandle(ObjectType type) -> Object {
@@ -786,8 +798,8 @@ namespace mikoto::renderer::d3d11 {
             MKT_THROW_RUNTIME_ERROR( "Failed to create device and device Context");
         }
 
-        mDevice->QueryInterface(__uuidof(ID3D11Device3), (void**)&mDevice3);
-        mDeviceContext->QueryInterface(__uuidof(ID3D11DeviceContext3), (void**)&mDeviceContext3);
+        mDevice->QueryInterface(IID_PPV_ARGS(&mDevice3));
+        mDeviceContext->QueryInterface(IID_PPV_ARGS(&mDeviceContext3));
 
         // Store name of main adapter
         mName = "D3D11 Device";

@@ -175,7 +175,7 @@ namespace mikoto::renderer::d3d11 {
 
         auto BindIndexBuffer( IBuffer* buffer ) -> void override;
         auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void override;
-        auto BindVertexBuffer( eastl::span<const VertexBufferBinding> binding ) -> void override;
+        auto BindVertexBuffer( eastl::span<const VertexBufferBinding> bindings ) -> void override;
 
         auto BindPipelineResources( const BindResourcesDescription& desc ) -> void override;
 
@@ -217,10 +217,10 @@ namespace mikoto::renderer::d3d11 {
 
         FramebufferHandle mCurrentFramebuffer{};
 
-        BufferHandle mCurrentIndirectBuffer{};
-        BufferHandle mCurrentIndexBuffer{};
+        IBuffer* mCurrentIndirectBuffer{};
+        IBuffer* mCurrentIndexBuffer{};
         IndexBufferBinding mCurrentIndexBufferBinding{};
-        eastl::fixed_vector<BufferHandle, kMaxVertexAttributes> mCurrentVertexBuffers{};
+        eastl::fixed_vector<IBuffer*, kMaxVertexAttributes> mCurrentVertexBuffers{};
 
         Color mCurrentClearColor{};
 

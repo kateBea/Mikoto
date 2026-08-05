@@ -15,7 +15,8 @@
 #ifndef MIKOTO_CLIENT_HH
 #define MIKOTO_CLIENT_HH
 
-#include <string_view>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -29,11 +30,11 @@ namespace mikoto::network {
 
     class HttpClient {
     public:
-        explicit HttpClient( std::string_view url );
-        HttpClient( std::string_view host, UInt16 port, SecurityProtocol sp = SecurityProtocol::eInvalid );
+        explicit HttpClient( eastl::string_view url );
+        HttpClient( eastl::string_view host, u16 port, SecurityProtocol sp = SecurityProtocol::eNone );
 
-        auto Get( std::string_view path, std::string_view contentType ) -> HttpResponse;
-        auto Post( std::string_view path, std::string_view body, std::string_view contentType ) -> HttpResponse;
+        auto Get( eastl::string_view path, eastl::string_view contentType ) -> HttpResponse;
+        auto Post( eastl::string_view path, eastl::string_view body, eastl::string_view contentType ) -> HttpResponse;
 
         // WIP: Unavailable for now
         // auto SetTimeout( Int32 milliseconds ) -> void;
@@ -42,18 +43,18 @@ namespace mikoto::network {
         ~HttpClient();
 
     private:
-        auto SendRawRequest( std::string_view raw ) -> HttpResponse;
-        auto ParseUrl( std::string_view url ) -> void;
+        auto SendRawRequest( eastl::string_view raw ) -> HttpResponse;
+        auto ParseUrl( eastl::string_view url ) -> void;
 
         auto InitSocket() -> void;
 
     private:
-        std::string mHost{};
-        SocketHandle mSocket{};
-
         u16 mPort{};
 
-        SecurityProtocol mSecurity{ SecurityProtocol::eInvalid };
+        eastl::string mHost{};
+        SocketHandle mSocket{};
+
+        SecurityProtocol mSecurity{ SecurityProtocol::eNone };
     };
 }
 

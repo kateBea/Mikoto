@@ -88,7 +88,7 @@ namespace mikoto::network {
         SocketHandle handle{};
 
         constexpr u32 httPort{ 80 };
-        handle = CreateSocketTcp( hostName, httPort, wait, SecurityProtocol::eInvalid );
+        handle = CreateSocketTcp( hostName, httPort, wait, SecurityProtocol::eNone );
 
         if (handle.IsEmpty()) {
             MKT_CORE_LOGGER_ERROR( "CreateSocketHttp::CreateSocketHttp - Failed to create new socket" );
@@ -118,7 +118,7 @@ namespace mikoto::network {
         SocketHandle handle{ SocketHandle::CreateEmpty() };
 
         switch (sp) {
-            case SecurityProtocol::eInvalid:
+            case SecurityProtocol::eNone:
                 handle = mTcpSockets.Allocate( *mIoContext, hostName, port, wait );
                 break;
             case SecurityProtocol::eTLS:

@@ -50,7 +50,7 @@ namespace mikoto::network {
      *  - SecurityProtocol::TLS  -> Secure TLS session layered over TCP
      */
     enum class SecurityProtocol {
-        eInvalid = -1,
+        eNone,
         eTLS,
     };
 
@@ -145,7 +145,7 @@ namespace mikoto::network {
          * @param port The port to connect to.
          * @return A socket handle. The handle may be empty if creation failed.
          */
-        auto CreateSocket( SocketType type, eastl::string_view hostName, u16 port, SecurityProtocol sp = SecurityProtocol::eInvalid ) -> SocketHandle;
+        auto CreateSocket( SocketType type, eastl::string_view hostName, u16 port, SecurityProtocol sp = SecurityProtocol::eNone ) -> SocketHandle;
 
         /**
          * @brief Creates a socket and waits for a synchronous connection.
@@ -157,7 +157,7 @@ namespace mikoto::network {
          * @param port The port.
          * @return A socket handle. May be empty on failure.
          */
-        auto CreateSocketSync( SocketType type, eastl::string_view hostName, u16 port, SecurityProtocol sp = SecurityProtocol::eInvalid ) -> SocketHandle;
+        auto CreateSocketSync( SocketType type, eastl::string_view hostName, u16 port, SecurityProtocol sp = SecurityProtocol::eNone ) -> SocketHandle;
 
         /**
          * @brief Creates an HTTP socket (port 80 by default).
@@ -192,7 +192,7 @@ namespace mikoto::network {
         // [Internal usage]
 
         // If wait == true creation is asynchronous, synchronous otherwise
-        auto CreateSocketTcp(eastl::string_view hostName, u16 port, bool wait, SecurityProtocol sp = SecurityProtocol::eInvalid ) -> SocketHandle;
+        auto CreateSocketTcp(eastl::string_view hostName, u16 port, bool wait, SecurityProtocol sp = SecurityProtocol::eNone ) -> SocketHandle;
 
     private:
         /// @brief ASIO context used for all asynchronous network operations.

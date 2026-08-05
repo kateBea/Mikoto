@@ -60,7 +60,7 @@ namespace mikoto::core {
     #define MKT_PROFILE_SCOPE_MARKED(MARK)  mikoto::core::Timer _Timer{ MARK, mikoto::string::Format("[START] Profiling: {}. Mark {}", __PRETTY_FUNCTION__, MARK ), true }
 #else
     #define MKT_PROFILE_SCOPE()
-    #define MKT_PROFILE_SCOPE_MARKED()
+    #define MKT_PROFILE_SCOPE_MARKED(MARK)
 #endif
 
 #endif // MIKOTO_TIMER_HH

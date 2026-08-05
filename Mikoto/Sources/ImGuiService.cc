@@ -44,7 +44,6 @@
 #include <ImGui/ImGuiD3D12Backend.hh>
 #endif
 
-
 namespace mikoto::gui {
 
     static auto ThemeDarkModeAlt() -> void {
@@ -278,7 +277,6 @@ namespace mikoto::gui {
     }
 
     auto ImGuiService::AddIconFont( const float fontSize, const eastl::string &path, const eastl::array<ImWchar, 3> &iconRanges ) -> void {
-
         ImFontConfig config{};
         config.MergeMode = true;
         config.GlyphMinAdvanceX = 4.0f;
@@ -346,11 +344,11 @@ namespace mikoto::gui {
         io.IniFilename = iniFilePath.GetC_Str();
 
         // Create implementation
-        const ImGuiBackendCreateInfo imGuiVulkanBackendCreateInfo{
+        const ImGuiBackendCreateInfo imGuiBackendCreateInfo{
             .mWindow = mWindow,
             .mDevice = mDevice,
             .mApi = mBackendApi };
-        mImplementation = ImGuiBackend::Create( imGuiVulkanBackendCreateInfo );
+        mImplementation = ImGuiBackend::Create( imGuiBackendCreateInfo );
 
         // Initialize the implementation
         if ( mImplementation ) {
@@ -383,8 +381,6 @@ namespace mikoto::gui {
             return;
         }
 
-        // The Log comes after so we know the service was
-        // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down ImGuiService..." );
 
         mImplementation->Shutdown();

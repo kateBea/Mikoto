@@ -196,19 +196,19 @@ namespace mikoto::editor {
     }
 
     static auto DisplayTextureEditTreeNode( const std::string_view title, PhysicalMaterial& standardMat, const std::function<void( PhysicalMaterial& standardMat )>& func ) -> void {
-        constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
-                                                    ImGuiTreeNodeFlags_Framed |
-                                                    ImGuiTreeNodeFlags_SpanAvailWidth |
-                                                    ImGuiTreeNodeFlags_FramePadding };
+        constexpr ImGuiTreeNodeFlags treeNodeFlags{
+            ImGuiTreeNodeFlags_DefaultOpen |
+            ImGuiTreeNodeFlags_Framed |
+            ImGuiTreeNodeFlags_SpanAvailWidth |
+            ImGuiTreeNodeFlags_FramePadding };
+
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
-        const std::string nodeLabel{ fmt::format( "##{}:{}", "DisplayTextureEditTreeNode", title.data() ) };
-
+        const eastl::string nodeLabel{ string::Format( "##{}:{}", "DisplayTextureEditTreeNode", title.data() ) };
         if ( ImGui::TreeNodeEx( nodeLabel.c_str(), treeNodeFlags, "%s", title.data() ) ) {
             func( standardMat );
-
             ImGui::TreePop();
         }
 
@@ -249,7 +249,6 @@ namespace mikoto::editor {
         }
 
         if ( ImGui::IsItemHovered() ) {
-
             if ( !material.HasTexture( MapType::eDiffuse ) ) {
                 gui::ToolTip( "Click me to load a texture." );
             }
@@ -260,7 +259,6 @@ namespace mikoto::editor {
         ImGui::SameLine();
 
         constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
-
         if ( ImGui::BeginTable( "DiffuseMapEditContentsTable", 1, tableFlags ) ) {
             constexpr auto columnIndex{ 0 };
 
@@ -324,7 +322,6 @@ namespace mikoto::editor {
         }
 
         if ( ImGui::IsItemHovered() ) {
-
             if ( !material.HasTexture( MapType::eBaseColor ) ) {
                 gui::ToolTip( "Click me to load a texture." );
             }
@@ -337,7 +334,6 @@ namespace mikoto::editor {
         // Table to control albedo mix color and ambient value
         // Table has two rows and one colum
         constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_None };
-
         if ( ImGui::BeginTable( "AlbedoMapEditContentsTable", 1, tableFlags ) ) {
             constexpr auto columnIndex{ 0 };
 
@@ -453,7 +449,6 @@ namespace mikoto::editor {
         constexpr auto columnCount{ 1 };
         constexpr auto columnIndexSpecular{ 0 };
         constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
-
         if ( ImGui::BeginTable( "MetallicRoughnessEditContentsTable", columnCount, specularTableFlags ) ) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
@@ -510,12 +505,10 @@ namespace mikoto::editor {
         if ( material.HasTexture( MapType::eMetallic ) ) {
             gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( metallicMap.GetRaw() );
-            },
-                                 ImGui::IsItemHovered() );
+            }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
-
             if ( !material.HasTexture( MapType::eMetallic ) ) {
                 gui::ToolTip( "Click me to load a texture." );
             }
@@ -524,18 +517,17 @@ namespace mikoto::editor {
         }
 
         ImGui::SameLine();
+
         // Table to control specular component
         // Table has one row and one colum
         constexpr auto columnCount{ 1 };
         constexpr auto columnIndexSpecular{ 0 };
         constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
-
         if ( ImGui::BeginTable( "MetallicMapEditContentsTable", columnCount, specularTableFlags ) ) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
             float strength{ material.GetMetallicFactor() };
-
             if ( gui::Slider( "Metal factor", strength, { 0.0f, 1.0f } ) ) {
                 material.SetMetallicFactor( strength );
             }
@@ -588,12 +580,10 @@ namespace mikoto::editor {
         if ( material.HasTexture( MapType::eNormal ) ) {
             gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( normalMap.GetRaw() );
-            },
-                                 ImGui::IsItemHovered() );
+            }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
-
             if ( !material.HasTexture( MapType::eNormal ) ) {
                 gui::ToolTip( "Click me to load a texture." );
             }
@@ -602,12 +592,12 @@ namespace mikoto::editor {
         }
 
         ImGui::SameLine();
+
         // Table to control specular component
         // Table has one row and one colum
         constexpr auto columnCount{ 1 };
         constexpr auto columnIndexSpecular{ 0 };
         constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
-
         if ( ImGui::BeginTable( "NormalMapEditContentsTable", columnCount, specularTableFlags ) ) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
@@ -654,12 +644,10 @@ namespace mikoto::editor {
         if ( material.HasTexture( MapType::eEmissive ) ) {
             gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( normalMap.GetRaw() );
-            },
-                                 ImGui::IsItemHovered() );
+            }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
-
             if ( !material.HasTexture( MapType::eEmissive ) ) {
                 gui::ToolTip( "Click me to load a texture." );
             }
@@ -668,12 +656,12 @@ namespace mikoto::editor {
         }
 
         ImGui::SameLine();
+
         // Table to control specular component
         // Table has one row and one colum
         constexpr auto columnCount{ 1 };
         constexpr auto columnIndexSpecular{ 0 };
         constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
-
         if ( ImGui::BeginTable( "NormalMapEditContentsTable", columnCount, specularTableFlags ) ) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
@@ -743,12 +731,10 @@ namespace mikoto::editor {
         if ( material.HasTexture( MapType::eRoughness ) ) {
             gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( roughnessMap.GetRaw() );
-            },
-                                 ImGui::IsItemHovered() );
+            }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
-
             if ( !material.HasTexture( MapType::eRoughness ) ) {
                 gui::ToolTip( "Click me to load a texture." );
             }
@@ -757,12 +743,12 @@ namespace mikoto::editor {
         }
 
         ImGui::SameLine();
+
         // Table to control specular component
         // Table has one row and one colum
         constexpr auto columnCount{ 1 };
         constexpr auto columnIndexSpecular{ 0 };
         constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
-
         if ( ImGui::BeginTable( "RoughnessMapEditContentsTable", columnCount, specularTableFlags ) ) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
@@ -821,12 +807,10 @@ namespace mikoto::editor {
         if ( material.HasTexture( MapType::eAmbientOcclusion ) ) {
             gui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( aoMap.GetRaw() );
-            },
-                                 ImGui::IsItemHovered() );
+            }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
-
             if ( !material.HasTexture( MapType::eAmbientOcclusion ) ) {
                 gui::ToolTip( "Click me to load a texture." );
             }
@@ -835,12 +819,12 @@ namespace mikoto::editor {
         }
 
         ImGui::SameLine();
+
         // Table to control specular component
         // Table has one row and one colum
         constexpr auto columnCount{ 1 };
         constexpr auto columnIndexSpecular{ 0 };
         constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None };
-
         if ( ImGui::BeginTable( "AmbientOccEditContentsTable", columnCount, specularTableFlags ) ) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
@@ -958,7 +942,6 @@ namespace mikoto::editor {
             }
 
             if ( ImGui::MenuItem( "Text", menuItemShortcut, menuItemSelected, !IsPresent<TextComponent>( entity ) ) ) {
-
                 TextComponent& textComponent{ entity->AddComponent<TextComponent>() };
 
                 textComponent.SetSize( 12 );
@@ -1001,7 +984,6 @@ namespace mikoto::editor {
         ImGui::SameLine();
 
         constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp };
-
         if ( ImGui::BeginTable( "MaterialEditorDiffusePropertiesTable", 2, tableFlags ) ) {
             // First row - first colum
             ImGui::TableNextRow();

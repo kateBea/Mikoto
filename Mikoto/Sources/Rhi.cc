@@ -656,6 +656,84 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    auto BufferBarrierDescription::SetBuffer( BufferHandle handle ) -> BufferBarrierDescription & {
+        MKT_ASSERT( !handle.IsEmpty(), "Cannot pass en empty handle" );
+        mBuffer = handle.GetRaw();
+        return *this;
+    }
+
+    auto BufferBarrierDescription::SetOffset( u64 offset ) -> BufferBarrierDescription & {
+        mOffset = offset;
+        return *this;
+    }
+
+    auto BufferBarrierDescription::SetSize( u64 size ) -> BufferBarrierDescription & {
+        mSize = size;
+        return *this;
+    }
+
+    auto BufferBarrierDescription::SetBeforeStage( PipelineStageFlags stage ) -> BufferBarrierDescription & {
+        mStageBefore = stage;
+        return *this;
+    }
+
+    auto BufferBarrierDescription::SetBeforeAccess( AccessFlags access ) -> BufferBarrierDescription & {
+        mAccessBefore = access;
+        return *this;
+    }
+
+    auto BufferBarrierDescription::SetAfterStage( PipelineStageFlags stage ) -> BufferBarrierDescription & {
+        mStageAfter = stage;
+        return *this;
+    }
+
+    auto BufferBarrierDescription::SetAfterAccess( AccessFlags access ) -> BufferBarrierDescription & {
+        mAccessAfter = access;
+        return *this;
+    }
+
+    auto TextureBarrierDescription::SetTexture( TextureHandle handle ) -> TextureBarrierDescription & {
+        MKT_ASSERT( !handle.IsEmpty(), "Cannot pass en empty handle" );
+        mTexture = handle.GetRaw();
+        return *this;
+    }
+
+    auto TextureBarrierDescription::SetSubresourceSet( TextureSubresourceSet subResources ) -> TextureBarrierDescription & {
+        mSubresourceSet = subResources;
+        return *this;
+    }
+
+    auto TextureBarrierDescription::SetBeforeLayout( TextureLayout layout ) -> TextureBarrierDescription & {
+        mLayoutBefore = layout;
+        return *this;
+    }
+
+    auto TextureBarrierDescription::SetBeforeStage( PipelineStageFlags stage ) -> TextureBarrierDescription & {
+        mStageBefore = stage;
+        return *this;
+    }
+
+    auto TextureBarrierDescription::SetBeforeAccess( AccessFlags access ) -> TextureBarrierDescription & {
+        mAccessBefore = access;
+        return *this;
+    }
+
+
+    auto TextureBarrierDescription::SetAfterLayout( TextureLayout layout ) -> TextureBarrierDescription & {
+        mLayoutAfter = layout;
+        return *this;
+    }
+
+    auto TextureBarrierDescription::SetAfterStage( PipelineStageFlags stage ) -> TextureBarrierDescription & {
+        mStageAfter = stage;
+        return *this;
+    }
+
+    auto TextureBarrierDescription::SetAfterAccess( AccessFlags access ) -> TextureBarrierDescription & {
+        mAccessAfter = access;
+        return *this;
+    }
+
     auto IQueue::GetType() const -> QueueType {
         return mType;
     }

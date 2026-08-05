@@ -155,7 +155,7 @@ namespace mikoto::gui {
         ImGui::Render();
 
         mCommandList->Begin( { .mScopeName = "ImGui Render" } );
-        mCommandList->SetResourceState( mColorImage.GetRaw(), ResourceStates::eRenderTarget );
+        mCommandList->SetBarrier( mColorImage.GetRaw(), ResourceStates::eRenderTarget );
 
         RecordCommands();
 

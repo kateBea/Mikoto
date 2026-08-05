@@ -844,37 +844,109 @@ namespace mikoto::renderer::d3d12 {
         mCommandList->SetName( string::ToWide( mDebugName ).c_str() );
     }
 
-    auto CommandList::PushBarrier( const BufferBarrierDescription &barrierDescription ) -> void {
-        Buffer* buffer{ checked_cast<Buffer*>( barrierDescription.mBuffer ) };
-        ID3D12Resource* resource{ *buffer };
+    auto CommandList::RecordBarrier( const BufferBarrierDescription &desc ) -> void {
+        Buffer* buffer{ checked_cast<Buffer*>(desc.mBuffer) };
 
-        D3D12_RESOURCE_BARRIER barrier{};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = resource;
-        barrier.Transition.StateBefore = d3d12::GetResourceState( barrierDescription.mStateBefore );
-        barrier.Transition.StateAfter = d3d12::GetResourceState( barrierDescription.mStateAfter );
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        D3D12_BUFFER_BARRIER barrier{};
+        barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
+        barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
 
-        mResourceBarriers.emplace_back( barrier );
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
+
+        barrier.pResource    = *buffer;
+        barrier.Offset       = desc.mOffset;
+        barrier.Size         = desc.mSize;
+
+        mBufferBarriers.emplace_back(barrier);
     }
 
-    auto CommandList::PushBarrier( const TextureBarrierDescription &barrierDescription ) -> void {
-        Texture* texture{ checked_cast<Texture*>( barrierDescription.mTexture ) };
-        ID3D12Resource* resource{ *texture };
+    auto CommandList::RecordBarrier( const TextureBarrierDescription &desc ) -> void {
+        Texture* texture{ checked_cast<Texture*>(desc.mTexture) };
 
-        D3D12_RESOURCE_BARRIER barrier{};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = resource;
-        barrier.Transition.StateBefore = d3d12::GetResourceState( barrierDescription.mStateBefore );
-        barrier.Transition.StateAfter = d3d12::GetResourceState( barrierDescription.mStateAfter );
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        D3D12_TEXTURE_BARRIER barrier{};
 
-        mResourceBarriers.emplace_back( barrier );
+        barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
+        barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
+
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
+
+        barrier.LayoutBefore = d3d12::GetBarrierLayout(desc.mLayoutBefore);
+        barrier.LayoutAfter  = d3d12::GetBarrierLayout(desc.mLayoutAfter);
+
+        barrier.pResource = *texture;
+
+        barrier.Subresources.IndexOrFirstMipLevel = desc.mSubresourceSet.mBaseMipLevel;
+        barrier.Subresources.NumMipLevels = desc.mSubresourceSet.mNumMipLevels;
+        barrier.Subresources.FirstArraySlice = desc.mSubresourceSet.mBaseArraySlice;
+        barrier.Subresources.NumArraySlices = desc.mSubresourceSet.mNumArraySlices;
+        barrier.Subresources.FirstPlane = 0;
+        barrier.Subresources.NumPlanes = 1;
+
+        barrier.Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE;
+
+        mTextureBarriers.emplace_back(barrier);
     }
 
-    auto CommandList::BeginTrackingState( IBuffer *buffer, ResourceStates stateBits ) -> void {
+    auto CommandList::SetBarrier( const BufferBarrierDescription &desc ) -> void {
+        Buffer* buffer{ checked_cast<Buffer*>(desc.mBuffer) };
+
+        D3D12_BUFFER_BARRIER barrier{};
+        barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
+        barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
+
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
+
+        barrier.pResource    = *buffer;
+        barrier.Offset       = desc.mOffset;
+        barrier.Size         = desc.mSize;
+
+        D3D12_BARRIER_GROUP group{};
+        group.Type = D3D12_BARRIER_TYPE_BUFFER;
+        group.NumBarriers = 1;
+        group.pBufferBarriers = &barrier;
+
+        mCommandList->Barrier(1, &group);
+    }
+
+    auto CommandList::SetBarrier( const TextureBarrierDescription &desc ) -> void {
+        Texture* texture{ checked_cast<Texture*>(desc.mTexture) };
+
+        D3D12_TEXTURE_BARRIER barrier{};
+
+        barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
+        barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
+
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
+
+        barrier.LayoutBefore = d3d12::GetBarrierLayout(desc.mLayoutBefore);
+        barrier.LayoutAfter  = d3d12::GetBarrierLayout(desc.mLayoutAfter);
+
+        barrier.pResource = *texture;
+
+        barrier.Subresources.IndexOrFirstMipLevel = desc.mSubresourceSet.mBaseMipLevel;
+        barrier.Subresources.NumMipLevels = desc.mSubresourceSet.mNumMipLevels;
+        barrier.Subresources.FirstArraySlice = desc.mSubresourceSet.mBaseArraySlice;
+        barrier.Subresources.NumArraySlices = desc.mSubresourceSet.mNumArraySlices;
+        barrier.Subresources.FirstPlane = 0;
+        barrier.Subresources.NumPlanes = 1;
+
+        barrier.Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE;
+
+        D3D12_BARRIER_GROUP group{};
+        group.Type = D3D12_BARRIER_TYPE_TEXTURE;
+        group.NumBarriers = 1;
+        group.pTextureBarriers = &barrier;
+
+        mCommandList->Barrier(1, &group);
+
+        // TODO: Update the resource state tracking (accessFlags, PipelineState, etc)
+    }
+
+     auto CommandList::RecordBarrier( IBuffer *buffer, ResourceStates stateBits ) -> void {
         Buffer* d3d12Buffer{ checked_cast<Buffer*>( buffer ) };
         ID3D12Resource* resource{ *d3d12Buffer };
 
@@ -889,7 +961,7 @@ namespace mikoto::renderer::d3d12 {
         mResourceBarriers.emplace_back( barrier );
     }
 
-    auto CommandList::BeginTrackingState( ITexture *texture, ResourceStates stateBits ) -> void {
+    auto CommandList::RecordBarrier( ITexture *texture, ResourceStates stateBits ) -> void {
         Texture* d3d12Texture{ checked_cast<Texture*>( texture ) };
         ID3D12Resource* resource{ *d3d12Texture };
 
@@ -904,7 +976,7 @@ namespace mikoto::renderer::d3d12 {
         mResourceBarriers.emplace_back( barrier );
     }
 
-    auto CommandList::SetResourceState( IBuffer *buffer, ResourceStates stateBits ) -> void {
+    auto CommandList::SetBarrier( IBuffer *buffer, ResourceStates stateBits ) -> void {
         Buffer* d3d12Buffer{ checked_cast<Buffer*>( buffer ) };
         ID3D12Resource* resource{ *d3d12Buffer };
 
@@ -919,7 +991,7 @@ namespace mikoto::renderer::d3d12 {
         mCommandList->ResourceBarrier(1, &barrier);
     }
 
-    auto CommandList::SetResourceState( ITexture *texture, ResourceStates stateBits ) -> void {
+    auto CommandList::SetBarrier( ITexture *texture, ResourceStates stateBits ) -> void {
         Texture* d3d12Texture{ checked_cast<Texture*>( texture ) };
         ID3D12Resource* resource{ *d3d12Texture };
 
@@ -929,43 +1001,41 @@ namespace mikoto::renderer::d3d12 {
         barrier.Transition.pResource = resource;
         barrier.Transition.StateBefore = d3d12::GetResourceState( texture->GetResourceState() );
         barrier.Transition.StateAfter = d3d12::GetResourceState( stateBits );
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-        mCommandList->ResourceBarrier(1, &barrier);
-    }
-
-    auto CommandList::SetBarrier( const BufferBarrierDescription &barrierDescription ) -> void {
-        Buffer* buffer{ checked_cast<Buffer*>( barrierDescription.mBuffer ) };
-        ID3D12Resource* resource{ *buffer };
-
-        D3D12_RESOURCE_BARRIER barrier{};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = resource;
-        barrier.Transition.StateBefore = d3d12::GetResourceState( barrierDescription.mStateBefore );
-        barrier.Transition.StateAfter = d3d12::GetResourceState( barrierDescription.mStateAfter );
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-        mCommandList->ResourceBarrier(1, &barrier);
-    }
-
-    auto CommandList::SetBarrier( const TextureBarrierDescription &barrierDescription ) -> void {
-        Texture* texture{ checked_cast<Texture*>( barrierDescription.mTexture ) };
-        ID3D12Resource* resource{ *texture };
-
-        D3D12_RESOURCE_BARRIER barrier{};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = resource;
-        barrier.Transition.StateBefore = d3d12::GetResourceState( barrierDescription.mStateBefore );
-        barrier.Transition.StateAfter = d3d12::GetResourceState( barrierDescription.mStateAfter );
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
         mCommandList->ResourceBarrier(1, &barrier);
     }
 
     auto CommandList::CommitBarriers() -> void {
-        mCommandList->ResourceBarrier(as<UINT>(mResourceBarriers.size()), mResourceBarriers.data());
+        eastl::array<D3D12_BARRIER_GROUP, 2> groups{};
+        UINT numGroups{ 0 };
+
+        if (!mBufferBarriers.empty()) {
+            auto& group{ groups[numGroups++] };
+            group.Type = D3D12_BARRIER_TYPE_BUFFER;
+            group.NumBarriers = as<UINT>(mBufferBarriers.size());
+            group.pBufferBarriers = mBufferBarriers.data();
+        }
+
+        if (!mTextureBarriers.empty()) {
+            auto& group{ groups[numGroups++] };
+            group.Type = D3D12_BARRIER_TYPE_TEXTURE;
+            group.NumBarriers = as<UINT>(mTextureBarriers.size());
+            group.pTextureBarriers = mTextureBarriers.data();
+        }
+
+        if (numGroups > 0) {
+            mCommandList->Barrier(numGroups, groups.data());
+        }
+
+        if (!mResourceBarriers.empty()) {
+            mCommandList->ResourceBarrier(as<UINT>(mResourceBarriers.size()), mResourceBarriers.data());
+        }
+
+        mBufferBarriers.clear();
+        mTextureBarriers.clear();
+
+        mResourceBarriers.clear();
     }
 
     auto CommandList::SetEnableAutomaticBarriers( bool enable ) -> void {
@@ -1014,11 +1084,11 @@ namespace mikoto::renderer::d3d12 {
         switch (bSrc->GetHeapType()) {
             case HeapType::eDeviceLocal: {
                 if (mEnableAutomaticBarriers) {
-                    SetResourceState(buffer, ResourceStates::eCopyDest);
+                    SetBarrier(buffer, ResourceStates::eCopyDest);
                 }
 
                 GpuUploadAllocation* allocation{ mUploadManager->SubAllocate( byteSize ) };
-                SetResourceState( allocation->mBuffer, ResourceStates::eCopySource );
+                SetBarrier( allocation->mBuffer, ResourceStates::eCopySource );
 
                 std::memcpy(allocation->mMappedMemory, data, byteSize);
 
@@ -1082,7 +1152,7 @@ namespace mikoto::renderer::d3d12 {
 
         for (auto& renderTarget : state.mCurrentRenderTargets ) {
             if (mEnableAutomaticBarriers) {
-                SetResourceState( renderTarget.mRenderTarget.GetRaw(), ResourceStates::eRenderTarget );
+                SetBarrier( renderTarget.mRenderTarget.GetRaw(), ResourceStates::eRenderTarget );
             }
 
             Texture* texture{ checked_cast<Texture*>( renderTarget.mRenderTarget.GetRaw() ) };

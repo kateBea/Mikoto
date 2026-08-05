@@ -341,6 +341,59 @@ namespace mikoto::renderer::d3d12 {
         }
     }
 
+    auto GetBarrierSync( rhi::PipelineStageFlags flags ) -> D3D12_BARRIER_SYNC {
+        D3D12_BARRIER_SYNC result{};
+
+        if (flags & rhi::PipelineStageFlagsBits::kTop) result |= D3D12_BARRIER_SYNC_NONE;
+        if (flags & rhi::PipelineStageFlagsBits::kDrawIndirect) result |= D3D12_BARRIER_SYNC_EXECUTE_INDIRECT;
+        if (flags & rhi::PipelineStageFlagsBits::kVertexInput) result |= D3D12_BARRIER_SYNC_INDEX_INPUT | D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        if (flags & rhi::PipelineStageFlagsBits::kVertexShader) result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        if (flags & rhi::PipelineStageFlagsBits::kHullShader) result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        if (flags & rhi::PipelineStageFlagsBits::kDomainShader) result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        if (flags & rhi::PipelineStageFlagsBits::kGeometryShader) result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        if (flags & rhi::PipelineStageFlagsBits::kPixelShader) result |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
+        if (flags & rhi::PipelineStageFlagsBits::kComputeShader) result |= D3D12_BARRIER_SYNC_COMPUTE_SHADING;
+        if (flags & rhi::PipelineStageFlagsBits::kColorAttachment) result |= D3D12_BARRIER_SYNC_RENDER_TARGET;
+        if (flags & rhi::PipelineStageFlagsBits::kDepthStencil) result |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
+        if (flags & rhi::PipelineStageFlagsBits::kCopy) result |= D3D12_BARRIER_SYNC_COPY;
+        if (flags & rhi::PipelineStageFlagsBits::kBottom) result |= D3D12_BARRIER_SYNC_ALL;
+        if (flags & rhi::PipelineStageFlagsBits::kAll) result |= D3D12_BARRIER_SYNC_ALL;
+
+        return result;
+    }
+
+    auto GetBarrierAccess( rhi::AccessFlags flags ) -> D3D12_BARRIER_ACCESS {
+        D3D12_BARRIER_ACCESS result{};
+
+        if (flags & rhi::AccessFlagsBits::kIndirectRead) result |= D3D12_BARRIER_ACCESS_INDIRECT_ARGUMENT;
+        if (flags & rhi::AccessFlagsBits::kIndexRead) result |= D3D12_BARRIER_ACCESS_INDEX_BUFFER;
+        if (flags & rhi::AccessFlagsBits::kVertexRead) result |= D3D12_BARRIER_ACCESS_VERTEX_BUFFER;
+        if (flags & rhi::AccessFlagsBits::kConstantRead) result |= D3D12_BARRIER_ACCESS_CONSTANT_BUFFER;
+        if (flags & rhi::AccessFlagsBits::kShaderRead) result |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+        if (flags & rhi::AccessFlagsBits::kShaderWrite) result |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+        if (flags & rhi::AccessFlagsBits::kRenderTarget) result |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
+        if (flags & rhi::AccessFlagsBits::kDepthStencilRead) result |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ;
+        if (flags & rhi::AccessFlagsBits::kDepthStencilWrite) result |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE;
+        if (flags & rhi::AccessFlagsBits::kCopyRead) result |= D3D12_BARRIER_ACCESS_COPY_SOURCE;
+        if (flags & rhi::AccessFlagsBits::kCopyWrite) result |= D3D12_BARRIER_ACCESS_COPY_DEST;
+
+        return result;
+    }
+
+    auto GetBarrierLayout( rhi::TextureLayout layout ) -> D3D12_BARRIER_LAYOUT {
+        if (layout == rhi::TextureLayoutBits::kUnknown) return D3D12_BARRIER_LAYOUT_UNDEFINED;
+        if (layout == rhi::TextureLayoutBits::kGeneral) return D3D12_BARRIER_LAYOUT_COMMON;
+        if (layout == rhi::TextureLayoutBits::kColorAttachment) return D3D12_BARRIER_LAYOUT_RENDER_TARGET;
+        if (layout == rhi::TextureLayoutBits::kDepthStencilWrite) return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
+        if (layout == rhi::TextureLayoutBits::kDepthStencilRead) return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
+        if (layout == rhi::TextureLayoutBits::kShaderResource) return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+        if (layout == rhi::TextureLayoutBits::kUnorderedAccess) return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
+        if (layout == rhi::TextureLayoutBits::kCopySrc) return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
+        if (layout == rhi::TextureLayoutBits::kCopyDst) return D3D12_BARRIER_LAYOUT_COPY_DEST;
+        if (layout == rhi::TextureLayoutBits::kPresent) return D3D12_BARRIER_LAYOUT_PRESENT;
+
+        return D3D12_BARRIER_LAYOUT_UNDEFINED;
+    }
 
     auto GetHeapType( rhi::HeapType type ) -> D3D12_HEAP_TYPE {
         switch (type) {

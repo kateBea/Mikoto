@@ -415,19 +415,19 @@ namespace mikoto::renderer::d3d12 {
 
         // More relaxed versions of SetResourceState
         // https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12
-        auto PushBarrier( const BufferBarrierDescription& barrierDescription ) -> void override;
-        auto PushBarrier( const TextureBarrierDescription& barrier ) -> void override;
+        auto RecordBarrier( const BufferBarrierDescription& desc ) -> void override;
+        auto RecordBarrier( const TextureBarrierDescription& desc ) -> void override;
 
-        auto BeginTrackingState(IBuffer* buffer, ResourceStates stateBits) -> void override;
-        auto BeginTrackingState(ITexture* texture, ResourceStates stateBits) -> void override;
-
-        auto SetResourceState(IBuffer* buffer, ResourceStates stateBits) -> void override;
-        auto SetResourceState(ITexture* texture, ResourceStates stateBits) -> void override;
-
-        auto SetBarrier( const BufferBarrierDescription& barrierDescription ) -> void override;
-        auto SetBarrier( const TextureBarrierDescription& barrierDescription ) -> void override;
+        auto RecordBarrier(IBuffer* buffer, ResourceStates stateBits) -> void override;
+        auto RecordBarrier(ITexture* texture, ResourceStates stateBits) -> void override;
 
         auto CommitBarriers() -> void override;
+
+        auto SetBarrier( const BufferBarrierDescription& desc ) -> void override;
+        auto SetBarrier( const TextureBarrierDescription& desc ) -> void override;
+
+        auto SetBarrier(IBuffer* buffer, ResourceStates stateBits) -> void override;
+        auto SetBarrier(ITexture* texture, ResourceStates stateBits) -> void override;
 
         auto SetEnableAutomaticBarriers(  bool enable  ) -> void override;
 
@@ -490,7 +490,7 @@ namespace mikoto::renderer::d3d12 {
         auto ClearState() -> void;
 
     private:
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList{};
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7> mCommandList{};
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mCommandAllocator{};
 
         GpuUploadManager* mUploadManager{};
@@ -500,6 +500,9 @@ namespace mikoto::renderer::d3d12 {
         bool mEnableAutomaticBarriers{ true };
 
         eastl::fixed_vector<D3D12_RESOURCE_BARRIER, rhi::kMaxBarriers> mResourceBarriers{};
+
+        eastl::fixed_vector<D3D12_BUFFER_BARRIER, rhi::kMaxBarriers> mBufferBarriers{};
+        eastl::fixed_vector<D3D12_TEXTURE_BARRIER, rhi::kMaxBarriers> mTextureBarriers{};
     };
 
     class Device final : public IGpuDevice {

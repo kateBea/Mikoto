@@ -650,7 +650,7 @@ namespace mikoto::editor {
     auto EditorLayer::RenderScene( float ) -> void {
         // External textures are not managed by the frame graph
         mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - RenderTarget" } );
-        mCommandList->SetResourceState( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eRenderTarget );
+        mCommandList->SetBarrier( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eRenderTarget );
         mCommandList->End();
         mDevice->SubmitCommands( mCommandList );
 
@@ -660,7 +660,7 @@ namespace mikoto::editor {
             mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - ShaderResource" } );
             // On panel mode this image is sampled by ImGui to render as viewport hence why the transition,
             // otherwise it is copied directly to the swapchain image
-            mCommandList->SetResourceState( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eShaderResource );
+            mCommandList->SetBarrier( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eShaderResource );
 
             mCommandList->End();
             mDevice->SubmitCommands( mCommandList );

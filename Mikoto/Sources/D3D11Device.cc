@@ -265,11 +265,11 @@ namespace mikoto::renderer::d3d11 {
     auto CommandList::EndParallel() -> void {
     }
 
-    auto CommandList::PushBarrier( const BufferBarrierDescription &barrier ) -> void {
+    auto CommandList::RecordBarrier( const BufferBarrierDescription &barrier ) -> void {
 
     }
 
-    auto CommandList::PushBarrier( const TextureBarrierDescription &barrier ) -> void {
+    auto CommandList::RecordBarrier( const TextureBarrierDescription &barrier ) -> void {
 
     }
 
@@ -281,16 +281,16 @@ namespace mikoto::renderer::d3d11 {
 
     }
 
-    auto CommandList::BeginTrackingState( IBuffer *buffer, ResourceStates stateBits ) -> void {
+    auto CommandList::RecordBarrier( IBuffer *buffer, ResourceStates stateBits ) -> void {
     }
 
-    auto CommandList::BeginTrackingState( ITexture *texture, ResourceStates stateBits ) -> void {
+    auto CommandList::RecordBarrier( ITexture *texture, ResourceStates stateBits ) -> void {
     }
 
-    auto CommandList::SetResourceState( IBuffer *buffer, ResourceStates stateBits ) -> void {
+    auto CommandList::SetBarrier( IBuffer *buffer, ResourceStates stateBits ) -> void {
     }
 
-    auto CommandList::SetResourceState( ITexture *texture, ResourceStates stateBits ) -> void {
+    auto CommandList::SetBarrier( ITexture *texture, ResourceStates stateBits ) -> void {
         checked_cast<Texture*>( texture )->EnableUsage( stateBits );
     }
 

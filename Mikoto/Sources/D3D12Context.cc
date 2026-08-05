@@ -290,7 +290,7 @@ namespace mikoto::renderer::d3d12 {
             // Blit via full quad render
             TextureHandle colorImage{ mSwapChain->GetCurrentBackBufferImage() };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
-            mCommandList->SetResourceState( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
+            mCommandList->SetBarrier( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
 
             if (mTableUpdateRequired) {
                 (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( 0, mPresentTarget.GetRaw() ) );
@@ -320,7 +320,7 @@ namespace mikoto::renderer::d3d12 {
 
             mCommandList->EndRendering();
 
-            mCommandList->SetResourceState( colorImage.GetRaw(), ResourceStates::ePresent );
+            mCommandList->SetBarrier( colorImage.GetRaw(), ResourceStates::ePresent );
 
             mCommandList->End();
 
@@ -343,7 +343,7 @@ namespace mikoto::renderer::d3d12 {
                 mPresentTarget.GetRaw(), srcSlice,
                 colorImage.GetRaw(), dstSlice );
 
-            mCommandList->SetResourceState( colorImage.GetRaw(), ResourceStates::ePresent );
+            mCommandList->SetBarrier( colorImage.GetRaw(), ResourceStates::ePresent );
 
             mCommandList->End();
 

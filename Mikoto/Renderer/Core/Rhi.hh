@@ -92,12 +92,11 @@ namespace mikoto::renderer::rhi {
         static constexpr AccessFlags kConstantRead{ BIT_SET(3) };
         static constexpr AccessFlags kShaderRead{ BIT_SET(4) };
         static constexpr AccessFlags kShaderWrite{ BIT_SET(5) };
-        static constexpr AccessFlags kRenderTargetRead{ BIT_SET(6) };
-        static constexpr AccessFlags kRenderTargetWrite{ BIT_SET(7) };
-        static constexpr AccessFlags kDepthStencilRead{ BIT_SET(8) };
-        static constexpr AccessFlags kDepthStencilWrite{ BIT_SET(9) };
-        static constexpr AccessFlags kCopyRead{ BIT_SET(10) };
-        static constexpr AccessFlags kCopyWrite{ BIT_SET(11) };
+        static constexpr AccessFlags kRenderTarget{ BIT_SET(6) };
+        static constexpr AccessFlags kDepthStencilRead{ BIT_SET(7) };
+        static constexpr AccessFlags kDepthStencilWrite{ BIT_SET(8) };
+        static constexpr AccessFlags kCopyRead{ BIT_SET(9) };
+        static constexpr AccessFlags kCopyWrite{ BIT_SET(10) };
     };
 
     struct TextureLayoutProperties {
@@ -109,12 +108,13 @@ namespace mikoto::renderer::rhi {
         static constexpr TextureLayout kUnknown{ 0 };
         static constexpr TextureLayout kGeneral{ BIT_SET(1) };
         static constexpr TextureLayout kColorAttachment{ BIT_SET(2) };
-        static constexpr TextureLayout kDepthStencil{ BIT_SET(3) };
-        static constexpr TextureLayout kShaderResource{ BIT_SET(4) };
-        static constexpr TextureLayout kUnorderedAccess{ BIT_SET(5) }; // For RW textures
-        static constexpr TextureLayout kCopySrc{ BIT_SET(6) };
-        static constexpr TextureLayout kCopyDst{ BIT_SET(7) };
-        static constexpr TextureLayout kPresent{ BIT_SET(8) };
+        static constexpr TextureLayout kDepthStencilWrite{ BIT_SET(3) };
+        static constexpr TextureLayout kDepthStencilRead{ BIT_SET(4) };
+        static constexpr TextureLayout kShaderResource{ BIT_SET(5) };
+        static constexpr TextureLayout kUnorderedAccess{ BIT_SET(6) }; // For RW textures
+        static constexpr TextureLayout kCopySrc{ BIT_SET(7) };
+        static constexpr TextureLayout kCopyDst{ BIT_SET(8) };
+        static constexpr TextureLayout kPresent{ BIT_SET(9) };
     };
 
     enum class ObjectType {
@@ -879,8 +879,8 @@ namespace mikoto::renderer::rhi {
 
         auto Initialize( IGpuDevice* device ) -> void;
 
-        auto SetResourceState( ResourceStates state ) -> void { mResourceState.store( state ); }
-        MKT_NODISCARD auto GetResourceState() const -> ResourceStates { return mResourceState.load(); }
+        auto SetResourceState( ResourceStates state ) -> void { mResourceState = state; }
+        MKT_NODISCARD auto GetResourceState() const -> ResourceStates { return mResourceState; }
 
         virtual auto SetDebugName(const eastl::string_view name) -> void { mDebugName = name; }
 
@@ -905,8 +905,13 @@ namespace mikoto::renderer::rhi {
         IGpuDevice* mDevice{};
         eastl::string mDebugName{};
 
+        // State tracking
         ResourceType mResourceType{ ResourceType::eInvalid };
-        eastl::atomic<ResourceStates> mResourceState{ ResourceStates::eUnknown };
+        ResourceStates mResourceState{ ResourceStates::eUnknown };
+
+        TextureLayout mLayoutAfter{ TextureLayoutBits::kUnknown };
+        AccessFlags mAccessAfter{ AccessFlagsBits::kNone };
+        PipelineStageFlags mStageAfter{ PipelineStageFlagsBits::kNone };
 
         // By default, the resource is device local
         // lives in memory "only accessible by device"
@@ -1770,14 +1775,22 @@ namespace mikoto::renderer::rhi {
         u64                mSize         { 0xFFFFFFFFFFFFFFFFULL };
 
         // Previous State
-        ResourceStates     mStateBefore  { ResourceStates::eUnknown };
         PipelineStageFlags mStageBefore  { PipelineStageFlagsBits::kNone };
         AccessFlags        mAccessBefore { AccessFlagsBits::kNone };
 
         // New State
-        ResourceStates     mStateAfter   { ResourceStates::eUnknown };
         PipelineStageFlags mStageAfter   { PipelineStageFlagsBits::kNone };
         AccessFlags        mAccessAfter  { AccessFlagsBits::kNone };
+
+        auto SetBuffer( BufferHandle handle ) -> BufferBarrierDescription&;
+        auto SetOffset( u64 offset ) -> BufferBarrierDescription&;
+        auto SetSize( u64 size ) -> BufferBarrierDescription&;
+
+        auto SetBeforeStage( PipelineStageFlags stage ) -> BufferBarrierDescription&;
+        auto SetBeforeAccess( AccessFlags access ) -> BufferBarrierDescription&;
+
+        auto SetAfterStage( PipelineStageFlags stage ) -> BufferBarrierDescription&;
+        auto SetAfterAccess( AccessFlags access ) -> BufferBarrierDescription&;
     };
 
     struct TextureBarrierDescription {
@@ -1786,16 +1799,25 @@ namespace mikoto::renderer::rhi {
         TextureSubresourceSet   mSubresourceSet{ AllSubResources };
 
         // Previous State
-        ResourceStates     mStateBefore  { ResourceStates::eUnknown };
         TextureLayout      mLayoutBefore { TextureLayoutBits::kUnknown };
         PipelineStageFlags mStageBefore  { PipelineStageFlagsBits::kNone };
         AccessFlags        mAccessBefore { AccessFlagsBits::kNone };
 
         // New State
-        ResourceStates     mStateAfter   { ResourceStates::eUnknown };
         TextureLayout      mLayoutAfter  { TextureLayoutBits::kUnknown };
         PipelineStageFlags mStageAfter   { PipelineStageFlagsBits::kNone };
         AccessFlags        mAccessAfter  { AccessFlagsBits::kNone };
+
+        auto SetTexture( TextureHandle handle ) -> TextureBarrierDescription&;
+        auto SetSubresourceSet( TextureSubresourceSet subResources ) -> TextureBarrierDescription&;
+
+        auto SetBeforeLayout( TextureLayout layout ) -> TextureBarrierDescription&;
+        auto SetBeforeStage( PipelineStageFlags stage ) -> TextureBarrierDescription&;
+        auto SetBeforeAccess( AccessFlags access ) -> TextureBarrierDescription&;
+
+        auto SetAfterLayout( TextureLayout layout ) -> TextureBarrierDescription&;
+        auto SetAfterStage( PipelineStageFlags stage ) -> TextureBarrierDescription&;
+        auto SetAfterAccess( AccessFlags access ) -> TextureBarrierDescription&;
     };
 
     struct CommandListBeginDescription {
@@ -1815,21 +1837,20 @@ namespace mikoto::renderer::rhi {
         virtual auto BeginParallel() -> void = 0;
         virtual auto EndParallel() -> void = 0;
 
-        // More relaxed versions of SetResourceState (PushBarrier needs
-        // CommitBarrier() called, SetBarrier() automatically flushes the barrier)
-        virtual auto PushBarrier( const BufferBarrierDescription& barrier ) -> void = 0;
-        virtual auto PushBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
+        virtual auto RecordBarrier( const BufferBarrierDescription& barrier ) -> void = 0;
+        virtual auto RecordBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
+
+        virtual auto RecordBarrier(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
+        virtual auto RecordBarrier(ITexture* buffer, ResourceStates stateBits) -> void = 0;
+
+        virtual auto CommitBarriers() -> void = 0;
 
         virtual auto SetBarrier( const BufferBarrierDescription& barrier ) -> void = 0;
         virtual auto SetBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
 
-        virtual auto SetResourceState(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
-        virtual auto SetResourceState(ITexture* buffer, ResourceStates stateBits) -> void = 0;
+        virtual auto SetBarrier(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
+        virtual auto SetBarrier(ITexture* buffer, ResourceStates stateBits) -> void = 0;
 
-        virtual auto BeginTrackingState(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
-        virtual auto BeginTrackingState(ITexture* buffer, ResourceStates stateBits) -> void = 0;
-
-        virtual auto CommitBarriers() -> void = 0;
 
         virtual auto SetEnableAutomaticBarriers(  bool enable  ) -> void = 0;
 

@@ -1017,7 +1017,7 @@ namespace mikoto::renderer::vulkan {
         MKT_VK_CHECK( vkEndCommandBuffer( ctx->mCommandBuffer ) );
     }
 
-    auto CommandList::BeginTrackingState( IBuffer *buffer, ResourceStates newState ) -> void {
+    auto CommandList::RecordBarrier( IBuffer *buffer, ResourceStates newState ) -> void {
         // https://docs.vulkan.org/guide/latest/synchronization.html#synchronization
         // https://docs.vulkan.org/samples/latest/samples/performance/pipeline_barriers/README.html
         auto oldState{ buffer->GetResourceState() };
@@ -1043,7 +1043,7 @@ namespace mikoto::renderer::vulkan {
         buffer->SetResourceState(newState);
     }
 
-    auto CommandList::BeginTrackingState( ITexture *texture, ResourceStates newState ) -> void {
+    auto CommandList::RecordBarrier( ITexture *texture, ResourceStates newState ) -> void {
         // https://www.rastergrid.com/blog/gpu-tech/2026/03/vulkan-memory-barriers-and-image-layouts-explained/
         // https://docs.vulkan.org/samples/latest/samples/performance/pipeline_barriers/README.html
         // https://gpuopen.com/learn/vulkan-barriers-explained/
@@ -1104,13 +1104,13 @@ namespace mikoto::renderer::vulkan {
         mImageBarriers.clear();
     }
 
-    auto CommandList::SetResourceState( IBuffer *buffer, ResourceStates newState ) -> void {
-        BeginTrackingState(buffer, newState);
+    auto CommandList::SetBarrier( IBuffer *buffer, ResourceStates newState ) -> void {
+        RecordBarrier(buffer, newState);
         CommitBarriers();
     }
 
-    auto CommandList::SetResourceState( ITexture *texture, ResourceStates newState ) -> void {
-        BeginTrackingState(texture, newState);
+    auto CommandList::SetBarrier( ITexture *texture, ResourceStates newState ) -> void {
+        RecordBarrier(texture, newState);
         CommitBarriers();
     }
 
@@ -1121,7 +1121,7 @@ namespace mikoto::renderer::vulkan {
     auto CommandList::SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void {
         for (auto image : frameBuffer->GetColorAttachments()) {
             if (mEnableAutomaticBarriers) {
-                SetResourceState( image.GetRaw(), ResourceStates::eCopyDest );
+                SetBarrier( image.GetRaw(), ResourceStates::eCopyDest );
             }
 
             VkClearColorValue clearColor{{color.mR, color.mB, color.mB, color.mA}};
@@ -1140,7 +1140,7 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::SetClearColor( TextureHandle image, Color color ) -> void {
         if (mEnableAutomaticBarriers) {
-            SetResourceState( image.GetRaw(), ResourceStates::eCopyDest );
+            SetBarrier( image.GetRaw(), ResourceStates::eCopyDest );
         }
 
         VkClearColorValue clearColor{{color.mR, color.mB, color.mB, color.mA}};
@@ -1162,11 +1162,11 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::Write( ITexture *texture, u32 mipLevel, const void *data, size_t byteSize ) -> void {
         if (mEnableAutomaticBarriers) {
-            SetResourceState( texture, ResourceStates::eCopyDest );
+            SetBarrier( texture, ResourceStates::eCopyDest );
         }
 
         GpuUploadAllocation* allocation{ mUploadManager->SubAllocate( byteSize ) };
-        SetResourceState( allocation->mBuffer, ResourceStates::eCopySource );
+        SetBarrier( allocation->mBuffer, ResourceStates::eCopySource );
 
         std::memcpy( allocation->mMappedMemory, data, byteSize );
 
@@ -1218,7 +1218,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         if (mEnableAutomaticBarriers) {
-            SetResourceState(buffer, ResourceStates::eCopyDest);
+            SetBarrier(buffer, ResourceStates::eCopyDest);
         }
 
         VkBuffer vkBuffer{ buffer->GetNativeHandle(ObjectType::Vk_Buffer) };
@@ -1241,7 +1241,7 @@ namespace mikoto::renderer::vulkan {
 
             // TODO: Implement a set resource state internal version that specifies ranges
             // to be protected, SetResourceState() by default protects the whole range of the buffer
-            SetResourceState( allocation->mBuffer, ResourceStates::eCopySource );
+            SetBarrier( allocation->mBuffer, ResourceStates::eCopySource );
 
             std::memcpy(allocation->mMappedMemory, data, byteSize);
 
@@ -1318,11 +1318,11 @@ namespace mikoto::renderer::vulkan {
         mDebugName = name;
     }
 
-    auto CommandList::PushBarrier( const BufferBarrierDescription& barrier ) -> void {
+    auto CommandList::RecordBarrier( const BufferBarrierDescription& barrier ) -> void {
 
     }
 
-    auto CommandList::PushBarrier( const TextureBarrierDescription& barrier ) -> void {
+    auto CommandList::RecordBarrier( const TextureBarrierDescription& barrier ) -> void {
 
     }
 
@@ -1348,8 +1348,8 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT(size <= (dest->GetSizeBytes() - dstOffset), "Destination buffer is too small");
 
         if (mEnableAutomaticBarriers) {
-            BeginTrackingState(src, ResourceStates::eCopySource);
-            BeginTrackingState(dest, ResourceStates::eCopyDest);
+            RecordBarrier(src, ResourceStates::eCopySource);
+            RecordBarrier(dest, ResourceStates::eCopyDest);
 
             CommitBarriers();
         }
@@ -1372,8 +1372,8 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::Copy( IBuffer* dest, ITexture* src ) -> void {
         if (mEnableAutomaticBarriers) {
-            BeginTrackingState( src, ResourceStates::eCopySource  );
-            BeginTrackingState( dest, ResourceStates::eCopyDest  );
+            RecordBarrier( src, ResourceStates::eCopySource  );
+            RecordBarrier( dest, ResourceStates::eCopyDest  );
             CommitBarriers();
         }
 
@@ -1429,12 +1429,12 @@ namespace mikoto::renderer::vulkan {
         if (mEnableAutomaticBarriers) {
             for (auto& rt : state.mCurrentRenderTargets ) {
                 if (rt.mRenderTarget->GetResourceState() != ResourceStates::eRenderTarget) {
-                    BeginTrackingState( rt.mRenderTarget.GetRaw(), ResourceStates::eRenderTarget );
+                    RecordBarrier( rt.mRenderTarget.GetRaw(), ResourceStates::eRenderTarget );
                 }
             }
 
             if (!state.mDepthTarget.mRenderTarget.IsEmpty() && state.mDepthTarget.mRenderTarget->GetResourceState() != ResourceStates::eDepthWrite) {
-                BeginTrackingState( state.mDepthTarget.mRenderTarget.GetRaw(), ResourceStates::eDepthWrite );
+                RecordBarrier( state.mDepthTarget.mRenderTarget.GetRaw(), ResourceStates::eDepthWrite );
             }
 
             CommitBarriers();
@@ -1652,8 +1652,8 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( dstImage != VK_NULL_HANDLE, "Destination Vulkan image is null" );
 
         if (mEnableAutomaticBarriers) {
-            BeginTrackingState(srcTexture, ResourceStates::eCopySource);
-            BeginTrackingState(dstTexture, ResourceStates::eCopyDest);
+            RecordBarrier(srcTexture, ResourceStates::eCopySource);
+            RecordBarrier(dstTexture, ResourceStates::eCopyDest);
             CommitBarriers();
         }
 
@@ -1752,7 +1752,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         if (mEnableAutomaticBarriers) {
-            SetResourceState( target, ResourceStates::eCopyDest );
+            SetBarrier( target, ResourceStates::eCopyDest );
         }
 
         auto& allocator{ mArenasAllocators[mCurrentVolatileVersion] };
@@ -1760,7 +1760,7 @@ namespace mikoto::renderer::vulkan {
 
         Buffer* staging{ checked_cast<Buffer*>( mArenasAllocators[mCurrentVolatileVersion]->GetBuffer().GetRaw() ) };
 
-        SetResourceState( staging, ResourceStates::eCopySource );
+        SetBarrier( staging, ResourceStates::eCopySource );
 
         std::memcpy( as<byte_t*>(staging->GetMappedAddress()) + allocation->mOffset, data, byteSize );
 

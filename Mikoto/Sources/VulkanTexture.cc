@@ -130,7 +130,7 @@ namespace mikoto::renderer::vulkan {
         cmd->Write( this, 0, mImageData->mBufferSpan->GetData(), mImageData->mBufferSpan->GetSize() );
 
         // These textures are often loaded to be read from shaders
-        cmd->SetResourceState( this, ResourceStates::eShaderResource );
+        cmd->SetBarrier( this, ResourceStates::eShaderResource );
 
         cmd->End();
         mDevice->ExecuteCommands( cmd );

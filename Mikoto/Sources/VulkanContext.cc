@@ -143,7 +143,7 @@ namespace mikoto::renderer::vulkan {
             // Blit via full quad render
             TextureHandle colorImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
-            mCommandList->SetResourceState( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
+            mCommandList->SetBarrier( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
 
             if (mTableUpdateRequired) {
                 (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( 0, mPresentTarget.GetRaw() ) );
@@ -172,7 +172,7 @@ namespace mikoto::renderer::vulkan {
 
             mCommandList->EndRendering();
 
-            mCommandList->SetResourceState( colorImage.GetRaw(), ResourceStates::ePresent );
+            mCommandList->SetBarrier( colorImage.GetRaw(), ResourceStates::ePresent );
 
             mCommandList->End();
 
@@ -194,7 +194,7 @@ namespace mikoto::renderer::vulkan {
                 mPresentTarget.GetRaw(), srcSlice,
                 currentSwapchainImage.GetRaw(), dstSlice );
 
-            mCommandList->SetResourceState(
+            mCommandList->SetBarrier(
                 currentSwapchainImage.GetRaw(),
                 ResourceStates::ePresent );
 

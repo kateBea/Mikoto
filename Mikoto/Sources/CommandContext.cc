@@ -194,10 +194,10 @@ namespace mikoto::renderer {
 
             switch (resource.mType) {
                 case FGResourceType::eTexture:
-                    mCommands->BeginTrackingState( checked_cast<ITexture*>( resource.mResource.GetRaw() ), desired );
+                    mCommands->RecordBarrier( checked_cast<ITexture*>( resource.mResource.GetRaw() ), desired );
                     break;
                 case FGResourceType::eBuffer:
-                    mCommands->BeginTrackingState( checked_cast<IBuffer*>( resource.mResource.GetRaw() ), desired );
+                    mCommands->RecordBarrier( checked_cast<IBuffer*>( resource.mResource.GetRaw() ), desired );
                     break;
                 default:
                     MKT_ASSERT( false, "Unknown resource type" );

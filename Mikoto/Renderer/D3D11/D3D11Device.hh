@@ -130,14 +130,14 @@ namespace mikoto::renderer::d3d11 {
         auto EndParallel() -> void override;
 
         // More relaxed versions of SetResourceState
-        auto PushBarrier( const BufferBarrierDescription& barrier ) -> void override;
-        auto PushBarrier( const TextureBarrierDescription& barrier ) -> void override;
+        auto RecordBarrier( const BufferBarrierDescription& barrier ) -> void override;
+        auto RecordBarrier( const TextureBarrierDescription& barrier ) -> void override;
 
-        auto BeginTrackingState(IBuffer* buffer, ResourceStates stateBits) -> void override;
-        auto BeginTrackingState(ITexture* buffer, ResourceStates stateBits) -> void override;
+        auto RecordBarrier(IBuffer* buffer, ResourceStates stateBits) -> void override;
+        auto RecordBarrier(ITexture* buffer, ResourceStates stateBits) -> void override;
 
-        auto SetResourceState(IBuffer* buffer, ResourceStates stateBits) -> void override;
-        auto SetResourceState(ITexture* buffer, ResourceStates stateBits) -> void override;
+        auto SetBarrier(IBuffer* buffer, ResourceStates stateBits) -> void override;
+        auto SetBarrier(ITexture* buffer, ResourceStates stateBits) -> void override;
 
         auto SetBarrier( const BufferBarrierDescription& barrier ) -> void override;
         auto SetBarrier( const TextureBarrierDescription& barrier ) -> void override;

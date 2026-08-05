@@ -13,5 +13,7 @@
   "save_scene": "シーンを保存",
   "new_project": "新しいプロジェクト",
   "open_project": "プロジェクトを開く",
-  "save_project": "プロジェクトを保存"
+  "save_project": "プロジェクトを保存",
+
+  "hierarchy_search": "検索"
 }

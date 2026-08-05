@@ -28,6 +28,8 @@
 
 #include <Memory/Allocator.hh>
 
+#include <Core/LocalizationService.hh>
+
 #include <Scene/Scene.hh>
 #include <Scene/Entity.hh>
 #include <Scene/Component.hh>
@@ -279,8 +281,11 @@ namespace mikoto::editor {
 
             // TODO: grab the color from text color and lower alpha value
             ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 255, 255, 128 ) );
-            ImGui::TextUnformatted( fmt::format( "{} Search...", ICON_MD_SEARCH ).c_str() );
+
+            const eastl::string searchText{ LocalizationService::Get()->Translate( "hierarchy_search" ) };
+            ImGui::TextUnformatted( string::Format( "{} {}...", ICON_MD_SEARCH, searchText.c_str() ).c_str() );
             ImGui::PopStyleColor();
+            ImGui::Spacing();
         }
     }
 

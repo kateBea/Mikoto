@@ -13,5 +13,7 @@
   "save_scene": "保存场景",
   "new_project": "新建项目",
   "open_project": "打开项目",
-  "save_project": "保存项目"
+  "save_project": "保存项目",
+
+  "hierarchy_search": "搜索"
 }

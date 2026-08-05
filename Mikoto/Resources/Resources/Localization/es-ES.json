@@ -13,5 +13,7 @@
   "save_scene": "Guardar escena",
   "new_project": "Nuevo Proyecto",
   "open_project": "Abrir proyecto",
-  "save_project": "Guardar proyecto"
+  "save_project": "Guardar proyecto",
+
+  "hierarchy_search": "Buscar"
 }

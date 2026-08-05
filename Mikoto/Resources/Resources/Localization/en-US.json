@@ -13,5 +13,7 @@
   "save_scene": "Save Scene",
   "new_project": "New Project",
   "open_project": "Open Project",
-  "save_project": "Save Project"
+  "save_project": "Save Project",
+
+  "hierarchy_search": "Search"
 }

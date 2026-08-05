@@ -124,21 +124,20 @@ namespace mikoto::gui {
 
         style.Colors[ImGuiCol_MenuBarBg] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
 
-        style.Colors[ImGuiCol_FrameBg] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
-        style.Colors[ImGuiCol_FrameBgHovered] = ImVec4( 0.2f, 0.2f, 0.2f, 1.0f );
-        style.Colors[ImGuiCol_FrameBgActive] = ImVec4( 0.3f, 0.3f, 0.3f, 1.0f );
+        style.Colors[ImGuiCol_FrameBg] = ImVec4( 0.08f, 0.08f, 0.08f, 1.0f );
+        style.Colors[ImGuiCol_FrameBgHovered] = ImVec4( 0.08f, 0.08f, 0.08f, 1.0f );
+        style.Colors[ImGuiCol_FrameBgActive] = ImVec4( 0.08f, 0.08f, 0.08f, 1.0f );
 
         //style.Colors[ImGuiCol_Border] = ImVec4( 1.0f, 1.0f, 1.0f, 1.0f );
         //style.Colors[ImGuiCol_BorderShadow] = ImVec4( 0.0f, 0.0f, 0.0f, 0.5f );
 
-        style.Colors[ImGuiCol_SliderGrab] = ImVec4( 0.10f, 0.10f, 0.10f, 1.0f );
-        style.Colors[ImGuiCol_SliderGrabActive] = ImVec4( 0.1f, 0.1f, 0.1f, 1.0f );
+        style.Colors[ImGuiCol_SliderGrab] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
+        style.Colors[ImGuiCol_SliderGrabActive] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
         style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
 
-        style.Colors[ImGuiCol_WindowBg] = ImVec4( 0.124f, 0.124f, 0.124f, 1.0f );
-        style.Colors[ImGuiCol_ChildBg] = ImVec4( 0.184f, 0.184f, 0.184f, 0.00f );
+        style.Colors[ImGuiCol_WindowBg] = ImVec4( 0.139f, 0.137f, 0.137f, 1.0f );
+        style.Colors[ImGuiCol_ChildBg] = ImVec4( 0.139f, 0.137f, 0.137f, 0.00f );
         style.Colors[ImGuiCol_CheckMark] = ImVec4( 1.00f, 1.00f, 1.00f, 1.00f );
-
 
         // borders
         style.WindowBorderSize = 0.0f;
@@ -146,13 +145,13 @@ namespace mikoto::gui {
         style.PopupBorderSize = 0.0f;
 
         // Rounding values
-        style.FrameRounding = 2.5f;
-        style.GrabRounding = 2.5f;
-        style.ChildRounding = 2.5f;
-        style.WindowRounding = 2.5f;
-        style.PopupRounding = 2.5f;
-        style.ScrollbarRounding = 2.5f;
-        style.TabRounding = 2.5f;
+        style.FrameRounding = 3.5f;
+        style.GrabRounding = 3.5f;
+        style.ChildRounding = 3.5f;
+        style.WindowRounding = 3.5f;
+        style.PopupRounding = 3.5f;
+        style.ScrollbarRounding = 3.5f;
+        style.TabRounding = 3.5f;
     }
 
     ImGuiService::ImGuiService( const ImGuiServiceDescription &options )

@@ -167,9 +167,13 @@ namespace mikoto::editor {
         };
 
         const Path path{ FileService::Get()->OpenDialog( filters ) };
-
         if ( !path.IsEmpty() ) {
-
+            TextureHandle texture{ asset::AssetsService::Get()->GetAssetByUri<ITexture>( path ) };
+            if (texture.IsEmpty()) {
+                asset::AssetsService::Get()->LoadAssetAsync<ITexture>( path, TextureDimension::eTexture2D );
+            } else {
+                standardMat.SetTexture( mapType, texture );
+            }
         }
     }
 
@@ -374,7 +378,7 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( columnIndex );
 
             AlphaMode currentAlphaMode{ material.GetAlphaMask() };
-            std::array<std::string, static_cast<size_t>(AlphaMode::eCount)> choicesAlpha{
+            std::array<std::string, as<size_t>(AlphaMode::eCount)> choicesAlpha{
                 "Opaque", "Mask", "Blend",
             };
 

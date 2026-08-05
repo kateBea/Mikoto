@@ -53,6 +53,11 @@ namespace mikoto::editor {
     }
 
     auto EditorDebugLayer::OnUpdate( float deltaTime ) -> void {
+        // D3D11 does not implement bindless yet
+        if (mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 )) {
+            return;
+        }
+
         UpdateCameraState( deltaTime );
 
         mCommandList->Begin( { .mScopeName = "EditorDebug Render" } );
@@ -123,6 +128,11 @@ namespace mikoto::editor {
     }
 
     auto EditorDebugLayer::OnCreate() -> void {
+        // D3D11 does not implement bindless yet
+        if (mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 )) {
+            return;
+        }
+
         // Create color attachment
         auto colorDesc{ TextureCreateDescription{}
             .SetWidth( as<i32>( 1920 ) )

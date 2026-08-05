@@ -1427,16 +1427,18 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::Shutdown() -> void {
-        mDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
-
         mQueues.clear();
 
+#if defined(_DEBUG)
+        mDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
         if ( mInfoQueue1 ) {
             mInfoQueue1->UnregisterMessageCallback( mInfoQueueCallbackCookie );
         }
+#endif
     }
 
     auto Device::InitInfoQueue() -> void {
+#if defined(_DEBUG)
         if ( FAILED( mDevice.As( &mInfoQueue ) ) ) {
             MKT_CORE_LOGGER_DEBUG( "Failed to acquire ID3D12InfoQueue." );
             return;
@@ -1461,6 +1463,7 @@ namespace mikoto::renderer::d3d12 {
         } else {
             MKT_CORE_LOGGER_DEBUG( "ID3D12InfoQueue1 unavailable, falling back to polling." );
         }
+#endif
     }
 
     auto Device::InitCommandQueues() -> void {

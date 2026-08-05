@@ -470,18 +470,13 @@ namespace mikoto::renderer::vulkan {
 
     auto GetCullMode(CullMode mode) -> VkCullModeFlags {
         switch (mode) {
-            case CullMode::eNone:
-                return VK_CULL_MODE_NONE;
-
-            case CullMode::eCullFront:
-                return VK_CULL_MODE_FRONT_BIT;
-
-            case CullMode::eCullBack:
-                return VK_CULL_MODE_BACK_BIT;
-
-            default:
-                return VK_CULL_MODE_BACK_BIT;
+            case CullMode::eNone: return VK_CULL_MODE_NONE;
+            case CullMode::eCullFront: return VK_CULL_MODE_FRONT_BIT;
+            case CullMode::eCullBack: return VK_CULL_MODE_FRONT_AND_BACK;
+            default:;
         }
+
+        return VK_CULL_MODE_NONE;
     }
 
     auto GetWindingOrder( WindingOrder order ) -> VkFrontFace {

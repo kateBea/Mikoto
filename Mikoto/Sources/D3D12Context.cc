@@ -410,12 +410,16 @@ namespace mikoto::renderer::d3d12 {
     auto Context::GetDxGIDebug() const -> IDXGIDebug1* {
 #if !defined(NDEBUG)
         return mDxGIDebug.Get();
+#else
+        return nullptr;
 #endif
     }
 
     auto Context::GetDebugController() const -> ID3D12Debug6* {
 #if !defined(NDEBUG)
         return mDebugController.Get();
+#else
+        return nullptr;
 #endif
     }
 

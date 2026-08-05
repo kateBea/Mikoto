@@ -191,11 +191,10 @@ namespace mikoto::renderer::vulkan {
         // any line thicker than 1.0f requires you to enable the wideLines GPU feature.
         mRasterizationInfo.lineWidth = 0.0f;
         mRasterizationInfo.cullMode = VK_CULL_MODE_NONE;
-        mRasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        mRasterizationInfo.frontFace = vulkan::GetWindingOrder(mDesc.mWindingOrder);
 
         // This produces black screen on my PC
         // mRasterizationInfo.cullMode = vulkan::GetCullMode( mDesc.mCullMode );
-        // mRasterizationInfo.frontFace = vulkan::GetWindingOrder(mDesc.mWindingOrder);
 
         mRasterizationInfo.depthBiasEnable = VK_FALSE;
         mRasterizationInfo.depthBiasConstantFactor = 0.0f;

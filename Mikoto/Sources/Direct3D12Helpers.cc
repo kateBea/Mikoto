@@ -283,6 +283,33 @@ namespace mikoto::renderer::d3d12 {
         return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
     }
 
+    auto GetCmdTopologyType( rhi::PrimitiveTopology type ) -> D3D_PRIMITIVE_TOPOLOGY {
+        switch (type) {
+            case rhi::PrimitiveTopology::eInvalid:
+                return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+            case rhi::PrimitiveTopology::ePointList:
+                return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+
+            case rhi::PrimitiveTopology::eLineList:
+                return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+
+            case rhi::PrimitiveTopology::eLineStrip:
+                return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+
+            case rhi::PrimitiveTopology::eTriangleList:
+                return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+            case rhi::PrimitiveTopology::eTriangleStrip:
+                return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+
+            case rhi::PrimitiveTopology::eTriangleFan:
+                return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+        }
+
+        return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+    }
+
     auto GetResourceState( rhi::ResourceStates state ) -> D3D12_RESOURCE_STATES {
         switch (state) {
             case rhi::ResourceStates::eCommon:                return D3D12_RESOURCE_STATE_COMMON;
@@ -310,8 +337,7 @@ namespace mikoto::renderer::d3d12 {
 
             case rhi::ResourceStates::eUnknown:
             default:
-                MKT_ASSERT( false, "Not valid or trackable resource state" );
-                return D3D12_RESOURCE_STATE_COMMON;
+                return D3D12_RESOURCE_STATE_COMMON; // Resources are created by default in an unknown state which is Common, see the allocator
         }
     }
 
@@ -374,30 +400,6 @@ namespace mikoto::renderer::d3d12 {
             case rhi::ResourceType::ePushConstants:
             case rhi::ResourceType::eInvalid:
             default:                                              MKT_ASSERT( false, "Invalid range type or provided PS. Push constants belong in Root Constants, not a descriptor range!" );
-        }
-    }
-
-    auto IsDescriptorHeapRequired( rhi::ResourceType type ) -> bool {
-        switch (type) {
-            case rhi::ResourceType::eTexture_SRV:
-            case rhi::ResourceType::eTypedBuffer_SRV:
-            case rhi::ResourceType::eStructuredBuffer_SRV:
-            case rhi::ResourceType::eRawBuffer_SRV:
-            case rhi::ResourceType::eRayTracingAccelStruct:
-            case rhi::ResourceType::eTexture_UAV:
-            case rhi::ResourceType::eTypedBuffer_UAV:
-            case rhi::ResourceType::eStructuredBuffer_UAV:
-            case rhi::ResourceType::eRawBuffer_UAV:
-            case rhi::ResourceType::eSamplerFeedbackTexture_UAV:
-            case rhi::ResourceType::eConstantBuffer:
-            case rhi::ResourceType::eVolatileConstantBuffer:
-            case rhi::ResourceType::eSampler:
-                return true;
-
-            case rhi::ResourceType::ePushConstants:
-            case rhi::ResourceType::eInvalid:
-            default:
-                return false;
         }
     }
 

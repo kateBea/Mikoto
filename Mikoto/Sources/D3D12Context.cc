@@ -226,23 +226,30 @@ namespace mikoto::renderer::d3d12 {
         ThrowIfFailed( DXGIGetDebugInterface1( 0, IID_PPV_ARGS( &mDxGIDebug ) ) );
 #endif
 
-        const UINT dxgiFactoryFlags{ DXGI_CREATE_FACTORY_DEBUG };
+        constexpr UINT dxgiFactoryFlags{ DXGI_CREATE_FACTORY_DEBUG };
         ThrowIfFailed( CreateDXGIFactory2( dxgiFactoryFlags, IID_PPV_ARGS( &mDxgiFactory ) ) );
 
         // Init the device when the context is ready
-        mDevice = IGpuDevice::Create( { .mApi = GraphicsAPI::eD3D12 } );
+        mDevice = IGpuDevice::Create({
+            .mApi = GraphicsAPI::eD3D12,
+            .mFeaturesSupport{
+                // If  the context was created with a window
+                // we request for a device with support for presentation
+                .mEnablePresentation = mWindow != nullptr,
+                .mDeviceType = GpuDeviceType::eDiscrete,
+            },
+        });
         if ( !mDevice ) {
             MKT_THROW_RUNTIME_ERROR( "Could not initialize D3D12 GPU Device." );
         }
         mDevice->Init();
-
-        // If no window is provided we use D3D12 headless
         if (mWindow) {
+            // If no window is provided we use D3D12 headless
             InitializeSwapchain();
         }
 
-        InitSwapchainRender();
         InitializeShaderCompiler();
+        InitSwapchainRender();
 
         return true;
     }
@@ -278,8 +285,8 @@ namespace mikoto::renderer::d3d12 {
         Device* device{ checked_cast<Device*>( mDevice.get() ) };
         Queue* queue{ device->GetQueue( QueueType::eGraphics ) };
 
-        // https://community.khronos.org/t/is-it-recommended-to-use-vkcmdcopyimage-to-copy-to-the-swapchain-image-instead-of-a-shader/112122
         if (!mPresentTarget.IsEmpty() && !mSwapChain.IsEmpty()) {
+#if true
             // Blit via full quad render
             TextureHandle colorImage{ mSwapChain->GetCurrentBackBufferImage() };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
@@ -293,15 +300,16 @@ namespace mikoto::renderer::d3d12 {
             auto graphicsState{ GraphicsState{}
                 .SetRenderArea( Rect{ as<i32>(mSwapChain->GetWidth()), as<i32>(mSwapChain->GetHeight()) } )
                 .AddRenderTarget( colorImage, Color{ .0f } ) };
-
             mCommandList->BeginRendering( graphicsState );
 
             mCommandList->BindPipeline( mPipeline.GetRaw() );
-            mCommandList->BindPipelineResources( BindResourcesDescription{}
-                .AddResourceSet( 0, mBindingSetHandle.GetRaw() )
-                .AddResourceSet( 1, mDescriptorTable.GetRaw() )
+
+            auto bindingDescription{ BindResourcesDescription{}
+                .SetBindPoint( PipelineType::eGraphics )
                 .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-                .SetBindPoint( PipelineType::eGraphics ));
+                .AddResourceSet( 0, mBindingSetHandle.GetRaw() )
+                .AddResourceSet( 1, mDescriptorTable.GetRaw() ) };
+            mCommandList->BindPipelineResources( bindingDescription );
 
             mCommandList->SetViewportState( ViewportState{}
                 .AddViewportAndScissorRect( Viewport( as<f32>( mSwapChain->GetWidth() ), as<f32>( mSwapChain->GetHeight() ) ) ) );
@@ -317,23 +325,50 @@ namespace mikoto::renderer::d3d12 {
             mCommandList->End();
 
             device->SubmitCommands( mCommandList );
+
+#else
+            // Blit via copy command
+            TextureHandle colorImage{ mSwapChain->GetCurrentBackBufferImage() };
+            mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
+
+            const TextureSlice srcSlice{
+                .mWidth = (u32)mPresentTarget->GetWidth(),
+                .mHeight = (u32)mPresentTarget->GetHeight() };
+
+            const TextureSlice dstSlice{
+                .mWidth = (u32)colorImage->GetWidth(),
+                .mHeight = (u32)colorImage->GetHeight() };
+
+            mCommandList->Copy(
+                mPresentTarget.GetRaw(), srcSlice,
+                colorImage.GetRaw(), dstSlice );
+
+            mCommandList->SetResourceState( colorImage.GetRaw(), ResourceStates::ePresent );
+
+            mCommandList->End();
+
+            device->SubmitCommands( mCommandList );
+#endif
         }
 
         // SINGLE submission point
         device->ExecutePendingCommands();
 
+
+        // Wait for previous frame to finish.
+        // This is not the best, doing it for now for simplicity and testing purposes.
         Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
 
         ID3D12Fence* fence{ *pFence };
         ID3D12CommandQueue* commandQueue{ *queue };
-
-        ThrowIfFailed(commandQueue->Signal(fence, ++mFenceValue));
+        ThrowIfFailed(commandQueue->Signal(fence, mFenceValue));
+        ++mFenceValue;
 
         pFence->WaitForFenceValue( mFenceValue );
     }
 
     auto Context::PrepareFrame() -> void {
-
+        mDevice->RunGarbageCollection();
     }
 
     auto Context::Update() -> void {
@@ -394,7 +429,7 @@ namespace mikoto::renderer::d3d12 {
     auto Context::InitSwapchainRender() -> void {
         mFence = mDevice->CreateFence( mFenceValue );
 
-         // Create shaders
+        // Create shaders
         auto vertexShaderDescription{ ShaderModuleCreateDescription{}
             .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Vert.slang" ) )
             .SetStage( ShaderType::eVertex ) };
@@ -449,6 +484,9 @@ namespace mikoto::renderer::d3d12 {
         auto bindingSetDesc{ BindingSetDescription{}
             .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
         mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
+
+        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
+        mCommandList->SetDebugName( "Context Swapchain CommandBuffer" );
     }
 
     auto Context::InitializeShaderCompiler() -> void {

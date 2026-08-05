@@ -29,7 +29,6 @@
 #include <Renderer/Vulkan/VulkanInstance.hh>
 #include <Renderer/Vulkan/VulkanSwapchain.hh>
 
-
 namespace mikoto::renderer::vulkan {
 
     // Reference: https://github.com/nvpro-samples/vk_minimal_latest
@@ -76,7 +75,6 @@ namespace mikoto::renderer::vulkan {
         static constexpr u32 kMaxFramesInFlight{ 3 };
 
         TextureHandle mPresentTarget{};
-        bool mTableUpdateRequired{ false };
 
         SwapChainHandle mSwapchain{};
 
@@ -100,7 +98,12 @@ namespace mikoto::renderer::vulkan {
         eastl::fixed_vector<FrameContext, kMaxFramesInFlight> mFrames{};
 
         // Swapchain blit objects
-        renderer::rhi::SamplerHandle mSamplerState{};
+        // A descriptor table is used instead of a BindingSet because descriptor tables can be updated
+        // a BindingSet once created it cannot be updated, so whatever resources specified during creation
+        // stay for how long the BindingSet stays alive
+        bool mTableUpdateRequired{ false };
+
+        rhi::SamplerHandle mSamplerState{};
 
         rhi::ShaderModuleHandle mVertexShader{};
         rhi::ShaderModuleHandle mPixelShader{};

@@ -39,9 +39,11 @@ namespace mikoto::renderer::d3d12 {
     {
     }
 
-    auto Buffer::PersistentMap() -> void {
+    auto Buffer::PersistentMap() -> void* {
         auto allocator{ checked_cast<Device*>( mDevice )->GetAllocator() };
         mMappedAddress = allocator->MapBuffer( mAllocation );
+
+        return mMappedAddress;
     }
 
     auto Buffer::PersistentUnmap() -> void {
@@ -75,6 +77,144 @@ namespace mikoto::renderer::d3d12 {
         return mMappedAddress;
     }
 
+    auto Buffer::CreateCBV( SIZE_T descriptor, BufferRange range, Format format ) const -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        ID3D12Device2* d3d12Device{ device->GetDevice() };
+
+        range.Validate( GetSizeBytes() );
+
+        D3D12_CONSTANT_BUFFER_VIEW_DESC viewDesc{};
+        viewDesc.BufferLocation = mAllocation.mResource->GetGPUVirtualAddress() + range.mByteOffset;
+        viewDesc.SizeInBytes = core::align( as<UINT>( range.mByteSize ), kConstantBufferOffsetSizeAlignment );
+        d3d12Device->CreateConstantBufferView( MKT_ADDRESSOF( viewDesc ), { descriptor } );
+    }
+
+    auto Buffer::CreateSRV( SIZE_T descriptor, BufferRange range, ResourceType resourceType, Format format ) const -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        ID3D12Device2* d3d12Device{ device->GetDevice() };
+
+        D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{};
+        viewDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+        Format formatToUse{ mFormat };
+        if (format != Format::eUnknown) {
+            formatToUse = format;
+        }
+
+        ResourceType resourceTypeToUse{ mResourceType };
+        if (resourceType != ResourceType::eInvalid) {
+            resourceTypeToUse = resourceType;
+        }
+
+        range.Validate( GetSizeBytes() );
+
+        switch (resourceTypeToUse) {
+            case ResourceType::eStructuredBuffer_SRV:
+                MKT_ASSERT(mElementSize != 0, "Structured buffer requires element size");
+                viewDesc.Format = DXGI_FORMAT_UNKNOWN;
+                viewDesc.Buffer.FirstElement = range.mByteOffset / mElementSize;
+                viewDesc.Buffer.NumElements = as<UINT>( range.mByteSize / mElementSize );
+                viewDesc.Buffer.StructureByteStride = mElementSize;
+                break;
+
+            case ResourceType::eRawBuffer_SRV:
+                viewDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+                viewDesc.Buffer.FirstElement = range.mByteOffset / 4;
+                viewDesc.Buffer.NumElements = as<UINT>( range.mByteSize / 4 );
+                viewDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+                break;
+
+            case ResourceType::eTypedBuffer_SRV:
+            {
+                MKT_ASSERT(formatToUse != Format::eUnknown, "Typed buffer needs a valid format");
+                const FormatInfo& formatInfo{ rhi::GetFormatInfo(formatToUse) };
+
+                viewDesc.Format = d3d12::GetFormat( mFormat );
+                viewDesc.Buffer.FirstElement = range.mByteOffset / formatInfo.mBytesPerBlock;
+                viewDesc.Buffer.NumElements = as<UINT>( range.mByteSize / formatInfo.mBytesPerBlock );
+                break;
+            }
+            default:
+                return;
+        }
+
+        d3d12Device->CreateShaderResourceView(mAllocation.mResource.Get(), &viewDesc, { descriptor });
+    }
+
+    auto Buffer::CreateUAV( SIZE_T descriptor, BufferRange range, ResourceType resourceType, Format format ) const -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        ID3D12Device2* d3d12Device{ device->GetDevice() };
+
+        D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc{};
+        viewDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+
+        Format formatToUse{ mFormat };
+        if (format != Format::eUnknown) {
+            formatToUse = format;
+        }
+
+        ResourceType resourceTypeToUse{ mResourceType };
+        if (resourceType != ResourceType::eInvalid) {
+            resourceTypeToUse = resourceType;
+        }
+
+        range.Validate( GetSizeBytes() );
+
+        switch (resourceTypeToUse) {
+            case ResourceType::eStructuredBuffer_UAV:
+                MKT_ASSERT(mElementSize != 0, "Structured buffer requires element size");
+
+                viewDesc.Format = DXGI_FORMAT_UNKNOWN;
+                viewDesc.Buffer.FirstElement = range.mByteOffset / mElementSize;
+                viewDesc.Buffer.NumElements = as<UINT>( range.mByteSize / mElementSize );
+                viewDesc.Buffer.StructureByteStride = mElementSize;
+                break;
+
+            case ResourceType::eRawBuffer_UAV:
+                viewDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+                viewDesc.Buffer.FirstElement = range.mByteOffset / 4;
+                viewDesc.Buffer.NumElements = as<UINT>( range.mByteSize / 4 );
+                viewDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+                break;
+
+            case ResourceType::eTypedBuffer_UAV:
+            {
+                MKT_ASSERT(formatToUse != Format::eUnknown, "Typed buffer needs a valid format");
+                const FormatInfo& formatInfo{ rhi::GetFormatInfo(formatToUse) };
+
+                viewDesc.Format = d3d12::GetFormat( formatToUse );
+                viewDesc.Buffer.FirstElement = range.mByteOffset / formatInfo.mBytesPerBlock;
+                viewDesc.Buffer.NumElements = (UINT)(range.mByteSize / formatInfo.mBytesPerBlock);
+                break;
+            }
+
+            default:
+                return;
+        }
+
+        d3d12Device->CreateUnorderedAccessView(mAllocation.mResource.Get(), nullptr, &viewDesc, { descriptor });
+    }
+
+    auto Buffer::CreateNullSRV( SIZE_T descriptor, Format format, ID3D12Device2* device ) -> void {
+        const DXGI_FORMAT d3d12Format{ d3d12::GetFormat( format == Format::eUnknown ? Format::eR32_UINT : format ) };
+
+        D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{};
+        viewDesc.Format = d3d12Format;
+        viewDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        device->CreateShaderResourceView(nullptr, &viewDesc, { descriptor });
+    }
+
+    auto Buffer::CreateNullUAV( SIZE_T descriptor, Format format, ID3D12Device2* device ) -> void {
+        const DXGI_FORMAT d3d12Format{ d3d12::GetFormat( format == Format::eUnknown ? Format::eR32_UINT : format ) };
+
+        D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc{};
+        viewDesc.Format = d3d12Format;
+        viewDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        device->CreateUnorderedAccessView(nullptr, nullptr, &viewDesc, { descriptor });
+    }
+
     Buffer::operator ID3D12Resource*() const {
         return mAllocation.mResource.Get();
     }
@@ -91,12 +231,6 @@ namespace mikoto::renderer::d3d12 {
 
     auto Buffer::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
-        ID3D12Device1* d3d12Device{ device->GetDevice() };
-
-        // Create descriptor heap if it's going to be used in shaders
-        if (d3d12::IsDescriptorHeapRequired( mResourceType )) {
-
-        }
 
         // Allocate buffer memory
         mAllocation.mDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -117,6 +251,20 @@ namespace mikoto::renderer::d3d12 {
 
         auto* allocator{ device->GetAllocator() };
         ThrowIfFailed( allocator->AllocateBuffer( mAllocation ) );
+
+        if (!mSpan.IsEmpty()) {
+            CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
+            cmd->Begin( {} );
+
+            cmd->Write( this, mSpan->GetData(), mSpan->GetSize() );
+
+            cmd->End();
+            mDevice->ExecuteCommands( cmd );
+        }
+
+        if (!mKeepInitializerResources) {
+            mSpan.Reset();
+        }
 
         mIsAllocated = true;
     }

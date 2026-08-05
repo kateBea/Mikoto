@@ -105,7 +105,7 @@ namespace mikoto::renderer::d3d12 {
         }
 
         // Rasterization
-        D3D12_RASTERIZER_DESC rasterDesc;
+        D3D12_RASTERIZER_DESC rasterDesc{};
         rasterDesc.FillMode = d3d12::GetFillMode(mDesc.mPolygonMode);
         rasterDesc.CullMode = d3d12::GetCullMode(mDesc.mCullMode);
         rasterDesc.FrontCounterClockwise = mDesc.mWindingOrder == WindingOrder::eCounterClockwise ? TRUE : FALSE;
@@ -155,8 +155,11 @@ namespace mikoto::renderer::d3d12 {
         for ( UINT i{ 0 }; i < mDesc.mColorFormats.size(); ++i ) {
             mD3D12PipelineDesc.RTVFormats[i] = d3d12::GetFormat( mDesc.mColorFormats[i] );
         }
-        mD3D12PipelineDesc.DSVFormat = d3d12::GetFormat( mDesc.mDepthFormat );;
+        mD3D12PipelineDesc.DSVFormat = d3d12::GetFormat( mDesc.mDepthFormat );
+
+        // MSAA
         mD3D12PipelineDesc.SampleDesc.Count = 1;
+        mD3D12PipelineDesc.SampleDesc.Quality = 0;
     }
 
     auto GraphicsPipeline::GetNativeHandle( rhi::ObjectType type ) -> rhi::Object {

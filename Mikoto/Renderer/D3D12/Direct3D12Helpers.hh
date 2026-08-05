@@ -33,6 +33,11 @@ namespace mikoto::renderer::d3d12 {
 
     using DescriptorIndex = core::u32;
 
+    inline constexpr DescriptorIndex kInvalidDescriptorIndex{ ~0U };
+
+    // https://gamedev.net/forums/topic/670668-d3d12-updating-constant-buffer-data/
+    inline constexpr core::u32 kConstantBufferOffsetSizeAlignment{ 256 };
+
     auto ThrowIfFailed(HRESULT hr) -> void;
     auto ThrowIfFailed(HRESULT hr, IGpuDevice* gpuDevice) -> void;
 
@@ -47,14 +52,13 @@ namespace mikoto::renderer::d3d12 {
     MKT_NODISCARD auto GetCullMode( rhi::CullMode type ) -> D3D12_CULL_MODE;
     MKT_NODISCARD auto GetDepthCompareOp( rhi::DepthCompareOp op ) -> D3D12_COMPARISON_FUNC;
     MKT_NODISCARD auto GetTopologyType( rhi::PrimitiveTopology type ) -> D3D12_PRIMITIVE_TOPOLOGY_TYPE;
+    MKT_NODISCARD auto GetCmdTopologyType( rhi::PrimitiveTopology type ) -> D3D_PRIMITIVE_TOPOLOGY;
 
     MKT_NODISCARD auto GetResourceState( rhi::ResourceStates type ) -> D3D12_RESOURCE_STATES;
 
     MKT_NODISCARD auto GetHeapType( rhi::HeapType type ) -> D3D12_HEAP_TYPE;
     MKT_NODISCARD auto GetDescriptorHeapType( rhi::ResourceType type ) -> D3D12_DESCRIPTOR_HEAP_TYPE;
     MKT_NODISCARD auto GetDescriptorRangeType( rhi::ResourceType type ) -> D3D12_DESCRIPTOR_RANGE_TYPE;
-
-    MKT_NODISCARD auto IsDescriptorHeapRequired( rhi::ResourceType type ) -> bool;
 
     MKT_NODISCARD auto GetDimension( rhi::TextureDimension dimension ) -> D3D12_RESOURCE_DIMENSION;
     MKT_NODISCARD auto GetSampleCount( rhi::Multisampling multisampling ) -> UINT;

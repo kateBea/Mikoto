@@ -53,14 +53,21 @@ namespace mikoto::renderer::d3d12 {
     public:
         explicit Texture( const TextureCreateDescription& desc, DeviceResources& resources );
 
-        auto SetDebugName( const eastl::string_view name ) -> void override;
+        auto SetDebugName( eastl::string_view name ) -> void override;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
+        auto CreateSRV(SIZE_T descriptor, TextureSubresourceSet subResources, Format format = Format::eUnknown, TextureDimension dimension = TextureDimension::eInvalid) const -> void;
+        auto CreateUAV(SIZE_T descriptor, TextureSubresourceSet subResources, Format format = Format::eUnknown, TextureDimension dimension = TextureDimension::eInvalid) const -> void;
+
+        auto CreateRTV(SIZE_T descriptor, TextureSubresourceSet subResources, Format format = Format::eUnknown ) const -> void;
+        auto CreateDSV(SIZE_T descriptor, TextureSubresourceSet subResources, bool isReadOnly = false) const -> void;
+
         MKT_NODISCARD operator ID3D12Resource*() const;
 
         MKT_NODISCARD auto GetRtvDescriptorIndex() const -> DescriptorIndex;
+        MKT_NODISCARD auto GetDsvDescriptorIndex() const -> DescriptorIndex;
 
         ~Texture() override;
 
@@ -77,9 +84,8 @@ namespace mikoto::renderer::d3d12 {
 
         DeviceResources* mResources{};
 
-        DescriptorIndex mSrvDescriptorIndex{};
         DescriptorIndex mRtvDescriptorIndex{};
-        DescriptorIndex mDrvDescriptorIndex{};
+        DescriptorIndex mDsvDescriptorIndex{};
     };
 
 }// namespace mikoto::renderer::d3d12

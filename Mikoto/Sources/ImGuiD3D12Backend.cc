@@ -276,7 +276,6 @@ namespace mikoto::gui {
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
-
         mCommandList->BeginRendering( graphicsState );
         mCommandList->SetClearColor( mColorImage, mClearColor );
 

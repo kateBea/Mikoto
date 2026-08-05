@@ -14,26 +14,31 @@
 
 #include <EASTL/array.h>
 
-#include <Assets/AssetsService.hh>
-#include <Assets/ImageProcessor.hh>
-#include <Assets/Importer.hh>
-#include <Assets/Model.hh>
 #include <Core/Core.hh>
-#include <Core/CoreEvents.hh>
+#include <Core/Types.hh>
 #include <Core/Event.hh>
+#include <Core/CoreEvents.hh>
 #include <Core/InputSystem.hh>
 #include <Core/MouseCodes.hh>
-#include <Core/Timer.hh>
-#include <Core/Types.hh>
-#include <Filesystem/File.hh>
-#include <Filesystem/FileService.hh>
-#include <Filesystem/Path.hh>
-#include <Layers/EditorDebugLayer.hh>
+
 #include <Math/Math.hh>
+
+#include <Assets/Model.hh>
+#include <Assets/Importer.hh>
+#include <Assets/AssetsService.hh>
+#include <Assets/ImageProcessor.hh>
+
 #include <Memory/Allocator.hh>
-#include <Renderer/Core/RenderSystem.hh>
+
+#include <Filesystem/File.hh>
+#include <Filesystem/Path.hh>
+#include <Filesystem/FileService.hh>
 
 #include <Scene/SceneCamera.hh>
+
+#include <Renderer/Core/RenderSystem.hh>
+
+#include <Layers/EditorDebugLayer.hh>
 
 namespace mikoto::editor {
 
@@ -82,11 +87,13 @@ namespace mikoto::editor {
         mCommandList->BeginRendering( graphicsState );
 
         mCommandList->BindPipeline( mPipeline.GetRaw() );
-        mCommandList->BindPipelineResources( BindResourcesDescription{}
-            .AddResourceSet( 0, mBindingSetHandle.GetRaw() )
-            .AddResourceSet( 1, mDescriptorTable.GetRaw() )
+
+        auto bindingDescription{ BindResourcesDescription{}
+            .SetBindPoint( PipelineType::eGraphics )
             .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-            .SetBindPoint( PipelineType::eGraphics ));
+            .AddResourceSet( 0, mBindingSetHandle.GetRaw() )
+            .AddResourceSet( 1, mDescriptorTable.GetRaw() ) };
+        mCommandList->BindPipelineResources( bindingDescription );
 
         for (u32 meshIndex{}; meshIndex < mModelHandle->GetMeshNodeCount(); ++meshIndex) {
             asset::MeshNode* mesh{ MKT_ADDRESSOF( mModelHandle->GetMeshNode( meshIndex ) ) };

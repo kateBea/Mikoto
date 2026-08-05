@@ -136,6 +136,7 @@ namespace mikoto::renderer::rhi {
         Vk_Semaphore,
 
         // D3D12
+        D3D12_Fence,
         D3D12_Device,
 
         // D3D11
@@ -558,6 +559,7 @@ namespace mikoto::renderer::rhi {
         static constexpr QueueOpSupportFlags kPresentation{ BIT_SET( 3 ) };
     };
 
+    // Describes a piece of a buffer
     struct BufferRange {
         u64 mByteOffset = 0;
         u64 mByteSize = 0;
@@ -570,14 +572,10 @@ namespace mikoto::renderer::rhi {
         //[[nodiscard]] constexpr bool IsEntireBuffer(const BufferDesc& desc) const { return (byteOffset == 0) && (byteSize == ~0ull || byteSize == desc.byteSize); }
         //constexpr bool operator== (const BufferRange& other) const { return byteOffset == other.byteOffset && byteSize == other.byteSize; }
 
-        constexpr BufferRange& SetByteOffset( u64 value ) {
-            mByteOffset = value;
-            return *this;
-        }
-        constexpr BufferRange& SetByteSize( u64 value ) {
-            mByteSize = value;
-            return *this;
-        }
+        auto SetByteOffset( u64 value ) -> BufferRange&;
+        auto SetByteSize( u64 value ) -> BufferRange&;
+
+        auto Validate(size_t bufferByteSize ) -> BufferRange&;
     };
 
     struct TextureSubresourceSet {
@@ -627,6 +625,10 @@ namespace mikoto::renderer::rhi {
     MKT_NODISCARD auto InferDimensions( float width, float height, u32 mipLevel ) -> eastl::pair<u32, u32>;
 
     MKT_NODISCARD auto InferElementCount( Format dataType, size_t sizeBytes ) -> size_t;
+
+    MKT_NODISCARD auto IsBuffer(ResourceType type) noexcept -> bool;
+    MKT_NODISCARD auto IsTexture(ResourceType type) noexcept -> bool;
+    MKT_NODISCARD auto IsSampler(ResourceType type) noexcept -> bool;
 
     struct Color {
         f32 mR{};
@@ -875,10 +877,7 @@ namespace mikoto::renderer::rhi {
 
         explicit DeviceObject() = default;
 
-        auto Initialize( IGpuDevice* device ) -> void {
-            mDevice = device;
-            Initialize();
-        }
+        auto Initialize( IGpuDevice* device ) -> void;
 
         auto SetResourceState( ResourceStates state ) -> void { mResourceState.store( state ); }
         MKT_NODISCARD auto GetResourceState() const -> ResourceStates { return mResourceState.load(); }
@@ -891,12 +890,13 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD virtual auto GetNativeHandle( ObjectType ) -> Object { return Object(nullptr); }
         MKT_NODISCARD virtual auto GetNativeHandle( ObjectType type ) const -> Object { return const_cast<DeviceObject*>(this)->GetNativeHandle( type ); }
 
+        MKT_NODISCARD auto GetHeapType() const -> HeapType { return mHeapType; }
+
         ~DeviceObject() override = default;
 
     protected:
 
-        DeviceObject( HeapType heapType, ResourceType resourceType )
-            : mResourceType{ resourceType }, mHeapType{ heapType } {}
+        DeviceObject( HeapType heapType, ResourceType resourceType );
 
         auto Initialize() -> void override = 0;
         auto Release() -> void override = 0;
@@ -1048,7 +1048,8 @@ namespace mikoto::renderer::rhi {
               mUsage{ desc.mUsageFlags },
               mIsVolatile{ desc.mIsVolatile },
               mMaxVersions{ desc.mMaxVersions },
-              mFormat{ desc.mFormat } {}
+              mFormat{ desc.mFormat }
+        {}
 
     protected:
         BufferSpanHandle mSpan{};
@@ -1137,6 +1138,8 @@ namespace mikoto::renderer::rhi {
 
         ResourceType mResourceType{ ResourceType::eInvalid };
 
+        TextureSubresourceSet mSubresourceSet{};
+
         auto SetName( eastl::string_view name ) -> TextureCreateDescription&;
         auto SetWidth( u32 width ) -> TextureCreateDescription&;
         auto SetHeight( u32 height ) -> TextureCreateDescription&;
@@ -1157,6 +1160,8 @@ namespace mikoto::renderer::rhi {
         auto SetUsage( TextureUsageFlags usage ) -> TextureCreateDescription&;
 
         auto SetResourceType( ResourceType usage ) -> TextureCreateDescription&;
+
+        auto SetSubResources( const TextureSubresourceSet& subResources ) -> TextureCreateDescription&;
 
         constexpr auto SetInitialState(ResourceStates value) -> TextureCreateDescription& { mInitialState = value; return *this; }
         constexpr auto EnableAutomaticStateTracking(ResourceStates initialState) -> TextureCreateDescription& {
@@ -1204,7 +1209,7 @@ namespace mikoto::renderer::rhi {
               mFormat{ desc.mFormat },
               mDimension{ desc.mDimension },
               mTextureUsage{ desc.mUsage },
-              mMultisampling{ desc.mMSAA } {}
+              mMultisampling{ desc.mMSAA }, mSubResources{ desc.mSubresourceSet } {}
 
     protected:
         u32 mWidth{};
@@ -1220,6 +1225,8 @@ namespace mikoto::renderer::rhi {
         TextureUsageFlags mTextureUsage{ TextureUsageFlagsBits::kShaderResource };
 
         Multisampling mMultisampling{ Multisampling::eMsaaX1 };
+
+        TextureSubresourceSet mSubResources{};
     };
 
     using TextureHandle = Ref<ITexture>;
@@ -1549,6 +1556,7 @@ namespace mikoto::renderer::rhi {
 
     using PipelineLayoutHandle = Ref<IPipelineLayout>;
 
+    // Upon creation, its contents cannot mutate
     class IBindingSet : public DeviceObject {
     public:
 
@@ -1561,6 +1569,7 @@ namespace mikoto::renderer::rhi {
 
     using BindingSetHandle = Ref<IBindingSet>;
 
+    // A resizable BindingSet
     class IDescriptorTable : public IBindingSet {
     public:
         // How many indices it holds for instance on Vulkan when we

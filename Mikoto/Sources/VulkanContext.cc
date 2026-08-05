@@ -80,7 +80,7 @@ namespace mikoto::renderer::vulkan {
         });
 
         if (!mDevice) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Could not initialize GPU Device." );
+            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Could not create GPU Device." );
         }
         mDevice->Init();
 
@@ -182,11 +182,11 @@ namespace mikoto::renderer::vulkan {
             TextureHandle currentSwapchainImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
 
-            TextureSlice srcSlice{
+            const TextureSlice srcSlice{
                 .mWidth = (u32)mPresentTarget->GetWidth(),
                 .mHeight = (u32)mPresentTarget->GetHeight() };
 
-            TextureSlice dstSlice{
+            const TextureSlice dstSlice{
                 .mWidth = (u32)currentSwapchainImage->GetWidth(),
                 .mHeight = (u32)currentSwapchainImage->GetHeight() };
 
@@ -266,7 +266,7 @@ namespace mikoto::renderer::vulkan {
             MKT_ASSERT( false, "VulkanDevice Error failed present images to swapchain." );
         }
 
-        // Frame is advanced if we work with the swap chain
+        // Frame is advanced if we work with a swap chain
         mCurrentFrameIndex = (mCurrentFrameIndex + 1) % mMaxFramesInFlight;
     }
 
@@ -312,12 +312,6 @@ namespace mikoto::renderer::vulkan {
             .mFormat = Format::eBGRA8_UNORM };
 
         mSwapchain = checked_cast<Device*>(mDevice.get())->CreateSwapChain(createInfo);
-
-        // Prepare for swapchain render
-        // This command buffer is created here because it is only
-        // used to submit swapchain work
-        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
-        mCommandList->SetDebugName( "Context Swapchain CommandBuffer" );
     }
 
     auto Context::InitSwapchainRender() -> void {
@@ -376,6 +370,9 @@ namespace mikoto::renderer::vulkan {
         auto bindingSetDesc{ BindingSetDescription{}
             .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
         mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
+
+        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
+        mCommandList->SetDebugName( "Context Swapchain CommandBuffer" );
     }
 
     auto Context::InitSynchronization() -> void {

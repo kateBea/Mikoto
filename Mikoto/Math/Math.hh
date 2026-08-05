@@ -209,6 +209,8 @@ namespace mikoto::math {
     auto Recompose( float4x4& transform, const float3& translation, const float3& rotation, const float3& scale ) -> void;
     auto Decompose( const float4x4& transform, float3& translation, float3& rotation, float3& scale ) -> void;
 
+    MKT_NODISCARD auto NextPowerOf2( core::u32 value ) -> u32;
+
     // Re-enable when other math file gets deleted
     // template<typename T>
     // MKT_NODISCARD auto IsBetween( const T& value, const T& lowerBound, const T& upperBound ) -> bool {

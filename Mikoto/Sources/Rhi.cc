@@ -24,6 +24,31 @@ namespace mikoto::renderer::rhi {
 
     using namespace mikoto::core;
 
+    auto BufferRange::SetByteOffset( u64 value ) -> BufferRange & {
+        mByteOffset = value;
+        return *this;
+    }
+
+    auto BufferRange::SetByteSize( u64 value ) -> BufferRange & {
+        mByteSize = value;
+        return *this;
+    }
+
+    auto BufferRange::Validate( size_t bufferByteSize ) -> BufferRange & {
+        // Check specified offset is not out of bounds
+        mByteOffset = eastl::min(mByteOffset, bufferByteSize);
+
+        // If offset is 0 it means whole range
+        // otherwise pick a slice
+        if (mByteOffset != 0) {
+            mByteSize = eastl::min(mByteSize, bufferByteSize - mByteOffset);
+        } else {
+            mByteSize = bufferByteSize;
+        }
+
+        return *this;
+    }
+
     auto InferAPI( eastl::string_view apiName ) -> GraphicsAPI {
         if ( apiName.empty() ) {
             return GraphicsAPI::eInvalid;
@@ -182,6 +207,21 @@ namespace mikoto::renderer::rhi {
         return sizeBytes / info.mBytesPerBlock;
     }
 
+    auto IsBuffer( ResourceType type ) noexcept -> bool {
+        return type >= ResourceType::eTypedBuffer_SRV &&
+                   type <= ResourceType::eConstantBuffer;
+    }
+
+    auto IsTexture( ResourceType type ) noexcept -> bool {
+        return (type >= ResourceType::eTexture_SRV && type <= ResourceType::eTexture_UAV) ||
+                   type == ResourceType::eSamplerFeedbackTexture_UAV;
+    }
+
+    auto IsSampler( ResourceType type ) noexcept -> bool {
+        return type == ResourceType::eSampler ||
+                   type == ResourceType::eSamplerFeedbackTexture_UAV;
+    }
+
     auto BindingSetItem::Texture_SRV( u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingSetItem {
         return BindingSetItem{
             .mResource = texture,
@@ -189,8 +229,7 @@ namespace mikoto::renderer::rhi {
             .mType = ResourceType::eTexture_SRV,
             .mFormat = format,
             .mDimension =  dimension,
-            .mSubResourceSet = subResources,
-        };
+            .mSubResourceSet = subResources };
     }
 
     auto BindingSetItem::Sampler( u32 slot, ISampler *sampler ) -> BindingSetItem {
@@ -362,6 +401,20 @@ namespace mikoto::renderer::rhi {
         mResourceType = usage;
         return *this;
     }
+
+    auto TextureCreateDescription::SetSubResources( const TextureSubresourceSet &subResources ) -> TextureCreateDescription & {
+        mSubresourceSet = subResources;
+        return *this;
+    }
+
+    auto DeviceObject::Initialize( IGpuDevice *device ) -> void {
+        mDevice = device;
+        Initialize();
+    }
+
+    DeviceObject::DeviceObject( HeapType heapType, ResourceType resourceType )
+        : mResourceType{ resourceType }, mHeapType{ heapType }
+    {}
 
     auto BufferCreateDescription::SetName( eastl::string_view name ) -> BufferCreateDescription & {
         mName = name;

@@ -153,6 +153,10 @@ namespace mikoto::renderer::d3d12 {
         eastl::unique_ptr<ShaderCompiler> mShaderCompiler{};
 
         // Swapchain blit objects
+
+        // A descriptor table is used instead of a BindingSet because descriptor tables can be updated
+        // a BindingSet once created it cannot be updated, so whatever resources specified during creation
+        // stay for how long the BindingSet stays alive
         bool mTableUpdateRequired{};
 
         rhi::SamplerHandle mSamplerState{};

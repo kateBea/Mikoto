@@ -69,6 +69,64 @@ namespace mikoto::renderer::d3d12 {
         Microsoft::WRL::ComPtr<ID3D12Fence> mFence{};
     };
 
+    struct GpuUploadAllocation {
+        IBuffer* mBuffer{};
+
+        // This is the mapped address we should be writing to,
+        // it corresponds to the beginning of the slice or
+        // range that is available within this allocation.
+        // You do not need to offset or anything
+        void* mMappedMemory{};
+
+        // Size of this sub-allocation
+        size_t mSize{};
+
+        // Specifies the offset of this allocation within the large
+        // buffer it was allocated from
+        size_t mOffset{};
+
+        // Metadata to track usage
+        Allocation mAllocation{};
+        eastl::atomic_flag mInUse{ true };
+    };
+
+    // Manages intermediate buffers that are used to upload data from CPU
+    // to CPU, whenever we want to upload data from the CPU to the GPU
+    // if the GPU buffer is not writeable from CPU we copy to this intermediate buffer
+    // and issue a copy command. In order to implement this we can use a first fit or best fit
+    // allocator approach, see the GeometryAllocator in the MeshCulling.hh file
+    // we can just have a huge chunk that grows as we need??
+    class GpuUploadManager final {
+    public:
+        explicit GpuUploadManager( IGpuDevice* device );
+
+        auto SubAllocate( size_t byteSize ) -> GpuUploadAllocation*;
+        auto ReclaimMemory() -> void;
+
+        ~GpuUploadManager();
+    private:
+        struct StagingAllocation {
+            BufferHandle mBuffer{};
+            eastl::unique_ptr<memory::MemoryArena<IBuffer, memory::FreeListFirstFitAllocator>> mMemoryArena{};
+        };
+
+        static constexpr u32 kMaxBuffers{ 32 };
+        static constexpr u32 kMaxSubAllocations{ 100 };
+
+        auto CreateBuffer() -> StagingAllocation*;
+        auto CreateSubAllocation( IBuffer* buffer ) -> GpuUploadAllocation*;
+
+    private:
+        std::mutex mMutex{};
+
+        IGpuDevice* mDevice{};
+        ankerl::unordered_dense::map<IBuffer*, eastl::unique_ptr<StagingAllocation>> mBuffers{};
+        ankerl::unordered_dense::map<IBuffer*, eastl::fixed_vector<eastl::unique_ptr<GpuUploadAllocation>, kMaxSubAllocations>> mSubAllocations{};
+    };
+
+    // https://github.com/microsoft/DirectXTK12/wiki/DescriptorHeap
+    // https://learn.microsoft.com/en-us/windows/win32/direct3d12/hardware-support
+    // https://3dgep.blogspot.com/2016/02/a-journey-through-directx-12-dynamic.html
     class IDescriptorHeap {
     public:
         virtual auto AllocateDescriptors( u32 count ) -> DescriptorIndex = 0;
@@ -93,7 +151,7 @@ namespace mikoto::renderer::d3d12 {
 
     class StaticDescriptorHeap final : public IDescriptorHeap {
     public:
-        explicit StaticDescriptorHeap();
+        explicit StaticDescriptorHeap( IGpuDevice* device );
 
         auto CopyToShaderVisibleHeap( DescriptorIndex index, u32 count = 1 ) -> void;
 
@@ -133,15 +191,17 @@ namespace mikoto::renderer::d3d12 {
         DescriptorIndex mSearchStart{};
         u32 mNumAllocatedDescriptors{};
 
+        ID3D12Device2* mDevice{};
+
         std::mutex mMutex{};
     };
 
     class DeviceResources {
     public:
-        StaticDescriptorHeap mRenderTargetViewHeap{};
-        StaticDescriptorHeap mDepthStencilViewHeap{};
-        StaticDescriptorHeap mShaderResourceViewHeap{};
-        StaticDescriptorHeap mSamplerHeap{};
+        eastl::unique_ptr<StaticDescriptorHeap> mRenderTargetViewHeap{};
+        eastl::unique_ptr<StaticDescriptorHeap> mDepthStencilViewHeap{};
+        eastl::unique_ptr<StaticDescriptorHeap> mShaderResourceViewHeap{};
+        eastl::unique_ptr<StaticDescriptorHeap> mSamplerHeap{};
     };
 
     class BindingLayout final : public IBindingLayout {
@@ -158,9 +218,6 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto GetDescriptorRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
         MKT_NODISCARD auto GetDescriptorSamplerRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
-
-        MKT_NODISCARD auto GetBindlessDescriptorRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
-        MKT_NODISCARD auto GetBindlessDescriptorSamplerRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
 
         MKT_NODISCARD auto GetNextIndexForDescriptor(D3D12_DESCRIPTOR_RANGE_TYPE descriptor ) const -> u32;
 
@@ -186,12 +243,15 @@ namespace mikoto::renderer::d3d12 {
         eastl::vector<D3D12_DESCRIPTOR_RANGE1> mDescriptorRanges{};
         eastl::vector<D3D12_DESCRIPTOR_RANGE1> mDescriptorRangesSamplers{};
 
-        eastl::vector<D3D12_DESCRIPTOR_RANGE1> mBindlessDescriptorRanges{};
-        eastl::vector<D3D12_DESCRIPTOR_RANGE1> mBindlessDescriptorRangesSamplers{};
-
         // Track the next available register slot for each DX12 type category
         // Default initializes all categories (SRV, UAV, CBV, Sampler) to 0
         mutable ankerl::unordered_dense::map<D3D12_DESCRIPTOR_RANGE_TYPE, u32> mNextRegisterForType{};
+    };
+
+    struct DescriptorRange {
+        u32 mCount{ 0 };
+        D3D12_GPU_DESCRIPTOR_HANDLE mGpuHandle{};
+        DescriptorIndex mBaseIndex{ d3d12::kInvalidDescriptorIndex };
     };
 
     class BindingSet : public IBindingSet {
@@ -199,8 +259,12 @@ namespace mikoto::renderer::d3d12 {
         explicit BindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout, DeviceResources& resources );
 
         auto SetDebugName( eastl::string_view name ) -> void override;
+
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
+
+        MKT_NODISCARD auto GetSrvRange() const -> const DescriptorRange&;
+        MKT_NODISCARD auto GetSamplerRange() const -> const DescriptorRange&;
 
         ~BindingSet() override;
 
@@ -214,13 +278,29 @@ namespace mikoto::renderer::d3d12 {
 
         DeviceResources* mDeviceResources{};
 
-        D3D12_GPU_DESCRIPTOR_HANDLE mShaderResourceHandle{};
-        D3D12_GPU_DESCRIPTOR_HANDLE mSamplerResourceHandle{};
+        DescriptorRange mSrvRange{};
+        DescriptorRange mSamplerRange{};
     };
 
     class DescriptorTable : public IDescriptorTable {
     public:
+        explicit DescriptorTable();
+
+        auto SetDebugName( eastl::string_view name ) -> void override;
+
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
+
+        ~DescriptorTable() override;
+
         MKT_NODISCARD auto GetCapacity( u32 ) const -> u32 override;
+
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+
+    private:
+
     };
 
     class InputLayout : public IInputLayout {
@@ -257,6 +337,9 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetNativeHandle( ObjectType type) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
+        MKT_NODISCARD auto GetRootConstantIndex() const -> u32;
+        MKT_NODISCARD auto GetMax32BitValuesCount() const -> u32;
+
         MKT_NODISCARD auto GetDescription() const -> const PipelineLayoutCreateDescription&;
 
         operator ID3D12RootSignature*() const;
@@ -268,6 +351,9 @@ namespace mikoto::renderer::d3d12 {
         auto Release() -> void override;
 
     private:
+        u32 mRootConstantIndex{};
+        u32 m32BitValueCount{ 32 };
+
         Microsoft::WRL::ComPtr<ID3DBlob> mSignatureBlob{};
         Microsoft::WRL::ComPtr<ID3DBlob> mErrorMessages{};
         Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature{};
@@ -288,8 +374,6 @@ namespace mikoto::renderer::d3d12 {
         auto ExecuteCommandLists( eastl::span<CommandListHandle> commands ) -> void override;
 
         auto Flush() -> void;
-
-        auto RunGarbageCollection() -> void;
 
         auto ExecuteCommandList( CommandListHandle cmd ) -> void;
         auto SubmitCommandList( CommandListHandle cmd ) -> u64;
@@ -409,64 +493,13 @@ namespace mikoto::renderer::d3d12 {
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList{};
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mCommandAllocator{};
 
+        GpuUploadManager* mUploadManager{};
+        std::mutex mUploadAllocationsMutex{};
+        eastl::fixed_vector<GpuUploadAllocation*, 10> mUploadAllocations{};
+
         bool mEnableAutomaticBarriers{ true };
 
         eastl::fixed_vector<D3D12_RESOURCE_BARRIER, rhi::kMaxBarriers> mResourceBarriers{};
-    };
-
-    struct GpuUploadAllocation {
-        IBuffer* mBuffer{};
-
-        // This is the mapped address we should be writing to,
-        // it corresponds to the beginning of the slice or
-        // range that is available within this allocation.
-        // You do not need to offset or anything
-        void* mMappedMemory{};
-
-        // Size of this sub-allocation
-        size_t mSize{};
-
-        // Specifies the offset of this allocation within the large
-        // buffer it was allocated from
-        size_t mOffset{};
-
-        // Metadata to track usage
-        Allocation mAllocation{};
-        eastl::atomic_flag mInUse{ true };
-    };
-
-    // Manages intermediate buffers that are used to upload data from CPU
-    // to CPU, whenever we want to upload data from the CPU to the GPU
-    // if the GPU buffer is not writeable from CPU we copy to this intermediate buffer
-    // and issue a copy command. In order to implement this we can use a first fit or best fit
-    // allocator approach, see the GeometryAllocator in the MeshCulling.hh file
-    // we can just have a huge chunk that grows as we need??
-    class GpuUploadManager final {
-    public:
-        explicit GpuUploadManager( IGpuDevice* device );
-
-        auto SubAllocate( size_t byteSize ) -> GpuUploadAllocation*;
-        auto ReclaimMemory() -> void;
-
-        ~GpuUploadManager();
-    private:
-        struct StagingAllocation {
-            BufferHandle mBuffer{};
-            eastl::unique_ptr<memory::MemoryArena<IBuffer, memory::FreeListFirstFitAllocator>> mMemoryArena{};
-        };
-
-        static constexpr u32 kMaxBuffers{ 32 };
-        static constexpr u32 kMaxSubAllocations{ 100 };
-
-        auto CreateBuffer() -> StagingAllocation*;
-        auto CreateSubAllocation( IBuffer* buffer ) -> GpuUploadAllocation*;
-
-    private:
-        std::mutex mMutex{};
-
-        IGpuDevice* mDevice{};
-        ankerl::unordered_dense::map<IBuffer*, eastl::unique_ptr<StagingAllocation>> mBuffers{};
-        ankerl::unordered_dense::map<IBuffer*, eastl::fixed_vector<eastl::unique_ptr<GpuUploadAllocation>, kMaxSubAllocations>> mSubAllocations{};
     };
 
     class Device final : public IGpuDevice {
@@ -544,6 +577,7 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetQueue( QueueType type ) const -> const Queue*;
 
         MKT_NODISCARD auto GetAllocator() -> GpuMemoryAllocator*;
+        MKT_NODISCARD auto GetUploadManager() -> GpuUploadManager*;
 
         MKT_NODISCARD auto CreateSwapChain(Window* window, Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory) -> SwapChainHandle;
 

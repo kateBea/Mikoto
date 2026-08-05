@@ -61,7 +61,7 @@ namespace mikoto::renderer::d3d12 {
     auto GpuMemoryAllocator::AllocateImage( ImageAllocation &allocation ) -> HRESULT {
         HRESULT result{ mAllocator->CreateResource(
             &allocation.mAllocDesc, &allocation.mDesc,
-            D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+            D3D12_RESOURCE_STATE_COMMON, nullptr,
             &allocation.mAllocation, IID_PPV_ARGS(&allocation.mResource)) };
 
         return result;

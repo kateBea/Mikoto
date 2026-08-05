@@ -40,7 +40,7 @@ namespace mikoto::renderer::d3d12 {
     public:
         explicit Buffer( const rhi::BufferCreateDescription& createInfo, DeviceResources& resources );
 
-        auto PersistentMap() -> void;
+        auto PersistentMap() -> void*;
         auto PersistentUnmap() -> void;
 
         auto SetDebugName( eastl::string_view name) -> void override;
@@ -51,6 +51,13 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto IsMapped() const -> bool;
         MKT_NODISCARD auto GetMappedAddress() -> void*;
         MKT_NODISCARD auto GetMappedAddress() const -> const void*;
+
+        auto CreateCBV(SIZE_T descriptor, BufferRange range, Format format = Format::eUnknown) const -> void;
+        auto CreateSRV(SIZE_T descriptor, BufferRange range, ResourceType resourceType = ResourceType::eInvalid, Format format = Format::eUnknown) const -> void;
+        auto CreateUAV(SIZE_T descriptor, BufferRange range, ResourceType resourceType = ResourceType::eInvalid, Format format = Format::eUnknown) const -> void;
+
+        static auto CreateNullSRV(SIZE_T descriptor, Format format, ID3D12Device2* device) -> void;
+        static auto CreateNullUAV(SIZE_T descriptor, Format format, ID3D12Device2* device) -> void;
 
         MKT_NODISCARD operator ID3D12Resource*() const;
 

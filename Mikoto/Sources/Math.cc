@@ -131,6 +131,20 @@ namespace mikoto::math {
         scale.z = matrixScale[2];
     }
 
+    auto NextPowerOf2( core::u32 value ) -> u32 {
+        // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+        // Compute the next highest power of 2 for a 32-bit integer.
+        value--;
+        value |= value >> 1;
+        value |= value >> 2;
+        value |= value >> 4;
+        value |= value >> 8;
+        value |= value >> 16;
+        value++;
+
+        return value;
+    }
+
     auto math::DumpMat4FList( const std::vector<glm::mat4>& m ) -> void {
         // for ( Size i{}; i < m.size(); ++i ) {
         //     DumpMat4( m[i], i );

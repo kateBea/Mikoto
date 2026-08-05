@@ -319,6 +319,20 @@ namespace mikoto::renderer::vulkan {
         auto TryRecycle(IQueue* queue) -> void;
 
     private:
+        // TODO: Think about using a timeline semaphore to
+        // determine when this command buffer is done executing.
+        // Basically we use a ring of command buffers, every time we submit one we reallocate
+        // if a command buffer is available to reuse because GPU is done with it (which we can check with
+        // the fence associated with it) we reuse that command buffer instead of reallocating
+
+        // TODO: Make it so that is possible to decide whether the command list class should manage its own
+        // command buffer or that should be done externally, if it is done externally user will need to use a Fence
+        // to check if GPU is done with submitted workload before they can start recording into the command list again
+
+        bool mSelfManagedCommandBuffers{ true };
+        eastl::fixed_vector<FenceHandle, 5> mCommandBufferFences{};
+        eastl::fixed_vector<IResource*, 25> mHeldResources{}; // Pick a reasonable max value, should probably hold the a Ref<>
+
         CommandPool* mCommandPool{ nullptr };
         VkCommandBufferAllocateInfo mAllocInfo{};
 

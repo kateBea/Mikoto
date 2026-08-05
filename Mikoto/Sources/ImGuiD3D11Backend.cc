@@ -33,17 +33,10 @@
 #include <Renderer/Core/RenderSystem.hh>
 #include <Renderer/D3D11/D3D11Device.hh>
 #include <Renderer/D3D11/D3D11Context.hh>
-#include <Renderer/D3D11/D3D11Texture.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
-#define GLFW_EXPOSE_NATIVE_WIN32
-#define GLFW_EXPOSE_NATIVE_WGL
-#define GLFW_NATIVE_INCLUDE_NONE
-#include <GLFW/glfw3native.h>
-
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_glfw.h>
-#include <imgui_impl_win32.h>
 
 namespace mikoto::gui {
 
@@ -156,7 +149,7 @@ namespace mikoto::gui {
         ImGui::Render();
 
         // Grab device and device context
-        Device* device{ as<Device*>( mDevice ) };
+        Device* device{ checked_cast<Device*>( mDevice ) };
 
         const eastl::array clearColor{ mClearColor.r, mClearColor.g, mClearColor.b, mClearColor.a };
 

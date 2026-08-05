@@ -53,7 +53,7 @@ namespace mikoto::renderer::d3d11 {
         mWidth = width;
         mHeight = height;
 
-        Device* device{ as<Device*>( mDevice ) };
+        Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D11DeviceContext* context{ device->GetDeviceContext() };
 
         context->Flush();
@@ -140,7 +140,7 @@ namespace mikoto::renderer::d3d11 {
         swapChainDescriptor.BufferCount = 2;
         swapChainDescriptor.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_DISCARD;
         swapChainDescriptor.Scaling = DXGI_SCALING::DXGI_SCALING_STRETCH;
-        swapChainDescriptor.Flags = {};
+        swapChainDescriptor.Flags = MKT_D3D11_NO_FLAGS;
 
         DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFullscreenDescriptor{};
         swapChainFullscreenDescriptor.Windowed = true;

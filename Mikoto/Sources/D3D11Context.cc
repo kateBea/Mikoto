@@ -118,7 +118,7 @@ namespace mikoto::renderer::d3d11 {
         // TODO: instead render a full quad sampling the final image
         // otherwise it is annoying as you ned ensure the texture you rendered to before is compatible with swap chain image to copy
         if (!mPresentTarget.IsEmpty()) {
-            Device* device{ as<Device*>( mDevice.get() ) };
+            Device* device{ checked_cast<Device*>( mDevice.get() ) };
 
             ID3D11Texture2D* presentTargetRTV{ mPresentTarget->GetNativeHandle( ObjectType::D3D11_Texture2D ) };
             ID3D11Texture2D* swapChainRTV{ mSwapChain->GetNativeHandle( ObjectType::D3D11_Texture2D ) };
@@ -148,8 +148,6 @@ namespace mikoto::renderer::d3d11 {
 
     auto Context::SetRefreshRate( RefreshRate rate ) -> void {
         mRefreshRate = rate;
-
-        // Handle vsync or not
         mSwapChain->SetRefreshRate( mRefreshRate );
     }
 

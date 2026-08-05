@@ -26,8 +26,6 @@
 
 #include <ImGui/ImGuiD3D11Backend.hh>
 
-#include <Assets/ImageProcessor.hh>
-
 #include <Memory/Allocator.hh>
 
 #include <Renderer/Core/Rhi.hh>
@@ -38,8 +36,14 @@
 #include <Renderer/D3D11/D3D11Texture.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
+#define GLFW_NATIVE_INCLUDE_NONE
+#include <GLFW/glfw3native.h>
+
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_glfw.h>
+#include <imgui_impl_win32.h>
 
 namespace mikoto::gui {
 
@@ -54,7 +58,7 @@ namespace mikoto::gui {
         }
 
         // Grab device and device context
-        Device* device{ as<Device*>( mDevice ) };
+        Device* device{ checked_cast<Device*>( mDevice ) };
 
         if (!ImGui_ImplDX11_Init(device->GetDevice(), device->GetDeviceContext()) ) {
             MKT_THROW_RUNTIME_ERROR( "Failed ImGui_ImplDX11_Init" );

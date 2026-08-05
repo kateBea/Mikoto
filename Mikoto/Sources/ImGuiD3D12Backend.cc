@@ -121,7 +121,7 @@ namespace mikoto::gui {
         mDepthImage.Reset();
 
         ImGui_ImplDX12_Shutdown();
-        ImGui_ImplWin32_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
 
         mCommandList.Reset();
 
@@ -132,7 +132,7 @@ namespace mikoto::gui {
         MKT_BEGIN_PROFILER_NAMED();
 
         ImGui_ImplDX12_NewFrame();
-        ImGui_ImplWin32_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
         ImGuizmo::BeginFrame();
@@ -208,23 +208,13 @@ namespace mikoto::gui {
     }
 
     auto ImGuiD3D12Backend::InitImGuiForD3D12() -> void {
-        //const auto window{ eastl::any_cast<GLFWwindow*>( mWindow->GetNativeWindow() ) };
-
-        HWND win32Handle{};
-        try {
-            auto window{ eastl::any_cast<GLFWwindow*>( mWindow->GetNativeWindow() ) };
-            win32Handle = glfwGetWin32Window(window);
-        } catch ( const std::exception& exception ) {
-            MKT_THROW_RUNTIME_ERROR( string::Format( "ImGuiD3D12Backend::InitImGuiForD3D12 - Cast exception: e.what(): {}", exception.what() ) );
+        const auto window{ eastl::any_cast<GLFWwindow*>( mWindow->GetNativeWindow() ) };
+        if (!ImGui_ImplGlfw_InitForOther(window, true)) {
+            MKT_THROW_RUNTIME_ERROR( "ImGuiD3D12Backend - Failed to initialize Win32 for ImGui" );
         }
 
         d3d12::Device* device{ checked_cast<d3d12::Device*>( mDevice ) };
         d3d12::Context* context{ checked_cast<d3d12::Context*>( RenderSystem::Get()->GetContext() ) };
-
-        // Setup Platform/Renderer backends
-        if (!ImGui_ImplWin32_Init(win32Handle)) {
-            MKT_THROW_RUNTIME_ERROR( "ImGuiD3D12Backend - Failed to initialize Win32 for ImGui" );
-        }
 
         d3d12::Queue* queue{ device->GetQueue( QueueType::eGraphics ) };
         ID3D12CommandQueue* cmdQueue{ *queue };

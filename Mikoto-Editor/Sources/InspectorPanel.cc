@@ -169,7 +169,7 @@ namespace mikoto::editor {
         const Path path{ FileService::Get()->OpenDialog( filters ) };
         if ( !path.IsEmpty() ) {
             TextureHandle texture{ asset::AssetsService::Get()->LoadAsset<ITexture>( path, TextureDimension::eTexture2D ) };
-            if (texture.IsEmpty()) {
+            if (!texture.IsEmpty()) {
                 standardMat.SetTexture( mapType, texture );
             }
         }

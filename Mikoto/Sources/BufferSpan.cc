@@ -31,8 +31,10 @@ namespace mikoto::memory {
     }
 
     auto BufferSpan::Push( const void* data, size_t dataSize ) -> void {
+        MKT_ASSERT( mConsumedSize != mBuffer.size(), "Buffer is full." );
+        eastl::copy_n( as<byte_t*>( data ), dataSize, mBuffer.begin() + mConsumedSize );
+
         mConsumedSize += dataSize;
-        eastl::copy_n( as<byte_t*>( data ), dataSize, mBuffer.data() );
     }
 
     auto BufferSpan::GetSize() const -> size_t {

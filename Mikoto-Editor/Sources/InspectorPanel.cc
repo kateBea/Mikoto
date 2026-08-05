@@ -168,10 +168,8 @@ namespace mikoto::editor {
 
         const Path path{ FileService::Get()->OpenDialog( filters ) };
         if ( !path.IsEmpty() ) {
-            TextureHandle texture{ asset::AssetsService::Get()->GetAssetByUri<ITexture>( path ) };
+            TextureHandle texture{ asset::AssetsService::Get()->LoadAsset<ITexture>( path, TextureDimension::eTexture2D ) };
             if (texture.IsEmpty()) {
-                asset::AssetsService::Get()->LoadAssetAsync<ITexture>( path, TextureDimension::eTexture2D );
-            } else {
                 standardMat.SetTexture( mapType, texture );
             }
         }

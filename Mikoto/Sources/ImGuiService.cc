@@ -48,7 +48,7 @@ namespace mikoto::gui {
 
     static auto ThemeDarkModeAlt() -> void {
         // Setup Dear ImGui style
-        ImGuiStyle &style = ImGui::GetStyle();
+        ImGuiStyle &style{ ImGui::GetStyle() };
 
         style.Colors[ImGuiCol_WindowBg] = ImVec4{ 0.1f, 0.105f, 0.11f, 1.0f };
 
@@ -96,7 +96,7 @@ namespace mikoto::gui {
 
     static auto ThemeDarkModeDefault() -> void {
         // Setup Dear ImGui style
-        ImGuiStyle &style = ImGui::GetStyle();
+        ImGuiStyle &style{ ImGui::GetStyle() };
 
         style.Colors[ImGuiCol_TitleBg] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
         style.Colors[ImGuiCol_TitleBgActive] = ImVec4( 0.2f, 0.2f, 0.2f, 1.0f );
@@ -127,8 +127,8 @@ namespace mikoto::gui {
         style.Colors[ImGuiCol_FrameBgHovered] = ImVec4( 0.08f, 0.08f, 0.08f, 1.0f );
         style.Colors[ImGuiCol_FrameBgActive] = ImVec4( 0.08f, 0.08f, 0.08f, 1.0f );
 
-        //style.Colors[ImGuiCol_Border] = ImVec4( 1.0f, 1.0f, 1.0f, 1.0f );
-        //style.Colors[ImGuiCol_BorderShadow] = ImVec4( 0.0f, 0.0f, 0.0f, 0.5f );
+        //style.Colors[ImGuiCol_Border] = ImVec4( 0.08f, 0.08f, 0.08f, 1.0f );
+        // style.Colors[ImGuiCol_BorderShadow] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
 
         style.Colors[ImGuiCol_SliderGrab] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
         style.Colors[ImGuiCol_SliderGrabActive] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );

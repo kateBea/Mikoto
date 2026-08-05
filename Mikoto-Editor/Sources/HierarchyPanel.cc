@@ -144,9 +144,10 @@ namespace mikoto::editor {
         // U+F1B2  ->  61874
         // U+F1B3  ->  61875
         const eastl::string icon { GetStringFromUnicode( 63185 ) };
-
         const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<const void*>( entityTag.GetGUID() ),
             flags, "%s", fmt::format( " {} {}",  icon.data(), entityTag.GetTag() ).c_str() ) };
+
+        gui::SetCursorHandOnLastItemHovered();
 
         if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
             mEditorState->mSelectedEntity = entity;

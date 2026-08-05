@@ -192,6 +192,11 @@ namespace mikoto::renderer::vulkan {
         mRasterizationInfo.lineWidth = 0.0f;
         mRasterizationInfo.cullMode = VK_CULL_MODE_NONE;
         mRasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+        // This produces black screen on my PC
+        // mRasterizationInfo.cullMode = vulkan::GetCullMode( mDesc.mCullMode );
+        // mRasterizationInfo.frontFace = vulkan::GetWindingOrder(mDesc.mWindingOrder);
+
         mRasterizationInfo.depthBiasEnable = VK_FALSE;
         mRasterizationInfo.depthBiasConstantFactor = 0.0f;
         mRasterizationInfo.depthBiasClamp = 0.0f;

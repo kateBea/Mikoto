@@ -46,6 +46,7 @@ namespace mikoto::renderer::vulkan {
     MKT_NODISCARD auto GetTopology(PrimitiveTopology topology) -> VkPrimitiveTopology;
     MKT_NODISCARD auto GetSampleCount(Multisampling msaa) -> VkSampleCountFlagBits;
     MKT_NODISCARD auto GetCullMode(CullMode mode) -> VkCullModeFlags;
+    MKT_NODISCARD auto GetWindingOrder(WindingOrder order) -> VkFrontFace;
     MKT_NODISCARD auto GetCompareOp(DepthCompareOp op) -> VkCompareOp;
 
     MKT_NODISCARD auto GetInputRate(InputRate rate) -> VkVertexInputRate;

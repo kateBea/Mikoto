@@ -1010,8 +1010,7 @@ namespace mikoto::renderer {
                 .SetBlendEnable( desc.mEnableBlend )
                 .SetDepthTest( desc.mEnableDepthTest )
                 .SetDepthWrite( desc.mEnableDepthWrite )
-                .SetDepthFormat( desc.mDepthFormat )
-            };
+                .SetDepthFormat( desc.mDepthFormat ) };
 
             // Color formats
             for ( const auto &format: desc.mColorFormats ) {

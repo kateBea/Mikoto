@@ -484,6 +484,15 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
+    auto GetWindingOrder( WindingOrder order ) -> VkFrontFace {
+        switch (order ) {
+            case WindingOrder::eClockwise: return VK_FRONT_FACE_CLOCKWISE;
+            case WindingOrder::eCounterClockwise: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        }
+
+        return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    }
+
     auto GetSampleCount(Multisampling msaa) -> VkSampleCountFlagBits {
         switch (msaa) {
             case Multisampling::eMsaaX1:

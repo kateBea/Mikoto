@@ -50,6 +50,7 @@ namespace mikoto::core {
     struct ActionManagerCreateInfo {
     };
 
+    // TODO: Convert to non singleton and remove from service deps and engine init
     class ActionManager final : public IService, public Singleton<ActionManager> {
     public:
         explicit ActionManager(const ActionManagerCreateInfo& option);

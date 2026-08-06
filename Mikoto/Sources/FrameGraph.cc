@@ -691,6 +691,12 @@ namespace mikoto::renderer {
         mDevice->SubmitCommands( mComputeCommands );
         mDevice->SubmitCommands( mTransferCommands );
 
+        // eastl::array commands{
+        //     mGraphicsCommands,
+        //     mComputeCommands,
+        //     mTransferCommands };
+        // mDevice->ExecuteCommands( commands );
+
         // Register callbacks
         mFenceValue++;
 

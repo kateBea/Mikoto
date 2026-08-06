@@ -409,6 +409,14 @@ namespace mikoto::editor {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + A (Select all entities)" );
         });
 
+        mActionManager->Bind(core::KeyCode::Key_A, core::ModKey::eControl, []() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + A (Select all entities)" );
+        });
+
+        mActionManager->Bind(core::KeyCode::Key_N, core::ModKey::eControl | core::ModKey::eAlt, []() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + Shift + N (New entity)" );
+        });
+
         mActionManager->Bind(core::KeyCode::Key_C, core::ModKey::eControl | core::ModKey::eAlt, []() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + Shift + C (Open Console)" );
         });

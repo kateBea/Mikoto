@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #include <EASTL/unique_ptr.h>
-//
-// #include <Filesystem/Path.hh>
-// #include <Project/ProjectSerializer.hh>
-//
-// namespace mikoto::editor {
-//
-//
-//     auto ProjectSerializer::Serialize( const Project &obj, const filesystem::Path &savePath ) -> void {
-//     }
-//
-//     auto ProjectSerializer::Deserialize( const filesystem::Path&loadPath ) -> eastl::unique_ptr<Project> {
-//         return {}; // TODO
-//     }
-// }// namespace Mikoto
+#include <EASTL/unique_ptr.h>
+
+#include <Filesystem/Path.hh>
+#include <Project/ProjectSerializer.hh>
+
+namespace mikoto::editor {
+
+
+    auto ProjectSerializer::Serialize( const Project &obj, const filesystem::Path &savePath ) -> void {
+    }
+
+    auto ProjectSerializer::Deserialize( const filesystem::Path&loadPath ) -> eastl::unique_ptr<Project> {
+        return {}; // TODO
+    }
+}// namespace Mikoto

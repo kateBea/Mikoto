@@ -152,16 +152,13 @@ namespace mikoto::physics {
 
     auto PhysicsWorld::PreUpdate() -> void {
         // Here we line up ECS and Jolt
-        // Here we line up ECS and Jolt
         auto &registry{ mScene->GetRegistry() };
-
         for ( const auto& [entity, rb, tr]: registry.view<RigidBodyComponent, TransformComponent>().each() ) {
             if ( !rb.IsValidBodyID() ) {
                 continue;
             }
 
             const auto body{ GetJoltBody( rb.GetBodyID() ) };
-
             UpdateBodyProperties( body->GetID(), tr, rb );
 
             // Jolt puts bodies to sleep to save resources
@@ -169,8 +166,6 @@ namespace mikoto::physics {
                 mSimulationInfo.mBodyInterface->ActivateBody( body->GetID() );
             }
         }
-
-
     }
 
     auto PhysicsWorld::UpdateBodyProperties(JPH::BodyID id, TransformComponent& tr, RigidBodyComponent& rb ) const -> void {
@@ -222,8 +217,9 @@ namespace mikoto::physics {
 
         const auto& lockInterface{ mSimulationInfo.mPhysicsSystem.GetBodyLockInterface() };
         for ( auto [entity, rb, tr]: registry.view<RigidBodyComponent, TransformComponent>().each() ) {
-            if ( !rb.IsValidBodyID() )
+            if ( !rb.IsValidBodyID() ) {
                 continue;
+            }
 
             const auto b{ GetJoltBody( rb.GetBodyID() ) };
             {
@@ -361,11 +357,13 @@ namespace mikoto::physics {
         return eastl::make_unique<PhysicsWorld>( spec );
     }
 
-    auto PhysicsWorld::GetFloat4x4F( const JPH::RMat44 &m ) -> glm::mat4 {
+    auto PhysicsWorld::GetFloat4x4F( const JPH::RMat44 &m ) -> float4x4 {
         float4x4 out{};
 
         for (i32 c{}; c < 4; ++c) {
-            JPH::Vec4 col{ m.GetColumn4(c) };  // RMat44 stores row-major internally, Jolt provides columns.
+            // RMat44 stores row-major internally,
+            // Jolt provides columns.
+            JPH::Vec4 col{ m.GetColumn4(c) };
             out[c][0] = col.GetX();
             out[c][1] = col.GetY();
             out[c][2] = col.GetZ();

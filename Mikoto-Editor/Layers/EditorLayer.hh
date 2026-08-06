@@ -128,6 +128,8 @@ namespace mikoto::editor {
         eastl::unique_ptr<SceneRenderer> mSceneRenderer{};
         eastl::unique_ptr<ThumbnailRenderer> mThumbnailRenderer{};
 
+        eastl::unique_ptr<ActionManager> mActionManager{};
+
         CommandListHandle mCommandList{};
 
         // [DEBUG] To remove

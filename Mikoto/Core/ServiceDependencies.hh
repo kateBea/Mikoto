@@ -37,7 +37,6 @@
 #include <Animation/AnimationSystem.hh>
 #include <Assets/AssetsService.hh>
 #include <Audio/AudioService.hh>
-#include <Core/ActionManager.hh>
 #include <Filesystem/FileService.hh>
 #include <Filesystem/FileWatcherService.hh>
 #include <ImGui/ImGuiService.hh>
@@ -99,34 +98,6 @@ namespace mikoto::core {
 
     template <>
     struct ServiceDependencies<TimeService> {
-
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-    };
-
-    template <>
-    struct ServiceDependencies<ActionManager> {
 
         MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
             switch (type) {

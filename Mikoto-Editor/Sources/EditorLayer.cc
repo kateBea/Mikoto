@@ -117,6 +117,9 @@ namespace mikoto::editor {
 
         mDevice = nullptr;
         mWindow = nullptr;
+
+        mActionManager->Shutdown();
+        mActionManager.reset();
     }
 
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
@@ -256,7 +259,7 @@ namespace mikoto::editor {
                 else if (mods & as<i32>(ModKey::eShift)) activeMod = ModKey::eShift;
                 else if (mods & as<i32>(ModKey::eAlt)) activeMod = ModKey::eAlt;
 
-                const bool shortcutTriggered{ core::ActionManager::Get()->Dispatch( as<KeyCode>( keyPressed->GetKeyCode() ), activeMod) };
+                const bool shortcutTriggered{ mActionManager->Dispatch( as<KeyCode>( keyPressed->GetKeyCode() ), activeMod) };
             }
         }
     }
@@ -395,11 +398,14 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::InitActionCallbacks() -> void {
-        core::ActionManager::Get()->Bind(core::KeyCode::Key_P, core::ModKey::eControl, []() {
+        mActionManager = eastl::make_unique<ActionManager>( ActionManagerCreateInfo{} );
+        mActionManager->Initialize();
+
+        mActionManager->Bind(core::KeyCode::Key_P, core::ModKey::eControl, []() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + P (Create New project)" );
         });
 
-        core::ActionManager::Get()->Bind(core::KeyCode::Key_C, core::ModKey::eControl | core::ModKey::eAlt, []() {
+        mActionManager->Bind(core::KeyCode::Key_C, core::ModKey::eControl | core::ModKey::eAlt, []() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + Shift + C (Open Console)" );
         });
     }

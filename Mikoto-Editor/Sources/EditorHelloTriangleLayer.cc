@@ -357,7 +357,7 @@ namespace mikoto::editor {
 
         if ( ImGui::Begin( "Hello Triangle Tests", &mIsImguiWindowActive ) ) {
             auto imageID{ ImGuiService::Get()->GetTextureID( mColorImage ) };
-            ImGui::Image( imageID, ImVec2{ 128, 128 } );
+            ImGui::Image( imageID, ImVec2{ 1280, 720 } );
 
             ImGui::Spacing();
             ImGui::Separator();

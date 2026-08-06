@@ -27,6 +27,7 @@
 #include <Core/Event.hh>
 #include <Core/Registry.hh>
 #include <Core/LayerStack.hh>
+#include <Core/ActionManager.hh>
 
 #include <Assets/Model.hh>
 

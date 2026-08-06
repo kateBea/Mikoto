@@ -151,6 +151,8 @@ namespace mikoto::gui {
         style.PopupRounding = 3.5f;
         style.ScrollbarRounding = 3.5f;
         style.TabRounding = 3.5f;
+        style.MenuItemRounding = 3.5f;
+        style.SelectableRounding = 3.5f;
     }
 
     ImGuiService::ImGuiService( const ImGuiServiceDescription &options )

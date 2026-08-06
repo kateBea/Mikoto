@@ -314,7 +314,7 @@ FetchContent_MakeAvailable(glfw)
 # ImGui (docking branch)
 FetchContent_Declare(imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui.git
-        GIT_TAG v1.92.8-docking
+        GIT_TAG v1.92.9b-docking
 )
 FetchContent_MakeAvailable(imgui)
 #set_property(TARGET imgui PROPERTY FOLDER "ThirdParty")

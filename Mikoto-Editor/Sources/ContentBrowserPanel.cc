@@ -263,8 +263,8 @@ namespace mikoto::editor {
                                                      ImGuiTreeNodeFlags_SpanFullWidth |
                                                     ImGuiTreeNodeFlags_OpenOnArrow };
 
-        for ( auto& entry: std::filesystem::directory_iterator( mResourcesBasePath.GetPathTyped<std::filesystem::path>() ) ) {
-            if ( entry.is_directory() && entry != root.GetPathTyped<std::filesystem::path>()) {
+        for ( auto& entry: std::filesystem::directory_iterator( root.GetPathTyped<std::filesystem::path>() ) ) {
+            if ( entry.is_directory()) {
                 bool isOpen{ ImGui::TreeNodeEx( entry.path().string().c_str(), treeNodeFlags, "%s",
                     string::Format( "{} {}", ICON_MD_FOLDER, entry.path().stem().string() ).c_str() ) };
 

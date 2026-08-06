@@ -405,6 +405,10 @@ namespace mikoto::editor {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + P (Create New project)" );
         });
 
+        mActionManager->Bind(core::KeyCode::Key_A, core::ModKey::eControl, []() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + A (Select all entities)" );
+        });
+
         mActionManager->Bind(core::KeyCode::Key_C, core::ModKey::eControl | core::ModKey::eAlt, []() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + Shift + C (Open Console)" );
         });
@@ -744,7 +748,7 @@ namespace mikoto::editor {
             }
 
             if (ImGui::BeginMenu( MKT_LOC( "menu_help" ).c_str() )) {
-                if (ImGui::MenuItem( "About YourEngineName..." )) { /* Show floating window with credits/version */ }
+                if (ImGui::MenuItem( "About Mikoto" )) { /* Show floating window with credits/version */ }
                 ImGui::Separator();
 
                 if (ImGui::MenuItem( "Documentation" )) { /* Open URL for the documentation */ }

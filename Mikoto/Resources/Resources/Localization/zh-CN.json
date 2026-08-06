@@ -1,12 +1,14 @@
 {
   "menu_file": "文件",
   "menu_close": "关闭",
+  "menu_edit": "Edit",
   "menu_window": "窗口",
   "menu_panels": "面板",
   "menu_theme": "主题",
+  "menu_game_object": "Game Object",
   "menu_language": "语言",
   "menu_tools": "工具",
-  "menu_about": "关于",
+  "menu_help": "关于",
 
   "new_scene": "新建场景",
   "open_scene": "打开场景",

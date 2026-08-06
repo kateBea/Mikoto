@@ -1,12 +1,14 @@
 {
   "menu_file": "File",
   "menu_close": "Close",
+  "menu_edit": "Edit",
   "menu_window": "Window",
+  "menu_game_object": "Game Object",
   "menu_panels": "Panels",
   "menu_theme": "Theme",
   "menu_language": "Language",
   "menu_tools": "Tools",
-  "menu_about": "About",
+  "menu_help": "Help",
 
   "new_scene": "New Scene",
   "open_scene": "Open Scene",

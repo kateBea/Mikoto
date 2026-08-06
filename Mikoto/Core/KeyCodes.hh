@@ -145,12 +145,28 @@
     #define MKT_KEY_RIGHT_ALT          GLFW_KEY_RIGHT_ALT
     #define MKT_KEY_RIGHT_SUPER        GLFW_KEY_RIGHT_SUPER
     #define MKT_KEY_MENU               GLFW_KEY_MENU
+    #define MKT_MOD_SHIFT              GLFW_MOD_SHIFT
+    #define MKT_MOD_CONTROL            GLFW_MOD_CONTROL
+    #define MKT_MOD_ALT                GLFW_MOD_ALT
+    #define MKT_MOD_SUPER              GLFW_MOD_SUPER
+    #define MKT_MOD_CAPS_LOCK          GLFW_MOD_CAPS_LOCK
+    #define MKT_MOD_NUM_LOCK           GLFW_MOD_NUM_LOCK
 #endif
 
 #define KEY_STRING_REPRESENTATION(name) #name
 
 
 namespace mikoto::core {
+
+    enum class ModKey : i32 {
+        None     = 0,
+        Shift    = MKT_MOD_SHIFT,
+        Control  = MKT_MOD_CONTROL,
+        Alt      = MKT_MOD_ALT,
+        Super    = MKT_MOD_SUPER,
+        CapsLock = MKT_MOD_CAPS_LOCK,
+        NumLock  = MKT_MOD_NUM_LOCK
+    };
 
     enum KeyCode : i16 {
         Key_Space           = MKT_KEY_SPACE           ,

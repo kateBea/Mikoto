@@ -246,6 +246,12 @@ namespace mikoto::editor {
                         }
                     }
                 }
+
+                if (keyPressed->IsModActive(ModKey::Control)) {
+                    if (keyPressed->GetKeyCode() == KeyCode::Key_P) {
+                        MKT_CORE_LOGGER_DEBUG( "Ctrl + P was pressed." );
+                    }
+                }
             }
         }
     }
@@ -557,6 +563,77 @@ namespace mikoto::editor {
                 ImGui::EndMenu();
             }
 
+            if (ImGui::BeginMenu( MKT_LOC( "menu_edit" ).c_str() )) {
+                if (ImGui::MenuItem( "Undo", "Ctrl+Z" )) { /* Undo action */ }
+                if (ImGui::MenuItem( "Redo", "Ctrl+Y" )) { /* Redo action */ }
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem( "Cut", "Ctrl+X" )) { /* Cut action */ }
+                if (ImGui::MenuItem( "Copy", "Ctrl+C" )) { /* Copy action */ }
+                if (ImGui::MenuItem( "Paste", "Ctrl+V" )) { /* Paste action */ }
+                if (ImGui::MenuItem( "Duplicate", "Ctrl+D" )) { /* Duplicate action */ }
+                if (ImGui::MenuItem( "Delete", "Delete" )) { /* Delete action */ }
+                ImGui::Separator();
+                if (ImGui::MenuItem( "Select All", "Ctrl+A" )) { /* Select all action */ }
+                if (ImGui::MenuItem( "Preferences..." )) { /* Open preferences window */ }
+
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu( MKT_LOC( "menu_game_object" ).c_str() )) {
+                if (ImGui::MenuItem( "Create Empty", "Ctrl+Shift+N" )) { /* Create empty GameObject */ }
+                if (ImGui::MenuItem( "Create Empty Child" )) { /* Create empty child */ }
+
+                ImGui::Separator();
+
+                if (ImGui::BeginMenu( "3D Object" )) {
+                    if (ImGui::MenuItem( "Cube" )) { /* Spawn Cube */ }
+                    if (ImGui::MenuItem( "Sphere" )) { /* Spawn Sphere */ }
+                    if (ImGui::MenuItem( "Capsule" )) { /* Spawn Capsule */ }
+                    if (ImGui::MenuItem( "Plane" )) { /* Spawn Plane */ }
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu( "2D Object" )) {
+                    if (ImGui::MenuItem( "Sprite" )) { /* Spawn Sprite */ }
+                    if (ImGui::MenuItem( "Tilemap" )) { /* Spawn Tilemap */ }
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu( "Effects" )) {
+                    if (ImGui::MenuItem( "Particle System" )) { /* Spawn Particles */ }
+                    if (ImGui::MenuItem( "Line" )) { /* Spawn Line Renderer */ }
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu( "Light" )) {
+                    if (ImGui::MenuItem( "Directional Light" )) { /* Spawn Directional Light */ }
+                    if (ImGui::MenuItem( "Point Light" )) { /* Spawn Point Light */ }
+                    if (ImGui::MenuItem( "Spot Light" )) { /* Spawn Spot Light */ }
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu( "Audio" )) {
+                    if (ImGui::MenuItem( "Audio Source" )) { /* Spawn Audio Source */ }
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu( "UI" )) {
+                    if (ImGui::MenuItem( "Canvas" )) { /* Spawn Canvas */ }
+                    if (ImGui::MenuItem( "Text" )) { /* Spawn Text */ }
+                    if (ImGui::MenuItem( "Button" )) { /* Spawn Button */ }
+                    if (ImGui::MenuItem( "Image" )) { /* Spawn Image */ }
+                    ImGui::EndMenu();
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem( "Camera" )) { /* Spawn Camera */ }
+
+                ImGui::EndMenu();
+            }
+
             if (ImGui::BeginMenu( MKT_LOC( "menu_window" ).c_str() )) {
                 if (ImGui::BeginMenu( MKT_LOC( "menu_panels" ).c_str() )) {
                     for (auto& panel : mPanelRegistry | std::ranges::views::values) {
@@ -565,6 +642,28 @@ namespace mikoto::editor {
                         if (ImGui::MenuItem( panel->GetName().data(), nullptr, std::addressof( isActive ) )) {
                             panel->SetVisible( isActive );
                         }
+                    }
+
+                    static constexpr std::array languages{
+                        ISOLanguage::EN_US,
+                        ISOLanguage::EN_GB,
+                        ISOLanguage::ES_ES,
+                        ISOLanguage::JA_JP,
+                        ISOLanguage::ZH_CN
+                    };
+
+                    if (ImGui::BeginMenu( MKT_LOC( "menu_language" ).c_str() )) {
+                        const ISOLanguage current{ LocalizationService::Get()->GetCurrentLanguage() };
+
+                        for ( const ISOLanguage lang: languages) {
+                            const bool isSelected{ ( lang == current ) };
+
+                            if (ImGui::MenuItem( GetISOName( lang ).data(), nullptr, isSelected )) {
+                                LocalizationService::Get()->SetLanguage( lang );
+                            }
+                        }
+
+                        ImGui::EndMenu();
                     }
 
                     ImGui::EndMenu();
@@ -595,40 +694,49 @@ namespace mikoto::editor {
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu( MKT_LOC( "menu_language" ).c_str() )) {
-                static constexpr std::array languages{
-                    ISOLanguage::EN_US,
-                    ISOLanguage::EN_GB,
-                    ISOLanguage::ES_ES,
-                    ISOLanguage::JA_JP,
-                    ISOLanguage::ZH_CN
-                };
-
-                if (ImGui::BeginMenu( MKT_LOC( "menu_language" ).c_str() )) {
-                    const ISOLanguage current{ LocalizationService::Get()->GetCurrentLanguage() };
-
-                    for ( const ISOLanguage lang: languages) {
-                        const bool isSelected{ ( lang == current ) };
-
-                        if (ImGui::MenuItem( GetISOName( lang ).data(), nullptr, isSelected )) {
-                            LocalizationService::Get()->SetLanguage( lang );
-                        }
-                    }
-
+            if ( ImGui::BeginMenu( MKT_LOC( "menu_tools" ).c_str() ) ) {
+                if (ImGui::BeginMenu( "Physics" )) {
+                    if (ImGui::MenuItem( "Physics Debugger" )) { /* Open physics collider visualization window */ }
+                    if (ImGui::MenuItem( "Simulation Settings" )) { /* Open gravity, timestep, and layer collision matrix */ }
                     ImGui::EndMenu();
                 }
 
+                if (ImGui::BeginMenu( "Audio" )) {
+                    if (ImGui::MenuItem( "Audio Mixer" )) { /* Open master, SFX, and music channel controls */ }
+                    if (ImGui::MenuItem( "Profiler" )) { /* Open real-time active audio voices monitor */ }
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu( "Graphics" )) {
+                    if (ImGui::MenuItem( "Render Pipeline Settings" )) { /* Open post-processing, MSAA, and shadow config */ }
+                    if (ImGui::MenuItem( "Shader Compiler Status" )) { /* Open window tracking background shader variants compilation */ }
+                    if (ImGui::MenuItem( "Texture Packer" )) { /* Open sprite sheet generation utility */ }
+                    ImGui::EndMenu();
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem( "Profiler", "Ctrl+7" )) { /* Toggle core CPU/GPU performance profiler timeline */ }
+                if (ImGui::MenuItem( "Console", "Ctrl+Shift+C" )) { /* Toggle engine log, warning, and error outputs window */ }
+
                 ImGui::EndMenu();
             }
 
-            if ( ImGui::BeginMenu( MKT_LOC( "menu_tools" ).c_str() ) ) {
-                // Disabling fullscreen would allow the window to be moved to the front of other windows,
-                // which we can't undo at the moment without finer window depth/z control.
+            if (ImGui::BeginMenu( MKT_LOC( "menu_help" ).c_str() )) {
+                if (ImGui::MenuItem( "About YourEngineName..." )) { /* Show floating window with credits/version */ }
+                ImGui::Separator();
 
-                ImGui::EndMenu();
-            }
+                if (ImGui::MenuItem( "Documentation" )) { /* Open URL for the documentation */ }
+                if (ImGui::MenuItem( "Scripting Reference" )) { /* Open URL for the code API */ }
 
-            if (ImGui::BeginMenu( MKT_LOC( "menu_about" ).c_str() )) {
+                ImGui::Separator();
+                if (ImGui::BeginMenu( "Support" )) {
+                    if (ImGui::MenuItem( "Report a Bug" )) { /* Open bug report form or GitHub Issues */ }
+                    ImGui::EndMenu();
+                }
+
+                ImGui::Separator();
+                if (ImGui::MenuItem( "Check for Updates" )) { /* Logic to check for a new engine version */ }
 
                 ImGui::EndMenu();
             }

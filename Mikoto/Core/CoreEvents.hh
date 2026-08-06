@@ -22,12 +22,11 @@
 #include <EASTL/fixed_vector.h>
 #include <EASTL/string_view.h>
 
-#include <fmt/core.h>
-
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Event.hh>
 #include <Core/String.hh>
+#include <Core/KeyCodes.hh>
 
 namespace mikoto::core {
     class WindowResizedEvent final : public IEvent {
@@ -204,7 +203,10 @@ namespace mikoto::core {
         }
 
         MKT_NODISCARD auto IsRepeated() const -> bool { return mRepeated; }
-        MKT_NODISCARD auto GetModifiers() const -> bool { return mModifiers; }
+
+        MKT_NODISCARD auto GetModifiers() const -> i32 { return mModifiers; }
+        MKT_NODISCARD auto IsModActive( ModKey mod ) const -> bool { return (mModifiers & core::as<i32>(mod)) != 0;  }
+
         MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
         MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::KEY_PRESSED_EVENT; }
@@ -325,7 +327,6 @@ namespace mikoto::core {
         MKT_NODISCARD auto GetPositionY() const -> double { return mPositionY; }
         MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
-
         MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_MOVED_EVENT; }
 
         MKT_NODISCARD auto DisplayData() const -> eastl::string override {
@@ -358,7 +359,10 @@ namespace mikoto::core {
         }
 
         MKT_NODISCARD auto GetMouseButton() const -> i32 { return mButton; }
+
         MKT_NODISCARD auto GetModifiers() const -> i32 { return mModifiers; }
+        MKT_NODISCARD auto IsModActive( ModKey mod ) const -> bool { return (mModifiers & core::as<i32>(mod)) != 0;  }
+
         MKT_NODISCARD auto GetType() const -> EventType override { return GetStaticType(); }
 
         MKT_NODISCARD static auto GetStaticType() -> EventType { return EventType::MOUSE_BUTTON_PRESSED_EVENT; }

@@ -1,12 +1,14 @@
 {
   "menu_file": "ファイル",
   "menu_close": "閉じる",
+  "menu_edit": "Edit",
   "menu_window": "ウィンドウ",
   "menu_panels": "パネル",
   "menu_theme": "テーマ",
+  "menu_game_object": "Game Object",
   "menu_language": "言語",
   "menu_tools": "ツール",
-  "menu_about": "情報",
+  "menu_help": "情報",
 
   "new_scene": "新しいシーン",
   "open_scene": "シーンを開く",

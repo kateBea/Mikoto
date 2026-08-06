@@ -24,6 +24,7 @@
 #include <Core/EventSystem.hh>
 #include <Core/InputSystem.hh>
 #include <Core/TimeService.hh>
+#include <Core/ActionManager.hh>
 #include <Core/RuntimeConsole.hh>
 #include <Core/LocalizationService.hh>
 
@@ -82,6 +83,7 @@ namespace mikoto::core {
             PushMainThreadService<TimeService>( TimeServiceCreateInfo{} );
 
             PushService<FileService>( FileServiceCreateInfo{} );
+            PushService<ActionManager>( ActionManagerCreateInfo{} );
             PushService<AudioService>( AudioServiceCreateInfo{} );
             PushService<RuntimeConsole>( RuntimeConsoleCreateInfo{} );
             PushService<FileWatcherService>( FileWatcherServiceCreateInfo{} );

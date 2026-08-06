@@ -23,6 +23,7 @@
 #include <Core/CoreEvents.hh>
 #include <Core/InputSystem.hh>
 #include <Core/TimeService.hh>
+#include <Core/ActionManager.hh>
 #include <Core/LocalizationService.hh>
 
 #include <Assets/ImageProcessor.hh>
@@ -80,17 +81,17 @@ namespace mikoto::editor {
         InitAssets();
 
         InitEmptyScene();
-
         InitDockingSpace();
-
         InitSceneRenderer();
-
         InitEditorCamera();
-
         InitEditorPanels();
 
+        InitActionCallbacks();
+
         // [DEBUG]
-        mTestSkybox = AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr", TextureDimension::eTexture2D );
+        mTestSkybox = AssetsService::Get()->LoadAsset<ITexture>(
+            "Resources/Cubemaps/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr",
+            TextureDimension::eTexture2D );
 
         mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
     }
@@ -247,11 +248,15 @@ namespace mikoto::editor {
                     }
                 }
 
-                if (keyPressed->IsModActive(ModKey::Control)) {
-                    if (keyPressed->GetKeyCode() == KeyCode::Key_P) {
-                        MKT_CORE_LOGGER_DEBUG( "Ctrl + P was pressed." );
-                    }
-                }
+                // Handle shortcuts
+                core::ModKey activeMod{ ModKey::eNone };
+                const i32 mods{ keyPressed->GetModifiers() };
+
+                if (mods & as<i32>(ModKey::eControl)) activeMod = ModKey::eControl;
+                else if (mods & as<i32>(ModKey::eShift)) activeMod = ModKey::eShift;
+                else if (mods & as<i32>(ModKey::eAlt)) activeMod = ModKey::eAlt;
+
+                const bool shortcutTriggered{ core::ActionManager::Get()->Dispatch( as<KeyCode>( keyPressed->GetKeyCode() ), activeMod) };
             }
         }
     }
@@ -387,6 +392,16 @@ namespace mikoto::editor {
 
     auto EditorLayer::InitDockingSpace() -> void {
         //https://github.com/ocornut/imgui/wiki/Docking
+    }
+
+    auto EditorLayer::InitActionCallbacks() -> void {
+        core::ActionManager::Get()->Bind(core::KeyCode::Key_P, core::ModKey::eControl, []() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + P (Create New project)" );
+        });
+
+        core::ActionManager::Get()->Bind(core::KeyCode::Key_C, core::ModKey::eControl | core::ModKey::eAlt, []() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + Shift + C (Open Console)" );
+        });
     }
 
     auto EditorLayer::InitEmptyScene() -> void {
@@ -541,7 +556,7 @@ namespace mikoto::editor {
 
                 ImGui::Separator();
                 if (ImGui::MenuItem( MKT_LOC( "new_project" ).c_str(), "Ctrl + P" )) {}
-                if (ImGui::MenuItem( MKT_LOC( "open_project" ).c_str(), "Ctrl + P" )) {}
+                if (ImGui::MenuItem( MKT_LOC( "open_project" ).c_str(), "Ctrl + U" )) {}
                 if (ImGui::MenuItem( MKT_LOC( "save_project" ).c_str(), "Ctrl + G" )) {}
 
                 ImGui::Separator();

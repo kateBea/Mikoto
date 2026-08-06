@@ -101,6 +101,7 @@ namespace mikoto::editor {
         auto InitEditorCamera() -> void;
         auto InitEditorPanels() -> void;
         auto InitDockingSpace() -> void;
+        auto InitActionCallbacks() -> void;
 
         auto InitEmptyScene() -> void;
 

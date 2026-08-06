@@ -45,7 +45,7 @@ namespace mikoto::renderer::d3d12 {
         D3D12MA::ALLOCATOR_DESC allocatorDesc{};
         allocatorDesc.pDevice = device->GetDevice();
         allocatorDesc.pAdapter = device->GetAdapter();
-        allocatorDesc.Flags = D3D12MA_RECOMMENDED_ALLOCATOR_FLAGS;
+        allocatorDesc.Flags = (D3D12MA::ALLOCATOR_FLAGS)D3D12MA_RECOMMENDED_ALLOCATOR_FLAGS;
 
         ThrowIfFailed(D3D12MA::CreateAllocator(&allocatorDesc, &mAllocator));
     }

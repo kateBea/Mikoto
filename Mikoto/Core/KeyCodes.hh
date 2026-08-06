@@ -159,14 +159,22 @@
 namespace mikoto::core {
 
     enum class ModKey : i32 {
-        None     = 0,
-        Shift    = MKT_MOD_SHIFT,
-        Control  = MKT_MOD_CONTROL,
-        Alt      = MKT_MOD_ALT,
-        Super    = MKT_MOD_SUPER,
-        CapsLock = MKT_MOD_CAPS_LOCK,
-        NumLock  = MKT_MOD_NUM_LOCK
+        eNone     = 0,
+        eShift    = MKT_MOD_SHIFT,
+        eControl  = MKT_MOD_CONTROL,
+        eAlt      = MKT_MOD_ALT,
+        eSuper    = MKT_MOD_SUPER,
+        eCapsLock = MKT_MOD_CAPS_LOCK,
+        eNumLock  = MKT_MOD_NUM_LOCK
     };
+
+    inline auto operator|(ModKey a, ModKey b) -> ModKey {
+        return static_cast<ModKey>(static_cast<i32>(a) | static_cast<i32>(b));
+    }
+
+    inline auto operator&(ModKey a, ModKey b) -> ModKey {
+        return static_cast<ModKey>(static_cast<i32>(a) & static_cast<i32>(b));
+    }
 
     enum KeyCode : i16 {
         Key_Space           = MKT_KEY_SPACE           ,

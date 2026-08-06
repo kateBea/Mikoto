@@ -15,6 +15,7 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Event.hh>
+#include <Core/CoreEvents.hh>
 #include <Core/LayerStack.hh>
 
 #include <Assets/Image.hh>
@@ -37,7 +38,21 @@ namespace mikoto::editor {
 
     auto EditorHelloTriangleLayer::OnCreate() -> void {
         // Construct geometry: Index and vertex buffer for the triangle
+        auto verticesDesc{ BufferCreateDescription{}
+            .SetBufferUsage( BufferUsageFlagsBits::kVertex | BufferUsageFlagsBits::kCopyDst )
+            .SetHeapType( HeapType::eDeviceLocal )
+            .SetCpuAccessType( CpuAccessType::eRead )
+            .SetInitialData( BufferSpanHandle::Spawn( mVertices.data(), MKT_VECTOR_SIZE_BYTES(mVertices) ) ) };
+        mVertexBuffer = mDevice->CreateBuffer( verticesDesc );
 
+        // Create indices buffer
+        auto indicesDesc{ BufferCreateDescription{}
+            .SetBufferUsage( BufferUsageFlagsBits::kIndex | BufferUsageFlagsBits::kCopyDst )
+            .SetHeapType( HeapType::eDeviceLocal )
+            .SetCpuAccessType( CpuAccessType::eRead )
+            .SetFormat( Format::eR32_UINT )
+            .SetInitialData( BufferSpanHandle::Spawn( mIndices.data(), MKT_VECTOR_SIZE_BYTES(mIndices) ) ) };
+        mIndexBuffer = mDevice->CreateBuffer( indicesDesc );
 
         // Create color attachment
         auto colorDesc{ TextureCreateDescription{}
@@ -49,7 +64,7 @@ namespace mikoto::editor {
             .SetFormat( Format::eBGRA8_UNORM ) };
 
         mColorImage = mDevice->CreateTexture( colorDesc );
-        mColorImage->SetDebugName( "GameLayer Color image" );
+        mColorImage->SetDebugName( "HelloTriangleLayer Color image" );
 
         // Create depth attachment
         auto depthDesc{ TextureCreateDescription{}
@@ -61,7 +76,7 @@ namespace mikoto::editor {
             .SetFormat( Format::eD32 ) };
 
         mDepthImage = mDevice->CreateTexture( depthDesc );
-        mDepthImage->SetDebugName( "GameLayer Depth image" );
+        mDepthImage->SetDebugName( "HelloTriangleLayer Depth image" );
 
         // Create shaders
         auto vertexShaderDescription{ ShaderModuleCreateDescription{}
@@ -168,7 +183,7 @@ namespace mikoto::editor {
             .SetCpuAccessType( CpuAccessType::eWrite )
             .SetBufferUsage( BufferUsageFlagsBits::kConstant | BufferUsageFlagsBits::kCopyDst )
             .SetResourceType( ResourceType::eConstantBuffer )
-            .SetByteSize(MKT_SIZEOF( float4x4 )) };
+            .SetByteSize(MKT_SIZEOF( MyData )) };
         mConstantBuffer = mDevice->CreateBuffer(constantBufferDesc);
 
         auto samplerDes{ SamplerCreateDescription{}
@@ -256,9 +271,24 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloTriangleLayer::OnUpdate( float timeStep ) -> void {
-        mCommandList->Begin( { .mScopeName = "EditorDebug Render" } );
+        mCommandList->Begin( { .mScopeName = "EditorHelloTriangleLayer Render" } );
 
-        //mCommandList->Write( mConstantBuffer.GetRaw(), MKT_ADDRESSOF( mCameraProps ), MKT_SIZEOF( mCameraProps ) );
+        mShaderParameters.mModel = math::constants::Identity<core::float4x4>();
+        mShaderParameters.mView = glm::lookAt(
+            glm::vec3{ 1.0f, 1.0f, 0.0f },// camera position
+            glm::vec3{ 0.0f, 0.0f, 0.0f },// target (sphere center)
+            glm::vec3{ 0.0f, 1.0f, 0.0f } // up direction
+        );
+
+        const f32 aspectRatio{ 1920.0f / 1080.0f };
+        mShaderParameters.mProjection = glm::perspective(
+            glm::radians( 60.0f ),// FOV
+            aspectRatio,          // width / height
+            0.1f,                 // near plane
+            100.0f                // far plane
+        );
+
+        mCommandList->Write( mConstantBuffer.GetRaw(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
 
         // Set graphics state
         auto graphicsState{ GraphicsState{}
@@ -293,13 +323,56 @@ namespace mikoto::editor {
 
         mCommandList->EndRendering();
 
+        mCommandList->SetBarrier( mColorImage.GetRaw(), ResourceStates::eShaderResource );
+
         mCommandList->End();
 
         // Not executed immediately, cached to do one BIG submission.
         mDevice->ExecuteCommands( mCommandList );
+
+        if (mIsImguiWindowActive) {
+            DisplayImGuiWindow();
+        }
     }
 
     auto EditorHelloTriangleLayer::OnEvent( core::IEvent &event ) -> void {
+        if (event.IsType( EventType::KEY_PRESSED_EVENT )) {
+            if (const auto *keyPressed{ dynamic_cast<core::KeyPressedEvent *>( MKT_ADDRESSOF( event ) ) }) {
+                if (keyPressed->GetKeyCode() == KeyCode::Key_H) {
+                    mIsImguiWindowActive = !mIsImguiWindowActive;
+                }
+            }
+        }
+    }
 
+    auto EditorHelloTriangleLayer::DisplayImGuiWindow() -> void {
+        ImGui::SetNextWindowSize( ImVec2( 420.0f, 500.0f ), ImGuiCond_FirstUseEver );
+
+        if ( ImGui::Begin( "Hello Triangle Tests", &mIsImguiWindowActive ) ) {
+            auto imageID{ ImGuiService::Get()->GetTextureID( mColorImage ) };
+            ImGui::Image( imageID, ImVec2{ 128, 128 } );
+
+            ImGui::Spacing();
+            ImGui::Separator();
+
+            ImGui::Text( "FPS: %.1f", ImGui::GetIO().Framerate );
+            ImGui::Text( "Frame Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate );
+
+            ImGui::Spacing();
+            ImGui::Separator();
+
+            static f32 rotationSpeed{ 1.0f };
+            static eastl::array<f32, 4> clearColor{ 0.10f, 0.10f, 0.12f, 1.0f };
+
+            ImGui::SliderFloat( "Rotation Speed", &rotationSpeed, 0.0f, 10.0f );
+            ImGui::ColorEdit4( "Clear Color", clearColor.data() );
+
+            ImGui::Spacing();
+            ImGui::Separator();
+
+            ImGui::TextDisabled( "Press H to hide/show this window." );
+        }
+
+        ImGui::End();
     }
 }// namespace mikoto::editor

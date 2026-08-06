@@ -111,7 +111,7 @@ namespace mikoto::editor {
             return;
         }
 
-        mColorImageID= ImGuiService::Get()->GetTextureID( texture );
+        mColorImageID = ImGuiService::Get()->GetTextureID( texture );
     }
 
     auto ScenePanel::GetWidth() const -> float {

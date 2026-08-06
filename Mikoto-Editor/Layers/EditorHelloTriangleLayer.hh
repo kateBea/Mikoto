@@ -53,10 +53,68 @@ namespace mikoto::editor {
         auto OnUpdate( float timeStep ) -> void override;
 
         auto OnEvent( core::IEvent &event ) -> void override;
+    private:
+        struct MyData {
+            core::float4x4 mModel{};
+            core::float4x4 mView{};
+            core::float4x4 mProjection{};
+        };
+
+        auto DisplayImGuiWindow() -> void;
 
     private:
+        // Cube definition
+        eastl::vector<asset::VertexDescription> mVertices{
+            // Front (+Z)
+            { { -0.5f, -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
+            { { 0.5f, -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
+            { { 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
+            { { -0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
+
+            // Back (-Z)
+            { { 0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
+            { { -0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
+            { { -0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
+            { { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
+
+            // Left (-X)
+            { { -0.5f, -0.5f, -0.5f }, { -1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
+            { { -0.5f, -0.5f, 0.5f }, { -1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
+            { { -0.5f, 0.5f, 0.5f }, { -1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
+            { { -0.5f, 0.5f, -0.5f }, { -1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
+
+            // Right (+X)
+            { { 0.5f, -0.5f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
+            { { 0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
+            { { 0.5f, 0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
+            { { 0.5f, 0.5f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
+
+            // Top (+Y)
+            { { -0.5f, 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
+            { { 0.5f, 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
+            { { 0.5f, 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
+            { { -0.5f, 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
+
+            // Bottom (-Y)
+            { { -0.5f, -0.5f, -0.5f }, { 0.0f, -1.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
+            { { 0.5f, -0.5f, -0.5f }, { 0.0f, -1.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
+            { { 0.5f, -0.5f, 0.5f }, { 0.0f, -1.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
+            { { -0.5f, -0.5f, 0.5f }, { 0.0f, -1.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
+        };
+
+        // Indices
+        eastl::vector<core::u32> mIndices{
+            0, 1, 2, 2, 3, 0,      // Front
+            4, 5, 6, 6, 7, 4,      // Back
+            8, 9, 10, 10, 11, 8,   // Left
+            12, 13, 14, 14, 15, 12,// Right
+            16, 17, 18, 18, 19, 16,// Top
+            20, 21, 22, 22, 23, 20 // Bottom
+        };
+
         renderer::IGpuDevice* mDevice{};
 
+        MyData mShaderParameters{};
         eastl::unique_ptr<scene::SceneCamera> mEditorCamera{};
         renderer::rhi::BufferHandle mConstantBuffer{};
 
@@ -83,6 +141,8 @@ namespace mikoto::editor {
         renderer::rhi::BindingSetHandle mBindingSetHandle{};
         renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};
         renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
+
+        bool mIsImguiWindowActive{ false };
 
         platform::Window* mWindow{};
     };

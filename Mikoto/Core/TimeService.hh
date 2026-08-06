@@ -73,7 +73,7 @@ namespace mikoto::core {
         // can use that to do some nice visualizations on ImGui
         auto PushTime( const eastl::string& tag, Time time ) -> void;
 
-        MKT_NODISCARD auto GetTimes() const -> const auto& { return mTimeMap; }
+        MKT_NODISCARD auto GetProfilingTimes() const -> const auto& { return mTimeMap; }
 
         MKT_NODISCARD auto GetDefaultUnit() const -> TimeUnit;
         MKT_NODISCARD auto GetTimeStep( TimeUnit unit = TimeUnit::eSeconds) const -> double;

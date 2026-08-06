@@ -17,6 +17,7 @@
 #include <Core/Event.hh>
 #include <Core/CoreEvents.hh>
 #include <Core/LayerStack.hh>
+#include <Core/TimeService.hh>
 
 #include <Assets/Image.hh>
 #include <Assets/ImageProcessor.hh>
@@ -273,7 +274,13 @@ namespace mikoto::editor {
     auto EditorHelloTriangleLayer::OnUpdate( float timeStep ) -> void {
         mCommandList->Begin( { .mScopeName = "EditorHelloTriangleLayer Render" } );
 
-        mShaderParameters.mModel = math::constants::Identity<core::float4x4>();
+        float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) }; // seconds
+        mShaderParameters.mModel = glm::rotate(
+            math::constants::Identity<core::float4x4>(),
+            angle,
+            math::constants::kUnitVectorY
+        );
+
         mShaderParameters.mView = glm::lookAt(
             glm::vec3{ 1.0f, 1.0f, 0.0f },// camera position
             glm::vec3{ 0.0f, 0.0f, 0.0f },// target (sphere center)

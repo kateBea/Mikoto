@@ -12,6 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-auto main() -> int {
+// ----------------------------------------------
+// Simple APP to render a cube using Mikoto's RHI
+// ----------------------------------------------
 
+#include <GLFW/glfw3.h>
+
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
+#include <Renderer/Rhi/CommandQueue.hh>
+
+auto main() -> int {
+    // Initialize window
+
+    // Initialize RHI
+
+    // Setup render stuff
+
+    // Render loop
+
+    // Shutdown
 }

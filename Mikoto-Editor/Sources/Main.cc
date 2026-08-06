@@ -31,6 +31,7 @@
 #include <Layers/EditorLayer.hh>
 #include <Layers/EditorDebugLayer.hh>
 #include <Layers/EditorRayTraceLayer.hh>
+#include <Layers/EditorHelloTriangleLayer.hh>
 
 #include <Platform/Window.hh>
 #include <Platform/WindowsService.hh>
@@ -84,6 +85,7 @@ auto InitEditor() -> bool {
 #if true
         gApplication->PushLayer<EditorDebugLayer>( gWindow );
         gApplication->PushLayer<EditorRayTraceLayer>( gWindow );
+        gApplication->PushLayer<EditorHelloTriangleLayer>( gWindow );
 #endif
 
         gApplication->PushLayer<EditorLayer>( gWindow );

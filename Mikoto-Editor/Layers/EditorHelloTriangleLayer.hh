@@ -1,0 +1,16 @@
+//
+// Created by hpela on 8/6/2026.
+//
+
+#ifndef MIKOTOROOT_EDITORHELLOTRIANGLELAYER_HH
+#define MIKOTOROOT_EDITORHELLOTRIANGLELAYER_HH
+
+
+
+class EditorHelloTriangleLayer {
+
+};
+
+
+
+#endif //MIKOTOROOT_EDITORHELLOTRIANGLELAYER_HH

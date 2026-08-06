@@ -17,8 +17,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #add_subdirectory(WindowWin32)
 #add_subdirectory(HelloDirect3D11)
 #add_subdirectory(HelloDirect3D12)
+#add_subdirectory(HelloTriangle_RHI)
 #add_subdirectory(HelloTriangleWin32_D3D11)
 #add_subdirectory(HelloTriangleWin32_D3D12)
 
 # Active
-add_subdirectory(HelloDirect3D11)
+add_subdirectory(HelloTriangle_RHI)

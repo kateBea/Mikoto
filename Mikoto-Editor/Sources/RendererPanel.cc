@@ -32,14 +32,14 @@
 
 #include <Panels/RendererPanel.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/RenderSystem.hh>
 
 namespace mikoto::editor {
 
     using namespace mikoto::core;
     using namespace mikoto::renderer;
-
+    using namespace mikoto::renderer::rhi;
 
     RendererPanel::RendererPanel( const RendererPanelCreateInfo &createInfo )
         : Panel{ "Renderer" },  mEditorState{ createInfo.mState } {

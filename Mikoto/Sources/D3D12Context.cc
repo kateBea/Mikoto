@@ -24,13 +24,20 @@
 #include <Filesystem/Path.hh>
 #include <Filesystem/FileService.hh>
 
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-#include <Renderer/D3D12/D3D12Device.hh>
-#include <Renderer/D3D12/D3D12Context.hh>
-#include <Renderer/D3D12/Direct3D12Helpers.hh>
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
+#include <Renderer/Rhi/D3D12/D3D12Context.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
 
 namespace mikoto::renderer::d3d12 {
+
+    using namespace mikoto::core;
+    using namespace mikoto::filesystem;
+    using namespace mikoto::renderer::rhi;
 
     auto ShaderCompileDescription::SetSource( eastl::string_view value ) -> ShaderCompileDescription& {
         mSource = value;
@@ -283,7 +290,7 @@ namespace mikoto::renderer::d3d12 {
 
     auto Context::SubmitFrame() -> void {
         Device* device{ checked_cast<Device*>( mDevice.get() ) };
-        Queue* queue{ device->GetQueue( QueueType::eGraphics ) };
+        Queue* queue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
 
         if (!mPresentTarget.IsEmpty() && !mSwapChain.IsEmpty()) {
 #if true
@@ -324,7 +331,9 @@ namespace mikoto::renderer::d3d12 {
 
             mCommandList->End();
 
-            device->SubmitCommands( mCommandList );
+            auto submitInfo{ SubmitInfo{}
+                .AddCommandList( mCommandList ) };
+            queue->ExecuteCommandLists( submitInfo );
 
 #else
             // Blit via copy command
@@ -347,24 +356,20 @@ namespace mikoto::renderer::d3d12 {
 
             mCommandList->End();
 
-            device->SubmitCommands( mCommandList );
+            auto submitInfo{ SubmitInfo{}
+                .AddCommandList( mCommandList ) };
+            mDevice->GetQueue(QueueType::eGraphics)->ExecuteCommandLists( submitInfo );
 #endif
         }
-
-        // SINGLE submission point
-        device->ExecutePendingCommands();
 
 
         // Wait for previous frame to finish.
         // This is not the best, doing it for now for simplicity and testing purposes.
         Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
-
-        ID3D12Fence* fence{ *pFence };
-        ID3D12CommandQueue* commandQueue{ *queue };
-        ThrowIfFailed(commandQueue->Signal(fence, mFenceValue));
+        queue->Signal(pFence, mFenceValue);
         ++mFenceValue;
 
-        pFence->WaitForFenceValue( mFenceValue );
+        (void)pFence->Wait( mFenceValue, INFINITE );
     }
 
     auto Context::PrepareFrame() -> void {
@@ -434,13 +439,21 @@ namespace mikoto::renderer::d3d12 {
         mFence = mDevice->CreateFence( mFenceValue );
 
         // Create shaders
+        FileHandle vsShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Vert.slang" ) };
         auto vertexShaderDescription{ ShaderModuleCreateDescription{}
-            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Vert.slang" ) )
+            .SetContents( vsShader )
+            .SetModuleName( vsShader->GetName() )
+            .SetModulePath( vsShader->GetPath() )
+            .SetLanguage( ShaderLanguage::eSlang )
             .SetStage( ShaderType::eVertex ) };
         mVertexShader = mDevice->CreateShader( vertexShaderDescription );
 
+        FileHandle pxShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Frag.slang" ) };
         auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
-            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Frag.slang" ) )
+            .SetContents( pxShader )
+            .SetModuleName( pxShader->GetName() )
+            .SetModulePath( pxShader->GetPath() )
+            .SetLanguage( ShaderLanguage::eSlang )
             .SetStage( ShaderType::ePixel ) };
         mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
 

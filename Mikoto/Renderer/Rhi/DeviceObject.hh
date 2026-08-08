@@ -12,14 +12,89 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_DEVICE_OBJECT_HH
-#define MIKOTO_DEVICE_OBJECT_HH
+#ifndef MIKOTO_RHI_DEVICE_OBJECT_HH
+#define MIKOTO_RHI_DEVICE_OBJECT_HH
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/ResourcePool.hh>
+
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::renderer::rhi {
-    // Base GPU resource
-    // Heap class
-}
 
+    class IGpuDevice;
 
+    struct Object {
+        enum class Type {
+            Pointer,
+            Integer,
+            None
+        };
 
-#endif //MIKOTOROOT_DEVICEOBJECT_HH
+        Type mType{ Type::None };
+        void* mPointer{ nullptr };
+        core::u64 mInteger{ 0 };
+
+        explicit Object(void* p) : mType(Type::Pointer), mPointer(p) {}
+        explicit Object(core::u64 i) : mType(Type::Integer), mInteger(i) {}
+        Object() = default;
+
+        template<typename T>
+        operator T*() const {
+            if (mType == Type::Pointer) {
+                return core::as<T*>(mPointer);
+            }
+
+            return nullptr;
+        }
+    };
+
+    class DeviceObject : public core::IResource {
+    public:
+        explicit DeviceObject() = default;
+
+        auto Initialize( IGpuDevice* device ) -> void;
+
+        auto SetResourceState( ResourceStates state ) -> void;
+        MKT_NODISCARD auto GetResourceState() const -> ResourceStates;
+
+        virtual auto SetDebugName( eastl::string_view name ) -> void;
+
+        MKT_NODISCARD auto GetDebugName() const -> eastl::string_view;
+        MKT_NODISCARD static auto GetDefaultDebugName() -> eastl::string_view;
+
+        MKT_NODISCARD virtual auto GetNativeHandle( ObjectType ) -> Object;
+        MKT_NODISCARD virtual auto GetNativeHandle( ObjectType type ) const -> Object;
+
+        MKT_NODISCARD auto GetHeapType() const -> HeapType { return mHeapType; }
+
+        ~DeviceObject() override = default;
+
+    protected:
+        DeviceObject( HeapType heapType, ResourceType resourceType );
+
+        auto Initialize() -> void override = 0;
+        auto Release() -> void override = 0;
+
+    protected:
+        IGpuDevice* mDevice{};
+        eastl::string mDebugName{};
+
+        // State tracking
+        ResourceType mResourceType{ ResourceType::eInvalid };
+        ResourceStates mResourceState{ ResourceStates::eUnknown };
+
+        AccessFlags mAccessAfter{ AccessFlagsBits::kNone };
+        TextureLayoutFlags mLayoutAfter{ TextureLayoutBits::kUnknown };
+        PipelineStageFlags mStageAfter{ PipelineStageFlagsBits::kNone };
+
+        // By default, the resource is device local
+        // lives in memory "only accessible by device"
+        HeapType mHeapType{ HeapType::eDeviceLocal };
+        CpuAccessType mCpuAccess{ CpuAccessType::eNone };
+    };
+}// namespace mikoto::renderer::rhi
+
+#endif //MIKOTO_RHI_DEVICE_OBJECT_HH

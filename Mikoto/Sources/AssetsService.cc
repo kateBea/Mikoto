@@ -34,12 +34,19 @@
 #include <Filesystem/FileSystem.hh>
 #include <Filesystem/FileWatcherService.hh>
 
-#include <Renderer/Core/Rhi.hh>
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 #include <Renderer/Core/FontFactory.hh>
 #include <Renderer/Core/RenderSystem.hh>
 
 namespace mikoto::asset {
+
+    using namespace mikoto::core;
+    using namespace mikoto::audio;
+    using namespace mikoto::material;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
 
     auto TextureLoadDescription::SetPath( const Path& path ) -> TextureLoadDescription& {
         mPath = path;

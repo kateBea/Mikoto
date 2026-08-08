@@ -16,7 +16,8 @@
 #include <Core/Types.hh>
 #include <Core/Platform.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 #include <Memory/GpuAllocator.hh>
 
@@ -25,13 +26,16 @@
 #include <directx/d3d12.h>
 #include <D3D12MemAlloc.h>
 
-#include <Renderer/D3D12/D3D12Device.hh>
-#include <Renderer/D3D12/Direct3D12Helpers.hh>
-#include <Renderer/D3D12/D3D12MemoryAllocator.hh>
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
+#include <Renderer/Rhi/D3D12/D3D12MemoryAllocator.hh>
 
 // https://gpuopen-librariesandsdks.github.io/D3D12MemoryAllocator/html/quick_start.html
 
 namespace mikoto::renderer::d3d12 {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     GpuMemoryAllocator::GpuMemoryAllocator( IGpuDevice *device )
         : IGpuAllocator{ device }
@@ -81,7 +85,6 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto GpuMemoryAllocator::MapBuffer( BufferAllocation &allocation ) -> void* {
-        // Whole range
         void* mapped{ nullptr };
         D3D12_RANGE readRange{ 0, 0 };
         ThrowIfFailed( allocation.mResource->Map(0, &readRange, rc_cast<void**>(&mapped)));

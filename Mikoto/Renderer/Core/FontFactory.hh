@@ -39,13 +39,13 @@
 #include <Filesystem/File.hh>
 
 #include <Renderer/Text/Font.hh>
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::renderer {
 
     struct CharsetRange {
-        i32 mStart{};
-        i32 mEnd{};
+        core::i32 mStart{};
+        core::i32 mEnd{};
 
         MKT_NODISCARD static auto GetBasicLatinRange() -> CharsetRange;
         MKT_NODISCARD static auto GetLatin1SupplementRange() -> CharsetRange;
@@ -58,18 +58,18 @@ namespace mikoto::renderer {
     };
 
     struct FontLoadDescription {
-        FileHandle mFile{};
+        filesystem::FileHandle mFile{};
         float mSize{ 48 };
 
-        auto SetFile( FileHandle file ) -> FontLoadDescription&;
+        auto SetFile( filesystem::FileHandle file ) -> FontLoadDescription&;
         auto SetSize( float pixelSize ) -> FontLoadDescription&;
     };
 
     struct FontFactoryCreateInfo {
-        IGpuDevice *mDevice{ nullptr };
+        rhi::IGpuDevice *mDevice{ nullptr };
     };
 
-    class FontFactory final : public IService, public Singleton<FontFactory> {
+    class FontFactory final : public core::IService, public core::Singleton<FontFactory> {
     public:
         explicit FontFactory( const FontFactoryCreateInfo &options );
 
@@ -86,9 +86,9 @@ namespace mikoto::renderer {
         using BitmapAtlasStorage = msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>;
 
         struct FontProperties {
-            i32 mMaxHeight{};
-            i32 mMaxWidth{};
-            TextureHandle mAtlas{};
+            core::i32 mMaxHeight{};
+            core::i32 mMaxWidth{};
+            rhi::TextureHandle mAtlas{};
             AtlasGenerator mAtlasProperties{};
 
             ankerl::unordered_dense::map<msdf_atlas::unicode_t, FontGlyph> mGlyphMap{};
@@ -97,8 +97,8 @@ namespace mikoto::renderer {
         struct AtlasGenerateDescription {
             eastl::string_view mFilename{};
 
-            f32 mFontSize{};
-            f32 mFontScale{};
+            core::f32 mFontSize{};
+            core::f32 mFontScale{};
 
             bool mUseCustomCharSet{ true }; // If false we use ASCII only
             bool mExpensiveColoring{ false };
@@ -107,11 +107,11 @@ namespace mikoto::renderer {
         };
 
     private:
-        MKT_NODISCARD auto GenerateAtlas( eastl::string_view fontFilename, f32 fontSize, bool expensiveColoring = true, bool customCharset = true ) const -> FontProperties;
-        auto SubmitAtlasBitmapAndLayout(const BitmapAtlasStorage& atlas, GeometryList& glyphs, FontProperties& data, i32 fontSize ) const -> void;
+        MKT_NODISCARD auto GenerateAtlas( eastl::string_view fontFilename, core::f32 fontSize, bool expensiveColoring = true, bool customCharset = true ) const -> FontProperties;
+        auto SubmitAtlasBitmapAndLayout(const BitmapAtlasStorage& atlas, GeometryList& glyphs, FontProperties& data, core::i32 fontSize ) const -> void;
 
     private:
-        IGpuDevice *mDevice{ nullptr };
+        rhi::IGpuDevice *mDevice{ nullptr };
         msdfgen::FreetypeHandle *mFreeTypeHandle{ nullptr };
     };
 }

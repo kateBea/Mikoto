@@ -25,12 +25,15 @@
 
 #include <Renderer/Core/HdriToCubemap.hh>
 
-#include <Renderer/Vulkan/VulkanContext.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
-#include <Renderer/Vulkan/VulkanTexture.hh>
+#include <Renderer/Rhi/Vulkan/VulkanContext.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Rhi/Vulkan/VulkanTexture.hh>
 
 namespace mikoto::renderer::vulkan {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     Sampler::Sampler( const SamplerCreateDescription& info )
         : ISampler{ info } {
@@ -60,6 +63,14 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Sampler::GetNativeHandle( ObjectType type ) -> Object {
+        if ( type != ObjectType::Vk_Sampler ) {
+            return Object( nullptr );
+        }
+
+        return Object( mSampler );
+    }
+
+    auto Sampler::GetNativeHandle( ObjectType type ) const -> Object {
         if ( type != ObjectType::Vk_Sampler ) {
             return Object( nullptr );
         }
@@ -133,7 +144,10 @@ namespace mikoto::renderer::vulkan {
         cmd->SetBarrier( this, ResourceStates::eShaderResource );
 
         cmd->End();
-        mDevice->ExecuteCommands( cmd );
+
+        auto submitInfo{ SubmitInfo{}
+            .AddCommandList( cmd ) };
+        mDevice->GetQueue(QueueType::eTransfer)->ExecuteCommandLists( submitInfo );
     }
 
     auto Texture::SetDebugName( eastl::string_view name )  -> void {

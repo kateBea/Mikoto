@@ -259,15 +259,6 @@ namespace mikoto::renderer {
     FGResourceManager::FGResourceManager( IGpuDevice* device )
         : mDevice{ device }
     {
-        // TODO: Should I allow every pass to have the possibility to push one constant buffer?
-        // This data is faster to access in shaders that storage buffers
-        // The bindless buffers bindings are supposed to be there for larger data
-        auto layoutDescCbuffer{ BindingLayoutDescription{}
-            .SetRegisterSpace( 1 )
-            .SetShaderVisibility(ShaderFlagsBits::kAll)
-            .AddItem(BindingLayoutItem::ConstantBuffer(0)) };
-        //mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDescCbuffer);
-
         // Prepare layouts
         auto layoutDesc{ BindlessLayoutDescription{}
             .SetVisibility(ShaderFlagsBits::kAll)
@@ -354,7 +345,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( newID, texture, texture->GetFormat(), AllSubResources, texture->GetDimension() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
 
         return newID;
     }
@@ -371,7 +362,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( newID, texture, texture->GetFormat(), AllSubResources, texture->GetDimension() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
 
         return newID;
     }
@@ -588,9 +579,9 @@ namespace mikoto::renderer {
 
         mFence = mDevice->CreateFence( mFenceValue );
 
-        mGraphicsCommands = mDevice->CreateCommandList( { threading::GetThreadConcurrency(), QueueType::eGraphics } );
-        mComputeCommands = mDevice->CreateCommandList( { threading::GetThreadConcurrency(), QueueType::eCompute } );
-        mTransferCommands = mDevice->CreateCommandList( { threading::GetThreadConcurrency(), QueueType::eTransfer } );
+        mGraphicsCommands = mDevice->CreateCommandList( QueueType::eGraphics );
+        mComputeCommands = mDevice->CreateCommandList( QueueType::eGraphics );
+        mTransferCommands = mDevice->CreateCommandList( QueueType::eGraphics );
 
         mGraphicsCommands->SetEnableAutomaticBarriers( false );
         mGraphicsCommands->SetDebugName( "FG GraphicsCommands" );
@@ -687,15 +678,19 @@ namespace mikoto::renderer {
         mComputeCommands->End();
         mTransferCommands->End();
 
-        mDevice->SubmitCommands( mGraphicsCommands );
-        mDevice->SubmitCommands( mComputeCommands );
-        mDevice->SubmitCommands( mTransferCommands );
+        auto submitInfoTransfer{ SubmitInfo{}
+            .SetSignalFence( mFence )
+            .SetSignalValue( mFenceValue )
+            .AddCommandList( mTransferCommands ) };
+        mDevice->GetQueue(QueueType::eTransfer)->ExecuteCommandLists( submitInfoTransfer );
 
-        // eastl::array commands{
-        //     mGraphicsCommands,
-        //     mComputeCommands,
-        //     mTransferCommands };
-        // mDevice->ExecuteCommands( commands );
+        auto submitInfoCompute{ SubmitInfo{}
+            .AddCommandList( mComputeCommands ) };
+        mDevice->GetQueue(QueueType::eCompute)->ExecuteCommandLists( submitInfoCompute );
+
+        auto submitInfoGraphics{ SubmitInfo{}
+            .AddCommandList( mGraphicsCommands ) };
+        mDevice->GetQueue(QueueType::eGraphics)->ExecuteCommandLists( submitInfoGraphics );
 
         // Register callbacks
         mFenceValue++;
@@ -718,10 +713,6 @@ namespace mikoto::renderer {
                 ++it;
             }
         }
-
-        // Signal() will signal the specified value
-        // when the last batch of SubmitCommands() finishes executing
-        mDevice->Signal( QueueType::eTransfer, mFence, mFenceValue );
     }
 
     auto FrameGraph::ExecuteReadbacks() -> void {
@@ -751,15 +742,6 @@ namespace mikoto::renderer {
 
     auto FrameGraph::GetNodeControl() const -> const FGNodeControl& {
         return *mNodeControl;
-    }
-
-    auto FrameGraph::RecordCommands( CommandListHandle cmd ) -> void {
-        cmd->Begin( {} );
-
-        // TODO: Record all commands for specific queue type
-
-        cmd->End();
-        mDevice->SubmitCommands( cmd );
     }
 
     auto FrameGraph::GetTexture( FGTextureHandle handle ) const -> TextureHandle {
@@ -957,7 +939,7 @@ namespace mikoto::renderer {
                 auto& ctx{ mNodeControl->mContexts[passName] };
 
                 if ( pass.mType != FGPassType::eGeneric ) {
-                    cmd->BeginParallel();
+                    cmd->Begin( {} );
                 }
 
                 // Off load this work to workers threads
@@ -974,7 +956,7 @@ namespace mikoto::renderer {
                 ctx->EndPass();
 
                 if ( pass.mType != FGPassType::eGeneric ) {
-                    cmd->EndParallel();
+                    cmd->End();
                 }
             });
 

@@ -25,8 +25,8 @@
 
 #include <Filesystem/Path.hh>
 
-#include <Renderer/Core/Rhi.hh>
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 #include <Assets/AssetsService.hh>
 
@@ -34,6 +34,7 @@ namespace mikoto::editor {
 
     using namespace mikoto::asset;
     using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
 
     // Thumbnail info
     struct Thumbnail {

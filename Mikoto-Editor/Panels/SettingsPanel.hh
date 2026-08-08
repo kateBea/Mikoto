@@ -22,18 +22,16 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::core;
-
     struct EditorState;
 
     struct SettingsPanelData {
         // Camera
-        f32 mEditorCameraMovementSpeed{ 70 };
-        f32 mEditorCameraRotationSpeed{ 30 };
-        f32 mNearPlane{ 0.1f };
-        f32 mFarPlane{ 5000.0f };
-        f32 mFieldOfView{ 45.0f };
-        f32 mDampingFactor{ 6.0f };
+        core::f32 mEditorCameraMovementSpeed{ 70 };
+        core::f32 mEditorCameraRotationSpeed{ 30 };
+        core::f32 mNearPlane{ 0.1f };
+        core::f32 mFarPlane{ 5000.0f };
+        core::f32 mFieldOfView{ 45.0f };
+        core::f32 mDampingFactor{ 6.0f };
         bool mWantXAxisRotation{ true };
         bool mWantYAxisRotation{ true };
 
@@ -41,11 +39,11 @@ namespace mikoto::editor {
         bool mLockCameraToTarget{ false };
 
         // Infinite grid
-        f32 mGridSize{};
-        f32 mGridCellSize{ 0.5f };
-        f32 mGridMinPixelsBetweenCells{ 2.0f };
-        float4 mGridColorThin{ 0.5f, 0.5f, 0.5f, 1.0f };
-        float4 mGridColorThick{ 0.0f, 0.0f, 0.0f, 1.0f };
+        core::f32 mGridSize{};
+        core::f32 mGridCellSize{ 0.5f };
+        core::f32 mGridMinPixelsBetweenCells{ 2.0f };
+        core::float4 mGridColorThin{ 0.5f, 0.5f, 0.5f, 1.0f };
+        core::float4 mGridColorThick{ 0.0f, 0.0f, 0.0f, 1.0f };
     };
 
     struct SettingsPanelCreateInfo {

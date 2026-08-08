@@ -54,6 +54,7 @@ namespace mikoto::editor {
     using namespace mikoto::core;
     using namespace mikoto::scene;
     using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
 
     template<typename ComponentType, typename UIFunction, typename... Args>
     static auto DrawComponent( const std::string_view componentLabel, Entity& entity, const UIFunction& uiFunc, const bool hasRemoveButton = true, Args&&... args ) -> void {

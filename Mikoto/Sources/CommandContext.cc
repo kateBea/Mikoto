@@ -25,6 +25,9 @@
 
 namespace mikoto::renderer {
 
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
+
     MKT_NODISCARD constexpr auto GetResourceState(FGResourceState state) -> ResourceStates {
     switch (state) {
         case FGResourceState::eUnknown:                return ResourceStates::eUnknown;

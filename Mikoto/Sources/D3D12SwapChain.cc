@@ -14,21 +14,28 @@
 
 #include <Core/Platform.hh>
 
-#include <Renderer/D3D12/D3D12SwapChain.hh>
+#include <Renderer/Core/RenderSystem.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-#include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/D3D12/D3D12Context.hh>
-#include <Renderer/D3D12/D3D12Device.hh>
-#include <Renderer/D3D12/Direct3D12Helpers.hh>
+#include <Platform/PlatformWin32.hh>
+#include <GLFW/glfw3.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_EXPOSE_NATIVE_WGL
 #define GLFW_NATIVE_INCLUDE_NONE
 #include <GLFW/glfw3native.h>
 
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
+#include <Renderer/Rhi/D3D12/D3D12Context.hh>
+#include <Renderer/Rhi/D3D12/D3D12SwapChain.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
+
 namespace mikoto::renderer::d3d12 {
+
+    using namespace mikoto::core;
+    using namespace mikoto::platform;
+    using namespace mikoto::renderer::rhi;
 
     SwapChain::SwapChain( Window *window, Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory )
         : mWindow{ window }, mDxgiFactory{ mDxgiFactory } {
@@ -147,7 +154,7 @@ namespace mikoto::renderer::d3d12 {
         }
 
         // Command queue
-        Queue* queue{ device->GetQueue( QueueType::ePresent ) };
+        Queue* queue{ checked_cast<Queue*>( device->GetQueue( QueueType::ePresent ) ) };
         ID3D12CommandQueue* cmdQueue{ *queue };
 
         Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain1{};

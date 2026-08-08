@@ -36,13 +36,22 @@
 
 #include <Platform/Window.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+
 #include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/Vulkan/VulkanContext.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
+
+#include <Renderer/Rhi/Vulkan/VulkanContext.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
 
 namespace mikoto::renderer::vulkan {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
+
+    Context::Context( const RenderContextCreateInfo& createInfo )
+        : RenderContext{ createInfo }
+    {}
 
     auto Context::Init() -> bool {
         // We need to first get volk up and running
@@ -175,8 +184,6 @@ namespace mikoto::renderer::vulkan {
             mCommandList->SetBarrier( colorImage.GetRaw(), ResourceStates::ePresent );
 
             mCommandList->End();
-
-            device->SubmitCommands( mCommandList );
 #else
             // Blit via copy command
             TextureHandle currentSwapchainImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
@@ -199,47 +206,43 @@ namespace mikoto::renderer::vulkan {
                 ResourceStates::ePresent );
 
             mCommandList->End();
-
-            device->SubmitCommands( mCommandList );
 #endif
         }
 
+        Queue* graphicsQueue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
+
         // External sync
-        device->AddQueueWaitSemaphore(
-            QueueType::eGraphics,
-            checked_cast<BinarySemaphore*>(frame.mImageAvailableSemaphore.GetRaw()),
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-        );
+        device->PushWaitSemaphore(
+                QueueType::eGraphics,
+                frame.mImageAvailableSemaphore.GetRaw(),
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT );
 
-        auto& semaphore{ frame.mRenderFinishedSemaphore };
-        device->AddQueueSignalSemaphore(
-            QueueType::eGraphics,
-            checked_cast<BinarySemaphore*>(semaphore.GetRaw()),
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
-        );
+        device->PushSignalSemaphore(
+                QueueType::eGraphics,
+                frame.mRenderFinishedSemaphore.GetRaw(),
+                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
 
-        frame.mFenceValue++;
-        mDevice->Signal( QueueType::eGraphics, frame.mFence, frame.mFenceValue );
-
-        // SINGLE submission point
-        device->ExecutePendingCommands();
+        eastl::array commandList{ mCommandList };
+        frame.mFenceValue = graphicsQueue->ExecuteCommandsWithSemaphores( commandList );
     }
 
     auto Context::PrepareFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        const auto& frame{ mFrames[mCurrentFrameIndex] };
+        auto& frame{ mFrames[mCurrentFrameIndex] };
         auto device{ checked_cast<Device*>( mDevice.get() ) };
 
-        device->Wait( QueueType::eGraphics, frame.mFence, frame.mFenceValue );
+        Queue* graphicsQueue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
+
+        graphicsQueue->WaitCompletionValue( frame.mFenceValue );
         mDevice->RunGarbageCollection();
 
-        const auto ret{ mSwapchain->GetNextImage(mCurrentImageIndex, *checked_cast<const BinarySemaphore*>( frame.mImageAvailableSemaphore.GetRaw() ) ) };
+        const auto ret{ mSwapchain->GetNextImage( mCurrentImageIndex, *frame.mImageAvailableSemaphore.GetRaw() ) };
 
-        if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
+        if ( ret == VK_ERROR_OUT_OF_DATE_KHR ) {
             mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
-        } else if (ret != VK_SUCCESS) {
-            MKT_ASSERT( false, "VulkanContext Failed to acquire swap chain image!");
+        } else if ( ret != VK_SUCCESS ) {
+            MKT_ASSERT( false, "VulkanContext Failed to acquire swap chain image!" );
         }
     }
 
@@ -253,12 +256,12 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Context::Present() -> void {
-        if (mPresentTarget.IsEmpty()) {
+        if ( mPresentTarget.IsEmpty() ) {
             return;
         }
 
         auto& frame{ mFrames[mCurrentFrameIndex] };
-        const auto result{ mSwapchain->Present( mCurrentImageIndex, *checked_cast<BinarySemaphore*>( frame.mRenderFinishedSemaphore.GetRaw() ) ) };
+        const auto result{ mSwapchain->Present( mCurrentImageIndex, *frame.mRenderFinishedSemaphore ) };
 
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
             mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
@@ -267,7 +270,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         // Frame is advanced if we work with a swap chain
-        mCurrentFrameIndex = (mCurrentFrameIndex + 1) % mMaxFramesInFlight;
+        mCurrentFrameIndex = ( mCurrentFrameIndex + 1 ) % mMaxFramesInFlight;
     }
 
     auto Context::GetMaxFramesInFlight() const -> u32 {
@@ -304,7 +307,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         const SwapChainCreateInfo createInfo{
-            .mPhysicalDevice = as<Device*>(mDevice.get())->GetPhysicalDevice(),
+            .mPhysicalDevice = checked_cast<Device*>(mDevice.get())->GetPhysicalDevice(),
             .mWidth = as<u32>( mWindow->GetWidth() ),
             .mHeight = as<u32>( mWindow->GetHeight() ),
             .mSurface = mInstance->mSurface,
@@ -316,13 +319,21 @@ namespace mikoto::renderer::vulkan {
 
     auto Context::InitSwapchainRender() -> void {
         // Create shaders
+        FileHandle vsShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Vert.slang" ) };
         auto vertexShaderDescription{ ShaderModuleCreateDescription{}
-            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Vert.slang" ) )
+            .SetContents( vsShader )
+            .SetModuleName( vsShader->GetName() )
+            .SetModulePath( vsShader->GetPath() )
+            .SetLanguage( ShaderLanguage::eSlang )
             .SetStage( ShaderType::eVertex ) };
         mVertexShader = mDevice->CreateShader( vertexShaderDescription );
 
+        FileHandle pxShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Frag.slang" ) };
         auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
-            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Frag.slang" ) )
+            .SetContents( pxShader )
+            .SetModuleName( pxShader->GetName() )
+            .SetModulePath( pxShader->GetPath() )
+            .SetLanguage( ShaderLanguage::eSlang )
             .SetStage( ShaderType::ePixel ) };
         mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
 
@@ -376,7 +387,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Context::InitSynchronization() -> void {
-        Device* device{ as<Device*>(mDevice.get()) };
+        Device* device{ checked_cast<Device*>(mDevice.get()) };
 
         mFrames.resize(mMaxFramesInFlight);
 

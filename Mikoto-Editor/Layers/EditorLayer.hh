@@ -33,7 +33,7 @@
 
 #include <Platform/Window.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/SceneRenderer.hh>
 #include <Renderer/Core/ThumbnailRenderer.hh>
 
@@ -45,11 +45,6 @@
 #include <Theme/Theme.hh>
 
 namespace mikoto::editor {
-
-    using namespace mikoto::core;
-    using namespace mikoto::scene;
-    using namespace mikoto::platform;
-    using namespace mikoto::renderer;
 
     enum class PrefabModelType {
         eCube,
@@ -64,36 +59,36 @@ namespace mikoto::editor {
     };
 
     struct EditorState {
-        Scene* mActiveScene{};
-        Entity *mSelectedEntity{};
-        SceneCamera* mActiveCamera{};
-        SceneRenderer *mSceneRenderer{};
-        ThumbnailRenderer *mThumbnailRenderer{};
+        scene::Scene* mActiveScene{};
+        scene::Entity* mSelectedEntity{};
+        scene::SceneCamera* mActiveCamera{};
+        renderer::SceneRenderer* mSceneRenderer{};
+        renderer::ThumbnailRenderer* mThumbnailRenderer{};
 
         Theme* mActiveTheme{};
 
         // Image that will be used for presentation
-        TextureHandle mFinalComposition{};
+        renderer::rhi::TextureHandle mFinalComposition{};
 
         // Current desired resolution. If changed a resize on the final
         // composition should be performed.
-        RenderResolution mResolution{ RenderResolution::e1080P };
+        renderer::rhi::RenderResolution mResolution{ renderer::rhi::RenderResolution::e1080P };
 
         // List of prefab models
-        ankerl::unordered_dense::map<PrefabModelType, ModelHandle> mPrefabPaths{};
+        ankerl::unordered_dense::map<PrefabModelType, asset::ModelHandle> mPrefabPaths{};
 
-        MKT_NODISCARD auto GetPrefab( PrefabModelType model ) -> ModelHandle;
+        MKT_NODISCARD auto GetPrefab( PrefabModelType model ) -> asset::ModelHandle;
     };
 
-    class EditorLayer final : public ILayer {
+    class EditorLayer final : public core::ILayer {
     public:
-        explicit EditorLayer( Window* window);
+        explicit EditorLayer( platform::Window* window );
 
         auto OnCreate() -> void override;
         auto OnDestroy() -> void override;
-        auto OnUpdate(float timeStep) -> void override;
+        auto OnUpdate( float timeStep ) -> void override;
 
-        auto OnEvent(IEvent &event) -> void override;
+        auto OnEvent( core::IEvent& event ) -> void override;
 
     private:
         auto InitAssets() -> void;
@@ -116,28 +111,28 @@ namespace mikoto::editor {
 
         auto UpdateViewportState( float ts ) -> void;
         auto UpdateSceneState( float ts ) -> void;
-        auto UpdateCameraState( float ts  ) -> void;
-        auto UpdateRendererState( float ts  ) -> void;
+        auto UpdateCameraState( float ts ) -> void;
+        auto UpdateRendererState( float ts ) -> void;
 
     private:
-        Window* mWindow{};
-        IGpuDevice* mDevice{};
-        Registry<Panel> mPanelRegistry{};
+        platform::Window* mWindow{};
+        renderer::rhi::IGpuDevice* mDevice{};
+        core::Registry<Panel> mPanelRegistry{};
 
         eastl::unique_ptr<EditorState> mEditorState{};
-        eastl::unique_ptr<SceneCamera> mEditorCamera{};
-        eastl::unique_ptr<SceneRenderer> mSceneRenderer{};
-        eastl::unique_ptr<ThumbnailRenderer> mThumbnailRenderer{};
+        eastl::unique_ptr<scene::SceneCamera> mEditorCamera{};
+        eastl::unique_ptr<renderer::SceneRenderer> mSceneRenderer{};
+        eastl::unique_ptr<renderer::ThumbnailRenderer> mThumbnailRenderer{};
 
-        eastl::unique_ptr<ActionManager> mActionManager{};
+        eastl::unique_ptr<core::ActionManager> mActionManager{};
 
-        CommandListHandle mCommandList{};
+        renderer::rhi::CommandListHandle mCommandList{};
 
         // [DEBUG] To remove
-        TextureHandle mTestSkybox{};
+        renderer::rhi::TextureHandle mTestSkybox{};
 
         ScreenPresentTarget mScreenPresentTarget{ ScreenPresentTarget::ePanels };
     };
-}
+}// namespace mikoto::editor
 
 #endif // MIKOTO_EDITOR_LAYER_HH

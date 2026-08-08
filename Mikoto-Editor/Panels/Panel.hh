@@ -44,13 +44,11 @@ namespace mikoto::editor {
             : mPanelName{ name }, mPanelHeaderName{ headerName }, mPanelIsVisible{ true } {
         }
 
-
         /**
          * @brief Constructs this panel using move semantics, defaulted.
          * @param other Moved from panel.
          * */
         Panel( Panel&& other ) = default;
-
 
         /**
          * Assigns other panel to the implicit parameter using move semantics.
@@ -59,13 +57,11 @@ namespace mikoto::editor {
          * */
         auto operator=( Panel&& other )  noexcept -> Panel& = default;
 
-
         /**
          * @brief Updates the state of this panel.
          * @param timeStep time elapsed since last frame.
          * */
         virtual auto OnUpdate( float timeStep ) -> void = 0;
-
 
         /**
          * @brief Hides or reveals this panel in the docking space.
@@ -81,13 +77,11 @@ namespace mikoto::editor {
          * */
         MKT_NODISCARD auto IsHovered() const -> bool { return mPanelIsHovered; }
 
-
         /**
          * @brief Tells whether this panel is focused or not.
          * @returns True if this panel is focused, false otherwise.
          * */
         MKT_NODISCARD auto IsFocused() const -> bool { return mPanelIsFocused; }
-
 
         /**
          * @brief Whether this panel is visible or not.
@@ -98,12 +92,10 @@ namespace mikoto::editor {
         MKT_NODISCARD auto GetName() const -> eastl::string_view { return mPanelName; }
         MKT_NODISCARD auto GetHeaderName() const -> eastl::string_view { return mPanelHeaderName; }
 
-
         /**
          * Destructor, defaulted
          * */
         virtual ~Panel() = default;
-
 
     protected:
         eastl::string mPanelName{};

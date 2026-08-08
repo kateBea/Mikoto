@@ -47,8 +47,8 @@ namespace mikoto::editor {
         ~ThemeManager() override = default;
 
     private:
-        eastl::unique_ptr<ThemeSerializer> m_Serializer{};
-        ankerl::unordered_dense::map<eastl::string, eastl::unique_ptr<Theme>> m_Themes{};
+        eastl::unique_ptr<ThemeSerializer> mSerializer{};
+        ankerl::unordered_dense::map<eastl::string, eastl::unique_ptr<Theme>> mThemes{};
     };
 }
 

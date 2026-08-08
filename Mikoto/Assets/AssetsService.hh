@@ -45,26 +45,23 @@
 #include <Material/PhysicalMaterial.hh>
 #include <Material/PostProcessMaterial.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 #include <Renderer/Text/Font.hh>
 
 #include <Threading/TaskService.hh>
-#include <Renderer/Core/GpuDevice.hh>
 #include <Renderer/Core/FontFactory.hh>
 
 namespace mikoto::asset {
 
-    using namespace mikoto::core;
-    using namespace mikoto::audio;
-    using namespace mikoto::renderer;
-    using namespace mikoto::material;
-
     struct TextureLoadDescription {
         Path mPath{};
-        TextureDimension mDimension{ TextureDimension::eTexture2D };
+        renderer::rhi::TextureDimension mDimension{ renderer::rhi::TextureDimension::eTexture2D };
 
         auto SetPath( const Path& path ) -> TextureLoadDescription&;
-        auto SetDimensions( TextureDimension dim ) -> TextureLoadDescription&;
+        auto SetDimensions( renderer::rhi::TextureDimension dim ) -> TextureLoadDescription&;
     };
 
     // TODO: Revisit
@@ -187,7 +184,7 @@ namespace mikoto::asset {
 
     private:
         struct Entry {
-            Ref<AssetType> mAsset{};
+            core::Ref<AssetType> mAsset{};
             LoadState mState{ LoadState::eLoading };
             std::condition_variable mCv{};
         };
@@ -199,7 +196,7 @@ namespace mikoto::asset {
 
     struct AssetsServiceDescription {};
 
-    class AssetsService final : public IService, public Singleton<AssetsService> {
+    class AssetsService final : public core::IService, public core::Singleton<AssetsService> {
     public:
 
         explicit AssetsService( const AssetsServiceDescription& options );
@@ -207,7 +204,7 @@ namespace mikoto::asset {
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        MKT_NODISCARD auto GetDummyTexture() -> TextureHandle;
+        MKT_NODISCARD auto GetDummyTexture() -> renderer::rhi::TextureHandle;
         MKT_NODISCARD auto GetAssetCacheBasePath() const  -> const Path&;
 
         template<typename AssetType>
@@ -217,16 +214,16 @@ namespace mikoto::asset {
             if constexpr (std::is_same_v<AssetType, Model>) {
                 return mModels[uri];
             }
-            else if constexpr (std::is_same_v<AssetType, ITexture>) {
+            else if constexpr (std::is_same_v<AssetType, renderer::rhi::ITexture>) {
                 return mTextures2D[uri];
             }
-            else if constexpr (std::is_same_v<AssetType, Audio>) {
+            else if constexpr (std::is_same_v<AssetType, audio::Audio>) {
                 return mAudios[uri];
             }
-            else if constexpr (std::is_same_v<AssetType, Font>) {
+            else if constexpr (std::is_same_v<AssetType, renderer::Font>) {
                 return mFonts[uri];
             }
-            else if constexpr (std::is_same_v<AssetType, Material>) {
+            else if constexpr (std::is_same_v<AssetType, material::Material>) {
                 return mMaterials[uri];
             }
 
@@ -238,16 +235,16 @@ namespace mikoto::asset {
             if constexpr (std::is_same_v<AssetType, Model>) {
                 return LoadModel( eastl::forward<decltype(args)>(args)... );
             }
-            else if constexpr (std::is_same_v<AssetType, ITexture>) {
+            else if constexpr (std::is_same_v<AssetType, renderer::rhi::ITexture>) {
                 return LoadTexture( eastl::forward<decltype(args)>(args)... );
             }
-            else if constexpr (std::is_same_v<AssetType, Audio>) {
+            else if constexpr (std::is_same_v<AssetType, audio::Audio>) {
                 return LoadAudio( eastl::forward<decltype(args)>(args)... );
             }
-            else if constexpr (std::is_same_v<AssetType, Font>) {
+            else if constexpr (std::is_same_v<AssetType, renderer::Font>) {
                 return LoadFont( eastl::forward<decltype(args)>(args)... );
             }
-            else if constexpr (std::is_same_v<AssetType, Material>) {
+            else if constexpr (std::is_same_v<AssetType, material::Material>) {
                 return LoadMaterial( eastl::forward<decltype(args)>(args)... );
             }
 
@@ -265,9 +262,9 @@ namespace mikoto::asset {
             });
         }
 
-        MKT_NODISCARD auto CreateMaterial( const PhysicMaterialDescription& spec) -> MaterialHandle;
-        MKT_NODISCARD auto CreateMaterial( const SkyboxMaterialDescription& desc) -> MaterialHandle;
-        MKT_NODISCARD auto CreateMaterial( const PostProcessMaterialDescription& desc) -> MaterialHandle;
+        MKT_NODISCARD auto CreateMaterial( const material::PhysicMaterialDescription& spec) -> material::MaterialHandle;
+        MKT_NODISCARD auto CreateMaterial( const material::SkyboxMaterialDescription& desc) -> material::MaterialHandle;
+        MKT_NODISCARD auto CreateMaterial( const material::PostProcessMaterialDescription& desc) -> material::MaterialHandle;
 
         ~AssetsService() override = default;
 
@@ -275,15 +272,15 @@ namespace mikoto::asset {
         auto LoadModel( const Path& uri ) -> ModelHandle;
         auto LoadModel( const ModelLoadDescription& description) -> ModelHandle;
 
-        auto LoadTexture( const Path& uri, TextureDimension dimension ) -> TextureHandle;
-        auto LoadTexture( const TextureLoadDescription& description ) -> TextureHandle;
+        auto LoadTexture( const Path& uri, renderer::rhi::TextureDimension dimension ) -> renderer::rhi::TextureHandle;
+        auto LoadTexture( const TextureLoadDescription& description ) -> renderer::rhi::TextureHandle;
 
-        auto LoadAudio( const AudioLoadDescription& description) -> AudioHandle;
+        auto LoadAudio( const audio::AudioLoadDescription& description) -> audio::AudioHandle;
 
-        auto LoadFont( const Path& uri ) -> FontHandle;
-        auto LoadFont( const FontLoadDescription& description) -> FontHandle;
+        auto LoadFont( const Path& uri ) -> renderer::FontHandle;
+        auto LoadFont( const renderer::FontLoadDescription& description) -> renderer::FontHandle;
 
-        auto LoadMaterial( const Path& uri ) -> MaterialHandle;
+        auto LoadMaterial( const Path& uri ) -> material::MaterialHandle;
 
         auto LoadDummyAssets() -> void;
 
@@ -300,18 +297,18 @@ namespace mikoto::asset {
 
     private:
         eastl::unique_ptr<MeshFactory> mMeshFactory{};
-        eastl::unique_ptr<FontFactory> mFontFactory{};
+        eastl::unique_ptr<renderer::FontFactory> mFontFactory{};
 
-        IGpuDevice* mGpuDevice{ nullptr };
-        AudioDevice* mAudioDevice{ nullptr };
+        renderer::rhi::IGpuDevice* mGpuDevice{ nullptr };
+        audio::AudioDevice* mAudioDevice{ nullptr };
 
-        AssetCache<Font> mFonts{};
+        AssetCache<renderer::Font> mFonts{};
         AssetCache<Model> mModels{};
-        AssetCache<Audio> mAudios{};
-        AssetCache<Material> mMaterials{};
+        AssetCache<audio::Audio> mAudios{};
+        AssetCache<material::Material> mMaterials{};
 
-        AssetCache<ITexture> mTextures2D{};
-        AssetCache<ITexture> mTexturesCubes{};
+        AssetCache<renderer::rhi::ITexture> mTextures2D{};
+        AssetCache<renderer::rhi::ITexture> mTexturesCubes{};
     };
 }
 

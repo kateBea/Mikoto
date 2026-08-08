@@ -24,14 +24,15 @@
 #include <Logging/Logger.hh>
 
 #include <Memory/Allocator.hh>
+#include <Memory/BufferSpan.hh>
 
 #include <Renderer/Core/RenderSystem.hh>
 
-#include <Renderer/D3D11/D3D11Device.hh>
-#include <Renderer/D3D11/D3D11Context.hh>
-#include <Renderer/D3D11/D3D11Shader.hh>
-#include <Renderer/D3D11/Direct3D11Helpers.hh>
-#include <Renderer/D3D11/Direct3D11Libraries.hh>
+#include <Renderer/Rhi/D3D11/D3D11Device.hh>
+#include <Renderer/Rhi/D3D11/D3D11Context.hh>
+#include <Renderer/Rhi/D3D11/D3D11Shader.hh>
+#include <Renderer/Rhi/D3D11/Direct3D11Helpers.hh>
+#include <Renderer/Rhi/D3D11/Direct3D11Libraries.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
 
@@ -39,8 +40,12 @@
 
 namespace mikoto::renderer::d3d11 {
 
+    using namespace mikoto::memory;
+
     Shader::Shader( const rhi::ShaderModuleCreateDescription& desc )
-        : IShaderModule{ desc.mType, desc.mEntryPoint }, mFile{ desc.mFile }, mUseSlang{ desc.mIsSlangShader } {
+        : IShaderModule{ desc.mType, desc.mEntryPoint, desc.mLanguage }, mModulePath{ desc.mModulePath }, mModuleName{ desc.mModuleName } {
+        mContents = BufferSpanHandle::Spawn( desc.mShaderContents, desc.mShaderContentsSize );
+
         if (mStage == ShaderType::eVertex) {
             mTarget = "vs_5_0";
             mShader = Microsoft::WRL::ComPtr<ID3D11VertexShader>{};
@@ -121,8 +126,8 @@ namespace mikoto::renderer::d3d11 {
     auto Shader::Initialize() -> void {
         // Create Slang module
         auto session{ RenderSystem::Get().GetSlangCurrentSession() };
-        const eastl::string_view modulePath{ mFile->GetPath() };
-        const eastl::string_view moduleName{ mFile->GetName() };
+        const eastl::string_view modulePath{ mModulePath };
+        const eastl::string_view moduleName{ mModuleName };
 
         mSlangModule = session->loadModuleFromSource( moduleName.data(), modulePath.data(), nullptr, nullptr );
         MKT_ASSERT( mSlangModule, string::Format( "Failed to load Slang module {}", modulePath.data()) );

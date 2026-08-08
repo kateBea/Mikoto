@@ -15,13 +15,13 @@
 #include <EASTL/unique_ptr.h>
 
 #include <Core/Platform.hh>
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
-#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
-#include <Renderer/D3D11/D3D11Device.hh>
-#include <Renderer/D3D12/D3D12Device.hh>
+#include <Renderer/Rhi/D3D11/D3D11Device.hh>
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
 #endif
 
 namespace mikoto::renderer {

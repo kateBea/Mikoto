@@ -72,6 +72,13 @@
 
 namespace mikoto::asset {
 
+    using namespace mikoto::asset;
+    using namespace mikoto::core;
+    using namespace mikoto::animation;
+    using namespace mikoto::renderer;
+    using namespace mikoto::material;
+    using namespace mikoto::renderer::rhi;
+
     static inline int32_t GetTypeSizeInBytes( uint32_t ty ) {
         if ( ty == TINYGLTF_TYPE_SCALAR ) {
             return 1;

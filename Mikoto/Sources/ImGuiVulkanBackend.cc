@@ -37,15 +37,16 @@
 
 #include <Renderer/Core/RenderSystem.hh>
 
-#include <Renderer/Core/Rhi.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanContext.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanContext.hh>
+#include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
 
 namespace mikoto::gui {
 
     using namespace mikoto::core;
     using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
     using namespace mikoto::renderer::vulkan;
 
     ImGuiVulkanBackend::ImGuiVulkanBackend( const ImGuiBackendCreateInfo& createInfo )
@@ -151,7 +152,7 @@ namespace mikoto::gui {
 
         ImGui_ImplGlfw_InitForVulkan( window, true );
 
-        Queue* graphicsQueue{ device->GetQueue( QueueType::eGraphics ) };
+        Queue* graphicsQueue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
 
         MKT_ASSERT( graphicsQueue, "A graphics queue is needed" );
 
@@ -233,7 +234,13 @@ namespace mikoto::gui {
         RecordCommands( mCommandList );
 
         mCommandList->End();
-        mDevice->SubmitCommands( mCommandList );
+
+        auto submitInfo{ SubmitInfo{}
+            .AddCommandList( mCommandList ) };
+        mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo );
+
+        // TODO: DEBUG
+        RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
 
         if ( const ImGuiIO & io{ ImGui::GetIO() }; io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();

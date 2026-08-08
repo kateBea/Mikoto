@@ -26,11 +26,14 @@
 
 #include <Renderer/Core/RenderSystem.hh>
 
-#include <Renderer/D3D11/D3D11Context.hh>
-#include <Renderer/D3D11/D3D11Device.hh>
-#include <Renderer/D3D11/Direct3D11Helpers.hh>
-
 #if defined(MIKOTO_PLATFORM_WINDOWS)
+
+#include <Renderer/Rhi/D3D11/D3D11Buffer.hh>
+#include <Renderer/Rhi/D3D11/D3D11Texture.hh>
+#include <Renderer/Rhi/D3D11/D3D11Context.hh>
+#include <Renderer/Rhi/D3D11/D3D11Device.hh>
+#include <Renderer/Rhi/D3D11/D3D11Pipeline.hh>
+#include <Renderer/Rhi/D3D11/Direct3D11Helpers.hh>
 
 #if !defined(NDEBUG)
 #include <dxgidebug.h>
@@ -90,7 +93,7 @@ namespace mikoto::renderer::d3d11 {
             auto &out = mResolvedBindings[i];
             switch ( item.mType ) {
                 case ResourceType::eTexture_SRV:
-                    out.srv = checked_cast<Texture *>( item.mResource )->GetNativeHandle( ObjectType::D3D11_SRV );
+                    out.srv = checked_cast<Texture*>( item.mResource )->GetNativeHandle( ObjectType::D3D11_SRV );
                     break;
 
                 case ResourceType::eConstantBuffer:
@@ -98,7 +101,7 @@ namespace mikoto::renderer::d3d11 {
                     break;
 
                 case ResourceType::eSampler:
-                    out.sampler = checked_cast<Sampler *>( item.mResource )->GetNativeHandle( ObjectType::D3D11_Sampler );
+                    out.sampler = checked_cast<Sampler*>( item.mResource )->GetNativeHandle( ObjectType::D3D11_Sampler );
                     break;
 
                 default:
@@ -109,7 +112,7 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = true;
     }
 
-    auto BindingSet::Bind( ID3D11DeviceContext *ctx, ShaderStage visibility ) const -> void {
+    auto BindingSet::Bind( ID3D11DeviceContext *ctx, ShaderFlags visibility ) const -> void {
 
         // Slots start from 0 for each type of register and increment in order
         u32 constantBuffrSlotIndex{ 0 };
@@ -243,6 +246,46 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = false;
     }
 
+    Queue::Queue( QueueType type, QueueOpSupportFlags flags )
+        : IQueue{ type, flags }
+    {
+    }
+
+    auto Queue::Wait( IFence *fence, u64 value ) -> void {
+        // D3D11 Handles Synchronization
+    }
+
+    auto Queue::Signal( IFence *fence, u64 value ) -> void {
+        // D3D11 Handles Synchronization
+    }
+
+    auto Queue::ExecuteCommandLists( const SubmitInfo& submitInfo  ) -> void {
+        for (auto& cmdHandle : submitInfo.mCommands ) {
+            ID3D11CommandList* native{ cmdHandle->GetNativeHandle(ObjectType::D3D11_CommandList) };
+            MKT_ASSERT(native, "Command list is null");
+
+            mDeviceContext->ExecuteCommandList(native, TRUE);
+        }
+    }
+
+    Queue::~Queue() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto Queue::Release() -> void {
+        mIsAllocated = false;
+    }
+
+    auto Queue::Initialize() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        mDeviceContext = device->GetDeviceContext();
+        mDeviceContext3 = device->GetDeviceContext3();
+
+        mIsAllocated = true;
+    }
+
     CommandList::CommandList( QueueType type )
         : ICommandList{ type }
     {}
@@ -259,10 +302,6 @@ namespace mikoto::renderer::d3d11 {
         if (FAILED(mDeviceContextDeferred->FinishCommandList(FALSE, &mCommandList))) {
             MKT_ASSERT( false, "Failed to finish command list" );
         }
-    }
-    auto CommandList::BeginParallel() -> void {
-    }
-    auto CommandList::EndParallel() -> void {
     }
 
     auto CommandList::RecordBarrier( const BufferBarrierDescription &barrier ) -> void {
@@ -301,15 +340,7 @@ namespace mikoto::renderer::d3d11 {
         mEnableAutomaticBarriers = enable;
     }
 
-    auto CommandList::SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void {
-
-    }
-
     auto CommandList::SetClearColor( TextureHandle renderTargets, Color color ) -> void {
-    }
-
-    auto CommandList::WriteVolatile( IBuffer *target, size_t dstOffset, const void *data, size_t byteSize ) -> void {
-
     }
 
     auto CommandList::ClearState() -> void {
@@ -317,8 +348,6 @@ namespace mikoto::renderer::d3d11 {
 
         mCurrentGraphicsStateValid = false;
         mCurrentComputeStateValid = false;
-
-        mCurrentFramebuffer = nullptr;
 
         mCurrentGraphicsPipeline = nullptr;
         mCurrentVertexBuffers.resize(0);
@@ -578,7 +607,7 @@ namespace mikoto::renderer::d3d11 {
         mDeviceContextDeferred->Dispatch( groupsX, groupsY, groupsZ );
     }
 
-    auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, size_t byteSize, ShaderStage visibility ) -> void {
+    auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, size_t byteSize, ShaderFlags visibility ) -> void {
 
     }
 
@@ -803,10 +832,13 @@ namespace mikoto::renderer::d3d11 {
 
         // Store name of main adapter
         mName = "D3D11 Device";
+
+        mQueue = Ref<Queue>::Spawn( QueueType::eGraphics, QueueOpSupportFlagsBits::kGraphics );
+        mQueue->Initialize( this );
     }
 
     auto Device::Shutdown() -> void {
-
+        mQueue.Reset();
     }
 
     auto Device::CreateBuffer( const BufferCreateDescription &description ) -> BufferHandle {
@@ -839,10 +871,6 @@ namespace mikoto::renderer::d3d11 {
         return TextureHandle::CreateEmpty();
     }
 
-    auto Device::CreateFrameBuffer( const FramebufferDescription &description ) -> FramebufferHandle {
-        return FramebufferHandle::CreateEmpty();
-    }
-
     auto Device::CreateSampler( const SamplerCreateDescription &description ) -> SamplerHandle {
         SamplerHandle sampler{  Ref<Sampler>::Spawn( description ) };
 
@@ -860,8 +888,8 @@ namespace mikoto::renderer::d3d11 {
         return AccelStructureHandle::CreateEmpty();
     }
 
-    auto Device::CreateCommandList( QueueType queue ) -> CommandListHandle {
-        CommandListHandle cmd{  Ref<CommandList>::Spawn( queue ) };
+    auto Device::CreateCommandList( QueueType type ) -> CommandListHandle {
+        CommandListHandle cmd{  Ref<CommandList>::Spawn( type ) };
 
         if ( cmd.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate command list resource." );
@@ -871,10 +899,6 @@ namespace mikoto::renderer::d3d11 {
         cmd->Initialize( this );
 
         return cmd;
-    }
-
-    auto Device::CreateCommandList( const CommandListParameters &parameters ) -> CommandListHandle {
-        return CommandListHandle::CreateEmpty();
     }
 
     auto Device::CreateShader( const ShaderModuleCreateDescription &desc ) -> ShaderModuleHandle {
@@ -888,10 +912,6 @@ namespace mikoto::renderer::d3d11 {
         shader->Initialize( this );
 
         return shader;
-    }
-
-    auto Device::CreateShader( ShaderStage type, const void *code, size_t codeSize ) -> ShaderModuleHandle {
-        return ShaderModuleHandle::CreateEmpty();
     }
 
     auto Device::CreateInputLayout( const InputLayoutCreateDescription& desc ) -> InputLayoutHandle {
@@ -944,7 +964,7 @@ namespace mikoto::renderer::d3d11 {
     auto Device::UnMap( IBuffer *buffer ) -> void {
     }
 
-    auto Device::Map( IBuffer *buffer ) -> const void * {
+    auto Device::Map( IBuffer *buffer ) -> void * {
         return nullptr;
     }
 
@@ -964,39 +984,8 @@ namespace mikoto::renderer::d3d11 {
         return false;
     }
 
-    auto Device::Wait( QueueType type, FenceHandle handle, u64 fenceValue ) -> void {
-
-    }
-
-    auto Device::Signal( QueueType type, FenceHandle handle, u64 fenceValue ) -> void {
-
-    }
-
-    auto Device::ExecutePendingCommands() -> void {
-        eastl::fixed_vector<CommandListHandle, kMaxNonSubmittedCmds> pendingCommands{};
-
-        {
-            std::lock_guard lock{ mCmdListSubmitMutex };
-            pendingCommands.swap( mNonSubmittedCommands );
-        }
-
-        if (!pendingCommands.empty()) {
-            for (auto& cmd : pendingCommands) {
-                ExecuteCommands( cmd );
-            }
-        }
-    }
-
-    auto Device::ExecuteCommands( CommandListHandle cmdList ) -> void {
-        ID3D11CommandList* native{ cmdList->GetNativeHandle(ObjectType::D3D11_CommandList) };
-        MKT_ASSERT(native, "Command list is null");
-
-        std::lock_guard lock{ mCommandsExecuteMutex };
-        mDeviceContext->ExecuteCommandList(native, TRUE);
-    }
-
-    auto Device::ExecuteCommands( eastl::span<CommandListHandle> cmdList ) -> void {
-
+    auto Device::GetQueue( QueueType type ) -> IQueue * {
+        return mQueue.GetRaw();
     }
 
     auto Device::WaitIdle() -> void {
@@ -1030,12 +1019,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::RunGarbageCollection() -> void {
-    }
 
-    auto Device::SubmitCommands( CommandListHandle cmd ) -> u64 {
-        std::lock_guard lock{ mCmdListSubmitMutex };
-        mNonSubmittedCommands.emplace_back( cmd );
-        return 0;
     }
 
     auto Device::GetDevice() const -> ID3D11Device * {

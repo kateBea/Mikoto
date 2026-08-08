@@ -33,11 +33,16 @@
 
 #include <Renderer/Core/RenderSystem.hh>
 
-#include <Renderer/Vulkan/VulkanContext.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanShader.hh>
+#include <Renderer/Rhi/Vulkan/VulkanContext.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanShader.hh>
+#include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
 
 namespace mikoto::renderer::vulkan {
+
+    using namespace mikoto::core;
+    using namespace mikoto::memory;
+    using namespace mikoto::renderer::rhi;
 
     MKT_NODISCARD auto GetGlslFromSpirv(const u32* ptr, size_t count) -> eastl::string {
         // Create the compiler instance with the SPIR-V data
@@ -62,7 +67,9 @@ namespace mikoto::renderer::vulkan {
     }
 
     Shader::Shader( const ShaderModuleCreateDescription& desc )
-        : IShaderModule{ desc.mType, desc.mEntryPoint }, mFile{ desc.mFile }, mUseSlang{ desc.mIsSlangShader } {
+        : IShaderModule{ desc.mType, desc.mEntryPoint, desc.mLanguage }, mModulePath{ desc.mModulePath }, mModuleName{ desc.mModuleName }
+    {
+        mContents = BufferSpanHandle::Spawn( desc.mShaderContents, desc.mShaderContentsSize );
     }
 
     auto Shader::DumpShaderCode() -> void {
@@ -72,6 +79,14 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Shader::GetNativeHandle( ObjectType object ) -> Object {
+        if (object != ObjectType::Vk_Shader) {
+            return Object{ nullptr };
+        }
+
+        return Object( mModule );
+    }
+
+    auto Shader::GetNativeHandle( ObjectType object ) const -> Object {
         if (object != ObjectType::Vk_Shader) {
             return Object{ nullptr };
         }
@@ -96,8 +111,8 @@ namespace mikoto::renderer::vulkan {
 
         // https://docs.shader-slang.org/en/latest/compilation-api.html
         auto session{ RenderSystem::Get()->GetSlangCurrentSession() };
-        const eastl::string_view modulePath{ mFile->GetPath() };
-        const eastl::string_view moduleName{ mFile->GetName() };
+        const eastl::string_view modulePath{ mModulePath };
+        const eastl::string_view moduleName{ mModuleName };
 
         mSlangModule = session->loadModuleFromSource( moduleName.data(), modulePath.data(), nullptr, nullptr );
         mSlangModule->getTargetCode( 0, mSlangSpirv.writeRef() );
@@ -112,7 +127,7 @@ namespace mikoto::renderer::vulkan {
             VkShaderStageFlagBits moduleStage{ as<VkShaderStageFlagBits>( module.shader_stage ) };
             if (GetShaderModuleStage( mStage ) != moduleStage) {
                 mStage = GetShaderModuleStage( moduleStage );
-                MKT_CORE_LOGGER_WARN( "Specified wrong stage for shader {}. Changed to right type.", mFile->GetName().data() );
+                MKT_CORE_LOGGER_WARN( "Specified wrong stage for shader {}. Changed to right type.", mModulePath.c_str() );
             }
         }
 

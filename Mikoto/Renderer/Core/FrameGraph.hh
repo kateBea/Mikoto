@@ -47,13 +47,18 @@
 #include <Memory/MemoryArena.hh>
 #include <Memory/FreeListAllocator.hh>
 
-#include <Renderer/Core/GpuDevice.hh>
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 
 #include <Assets/AssetsService.hh>
 
 namespace mikoto::renderer {
+
+    using namespace mikoto::core;
+    using namespace mikoto::memory;
+    using namespace mikoto::material;
+    using namespace mikoto::renderer::rhi;
 
     // See shaders: slang/Base.slang
 #define MKT_DEFAULT_REGISTER_SPACE 0
@@ -74,7 +79,7 @@ namespace mikoto::renderer {
     class CommandContext;
 
     // Represents the handle for any resource
-    using FGResourceHandle = u32;
+    using FGResourceHandle = core::u32;
 
     struct FGTextureHandle { FGResourceHandle mHandle{}; };
     struct FGBufferHandle { FGResourceHandle mHandle{};  };
@@ -654,8 +659,6 @@ namespace mikoto::renderer {
         auto CullGraphNodes() -> void;
         auto BuildNodeBarriers() -> void;
         auto BuildExecutionTasks() -> void;
-
-        auto RecordCommands( CommandListHandle cmd ) -> void;
 
     private:
         struct ReadbackTask {

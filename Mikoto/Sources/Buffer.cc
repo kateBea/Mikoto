@@ -12,4 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../Renderer/Rhi/Buffer.hh"
+#include <Renderer/Rhi/Buffer.hh>
+
+namespace mikoto::renderer::rhi {
+
+}

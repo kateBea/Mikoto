@@ -12,13 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/Renderer.hh>
-#include <Renderer/Core/Rhi.hh>
+
 #include <Renderer/Core/ThumbnailRenderer.hh>
 
 namespace mikoto::renderer {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     auto ThumbnailRendererCreateInfo::SetName( eastl::string_view name ) -> ThumbnailRendererCreateInfo & {
         mName = name;

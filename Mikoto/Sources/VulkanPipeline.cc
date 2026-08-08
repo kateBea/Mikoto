@@ -20,11 +20,15 @@
 
 #include <Core/Timer.hh>
 
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanPipeline.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanShader.hh>
+#include <Renderer/Rhi/Vulkan/VulkanPipeline.hh>
+#include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
 
 namespace mikoto::renderer::vulkan {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     static auto CreatePipelineLayout(
         Device* device,

@@ -16,13 +16,13 @@
 #include <Core/Types.hh>
 #include <Core/Platform.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
 
-#include <Renderer/D3D11/D3D11Device.hh>
-#include <Renderer/D3D11/D3D11Pipeline.hh>
-#include <Renderer/D3D11/Direct3D11Helpers.hh>
+#include <Renderer/Rhi/D3D11/D3D11Device.hh>
+#include <Renderer/Rhi/D3D11/D3D11Pipeline.hh>
+#include <Renderer/Rhi/D3D11/Direct3D11Helpers.hh>
 
 namespace mikoto::renderer::d3d11 {
 

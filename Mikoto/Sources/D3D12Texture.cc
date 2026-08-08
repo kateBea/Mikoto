@@ -16,19 +16,26 @@
 #include <Core/Types.hh>
 #include <Core/Platform.hh>
 
-#if defined(MIKOTO_PLATFORM_WINDOWS)
-
-#include <D3D12MemAlloc.h>
-
 #include <Logging/Logger.hh>
 
 #include <Memory/Allocator.hh>
 
-#include <Renderer/D3D12/D3D12Device.hh>
-#include <Renderer/D3D12/D3D12Texture.hh>
-#include <Renderer/D3D12/Direct3D12Helpers.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Texture.hh>
+
+#if defined(MIKOTO_PLATFORM_WINDOWS)
+
+#include <D3D12MemAlloc.h>
+
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
+#include <Renderer/Rhi/D3D12/D3D12Texture.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
 
 namespace mikoto::renderer::d3d12 {
+
+    using namespace mikoto::core;
+    using namespace mikoto::memory;
+    using namespace mikoto::renderer::rhi;
 
     Sampler::Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources* resources )
         : ISampler{ desc }, mResources{ resources }
@@ -412,14 +419,14 @@ namespace mikoto::renderer::d3d12 {
         CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
         cmd->Begin( {} );
 
-        // Data is always writen at mip zero
         cmd->Write( this, 0, mImageData->mBufferSpan->GetData(), mImageData->mBufferSpan->GetSize() );
-
-        // These textures are often loaded to be read from shaders
         cmd->SetBarrier( this, ResourceStates::eShaderResource );
 
         cmd->End();
-        mDevice->ExecuteCommands( cmd );
+
+        auto submitInfo{ SubmitInfo{}
+            .AddCommandList( cmd ) };
+        mDevice->GetQueue( QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
     }
 
     auto Texture::InitInitialDataCube() -> void {

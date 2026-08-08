@@ -28,11 +28,12 @@
 
 #include <Memory/Allocator.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 #include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/D3D11/D3D11Device.hh>
-#include <Renderer/D3D11/D3D11Context.hh>
+#include <Renderer/Rhi/D3D11/D3D11Device.hh>
+#include <Renderer/Rhi/D3D11/D3D11Context.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 #include <imgui_impl_dx11.h>
@@ -40,9 +41,10 @@
 
 namespace mikoto::gui {
 
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::d3d11;
+
     auto ImGuiD3D11Backend::Init() -> void {
-        using namespace mikoto::renderer;
-        using namespace mikoto::renderer::d3d11;
 
         const auto window{ eastl::any_cast<GLFWwindow*>( mWindow->GetNativeWindow() ) };
 

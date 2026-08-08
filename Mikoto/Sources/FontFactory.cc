@@ -34,6 +34,11 @@
 
 namespace mikoto::renderer {
 
+    using namespace mikoto::core;
+    using namespace mikoto::memory;
+    using namespace mikoto::filesystem;
+    using namespace mikoto::renderer::rhi;
+
     auto FontFactory::GenerateAtlas( eastl::string_view fontFilename, f32 fontSize, bool expensiveColoring, bool customCharset ) const -> FontProperties {
         FontProperties result{};
 

@@ -21,9 +21,11 @@
 
 #include <Material/PhysicalMaterial.hh>
 
-#include <Renderer/Core/Rhi.hh>
-
 namespace mikoto::material {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
 
     PhysicalMaterial::PhysicalMaterial( const eastl::string_view name )
         : Material{ name } {

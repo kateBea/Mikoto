@@ -20,7 +20,7 @@
 #include <EASTL/unique_ptr.h>
 
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/Renderer.hh>
 #include <Renderer/Passes/CameraModule.hh>
 #include <Renderer/Passes/DebugModule.hh>

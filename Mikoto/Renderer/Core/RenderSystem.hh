@@ -30,8 +30,8 @@
 
 #include <ImGui/ImGuiService.hh>
 
-#include <Renderer/Core/Rhi.hh>
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/RenderContext.hh>
 
 namespace mikoto::renderer {

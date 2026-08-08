@@ -24,7 +24,7 @@
 #include <Core/KeyCodes.hh>
 #include <Core/MouseCodes.hh>
 #include <Core/Types.hh>
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::platform {
 

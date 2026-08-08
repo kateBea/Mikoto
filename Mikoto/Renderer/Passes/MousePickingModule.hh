@@ -20,7 +20,7 @@
 
 #include <Math/Random.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
 

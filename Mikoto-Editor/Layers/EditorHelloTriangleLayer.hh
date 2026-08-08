@@ -31,7 +31,9 @@
 
 #include <Platform/Window.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 #include <Renderer/Core/SceneRenderer.hh>
 #include <Renderer/Core/ThumbnailRenderer.hh>
 
@@ -129,8 +131,6 @@ namespace mikoto::editor {
         renderer::rhi::SamplerHandle mSamplerState{};
 
         renderer::rhi::InputLayoutHandle mVertexInputLayout{};
-
-        renderer::rhi::FramebufferHandle mFrameBuffer{};
 
         renderer::rhi::ShaderModuleHandle mVertexShader{};
         renderer::rhi::ShaderModuleHandle mPixelShader{};

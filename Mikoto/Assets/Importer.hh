@@ -20,7 +20,8 @@
 
 #include <Assets/Model.hh>
 
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 #include <Memory/BufferSpan.hh>
 
@@ -30,48 +31,48 @@
 namespace mikoto::asset {
 
     struct VertexDescription {
-        float3 mPosition{};
-        float3 mNormals{};
-        float4 mColors{ 1.0f, 1.0f, 1.0f, 1.0f };
+        core::float3 mPosition{};
+        core::float3 mNormals{};
+        core::float4 mColors{ 1.0f, 1.0f, 1.0f, 1.0f };
 
-        float2 mUv0{};
-        float2 mUv1{};
+        core::float2 mUv0{};
+        core::float2 mUv1{};
 
-        float4 mJoints0{ -1.0f, -1.0f, -1.0f, -1.0f };
-        float4 mWeights0{};
+        core::float4 mJoints0{ -1.0f, -1.0f, -1.0f, -1.0f };
+        core::float4 mWeights0{};
 
-        float4 mJoints1{ -1.0f, -1.0f, -1.0f, -1.0f };
-        float4 mWeights1{};
+        core::float4 mJoints1{ -1.0f, -1.0f, -1.0f, -1.0f };
+        core::float4 mWeights1{};
     };
 
     struct MeshNodeDescription {
         eastl::string mName{};
 
-        float4x4 mTransform{ 1.0f }; // Identity by default
+        core::float4x4 mTransform{ 1.0f }; // Identity by default
 
-        eastl::vector<u32> mIndices{};
+        eastl::vector<core::u32> mIndices{};
         eastl::vector<VertexDescription> mVertices{};
 
         // Unsigned because it needs at least one material
-        u32 MaterialIndex{};
+        core::u32 MaterialIndex{};
     };
 
     struct ModelDataDescription {
         eastl::string mName{};
 
         eastl::vector<MeshNodeDescription> mMeshNodes{};
-        eastl::vector<PhysicMaterialDescription> mMaterials{};
+        eastl::vector<material::PhysicMaterialDescription> mMaterials{};
 
         AnimationList mAnimations{};
-        eastl::unique_ptr<Skeleton> mSkeleton{};
+        eastl::unique_ptr<animation::Skeleton> mSkeleton{};
 
         // Texture URI the same way is stored in the materials
-        ankerl::unordered_dense::map<Path, TextureHandle> mTextures{};
+        ankerl::unordered_dense::map<filesystem::Path, renderer::rhi::TextureHandle> mTextures{};
     };
 
     class ModelImporter {
     public:
-        explicit ModelImporter(IGpuDevice* device)
+        explicit ModelImporter(renderer::rhi::IGpuDevice* device)
             : mDevice{ device } {}
 
         virtual auto Import(const ModelLoadDescription& description, ModelDataDescription& out) -> void = 0;
@@ -79,7 +80,7 @@ namespace mikoto::asset {
         virtual ~ModelImporter() = default;
 
     protected:
-        IGpuDevice* mDevice{ nullptr };
+        renderer::rhi::IGpuDevice* mDevice{ nullptr };
     };
 
 }

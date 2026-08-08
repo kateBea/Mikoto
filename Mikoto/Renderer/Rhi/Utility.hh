@@ -12,11 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_UTILITY_HH
-#define MIKOTO_UTILITY_HH
+#ifndef MIKOTO_RHI_UTILITY_HH
+#define MIKOTO_RHI_UTILITY_HH
+
+#include <EASTL/string.h>
+#include <EASTL/utility.h>
+#include <EASTL/string_view.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Memory/BufferSpan.hh>
+#include <Core/ResourcePool.hh>
+
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::renderer::rhi {
 
+    MKT_NODISCARD auto InferAPI( eastl::string_view apiName ) -> GraphicsAPI;
+
+    MKT_NODISCARD auto GetFormatInfo(Format format) -> const FormatInfo&;
+
+    MKT_NODISCARD auto InferDimensions( RenderResolution resolution ) -> eastl::pair<float, float>;
+    MKT_NODISCARD auto InferDimensions( RenderResolution resolution, core::u32 mipLevel ) -> eastl::pair<core::u32, core::u32>;
+    MKT_NODISCARD auto InferDimensions( float width, float height, core::u32 mipLevel ) -> eastl::pair<core::u32, core::u32>;
+
+    MKT_NODISCARD auto InferElementCount( Format dataType, core::size_t sizeBytes ) -> core::size_t;
+
+    MKT_NODISCARD auto IsBuffer(ResourceType type) noexcept -> bool;
+    MKT_NODISCARD auto IsTexture(ResourceType type) noexcept -> bool;
+    MKT_NODISCARD auto IsSampler(ResourceType type) noexcept -> bool;
 }
 
-#endif//MIKOTOROOT_UTILITY_HH
+#endif//MIKOTO_RHI_UTILITY_HH

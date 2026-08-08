@@ -21,11 +21,9 @@
 #include <Core/Types.hh>
 
 #include <Material/Material.hh>
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::material {
-
-    using namespace mikoto::renderer;
 
     struct PostProcessMaterialDescription {
         eastl::string_view mName{};
@@ -43,14 +41,13 @@ namespace mikoto::material {
         explicit PostProcessMaterial( eastl::string_view name = "PostProcessMaterial" );
         explicit PostProcessMaterial( const PostProcessMaterialDescription& desc );
 
-
         ~PostProcessMaterial() override;
 
     private:
 
-        float mContrast{};
-        float mSaturation{};
-        rhi::Color mTintColor{};
+        core::f32 mContrast{};
+        core::f32 mSaturation{};
+        renderer::rhi::Color mTintColor{};
     };
 
 }// namespace Mikoto

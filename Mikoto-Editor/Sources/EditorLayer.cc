@@ -61,9 +61,11 @@ namespace mikoto::editor {
     // https://traineq.org/imgui_bundle_explorer/
     // https://pthom.github.io/imgui_explorer/
 
-    using namespace mikoto::gui;
     using namespace mikoto::core;
+    using namespace mikoto::scene;
     using namespace mikoto::platform;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
 
     auto EditorState::GetPrefab( PrefabModelType model ) -> ModelHandle {
         return mPrefabPaths[model];
@@ -793,7 +795,9 @@ namespace mikoto::editor {
         mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - RenderTarget" } );
         mCommandList->SetBarrier( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eRenderTarget );
         mCommandList->End();
-        mDevice->SubmitCommands( mCommandList );
+        auto submitInfo1{ SubmitInfo{}
+            .AddCommandList( mCommandList ) };
+        mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo1 );
 
         mSceneRenderer->Render( mEditorState->mActiveScene );
 
@@ -804,7 +808,9 @@ namespace mikoto::editor {
             mCommandList->SetBarrier( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eShaderResource );
 
             mCommandList->End();
-            mDevice->SubmitCommands( mCommandList );
+            auto submitInfo2{ SubmitInfo{}
+                .AddCommandList( mCommandList ) };
+            mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo2 );
         }
     }
 

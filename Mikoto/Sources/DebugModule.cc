@@ -18,28 +18,26 @@
 #include <EASTL/utility.h>
 #include <EASTL/vector.h>
 
+#include <Assets/AssetsService.hh>
+#include <Assets/ImageProcessor.hh>
+#include <Assets/Model.hh>
 #include <Core/Core.hh>
 #include <Core/Profiler.hh>
 #include <Core/String.hh>
 #include <Core/Types.hh>
-
-#include <Assets/Model.hh>
-#include <Assets/AssetsService.hh>
-#include <Assets/ImageProcessor.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Component.hh>
-
-#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
-
+#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Passes/DebugModule.hh>
 #include <Renderer/Passes/GeometryCullModule.hh>
+#include <Scene/Component.hh>
+#include <Scene/Scene.hh>
+
+#include "Renderer/Rhi/Swapchain.hh"
 
 namespace mikoto::renderer {
 
     using namespace mikoto::asset;
-    using namespace mikoto::scene;
+    using namespace mikoto::renderer::rhi;
 
     DebugModule::DebugModule( RenderResolution resolution )
         : mResolution{ resolution } {}

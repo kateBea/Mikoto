@@ -47,6 +47,8 @@ namespace mikoto::editor {
     using namespace mikoto::gui;
     using namespace mikoto::core;
     using namespace mikoto::scene;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
 
     MKT_NODISCARD static auto InferManipulationMode( gui::GuizmoType manipulation ) -> ImGuizmo::OPERATION {
         switch (manipulation) {

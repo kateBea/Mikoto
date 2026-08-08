@@ -16,7 +16,8 @@
 #include <Core/Types.hh>
 #include <Core/Platform.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Pipeline.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
@@ -28,13 +29,14 @@
 #include <dxgidebug.h>
 #include <wrl.h>
 
-#include <Renderer/D3D12/D3D12Device.hh>
-#include <Renderer/D3D12/D3D12Shader.hh>
-#include <Renderer/D3D12/D3D12Pipeline.hh>
-#include <Renderer/D3D12/Direct3D12Helpers.hh>
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
+#include <Renderer/Rhi/D3D12/D3D12Shader.hh>
+#include <Renderer/Rhi/D3D12/D3D12Pipeline.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
 
 namespace mikoto::renderer::d3d12 {
 
+    using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;
 
     GraphicsPipeline::GraphicsPipeline( const rhi::GraphicsPipelineDescription &info )

@@ -29,6 +29,7 @@ namespace mikoto::editor {
 
     using namespace mikoto::core;
     using namespace mikoto::platform;
+    using namespace mikoto::renderer;
 
     EditorApp::EditorApp( Window *window )
         : mWindow{ window } {

@@ -37,10 +37,18 @@
 
 #include <Filesystem/FileService.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/RenderSystem.hh>
 
 namespace mikoto::asset {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer;
+    using namespace mikoto::material;
+    using namespace mikoto::animation;
+    using namespace mikoto::filesystem;
+    using namespace mikoto::renderer::rhi;
 
     MeshFactory::MeshFactory( const MeshFactoryCreateInfo &createInfo )
         : mDevice{ createInfo.mDevice } {
@@ -101,7 +109,9 @@ namespace mikoto::asset {
             }
 
             cmd->End();
-            mDevice->ExecuteCommands( cmd );
+            auto submitInfo{ SubmitInfo{}
+                .AddCommandList( cmd ) };
+            mDevice->GetQueue( QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
         }
 
         u32 meshIndex{ 0 };

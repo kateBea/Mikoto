@@ -17,14 +17,29 @@
 #include <Core/Platform.hh>
 #include <Renderer/Core/RenderContext.hh>
 
-#include <Renderer/Vulkan/VulkanContext.hh>
+#include <Renderer/Rhi/Vulkan/VulkanContext.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
-#include <Renderer/D3D11/D3D11Context.hh>
-#include <Renderer/D3D12/D3D12Context.hh>
+#include <Renderer/Rhi/D3D11/D3D11Context.hh>
+#include <Renderer/Rhi/D3D12/D3D12Context.hh>
 #endif
 
 namespace mikoto::renderer {
+
+    auto RenderContextCreateInfo::SetWindow( platform::Window* window ) noexcept -> RenderContextCreateInfo& {
+        mWindow = window;
+        return *this;
+    }
+
+    auto RenderContextCreateInfo::SetRefreshRate( rhi::RefreshRate refreshRate ) noexcept -> RenderContextCreateInfo& {
+        mRefreshRate = refreshRate;
+        return *this;
+    }
+
+    auto RenderContextCreateInfo::SetGraphicsAPI( rhi::GraphicsAPI api ) noexcept -> RenderContextCreateInfo& {
+        mApi = api;
+        return *this;
+    }
 
     auto RenderContext::GetGpuDevice() -> IGpuDevice* {
         return mDevice.get();
@@ -61,4 +76,8 @@ namespace mikoto::renderer {
 
         return result;
     }
-}
+
+    RenderContext::RenderContext( const RenderContextCreateInfo& createInfo )
+        : mWindow{ createInfo.mWindow }, mRefreshRate{ createInfo.mRefreshRate }
+    {}
+}// namespace mikoto::renderer

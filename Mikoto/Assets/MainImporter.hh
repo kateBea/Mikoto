@@ -34,9 +34,12 @@
 #include <Assets/Importer.hh>
 
 #include <Animation/SkinningBuilder.hh>
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::asset {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     class MainImporter final : public ModelImporter {
     public:

@@ -48,6 +48,8 @@ namespace mikoto::math::constants {
     // Math Constants
     inline constexpr auto kPi{ std::numbers::pi_v<double> };
 
+    inline constexpr auto max_u64{ std::numbers::pi_v<double> };
+
     inline constexpr auto kUnitVectorX{ core::float3{ 1.0f, 0.0f, 0.0f }};
     inline constexpr auto kUnitVectorY{ core::float3{ 0.0f, 1.0f, 0.0f } };
     inline constexpr auto kUnitVectorZ{ core::float3{ 0.0f, 0.0f, 1.0f } };

@@ -28,7 +28,7 @@
 
 #include <Assets/ImageProcessor.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/RenderSystem.hh>
 
 #include <ImGui/ImGuiD3D12Backend.hh>
@@ -44,11 +44,15 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_win32.h>
 
-#include <Renderer/D3D12/D3D12Device.hh>
-#include <Renderer/D3D12/D3D12Context.hh>
-#include <Renderer/D3D12/Direct3D12Helpers.hh>
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
+#include <Renderer/Rhi/D3D12/D3D12Context.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
 
 namespace mikoto::gui {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
 
     auto ExampleDescriptorHeapAllocator::Create( ID3D12Device* device, ID3D12DescriptorHeap* heap ) -> void {
         IM_ASSERT( mHeap == nullptr && mFreeIndices.empty() );
@@ -160,7 +164,10 @@ namespace mikoto::gui {
         RecordCommands();
 
         mCommandList->End();
-        mDevice->SubmitCommands( mCommandList );
+
+        auto submitInfo{ SubmitInfo{}
+            .AddCommandList( mCommandList ) };
+        mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo );
 
         if ( const ImGuiIO & io{ ImGui::GetIO() }; io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();
@@ -216,7 +223,7 @@ namespace mikoto::gui {
         d3d12::Device* device{ checked_cast<d3d12::Device*>( mDevice ) };
         d3d12::Context* context{ checked_cast<d3d12::Context*>( RenderSystem::Get()->GetContext() ) };
 
-        d3d12::Queue* queue{ device->GetQueue( QueueType::eGraphics ) };
+        d3d12::Queue* queue{ checked_cast<d3d12::Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
         ID3D12CommandQueue* cmdQueue{ *queue };
 
         ImGui_ImplDX12_InitInfo initInfo{};

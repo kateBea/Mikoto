@@ -34,10 +34,14 @@
 
 #include <Memory/Allocator.hh>
 
-#include <Renderer/Vulkan/VulkanHelpers.hh>
-#include <Renderer/Vulkan/VulkanInstance.hh>
+#include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Rhi/Vulkan/VulkanInstance.hh>
 
 namespace mikoto::renderer::vulkan {
+
+    using namespace mikoto::core;
+    using namespace mikoto::platform;
+    using namespace mikoto::renderer::rhi;
 
     MKT_NODISCARD static auto GetGlfwRequiredExtensions() -> eastl::vector<const char*> {
         u32 glfwExtensionCount{};

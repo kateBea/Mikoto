@@ -26,7 +26,8 @@
 #include <Filesystem/File.hh>
 #include <Filesystem/Path.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Shader.hh>
 
 namespace mikoto::material {
 
@@ -37,7 +38,7 @@ namespace mikoto::material {
     inline constexpr eastl::string_view kSlangFileExtension{ ".slang" };
 
     struct ShaderLibraryDescription {
-        IGpuDevice* mDevice{};
+        renderer::rhi::IGpuDevice* mDevice{};
         Path mRootPath{};
     };
 
@@ -52,16 +53,16 @@ namespace mikoto::material {
         auto Shutdown() -> void override;
 
         // This uri must be relative to the root path otherwise must be a full path
-        auto GetShader( eastl::string_view uri ) -> rhi::ShaderModuleHandle;
+        auto GetShader( eastl::string_view uri ) -> renderer::rhi::ShaderModuleHandle;
 
         // TODO: extend to cached the compiled shaders
-        auto LoadShader( eastl::string_view uri, rhi::ShaderType type ) -> rhi::ShaderModuleHandle;
+        auto LoadShader( eastl::string_view uri, rhi::ShaderType type ) -> renderer::rhi::ShaderModuleHandle;
 
         ~ShaderLibrary() override = default;
 
     private:
         Path mRootPath{};
-        IGpuDevice *mDevice{ nullptr };
+        renderer::rhi::IGpuDevice *mDevice{ nullptr };
         ankerl::unordered_dense::map<Path, rhi::ShaderModuleHandle> mShaders{};
     };
 

@@ -46,6 +46,11 @@
 
 namespace mikoto::gui {
 
+    using namespace mikoto::core;
+    using namespace mikoto::platform;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
+
     static auto ThemeDarkModeAlt() -> void {
         // Setup Dear ImGui style
         ImGuiStyle &style{ ImGui::GetStyle() };

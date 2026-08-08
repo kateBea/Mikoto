@@ -25,13 +25,16 @@
 #include <Assets/Importer.hh>
 #include <Assets/Model.hh>
 
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 namespace mikoto::asset {
 
     struct MeshFactoryCreateInfo {
-        IGpuDevice* mDevice{ nullptr };
+        renderer::rhi::IGpuDevice* mDevice{ nullptr };
     };
 
-    class MeshFactory final : public Singleton<MeshFactory>, public IService {
+    class MeshFactory final : public core::Singleton<MeshFactory>, public core::IService {
     public:
 
         explicit MeshFactory(const MeshFactoryCreateInfo& createInfo);
@@ -45,7 +48,7 @@ namespace mikoto::asset {
         auto ConstructModel(ModelDataDescription& data, const ModelLoadDescription &loadInfo  ) -> ModelHandle;
 
     private:
-        IGpuDevice* mDevice{ nullptr };
+        renderer::rhi::IGpuDevice* mDevice{ nullptr };
 
         eastl::unique_ptr<ModelImporter> mMainImporter{};
         eastl::unique_ptr<ModelImporter> mGltfImporter{};

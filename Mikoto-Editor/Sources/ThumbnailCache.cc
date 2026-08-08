@@ -16,10 +16,17 @@
 
 #include <Threading/TaskService.hh>
 
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 #include <Assets/ImageProcessor.hh>
 #include <Application/ThumbnailCache.hh>
 
 namespace mikoto::editor {
+
+    using namespace mikoto::asset;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
 
     ThumbnailCache::ThumbnailCache( IGpuDevice *device )
         : mDevice{ device }

@@ -26,7 +26,7 @@
 
 namespace mikoto::editor {
 
-    class EditorApp final : public Application, public Subscriber {
+    class EditorApp final : public core::Application, public core::Subscriber {
     public:
         explicit EditorApp( platform::Window* window );
 
@@ -46,7 +46,7 @@ namespace mikoto::editor {
 
         // Time in ms since last time
         // frame-time was updated
-        f64 mLastUpdateTime{ 0 };
+        core::f64 mLastUpdateTime{ 0 };
         static constexpr u32 kUpdateInterval{ 1000 }; // 1s
     };
 }// namespace mikoto::editor

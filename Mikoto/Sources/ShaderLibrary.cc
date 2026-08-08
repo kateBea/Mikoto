@@ -23,10 +23,13 @@
 
 #include <Material/ShaderLibrary.hh>
 
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/RenderSystem.hh>
 
 namespace mikoto::material {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     ShaderLibrary::ShaderLibrary( const ShaderLibraryDescription &options )
         : mDevice{ options.mDevice }, mRootPath{ options.mRootPath } {}
@@ -73,11 +76,15 @@ namespace mikoto::material {
         // compiled byte code and feed it to the API, shader compilation takes long,
         // we already have a way to do it on the fly at runtime, but it is ideal not to do it
         // everytime we launch the app
-        auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
-            .SetFile( FileService::Get()->LoadFile( path ) )
-            .SetStage( type )
-        };
-        ShaderModuleHandle shaderModuleHandle{ mDevice->CreateShader( fragmentShaderDescription ) };
+        FileHandle shader{ FileService::Get()->LoadFile( path ) };
+        auto shaderDescription{ ShaderModuleCreateDescription{}
+            .SetContents( shader )
+            .SetModuleName( shader->GetName() )
+            .SetModulePath( shader->GetPath() )
+            .SetLanguage( ShaderLanguage::eSlang )
+            .SetStage(type ) };
+
+        ShaderModuleHandle shaderModuleHandle{ mDevice->CreateShader( shaderDescription ) };
         if ( !shaderModuleHandle.IsEmpty() ) {
             mShaders.try_emplace( path, shaderModuleHandle );
             return mShaders.at( path );

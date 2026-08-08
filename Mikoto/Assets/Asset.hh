@@ -24,18 +24,15 @@
 
 namespace mikoto::asset {
 
-    using namespace mikoto::core;
-    using namespace mikoto::filesystem;
+    using AssetID = core::u64;
 
-    using AssetID = u64;
+    MKT_NODISCARD auto GetHashedAssetID(const filesystem::Path& path) -> AssetID;
 
-    MKT_NODISCARD auto GetHashedAssetID(const Path& path) -> AssetID;
-
-    MKT_NODISCARD auto IsFileImage( const Path& path ) -> bool;
-    MKT_NODISCARD auto IsFileModel( const Path& path ) -> bool;
-    MKT_NODISCARD auto IsFileAudio( const Path& path ) -> bool;
-    MKT_NODISCARD auto IsFileFont( const Path& path ) -> bool;
-    MKT_NODISCARD auto IsFileMaterial( const Path& path ) -> bool;
+    MKT_NODISCARD auto IsFileImage( const filesystem::Path& path ) -> bool;
+    MKT_NODISCARD auto IsFileModel( const filesystem::Path& path ) -> bool;
+    MKT_NODISCARD auto IsFileAudio( const filesystem::Path& path ) -> bool;
+    MKT_NODISCARD auto IsFileFont( const filesystem::Path& path ) -> bool;
+    MKT_NODISCARD auto IsFileMaterial( const filesystem::Path& path ) -> bool;
 
 }
 #endif//MIKOTO_ASSET_HH

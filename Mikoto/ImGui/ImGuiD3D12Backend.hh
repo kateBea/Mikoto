@@ -21,7 +21,9 @@
 
 #include <ImGui/ImGuiService.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/CommandList.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
@@ -31,6 +33,9 @@
 #include <imgui_impl_dx12.h>
 
 namespace mikoto::gui {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     // Simple free list based allocator
     // Taken from imgui examples

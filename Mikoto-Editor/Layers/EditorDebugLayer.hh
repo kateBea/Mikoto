@@ -28,8 +28,8 @@
 #include <Scene/Camera.hh>
 #include <Scene/SceneCamera.hh>
 
-#include <Renderer/Core/Rhi.hh>
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::editor {
 
@@ -76,8 +76,6 @@ namespace mikoto::editor {
         renderer::rhi::SamplerHandle mSamplerState{};
 
         renderer::rhi::InputLayoutHandle mVertexInputLayout{};
-
-        renderer::rhi::FramebufferHandle mFrameBuffer{};
 
         renderer::rhi::ShaderModuleHandle mVertexShader{};
         renderer::rhi::ShaderModuleHandle mPixelShader{};

@@ -19,6 +19,7 @@
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
+
 #include <imgui.h>
 
 #include <Core/Core.hh>
@@ -30,19 +31,15 @@
 
 #include <Platform/Window.hh>
 
-#include <Renderer/Core/GpuDevice.hh>
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::gui {
 
-    using namespace mikoto::core;
-    using namespace mikoto::platform;
-    using namespace mikoto::renderer;
-
     struct ImGuiBackendCreateInfo {
-        Window* mWindow{ nullptr };
-        IGpuDevice* mDevice{ nullptr };
-        GraphicsAPI mApi{ GraphicsAPI::eVulkan };
+        platform::Window* mWindow{ nullptr };
+        renderer::rhi::IGpuDevice* mDevice{ nullptr };
+        renderer::rhi::GraphicsAPI mApi{ renderer::rhi::GraphicsAPI::eVulkan };
     };
 
     /**
@@ -63,15 +60,15 @@ namespace mikoto::gui {
         virtual auto BeginFrame() -> void = 0;
         virtual auto EndFrame() -> void = 0;
 
-        MKT_NODISCARD virtual auto GetFinalComposition() -> TextureHandle = 0;
+        MKT_NODISCARD virtual auto GetFinalComposition() -> renderer::rhi::TextureHandle = 0;
 
         auto SetClearColor(const float4& color) -> void { mClearColor = color; }
-        auto SetResolution( RenderResolution reso ) -> void { mResolution = reso; }
+        auto SetResolution( renderer::rhi::RenderResolution reso ) -> void { mResolution = reso; }
 
-        MKT_NODISCARD virtual auto GetResolution() const -> RenderResolution { return mResolution; }
+        MKT_NODISCARD virtual auto GetResolution() const -> renderer::rhi::RenderResolution { return mResolution; }
 
-        MKT_NODISCARD virtual auto ConstructImGuiTextureID(const ITexture* texture) -> ImTextureID = 0;
-        MKT_NODISCARD virtual auto ConstructImGuiTextureID(TextureHandle texture) -> ImTextureID = 0;
+        MKT_NODISCARD virtual auto ConstructImGuiTextureID(const renderer::rhi::ITexture* texture) -> ImTextureID = 0;
+        MKT_NODISCARD virtual auto ConstructImGuiTextureID(renderer::rhi::TextureHandle texture) -> ImTextureID = 0;
 
         virtual ~ImGuiBackend() = default;
 
@@ -81,18 +78,18 @@ namespace mikoto::gui {
         float4 mClearColor{ 0.9f, 0.6f, 0.85f, 1.0f };
         bool mIsInitialized{ false };
 
-        Window* mWindow{};
-        IGpuDevice* mDevice{};
-        GraphicsAPI mApi{ GraphicsAPI::eVulkan };
-        RenderResolution mResolution{ RenderResolution::e1080P };
+        platform::Window* mWindow{};
+        renderer::rhi::IGpuDevice* mDevice{};
+        renderer::rhi::GraphicsAPI mApi{ renderer::rhi::GraphicsAPI::eVulkan };
+        renderer::rhi::RenderResolution mResolution{ renderer::rhi::RenderResolution::e1080P };
     };
 
     struct ImGuiServiceDescription {
         // Will grab the device from the render service
         // which is required to be initialized before this one
-        Window* mWindow{ nullptr };
-        IGpuDevice* mDevice{ nullptr };
-        GraphicsAPI mApi{ GraphicsAPI::eVulkan };
+        platform::Window* mWindow{ nullptr };
+        renderer::rhi::IGpuDevice* mDevice{ nullptr };
+        renderer::rhi::GraphicsAPI mApi{ renderer::rhi::GraphicsAPI::eVulkan };
     };
 
     class ImGuiService final : public IService, public Singleton<ImGuiService> {
@@ -111,12 +108,12 @@ namespace mikoto::gui {
         auto SetThemeDarkModeDefault() -> void;
         auto SetThemeDarkModeAlt() -> void;
 
-        MKT_NODISCARD auto GetFinalComposition() const -> TextureHandle;
+        MKT_NODISCARD auto GetFinalComposition() const -> renderer::rhi::TextureHandle;
 
         auto SetImGuiBackGroundClearColor(const float4& color) -> void;
 
-        MKT_NODISCARD auto GetTextureID(TextureHandle texture) -> ImTextureID;
-        MKT_NODISCARD auto GetTextureID(const ITexture* texture) -> ImTextureID;
+        MKT_NODISCARD auto GetTextureID(renderer::rhi::TextureHandle texture) -> ImTextureID;
+        MKT_NODISCARD auto GetTextureID(const renderer::rhi::ITexture* texture) -> ImTextureID;
 
         MKT_NODISCARD auto GetBackend() -> ImGuiBackend*;
         MKT_NODISCARD auto GetBackend() const -> const ImGuiBackend*;
@@ -133,19 +130,19 @@ namespace mikoto::gui {
         static constexpr float kFontBaseSize{ 19.0f };
 
     private:
-        Window* mWindow{ nullptr };
-        IGpuDevice* mDevice{ nullptr };
+        platform::Window* mWindow{ nullptr };
+        renderer::rhi::IGpuDevice* mDevice{ nullptr };
 
         eastl::unique_ptr<ImGuiBackend> mImplementation{ nullptr };
 
-        Path mFontsRootDir{};
-        Path mImGuiFilesRootDir{};
+        filesystem::Path mFontsRootDir{};
+        filesystem::Path mImGuiFilesRootDir{};
 
         // index into ImGui internal font structures and
         // a path to keep track of where it is
-        ankerl::unordered_dense::map<Path, i8> mImGuiFonts{};
+        ankerl::unordered_dense::map<filesystem::Path, i8> mImGuiFonts{};
 
-        GraphicsAPI mBackendApi{ GraphicsAPI::eInvalid };
+        renderer::rhi::GraphicsAPI mBackendApi{ renderer::rhi::GraphicsAPI::eInvalid };
     };
 
 }

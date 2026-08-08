@@ -51,6 +51,8 @@ namespace mikoto::editor {
     using namespace mikoto::gui;
     using namespace mikoto::core;
     using namespace mikoto::asset;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
 
 
     ContentBrowserPanel::ContentBrowserPanel( const ContentBrowserPanelDescription& desc )

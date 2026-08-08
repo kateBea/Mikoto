@@ -24,10 +24,13 @@
 
 #include <Memory/Allocator.hh>
 
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanReflection.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanReflection.hh>
 
 namespace mikoto::renderer::vulkan {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     MKT_NODISCARD auto GetDescriptorType( SpvReflectDescriptorType type ) -> VkDescriptorType {
         switch ( type ) {

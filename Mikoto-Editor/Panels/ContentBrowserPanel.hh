@@ -35,7 +35,9 @@
 #include <Filesystem/FileSystem.hh>
 
 #include <Panels/Panel.hh>
-#include <Renderer/Core/GpuDevice.hh>
+
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 #include <Application/ThumbnailCache.hh>
 
@@ -54,7 +56,7 @@ namespace mikoto::editor {
     };
 
     struct ContentBrowserPanelDescription {
-        IGpuDevice* mDevice{ nullptr };
+        renderer::rhi::IGpuDevice* mDevice{ nullptr };
         EditorState* mState{ nullptr };
 
         Path mProjectBasePath{};
@@ -79,7 +81,7 @@ namespace mikoto::editor {
         auto DrawCurrentDirItems() -> void;
 
     private:
-        IGpuDevice* mDevice{ nullptr };
+        renderer::rhi::IGpuDevice* mDevice{ nullptr };
         EditorState* mEditorState{ nullptr };
 
         ImGuiTextFilter mSearchFilter{};
@@ -101,7 +103,7 @@ namespace mikoto::editor {
 
         // NOTE: texture is static because drag and
         // drop needs this to persis
-        TextureHandle mThumbnail{};
+        renderer::rhi::TextureHandle mThumbnail{};
 
         Path mSelectedItem{};
     };

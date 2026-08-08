@@ -31,23 +31,19 @@
 
 #include <Material/PhysicalMaterial.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Buffer.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::asset {
-
-    using namespace mikoto::core;
-    using namespace mikoto::renderer;
-    using namespace mikoto::material;
-    using namespace mikoto::animation;
-    using namespace mikoto::filesystem;
-    using namespace mikoto::renderer::rhi;
 
     using AnimationList = ankerl::unordered_dense::map<eastl::string, eastl::unique_ptr<animation::SkinnedAnimation>>;
 
     // These 2 are vec4 because they need to match the bone influence
     // which is maximum bones influence a vertex ( from what we support now )
-    inline constexpr u32 kMaxBoneInfluence{ 4 };
-    inline constexpr u32 kMaxBonesPerMesh{ 256 }; // Needs to match shader's
+    inline constexpr core::u32 kMaxBoneInfluence{ 4 };
+    inline constexpr core::u32 kMaxBonesPerMesh{ 256 }; // Needs to match shader's
 
     enum class VertexAttribute {
         ePositions,
@@ -63,7 +59,7 @@ namespace mikoto::asset {
 
     struct ModelLoadDescription {
         FileHandle mFile{};
-        GraphicsAPI mApi{ GraphicsAPI::eInvalid };
+        renderer::rhi::GraphicsAPI mApi{ renderer::rhi::GraphicsAPI::eInvalid };
         bool mExtractTextures{ true };
 
         // Specifies the order we want attributes in
@@ -84,18 +80,18 @@ namespace mikoto::asset {
     };
 
     struct MeshCreateDescription {
-        BufferHandle mVertices{};
-        BufferHandle mIndices{};
+        renderer::rhi::BufferHandle mVertices{};
+        renderer::rhi::BufferHandle mIndices{};
 
-        float4x4 mTransform{};
+        core::float4x4 mTransform{};
         eastl::string_view mName{};
-        PhysicMaterialDescription mProperties{};
+        material::PhysicMaterialDescription mProperties{};
 
         auto SetName( eastl::string_view name ) -> MeshCreateDescription&;
         auto SetTransform( const float4x4& t ) -> MeshCreateDescription&;
-        auto SetMaterial( const PhysicMaterialDescription& mat ) -> MeshCreateDescription&;
-        auto SetVertices( BufferHandle vertices ) -> MeshCreateDescription&;
-        auto SetIndices( BufferHandle indices ) -> MeshCreateDescription&;
+        auto SetMaterial( const material::PhysicMaterialDescription& mat ) -> MeshCreateDescription&;
+        auto SetVertices( renderer::rhi::BufferHandle vertices ) -> MeshCreateDescription&;
+        auto SetIndices( renderer::rhi::BufferHandle indices ) -> MeshCreateDescription&;
     };
 
     class MeshNode final {
@@ -107,13 +103,13 @@ namespace mikoto::asset {
 
         MKT_NODISCARD auto GetTransform() const -> const float4x4& { return mTransform; }
         MKT_NODISCARD auto GetMeshIndex() const -> size_t { return mMeshIndex; }
-        MKT_NODISCARD auto GetVertexBuffer() -> BufferHandle { return  mVertices; }
-        MKT_NODISCARD auto GetIndexBuffer() -> BufferHandle { return mIndices; }
+        MKT_NODISCARD auto GetVertexBuffer() -> renderer::rhi::BufferHandle { return  mVertices; }
+        MKT_NODISCARD auto GetIndexBuffer() -> renderer::rhi::BufferHandle { return mIndices; }
 
-        MKT_NODISCARD auto GetVertexBuffer() const -> BufferHandle { return mVertices; }
-        MKT_NODISCARD auto GetIndexBuffer() const -> BufferHandle { return mIndices; }
+        MKT_NODISCARD auto GetVertexBuffer() const -> renderer::rhi::BufferHandle { return mVertices; }
+        MKT_NODISCARD auto GetIndexBuffer() const -> renderer::rhi::BufferHandle { return mIndices; }
 
-        MKT_NODISCARD auto GetProperties() const -> const PhysicMaterialDescription& { return mProperties; }
+        MKT_NODISCARD auto GetProperties() const -> const material::PhysicMaterialDescription& { return mProperties; }
 
         DISABLE_COPY_FOR( MeshNode );
 
@@ -121,10 +117,10 @@ namespace mikoto::asset {
         eastl::string mName{};
         size_t mMeshIndex{};
 
-        BufferHandle mIndices{};
-        BufferHandle mVertices{};
+        renderer::rhi::BufferHandle mIndices{};
+        renderer::rhi::BufferHandle mVertices{};
 
-        PhysicMaterialDescription mProperties{};
+        material::PhysicMaterialDescription mProperties{};
 
         float4x4 mTransform{ 1.0f }; // Identity by default
     };
@@ -134,13 +130,13 @@ namespace mikoto::asset {
         eastl::string mName{};
 
         AnimationList mAnimations{};
-        eastl::unique_ptr<Skeleton> mSkeleton{};
+        eastl::unique_ptr<animation::Skeleton> mSkeleton{};
         ankerl::unordered_dense::map<u32, MeshNode> mMeshes{};
 
         auto SetPath(const Path& path) -> ModelCreateDescription&;
         auto AddMesh(u32 index, const MeshCreateDescription& desc) -> ModelCreateDescription&;
         auto SetName(eastl::string_view name) -> ModelCreateDescription&;
-        auto SetSkeleton(eastl::unique_ptr<Skeleton>&& skeleton) -> ModelCreateDescription&;
+        auto SetSkeleton(eastl::unique_ptr<animation::Skeleton>&& skeleton) -> ModelCreateDescription&;
         auto SetAnimations(AnimationList&& animations) -> ModelCreateDescription&;
     };
 
@@ -166,10 +162,10 @@ namespace mikoto::asset {
         MKT_NODISCARD auto HasArmature() const -> bool;
         MKT_NODISCARD auto HasAnimations() const -> bool;
 
-        MKT_NODISCARD auto GetSkeleton() const -> const Skeleton*;
+        MKT_NODISCARD auto GetSkeleton() const -> const animation::Skeleton*;
 
-        MKT_NODISCARD auto FindAnimation( eastl::string_view name ) -> SkinnedAnimation*;
-        MKT_NODISCARD auto FindAnimation( eastl::string_view name ) const -> const SkinnedAnimation*;
+        MKT_NODISCARD auto FindAnimation( eastl::string_view name ) -> animation::SkinnedAnimation*;
+        MKT_NODISCARD auto FindAnimation( eastl::string_view name ) const -> const animation::SkinnedAnimation*;
 
         MKT_NODISCARD auto GetAnimations() -> AnimationList&;
         MKT_NODISCARD auto GetAnimations() const -> const AnimationList&;
@@ -189,7 +185,7 @@ namespace mikoto::asset {
 
         // Skinning
         AnimationList mAnimations{};
-        eastl::unique_ptr<Skeleton> mSkeleton{};
+        eastl::unique_ptr<animation::Skeleton> mSkeleton{};
 
         // ( Mesh index, mesh node )
         ankerl::unordered_dense::map<u32, MeshNode> mMeshes{};

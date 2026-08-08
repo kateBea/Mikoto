@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,10 +16,13 @@
 
 #include <EASTL/string_view.h>
 
-#include <Renderer/Core/Rhi.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
 
 namespace mikoto::renderer::vulkan {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     auto GetGpuDeviceType( GpuDeviceType type ) -> VkPhysicalDeviceType {
         switch (type) {
@@ -811,7 +814,7 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto GetShaderStageFlags( ShaderStage visibility ) -> VkShaderStageFlags {
+    auto GetShaderStageFlags(  ShaderFlags visibility ) -> VkShaderStageFlags {
         // Fast path
         if ( visibility == ShaderFlagsBits::kAll ) {
             return VK_SHADER_STAGE_ALL;

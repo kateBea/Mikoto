@@ -26,7 +26,8 @@
 
 #include <ImGui/ImGuiUtility.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Texture.hh>
 
 namespace mikoto::editor {
 
@@ -68,10 +69,10 @@ namespace mikoto::editor {
         EditorState* mEditorState{};
         ImTextureID mColorImageID{};
 
-        f32 mViewportWidth{ 1920 };
-        f32 mViewportHeight{ 1080 };
+        core::f32 mViewportWidth{ 1920 };
+        core::f32 mViewportHeight{ 1080 };
 
-        float2 mGuizmoPosition{ 1.0f };
+        core::float2 mGuizmoPosition{ 1.0f };
 
         gui::GuizmoType mManipulationType{ gui::GuizmoType::eTranslation };
     };

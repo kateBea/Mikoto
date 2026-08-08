@@ -25,22 +25,21 @@
 
 #include <Platform/Window.hh>
 
-#include <Renderer/Core/Rhi.hh>
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::renderer {
 
-    using namespace mikoto::platform;
-
-    enum class RefreshRate {
-        eSync,
-        eUnlimited
-    };
-
     struct RenderContextCreateInfo {
-        Window* mWindow{ nullptr };
-        RefreshRate mRefreshRate{ RefreshRate::eSync };
-        GraphicsAPI mApi{ GraphicsAPI::eInvalid };
+        platform::Window* mWindow{ nullptr };
+
+        rhi::RefreshRate mRefreshRate{ rhi::RefreshRate::eSync };
+        rhi::GraphicsAPI mApi{ rhi::GraphicsAPI::eInvalid };
+
+        auto SetWindow(platform::Window* window) noexcept -> RenderContextCreateInfo&;
+        auto SetRefreshRate(rhi::RefreshRate refreshRate) noexcept -> RenderContextCreateInfo&;
+        auto SetGraphicsAPI(rhi::GraphicsAPI api) noexcept -> RenderContextCreateInfo&;
     };
 
     class RenderContext {
@@ -56,29 +55,26 @@ namespace mikoto::renderer {
         virtual auto Update() -> void = 0;
         virtual auto Present() -> void = 0;
 
-        virtual auto SetRefreshRate( RefreshRate rate ) -> void = 0;
+        virtual auto SetRefreshRate( rhi::RefreshRate rate ) -> void = 0;
 
-        virtual auto SetPresentTarget(TextureHandle texture) -> void = 0;
+        virtual auto SetPresentTarget( rhi::TextureHandle texture ) -> void = 0;
 
-        MKT_NODISCARD auto GetGpuDevice() -> IGpuDevice*;
-        MKT_NODISCARD auto GetGpuDevice() const -> const IGpuDevice*;
-        MKT_NODISCARD auto GetRefreshRate() const  -> RefreshRate;
-        MKT_NODISCARD auto IsRefreshType(RefreshRate type) const  -> bool;
+        MKT_NODISCARD auto GetGpuDevice() -> rhi::IGpuDevice*;
+        MKT_NODISCARD auto GetGpuDevice() const -> const rhi::IGpuDevice*;
+        MKT_NODISCARD auto GetRefreshRate() const -> rhi::RefreshRate;
+        MKT_NODISCARD auto IsRefreshType( rhi::RefreshRate type ) const -> bool;
 
-        static auto Create(const RenderContextCreateInfo& config) -> eastl::unique_ptr<RenderContext>;
-
-    protected:
-
-        explicit RenderContext(const RenderContextCreateInfo& createInfo)
-            :   mWindow{ createInfo.mWindow }, mRefreshRate{ createInfo.mRefreshRate }
-        { }
+        static auto Create( const RenderContextCreateInfo& config ) -> eastl::unique_ptr<RenderContext>;
 
     protected:
-        Window* mWindow{ nullptr };
-        eastl::unique_ptr<IGpuDevice> mDevice{ nullptr };
+        explicit RenderContext( const RenderContextCreateInfo& createInfo );
 
-        RefreshRate mRefreshRate{ RefreshRate::eSync };
+    protected:
+        platform::Window* mWindow{ nullptr };
+        eastl::unique_ptr<rhi::IGpuDevice> mDevice{ nullptr };
+
+        rhi::RefreshRate mRefreshRate{ rhi::RefreshRate::eSync };
     };
-}
+}// namespace mikoto::renderer
 
 #endif//MIKOTO_RENDER_CONTEXT_HH

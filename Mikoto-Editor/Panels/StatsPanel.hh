@@ -22,8 +22,6 @@
 #include <Panels/Panel.hh>
 
 namespace mikoto::editor {
-    using namespace mikoto::core;
-
     struct EditorState;
 
     struct StatsPanelCreateInfo {
@@ -44,12 +42,12 @@ namespace mikoto::editor {
     private:
         EditorState *mState{};
 
-        f32 mFrameRate{};
-        f32 mFrameTime{};
+        core::f32 mFrameRate{};
+        core::f32 mFrameTime{};
 
-        f64 mLastTime{};
-        f64 mCurrentTime{};
-        f32 mIntervalUpdate{ };
+        core::f64 mLastTime{};
+        core::f64 mCurrentTime{};
+        core::f32 mIntervalUpdate{ };
     };
 }
 

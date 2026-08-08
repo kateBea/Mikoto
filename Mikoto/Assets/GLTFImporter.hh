@@ -29,11 +29,14 @@
 #include <Assets/Model.hh>
 #include <Assets/Importer.hh>
 
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 #include <Animation/SkinningBuilder.hh>
 
 namespace mikoto::asset {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     struct LoaderData {
         i32 mIndex{ -1 };

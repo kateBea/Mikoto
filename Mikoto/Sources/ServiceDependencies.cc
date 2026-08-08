@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Platform.hh>
+#include <Platform/PlatformWin32.hh>
+
 #include <Core/ServiceDependencies.hh>
 
 namespace mikoto::core {

@@ -12,12 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SWAPCHAIN_HH
-#define MIKOTO_SWAPCHAIN_HH
+#ifndef MIKOTO_RHI_SWAPCHAIN_HH
+#define MIKOTO_RHI_SWAPCHAIN_HH
+
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Memory/BufferSpan.hh>
+#include <Core/ResourcePool.hh>
+
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Utility.hh>
+#include <Renderer/Rhi/DeviceObject.hh>
 
 namespace mikoto::renderer::rhi {
-    // Swapchain
+
+    class ISwapchain : public DeviceObject {
+    public:
+
+        ~ISwapchain() override = default;
+    };
+
+    using SwapchainHandle = core::Ref<ISwapchain>;
 }
 
 
-#endif//MIKOTOROOT_SWAPCHAIN_HH
+#endif//MIKOTO_RHI_SWAPCHAIN_HH

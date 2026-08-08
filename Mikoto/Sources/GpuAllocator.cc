@@ -19,14 +19,15 @@
 
 #include <Memory/GpuAllocator.hh>
 
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/RenderSystem.hh>
 
 #include <Memory/GpuAllocator.hh>
-#include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
+#include <Renderer/Rhi/Vulkan/VulkanMemoryAllocator.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
-#include <Renderer/D3D12/D3D12MemoryAllocator.hh>
+#include <Renderer/Rhi/D3D12/D3D12MemoryAllocator.hh>
 #endif
 
 namespace mikoto::memory {

@@ -26,8 +26,6 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::scene;
-
     struct EditorState;
 
     struct HierarchyPanelCreateInfo {
@@ -44,27 +42,27 @@ namespace mikoto::editor {
 
     private:
         auto BlankSpacePopupMenu() -> void;
-        auto DrawNodeTree( u64 entity ) -> void;
+        auto DrawNodeTree( core::u64 entity ) -> void;
 
-        auto OnEntityRightClickMenu( Entity* entity ) -> void;
+        auto OnEntityRightClickMenu( scene::Entity* entity ) -> void;
 
         auto DrawSearchBar() -> void;
-        auto DrawTextMenu( Entity* entity = nullptr ) -> void;
-        auto DrawPrefabMenu( Entity* root = nullptr ) -> void;
-        auto DrawModelLoadMenu( Entity* root = nullptr ) -> void;
-        auto DrawLightMenuItems( Entity* root = nullptr ) const -> void;
+        auto DrawTextMenu( scene::Entity* entity = nullptr ) -> void;
+        auto DrawPrefabMenu( scene::Entity* root = nullptr ) -> void;
+        auto DrawModelLoadMenu( scene::Entity* root = nullptr ) -> void;
+        auto DrawLightMenuItems( scene::Entity* root = nullptr ) const -> void;
 
-        auto AddEntityWithModel( Entity* root = nullptr ) -> void;
-        auto AddEntityWithModel( eastl::string_view uri, Entity* root = nullptr ) -> void;
-        auto AddEntityWithModel( ModelHandle model, Entity* root = nullptr ) -> void;
+        auto AddEntityWithModel( scene::Entity* root = nullptr ) -> void;
+        auto AddEntityWithModel( eastl::string_view uri, scene::Entity* root = nullptr ) -> void;
+        auto AddEntityWithModel( asset::ModelHandle model, scene::Entity* root = nullptr ) -> void;
 
     private:
         EditorState* mEditorState{};
 
         ImGuiTextFilter mSearchFilter{};
 
-        bool m_IsEntityCreateQueued{};
-        EntityCreateInfo m_EntityCreateInfo{};
+        bool mIsEntityCreateQueued{};
+        scene::EntityCreateInfo mEntityCreateInfo{};
     };
 }// namespace mikoto::editor
 

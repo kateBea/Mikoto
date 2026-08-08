@@ -34,6 +34,11 @@
 
 namespace mikoto::editor {
 
+    using namespace mikoto::gui;
+    using namespace mikoto::core;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
+
     auto SettingsPanel::DrawCameraConfig() -> void {
         static const eastl::array<eastl::string, 2> cameraProjectionTypesStr{
             "Orthographic", "Perspective"

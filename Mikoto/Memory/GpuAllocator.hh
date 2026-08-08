@@ -21,13 +21,13 @@
 #include <Core/Types.hh>
 
 #include <Memory/Allocator.hh>
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::memory {
 
     class IGpuAllocator {
     public:
-        explicit IGpuAllocator(renderer::IGpuDevice* device)
+        explicit IGpuAllocator(renderer::rhi::IGpuDevice* device)
             : mDevice{ device }
         {}
 
@@ -40,10 +40,10 @@ namespace mikoto::memory {
 
         virtual ~IGpuAllocator() = default;
 
-        static auto Create(renderer::IGpuDevice* device) -> eastl::unique_ptr<IGpuAllocator>;
+        static auto Create(renderer::rhi::IGpuDevice* device) -> eastl::unique_ptr<IGpuAllocator>;
 
     protected:
-        renderer::IGpuDevice* mDevice{};
+        renderer::rhi::IGpuDevice* mDevice{};
     };
 }
 

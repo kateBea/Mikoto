@@ -15,7 +15,7 @@
 #ifndef MIKOTO_MATERIAL_DEBUG_HH
 #define MIKOTO_MATERIAL_DEBUG_HH
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
 
@@ -23,6 +23,10 @@
 #include <Scene/Camera.hh>
 
 namespace mikoto::renderer {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
+
     // Displays a material on a sphere with a convoluted background on top of a cube
     // using a directional light with shadows
     class MaterialModule final {

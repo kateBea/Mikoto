@@ -14,8 +14,10 @@
 
 #include <EASTL/unique_ptr.h>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Platform.hh>
 #include <Core/Exception.hh>
-#include <Renderer/D3D11/D3D11Context.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
@@ -25,7 +27,9 @@
 #include <dxgidebug.h>
 
 #include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/D3D11/D3D11Device.hh>
+
+#include <Renderer/Rhi/D3D11/D3D11Device.hh>
+#include <Renderer/Rhi/D3D11/D3D11Context.hh>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_EXPOSE_NATIVE_WGL
@@ -109,8 +113,6 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Context::SubmitFrame() -> void {
-        mDevice->ExecutePendingCommands();
-
         if (mWindow->GetWidth() != mSwapChain->GetWidth() || mWindow->GetHeight() != mSwapChain->GetHeight()) {
             mSwapChain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
         }

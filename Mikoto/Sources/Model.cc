@@ -29,6 +29,13 @@
 
 namespace mikoto::asset {
 
+    using namespace mikoto::core;
+    using namespace mikoto::renderer;
+    using namespace mikoto::material;
+    using namespace mikoto::animation;
+    using namespace mikoto::filesystem;
+    using namespace mikoto::renderer::rhi;
+
     auto ModelLoadDescription::WithFilePath( FileHandle file ) -> ModelLoadDescription & {
         this->mFile = file;
         return *this;

@@ -36,6 +36,11 @@
 
 #include <Scene/SceneCamera.hh>
 
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Buffer.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 #include <Renderer/Core/RenderSystem.hh>
 
 #include <Layers/EditorDebugLayer.hh>
@@ -43,8 +48,10 @@
 namespace mikoto::editor {
 
     using namespace mikoto::core;
+    using namespace mikoto::asset;
     using namespace mikoto::scene;
     using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
     using namespace mikoto::filesystem;
 
     EditorDebugLayer::EditorDebugLayer( Window *window )
@@ -123,8 +130,9 @@ namespace mikoto::editor {
 
         mCommandList->End();
 
-        // Not executed immediately, cached to do one BIG submission.
-        mDevice->SubmitCommands( mCommandList );
+        auto submitInfo{ SubmitInfo{}
+            .AddCommandList( mCommandList ) };
+        mDevice->GetQueue(QueueType::eTransfer)->ExecuteCommandLists( submitInfo );
     }
 
     auto EditorDebugLayer::OnCreate() -> void {
@@ -158,17 +166,23 @@ namespace mikoto::editor {
         mDepthImage->SetDebugName( "GameLayer Depth image" );
 
         // Create shaders
+        FileHandle vsShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangle_Vert.slang" ) };
         auto vertexShaderDescription{ ShaderModuleCreateDescription{}
-            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangle_Vert.slang" ) )
+            .SetContents( vsShader )
+            .SetModuleName( vsShader->GetName() )
+            .SetModulePath( vsShader->GetPath() )
+            .SetLanguage( ShaderLanguage::eSlang )
             .SetStage( ShaderType::eVertex ) };
         mVertexShader = mDevice->CreateShader( vertexShaderDescription );
-        mVertexShader->DumpShaderCode();
 
+        FileHandle pxShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangle_Frag.slang" ) };
         auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
-            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangle_Frag.slang" ) )
+            .SetContents( pxShader )
+            .SetModuleName( pxShader->GetName() )
+            .SetModulePath( pxShader->GetPath() )
+            .SetLanguage( ShaderLanguage::eSlang )
             .SetStage( ShaderType::ePixel ) };
         mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
-        mPixelShader->DumpShaderCode();
 
         // Create pipeline
         eastl::array<rhi::VertexBindingDescription, 1> bindings{

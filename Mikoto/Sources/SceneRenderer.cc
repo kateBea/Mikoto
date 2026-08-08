@@ -20,7 +20,8 @@
 #include <Core/Profiler.hh>
 #include <Core/String.hh>
 #include <Core/Types.hh>
-#include <Renderer/Core/GpuDevice.hh>
+
+#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/SceneRenderer.hh>
 
 namespace mikoto::renderer {

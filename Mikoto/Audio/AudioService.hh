@@ -29,8 +29,6 @@
 
 namespace mikoto::audio {
 
-    using namespace mikoto::core;
-
     struct AudioServiceCreateInfo {};
 
     class AudioService final : public IService, public Singleton<AudioService> {
@@ -52,7 +50,7 @@ namespace mikoto::audio {
 
         // On Audio Service initialization we create the fixed amount of listeners
         // and send one at a time whenever CreateListener() is called
-        size_t mCurrentAllocationCount{};
+        core::size_t mCurrentAllocationCount{};
         eastl::vector<AudioListener> mListeners{};
     };
 }

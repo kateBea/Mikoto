@@ -36,6 +36,10 @@
 
 namespace mikoto::scene {
 
+    using namespace mikoto::core;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
+
     enum class SceneState {
         eIdle,
         eSimulating

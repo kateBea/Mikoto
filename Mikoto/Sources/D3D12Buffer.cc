@@ -16,7 +16,8 @@
 #include <Core/Types.hh>
 #include <Core/Platform.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Buffer.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
@@ -27,12 +28,15 @@
 #include <dxgidebug.h>
 #include <wrl.h>
 
-#include <Renderer/D3D12/D3D12Buffer.hh>
-#include <Renderer/D3D12/D3D12Device.hh>
-#include <Renderer/D3D12/Direct3D12Helpers.hh>
-#include <Renderer/D3D12/D3D12MemoryAllocator.hh>
+#include <Renderer/Rhi/D3D12/D3D12Buffer.hh>
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
+#include <Renderer/Rhi/D3D12/D3D12MemoryAllocator.hh>
 
 namespace mikoto::renderer::d3d12 {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     Buffer::Buffer( const rhi::BufferCreateDescription &createInfo, DeviceResources& resources )
         : IBuffer{ createInfo }, mResources{ MKT_ADDRESSOF( resources ) }
@@ -252,18 +256,19 @@ namespace mikoto::renderer::d3d12 {
         auto* allocator{ device->GetAllocator() };
         ThrowIfFailed( allocator->AllocateBuffer( mAllocation ) );
 
-        if (!mSpan.IsEmpty()) {
+        if (!mUploadContents.IsEmpty()) {
             CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
             cmd->Begin( {} );
-
-            cmd->Write( this, mSpan->GetData(), mSpan->GetSize() );
-
+            cmd->Write( this, mUploadContents->GetData(), mUploadContents->GetSize() );
             cmd->End();
-            mDevice->ExecuteCommands( cmd );
+
+            auto submitInfo{ SubmitInfo{}
+                .AddCommandList( cmd ) };
+            mDevice->GetQueue( QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
         }
 
         if (!mKeepInitializerResources) {
-            mSpan.Reset();
+            mUploadContents.Reset();
         }
 
         mIsAllocated = true;

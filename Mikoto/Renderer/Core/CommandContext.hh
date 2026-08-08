@@ -29,83 +29,83 @@
 #include <Memory/Allocator.hh>
 #include <Memory/BufferSpan.hh>
 
-#include <Renderer/Core/Rhi.hh>
-#include <Renderer/Core/GpuDevice.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/FrameGraph.hh>
 
 namespace mikoto::renderer {
 
     struct DrawIndirectCommand {
-        u32 mVertexCount{};
-        u32 mInstanceCount{};
-        u32 mFirstVertex{}; // Generally 0, start from very first vertex
-        u32 mFirstInstance{};
+        core::u32 mVertexCount{};
+        core::u32 mInstanceCount{};
+        core::u32 mFirstVertex{}; // Generally 0, start from very first vertex
+        core::u32 mFirstInstance{};
     };
 
     struct DrawIndirectState {
-        u32 mInstanceCount{};
+        core::u32 mInstanceCount{};
         FGBufferHandle mIndirectBuffer{};
 
         auto SetBuffer( FGBufferHandle handle ) -> DrawIndirectState&;
-        auto SetDrawCount( u32 count ) -> DrawIndirectState&;
+        auto SetDrawCount( core::u32 count ) -> DrawIndirectState&;
     };
 
     struct ContextRenderState {
         struct RenderTargetState {
-            Color mClearColor{ kColorWhite };
-            LoadOp mLoadOp{ LoadOp::eLoad };
+            rhi::Color mClearColor{ rhi::kColorWhite };
+            rhi::LoadOp mLoadOp{ rhi::LoadOp::eLoad };
             FGTextureHandle mRenderTarget{};
 
-            u32 mFaceIndex{};
-            u32 mMipLevel{};
+            core::u32 mFaceIndex{};
+            core::u32 mMipLevel{};
 
             operator FGTextureHandle() const { return mRenderTarget; }
         };
 
-        Rect mRenderArea{};
+        rhi::Rect mRenderArea{};
         RenderTargetState mDepthTarget{};
-        eastl::fixed_vector<RenderTargetState, kMaxRenderTargets> mCurrentRenderTargets{};
+        eastl::fixed_vector<RenderTargetState, rhi::kMaxRenderTargets> mCurrentRenderTargets{};
 
         auto Clear() -> void;
 
-        auto SetRenderArea( const Rect& rec ) -> ContextRenderState&;
-        auto AddDepthTarget(FGTextureHandle target, LoadOp op = LoadOp::eClear ) -> ContextRenderState&;
-        auto AddRenderTarget(FGTextureHandle target, const Color& c, LoadOp op = LoadOp::eClear, u32 faceIndex = 0, u32 mipLevel = 0) -> ContextRenderState&;
+        auto SetRenderArea( const rhi::Rect& rec ) -> ContextRenderState&;
+        auto AddDepthTarget(FGTextureHandle target, rhi::LoadOp op = rhi::LoadOp::eClear ) -> ContextRenderState&;
+        auto AddRenderTarget(FGTextureHandle target, const rhi::Color& c, rhi::LoadOp op = rhi::LoadOp::eClear, core::u32 faceIndex = 0, core::u32 mipLevel = 0) -> ContextRenderState&;
     };
 
-    class CommandContext final : public ReferenceCounted {
+    class CommandContext final : public core::ReferenceCounted {
     public:
         CommandContext( FGNode* pass, FGResourceManager* resourceManager );
 
-        auto BeginPass( CommandListHandle cmd ) -> void;
+        auto BeginPass( rhi::CommandListHandle cmd ) -> void;
         auto EndPass() -> void;
 
         auto BeginRender(const ContextRenderState & gs ) -> void;
         auto EndRender() -> void;
 
-        auto SetViewportState(const ViewportState & vs ) -> void;
+        auto SetViewportState(const rhi::ViewportState & vs ) -> void;
 
-        auto PushTexture_SRV( FGTextureHandle handle ) -> u32;
-        auto PushSampler( FGSamplerHandle handle ) -> u32;
+        auto PushTexture_SRV( FGTextureHandle handle ) -> core::u32;
+        auto PushSampler( FGSamplerHandle handle ) -> core::u32;
 
-        auto PushBuffer_SRV( FGBufferHandle handle ) -> u32;
-        auto PushBuffer_UAV( FGBufferHandle handle ) -> u32;
-        auto PushBuffer_Constant( FGBufferHandle handle ) -> u32;
+        auto PushBuffer_SRV( FGBufferHandle handle ) -> core::u32;
+        auto PushBuffer_UAV( FGBufferHandle handle ) -> core::u32;
+        auto PushBuffer_Constant( FGBufferHandle handle ) -> core::u32;
 
         auto CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>& barriers ) -> void;
 
-        MKT_NODISCARD auto ImportTexture( TextureHandle handle ) -> FGTextureHandle;
-        MKT_NODISCARD auto ImportSampler( SamplerHandle handle ) -> FGSamplerHandle;
-        MKT_NODISCARD auto ImportBuffer( BufferHandle handle ) -> FGBufferHandle;
+        MKT_NODISCARD auto ImportTexture( rhi::TextureHandle handle ) -> FGTextureHandle;
+        MKT_NODISCARD auto ImportSampler( rhi::SamplerHandle handle ) -> FGSamplerHandle;
+        MKT_NODISCARD auto ImportBuffer( rhi::BufferHandle handle ) -> FGBufferHandle;
 
         auto BindPipeline( FGPipelineHandle handle ) -> void;
 
-        auto Draw( u32 vertexCount, u32 instanceCount = 1 ) -> void;
+        auto Draw( core::u32 vertexCount, core::u32 instanceCount = 1 ) -> void;
         auto DrawIndirect( const DrawIndirectState& state ) -> void;
-        auto Dispatch( u32 groupX, u32 groupY, u32 groupZ ) -> void;
+        auto Dispatch( core::u32 groupX, core::u32 groupY, core::u32 groupZ ) -> void;
 
         auto CopyBuffer( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void;
-        auto CopyBuffer( FGBufferHandle dstBuffer, IBuffer* src, size_t dstOffset ) -> void;
+        auto CopyBuffer( FGBufferHandle dstBuffer, rhi::IBuffer* src, size_t dstOffset ) -> void;
 
         auto Copy( FGBufferHandle dstBuffer, FGTextureHandle srcImage ) -> void;
 
@@ -119,23 +119,17 @@ namespace mikoto::renderer {
             const void* ptr{ MKT_ADDRESSOF( data ) };
             const size_t size{ MKT_SIZEOF( data ) };
 
-            eastl::copy_n( as<byte_t*>( ptr ), size, mPushConstantsData.data() );
+            eastl::copy_n( core::as<core::byte_t*>( ptr ), size, mPushConstantsData.data() );
         }
 
     private:
         FGNode* mNode{};
         FGResourceManager* mResourceManager{};
 
-        eastl::fixed_vector<byte_t, kMaxPushConstantSize> mPushConstantsData{};
+        rhi::CommandListHandle mCommands{};
+        rhi::IPipeline* mCurrentPipeline{};
 
-        // Render state
-        Rect mScissors{};
-        Viewport mViewport{};
-        Color mClearColor{};
-
-        IPipeline* mCurrentPipeline{};
-
-        CommandListHandle mCommands{};
+        eastl::fixed_vector<core::byte_t, rhi::kMaxPushConstantSize> mPushConstantsData{};
     };
 }// namespace mikoto::renderer
 

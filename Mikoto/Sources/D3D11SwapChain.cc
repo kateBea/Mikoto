@@ -12,20 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Types.hh>
 #include <Core/Platform.hh>
 
-#include <Renderer/D3D11/D3D11Device.hh>
-#include <Renderer/D3D11/D3D11SwapChain.hh>
-#include <Renderer/D3D11/Direct3D11Helpers.hh>
-
 #if defined(MIKOTO_PLATFORM_WINDOWS)
+
+#include <Platform/PlatformWin32.hh>
+
+#include <GLFW/glfw3.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_EXPOSE_NATIVE_WGL
 #define GLFW_NATIVE_INCLUDE_NONE
 #include <GLFW/glfw3native.h>
 
+#include <Renderer/Rhi/D3D11/D3D11Device.hh>
+#include <Renderer/Rhi/D3D11/D3D11SwapChain.hh>
+#include <Renderer/Rhi/D3D11/Direct3D11Helpers.hh>
+
 namespace mikoto::renderer::d3d11 {
+
+    using namespace mikoto::core;
+    using namespace mikoto::platform;
 
     SwapChain::SwapChain( Window* window, Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory )
         : mWindow{ window },

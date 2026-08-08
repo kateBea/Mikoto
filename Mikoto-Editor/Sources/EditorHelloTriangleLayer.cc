@@ -22,14 +22,21 @@
 #include <Assets/Image.hh>
 #include <Assets/ImageProcessor.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 #include <Renderer/Core/RenderSystem.hh>
 
 #include <Layers/EditorHelloTriangleLayer.hh>
 
 namespace mikoto::editor {
 
+    using namespace mikoto::core;
+    using namespace mikoto::asset;
+    using namespace mikoto::scene;
     using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
+    using namespace mikoto::filesystem;
 
     EditorHelloTriangleLayer::EditorHelloTriangleLayer( platform::Window *window )
         : ILayer{ "EditorHelloTriangleLayer" }, mWindow{ window }
@@ -80,17 +87,23 @@ namespace mikoto::editor {
         mDepthImage->SetDebugName( "HelloTriangleLayer Depth image" );
 
         // Create shaders
+        FileHandle vsShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangleBasic_Vert.slang" ) };
         auto vertexShaderDescription{ ShaderModuleCreateDescription{}
-            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangleBasic_Vert.slang" ) )
+            .SetContents( vsShader )
+            .SetModuleName( vsShader->GetName() )
+            .SetModulePath( vsShader->GetPath() )
+            .SetLanguage( ShaderLanguage::eSlang )
             .SetStage( ShaderType::eVertex ) };
         mVertexShader = mDevice->CreateShader( vertexShaderDescription );
-        mVertexShader->DumpShaderCode();
 
+        FileHandle pxShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangleBasic_Frag.slang" ) };
         auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
-            .SetFile( FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangleBasic_Frag.slang" ) )
+            .SetContents( pxShader )
+            .SetModuleName( pxShader->GetName() )
+            .SetModulePath( pxShader->GetPath() )
+            .SetLanguage( ShaderLanguage::eSlang )
             .SetStage( ShaderType::ePixel ) };
         mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
-        mPixelShader->DumpShaderCode();
 
         // Create pipeline
         eastl::array<rhi::VertexBindingDescription, 1> bindings{
@@ -334,8 +347,9 @@ namespace mikoto::editor {
 
         mCommandList->End();
 
-        // Not executed immediately, cached to do one BIG submission.
-        mDevice->ExecuteCommands( mCommandList );
+        auto submitInfo{ SubmitInfo{}
+            .AddCommandList( mCommandList ) };
+        mDevice->GetQueue(QueueType::eGraphics)->ExecuteCommandLists( submitInfo );
 
         if (mIsImguiWindowActive) {
             DisplayImGuiWindow();

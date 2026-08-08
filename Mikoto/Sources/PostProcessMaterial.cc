@@ -18,12 +18,13 @@
 #include <Core/Types.hh>
 
 #include <Material/Material.hh>
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
 
 #include <Material/PostProcessMaterial.hh>
 
 namespace mikoto::material {
 
+    using namespace mikoto::core;
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 

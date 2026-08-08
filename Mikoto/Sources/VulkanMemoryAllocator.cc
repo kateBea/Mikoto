@@ -22,11 +22,13 @@
 
 #include <Memory/Allocator.hh>
 #include <Memory/GpuAllocator.hh>
+
 #include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/Vulkan/VulkanContext.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
-#include <Renderer/Vulkan/VulkanMemoryAllocator.hh>
+
+#include <Renderer/Rhi/Vulkan/VulkanContext.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Rhi/Vulkan/VulkanMemoryAllocator.hh>
 
 namespace mikoto::renderer::vulkan {
 
@@ -126,11 +128,10 @@ namespace mikoto::renderer::vulkan {
         return mStats.total.unusedRangeSizeMax;
     }
 
-    auto GpuMemoryAllocator::MapBuffer( BufferAllocation& allocation, const bool map ) const -> void {
+    auto GpuMemoryAllocator::MapBuffer( BufferAllocation& allocation, bool map ) const -> void {
         if ( map ) {
             MKT_VK_CHECK( vmaMapMemory( mAllocator, allocation.mAllocation, MKT_ADDRESSOF( allocation.mAllocationInfo.pMappedData ) ) );
         } else {
-            // Unmap buffer memory from CPU
             if ( allocation.mAllocationInfo.pMappedData ) {
                 vmaUnmapMemory( mAllocator, allocation.mAllocation );
                 allocation.mAllocationInfo.pMappedData = nullptr;

@@ -17,7 +17,11 @@
 #include <Core/Profiler.hh>
 #include <Core/Platform.hh>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Memory/BufferSpan.hh>
+
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Shader.hh>
+
 #include <Renderer/Core/RenderSystem.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
@@ -31,17 +35,21 @@
 #include <wrl.h>
 #include <dxcapi.h>
 
-#include <Renderer/D3D12/D3D12Shader.hh>
-#include <Renderer/D3D12/D3D12Context.hh>
-#include <Renderer/D3D12/Direct3D12Helpers.hh>
-#include <Renderer/D3D12/Direct3D12Libraries.hh>
+#include <Renderer/Rhi/D3D12/D3D12Shader.hh>
+#include <Renderer/Rhi/D3D12/D3D12Context.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Libraries.hh>
 
 namespace mikoto::renderer::d3d12 {
 
-    Shader::Shader( const rhi::ShaderModuleCreateDescription &desc )
-        : IShaderModule{ desc.mType, desc.mEntryPoint }, mFile{ desc.mFile }, mUseSlang{ desc.mIsSlangShader }
-    {
+    using namespace mikoto::core;
+    using namespace mikoto::memory;
+    using namespace mikoto::renderer::rhi;
 
+    Shader::Shader( const rhi::ShaderModuleCreateDescription &desc )
+        : IShaderModule{ desc.mType, desc.mEntryPoint, desc.mLanguage }, mModulePath{ desc.mModulePath }, mModuleName{ desc.mModuleName }
+    {
+        mContents = BufferSpanHandle::Spawn( desc.mShaderContents, desc.mShaderContentsSize );
     }
 
     auto Shader::DumpShaderCode() -> void {
@@ -82,8 +90,8 @@ namespace mikoto::renderer::d3d12 {
         // https://docs.shader-slang.org/en/latest/compilation-api.html
         // Create Slang module
         auto session{ RenderSystem::Get().GetSlangCurrentSession() };
-        const eastl::string_view modulePath{ mFile->GetPath() };
-        const eastl::string_view moduleName{ mFile->GetName() };
+        const eastl::string_view modulePath{ mModulePath };
+        const eastl::string_view moduleName{ mModuleName };
 
         mModule = session->loadModuleFromSource( moduleName.data(), modulePath.data(), nullptr, nullptr );
         MKT_ASSERT( mModule, string::Format( "Failed to load Slang module {}", modulePath.data()) );
@@ -117,7 +125,7 @@ namespace mikoto::renderer::d3d12 {
 
         Context* ctx{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
         auto description{ ShaderCompileDescription{}
-            .SetSource(src)
+            .SetSource(eastl::string_view{ src, sizeBytes })
             .SetSourceName(moduleName)
             .SetEntryPoint(mEntryPoint)
             .SetProfile(mStage)

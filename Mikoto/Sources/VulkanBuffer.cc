@@ -12,10 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Renderer/Vulkan/VulkanBuffer.hh>
-#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanBuffer.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
 
 namespace mikoto::renderer::vulkan {
+
+    using namespace mikoto::core;
+    using namespace mikoto::memory;
+    using namespace mikoto::renderer::rhi;
 
     Buffer::Buffer( const BufferCreateDescription &createInfo )
         : IBuffer{ createInfo }, mKeepInitializerResources{ createInfo.mKeepInitializerResources } {
@@ -115,22 +120,22 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( mAllocation.mBufferCreateInfo.usage != MKT_VK_FLAGS_NONE, "Buffer usage must be specified" );
         MKT_ASSERT( mAllocation.mBufferCreateInfo.size != 0, "Buffer size must be different than 0" );
 
-        // Allocate memory
         auto* allocator{ checked_cast<Device*>( mDevice )->GetAllocator() };
         MKT_VK_CHECK( allocator->AllocateBuffer( mAllocation ) );
 
-        if (!mSpan.IsEmpty()) {
+        if (!mUploadContents.IsEmpty()) {
             CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
             cmd->Begin( {} );
-
-            cmd->Write( this, mSpan->GetData(), mSpan->GetSize() );
-
+            cmd->Write( this, mUploadContents->GetData(), mUploadContents->GetSize() );
             cmd->End();
-            mDevice->ExecuteCommands( cmd );
+
+            auto submitInfo{ SubmitInfo{}
+                .AddCommandList( cmd ) };
+            mDevice->GetQueue(QueueType::eTransfer)->ExecuteCommandLists( submitInfo );
         }
 
         if (!mKeepInitializerResources) {
-            mSpan.Reset();
+            mUploadContents.Reset();
         }
 
         mIsAllocated = true;

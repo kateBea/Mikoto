@@ -17,7 +17,7 @@
 
 #include <EASTL/vector.h>
 
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/FrameGraph.hh>
 
 namespace mikoto::renderer {

@@ -22,6 +22,8 @@
 
 namespace mikoto::renderer {
 
+    using namespace mikoto::core;
+
     enum class LightType {
         eDirectional,
         ePoint,

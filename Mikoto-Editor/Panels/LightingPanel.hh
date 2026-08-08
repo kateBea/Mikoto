@@ -16,7 +16,7 @@
 #define MIKOTO_LIGHTING_PANEL_HH
 
 #include <Panels/Panel.hh>
-#include <Renderer/Core/Rhi.hh>
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::editor {
 

@@ -38,6 +38,11 @@
 
 namespace mikoto::editor {
 
+    using namespace mikoto::gui;
+    using namespace mikoto::core;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
+
     template<typename FuncType>
     static auto DrawStatsSection( const eastl::string_view title, FuncType&& func ) -> void {
         ImGui::PushStyleColor( ImGuiCol_Header, ImVec4( 0.20f, 0.22f, 0.28f, 1.0f ) );

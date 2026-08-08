@@ -15,9 +15,32 @@
 #ifndef MIKOTO_ACCELERATION_STRUCTURE_HH
 #define MIKOTO_ACCELERATION_STRUCTURE_HH
 
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Memory/BufferSpan.hh>
+#include <Core/ResourcePool.hh>
+
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Utility.hh>
+#include <Renderer/Rhi/DeviceObject.hh>
 
 namespace mikoto::renderer::rhi {
-    // TLAs/BLAs
+    struct AccelStructureCreateDescription {
+
+    };
+
+    class AccelStructure : public DeviceObject {
+    public:
+
+        using DeviceObject::Initialize;
+
+    };
+
+    using AccelStructureHandle = core::Ref<AccelStructure>;
 }
 
 #endif//MIKOTOROOT_ACCELERATIONSTRUCTURE_HH

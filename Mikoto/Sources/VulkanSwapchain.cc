@@ -24,11 +24,14 @@
 
 #include <Logging/Assert.hh>
 
-#include <Renderer/Vulkan/VulkanDevice.hh>
-#include <Renderer/Vulkan/VulkanHelpers.hh>
-#include <Renderer/Vulkan/VulkanSwapchain.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
+#include <Renderer/Rhi/Vulkan/VulkanSwapchain.hh>
 
 namespace mikoto::renderer::vulkan {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     SwapChain::SwapChain( const SwapChainCreateInfo &createInfo )
         : mWidth{ createInfo.mWidth },
@@ -61,7 +64,7 @@ namespace mikoto::renderer::vulkan {
         return mFormat;
     }
 
-    auto SwapChain::Present( u32 imageIndex, const BinarySemaphore &signalSemaphore ) const -> VkResult {
+    auto SwapChain::Present( u32 imageIndex, const BinarySemaphore &signalSemaphore ) -> VkResult {
         const eastl::array swapChains{ mSwapChain };
 
         VkSemaphore semaphore{ signalSemaphore.GetNativeHandle( ObjectType::Vk_Semaphore ) };
@@ -78,15 +81,16 @@ namespace mikoto::renderer::vulkan {
         presentInfo.waitSemaphoreCount = waitSemaphores.size();
         presentInfo.pWaitSemaphores = waitSemaphores.data();
 
-        Queue* presentQueue{ as<Device*>(mDevice)->GetQueue( QueueType::ePresent ) };
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        Queue* presentQueue{ checked_cast<Queue*>( device->GetQueue( QueueType::ePresent ) ) };
         MKT_ASSERT( presentQueue, "No valid presentation queue" );
 
         return presentQueue->Present( presentInfo );
     }
 
-    auto SwapChain::GetNextImage( u32 &imageIndex, const BinarySemaphore &waitSemaphore ) const -> VkResult {
+    auto SwapChain::GetNextImage( u32 &imageIndex, const BinarySemaphore &waitSemaphore ) -> VkResult {
         VkSemaphore semaphore{ waitSemaphore.GetNativeHandle( ObjectType::Vk_Semaphore ) };
-        return vkAcquireNextImageKHR( as<Device*>(mDevice)->GetDevice(), mSwapChain, ( eastl::numeric_limits<u64>::max )(),
+        return vkAcquireNextImageKHR( checked_cast<Device*>(mDevice)->GetDevice(), mSwapChain, ( eastl::numeric_limits<u64>::max )(),
            semaphore, VK_NULL_HANDLE, MKT_ADDRESSOF( imageIndex ) );;
     }
 
@@ -95,7 +99,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto SwapChain::OnResize( u32 width, u32 height ) -> void {
-        auto device{ as<Device*>(mDevice) };
+        Device* device{ checked_cast<Device*>(mDevice) };
         device->WaitIdle();
 
         mWidth = width;
@@ -114,7 +118,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto SwapChain::Release() -> void {
-        Device* device{ as<Device*>(mDevice) };
+        Device* device{ checked_cast<Device*>(mDevice) };
 
         mImages.clear();
 
@@ -221,7 +225,7 @@ namespace mikoto::renderer::vulkan {
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         createInfo.preTransform = mPhysicalDevice->mCapabilities.currentTransform;
 
-        MKT_VK_CHECK( vkCreateSwapchainKHR( as<Device*>(mDevice)->GetDevice(), MKT_ADDRESSOF( createInfo ), nullptr, MKT_ADDRESSOF( mSwapChain ) ) );
+        MKT_VK_CHECK( vkCreateSwapchainKHR( checked_cast<Device*>(mDevice)->GetDevice(), MKT_ADDRESSOF( createInfo ), nullptr, MKT_ADDRESSOF( mSwapChain ) ) );
 
         AcquireSwapChainImages();
 
@@ -229,7 +233,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto SwapChain::AcquireSwapChainImages() -> void {
-        Device* device{ as<Device*>(mDevice) };
+        Device* device{ checked_cast<Device*>(mDevice) };
 
         u32 imageCount{};
 

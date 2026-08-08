@@ -12,9 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 #include <Renderer/Text/Font.hh>
 
 namespace mikoto::renderer {
+
+    using namespace mikoto::core;
+    using namespace mikoto::filesystem;
+    using namespace mikoto::renderer::rhi;
 
     Font::Font( TextureHandle fontAtlas, f32 pixelSize, Path path )
         : mPath{ path },

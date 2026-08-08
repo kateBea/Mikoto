@@ -19,9 +19,9 @@
 
 #include <Memory/Allocator.hh>
 
-#include <Renderer/D3D11/D3D11Device.hh>
-#include <Renderer/D3D11/D3D11Texture.hh>
-#include <Renderer/D3D11/Direct3D11Helpers.hh>
+#include <Renderer/Rhi/D3D11/D3D11Device.hh>
+#include <Renderer/Rhi/D3D11/D3D11Texture.hh>
+#include <Renderer/Rhi/D3D11/Direct3D11Helpers.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 

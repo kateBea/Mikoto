@@ -26,9 +26,15 @@
 
 #include <ImGui/ImGuiService.hh>
 
-#include <Renderer/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Texture.hh>
+
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
 
 namespace mikoto::gui {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     // Since Mikoto defaults to 1.3
     // ImGuiVulkanBackend wil be using Dynamic Rendering by default

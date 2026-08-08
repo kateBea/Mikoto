@@ -18,11 +18,13 @@
 #include <EASTL/fixed_hash_map.h>
 #include <EASTL/unique_ptr.h>
 
-#include <Memory/BufferSpan.hh>
 #include <Core/Core.hh>
-#include <Core/ReferenceCounted.hh>
 #include <Core/String.hh>
 #include <Core/Types.hh>
+#include <Core/ReferenceCounted.hh>
+
+#include <Memory/BufferSpan.hh>
+
 #include <Filesystem/File.hh>
 #include <Filesystem/Path.hh>
 

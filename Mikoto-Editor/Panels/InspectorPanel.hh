@@ -35,7 +35,7 @@ namespace mikoto::editor {
         ~InspectorPanel() override = default;
 
     private:
-        auto DrawComponents( Entity* entity ) const -> void;
+        auto DrawComponents( scene::Entity* entity ) const -> void;
 
     private:
         EditorState* mState{};

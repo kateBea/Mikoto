@@ -19,9 +19,9 @@
 
 #include <Memory/Allocator.hh>
 
-#include <Renderer/D3D11/D3D11Buffer.hh>
-#include <Renderer/D3D11/D3D11Device.hh>
-#include <Renderer/D3D11/Direct3D11Helpers.hh>
+#include <Renderer/Rhi/D3D11/D3D11Buffer.hh>
+#include <Renderer/Rhi/D3D11/D3D11Device.hh>
+#include <Renderer/Rhi/D3D11/Direct3D11Helpers.hh>
 
 namespace mikoto::renderer::d3d11 {
 
@@ -99,12 +99,12 @@ namespace mikoto::renderer::d3d11 {
         D3D11_SUBRESOURCE_DATA initData{};
         D3D11_SUBRESOURCE_DATA* pInitData{ nullptr };
 
-        if (!mSpan.IsEmpty()) {
-            initData.pSysMem = mSpan->GetData();
+        if (!mUploadContents.IsEmpty()) {
+            initData.pSysMem = mUploadContents->GetData();
             pInitData = &initData;
         }
 
-        HRESULT result{ as<Device*>(mDevice)->GetDevice()->CreateBuffer(&desc, pInitData, &mBuffer) };
+        HRESULT result{ checked_cast<Device*>(mDevice)->GetDevice()->CreateBuffer(&desc, pInitData, &mBuffer) };
         if (SUCCEEDED( result )) {
             mIsAllocated = true;
         } else {
@@ -112,7 +112,7 @@ namespace mikoto::renderer::d3d11 {
         }
 
         // Release initial data
-        mSpan.Reset();
+        mUploadContents.Reset();
     }
 
     auto Buffer::Release() -> void {

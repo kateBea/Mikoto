@@ -22,20 +22,22 @@
 
 #include <Math/Math.hh>
 
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 #include <Renderer/Core/RenderSystem.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
 #include <Platform/PlatformWin32.hh>
 
-#include <Renderer/D3D12/D3D12Device.hh>
-#include <Renderer/D3D12/D3D12Context.hh>
-#include <Renderer/D3D12/D3D12Shader.hh>
-#include <Renderer/D3D12/D3D12Buffer.hh>
-#include <Renderer/D3D12/D3D12Texture.hh>
-#include <Renderer/D3D12/D3D12Pipeline.hh>
-#include <Renderer/D3D12/Direct3D12Helpers.hh>
-
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
+#include <Renderer/Rhi/D3D12/D3D12Context.hh>
+#include <Renderer/Rhi/D3D12/D3D12Shader.hh>
+#include <Renderer/Rhi/D3D12/D3D12Buffer.hh>
+#include <Renderer/Rhi/D3D12/D3D12Texture.hh>
+#include <Renderer/Rhi/D3D12/D3D12Pipeline.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
 
 // D3D12 extension library.
 #include <directx/d3d12.h>
@@ -46,27 +48,37 @@
 
 namespace mikoto::renderer::d3d12 {
 
+    using namespace mikoto::core;
+    using namespace mikoto::memory;
+    using namespace mikoto::renderer::rhi;
+
     Fence::Fence( u64 initialValue ) {
         mFenceValue = initialValue;
     }
 
     auto Fence::GetCompletionValue() const -> u64 {
-        return mFenceValue; // TODO
+        return mFence->GetCompletedValue();
     }
 
     auto Fence::SetDebugName( eastl::string_view name ) -> void {
+        mFence->SetName( string::ToWide( name ).c_str() );
+    }
 
+    auto Fence::Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool {
+        if (!IsCompleted( fenceValue )) {
+            HRESULT rs{ mFence->SetEventOnCompletion(mFenceValue, mFenceEvent) };
+            if (FAILED(rs)) {
+                return false;
+            }
+
+            ::WaitForSingleObject(mFenceEvent, as<DWORD>(timeoutMs));
+        }
+
+        return true;
     }
 
     auto Fence::IsCompleted( u64 fenceValue ) const -> bool {
         return mFence->GetCompletedValue() >= fenceValue;
-    }
-
-    auto Fence::WaitForFenceValue( u64 fenceValue ) -> void {
-        if (!IsCompleted( fenceValue )) {
-            ThrowIfFailed(mFence->SetEventOnCompletion(mFenceValue, mFenceEvent));
-            ::WaitForSingleObject(mFenceEvent, INFINITE);
-        }
     }
 
     auto Fence::GetNativeHandle( ObjectType type ) -> Object {
@@ -729,9 +741,10 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
-    auto Queue::Wait( IFence *fence, u64 value ) -> void {
+    auto Queue::Wait( IFence* fence, u64 value ) -> void {
         Fence* pFence{ checked_cast<Fence*>( fence ) };
-        pFence->WaitForFenceValue( value );
+        ID3D12Fence* d3d12Fence{ *pFence };
+        mQueue->Wait( d3d12Fence, value );
     }
 
     auto Queue::Signal( IFence *fence, u64 value ) -> void {
@@ -741,46 +754,25 @@ namespace mikoto::renderer::d3d12 {
         ThrowIfFailed(mQueue->Signal(d3d12Fence, value));
     }
 
-    auto Queue::ExecuteCommandLists( eastl::span<CommandListHandle> commands ) -> void {
+    auto Queue::ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void {
+        eastl::fixed_vector<ID3D12CommandList*, 25> d3d12Commands{};
+        d3d12Commands.reserve( submitInfo.mCommands.size() );
 
-    }
+        for (auto& cmd : submitInfo.mCommands) {
+            ID3D12GraphicsCommandList7* pCommand{ *checked_cast<const CommandList*>( cmd.GetRaw() ) };
+            d3d12Commands.emplace_back( pCommand );
+        }
 
-    auto Queue::Flush() -> void {
-
-    }
-
-    auto Queue::ExecuteCommandList( CommandListHandle cmd ) -> void {
-
-    }
-
-    auto Queue::SubmitCommandList( CommandListHandle cmd ) -> u64 {
-        return 0;
+        mQueue->ExecuteCommandLists( as<UINT>(d3d12Commands.size()), d3d12Commands.data() );
     }
 
     auto Queue::AllocateCmdList() -> CommandListHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
-        auto description{ CommandListParameters{}
-            .SetQueueType( mType )
-            .SetMaxThreadConcurrency( 0 ) };
-
-        CommandListHandle handle{ Ref<CommandList>::Spawn( description ) };
+        CommandListHandle handle{ Ref<CommandList>::Spawn( this ) };
         handle->Initialize( mDevice );
 
         return handle;
-    }
-
-    auto Queue::AllocateCmdList( const CommandListParameters &params ) -> CommandListHandle {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        CommandListHandle handle{ Ref<CommandList>::Spawn( params ) };
-        handle->Initialize( mDevice );
-
-        return handle;
-    }
-
-    auto Queue::WaitIdle() const -> void {
-
     }
 
     Queue::operator ID3D12CommandQueue*() const {
@@ -814,8 +806,8 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    CommandList::CommandList( const CommandListParameters &desc )
-        : ICommandList{ desc.mQueueType }
+    CommandList::CommandList( IQueue* queue )
+        : ICommandList{ queue->GetType() }, mQueue{ queue }
     {
     }
 
@@ -825,14 +817,6 @@ namespace mikoto::renderer::d3d12 {
 
     auto CommandList::End() -> void {
         //ThrowIfFailed(mCommandList->Close());
-    }
-
-    auto CommandList::BeginParallel() -> void {
-
-    }
-
-    auto CommandList::EndParallel() -> void {
-
     }
 
     auto CommandList::SetDebugName( eastl::string_view name ) -> void {
@@ -855,8 +839,8 @@ namespace mikoto::renderer::d3d12 {
         barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
 
         barrier.pResource    = *buffer;
-        barrier.Offset       = desc.mOffset;
-        barrier.Size         = desc.mSize;
+        barrier.Offset       = desc.mRange.mByteOffset;
+        barrier.Size         = desc.mRange.mByteSize;
 
         mBufferBarriers.emplace_back(barrier);
     }
@@ -900,8 +884,8 @@ namespace mikoto::renderer::d3d12 {
         barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
 
         barrier.pResource    = *buffer;
-        barrier.Offset       = desc.mOffset;
-        barrier.Size         = desc.mSize;
+        barrier.Offset       = desc.mRange.mByteOffset;
+        barrier.Size         = desc.mRange.mByteSize;
 
         D3D12_BARRIER_GROUP group{};
         group.Type = D3D12_BARRIER_TYPE_BUFFER;
@@ -1042,10 +1026,6 @@ namespace mikoto::renderer::d3d12 {
         mEnableAutomaticBarriers = enable;
     }
 
-    auto CommandList::SetClearColor( FramebufferHandle frameBuffer, Color color ) -> void {
-
-    }
-
     auto CommandList::SetClearColor( TextureHandle renderTarget, Color color ) -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         Texture* texture{ checked_cast<Texture*>( renderTarget.GetRaw() ) };
@@ -1067,10 +1047,6 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::Copy( ITexture *src, const TextureSlice &srcSlice, ITexture *dest, const TextureSlice &destSlice ) -> void {
-
-    }
-
-    auto CommandList::WriteVolatile( IBuffer *target, size_t dstOffset, const void *data, size_t byteSize ) -> void {
 
     }
 
@@ -1349,7 +1325,7 @@ namespace mikoto::renderer::d3d12 {
         mCommandList->Dispatch( groupsX, groupsY, groupsZ );
     }
 
-    auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, size_t byteSize, ShaderStage visibility ) -> void {
+    auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, core::size_t byteSize, ShaderFlags visibility ) -> void {
         PipelineLayout* d3d12PipelineLayout{ checked_cast<PipelineLayout*>( pipelineLayout ) };
         u32 rootParameterIndex{ d3d12PipelineLayout->GetRootConstantIndex() };
         u32 numValues32Bit{ as<u32>( ( byteSize + 3 ) / 4 ) };
@@ -1379,7 +1355,7 @@ namespace mikoto::renderer::d3d12 {
         return ICommandList::GetNativeHandle( type );
     }
 
-    CommandList::operator ID3D12GraphicsCommandList*() const {
+    CommandList::operator ID3D12GraphicsCommandList7*() const {
         return mCommandList.Get();
     }
 
@@ -1556,7 +1532,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::InitMemoryAllocator() -> void {
-        mGpuAllocator = IGpuAllocator::Create( this );
+        mGpuAllocator = memory::IGpuAllocator::Create( this );
         if ( !mGpuAllocator ) {
             MKT_THROW_RUNTIME_ERROR( "D3D12Device - Could not create GPU Allocator." );
         }
@@ -1599,10 +1575,6 @@ namespace mikoto::renderer::d3d12 {
         return TextureHandle::CreateEmpty();
     }
 
-    auto Device::CreateFrameBuffer( const FramebufferDescription &description ) -> FramebufferHandle {
-        return FramebufferHandle::CreateEmpty();
-    }
-
     auto Device::CreateSampler( const SamplerCreateDescription &description ) -> SamplerHandle {
         return SamplerHandle::CreateEmpty();
     }
@@ -1612,7 +1584,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateCommandList( QueueType queueType ) -> CommandListHandle {
-        Queue* queue{ GetQueue( queueType ) };
+        Queue* queue{ checked_cast<Queue*>( GetQueue( queueType ) ) };
 
         auto handle{ CommandListHandle::CreateEmpty() };
         if (queue) {
@@ -1620,10 +1592,6 @@ namespace mikoto::renderer::d3d12 {
         }
 
         return handle;
-    }
-
-    auto Device::CreateCommandList( const CommandListParameters &parameters ) -> CommandListHandle {
-        return CommandListHandle::CreateEmpty();
     }
 
     auto Device::CreateShader( const ShaderModuleCreateDescription &desc ) -> ShaderModuleHandle {
@@ -1637,10 +1605,6 @@ namespace mikoto::renderer::d3d12 {
         result->Initialize( this );
 
         return result;
-    }
-
-    auto Device::CreateShader( ShaderStage type, const void *code, size_t codeSize ) -> ShaderModuleHandle {
-        return ShaderModuleHandle::CreateEmpty();
     }
 
     auto Device::CreateInputLayout( const InputLayoutCreateDescription& desc ) -> InputLayoutHandle {
@@ -1715,7 +1679,7 @@ namespace mikoto::renderer::d3d12 {
         }
     }
 
-    auto Device::Map( IBuffer *buffer ) -> const void * {
+    auto Device::Map( IBuffer *buffer ) -> void * {
         Buffer* b{ checked_cast<Buffer*>( buffer ) };
         if (!b->IsMapped()) {
             b->PersistentMap();
@@ -1749,29 +1713,6 @@ namespace mikoto::renderer::d3d12 {
         return false;
     }
 
-    auto Device::Wait( QueueType type, FenceHandle handle, u64 fenceValue ) -> void {
-
-    }
-
-    auto Device::Signal( QueueType type, FenceHandle handle, u64 fenceValue ) -> void {
-        Fence* fence{ checked_cast<Fence*>( handle.GetRaw() ) };
-        mQueues[type]->Signal( fence, fenceValue );
-    }
-
-    auto Device::ExecutePendingCommands() -> void {
-
-    }
-
-    auto Device::ExecuteCommands( CommandListHandle cmdList ) -> void {
-        eastl::array commandLists{ cmdList };
-
-        ExecuteCommands( commandLists );
-    }
-
-    auto Device::ExecuteCommands( eastl::span<CommandListHandle> cmdList ) -> void {
-
-    }
-
     auto Device::WaitIdle() -> void {
 
     }
@@ -1788,15 +1729,11 @@ namespace mikoto::renderer::d3d12 {
         return MKT_ADDRESSOF( mResourceHeaps );
     }
 
-    auto Device::GetQueue( QueueType type ) -> Queue * {
+    auto Device::GetQueue( QueueType type ) -> IQueue * {
         MKT_ASSERT( mQueues.contains( type ), "Device does not contain requested type of queue" );
         return mQueues.at(type).GetRaw();
     }
 
-    auto Device::GetQueue( QueueType type ) const -> const Queue* {
-        MKT_ASSERT( mQueues.contains( type ), "Device does not contain requested type of queue" );
-        return mQueues.at(type).GetRaw();
-    }
 
     auto Device::GetAllocator() -> GpuMemoryAllocator * {
         return checked_cast<GpuMemoryAllocator*>( mGpuAllocator.get() );
@@ -1933,11 +1870,6 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::RunGarbageCollection() -> void {
         mUploadManager->ReclaimMemory();
-    }
-
-    auto Device::SubmitCommands( CommandListHandle cmd ) -> u64 {
-        MKT_ASSERT( mQueues.contains( cmd->GetQueueType() ), "No queue" );
-        return mQueues[cmd->GetQueueType()]->SubmitCommandList( cmd );
     }
 }
 

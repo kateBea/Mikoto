@@ -21,22 +21,25 @@
 #include <Material/ShaderLibrary.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/Renderer.hh>
-#include <Renderer/Core/Rhi.hh>
+
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+
 #include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
     struct ThumbnailRendererCreateInfo {
-        IGpuDevice* mDevice{};
+        rhi::IGpuDevice* mDevice{};
         eastl::string_view mName{};
         eastl::string_view mShaderBasePath{};
 
-        RenderResolution mResolution{ RenderResolution::e1080P };
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
 
-        auto SetName(eastl::string_view name) -> ThumbnailRendererCreateInfo&;
-        auto SetDevice(IGpuDevice* device) -> ThumbnailRendererCreateInfo&;
-        auto SetShaderBasePath(eastl::string_view path) -> ThumbnailRendererCreateInfo&;
-        auto SetRenderResolution(RenderResolution resolution) -> ThumbnailRendererCreateInfo&;
+        auto SetName( eastl::string_view name ) -> ThumbnailRendererCreateInfo&;
+        auto SetDevice( rhi::IGpuDevice* device ) -> ThumbnailRendererCreateInfo&;
+        auto SetShaderBasePath( eastl::string_view path ) -> ThumbnailRendererCreateInfo&;
+        auto SetRenderResolution( rhi::RenderResolution resolution ) -> ThumbnailRendererCreateInfo&;
     };
 
     // Not sure how I will tackle this, my first idea is to submit the scenes with a single model
@@ -50,7 +53,7 @@ namespace mikoto::renderer {
         auto Shutdown() -> void override;
         auto Render( const scene::Scene* scene ) -> void override;
 
-        MKT_NODISCARD static auto Create( const ThumbnailRendererCreateInfo& spec) -> eastl::unique_ptr<ThumbnailRenderer>;
+        MKT_NODISCARD static auto Create( const ThumbnailRendererCreateInfo& spec ) -> eastl::unique_ptr<ThumbnailRenderer>;
 
     private:
         eastl::unique_ptr<FrameGraph> mFrameGraph{};

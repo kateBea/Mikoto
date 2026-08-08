@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_ACCELERATION_STRUCTURE_HH
-#define MIKOTO_ACCELERATION_STRUCTURE_HH
+#ifndef MIKOTO_RHI_ACCELERATION_STRUCTURE_HH
+#define MIKOTO_RHI_ACCELERATION_STRUCTURE_HH
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
@@ -44,4 +44,4 @@ namespace mikoto::renderer::rhi {
     using AccelStructureHandle = core::Ref<AccelStructure>;
 }
 
-#endif//MIKOTOROOT_ACCELERATIONSTRUCTURE_HH
+#endif//MIKOTO_RHI_ACCELERATION_STRUCTURE_HH

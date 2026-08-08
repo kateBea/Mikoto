@@ -29,6 +29,7 @@
 #include <Renderer/Rhi/DeviceObject.hh>
 
 namespace mikoto::renderer::rhi {
+
     struct AccelStructureCreateDescription {
 
     };

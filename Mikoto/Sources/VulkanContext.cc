@@ -223,7 +223,7 @@ namespace mikoto::renderer::vulkan {
                 VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
 
         eastl::array commandList{ mCommandList };
-        frame.mFenceValue = graphicsQueue->ExecuteCommandsWithSemaphores( commandList );
+        frame.mSubmissionID = graphicsQueue->ExecuteCommandsWithSemaphores( commandList );
     }
 
     auto Context::PrepareFrame() -> void {
@@ -234,7 +234,7 @@ namespace mikoto::renderer::vulkan {
 
         Queue* graphicsQueue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
 
-        graphicsQueue->WaitCompletionValue( frame.mFenceValue );
+        graphicsQueue->WaitCompletionValue( frame.mSubmissionID );
         mDevice->RunGarbageCollection();
 
         const auto ret{ mSwapchain->GetNextImage( mCurrentImageIndex, *frame.mImageAvailableSemaphore.GetRaw() ) };
@@ -392,8 +392,6 @@ namespace mikoto::renderer::vulkan {
         mFrames.resize(mMaxFramesInFlight);
 
         for (u32 frameIndex{ 0 }; auto& frame : mFrames) {
-            frame.mFence = mDevice->CreateFence( frame.mFenceValue );
-
             frame.mImageAvailableSemaphore = device->CreateBinarySemaphore();
             frame.mImageAvailableSemaphore->SetDebugName( string::Format( "SwapChain Img Avail. BinSemaphore frame {}", frameIndex ) );
 

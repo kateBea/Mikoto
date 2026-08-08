@@ -146,8 +146,11 @@ namespace mikoto::renderer::rhi {
     struct BindingSetDescription {
         eastl::vector<BindingSetItem> mBindings{};
 
-        // Backends offer support for shader reflection
-        // which simplifies binding layout creation
+        // TODO: Move this to a reflection module
+        // Vulkan for instance via the spirv_reflect library allows us to
+        // introspect SPIRV binaries to know descriptor layouts, amongst other
+        // information, this could be helpful to generate the appropriate
+        // binding layouts from the RHI for our pipeline
         bool mUseReflection{};
         eastl::fixed_vector<ShaderModuleHandle, kMaxShaders> mShaders{};
 

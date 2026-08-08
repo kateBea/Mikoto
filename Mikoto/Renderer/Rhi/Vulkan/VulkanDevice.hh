@@ -18,6 +18,7 @@
 #include <mutex>
 
 #include <EASTL/deque.h>
+#include <EASTL/atomic.h>
 #include <EASTL/functional.h>
 #include <EASTL/memory.h>
 #include <EASTL/string.h>
@@ -375,17 +376,8 @@ namespace mikoto::renderer::vulkan {
 
         static constexpr core::u32 kMaxSubmits{ 115 };
 
-        core::u64 mTimelineValue{};
+        eastl::atomic<core::u64> mTimelineValue{};
         rhi::FenceHandle mTimelineSemaphore{};
-
-        struct DeleteItem {
-            rhi::FenceHandle mFence{};
-            core::u64 mSubmissionID{};
-            VkCommandPool mPool{};
-            VkCommandBuffer mBuffer{};
-        };
-        std::mutex mDeleteCmdsMutex{};
-        eastl::fixed_vector<DeleteItem, 100> mDeleteCmds{};
 
         std::mutex mPoolsMutex{};
         ankerl::unordered_dense::map<std::thread::id, CommandPoolHandle> mPools{};

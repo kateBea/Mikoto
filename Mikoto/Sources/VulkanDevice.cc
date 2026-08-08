@@ -1788,7 +1788,7 @@ namespace mikoto::renderer::vulkan {
     auto Queue::RunGarbageCollection() -> void {
         // Delete temporary command buffers if not in use
         for ( auto it{ mAliveCommandList.begin() }; it != mAliveCommandList.end(); ) {
-            const CommandList* cmdList{ checked_cast<const CommandList*>( it->first ) };
+            const CommandList* cmdList{ checked_cast<const CommandList*>( it->second.GetRaw() ) };
             if ( !cmdList->IsInUse() ) {
                 // Deleting this entry will remove the reference we are holding.
                 // Queue should be the last one to keep it alive.
@@ -1852,7 +1852,7 @@ namespace mikoto::renderer::vulkan {
         };
 
         {
-            mSubmissionLabel = string::Format( "Queue {} SubmissionID: {}", GetQueueName(mType).data(), mTimelineValue ).c_str();
+            mSubmissionLabel = string::Format( "Queue {} SubmissionID: {}", GetQueueName(mType).data(), mTimelineValue.load() ).c_str();
             VkDebugUtilsLabelEXT labelInfo = {};
             labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
             labelInfo.pLabelName = mSubmissionLabel.c_str();

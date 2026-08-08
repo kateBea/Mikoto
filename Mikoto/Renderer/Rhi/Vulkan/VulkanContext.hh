@@ -87,8 +87,7 @@ namespace mikoto::renderer::vulkan {
         eastl::unique_ptr<Instance> mInstance{};
 
         struct FrameContext {
-            u64 mFenceValue{};
-            FenceHandle mFence{};
+            u64 mSubmissionID{};
 
             BinarySemaphoreHandle mImageAvailableSemaphore{};
             BinarySemaphoreHandle mRenderFinishedSemaphore{};

@@ -618,16 +618,64 @@ namespace mikoto::editor {
             }
 
             if (ImGui::BeginMenu( MKT_LOC( "menu_game_object" ).c_str() )) {
-                if (ImGui::MenuItem( "Create Empty", "Ctrl+Shift+N" )) { /* Create empty GameObject */ }
-                if (ImGui::MenuItem( "Create Empty Child" )) { /* Create empty child */ }
+                if (ImGui::MenuItem( "Create Empty", "Ctrl+Shift+N" )) {
+                    EntityCreateInfo createInfo{
+                        .mRoot = nullptr,
+                        .mName = "Empty Object" };
+                    mEditorState->mActiveScene->PushEntity( createInfo );
+                }
 
                 ImGui::Separator();
 
                 if (ImGui::BeginMenu( "3D Object" )) {
-                    if (ImGui::MenuItem( "Cube" )) { /* Spawn Cube */ }
-                    if (ImGui::MenuItem( "Sphere" )) { /* Spawn Sphere */ }
-                    if (ImGui::MenuItem( "Capsule" )) { /* Spawn Capsule */ }
-                    if (ImGui::MenuItem( "Plane" )) { /* Spawn Plane */ }
+                    if (ImGui::MenuItem( "Cube" )) {
+                        const EntityCreateInfo entityCreateInfo{
+                            .mRoot = nullptr,
+                            .mName{ "Cube" },
+                            .mModel = mEditorState->GetPrefab( PrefabModelType::eCube ) };
+                        mEditorState->mActiveScene->PushEntity( entityCreateInfo );
+                    }
+
+                    if (ImGui::MenuItem( "Sphere" )) {
+                        const EntityCreateInfo entityCreateInfo{
+                            .mRoot = nullptr,
+                            .mName{ "Sphere" },
+                            .mModel = mEditorState->GetPrefab( PrefabModelType::eSphere ) };
+                        mEditorState->mActiveScene->PushEntity( entityCreateInfo );
+                    }
+
+                    if (ImGui::MenuItem( "Capsule" )) {
+                        const EntityCreateInfo entityCreateInfo{
+                            .mRoot = nullptr,
+                            .mName{ "Capsule" },
+                            .mModel = mEditorState->GetPrefab( PrefabModelType::eSphere ) };
+                        mEditorState->mActiveScene->PushEntity( entityCreateInfo );
+                    }
+
+                    if (ImGui::MenuItem( "Plane" )) {
+                        const EntityCreateInfo entityCreateInfo{
+                            .mRoot = nullptr,
+                            .mName{ "Plane" },
+                            .mModel = mEditorState->GetPrefab( PrefabModelType::eCube ) };
+                        mEditorState->mActiveScene->PushEntity( entityCreateInfo );
+                    }
+
+                    if (ImGui::MenuItem( "Cylinder" )) {
+                        const EntityCreateInfo entityCreateInfo{
+                            .mRoot = nullptr,
+                            .mName{ "Cylinder" },
+                            .mModel = mEditorState->GetPrefab( PrefabModelType::eCylinder ) };
+                        mEditorState->mActiveScene->PushEntity( entityCreateInfo );
+                    }
+
+                    if (ImGui::MenuItem( "Cone" )) {
+                        const EntityCreateInfo entityCreateInfo{
+                            .mRoot = nullptr,
+                            .mName{ "Cone" },
+                            .mModel = mEditorState->GetPrefab( PrefabModelType::eCone ) };
+                        mEditorState->mActiveScene->PushEntity( entityCreateInfo );
+                    }
+
                     ImGui::EndMenu();
                 }
 

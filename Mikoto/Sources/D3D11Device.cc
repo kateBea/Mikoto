@@ -260,6 +260,8 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Queue::ExecuteCommandLists( const SubmitInfo& submitInfo  ) -> void {
+        std::lock_guard lock{ mSubmitMutex };
+
         for (auto& cmdHandle : submitInfo.mCommands ) {
             ID3D11CommandList* native{ cmdHandle->GetNativeHandle(ObjectType::D3D11_CommandList) };
             MKT_ASSERT(native, "Command list is null");

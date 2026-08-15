@@ -132,6 +132,8 @@ namespace mikoto::renderer::d3d11 {
         auto Initialize() -> void override;
 
     private:
+        std::mutex mSubmitMutex{};
+
         ID3D11DeviceContext* mDeviceContext{};
         ID3D11DeviceContext3* mDeviceContext3{};
     };

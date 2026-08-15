@@ -85,9 +85,19 @@ namespace mikoto::renderer::d3d11 {
         }
 
         // Init the device when the context is ready
-        mDevice = IGpuDevice::Create({ .mApi = GraphicsAPI::eD3D11 });
+        mDevice = IGpuDevice::Create({
+            .mApi = GraphicsAPI::eD3D11,
+            .mFeaturesSupport{
+                // If  the context was created with a window
+                // we request for a device with support for presentation
+                .mEnablePresentation = mWindow != nullptr,
+                .mDeviceType = GpuDeviceType::eDiscrete,
+            },
+        });
+
         if (!mDevice) {
             MKT_CORE_LOGGER_ERROR( "D3D11Context::Init - Could not initialize DIRECTX_11 GPU Device." );
+            return false;
         }
         mDevice->Init();
 
@@ -113,6 +123,17 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Context::SubmitFrame() -> void {
+        // Submit batched commands
+        SubmitInfoMap swapMap{};
+        {
+            std::lock_guard lock{ mBatchedSubmissionProcessMutex };
+            swapMap = eastl::move(mBatchedSubmissions);
+        }
+
+        for (const auto& [queue, submitInfo] : swapMap) {
+            queue->ExecuteCommandLists( submitInfo );
+        }
+
         if (mWindow->GetWidth() != mSwapChain->GetWidth() || mWindow->GetHeight() != mSwapChain->GetHeight()) {
             mSwapChain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
         }
@@ -136,7 +157,7 @@ namespace mikoto::renderer::d3d11 {
     auto Context::Update() -> void {
 #if !defined(NDEBUG)
         DumpDXGIMessages();
-        as<Device*>( GetGpuDevice() )->DumpErrorMessages();
+        checked_cast<Device*>( GetGpuDevice() )->DumpErrorMessages();
 #endif
     }
 
@@ -154,7 +175,17 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Context::BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void {
+        std::lock_guard lock{ mBatchedSubmissionEmplaceMutex };
 
+        Device* device{ checked_cast<Device*>( mDevice.get() ) };
+        Queue* pQueue{ checked_cast<Queue*>( device->GetQueue( queue ) ) };
+
+        auto& submissionBatchMap{ mBatchedSubmissions[pQueue] };
+
+        // Batch all commands and fences into same submit info
+        // they go to the same submission batch anyway there is no need to split them.
+        submissionBatchMap.AddCommandLists( submitInfo.mCommands );
+        submissionBatchMap.AddSignals( submitInfo.mSignals );
     }
 
     auto Context::GetSwapChain() const -> SwapChainHandle {

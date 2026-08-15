@@ -75,6 +75,12 @@ namespace mikoto::renderer::d3d11 {
     private:
         rhi::TextureHandle mPresentTarget{};
 
+        using SubmitInfoMap = ankerl::unordered_dense::map<IQueue*, SubmitInfo>;
+
+        std::mutex mBatchedSubmissionProcessMutex{};
+        std::mutex mBatchedSubmissionEmplaceMutex{};
+        SubmitInfoMap mBatchedSubmissions{};
+
         SwapChainHandle mSwapChain{};
         Microsoft::WRL::ComPtr<IDXGIFactory2> mDxgiFactory{};
 

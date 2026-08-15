@@ -88,10 +88,10 @@ namespace mikoto::renderer::vulkan {
         return presentQueue->Present( presentInfo );
     }
 
-    auto SwapChain::GetNextImage( u32 &imageIndex, const BinarySemaphore &waitSemaphore ) -> VkResult {
+    auto SwapChain::GetNextImageIndex( u32 &imageIndex, const BinarySemaphore &waitSemaphore ) -> VkResult {
         VkSemaphore semaphore{ waitSemaphore.GetNativeHandle( ObjectType::Vk_Semaphore ) };
         return vkAcquireNextImageKHR( checked_cast<Device*>(mDevice)->GetDevice(), mSwapChain, ( eastl::numeric_limits<u64>::max )(),
-           semaphore, VK_NULL_HANDLE, MKT_ADDRESSOF( imageIndex ) );;
+           semaphore, VK_NULL_HANDLE, MKT_ADDRESSOF( imageIndex ) );
     }
 
     auto SwapChain::SetRefreshType( RefreshRate type ) -> void {

@@ -416,6 +416,9 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Texture::InitInitialData2D() -> void {
+        // Example with STB_IMAGE:
+        // https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
+
         CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
         cmd->Begin( {} );
 

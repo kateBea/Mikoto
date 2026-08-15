@@ -532,10 +532,10 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto CommandList::BindVertexBuffer( const VertexBufferBinding& binding ) -> void {
-        BindVertexBuffer( eastl::span<const VertexBufferBinding>{ &binding, 1 } );
+        BindVertexBuffers( eastl::span<const VertexBufferBinding>{ &binding, 1 } );
     }
 
-    auto CommandList::BindVertexBuffer( eastl::span<const VertexBufferBinding> bindings ) -> void {
+    auto CommandList::BindVertexBuffers( eastl::span<const VertexBufferBinding> bindings ) -> void {
         if (bindings.empty()) {
             return;
         }

@@ -152,7 +152,7 @@ namespace mikoto::editor {
         mSceneRenderer->SetExposure( 2.0f );
         mSceneRenderer->SetPresentType( PresentTarget::eTonemap_Output );
 
-        RenderScene( timeStep );
+        //RenderScene( timeStep );
 
         // [DEBUG]
         u32 entityID{};
@@ -280,6 +280,7 @@ namespace mikoto::editor {
             mEditorState->mPrefabPaths[type] = ModelHandle::CreateEmpty();
         }
 
+        // TODO: false sharing
         threading::TaskService::Get()->ParallelFor(modelPaths,
             [&](const PrefabModelType& type, const Path& path) -> void {
             mEditorState->mPrefabPaths[type] = AssetsService::Get()->LoadAsset<Model>( path );

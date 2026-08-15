@@ -451,7 +451,7 @@ namespace mikoto::renderer::d3d12 {
 
         auto BindIndexBuffer( IBuffer* buffer ) -> void override;
         auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void override;
-        auto BindVertexBuffer( eastl::span<const VertexBufferBinding> binding ) -> void override;
+        auto BindVertexBuffers( eastl::span<const VertexBufferBinding> binding ) -> void override;
 
         auto BindPipelineResources( const BindResourcesDescription& desc ) -> void override;
 
@@ -542,6 +542,8 @@ namespace mikoto::renderer::d3d12 {
 
         auto WaitIdle() -> void override;
 
+        MKT_NODISCARD auto GetQueue( QueueType type ) -> IQueue* override;
+
         // D3D12 Specifics
         auto DumpMessages() -> void;
 
@@ -556,8 +558,6 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetAdapter() -> IDXGIAdapter4*;
 
         MKT_NODISCARD auto GetHeapResources() const -> const DeviceResources*;
-
-        MKT_NODISCARD auto GetQueue( QueueType type ) -> IQueue*;
 
         MKT_NODISCARD auto GetAllocator() -> GpuMemoryAllocator*;
         MKT_NODISCARD auto GetUploadManager() -> GpuUploadManager*;

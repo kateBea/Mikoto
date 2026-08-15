@@ -764,6 +764,17 @@ namespace mikoto::renderer::d3d12 {
         }
 
         mQueue->ExecuteCommandLists( as<UINT>(d3d12Commands.size()), d3d12Commands.data() );
+
+        if (!submitInfo.mSinalFence.IsEmpty()) {
+            const Fence* pFence{ checked_cast<const Fence*>( submitInfo.mSinalFence.GetRaw() ) };
+
+            UINT64 value{ (UINT64)submitInfo.mSignalValue };
+            ID3D12Fence* d3d12Fence{ *pFence };
+            HANDLE d3d12FenceEvent{ *pFence };
+
+            ThrowIfFailed(mQueue->Signal(d3d12Fence, value));
+            ThrowIfFailed( d3d12Fence->SetEventOnCompletion(value, d3d12FenceEvent) );
+        }
     }
 
     auto Queue::AllocateCmdList() -> CommandListHandle {
@@ -812,11 +823,11 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::Begin( const CommandListBeginDescription &desc ) -> void {
-        //ClearState();
+        ClearState();
     }
 
     auto CommandList::End() -> void {
-        //ThrowIfFailed(mCommandList->Close());
+        ThrowIfFailed(mCommandList->Close());
     }
 
     auto CommandList::SetDebugName( eastl::string_view name ) -> void {
@@ -1220,10 +1231,10 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::BindVertexBuffer( const VertexBufferBinding &binding ) -> void {
-        BindVertexBuffer(eastl::array{ binding } );
+        BindVertexBuffers(eastl::array{ binding } );
     }
 
-    auto CommandList::BindVertexBuffer( eastl::span<const VertexBufferBinding> binding ) -> void {
+    auto CommandList::BindVertexBuffers( eastl::span<const VertexBufferBinding> binding ) -> void {
         eastl::fixed_vector<D3D12_VERTEX_BUFFER_VIEW, kMaxVertexBuffers> vertexBufferViews{};
 
         for (const auto& vertexBuffer : binding) {
@@ -1397,7 +1408,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::BindIndirectBuffer( IBuffer *buffer ) -> void {
-
+        
     }
 
     GpuUploadManager::GpuUploadManager( IGpuDevice *device )

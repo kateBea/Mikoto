@@ -209,21 +209,20 @@ namespace mikoto::renderer::vulkan {
 #endif
         }
 
-        Queue* graphicsQueue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
+        Queue* queue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
 
-        // External sync
-        device->PushWaitSemaphore(
-                QueueType::eGraphics,
+        queue->PushWaitSemaphore(
                 frame.mImageAvailableSemaphore.GetRaw(),
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT );
 
-        device->PushSignalSemaphore(
-                QueueType::eGraphics,
+        queue->PushSignalSemaphore(
                 frame.mRenderFinishedSemaphore.GetRaw(),
                 VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
 
+        frame.mFenceValue++;
+
         eastl::array commandList{ mCommandList };
-        frame.mSubmissionID = graphicsQueue->ExecuteCommandsWithSemaphores( commandList );
+        queue->ExecuteCommandsWithSemaphores( commandList, frame.mFence.GetRaw(), frame.mFenceValue );
     }
 
     auto Context::PrepareFrame() -> void {
@@ -234,10 +233,10 @@ namespace mikoto::renderer::vulkan {
 
         Queue* graphicsQueue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
 
-        graphicsQueue->WaitCompletionValue( frame.mSubmissionID );
+        graphicsQueue->Wait( frame.mFence.GetRaw(), frame.mFenceValue );
         mDevice->RunGarbageCollection();
 
-        const auto ret{ mSwapchain->GetNextImage( mCurrentImageIndex, *frame.mImageAvailableSemaphore.GetRaw() ) };
+        const auto ret{ mSwapchain->GetNextImageIndex( mCurrentImageIndex, *frame.mImageAvailableSemaphore.GetRaw() ) };
 
         if ( ret == VK_ERROR_OUT_OF_DATE_KHR ) {
             mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
@@ -392,6 +391,8 @@ namespace mikoto::renderer::vulkan {
         mFrames.resize(mMaxFramesInFlight);
 
         for (u32 frameIndex{ 0 }; auto& frame : mFrames) {
+            frame.mFence = mDevice->CreateFence( frame.mFenceValue );
+
             frame.mImageAvailableSemaphore = device->CreateBinarySemaphore();
             frame.mImageAvailableSemaphore->SetDebugName( string::Format( "SwapChain Img Avail. BinSemaphore frame {}", frameIndex ) );
 

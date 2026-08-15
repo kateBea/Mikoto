@@ -16,17 +16,7 @@
 
 struct VSInput {
     float3 position   : POSITION;
-    float3 normal     : NORMAL;
-    float4 color      : COLOR;
-
     float2 uv0        : TEXCOORD0;
-    float2 uv1        : TEXCOORD1;
-
-    float4 joints0    : BLENDINDICES0;
-    float4 weights0   : BLENDWEIGHT0;
-
-    float4 joints1    : BLENDINDICES1;
-    float4 weights1   : BLENDWEIGHT1;
 };
 
 struct VSOutput {

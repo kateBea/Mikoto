@@ -292,7 +292,7 @@ namespace mikoto::renderer::rhi {
         virtual auto BindIndexBuffer( IBuffer* buffer ) -> void = 0;
         virtual auto BindIndirectBuffer( IBuffer* buffer ) -> void = 0;
         virtual auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void = 0;
-        virtual auto BindVertexBuffer( eastl::span<const VertexBufferBinding> binding ) -> void = 0;
+        virtual auto BindVertexBuffers( eastl::span<const VertexBufferBinding> binding ) -> void = 0;
 
         virtual auto BindPipelineResources( const BindResourcesDescription& desc ) -> void = 0;
 

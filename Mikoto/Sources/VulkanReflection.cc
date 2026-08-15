@@ -32,6 +32,120 @@ namespace mikoto::renderer::vulkan {
     using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;
 
+    static auto CreatePipelineLayout(
+        Device* device,
+        PipelineReflection& mPipelineReflection,
+        BindingSetLayoutsMap& bindingLayoutsMap,
+        VkPipelineLayout& pipelineLayout ) -> void {
+
+        // IMPORTANT:
+        // In Vulkan, VkPipelineLayoutCreateInfo::pSetLayouts is an array where each element
+        // corresponds to a descriptor set index in order:
+        //    pSetLayouts[0] -> set = 0
+        //    pSetLayouts[1] -> set = 1
+        //    pSetLayouts[2] -> set = 2
+        // Vulkan does NOT sort or remap them automatically. If the layouts in out.setLayouts
+        // are not in the same order as the shader set indices, you will get validation errors.
+        // For example, if the fragment shader uses set = 1 but out.setLayouts[1] corresponds
+        // to set = 2, Vulkan will complain that the descriptor is missing.
+        // Here we are just filling not used slots with empty descriptor set layouts.
+
+        // TODO: VK_EXT_Pipeline library extension
+        // [11:59:23] STDERR LOG [thread 67676] Validation Error: Validation Error: [ VUID-VkPipelineLayoutCreateInfo-graphicsPipelineLibrary-06753 ] |
+        // MessageID = 0x57ab6143 | vkCreatePipelineLayout(): pCreateInfo->pSetLayouts[0] is VK_NULL_HANDLE, but VK_EXT_graphics_pipeline_library is not enabled.
+        // The Vulkan spec states: If graphicsPipelineLibrary is not enabled, elements of pSetLayouts must be valid VkDescriptorSetLayout objects
+        // (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-VkPipelineLayoutCreateInfo-graphicsPipelineLibrary-06753)
+
+        // Find the highest set index
+        u32 maxSet{ 0 };
+        for ( const auto& setIndex: bindingLayoutsMap ) {
+            maxSet = eastl::max( maxSet, setIndex.first );
+        }
+
+        // Initialize everything with "holes" and fill accordingly
+        VkDescriptorSetLayout emptySetLayout{ device->GetLayoutForEmptySet() };
+        eastl::vector<VkDescriptorSetLayout> setLayouts( maxSet + 1, emptySetLayout );
+
+        // Place set layouts at correct set indices
+        for ( const auto& [setIndex, layout]: bindingLayoutsMap ) {
+            setLayouts[setIndex] = layout;
+        }
+
+        VkPipelineLayoutCreateInfo plInfo{ initializers::PipelineLayoutCreateInfo() };
+
+        plInfo.setLayoutCount = as<u32>( setLayouts.size() );
+        plInfo.pSetLayouts = setLayouts.data();
+
+        plInfo.pushConstantRangeCount = as<u32>( mPipelineReflection.mPushConstantRanges.size() );
+        plInfo.pPushConstantRanges = mPipelineReflection.mPushConstantRanges.data();
+
+        MKT_VK_CHECK( vkCreatePipelineLayout( device->GetDevice(), &plInfo, nullptr, MKT_ADDRESSOF( pipelineLayout ) ) );
+    }
+
+    static auto CreateDescriptorSetLayouts(
+        Device* device,
+        PipelineReflection& pipelineReflection,
+        BindingSetLayoutsMap& bindingLayoutsMap,
+        BindingLayoutHandle bindingLayoutHandle = BindingLayoutHandle::CreateEmpty()  ) -> void {
+        BindingLayout* bindingLayout{ bindingLayoutHandle.IsEmpty() ?
+            nullptr : checked_cast<BindingLayout*>( bindingLayoutHandle.GetRaw() )
+        };
+
+        for ( const auto& [setIndex, setBindings]: pipelineReflection.mBindingSetsMap ) {
+            if (bindingLayout && setIndex == bindingLayout->GetRegisterSpace()) {
+                VkDescriptorSetLayout setLayout{ bindingLayout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ) };
+                bindingLayoutsMap[setIndex] = setLayout;
+                continue;
+            }
+
+            // Get the max binding the other ones will be empty
+            u32 maxBinding{0};
+            for (const auto& item : setBindings) {
+                maxBinding = eastl::max( maxBinding, item.second.mBinding );
+            }
+            std::vector<VkDescriptorSetLayoutBinding> layoutBindings{};
+            layoutBindings.resize( maxBinding + 1 );
+
+            // Initialize bindings
+            for (u32 index{}; auto& item: layoutBindings ) {
+                item = VkDescriptorSetLayoutBinding{
+                    .binding = index++,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER, // Dummy
+                    .descriptorCount = 1, // Dummy
+                    .stageFlags = VK_SHADER_STAGE_ALL , // Dummy
+                };
+            }
+
+            // Fill accordingly
+            for ( const auto& [bindingIndex, bindingInfo]: setBindings ) {
+                layoutBindings[bindingIndex] = VkDescriptorSetLayoutBinding{
+                    .binding = bindingIndex,
+                    .descriptorType = bindingInfo.mType,
+                    .descriptorCount = bindingInfo.mCount,
+                    .stageFlags = bindingInfo.mStageFlags,
+                };
+            }
+
+            VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+            layoutInfo.bindingCount = as<u32>( layoutBindings.size() );
+            layoutInfo.pBindings = layoutBindings.data();
+
+            VkDescriptorBindingFlags bindingFlags{ VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT };
+
+            VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
+            flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+
+            flagsInfo.bindingCount = 1;
+            flagsInfo.pBindingFlags = MKT_ADDRESSOF( bindingFlags );
+
+            MKT_VK_CHECK( vkCreateDescriptorSetLayout(
+                device->GetDevice(),
+                MKT_ADDRESSOF( layoutInfo ),
+                nullptr,
+                MKT_ADDRESSOF( bindingLayoutsMap[setIndex] ) ) );
+        }
+    }
+
     MKT_NODISCARD auto GetDescriptorType( SpvReflectDescriptorType type ) -> VkDescriptorType {
         switch ( type ) {
             case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:

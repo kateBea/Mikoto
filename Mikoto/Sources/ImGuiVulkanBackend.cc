@@ -173,8 +173,8 @@ namespace mikoto::gui {
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
                     .colorAttachmentCount = as<u32>( colorFormats.size() ),
                     .pColorAttachmentFormats = colorFormats.data(),
-                    .depthAttachmentFormat = GetFormat(mDepthImage->GetFormat() ),
-                },
+                    .depthAttachmentFormat = GetFormat( mDepthImage->GetFormat() ),
+                    },
             },
             // Mikoto defaults to vulkan 1.3 where dynamic rendering is core
             .UseDynamicRendering = true,
@@ -238,9 +238,6 @@ namespace mikoto::gui {
         auto submitInfo{ SubmitInfo{}
             .AddCommandList( mCommandList ) };
         mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo );
-
-        // TODO: DEBUG
-        RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
 
         if ( const ImGuiIO & io{ ImGui::GetIO() }; io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();

@@ -59,7 +59,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetFormat() -> rhi::Format;
 
         MKT_NODISCARD auto Present( core::u32 imageIndex, const BinarySemaphore& signalSemaphore ) -> VkResult;
-        MKT_NODISCARD auto GetNextImage( core::u32& imageIndex, const BinarySemaphore& waitSemaphore ) -> VkResult;
+        MKT_NODISCARD auto GetNextImageIndex( core::u32& imageIndex, const BinarySemaphore& waitSemaphore ) -> VkResult;
 
         // If changed a call to OnResize is required to apply changes
         auto SetRefreshType( rhi::RefreshRate type ) -> void;

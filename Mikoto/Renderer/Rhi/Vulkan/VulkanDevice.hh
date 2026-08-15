@@ -121,11 +121,11 @@ namespace mikoto::renderer::vulkan {
         void* mMappedMemory{};
 
         // Size of this sub-allocation
-        size_t mSize{};
+        core::size_t mSize{};
 
         // Specifies the offset of this allocation within the large
         // buffer it was allocated from
-        size_t mOffset{};
+        core::size_t mOffset{};
 
         // Metadata to track usage
         memory::Allocation mAllocation{};
@@ -259,7 +259,7 @@ namespace mikoto::renderer::vulkan {
         auto BindIndexBuffer( rhi::IBuffer* buffer ) -> void override;
         auto BindIndirectBuffer( rhi::IBuffer* buffer ) -> void override;
         auto BindVertexBuffer( const rhi::VertexBufferBinding& binding ) -> void override;
-        auto BindVertexBuffer( eastl::span<const rhi::VertexBufferBinding> binding ) -> void override;
+        auto BindVertexBuffers( eastl::span<const rhi::VertexBufferBinding> bindings ) -> void override;
 
         auto BindPipelineResources( const rhi::BindResourcesDescription& desc ) -> void override;
 
@@ -329,8 +329,9 @@ namespace mikoto::renderer::vulkan {
 
         auto ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void override;
 
+        // Vulkan Specifics
         auto WaitCompletionValue( u64 value ) -> void;
-        auto ExecuteCommandsWithSemaphores( eastl::span<CommandListHandle> commands ) -> core::u64;
+        auto ExecuteCommandsWithSemaphores( eastl::span<CommandListHandle> commands, IFence* fence = nullptr, core::u64 signalValue = 0 ) -> core::u64;
 
         auto AllocateCmdList() -> CommandListHandle;
 
@@ -338,8 +339,8 @@ namespace mikoto::renderer::vulkan {
 
         auto WaitIdle() const -> void;
 
-        auto PushQueueSignalSemaphore( BinarySemaphore*, VkPipelineStageFlags2 stageFlags ) -> void;
-        auto PushQueueWaitSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void;
+        auto PushSignalSemaphore( BinarySemaphore*, VkPipelineStageFlags2 stageFlags ) -> void;
+        auto PushWaitSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void;
 
         MKT_NODISCARD auto GetCompletionValue() -> core::u64;
 
@@ -351,7 +352,7 @@ namespace mikoto::renderer::vulkan {
 
         // Conversion operators
         operator core::u32() const;// Queue family index
-        operator VkQueue() const;  // Logical
+        operator VkQueue() const;  // Logical queue
 
         ~Queue() override;
 
@@ -386,6 +387,7 @@ namespace mikoto::renderer::vulkan {
         // Some objects like upload textures create temporary command buffers
         // to upload data, we need to keep the command list handle alive for as
         // long as the GPU needs it
+        std::mutex mAliveCommandListMutex{};
         ankerl::unordered_dense::map<const ICommandList*, CommandListHandle> mAliveCommandList{};
 
         // For debug
@@ -669,12 +671,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto CreateTexture( const ExternalTextureDescription& info ) -> rhi::TextureHandle;
         MKT_NODISCARD auto CreateBinarySemaphore() -> BinarySemaphoreHandle;
 
-        auto PushSignalSemaphore( rhi::QueueType queueType, BinarySemaphore*, VkPipelineStageFlags2 stageFlags ) -> void;
-        auto PushWaitSemaphore( rhi::QueueType queueType, BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void;
-
         auto SetDebugName( VkObjectType objectType, core::u64 handle, eastl::string_view name ) -> void;
-
-        auto WaitQueuesIdle() const -> void;
 
         MKT_NODISCARD auto GetDummySampler() -> Sampler*;
         MKT_NODISCARD auto GetLayoutForEmptySet() -> VkDescriptorSetLayout;

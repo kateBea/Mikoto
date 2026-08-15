@@ -174,6 +174,7 @@ namespace mikoto::editor {
             .SetLanguage( ShaderLanguage::eSlang )
             .SetStage( ShaderType::eVertex ) };
         mVertexShader = mDevice->CreateShader( vertexShaderDescription );
+        mVertexShader->DumpShaderCode();
 
         FileHandle pxShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangle_Frag.slang" ) };
         auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
@@ -183,15 +184,16 @@ namespace mikoto::editor {
             .SetLanguage( ShaderLanguage::eSlang )
             .SetStage( ShaderType::ePixel ) };
         mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
+        mPixelShader->DumpShaderCode();
 
         // Create pipeline
-        eastl::array<rhi::VertexBindingDescription, 1> bindings{
+        eastl::array bindings{
     rhi::VertexBindingDescription{}
             .SetBinding( 0 )
             .SetStride( sizeof( asset::VertexDescription ) )
             .SetInputRate( InputRate::ePerVertex ) };
 
-        eastl::array<rhi::VertexAttributeDescription, 9> attributes{
+        eastl::array attributes{
     rhi::VertexAttributeDescription{}
             .SetName( "POSITION" )
             .SetLocation( 0 )
@@ -200,60 +202,12 @@ namespace mikoto::editor {
             .SetOffset( offsetof( asset::VertexDescription, mPosition ) ),
 
             rhi::VertexAttributeDescription{}
-            .SetName( "NORMAL" )
+            .SetName( "TEXCOORD" )
             .SetLocation( 1 )
             .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGB32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mNormals ) ),
-
-    rhi::VertexAttributeDescription{}
-            .SetName( "COLOR" )
-            .SetLocation( 2 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mColors ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "TEXCOORD" )
-            .SetLocation( 3 )
-            .SetBinding( 0 )
             .SetFormat( rhi::Format::eRG32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mUv0 ) ),
+            .SetOffset( offsetof( asset::VertexDescription, mUv0 ) ) };
 
-            rhi::VertexAttributeDescription{}
-            .SetName( "TEXCOORD" )
-            .SetLocation( 4 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRG32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mUv1 ) ),
-
-    rhi::VertexAttributeDescription{}
-            .SetName( "BLENDINDICES" )
-            .SetLocation( 5 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mJoints0 ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "BLENDWEIGHT" )
-            .SetLocation( 6 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mWeights0 ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "BLENDINDICES" )
-            .SetLocation( 7 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mJoints1 ) ),
-
-    rhi::VertexAttributeDescription{}
-            .SetName( "BLENDWEIGHT" )
-            .SetLocation( 8 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mWeights1 ) ), };
         mVertexInputLayout = mDevice->CreateInputLayout( InputLayoutCreateDescription{}
             .SetBindings( bindings )
             .SetAttributes( attributes )

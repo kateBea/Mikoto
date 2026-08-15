@@ -244,6 +244,7 @@ namespace mikoto::editor {
             .SetTopology( PrimitiveTopology::eTriangleList )
             .SetPipelineLayout( mPipelineLayoutHandle ) };
         mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
+        mPipeline->SetDebugName( "EditorTriangle Pipeline" );
 
         auto bindingSetDesc{ BindingSetDescription{}
             .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) )

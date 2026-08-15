@@ -83,13 +83,13 @@ auto InitEditor() -> bool {
         gApplication->Init();
 
 #if true
-        //gApplication->PushLayer<EditorDebugLayer>( gWindow );
+        gApplication->PushLayer<EditorDebugLayer>( gWindow );
         gApplication->PushLayer<EditorRayTraceLayer>( gWindow );
         gApplication->PushLayer<EditorHelloTriangleLayer>( gWindow );
 #endif
-        //gApplication->PushLayer<EditorLayer>( gWindow );
+        gApplication->PushLayer<EditorLayer>( gWindow );
     } catch ( const std::exception& e ) {
-        MKT_CORE_LOGGER_ERROR( "Ini App exception - e.what(): {}", e.what() );
+        MKT_CORE_LOGGER_ERROR( "Init App exception - e.what(): {}", e.what() );
         return false;
     }
 
@@ -125,7 +125,7 @@ auto Run() -> void {
         gApplication->Run();
 
     } catch ( const std::exception& e ) {
-        MKT_CORE_LOGGER_ERROR( "Running application - Exception: e.what(): {}", e.what() );
+        MKT_CORE_LOGGER_ERROR( "Run App Exception: e.what(): {}", e.what() );
     }
 }
 

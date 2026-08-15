@@ -135,7 +135,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Texture::InitInitialData2D() -> void {
         CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
-        cmd->Begin( {} );
+        cmd->Begin( { .mScopeName = string::Format( "Texture upload: {}", mDebugName ) } );
 
         // Data is always writen at mip zero
         cmd->Write( this, 0, mImageData->mBufferSpan->GetData(), mImageData->mBufferSpan->GetSize() );
@@ -145,9 +145,9 @@ namespace mikoto::renderer::vulkan {
 
         cmd->End();
 
-        auto submitInfo{ SubmitInfo{}
+        const auto submitInfo{ SubmitInfo{}
             .AddCommandList( cmd ) };
-        mDevice->GetQueue(QueueType::eTransfer)->ExecuteCommandLists( submitInfo );
+        mDevice->GetQueue( QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
     }
 
     auto Texture::SetDebugName( eastl::string_view name )  -> void {

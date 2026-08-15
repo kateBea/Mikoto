@@ -125,11 +125,11 @@ namespace mikoto::renderer::vulkan {
 
         if (!mUploadContents.IsEmpty()) {
             CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
-            cmd->Begin( {} );
+            cmd->Begin( { .mScopeName = string::Format( "Buffer upload: {}", mDebugName ) } );
             cmd->Write( this, mUploadContents->GetData(), mUploadContents->GetSize() );
             cmd->End();
 
-            auto submitInfo{ SubmitInfo{}
+            const auto submitInfo{ SubmitInfo{}
                 .AddCommandList( cmd ) };
             mDevice->GetQueue(QueueType::eTransfer)->ExecuteCommandLists( submitInfo );
         }

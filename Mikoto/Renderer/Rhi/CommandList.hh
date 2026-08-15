@@ -250,17 +250,16 @@ namespace mikoto::renderer::rhi {
         virtual auto RecordBarrier( const BufferBarrierDescription& barrier ) -> void = 0;
         virtual auto RecordBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
 
-        virtual auto RecordBarrier(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
-        virtual auto RecordBarrier(ITexture* buffer, ResourceStates stateBits) -> void = 0;
+        virtual auto RecordTransition(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
+        virtual auto RecordTransition(ITexture* buffer, ResourceStates stateBits) -> void = 0;
 
         virtual auto CommitBarriers() -> void = 0;
 
         virtual auto SetBarrier( const BufferBarrierDescription& barrier ) -> void = 0;
         virtual auto SetBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
 
-        virtual auto SetBarrier(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
-        virtual auto SetBarrier(ITexture* buffer, ResourceStates stateBits) -> void = 0;
-
+        virtual auto SetTransition(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
+        virtual auto SetTransition(ITexture* buffer, ResourceStates stateBits) -> void = 0;
 
         virtual auto SetEnableAutomaticBarriers(  bool enable  ) -> void = 0;
 

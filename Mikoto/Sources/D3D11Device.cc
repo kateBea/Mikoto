@@ -322,16 +322,16 @@ namespace mikoto::renderer::d3d11 {
 
     }
 
-    auto CommandList::RecordBarrier( IBuffer *buffer, ResourceStates stateBits ) -> void {
+    auto CommandList::RecordTransition( IBuffer *buffer, ResourceStates stateBits ) -> void {
     }
 
-    auto CommandList::RecordBarrier( ITexture *texture, ResourceStates stateBits ) -> void {
+    auto CommandList::RecordTransition( ITexture *texture, ResourceStates stateBits ) -> void {
     }
 
-    auto CommandList::SetBarrier( IBuffer *buffer, ResourceStates stateBits ) -> void {
+    auto CommandList::SetTransition( IBuffer *buffer, ResourceStates stateBits ) -> void {
     }
 
-    auto CommandList::SetBarrier( ITexture *texture, ResourceStates stateBits ) -> void {
+    auto CommandList::SetTransition( ITexture *texture, ResourceStates stateBits ) -> void {
         checked_cast<Texture*>( texture )->EnableUsage( stateBits );
     }
 

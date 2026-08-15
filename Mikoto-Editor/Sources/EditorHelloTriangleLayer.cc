@@ -344,7 +344,7 @@ namespace mikoto::editor {
 
         mCommandList->EndRendering();
 
-        mCommandList->SetBarrier( mColorImage.GetRaw(), ResourceStates::eShaderResource );
+        mCommandList->SetTransition( mColorImage.GetRaw(), ResourceStates::eShaderResource );
 
         mCommandList->End();
 

@@ -219,11 +219,11 @@ namespace mikoto::renderer::vulkan {
         auto RecordBarrier( const rhi::BufferBarrierDescription& barrier ) -> void override;
         auto RecordBarrier( const rhi::TextureBarrierDescription& barrier ) -> void override;
 
-        auto RecordBarrier( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
-        auto RecordBarrier( rhi::ITexture* buffer, rhi::ResourceStates stateBits ) -> void override;
+        auto RecordTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
+        auto RecordTransition( rhi::ITexture* buffer, rhi::ResourceStates stateBits ) -> void override;
 
-        auto SetBarrier( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
-        auto SetBarrier( rhi::ITexture* buffer, rhi::ResourceStates stateBits ) -> void override;
+        auto SetTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
+        auto SetTransition( rhi::ITexture* buffer, rhi::ResourceStates stateBits ) -> void override;
 
         auto SetBarrier( const rhi::BufferBarrierDescription& barrier ) -> void override;
         auto SetBarrier( const rhi::TextureBarrierDescription& barrier ) -> void override;

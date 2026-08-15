@@ -943,7 +943,7 @@ namespace mikoto::renderer::d3d12 {
         // TODO: Update the resource state tracking (accessFlags, PipelineState, etc)
     }
 
-     auto CommandList::RecordBarrier( IBuffer *buffer, ResourceStates stateBits ) -> void {
+     auto CommandList::RecordTransition( IBuffer *buffer, ResourceStates stateBits ) -> void {
         Buffer* d3d12Buffer{ checked_cast<Buffer*>( buffer ) };
         ID3D12Resource* resource{ *d3d12Buffer };
 
@@ -958,7 +958,7 @@ namespace mikoto::renderer::d3d12 {
         mResourceBarriers.emplace_back( barrier );
     }
 
-    auto CommandList::RecordBarrier( ITexture *texture, ResourceStates stateBits ) -> void {
+    auto CommandList::RecordTransition( ITexture *texture, ResourceStates stateBits ) -> void {
         Texture* d3d12Texture{ checked_cast<Texture*>( texture ) };
         ID3D12Resource* resource{ *d3d12Texture };
 
@@ -973,7 +973,7 @@ namespace mikoto::renderer::d3d12 {
         mResourceBarriers.emplace_back( barrier );
     }
 
-    auto CommandList::SetBarrier( IBuffer *buffer, ResourceStates stateBits ) -> void {
+    auto CommandList::SetTransition( IBuffer *buffer, ResourceStates stateBits ) -> void {
         Buffer* d3d12Buffer{ checked_cast<Buffer*>( buffer ) };
         ID3D12Resource* resource{ *d3d12Buffer };
 
@@ -988,7 +988,7 @@ namespace mikoto::renderer::d3d12 {
         mCommandList->ResourceBarrier(1, &barrier);
     }
 
-    auto CommandList::SetBarrier( ITexture *texture, ResourceStates stateBits ) -> void {
+    auto CommandList::SetTransition( ITexture *texture, ResourceStates stateBits ) -> void {
         Texture* d3d12Texture{ checked_cast<Texture*>( texture ) };
         ID3D12Resource* resource{ *d3d12Texture };
 
@@ -1073,11 +1073,11 @@ namespace mikoto::renderer::d3d12 {
         switch (bSrc->GetHeapType()) {
             case HeapType::eDeviceLocal: {
                 if (mEnableAutomaticBarriers) {
-                    SetBarrier(buffer, ResourceStates::eCopyDest);
+                    SetTransition(buffer, ResourceStates::eCopyDest);
                 }
 
                 GpuUploadAllocation* allocation{ mUploadManager->SubAllocate( byteSize ) };
-                SetBarrier( allocation->mBuffer, ResourceStates::eCopySource );
+                SetTransition( allocation->mBuffer, ResourceStates::eCopySource );
 
                 std::memcpy(allocation->mMappedMemory, data, byteSize);
 
@@ -1141,7 +1141,7 @@ namespace mikoto::renderer::d3d12 {
 
         for (auto& renderTarget : state.mCurrentRenderTargets ) {
             if (mEnableAutomaticBarriers) {
-                SetBarrier( renderTarget.mRenderTarget.GetRaw(), ResourceStates::eRenderTarget );
+                SetTransition( renderTarget.mRenderTarget.GetRaw(), ResourceStates::eRenderTarget );
             }
 
             Texture* texture{ checked_cast<Texture*>( renderTarget.mRenderTarget.GetRaw() ) };

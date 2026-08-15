@@ -137,8 +137,8 @@ namespace mikoto::editor {
             // I am using this to delay that pass to later frames
             run = true;
 
-            mSceneRenderer->SetSkyboxEquirectangular( mTestSkybox );
-            mSceneRenderer->SetRenderBackground( SceneBackgroundType::ePrefilterMap );
+            //mSceneRenderer->SetSkyboxEquirectangular( mTestSkybox );
+            mSceneRenderer->SetRenderBackground( SceneBackgroundType::eClearColor );
         } else {
             ++first;
         }
@@ -152,7 +152,7 @@ namespace mikoto::editor {
         mSceneRenderer->SetExposure( 2.0f );
         mSceneRenderer->SetPresentType( PresentTarget::eTonemap_Output );
 
-        //RenderScene( timeStep );
+        RenderScene( timeStep );
 
         // [DEBUG]
         u32 entityID{};
@@ -679,27 +679,24 @@ namespace mikoto::editor {
                             panel->SetVisible( isActive );
                         }
                     }
+                    ImGui::EndMenu();
+                }
 
+                if (ImGui::BeginMenu( MKT_LOC( "menu_language" ).c_str() )) {
                     static constexpr std::array languages{
                         ISOLanguage::EN_US,
                         ISOLanguage::EN_GB,
                         ISOLanguage::ES_ES,
                         ISOLanguage::JA_JP,
-                        ISOLanguage::ZH_CN
-                    };
+                        ISOLanguage::ZH_CN };
+                    const ISOLanguage current{ LocalizationService::Get()->GetCurrentLanguage() };
 
-                    if (ImGui::BeginMenu( MKT_LOC( "menu_language" ).c_str() )) {
-                        const ISOLanguage current{ LocalizationService::Get()->GetCurrentLanguage() };
+                    for ( const ISOLanguage lang: languages) {
+                        const bool isSelected{ ( lang == current ) };
 
-                        for ( const ISOLanguage lang: languages) {
-                            const bool isSelected{ ( lang == current ) };
-
-                            if (ImGui::MenuItem( GetISOName( lang ).data(), nullptr, isSelected )) {
-                                LocalizationService::Get()->SetLanguage( lang );
-                            }
+                        if (ImGui::MenuItem( GetISOName( lang ).data(), nullptr, isSelected )) {
+                            LocalizationService::Get()->SetLanguage( lang );
                         }
-
-                        ImGui::EndMenu();
                     }
 
                     ImGui::EndMenu();
@@ -794,25 +791,25 @@ namespace mikoto::editor {
     auto EditorLayer::RenderScene( float ) -> void {
         // External textures are not managed by the frame graph
         mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - RenderTarget" } );
-        mCommandList->SetBarrier( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eRenderTarget );
+        mCommandList->SetTransition( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eRenderTarget );
         mCommandList->End();
         auto submitInfo1{ SubmitInfo{}
             .AddCommandList( mCommandList ) };
-        mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo1 );
+        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo1), QueueType::eGraphics);
 
         mSceneRenderer->Render( mEditorState->mActiveScene );
 
-        if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
-            mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - ShaderResource" } );
-            // On panel mode this image is sampled by ImGui to render as viewport hence why the transition,
-            // otherwise it is copied directly to the swapchain image
-            mCommandList->SetBarrier( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eShaderResource );
-
-            mCommandList->End();
-            auto submitInfo2{ SubmitInfo{}
-                .AddCommandList( mCommandList ) };
-            mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo2 );
-        }
+        // if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
+        //     mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - ShaderResource" } );
+        //     // On panel mode this image is sampled by ImGui to render as viewport hence why the transition,
+        //     // otherwise it is copied directly to the swapchain image
+        //     mCommandList->SetTransition( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eShaderResource );
+        //
+        //     mCommandList->End();
+        //     auto submitInfo2{ SubmitInfo{}
+        //         .AddCommandList( mCommandList ) };
+        //     RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo2), QueueType::eGraphics);
+        // }
     }
 
     auto EditorLayer::UpdateViewportState( float ) -> void {

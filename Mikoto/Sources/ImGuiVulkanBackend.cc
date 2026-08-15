@@ -229,7 +229,7 @@ namespace mikoto::gui {
         ImGui::Render();
 
         mCommandList->Begin( { .mScopeName = "ImGui Render" } );
-        mCommandList->SetBarrier( mColorImage.GetRaw(), ResourceStates::eRenderTarget );
+        mCommandList->SetTransition( mColorImage.GetRaw(), ResourceStates::eRenderTarget );
 
         RecordCommands( mCommandList );
 

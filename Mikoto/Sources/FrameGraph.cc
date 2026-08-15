@@ -647,8 +647,8 @@ namespace mikoto::renderer {
             if ( !mNodeControl->mNodes[passName].mIsAlive )
                 continue;
 
-            auto& pass = mNodeControl->mNodes[passName];
-            auto& ctx = mNodeControl->mContexts[passName];
+            auto& pass{ mNodeControl->mNodes[passName] };
+            auto& ctx{ mNodeControl->mContexts[passName] };
 
             CommandListHandle cmd{};
 
@@ -682,7 +682,7 @@ namespace mikoto::renderer {
         mTransferCommands->End();
 
         auto submitInfoTransfer{ SubmitInfo{}
-            .AddSignal( mFence, mFenceValue )
+            .AddSignal( mFence, mFenceValue++ )
             .AddCommandList( mTransferCommands ) };
         RenderSystem::Get()->BatchSubmission(eastl::move(submitInfoTransfer), QueueType::eTransfer);
 
@@ -695,8 +695,6 @@ namespace mikoto::renderer {
         RenderSystem::Get()->BatchSubmission(eastl::move(submitInfoGraphics), QueueType::eGraphics);
 
         // Register callbacks
-        mFenceValue++;
-
         auto it{ mReadbackTasks.begin() };
         while ( it != mReadbackTasks.end() ) {
             if (!it->mHasBeenRegistered) {
@@ -774,7 +772,7 @@ namespace mikoto::renderer {
 
         // Just sanity check
         if (bindPoint == PipelineType::eInvalid) {
-            return;
+            MKT_ASSERT( false, "Invalid pipeline bind point." );
         }
 
         DescriptorTableHandle table{ mResourceManager->GetDescriptorTable() };

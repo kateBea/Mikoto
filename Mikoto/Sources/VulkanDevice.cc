@@ -871,7 +871,7 @@ namespace mikoto::renderer::vulkan {
         MKT_VK_CHECK( vkEndCommandBuffer( mCurrentCommandBuffer ) );
     }
 
-    auto CommandList::RecordBarrier( IBuffer *buffer, ResourceStates newState ) -> void {
+    auto CommandList::RecordTransition( IBuffer *buffer, ResourceStates newState ) -> void {
         // https://docs.vulkan.org/guide/latest/synchronization.html#synchronization
         // https://docs.vulkan.org/samples/latest/samples/performance/pipeline_barriers/README.html
         auto oldState{ buffer->GetResourceState() };
@@ -897,7 +897,7 @@ namespace mikoto::renderer::vulkan {
         buffer->SetResourceState(newState);
     }
 
-    auto CommandList::RecordBarrier( ITexture *texture, ResourceStates newState ) -> void {
+    auto CommandList::RecordTransition( ITexture *texture, ResourceStates newState ) -> void {
         // https://www.rastergrid.com/blog/gpu-tech/2026/03/vulkan-memory-barriers-and-image-layouts-explained/
         // https://docs.vulkan.org/samples/latest/samples/performance/pipeline_barriers/README.html
         // https://gpuopen.com/learn/vulkan-barriers-explained/
@@ -958,13 +958,13 @@ namespace mikoto::renderer::vulkan {
         mImageBarriers.clear();
     }
 
-    auto CommandList::SetBarrier( IBuffer *buffer, ResourceStates newState ) -> void {
-        RecordBarrier(buffer, newState);
+    auto CommandList::SetTransition( IBuffer *buffer, ResourceStates newState ) -> void {
+        RecordTransition(buffer, newState);
         CommitBarriers();
     }
 
-    auto CommandList::SetBarrier( ITexture *texture, ResourceStates newState ) -> void {
-        RecordBarrier(texture, newState);
+    auto CommandList::SetTransition( ITexture *texture, ResourceStates newState ) -> void {
+        RecordTransition(texture, newState);
         CommitBarriers();
     }
 
@@ -975,7 +975,7 @@ namespace mikoto::renderer::vulkan {
     auto CommandList::SetClearColor( TextureHandle image, Color color ) -> void {
         // Image needs to be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
         if (mEnableAutomaticBarriers) {
-            SetBarrier( image.GetRaw(), ResourceStates::eCopyDest );
+            SetTransition( image.GetRaw(), ResourceStates::eCopyDest );
         }
 
         VkClearColorValue clearColor{ { color.mR, color.mB, color.mB, color.mA } };
@@ -995,11 +995,11 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::Write( ITexture *texture, u32 mipLevel, const void *data, size_t byteSize ) -> void {
         if (mEnableAutomaticBarriers) {
-            SetBarrier( texture, ResourceStates::eCopyDest );
+            SetTransition( texture, ResourceStates::eCopyDest );
         }
 
         GpuUploadAllocation* allocation{ mUploadManager->SubAllocate( byteSize ) };
-        SetBarrier( allocation->mBuffer, ResourceStates::eCopySource );
+        SetTransition( allocation->mBuffer, ResourceStates::eCopySource );
 
         std::memcpy( allocation->mMappedMemory, data, byteSize );
 
@@ -1046,7 +1046,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         if (mEnableAutomaticBarriers) {
-            SetBarrier(buffer, ResourceStates::eCopyDest);
+            SetTransition(buffer, ResourceStates::eCopyDest);
         }
 
         VkBuffer vkBuffer{ buffer->GetNativeHandle(ObjectType::Vk_Buffer) };
@@ -1069,7 +1069,7 @@ namespace mikoto::renderer::vulkan {
 
             // TODO: Implement a set resource state internal version that specifies ranges
             // to be protected, SetResourceState() by default protects the whole range of the buffer
-            SetBarrier( allocation->mBuffer, ResourceStates::eCopySource );
+            SetTransition( allocation->mBuffer, ResourceStates::eCopySource );
 
             std::memcpy(allocation->mMappedMemory, data, byteSize);
 
@@ -1168,8 +1168,8 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT(size <= (dest->GetSizeBytes() - dstOffset), "Destination buffer is too small");
 
         if (mEnableAutomaticBarriers) {
-            RecordBarrier(src, ResourceStates::eCopySource);
-            RecordBarrier(dest, ResourceStates::eCopyDest);
+            RecordTransition(src, ResourceStates::eCopySource);
+            RecordTransition(dest, ResourceStates::eCopyDest);
 
             CommitBarriers();
         }
@@ -1190,8 +1190,8 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::Copy( IBuffer* dest, ITexture* src ) -> void {
         if (mEnableAutomaticBarriers) {
-            RecordBarrier( src, ResourceStates::eCopySource  );
-            RecordBarrier( dest, ResourceStates::eCopyDest  );
+            RecordTransition( src, ResourceStates::eCopySource  );
+            RecordTransition( dest, ResourceStates::eCopyDest  );
             CommitBarriers();
         }
 
@@ -1245,12 +1245,12 @@ namespace mikoto::renderer::vulkan {
         if (mEnableAutomaticBarriers) {
             for (auto& rt : state.mCurrentRenderTargets ) {
                 if (rt.mRenderTarget->GetResourceState() != ResourceStates::eRenderTarget) {
-                    RecordBarrier( rt.mRenderTarget.GetRaw(), ResourceStates::eRenderTarget );
+                    RecordTransition( rt.mRenderTarget.GetRaw(), ResourceStates::eRenderTarget );
                 }
             }
 
             if (!state.mDepthTarget.mRenderTarget.IsEmpty() && state.mDepthTarget.mRenderTarget->GetResourceState() != ResourceStates::eDepthWrite) {
-                RecordBarrier( state.mDepthTarget.mRenderTarget.GetRaw(), ResourceStates::eDepthWrite );
+                RecordTransition( state.mDepthTarget.mRenderTarget.GetRaw(), ResourceStates::eDepthWrite );
             }
 
             CommitBarriers();
@@ -1473,8 +1473,8 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( dstImage != VK_NULL_HANDLE, "Destination Vulkan image is null" );
 
         if (mEnableAutomaticBarriers) {
-            RecordBarrier(srcTexture, ResourceStates::eCopySource);
-            RecordBarrier(dstTexture, ResourceStates::eCopyDest);
+            RecordTransition(srcTexture, ResourceStates::eCopySource);
+            RecordTransition(dstTexture, ResourceStates::eCopyDest);
             CommitBarriers();
         }
 

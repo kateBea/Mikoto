@@ -54,28 +54,28 @@ namespace mikoto::renderer {
         mCameraPass.RegisterPasses( *mFrameGraph );
         mGeometryManagement.RegisterPasses( *mFrameGraph );
 
-        mRenderPrepass.RegisterPasses( *mFrameGraph );
-        mShadowMapping.RegisterPasses( *mFrameGraph );
+        //mRenderPrepass.RegisterPasses( *mFrameGraph );
+        //mShadowMapping.RegisterPasses( *mFrameGraph );
 
         mParticleRendering.RegisterPasses( *mFrameGraph );
 
-        mGeometryShading.RegisterPasses( *mFrameGraph );
+        //mGeometryShading.RegisterPasses( *mFrameGraph );
 
-        mMousePickingModule.RegisterPasses( *mFrameGraph );
+        //mMousePickingModule.RegisterPasses( *mFrameGraph );
 
         // Raytracing
         mPathTracing.RegisterPasses( *mFrameGraph );
         mRayTracingPass.RegisterPasses( *mFrameGraph );
 
         // Post process
-        mTextRendering.RegisterPasses( *mFrameGraph );
-        mPostEffectsPasses.RegisterPasses( *mFrameGraph );
+        //mTextRendering.RegisterPasses( *mFrameGraph );
+        //mPostEffectsPasses.RegisterPasses( *mFrameGraph );
 
         // Some debug passes
         mMaterialModule.RegisterPasses( *mFrameGraph );
-        mDebugPasses.RegisterPasses( *mFrameGraph );
+        //mDebugPasses.RegisterPasses( *mFrameGraph );
 
-        mTonemapModule.RegisterPasses( *mFrameGraph );
+        //mTonemapModule.RegisterPasses( *mFrameGraph );
 
         // I am not sure about this pass, this one was designed to
         // ideally serve as helper for passes that required image blit-ting
@@ -83,8 +83,8 @@ namespace mikoto::renderer {
         mHelperModule.RegisterPasses( *mFrameGraph );
 
         // Render final contents into specified images
-        mPresentationModule.RegisterPasses( *mFrameGraph );
-        mPresentationModule.RegisterPresentImage( *mFrameGraph, mPresentTexture );
+        //mPresentationModule.RegisterPasses( *mFrameGraph );
+        //mPresentationModule.RegisterPresentImage( *mFrameGraph, mPresentTexture );
 
         // Build graph
         mFrameGraph->Compile();
@@ -98,11 +98,11 @@ namespace mikoto::renderer {
         mMousePickingModule.SetGeometryManager( mGeometryManagement );
 
         // Execution policies
-        mFrameGraph->SetExecutionPolicy( "BRDFLut", FGExecutionPolicy::eOnce );
+        //mFrameGraph->SetExecutionPolicy( "BRDFLut", FGExecutionPolicy::eOnce );
 
-        mFrameGraph->SetExecutionPolicy( "PrefilterPass", FGExecutionPolicy::eOnChange );
-        mFrameGraph->SetExecutionPolicy( "IrradiancePass", FGExecutionPolicy::eOnChange );
-        mFrameGraph->SetExecutionPolicy( "SkyboxProjection", FGExecutionPolicy::eOnChange );
+        //mFrameGraph->SetExecutionPolicy( "PrefilterPass", FGExecutionPolicy::eOnChange );
+        //mFrameGraph->SetExecutionPolicy( "IrradiancePass", FGExecutionPolicy::eOnChange );
+        //mFrameGraph->SetExecutionPolicy( "SkyboxProjection", FGExecutionPolicy::eOnChange );
 
         // mFrameGraph->DisablePass( "PBR_Radiance" );
         // mFrameGraph->DisablePass( "DepthPrePass" );
@@ -110,7 +110,7 @@ namespace mikoto::renderer {
         // mFrameGraph->DisablePass( "ObjectSelection_Render" );
 
         // For some reason this makes subsequent passes to render in Wireframe mode
-        mFrameGraph->DisablePass( "WireframePass" );
+        //mFrameGraph->DisablePass( "WireframePass" );
     }
 
     auto SceneRenderer::Shutdown() -> void {

@@ -423,7 +423,7 @@ namespace mikoto::renderer::d3d12 {
         cmd->Begin( {} );
 
         cmd->Write( this, 0, mImageData->mBufferSpan->GetData(), mImageData->mBufferSpan->GetSize() );
-        cmd->SetBarrier( this, ResourceStates::eShaderResource );
+        cmd->SetTransition( this, ResourceStates::eShaderResource );
 
         cmd->End();
 

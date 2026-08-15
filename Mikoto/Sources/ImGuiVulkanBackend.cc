@@ -237,7 +237,7 @@ namespace mikoto::gui {
 
         auto submitInfo{ SubmitInfo{}
             .AddCommandList( mCommandList ) };
-        mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo );
+        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo), QueueType::eGraphics);
 
         if ( const ImGuiIO & io{ ImGui::GetIO() }; io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();

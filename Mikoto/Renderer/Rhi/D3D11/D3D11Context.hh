@@ -59,6 +59,8 @@ namespace mikoto::renderer::d3d11 {
         auto SetPresentTarget( rhi::TextureHandle texture ) -> void override;
         auto SetRefreshRate( RefreshRate rate ) -> void override;
 
+        auto BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void override;
+
         // D3D11 Specifics
         MKT_NODISCARD auto GetSwapChain() const -> SwapChainHandle;
         MKT_NODISCARD auto GetDxiFactory() const -> IDXGIFactory2*;

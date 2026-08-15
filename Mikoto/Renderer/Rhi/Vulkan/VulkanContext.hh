@@ -44,6 +44,8 @@ namespace mikoto::renderer::vulkan {
         auto SetRefreshRate( rhi::RefreshRate rate ) -> void override;
         auto SetPresentTarget( rhi::TextureHandle texture ) -> void override;
 
+        auto BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void override;
+
         auto Present() -> void override;
         auto SubmitFrame() -> void override;
         auto PrepareFrame() -> void override;
@@ -97,6 +99,12 @@ namespace mikoto::renderer::vulkan {
         CommandListHandle mCommandList{};
 
         eastl::fixed_vector<FrameContext, kMaxFramesInFlight> mFrames{};
+
+        using SubmitInfoMap = ankerl::unordered_dense::map<IQueue*, SubmitInfo>;
+
+        std::mutex mBatchedSubmissionProcessMutex{};
+        std::mutex mBatchedSubmissionEmplaceMutex{};
+        SubmitInfoMap mBatchedSubmissions{};
 
         // Swapchain blit objects
         // A descriptor table is used instead of a BindingSet because descriptor tables can be updated

@@ -48,12 +48,15 @@
 #include <Threading/ThreadUtility.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/RenderSystem.hh>
 
 namespace mikoto::renderer {
 
     using namespace mikoto::core;
     using namespace mikoto::memory;
     using namespace mikoto::material;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
 
     MKT_NODISCARD constexpr auto GetShaderFlagsFromStage( FGStageType type ) -> ShaderType {
         switch (type) {
@@ -679,18 +682,17 @@ namespace mikoto::renderer {
         mTransferCommands->End();
 
         auto submitInfoTransfer{ SubmitInfo{}
-            .SetSignalFence( mFence )
-            .SetSignalValue( mFenceValue )
+            .AddSignal( mFence, mFenceValue )
             .AddCommandList( mTransferCommands ) };
-        mDevice->GetQueue(QueueType::eTransfer)->ExecuteCommandLists( submitInfoTransfer );
+        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfoTransfer), QueueType::eTransfer);
 
         auto submitInfoCompute{ SubmitInfo{}
             .AddCommandList( mComputeCommands ) };
-        mDevice->GetQueue(QueueType::eCompute)->ExecuteCommandLists( submitInfoCompute );
+        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfoCompute), QueueType::eCompute);
 
         auto submitInfoGraphics{ SubmitInfo{}
             .AddCommandList( mGraphicsCommands ) };
-        mDevice->GetQueue(QueueType::eGraphics)->ExecuteCommandLists( submitInfoGraphics );
+        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfoGraphics), QueueType::eGraphics);
 
         // Register callbacks
         mFenceValue++;

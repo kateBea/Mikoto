@@ -58,6 +58,12 @@ namespace mikoto::renderer {
         auto Shutdown() -> void override;
         auto Update(float ts) -> void override;
 
+        // The render system allows for command batching, clients can batch commands alongside a fence
+        // to signal on completion to one of main device queues to minimize API calls to queue
+        // submission for tasks that do not need to be executed in parallel during the frame.
+        // Commands are all submitted after a call to SubmitFrame()
+        auto BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void;
+
         ~RenderSystem() override = default;
 
         auto PrepareFrame() const -> void;

@@ -132,7 +132,7 @@ namespace mikoto::editor {
 
         auto submitInfo{ SubmitInfo{}
             .AddCommandList( mCommandList ) };
-        mDevice->GetQueue(QueueType::eTransfer)->ExecuteCommandLists( submitInfo );
+        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo), QueueType::eGraphics);
     }
 
     auto EditorDebugLayer::OnCreate() -> void {

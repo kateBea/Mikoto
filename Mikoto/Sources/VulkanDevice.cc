@@ -1846,15 +1846,17 @@ namespace mikoto::renderer::vulkan {
             .deviceIndex = 0 } );
 
         // Caller timeline
-        if (!submitInfo.mSinalFence.IsEmpty()) {
-            const Fence* fence{ checked_cast<const Fence*>( submitInfo.mSinalFence.GetRaw() ) };
-            signalInfos.emplace_back( VkSemaphoreSubmitInfo{
-                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                .pNext = nullptr,
-                .semaphore = fence->GetNativeHandle( ObjectType::Vk_Semaphore ),
-                .value = submitInfo.mSignalValue,
-                .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                .deviceIndex = 0 } );
+        if (!submitInfo.mSignals.empty()) {
+            for (const auto& [signalValue, signalFence] : submitInfo.mSignals) {
+                const Fence* fence{ checked_cast<const Fence*>( signalFence.GetRaw() ) };
+                signalInfos.emplace_back( VkSemaphoreSubmitInfo{
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                    .pNext = nullptr,
+                    .semaphore = fence->GetNativeHandle( ObjectType::Vk_Semaphore ),
+                    .value = signalValue,
+                    .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                    .deviceIndex = 0 } );
+            }
         }
 
         VkSubmitInfo2 submitInfo2{

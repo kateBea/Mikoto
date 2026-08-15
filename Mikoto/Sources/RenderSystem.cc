@@ -86,6 +86,10 @@ namespace mikoto::renderer {
         mContext->Update();
     }
 
+    auto RenderSystem::BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void {
+        mContext->BatchSubmission( eastl::move( submitInfo ), queue );
+    }
+
     auto RenderSystem::PrepareFrame() const -> void {
         //MKT_BEGIN_PROFILER_NAMED();
         //MKT_PROFILE_SCOPE_MARKED( "RenderSystem::PrepareFrame" );

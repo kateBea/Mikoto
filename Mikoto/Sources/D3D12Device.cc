@@ -765,15 +765,17 @@ namespace mikoto::renderer::d3d12 {
 
         mQueue->ExecuteCommandLists( as<UINT>(d3d12Commands.size()), d3d12Commands.data() );
 
-        if (!submitInfo.mSinalFence.IsEmpty()) {
-            const Fence* pFence{ checked_cast<const Fence*>( submitInfo.mSinalFence.GetRaw() ) };
+        if (!submitInfo.mSignals.empty()) {
+            for (const auto& [signalValue, signalFence] : submitInfo.mSignals) {
+                const Fence* pFence{ checked_cast<const Fence*>( signalFence.GetRaw() ) };
 
-            UINT64 value{ (UINT64)submitInfo.mSignalValue };
-            ID3D12Fence* d3d12Fence{ *pFence };
-            HANDLE d3d12FenceEvent{ *pFence };
+                UINT64 value{ (UINT64)signalValue };
+                ID3D12Fence* d3d12Fence{ *pFence };
+                HANDLE d3d12FenceEvent{ *pFence };
 
-            ThrowIfFailed(mQueue->Signal(d3d12Fence, value));
-            ThrowIfFailed( d3d12Fence->SetEventOnCompletion(value, d3d12FenceEvent) );
+                ThrowIfFailed(mQueue->Signal(d3d12Fence, value));
+                ThrowIfFailed( d3d12Fence->SetEventOnCompletion(value, d3d12FenceEvent) );
+            }
         }
     }
 

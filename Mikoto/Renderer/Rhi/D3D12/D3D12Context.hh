@@ -122,6 +122,8 @@ namespace mikoto::renderer::d3d12 {
         auto SetPresentTarget( rhi::TextureHandle texture ) -> void override;
         auto SetRefreshRate( rhi::RefreshRate rate ) -> void override;
 
+        auto BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void override;
+
         // D3D12 Specifics
         MKT_NODISCARD auto GetSwapChain() const -> SwapChainHandle;
         MKT_NODISCARD auto GetDxGIFactory() const -> IDXGIFactory4*;

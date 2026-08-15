@@ -59,6 +59,8 @@ namespace mikoto::renderer {
 
         virtual auto SetPresentTarget( rhi::TextureHandle texture ) -> void = 0;
 
+        virtual auto BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void = 0;
+
         MKT_NODISCARD auto GetGpuDevice() -> rhi::IGpuDevice*;
         MKT_NODISCARD auto GetGpuDevice() const -> const rhi::IGpuDevice*;
         MKT_NODISCARD auto GetRefreshRate() const -> rhi::RefreshRate;

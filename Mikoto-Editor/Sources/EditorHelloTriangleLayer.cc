@@ -350,7 +350,7 @@ namespace mikoto::editor {
 
         auto submitInfo{ SubmitInfo{}
             .AddCommandList( mCommandList ) };
-        mDevice->GetQueue(QueueType::eGraphics)->ExecuteCommandLists( submitInfo );
+        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo), QueueType::eGraphics);
 
         if (mIsImguiWindowActive) {
             DisplayImGuiWindow();

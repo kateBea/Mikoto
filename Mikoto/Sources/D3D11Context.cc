@@ -153,6 +153,10 @@ namespace mikoto::renderer::d3d11 {
         mSwapChain->SetRefreshRate( mRefreshRate );
     }
 
+    auto Context::BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void {
+
+    }
+
     auto Context::GetSwapChain() const -> SwapChainHandle {
         return mSwapChain;
     }

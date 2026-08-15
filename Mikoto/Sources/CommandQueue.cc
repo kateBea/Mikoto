@@ -16,20 +16,30 @@
 
 namespace mikoto::renderer::rhi {
 
-    auto SubmitInfo::SetSignalFence( FenceHandle handle ) -> SubmitInfo & {
-        mSinalFence = handle;
-        return *this;
-    }
-
-    auto SubmitInfo::SetSignalValue( core::u64 signalValue ) -> SubmitInfo & {
-        mSignalValue = signalValue;
-        return *this;
-    }
-
     auto SubmitInfo::AddCommandList( CommandListHandle cmd ) -> SubmitInfo & {
         mCommands.emplace_back( cmd );
         return *this;
     }
+
+    auto SubmitInfo::AddSignal( FenceHandle fence, core::u64 value ) -> SubmitInfo & {
+        mSignals.emplace_back( SignalInfo{
+            .mSignalValue = value,
+            .mSinalFence = eastl::move( fence )
+        } );
+
+        return *this;
+    }
+
+    auto SubmitInfo::AddCommandLists( eastl::span<CommandListHandle> commands ) -> SubmitInfo & {
+        mCommands.insert(mCommands.end(), commands.begin(), commands.end());
+        return *this;
+    }
+
+    auto SubmitInfo::AddSignals( eastl::span<SignalInfo> signals ) -> SubmitInfo & {
+        mSignals.insert(mSignals.end(), signals.begin(), signals.end());
+        return *this;
+    }
+
     auto IQueue::GetType() const -> QueueType {
         return mType;
     }

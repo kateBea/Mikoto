@@ -34,15 +34,20 @@
 
 namespace mikoto::renderer::rhi {
 
-    struct SubmitInfo {
+    struct SignalInfo {
         core::u64 mSignalValue{};
         FenceHandle mSinalFence{};
+    };
 
+    struct SubmitInfo {
         eastl::fixed_vector<CommandListHandle, 5> mCommands{};
+        eastl::fixed_vector<SignalInfo, 5> mSignals{};
 
-        auto SetSignalFence( FenceHandle handle ) -> SubmitInfo&;
-        auto SetSignalValue( core::u64 signalValue ) -> SubmitInfo&;
-        auto AddCommandList( CommandListHandle cmd ) -> SubmitInfo&;
+        auto AddCommandList(CommandListHandle cmd) -> SubmitInfo&;
+        auto AddSignal(FenceHandle fence, core::u64 value) -> SubmitInfo&;
+
+        auto AddCommandLists(eastl::span<CommandListHandle> commands) -> SubmitInfo&;
+        auto AddSignals(eastl::span<SignalInfo> signals) -> SubmitInfo&;
     };
 
     class IQueue : public DeviceObject {
@@ -50,7 +55,10 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD auto GetType() const -> QueueType;
         MKT_NODISCARD auto GetOpSupportFlags() const -> QueueOpSupportFlags;
 
+        // Don't execute subsequent work until this synchronization object has reached value
         virtual auto Wait( IFence* fence, core::u64 value ) -> void = 0;
+
+        // Queue execution will eventually advance this synchronization object to value
         virtual auto Signal( IFence* fence, core::u64 value ) -> void = 0;
 
         virtual auto ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void = 0;

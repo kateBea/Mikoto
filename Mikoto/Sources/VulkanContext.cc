@@ -140,11 +140,36 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
+    auto Context::BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void {
+        std::lock_guard lock{ mBatchedSubmissionEmplaceMutex };
+
+        Device* device{ checked_cast<Device*>( mDevice.get() ) };
+        Queue* pQueue{ checked_cast<Queue*>( device->GetQueue( queue ) ) };
+
+        auto& submissionBatchMap{ mBatchedSubmissions[pQueue] };
+
+        // Batch all commands and fences into same submit info
+        // they go to the same submission batch anyway there is no need to split them.
+        submissionBatchMap.AddCommandLists( submitInfo.mCommands );
+        submissionBatchMap.AddSignals( submitInfo.mSignals );
+    }
+
     auto Context::SubmitFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         auto& frame{ mFrames[mCurrentFrameIndex] };
         auto device{ checked_cast<Device*>( mDevice.get() ) };
+
+        // Submit batched commands
+        SubmitInfoMap swapMap{};
+        {
+            std::lock_guard lock{ mBatchedSubmissionProcessMutex };
+            swapMap = eastl::move(mBatchedSubmissions);
+        }
+
+        for (const auto& [queue, submitInfo] : swapMap) {
+            queue->ExecuteCommandLists( submitInfo );
+        }
 
         // https://community.khronos.org/t/is-it-recommended-to-use-vkcmdcopyimage-to-copy-to-the-swapchain-image-instead-of-a-shader/112122
         if (!mPresentTarget.IsEmpty() && !mSwapchain.IsEmpty()) {

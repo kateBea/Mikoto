@@ -26,6 +26,8 @@
 
 namespace mikoto::renderer {
 
+    using namespace mikoto::renderer::rhi;
+
     auto IGpuDevice::GetGraphicsApi() const -> GraphicsAPI {
         return mApi;
     }

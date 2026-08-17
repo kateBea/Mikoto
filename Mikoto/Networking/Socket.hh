@@ -68,7 +68,7 @@ namespace mikoto::network {
         TcpSocket( asio::io_context& ctx, eastl::string_view address, u16 port, bool wait = true );
 
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-        TcpSocket( asio::io_context& ctx, asio::ssl::context& sslContext, eastl::string_view address, UInt16 port, bool wait = true );
+        TcpSocket( asio::io_context& ctx, asio::ssl::context& sslContext, eastl::string_view address, core::u16 port, bool wait = true );
 #endif
 
         auto Disconnect() -> void override;
@@ -97,9 +97,9 @@ namespace mikoto::network {
         asio::error_code mErrorCode{};
 
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-        asio::ip::tcp::socket m_Socket;
-        asio::ip::tcp::endpoint m_TcpEndpoint{};
-        asio::ssl::stream<asio::ip::tcp::socket>* m_SslSocket{ nullptr };
+        asio::ip::tcp::socket mSocket;
+        asio::ip::tcp::endpoint mTcpEndpoint{};
+        asio::ssl::stream<asio::ip::tcp::socket>* mSslSocket{ nullptr };
 
 #else
         asio::ip::tcp::socket mSocket;

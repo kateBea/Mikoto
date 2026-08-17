@@ -73,7 +73,7 @@ namespace mikoto::renderer {
         auto AddRenderTarget(FGTextureHandle target, const rhi::Color& c, rhi::LoadOp op = rhi::LoadOp::eClear, core::u32 faceIndex = 0, core::u32 mipLevel = 0) -> ContextRenderState&;
     };
 
-    class CommandContext final : public core::ReferenceCounted {
+    class CommandContext final {
     public:
         CommandContext( FGNode* pass, FGResourceManager* resourceManager );
 

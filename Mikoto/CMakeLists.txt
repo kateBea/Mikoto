@@ -851,8 +851,6 @@ set(LIBRARIES
         magic_enum::magic_enum
         spirv-cross-core
         spirv-cross-glsl
-        Microsoft::DirectX-Headers
-        D3D12MemoryAllocator
 )
 
 # ======================================
@@ -888,6 +886,8 @@ if (MSVC OR WIN32)
             /WX-
             /Zc:enumTypes-
     )
+
+    list(APPEND LIBRARIES D3D12MemoryAllocator Microsoft::DirectX-Headers)
 endif()
 
 # Windowing system

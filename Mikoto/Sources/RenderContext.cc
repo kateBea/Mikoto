@@ -26,6 +26,8 @@
 
 namespace mikoto::renderer {
 
+    using namespace mikoto::renderer::rhi;
+
     auto RenderContextCreateInfo::SetWindow( platform::Window* window ) noexcept -> RenderContextCreateInfo& {
         mWindow = window;
         return *this;

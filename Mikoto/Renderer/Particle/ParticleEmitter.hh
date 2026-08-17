@@ -15,15 +15,23 @@
 #ifndef MIKOTOROOT_PARTICLE_EMITTER_HH
 #define MIKOTOROOT_PARTICLE_EMITTER_HH
 
+#include <Core/ResourcePool.hh>
+
 namespace mikoto::renderer {
 
-    class ParticleEmitter final /*: public IResource*/ {
-        // float EmissionRate{};
-        // float Lifetime{};
-        // float Speed{};
-        // UInt32 MaxParticles{};
+    class ParticleEmitter final : public core::IResource {
+    public:
+        ~ParticleEmitter() override;
 
-        // Other properties (texture it uses, etc)
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+
+    private:
+        core::f32 mEmissionRate{};
+        core::f32 mLifetime{};
+        core::f32 mSpeed{};
+        core::u32 mMaxParticles{};
     };
 
     // It is important to have an instance because

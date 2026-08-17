@@ -480,6 +480,12 @@ namespace mikoto::renderer {
         return taskID;
     }
 
+    FGNodeControl::FGNodeControl()
+        : mNodes{}, mContexts{}, mResources{}
+    {
+
+    }
+
     auto FGNodeControl::Clear() -> void {
         mContexts.clear();
         mResources.clear();
@@ -648,7 +654,7 @@ namespace mikoto::renderer {
                 continue;
 
             auto& pass{ mNodeControl->mNodes[passName] };
-            auto& ctx{ mNodeControl->mContexts[passName] };
+            auto& ctx{ mNodeControl->mContexts.at(passName) };
 
             CommandListHandle cmd{};
 
@@ -667,14 +673,14 @@ namespace mikoto::renderer {
 
             // Off load this work to workers threads
             // Vulkan could use secondary command buffers here
-            ctx->BeginPass( cmd );
+            ctx.BeginPass( cmd );
 
             // Place pass barriers
             auto& barriers{ mExecutionPlan.mBarriers[passName] };
-            ctx->CommitBarriers( barriers );
+            ctx.CommitBarriers( barriers );
 
-            pass.mExecuteCallback( *ctx, mBlackboard );
-            ctx->EndPass();
+            pass.mExecuteCallback( ctx, mBlackboard );
+            ctx.EndPass();
         }
 
         mGraphicsCommands->End();
@@ -909,7 +915,7 @@ namespace mikoto::renderer {
     auto FrameGraph::BuildExecutionTasks() -> void {
         // TODO: Pending redesign, after parallel command recording is properly implemented
         for (auto& [passName, node] : mNodeControl->mNodes ) {
-            mNodeControl->mContexts[passName] = Ref<CommandContext>::Spawn( MKT_ADDRESSOF( node ), mResourceManager.get() );
+            mNodeControl->mContexts.try_emplace( passName, MKT_ADDRESSOF( node ), mResourceManager.get() );
         }
 
         // create tasks
@@ -936,7 +942,7 @@ namespace mikoto::renderer {
 
             auto task = mExecutionPlan.mExecutionGraph.emplace([this, passName, cmd]() mutable {
                 auto& pass{ mNodeControl->mNodes[passName] };
-                auto& ctx{ mNodeControl->mContexts[passName] };
+                auto& ctx{ mNodeControl->mContexts.at(passName) };
 
                 if ( pass.mType != FGPassType::eGeneric ) {
                     cmd->Begin( {} );
@@ -944,16 +950,16 @@ namespace mikoto::renderer {
 
                 // Off load this work to workers threads
                 // Vulkan could use secondary command buffers here
-                ctx->BeginPass( cmd );
+                ctx.BeginPass( cmd );
 
                 // Place pass barriers
                 const auto it{ mExecutionPlan.mBarriers.find( passName ) };
                 if (it != mExecutionPlan.mBarriers.end()) {
-                    ctx->CommitBarriers( it->second );
+                    ctx.CommitBarriers( it->second );
                 }
 
-                pass.mExecuteCallback( *ctx, mBlackboard );
-                ctx->EndPass();
+                pass.mExecuteCallback( ctx, mBlackboard );
+                ctx.EndPass();
 
                 if ( pass.mType != FGPassType::eGeneric ) {
                     cmd->End();

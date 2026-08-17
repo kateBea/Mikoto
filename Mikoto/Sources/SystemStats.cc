@@ -94,14 +94,14 @@ namespace mikoto::core {
 
 #if defined( __linux__ )
 
-    static auto ReadCpuName() -> std::string {
+    static auto ReadCpuName() -> eastl::string {
         std::ifstream cpuinfo( "/proc/cpuinfo" );
-        std::string line;
+        std::string line{};
         while ( std::getline( cpuinfo, line ) ) {
             if ( line.rfind( "model name", 0 ) == 0 ) {
                 auto pos = line.find( ':' );
                 if ( pos != std::string::npos )
-                    return line.substr( pos + 2 );
+                    return line.substr( pos + 2 ).c_str();
             }
         }
         return "Unknown CPU";

@@ -512,9 +512,11 @@ namespace mikoto::renderer {
     };
 
     struct FGNodeControl {
-        ankerl::unordered_dense::map<eastl::string, FGNode> mNodes{};
-        ankerl::unordered_dense::map<eastl::string, Ref<CommandContext>> mContexts{};
-        ankerl::unordered_dense::map<FGResourceHandle, FGNodeResource> mResources{};
+        ankerl::unordered_dense::map<eastl::string, FGNode> mNodes;
+        ankerl::unordered_dense::map<eastl::string, CommandContext> mContexts;
+        ankerl::unordered_dense::map<FGResourceHandle, FGNodeResource> mResources;
+
+        FGNodeControl();
 
         auto Clear() -> void;
     };

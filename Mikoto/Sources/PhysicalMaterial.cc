@@ -32,8 +32,8 @@ namespace mikoto::material {
     }
 
     PhysicalMaterial::PhysicalMaterial( const PhysicMaterialDescription& props ) {
-        mAlphaMask = props.AlphaMask;
-        mWorkflow = props.Workflow;
+        mAlphaMask = props.mAlphaMask;
+        mWorkflow = props.mWorkflow;
 
         mBaseColorFactor = props.BaseColorFactor;
         mDiffuseFactor = props.DiffuseFactor;
@@ -58,7 +58,7 @@ namespace mikoto::material {
         mIsDoubleSided = props.mIsDoubleSided;
 
         for ( const auto& texture: props.mTexturesByUri | std::ranges::views::values ) {
-            SetTexture( texture.MapType, texture.mTexture );
+            SetTexture( texture.mMapType, texture.mTexture );
         }
     }
 

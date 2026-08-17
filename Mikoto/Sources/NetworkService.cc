@@ -123,7 +123,7 @@ namespace mikoto::network {
                 break;
             case SecurityProtocol::eTLS:
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-                handle = mTcpSockets.Allocate( mIoContext, m_SslContext, hostName, port, wait );
+                handle = mTcpSockets.Allocate( *mIoContext, mSslContext, hostName, port, wait );
 #else
                 MKT_CORE_LOGGER_WARN("NetworkService::CreateSocketTcp - Attempting to create TLS Socket but OpenSSL not available.");
 #endif

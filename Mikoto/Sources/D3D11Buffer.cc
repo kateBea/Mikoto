@@ -16,8 +16,12 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/Platform.hh>
+#include <Core/Exception.hh>
 
 #include <Memory/Allocator.hh>
+
+#if defined(MIKOTO_PLATFORM_WINDOWS)
 
 #include <Renderer/Rhi/D3D11/D3D11Buffer.hh>
 #include <Renderer/Rhi/D3D11/D3D11Device.hh>
@@ -124,3 +128,5 @@ namespace mikoto::renderer::d3d11 {
         mBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,as<UINT>(name.size()), name.data() );
     }
 }// namespace mikoto::renderer::d3d11
+
+#endif

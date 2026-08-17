@@ -76,14 +76,14 @@ namespace mikoto::material {
 
     struct PBRMap {
         renderer::rhi::TextureHandle mTexture{};
-        MapType MapType{ MapType::eInvalid };
+        MapType mMapType{ MapType::eInvalid };
     };
 
     struct PhysicMaterialDescription {
         eastl::string mName{};
 
-        AlphaMode AlphaMask{ AlphaMode::Opaque };
-        Workflow Workflow{ Workflow::eMetallicRoughness };
+        AlphaMode mAlphaMask{ AlphaMode::Opaque };
+        Workflow mWorkflow{ Workflow::eMetallicRoughness };
 
         // Base color/Albedo
         core::float4 BaseColorFactor{ 1.f, 1.f, 1.f, 1.f };

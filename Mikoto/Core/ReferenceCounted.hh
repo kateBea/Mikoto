@@ -57,7 +57,7 @@ namespace mikoto::core {
     
     private:
 
-        mutable std::atomic<u32> mRefCount{ 0 };
+        mutable eastl::atomic<u32> mRefCount{ 0 };
     };
 
     /**

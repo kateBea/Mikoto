@@ -1323,14 +1323,14 @@ namespace mikoto::asset {
             if ( pbr.baseColorTexture.index >= 0 ) {
                 const auto& tex{ model.textures[pbr.baseColorTexture.index] };
                 props.BaseColorTextureSet = pbr.baseColorTexture.texCoord;
-                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .MapType = MapType::eBaseColor };
+                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .mMapType = MapType::eBaseColor };
             }
 
             // Metallic-roughness
             if ( pbr.metallicRoughnessTexture.index >= 0 ) {
                 const auto& tex{ model.textures[pbr.metallicRoughnessTexture.index] };
                 props.MetallicRoughnessTextureSet = pbr.metallicRoughnessTexture.texCoord;
-                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .MapType = MapType::eMetallicRoughness };
+                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .mMapType = MapType::eMetallicRoughness };
             }
 
             props.RoughnessFactor = as<f32>( pbr.roughnessFactor );
@@ -1341,7 +1341,7 @@ namespace mikoto::asset {
                 const auto& tex{ model.textures[gltfMaterial.normalTexture.index] };
                 props.NormalTextureSet = gltfMaterial.normalTexture.texCoord;
                 props.NormalScale = static_cast<float>( gltfMaterial.normalTexture.scale );
-                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .MapType = MapType::eNormal };
+                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .mMapType = MapType::eNormal };
             }
 
             // Ambient Occlusion
@@ -1349,14 +1349,14 @@ namespace mikoto::asset {
                 const auto& tex{ model.textures[gltfMaterial.occlusionTexture.index] };
                 props.OcclusionTextureSet = gltfMaterial.occlusionTexture.texCoord;
                 props.OcclusionStrength = as<f32>( gltfMaterial.occlusionTexture.strength );
-                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .MapType = MapType::eNormal };
+                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .mMapType = MapType::eNormal };
             }
 
             // Emissive
             if ( gltfMaterial.emissiveTexture.index >= 0 ) {
                 const auto& tex{ model.textures[gltfMaterial.emissiveTexture.index] };
                 props.EmissiveTextureSet = gltfMaterial.emissiveTexture.texCoord;
-                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .MapType = MapType::eEmissive };
+                props.mTexturesByUri[Path{ model.images[tex.source].uri }] = PBRMap{ .mMapType = MapType::eEmissive };
             }
 
             props.EmissiveFactor = {
@@ -1367,9 +1367,9 @@ namespace mikoto::asset {
 
             // AlphaMask (Default is Opaque unless otherwise specified)
             if ( gltfMaterial.alphaMode == "BLEND" ) {
-                props.AlphaMask = AlphaMode::eBlend;
+                props.mAlphaMask = AlphaMode::eBlend;
             } else if ( gltfMaterial.alphaMode == "MASK" ) {
-                props.AlphaMask = AlphaMode::eMask;
+                props.mAlphaMask = AlphaMode::eMask;
                 props.AlphaMaskCutoff = 0.5f;
             }
 
@@ -1382,15 +1382,15 @@ namespace mikoto::asset {
                     auto texIndex{ index.Get<int>() };
                     auto texCoordSet{ ext->second.Get( "specularGlossinessTexture" ).Get( "texCoord" ).Get<int>() };
 
-                    props.mTexturesByUri[Path{ model.images[texIndex].uri }] = PBRMap{ .MapType = MapType::eSpecularGlossiness };
+                    props.mTexturesByUri[Path{ model.images[texIndex].uri }] = PBRMap{ .mMapType = MapType::eSpecularGlossiness };
 
                     props.SpecularGlossinessSet = texCoordSet;
-                    props.Workflow = Workflow::eSpecularGlossiness;
+                    props.mWorkflow = Workflow::eSpecularGlossiness;
                 }
 
                 if ( ext->second.Has( "diffuseTexture" ) ) {
                     auto index{ ext->second.Get( "diffuseTexture" ).Get( "index" ) };
-                    props.mTexturesByUri[Path{ model.images[index.Get<int>()].uri }] = PBRMap{ .MapType = MapType::eDiffuse };
+                    props.mTexturesByUri[Path{ model.images[index.Get<int>()].uri }] = PBRMap{ .mMapType = MapType::eDiffuse };
                 }
 
                 if ( ext->second.Has( "diffuseFactor" ) ) {

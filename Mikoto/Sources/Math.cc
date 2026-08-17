@@ -72,31 +72,31 @@ namespace mikoto::math {
     //             out );
     // }
 
-    auto math::Floor( const double value ) -> double {
+    auto Floor( const double value ) -> double {
         return glm::floor( value );
     }
 
-    auto math::Log2( const double value ) -> double {
+    auto Log2( const double value ) -> double {
         return std::log2( value );
     }
 
-    auto math::ToRadians( double value ) -> double {
+    auto ToRadians( double value ) -> double {
         return glm::radians( value );
     }
 
-    auto math::ToDegrees( double value ) -> double {
+    auto ToDegrees( double value ) -> double {
         return glm::degrees( value );
     }
 
-    auto math::Abs( double value ) -> double {
+    auto Abs( double value ) -> double {
         return glm::abs( value );
     }
 
-    auto math::Lerp( float a, float b, float f ) -> double {
+    auto Lerp( float a, float b, float f ) -> double {
         return a + f * (b - a);
     }
 
-    auto math::Recompose( float4x4& transform, const float3& translation, const float3& rotation, const float3& scale ) -> void {
+    auto Recompose( float4x4& transform, const float3& translation, const float3& rotation, const float3& scale ) -> void {
         float matrixTranslation[3]{}, matrixRotation[3]{}, matrixScale[3]{};
 
         matrixTranslation[0] = translation.x;
@@ -114,7 +114,7 @@ namespace mikoto::math {
         ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, glm::value_ptr( transform ));
     }
 
-    auto math::Decompose( const float4x4 &transform, float3 &translation, float3 &rotation, float3 &scale ) -> void {
+    auto Decompose( const float4x4 &transform, float3 &translation, float3 &rotation, float3 &scale ) -> void {
         float matrixTranslation[3]{}, matrixRotation[3]{}, matrixScale[3]{};
         ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr( transform ), matrixTranslation, matrixRotation, matrixScale);
 
@@ -145,13 +145,13 @@ namespace mikoto::math {
         return value;
     }
 
-    auto math::DumpMat4FList( const std::vector<glm::mat4>& m ) -> void {
+    auto DumpMat4FList( const std::vector<glm::mat4>& m ) -> void {
         // for ( Size i{}; i < m.size(); ++i ) {
         //     DumpMat4( m[i], i );
         // }
     }
 
-    auto math::DumpMat4FListBeautify( const std::vector<glm::mat4>& m ) -> void {
+    auto DumpMat4FListBeautify( const std::vector<glm::mat4>& m ) -> void {
         // for ( Size i{}; i < m.size(); ++i ) {
         //     DumpMat4Beautify( m[i], i );
         // }

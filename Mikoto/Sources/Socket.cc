@@ -38,17 +38,17 @@ namespace mikoto::network {
     }
 
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-    TcpSocket::TcpSocket( asio::io_context &ctx, asio::ssl::context &sslContext, const eastl::string_view address, const UInt16 port, bool wait )
-        : m_Socket{ ctx },
-          m_SslSocket{
+    TcpSocket::TcpSocket( asio::io_context& ctx, asio::ssl::context& sslContext, eastl::string_view address, core::u16 port, bool wait )
+        : mSocket{ ctx },
+          mSslSocket{
               new asio::ssl::stream<asio::ip::tcp::socket>{
                   asio::ip::tcp::socket{ ctx },
                   sslContext
               } },
-          m_Port{ port },
-          m_HostName{ address },
-          m_IsSsl{ true },
-           m_InitSync( wait ) {
+          mPort{ port },
+          mHostName{ address },
+          mIsSsl{ true },
+           mInitSync( wait ) {
     }
 #endif
 
@@ -67,9 +67,9 @@ namespace mikoto::network {
         try {
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
             if (mIsSsl) {
-                m_SslSocket->shutdown();
-                delete m_SslSocket;
-                m_SslSocket = nullptr;
+                mSslSocket->shutdown();
+                delete mSslSocket;
+                mSslSocket = nullptr;
             }
 #endif
             if (!mIsSsl) {
@@ -107,7 +107,7 @@ namespace mikoto::network {
         try {
             if ( mIsSsl ) {
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-                asio::write( *m_SslSocket, asio::buffer( data, size ) );
+                asio::write( *mSslSocket, asio::buffer( data, size ) );
 #else
 #endif
             } else {
@@ -129,7 +129,7 @@ namespace mikoto::network {
 
             if ( mIsSsl ) {
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-                return m_SslSocket->read_some( asio::buffer( buffer, maxSize ), mErrorCode );
+                return mSslSocket->read_some( asio::buffer( buffer, maxSize ), mErrorCode );
 #else
                 return 0;
 #endif
@@ -168,10 +168,10 @@ namespace mikoto::network {
         try {
             if ( mIsSsl ) {
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-                asio::ip::tcp::resolver resolver( m_SslSocket->get_executor() );
+                asio::ip::tcp::resolver resolver( mSslSocket->get_executor() );
                 const auto endpoints{ resolver.resolve( mHostName.c_str(), std::to_string( mPort ) ) };
 
-                asio::async_connect( m_SslSocket->next_layer(), endpoints,
+                asio::async_connect( mSslSocket->next_layer(), endpoints,
                      [this]( std::error_code ec, const asio::ip::tcp::endpoint & ) -> void {
                          if ( !ec ) {
                              MKT_CORE_LOGGER_INFO( "SSL Connected successfully to host {}", mHostName );
@@ -179,7 +179,7 @@ namespace mikoto::network {
                              // Perform TLS handshake
                              mSslSocket->handshake( asio::ssl::stream_base::client );
 
-                             m_ConnectionStatus = ConnectionStatus::eConnected;
+                             mConnectionStatus = ConnectionStatus::eConnected;
                          } else {
                              MKT_CORE_LOGGER_ERROR( "SSL connection failed to host {}, message: {}",mHostName, ec.message() );
 
@@ -216,10 +216,10 @@ namespace mikoto::network {
         try {
             if ( mIsSsl ) {
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
-                asio::ip::tcp::resolver resolver( m_SslSocket->get_executor() );
+                asio::ip::tcp::resolver resolver( mSslSocket->get_executor() );
                 const auto endpoints{ resolver.resolve( mHostName.c_str(), std::to_string( mPort ) ) };
 
-                asio::connect( m_SslSocket->next_layer(), endpoints);
+                asio::connect( mSslSocket->next_layer(), endpoints);
 
                 mSslSocket->handshake( asio::ssl::stream_base::client );
 

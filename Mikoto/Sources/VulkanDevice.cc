@@ -445,7 +445,7 @@ namespace mikoto::renderer::vulkan {
         Queue* queue{ checked_cast<Queue*>( GetQueue( queueType ) ) };
         CommandListHandle handle{ CommandListHandle::CreateEmpty() };
         if (queue) {
-            handle = queue->AllocateCmdList();
+            handle = queue->AllocateCmdList(queueType);
             handle->Initialize(this);
         }
 
@@ -697,7 +697,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::InitDescriptorAllocator() -> void {
-        Context *ctx{ as<Context *>( RenderSystem::Get()->GetContext() ) };
+        Context *ctx{ checked_cast<Context *>( RenderSystem::Get()->GetContext() ) };
         mDescriptorAllocatorPool = IDescriptorAllocatorPool::Create( mLogicalDevice, ctx->GetMaxFramesInFlight() );
 
         constexpr float poolMultiplier{ 3.0f };
@@ -818,8 +818,9 @@ namespace mikoto::renderer::vulkan {
         return mLogicalDevice;
     }
 
-    CommandList::CommandList( rhi::IQueue* queue, CommandPoolHandle pool )
-        : ICommandList{ queue->GetType() }, mQueue{ queue }, mCommandPool{ pool }
+    CommandList::CommandList( rhi::QueueType queueType, rhi::IQueue* queue, CommandPoolHandle pool )
+        // See comment in AllocateCmdList() from Queue definition
+        : ICommandList{ queueType }, mQueue{ queue }, mCommandPool{ pool }
     {
         mLabelColor = Color(
             (f32)math::random::GetRandomReal( 0.0f, 1.0f ),
@@ -1998,9 +1999,9 @@ namespace mikoto::renderer::vulkan {
         return submissionID;
     }
 
-    auto Queue::AllocateCmdList() -> CommandListHandle {
+    auto Queue::AllocateCmdList(QueueType type) -> CommandListHandle {
         CommandPoolHandle pool{ AcquireThreadCmdPool() };
-        CommandListHandle result{ Ref<CommandList>::Spawn( this, pool ) };
+        CommandListHandle result{ Ref<CommandList>::Spawn( type, this, pool ) };
 
         return result;
     }

@@ -208,7 +208,7 @@ namespace mikoto::renderer::vulkan {
 
     class CommandList final : public rhi::ICommandList {
     public:
-        explicit CommandList( rhi::IQueue* queue, CommandPoolHandle pool );
+        explicit CommandList( rhi::QueueType queueType, rhi::IQueue* queue, CommandPoolHandle pool );
 
         auto Begin( const rhi::CommandListBeginDescription& desc ) -> void override;
         auto End() -> void override;
@@ -333,7 +333,9 @@ namespace mikoto::renderer::vulkan {
         auto WaitCompletionValue( u64 value ) -> void;
         auto ExecuteCommandsWithSemaphores( eastl::span<CommandListHandle> commands, IFence* fence = nullptr, core::u64 signalValue = 0 ) -> core::u64;
 
-        auto AllocateCmdList() -> CommandListHandle;
+        // We still specify queue type because this queue might be a graphics queue
+        // but still support transfer operations
+        auto AllocateCmdList( rhi::QueueType type ) -> CommandListHandle;
 
         auto RunGarbageCollection() -> void;
 

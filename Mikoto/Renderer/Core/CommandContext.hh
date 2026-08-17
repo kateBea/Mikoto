@@ -90,7 +90,6 @@ namespace mikoto::renderer {
 
         auto PushBuffer_SRV( FGBufferHandle handle ) -> core::u32;
         auto PushBuffer_UAV( FGBufferHandle handle ) -> core::u32;
-        auto PushBuffer_Constant( FGBufferHandle handle ) -> core::u32;
 
         auto CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>& barriers ) -> void;
 
@@ -105,19 +104,19 @@ namespace mikoto::renderer {
         auto Dispatch( core::u32 groupX, core::u32 groupY, core::u32 groupZ ) -> void;
 
         auto CopyBuffer( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void;
-        auto CopyBuffer( FGBufferHandle dstBuffer, rhi::IBuffer* src, size_t dstOffset ) -> void;
+        auto CopyBuffer( FGBufferHandle dstBuffer, rhi::IBuffer* src, core::size_t dstOffset ) -> void;
 
         auto Copy( FGBufferHandle dstBuffer, FGTextureHandle srcImage ) -> void;
 
-        auto CopyBuffer( FGBufferHandle dstBuffer, const auto& data, size_t offset ) -> void {
+        auto CopyBuffer( FGBufferHandle dstBuffer, const auto& data, core::size_t offset ) -> void {
             CopyBuffer( dstBuffer, offset, MKT_ADDRESSOF( data ), MKT_SIZEOF( data ) );
         }
 
-        auto CopyBuffer( FGBufferHandle dstBuffer, size_t offset, const void* ptr, size_t sizeBytes ) -> void;
+        auto CopyBuffer( FGBufferHandle dstBuffer, core::size_t offset, const void* ptr, core::size_t sizeBytes ) -> void;
 
         auto PushConstants( const auto& data ) -> void {
             const void* ptr{ MKT_ADDRESSOF( data ) };
-            const size_t size{ MKT_SIZEOF( data ) };
+            const core::size_t size{ MKT_SIZEOF( data ) };
 
             eastl::copy_n( core::as<core::byte_t*>( ptr ), size, mPushConstantsData.data() );
         }

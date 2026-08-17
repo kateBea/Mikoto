@@ -46,7 +46,7 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
 
         RegisterAABB( graph );
-        RegisterLightCulling( graph );
+        //RegisterLightCulling( graph );
 
         RegisterDepthPrepass( graph );
         RegisterGBuffer( graph );
@@ -89,14 +89,10 @@ namespace mikoto::renderer {
                     float4 mGridSize{};
                     u32 mAabbBuffer{};
                     u32 mCameraInfo{};
-                    u32 mActiveLightCount{};
                 } params{
                     .mGridSize = glm::vec4{ mGridSizeX, mGridSizeY, mGridSizeZ, 0.0f },
                     .mAabbBuffer = ctx.PushBuffer_UAV( aabbData.mClusterBuffer ),
-                    .mCameraInfo = ctx.PushBuffer_SRV( cameraInfo.mCameraData ),
-                    .mActiveLightCount = 0
-                };
-
+                    .mCameraInfo = ctx.PushBuffer_SRV( cameraInfo.mCameraData ) };
                 ctx.PushConstants( params );
                 ctx.BindPipeline( aabbData.mAabbGenPipeline );
 

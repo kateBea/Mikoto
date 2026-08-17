@@ -57,7 +57,7 @@ namespace mikoto::renderer::vulkan {
 
         allocInfo.pVulkanFunctions = MKT_ADDRESSOF( vulkanFuncs );
 
-        MKT_VK_CHECK( vmaCreateAllocator( &allocInfo, &mAllocator ) );
+        MKT_VK_CHECK( vmaCreateAllocator( MKT_ADDRESSOF( allocInfo ) , MKT_ADDRESSOF( mAllocator ) ) );
 
         // Note for public API:
         // By default, all calls to functions that take VmaAllocator as first parameter are safe to call

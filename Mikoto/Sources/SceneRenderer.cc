@@ -54,14 +54,14 @@ namespace mikoto::renderer {
         mCameraPass.RegisterPasses( *mFrameGraph );
         mGeometryManagement.RegisterPasses( *mFrameGraph );
 
-        //mRenderPrepass.RegisterPasses( *mFrameGraph );
-        //mShadowMapping.RegisterPasses( *mFrameGraph );
+        mRenderPrepass.RegisterPasses( *mFrameGraph );
+        mShadowMapping.RegisterPasses( *mFrameGraph );
 
         mParticleRendering.RegisterPasses( *mFrameGraph );
 
         //mGeometryShading.RegisterPasses( *mFrameGraph );
 
-        //mMousePickingModule.RegisterPasses( *mFrameGraph );
+        mMousePickingModule.RegisterPasses( *mFrameGraph );
 
         // Raytracing
         mPathTracing.RegisterPasses( *mFrameGraph );

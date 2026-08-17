@@ -24,8 +24,6 @@ struct ClusteredParams {
     float4 GridSize;
     uint ClusterBufferID;
     uint CameraInfoBufferID;
-
-    uint ActiveLightCount;
 };
 
 MKT_DECLARE_PUSH_CONSTANT(ClusteredParams) Parameters;

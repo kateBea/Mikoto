@@ -415,12 +415,6 @@ namespace mikoto::renderer {
         return newID;
     }
 
-    auto FGResourceManager::PushBuffer_Constant( FGResourceHandle ) -> u32 {
-        std::lock_guard lock{ mTableWriteMutex };
-        // TODO:
-        return 0;
-    }
-
     auto FGResourceManager::ImportTexture( TextureHandle handle ) -> FGTextureHandle {
         auto& resource{ Allocate( FGResourceType::eTexture, handle.GetRaw() ) };
 
@@ -580,11 +574,11 @@ namespace mikoto::renderer {
         mResourceManager = eastl::make_unique<FGResourceManager>( mDevice );
         mReadbackManager = eastl::make_unique<FGReadbackManager>( mBlackboard, *mResourceManager );
 
-        mFence = mDevice->CreateFence( mFenceValue );
+        mFence = mDevice->CreateFence( mFenceValue++ );
 
         mGraphicsCommands = mDevice->CreateCommandList( QueueType::eGraphics );
-        mComputeCommands = mDevice->CreateCommandList( QueueType::eGraphics );
-        mTransferCommands = mDevice->CreateCommandList( QueueType::eGraphics );
+        mComputeCommands = mDevice->CreateCommandList( QueueType::eCompute );
+        mTransferCommands = mDevice->CreateCommandList( QueueType::eTransfer );
 
         mGraphicsCommands->SetEnableAutomaticBarriers( false );
         mGraphicsCommands->SetDebugName( "FG GraphicsCommands" );

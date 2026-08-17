@@ -446,7 +446,6 @@ namespace mikoto::renderer {
 
         MKT_NODISCARD auto PushBuffer_SRV( FGResourceHandle name ) -> u32;
         MKT_NODISCARD auto PushBuffer_UAV( FGResourceHandle name ) -> u32;
-        MKT_NODISCARD auto PushBuffer_Constant( FGResourceHandle name ) -> u32;
 
         MKT_NODISCARD auto ImportTexture( TextureHandle handle ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportBuffer( BufferHandle handle ) -> FGBufferHandle;

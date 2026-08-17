@@ -170,7 +170,7 @@ namespace mikoto::renderer {
     }
 
     auto CommandContext::PushBuffer_SRV( FGBufferHandle handle ) -> u32 {
-        // TODO: add checks if u registered the resource to use as SRV in the setup lambda
+        // TODO: add checks if you registered the resource to use as SRV in the setup lambda
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         return mResourceManager->PushBuffer_SRV( handle.mHandle );
@@ -179,11 +179,6 @@ namespace mikoto::renderer {
     auto CommandContext::PushBuffer_UAV( FGBufferHandle handle ) -> u32 {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         return mResourceManager->PushBuffer_UAV( handle.mHandle );
-    }
-
-    auto CommandContext::PushBuffer_Constant( FGBufferHandle handle ) -> u32 {
-        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        return mResourceManager->PushBuffer_Constant( handle.mHandle );
     }
 
     auto CommandContext::CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>& barriers ) -> void {

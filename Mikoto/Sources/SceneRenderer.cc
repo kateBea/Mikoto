@@ -50,37 +50,37 @@ namespace mikoto::renderer {
 
         mFrameGraph = FrameGraph::Create( mDevice, mShaderLibrary.get() );
 
+        // Some debug passes
+        mMaterialModule.RegisterPasses( *mFrameGraph );
+        mDebugPasses.RegisterPasses( *mFrameGraph );
+
         // Scene pre-passes
-        mCameraPass.RegisterPasses( *mFrameGraph );
-        mGeometryManagement.RegisterPasses( *mFrameGraph );
+        //mCameraPass.RegisterPasses( *mFrameGraph );
+        //mGeometryManagement.RegisterPasses( *mFrameGraph );
 
-        mRenderPrepass.RegisterPasses( *mFrameGraph );
-        mShadowMapping.RegisterPasses( *mFrameGraph );
+        //mRenderPrepass.RegisterPasses( *mFrameGraph );
+        //mShadowMapping.RegisterPasses( *mFrameGraph );
 
-        mParticleRendering.RegisterPasses( *mFrameGraph );
+        //mParticleRendering.RegisterPasses( *mFrameGraph );
 
         //mGeometryShading.RegisterPasses( *mFrameGraph );
 
-        mMousePickingModule.RegisterPasses( *mFrameGraph );
+        //mMousePickingModule.RegisterPasses( *mFrameGraph );
 
         // Raytracing
-        mPathTracing.RegisterPasses( *mFrameGraph );
-        mRayTracingPass.RegisterPasses( *mFrameGraph );
+        //mPathTracing.RegisterPasses( *mFrameGraph );
+        //mRayTracingPass.RegisterPasses( *mFrameGraph );
 
         // Post process
         //mTextRendering.RegisterPasses( *mFrameGraph );
         //mPostEffectsPasses.RegisterPasses( *mFrameGraph );
-
-        // Some debug passes
-        mMaterialModule.RegisterPasses( *mFrameGraph );
-        //mDebugPasses.RegisterPasses( *mFrameGraph );
 
         //mTonemapModule.RegisterPasses( *mFrameGraph );
 
         // I am not sure about this pass, this one was designed to
         // ideally serve as helper for passes that required image blit-ting
         // which could be achieved with compute shaders for instance
-        mHelperModule.RegisterPasses( *mFrameGraph );
+        //mHelperModule.RegisterPasses( *mFrameGraph );
 
         // Render final contents into specified images
         //mPresentationModule.RegisterPasses( *mFrameGraph );

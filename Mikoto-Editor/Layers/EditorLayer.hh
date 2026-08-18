@@ -128,9 +128,6 @@ namespace mikoto::editor {
 
         renderer::rhi::CommandListHandle mCommandList{};
 
-        // [DEBUG] To remove
-        renderer::rhi::TextureHandle mTestSkybox{};
-
         ScreenPresentTarget mScreenPresentTarget{ ScreenPresentTarget::ePanels };
     };
 }// namespace mikoto::editor

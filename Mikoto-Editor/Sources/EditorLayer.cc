@@ -90,11 +90,6 @@ namespace mikoto::editor {
 
         InitActionCallbacks();
 
-        // [DEBUG]
-        mTestSkybox = AssetsService::Get()->LoadAsset<ITexture>(
-            "Resources/Cubemaps/scifi_desert_beach/Scifi Desert Beach/Scifi-Desert-Beach.hdr",
-            TextureDimension::eTexture2D );
-
         mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
     }
 
@@ -127,37 +122,12 @@ namespace mikoto::editor {
     auto EditorLayer::OnUpdate( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        //TODO:Integrate project load, no render panels just dockspace if no project
-
-        static i32 first{ 0 };
-        static bool run{ false };
-        if (first >= 3 && !run) {
-            // Skybox projection does not get the changes
-            // from the HDR texture for some reason on the very first frame
-            // I am using this to delay that pass to later frames
-            run = true;
-
-            //mSceneRenderer->SetSkyboxEquirectangular( mTestSkybox );
-            mSceneRenderer->SetRenderBackground( SceneBackgroundType::eClearColor );
-        } else {
-            ++first;
-        }
-
         UpdateCameraState( timeStep );
         UpdateRendererState( timeStep );
         UpdateSceneState( timeStep );
 
-        // [DEBUG]
-        mSceneRenderer->SetGamma( 1.0f );
-        mSceneRenderer->SetExposure( 2.0f );
-        mSceneRenderer->SetPresentType( PresentTarget::eTonemap_Output );
-
         RenderScene( timeStep );
 
-        // [DEBUG]
-        u32 entityID{};
-
-        auto mousePos{ mWindow->GetMousePos() };
         if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
             RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
 
@@ -166,14 +136,7 @@ namespace mikoto::editor {
 
             UpdateViewportState( timeStep );
         } else {
-            entityID = mSceneRenderer->ReadPixel( (u32)mousePos.first, (u32)mousePos.second);
             RenderSystem::Get()->SetPresentTarget( mEditorState->mFinalComposition );
-        }
-
-        // [DEBUG]
-        if (auto* ent{ mEditorState->mActiveScene->FindByID( entityID ) } ) {
-            eastl::string_view name{ent->GetComponent<TagComponent>().GetTag().data()};
-            MKT_CORE_LOGGER_DEBUG( "Hovering over {}", name.data() );
         }
     }
 

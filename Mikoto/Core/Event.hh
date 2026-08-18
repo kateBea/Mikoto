@@ -117,11 +117,6 @@ namespace mikoto::core {
 
     /**
      * Defines the general interface for all types of events.
-     *
-     * At the moment Mikoto events are blocking, meaning when an event
-     * occurs it is notified and must be handled at that moment. An alternative
-     * system is Even queueing where we dispatch events to a queue and can
-     * handle them when we consider appropriate
      * */
     class IEvent {
     public:

@@ -109,7 +109,7 @@ namespace mikoto::renderer {
     };
 
     // These should represent pipeline stage
-    enum class FGResourceStage {
+    enum class FGPipelineStage {
         eUnknown,
         eConstantBuffer,
         eVertexBuffer,
@@ -178,11 +178,11 @@ namespace mikoto::renderer {
         eastl::vector<ResourceVersion> mVersions{};  // version 0, 1, 2...
         bool mIsImported{ false };  // imported = externally owned (e.g. swapchain)
 
-        FGResourceStage mCurrentState{ FGResourceStage::eUnknown };
+        FGPipelineStage mCurrentState{ FGPipelineStage::eUnknown };
     };
 
     struct FGResourceTrack {
-        FGResourceStage mState{};
+        FGPipelineStage mState{};
         FGResourceAccess mAccess{};
     };
 
@@ -433,14 +433,14 @@ namespace mikoto::renderer {
 
         // I am not sure if I wanna keep these two. The second set of
         // methods offers more relaxed barriers
-        auto Read( FGTextureHandle handle, FGResourceStage state ) -> void;
-        auto Write( FGTextureHandle handle, FGResourceStage state ) -> void;
+        auto Read( FGTextureHandle handle, FGPipelineStage state ) -> void;
+        auto Write( FGTextureHandle handle, FGPipelineStage state ) -> void;
 
-        auto Read( FGBufferHandle handle, FGResourceStage state )  -> void;
-        auto Write( FGBufferHandle handle, FGResourceStage state )  -> void;
+        auto Read( FGBufferHandle handle, FGPipelineStage state )  -> void;
+        auto Write( FGBufferHandle handle, FGPipelineStage state )  -> void;
 
-        auto UseResource( FGTextureHandle handle, FGResourceStage state, FGResourceAccess access ) -> void;
-        auto UseResource( FGBufferHandle handle, FGResourceStage state, FGResourceAccess access ) -> void;
+        auto UseResource( FGTextureHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void;
+        auto UseResource( FGBufferHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void;
 
     private:
         auto Read( FGResourceHandle handle )  -> void;
@@ -455,8 +455,8 @@ namespace mikoto::renderer {
         FGResourceHandle mResourceID{};  // which resource to transition
 
         FGResourceAccess mAccess{};
-        FGResourceStage mOldState{};       // state before this pass
-        FGResourceStage mNewState{};       // state this pass requires
+        FGPipelineStage mOldState{};       // state before this pass
+        FGPipelineStage mNewState{};       // state this pass requires
     };
 
     struct FGCompiledPlan {

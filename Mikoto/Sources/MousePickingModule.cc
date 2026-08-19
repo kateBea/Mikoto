@@ -140,17 +140,17 @@ namespace mikoto::renderer {
                 const auto& mousePicking{ blackboard.Get<MousePickingModuleInfo>() };
                 const auto& geometryInfo{ blackboard.Get<GeometryCullModuleInfo>() };
 
-                builder.Read( cameraInfo.mCameraData, FGResourceStage::ePixelShader );
+                builder.Read( cameraInfo.mCameraData, FGPipelineStage::ePixelShader );
 
-                builder.Read( geometryInfo.mGeometryBuffer, FGResourceStage::ePixelShader );
-                builder.Read( geometryInfo.mSkinningBuffer, FGResourceStage::ePixelShader );
+                builder.Read( geometryInfo.mGeometryBuffer, FGPipelineStage::ePixelShader );
+                builder.Read( geometryInfo.mSkinningBuffer, FGPipelineStage::ePixelShader );
 
-                builder.Read( geometryInfo.mVerticesBuffer, FGResourceStage::ePixelShader );
-                builder.Read( geometryInfo.mIndicesBuffer, FGResourceStage::ePixelShader );
+                builder.Read( geometryInfo.mVerticesBuffer, FGPipelineStage::ePixelShader );
+                builder.Read( geometryInfo.mIndicesBuffer, FGPipelineStage::ePixelShader );
 
-                builder.Read( prepass.mDepthPrepassDepthTarget, FGResourceStage::eDepthTarget );
+                builder.Read( prepass.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget );
 
-                builder.Write( mousePicking.mColorImage, FGResourceStage::eRenderTarget );
+                builder.Write( mousePicking.mColorImage, FGPipelineStage::eRenderTarget );
             },
             [this]( CommandContext & ctx, Blackboard &b ) {
                 const auto& prepassInfo{ b.Get<PrepassModuleInfo>() };
@@ -202,8 +202,8 @@ namespace mikoto::renderer {
             []( FGNodeBuilder &builder, Blackboard & blackboard ) {
                 const auto& mousePicking{ blackboard.Get<MousePickingModuleInfo>() };
 
-                builder.Write( mousePicking.mReadBackBuffer, FGResourceStage::eCopy );
-                builder.Read( mousePicking.mColorImage, FGResourceStage::eCopy );
+                builder.Write( mousePicking.mReadBackBuffer, FGPipelineStage::eCopy );
+                builder.Read( mousePicking.mColorImage, FGPipelineStage::eCopy );
             },
             []( CommandContext &ctx, Blackboard & b ) {
                 const auto& mousePicking{ b.Get<MousePickingModuleInfo>() };

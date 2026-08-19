@@ -89,8 +89,8 @@ namespace mikoto::renderer {
             "SimpleTriangle",
             FGPassType::eGraphics,
             []( FGNodeBuilder &b, TrianglePassData& data ) {
-                b.UseResource( data.mColorTarget, FGResourceStage::eRenderTarget, FGResourceAccess::eWrite );
-                b.UseResource( data.mDepthTarget, FGResourceStage::eDepthTarget, FGResourceAccess::eWrite );
+                b.UseResource( data.mColorTarget, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+                b.UseResource( data.mDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eWrite );
             },
             []( CommandContext &ctx, Blackboard &b) -> void {
                 const auto& data{ b.Get<TrianglePassData>() };
@@ -163,9 +163,9 @@ namespace mikoto::renderer {
             "SimpleTexture",
             FGPassType::eGraphics,
             []( FGNodeBuilder &b, TexturePassData& data ) {
-                b.UseResource( data.mColorTarget, FGResourceStage::eRenderTarget, FGResourceAccess::eWrite );
-                b.UseResource( data.mDepthTarget, FGResourceStage::eDepthTarget, FGResourceAccess::eWrite );
-                b.UseResource( data.mImportedTexture, FGResourceStage::eComputeShader, FGResourceAccess::eRead );
+                b.UseResource( data.mColorTarget, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+                b.UseResource( data.mDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eWrite );
+                b.UseResource( data.mImportedTexture, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
             },
             []( CommandContext &ctx, Blackboard &blackboard ) -> void {
                 const auto& data{ blackboard.Get<TexturePassData>() };
@@ -246,7 +246,7 @@ namespace mikoto::renderer {
             "SimpleCompute",
             FGPassType::eCompute,
             []( FGNodeBuilder &b, SimpleCompute &data ) {
-                b.UseResource( data.mComputeBuffer, FGResourceStage::eUnorderedAccess, FGResourceAccess::eWrite );
+                b.UseResource( data.mComputeBuffer, FGPipelineStage::eUnorderedAccess, FGResourceAccess::eWrite );
             },
             []( CommandContext &ctx, Blackboard &blackboard ) {
                 const auto &data{ blackboard.Get<SimpleCompute>() };
@@ -266,8 +266,8 @@ namespace mikoto::renderer {
             "SimpleCompute_Readback",
             FGPassType::eTransfer,
             []( FGNodeBuilder &b, SimpleCompute &data ) {
-                b.UseResource( data.mReadbackBuffer, FGResourceStage::eCopy, FGResourceAccess::eWrite );
-                b.UseResource( data.mComputeBuffer, FGResourceStage::eCopy, FGResourceAccess::eRead );
+                b.UseResource( data.mReadbackBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                b.UseResource( data.mComputeBuffer, FGPipelineStage::eCopy, FGResourceAccess::eRead );
             },
             []( CommandContext &ctx, Blackboard &blackboard ) {
                 const auto &data{ blackboard.Get<SimpleCompute>() };

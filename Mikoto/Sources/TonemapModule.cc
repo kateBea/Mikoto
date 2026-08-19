@@ -86,8 +86,8 @@ namespace mikoto::renderer {
             []( FGNodeBuilder& builder, Blackboard& blackboard ) {
                 GeomShadingModuleInfo& geom{ blackboard.Get<GeomShadingModuleInfo>() };
 
-                builder.Read( geom.mShadingColorImage, FGResourceStage::ePixelShader );
-                builder.Write( geom.mTonemapColor, FGResourceStage::eRenderTarget );
+                builder.Read( geom.mShadingColorImage, FGPipelineStage::ePixelShader );
+                builder.Write( geom.mTonemapColor, FGPipelineStage::eRenderTarget );
             },
             [this]( CommandContext &ctx, Blackboard& blackboard ) {
                 GeomShadingModuleInfo& geom{ blackboard.Get<GeomShadingModuleInfo>() };

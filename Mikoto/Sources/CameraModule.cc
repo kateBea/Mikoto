@@ -58,7 +58,7 @@ namespace mikoto::renderer {
             "CameraInfoPass",
             FGPassType::eTransfer,
             []( FGNodeBuilder &b, CameraModuleInfo& info ) {
-                b.UseResource( info.mCameraData, FGResourceStage::eCopy, FGResourceAccess::eWrite );
+                b.UseResource( info.mCameraData, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
             [this]( CommandContext &ctx, Blackboard& b ) -> void {
                 const auto& data{ b.Get<CameraModuleInfo>() };

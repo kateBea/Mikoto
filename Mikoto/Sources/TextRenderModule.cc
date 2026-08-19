@@ -93,7 +93,7 @@ namespace mikoto::renderer {
             "MSDFText_Upload",
             FGPassType::eTransfer,
             []( FGNodeBuilder& b, TextRenderingPassParameters& info ) -> void {
-                b.Write( info.mMsdfTextRenderData, FGResourceStage::eCopy );
+                b.Write( info.mMsdfTextRenderData, FGPipelineStage::eCopy );
             },
             [this]( CommandContext& ctx, Blackboard& b ) -> void {
                 SetupTextRenderData( ctx, b );
@@ -112,10 +112,10 @@ namespace mikoto::renderer {
                 GeomShadingModuleInfo& finalImageInfo{ blackboard.Get<GeomShadingModuleInfo>() };
                 TextRenderingPassParameters& textInfo{ blackboard.Get<TextRenderingPassParameters>() };
 
-                builder.Read( textInfo.mMsdfTextRenderData, FGResourceStage::ePixelShader );
+                builder.Read( textInfo.mMsdfTextRenderData, FGPipelineStage::ePixelShader );
 
-                builder.Write( finalImageInfo.mShadingColorImage, FGResourceStage::eRenderTarget );
-                builder.Write( prepass.mDepthPrepassDepthTarget, FGResourceStage::eDepthTarget );
+                builder.Write( finalImageInfo.mShadingColorImage, FGPipelineStage::eRenderTarget );
+                builder.Write( prepass.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget );
             },
         [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
             if (mGlyphCount == 0) {

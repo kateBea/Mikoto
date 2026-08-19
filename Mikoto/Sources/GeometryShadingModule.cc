@@ -181,8 +181,8 @@ namespace mikoto::renderer {
             "IrradiancePass",
             FGPassType::eGraphics,
             []( FGNodeBuilder &b, GeomShadingModuleInfo& data ) {
-                b.Write( data.mIrradianceCubeRT, FGResourceStage::eRenderTarget );
-                b.Read( data.mSkyboxCubeRT, FGResourceStage::ePixelShader );
+                b.Write( data.mIrradianceCubeRT, FGPipelineStage::eRenderTarget );
+                b.Read( data.mSkyboxCubeRT, FGPipelineStage::ePixelShader );
             },
             []( CommandContext& ctx, Blackboard& blackboard ) {
                 auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
@@ -262,8 +262,8 @@ namespace mikoto::renderer {
             "GeometryShadingBox_Upload",
             FGPassType::eTransfer,
             []( FGNodeBuilder &b, GeomShadingModuleInfo &data ) {
-                b.Write( data.mBoxVertexBuffer, FGResourceStage::eCopy );
-                b.Write( data.mBoxIndexBuffer, FGResourceStage::eCopy );
+                b.Write( data.mBoxVertexBuffer, FGPipelineStage::eCopy );
+                b.Write( data.mBoxIndexBuffer, FGPipelineStage::eCopy );
             },
             [this]( CommandContext &ctx, Blackboard &blackboard ) {
                 const auto &data{ blackboard.Get<GeomShadingModuleInfo>() };
@@ -310,8 +310,8 @@ namespace mikoto::renderer {
             "PrefilterPass",
             FGPassType::eGraphics,
             []( FGNodeBuilder&b, GeomShadingModuleInfo& info ) {
-                b.Write( info.mPrefilterCubeRT, FGResourceStage::eRenderTarget );
-                b.Read( info.mSkyboxCubeRT, FGResourceStage::ePixelShader );
+                b.Write( info.mPrefilterCubeRT, FGPipelineStage::eRenderTarget );
+                b.Read( info.mSkyboxCubeRT, FGPipelineStage::ePixelShader );
             },
 
             [this]( CommandContext &ctx, Blackboard& blackboard ) {
@@ -396,7 +396,7 @@ namespace mikoto::renderer {
             "BRDFLut",
             FGPassType::eGraphics,
             []( FGNodeBuilder &b, GeomShadingModuleInfo& info ) {
-                b.Write( info.mBrdfColorTarget, FGResourceStage::eRenderTarget );
+                b.Write( info.mBrdfColorTarget, FGPipelineStage::eRenderTarget );
             },
             []( CommandContext &ctx, Blackboard& b ) -> void {
                 GeomShadingModuleInfo& info{ b.Get<GeomShadingModuleInfo>() };
@@ -447,10 +447,10 @@ namespace mikoto::renderer {
             "SkyboxProjection",
             FGPassType::eGraphics,
             [](FGNodeBuilder& b, GeomShadingModuleInfo& info) {
-                b.Write(info.mSkyboxCubeRT, FGResourceStage::eRenderTarget);
+                b.Write(info.mSkyboxCubeRT, FGPipelineStage::eRenderTarget);
 
-                b.Read(info.mBoxVertexBuffer, FGResourceStage::ePixelShader);
-                b.Read(info.mBoxIndexBuffer, FGResourceStage::ePixelShader);
+                b.Read(info.mBoxVertexBuffer, FGPipelineStage::ePixelShader);
+                b.Read(info.mBoxIndexBuffer, FGPipelineStage::ePixelShader);
             },
             [this](CommandContext& ctx, Blackboard& blackboard){
                 if (mEquirectangularTexture.mHandle == FGResourceManager::kInvalidResourceHandle) {
@@ -547,16 +547,16 @@ namespace mikoto::renderer {
                 PrepassModuleInfo& prepass{ blackboard.Get<PrepassModuleInfo>() };
                 GeomShadingModuleInfo& finalImageInfo{ blackboard.Get<GeomShadingModuleInfo>() };
 
-                builder.Write( finalImageInfo.mShadingColorImage, FGResourceStage::eRenderTarget );
-                builder.UseResource( prepass.mDepthPrepassDepthTarget, FGResourceStage::eDepthTarget, FGResourceAccess::eRead );
+                builder.Write( finalImageInfo.mShadingColorImage, FGPipelineStage::eRenderTarget );
+                builder.UseResource( prepass.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
 
-                builder.Read(finalImageInfo.mBoxVertexBuffer, FGResourceStage::ePixelShader);
-                builder.Read(finalImageInfo.mBoxIndexBuffer, FGResourceStage::ePixelShader);
+                builder.Read(finalImageInfo.mBoxVertexBuffer, FGPipelineStage::ePixelShader);
+                builder.Read(finalImageInfo.mBoxIndexBuffer, FGPipelineStage::ePixelShader);
 
                 // We can either render this guy or the prefilter image
-                builder.Read( finalImageInfo.mSkyboxCubeRT, FGResourceStage::ePixelShader );
-                builder.Read( finalImageInfo.mPrefilterCubeRT, FGResourceStage::ePixelShader );
-                builder.Read( camInfo.mCameraData, FGResourceStage::ePixelShader );
+                builder.Read( finalImageInfo.mSkyboxCubeRT, FGPipelineStage::ePixelShader );
+                builder.Read( finalImageInfo.mPrefilterCubeRT, FGPipelineStage::ePixelShader );
+                builder.Read( camInfo.mCameraData, FGPipelineStage::ePixelShader );
             },
             [this]( CommandContext &ctx, Blackboard& b ) -> void {
                 CameraModuleInfo& camInfo{ b.Get<CameraModuleInfo>() };
@@ -651,24 +651,24 @@ namespace mikoto::renderer {
                 GeometryCullModuleInfo& geom{ blackboard.Get<GeometryCullModuleInfo>() };
                 GeomShadingModuleInfo& finalImage{ blackboard.Get<GeomShadingModuleInfo>() };
 
-                builder.Read( cam.mCameraData, FGResourceStage::ePixelShader );
+                builder.Read( cam.mCameraData, FGPipelineStage::ePixelShader );
 
-                builder.Read( geom.mVerticesBuffer, FGResourceStage::ePixelShader );
-                builder.Read( geom.mIndicesBuffer, FGResourceStage::ePixelShader );
+                builder.Read( geom.mVerticesBuffer, FGPipelineStage::ePixelShader );
+                builder.Read( geom.mIndicesBuffer, FGPipelineStage::ePixelShader );
 
-                builder.Read( geom.mGeometryBuffer, FGResourceStage::ePixelShader );
-                builder.Read( geom.mMaterialsBuffer, FGResourceStage::ePixelShader );
-                builder.Read( geom.mSkinningBuffer, FGResourceStage::ePixelShader );
+                builder.Read( geom.mGeometryBuffer, FGPipelineStage::ePixelShader );
+                builder.Read( geom.mMaterialsBuffer, FGPipelineStage::ePixelShader );
+                builder.Read( geom.mSkinningBuffer, FGPipelineStage::ePixelShader );
 
-                builder.Read( prepass.mClusterBuffer, FGResourceStage::ePixelShader );
-                builder.Read( prepass.mLightCullingBuffer, FGResourceStage::ePixelShader );
+                builder.Read( prepass.mClusterBuffer, FGPipelineStage::ePixelShader );
+                builder.Read( prepass.mLightCullingBuffer, FGPipelineStage::ePixelShader );
 
-                builder.Write( finalImage.mShadingColorImage, FGResourceStage::eRenderTarget );
-                builder.Read( prepass.mDepthPrepassDepthTarget, FGResourceStage::eDepthTarget );
+                builder.Write( finalImage.mShadingColorImage, FGPipelineStage::eRenderTarget );
+                builder.Read( prepass.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget );
 
-                builder.Read( finalImage.mBrdfColorTarget, FGResourceStage::ePixelShader );
-                builder.Read( finalImage.mPrefilterCubeRT, FGResourceStage::ePixelShader );
-                builder.Read( finalImage.mIrradianceCubeRT, FGResourceStage::ePixelShader );
+                builder.Read( finalImage.mBrdfColorTarget, FGPipelineStage::ePixelShader );
+                builder.Read( finalImage.mPrefilterCubeRT, FGPipelineStage::ePixelShader );
+                builder.Read( finalImage.mIrradianceCubeRT, FGPipelineStage::ePixelShader );
 
                 // SSAO stuff here
 
@@ -812,17 +812,17 @@ namespace mikoto::renderer {
                 CameraModuleInfo& cameraPassInfo{ blackboard.Get<CameraModuleInfo>() };
                 GeometryCullModuleInfo& geometryInfo{ blackboard.Get<GeometryCullModuleInfo>() };
 
-                builder.Write( info.mColorImage, FGResourceStage::eRenderTarget );
+                builder.Write( info.mColorImage, FGPipelineStage::eRenderTarget );
 
-                builder.Read( prepassInfo.mDepthPrepassDepthTarget, FGResourceStage::eDepthTarget );
+                builder.Read( prepassInfo.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget );
 
-                builder.Read( cameraPassInfo.mCameraData, FGResourceStage::ePixelShader );
+                builder.Read( cameraPassInfo.mCameraData, FGPipelineStage::ePixelShader );
 
-                builder.Read( geometryInfo.mGeometryBuffer, FGResourceStage::ePixelShader );
-                builder.Read( geometryInfo.mSkinningBuffer, FGResourceStage::ePixelShader );
+                builder.Read( geometryInfo.mGeometryBuffer, FGPipelineStage::ePixelShader );
+                builder.Read( geometryInfo.mSkinningBuffer, FGPipelineStage::ePixelShader );
 
-                builder.Read( geometryInfo.mVerticesBuffer, FGResourceStage::ePixelShader );
-                builder.Read( geometryInfo.mIndicesBuffer, FGResourceStage::ePixelShader );
+                builder.Read( geometryInfo.mVerticesBuffer, FGPipelineStage::ePixelShader );
+                builder.Read( geometryInfo.mIndicesBuffer, FGPipelineStage::ePixelShader );
             },
 
             [this]( CommandContext& ctx, Blackboard& b ) -> void {

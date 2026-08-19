@@ -263,13 +263,13 @@ namespace mikoto::renderer {
             FGPassType::eTransfer,
             []( FGNodeBuilder &b, GeometryCullModuleInfo& data ) -> void {
                 // Geometry
-                b.Write( data.mVerticesBuffer, FGResourceStage::eCopy );
-                b.Write( data.mIndicesBuffer, FGResourceStage::eCopy );
+                b.Write( data.mVerticesBuffer, FGPipelineStage::eCopy );
+                b.Write( data.mIndicesBuffer, FGPipelineStage::eCopy );
 
                 // Drawing
-                b.Write( data.mGeometryBuffer, FGResourceStage::eCopy );
-                b.Write( data.mMaterialsBuffer, FGResourceStage::eCopy );
-                b.Write( data.mSkinningBuffer, FGResourceStage::eCopy );
+                b.Write( data.mGeometryBuffer, FGPipelineStage::eCopy );
+                b.Write( data.mMaterialsBuffer, FGPipelineStage::eCopy );
+                b.Write( data.mSkinningBuffer, FGPipelineStage::eCopy );
             },
             [this]( CommandContext &ctx, Blackboard& b ) -> void {
                 InitGeometryData( ctx, b );
@@ -283,8 +283,8 @@ namespace mikoto::renderer {
             "MeshCulling",
             FGPassType::eTransfer,
             []( FGNodeBuilder &b, GeometryCullModuleInfo& data ) -> void {
-                b.Write( data.mGeometryBuffer, FGResourceStage::eCopy );
-                b.Write( data.mMaterialsBuffer, FGResourceStage::eCopy );
+                b.Write( data.mGeometryBuffer, FGPipelineStage::eCopy );
+                b.Write( data.mMaterialsBuffer, FGPipelineStage::eCopy );
             },
             []( CommandContext &, Blackboard & ) -> void {
                 // Do culling and transfer stuff to GPU

@@ -102,9 +102,9 @@ namespace mikoto::renderer {
                 GeomShadingModuleInfo& shading{ blackboard.Get<GeomShadingModuleInfo>() };
                 PrepassModuleInfo& prepass{ blackboard.Get<PrepassModuleInfo>() };
 
-                builder.Read( cam.mCameraData, FGResourceStage::ePixelShader );
-                builder.Read( prepass.mDepthPrepassDepthTarget, FGResourceStage::eDepthTarget );
-                builder.Write( shading.mShadingColorImage, FGResourceStage::eRenderTarget );
+                builder.Read( cam.mCameraData, FGPipelineStage::ePixelShader );
+                builder.Read( prepass.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget );
+                builder.Write( shading.mShadingColorImage, FGPipelineStage::eRenderTarget );
             },
             [this]( CommandContext& ctx, Blackboard& b ) {
                 CameraModuleInfo& cam{ b.Get<CameraModuleInfo>() };
@@ -478,12 +478,12 @@ namespace mikoto::renderer {
                  // because bloom is applied on emissive materials
                  if (mipLevel == 0) {
                      auto& prepass{ blackboard.Get<PrepassModuleInfo>() };
-                     builder.Read( prepass.mGBufferEmissiveTarget, FGResourceStage::ePixelShader );
-                     builder.Write( postprocess.mBloomChainImages[mipLevel], FGResourceStage::eRenderTarget );
+                     builder.Read( prepass.mGBufferEmissiveTarget, FGPipelineStage::ePixelShader );
+                     builder.Write( postprocess.mBloomChainImages[mipLevel], FGPipelineStage::eRenderTarget );
                  } else {
                      // I read from previous mip and write to this mip
-                     builder.Read( postprocess.mBloomChainImages[mipLevel - 1], FGResourceStage::ePixelShader );
-                     builder.Write( postprocess.mBloomChainImages[mipLevel], FGResourceStage::eRenderTarget );
+                     builder.Read( postprocess.mBloomChainImages[mipLevel - 1], FGPipelineStage::ePixelShader );
+                     builder.Write( postprocess.mBloomChainImages[mipLevel], FGPipelineStage::eRenderTarget );
                  }
              },
              []( CommandContext&, Blackboard& ) -> void {
@@ -503,11 +503,11 @@ namespace mikoto::renderer {
 
                     builder.Read(
                         postprocess.mBloomChainImages[srcMip],
-                        FGResourceStage::ePixelShader );
+                        FGPipelineStage::ePixelShader );
 
                     builder.Write(
                         postprocess.mBloomChainImages[dstMip],
-                        FGResourceStage::eRenderTarget );
+                        FGPipelineStage::eRenderTarget );
                 },
 
                 []( CommandContext&, Blackboard& ) -> void {

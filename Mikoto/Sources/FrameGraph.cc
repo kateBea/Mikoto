@@ -490,35 +490,35 @@ namespace mikoto::renderer {
         : mGraphNode{ MKT_ADDRESSOF( node ) }, mNodeControl{ MKT_ADDRESSOF( control ) }
     {}
 
-    auto FGNodeBuilder::Read( FGTextureHandle handle, FGResourceStage state ) -> void {
+    auto FGNodeBuilder::Read( FGTextureHandle handle, FGPipelineStage state ) -> void {
         Read( handle.mHandle );
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
         };
     }
 
-    auto FGNodeBuilder::Write( FGTextureHandle handle, FGResourceStage state ) -> void {
+    auto FGNodeBuilder::Write( FGTextureHandle handle, FGPipelineStage state ) -> void {
         Write( handle.mHandle );
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
         };
     }
 
-    auto FGNodeBuilder::Read( FGBufferHandle handle, FGResourceStage state ) -> void {
+    auto FGNodeBuilder::Read( FGBufferHandle handle, FGPipelineStage state ) -> void {
         Read( handle.mHandle );
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
         };
     }
 
-    auto FGNodeBuilder::Write( FGBufferHandle handle, FGResourceStage state ) -> void {
+    auto FGNodeBuilder::Write( FGBufferHandle handle, FGPipelineStage state ) -> void {
         Write( handle.mHandle );
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
         };
     }
 
-    auto FGNodeBuilder::UseResource( FGTextureHandle handle, FGResourceStage state, FGResourceAccess access ) -> void {
+    auto FGNodeBuilder::UseResource( FGTextureHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void {
         switch (access) {
             case FGResourceAccess::eNone:
                 MKT_ASSERT( false, "Invalid resource access type" );
@@ -536,7 +536,7 @@ namespace mikoto::renderer {
         };
     }
 
-    auto FGNodeBuilder::UseResource( FGBufferHandle handle, FGResourceStage state, FGResourceAccess access ) -> void {
+    auto FGNodeBuilder::UseResource( FGBufferHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void {
         switch (access) {
             case FGResourceAccess::eNone:
                 MKT_ASSERT( false, "Invalid resource access type" );
@@ -880,10 +880,10 @@ namespace mikoto::renderer {
 
                 // Barriers are really only needed for dependencies where one of the accesses
                 // is a write (WAW, WAR, RAW) or if a layout transition is required
-                const FGResourceStage prevState{ mNodeControl->mResources[resourceHandle].mCurrentState };
-                const FGResourceStage nextState{ mNodeControl->mNodes[passName].mResourceStates[resourceHandle].mState };
+                const FGPipelineStage prevState{ mNodeControl->mResources[resourceHandle].mCurrentState };
+                const FGPipelineStage nextState{ mNodeControl->mNodes[passName].mResourceStates[resourceHandle].mState };
 
-                if (prevState == FGResourceStage::eUnknown) {
+                if (prevState == FGPipelineStage::eUnknown) {
                     // First use -> just set state, no barrier
                     // I think I wil probably remove this and transition all resources to general layout so that
                     // I only do the next check for barriers for each pass

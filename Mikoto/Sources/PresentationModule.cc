@@ -106,16 +106,16 @@ namespace mikoto::renderer {
                 const auto& trianglePassData{ blackboard.Get<TrianglePassData>() };
                 const auto& shading{ blackboard.Get<GeomShadingModuleInfo>() };
 
-                builder.Read( prepass.mGBufferPositionTarget, FGResourceStage::ePixelShader );
-                builder.Read( prepass.mGBufferNormalTarget, FGResourceStage::ePixelShader );
-                builder.Read( prepass.mGBufferColorTarget, FGResourceStage::ePixelShader );
-                builder.Read( prepass.mGBufferEmissiveTarget, FGResourceStage::ePixelShader );
+                builder.Read( prepass.mGBufferPositionTarget, FGPipelineStage::ePixelShader );
+                builder.Read( prepass.mGBufferNormalTarget, FGPipelineStage::ePixelShader );
+                builder.Read( prepass.mGBufferColorTarget, FGPipelineStage::ePixelShader );
+                builder.Read( prepass.mGBufferEmissiveTarget, FGPipelineStage::ePixelShader );
 
-                builder.Read( wireframe.mColorImage, FGResourceStage::ePixelShader );
+                builder.Read( wireframe.mColorImage, FGPipelineStage::ePixelShader );
 
-                builder.Read( shading.mTonemapColor, FGResourceStage::ePixelShader );
-                builder.Read( shading.mShadingColorImage, FGResourceStage::ePixelShader );
-                builder.Read( prepass.mDepthPrepassColorTarget, FGResourceStage::ePixelShader );
+                builder.Read( shading.mTonemapColor, FGPipelineStage::ePixelShader );
+                builder.Read( shading.mShadingColorImage, FGPipelineStage::ePixelShader );
+                builder.Read( prepass.mDepthPrepassColorTarget, FGPipelineStage::ePixelShader );
             },
             [this]( CommandContext &ctx, Blackboard &b ) {
                 const auto &data{ b.Get<PresentationPassData>() };

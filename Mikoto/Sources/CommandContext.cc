@@ -28,29 +28,29 @@ namespace mikoto::renderer {
     using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;
 
-    MKT_NODISCARD constexpr auto GetResourceState(FGResourceStage state, FGResourceAccess access ) -> ResourceStates {
+    MKT_NODISCARD constexpr auto GetResourceState(FGPipelineStage state, FGResourceAccess access ) -> ResourceStates {
         switch (state) {
-            case FGResourceStage::eUnknown:                return ResourceStates::eUnknown;
+            case FGPipelineStage::eUnknown:                return ResourceStates::eUnknown;
 
             // Buffers
-            case FGResourceStage::eConstantBuffer:         return ResourceStates::eConstantBuffer;
-            case FGResourceStage::eVertexBuffer:           return ResourceStates::eVertexBuffer;
-            case FGResourceStage::eIndexBuffer:            return ResourceStates::eIndexBuffer;
-            case FGResourceStage::eIndirectArgument:       return ResourceStates::eIndirectArgument;
+            case FGPipelineStage::eConstantBuffer:         return ResourceStates::eConstantBuffer;
+            case FGPipelineStage::eVertexBuffer:           return ResourceStates::eVertexBuffer;
+            case FGPipelineStage::eIndexBuffer:            return ResourceStates::eIndexBuffer;
+            case FGPipelineStage::eIndirectArgument:       return ResourceStates::eIndirectArgument;
 
             // Shader
-            case FGResourceStage::eVertexShader:
-            case FGResourceStage::eHullShader:
-            case FGResourceStage::eDomainShader:
-            case FGResourceStage::eGeometryShader:
-            case FGResourceStage::eComputeShader:
-            case FGResourceStage::ePixelShader:         return ResourceStates::eShaderResource;
+            case FGPipelineStage::eVertexShader:
+            case FGPipelineStage::eHullShader:
+            case FGPipelineStage::eDomainShader:
+            case FGPipelineStage::eGeometryShader:
+            case FGPipelineStage::eComputeShader:
+            case FGPipelineStage::ePixelShader:         return ResourceStates::eShaderResource;
 
-            case FGResourceStage::eUnorderedAccess:        return ResourceStates::eUnorderedAccess;
+            case FGPipelineStage::eUnorderedAccess:        return ResourceStates::eUnorderedAccess;
 
             // Images
-            case FGResourceStage::eRenderTarget:           return ResourceStates::eRenderTarget;
-            case FGResourceStage::eDepthTarget: {
+            case FGPipelineStage::eRenderTarget:           return ResourceStates::eRenderTarget;
+            case FGPipelineStage::eDepthTarget: {
                 if (access == FGResourceAccess::eWrite) return ResourceStates::eDepthWrite;
                 if (access == FGResourceAccess::eRead) return ResourceStates::eDepthRead;
 
@@ -58,14 +58,14 @@ namespace mikoto::renderer {
             }
 
             // Transfer
-            case FGResourceStage::eCopy:   {
+            case FGPipelineStage::eCopy:   {
                 if (access == FGResourceAccess::eWrite) return ResourceStates::eCopyDest;
                 if (access == FGResourceAccess::eRead) return ResourceStates::eCopySource;
 
                 MKT_ASSERT( false, "Invalid access type" );
             }
 
-            case FGResourceStage::eResolve:         {
+            case FGPipelineStage::eResolve:         {
                 if (access == FGResourceAccess::eWrite) return ResourceStates::eResolveDest;
                 if (access == FGResourceAccess::eRead) return ResourceStates::eResolveSource;
 
@@ -73,13 +73,13 @@ namespace mikoto::renderer {
             }
 
             // Present
-            case FGResourceStage::ePresent:                return ResourceStates::ePresent;
+            case FGPipelineStage::ePresent:                return ResourceStates::ePresent;
 
             // Raytracing
-            case FGResourceStage::eAccelStructRead:        return ResourceStates::eAccelStructRead;
-            case FGResourceStage::eAccelStructWrite:       return ResourceStates::eAccelStructWrite;
-            case FGResourceStage::eAccelStructBuildInput:  return ResourceStates::eAccelStructBuildInput;
-            case FGResourceStage::eAccelStructBuildBlas:   return ResourceStates::eAccelStructBuildBlas;
+            case FGPipelineStage::eAccelStructRead:        return ResourceStates::eAccelStructRead;
+            case FGPipelineStage::eAccelStructWrite:       return ResourceStates::eAccelStructWrite;
+            case FGPipelineStage::eAccelStructBuildInput:  return ResourceStates::eAccelStructBuildInput;
+            case FGPipelineStage::eAccelStructBuildBlas:   return ResourceStates::eAccelStructBuildBlas;
         }
 
         // Fallback (should never happen if enum is exhaustive)

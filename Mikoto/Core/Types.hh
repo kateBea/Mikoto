@@ -73,9 +73,13 @@ namespace mikoto::core {
     using ilong = long;
     using ill = long long;
 
+    using usize = std::size_t;
+    using ubyte = unsigned char;
+    using unicode = char32_t;
+    using cstr = const char *;
+
     using size_t = std::size_t;
     using byte_t = unsigned char;
-    using unicode_t = char32_t;
 
     using c_str = const char *;
 }

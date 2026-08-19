@@ -15,6 +15,9 @@
 #ifndef MIKOTO_CAMERA_PASS_HH
 #define MIKOTO_CAMERA_PASS_HH
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
 #include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
 
@@ -22,17 +25,17 @@
 
 namespace mikoto::renderer {
 
-    struct CameraInfo {
-        float4x4 mView{};
-        float4x4 mProjection{};
+    struct CameraData {
+        core::float4x4 mView{};
+        core::float4x4 mProjection{};
 
-        float4x4 mInverseProjection{};
-        float4x4 mInverseViewProjection{}; // inverse(proj * view)
+        core::float4x4 mInverseProjection{};
+        core::float4x4 mInverseViewProjection{}; // inverse(proj * view)
 
-        float4 mCameraPosition{};
+        core::float4 mCameraPosition{};
 
-        float4 mPlaneBounds{}; // Near and far plane (x = zNear, y = zFar)
-        float4 mScreenDimensions{}; // Width and Height (x = Width, y = Height)
+        core::float4 mPlaneBounds{}; // Near and far plane (x = zNear, y = zFar)
+        core::float4 mScreenDimensions{}; // Width and Height (x = Width, y = Height)
     };
 
     struct CameraModuleInfo {
@@ -41,22 +44,23 @@ namespace mikoto::renderer {
 
     class CameraModule {
     public:
-        explicit CameraModule(RenderResolution resolution);
+        explicit CameraModule( rhi::RenderResolution resolution );
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
         auto SetCamera( const scene::Camera* camera ) -> void;
 
     private:
-
         auto RegisterCameraSetupPass( FrameGraph& graph ) -> void;
 
     private:
+
+        CameraData mCameraData{};
         const scene::Camera* mCamera{};
-        CameraInfo mCameraParameters{};
-        RenderResolution mResolution{};
+
+        rhi::RenderResolution mResolution{};
     };
-}
+}// namespace mikoto::renderer
 
 
 #endif // MIKOTO_CAMERA_PASS_HH

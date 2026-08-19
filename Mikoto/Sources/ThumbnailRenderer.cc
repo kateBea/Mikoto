@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Profiler.hh>
+
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 
@@ -46,16 +51,32 @@ namespace mikoto::renderer {
         return *this;
     }
 
-    ThumbnailRenderer::ThumbnailRenderer( const ThumbnailRendererCreateInfo & ) {
+    ThumbnailRenderer::ThumbnailRenderer( const ThumbnailRendererCreateInfo& desc  )
+        : mDevice{ desc.mDevice }
+    {
 
     }
 
     auto ThumbnailRenderer::Init() -> void {
+        MKT_BEGIN_PROFILER_NAMED();
 
+        const ShaderLibraryDescription description{
+            .mDevice = mDevice,
+            .mRootPath{ "Resources/Shaders/slang" } };
+        mShaderLibrary = eastl::make_unique<ShaderLibrary>( description );
+
+        if (mShaderLibrary) {
+            mShaderLibrary->Initialize();
+        }
+
+        mFrameGraph = FrameGraph::Create( mDevice, mShaderLibrary.get() );
+
+        InitPasses();
     }
 
     auto ThumbnailRenderer::Shutdown() -> void {
-
+        mShaderLibrary->Shutdown();
+        mShaderLibrary.reset();
     }
 
     auto ThumbnailRenderer::Render( const scene::Scene *scene ) -> void {
@@ -64,5 +85,9 @@ namespace mikoto::renderer {
 
     auto ThumbnailRenderer::Create( const ThumbnailRendererCreateInfo &spec ) -> eastl::unique_ptr<ThumbnailRenderer> {
         return eastl::make_unique<ThumbnailRenderer>( spec );
+    }
+
+    auto ThumbnailRenderer::InitPasses() -> void {
+
     }
 }// namespace Mikoto

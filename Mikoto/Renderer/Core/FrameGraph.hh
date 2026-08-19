@@ -105,127 +105,43 @@ namespace mikoto::renderer {
         eAnyHit,
         eClosestHit,
         eMiss,
-        eCount
+        eCount,
     };
 
-    enum class FGResourceAccess {
-        eRead,
-        eWrite,
-        eReadWrite,
-    };
-
-    /*
-     * TODO: deprecate we will use access type instead
-        FrameGraph Resource State Rules
-
-        - Each pass declares HOW it uses a resource (not future usage).
-        - States represent GPU access patterns (stage + access + layout).
-        - FrameGraph resolves transitions BETWEEN passes automatically.
-        - A pass must not lie about its usage — correctness depends on it.
-    */
-    enum class FGResourceState {
-        // Unknown / initial state
+    // These should represent pipeline stage
+    enum class FGResourceStage {
         eUnknown,
-
-        // =========================
-        // BUFFER STATES
-        // =========================
-
-        // Constant/uniform buffer (read-only in shader)
-        // Example: camera data, per-frame uniforms
-        // Access: SHADER_READ
-        // Stage: ALL_SHADER_STAGES
         eConstantBuffer,
-
-        // Vertex buffer input
-        // Example: bound via vertex input stage
-        // Access: VERTEX_ATTRIBUTE_READ
-        // Stage: VERTEX_INPUT
         eVertexBuffer,
-
-        // Index buffer input
-        // Access: INDEX_READ
-        // Stage: VERTEX_INPUT
         eIndexBuffer,
-
-        // Indirect draw arguments
-        // Access: INDIRECT_COMMAND_READ
-        // Stage: DRAW_INDIRECT
         eIndirectArgument,
 
-        // Read-only structured / byte-address buffer
-        // Example: StructuredBuffer<T>, ByteAddressBuffer
-        // Access: SHADER_READ
-        // Stage: ALL_SHADER_STAGES
-        eShaderResource,
+        eVertexShader,
+        ePixelShader,
+        eHullShader,
+        eDomainShader,
+        eGeometryShader,
+        eComputeShader,
 
-        // Read-write buffer in shader
-        // Example: RWStructuredBuffer, RWByteAddressBuffer
-        // Access: SHADER_READ | SHADER_WRITE
-        // Stage: ALL_SHADER_STAGES (usually compute or fragment)
         eUnorderedAccess,
-
-        // =========================
-        // IMAGE STATES
-        // =========================
-
-        // Render target (color attachment)
-        // Access: COLOR_ATTACHMENT_WRITE
-        // Stage: COLOR_ATTACHMENT_OUTPUT
         eRenderTarget,
-
-        // Depth write (depth attachment)
-        // Access: DEPTH_STENCIL_ATTACHMENT_WRITE
-        // Stage: EARLY/LATE_FRAGMENT_TESTS
-        eDepthWrite,
-
-        // Depth read (sampling depth or read-only depth)
-        // Access: DEPTH_STENCIL_ATTACHMENT_READ
-        // Stage: EARLY/LATE_FRAGMENT_TESTS
-        eDepthRead,
-
-        // =========================
-        // TRANSFER STATES
-        // =========================
-
-        // Copy destination (GPU writes via transfer)
-        // Example: uploading data into buffer/texture
-        // Access: TRANSFER_WRITE
-        // Stage: TRANSFER
-        eCopyDest,
-
-        // Copy source (GPU reads for transfer)
-        // Access: TRANSFER_READ
-        // Stage: TRANSFER
-        eCopySource,
-
-        // Resolve destination (MSAA resolve target)
-        // Access: TRANSFER_WRITE
-        // Stage: TRANSFER
-        eResolveDest,
-
-        // Resolve source (MSAA source)
-        // Access: TRANSFER_READ
-        // Stage: TRANSFER
-        eResolveSource,
-
-        // =========================
-        // PRESENT
-        // =========================
-
-        // Swapchain present
-        // Access: NONE
-        // Stage: BOTTOM_OF_PIPE / PRESENT
+        eDepthTarget,
+        eCopy,
+        eResolve,
         ePresent,
 
-        // =========================
-        // RAYTRACING (future-proof)
-        // =========================
 
         eAccelStructRead,
         eAccelStructWrite,
         eAccelStructBuildInput,
         eAccelStructBuildBlas,
+    };
+
+    // This will represent resource access
+    enum class FGResourceAccess {
+        eNone,
+        eRead,
+        eWrite,
     };
 
     enum class FGExecutionPolicy {
@@ -262,12 +178,11 @@ namespace mikoto::renderer {
         eastl::vector<ResourceVersion> mVersions{};  // version 0, 1, 2...
         bool mIsImported{ false };  // imported = externally owned (e.g. swapchain)
 
-        FGResourceState mCurrentState{ FGResourceState::eUnknown };
+        FGResourceStage mCurrentState{ FGResourceStage::eUnknown };
     };
 
     struct FGResourceTrack {
-        FGStageType mStage{};
-        FGResourceState mState{};
+        FGResourceStage mState{};
         FGResourceAccess mAccess{};
     };
 
@@ -282,9 +197,9 @@ namespace mikoto::renderer {
         eastl::function<void()> mBuilderCallback{};
         eastl::function<void( CommandContext&, Blackboard& )> mExecuteCallback{};
 
-        static constexpr u32 kMaxDependencies{ 32 };
-        static constexpr u32 kMaxSuccessors{ 32 };
-        static constexpr u32 kMaxResources{ 32 };
+        static constexpr core::u32 kMaxDependencies{ 32 };
+        static constexpr core::u32 kMaxSuccessors{ 32 };
+        static constexpr core::u32 kMaxResources{ 32 };
 
         eastl::fixed_vector<FGResourceHandle, kMaxResources> mReadResources{};
         eastl::fixed_vector<FGResourceHandle, kMaxResources> mWriteResources{};
@@ -294,16 +209,7 @@ namespace mikoto::renderer {
 
         ankerl::unordered_dense::map<FGResourceHandle, FGResourceTrack> mResourceStates{};
 
-        u32 mInDegree{};
-    };
-
-    // A more specialized type of blackboard for the framegraph
-    // Do I need this?
-    class FGBlackboard {
-    public:
-
-
-    private:
+        core::u32 mInDegree{};
     };
 
     struct FGSamplerDescription {
@@ -372,52 +278,53 @@ namespace mikoto::renderer {
     struct FGBufferDescription {
         eastl::string mName{};
 
-        BufferSpanHandle mSpanHandle{};
+        core::u32 mElementCount{};
+        core::u32 mElementSizeBytes{}; // If we do not know the size of individual elements this is equal to the whole range
 
-        u32 mElementCount{};
-        u32 mElementSizeBytes{}; // If we do not know the size of individual elements this is equal to the whole range
+        rhi::HeapType mHeapType{ rhi::HeapType::eDeviceLocal };
+        rhi::BufferUsageFlags mBufferUsageFlags{ BufferUsageFlagsBits::kStorage };
 
-        BufferUsageFlags mBufferUsageFlags{};
-        HeapType mHeapType{ HeapType::eDeviceLocal };
+        memory::BufferSpanHandle mInitialContents{};
 
         auto SetName( eastl::string_view name ) -> FGBufferDescription&;
-        auto SetInitialData( BufferSpanHandle data ) -> FGBufferDescription&;
-        auto SetUsage( BufferUsageFlags flags ) -> FGBufferDescription&;
-        auto SetSizeBytes( size_t byteSize ) -> FGBufferDescription&;
-        auto SetElementsSize( u32 elementCount, size_t elementSizeBytes ) -> FGBufferDescription&;
-        auto SetHeapType( HeapType heap ) -> FGBufferDescription&;
+        auto SetInitialData( memory::BufferSpanHandle data ) -> FGBufferDescription&;
+        auto SetUsage( rhi::BufferUsageFlags flags ) -> FGBufferDescription&;
+        auto SetSizeBytes( core::size_t byteSize ) -> FGBufferDescription&;
+        auto SetElementsSize( core::u32 elementCount, core::size_t elementSizeBytes ) -> FGBufferDescription&;
+        auto SetHeapType( rhi::HeapType heap ) -> FGBufferDescription&;
     };
 
     struct FGTextureDescription {
         eastl::string mName{};
-        u32 mWidth{};
-        u32 mHeight{};
-        u32 mMipCount{ 1 };
 
-        Multisampling mMSAA{ Multisampling::eMsaaX1 };
-        TextureDimension mDimension{ TextureDimension::eTexture2D };
-        TextureUsageFlags mUsage{ TextureUsageFlagsBits::kShaderResource };
+        core::u32 mWidth{};
+        core::u32 mHeight{};
+        core::u32 mMipCount{ 1 };
 
-        Format mFormat{ Format::eRGBA8_SNORM };
-        HeapType mHeapType{ HeapType::eDeviceLocal };
+        rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
+        rhi::TextureDimension mDimension{ rhi::TextureDimension::eTexture2D };
+        rhi::TextureUsageFlags mUsage{ rhi::TextureUsageFlagsBits::kShaderResource };
+
+        rhi::Format mFormat{ rhi::Format::eRGBA8_SNORM };
+        rhi::HeapType mHeapType{ rhi::HeapType::eDeviceLocal };
 
         auto SetName( eastl::string_view name ) -> FGTextureDescription&;
-        auto SetWidth( u32 width ) -> FGTextureDescription&;
-        auto SetHeight( u32 height ) -> FGTextureDescription&;
-        auto SetMipCount( u32 count ) -> FGTextureDescription&;
+        auto SetWidth( core::u32 width ) -> FGTextureDescription&;
+        auto SetHeight( core::u32 height ) -> FGTextureDescription&;
+        auto SetMipCount( core::u32 count ) -> FGTextureDescription&;
 
-        auto SetHeapType( HeapType heapType) -> FGTextureDescription&;
-        auto SetMultisampling( Multisampling sampleCount ) -> FGTextureDescription&;
+        auto SetHeapType( rhi::HeapType heapType) -> FGTextureDescription&;
+        auto SetMultisampling( rhi::Multisampling sampleCount ) -> FGTextureDescription&;
 
-        auto SetDimensions( TextureDimension dimensions ) -> FGTextureDescription&;
+        auto SetDimensions( rhi::TextureDimension dimensions ) -> FGTextureDescription&;
 
-        auto SetFormat( Format usage ) -> FGTextureDescription&;
-        auto SetUsage( TextureUsageFlags usage ) -> FGTextureDescription&;
+        auto SetFormat( rhi::Format usage ) -> FGTextureDescription&;
+        auto SetUsage( rhi::TextureUsageFlags usage ) -> FGTextureDescription&;
     };
 
     struct FGResource {
         Ref<IResource> mResource{};
-        FGResourceHandle mHandle{};
+        FGResourceHandle mResourceID{};
         FGResourceType mType{ FGResourceType::eInvalid };
     };
 
@@ -428,7 +335,7 @@ namespace mikoto::renderer {
         explicit FGResourceManager( IGpuDevice* device );
 
         MKT_NODISCARD auto Get( FGResourceHandle handle ) -> FGResource&;
-        MKT_NODISCARD auto Get( FGResourceHandle name ) const -> const FGResource&;
+        MKT_NODISCARD auto Get( FGResourceHandle handle ) const -> const FGResource&;
 
         MKT_NODISCARD auto GetBufferMappedAddress( FGBufferHandle handle ) const -> const void*;
 
@@ -526,22 +433,18 @@ namespace mikoto::renderer {
 
         // I am not sure if I wanna keep these two. The second set of
         // methods offers more relaxed barriers
-        auto Read( FGTextureHandle handle, FGResourceState state ) -> void;
-        auto Write( FGTextureHandle handle, FGResourceState state ) -> void;
+        auto Read( FGTextureHandle handle, FGResourceStage state ) -> void;
+        auto Write( FGTextureHandle handle, FGResourceStage state ) -> void;
 
-        auto Read( FGBufferHandle handle, FGResourceState state )  -> void;
-        auto Write( FGBufferHandle handle, FGResourceState state )  -> void;
+        auto Read( FGBufferHandle handle, FGResourceStage state )  -> void;
+        auto Write( FGBufferHandle handle, FGResourceStage state )  -> void;
 
-        auto Read( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void;
-        auto Write( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void;
-
-        auto Read( FGBufferHandle handle, FGStageType stage, FGResourceAccess access )  -> void;
-        auto Write( FGBufferHandle handle, FGStageType stage, FGResourceAccess access )  -> void;
+        auto UseResource( FGTextureHandle handle, FGResourceStage state, FGResourceAccess access ) -> void;
+        auto UseResource( FGBufferHandle handle, FGResourceStage state, FGResourceAccess access ) -> void;
 
     private:
         auto Read( FGResourceHandle handle )  -> void;
         auto Write( FGResourceHandle handle )  -> void;
-        auto ReadWrite( FGResourceHandle handle )  -> void;
 
     private:
         FGNode* mGraphNode{};
@@ -551,8 +454,9 @@ namespace mikoto::renderer {
     struct FGBarrier {
         FGResourceHandle mResourceID{};  // which resource to transition
 
-        FGResourceState mOldState{};       // state before this pass
-        FGResourceState mNewState{};       // state this pass requires
+        FGResourceAccess mAccess{};
+        FGResourceStage mOldState{};       // state before this pass
+        FGResourceStage mNewState{};       // state this pass requires
     };
 
     struct FGCompiledPlan {
@@ -654,7 +558,7 @@ namespace mikoto::renderer {
         MKT_NODISCARD static auto Create( IGpuDevice* device, material::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph>;
 
     private:
-        auto BindResources( CommandListHandle cmd ) -> void;
+        auto BindResources( CommandListHandle commandList ) -> void;
 
         auto BuildNodeEdges() -> void;
         auto CullGraphNodes() -> void;
@@ -674,9 +578,7 @@ namespace mikoto::renderer {
         IGpuDevice* mDevice{};
         material::ShaderLibrary* mShaderLibrary{};
 
-        // TODO: use the FGBlackboard
         Blackboard mBlackboard{};
-        FGBlackboard mFGBlackboard{};
 
         FGCompiledPlan mExecutionPlan{};
         eastl::unique_ptr<FGNodeControl> mNodeControl{};

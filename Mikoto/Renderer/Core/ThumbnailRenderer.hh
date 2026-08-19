@@ -56,6 +56,12 @@ namespace mikoto::renderer {
         MKT_NODISCARD static auto Create( const ThumbnailRendererCreateInfo& spec ) -> eastl::unique_ptr<ThumbnailRenderer>;
 
     private:
+        // [Internal usage]
+        auto InitPasses() -> void;
+
+    private:
+        rhi::IGpuDevice* mDevice{};
+
         eastl::unique_ptr<FrameGraph> mFrameGraph{};
         eastl::unique_ptr<material::ShaderLibrary> mShaderLibrary{};
     };

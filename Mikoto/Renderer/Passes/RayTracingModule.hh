@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_RAY_TRACING_HH
-#define MIKOTOROOT_RAY_TRACING_HH
+#ifndef MIKOTO_RAY_TRACING_HH
+#define MIKOTO_RAY_TRACING_HH
 
 // Refs:
 // https://juanraul8.github.io/PBR-vulkan/
@@ -47,4 +47,4 @@ namespace mikoto::renderer {
     };
 }
 
-#endif//MIKOTOROOT_RAY_TRACING_HH
+#endif//MIKOTO_RAY_TRACING_HH

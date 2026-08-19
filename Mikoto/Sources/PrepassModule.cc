@@ -78,8 +78,8 @@ namespace mikoto::renderer {
                 const auto& aabb{ blackboard.Get<PrepassModuleInfo>() };
                 const auto& camera{ blackboard.Get<CameraModuleInfo>() };
 
-                b.Write( aabb.mClusterBuffer, FGResourceState::eUnorderedAccess );
-                b.Read( camera.mCameraData, FGResourceState::eShaderResource );
+                b.Write( aabb.mClusterBuffer, FGResourceStage::eUnorderedAccess );
+                b.Read( camera.mCameraData, FGResourceStage::ePixelShader );
             },
             [this]( CommandContext &ctx, Blackboard& blackboard ) -> void {
                 const auto &aabbData{ blackboard.Get<PrepassModuleInfo>() };
@@ -128,7 +128,7 @@ namespace mikoto::renderer {
             FGPassType::eTransfer,
             []( FGNodeBuilder&b, Blackboard& blackboard ) {
                 const auto &lightCullingInfo{ blackboard.Get<PrepassModuleInfo>() };
-                b.Write( lightCullingInfo.mLightCullingBuffer, FGResourceState::eCopyDest );
+                b.Write( lightCullingInfo.mLightCullingBuffer, FGResourceStage::eCopy );
             },
             [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
                 auto &lightCullingInfo{ blackboard.Get<PrepassModuleInfo>() };
@@ -145,10 +145,10 @@ namespace mikoto::renderer {
                 const auto &cameraInfo{ blackboard.Get<CameraModuleInfo>() };
                 const auto &lightCullingInfo{ blackboard.Get<PrepassModuleInfo>() };
 
-                b.Write( aabbData.mClusterBuffer, FGResourceState::eShaderResource );
-                b.Read( cameraInfo.mCameraData, FGResourceState::eShaderResource );
+                b.Write( aabbData.mClusterBuffer, FGResourceStage::ePixelShader );
+                b.Read( cameraInfo.mCameraData, FGResourceStage::ePixelShader );
 
-                b.Read( lightCullingInfo.mLightCullingBuffer, FGResourceState::eUnorderedAccess );
+                b.Read( lightCullingInfo.mLightCullingBuffer, FGResourceStage::eUnorderedAccess );
             },
             [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
                 const auto &cameraInfo{ blackboard.Get<CameraModuleInfo>() };
@@ -339,20 +339,20 @@ namespace mikoto::renderer {
                 CameraModuleInfo& cameraPassInfo{ blackboard.Get<CameraModuleInfo>() };
                 GeometryCullModuleInfo& geometryInfo{ blackboard.Get<GeometryCullModuleInfo>() };
 
-                builder.Write( prepassInfo.mGBufferColorTarget, FGResourceState::eRenderTarget );
-                builder.Write( prepassInfo.mGBufferPositionTarget, FGResourceState::eRenderTarget );
-                builder.Write( prepassInfo.mGBufferNormalTarget, FGResourceState::eRenderTarget );
-                builder.Write( prepassInfo.mGBufferEmissiveTarget, FGResourceState::eRenderTarget );
+                builder.Write( prepassInfo.mGBufferColorTarget, FGResourceStage::eRenderTarget );
+                builder.Write( prepassInfo.mGBufferPositionTarget, FGResourceStage::eRenderTarget );
+                builder.Write( prepassInfo.mGBufferNormalTarget, FGResourceStage::eRenderTarget );
+                builder.Write( prepassInfo.mGBufferEmissiveTarget, FGResourceStage::eRenderTarget );
 
-                builder.Read( prepassInfo.mDepthPrepassDepthTarget, FGResourceState::eDepthRead );
+                builder.Read( prepassInfo.mDepthPrepassDepthTarget, FGResourceStage::eDepthTarget );
 
-                builder.Read( cameraPassInfo.mCameraData, FGResourceState::eShaderResource );
-                builder.Read( geometryInfo.mGeometryBuffer, FGResourceState::eShaderResource );
-                builder.Read( geometryInfo.mMaterialsBuffer, FGResourceState::eShaderResource );
-                builder.Read( geometryInfo.mSkinningBuffer, FGResourceState::eShaderResource );
+                builder.Read( cameraPassInfo.mCameraData, FGResourceStage::ePixelShader );
+                builder.Read( geometryInfo.mGeometryBuffer, FGResourceStage::ePixelShader );
+                builder.Read( geometryInfo.mMaterialsBuffer, FGResourceStage::ePixelShader );
+                builder.Read( geometryInfo.mSkinningBuffer, FGResourceStage::ePixelShader );
 
-                builder.Read( geometryInfo.mVerticesBuffer, FGResourceState::eShaderResource );
-                builder.Read( geometryInfo.mIndicesBuffer, FGResourceState::eShaderResource );
+                builder.Read( geometryInfo.mVerticesBuffer, FGResourceStage::ePixelShader );
+                builder.Read( geometryInfo.mIndicesBuffer, FGResourceStage::ePixelShader );
             },
             [this]( CommandContext &ctx, Blackboard& b ) -> void {
                 PrepassModuleInfo& prepassInfo{ b.Get<PrepassModuleInfo>() };
@@ -456,16 +456,16 @@ namespace mikoto::renderer {
                 CameraModuleInfo& cameraPassInfo{ blackboard.Get<CameraModuleInfo>() };
                 GeometryCullModuleInfo& geometryInfo{ blackboard.Get<GeometryCullModuleInfo>() };
 
-                builder.Write( prepassInfo.mDepthPrepassColorTarget, FGResourceState::eRenderTarget );
-                builder.Write( prepassInfo.mDepthPrepassDepthTarget, FGResourceState::eDepthWrite );
+                builder.Write( prepassInfo.mDepthPrepassColorTarget, FGResourceStage::eRenderTarget );
+                builder.Write( prepassInfo.mDepthPrepassDepthTarget, FGResourceStage::eDepthTarget );
 
-                builder.Read( cameraPassInfo.mCameraData, FGResourceState::eShaderResource );
+                builder.Read( cameraPassInfo.mCameraData, FGResourceStage::ePixelShader );
 
-                builder.Read( geometryInfo.mGeometryBuffer, FGResourceState::eShaderResource );
-                builder.Read( geometryInfo.mSkinningBuffer, FGResourceState::eShaderResource );
+                builder.Read( geometryInfo.mGeometryBuffer, FGResourceStage::ePixelShader );
+                builder.Read( geometryInfo.mSkinningBuffer, FGResourceStage::ePixelShader );
 
-                builder.Read( geometryInfo.mVerticesBuffer, FGResourceState::eShaderResource );
-                builder.Read( geometryInfo.mIndicesBuffer, FGResourceState::eShaderResource );
+                builder.Read( geometryInfo.mVerticesBuffer, FGResourceStage::ePixelShader );
+                builder.Read( geometryInfo.mIndicesBuffer, FGResourceStage::ePixelShader );
             },
 
             [this]( CommandContext& ctx, Blackboard& b ) -> void {

@@ -183,7 +183,7 @@ namespace mikoto::renderer {
     }
 
     auto FGBufferDescription::SetInitialData( BufferSpanHandle data ) -> FGBufferDescription& {
-        mSpanHandle = data;
+        mInitialContents = data;
         mElementSizeBytes = data->GetSize();
 
         // If you specify initial data it means you to copy it to this
@@ -240,7 +240,7 @@ namespace mikoto::renderer {
     }
 
     auto FGTextureDescription::SetMultisampling(Multisampling sampleCount) -> FGTextureDescription& {
-        mMSAA = sampleCount;
+        mMultisampling = sampleCount;
         return *this;
     }
 
@@ -324,7 +324,7 @@ namespace mikoto::renderer {
 
         auto& result{ mResources[id] = eastl::make_unique<FGResource>(
             FGResource{
-                .mHandle = id,
+                .mResourceID = id,
                 .mType = type,
             }
         ) };
@@ -420,7 +420,7 @@ namespace mikoto::renderer {
 
         resource.mResource = handle;
 
-        return FGTextureHandle{ .mHandle = resource.mHandle };
+        return FGTextureHandle{ .mHandle = resource.mResourceID };
     }
 
     auto FGResourceManager::ImportBuffer( BufferHandle handle ) -> FGBufferHandle {
@@ -428,7 +428,7 @@ namespace mikoto::renderer {
 
         resource.mResource = handle;
 
-        return FGBufferHandle{ .mHandle = resource.mHandle };
+        return FGBufferHandle{ .mHandle = resource.mResourceID };
     }
 
     FGReadbackManager::FGReadbackManager( Blackboard& blackboard, FGResourceManager& manager )
@@ -490,92 +490,116 @@ namespace mikoto::renderer {
         : mGraphNode{ MKT_ADDRESSOF( node ) }, mNodeControl{ MKT_ADDRESSOF( control ) }
     {}
 
-    auto FGNodeBuilder::Read( FGTextureHandle handle, FGResourceState state ) -> void {
+    auto FGNodeBuilder::Read( FGTextureHandle handle, FGResourceStage state ) -> void {
         Read( handle.mHandle );
-
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
-            .mAccess = FGResourceAccess::eRead
         };
     }
 
-    auto FGNodeBuilder::Write( FGTextureHandle handle, FGResourceState state ) -> void {
+    auto FGNodeBuilder::Write( FGTextureHandle handle, FGResourceStage state ) -> void {
         Write( handle.mHandle );
-
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
-            .mAccess = FGResourceAccess::eWrite
         };
     }
 
-    auto FGNodeBuilder::Read( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
-
-    }
-
-    auto FGNodeBuilder::Write( FGTextureHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
-
-    }
-
-    auto FGNodeBuilder::Read( FGBufferHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
-
-    }
-
-    auto FGNodeBuilder::Write( FGBufferHandle handle, FGStageType stage, FGResourceAccess access ) -> void {
-
-    }
-
-    auto FGNodeBuilder::Read( FGBufferHandle handle, FGResourceState state ) -> void {
+    auto FGNodeBuilder::Read( FGBufferHandle handle, FGResourceStage state ) -> void {
         Read( handle.mHandle );
-
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
-            .mAccess = FGResourceAccess::eRead
         };
     }
 
-    auto FGNodeBuilder::Write( FGBufferHandle handle, FGResourceState state ) -> void {
+    auto FGNodeBuilder::Write( FGBufferHandle handle, FGResourceStage state ) -> void {
         Write( handle.mHandle );
+        mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
+            .mState = state,
+        };
+    }
+
+    auto FGNodeBuilder::UseResource( FGTextureHandle handle, FGResourceStage state, FGResourceAccess access ) -> void {
+        switch (access) {
+            case FGResourceAccess::eNone:
+                MKT_ASSERT( false, "Invalid resource access type" );
+            case FGResourceAccess::eRead:
+                Read( handle.mHandle );
+                break;
+            case FGResourceAccess::eWrite:
+                Write( handle.mHandle );
+                break;
+        }
 
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
-            .mAccess = FGResourceAccess::eWrite
+            .mAccess = access,
+        };
+    }
+
+    auto FGNodeBuilder::UseResource( FGBufferHandle handle, FGResourceStage state, FGResourceAccess access ) -> void {
+        switch (access) {
+            case FGResourceAccess::eNone:
+                MKT_ASSERT( false, "Invalid resource access type" );
+            case FGResourceAccess::eRead:
+                Read( handle.mHandle );
+                break;
+            case FGResourceAccess::eWrite:
+                Write( handle.mHandle );
+                break;
+        }
+
+        mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
+            .mState = state,
+            .mAccess = access,
         };
     }
 
     auto FGNodeBuilder::Read( FGResourceHandle handle ) -> void {
         MKT_ASSERT( handle != 0, "Invalid resource handle" );
-        auto& ver{ mNodeControl->mResources[handle].mVersions.back() };  // current version
-        if(ver.HasWriter()) {
-            mGraphNode->mDependsOn.emplace(ver.mWriterPass);     // RAW edge
+        auto& resourceLatestVersion{ mNodeControl->mResources[handle].mVersions.back() };
+
+        // Let writer finish first before we start reading to it (READ-AFTER-WRITE)
+        if(resourceLatestVersion.HasWriter()) {
+            mGraphNode->mDependsOn.emplace(resourceLatestVersion.mWriterPass);
         }
 
-        ver.mReaderPasses.push_back(mGraphNode->mName);          // track who reads this version
-        mGraphNode->mReadResources.push_back(handle);    // record for barrier insertion
+        // Register myself as reader for this resource
+        resourceLatestVersion.mReaderPasses.push_back(mGraphNode->mName);
+
+        // record for barrier insertion
+        mGraphNode->mReadResources.push_back(handle);
     }
 
-    auto FGNodeBuilder::Write( FGResourceHandle handle) -> void {
+    auto FGNodeBuilder::Write( FGResourceHandle handle ) -> void {
         MKT_ASSERT( handle != 0, "Invalid resource handle" );
-        auto& ver{ mNodeControl->mResources[handle].mVersions.back() };  // current version (pre-bump)
-        if(ver.HasWriter()) {
-            mGraphNode->mDependsOn.emplace(ver.mWriterPass);  // WAW edge: prev writer must finish
+        auto& resourceLatestVersion{ mNodeControl->mResources[handle].mVersions.back() };
+
+        // We depend on previous writer, let
+        // it finish first (WRITE-AFTER-WRITE)
+        if(resourceLatestVersion.HasWriter()) {
+            mGraphNode->mDependsOn.emplace(resourceLatestVersion.mWriterPass);
         }
 
-        for(const auto& reader : ver.mReaderPasses) {
-            mGraphNode->mDependsOn.emplace(reader);  // WAR edge: reader must finish first
+        // Readers must finish before this pass writes to the resource (WRITE-AFTER-READ)
+        for(const auto& reader : resourceLatestVersion.mReaderPasses) {
+            mGraphNode->mDependsOn.emplace(reader);
         }
 
-        if(ver.HasWriter()) {
-            mNodeControl->mResources[handle].mVersions.push_back({}); // bump version if this one already has a writer
-            mNodeControl->mResources[handle].mVersions.back().mWriterPass = mGraphNode->mName;  // this pass owns the new version
+        // Make this pass as the last writer for this resource
+        if ( resourceLatestVersion.HasWriter() ) {
+            mNodeControl->mResources[handle].mVersions.push_back( {} );
+            mNodeControl->mResources[handle].mVersions.back().mWriterPass = mGraphNode->mName;
         } else {
-            ver.mWriterPass = mGraphNode->mName;
+            resourceLatestVersion.mWriterPass = mGraphNode->mName;
         }
 
-        mGraphNode->mWriteResources.push_back(handle);  // record for barrier insertion
+        // record for barrier insertion
+        mGraphNode->mWriteResources.push_back(handle);
     }
 
-    FrameGraph::FrameGraph( IGpuDevice *device, ShaderLibrary* library )
-        : mDevice{ device }, mShaderLibrary{ library } {
+    FrameGraph::FrameGraph( IGpuDevice* device, ShaderLibrary* library )
+        : mDevice{ device }, mShaderLibrary{ library }
+    {
         mNodeControl = eastl::make_unique<FGNodeControl>();
         mResourceManager = eastl::make_unique<FGResourceManager>( mDevice );
         mReadbackManager = eastl::make_unique<FGReadbackManager>( mBlackboard, *mResourceManager );
@@ -599,10 +623,10 @@ namespace mikoto::renderer {
     auto FrameGraph::Compile() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        mExecutionPlan.mBarriers.clear();
-        mExecutionPlan.mExecutionGraph.clear();
         mExecutionPlan.mSorted.clear();
         mExecutionPlan.mTaskMap.clear();
+        mExecutionPlan.mBarriers.clear();
+        mExecutionPlan.mExecutionGraph.clear();
 
         // Build edges
         BuildNodeEdges();
@@ -611,8 +635,6 @@ namespace mikoto::renderer {
         CullGraphNodes();
 
         // Barriers
-        // I do not think I wil go this way I think the passes will specify the
-        // state they need the resource to be in and access type will be inferred
         BuildNodeBarriers();
 
         // Create the contexts and executions tasks
@@ -630,7 +652,6 @@ namespace mikoto::renderer {
 
         MKT_COLOR_PRINT_FORMATTED_FLUSH( MKT_FMT_COLOR_CYAN, "FG Dependencies:\n{}", oss.str() );
 #endif
-
     }
 
     auto FrameGraph::Execute() -> void {
@@ -650,24 +671,23 @@ namespace mikoto::renderer {
             auto& pass{ mNodeControl->mNodes[passName] };
             auto& ctx{ mNodeControl->mContexts.at(passName) };
 
-            CommandListHandle cmd{};
+            CommandListHandle commandList{};
 
             switch (pass.mType) {
                 case FGPassType::eGraphics:
-                    cmd = mGraphicsCommands;
+                    commandList = mGraphicsCommands;
                     break;
                 case FGPassType::eCompute:
-                    cmd = mComputeCommands;
+                    commandList = mComputeCommands;
                     break;
                 case FGPassType::eTransfer:
-                    cmd = mTransferCommands;
+                    commandList = mTransferCommands;
                     break;
                 default:;
             }
 
-            // Off load this work to workers threads
-            // Vulkan could use secondary command buffers here
-            ctx.BeginPass( cmd );
+            // Off load this work to workers threads?
+            ctx.BeginPass( commandList );
 
             // Place pass barriers
             auto& barriers{ mExecutionPlan.mBarriers[passName] };
@@ -716,9 +736,7 @@ namespace mikoto::renderer {
     }
 
     auto FrameGraph::ExecuteReadbacks() -> void {
-        const u64 currentValue{ mFence->GetCompletionValue() };
-        // Execute readback callbacks first if any
-        mReadbackManager->ExecuteCallbacks( currentValue );
+        mReadbackManager->ExecuteCallbacks( mFenceValue );
     }
 
     auto FrameGraph::SetExecutionPolicy( eastl::string_view passName, FGExecutionPolicy policy ) -> void {
@@ -757,9 +775,9 @@ namespace mikoto::renderer {
         return eastl::make_unique<FrameGraph>( device, shaderLibrary );
     }
 
-    auto FrameGraph::BindResources( CommandListHandle cmd ) -> void {
+    auto FrameGraph::BindResources( CommandListHandle commandList ) -> void {
         PipelineType bindPoint{ PipelineType::eInvalid };
-        switch (cmd->GetQueueType()) {
+        switch (commandList->GetQueueType()) {
             case QueueType::eGraphics:
                 bindPoint = PipelineType::eGraphics;
                 break;
@@ -771,14 +789,14 @@ namespace mikoto::renderer {
         }
 
         // Just sanity check
-        if (bindPoint == PipelineType::eInvalid) {
-            MKT_ASSERT( false, "Invalid pipeline bind point." );
-        }
+        MKT_ASSERT( bindPoint != PipelineType::eInvalid, "Invalid pipeline bind point." );
 
         DescriptorTableHandle table{ mResourceManager->GetDescriptorTable() };
         PipelineLayoutHandle layout{ mResourceManager->GetPipelineLayout() };
 
-        cmd->BindPipelineResources( BindResourcesDescription{}
+        // Resource layout is predefined and fixed for all pipelines
+        // see FGResourceManager implementation
+        commandList->BindPipelineResources( BindResourcesDescription{}
             .AddResourceSet( 0, table.GetRaw() )
             .SetPipelineLayout( layout.GetRaw() )
             .SetBindPoint( bindPoint ) );
@@ -830,7 +848,7 @@ namespace mikoto::renderer {
 
         // Cull Passes
         // This step is done if we for instance remove or disable a pass
-        // we need to disable the ones depending on it
+        // we need to disable the ones depending on it?
         if (!mExecutionPlan.mSorted.empty()) {
             for(auto reverseIt{ mExecutionPlan.mSorted.rbegin() }; reverseIt != mExecutionPlan.mSorted.rend(); ++reverseIt) {
                 if (!passesMap[*reverseIt].mIsAlive) {
@@ -854,54 +872,45 @@ namespace mikoto::renderer {
                 continue;
             }
 
-            auto recordTransition = [&]( FGResourceHandle h ) -> void {
-                // You cannot set a barrier twice for the same resource
-                // in the same pass
-                if (mExecutionPlan.mBarriers[passName].contains( h )) {
+            auto recordTransition = [&]( FGResourceHandle resourceHandle, FGResourceAccess access ) -> void {
+                // You cannot set a barrier twice for the same resource in the same pass
+                if (mExecutionPlan.mBarriers[passName].contains( resourceHandle )) {
                     return;
                 }
 
-                // Improve this, this is better, put barriers only if needed
-                // if a resource is always read from no need to sync access
-                // insert barrier only for layout transitions or
-                // if we write to it
-                auto prev = mNodeControl->mResources[h].mCurrentState;
-                auto next = mNodeControl->mNodes[passName].mResourceStates[h].mState;
+                // Barriers are really only needed for dependencies where one of the accesses
+                // is a write (WAW, WAR, RAW) or if a layout transition is required
+                const FGResourceStage prevState{ mNodeControl->mResources[resourceHandle].mCurrentState };
+                const FGResourceStage nextState{ mNodeControl->mNodes[passName].mResourceStates[resourceHandle].mState };
 
-                auto isWrite = [](FGResourceState s) {
-                    return s == FGResourceState::eUnorderedAccess ||
-                           s == FGResourceState::eRenderTarget ||
-                           s == FGResourceState::eDepthWrite ||
-                           s == FGResourceState::eCopyDest ||
-                           s == FGResourceState::eResolveDest;
-                };
-
-                if (prev == FGResourceState::eUnknown) {
+                if (prevState == FGResourceStage::eUnknown) {
                     // First use -> just set state, no barrier
-                    // I think I wil probably remove this and transition all resources to general layout so the
+                    // I think I wil probably remove this and transition all resources to general layout so that
                     // I only do the next check for barriers for each pass
-                    mNodeControl->mResources[h].mCurrentState = next;
-                    mExecutionPlan.mBarriers[passName][h] = FGBarrier{
-                        h,
-                        prev,
-                        next };
+                    mExecutionPlan.mBarriers[passName][resourceHandle] = FGBarrier{
+                        resourceHandle,
+                        access,
+                        prevState,
+                        nextState };
+                    mNodeControl->mResources[resourceHandle].mCurrentState = nextState;
                 }
-                else if (prev != next || isWrite(prev) || isWrite(next)) {
-                    mExecutionPlan.mBarriers[passName][h] = FGBarrier{
-                        h,
-                        prev,
-                        next };
+                else if (prevState != nextState || access == FGResourceAccess::eWrite ) {
+                    mExecutionPlan.mBarriers[passName][resourceHandle] = FGBarrier{
+                        resourceHandle,
+                        access,
+                        prevState,
+                        nextState };
 
-                    mNodeControl->mResources[h].mCurrentState = next;
+                    mNodeControl->mResources[resourceHandle].mCurrentState = nextState;
                 }
             };
 
             for ( auto& h: pass.mReadResources ) {
-                recordTransition( h );
+                recordTransition( h, FGResourceAccess::eRead );
             }
 
             for ( auto& h: pass.mWriteResources ) {
-                recordTransition( h );
+                recordTransition( h, FGResourceAccess::eWrite );
             }
         }
     }
@@ -1010,7 +1019,7 @@ namespace mikoto::renderer {
                 graphicsPipelineDesc.AddShader( mShaderLibrary->LoadShader(shader.second, GetShaderFlagsFromStage( shader.first )) );
             }
 
-            mNodeControl->mResources[resource.mHandle] = FGNodeResource {
+            mNodeControl->mResources[resource.mResourceID] = FGNodeResource {
                 .mName{ desc.mName },
                 .mDescription = desc,
                 .mVersions{ ResourceVersion{
@@ -1029,7 +1038,7 @@ namespace mikoto::renderer {
                 .SetComputeStage( mShaderLibrary->LoadShader( desc.mShaders.at( FGStageType::eCompute ), ShaderType::eCompute ) )
             };
 
-            mNodeControl->mResources[resource.mHandle] = FGNodeResource {
+            mNodeControl->mResources[resource.mResourceID] = FGNodeResource {
                 .mName{ desc.mName },
                 .mDescription = desc,
                 .mVersions{ ResourceVersion{
@@ -1043,7 +1052,7 @@ namespace mikoto::renderer {
             checked_cast<DeviceObject*>( resource.mResource.GetRaw() )->SetDebugName( desc.mName );
         }
 
-        return FGPipelineHandle{ resource.mHandle };
+        return FGPipelineHandle{ resource.mResourceID };
     }
 
     auto FrameGraph::Create( const FGBufferDescription &desc ) -> FGBufferHandle {
@@ -1057,11 +1066,11 @@ namespace mikoto::renderer {
             .SetByteSize( desc.mElementSizeBytes )
         };
 
-        if (!desc.mSpanHandle.IsEmpty()) {
-            bufferDesc.SetInitialData( desc.mSpanHandle );
+        if (!desc.mInitialContents.IsEmpty()) {
+            bufferDesc.SetInitialData( desc.mInitialContents );
         }
 
-        mNodeControl->mResources[resource.mHandle] = FGNodeResource {
+        mNodeControl->mResources[resource.mResourceID] = FGNodeResource {
             .mName{ desc.mName },
             .mDescription = bufferDesc,
             .mVersions{ ResourceVersion{
@@ -1074,7 +1083,7 @@ namespace mikoto::renderer {
         resource.mResource = mDevice->CreateBuffer( bufferDesc );
         checked_cast<DeviceObject*>( resource.mResource.GetRaw() )->SetDebugName( desc.mName );
 
-        return FGBufferHandle{ .mHandle = resource.mHandle };
+        return FGBufferHandle{ .mHandle = resource.mResourceID };
     }
 
     auto FrameGraph::ImportTexture( const Path &path ) -> FGTextureHandle {
@@ -1095,7 +1104,7 @@ namespace mikoto::renderer {
         auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture, texture.GetRaw() ) };
         resource.mResource = texture;
 
-        mNodeControl->mResources[resource.mHandle] = FGNodeResource {
+        mNodeControl->mResources[resource.mResourceID] = FGNodeResource {
             .mName{ string::Format( "FG Loaded Texture {}", path.GetC_Str() ) },
             .mDescription = textureDesc,
             .mVersions{ ResourceVersion{
@@ -1105,7 +1114,7 @@ namespace mikoto::renderer {
             .mIsImported = true
         };
 
-        return FGTextureHandle{ .mHandle = resource.mHandle };
+        return FGTextureHandle{ .mHandle = resource.mResourceID };
     }
 
     auto FrameGraph::ImportTexture( TextureHandle handle ) -> FGTextureHandle {
@@ -1116,7 +1125,7 @@ namespace mikoto::renderer {
         auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture, handle.GetRaw() ) };
         resource.mResource = handle;
 
-        mNodeControl->mResources[resource.mHandle] = FGNodeResource {
+        mNodeControl->mResources[resource.mResourceID] = FGNodeResource {
             .mName{ string::Format( "FG External Texture {}", handle->GetDebugName() ) },
             .mVersions{ ResourceVersion{
                 .mWriterPass{}, // No writers
@@ -1125,7 +1134,7 @@ namespace mikoto::renderer {
             .mIsImported = true
         };
 
-        return FGTextureHandle{ .mHandle = resource.mHandle };
+        return FGTextureHandle{ .mHandle = resource.mResourceID };
     }
 
     auto FrameGraph::ImportBuffer( BufferHandle handle ) -> FGBufferHandle {
@@ -1140,11 +1149,12 @@ namespace mikoto::renderer {
             .SetHeight( desc.mHeight )
             .SetMipCount( desc.mMipCount )
             .SetDimensions( desc.mDimension )
-            .SetMultisampling( desc.mMSAA )
+            .SetHeapType( desc.mHeapType )
+            .SetMultisampling( desc.mMultisampling )
             .SetUsage( desc.mUsage )
             .SetFormat( desc.mFormat ) };
 
-        mNodeControl->mResources[resource.mHandle] = FGNodeResource {
+        mNodeControl->mResources[resource.mResourceID] = FGNodeResource {
             .mName{ desc.mName },
             .mDescription = textureDesc,
             .mVersions{ ResourceVersion{
@@ -1154,10 +1164,9 @@ namespace mikoto::renderer {
             .mIsImported = false
         };
 
-        // This part should not happen here yet
         resource.mResource = mDevice->CreateTexture( textureDesc );
         checked_cast<DeviceObject*>( resource.mResource.GetRaw() )->SetDebugName( desc.mName );
-        return FGTextureHandle{ .mHandle = resource.mHandle };
+        return FGTextureHandle{ .mHandle = resource.mResourceID };
     }
 
     auto FrameGraph::Create( const FGSamplerDescription &desc ) -> FGSamplerHandle {
@@ -1171,7 +1180,7 @@ namespace mikoto::renderer {
             .SetWrapV( desc.mWrapV )
             .SetWrapW( desc.mWrapW ) };
 
-        mNodeControl->mResources[resource.mHandle] = FGNodeResource {
+        mNodeControl->mResources[resource.mResourceID] = FGNodeResource {
             .mName{ desc.mName },
             .mDescription = samplerDesc,
             .mVersions{ ResourceVersion{
@@ -1184,7 +1193,7 @@ namespace mikoto::renderer {
         resource.mResource = mDevice->CreateSampler( samplerDesc );
         checked_cast<DeviceObject*>( resource.mResource.GetRaw() )->SetDebugName( desc.mName );
 
-        return FGSamplerHandle{ .mHandle = resource.mHandle };
+        return FGSamplerHandle{ .mHandle = resource.mResourceID };
     }
 
     auto FrameGraph::RegisterReadback( FGReadbackTask::Callback&& execute, bool runEveryFrame ) -> void {

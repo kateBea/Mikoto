@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_PARTICLE_RENDERING_HH
-#define MIKOTOROOT_PARTICLE_RENDERING_HH
+#ifndef MIKOTO_PARTICLE_RENDERING_HH
+#define MIKOTO_PARTICLE_RENDERING_HH
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
 
@@ -21,19 +24,17 @@ namespace mikoto::renderer {
 
     class ParticleSimulationModule final {
     public:
-
-        explicit ParticleSimulationModule(RenderResolution resolution);
+        explicit ParticleSimulationModule( rhi::RenderResolution resolution );
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
     private:
-
-        auto RegisterParticleRenderPass(FrameGraph& graph) -> void;
+        auto RegisterParticleRenderPass( FrameGraph& graph ) -> void;
 
     private:
-        RenderResolution mResolution{ RenderResolution::e1080P };
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
     };
 
 }// namespace mikoto
 
-#endif//MIKOTOROOT_PARTICLE_RENDERING_HH
+#endif//MIKOTO_PARTICLE_RENDERING_HH

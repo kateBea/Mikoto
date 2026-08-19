@@ -116,14 +116,14 @@ namespace mikoto::renderer {
 
             for (const auto& map : shadow.mDirShadowMaps) {
                 if (map.mHandle != 0) {
-                    b.Write( map, FGResourceState::eDepthWrite );
+                    b.Write( map, FGResourceStage::eDepthTarget );
                 }
             }
 
-            b.Read( cam.mCameraData, FGResourceState::eShaderResource );
-            b.Read( geom.mGeometryBuffer, FGResourceState::eShaderResource );
-            b.Read( geom.mSkinningBuffer, FGResourceState::eShaderResource );
-            b.Read( shadow.mShadowsBuffer, FGResourceState::eShaderResource );
+            b.Read( cam.mCameraData, FGResourceStage::ePixelShader );
+            b.Read( geom.mGeometryBuffer, FGResourceStage::ePixelShader );
+            b.Read( geom.mSkinningBuffer, FGResourceStage::ePixelShader );
+            b.Read( shadow.mShadowsBuffer, FGResourceStage::ePixelShader );
         },
         [this]( CommandContext &ctx, Blackboard& blackboard ) -> void {
             auto &registry{ mScene->GetRegistry() };
@@ -155,13 +155,13 @@ namespace mikoto::renderer {
 
                 for (const auto& map : shadow.mPointShadowMaps) {
                     if (map.mHandle != 0) {
-                        b.Write( map, FGResourceState::eDepthWrite );
+                        b.Write( map, FGResourceStage::eDepthTarget );
                     }
                 }
 
-                b.Read( cam.mCameraData, FGResourceState::eShaderResource );
-                b.Read( geom.mGeometryBuffer, FGResourceState::eShaderResource );
-                b.Read( geom.mSkinningBuffer, FGResourceState::eShaderResource );
+                b.Read( cam.mCameraData, FGResourceStage::ePixelShader );
+                b.Read( geom.mGeometryBuffer, FGResourceStage::ePixelShader );
+                b.Read( geom.mSkinningBuffer, FGResourceStage::ePixelShader );
             },
             []( CommandContext&, Blackboard& ) -> void {
         } );
@@ -180,13 +180,13 @@ namespace mikoto::renderer {
 
                 for (const auto& map : shadow.mSpotShadowMaps) {
                     if (map.mHandle != 0) {
-                        b.Write( map, FGResourceState::eDepthWrite );
+                        b.Write( map, FGResourceStage::eDepthTarget );
                     }
                 }
 
-                b.Read( cam.mCameraData, FGResourceState::eShaderResource );
-                b.Read( geom.mGeometryBuffer, FGResourceState::eShaderResource );
-                b.Read( geom.mSkinningBuffer, FGResourceState::eShaderResource );
+                b.Read( cam.mCameraData, FGResourceStage::ePixelShader );
+                b.Read( geom.mGeometryBuffer, FGResourceStage::ePixelShader );
+                b.Read( geom.mSkinningBuffer, FGResourceStage::ePixelShader );
             },
             []( CommandContext&, Blackboard& ) -> void {
             } );

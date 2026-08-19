@@ -54,7 +54,7 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
 
         // Create the resources
-        TrianglePassData& trianglePassData{ graph.GetOrCreate<TrianglePassData>() };
+        TrianglePassData& passData{ graph.GetOrCreate<TrianglePassData>() };
 
         auto colorImage{ FGTextureDescription{}
             .SetName( "TrianglePass_ColorImage01" )
@@ -64,8 +64,7 @@ namespace mikoto::renderer {
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
             .SetFormat( Format::eBGRA8_UNORM ) };
-
-        trianglePassData.mColorTarget = graph.Create( colorImage );
+        passData.mColorTarget = graph.Create( colorImage );
 
         auto depthImage{ FGTextureDescription{}
             .SetName( "TrianglePass_DepthImage01" )
@@ -75,8 +74,7 @@ namespace mikoto::renderer {
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kDepthTarget )
             .SetFormat( Format::eD32 ) };
-
-        trianglePassData.mDepthTarget = graph.Create( depthImage  );
+        passData.mDepthTarget = graph.Create( depthImage  );
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( "TrianglePass_Pipeline01" )
@@ -84,17 +82,15 @@ namespace mikoto::renderer {
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eBGRA8_UNORM )
             .PushShader( "HelloTriangleFG_Vert.slang", FGStageType::eVertex )
-            .PushShader( "HelloTriangleFG_Frag.slang", FGStageType::ePixel )
-        };
-
-        trianglePassData.mPipeline = graph.Create( pipelineBuilder );
+            .PushShader( "HelloTriangleFG_Frag.slang", FGStageType::ePixel ) };
+        passData.mPipeline = graph.Create( pipelineBuilder );
 
         graph.RegisterPass<TrianglePassData>(
             "SimpleTriangle",
             FGPassType::eGraphics,
             []( FGNodeBuilder &b, TrianglePassData& data ) {
-                b.Write( data.mColorTarget, FGResourceState::eRenderTarget );
-                b.Write( data.mDepthTarget, FGResourceState::eDepthWrite );
+                b.UseResource( data.mColorTarget, FGResourceStage::eRenderTarget, FGResourceAccess::eWrite );
+                b.UseResource( data.mDepthTarget, FGResourceStage::eDepthTarget, FGResourceAccess::eWrite );
             },
             []( CommandContext &ctx, Blackboard &b) -> void {
                 const auto& data{ b.Get<TrianglePassData>() };
@@ -167,10 +163,9 @@ namespace mikoto::renderer {
             "SimpleTexture",
             FGPassType::eGraphics,
             []( FGNodeBuilder &b, TexturePassData& data ) {
-
-                b.Write( data.mColorTarget, FGResourceState::eRenderTarget );
-                b.Write( data.mDepthTarget, FGResourceState::eDepthWrite );
-                b.Write( data.mImportedTexture, FGResourceState::eShaderResource );
+                b.UseResource( data.mColorTarget, FGResourceStage::eRenderTarget, FGResourceAccess::eWrite );
+                b.UseResource( data.mDepthTarget, FGResourceStage::eDepthTarget, FGResourceAccess::eWrite );
+                b.UseResource( data.mImportedTexture, FGResourceStage::eComputeShader, FGResourceAccess::eRead );
             },
             []( CommandContext &ctx, Blackboard &blackboard ) -> void {
                 const auto& data{ blackboard.Get<TexturePassData>() };
@@ -184,7 +179,7 @@ namespace mikoto::renderer {
 
                 ctx.PushConstants( params );
 
-                auto graphicsState{ ContextRenderState{}
+                const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ 1920, 1080 } )
                     .AddDepthTarget( data.mDepthTarget )
                     .AddRenderTarget( data.mColorTarget, kColorCyan, LoadOp::eClear ) };
@@ -224,13 +219,12 @@ namespace mikoto::renderer {
         // Create the resources
         SimpleCompute& simpleCompute{ graph.GetOrCreate<SimpleCompute>() };
 
-        // GPU buffer (fast, written by compute shader)
+        // GPU buffer (written by compute shader)
         auto gpuBufferDesc{ FGBufferDescription{}
             .SetName( "SimpleCompute_ComputeBuffer" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopySrc )
             .SetElementsSize( simpleCompute.mNumbersCount, MKT_SIZEOF( MyStruct ) )
-            .SetHeapType( HeapType::eDeviceLocal )};
-
+            .SetHeapType( HeapType::eDeviceLocal ) };
         simpleCompute.mComputeBuffer = graph.Create( gpuBufferDesc );
 
         // Readback buffer (CPU visible, copy destination)
@@ -238,8 +232,7 @@ namespace mikoto::renderer {
             .SetName( "SimpleCompute_ReadBackBuffer" )
             .SetUsage( BufferUsageFlagsBits::kCopyDst )
             .SetElementsSize( simpleCompute.mNumbersCount, MKT_SIZEOF( MyStruct ) )
-            .SetHeapType( HeapType::eReadback )};
-
+            .SetHeapType( HeapType::eReadback ) };
         simpleCompute.mReadbackBuffer = graph.Create( readbackDesc );
 
         // Pipeline
@@ -247,14 +240,13 @@ namespace mikoto::renderer {
             .SetName( "SimpleCompute_Pipeline" )
             .SetPipelineType( PipelineType::eCompute )
             .PushShader( "BasicCompute_Comp.slang", FGStageType::eCompute ) };
-
         simpleCompute.mPipeline = graph.Create( pipelineBuilder );
 
         graph.RegisterPass<SimpleCompute>(
             "SimpleCompute",
             FGPassType::eCompute,
             []( FGNodeBuilder &b, SimpleCompute &data ) {
-                b.Write( data.mComputeBuffer, FGResourceState::eUnorderedAccess );
+                b.UseResource( data.mComputeBuffer, FGResourceStage::eUnorderedAccess, FGResourceAccess::eWrite );
             },
             []( CommandContext &ctx, Blackboard &blackboard ) {
                 const auto &data{ blackboard.Get<SimpleCompute>() };
@@ -274,20 +266,22 @@ namespace mikoto::renderer {
             "SimpleCompute_Readback",
             FGPassType::eTransfer,
             []( FGNodeBuilder &b, SimpleCompute &data ) {
-                b.Write( data.mReadbackBuffer, FGResourceState::eCopyDest );
-                b.Read( data.mComputeBuffer, FGResourceState::eCopySource );
+                b.UseResource( data.mReadbackBuffer, FGResourceStage::eCopy, FGResourceAccess::eWrite );
+                b.UseResource( data.mComputeBuffer, FGResourceStage::eCopy, FGResourceAccess::eRead );
             },
             []( CommandContext &ctx, Blackboard &blackboard ) {
                 const auto &data{ blackboard.Get<SimpleCompute>() };
                 ctx.CopyBuffer( data.mReadbackBuffer, data.mComputeBuffer );
             } );
 
+        graph.SetExecutionPolicy( "SimpleCompute_Readback", FGExecutionPolicy::eOnce );
+
         graph.RegisterReadback(
             []( Blackboard &blackboard, const FGResourceManager& manager ) {
                 const auto &data{ blackboard.Get<SimpleCompute>() };
 
                 eastl::vector<MyStruct> myStructs( data.mNumbersCount );
-                const size_t sizeBytes{ data.mNumbersCount * MKT_SIZEOF( MyStruct ) };
+                const usize sizeBytes{ data.mNumbersCount * MKT_SIZEOF( MyStruct ) };
 
                 if ( const void *mappedAddress{ manager.GetBufferMappedAddress( data.mReadbackBuffer ) } ) {
                     std::memcpy( myStructs.data(), mappedAddress, sizeBytes );

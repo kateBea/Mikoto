@@ -35,70 +35,70 @@
 
 namespace mikoto::renderer {
 
-    inline constexpr i32 kInvalidTextureID{ -1 };
-    inline constexpr u32 kMaxActiveLights{ 10000 };
-    inline constexpr u32 kMaxSkinnedMeshes{ 1000 };
-    inline constexpr u32 kMaxRenderableEntities{ 500'000 };
+    inline constexpr core::i32 kInvalidTextureID{ -1 };
+    inline constexpr core::u32 kMaxActiveLights{ 10000 };
+    inline constexpr core::u32 kMaxSkinnedMeshes{ 1000 };
+    inline constexpr core::u32 kMaxRenderableEntities{ 500'000 };
 
-    inline constexpr u32 kVertexBufferSizeMB{ 512 };
-    inline constexpr u32 kIndexBufferSizeMB{ 512 };
+    inline constexpr core::u32 kVertexBufferSizeMB{ 512 };
+    inline constexpr core::u32 kIndexBufferSizeMB{ 512 };
 
     // Material information
     struct MeshMaterialInfo {
-        float4 mBaseColorFactor{};
-        float4 mEmissiveFactor{};
-        float4 mDiffuseFactor{};
-        float4 mSpecularFactor{};
+        core::float4 mBaseColorFactor{};
+        core::float4 mEmissiveFactor{};
+        core::float4 mDiffuseFactor{};
+        core::float4 mSpecularFactor{};
 
-        f32 mMetallicFactor{};
-        f32 mRoughnessFactor{};
-        f32 mAlphaMask{};
-        f32 mAlphaMaskCutoff{};
-        f32 mEmissiveStrength{};
+        core::f32 mMetallicFactor{};
+        core::f32 mRoughnessFactor{};
+        core::f32 mAlphaMask{};
+        core::f32 mAlphaMaskCutoff{};
+        core::f32 mEmissiveStrength{};
 
-        i32 mBaseColorTextureSet{};
-        i32 mMetallicRoughnessTextureSet{};
-        i32 mSpecularGlossinessSet{};
-        i32 mNormalTextureSet{};
-        i32 mOcclusionTextureSet{};
-        i32 mEmissiveTextureSet{};
+        core::i32 mBaseColorTextureSet{};
+        core::i32 mMetallicRoughnessTextureSet{};
+        core::i32 mSpecularGlossinessSet{};
+        core::i32 mNormalTextureSet{};
+        core::i32 mOcclusionTextureSet{};
+        core::i32 mEmissiveTextureSet{};
 
         // Texture indices
-        i32 mAlbedoIndex{ kInvalidTextureID };
-        i32 mDiffuseIndex{ kInvalidTextureID };
-        i32 mNormalIndex{ kInvalidTextureID };
-        i32 mMetallicIndex{ kInvalidTextureID };
-        i32 mRoughnessIndex{ kInvalidTextureID };
-        i32 mAoIndex{ kInvalidTextureID };
-        i32 mEmissiveIndex{ kInvalidTextureID };
-        i32 mMetallicRoughnessIndex{ kInvalidTextureID };
-        i32 mSpecularGlossinessIndex{ kInvalidTextureID };
+        core::i32 mAlbedoIndex{ kInvalidTextureID };
+        core::i32 mDiffuseIndex{ kInvalidTextureID };
+        core::i32 mNormalIndex{ kInvalidTextureID };
+        core::i32 mMetallicIndex{ kInvalidTextureID };
+        core::i32 mRoughnessIndex{ kInvalidTextureID };
+        core::i32 mAoIndex{ kInvalidTextureID };
+        core::i32 mEmissiveIndex{ kInvalidTextureID };
+        core::i32 mMetallicRoughnessIndex{ kInvalidTextureID };
+        core::i32 mSpecularGlossinessIndex{ kInvalidTextureID };
 
-        i32 mIsBloomy{ MKT_SHADER_FALSE };
+        core::i32 mIsBloomy{ MKT_SHADER_FALSE };
 
-        i32 mWorkflow{};
+        core::i32 mWorkflow{};
     };
 
     // Geometry information
     struct MeshGeometryInfo {
-        float4x4 mTransform{};
-        float4x4 mInverseModelView{}; // inverse(view * model) computed in CPU for performance
+        core::float4x4 mTransform{};
+        core::float4x4 mInverseModelView{}; // inverse(view * model) computed in CPU for performance
 
         // For vertex pulling, this tells the
         // offset into the array of vertices
-        u32 mIndexOffset{};
-        u32 mVertexOffset{};
+        core::u32 mIndexOffset{};
+        core::u32 mVertexOffset{};
 
         // Index into the buffer
         // of list of skinning matrices
-        i32 mSkinningMatricesID{ -1 };
-        i32 mHasArmature{ MKT_SHADER_FALSE };
+        core::i32 mSkinningMatricesID{ -1 };
+        core::i32 mHasArmature{ MKT_SHADER_FALSE };
 
         // TODO: add a list of shadow casters. This will be an index into the array of shadow casters
         // buffer to know from which lights this entity needs shadows casted from, ofc there will be a limit you cannot
         // just slap a unlimited amount of shadow casters
 
-        u32 mObjectID{};
+        core::u32 mObjectID{};
     };
 
     // Info that I pass per mesh
@@ -108,28 +108,28 @@ namespace mikoto::renderer {
     };
 
     struct GeometryAllocation {
-        u32 mVertexOffset{};
-        u32 mVertexSize{};
+        core::u32 mVertexOffset{};
+        core::u32 mVertexSize{};
 
-        u32 mIndexOffset{};
-        u32 mIndexSize{};
+        core::u32 mIndexOffset{};
+        core::u32 mIndexSize{};
 
-        u32 mOffsetID{};
+        core::u32 mOffsetID{};
     };
 
     class GeometryBufferAllocator {
     public:
-        explicit GeometryBufferAllocator( u64 vertexBufferSize, u64 indexBufferSize );
+        explicit GeometryBufferAllocator( core::u64 vertexBufferSize, core::u64 indexBufferSize );
 
         auto Free( const GeometryAllocation &alloc ) -> void;
-        auto Allocate( u64 vertexBytes, u64 indexBytes ) -> eastl::optional<GeometryAllocation>;
+        auto Allocate( core::u64 vertexBytes, core::u64 indexBytes ) -> eastl::optional<GeometryAllocation>;
 
     private:
         struct FreeRange {
-            u64 mOffset{};
-            u64 mSize{};
+            core::u64 mOffset{};
+            core::u64 mSize{};
         };
-        auto AllocateFrom( eastl::vector<FreeRange> &freeList, u64 size ) -> eastl::optional<u64>;
+        auto AllocateFrom( eastl::vector<FreeRange> &freeList, u64 size ) -> eastl::optional<core::u64>;
 
     private:
         eastl::vector<FreeRange> mVertexFreeList{};
@@ -160,8 +160,8 @@ namespace mikoto::renderer {
     };
 
     struct MeshNodeInstancesInfo {
-        u32 mAllocationIndex{};
-        u32 mInstanceCount{};
+        core::u32 mAllocationIndex{};
+        core::u32 mInstanceCount{};
 
         GeometryAllocation mGeometryInfo{};
 
@@ -175,8 +175,8 @@ namespace mikoto::renderer {
 
         GeometryAllocator mGeometryAllocator{};
 
-        u32 mNodeAllocationIndex{};
-        eastl::vector<u32> mMeshFreeNodeAllocationIndices{};
+        core::u32 mNodeAllocationIndex{};
+        eastl::vector<core::u32> mMeshFreeNodeAllocationIndices{};
         ankerl::unordered_dense::map<const asset::MeshNode*, MeshNodeInstancesInfo> mInstanceCounts{};
     };
 
@@ -197,7 +197,7 @@ namespace mikoto::renderer {
         auto PrepareSkinning( CommandContext& context, Blackboard& b ) -> void;
         auto PrepareIndirectDraw( CommandContext& context, Blackboard& b  ) -> void;
 
-        auto PushTextureID( CommandContext& ctx, TextureHandle handle ) -> i32;
+        auto PushTextureID( CommandContext& ctx, TextureHandle handle ) -> core::i32;
 
     private:
         const scene::Scene* mScene{};
@@ -206,16 +206,16 @@ namespace mikoto::renderer {
         GeometryBatch mBatch{};
 
         // Indirect draw
-        static constexpr u32 kMaxIndirectCommands{ 1000000 };
+        static constexpr core::u32 kMaxIndirectCommands{ 1000000 };
 
-        u32 mDrawCount{};
-        FGBufferHandle mIndirectBuffer{}; // TODO: remove this and retrieve it via blackboard
+        core::u32 mDrawCount{};
+        FGBufferHandle mIndirectBuffer{};
         eastl::vector<DrawIndirectCommand> mIndirectCmds{};
 
         // Animation
-        u32 mActiveAnimationCount{};
+        core::u32 mActiveAnimationCount{};
         eastl::vector<MeshSkinningInfo> mSkinningInfo{};
-        ankerl::unordered_dense::set<u32> mActiveFinalMatsIndices{};
+        ankerl::unordered_dense::set<core::u32> mActiveFinalMatsIndices{};
     };
 
 }

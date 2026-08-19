@@ -12,9 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/CameraModule.hh>
+
 #include <Scene/Camera.hh>
 #include <Scene/Component.hh>
 #include <Scene/Scene.hh>
@@ -23,6 +27,7 @@ namespace mikoto::renderer {
 
     using namespace mikoto::core;
     using namespace mikoto::scene;
+    using namespace mikoto::renderer::rhi;
 
     CameraModule::CameraModule( RenderResolution resolution )
         : mResolution{ resolution }
@@ -42,34 +47,33 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
 
         CameraModuleInfo& info{ graph.GetOrCreate<CameraModuleInfo>() };
-        auto uniformDesc{ FGBufferDescription{}
+        auto bufferDesc{ FGBufferDescription{}
             .SetName( "CameraPass_Buffer01" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
-            .SetSizeBytes( MKT_SIZEOF( CameraInfo ) )
-            .SetHeapType( HeapType::eDeviceLocal )};
-
-        info.mCameraData = graph.Create( uniformDesc );
+            .SetSizeBytes( MKT_SIZEOF( CameraData ) )
+            .SetHeapType( HeapType::eDeviceLocal ) };
+        info.mCameraData = graph.Create( bufferDesc );
 
         graph.RegisterPass<CameraModuleInfo>(
             "CameraInfoPass",
             FGPassType::eTransfer,
             []( FGNodeBuilder &b, CameraModuleInfo& info ) {
-                b.Write( info.mCameraData, FGResourceState::eCopyDest );
+                b.UseResource( info.mCameraData, FGResourceStage::eCopy, FGResourceAccess::eWrite );
             },
             [this]( CommandContext &ctx, Blackboard& b ) -> void {
                 const auto& data{ b.Get<CameraModuleInfo>() };
 
                 auto dimensions{ InferDimensions( mResolution ) };
-                mCameraParameters.mProjection = mCamera->GetProjection();
-                mCameraParameters.mView = mCamera->GetViewMatrix();
-                mCameraParameters.mInverseProjection = glm::inverse( mCamera->GetProjection() );
+                mCameraData.mProjection = mCamera->GetProjection();
+                mCameraData.mView = mCamera->GetViewMatrix();
+                mCameraData.mInverseProjection = glm::inverse( mCamera->GetProjection() );
 
-                mCameraParameters.mPlaneBounds = float4{ mCamera->GetNearPlane(), mCamera->GetFarPlane(), .0f, .0f };
-                mCameraParameters.mScreenDimensions = float4{ dimensions.first, dimensions.second, .0f, .0f };
-                mCameraParameters.mCameraPosition = float4{ mCamera->GetPosition(), 1.0f };
-                mCameraParameters.mInverseViewProjection = glm::inverse( mCameraParameters.mProjection * mCameraParameters.mView );
+                mCameraData.mPlaneBounds = float4{ mCamera->GetNearPlane(), mCamera->GetFarPlane(), .0f, .0f };
+                mCameraData.mScreenDimensions = float4{ dimensions.first, dimensions.second, .0f, .0f };
+                mCameraData.mCameraPosition = float4{ mCamera->GetPosition(), 1.0f };
+                mCameraData.mInverseViewProjection = glm::inverse( mCameraData.mProjection * mCameraData.mView );
 
-                ctx.CopyBuffer( data.mCameraData, mCameraParameters, 0 );
+                ctx.CopyBuffer( data.mCameraData, mCameraData, 0 );
             });
     }
 }

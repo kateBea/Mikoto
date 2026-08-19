@@ -45,7 +45,7 @@ namespace mikoto::material {
     // TODO: Move to renderer namespace
     // Caches shaders loaded from disk files for a given GPU device
     // It is a singleton for now as Mikoto only manages one GPU device across the entire application
-    class ShaderLibrary final : public IService, public Singleton<ShaderLibrary> {
+    class ShaderLibrary final : public IService {
     public:
         explicit ShaderLibrary( const ShaderLibraryDescription &options );
 

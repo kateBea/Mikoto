@@ -93,8 +93,7 @@ namespace mikoto::renderer {
             .mSize = indexBufferSize } );
     }
 
-    auto GeometryBufferAllocator::AllocateFrom(eastl::vector<FreeRange> &freeList, u64 size )
-    -> eastl::optional<u64> {
+    auto GeometryBufferAllocator::AllocateFrom(eastl::vector<FreeRange> &freeList, u64 size ) -> eastl::optional<u64> {
         for ( auto it = freeList.begin(); it != freeList.end(); ++it ) {
             if ( it->mSize >= size ) {
                 u64 allocOffset = it->mOffset;
@@ -264,13 +263,13 @@ namespace mikoto::renderer {
             FGPassType::eTransfer,
             []( FGNodeBuilder &b, GeometryCullModuleInfo& data ) -> void {
                 // Geometry
-                b.Write( data.mVerticesBuffer, FGResourceState::eCopyDest );
-                b.Write( data.mIndicesBuffer, FGResourceState::eCopyDest );
+                b.Write( data.mVerticesBuffer, FGResourceStage::eCopy );
+                b.Write( data.mIndicesBuffer, FGResourceStage::eCopy );
 
                 // Drawing
-                b.Write( data.mGeometryBuffer, FGResourceState::eCopyDest );
-                b.Write( data.mMaterialsBuffer, FGResourceState::eCopyDest );
-                b.Write( data.mSkinningBuffer, FGResourceState::eCopyDest );
+                b.Write( data.mGeometryBuffer, FGResourceStage::eCopy );
+                b.Write( data.mMaterialsBuffer, FGResourceStage::eCopy );
+                b.Write( data.mSkinningBuffer, FGResourceStage::eCopy );
             },
             [this]( CommandContext &ctx, Blackboard& b ) -> void {
                 InitGeometryData( ctx, b );
@@ -284,8 +283,8 @@ namespace mikoto::renderer {
             "MeshCulling",
             FGPassType::eTransfer,
             []( FGNodeBuilder &b, GeometryCullModuleInfo& data ) -> void {
-                b.Write( data.mGeometryBuffer, FGResourceState::eCopyDest );
-                b.Write( data.mMaterialsBuffer, FGResourceState::eCopyDest );
+                b.Write( data.mGeometryBuffer, FGResourceStage::eCopy );
+                b.Write( data.mMaterialsBuffer, FGResourceStage::eCopy );
             },
             []( CommandContext &, Blackboard & ) -> void {
                 // Do culling and transfer stuff to GPU

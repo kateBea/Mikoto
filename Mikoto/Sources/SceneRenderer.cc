@@ -55,21 +55,21 @@ namespace mikoto::renderer {
         mDebugPasses.RegisterPasses( *mFrameGraph );
 
         // Scene pre-passes
-        //mCameraPass.RegisterPasses( *mFrameGraph );
+        mCameraPass.RegisterPasses( *mFrameGraph );
         //mGeometryManagement.RegisterPasses( *mFrameGraph );
 
         //mRenderPrepass.RegisterPasses( *mFrameGraph );
         //mShadowMapping.RegisterPasses( *mFrameGraph );
 
-        //mParticleRendering.RegisterPasses( *mFrameGraph );
+        mParticleRendering.RegisterPasses( *mFrameGraph );
 
         //mGeometryShading.RegisterPasses( *mFrameGraph );
 
         //mMousePickingModule.RegisterPasses( *mFrameGraph );
 
         // Raytracing
-        //mPathTracing.RegisterPasses( *mFrameGraph );
-        //mRayTracingPass.RegisterPasses( *mFrameGraph );
+        mPathTracing.RegisterPasses( *mFrameGraph );
+        mRayTracingPass.RegisterPasses( *mFrameGraph );
 
         // Post process
         //mTextRendering.RegisterPasses( *mFrameGraph );
@@ -119,6 +119,9 @@ namespace mikoto::renderer {
         mFrameGraph = nullptr;
         mCamera = nullptr;
         mDevice = nullptr;
+
+        mShaderLibrary->Shutdown();
+        mShaderLibrary.reset();
     }
 
     auto SceneRenderer::Render( const Scene* scene ) -> void {

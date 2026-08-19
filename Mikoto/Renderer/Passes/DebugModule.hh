@@ -15,6 +15,9 @@
 #ifndef MIKOTO_DEBUG_PASSES_HH
 #define MIKOTO_DEBUG_PASSES_HH
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
 #include <Renderer/Core/FrameGraph.hh>
 
 namespace mikoto::renderer {
@@ -31,9 +34,9 @@ namespace mikoto::renderer {
 
     struct RenderModelPass {
         struct {
-            float4x4 mModel{ math::constants::Identity<float4x4>() };
-            float4x4 mView{};
-            float4x4 mProjection{};
+            core::float4x4 mModel{ math::constants::Identity<core::float4x4>() };
+            core::float4x4 mView{};
+            core::float4x4 mProjection{};
         } mCameraInfo{};
 
         FGTextureHandle mColorTarget{};

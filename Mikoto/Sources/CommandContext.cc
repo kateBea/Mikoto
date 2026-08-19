@@ -28,42 +28,63 @@ namespace mikoto::renderer {
     using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;
 
-    MKT_NODISCARD constexpr auto GetResourceState(FGResourceState state) -> ResourceStates {
-    switch (state) {
-        case FGResourceState::eUnknown:                return ResourceStates::eUnknown;
+    MKT_NODISCARD constexpr auto GetResourceState(FGResourceStage state, FGResourceAccess access ) -> ResourceStates {
+        switch (state) {
+            case FGResourceStage::eUnknown:                return ResourceStates::eUnknown;
 
-        // Buffers
-        case FGResourceState::eConstantBuffer:         return ResourceStates::eConstantBuffer;
-        case FGResourceState::eVertexBuffer:           return ResourceStates::eVertexBuffer;
-        case FGResourceState::eIndexBuffer:            return ResourceStates::eIndexBuffer;
-        case FGResourceState::eIndirectArgument:       return ResourceStates::eIndirectArgument;
-        case FGResourceState::eShaderResource:         return ResourceStates::eShaderResource;
-        case FGResourceState::eUnorderedAccess:        return ResourceStates::eUnorderedAccess;
+            // Buffers
+            case FGResourceStage::eConstantBuffer:         return ResourceStates::eConstantBuffer;
+            case FGResourceStage::eVertexBuffer:           return ResourceStates::eVertexBuffer;
+            case FGResourceStage::eIndexBuffer:            return ResourceStates::eIndexBuffer;
+            case FGResourceStage::eIndirectArgument:       return ResourceStates::eIndirectArgument;
 
-        // Images
-        case FGResourceState::eRenderTarget:           return ResourceStates::eRenderTarget;
-        case FGResourceState::eDepthWrite:             return ResourceStates::eDepthWrite;
-        case FGResourceState::eDepthRead:              return ResourceStates::eDepthRead;
+            // Shader
+            case FGResourceStage::eVertexShader:
+            case FGResourceStage::eHullShader:
+            case FGResourceStage::eDomainShader:
+            case FGResourceStage::eGeometryShader:
+            case FGResourceStage::eComputeShader:
+            case FGResourceStage::ePixelShader:         return ResourceStates::eShaderResource;
 
-        // Transfer
-        case FGResourceState::eCopyDest:               return ResourceStates::eCopyDest;
-        case FGResourceState::eCopySource:             return ResourceStates::eCopySource;
-        case FGResourceState::eResolveDest:            return ResourceStates::eResolveDest;
-        case FGResourceState::eResolveSource:          return ResourceStates::eResolveSource;
+            case FGResourceStage::eUnorderedAccess:        return ResourceStates::eUnorderedAccess;
 
-        // Present
-        case FGResourceState::ePresent:                return ResourceStates::ePresent;
+            // Images
+            case FGResourceStage::eRenderTarget:           return ResourceStates::eRenderTarget;
+            case FGResourceStage::eDepthTarget: {
+                if (access == FGResourceAccess::eWrite) return ResourceStates::eDepthWrite;
+                if (access == FGResourceAccess::eRead) return ResourceStates::eDepthRead;
 
-        // Raytracing
-        case FGResourceState::eAccelStructRead:        return ResourceStates::eAccelStructRead;
-        case FGResourceState::eAccelStructWrite:       return ResourceStates::eAccelStructWrite;
-        case FGResourceState::eAccelStructBuildInput:  return ResourceStates::eAccelStructBuildInput;
-        case FGResourceState::eAccelStructBuildBlas:   return ResourceStates::eAccelStructBuildBlas;
+                MKT_ASSERT( false, "Invalid access type" );
+            }
+
+            // Transfer
+            case FGResourceStage::eCopy:   {
+                if (access == FGResourceAccess::eWrite) return ResourceStates::eCopyDest;
+                if (access == FGResourceAccess::eRead) return ResourceStates::eCopySource;
+
+                MKT_ASSERT( false, "Invalid access type" );
+            }
+
+            case FGResourceStage::eResolve:         {
+                if (access == FGResourceAccess::eWrite) return ResourceStates::eResolveDest;
+                if (access == FGResourceAccess::eRead) return ResourceStates::eResolveSource;
+
+                MKT_ASSERT( false, "Invalid access type" );
+            }
+
+            // Present
+            case FGResourceStage::ePresent:                return ResourceStates::ePresent;
+
+            // Raytracing
+            case FGResourceStage::eAccelStructRead:        return ResourceStates::eAccelStructRead;
+            case FGResourceStage::eAccelStructWrite:       return ResourceStates::eAccelStructWrite;
+            case FGResourceStage::eAccelStructBuildInput:  return ResourceStates::eAccelStructBuildInput;
+            case FGResourceStage::eAccelStructBuildBlas:   return ResourceStates::eAccelStructBuildBlas;
+        }
+
+        // Fallback (should never happen if enum is exhaustive)
+        return ResourceStates::eUnknown;
     }
-
-    // Fallback (should never happen if enum is exhaustive)
-    return ResourceStates::eUnknown;
-}
 
     auto DrawIndirectState::SetBuffer( FGBufferHandle handle ) -> DrawIndirectState& {
         mIndirectBuffer = handle;
@@ -127,9 +148,7 @@ namespace mikoto::renderer {
     auto CommandContext::BeginRender( const ContextRenderState &gs ) -> void {
         auto graphicsState{ GraphicsState{}
             .SetRenderArea( gs.mRenderArea )
-            .SetScopeName( string::Format( "Render: {}", mNode->mName ))
-        };
-
+            .SetScopeName( string::Format( "Render: {}", mNode->mName )) };
         if ( gs.mDepthTarget.mRenderTarget.mHandle != FGResourceManager::kInvalidResourceHandle ) {
             graphicsState.AddDepthTarget( mResourceManager->Get( gs.mDepthTarget.mRenderTarget.mHandle ).mResource, gs.mDepthTarget.mLoadOp );
         }
@@ -188,7 +207,7 @@ namespace mikoto::renderer {
 
         for (const auto& [resourceID, barrier] : barriers) {
             FGResource resource{ mResourceManager->Get( barrier.mResourceID ) };
-            auto desired{ GetResourceState(barrier.mNewState) };
+            auto desired{ GetResourceState( barrier.mNewState, barrier.mAccess ) };
 
             switch (resource.mType) {
                 case FGResourceType::eTexture:
@@ -281,7 +300,31 @@ namespace mikoto::renderer {
 
     auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, size_t offset, const void* ptr, size_t sizeBytes ) -> void {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        FGResource resource{ mResourceManager->Get( dstBuffer.mHandle ) };
-        mCommands->Write( checked_cast<IBuffer*>( resource.mResource.GetRaw() ), offset, ptr, sizeBytes );
+        IBuffer* buffer{ CacheResource( dstBuffer ) };
+        mCommands->Write( buffer, offset, ptr, sizeBytes );
+    }
+
+    auto CommandContext::CacheResource( FGBufferHandle handle ) -> IBuffer* {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        auto itFind{ mCachedBuffers.find( handle.mHandle ) };
+        if (itFind == mCachedBuffers.end()) {
+            FGResource resource{ mResourceManager->Get( handle.mHandle ) };
+            IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
+            itFind = mCachedBuffers.try_emplace( itFind, handle.mHandle, buffer );
+        }
+
+        return itFind->second;
+    }
+
+    auto CommandContext::CacheResource( FGTextureHandle handle ) -> ITexture* {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        auto itFind{ mCachedTextures.find( handle.mHandle ) };
+        if (itFind == mCachedTextures.end()) {
+            FGResource resource{ mResourceManager->Get( handle.mHandle ) };
+            ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
+            itFind = mCachedTextures.try_emplace( itFind, handle.mHandle, texture );
+        }
+
+        return itFind->second;
     }
 }// namespace mikoto::renderer

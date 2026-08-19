@@ -256,8 +256,7 @@ namespace mikoto::editor {
 
     auto EditorLayer::InitSceneRenderer() -> void {
         const auto dimensions{ InferDimensions( mEditorState->mResolution ) };
-
-        auto colorDesc{ TextureCreateDescription{}
+        const auto colorDesc{ TextureCreateDescription{}
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
@@ -282,7 +281,7 @@ namespace mikoto::editor {
             mSceneRenderer->Init();
         }
 
-        // Thumbnails renderer
+        // Thumbnails renderer for the content browser
         auto thumbnailRendererDesc{ ThumbnailRendererCreateInfo{}
             .SetName( "MainThumbnailRenderer" )
             .SetShaderBasePath( "Resources/Shaders/slang" )

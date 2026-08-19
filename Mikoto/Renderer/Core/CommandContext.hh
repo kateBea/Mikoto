@@ -19,6 +19,8 @@
 #include <EASTL/utility.h>
 #include <EASTL/string_view.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/fixed_hash_set.h>
+#include <EASTL/fixed_hash_map.h>
 
 #include <ankerl/unordered_dense.h>
 
@@ -104,22 +106,26 @@ namespace mikoto::renderer {
         auto Dispatch( core::u32 groupX, core::u32 groupY, core::u32 groupZ ) -> void;
 
         auto CopyBuffer( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void;
-        auto CopyBuffer( FGBufferHandle dstBuffer, rhi::IBuffer* src, core::size_t dstOffset ) -> void;
+        auto CopyBuffer( FGBufferHandle dstBuffer, rhi::IBuffer* src, core::usize dstOffset ) -> void;
 
         auto Copy( FGBufferHandle dstBuffer, FGTextureHandle srcImage ) -> void;
 
-        auto CopyBuffer( FGBufferHandle dstBuffer, const auto& data, core::size_t offset ) -> void {
+        auto CopyBuffer( FGBufferHandle dstBuffer, const auto& data, core::usize offset ) -> void {
             CopyBuffer( dstBuffer, offset, MKT_ADDRESSOF( data ), MKT_SIZEOF( data ) );
         }
 
-        auto CopyBuffer( FGBufferHandle dstBuffer, core::size_t offset, const void* ptr, core::size_t sizeBytes ) -> void;
+        auto CopyBuffer( FGBufferHandle dstBuffer, core::usize offset, const void* ptr, core::usize sizeBytes ) -> void;
 
         auto PushConstants( const auto& data ) -> void {
             const void* ptr{ MKT_ADDRESSOF( data ) };
-            const core::size_t size{ MKT_SIZEOF( data ) };
+            const core::usize size{ MKT_SIZEOF( data ) };
 
             eastl::copy_n( core::as<core::byte_t*>( ptr ), size, mPushConstantsData.data() );
         }
+    private:
+        // [Internal usage]
+        auto CacheResource( FGBufferHandle handle ) -> IBuffer*;
+        auto CacheResource( FGTextureHandle handle ) -> ITexture*;
 
     private:
         FGNode* mNode{};
@@ -128,7 +134,15 @@ namespace mikoto::renderer {
         rhi::CommandListHandle mCommands{};
         rhi::IPipeline* mCurrentPipeline{};
 
-        eastl::fixed_vector<core::byte_t, rhi::kMaxPushConstantSize> mPushConstantsData{};
+        eastl::fixed_hash_map<FGResourceHandle, rhi::IBuffer*, 20> mCachedBuffers{};
+        eastl::fixed_hash_map<FGResourceHandle, rhi::ITexture*, 20> mCachedTextures{};
+
+        // Shader resources get a unique ID into the
+        // Frame Graph resource manager descriptor table
+        eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderBuffers{};
+        eastl::fixed_hash_map<FGResourceHandle, core::u32*, 20> mCachedShaderTextures{};
+
+        eastl::fixed_vector<core::ubyte, rhi::kMaxPushConstantSize> mPushConstantsData{};
     };
 }// namespace mikoto::renderer
 

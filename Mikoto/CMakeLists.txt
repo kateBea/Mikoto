@@ -708,7 +708,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC .)
 target_include_directories(${PROJECT_NAME} PUBLIC
         ${imgui_SOURCE_DIR}
         ${imgui_SOURCE_DIR}/backends
-        ${imguizmo_SOURCE_DIR}
+        ${imguizmo_SOURCE_DIR}/src
         ${spirv_reflect_SOURCE_DIR}
         ${miniaudio_SOURCE_DIR}
         ${fmt_SOURCE_DIR}/include
@@ -734,7 +734,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${tracy_SOURCE_DIR}/asio/include
         ${LUA_INCLUDE_DIR}
         ${FILEWATCH_INCLUDE_DIR}
-        ${IMOGUIZMO_INCLUDE_DIR}/src
+        ${IMOGUIZMO_INCLUDE_DIR}
 #        ${OpenCL-SDK_SOURCE_DIR}/lib/include
 #        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
 #        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include

@@ -852,7 +852,7 @@ namespace mikoto::renderer::vulkan {
         MKT_VK_CHECK( vkResetCommandBuffer( mCurrentCommandBuffer, MKT_VK_FLAGS_NONE ) );
         MKT_VK_CHECK( vkBeginCommandBuffer( mCurrentCommandBuffer, MKT_ADDRESSOF( beginInfo ) ) );
 
-        mRecordingCopeName = desc.mScopeName.empty() ? "UnnamedScope" : desc.mScopeName.c_str();
+        mRecordingScopeName = desc.mScopeName.empty() ? "UnnamedScope" : desc.mScopeName.c_str();
 
         // Must be in recording state
         // https://docs.vulkan.org/spec/latest/chapters/debugging.html
@@ -860,7 +860,7 @@ namespace mikoto::renderer::vulkan {
         // https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdBeginDebugUtilsLabelEXT.html
         VkDebugUtilsLabelEXT labelInfo = {};
         labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-        labelInfo.pLabelName = mRecordingCopeName.c_str();
+        labelInfo.pLabelName = mRecordingScopeName.c_str();
         labelInfo.color[0] = mLabelColor.mR;
         labelInfo.color[1] = mLabelColor.mG;
         labelInfo.color[2] = mLabelColor.mB;
@@ -1259,15 +1259,19 @@ namespace mikoto::renderer::vulkan {
             CommitBarriers();
         }
 
-        VkDebugUtilsLabelEXT labelInfo{};
-        labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-        labelInfo.pLabelName = state.mName.c_str();
-        labelInfo.color[0] = 0.0f;
-        labelInfo.color[1] = 0.0f;
-        labelInfo.color[2] = 0.0f;
-        labelInfo.color[3] = 0.0f;
+        mRenderingScopeName = state.mName;
 
-        vkCmdBeginDebugUtilsLabelEXT(mCurrentCommandBuffer, &labelInfo);
+        if (!mRenderingScopeName.empty()) {
+            VkDebugUtilsLabelEXT labelInfo{};
+            labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+            labelInfo.pLabelName = mRenderingScopeName.c_str();
+            labelInfo.color[0] = 0.0f;
+            labelInfo.color[1] = 0.0f;
+            labelInfo.color[2] = 0.0f;
+            labelInfo.color[3] = 0.0f;
+
+            vkCmdBeginDebugUtilsLabelEXT(mCurrentCommandBuffer, &labelInfo);
+        }
 
         eastl::fixed_vector<VkRenderingAttachmentInfo, kMaxRenderTargets> colorImages{};
 
@@ -1321,7 +1325,9 @@ namespace mikoto::renderer::vulkan {
     auto CommandList::EndRendering() -> void {
         vkCmdEndRendering( mCurrentCommandBuffer );
 
-        vkCmdEndDebugUtilsLabelEXT( mCurrentCommandBuffer );
+        if (!mRenderingScopeName.empty()) {
+            vkCmdEndDebugUtilsLabelEXT( mCurrentCommandBuffer );
+        }
 
         mIsRenderScopeActive = false;
     }
@@ -1591,6 +1597,22 @@ namespace mikoto::renderer::vulkan {
         }
 
         return Object( mCurrentCommandBuffer );
+    }
+
+    auto CommandList::BeginDebugLabel( eastl::string_view name, Color color ) -> void {
+        VkDebugUtilsLabelEXT labelInfo{};
+        labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+        labelInfo.pLabelName = name.data();
+        labelInfo.color[0] = color.mR;
+        labelInfo.color[1] = color.mG;
+        labelInfo.color[2] = color.mB;
+        labelInfo.color[3] = color.mA;
+
+        vkCmdBeginDebugUtilsLabelEXT(mCurrentCommandBuffer, &labelInfo);
+    }
+
+    auto CommandList::EnbDebugLabel() -> void {
+        vkCmdEndDebugUtilsLabelEXT( mCurrentCommandBuffer );
     }
 
     auto CommandList::IsInUse() const -> bool {

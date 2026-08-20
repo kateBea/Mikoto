@@ -1368,6 +1368,14 @@ namespace mikoto::renderer::d3d12 {
         return ICommandList::GetNativeHandle( type );
     }
 
+    auto CommandList::BeginDebugLabel( eastl::string_view name, Color color ) -> void {
+
+    }
+
+    auto CommandList::EnbDebugLabel() -> void {
+
+    }
+
     CommandList::operator ID3D12GraphicsCommandList7*() const {
         return mCommandList.Get();
     }

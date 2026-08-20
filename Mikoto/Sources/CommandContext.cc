@@ -136,9 +136,12 @@ namespace mikoto::renderer {
 
     auto CommandContext::BeginPass( CommandListHandle cmd ) -> void {
         mCommands = cmd;
+        mCommands->BeginDebugLabel( string::Format( "Pass: {}", mNode->mName ), kColorTransparent );
     }
 
     auto CommandContext::EndPass() -> void {
+        mCommands->EnbDebugLabel();
+
         if (mNode->mExecutionPolicy == FGExecutionPolicy::eOnce ||
             mNode->mExecutionPolicy == FGExecutionPolicy::eOnChange) {
             mNode->mIsAlive = false;
@@ -147,8 +150,7 @@ namespace mikoto::renderer {
 
     auto CommandContext::BeginRender( const ContextRenderState &gs ) -> void {
         auto graphicsState{ GraphicsState{}
-            .SetRenderArea( gs.mRenderArea )
-            .SetScopeName( string::Format( "Pass: {}", mNode->mName )) };
+            .SetRenderArea( gs.mRenderArea ) };
         if ( gs.mDepthTarget.mRenderTarget.mHandle != FGResourceManager::kInvalidResourceHandle ) {
             graphicsState.AddDepthTarget( mResourceManager->Get( gs.mDepthTarget.mRenderTarget.mHandle ).mResource, gs.mDepthTarget.mLoadOp );
         }

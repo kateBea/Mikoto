@@ -276,6 +276,9 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
+        auto BeginDebugLabel( eastl::string_view name, rhi::Color color ) -> void override;
+        auto EnbDebugLabel() -> void override;
+
         // Vulkan Specifics
         MKT_NODISCARD auto IsInUse() const -> bool;
 
@@ -316,7 +319,8 @@ namespace mikoto::renderer::vulkan {
 
         // For debug
         rhi::Color mLabelColor{};
-        eastl::string mRecordingCopeName{};
+        eastl::string mRecordingScopeName{};
+        eastl::string mRenderingScopeName{};
     };
 
     // Internally multiple queues might map to the exact same

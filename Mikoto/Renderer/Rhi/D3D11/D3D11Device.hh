@@ -208,6 +208,9 @@ namespace mikoto::renderer::d3d11 {
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
 
+        auto BeginDebugLabel( eastl::string_view name, Color color ) -> void override;
+        auto EnbDebugLabel() -> void override;
+
         ~CommandList() override;
 
     private:

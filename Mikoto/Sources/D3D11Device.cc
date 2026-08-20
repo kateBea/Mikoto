@@ -631,6 +631,14 @@ namespace mikoto::renderer::d3d11 {
         return Object( mCommandList.Get() );
     }
 
+    auto CommandList::BeginDebugLabel( eastl::string_view name, Color color ) -> void {
+
+    }
+
+    auto CommandList::EnbDebugLabel() -> void {
+
+    }
+
     CommandList::~CommandList() {
         if (mIsAllocated) {
             Release();

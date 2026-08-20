@@ -469,6 +469,9 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
+        auto BeginDebugLabel( eastl::string_view name, Color color ) -> void override;
+        auto EnbDebugLabel() -> void override;
+
         MKT_NODISCARD operator ID3D12GraphicsCommandList7*() const;
 
         ~CommandList() override;

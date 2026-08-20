@@ -308,6 +308,10 @@ namespace mikoto::renderer::rhi {
 
         MKT_NODISCARD auto GetQueueType() const -> QueueType;
 
+        // DEBUG Utilities
+        virtual auto BeginDebugLabel( eastl::string_view name, Color color ) -> void = 0;
+        virtual auto EnbDebugLabel() -> void = 0;
+
         ~ICommandList() override = default;
 
         using DeviceObject::Initialize;

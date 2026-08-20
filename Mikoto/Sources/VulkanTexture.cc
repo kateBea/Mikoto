@@ -121,7 +121,14 @@ namespace Mikoto {
     // Vulkan Texture 2D  ------------------------------------------------------------------------------------------------
     VulkanTexture::VulkanTexture( const TextureDescription& data )
         : Texture2D{ data.Width, data.Height, data.ChannelCount, data.Data, data.UsageType, data.Format, data.MipLevelCount, data.Usage, data.Map } {
-        m_ImageSize = m_Width * m_Height * m_Channels;
+
+        Size size{ 1 };
+
+        if (data.IsHDR) {
+            size = sizeof(float);
+        }
+
+        m_ImageSize = m_Width * m_Height * m_Channels * size;
 
         m_ExternalBufferSize = data.BufferSize;
 
@@ -791,12 +798,12 @@ namespace Mikoto {
 
             for ( const auto& filename: filenames ) {
                 const File* file{ FileService::Get()->LoadFile( fmt::format( "{}/{}.{}", emitFolder, filename, extension ) ) };
-                images.emplace_back( file );
+                images.emplace_back( file, false );
             }
         } else {
             // 6 faces
             for ( const File* file: m_TextureFaces ) {
-                images.emplace_back( file );
+                images.emplace_back( file, false );
             }
         }
 

@@ -428,7 +428,7 @@ namespace Mikoto {
     MKT_NODISCARD auto InferDimensions(float width, float height, UInt32 mipLevel) -> std::pair<UInt32, UInt32>;
 
     MKT_NODISCARD auto LoadImageFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
-    MKT_NODISCARD auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
+    MKT_NODISCARD auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> float*;
     MKT_NODISCARD auto LoadImageFromMemory( const Byte* buffer, Size sizeBytes, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
     MKT_NODISCARD auto LoadImageFromMemory( const Byte* buffer, Size sizeBytes, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc*;
 
@@ -463,7 +463,7 @@ namespace Mikoto {
 
     class ImageLoader2D final {
     public:
-        explicit ImageLoader2D( const File* textureFile );
+        explicit ImageLoader2D( const File* textureFile, bool isHDR );
 
         explicit ImageLoader2D( const Byte* data, Size sizeBytes );
 

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <Core/Profiler.hh>
+#include <Common/String.hh>
 #include <Library/Random/Random.hh>
 #include <Library/String/String.hh>
 #include <Math/Math.hh>
@@ -460,11 +461,18 @@ namespace Mikoto {
     auto PostEffectsPass::RegisterBloom( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        graph.RegisterPass<BloomParameters>(
-            "BloomDownSampling",
-            [this]( FramePassBuilder& b, BloomParameters& data ) {
+        for (UInt32 mipLevel{ 0 }; mipLevel < 4; ++mipLevel ) {
+            auto dimensions{ InferDimensions( m_Resolution ) };
+            float width{  static_cast<float>(dimensions.first * std::pow(0.5f, mipLevel)) };
+            float height{  static_cast<float>(dimensions.second * std::pow(0.5f, mipLevel)) };
+
+            graph.RegisterPass(
+            mipLevel == 0 ?
+            fmt::format( "BloomDownSampling Emissive to 0" ) :
+            fmt::format( "BloomDownSampling Mip {} to {}", mipLevel, mipLevel - 1 ),
+            [this, mipLevel, width, height]( FramePassBuilder& b ) {
                 MKT_BEGIN_PROFILER_NAMED();
-                b.CreateTexture( "BloomDownSampling_ColorTarget", m_Resolution, TextureFormat::RGBA16_FLOAT, Multisampling::MSAA_X1, TextureUsage::COLOR, data.MipCount );
+                b.CreateTexture( fmt::format( "BloomDownSampling_ColorTarget_{}", mipLevel ), width, height, TextureFormat::RGBA16_FLOAT, Multisampling::MSAA_X1, TextureUsage::COLOR );
 
                 b.CreateBuffer( "Bloom_Parameters", BufferUsage::UNIFORM, sizeof( BloomParameters ), 1, ResourceUsageType::RESOURCE_USAGE_STREAMING );
 
@@ -476,16 +484,25 @@ namespace Mikoto {
 
                 b.UseShader( "Resources/Shaders/slang/BloomDown_Vert.slang", ShaderStage::VERTEX );
                 b.UseShader( "Resources/Shaders/slang/BloomDown_Frag.slang", ShaderStage::FRAGMENT );
-                b.CreatePipeline( "BloomDownSampling_Pipeline", graphicsDesc );
+                b.CreatePipeline( fmt::format( "BloomDownSamplingPipeline_{}", mipLevel ), graphicsDesc );
 
                 b.Write( "Bloom_Parameters", FrameResourceState::UniformBuffer );
-                b.Write( "BloomDownSampling_ColorTarget", FrameResourceState::RenderTarget );
+                b.Write( fmt::format( "BloomDownSampling_ColorTarget_{}", mipLevel ), FrameResourceState::RenderTarget );
+
+                if (mipLevel == 0) {
+                    b.Read( "GBuffer_Emissive", FrameResourceState::ShaderRead_GraphicsPipeline );
+                } else {
+                    b.Read( fmt::format( "BloomDownSampling_ColorTarget_{}", mipLevel - 1 ), FrameResourceState::ShaderRead_GraphicsPipeline );
+                }
 
                 b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                b.Read( "GBuffer_Emissive", FrameResourceState::ShaderRead_GraphicsPipeline );
             },
-            [this]( CommandContext& ctx, FrameGraphBlackboard& blackboard ) -> void {
+            [this, mipLevel, width, height]( CommandContext& ctx, FrameGraphBlackboard& blackboard ) -> void {
                 MKT_BEGIN_PROFILER_NAMED();
+
+                if (!blackboard.Contains<BloomParameters>()) {
+                    blackboard.Add<BloomParameters>();
+                }
 
                 auto& data{ blackboard.Get<BloomParameters>() };
 
@@ -502,25 +519,29 @@ namespace Mikoto {
                 }
 
                 ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Emissive", data.GBufferEmissiveSampler, ResourceSlot::Slot_0 );
 
-                for (UInt32 mipLevel{ 0 }; mipLevel < data.MipCount; ++mipLevel ) {
-                    ctx.SetColorRenderTarget( "BloomDownSampling_ColorTarget", mipLevel );
-
-                    PassRenderInfo info{ .ColorLoadOp{LoadOp::LOAD} };
-                    ctx.BeginRender(info);
-
-                    const auto dimensions{ InferDimensions( m_Resolution, mipLevel ) };
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
-                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
-
-                    ctx.BindPipeline( "BloomDownSampling_Pipeline" );
-                    ctx.Draw( 3 );
-
-                    ctx.EndRender();
+                if (mipLevel == 0) {
+                    ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Emissive", data.GBufferEmissiveSampler, ResourceSlot::Slot_0 );
+                } else {
+                    ctx.BindImageSampler( ResourceGroup::StaticSamplers, fmt::format( "BloomDownSampling_ColorTarget_{}", mipLevel - 1 ), data.GBufferEmissiveSampler, ResourceSlot::Slot_0 );
                 }
-            } );
 
+                ctx.SetColorRenderTarget( fmt::format( "BloomDownSampling_ColorTarget_{}", mipLevel ) );
+
+                PassRenderInfo info{ .ColorLoadOp{LoadOp::LOAD} };
+                ctx.BeginRender(info);
+
+                ctx.SetViewport( 0, 0, width, height, false );
+                ctx.SetScissor( 0, 0, width, height );
+
+                ctx.BindPipeline( fmt::format( "BloomDownSamplingPipeline_{}", mipLevel ) );
+                ctx.Draw( 3 );
+
+                ctx.EndRender();
+            } );
+        }
+
+#if false
         graph.RegisterPass(
             "BloomUpSampling",
             []( FramePassBuilder& b ) {
@@ -609,6 +630,7 @@ namespace Mikoto {
 
                 ctx.EndRender();
             } );
+#endif
     }
 
     auto PostEffectsPass::RegisterTonemap( FrameGraph& graph ) -> void {
@@ -659,7 +681,7 @@ namespace Mikoto {
                 ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
                 ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
 
-                ctx.BindImageSampler( ResourceGroup::DynamicSamplers, "ChromaticAberration_ColorTarget", ResourceSlot::Slot_0 );
+                ctx.BindImageSampler( ResourceGroup::DynamicSamplers, "FinalShadingPass_ColorTarget", ResourceSlot::Slot_0 );
 
                 ctx.SetColorRenderTarget( "Tonemap_ColorTarget" );
 

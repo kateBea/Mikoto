@@ -593,11 +593,11 @@ set(IMGUI_SOURCES
 
 # ImGuizmo sources
 set(IMGUIZMO_SOURCES
-        ${imguizmo_SOURCE_DIR}/ImGuizmo.cpp
-        ${imguizmo_SOURCE_DIR}/GraphEditor.cpp
-        ${imguizmo_SOURCE_DIR}/ImCurveEdit.cpp
-        ${imguizmo_SOURCE_DIR}/ImGradient.cpp
-        ${imguizmo_SOURCE_DIR}/ImSequencer.cpp
+        ${imguizmo_SOURCE_DIR}/src/ImGuizmo.cpp
+        ${imguizmo_SOURCE_DIR}/src/GraphEditor.cpp
+        ${imguizmo_SOURCE_DIR}/src/ImCurveEdit.cpp
+        ${imguizmo_SOURCE_DIR}/src/ImGradient.cpp
+        ${imguizmo_SOURCE_DIR}/src/ImSequencer.cpp
 )
 
 set(IMGUI_NODES_SOURCES
@@ -734,7 +734,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${tracy_SOURCE_DIR}/asio/include
         ${LUA_INCLUDE_DIR}
         ${FILEWATCH_INCLUDE_DIR}
-        ${IMOGUIZMO_INCLUDE_DIR}
+        ${IMOGUIZMO_INCLUDE_DIR}/src
 #        ${OpenCL-SDK_SOURCE_DIR}/lib/include
 #        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
 #        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include

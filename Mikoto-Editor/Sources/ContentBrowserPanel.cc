@@ -396,7 +396,7 @@ namespace Mikoto {
                     if (m_Thumbnail.IsEmpty()) {
                         // Request upload. Avoid request multiple times
                         if (!m_ThumbnailsUploadCache.contains( entry.path().string() )) {
-                            AssetsService::Get()->LoadAssetAsync<Texture>( entry.path() );
+                            AssetsService::Get()->LoadAssetAsync<Texture>( entry.path(), entry.path().string().ends_with( ".hdr" ) );
                             m_ThumbnailsUploadCache.insert( entry.path().string() );
                         }
 

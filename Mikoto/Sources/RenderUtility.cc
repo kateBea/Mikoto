@@ -64,9 +64,9 @@ namespace Mikoto {
         return data;
     }
 
-    auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> stbi_uc* {
+    auto LoadImageFloatFromFile( const File* textureFile, Int32& outWidth, Int32& outHeight, Int32& outChannels ) -> float* {
         constexpr int targetChannelCount{ STBI_rgb_alpha };
-        stbi_uc* data{ reinterpret_cast<stbi_uc*>( stbi_loadf_from_memory(
+        float* data{ reinterpret_cast<float*>( stbi_loadf_from_memory(
                 reinterpret_cast<const stbi_uc*>( textureFile->GetContentsBytes() ),
                 textureFile->GetContentsString().size(),
                 std::addressof( outWidth ),
@@ -95,7 +95,7 @@ namespace Mikoto {
     }
 
     STBImageHDR::STBImageHDR( const File* textureFile ) {
-        m_Data = LoadImageFloatFromFile( textureFile, m_Width, m_Height, m_Channels );
+        m_Data = (Byte*)LoadImageFloatFromFile( textureFile, m_Width, m_Height, m_Channels );
     }
 
     STBImageHDR::~STBImageHDR() {
@@ -136,12 +136,20 @@ namespace Mikoto {
         return *this;
     }
 
-    ImageLoader2D::ImageLoader2D( const File* textureFile ) {
+    ImageLoader2D::ImageLoader2D( const File* textureFile, bool isHDR ) {
         try {
             if ( !textureFile->GetPath().ends_with( "ktx" ) ) {
-                auto ptr{ LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels ) };
-                m_Data = new Byte[m_Width * m_Height * m_Channels];
-                std::memcpy( m_Data, ptr, m_Width * m_Height * m_Channels );
+                Size blockSize{ isHDR ? sizeof(float) : 1 };
+                void* ptr{};
+
+                if (isHDR) {
+                    ptr = LoadImageFloatFromFile( textureFile, m_Width, m_Height, m_Channels );
+                } else {
+                    ptr = LoadImageFromFile( textureFile, m_Width, m_Height, m_Channels );
+                }
+
+                m_Data = new Byte[m_Width * m_Height * m_Channels * blockSize];
+                std::memcpy( m_Data, ptr, m_Width * m_Height * m_Channels * blockSize);
                 stbi_image_free( ptr );
             } else {
                 // TODO:

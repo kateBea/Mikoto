@@ -250,7 +250,7 @@ namespace Mikoto {
             return itFind->second;
         }
 
-        const ImageLoader2D image{ textureFile };
+        const ImageLoader2D image{ textureFile, description.IsHDR };
 
         if ( !image.IsValid() ) {
             return TextureHandle::CreateEmpty();
@@ -269,7 +269,7 @@ namespace Mikoto {
             .WithMapType( description.Map )
 
             .WithType( description.Type )
-            .WithFormat( description.Format )
+            .WithFormat( description.IsHDR ? TextureFormat::RGBA32_FLOAT : description.Format )
             
             .WithResourceType( ResourceUsageType::RESOURCE_USAGE_STATIC );
         

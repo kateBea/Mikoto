@@ -12,18 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <slang-com-ptr.h>
+#include <slang.h>
+
+#include <Common/Common.hh>
+#include <Core/Exception.hh>
+#include <Core/Profiler.hh>
+#include <ImGui/ImGuiService.hh>
+#include <Logging/Logger.hh>
+#include <Renderer/Core/RenderService.hh>
 #include <memory>
 #include <utility>
 
-#include <slang.h>
-#include <slang-com-ptr.h>
-
-#include <Common/Common.hh>
-#include <Core/Profiler.hh>
-#include <Core/Exception.hh>
-#include <Logging/Logger.hh>
-#include <ImGui/ImGuiService.hh>
-#include <Renderer/Core/RenderService.hh>
+#include "Core/Timer.hh"
 
 namespace Mikoto {
 
@@ -89,6 +90,7 @@ namespace Mikoto {
     auto RenderService::PrepareFrame() const -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        //MKT_PROFILE_SCOPE_MARKED( "RenderService::PrepareFrame" );
         m_Context->PrepareFrame();
         m_ImguiService->PrepareFrame();
     }
@@ -96,11 +98,14 @@ namespace Mikoto {
     auto RenderService::EndFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        //MKT_PROFILE_SCOPE_MARKED( "RenderService::EndFrame" );
+
         m_ImguiService->EndFrame();
         m_Context->SubmitFrame();
     }
 
     auto RenderService::PresentFrame() -> void {
+        //MKT_PROFILE_SCOPE_MARKED( "RenderService::PresentFrame" );
         m_Context->Present();
     }
 

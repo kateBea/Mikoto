@@ -33,9 +33,6 @@
 
 namespace mikoto::gui {
 
-    using namespace mikoto::core;
-    using namespace mikoto::renderer::rhi;
-
     // Since Mikoto defaults to 1.3
     // ImGuiVulkanBackend wil be using Dynamic Rendering by default
     // (already supported by ImGui)
@@ -50,35 +47,31 @@ namespace mikoto::gui {
         auto BeginFrame() -> void override;
         auto EndFrame() -> void override;
 
-        MKT_NODISCARD auto GetFinalComposition() -> TextureHandle override;
+        MKT_NODISCARD auto GetFinalComposition() -> renderer::rhi::TextureHandle override;
 
-        MKT_NODISCARD auto ConstructImGuiTextureID( const ITexture* texture ) -> ImTextureID override;
-        MKT_NODISCARD auto ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID override;
+        MKT_NODISCARD auto ConstructImGuiTextureID( const renderer::rhi::ITexture* texture ) -> ImTextureID override;
+        MKT_NODISCARD auto ConstructImGuiTextureID( renderer::rhi::TextureHandle texture ) -> ImTextureID override;
 
     private:
         auto InitImGuiForVulkan() -> void;
         auto CreateImages() -> void;
 
-        auto RecordDynamicRenderCommands( CommandListHandle cmdList ) -> void;
-
-        auto SetupViewportAndScissors( CommandListHandle cmdList ) -> void;
-        auto RecordCommands( CommandListHandle cmdList  ) -> void;
+        auto RecordRenderCommands() -> void;
+        auto RecordViewportState() -> void;
 
     private:
-
-        CommandListHandle mCommandList{};
-
-        VkDescriptorPool mImGuiDescriptorPool{};
-
         VkExtent3D mDimensions{ 2560, 1440, 1 };
 
-        TextureHandle mColorImage{};
-        TextureHandle mDepthImage{};
+        renderer::rhi::TextureHandle mColorImage{};
+        renderer::rhi::TextureHandle mDepthImage{};
+        renderer::rhi::CommandListHandle mCommandList{};
 
         struct ImGuiTextIDInfo {
             VkDescriptorSet descriptorSet{};
         };
-        ankerl::unordered_dense::map<const ITexture*, ImGuiTextIDInfo> mImGuiSets{};
+        ankerl::unordered_dense::map<const renderer::rhi::ITexture*, ImGuiTextIDInfo> mImGuiSets{};
+
+        VkDescriptorPool mImGuiDescriptorPool{};
     };
 }// namespace Mikoto
 

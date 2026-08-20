@@ -215,7 +215,7 @@ namespace mikoto::gui {
     auto ImGuiVulkanBackend::EndFrame() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        Context* context{ as<Context*>( RenderSystem::Get()->GetContext() ) };
+        Context* context{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
 
         // If the swap chain has been resized, we need to recreate the framebuffers and images
         SwapChainHandle swapChain{ context->GetSwapChain() };
@@ -231,7 +231,7 @@ namespace mikoto::gui {
         mCommandList->Begin( { .mScopeName = "ImGui Render" } );
         mCommandList->SetTransition( mColorImage.GetRaw(), ResourceStates::eRenderTarget );
 
-        RecordCommands( mCommandList );
+        RecordRenderCommands();
 
         mCommandList->End();
 
@@ -285,7 +285,7 @@ namespace mikoto::gui {
         return ConstructImGuiTextureID( texture.GetRaw() );
     }
 
-    auto ImGuiVulkanBackend::RecordDynamicRenderCommands( CommandListHandle cmdList ) -> void {
+    auto ImGuiVulkanBackend::RecordRenderCommands() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         // Only one clear value for the color attachment
@@ -315,28 +315,28 @@ namespace mikoto::gui {
 
         renderInfo.renderArea = VkRect2D{
             VkOffset2D { 0, 0 },
-            VkExtent2D{ mDimensions.width, mDimensions.height }
-        };
+            VkExtent2D{ mDimensions.width, mDimensions.height } };
         renderInfo.layerCount = 1;
         renderInfo.colorAttachmentCount = 1;
         renderInfo.pColorAttachments = &colorAttachment;
         renderInfo.pDepthAttachment = &depthAttachment;
         renderInfo.pStencilAttachment = nullptr;
 
-        const auto nativeCmdListHandle{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+        const auto nativeCmdListHandle{ mCommandList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
         vkCmdBeginRendering(nativeCmdListHandle, std::addressof( renderInfo ));
 
-        SetupViewportAndScissors( cmdList );
+        RecordViewportState();
 
-        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), nativeCmdListHandle);
+        ImGui_ImplVulkan_RenderDrawData( ImGui::GetDrawData(), nativeCmdListHandle );
 
         vkCmdEndRendering( nativeCmdListHandle );
     }
 
-    auto ImGuiVulkanBackend::SetupViewportAndScissors( CommandListHandle cmdList ) -> void {
-        const auto nativeCmdListHandle{ cmdList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+    auto ImGuiVulkanBackend::RecordViewportState() -> void {
+        const auto nativeCmdListHandle{ mCommandList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
-        SwapChainHandle vulkanSwapChain{ Context::Get()->GetSwapChain() };
+        Context* context{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
+        SwapChainHandle vulkanSwapChain{ context->GetSwapChain() };
 
         // Set Viewport and Scissor
         VkViewport viewport{
@@ -345,21 +345,13 @@ namespace mikoto::gui {
             .width = as<float>( vulkanSwapChain->GetWidth() ),
             .height = as<float>( vulkanSwapChain->GetHeight() ),
             .minDepth = 0.0f,
-            .maxDepth = 1.0f,
-        };
+            .maxDepth = 1.0f };
 
         VkRect2D scissor{
             .offset{ 0, 0 },
-            .extent{ vulkanSwapChain->GetWidth(), vulkanSwapChain->GetHeight() },
-        };
+            .extent{ vulkanSwapChain->GetWidth(), vulkanSwapChain->GetHeight() } };
 
         vkCmdSetViewport( nativeCmdListHandle, 0, 1, std::addressof( viewport ) );
         vkCmdSetScissor( nativeCmdListHandle, 0, 1, std::addressof( scissor ) );
-    }
-
-    auto ImGuiVulkanBackend::RecordCommands( CommandListHandle cmdList ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        RecordDynamicRenderCommands( std::move(cmdList) );
     }
 }

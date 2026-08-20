@@ -683,7 +683,7 @@ namespace Mikoto {
         if constexpr (!optPadding) {
             ImGui::PopStyleVar();
         }
-
+        
         // DockSpace is always fullscreen
         ImGui::PopStyleVar( 2 );
 

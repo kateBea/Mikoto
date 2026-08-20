@@ -316,6 +316,7 @@ namespace mikoto::renderer::vulkan {
 
         // For debug
         rhi::Color mLabelColor{};
+        eastl::string mRecordingCopeName{};
     };
 
     // Internally multiple queues might map to the exact same

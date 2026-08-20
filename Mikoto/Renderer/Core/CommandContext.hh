@@ -87,11 +87,11 @@ namespace mikoto::renderer {
 
         auto SetViewportState(const rhi::ViewportState & vs ) -> void;
 
-        auto PushTexture_SRV( FGTextureHandle handle ) -> core::u32;
-        auto PushSampler( FGSamplerHandle handle ) -> core::u32;
+        MKT_NODISCARD auto PushTexture_SRV( FGTextureHandle handle ) -> core::u32;
+        MKT_NODISCARD auto PushSampler( FGSamplerHandle handle ) -> core::u32;
 
-        auto PushBuffer_SRV( FGBufferHandle handle ) -> core::u32;
-        auto PushBuffer_UAV( FGBufferHandle handle ) -> core::u32;
+        MKT_NODISCARD auto PushBuffer_SRV( FGBufferHandle handle ) -> core::u32;
+        MKT_NODISCARD auto PushBuffer_UAV( FGBufferHandle handle ) -> core::u32;
 
         auto CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>& barriers ) -> void;
 

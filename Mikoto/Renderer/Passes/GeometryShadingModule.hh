@@ -18,6 +18,7 @@
 #include <glm/glm.hpp>
 
 #include <EASTL/fixed_vector.h>
+#include <EASTL/fixed_hash_map.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -64,7 +65,8 @@ namespace mikoto::renderer {
 
         FGPipelineHandle mShadingPipeline{};
         FGPipelineHandle mSkyboxRenderPipeline{};
-        FGPipelineHandle mSkyboxProjectionPipeline{};
+        FGPipelineHandle mSkyboxProjectionPipeline_FlatImage{};
+        FGPipelineHandle mSkyboxProjectionPipeline_Graphics{};
 
         FGPipelineHandle mBrdfPipeline{};
         FGPipelineHandle mIrradiancePipeline{};
@@ -176,7 +178,7 @@ namespace mikoto::renderer {
         u32 mPrefilterMipLevels{ as<u32>( math::Floor( math::Log2( kPrefilterDimensions ) ) ) + 1 };
 
         RenderResolution mResolution{ RenderResolution::e1080P };
-        SceneBackgroundType mBackgroundType{ SceneBackgroundType::eClearColor };
+        SceneBackgroundType mBackgroundType{ SceneBackgroundType::eSkybox };
 
         // SSAO
         bool mEnableSsao{ true };
@@ -189,6 +191,9 @@ namespace mikoto::renderer {
         rhi::TextureHandle mSkyboxHdrTexture{};
         FGTextureHandle mEquirectangularTexture{};
         material::MaterialHandle mSkyboxMaterial{};
+        material::MaterialHandle mSkyboxMaterialDebug{};
+
+        eastl::fixed_hash_map<material::SkyboxFace, FGTextureHandle, 6> mSkyboxFaces{};
 
         asset::ModelHandle mBoxModel{};
     };

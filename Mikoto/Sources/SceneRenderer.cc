@@ -26,6 +26,10 @@
 
 namespace mikoto::renderer {
 
+    using namespace mikoto::core;
+    using namespace mikoto::material;
+    using namespace mikoto::renderer::rhi;
+
     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo )
         : mDevice{ createInfo.mDevice },
         mPresentTexture{ createInfo.mPresentTexture },
@@ -103,11 +107,15 @@ namespace mikoto::renderer {
         mFrameGraph->SetExecutionPolicy( "PrefilterPass", FGExecutionPolicy::eOnChange );
         mFrameGraph->SetExecutionPolicy( "IrradiancePass", FGExecutionPolicy::eOnChange );
         mFrameGraph->SetExecutionPolicy( "SkyboxProjection", FGExecutionPolicy::eOnChange );
+        mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Compute", FGExecutionPolicy::eOnChange );
+        mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Transfer", FGExecutionPolicy::eOnChange );
+        mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Graphics", FGExecutionPolicy::eOnChange );
 
         // mFrameGraph->DisablePass( "PBR_Radiance" );
         // mFrameGraph->DisablePass( "DepthPrePass" );
         // mFrameGraph->DisablePass( "GBuffer" );
         // mFrameGraph->DisablePass( "ObjectSelection_Render" );
+        // mFrameGraph->DisablePass( "SkyboxProjection" );
 
         // For some reason this makes subsequent passes to render in Wireframe mode
         //mFrameGraph->DisablePass( "WireframePass" );
@@ -180,19 +188,7 @@ namespace mikoto::renderer {
         mGeometryShading.SetAmbientScale( ambient );
     }
 
-    auto SceneRenderer::SetSkyboxEquirectangular( TextureHandle texture ) -> void {
-        if (texture.IsEmpty() || !mFrameGraph) {
-            return;
-        }
-
-        FGTextureHandle handle{ mFrameGraph->ImportTexture( texture ) };
-        mGeometryShading.SetEquirectangular( handle );
-        mFrameGraph->EnablePass( "PrefilterPass" );
-        mFrameGraph->EnablePass( "IrradiancePass" );
-        mFrameGraph->EnablePass( "SkyboxProjection" );
-    }
-
-    auto SceneRenderer::SetSkyboxMaterial( material::MaterialHandle material ) -> void {
+    auto SceneRenderer::SetSkyboxMaterial( MaterialHandle material ) -> void {
         if (material.IsEmpty() || !mFrameGraph) {
             return;
         }
@@ -205,6 +201,10 @@ namespace mikoto::renderer {
         mFrameGraph->EnablePass( "PrefilterPass" );
         mFrameGraph->EnablePass( "IrradiancePass" );
         mFrameGraph->EnablePass( "SkyboxProjection" );
+
+        mFrameGraph->EnablePass( "SkyboxProjection_Compute" );
+        mFrameGraph->EnablePass( "SkyboxProjection_Transfer" );
+        mFrameGraph->EnablePass( "SkyboxProjection_Graphics" );
     }
 
     auto SceneRenderer::SetRenderBackground( SceneBackgroundType bg ) -> void {

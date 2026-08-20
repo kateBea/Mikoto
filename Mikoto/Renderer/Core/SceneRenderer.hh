@@ -82,7 +82,6 @@ namespace mikoto::renderer {
         auto SetExposure( f32 exposure ) -> void;
         auto SetAmbientScale( f32 ambient ) -> void;
 
-        auto SetSkyboxEquirectangular( TextureHandle texture ) -> void;
         auto SetSkyboxMaterial(material::MaterialHandle material) -> void;
 
         auto SetRenderBackground( SceneBackgroundType bg ) -> void;

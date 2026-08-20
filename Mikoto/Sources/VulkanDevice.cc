@@ -1493,6 +1493,10 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( srcImage != VK_NULL_HANDLE, "Source Vulkan image is null" );
         MKT_ASSERT( dstImage != VK_NULL_HANDLE, "Destination Vulkan image is null" );
 
+        if (mIsRenderScopeActive) {
+            EndRendering();
+        }
+
         if (mEnableAutomaticBarriers) {
             RecordTransition(srcTexture, ResourceStates::eCopySource);
             RecordTransition(dstTexture, ResourceStates::eCopyDest);
@@ -1508,22 +1512,25 @@ namespace mikoto::renderer::vulkan {
         if ( sameSize && sameFormat ) {
             VkImageCopy2 copyRegion{ initializers::ImageCopy2() };
 
-            copyRegion.srcSubresource.aspectMask = GetAspectMask( src->GetFormat() );;
-            copyRegion.srcSubresource.baseArrayLayer = 0;
-            copyRegion.srcSubresource.layerCount = 1;
-            copyRegion.srcSubresource.mipLevel = srcSlice.mMipLevel;
+            // Source
+            TextureSubresourceSet srcSubresourceSet{ srcSlice.mMipLevel, 1, srcSlice.mArrayLayer, 1 };
+            copyRegion.srcSubresource.aspectMask = GetAspectMask( src->GetFormat() );
+            copyRegion.srcSubresource.baseArrayLayer = srcSubresourceSet.mBaseArraySlice;
+            copyRegion.srcSubresource.layerCount = srcSubresourceSet.mNumArraySlices;
+            copyRegion.srcSubresource.mipLevel = srcSubresourceSet.mBaseMipLevel;
+            copyRegion.srcOffset = { (i32)srcSlice.x, (i32)srcSlice.y, (i32)srcSlice.z };
 
-            copyRegion.dstSubresource.aspectMask = GetAspectMask( dest->GetFormat() );;
-            copyRegion.dstSubresource.baseArrayLayer = 0;
-            copyRegion.dstSubresource.layerCount = 1;
-            copyRegion.dstSubresource.mipLevel = destSlice.mMipLevel;
-
-            copyRegion.srcOffset = { 0, 0, 0 };
-            copyRegion.dstOffset = { 0, 0, 0 };
+            // Destination
+            TextureSubresourceSet destSubresourceSet{ destSlice.mMipLevel, 1, destSlice.mArrayLayer, 1 };
+            copyRegion.dstSubresource.aspectMask = GetAspectMask( dest->GetFormat() );
+            copyRegion.dstSubresource.baseArrayLayer = destSubresourceSet.mBaseArraySlice;
+            copyRegion.dstSubresource.layerCount = destSubresourceSet.mNumArraySlices;
+            copyRegion.dstSubresource.mipLevel = destSubresourceSet.mBaseMipLevel;
+            copyRegion.dstOffset = { (i32)destSlice.x, (i32)destSlice.y, (i32)destSlice.z };
 
             copyRegion.extent.width = srcSlice.mWidth;
             copyRegion.extent.height = srcSlice.mHeight;
-            copyRegion.extent.depth = 1;
+            copyRegion.extent.depth = srcSlice.mDepth;
 
             VkCopyImageInfo2 copyInfo{
                 .sType = VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2,
@@ -1533,10 +1540,7 @@ namespace mikoto::renderer::vulkan {
                 .dstImage = dstImage,
                 .dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 .regionCount = 1,
-                .pRegions = &copyRegion
-            };
-
-            // Requires vulkan 1.3
+                .pRegions = &copyRegion };
             vkCmdCopyImage2( mCurrentCommandBuffer, MKT_ADDRESSOF( copyInfo ) );
         } else {
             VkImageBlit2 blitRegion{ initializers::ImageBlit2() };
@@ -1572,9 +1576,7 @@ namespace mikoto::renderer::vulkan {
                 .dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 .regionCount = 1,
                 .pRegions = &blitRegion,
-                .filter = VK_FILTER_NEAREST
-            };
-
+                .filter = VK_FILTER_NEAREST };
             vkCmdBlitImage2( mCurrentCommandBuffer, MKT_ADDRESSOF( blitInfo ) );
         }
     }

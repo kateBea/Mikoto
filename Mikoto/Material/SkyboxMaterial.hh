@@ -71,6 +71,7 @@ namespace mikoto::material {
         MKT_NODISCARD auto IsType( SkyboxType type ) const -> bool;
 
         MKT_NODISCARD auto GetFace(SkyboxFace face) -> renderer::rhi::TextureHandle;
+        MKT_NODISCARD auto GetFaceTextures() -> ankerl::unordered_dense::map<SkyboxFace, renderer::rhi::TextureHandle>&;
         MKT_NODISCARD auto GetEquirectangular() -> renderer::rhi::TextureHandle;
 
         ~SkyboxMaterial() override = default;

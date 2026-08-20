@@ -74,6 +74,8 @@ namespace mikoto::renderer {
 
     auto GeometryShadingModule::SetSkyboxMaterial( material::MaterialHandle material ) -> void {
         mSkyboxMaterial = material;
+
+        // Release descriptor table indices from old material textures
     }
 
     auto GeometryShadingModule::SetRenderBackground( SceneBackgroundType bg ) -> void {
@@ -424,8 +426,9 @@ namespace mikoto::renderer {
             .AddColorFormat( Format::eRGBA32_FLOAT )
             .PushShader( "SkyboxProjection_Vert.slang", FGStageType::eVertex )
             .PushShader( "SkyboxProjection_Frag.slang", FGStageType::ePixel ) };
-        info.mSkyboxProjectionPipeline = graph.Create( pipelineBuilder );
+        info.mSkyboxProjectionPipeline_FlatImage = graph.Create( pipelineBuilder );
 
+        // Takes an equirectangular map and projects it onto a Cube texture
         graph.RegisterPass<GeomShadingModuleInfo>(
             "SkyboxProjection",
             FGPassType::eGraphics,
@@ -440,8 +443,12 @@ namespace mikoto::renderer {
                     return;
                 }
 
-                auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
                 auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
+                if (!material->IsType( SkyboxType::eEquirectangular )) {
+                    return;
+                }
+
+                auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 struct DrawParams {
                     float4x4 mMvp{};
@@ -476,13 +483,140 @@ namespace mikoto::renderer {
                         ctx.SetViewportState(ViewportState{}
                             .AddViewportAndScissorRect(Viewport(2540, 2540)));
 
-                        ctx.BindPipeline(data.mSkyboxProjectionPipeline);
+                        ctx.BindPipeline(data.mSkyboxProjectionPipeline_FlatImage);
                         ctx.Draw(data.mBoxIndicesCount ); // For vertex pulling indices is the draw vertex count
 
                         ctx.EndRender();
                     }
                 }
             });
+
+        // When we provide the skybox material as a list of 6 2D images
+        graph.RegisterPass<GeomShadingModuleInfo>(
+            "SkyboxProjection_Compute",
+            FGPassType::eCompute,
+            []( FGNodeBuilder&b, GeomShadingModuleInfo& info ) {
+                b.UseResource( info.mSkyboxCubeRT, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+            },
+            [this]( CommandContext& ctx, Blackboard& blackboard) {
+                if (mSkyboxMaterial.IsEmpty()) {
+                    return;
+                }
+
+                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
+                if (!material->IsType( SkyboxType::eCubeFaces )) {
+                    return;
+                }
+
+                auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
+
+            } );
+
+        // This pass is done for testing purposes,
+        // to see if copy yields faster results than compute
+        graph.RegisterPass<GeomShadingModuleInfo>(
+            "SkyboxProjection_Transfer",
+            FGPassType::eTransfer,
+            []( FGNodeBuilder& b, GeomShadingModuleInfo& info ) {
+                b.UseResource( info.mSkyboxCubeRT, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+            },
+            [this]( CommandContext& ctx, Blackboard& blackboard) {
+                if (mSkyboxMaterial.IsEmpty()) {
+                    return;
+                }
+
+                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
+                if (!material->IsType( SkyboxType::eCubeFaces )) {
+                    return;
+                }
+
+                auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
+            } );
+
+        const auto skyboxMatDesc{ SkyboxMaterialDescription{}
+            .SetCubeFace( SkyboxFace::eBack, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/back.jpg", TextureDimension::eTexture2D ) )
+            .SetCubeFace( SkyboxFace::eBottom, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/bottom.jpg", TextureDimension::eTexture2D ) )
+            .SetCubeFace( SkyboxFace::eFront, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/front.jpg", TextureDimension::eTexture2D ) )
+            .SetCubeFace( SkyboxFace::eLeft, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/left.jpg", TextureDimension::eTexture2D ) )
+            .SetCubeFace( SkyboxFace::eRight, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/right.jpg", TextureDimension::eTexture2D ) )
+            .SetCubeFace( SkyboxFace::eTop, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/top.jpg", TextureDimension::eTexture2D ) ) };
+        mSkyboxMaterialDebug = AssetsService::Get()->CreateMaterial( skyboxMatDesc );
+
+        // This pass is done for testing purposes,
+        // to see if copy yields faster results than compute
+
+        auto pipelineProjGraphicsBuilder{ FGPipelineDescription{}
+            .SetName( "SkyboxProjectionGraphics_Pipeline" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .AddColorFormat( Format::eRGBA32_FLOAT )
+            .PushShader( "SkyboxProjectionGraphics_Vert.slang", FGStageType::eVertex )
+            .PushShader( "SkyboxProjectionGraphics_Frag.slang", FGStageType::ePixel ) };
+        info.mSkyboxProjectionPipeline_Graphics = graph.Create( pipelineProjGraphicsBuilder );
+
+        graph.RegisterPass<GeomShadingModuleInfo>(
+            "SkyboxProjection_Graphics",
+            FGPassType::eGraphics,
+            []( FGNodeBuilder& b, GeomShadingModuleInfo& info ) {
+                b.UseResource( info.mSkyboxCubeRT, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+            },
+            [this]( CommandContext& ctx, Blackboard& blackboard) {
+                // if (mSkyboxMaterial.IsEmpty()) {
+                //     return;
+                // }
+
+                // auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
+                // if (!material->IsType( SkyboxType::eCubeFaces )) {
+                //     return;
+                // }
+
+                // Prepare textures
+                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterialDebug.GetRaw() ) };
+                const auto& textures{ material->GetFaceTextures() };
+                for (const auto& [face, texture] : textures) {
+                    mSkyboxFaces[face] = ctx.ImportTexture( texture );
+                }
+
+                // See kMatrices definition
+                eastl::fixed_hash_map<u32, SkyboxFace, 6> faceIndex{};
+
+                faceIndex[0] = SkyboxFace::eRight; // POSITIVE_X
+                faceIndex[1] = SkyboxFace::eLeft;  // NEGATIVE_X
+                faceIndex[2] = SkyboxFace::eTop;   // POSITIVE_Y
+                faceIndex[3] = SkyboxFace::eBottom;// NEGATIVE_Y
+                faceIndex[4] = SkyboxFace::eBack;  // POSITIVE_Z
+                faceIndex[5] = SkyboxFace::eFront; // NEGATIVE_Z
+
+                auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
+                for (u32 mipLevel{}; mipLevel < 1; mipLevel++) {
+                    for (u32 face{}; face < rhi::kMaxCubeFaces; ++face) {
+                        struct DrawParams {
+                            float4x4 mMvp{};
+                            u32 mBasicSamplerID{};
+                            u32 mSkyboxFaceID{};
+                        } params{
+                            .mMvp = math::constants::Identity<float4x4>(),
+                            .mBasicSamplerID = ctx.PushSampler( data.mDefaultSampler ),
+                            .mSkyboxFaceID = ctx.PushTexture_SRV( mSkyboxFaces[faceIndex[face]] ) };
+                        params.mMvp = glm::perspective(as<f32>(math::constants::kPi / 2.0),
+                                                       1.0f, 0.1f, 512.0f) * kMatrices[face];
+                        ctx.PushConstants(params);
+
+                        const auto graphicsState{ ContextRenderState{}
+                            .SetRenderArea(Rect{2540, 2540})
+                            .AddRenderTarget(data.mSkyboxCubeRT, kFaceColors[face], LoadOp::eClear, face, mipLevel) };
+                        ctx.BeginRender(graphicsState);
+
+                        ctx.SetViewportState(ViewportState{}
+                            .AddViewportAndScissorRect(Viewport(2540, 2540)));
+
+                        ctx.BindPipeline(data.mSkyboxProjectionPipeline_Graphics);
+                        ctx.Draw(3 );
+
+                        ctx.EndRender();
+                    }
+                }
+            } );
     }
 
     auto GeometryShadingModule::RegisterSkyboxRender( FrameGraph &graph ) -> void {

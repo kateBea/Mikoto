@@ -16,13 +16,31 @@
 
 namespace mikoto::material {
 
+    auto SkyboxMaterialDescription::SetName( eastl::string_view name ) -> SkyboxMaterialDescription & {
+        mName = name;
+        return *this;
+    }
+
+    auto SkyboxMaterialDescription::SetEquirectangular( renderer::rhi::TextureHandle texture ) -> SkyboxMaterialDescription & {
+        mEquirectangularTextureHandle = texture;
+        return *this;
+    }
+
+    auto SkyboxMaterialDescription::SetCubeFace( SkyboxFace face, renderer::rhi::TextureHandle texture ) -> SkyboxMaterialDescription & {
+        mCubeFaces[face] = texture;
+        return *this;
+    }
+
     SkyboxMaterial::SkyboxMaterial(eastl::string_view name)
         : Material{ name }
     {}
 
     SkyboxMaterial::SkyboxMaterial( const SkyboxMaterialDescription &desc )
-        : Material{ desc.mName }
-    {}
+        : Material{ desc.mName } {
+        mCubeFaces = desc.mCubeFaces;
+        mEquirectangular = desc.mEquirectangularTextureHandle;
+        mName = desc.mName;
+    }
 
     auto SkyboxMaterial::SetFace( SkyboxFace face, renderer::rhi::TextureHandle texture ) -> void {
         mCubeFaces[face] = texture;
@@ -34,6 +52,10 @@ namespace mikoto::material {
 
     auto SkyboxMaterial::GetFace( SkyboxFace face ) -> renderer::rhi::TextureHandle {
         return mCubeFaces[face];
+    }
+
+    auto SkyboxMaterial::GetFaceTextures() -> ankerl::unordered_dense::map<SkyboxFace, renderer::rhi::TextureHandle>& {
+        return mCubeFaces;
     }
 
     auto SkyboxMaterial::GetEquirectangular() -> renderer::rhi::TextureHandle {

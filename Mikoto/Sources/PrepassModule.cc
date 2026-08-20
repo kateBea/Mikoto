@@ -333,7 +333,7 @@ namespace mikoto::renderer {
                 builder.UseResource( prepassData.mGBufferNormalTarget, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 builder.UseResource( prepassData.mGBufferEmissiveTarget, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
 
-                builder.UseResource( prepassData.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
+                builder.UseResource( prepassData.mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
 
                 builder.UseResource( cameraPassData.mCameraData, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
@@ -378,7 +378,7 @@ namespace mikoto::renderer {
 
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
-                    .AddDepthTarget( prepassData.mDepthPrepassDepthTarget, LoadOp::eLoad )
+                    .AddDepthTarget( prepassData.mPrepassDepthTarget, LoadOp::eLoad )
                     .AddRenderTarget( prepassData.mGBufferPositionTarget, kColorBlack, LoadOp::eClear )
                     .AddRenderTarget( prepassData.mGBufferNormalTarget, kColorBlack, LoadOp::eClear )
                     .AddRenderTarget( prepassData.mGBufferColorTarget, kColorBlack, LoadOp::eClear )
@@ -421,7 +421,7 @@ namespace mikoto::renderer {
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kDepthTarget )
             .SetFormat( Format::eD32 ) };
-        info.mDepthPrepassDepthTarget = graph.Create( depthImage );
+        info.mPrepassDepthTarget = graph.Create( depthImage );
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( "DepthPrePass_Pipeline" )
@@ -443,7 +443,7 @@ namespace mikoto::renderer {
                 auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
 
                 builder.UseResource( prepassData.mDepthPrepassColorTarget, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
-                builder.UseResource( prepassData.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eWrite );
+                builder.UseResource( prepassData.mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eWrite );
 
                 builder.UseResource( cameraPassData.mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
@@ -482,7 +482,7 @@ namespace mikoto::renderer {
 
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
-                    .AddDepthTarget( prepassData.mDepthPrepassDepthTarget, LoadOp::eClear )
+                    .AddDepthTarget( prepassData.mPrepassDepthTarget, LoadOp::eClear )
                     .AddRenderTarget( prepassData.mDepthPrepassColorTarget, kColorWhite, LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );
 

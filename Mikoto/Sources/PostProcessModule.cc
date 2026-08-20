@@ -103,7 +103,7 @@ namespace mikoto::renderer {
                 PrepassModuleInfo& prepass{ blackboard.Get<PrepassModuleInfo>() };
 
                 builder.Read( cam.mCameraData, FGPipelineStage::ePixelShader );
-                builder.Read( prepass.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget );
+                builder.Read( prepass.mPrepassDepthTarget, FGPipelineStage::eDepthTarget );
                 builder.Write( shading.mColorImage, FGPipelineStage::eRenderTarget );
             },
             [this]( CommandContext& ctx, Blackboard& b ) {
@@ -116,7 +116,7 @@ namespace mikoto::renderer {
 
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
-                    .AddDepthTarget( prepass.mDepthPrepassDepthTarget, LoadOp::eLoad )
+                    .AddDepthTarget( prepass.mPrepassDepthTarget, LoadOp::eLoad )
                     .AddRenderTarget( shading.mColorImage, kColorGreen, LoadOp::eLoad ) };
                 ctx.BeginRender( graphicsState );
 

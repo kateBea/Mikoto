@@ -115,7 +115,7 @@ namespace mikoto::renderer {
                 builder.Read( textInfo.mMsdfTextRenderData, FGPipelineStage::ePixelShader );
 
                 builder.Write( finalImageInfo.mColorImage, FGPipelineStage::eRenderTarget );
-                builder.Write( prepass.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget );
+                builder.Write( prepass.mPrepassDepthTarget, FGPipelineStage::eDepthTarget );
             },
         [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
             if (mGlyphCount == 0) {
@@ -140,7 +140,7 @@ namespace mikoto::renderer {
 
             const auto graphicsState{ ContextRenderState{}
                 .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
-                .AddDepthTarget( prepass.mDepthPrepassDepthTarget, LoadOp::eLoad )
+                .AddDepthTarget( prepass.mPrepassDepthTarget, LoadOp::eLoad )
                 .AddRenderTarget( finalImageInfo.mColorImage, kColorBlack, LoadOp::eLoad ) };
             ctx.BeginRender( graphicsState );
 

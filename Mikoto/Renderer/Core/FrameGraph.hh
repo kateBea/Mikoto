@@ -468,19 +468,19 @@ namespace mikoto::renderer {
 
     struct FGCompiledPlan {
         // topological execution order
-        eastl::vector<eastl::string> mSorted{};
+        eastl::vector<eastl::string> mSortedExecutionPasses{};
 
-        // barriers[passName] -> pre-pass transitions
+        // [passName, passBarriers] -> [resourceHandle, barrierType]
         ankerl::unordered_dense::map<eastl::string, ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>> mBarriers{};
 
         // Execution task graph
-        tf::Taskflow mExecutionGraph{};
-        ankerl::unordered_dense::map<FGNode*, tf::Task> mTaskMap{};
+        tf::Taskflow mExecutionTaskGraph{};
+        ankerl::unordered_dense::map<FGNode*, tf::Task> mExecutionTaskMap{};
     };
 
     class FrameGraph final {
     public:
-        explicit FrameGraph( IGpuDevice* device, material::ShaderLibrary* shaderLibrary );
+        explicit FrameGraph( rhi::IGpuDevice* device, material::ShaderLibrary* shaderLibrary );
 
         auto Compile() -> void;
         auto Execute() -> void;
@@ -494,12 +494,12 @@ namespace mikoto::renderer {
 
         MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl&;
 
-        MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> TextureHandle;
-        MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> BufferHandle;
+        MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> rhi::TextureHandle;
+        MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> rhi::BufferHandle;
 
-        MKT_NODISCARD auto ImportTexture( const Path& path ) -> FGTextureHandle;
-        MKT_NODISCARD auto ImportTexture( TextureHandle handle ) -> FGTextureHandle;
-        MKT_NODISCARD auto ImportBuffer( BufferHandle handle ) -> FGBufferHandle;
+        MKT_NODISCARD auto ImportTexture( const filesystem::Path& path ) -> FGTextureHandle;
+        MKT_NODISCARD auto ImportTexture( rhi::TextureHandle handle ) -> FGTextureHandle;
+        MKT_NODISCARD auto ImportBuffer( rhi::BufferHandle handle ) -> FGBufferHandle;
 
         MKT_NODISCARD auto Create( const FGTextureDescription& desc ) -> FGTextureHandle;
         MKT_NODISCARD auto Create( const FGBufferDescription& desc ) -> FGBufferHandle;
@@ -565,16 +565,18 @@ namespace mikoto::renderer {
         MKT_NODISCARD static auto Create( IGpuDevice* device, material::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph>;
 
     private:
-        auto BindResources( CommandListHandle commandList ) -> void;
+        auto BindResources( rhi::CommandListHandle commandList ) -> void;
 
         auto BuildNodeEdges() -> void;
         auto CullGraphNodes() -> void;
         auto BuildNodeBarriers() -> void;
         auto BuildExecutionTasks() -> void;
 
+        auto ProcessReadbackTasks() -> void;
+
     private:
         struct ReadbackTask {
-            u32 mTaskID{};
+            core::u32 mTaskID{};
             FGReadbackTask::Callback mTask{};
 
             bool mRunsPerFrame{};
@@ -582,25 +584,24 @@ namespace mikoto::renderer {
         };
 
     private:
-        IGpuDevice* mDevice{};
+        rhi::IGpuDevice* mDevice{};
         material::ShaderLibrary* mShaderLibrary{};
 
-        Blackboard mBlackboard{};
+        core::Blackboard mBlackboard{};
 
         FGCompiledPlan mExecutionPlan{};
         eastl::unique_ptr<FGNodeControl> mNodeControl{};
         eastl::unique_ptr<FGResourceManager> mResourceManager{};
         eastl::unique_ptr<FGReadbackManager> mReadbackManager{};
 
-        u64 mFenceValue{};
-        FenceHandle mFence{};
-
-        // Callback, runsEveryFrame
         eastl::vector<ReadbackTask> mReadbackTasks{};
 
-        CommandListHandle mGraphicsCommands{};
-        CommandListHandle mComputeCommands{};
-        CommandListHandle mTransferCommands{};
+        core::u64 mFenceValue{};
+        rhi::FenceHandle mFence{};
+
+        rhi::CommandListHandle mGraphicsCommands{};
+        rhi::CommandListHandle mComputeCommands{};
+        rhi::CommandListHandle mTransferCommands{};
     };
 }
 

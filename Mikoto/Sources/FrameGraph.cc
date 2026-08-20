@@ -622,10 +622,10 @@ namespace mikoto::renderer {
     auto FrameGraph::Compile() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        mExecutionPlan.mSorted.clear();
-        mExecutionPlan.mTaskMap.clear();
+        mExecutionPlan.mSortedExecutionPasses.clear();
+        mExecutionPlan.mExecutionTaskMap.clear();
         mExecutionPlan.mBarriers.clear();
-        mExecutionPlan.mExecutionGraph.clear();
+        mExecutionPlan.mExecutionTaskGraph.clear();
 
         // Build edges
         BuildNodeEdges();
@@ -641,8 +641,8 @@ namespace mikoto::renderer {
 
 #if !defined(NDEBUG)
         std::ostringstream oss{};
-        mExecutionPlan.mExecutionGraph.dump(oss);
-        mExecutionPlan.mExecutionGraph.name("FrameGraph TaskExecution");
+        mExecutionPlan.mExecutionTaskGraph.dump(oss);
+        mExecutionPlan.mExecutionTaskGraph.name("FrameGraph TaskExecution");
 
         // to file example
         // std::ofstream file("taskflow.dot");
@@ -656,16 +656,17 @@ namespace mikoto::renderer {
     auto FrameGraph::Execute() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        mGraphicsCommands->Begin( { .mScopeName = "FG Graphics Record" } );
-        mComputeCommands->Begin( { .mScopeName = "FG Compute Record" } );
-        mTransferCommands->Begin( { .mScopeName = "FG Transfer Record" } );
+        mGraphicsCommands->Begin( { .mScopeName = "TaskGraph Graphics Commands" } );
+        mComputeCommands->Begin( { .mScopeName = "TaskGraph Compute Commands" } );
+        mTransferCommands->Begin( { .mScopeName = "TaskGraph Transfer Commands" } );
 
         BindResources( mGraphicsCommands );
         BindResources( mComputeCommands );
 
-        for ( auto& passName: mExecutionPlan.mSorted ) {
-            if ( !mNodeControl->mNodes[passName].mIsAlive )
+        for ( auto& passName: mExecutionPlan.mSortedExecutionPasses ) {
+            if ( !mNodeControl->mNodes[passName].mIsAlive ) {
                 continue;
+            }
 
             auto& pass{ mNodeControl->mNodes[passName] };
             auto& ctx{ mNodeControl->mContexts.at(passName) };
@@ -689,7 +690,7 @@ namespace mikoto::renderer {
             ctx.BeginPass( commandList );
 
             // Place pass barriers
-            auto& barriers{ mExecutionPlan.mBarriers[passName] };
+            const auto& barriers{ mExecutionPlan.mBarriers[passName] };
             ctx.CommitBarriers( barriers );
 
             pass.mExecuteCallback( ctx, mBlackboard );
@@ -713,7 +714,10 @@ namespace mikoto::renderer {
             .AddCommandList( mGraphicsCommands ) };
         RenderSystem::Get()->BatchSubmission(eastl::move(submitInfoGraphics), QueueType::eGraphics);
 
-        // Register callbacks
+        ProcessReadbackTasks();
+    }
+
+    auto FrameGraph::ProcessReadbackTasks() -> void {
         auto it{ mReadbackTasks.begin() };
         while ( it != mReadbackTasks.end() ) {
             if (!it->mHasBeenRegistered) {
@@ -830,7 +834,7 @@ namespace mikoto::renderer {
             eastl::string cur{ q.front() };
             q.pop();
 
-            mExecutionPlan.mSorted.push_back( cur );
+            mExecutionPlan.mSortedExecutionPasses.push_back( cur );
             for ( const auto& succ: passesMap[cur].mSuccessors ) {
                 if ( --inDegrees[succ] == 0 ) { // all successors dependencies are done?
                     q.push( succ );      // successor is now ready
@@ -839,7 +843,7 @@ namespace mikoto::renderer {
         }
 
         // If we didn't visit every pass, the graph has a cycle, invalid.
-        MKT_ASSERT( mExecutionPlan.mSorted.size() == passesMap.size(), "Cycle detected!" );
+        MKT_ASSERT( mExecutionPlan.mSortedExecutionPasses.size() == passesMap.size(), "Cycle detected!" );
     }
 
     auto FrameGraph::CullGraphNodes() -> void {
@@ -848,8 +852,8 @@ namespace mikoto::renderer {
         // Cull Passes
         // This step is done if we for instance remove or disable a pass
         // we need to disable the ones depending on it?
-        if (!mExecutionPlan.mSorted.empty()) {
-            for(auto reverseIt{ mExecutionPlan.mSorted.rbegin() }; reverseIt != mExecutionPlan.mSorted.rend(); ++reverseIt) {
+        if (!mExecutionPlan.mSortedExecutionPasses.empty()) {
+            for(auto reverseIt{ mExecutionPlan.mSortedExecutionPasses.rbegin() }; reverseIt != mExecutionPlan.mSortedExecutionPasses.rend(); ++reverseIt) {
                 if (!passesMap[*reverseIt].mIsAlive) {
                     continue; // skip dead passes
                 }
@@ -865,7 +869,7 @@ namespace mikoto::renderer {
     }
 
     auto FrameGraph::BuildNodeBarriers() -> void {
-        for ( const auto& passName : mExecutionPlan.mSorted ) {
+        for ( const auto& passName : mExecutionPlan.mSortedExecutionPasses ) {
             const auto& pass{ mNodeControl->mNodes[passName] };
             if ( !pass.mIsAlive ) {
                 continue;
@@ -921,7 +925,7 @@ namespace mikoto::renderer {
         }
 
         // create tasks
-        for (auto& passName : mExecutionPlan.mSorted) {
+        for (auto& passName : mExecutionPlan.mSortedExecutionPasses) {
             if (!mNodeControl->mNodes[passName].mIsAlive) {
                 continue;
             }
@@ -942,7 +946,7 @@ namespace mikoto::renderer {
                 default:;
             }
 
-            auto task = mExecutionPlan.mExecutionGraph.emplace([this, passName, cmd]() mutable {
+            auto task = mExecutionPlan.mExecutionTaskGraph.emplace([this, passName, cmd]() mutable {
                 auto& pass{ mNodeControl->mNodes[passName] };
                 auto& ctx{ mNodeControl->mContexts.at(passName) };
 
@@ -970,17 +974,17 @@ namespace mikoto::renderer {
 
             task.name( passName.c_str() );
 
-            mExecutionPlan.mTaskMap[MKT_ADDRESSOF( mNodeControl->mNodes[passName] )] = task;
+            mExecutionPlan.mExecutionTaskMap[MKT_ADDRESSOF( mNodeControl->mNodes[passName] )] = task;
         }
 
         // connect dependencies
-        for (auto& passName : mExecutionPlan.mSorted) {
+        for (auto& passName : mExecutionPlan.mSortedExecutionPasses) {
             auto& pass = mNodeControl->mNodes[passName];
 
             if (!pass.mIsAlive)
                 continue;
 
-            auto& task = mExecutionPlan.mTaskMap[&pass];
+            auto& task = mExecutionPlan.mExecutionTaskMap[&pass];
 
             for (auto& succName : pass.mSuccessors) {
                 auto& succ = mNodeControl->mNodes[succName];
@@ -988,7 +992,7 @@ namespace mikoto::renderer {
                 if (!succ.mIsAlive)
                     continue;
 
-                mExecutionPlan.mTaskMap[&succ].succeed(task);
+                mExecutionPlan.mExecutionTaskMap[&succ].succeed(task);
             }
         }
     }

@@ -148,7 +148,7 @@ namespace mikoto::renderer {
                 builder.Read( geometryInfo.mVerticesBuffer, FGPipelineStage::ePixelShader );
                 builder.Read( geometryInfo.mIndicesBuffer, FGPipelineStage::ePixelShader );
 
-                builder.Read( prepass.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget );
+                builder.Read( prepass.mPrepassDepthTarget, FGPipelineStage::eDepthTarget );
 
                 builder.Write( mousePicking.mColorImage, FGPipelineStage::eRenderTarget );
             },
@@ -182,7 +182,7 @@ namespace mikoto::renderer {
 
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
-                    .AddDepthTarget( prepassInfo.mDepthPrepassDepthTarget, LoadOp::eLoad )
+                    .AddDepthTarget( prepassInfo.mPrepassDepthTarget, LoadOp::eLoad )
                     .AddRenderTarget( mousePicking.mColorImage, Color{ 0.f }, LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );
 

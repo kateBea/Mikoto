@@ -67,7 +67,7 @@ namespace mikoto::renderer {
     struct PrepassModuleInfo {
         // Depth prepass
         FGTextureHandle mDepthPrepassColorTarget{};
-        FGTextureHandle mDepthPrepassDepthTarget{};
+        FGTextureHandle mPrepassDepthTarget{};
         FGPipelineHandle mDepthPrepassPipeline{};
 
         // GBuffer

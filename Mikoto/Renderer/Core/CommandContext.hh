@@ -127,6 +127,10 @@ namespace mikoto::renderer {
         auto CacheResource( FGBufferHandle handle ) -> IBuffer*;
         auto CacheResource( FGTextureHandle handle ) -> ITexture*;
 
+        auto CacheResourceDescriptorID( FGBufferHandle handle ) -> core::u32;
+        auto CacheResourceDescriptorID( FGTextureHandle handle ) -> core::u32;
+        auto CacheResourceDescriptorID( FGSamplerHandle handle ) -> core::u32;
+
     private:
         FGNode* mNode{};
         FGResourceManager* mResourceManager{};
@@ -139,8 +143,13 @@ namespace mikoto::renderer {
 
         // Shader resources get a unique ID into the
         // Frame Graph resource manager descriptor table
-        eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderBuffers{};
-        eastl::fixed_hash_map<FGResourceHandle, core::u32*, 20> mCachedShaderTextures{};
+        eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderBuffers_SRV{};
+        eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderBuffers_UAV{};
+
+        eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderTextures_SRV{};
+        eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderTextures_UAV{};
+
+        eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderSamplers{};
 
         eastl::fixed_vector<core::ubyte, rhi::kMaxPushConstantSize> mPushConstantsData{};
     };

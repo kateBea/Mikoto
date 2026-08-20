@@ -37,10 +37,9 @@ namespace mikoto::renderer {
         Max_Count,
     };
 
-
     class TonemapModule {
     public:
-        explicit TonemapModule( RenderResolution resolution );
+        explicit TonemapModule( rhi::RenderResolution resolution );
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
@@ -51,7 +50,7 @@ namespace mikoto::renderer {
         auto RegisterTonemapPass( FrameGraph& graph ) -> void;
 
     private:
-        RenderResolution mResolution{};
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
         ToneMappingType mToneMapType{ ToneMappingType::Aces };
     };
 

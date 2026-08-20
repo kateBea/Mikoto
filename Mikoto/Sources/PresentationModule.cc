@@ -68,7 +68,7 @@ namespace mikoto::renderer {
             case PresentTarget::eGBuffer_Emissive: return b.Get<PrepassModuleInfo>().mGBufferEmissiveTarget;
             case PresentTarget::eWireframe: return b.Get<WireframeData>().mColorImage;
             case PresentTarget::eDepthPrepass: return b.Get<PrepassModuleInfo>().mDepthPrepassColorTarget;
-            case PresentTarget::ePBRadiance_Output: return b.Get<GeomShadingModuleInfo>().mShadingColorImage;
+            case PresentTarget::ePBRadiance_Output: return b.Get<GeomShadingModuleInfo>().mColorImage;
             case PresentTarget::eTonemap_Output: return b.Get<GeomShadingModuleInfo>().mTonemapColor;
             default:;
         }
@@ -114,7 +114,7 @@ namespace mikoto::renderer {
                 builder.Read( wireframe.mColorImage, FGPipelineStage::ePixelShader );
 
                 builder.Read( shading.mTonemapColor, FGPipelineStage::ePixelShader );
-                builder.Read( shading.mShadingColorImage, FGPipelineStage::ePixelShader );
+                builder.Read( shading.mColorImage, FGPipelineStage::ePixelShader );
                 builder.Read( prepass.mDepthPrepassColorTarget, FGPipelineStage::ePixelShader );
             },
             [this]( CommandContext &ctx, Blackboard &b ) {

@@ -263,16 +263,15 @@ namespace mikoto::renderer {
         : mDevice{ device }
     {
         // Prepare layouts
-        auto layoutDesc{ BindlessLayoutDescription{}
-            .SetVisibility(ShaderFlagsBits::kAll)
-            .SetRegisterSpace(MKT_DEFAULT_REGISTER_SPACE)
-            .AddBindlessItem(BindlessLayoutItem::Samplers(MKT_SAMPLER_BINDING, 4096))
-            .AddBindlessItem(BindlessLayoutItem::Texture_SRV(MKT_TEXTURE_SRV_BINDING, 4096))
-            .AddBindlessItem(BindlessLayoutItem::Texture_UAV(MKT_TEXTURE_UAV_BINDING, 4096))
-            .AddBindlessItem(BindlessLayoutItem::StructuredBuffer_SRV(MKT_STRUCTURED_SRV_BINDING, 4096))
-            .AddBindlessItem(BindlessLayoutItem::StructuredBuffer_UAV(MKT_STRUCTURED_UAV_BINDING, 4096)) };
-        //.AddBindlessItem(BindlessLayoutItem::AccelerationStructures(MKT_ACCELERATION_STRUCTURE_BINDING, 4096)) };
-
+        const auto layoutDesc{ BindlessLayoutDescription{}
+            .SetVisibility( ShaderFlagsBits::kAll )
+            .SetRegisterSpace( MKT_DEFAULT_REGISTER_SPACE )
+            .AddBindlessItem( BindlessLayoutItem::Samplers( MKT_SAMPLER_BINDING, 4096 ) )
+            .AddBindlessItem( BindlessLayoutItem::Texture_SRV( MKT_TEXTURE_SRV_BINDING, 4096 ) )
+            .AddBindlessItem( BindlessLayoutItem::Texture_UAV( MKT_TEXTURE_UAV_BINDING, 4096 ) )
+            .AddBindlessItem( BindlessLayoutItem::StructuredBuffer_SRV( MKT_STRUCTURED_SRV_BINDING, 4096 ) )
+            .AddBindlessItem( BindlessLayoutItem::StructuredBuffer_UAV( MKT_STRUCTURED_UAV_BINDING, 4096 ) ) };
+            //.AddBindlessItem(BindlessLayoutItem::AccelerationStructures(MKT_ACCELERATION_STRUCTURE_BINDING, 4096)) };
         mBindlessLayout = mDevice->CreateBindlessLayout( layoutDesc );
         mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
         mDescriptorTable->SetDebugName( "FrameGraph Resource Table" );
@@ -336,7 +335,7 @@ namespace mikoto::renderer {
         return false;
     }
 
-    auto FGResourceManager::PushTexture_SRV( FGResourceHandle handle  ) -> u32 {
+    auto FGResourceManager::AllocateTextureIndex_SRV( FGResourceHandle handle  ) -> u32 {
         std::lock_guard lock{ mTableWriteMutex };
 
         // TextureCube and Texture2D are same binding because they are same type of descriptor
@@ -353,7 +352,7 @@ namespace mikoto::renderer {
         return newID;
     }
 
-    auto FGResourceManager::PushTexture_UAV( FGResourceHandle handle ) -> u32 {
+    auto FGResourceManager::AllocateTextureIndex_UAV( FGResourceHandle handle ) -> u32 {
         std::lock_guard lock{ mTableWriteMutex };
 
         // TextureCube and Texture2D are same binding because they are same type of descriptor
@@ -370,7 +369,7 @@ namespace mikoto::renderer {
         return newID;
     }
 
-    auto FGResourceManager::PushSampler( FGResourceHandle handle ) -> u32 {
+    auto FGResourceManager::AllocateSamplerIndex( FGResourceHandle handle ) -> u32 {
         std::lock_guard lock{ mTableWriteMutex };
         auto& table{ mResourceTable[MKT_SAMPLER_BINDING] };
         if (table.contains( handle )) {
@@ -385,7 +384,7 @@ namespace mikoto::renderer {
         return newID;
     }
 
-    auto FGResourceManager::PushBuffer_SRV( FGResourceHandle handle ) -> u32 {
+    auto FGResourceManager::AllocateBufferIndex_SRV( FGResourceHandle handle ) -> u32 {
         std::lock_guard lock{ mTableWriteMutex };
         auto& table{ mResourceTable[MKT_STRUCTURED_SRV_BINDING] };
         if (table.contains( handle )) {
@@ -400,7 +399,7 @@ namespace mikoto::renderer {
         return newID;
     }
 
-    auto FGResourceManager::PushBuffer_UAV( FGResourceHandle handle ) -> u32 {
+    auto FGResourceManager::AllocateBufferIndex_UAV( FGResourceHandle handle ) -> u32 {
         std::lock_guard lock{ mTableWriteMutex };
         auto& table{ mResourceTable[MKT_STRUCTURED_UAV_BINDING] };
         if (table.contains( handle )) {

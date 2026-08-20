@@ -56,14 +56,14 @@ namespace mikoto::renderer {
 
         // Scene pre-passes
         mCameraPass.RegisterPasses( *mFrameGraph );
-        //mGeometryManagement.RegisterPasses( *mFrameGraph );
+        mGeometryManagement.RegisterPasses( *mFrameGraph );
 
-        //mRenderPrepass.RegisterPasses( *mFrameGraph );
-        //mShadowMapping.RegisterPasses( *mFrameGraph );
+        mRenderPrepass.RegisterPasses( *mFrameGraph );
+        mShadowMapping.RegisterPasses( *mFrameGraph );
 
         mParticleRendering.RegisterPasses( *mFrameGraph );
 
-        //mGeometryShading.RegisterPasses( *mFrameGraph );
+        mGeometryShading.RegisterPasses( *mFrameGraph );
 
         //mMousePickingModule.RegisterPasses( *mFrameGraph );
 
@@ -75,7 +75,7 @@ namespace mikoto::renderer {
         //mTextRendering.RegisterPasses( *mFrameGraph );
         //mPostEffectsPasses.RegisterPasses( *mFrameGraph );
 
-        //mTonemapModule.RegisterPasses( *mFrameGraph );
+        mTonemapModule.RegisterPasses( *mFrameGraph );
 
         // I am not sure about this pass, this one was designed to
         // ideally serve as helper for passes that required image blit-ting
@@ -98,11 +98,11 @@ namespace mikoto::renderer {
         mMousePickingModule.SetGeometryManager( mGeometryManagement );
 
         // Execution policies
-        //mFrameGraph->SetExecutionPolicy( "BRDFLut", FGExecutionPolicy::eOnce );
+        mFrameGraph->SetExecutionPolicy( "BRDFLut", FGExecutionPolicy::eOnce );
 
-        //mFrameGraph->SetExecutionPolicy( "PrefilterPass", FGExecutionPolicy::eOnChange );
-        //mFrameGraph->SetExecutionPolicy( "IrradiancePass", FGExecutionPolicy::eOnChange );
-        //mFrameGraph->SetExecutionPolicy( "SkyboxProjection", FGExecutionPolicy::eOnChange );
+        mFrameGraph->SetExecutionPolicy( "PrefilterPass", FGExecutionPolicy::eOnChange );
+        mFrameGraph->SetExecutionPolicy( "IrradiancePass", FGExecutionPolicy::eOnChange );
+        mFrameGraph->SetExecutionPolicy( "SkyboxProjection", FGExecutionPolicy::eOnChange );
 
         // mFrameGraph->DisablePass( "PBR_Radiance" );
         // mFrameGraph->DisablePass( "DepthPrePass" );

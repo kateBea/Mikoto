@@ -36,6 +36,10 @@
 #include <Renderer/Passes/TonemapModule.hh>
 
 namespace mikoto::renderer {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
+
     TonemapModule::TonemapModule( RenderResolution resolution )
         : mResolution{ resolution }
     {}
@@ -54,7 +58,7 @@ namespace mikoto::renderer {
     auto TonemapModule::RegisterTonemapPass( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        GeomShadingModuleInfo& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+        auto& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
 
         const auto dimensions{ InferDimensions( mResolution ) };
 
@@ -66,7 +70,6 @@ namespace mikoto::renderer {
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
             .SetFormat( Format::eRGBA8_UNORM ) };
-
         info.mTonemapColor = graph.Create( colorImage );
 
         auto pipelineBuilder{ FGPipelineDescription{}
@@ -77,20 +80,19 @@ namespace mikoto::renderer {
             .SetCullMode( CullMode::eNone )
             .PushShader( "Tonemap_Vert.slang", FGStageType::eVertex )
             .PushShader( "Tonemap_Frag.slang", FGStageType::ePixel ) };
-
         info.mTonemapPipeline = graph.Create( pipelineBuilder );
 
         graph.RegisterPass(
             "Tonemap",
             FGPassType::eGraphics,
             []( FGNodeBuilder& builder, Blackboard& blackboard ) {
-                GeomShadingModuleInfo& geom{ blackboard.Get<GeomShadingModuleInfo>() };
+                auto& geometryData{ blackboard.Get<GeomShadingModuleInfo>() };
 
-                builder.Read( geom.mShadingColorImage, FGPipelineStage::ePixelShader );
-                builder.Write( geom.mTonemapColor, FGPipelineStage::eRenderTarget );
+                builder.UseResource( geometryData.mColorImage, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mTonemapColor, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
             [this]( CommandContext &ctx, Blackboard& blackboard ) {
-                GeomShadingModuleInfo& geom{ blackboard.Get<GeomShadingModuleInfo>() };
+                const auto& geometryData{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 struct DrawParams {
                     u32 mFinalImageID{};
@@ -101,27 +103,26 @@ namespace mikoto::renderer {
 
                     i32 mToneMapType{};
                 } params{
-                    .mFinalImageID = ctx.PushTexture_SRV( geom.mShadingColorImage ),
-                    .mBasicSamplerID = ctx.PushSampler( geom.mBasicSampler ),
+                    .mFinalImageID = ctx.PushTexture_SRV( geometryData.mColorImage ),
+                    .mBasicSamplerID = ctx.PushSampler( geometryData.mDefaultSampler ),
 
-                    .mExposure = geom.mExposure,
-                    .mGamma = geom.mExposure,
+                    .mExposure = geometryData.mExposure,
+                    .mGamma = geometryData.mExposure,
 
-                    .mToneMapType = as<i32>(mToneMapType),
-                };
+                    .mToneMapType = as<i32>(mToneMapType) };
 
                 ctx.PushConstants( params );
 
                 const auto dimensions{ InferDimensions( mResolution ) };
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>(dimensions.first), as<i32>(dimensions.second) } )
-                    .AddRenderTarget( geom.mTonemapColor, kColorCyan, LoadOp::eClear ) };
+                    .AddRenderTarget( geometryData.mTonemapColor, kColorCyan, LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( ViewportState{}
                     .AddViewportAndScissorRect( Viewport( as<f32>(dimensions.first), as<f32>(dimensions.second) ) ) );
 
-                ctx.BindPipeline( geom.mTonemapPipeline );
+                ctx.BindPipeline( geometryData.mTonemapPipeline );
 
                 ctx.Draw( 3 );
 

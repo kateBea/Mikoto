@@ -180,24 +180,22 @@ namespace mikoto::renderer {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource resource{ mResourceManager->Get( handle.mHandle ) };
         TextureHandle texture{ resource.mResource };
-        return mResourceManager->PushTexture_SRV( handle.mHandle );
+        return mResourceManager->AllocateTextureIndex_SRV( handle.mHandle );
     }
 
     auto CommandContext::PushSampler( FGSamplerHandle handle ) -> u32 {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        return mResourceManager->PushSampler( handle.mHandle );
+        return mResourceManager->AllocateSamplerIndex( handle.mHandle );
     }
 
     auto CommandContext::PushBuffer_SRV( FGBufferHandle handle ) -> u32 {
-        // TODO: add checks if you registered the resource to use as SRV in the setup lambda
-
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        return mResourceManager->PushBuffer_SRV( handle.mHandle );
+        return mResourceManager->AllocateBufferIndex_SRV( handle.mHandle );
     }
 
     auto CommandContext::PushBuffer_UAV( FGBufferHandle handle ) -> u32 {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        return mResourceManager->PushBuffer_UAV( handle.mHandle );
+        return mResourceManager->AllocateBufferIndex_UAV( handle.mHandle );
     }
 
     auto CommandContext::CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>& barriers ) -> void {
@@ -279,29 +277,29 @@ namespace mikoto::renderer {
 
     auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        FGResource srcResource{ mResourceManager->Get( srcBuffer.mHandle ) };
-        FGResource dstResource{ mResourceManager->Get( dstBuffer.mHandle ) };
-        mCommands->Copy( checked_cast<IBuffer*>( srcResource.mResource.GetRaw() ), checked_cast<IBuffer*>( dstResource.mResource.GetRaw() ) );
+        IBuffer* srcResource{ CacheResource( srcBuffer ) };
+        IBuffer* dstResource{ CacheResource( dstBuffer ) };
+        mCommands->Copy( srcResource, dstResource );
     }
 
-    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, IBuffer* src, size_t dstOffset ) -> void {
+    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, IBuffer* src, usize dstOffset ) -> void {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        FGResource resource{ mResourceManager->Get( dstBuffer.mHandle ) };
-        mCommands->Copy( src, checked_cast<IBuffer*>( resource.mResource.GetRaw() ), dstOffset );
+        IBuffer* resource{ CacheResource( dstBuffer ) };
+        mCommands->Copy( src, resource, dstOffset );
+    }
+
+    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, usize offset, const void* ptr, usize sizeBytes ) -> void {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        IBuffer* buffer{ CacheResource( dstBuffer ) };
+        mCommands->Write( buffer, offset, ptr, sizeBytes );
     }
 
     auto CommandContext::Copy( FGBufferHandle dstBuffer, FGTextureHandle srcImage ) -> void {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        FGResource buffer{ mResourceManager->Get( dstBuffer.mHandle ) };
-        FGResource image{ mResourceManager->Get( srcImage.mHandle ) };
-
-        mCommands->Copy( checked_cast<IBuffer*>( buffer.mResource.GetRaw() ), checked_cast<ITexture*>( image.mResource.GetRaw() ) );
-    }
-
-    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, size_t offset, const void* ptr, size_t sizeBytes ) -> void {
-        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         IBuffer* buffer{ CacheResource( dstBuffer ) };
-        mCommands->Write( buffer, offset, ptr, sizeBytes );
+        ITexture* image{ CacheResource( srcImage ) };
+
+        mCommands->Copy( buffer, image );
     }
 
     auto CommandContext::CacheResource( FGBufferHandle handle ) -> IBuffer* {
@@ -326,5 +324,17 @@ namespace mikoto::renderer {
         }
 
         return itFind->second;
+    }
+
+    auto CommandContext::CacheResourceDescriptorID( FGBufferHandle handle ) -> core::u32 {
+        return 0; // TODO
+    }
+
+    auto CommandContext::CacheResourceDescriptorID( FGTextureHandle handle ) -> core::u32 {
+        return 0; // TODO
+    }
+
+    auto CommandContext::CacheResourceDescriptorID( FGSamplerHandle handle ) -> core::u32 {
+        return 0; // TODO
     }
 }// namespace mikoto::renderer

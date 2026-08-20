@@ -51,28 +51,28 @@ struct DrawParams {
     uint mCameraDataID;
 };
 
-MKT_DECLARE_STRUCTURED_SRV Buffers;
+MKT_DECLARE_STRUCTURED_SRV buffers;
 
-MKT_DECLARE_SAMPLERS Samplers;
-MKT_DECLARE_TEXTURE_SRV(Texture2D) Textures;
+MKT_DECLARE_SAMPLERS samplers;
+MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("fragment")]
 FSOutput main(FSInput input)
 {
     FSOutput o;
 
-    ByteAddressBuffer materialsBuffer = Buffers[Parameters.mMaterialsBufferID];
+    ByteAddressBuffer materialsBuffer = buffers[parameters.mMaterialsBufferID];
     MaterialParameters materialInfo = materialsBuffer.Read<MaterialParameters>(0, input.MaterialIndex);
 
-    CameraInfo camera = Buffers[Parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
 
     // NORMAL
     float2 normalUvs = materialInfo.NormalTextureSet == 0 ? input.Uv0 : input.Uv1;
     float3 N = (materialInfo.NormalIndex != INVALID_TEXTURE_INDEX)
-                   ? GetNormalFromMap(Textures[materialInfo.NormalIndex],
-                            Samplers[Parameters.mBasicSamplerID],
+                   ? GetNormalFromMap(textures[materialInfo.NormalIndex],
+                            samplers[parameters.mBasicSamplerID],
                            normalUvs,
                            input.Normal,
                            input.WorldPos)
@@ -89,7 +89,7 @@ FSOutput main(FSInput input)
 
         float4 albedo =
             (materialInfo.AlbedoIndex != INVALID_TEXTURE_INDEX)
-                ? pow(Textures[materialInfo.AlbedoIndex].Sample(Samplers[Parameters.mBasicSamplerID], baseColorUvs), float4(2.2))
+                ? pow(textures[materialInfo.AlbedoIndex].Sample(samplers[parameters.mBasicSamplerID], baseColorUvs), float4(2.2))
                 : materialInfo.BaseColorFactor;
 
         o.Color = float4(albedo.xyz, 1.0);
@@ -100,7 +100,7 @@ FSOutput main(FSInput input)
 
         float4 diffuse =
             (materialInfo.DiffuseIndex != INVALID_TEXTURE_INDEX)
-                ? pow(Textures[materialInfo.DiffuseIndex].Sample(Samplers[Parameters.mBasicSamplerID], diffuseUvs), float4(2.2))
+                ? pow(textures[materialInfo.DiffuseIndex].Sample(samplers[parameters.mBasicSamplerID], diffuseUvs), float4(2.2))
                 : materialInfo.DiffuseFactor;
 
         o.Color = float4(diffuse.xyz, 1.0);
@@ -112,10 +112,10 @@ FSOutput main(FSInput input)
         float3 emissiveContrib = materialInfo.EmissiveFactor.xyz * materialInfo.EmissiveStrength * materialInfo.BaseColorFactor.xyz;
 
         if (materialInfo.EmissiveIndex != INVALID_TEXTURE_INDEX) {
-            Texture2D emissiveMap = Textures[materialInfo.EmissiveIndex];
+            Texture2D emissiveMap = textures[materialInfo.EmissiveIndex];
             float2 emissiveUvSet = materialInfo.EmissiveTextureSet == 0 ? input.Uv0 : input.Uv1;
 
-            float3 emissive = emissiveMap.Sample(Samplers[Parameters.mBasicSamplerID], emissiveUvSet).rgb;
+            float3 emissive = emissiveMap.Sample(samplers[parameters.mBasicSamplerID], emissiveUvSet).rgb;
 
             emissiveContrib *= emissive;
         }

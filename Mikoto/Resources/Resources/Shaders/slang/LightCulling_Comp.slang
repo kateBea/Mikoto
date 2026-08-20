@@ -19,8 +19,8 @@ static const uint kLocalSize = 128;
 #include "base/Camera_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
 
-MKT_DECLARE_STRUCTURED_SRV SRV_Buffers;
-MKT_DECLARE_STRUCTURED_UAV UAV_Buffers;
+MKT_DECLARE_STRUCTURED_SRV srvBuffers;
+MKT_DECLARE_STRUCTURED_UAV uavBuffers;
 
 struct ClusteredParams {
     float4 GridSize;
@@ -40,9 +40,9 @@ void main(uint3 groupID: SV_GroupID,
           uint3 dispatchID: SV_DispatchThreadID)
 {
     // Get the buffers
-    ByteAddressBuffer lights = SRV_Buffers[Parameters.LightsBufferID];
-    RWByteAddressBuffer clusters = UAV_Buffers[Parameters.ClusterBufferID];
-    CameraInfo camera = SRV_Buffers[Parameters.CameraInfoBufferID].Read<CameraInfo>(0, 0);
+    ByteAddressBuffer lights = srvBuffers[Parameters.LightsBufferID];
+    RWByteAddressBuffer clusters = uavBuffers[Parameters.ClusterBufferID];
+    CameraInfo camera = srvBuffers[Parameters.CameraInfoBufferID].Read<CameraInfo>(0, 0);
 
     uint totalBytes;
     clusters.GetDimensions(totalBytes);

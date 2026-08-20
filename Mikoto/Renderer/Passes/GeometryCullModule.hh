@@ -82,7 +82,7 @@ namespace mikoto::renderer {
     // Geometry information
     struct MeshGeometryInfo {
         core::float4x4 mTransform{};
-        core::float4x4 mInverseModelView{}; // inverse(view * model) computed in CPU for performance
+        core::float4x4 mInverseModelView{};// inverse(view * model) computed in CPU for performance
 
         // For vertex pulling, this tells the
         // offset into the array of vertices
@@ -92,19 +92,24 @@ namespace mikoto::renderer {
         // Index into the buffer
         // of list of skinning matrices
         core::i32 mSkinningMatricesID{ -1 };
+
+        // A mesh could not be animated but still have an armature that deforms it
+        // the final pose is passed as a list of matrices we can fetch using mSkinningMatricesID
         core::i32 mHasArmature{ MKT_SHADER_FALSE };
 
         // TODO: add a list of shadow casters. This will be an index into the array of shadow casters
         // buffer to know from which lights this entity needs shadows casted from, ofc there will be a limit you cannot
         // just slap a unlimited amount of shadow casters
 
+        // For entity selection
         core::u32 mObjectID{};
     };
 
     // Info that I pass per mesh
-    // that needs to be animated
+    // that needs to be animated or deformed
+    // with some skinning matrices
     struct MeshSkinningInfo {
-        eastl::array<float4x4, asset::kMaxBonesPerMesh> mBoneTransforms{};
+        eastl::array<core::float4x4, asset::kMaxBonesPerMesh> mBoneTransforms{};
     };
 
     struct GeometryAllocation {
@@ -117,46 +122,39 @@ namespace mikoto::renderer {
         core::u32 mOffsetID{};
     };
 
+    struct BufferAllocation {
+        core::u32 mOffset{};
+        core::u32 mSize{};
+    };
+
     class GeometryBufferAllocator {
     public:
-        explicit GeometryBufferAllocator( core::u64 vertexBufferSize, core::u64 indexBufferSize );
+        explicit GeometryBufferAllocator( core::usize bufferSize );
 
-        auto Free( const GeometryAllocation &alloc ) -> void;
-        auto Allocate( core::u64 vertexBytes, core::u64 indexBytes ) -> eastl::optional<GeometryAllocation>;
+        auto Free( const BufferAllocation& alloc ) -> void;
+        auto Allocate( core::usize sizeBytes ) -> eastl::optional<BufferAllocation>;
 
     private:
         struct FreeRange {
-            core::u64 mOffset{};
-            core::u64 mSize{};
+            core::usize mOffset{};
+            core::usize mSize{};
         };
-        auto AllocateFrom( eastl::vector<FreeRange> &freeList, u64 size ) -> eastl::optional<core::u64>;
+        auto AllocateFrom( eastl::vector<FreeRange>& freeList, core::usize size ) -> eastl::optional<core::usize>;
 
     private:
-        eastl::vector<FreeRange> mVertexFreeList{};
-        eastl::vector<FreeRange> mIndexFreeList{};
+        eastl::vector<FreeRange> mFreeList{};
     };
 
     class GeometryAllocator {
     public:
-        auto GetOrAllocate(const asset::MeshNode* mesh) -> GeometryAllocation;
-        auto GetOrAllocate(const asset::MeshNode* mesh, GeometryAllocation& outAlloc) -> bool;
+        auto GetOrAllocate( const asset::MeshNode* mesh ) -> GeometryAllocation;
+        auto GetOrAllocate( const asset::MeshNode* mesh, GeometryAllocation& outAlloc ) -> bool;
 
     private:
-        GeometryBufferAllocator mAllocator{ MKT_MEGABYTES( kVertexBufferSizeMB ), MKT_MEGABYTES( kIndexBufferSizeMB ) };
+        GeometryBufferAllocator mVerticesAllocator{ MKT_MEGABYTES( kVertexBufferSizeMB ) };
+        GeometryBufferAllocator mIndicesAllocator{ MKT_MEGABYTES( kIndexBufferSizeMB ) };
+
         ankerl::unordered_dense::map<const asset::MeshNode*, GeometryAllocation> mAllocations{};
-    };
-
-    struct GeometryCullModuleInfo {
-        FGBufferHandle mVerticesBuffer{};
-        FGBufferHandle mIndicesBuffer{};
-
-        FGBufferHandle mMaterialsBuffer{};
-        FGBufferHandle mGeometryBuffer{};
-        FGBufferHandle mSkinningBuffer{};
-
-        FGBufferHandle mIndirectBuffer{};
-
-        FGSamplerHandle mBasicSampler{};
     };
 
     struct MeshNodeInstancesInfo {
@@ -169,9 +167,22 @@ namespace mikoto::renderer {
         eastl::vector<MeshMaterialInfo> mMaterialsList{};
     };
 
+    struct GeometryCullModuleInfo {
+        FGBufferHandle mVerticesBuffer{};
+        FGBufferHandle mIndicesBuffer{};
+
+        FGBufferHandle mMaterialsBuffer{};
+        FGBufferHandle mGeometryBuffer{};
+        FGBufferHandle mSkinningBuffer{};
+
+        FGSamplerHandle mBasicSampler{};
+
+        FGBufferHandle mIndirectBuffer{};
+    };
+
     struct GeometryBatch {
 
-        auto Get( const asset::MeshNode* node, CommandContext& ctx, Blackboard& b  ) -> MeshNodeInstancesInfo&;
+        auto Get( const asset::MeshNode* node, CommandContext& ctx, Blackboard& b ) -> MeshNodeInstancesInfo&;
 
         GeometryAllocator mGeometryAllocator{};
 
@@ -182,20 +193,20 @@ namespace mikoto::renderer {
 
     class GeometryCullModule final {
     public:
-        auto SetScene( const scene::Scene* scene) -> void;
+        auto SetScene( const scene::Scene* scene ) -> void;
         auto SetCamera( const scene::Camera* camera ) -> void;
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
         auto DrawInstancesIndirect( CommandContext& context ) -> void;
 
     private:
-        auto InitGeometryData( CommandContext& ctx, Blackboard& b  ) -> void;
+        auto InitGeometryData( CommandContext& ctx, Blackboard& b ) -> void;
 
-        auto RegisterMeshCullingPass(FrameGraph &graph) -> void;
-        auto RegisterGeometryFilterPass(FrameGraph &graph) -> void;
+        auto RegisterMeshCullingPass( FrameGraph& graph ) -> void;
+        auto RegisterGeometryFilterPass( FrameGraph& graph ) -> void;
 
         auto PrepareSkinning( CommandContext& context, Blackboard& b ) -> void;
-        auto PrepareIndirectDraw( CommandContext& context, Blackboard& b  ) -> void;
+        auto PrepareIndirectDraw( CommandContext& context, Blackboard& b ) -> void;
 
         auto PushTextureID( CommandContext& ctx, TextureHandle handle ) -> core::i32;
 
@@ -217,7 +228,6 @@ namespace mikoto::renderer {
         eastl::vector<MeshSkinningInfo> mSkinningInfo{};
         ankerl::unordered_dense::set<core::u32> mActiveFinalMatsIndices{};
     };
-
-}
+}// namespace mikoto::renderer
 
 #endif // MIKOTO_MESH_CULLING_HH

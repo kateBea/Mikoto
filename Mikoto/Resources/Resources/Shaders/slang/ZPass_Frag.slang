@@ -35,14 +35,14 @@ struct DrawParams {
     uint mCameraDataID;
 };
 
-MKT_DECLARE_STRUCTURED_SRV Buffers;
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
+MKT_DECLARE_STRUCTURED_SRV buffers;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
 
-    CameraInfo camera = Buffers[Parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
 
     float depth = LinearDepth(input.ScreenPos.z, camera.Planes.xy);
 

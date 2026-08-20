@@ -347,12 +347,19 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto Allocate( FGResourceType type, IResource* resource = nullptr ) -> FGResource&;
         MKT_NODISCARD auto Free( FGResourceHandle name ) -> bool;
 
-        auto PushSampler( FGResourceHandle name ) -> u32;
-        auto PushTexture_SRV( FGResourceHandle name ) -> u32;
-        auto PushTexture_UAV( FGResourceHandle handle ) -> u32;
+        MKT_NODISCARD auto AllocateSamplerIndex( FGResourceHandle name ) -> u32;
+        MKT_NODISCARD auto AllocateTextureIndex_SRV( FGResourceHandle name ) -> u32;
+        MKT_NODISCARD auto AllocateTextureIndex_UAV( FGResourceHandle handle ) -> u32;
 
-        MKT_NODISCARD auto PushBuffer_SRV( FGResourceHandle name ) -> u32;
-        MKT_NODISCARD auto PushBuffer_UAV( FGResourceHandle name ) -> u32;
+        MKT_NODISCARD auto AllocateBufferIndex_SRV( FGResourceHandle name ) -> u32;
+        MKT_NODISCARD auto AllocateBufferIndex_UAV( FGResourceHandle name ) -> u32;
+
+        auto ReleaseSamplerIndex( FGResourceHandle name ) -> void;
+        auto ReleaseTextureIndex_SRV( FGResourceHandle name ) -> void;
+        auto ReleaseTextureIndex_UAV( FGResourceHandle handle ) -> void;
+
+        MKT_NODISCARD auto ReleaseBufferIndex_SRV( FGResourceHandle name ) -> void;
+        MKT_NODISCARD auto ReleaseBufferIndex_UAV( FGResourceHandle name ) -> void;
 
         MKT_NODISCARD auto ImportTexture( TextureHandle handle ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportBuffer( BufferHandle handle ) -> FGBufferHandle;

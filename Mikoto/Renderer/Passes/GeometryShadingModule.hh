@@ -54,8 +54,10 @@ namespace mikoto::renderer {
     struct GeomShadingModuleInfo {
         FGTextureHandle mBrdfColorTarget{};
 
-        FGTextureHandle mShadingColorImage{};
+        // Final composition image
+        FGTextureHandle mColorImage{};
 
+        // IBL environment textures
         FGTextureHandle mSkyboxCubeRT{};
         FGTextureHandle mPrefilterCubeRT{};
         FGTextureHandle mIrradianceCubeRT{};
@@ -68,8 +70,8 @@ namespace mikoto::renderer {
         FGPipelineHandle mIrradiancePipeline{};
         FGPipelineHandle mPrefilterPipeline{};
 
-        FGSamplerHandle mIBLCubeSampler{};
-        FGSamplerHandle mBasicSampler{};
+        FGSamplerHandle mSkyboxCubeSampler{};
+        FGSamplerHandle mDefaultSampler{};
 
         f32 mExposure{};
         f32 mGamma{};

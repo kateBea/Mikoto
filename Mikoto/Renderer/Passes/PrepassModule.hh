@@ -19,45 +19,49 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Renderer/Core/CommandContext.hh>
+#include <Core/String.hh>
+
+#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Passes/GeometryCullModule.hh>
-#include <Scene/Camera.hh>
+
 #include <Scene/Scene.hh>
+#include <Scene/Camera.hh>
 
 namespace mikoto::renderer {
 
-    inline constexpr u32 kMaxLightPerCluster{ 256 };
+    inline constexpr core::u32 kMaxLightPerCluster{ 256 };
 
     struct ClusteredShadingParams {
-        float4 mGridSize{};
-        u32 mActiveLightCount{};
+        core::float4 mGridSize{};
+        core::u32 mActiveLightCount{};
     };
 
-    struct ClusterParameters  {
-        float4 Center{};
-        float4 ClosestPoint{};
-        float4 DistanceSquared{};
+    struct ClusterParameters {
+        core::float4 mCenter{};
+        core::float4 mClosestPoint{};
+        core::float4 mDistanceSquared{};
 
-        float4 MinPoint{};
-        float4 MaxPoint{};
+        core::float4 mMinPoint{};
+        core::float4 mMaxPoint{};
 
-        u32 Count{};
-        u32 LightIndices[kMaxLightPerCluster]{};
+        core::u32 mCount{};
+        core::u32 mLightIndices[kMaxLightPerCluster]{};
     };
 
     struct LightParameters {
-        float4 mPosition{};
-        float4 mDirection{};
-        float4 mDiffuse{};
+        core::float4 mPosition{};
+        core::float4 mDirection{};
+        core::float4 mDiffuse{};
 
-        f32 mCutOff{};
-        f32 mOuterCutOff{};
+        core::f32 mCutOff{};
+        core::f32 mOuterCutOff{};
 
-        f32 mIntensity{};
-        f32 mRadius{};
+        core::f32 mIntensity{};
+        core::f32 mRadius{};
 
-        i32 mActiveLightType{};
+        core::i32 mActiveLightType{};
     };
 
     struct PrepassModuleInfo {
@@ -76,52 +80,50 @@ namespace mikoto::renderer {
         // Light culling
         FGBufferHandle mClusterBuffer{};
         FGBufferHandle mLightCullingBuffer{};
-
         FGPipelineHandle mAabbGenPipeline{};
         FGPipelineHandle mLightCullingPipeline{};
 
-        u32 mActiveLightCount{};
+        core::u32 mActiveLightCount{};
 
-        float4 mGridSize{};
+        core::float4 mGridSize{};
     };
 
     class PrepassModule {
     public:
-        explicit PrepassModule(RenderResolution resolution);
+        explicit PrepassModule( RenderResolution resolution );
 
-        auto SetScene(const scene::Scene* scene) -> void;
-        auto SetCamera(const scene::Camera* camera) -> void;
+        auto SetScene( const scene::Scene* scene ) -> void;
+        auto SetCamera( const scene::Camera* camera ) -> void;
 
-        auto SetGeometryManager(GeometryCullModule& geom) -> void;
+        auto SetGeometryManager( GeometryCullModule& geom ) -> void;
 
-        auto RegisterPasses(FrameGraph &graph) -> void;
+        auto RegisterPasses( FrameGraph& graph ) -> void;
 
     private:
-        auto RegisterAABB( FrameGraph& graph ) -> void;
+        auto RegisterAabb( FrameGraph& graph ) -> void;
         auto RegisterGBuffer( FrameGraph& graph ) -> void;
         auto RegisterDepthPrepass( FrameGraph& graph ) -> void;
         auto RegisterLightCulling( FrameGraph& graph ) -> void;
 
-        auto SetupLightList(CommandContext &ctx, FGBufferHandle lightBuffer) -> void;
+        auto SetupLightList( CommandContext& ctx, FGBufferHandle lightBuffer ) -> void;
 
     private:
         const scene::Scene* mScene{};
         const scene::Camera* mCamera{};
 
-        u32 mGridSizeX{ 12 };
-        u32 mGridSizeY{ 12 };
-        u32 mGridSizeZ{ 24 };
-        u32 mNumClusters{ mGridSizeX * mGridSizeY * mGridSizeZ };
-        u32 mLocalSize{ 128 }; // for light culling
-        u32 mActiveLights{};
+        core::u32 mActiveLights{};
+        core::u32 mLocalSize{ 128 };
+        core::u32 mGridSizeX{ 12 };
+        core::u32 mGridSizeY{ 12 };
+        core::u32 mGridSizeZ{ 24 };
+        core::u32 mNumClusters{ mGridSizeX * mGridSizeY * mGridSizeZ };
 
         GeometryCullModule* mGeometryManagement{};
 
         eastl::vector<LightParameters> mLights{};
 
-        RenderResolution mResolution{ RenderResolution::e1080P };
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
     };
-}
-
+}// namespace mikoto::renderer
 
 #endif//MIKOTO_CLUSTERED_SHADING_HH

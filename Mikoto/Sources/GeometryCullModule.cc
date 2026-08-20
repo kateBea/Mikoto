@@ -39,64 +39,48 @@ namespace mikoto::renderer {
     using namespace mikoto::animation;
 
     auto GeometryAllocator::GetOrAllocate( const MeshNode* mesh, GeometryAllocation& outAlloc ) -> bool {
-        if (auto it = mAllocations.find(mesh); it != mAllocations.end()) {
+        if ( auto it = mAllocations.find( mesh ); it != mAllocations.end() ) {
             outAlloc = it->second;
-            return false; // already exists
+            return false;// already exists
         }
 
-        const u64 vertexBytes = mesh->GetVertexBuffer()->GetSizeBytes();
-        const u64 indexBytes  = mesh->GetIndexBuffer()->GetSizeBytes();
+        const u64 vertexBytes{ mesh->GetVertexBuffer()->GetSizeBytes() };
+        const u64 indexBytes{ mesh->GetIndexBuffer()->GetSizeBytes() };
 
-        auto alloc = mAllocator.Allocate(vertexBytes, indexBytes);
-        MKT_ASSERT(alloc.has_value(), "Out of geometry space");
+        auto vertexAlloc{ mVerticesAllocator.Allocate( vertexBytes ) };
+        auto indexAlloc{ mIndicesAllocator.Allocate( indexBytes ) };
 
-        outAlloc = {
-            .mVertexOffset = static_cast<u32>(alloc->mVertexOffset),
-            .mIndexOffset  = static_cast<u32>(alloc->mIndexOffset),
-            .mOffsetID     = static_cast<u32>(mAllocations.size()) };
+        MKT_ASSERT( vertexAlloc.has_value(), "Vertex pool out of geometry space" );
+        MKT_ASSERT( indexAlloc.has_value(), "Index pool out of geometry space" );
 
-        mAllocations.emplace(mesh, outAlloc);
-        return true; // newly allocated
+        outAlloc = GeometryAllocation{
+            .mVertexOffset = as<u32>( vertexAlloc->mOffset ),
+            .mVertexSize = as<u32>( vertexAlloc->mSize ),
+            .mIndexOffset = as<u32>( indexAlloc->mOffset ),
+            .mIndexSize = as<u32>( indexAlloc->mSize ),
+            .mOffsetID = as<u32>( mAllocations.size() )
+        };
+        mAllocations.emplace( mesh, outAlloc );
+
+        return true;
     }
 
-    auto GeometryAllocator::GetOrAllocate(const MeshNode* mesh) -> GeometryAllocation {
-        // Already registered
-        if (auto it = mAllocations.find(mesh); it != mAllocations.end())
-            return it->second;
-
-        const u64 vertexBytes = mesh->GetVertexBuffer()->GetSizeBytes();
-        const u64 indexBytes  = mesh->GetIndexBuffer()->GetSizeBytes();
-
-        auto alloc = mAllocator.Allocate(vertexBytes, indexBytes);
-        MKT_ASSERT(alloc.has_value(), "Out of geometry space");
-
-        GeometryAllocation result{
-            .mVertexOffset = static_cast<u32>(alloc->mVertexOffset),
-            .mVertexSize = (u32)vertexBytes,
-            .mIndexOffset  = static_cast<u32>(alloc->mIndexOffset),
-            .mIndexSize = (u32)alloc->mIndexSize,
-            .mOffsetID  = static_cast<u32>(mAllocations.size()) };
-
-        mAllocations.emplace(mesh, result);
+    auto GeometryAllocator::GetOrAllocate( const MeshNode* mesh ) -> GeometryAllocation {
+        GeometryAllocation result{};
+        ( void )GetOrAllocate( mesh, result );
         return result;
     }
 
-    GeometryBufferAllocator::GeometryBufferAllocator(
-            u64 vertexBufferSize,
-            u64 indexBufferSize ) {
-        mVertexFreeList.push_back( FreeRange{
+    GeometryBufferAllocator::GeometryBufferAllocator( u64 vertexBufferSize ) {
+        mFreeList.push_back( FreeRange{
             .mOffset = 0,
             .mSize = vertexBufferSize } );
-
-        mIndexFreeList.push_back( FreeRange{
-            .mOffset = 0,
-            .mSize = indexBufferSize } );
     }
 
-    auto GeometryBufferAllocator::AllocateFrom(eastl::vector<FreeRange> &freeList, u64 size ) -> eastl::optional<u64> {
+    auto GeometryBufferAllocator::AllocateFrom(eastl::vector<FreeRange> &freeList, usize size ) -> eastl::optional<usize> {
         for ( auto it = freeList.begin(); it != freeList.end(); ++it ) {
             if ( it->mSize >= size ) {
-                u64 allocOffset = it->mOffset;
+                usize allocOffset{ it->mOffset };
 
                 it->mOffset += size;
                 it->mSize -= size;
@@ -112,38 +96,22 @@ namespace mikoto::renderer {
         return {};// out of space
     }
 
-    auto GeometryBufferAllocator::Allocate( u64 vertexBytes, u64 indexBytes ) -> eastl::optional<GeometryAllocation> {
-        auto vertexAlloc = AllocateFrom( mVertexFreeList, vertexBytes );
-        if ( !vertexAlloc.has_value() ) {
+    auto GeometryBufferAllocator::Allocate( usize sizeBytes ) -> eastl::optional<BufferAllocation> {
+        auto allocation{ AllocateFrom( mFreeList, sizeBytes ) };
+        if ( !allocation.has_value() ) {
             return {};
         }
 
-        auto indexAlloc = AllocateFrom( mIndexFreeList, indexBytes );
-        if ( !indexAlloc.has_value() ) {
-            // rollback vertex allocation
-            mVertexFreeList.push_back( FreeRange{
-                .mOffset = vertexAlloc.value(),
-                .mSize = vertexBytes } );
-
-            return {};
-        }
-
-        return GeometryAllocation{
-            .mVertexOffset = (u32)vertexAlloc.value(),
-            .mVertexSize = (u32)vertexBytes,
-            .mIndexOffset = (u32)indexAlloc.value(),
-            .mIndexSize = (u32)indexBytes };
+        return BufferAllocation{
+            .mOffset = (u32)allocation.value(),
+            .mSize = (u32)sizeBytes };
     }
 
-    auto GeometryBufferAllocator::Free( const GeometryAllocation &alloc ) -> void {
+    auto GeometryBufferAllocator::Free( const BufferAllocation &alloc ) -> void {
         // NOTE: no merging (simple first-fit allocator)
-        mVertexFreeList.push_back( FreeRange{
-            .mOffset = alloc.mVertexOffset,
-            .mSize = alloc.mVertexSize } );
-
-        mIndexFreeList.push_back( FreeRange{
-            .mOffset = alloc.mIndexOffset,
-            .mSize = alloc.mIndexSize } );
+        mFreeList.push_back( FreeRange{
+            .mOffset = alloc.mOffset,
+            .mSize = alloc.mSize } );
     }
 
     auto GeometryBatch::Get( const asset::MeshNode *node, CommandContext& ctx, Blackboard& b ) -> MeshNodeInstancesInfo & {
@@ -193,16 +161,14 @@ namespace mikoto::renderer {
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kIndirectDraw | BufferUsageFlagsBits::kCopyDst )
             .SetElementsSize( kMaxIndirectCommands, MKT_SIZEOF( DrawIndirectCommand ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
-
-        info.mIndirectBuffer = graph.Create( indirectCommandsDesc );
-        mIndirectBuffer = info.mIndirectBuffer;
+        mIndirectBuffer = graph.Create( indirectCommandsDesc );
+        info.mIndirectBuffer = mIndirectBuffer;
 
         auto samplerDes{ FGSamplerDescription{}
             .SetName( "BasicSampler_Sampler01" )
             .SetFilter( rhi::SamplerFilter::eNearest )
             .SetWrap( SamplerWrapMode::eRepeat )
             .SetBorderColor( kColorWhite ) };
-
         info.mBasicSampler = graph.Create( samplerDes );
 
         mIndirectCmds.resize( kMaxIndirectCommands );
@@ -223,7 +189,6 @@ namespace mikoto::renderer {
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetSizeBytes( MKT_MEGABYTES( kVertexBufferSizeMB ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
-
         geometryFilterInfo.mVerticesBuffer = graph.Create( vertexDesc );
 
         auto indexDesc{ FGBufferDescription{}
@@ -231,7 +196,6 @@ namespace mikoto::renderer {
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetSizeBytes( MKT_MEGABYTES( kIndexBufferSizeMB ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
-
         geometryFilterInfo.mIndicesBuffer = graph.Create( indexDesc );
 
         auto materialsDesc{ FGBufferDescription{}
@@ -239,7 +203,6 @@ namespace mikoto::renderer {
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetElementsSize( kMaxRenderableEntities, MKT_SIZEOF( MeshMaterialInfo ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
-
         geometryFilterInfo.mMaterialsBuffer = graph.Create( materialsDesc );
 
         auto geometryDesc{ FGBufferDescription{}
@@ -247,15 +210,13 @@ namespace mikoto::renderer {
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetElementsSize( kMaxRenderableEntities, MKT_SIZEOF( MeshGeometryInfo ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
-
         geometryFilterInfo.mGeometryBuffer = graph.Create( geometryDesc );
 
         auto skinningDesc{ FGBufferDescription{}
             .SetName( "Geometry_SkinningBuffer01" )
-           .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
-           .SetElementsSize( kMaxSkinnedMeshes, MKT_SIZEOF( MeshSkinningInfo ) )
-           .SetHeapType( HeapType::eDeviceLocal )};
-
+            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetElementsSize( kMaxSkinnedMeshes, MKT_SIZEOF( MeshSkinningInfo ) )
+            .SetHeapType( HeapType::eDeviceLocal )};
         geometryFilterInfo.mSkinningBuffer = graph.Create( skinningDesc );
 
         graph.RegisterPass<GeometryCullModuleInfo>(
@@ -263,13 +224,15 @@ namespace mikoto::renderer {
             FGPassType::eTransfer,
             []( FGNodeBuilder &b, GeometryCullModuleInfo& data ) -> void {
                 // Geometry
-                b.Write( data.mVerticesBuffer, FGPipelineStage::eCopy );
-                b.Write( data.mIndicesBuffer, FGPipelineStage::eCopy );
+                b.UseResource( data.mVerticesBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                b.UseResource( data.mIndicesBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
 
                 // Drawing
-                b.Write( data.mGeometryBuffer, FGPipelineStage::eCopy );
-                b.Write( data.mMaterialsBuffer, FGPipelineStage::eCopy );
-                b.Write( data.mSkinningBuffer, FGPipelineStage::eCopy );
+                b.UseResource( data.mGeometryBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                b.UseResource( data.mMaterialsBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                b.UseResource( data.mSkinningBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+
+                b.UseResource( data.mIndirectBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
             [this]( CommandContext &ctx, Blackboard& b ) -> void {
                 InitGeometryData( ctx, b );
@@ -283,14 +246,13 @@ namespace mikoto::renderer {
             "MeshCulling",
             FGPassType::eTransfer,
             []( FGNodeBuilder &b, GeometryCullModuleInfo& data ) -> void {
-                b.Write( data.mGeometryBuffer, FGPipelineStage::eCopy );
-                b.Write( data.mMaterialsBuffer, FGPipelineStage::eCopy );
+                b.UseResource( data.mGeometryBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                b.UseResource( data.mMaterialsBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
             []( CommandContext &, Blackboard & ) -> void {
                 // Do culling and transfer stuff to GPU
+                // TODO: Compute pass to write data to proper places? instead of copy every frame
             } );
-
-        // TODO: Compute pass to write data to proper places? instead of copy every frame
     }
 
      auto GeometryCullModule::InitGeometryData( CommandContext &ctx, Blackboard& b  ) -> void {
@@ -411,8 +373,8 @@ namespace mikoto::renderer {
 
         GeometryCullModuleInfo& info{ b.Get<GeometryCullModuleInfo>() };
 
-        size_t previousFirstInstance{};
-        size_t indirectDrawCount{};
+        usize previousFirstInstance{};
+        usize indirectDrawCount{};
         for (auto& [node, instanceInfo] : mBatch.mInstanceCounts) {
             if (instanceInfo.mInstanceCount == 0) {
                 continue;

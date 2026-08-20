@@ -269,6 +269,9 @@ namespace mikoto::renderer::vulkan {
             case ResourceStates::eUnorderedAccess:
                 return VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
 
+            case ResourceStates::eIndirectArgument:
+                return VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT;
+
             case ResourceStates::eCopySource:
             case ResourceStates::eCopyDest:
             case ResourceStates::eResolveSource:
@@ -300,6 +303,9 @@ namespace mikoto::renderer::vulkan {
 
             case ResourceStates::eUnorderedAccess:
                 return VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
+
+            case ResourceStates::eIndirectArgument:
+                return VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
 
             case ResourceStates::eCopySource:
             case ResourceStates::eResolveSource:

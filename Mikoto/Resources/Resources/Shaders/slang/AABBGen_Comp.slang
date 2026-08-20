@@ -17,13 +17,13 @@
 #include "base/Camera_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
 
-MKT_DECLARE_STRUCTURED_SRV SRV_Buffers;
-MKT_DECLARE_STRUCTURED_UAV UAV_Buffers;
+MKT_DECLARE_STRUCTURED_SRV srvBuffers;
+MKT_DECLARE_STRUCTURED_UAV uavBuffers;
 
 struct ClusteredParams {
-    float4 GridSize;
-    uint ClusterBufferID;
-    uint CameraInfoBufferID;
+    float4 mGridSize;
+    uint mClusterBufferID;
+    uint mCameraInfoBufferID;
 };
 
 MKT_DECLARE_PUSH_CONSTANT(ClusteredParams) Parameters;
@@ -35,30 +35,30 @@ void main(uint3 groupID: SV_GroupID,
           uint3 dispatchID: SV_DispatchThreadID)
 {
     // Get the buffers
-    RWByteAddressBuffer clusters = UAV_Buffers[Parameters.ClusterBufferID];
-    CameraInfo camera = SRV_Buffers[Parameters.CameraInfoBufferID].Read<CameraInfo>(0, 0);
+    RWByteAddressBuffer clusters = uavBuffers[Parameters.mClusterBufferID];
+    CameraInfo camera = srvBuffers[Parameters.mCameraInfoBufferID].Read<CameraInfo>(0, 0);
 
     uint tileIndex =
         groupID.x +
-        groupID.y * uint(Parameters.GridSize.x) +
-        groupID.z * uint(Parameters.GridSize.x * Parameters.GridSize.y);
+        groupID.y * uint(Parameters.mGridSize.x) +
+        groupID.z * uint(Parameters.mGridSize.x * Parameters.mGridSize.y);
 
-    float2 tileSize = camera.ScreenDimensions.xy / Parameters.GridSize.xy;
+    float2 tileSize = camera.ScreenDimensions.xy / Parameters.mGridSize.xy;
 
     // Tile in screen-space
-    float2 minTile_screen = float2(groupID.xy) * tileSize;
-    float2 maxTile_screen = float2(groupID.xy + 1) * tileSize;
+    float2 minTileScreen = float2(groupID.xy) * tileSize;
+    float2 maxTileScreen = float2(groupID.xy + 1) * tileSize;
 
     // Convert tile to view space sitting on the near plane
-    float3 minTile = ScreenToView(minTile_screen, camera.ScreenDimensions.xy, camera.InverseProjection);
-    float3 maxTile = ScreenToView(maxTile_screen, camera.ScreenDimensions.xy, camera.InverseProjection);
+    float3 minTile = ScreenToView(minTileScreen, camera.ScreenDimensions.xy, camera.InverseProjection);
+    float3 maxTile = ScreenToView(maxTileScreen, camera.ScreenDimensions.xy, camera.InverseProjection);
 
     // Depth slice slicing
     float nearZ = camera.Planes.y;
     float farZ = camera.Planes.x;
 
-    float planeNear = nearZ * pow(farZ / nearZ, float(groupID.z) / Parameters.GridSize.z);
-    float planeFar = nearZ * pow(farZ / nearZ, float(groupID.z + 1) / Parameters.GridSize.z);
+    float planeNear = nearZ * pow(farZ / nearZ, float(groupID.z) / Parameters.mGridSize.z);
+    float planeFar = nearZ * pow(farZ / nearZ, float(groupID.z + 1) / Parameters.mGridSize.z);
 
     float3 cameraPosViewSpace = float3(0, 0, 0);
 

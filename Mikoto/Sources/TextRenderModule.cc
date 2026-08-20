@@ -114,7 +114,7 @@ namespace mikoto::renderer {
 
                 builder.Read( textInfo.mMsdfTextRenderData, FGPipelineStage::ePixelShader );
 
-                builder.Write( finalImageInfo.mShadingColorImage, FGPipelineStage::eRenderTarget );
+                builder.Write( finalImageInfo.mColorImage, FGPipelineStage::eRenderTarget );
                 builder.Write( prepass.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget );
             },
         [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
@@ -130,7 +130,7 @@ namespace mikoto::renderer {
                 u32 mTextSamplerID{};
                 u32 mTextParametersID{};
             } params{
-                .mTextSamplerID = ctx.PushSampler( finalImageInfo.mBasicSampler ),
+                .mTextSamplerID = ctx.PushSampler( finalImageInfo.mDefaultSampler ),
                 .mTextParametersID = ctx.PushBuffer_SRV( textInfo.mMsdfTextRenderData ),
             };
 
@@ -141,7 +141,7 @@ namespace mikoto::renderer {
             const auto graphicsState{ ContextRenderState{}
                 .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
                 .AddDepthTarget( prepass.mDepthPrepassDepthTarget, LoadOp::eLoad )
-                .AddRenderTarget( finalImageInfo.mShadingColorImage, kColorBlack, LoadOp::eLoad ) };
+                .AddRenderTarget( finalImageInfo.mColorImage, kColorBlack, LoadOp::eLoad ) };
             ctx.BeginRender( graphicsState );
 
             ctx.SetViewportState( ViewportState{}

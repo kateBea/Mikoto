@@ -104,7 +104,7 @@ namespace mikoto::renderer {
 
                 builder.Read( cam.mCameraData, FGPipelineStage::ePixelShader );
                 builder.Read( prepass.mDepthPrepassDepthTarget, FGPipelineStage::eDepthTarget );
-                builder.Write( shading.mShadingColorImage, FGPipelineStage::eRenderTarget );
+                builder.Write( shading.mColorImage, FGPipelineStage::eRenderTarget );
             },
             [this]( CommandContext& ctx, Blackboard& b ) {
                 CameraModuleInfo& cam{ b.Get<CameraModuleInfo>() };
@@ -117,7 +117,7 @@ namespace mikoto::renderer {
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
                     .AddDepthTarget( prepass.mDepthPrepassDepthTarget, LoadOp::eLoad )
-                    .AddRenderTarget( shading.mShadingColorImage, kColorGreen, LoadOp::eLoad ) };
+                    .AddRenderTarget( shading.mColorImage, kColorGreen, LoadOp::eLoad ) };
                 ctx.BeginRender( graphicsState );
 
                 struct DrawParams {

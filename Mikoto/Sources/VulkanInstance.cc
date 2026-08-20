@@ -330,7 +330,7 @@ namespace mikoto::renderer::vulkan {
                 }
 
                 if (mSurface != VK_NULL_HANDLE) {
-                    // Support for presentation not requested
+                    // Support for presentation requested
                     VkBool32 presentSupport{ VK_FALSE };
                     MKT_VK_CHECK( vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, queueFamilyIndex, mSurface, MKT_ADDRESSOF( presentSupport ) ) );
 
@@ -362,7 +362,6 @@ namespace mikoto::renderer::vulkan {
     }
 
     Instance::~Instance() {
-
         // Surface
         if (mSurface != VK_NULL_HANDLE) {
             vkDestroySurfaceKHR( mInstance, mSurface, nullptr );

@@ -127,6 +127,12 @@ namespace mikoto::renderer {
     auto SceneRenderer::Render( const Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // Temporary, as the Direct3D 11 backend does not offer support for
+        // bindless which the frame graph relies on for most of its functionality
+        if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11)) {
+            return;
+        }
+
         if (!mFrameGraph) {
             return;
         }

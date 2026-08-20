@@ -21,9 +21,7 @@
 #include <Math/Random.hh>
 
 #include <Renderer/Rhi/Types.hh>
-
 #include <Renderer/Core/FrameGraph.hh>
-
 #include <Renderer/Passes/GeometryCullModule.hh>
 
 namespace mikoto::renderer {
@@ -36,32 +34,32 @@ namespace mikoto::renderer {
     };
 
     struct ReadRegion {
-        f32 mX{};
-        f32 mY{};
-        f32 mWidth{};
-        f32 mHeight{};
+        core::f32 mX{};
+        core::f32 mY{};
+        core::f32 mWidth{};
+        core::f32 mHeight{};
     };
 
     struct ReadPixelViewportInfo {
-        f32 mX{};
-        f32 mY{};
+        core::f32 mX{};
+        core::f32 mY{};
 
-        f32 mViewportX{};
-        f32 mViewportY{};
-        f32 mViewportWidth{};
-        f32 mViewportHeight{};
+        core::f32 mViewportX{};
+        core::f32 mViewportY{};
+        core::f32 mViewportWidth{};
+        core::f32 mViewportHeight{};
     };
 
     class MousePickingModule {
     public:
-        explicit MousePickingModule(rhi::RenderResolution resolution);
+        explicit MousePickingModule( rhi::RenderResolution resolution );
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
         // For optimization purposes we can specify which region gets copied every frame
-        auto SetReadRegion(f32 x, f32 y, f32 width, f32 height) -> void;
+        auto SetReadRegion( core::f32 x, core::f32 y, core::f32 width, core::f32 height ) -> void;
 
-        MKT_NODISCARD auto ReadPixel( u32 x, u32 y ) const -> core::u32;
+        MKT_NODISCARD auto ReadPixel( core::u32 x, core::u32 y ) const -> core::u32;
         MKT_NODISCARD auto ReadPixel( const ReadPixelViewportInfo& viewport ) const -> core::u32;
 
         auto SetGeometryManager( GeometryCullModule& geom ) -> void;
@@ -77,6 +75,6 @@ namespace mikoto::renderer {
         eastl::vector<u32> mData{};
     };
 
-}// namespace mikoto
+}// namespace mikoto::renderer
 
 #endif//MIKOTO_MOUSE_PICKING_MODULE_HH

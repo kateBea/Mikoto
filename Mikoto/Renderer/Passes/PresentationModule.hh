@@ -53,7 +53,7 @@ namespace mikoto::renderer {
 
         auto SetPresentType( PresentTarget type ) -> void;
 
-        auto RegisterPresentImage( FrameGraph& graph, TextureHandle texture ) -> void;
+        auto RegisterPresentImage( FrameGraph& graph, rhi::TextureHandle texture ) -> void;
 
     private:
 
@@ -65,7 +65,7 @@ namespace mikoto::renderer {
     private:
         FGTextureHandle mPresentTexture{};
 
-        RenderResolution mResolution{};
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
 
         PresentTarget mPresentTarget{ PresentTarget::ePBRadiance_Output };
     };

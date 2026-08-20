@@ -69,7 +69,7 @@ namespace mikoto::renderer {
 
         mGeometryShading.RegisterPasses( *mFrameGraph );
 
-        //mMousePickingModule.RegisterPasses( *mFrameGraph );
+        mMousePickingModule.RegisterPasses( *mFrameGraph );
 
         // Raytracing
         mPathTracing.RegisterPasses( *mFrameGraph );
@@ -87,8 +87,8 @@ namespace mikoto::renderer {
         //mHelperModule.RegisterPasses( *mFrameGraph );
 
         // Render final contents into specified images
-        //mPresentationModule.RegisterPasses( *mFrameGraph );
-        //mPresentationModule.RegisterPresentImage( *mFrameGraph, mPresentTexture );
+        mPresentationModule.RegisterPresentImage( *mFrameGraph, mPresentTexture );
+        mPresentationModule.RegisterPasses( *mFrameGraph );
 
         // Build graph
         mFrameGraph->Compile();

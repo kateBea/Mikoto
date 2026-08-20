@@ -28,6 +28,7 @@
 namespace mikoto::renderer {
 
     using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
     PresentationModule::PresentationModule( RenderResolution resolution )
         : mResolution{ resolution }
@@ -36,8 +37,8 @@ namespace mikoto::renderer {
     auto PresentationModule::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        RegisterTransition( graph );
         RegisterFullQuadRender( graph );
+        RegisterTransition( graph );
     }
 
     auto PresentationModule::SetPresentType( PresentTarget type ) -> void {
@@ -49,11 +50,12 @@ namespace mikoto::renderer {
     }
 
     auto PresentationModule::RegisterTransition( FrameGraph &graph ) -> void {
+        // Transition for usage in ImGui viewport
         graph.RegisterPass(
             "ResourceTransition",
             FGPassType::eGraphics,
-            []( FGNodeBuilder&, Blackboard & ) {
-
+            [this]( FGNodeBuilder& builder, Blackboard & ) {
+                builder.UseResource( mPresentTexture, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
             },
             []( CommandContext&, Blackboard & ) {
                 // Nothing
@@ -80,7 +82,7 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
 
         // Create the resources
-        PresentationPassData& presentationPassData{ graph.GetOrCreate<PresentationPassData>() };
+        auto& info{ graph.GetOrCreate<PresentationPassData>() };
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( "ResourceTransition_Pipeline01" )
@@ -89,8 +91,7 @@ namespace mikoto::renderer {
             .AddColorFormat( Format::eBGRA8_UNORM )
             .PushShader( "FullQuad_Vert.slang", FGStageType::eVertex )
             .PushShader( "FullQuad_Frag.slang", FGStageType::ePixel ) };
-
-        presentationPassData.mPipeline = graph.Create( pipelineBuilder );
+        info.mPipeline = graph.Create( pipelineBuilder );
 
         graph.RegisterPass(
             "FullQuadRender",
@@ -101,21 +102,20 @@ namespace mikoto::renderer {
                 // The color target used in this pass is externally managed
                 // The frame graph does not control access to it nor does it make sure the
                 // image is in proper layout
-                const auto& wireframe{ blackboard.Get<WireframeData>() };
-                const auto& prepass{ blackboard.Get<PrepassModuleInfo>() };
-                const auto& trianglePassData{ blackboard.Get<TrianglePassData>() };
-                const auto& shading{ blackboard.Get<GeomShadingModuleInfo>() };
+                const auto& wireframeData{ blackboard.Get<WireframeData>() };
+                const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
+                const auto& shadingPassData{ blackboard.Get<GeomShadingModuleInfo>() };
 
-                builder.Read( prepass.mGBufferPositionTarget, FGPipelineStage::ePixelShader );
-                builder.Read( prepass.mGBufferNormalTarget, FGPipelineStage::ePixelShader );
-                builder.Read( prepass.mGBufferColorTarget, FGPipelineStage::ePixelShader );
-                builder.Read( prepass.mGBufferEmissiveTarget, FGPipelineStage::ePixelShader );
+                builder.UseResource( prePassData.mGBufferPositionTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( prePassData.mGBufferNormalTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( prePassData.mGBufferColorTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( prePassData.mGBufferEmissiveTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
 
-                builder.Read( wireframe.mColorImage, FGPipelineStage::ePixelShader );
+                builder.UseResource( wireframeData.mColorImage, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
 
-                builder.Read( shading.mTonemapColor, FGPipelineStage::ePixelShader );
-                builder.Read( shading.mColorImage, FGPipelineStage::ePixelShader );
-                builder.Read( prepass.mDepthPrepassColorTarget, FGPipelineStage::ePixelShader );
+                builder.UseResource( shadingPassData.mTonemapColor, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( shadingPassData.mColorImage, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( prePassData.mDepthPrepassColorTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
             },
             [this]( CommandContext &ctx, Blackboard &b ) {
                 const auto &data{ b.Get<PresentationPassData>() };
@@ -126,14 +126,12 @@ namespace mikoto::renderer {
                     u32 mSamplerIndex{};
                 } params{
                     .mTextureIndex = ctx.PushTexture_SRV( GetTargetImage( b ) ),
-                    .mSamplerIndex = ctx.PushSampler( geom.mBasicSampler ),
-                };
-
+                    .mSamplerIndex = ctx.PushSampler( geom.mBasicSampler ) };
                 ctx.PushConstants( params );
 
                 const auto dimensions{ InferDimensions( mResolution ) };
 
-                auto graphicsState{ ContextRenderState{}
+                const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
                     .AddRenderTarget( mPresentTexture, Color{ .0f }, LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );

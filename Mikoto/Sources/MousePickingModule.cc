@@ -27,6 +27,10 @@
 #include <Renderer/Passes/MousePickingModule.hh>
 
 namespace mikoto::renderer {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
+
     MousePickingModule::MousePickingModule( rhi::RenderResolution resolution )
         : mResolution{ resolution }
     {}
@@ -93,7 +97,7 @@ namespace mikoto::renderer {
     auto MousePickingModule::RegisterSelectionBuffer( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        MousePickingModuleInfo& info{ graph.GetOrCreate<MousePickingModuleInfo>() };
+        auto& info{ graph.GetOrCreate<MousePickingModuleInfo>() };
         auto dimensions{ InferDimensions( mResolution ) };
 
         Format format{ Format::eR32_UINT };
@@ -105,7 +109,6 @@ namespace mikoto::renderer {
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kCopySrc )
             .SetFormat( format ) };
-
         info.mColorImage = graph.Create( imageDesc );
 
         const auto& formatInfo{ rhi::GetFormatInfo( format ) };
@@ -114,7 +117,6 @@ namespace mikoto::renderer {
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetSizeBytes( dimensions.first * dimensions.second * formatInfo.mBytesPerBlock )
             .SetHeapType( HeapType::eReadback ) };
-
         info.mReadBackBuffer = graph.Create( bufferDesc );
         mData.resize( dimensions.first * dimensions.second * formatInfo.mBytesPerBlock );
 
@@ -128,35 +130,34 @@ namespace mikoto::renderer {
             .AddColorFormat( Format::eR32_UINT )
             .PushShader( "MousePick_Vert.slang", FGStageType::eVertex )
             .PushShader( "MousePick_Frag.slang", FGStageType::ePixel ) };
-
         info.mPipeline = graph.Create( pipelineBuilder );
 
         graph.RegisterPass(
             "ObjectSelection_Render",
             FGPassType::eGraphics,
             []( FGNodeBuilder &builder, Blackboard & blackboard ) {
-                const auto& prepass{ blackboard.Get<PrepassModuleInfo>() };
-                const auto& cameraInfo{ blackboard.Get<CameraModuleInfo>() };
-                const auto& mousePicking{ blackboard.Get<MousePickingModuleInfo>() };
-                const auto& geometryInfo{ blackboard.Get<GeometryCullModuleInfo>() };
+                const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
+                const auto& cameraData{ blackboard.Get<CameraModuleInfo>() };
+                const auto& mousePickingData{ blackboard.Get<MousePickingModuleInfo>() };
+                const auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
 
-                builder.Read( cameraInfo.mCameraData, FGPipelineStage::ePixelShader );
+                builder.UseResource( cameraData.mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-                builder.Read( geometryInfo.mGeometryBuffer, FGPipelineStage::ePixelShader );
-                builder.Read( geometryInfo.mSkinningBuffer, FGPipelineStage::ePixelShader );
+                builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-                builder.Read( geometryInfo.mVerticesBuffer, FGPipelineStage::ePixelShader );
-                builder.Read( geometryInfo.mIndicesBuffer, FGPipelineStage::ePixelShader );
+                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-                builder.Read( prepass.mPrepassDepthTarget, FGPipelineStage::eDepthTarget );
+                builder.UseResource( prePassData.mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
 
-                builder.Write( mousePicking.mColorImage, FGPipelineStage::eRenderTarget );
+                builder.UseResource( mousePickingData.mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
             [this]( CommandContext & ctx, Blackboard &b ) {
-                const auto& prepassInfo{ b.Get<PrepassModuleInfo>() };
-                const auto& mousePicking{ b.Get<MousePickingModuleInfo>() };
-                const auto& cameraPassInfo{ b.Get<CameraModuleInfo>() };
-                const auto& geometryInfo{ b.Get<GeometryCullModuleInfo>() };
+                const auto& prePassData{ b.Get<PrepassModuleInfo>() };
+                const auto& mousePickingData{ b.Get<MousePickingModuleInfo>() };
+                const auto& cameraPassData{ b.Get<CameraModuleInfo>() };
+                const auto& geometryData{ b.Get<GeometryCullModuleInfo>() };
 
                 struct DrawParams {
                     u32 mGeometryInfoBufferID{};
@@ -167,29 +168,27 @@ namespace mikoto::renderer {
 
                     u32 mCameraInfoBufferID{};
                 } params{
-                    .mGeometryInfoBufferID = ctx.PushBuffer_SRV( geometryInfo.mGeometryBuffer ),
-                    .mSkinningInfoBufferID = ctx.PushBuffer_SRV( geometryInfo.mSkinningBuffer ),
+                    .mGeometryInfoBufferID = ctx.PushBuffer_SRV( geometryData.mGeometryBuffer ),
+                    .mSkinningInfoBufferID = ctx.PushBuffer_SRV( geometryData.mSkinningBuffer ),
 
-                    .mIndexID = ctx.PushBuffer_SRV( geometryInfo.mIndicesBuffer ),
-                    .mVertexID = ctx.PushBuffer_SRV( geometryInfo.mVerticesBuffer ),
+                    .mIndexID = ctx.PushBuffer_SRV( geometryData.mIndicesBuffer ),
+                    .mVertexID = ctx.PushBuffer_SRV( geometryData.mVerticesBuffer ),
 
-                    .mCameraInfoBufferID = ctx.PushBuffer_SRV( cameraPassInfo.mCameraData ),
-                };
-
+                    .mCameraInfoBufferID = ctx.PushBuffer_SRV( cameraPassData.mCameraData ) };
                 ctx.PushConstants( params );
 
                 const auto dimensions{ InferDimensions( mResolution ) };
 
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
-                    .AddDepthTarget( prepassInfo.mPrepassDepthTarget, LoadOp::eLoad )
-                    .AddRenderTarget( mousePicking.mColorImage, Color{ 0.f }, LoadOp::eClear ) };
+                    .AddDepthTarget( prePassData.mPrepassDepthTarget, LoadOp::eLoad )
+                    .AddRenderTarget( mousePickingData.mColorImage, Color{ 0.f }, LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( ViewportState{}
                     .AddViewportAndScissorRect( Viewport( as<f32>( dimensions.first ), as<f32>( dimensions.second ) ) ) );
 
-                ctx.BindPipeline( mousePicking.mPipeline );
+                ctx.BindPipeline( mousePickingData.mPipeline );
 
                 mGeometryCullModule->DrawInstancesIndirect( ctx );
 
@@ -202,8 +201,8 @@ namespace mikoto::renderer {
             []( FGNodeBuilder &builder, Blackboard & blackboard ) {
                 const auto& mousePicking{ blackboard.Get<MousePickingModuleInfo>() };
 
-                builder.Write( mousePicking.mReadBackBuffer, FGPipelineStage::eCopy );
-                builder.Read( mousePicking.mColorImage, FGPipelineStage::eCopy );
+                builder.UseResource( mousePicking.mReadBackBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                builder.UseResource( mousePicking.mColorImage, FGPipelineStage::eCopy, FGResourceAccess::eRead );
             },
             []( CommandContext &ctx, Blackboard & b ) {
                 const auto& mousePicking{ b.Get<MousePickingModuleInfo>() };

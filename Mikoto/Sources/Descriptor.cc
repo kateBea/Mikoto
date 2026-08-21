@@ -36,6 +36,17 @@ namespace mikoto::renderer::rhi {
         };
     }
 
+    auto BindingSetItem::Texture_UAV( core::u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingSetItem {
+        return BindingSetItem{
+            .mResource = texture,
+            .mSlot = slot,
+            .mType = ResourceType::eTexture_UAV,
+            .mFormat = format,
+            .mDimension = dimension,
+            .mSubResourceSet = subResources
+        };
+    }
+
     auto BindingSetItem::Sampler( u32 slot, ISampler *sampler ) -> BindingSetItem {
         return BindingSetItem{
             .mResource = sampler,

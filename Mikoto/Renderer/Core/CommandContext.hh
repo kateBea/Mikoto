@@ -136,7 +136,7 @@ namespace mikoto::renderer {
         FGResourceManager* mResourceManager{};
 
         rhi::CommandListHandle mCommands{};
-        rhi::IPipeline* mCurrentPipeline{};
+        rhi::PipelineLayoutHandle mPipelineLayout{};
 
         eastl::fixed_hash_map<FGResourceHandle, rhi::IBuffer*, 20> mCachedBuffers{};
         eastl::fixed_hash_map<FGResourceHandle, rhi::ITexture*, 20> mCachedTextures{};

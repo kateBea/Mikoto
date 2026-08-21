@@ -190,9 +190,9 @@ namespace mikoto::physics {
                     body.SetMotionType( motionType );
                 }
 
-                if (rb.IsBodyType( RigidBodyComponent::BodyType::eKinematic )) {
+                if ( rb.IsBodyType( RigidBodyComponent::BodyType::eKinematic ) ) {
                     body.SetAngularVelocity( GetFloat3F( rb.GetAngularVelocity() ) );
-                    body.SetLinearVelocity(GetFloat3F( rb.GetLinearVelocity() ) );
+                    body.SetLinearVelocity( GetFloat3F( rb.GetLinearVelocity() ) );
                 }
 
                 // Mass and friction

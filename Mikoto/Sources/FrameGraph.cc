@@ -364,7 +364,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_UAV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
 
         return newID;
     }

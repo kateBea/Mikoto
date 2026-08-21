@@ -15,12 +15,7 @@
 #ifndef MIKOTO_EDITOR_HELLO_TRIANGLE_LAYER_HH
 #define MIKOTO_EDITOR_HELLO_TRIANGLE_LAYER_HH
 
-#include <EASTL/memory.h>
-#include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/string_view.h>
-
-#include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -35,14 +30,6 @@
 #include <Renderer/Rhi/GpuDevice.hh>
 
 #include <Renderer/Core/SceneRenderer.hh>
-#include <Renderer/Core/ThumbnailRenderer.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Entity.hh>
-
-#include <Panels/Panel.hh>
-
-#include <Theme/Theme.hh>
 
 namespace mikoto::editor {
 
@@ -63,6 +50,9 @@ namespace mikoto::editor {
         };
 
         auto DisplayImGuiWindow() -> void;
+
+        auto DrawNormalMesh() -> void;
+        auto DrawWireframeMesh() -> void;
 
     private:
         // Cube definition
@@ -138,6 +128,7 @@ namespace mikoto::editor {
         renderer::rhi::CommandListHandle mCommandList{};
 
         renderer::rhi::PipelineHandle mPipeline{};
+        renderer::rhi::PipelineHandle mPipelineWireframe{};
         renderer::rhi::BindingSetHandle mBindingSetHandle{};
         renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};
         renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};

@@ -358,8 +358,8 @@ namespace mikoto::renderer {
         auto ReleaseTextureIndex_SRV( FGResourceHandle name ) -> void;
         auto ReleaseTextureIndex_UAV( FGResourceHandle handle ) -> void;
 
-        MKT_NODISCARD auto ReleaseBufferIndex_SRV( FGResourceHandle name ) -> void;
-        MKT_NODISCARD auto ReleaseBufferIndex_UAV( FGResourceHandle name ) -> void;
+        auto ReleaseBufferIndex_SRV( FGResourceHandle name ) -> void;
+        auto ReleaseBufferIndex_UAV( FGResourceHandle name ) -> void;
 
         MKT_NODISCARD auto ImportTexture( TextureHandle handle ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportBuffer( BufferHandle handle ) -> FGBufferHandle;

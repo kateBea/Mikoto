@@ -41,7 +41,7 @@ namespace mikoto::editor {
     EditorHelloTriangleLayer::EditorHelloTriangleLayer( platform::Window *window )
         : ILayer{ "EditorHelloTriangleLayer" }, mWindow{ window }
     {
-        mDevice = renderer::RenderSystem::Get()->GetGpuDevice();
+        mDevice = RenderSystem::Get()->GetGpuDevice();
     }
 
     auto EditorHelloTriangleLayer::OnCreate() -> void {
@@ -209,7 +209,7 @@ namespace mikoto::editor {
         // Create the command list
         mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
         mCommandList->SetEnableAutomaticBarriers( true );
-        mCommandList->SetDebugName( "GameLayer CommandList" );
+        mCommandList->SetDebugName( "HelloTriangle CommandList" );
 
         // We will upload a texture and a buffer to do some effects, see Triangle_Frag
         // Ideally we want to automate this process by allowing each backend to be able to use shader reflection
@@ -246,6 +246,12 @@ namespace mikoto::editor {
         mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
         mPipeline->SetDebugName( "EditorTriangle Pipeline" );
 
+        auto wireframePipelineDescription{
+            GraphicsPipelineDescription{ graphicsPipelineDescription }
+            .SetPolygonMode( PolygonMode::eLines ) };
+        mPipelineWireframe = mDevice->CreatePipeline( wireframePipelineDescription );
+        mPipelineWireframe->SetDebugName( "EditorTriangle PipelineWireframe" );
+
         auto bindingSetDesc{ BindingSetDescription{}
             .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) )
             .AddItem( BindingSetItem::Texture_SRV( 1, mSimpleTexture.GetRaw() ) )
@@ -265,6 +271,7 @@ namespace mikoto::editor {
         mDevice->WaitIdle();
 
         mPipeline.Reset();
+        mPipelineWireframe.Reset();
         mPipelineLayoutHandle.Reset();
         mBindingLayoutHandle.Reset();
         mVertexInputLayout.Reset();
@@ -288,6 +295,24 @@ namespace mikoto::editor {
     auto EditorHelloTriangleLayer::OnUpdate( float timeStep ) -> void {
         mCommandList->Begin( { .mScopeName = "EditorHelloTriangleLayer Render" } );
 
+        DrawWireframeMesh();
+
+        DrawNormalMesh();
+
+        mCommandList->SetTransition( mColorImage.GetRaw(), ResourceStates::eShaderResource );
+
+        mCommandList->End();
+
+        auto submitInfo{ SubmitInfo{}
+            .AddCommandList( mCommandList ) };
+        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo), QueueType::eGraphics);
+
+        if (mIsImguiWindowActive) {
+            DisplayImGuiWindow();
+        }
+    }
+
+    auto EditorHelloTriangleLayer::DrawNormalMesh() -> void {
         float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) }; // seconds
         mShaderParameters.mModel = glm::rotate(
             math::constants::Identity<core::float4x4>(),
@@ -318,20 +343,20 @@ namespace mikoto::editor {
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
         mCommandList->BeginRendering( graphicsState );
 
-        mCommandList->BindPipeline( mPipeline.GetRaw() );
-
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
             .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
             .AddResourceSet( 0, mBindingSetHandle.GetRaw() ) };
         mCommandList->BindPipelineResources( bindingDescription );
-        mCommandList->BindIndexBuffer(mIndexBuffer.GetRaw() );
+
+        mCommandList->BindPipeline( mPipeline.GetRaw() );
 
         auto vertexBufferDesc{ VertexBufferBinding{}
             .SetBufferBinding( 0 )
             .SetBuffer( mVertexBuffer.GetRaw() )
             .SetElementStride( MKT_SIZEOF( asset::VertexDescription ) ) };
         mCommandList->BindVertexBuffer( vertexBufferDesc );
+        mCommandList->BindIndexBuffer(mIndexBuffer.GetRaw() );
 
         mCommandList->SetViewportState( ViewportState{}
             .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
@@ -343,18 +368,65 @@ namespace mikoto::editor {
         mCommandList->DrawIndexed( drawArguments );
 
         mCommandList->EndRendering();
+    }
 
-        mCommandList->SetTransition( mColorImage.GetRaw(), ResourceStates::eShaderResource );
+    auto EditorHelloTriangleLayer::DrawWireframeMesh() -> void {
+        float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) }; // seconds
 
-        mCommandList->End();
+        mShaderParameters.mModel = glm::translate( math::constants::Identity<core::float4x4>(), float3{ 10.0f, 0.0f, 0.0f } );
+        mShaderParameters.mModel = glm::rotate(
+            mShaderParameters.mModel,
+            angle,
+            math::constants::kUnitVectorY
+        );
 
-        auto submitInfo{ SubmitInfo{}
-            .AddCommandList( mCommandList ) };
-        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo), QueueType::eGraphics);
+        mShaderParameters.mView = glm::lookAt(
+            glm::vec3{ 1.0f, 1.0f, 0.0f },// camera position
+            glm::vec3{ 0.0f, 0.0f, 0.0f },// target (sphere center)
+            glm::vec3{ 0.0f, 1.0f, 0.0f } // up direction
+        );
 
-        if (mIsImguiWindowActive) {
-            DisplayImGuiWindow();
-        }
+        const f32 aspectRatio{ 1920.0f / 1080.0f };
+        mShaderParameters.mProjection = glm::perspective(
+            glm::radians( 60.0f ),// FOV
+            aspectRatio,          // width / height
+            0.1f,                 // near plane
+            100.0f                // far plane
+        );
+
+        mCommandList->Write( mConstantBuffer.GetRaw(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
+
+        // Set graphics state
+        auto graphicsState{ GraphicsState{}
+            .SetRenderArea( Rect{ 1920, 1080 } )
+            .AddDepthTarget( mDepthImage )
+            .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
+        mCommandList->BeginRendering( graphicsState );
+
+        auto bindingDescription{ BindResourcesDescription{}
+            .SetBindPoint( PipelineType::eGraphics )
+            .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
+            .AddResourceSet( 0, mBindingSetHandle.GetRaw() ) };
+        mCommandList->BindPipelineResources( bindingDescription );
+        mCommandList->BindPipeline( mPipelineWireframe.GetRaw() );
+
+        auto vertexBufferDesc{ VertexBufferBinding{}
+            .SetBufferBinding( 0 )
+            .SetBuffer( mVertexBuffer.GetRaw() )
+            .SetElementStride( MKT_SIZEOF( asset::VertexDescription ) ) };
+        mCommandList->BindVertexBuffer( vertexBufferDesc );
+        mCommandList->BindIndexBuffer(mIndexBuffer.GetRaw() );
+
+        mCommandList->SetViewportState( ViewportState{}
+            .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
+
+        const auto drawArguments{ DrawArguments{}
+            .SetInstanceCount( 1 )
+            .SetIndexCount( mIndexBuffer->GetSizeBytes() / MKT_SIZEOF( u32 ) )
+            .SetVertexCount( mVertexBuffer->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription ) ) };
+        mCommandList->DrawIndexed( drawArguments );
+
+        mCommandList->EndRendering();
     }
 
     auto EditorHelloTriangleLayer::OnEvent( core::IEvent &event ) -> void {

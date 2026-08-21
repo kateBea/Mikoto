@@ -85,7 +85,10 @@ namespace mikoto::physics {
     // Callback for asserts, connect this to your own assert handler if you have one
     static bool AssertFailedImpl( const char* inExpression, const char* inMessage, const char* inFile, u32 inLine ) {
         // Print to the TTY
-        MKT_CORE_LOGGER_DEBUG( "AssertFailedImpl" );
+        MKT_CORE_LOGGER_DEBUG( "inExpression: {}", inExpression );
+        MKT_CORE_LOGGER_DEBUG( "inMessage: {}", inExpression );
+        MKT_CORE_LOGGER_DEBUG( "inFile: {}", inFile );
+        MKT_CORE_LOGGER_DEBUG( "inLine: {}", inLine );
 
         // Breakpoint
         return true;

@@ -132,6 +132,8 @@ namespace mikoto::renderer {
         : mNode{ pass }, mResourceManager{ resourceManager } {
         MKT_ASSERT( mNode, "Frame graph node cannot be null" );
         MKT_ASSERT( mResourceManager, "Resource manager cannot be null" );
+
+        mPipelineLayout = resourceManager->GetPipelineLayout();
     }
 
     auto CommandContext::BeginPass( CommandListHandle cmd ) -> void {
@@ -245,12 +247,10 @@ namespace mikoto::renderer {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource pipeline{ mResourceManager->Get( handle.mHandle ) };
         mCommands->BindPipeline( checked_cast<IPipeline*>( pipeline.mResource.GetRaw()) );
-
-        mCurrentPipeline = checked_cast<IPipeline*>( pipeline.mResource.GetRaw());
     }
 
     auto CommandContext::Draw( u32 vertexCount, u32 instanceCount ) -> void {
-        IPipelineLayout* layout{ mCurrentPipeline->GetPipelineLayout().GetRaw() };
+        IPipelineLayout* layout{ mPipelineLayout.GetRaw() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
         mCommands->Draw( DrawArguments{}
             .SetVertexCount( vertexCount )
@@ -265,14 +265,14 @@ namespace mikoto::renderer {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource resource{ mResourceManager->Get( state.mIndirectBuffer.mHandle ) };
 
-        IPipelineLayout* layout{ mCurrentPipeline->GetPipelineLayout().GetRaw() };
+        IPipelineLayout* layout{ mPipelineLayout.GetRaw() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
         mCommands->BindIndirectBuffer( checked_cast<IBuffer*>( resource.mResource.GetRaw() ) );
         mCommands->DrawIndirect( 0, state.mInstanceCount );
     }
 
     auto CommandContext::Dispatch( u32 groupX, u32 groupY, u32 groupZ ) -> void {
-        IPipelineLayout* layout{ mCurrentPipeline->GetPipelineLayout().GetRaw() };
+        IPipelineLayout* layout{ mPipelineLayout.GetRaw() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
         mCommands->Dispatch( groupX, groupY, groupZ );
     }

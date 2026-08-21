@@ -93,7 +93,7 @@ namespace mikoto::renderer {
     public:
         explicit GeometryShadingModule( rhi::RenderResolution resolution );
 
-        auto SetClearColor( const Color& color ) -> void;
+        auto SetClearColor( const rhi::Color& color ) -> void;
         auto SetResolution( rhi::RenderResolution resolution ) -> void;
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
@@ -108,7 +108,7 @@ namespace mikoto::renderer {
 
         // SSAO
         auto SetEnableSsao( bool enable ) -> void;
-        auto SetSsaoIntensity( float value ) -> void;
+        auto SetSsaoIntensity( core::f32 value ) -> void;
 
         // HDR
         auto SetGamma( core::f32 value ) -> void;
@@ -192,6 +192,9 @@ namespace mikoto::renderer {
         FGTextureHandle mEquirectangularTexture{};
         material::MaterialHandle mSkyboxMaterial{};
         material::MaterialHandle mSkyboxMaterialDebug{};
+
+        // Wireframe
+        bool mIsWireframeActive{ false };
 
         eastl::fixed_hash_map<material::SkyboxFace, FGTextureHandle, 6> mSkyboxFaces{};
 

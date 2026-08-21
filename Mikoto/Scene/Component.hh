@@ -729,7 +729,6 @@ namespace mikoto::scene {
             }
         }
 
-
         MKT_NODISCARD auto GetHandle() -> ScriptHandle { return mScript; }
         MKT_NODISCARD auto GetFilePath() const -> const Path& { return mFilePath; }
 

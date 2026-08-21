@@ -97,7 +97,7 @@ namespace mikoto::renderer::rhi {
 
     struct PipelineLayoutCreateDescription {
         ShaderFlags mPushConstantsVisibility{ ShaderFlagsBits::kAll };
-        eastl::fixed_vector<BindingLayoutHandle, kMaxBindingLayouts> mBindingLayouts;
+        eastl::fixed_vector<BindingLayoutHandle, kMaxBindingLayouts> mBindingLayouts{};
 
         auto SetPushConstantsVisibility( ShaderFlags stage ) -> PipelineLayoutCreateDescription&;
         auto AddBindingLayout( BindingLayoutHandle layout ) -> PipelineLayoutCreateDescription&;

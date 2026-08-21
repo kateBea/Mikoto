@@ -45,6 +45,10 @@
 
 namespace mikoto::scene {
 
+    using namespace mikoto::core;
+    using namespace mikoto::renderer;
+    using namespace mikoto::renderer::rhi;
+
     static auto UpdateWorldTransform( Entity& e, float4x4 parentWorld, Scene* scene ) -> void {
         auto& t{ e.GetComponent<TransformComponent>() };
 
@@ -209,7 +213,16 @@ namespace mikoto::scene {
 
         ScriptHandle scriptHandle{};
         if ( Entity * entity{ FindByID( tag.GetGUID() ) } ) {
+            if (!scriptComponent.GetFilePath().IsEmpty()) {
+                // Component created with a path to an existing script
+                scriptHandle = ScriptingService::Get()->LoadScript( scriptComponent.GetFilePath(), entity );
+            } else {
+                // No script specified, created blank script
+                scriptHandle = ScriptingService::Get()->CreateScript( entity );
+            }
         }
+
+        scriptComponent.SetScript( scriptHandle );
     }
 
     auto Scene::SetupMeshComponent( Entity* entity, ModelHandle model, i32 index ) -> void {
@@ -591,9 +604,7 @@ namespace mikoto::scene {
 
         const EntityCreateInfo entityCreateInfo{
             .mRoot = root,
-            .mName = name.c_str(),
-        };
-
+            .mName = name.c_str() };
         if ( Entity * child{ CreateEntity( entityCreateInfo ) } ) {
             if ( !model.IsEmpty() && model->IsSkinned() ) {
                 child->AddComponent<SkinnedMeshRenderer>( animatorID );

@@ -808,18 +808,6 @@ namespace mikoto::editor {
         RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo1), QueueType::eGraphics);
 
         mSceneRenderer->Render( mEditorState->mActiveScene );
-
-        // if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {
-        //     mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - ShaderResource" } );
-        //     // On panel mode this image is sampled by ImGui to render as viewport hence why the transition,
-        //     // otherwise it is copied directly to the swapchain image
-        //     mCommandList->SetTransition( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eShaderResource );
-        //
-        //     mCommandList->End();
-        //     auto submitInfo2{ SubmitInfo{}
-        //         .AddCommandList( mCommandList ) };
-        //     RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo2), QueueType::eGraphics);
-        // }
     }
 
     auto EditorLayer::UpdateViewportState( float ) -> void {

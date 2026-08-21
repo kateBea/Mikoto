@@ -55,7 +55,7 @@ namespace mikoto::renderer {
     }
 
     auto GeometryShadingModule::SetEnableWireframe( bool enable ) -> void {
-
+        mIsWireframeActive = true;
     }
 
     auto GeometryShadingModule::SetClearColor( const Color& color ) -> void {
@@ -73,9 +73,9 @@ namespace mikoto::renderer {
     }
 
     auto GeometryShadingModule::SetSkyboxMaterial( material::MaterialHandle material ) -> void {
-        mSkyboxMaterial = material;
+        // Release first descriptor table indices from old material textures
 
-        // Release descriptor table indices from old material textures
+        mSkyboxMaterial = material;
     }
 
     auto GeometryShadingModule::SetRenderBackground( SceneBackgroundType bg ) -> void {
@@ -86,7 +86,7 @@ namespace mikoto::renderer {
         mEnableSsao = enable;
     }
 
-    auto GeometryShadingModule::SetSsaoIntensity( float value ) -> void {
+    auto GeometryShadingModule::SetSsaoIntensity( f32 value ) -> void {
         mSsaoIntensity = value;
     }
 
@@ -903,8 +903,11 @@ namespace mikoto::renderer {
                 const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
                 const auto& cameraPassData{ blackboard.Get<CameraModuleInfo>() };
                 const auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
+                const auto& finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 builder.UseResource( wireframeData.mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+
+                builder.UseResource( finalCompData.mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
 
                 builder.UseResource( prePassData.mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
 
@@ -918,9 +921,13 @@ namespace mikoto::renderer {
 
                 builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
             },
-
             [this]( CommandContext& ctx, Blackboard& b ) -> void {
+                if (!mIsWireframeActive) {
+                    return;
+                }
+
                 const auto& wireframeData{ b.Get<WireframeData>() };
+                const auto& finalCompData{ b.Get<GeomShadingModuleInfo>() };
                 const auto& prePassData{ b.Get<PrepassModuleInfo>() };
                 const auto& cameraPassData{ b.Get<CameraModuleInfo>() };
                 const auto& geometryData{ b.Get<GeometryCullModuleInfo>() };

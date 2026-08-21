@@ -120,7 +120,7 @@ namespace mikoto::renderer {
             const void* ptr{ MKT_ADDRESSOF( data ) };
             const core::usize size{ MKT_SIZEOF( data ) };
 
-            eastl::copy_n( core::as<core::byte_t*>( ptr ), size, mPushConstantsData.data() );
+            eastl::copy_n( core::as<core::ubyte*>( ptr ), size, mPushConstantsData.data() );
         }
     private:
         // [Internal usage]

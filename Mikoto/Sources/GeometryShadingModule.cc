@@ -580,10 +580,10 @@ namespace mikoto::renderer {
                 // See kMatrices definition
                 eastl::fixed_hash_map<u32, SkyboxFace, 6> faceIndex{};
 
-                faceIndex[0] = SkyboxFace::eRight; // POSITIVE_X
-                faceIndex[1] = SkyboxFace::eLeft;  // NEGATIVE_X
-                faceIndex[2] = SkyboxFace::eTop;   // POSITIVE_Y
-                faceIndex[3] = SkyboxFace::eBottom;// NEGATIVE_Y
+                faceIndex[1] = SkyboxFace::eRight; // POSITIVE_X
+                faceIndex[0] = SkyboxFace::eLeft;  // NEGATIVE_X
+                faceIndex[3] = SkyboxFace::eTop;   // POSITIVE_Y
+                faceIndex[2] = SkyboxFace::eBottom;// NEGATIVE_Y
                 faceIndex[4] = SkyboxFace::eBack;  // POSITIVE_Z
                 faceIndex[5] = SkyboxFace::eFront; // NEGATIVE_Z
 
@@ -747,12 +747,12 @@ namespace mikoto::renderer {
 
                 builder.UseResource( cameraData.mCameraData, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
 
-                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-                builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mMaterialsBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mMaterialsBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
                 builder.UseResource( prePassData.mClusterBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( prePassData.mLightCullingBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
@@ -908,13 +908,13 @@ namespace mikoto::renderer {
 
                 builder.UseResource( prePassData.mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
 
-                builder.UseResource( cameraPassData.mCameraData, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( cameraPassData.mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-                builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
                 builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
             },

@@ -32,7 +32,7 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
 
         graph.RegisterPass(
-            "ParticleRendering",
+            "ParticleSimulation",
             FGPassType::eCompute,
             []( FGNodeBuilder&, Blackboard& ) {
             },

@@ -71,7 +71,7 @@ namespace mikoto::renderer {
         info.mAabbGenPipeline = graph.Create( pipelineBuilder );
 
         graph.RegisterPass(
-            "ClusterAABBPass",
+            "ClusterAabbConstruct",
             FGPassType::eCompute,
             []( FGNodeBuilder&b, Blackboard& blackboard ) {
                 const auto& aabb{ blackboard.Get<PrepassModuleInfo>() };

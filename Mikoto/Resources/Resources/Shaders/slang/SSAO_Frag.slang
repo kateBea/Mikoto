@@ -17,24 +17,28 @@
 // ============================================================================
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 
 static const int SSAO_KERNEL_SIZE = 64;
 static const float SSAO_RADIUS = 0.5f;
 
-struct SSAOParams {
-    float4x4 Projection;
-    float4 Samples[SSAO_KERNEL_SIZE];
+struct DrawParams {
+    uint mSamplerID;
+
+    uint mKernelBufferID;
+    uint mNoiseTextureID;
+    uint mGBufferNormalsID;
+    uint mGBufferPositionsID;
+
+    float4x4 mProjection;
 };
 
-[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
-ConstantBuffer<SSAOParams, ScalarDataLayout> u_Params;
+MKT_DECLARE_SAMPLERS samplers;
+MKT_DECLARE_STRUCTURED_SRV buffers;
+MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
 
-// GBuffer inputs
-[[vk::binding(Slot_0, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_samplerPosition;
-[[vk::binding(Slot_1, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_samplerNormal;
-[[vk::binding(Slot_2, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_SsaoNoise;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
-// FS input/output
 struct FSInput {
     float2 UV : TEXCOORD0;
 };
@@ -47,24 +51,30 @@ struct FSOutput {
 FSOutput main(FSInput input) {
     FSOutput o;
 
-    // Sample G-Buffer values
-    float3 fragPos = u_samplerPosition.Sample(input.UV).xyz;
+    SamplerState sampler = samplers[parameters.mSamplerID];
 
-    float3 normalEnc = u_samplerNormal.Sample(input.UV).xyz;
+    Texture2D normalsTexture = textures[parameters.mGBufferNormalsID];
+    Texture2D positionsTexture = textures[parameters.mGBufferPositionsID];
+    Texture2D noiseTexture = textures[parameters.mNoiseTextureID];
+
+    // Sample G-Buffer values
+    float3 fragPos = positionsTexture.Sample(sampler, input.UV).xyz;
+
+    float3 normalEnc = normalsTexture.Sample(sampler, input.UV).xyz;
     float3 normal = normalize(normalEnc * 2.0f - 1.0f);
 
     // Get a random vector using a noise lookup
     float textureWidth;
     float textureHeight;
     float levelCount;
-    u_samplerPosition.GetDimensions(0, textureWidth, textureHeight, levelCount);
+    positionsTexture.GetDimensions(0, textureWidth, textureHeight, levelCount);
     uint2 texDim = uint2(uint(textureWidth), uint(textureHeight));
 
-    u_SsaoNoise.GetDimensions(0, textureWidth, textureHeight, levelCount);
+    noiseTexture.GetDimensions(0, textureWidth, textureHeight, levelCount);
     uint2 noiseDim = uint2(uint(textureWidth), uint(textureHeight));
 
     float2 noiseUV = (float2(texDim) / float2(noiseDim)) * input.UV;
-    float3 randomVec = u_SsaoNoise.Sample(noiseUV).xyz * 2.0f - 1.0f;
+    float3 randomVec = noiseTexture.Sample(sampler, noiseUV).xyz * 2.0f - 1.0f;
 
     // Create TBN matrix
     float3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
@@ -76,16 +86,18 @@ FSOutput main(FSInput input) {
 
     // SSAO loop
     for (int i = 0; i < SSAO_KERNEL_SIZE; i++) {
-        float3 sampleVec = mul(TBN, u_Params.Samples[i].xyz);
+        float4 kernelSample = buffers[parameters.mKernelBufferID].Read<float4>(i, 0);
+
+        float3 sampleVec = mul(TBN, kernelSample.xyz);
         float3 samplePos = fragPos + sampleVec * SSAO_RADIUS;
 
         // project sample pos to NDC
-        float4 offset = mul(u_Params.Projection, float4(samplePos, 1.0f));
+        float4 offset = mul(parameters.mProjection, float4(samplePos, 1.0f));
         offset.xyz /= offset.w;
         offset.xyz = offset.xyz * 0.5f + 0.5f;
 
         // depth value stored in .w
-        float sampleDepth = -u_samplerPosition.SampleLevel(offset.xy, 0).w;
+        float sampleDepth = -positionsTexture.SampleLevel(sampler, offset.xy, 0).w;
 
         float rangeCheck = smoothstep(
             0.0f,
@@ -98,5 +110,10 @@ FSOutput main(FSInput input) {
 
     occlusion = 1.0f - (occlusion / float(SSAO_KERNEL_SIZE));
     o.Occlusion = occlusion;
+
+    // DEBUG
+    if (parameters.mSamplerID != 0) {
+        o.Occlusion = 1.0f;
+    }
     return o;
 }

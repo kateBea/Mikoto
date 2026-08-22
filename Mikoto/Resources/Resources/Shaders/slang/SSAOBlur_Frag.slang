@@ -17,8 +17,17 @@
 // ============================================================================
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 
-[[vk::binding(Slot_0, STATIC_SAMPLERS_SET_INDEX)]] Sampler2D u_samplerSSAO;
+struct DrawParams {
+    uint mSamplerID;
+    uint mSsaoColorTargetID;
+};
+
+MKT_DECLARE_SAMPLERS samplers;
+MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 struct FSInput {
     float2 UV : TEXCOORD0;
@@ -32,12 +41,16 @@ struct FSOutput {
 FSOutput main(FSInput input) {
     FSOutput o;
 
+    SamplerState sampler = samplers[parameters.mSamplerID];
+
+    Texture2D colorTexture = textures[parameters.mSsaoColorTargetID];
+
     int n = 0;
     const int blurRange = 2;
 
     // Texture size lookup
     uint width, height;
-    u_samplerSSAO.GetDimensions(width, height);
+    colorTexture.GetDimensions(width, height);
 
     float2 texelSize = 1.0 / float2(width, height);
 
@@ -45,7 +58,7 @@ FSOutput main(FSInput input) {
     for (int x = -blurRange; x <= blurRange; x++) {
         for (int y = -blurRange; y <= blurRange; y++) {
             float2 offset = float2(x, y) * texelSize;
-            result += u_samplerSSAO.Sample(input.UV + offset).r;
+            result += colorTexture.Sample(sampler, input.UV + offset).r;
             n++;
         }
     }

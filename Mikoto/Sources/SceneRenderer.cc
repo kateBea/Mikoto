@@ -165,6 +165,7 @@ namespace mikoto::renderer {
         mRenderPrepass.SetCamera( camera );
         mTextRendering.SetCamera( camera );
         mShadowMapping.SetCamera( camera );
+        mPostEffectsPasses.SetCamera( camera );
         mGeometryManagement.SetCamera( camera );
     }
 

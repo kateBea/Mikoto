@@ -40,10 +40,15 @@ namespace mikoto::renderer {
     struct PostProcessModuleInfo {
         // SSAO
         FGSamplerHandle mSsaoSampler{};
+
         FGTextureHandle mSsaoColorTarget{};
         FGTextureHandle mSsaoNoiseTexture{};
-        FGBufferHandle mSsaoKernelBuffer{};
         FGTextureHandle mSsaoBlurColorTarget{};
+
+        FGBufferHandle mSsaoKernelBuffer{};
+
+        FGPipelineHandle mSsaoBlurPipeline{};
+        FGPipelineHandle mSsaoRenderPipeline{};
 
         // Bloom
         bool mEnabled{ true };

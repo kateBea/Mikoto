@@ -351,6 +351,15 @@ namespace mikoto::renderer {
 
         graph.SetExecutionPolicy( "SSAO_DataUpload", FGExecutionPolicy::eOnChange );
 
+        const auto ssaoRenderPipelineDesc{ FGPipelineDescription{}
+            .SetName( "SsaoRender_Pipeline01" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .AddColorFormat( Format::eR8_UNORM )
+            .PushShader( "SSAO_Vert.slang", FGStageType::eVertex )
+            .PushShader( "SSAO_Frag.slang", FGStageType::ePixel ) };
+        info.mSsaoRenderPipeline = graph.Create( ssaoRenderPipelineDesc );
+
         graph.RegisterPass(
             "Ssao_Render",
             FGPassType::eGraphics,
@@ -367,8 +376,51 @@ namespace mikoto::renderer {
             },
             [this]( CommandContext &ctx, Blackboard &blackboard ) {
                 const auto &ssaoData{ blackboard.Get<PostProcessModuleInfo>() };
+                const auto &prePassData{ blackboard.Get<PrepassModuleInfo>() };
 
+                const auto renderDimensions{ InferDimensions( mResolution ) };
+                const auto graphicsState{ ContextRenderState{}
+                      .SetRenderArea( Rect{ as<i32>( renderDimensions.first ), as<i32>( renderDimensions.second ) } )
+                      .AddRenderTarget( ssaoData.mSsaoColorTarget, kColorGreen, LoadOp::eLoad ) };
+                ctx.BeginRender( graphicsState );
+
+                struct DrawParams {
+                    u32 mSamplerID{};
+
+                    u32 mKernelBufferID{};
+                    u32 mNoiseTextureID{};
+                    u32 mGBufferNormalsID{};
+                    u32 mGBufferPositionsID{};
+
+                    float4x4 mProjection{};
+                } params{
+                    .mSamplerID = ctx.PushSampler(ssaoData.mSsaoSampler),
+
+                    .mKernelBufferID = ctx.PushBuffer_SRV(ssaoData.mSsaoKernelBuffer),
+                    .mNoiseTextureID = ctx.PushTexture_SRV(ssaoData.mSsaoNoiseTexture),
+                    .mGBufferNormalsID = ctx.PushTexture_SRV(prePassData.mGBufferNormalTarget),
+                    .mGBufferPositionsID = ctx.PushTexture_SRV(prePassData.mGBufferPositionTarget),
+
+                    .mProjection = mCamera->GetProjection() };
+                ctx.PushConstants( params );
+
+                ctx.SetViewportState( ViewportState{}
+                    .AddViewportAndScissorRect( Viewport( as<f32>( renderDimensions.first ), as<f32>( renderDimensions.second ) ) ) );
+
+                ctx.BindPipeline( ssaoData.mSsaoRenderPipeline );
+                ctx.Draw( 3 );
+
+                ctx.EndRender();
             } );
+
+        const auto ssaoBlurPipelineDesc{ FGPipelineDescription{}
+            .SetName( "SsaoBlur_Pipeline01" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .AddColorFormat( Format::eR8_UNORM )
+            .PushShader( "SSAOBlur_Vert.slang", FGStageType::eVertex )
+            .PushShader( "SSAOBlur_Frag.slang", FGStageType::ePixel ) };
+        info.mSsaoBlurPipeline = graph.Create( ssaoBlurPipelineDesc );
 
         graph.RegisterPass(
             "Ssao_Blur",
@@ -382,80 +434,30 @@ namespace mikoto::renderer {
             [this]( CommandContext &ctx, Blackboard &blackboard ) {
                 const auto &ssaoData{ blackboard.Get<PostProcessModuleInfo>() };
 
+                const auto renderDimensions{ InferDimensions( mResolution ) };
+                const auto graphicsState{ ContextRenderState{}
+                      .SetRenderArea( Rect{ as<i32>( renderDimensions.first ), as<i32>( renderDimensions.second ) } )
+                      .AddRenderTarget( ssaoData.mSsaoBlurColorTarget, kColorGreen, LoadOp::eLoad ) };
+                ctx.BeginRender( graphicsState );
 
-            } );
+                struct DrawParams {
+                    u32 mSamplerID{};
+                    u32 mSsaoColorTargetID{};
+                } params{
+                    .mSamplerID = ctx.PushSampler(ssaoData.mSsaoSampler),
+                    .mSsaoColorTargetID = ctx.PushTexture_SRV( ssaoData.mSsaoColorTarget ) };
+                ctx.PushConstants( params );
 
-#if false
+                ctx.SetViewportState( ViewportState{}
+                    .AddViewportAndScissorRect( Viewport( as<f32>( renderDimensions.first ), as<f32>( renderDimensions.second ) ) ) );
 
-        graph.RegisterPass(
-            "SSAO",
-            FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, Blackboard& blackboard  ) {
-                b.CreateBuffer( "SSAO_Parameters", BufferUsage::eUniform, sizeof( m_SSAOParameters ), 1, ResourceUsageType::eStreaming );
-
-                b.CreateTexture( "SSAO_ColorTarget", mResolution, TextureFormat::R8_UNORM, TextureUsage::COLOR );
-                b.CreateTexture( "SSAO_NoiseTexture", kSsaoNoiseDimensions, kSsaoNoiseDimensions, // SSAO_NOISE_DIM is constexpr, capturing it is not required
-                                 TextureFormat::RGBA32_FLOAT, mSsaoNoiseData.data(), MKT_SIZEOF( Vec4F ) * mSsaoNoiseData.size() );
-
-                GraphicsPipelineDescription graphicsDesc{
-                    .DepthTest{ true },
-                    .DepthWrite{ true },
-                    .ColorAttachmentFormats{ TextureFormat::R8_UNORM }
-                };
-
-                b.UseShader( "Resources/Shaders/slang/SSAO_Vert.slang", ShaderStage::eVertex );
-                b.UseShader( "Resources/Shaders/slang/SSAO_Frag.slang", ShaderStage::eFragment );
-                b.CreatePipeline( "SSAO_Pipeline", graphicsDesc );
-
-                b.Write( "SSAO_ColorTarget", FrameResourceState::RenderTarget );
-                b.Write( "SSAO_NoiseTexture", FrameResourceState::ShaderRead_GraphicsPipeline );
-
-                b.Read( "SSAO_Parameters", FrameResourceState::UniformBuffer );
-                b.Read( "GBuffer_Position", FrameResourceState::ShaderRead_GraphicsPipeline );
-                b.Read( "GBuffer_Normal", FrameResourceState::ShaderRead_GraphicsPipeline );
-            },
-            [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
-                auto& constants{ blackboard.Get<FinalShadingConstants>() };
-                if (!constants.EnableSSAO) {
-                    return;
-                }
-
-                if ( m_Sampler.IsEmpty() || m_SamplerNoise.IsEmpty() ) {
-                    m_Sampler = ctx.CreateSampler( SamplerDescription{} );
-
-                    m_SamplerNoise = ctx.CreateSampler( SamplerDescription{
-                            .MipLevels{ 0 },
-                            .MinFilter{ SamplerFilter::eNearest },
-                            .MagFilter{ SamplerFilter::eNearest },
-
-                            .WrapU{ SamplerWrapMode::eRepeat },
-                            .WrapV{ SamplerWrapMode::eRepeat },
-                            .WrapW{ SamplerWrapMode::eRepeat },
-                    } );
-                }
-
-                ctx.BindBuffer( ResourceGroup::BufferViews, "SSAO_Parameters", ResourceSlot::Slot_0 );
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Position", m_Sampler, ResourceSlot::Slot_0 );
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Normal", m_Sampler, ResourceSlot::Slot_1 );
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_NoiseTexture", m_SamplerNoise, ResourceSlot::Slot_2 );
-
-                m_SSAOParameters.Projection = mCamera->GetProjection();
-
-                ctx.UploadBuffer( "SSAO_Parameters", m_SSAOParameters );
-
-                ctx.SetColorRenderTarget( "SSAO_ColorTarget" );
-
-                ctx.BeginRender();
-
-                const auto dimensions{ InferDimensions( mResolution ) };
-                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
-                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
-
-                ctx.BindPipeline( "SSAO_Pipeline" );
+                ctx.BindPipeline( ssaoData.mSsaoBlurPipeline );
                 ctx.Draw( 3 );
 
                 ctx.EndRender();
             } );
+
+#if false
 
         graph.RegisterPass(
             "SSAOBlur",

@@ -393,6 +393,37 @@ namespace mikoto::renderer {
         ResourceTable mResourceTable{};
     };
 
+    struct FGNodeStatistics {
+        // Per call to Execute(...) not the total
+        core::u32 mDrawCallCount{};
+        core::u32 mDispatchCallCount{};
+
+        core::u32 mTextureSRVCount{};
+        core::u32 mTextureUAVCount{};
+
+        core::u32 mBufferSRVCount{};
+        core::u32 mBufferUAVCount{};
+
+        // Execution time in ms
+        core::usize mMixExecutionTime{};
+        core::usize mMinExecutionTime{};
+        core::usize mLastExecutionTime{};
+    };
+
+    class FGStatisticsManager {
+    public:
+
+        explicit FGStatisticsManager() = default;
+
+        MKT_NODISCARD auto GetNode( eastl::string_view name ) -> FGNodeStatistics*;
+        MKT_NODISCARD auto GetNode( eastl::string_view name ) const -> const FGNodeStatistics*;
+        MKT_NODISCARD auto RegisterNode( eastl::string_view name ) -> FGNodeStatistics*;
+
+    private:
+        // unique_ptr for stable ptrs
+        ankerl::unordered_dense::map<eastl::string, eastl::unique_ptr<FGNodeStatistics>> mGraphNodes{};
+    };
+
     struct FGReadbackTask {
         using Callback = eastl::function<void(Blackboard&, const FGResourceManager&)>;
         Callback mCallback{};
@@ -522,6 +553,7 @@ namespace mikoto::renderer {
             };
 
             node.mBuilderCallback();
+            ( void )mStatisticsManager->RegisterNode( name );
         }
 
         template<typename SetupFunc, typename ExecuteFunc>
@@ -539,6 +571,7 @@ namespace mikoto::renderer {
             };
 
             node.mBuilderCallback();
+            ( void )mStatisticsManager->RegisterNode( name );
         }
 
         template<typename T, typename... Args>
@@ -570,7 +603,7 @@ namespace mikoto::renderer {
         auto BuildNodeEdges() -> void;
         auto CullGraphNodes() -> void;
         auto BuildNodeBarriers() -> void;
-        auto BuildExecutionTasks() -> void;
+        auto BuildExecutionContext() -> void;
 
         auto ProcessReadbackTasks() -> void;
 
@@ -593,6 +626,7 @@ namespace mikoto::renderer {
         eastl::unique_ptr<FGNodeControl> mNodeControl{};
         eastl::unique_ptr<FGResourceManager> mResourceManager{};
         eastl::unique_ptr<FGReadbackManager> mReadbackManager{};
+        eastl::unique_ptr<FGStatisticsManager> mStatisticsManager{};
 
         eastl::vector<ReadbackTask> mReadbackTasks{};
 

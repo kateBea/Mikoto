@@ -430,6 +430,20 @@ namespace mikoto::renderer {
         return FGBufferHandle{ .mHandle = resource.mResourceID };
     }
 
+    auto FGStatisticsManager::GetNode( eastl::string_view name ) -> FGNodeStatistics* {
+        MKT_ASSERT( mGraphNodes.contains( name.data() ), "Node does not exists" );
+        return mGraphNodes.at(name.data()).get();
+    }
+
+    auto FGStatisticsManager::GetNode( eastl::string_view name ) const -> const FGNodeStatistics* {
+        MKT_ASSERT( mGraphNodes.contains( name.data() ), "Node does not exists" );
+        return mGraphNodes.at(name.data()).get();
+    }
+
+    auto FGStatisticsManager::RegisterNode( eastl::string_view name ) -> FGNodeStatistics* {
+        return mGraphNodes[name.data()].get();
+    }
+
     FGReadbackManager::FGReadbackManager( Blackboard& blackboard, FGResourceManager& manager )
         : mBlackboard{ MKT_ADDRESSOF( blackboard ) }, mResourceManager{ MKT_ADDRESSOF( manager ) }
     {}
@@ -617,6 +631,8 @@ namespace mikoto::renderer {
 
         mTransferCommands->SetEnableAutomaticBarriers( false );
         mTransferCommands->SetDebugName( "FG TransferCommands" );
+
+        mStatisticsManager = eastl::make_unique<FGStatisticsManager>();
     }
 
     auto FrameGraph::Compile() -> void {
@@ -637,7 +653,7 @@ namespace mikoto::renderer {
         BuildNodeBarriers();
 
         // Create the contexts and executions tasks
-        BuildExecutionTasks();
+        BuildExecutionContext();
 
 #if !defined(NDEBUG)
         std::ostringstream oss{};
@@ -918,13 +934,13 @@ namespace mikoto::renderer {
         }
     }
 
-    auto FrameGraph::BuildExecutionTasks() -> void {
+    auto FrameGraph::BuildExecutionContext() -> void {
         // TODO: Pending redesign, after parallel command recording is properly implemented
         for (auto& [passName, node] : mNodeControl->mNodes ) {
-            mNodeControl->mContexts.try_emplace( passName, MKT_ADDRESSOF( node ), mResourceManager.get() );
+            mNodeControl->mContexts.try_emplace( passName, MKT_ADDRESSOF( node ), mResourceManager.get(), mStatisticsManager.get() );
         }
 
-        // create tasks
+        // Create tasks
         for (auto& passName : mExecutionPlan.mSortedExecutionPasses) {
             if (!mNodeControl->mNodes[passName].mIsAlive) {
                 continue;

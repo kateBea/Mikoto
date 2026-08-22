@@ -77,7 +77,7 @@ namespace mikoto::renderer {
 
     class CommandContext final {
     public:
-        CommandContext( FGNode* pass, FGResourceManager* resourceManager );
+        CommandContext( FGNode* pass, FGResourceManager* resourceManager, FGStatisticsManager* statsManager );
 
         auto BeginPass( rhi::CommandListHandle cmd ) -> void;
         auto EndPass() -> void;
@@ -136,6 +136,8 @@ namespace mikoto::renderer {
     private:
         FGNode* mNode{};
         FGResourceManager* mResourceManager{};
+
+        FGNodeStatistics* mNodeStatistics{};
 
         rhi::CommandListHandle mCommands{};
         rhi::PipelineLayoutHandle mPipelineLayout{};

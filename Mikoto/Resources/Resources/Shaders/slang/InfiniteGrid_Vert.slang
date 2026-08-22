@@ -28,17 +28,17 @@ struct VSOutput {
 struct DrawParams {
     uint mCameraDataID;
 
-    float4 OuterSquareColor;
-    float4 InnerSquareColor;
+    float4 mOuterSquareColor;
+    float4 mInnerSquareColor;
 
-    float4 XAxisColor;
-    float4 ZAxisColor;
+    float4 mXAxisColor;
+    float4 mZAxisColor;
 
-    float OuterSquareWidth;
-    float InnerSquareWidth;
+    float mOuterSquareWidth;
+    float mInnerSquareWidth;
 
-    float XAxisWidth;
-    float ZAxisWidth;
+    float mXAxisWidth;
+    float mZAxisWidth;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;

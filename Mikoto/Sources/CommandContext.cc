@@ -304,6 +304,12 @@ namespace mikoto::renderer {
         mCommands->Copy( buffer, image );
     }
 
+    auto CommandContext::CopyTexture( FGTextureHandle destImage, const void* data, core::usize size ) -> void {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        ITexture* image{ CacheResource( destImage ) };
+        mCommands->Write( image, 0, data, size );
+    }
+
     auto CommandContext::CacheResource( FGBufferHandle handle ) -> IBuffer* {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         auto itFind{ mCachedBuffers.find( handle.mHandle ) };

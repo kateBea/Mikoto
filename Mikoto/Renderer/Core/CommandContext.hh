@@ -110,6 +110,8 @@ namespace mikoto::renderer {
 
         auto Copy( FGBufferHandle dstBuffer, FGTextureHandle srcImage ) -> void;
 
+        auto CopyTexture( FGTextureHandle destImage, const void* data, core::usize sizeBytes ) -> void;
+
         auto CopyBuffer( FGBufferHandle dstBuffer, const auto& data, core::usize offset ) -> void {
             CopyBuffer( dstBuffer, offset, MKT_ADDRESSOF( data ), MKT_SIZEOF( data ) );
         }

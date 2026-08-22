@@ -39,17 +39,17 @@ struct FSOutput {
 struct DrawParams {
     uint mCameraDataID;
 
-    float4 OuterSquareColor;
-    float4 InnerSquareColor;
+    float4 mOuterSquareColor;
+    float4 mInnerSquareColor;
 
-    float4 XAxisColor;
-    float4 ZAxisColor;
+    float4 mXAxisColor;
+    float4 mZAxisColor;
 
-    float OuterSquareWidth;
-    float InnerSquareWidth;
+    float mOuterSquareWidth;
+    float mInnerSquareWidth;
 
-    float XAxisWidth;
-    float ZAxisWidth;
+    float mXAxisWidth;
+    float mZAxisWidth;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -63,19 +63,19 @@ float4 Grid(float3 fragPos, float scale, float thickness, float3 lineColor) {
 
     float4 color = float4(lineColor, 1.0 - min(line, 1.0));
 
-    const float axisWidthX = parameters.XAxisWidth;
-    const float axisWidthZ = parameters.ZAxisWidth;
+    const float axisWidthX = parameters.mXAxisWidth;
+    const float axisWidthZ = parameters.mZAxisWidth;
 
     // X axis
     const float minX = min(fd.x, 1.0);
     if (fragPos.x > -axisWidthX * minX && fragPos.x < axisWidthX * minX) {
-        color = float4(parameters.XAxisColor);
+        color = float4(parameters.mXAxisColor);
     }
 
     // Z axis
     const float minZ = min(fd.y, 1.0);
     if (fragPos.z > -axisWidthZ * minZ && fragPos.z < axisWidthZ * minZ) {
-        color = float4(parameters.ZAxisColor);
+        color = float4(parameters.mZAxisColor);
     }
     return color;
 }
@@ -108,7 +108,7 @@ FSOutput main(FSInput input) {
 
     o.FragDepth = ndc.z - EPSILON;
 
-    o.Color = (Grid(fragPos, 0.01, 0.5, parameters.InnerSquareColor.xyz) + Grid(fragPos, 0.5, 1, parameters.OuterSquareColor.xyz)) * float(t > 0.0);
+    o.Color = (Grid(fragPos, 0.01, 0.5, parameters.mInnerSquareColor.xyz) + Grid(fragPos, 0.5, 1, parameters.mOuterSquareColor.xyz)) * float(t > 0.0);
 
     const float linearDepth = LinearizeDepth(camera.Planes.x, camera.Planes.y, ndc.z) / camera.Planes.y;
     o.Color.a *= max(0.0, (0.5 - linearDepth));

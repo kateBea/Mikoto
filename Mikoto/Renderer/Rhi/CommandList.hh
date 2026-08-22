@@ -210,7 +210,7 @@ namespace mikoto::renderer::rhi {
     };
 
     struct BindResourcesDescription {
-        core::size_t mPushConstantSize{ 0 };
+        core::usize mPushConstantSize{ 0 };
         ShaderFlags mPushConstantVisibility{};
         eastl::fixed_vector<core::byte_t, kMaxPushConstantSize> mPushConstants{};
 
@@ -225,7 +225,7 @@ namespace mikoto::renderer::rhi {
         auto SetPipelineLayout( IPipelineLayout* layout ) -> BindResourcesDescription&;
         auto SetBindPoint( PipelineType bindPoint ) -> BindResourcesDescription&;
 
-        auto SetPushConstants( const void* ptr, core::size_t sizeBytes, ShaderFlags stage ) -> BindResourcesDescription&;
+        auto SetPushConstants( const void* ptr, core::usize sizeBytes, ShaderFlags stage ) -> BindResourcesDescription&;
 
         auto AddResourceSet( core::u32 bindingIndex, IBindingSet* set ) -> BindResourcesDescription&;
     };
@@ -266,14 +266,14 @@ namespace mikoto::renderer::rhi {
         virtual auto SetClearColor( TextureHandle renderTargets, Color color ) -> void = 0;
 
         virtual auto Write( IBuffer* src, ITexture* dest, core::u32 mipLevel ) -> void = 0;
-        virtual auto Write( ITexture* target, core::u32 mipLevel, const void* data, size_t byteSize ) -> void = 0;
+        virtual auto Write( ITexture* target, core::u32 mipLevel, const void* data, core::usize byteSize ) -> void = 0;
         virtual auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void = 0;
 
-        virtual auto Write( IBuffer* target, const void* data, size_t byteSize ) -> void = 0;
-        virtual auto Write( IBuffer* target, size_t destOffset, const void* data, size_t byteSize ) -> void = 0;
+        virtual auto Write( IBuffer* target, const void* data, core::usize byteSize ) -> void = 0;
+        virtual auto Write( IBuffer* target, core::usize destOffset, const void* data, core::usize byteSize ) -> void = 0;
 
         virtual auto Copy( IBuffer* src, IBuffer* dest ) -> void = 0;
-        virtual auto Copy( IBuffer* src, IBuffer* dest, size_t destOffset ) -> void = 0;
+        virtual auto Copy( IBuffer* src, IBuffer* dest, core::usize destOffset ) -> void = 0;
 
         virtual auto Copy( IBuffer* dest, ITexture* src ) -> void = 0;
 
@@ -304,7 +304,7 @@ namespace mikoto::renderer::rhi {
 
         virtual auto Dispatch( core::u32 groupsX, core::u32 groupsY, core::u32 groupsZ ) -> void = 0;
 
-        virtual auto SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, ShaderFlags stageVisibility ) -> void = 0;
+        virtual auto SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, ShaderFlags stageVisibility ) -> void = 0;
 
         MKT_NODISCARD auto GetQueueType() const -> QueueType;
 

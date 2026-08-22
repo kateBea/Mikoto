@@ -35,19 +35,22 @@
 
 namespace mikoto::renderer {
 
+    using namespace mikoto::core;
     using namespace mikoto::scene;
+    using namespace mikoto::renderer::rhi;
 
     PostEffectsPass::PostEffectsPass( RenderResolution resolution )
         : mResolution{ resolution } {
     }
 
-    auto PostEffectsPass::SetScene( const Scene& scene ) -> void {
+    auto PostEffectsPass::SetScene( const Scene* scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-        mScene = MKT_ADDRESSOF( scene );
+        mScene = scene;
     }
 
-    auto PostEffectsPass::SetCamera( const Camera& camera ) -> void {
-        mCamera = MKT_ADDRESSOF( camera );;
+    auto PostEffectsPass::SetCamera( const Camera* camera ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+        mCamera = camera;
     }
 
     auto PostEffectsPass::RegisterPasses( FrameGraph& graph) -> void {
@@ -62,7 +65,7 @@ namespace mikoto::renderer {
 
         RegisterPostProcess( graph );
 
-        //RegisterInfiniteGrid( graph );
+        RegisterInfiniteGrid( graph );
     }
 
     auto PostEffectsPass::SetEnableBloom( bool value ) -> void {
@@ -80,7 +83,7 @@ namespace mikoto::renderer {
     auto PostEffectsPass::RegisterInfiniteGrid( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        PostProcessModuleInfo& info{ graph.GetOrCreate<PostProcessModuleInfo>() };
+        auto& info{ graph.GetOrCreate<PostProcessModuleInfo>() };
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( "InfiniteGrid_Pipeline" )
@@ -91,59 +94,55 @@ namespace mikoto::renderer {
             .AddColorFormat( Format::eRGBA16_FLOAT )
             .PushShader( "InfiniteGrid_Vert.slang", FGStageType::eVertex )
             .PushShader( "InfiniteGrid_Frag.slang", FGStageType::ePixel ) };
-
         info.mInfiniteGridPipeline = graph.Create( pipelineBuilder );
 
         graph.RegisterPass(
             "InfiniteGrid",
             FGPassType::eGraphics,
             []( FGNodeBuilder& builder, Blackboard& blackboard ) {
-                CameraModuleInfo& cam{ blackboard.Get<CameraModuleInfo>() };
-                GeomShadingModuleInfo& shading{ blackboard.Get<GeomShadingModuleInfo>() };
-                PrepassModuleInfo& prepass{ blackboard.Get<PrepassModuleInfo>() };
+                const auto& cameraData{ blackboard.Get<CameraModuleInfo>() };
+                const auto& finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
+                const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
 
-                builder.Read( cam.mCameraData, FGPipelineStage::ePixelShader );
-                builder.Read( prepass.mPrepassDepthTarget, FGPipelineStage::eDepthTarget );
-                builder.Write( shading.mColorImage, FGPipelineStage::eRenderTarget );
+                builder.UseResource( cameraData.mCameraData, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( prePassData.mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
+                builder.UseResource( finalCompData.mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
             [this]( CommandContext& ctx, Blackboard& b ) {
-                CameraModuleInfo& cam{ b.Get<CameraModuleInfo>() };
-                PrepassModuleInfo& prepass{ b.Get<PrepassModuleInfo>() };
-                GeomShadingModuleInfo& shading{ b.Get<GeomShadingModuleInfo>() };
-                PostProcessModuleInfo& info{ b.Get<PostProcessModuleInfo>() };
+                const auto& cameraData{ b.Get<CameraModuleInfo>() };
+                const auto& prePassData{ b.Get<PrepassModuleInfo>() };
+                const auto& finalCompData{ b.Get<GeomShadingModuleInfo>() };
+                const auto& postProcessData{ b.Get<PostProcessModuleInfo>() };
 
                 const auto dimensions{ InferDimensions( mResolution ) };
-
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
-                    .AddDepthTarget( prepass.mPrepassDepthTarget, LoadOp::eLoad )
-                    .AddRenderTarget( shading.mColorImage, kColorGreen, LoadOp::eLoad ) };
+                    .AddDepthTarget( prePassData.mPrepassDepthTarget, LoadOp::eLoad )
+                    .AddRenderTarget( finalCompData.mColorImage, kColorGreen, LoadOp::eLoad ) };
                 ctx.BeginRender( graphicsState );
 
                 struct DrawParams {
                     u32 mCameraBufferID{};
 
-                    float4 OuterSquareColor{ 0.8f, 0.8f, 0.8f, 0.8f };
-                    float4 InnerSquareColor{ 0.8f, 0.8f, 0.8f, 0.8f };
+                    float4 mOuterSquareColor{ 0.8f, 0.8f, 0.8f, 0.8f };
+                    float4 mInnerSquareColor{ 0.8f, 0.8f, 0.8f, 0.8f };
 
-                    float4 XAxisColor{ 0.0, 0.0, 1.0, 1.0 };
-                    float4 ZAxisColor{ 1.0, 0.0, 0.0, 1.0 };
+                    float4 mXAxisColor{ 0.0, 0.0, 1.0, 1.0 };
+                    float4 mZAxisColor{ 1.0, 0.0, 0.0, 1.0 };
 
-                    f32 OuterSquareWidth{ 0.5f };
-                    f32 InnerSquareWidth{ 1.0f };
+                    f32 mOuterSquareWidth{ 0.5f };
+                    f32 mInnerSquareWidth{ 1.0f };
 
-                    f32 XAxisWidth{ 6.0f };
-                    f32 ZAxisWidth{ 6.0f };
+                    f32 mXAxisWidth{ 6.0f };
+                    f32 mZAxisWidth{ 6.0f };
                 } params{
-                    .mCameraBufferID = ctx.PushBuffer_SRV( cam.mCameraData ),
-                };
-
+                    .mCameraBufferID = ctx.PushBuffer_SRV( cameraData.mCameraData ) };
                 ctx.PushConstants( params );
 
                 ctx.SetViewportState( ViewportState{}
                     .AddViewportAndScissorRect( Viewport( as<f32>( dimensions.first ), as<f32>( dimensions.second ) ) ) );
 
-                ctx.BindPipeline( info.mInfiniteGridPipeline );
+                ctx.BindPipeline( postProcessData.mInfiniteGridPipeline );
                 ctx.Draw( 3 );
 
                 ctx.EndRender();
@@ -262,59 +261,69 @@ namespace mikoto::renderer {
     auto PostEffectsPass::RegisterSsao( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-#if false
-        auto colorImage{ FGTextureDescription{}
-            .SetName( "ModelPass_ColorImage01" )
-            .SetWidth( as<i32>( 1920 ) )
-            .SetHeight( as<i32>( 1080 ) )
+        auto& info{ graph.GetOrCreate<PostProcessModuleInfo>() };
+
+        auto ssaoSamplerDesc{ FGSamplerDescription{}
+            .SetName( "Ssao_Sampler01" )
+            .SetFilter( rhi::SamplerFilter::eNearest )
+            .SetWrap( SamplerWrapMode::eRepeat )
+            .SetBorderColor( kColorBlack ) };
+        info.mSsaoSampler = graph.Create( ssaoSamplerDesc );
+
+        const auto dimensions{ InferDimensions( mResolution ) };
+        const auto colorImage{ FGTextureDescription{}
+            .SetName( "Ssao_ColorImage01" )
+            .SetWidth( as<i32>( dimensions.first ) )
+            .SetHeight( as<i32>(  dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
-            .SetFormat( Format::eRGBA8_UNORM ) };
+            .SetFormat( Format::eR8_UNORM ) };
+        info.mSsaoColorTarget = graph.Create( colorImage );
 
-        renderModelPass.mColorTarget = graph.Create( colorImage );
-
-        auto depthImage{ FGTextureDescription{}
-            .SetName( "ModelPass_DepthImage01" )
-            .SetWidth( as<i32>( 1920 ) )
-            .SetHeight( as<i32>( 1080 ) )
+        const auto blurColorImage{ FGTextureDescription{}
+            .SetName( "SsaoBlur_ColorImage01" )
+            .SetWidth( as<i32>( dimensions.first ) )
+            .SetHeight( as<i32>(  dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kDepthTarget )
-            .SetFormat( Format::eD32 ) };
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetFormat( Format::eR8_UNORM ) };
+        info.mSsaoBlurColorTarget = graph.Create( blurColorImage );
 
-        renderModelPass.mDepthTarget = graph.Create( depthImage );
+        const auto noiseTexture{ FGTextureDescription{}
+            .SetName( "SSAO_NoiseImage01" )
+            .SetWidth( as<i32>( kSsaoNoiseDimensions ) )
+            .SetHeight( as<i32>( kSsaoNoiseDimensions ) )
+            .SetDimensions( TextureDimension::eTexture2D )
+            .SetMultisampling( Multisampling::eMsaaX1 )
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource | TextureUsageFlagsBits::kCopyDst )
+            .SetFormat( Format::eRGBA32_FLOAT ) };
+        info.mSsaoNoiseTexture = graph.Create( noiseTexture );
 
-        auto pipelineBuilder{ FGPipelineDescription{}
-            .SetName( "ModelPass_Pipeline01" )
-            .SetPipelineType( PipelineType::eGraphics )
-            .SetTopology( PrimitiveTopology::eTriangleList )
-            .SetDepthFormat( Format::eD32 )
-            .AddColorFormat( Format::eRGBA8_UNORM )
-            .PushShader( "HelloModel_Vert.slang", FGStageType::eVertex )
-            .PushShader( "HelloModel_Frag.slang", FGStageType::ePixel ) };
-
-        renderModelPass.mPipeline = graph.Create( pipelineBuilder );
+        const auto kernelBufferDesc{ FGBufferDescription{}
+            .SetName( "SSAO_KernelBuffer" )
+            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetSizeBytes( MKT_VECTOR_SIZE_BYTES( mSsaoKernelSamples ) )
+            .SetHeapType( HeapType::eDeviceLocal ) };
+        info.mSsaoKernelBuffer = graph.Create( kernelBufferDesc );
 
         // Generate noise
-        constexpr u32 ssaoNoiseDimensions{ 8 };
-        eastl::fixed_vector<float4, ssaoNoiseDimensions * ssaoNoiseDimensions> ssaoNoise{};
-        for ( u32 i{}; i < ssaoNoiseDimensions * ssaoNoiseDimensions; i++ ) {
+        for ( u32 i{}; i < kSsaoNoiseDimensions * kSsaoNoiseDimensions; i++ ) {
             // rotate around z-axis (in tangent space)
-            ssaoNoise.emplace_back( GetRandomReal( 0.0, 1.0 ) * 2.0f - 1.0f,
-                GetRandomReal( 0.0, 1.0 ) * 2.0f - 1.0f, 0.0f, 0.0f );
+            mSsaoNoiseData.emplace_back( math::random::GetRandomReal( 0.0, 1.0 ) * 2.0f - 1.0f,
+                math::random::GetRandomReal( 0.0, 1.0 ) * 2.0f - 1.0f, 0.0f, 0.0f );
         }
 
         // Generate samples
-        eastl::array<float4, kSsaoKernelSize> samples{};
         for ( u32 i{}; i < kSsaoKernelSize; ++i ) {
             float4 sample{
-                as<f32>( GetRandomReal( 0.0, 1.0 ) ) * 2.0 - 1.0,
-                as<f32>( GetRandomReal( 0.0, 1.0 ) ) * 2.0 - 1.0,
-                as<f32>( GetRandomReal( 0.0, 1.0 ) ), 1.0 };
+                as<f32>( math::random::GetRandomReal( 0.0, 1.0 ) ) * 2.0 - 1.0,
+                as<f32>( math::random::GetRandomReal( 0.0, 1.0 ) ) * 2.0 - 1.0,
+                as<f32>( math::random::GetRandomReal( 0.0, 1.0 ) ), 1.0 };
 
             sample = glm::normalize( sample );
-            sample *= GetRandomReal( 0.0, 1.0 );
+            sample *= math::random::GetRandomReal( 0.0, 1.0 );
 
             f32 scale{ as<f32>( i ) / 64.0f };
 
@@ -322,8 +331,61 @@ namespace mikoto::renderer {
             scale = as<f32>( math::Lerp( 0.1f, 1.0f, scale * scale ) );
             sample *= scale;
 
-            samples[i] = sample;
+            mSsaoKernelSamples[i] = sample;
         }
+
+        // Pass to upload Data for SSAO
+        graph.RegisterPass<PostProcessModuleInfo>(
+            "SSAO_DataUpload",
+            FGPassType::eTransfer,
+            []( FGNodeBuilder &b, PostProcessModuleInfo &data ) {
+                b.UseResource( data.mSsaoNoiseTexture, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                b.UseResource( data.mSsaoKernelBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+            },
+            [this]( CommandContext &ctx, Blackboard &blackboard ) {
+                const auto &data{ blackboard.Get<PostProcessModuleInfo>() };
+
+                ctx.CopyTexture( data.mSsaoNoiseTexture, mSsaoNoiseData.data(), MKT_VECTOR_SIZE_BYTES( mSsaoNoiseData ) );
+                ctx.CopyBuffer( data.mSsaoKernelBuffer, 0, mSsaoKernelSamples.data(), MKT_VECTOR_SIZE_BYTES( mSsaoKernelSamples ) );
+            } );
+
+        graph.SetExecutionPolicy( "SSAO_DataUpload", FGExecutionPolicy::eOnChange );
+
+        graph.RegisterPass(
+            "Ssao_Render",
+            FGPassType::eGraphics,
+            []( FGNodeBuilder &builder, Blackboard& blackboard ) {
+                const auto& ssaoData{ blackboard.Get<PostProcessModuleInfo>() };
+                const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
+
+                builder.UseResource( ssaoData.mSsaoColorTarget, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+                builder.UseResource( ssaoData.mSsaoNoiseTexture, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( ssaoData.mSsaoKernelBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+
+                builder.UseResource( prePassData.mGBufferPositionTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( prePassData.mGBufferNormalTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+            },
+            [this]( CommandContext &ctx, Blackboard &blackboard ) {
+                const auto &ssaoData{ blackboard.Get<PostProcessModuleInfo>() };
+
+            } );
+
+        graph.RegisterPass(
+            "Ssao_Blur",
+            FGPassType::eGraphics,
+            []( FGNodeBuilder &b, Blackboard& blackboard ) {
+                const auto& ssaoData{ blackboard.Get<PostProcessModuleInfo>() };
+
+                b.UseResource( ssaoData.mSsaoColorTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                b.UseResource( ssaoData.mSsaoBlurColorTarget, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+            },
+            [this]( CommandContext &ctx, Blackboard &blackboard ) {
+                const auto &ssaoData{ blackboard.Get<PostProcessModuleInfo>() };
+
+
+            } );
+
+#if false
 
         graph.RegisterPass(
             "SSAO",
@@ -332,8 +394,8 @@ namespace mikoto::renderer {
                 b.CreateBuffer( "SSAO_Parameters", BufferUsage::eUniform, sizeof( m_SSAOParameters ), 1, ResourceUsageType::eStreaming );
 
                 b.CreateTexture( "SSAO_ColorTarget", mResolution, TextureFormat::R8_UNORM, TextureUsage::COLOR );
-                b.CreateTexture( "SSAO_NoiseTexture", ssaoNoiseDimensions, ssaoNoiseDimensions, // SSAO_NOISE_DIM is constexpr, capturing it is not required
-                                 TextureFormat::RGBA32_FLOAT, ssaoNoise.data(), MKT_SIZEOF( Vec4F ) * ssaoNoise.size() );
+                b.CreateTexture( "SSAO_NoiseTexture", kSsaoNoiseDimensions, kSsaoNoiseDimensions, // SSAO_NOISE_DIM is constexpr, capturing it is not required
+                                 TextureFormat::RGBA32_FLOAT, mSsaoNoiseData.data(), MKT_SIZEOF( Vec4F ) * mSsaoNoiseData.size() );
 
                 GraphicsPipelineDescription graphicsDesc{
                     .DepthTest{ true },
@@ -462,10 +524,10 @@ namespace mikoto::renderer {
                 .SetMultisampling( Multisampling::eMsaaX1 )
                 .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
                 .SetFormat( Format::eRGBA16_FLOAT ) };
-
             info.mBloomChainImages.emplace_back( graph.Create( colorImage ) );
         }
 
+        // Downsampling chain
         for (i32 mipLevel{}; mipLevel < kMaxBloomChainImages; ++mipLevel) {
             graph.RegisterPass( mipLevel == 0 ?
              string::Format( "BloomDownSample Emissive to Mip 0" ) :
@@ -478,12 +540,12 @@ namespace mikoto::renderer {
                  // because bloom is applied on emissive materials
                  if (mipLevel == 0) {
                      auto& prepass{ blackboard.Get<PrepassModuleInfo>() };
-                     builder.Read( prepass.mGBufferEmissiveTarget, FGPipelineStage::ePixelShader );
-                     builder.Write( postprocess.mBloomChainImages[mipLevel], FGPipelineStage::eRenderTarget );
+                     builder.UseResource( prepass.mGBufferEmissiveTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                     builder.UseResource( postprocess.mBloomChainImages[mipLevel], FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                  } else {
                      // I read from previous mip and write to this mip
-                     builder.Read( postprocess.mBloomChainImages[mipLevel - 1], FGPipelineStage::ePixelShader );
-                     builder.Write( postprocess.mBloomChainImages[mipLevel], FGPipelineStage::eRenderTarget );
+                     builder.UseResource( postprocess.mBloomChainImages[mipLevel - 1], FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                     builder.UseResource( postprocess.mBloomChainImages[mipLevel], FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                  }
              },
              []( CommandContext&, Blackboard& ) -> void {
@@ -491,6 +553,7 @@ namespace mikoto::renderer {
              } );
         }
 
+        // Upsampling chain
         for (i32 mipLevel{ 1 }; mipLevel < kMaxBloomChainImages; ++mipLevel) {
             graph.RegisterPass(
                 string::Format( "BloomUpSample Mip{} to Mip {}", kMaxBloomChainImages - mipLevel, kMaxBloomChainImages - mipLevel - 1 ),
@@ -501,13 +564,8 @@ namespace mikoto::renderer {
                     const i32 srcMip{ as<i32>( kMaxBloomChainImages - mipLevel ) };
                     const i32 dstMip{ srcMip - 1 };
 
-                    builder.Read(
-                        postprocess.mBloomChainImages[srcMip],
-                        FGPipelineStage::ePixelShader );
-
-                    builder.Write(
-                        postprocess.mBloomChainImages[dstMip],
-                        FGPipelineStage::eRenderTarget );
+                    builder.UseResource( postprocess.mBloomChainImages[srcMip], FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    builder.UseResource( postprocess.mBloomChainImages[dstMip], FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 },
 
                 []( CommandContext&, Blackboard& ) -> void {
@@ -707,17 +765,28 @@ namespace mikoto::renderer {
             } );
 
         // For every post process materials do a full-quad render
-        // applying its effects on the given color image
+        // applying its effects on the final composition image
         graph.RegisterPass(
             "PostProcessMaterials_Graphics",
             FGPassType::eGraphics,
-            []( FGNodeBuilder&, Blackboard& ) -> void {
+            []( FGNodeBuilder& builder, Blackboard& blackboard) -> void {
+                const auto& finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
+                builder.UseResource( finalCompData.mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
             []( CommandContext&, Blackboard& ) -> void {
+
             } );
     }
 
     auto PostEffectsPass::SetupPostProcessMaterials( CommandContext& ctx, Blackboard& b  ) -> void {
+        auto &registry{ mScene->GetRegistry() };
+        const auto renderables{ registry.view<TagComponent, TransformComponent, PostProcessMaterialComponent>() };
 
+        for ( const auto& [entity,
+            tagComponent,
+            transformComponent,
+            postProcessMaterial ]: renderables.each() ) {
+
+        }
     }
 }

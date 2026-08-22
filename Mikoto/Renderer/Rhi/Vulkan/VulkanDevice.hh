@@ -332,12 +332,12 @@ namespace mikoto::renderer::vulkan {
         eastl::fixed_vector<VkSemaphoreSubmitInfo, 5> mWaitSemaphores{};
         eastl::fixed_vector<VkSemaphoreSubmitInfo, 5> mSignalSemaphores{};
 
-        eastl::fixed_vector<CommandListHandle, 5> mCommands{};
+        eastl::fixed_vector<rhi::CommandListHandle, 5> mCommands{};
 
-        auto AddCommandList( CommandListHandle cmd ) -> SubmitSemaphoresInfo&;
+        auto AddCommandList( rhi::CommandListHandle cmd ) -> SubmitSemaphoresInfo&;
 
-        auto AddWaitFence( FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo&;
-        auto AddSignalFence( FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo&;
+        auto AddWaitFence( rhi::FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo&;
+        auto AddSignalFence( rhi::FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo&;
 
         auto AddWaitSemaphore( BinarySemaphoreHandle semaphore, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo&;
         auto AddSignalSemaphore( BinarySemaphoreHandle semaphore, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo&;

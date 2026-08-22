@@ -33,19 +33,24 @@
 
 namespace mikoto::renderer {
 
-    static constexpr u32 kSsaoKernelSize{ 64 };
-    static constexpr u32 kMaxBloomChainImages{ 4 };
+    inline constexpr core::u32 kSsaoKernelSize{ 64 };
+    inline constexpr core::u32 kMaxBloomChainImages{ 4 };
+    inline constexpr core::u32 kSsaoNoiseDimensions{ 8 };
 
     struct PostProcessModuleInfo {
         // SSAO
         FGSamplerHandle mSsaoSampler{};
+        FGTextureHandle mSsaoColorTarget{};
+        FGTextureHandle mSsaoNoiseTexture{};
+        FGBufferHandle mSsaoKernelBuffer{};
+        FGTextureHandle mSsaoBlurColorTarget{};
 
         // Bloom
         bool mEnabled{ true };
-        f32 mThreshold{ 1.0f };
-        f32 mIntensity{ 1.0f };
-        f32 mScatter{ 0.7f };
-        u32 mMipCount{ 4 };
+        core::f32 mThreshold{ 1.0f };
+        core::f32 mIntensity{ 1.0f };
+        core::f32 mScatter{ 0.7f };
+        core::u32 mMipCount{ 4 };
 
         // Fixed order: mBloomChainImages[0] highest mip (original resolution)
         // Resolution decreases as we move towards end of vector
@@ -59,17 +64,17 @@ namespace mikoto::renderer {
 
     class PostEffectsPass {
     public:
-        explicit PostEffectsPass( RenderResolution resolution );
+        explicit PostEffectsPass( rhi::RenderResolution resolution );
 
-        auto SetScene( const scene::Scene& scene ) -> void;
-        auto SetCamera( const scene::Camera& camera ) -> void;
+        auto SetScene( const scene::Scene* scene ) -> void;
+        auto SetCamera( const scene::Camera* camera ) -> void;
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
         auto SetEnableBloom( bool value ) -> void;
 
-        auto SetGamma( f32 gamma ) -> void;
-        auto SetExposure( f32 exposure ) -> void;
+        auto SetGamma( core::f32 gamma ) -> void;
+        auto SetExposure( core::f32 exposure ) -> void;
 
     private:
         auto RegisterSsao( FrameGraph& graph ) -> void;
@@ -82,20 +87,24 @@ namespace mikoto::renderer {
         auto RegisterObjectOutline( FrameGraph& graph ) -> void;
         auto RegisterDepthOfField( FrameGraph& graph ) -> void;
 
-        auto SetupPostProcessMaterials( CommandContext& ctx, Blackboard& b  ) -> void;
+        auto SetupPostProcessMaterials( CommandContext& ctx, Blackboard& b ) -> void;
 
     private:
         const scene::Scene* mScene{};
         const scene::Camera* mCamera{};
 
-        RenderResolution mResolution{ RenderResolution::e1080P };
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
 
         // Bloom
         bool mEnableBloom{};
 
         // Tonemap
-        f32 mGamma{ 1.0f };
-        f32 mExposure{ 1.0f };
+        core::f32 mGamma{ 1.0f };
+        core::f32 mExposure{ 1.0f };
+
+        // SSAO
+        eastl::array<float4, kSsaoKernelSize> mSsaoKernelSamples{};
+        eastl::fixed_vector<float4, kSsaoNoiseDimensions * kSsaoNoiseDimensions> mSsaoNoiseData{};
     };
 
 }// namespace Mikoto

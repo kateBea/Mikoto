@@ -78,7 +78,7 @@ namespace mikoto::renderer {
 
         // Post process
         mTextRendering.RegisterPasses( *mFrameGraph );
-        //mPostEffectsPasses.RegisterPasses( *mFrameGraph );
+        mPostEffectsPasses.RegisterPasses( *mFrameGraph );
 
         mTonemapModule.RegisterPasses( *mFrameGraph );
 
@@ -149,6 +149,7 @@ namespace mikoto::renderer {
         mShadowMapping.SetScene( scene );
         mRenderPrepass.SetScene( scene );
         mTextRendering.SetScene( scene );
+        mPostEffectsPasses.SetScene( scene );
         mGeometryManagement.SetScene( scene );
 
         mFrameGraph->Execute();

@@ -72,10 +72,13 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto GetCompletionValue() const -> core::u64 override;
 
+        MKT_NODISCARD auto Signal( core::u64 fenceValue ) -> bool override;
         MKT_NODISCARD auto Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool override;
 
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType ) const -> rhi::Object override;
+
+        MKT_NODISCARD operator VkSemaphore() const;
 
         ~Fence() override;
 
@@ -96,6 +99,8 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
+
+        MKT_NODISCARD operator VkSemaphore() const;
 
         ~BinarySemaphore() override;
 
@@ -302,7 +307,7 @@ namespace mikoto::renderer::vulkan {
 
         GpuUploadManager* mUploadManager{ nullptr };
 
-        // We picked 4 at most, but can grow if needed
+        // We picked 5 at most, but can grow if needed
         // there are generally 3 frames in flight at most, more
         // may introduce unnecessary latency. With 4 we could be sure
         // that we will have at least one command buffer we can recycle
@@ -323,20 +328,32 @@ namespace mikoto::renderer::vulkan {
         eastl::string mRenderingScopeName{};
     };
 
+    struct SubmitSemaphoresInfo {
+        eastl::fixed_vector<VkSemaphoreSubmitInfo, 5> mWaitSemaphores{};
+        eastl::fixed_vector<VkSemaphoreSubmitInfo, 5> mSignalSemaphores{};
+
+        eastl::fixed_vector<CommandListHandle, 5> mCommands{};
+
+        auto AddCommandList( CommandListHandle cmd ) -> SubmitSemaphoresInfo&;
+
+        auto AddWaitFence( FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo&;
+        auto AddSignalFence( FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo&;
+
+        auto AddWaitSemaphore( BinarySemaphoreHandle semaphore, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo&;
+        auto AddSignalSemaphore( BinarySemaphoreHandle semaphore, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo&;
+    };
+
     // Internally multiple queues might map to the exact same
     // VkQueue from the same family index
     class Queue final : public rhi::IQueue {
     public:
         explicit Queue( rhi::QueueType type, rhi::QueueOpSupportFlags opFlags, core::u32 queueFamilyIndex, core::u32 queueIndex = 0 );
 
-        auto Wait( IFence* fence, u64 value ) -> void override;
-        auto Signal( IFence* fence, u64 value ) -> void override;
-
         auto ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void override;
 
         // Vulkan Specifics
         auto WaitCompletionValue( u64 value ) -> void;
-        auto ExecuteCommandsWithSemaphores( eastl::span<CommandListHandle> commands, IFence* fence = nullptr, core::u64 signalValue = 0 ) -> core::u64;
+        auto ExecuteCommandLists( SubmitSemaphoresInfo&& submitInfo ) -> core::u64;
 
         // We still specify queue type because this queue might be a graphics queue
         // but still support transfer operations
@@ -346,10 +363,7 @@ namespace mikoto::renderer::vulkan {
 
         auto WaitIdle() const -> void;
 
-        auto PushSignalSemaphore( BinarySemaphore*, VkPipelineStageFlags2 stageFlags ) -> void;
-        auto PushWaitSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void;
-
-        MKT_NODISCARD auto GetCompletionValue() -> core::u64;
+        MKT_NODISCARD auto GetCurrentTimeline() -> core::u64;
 
         MKT_NODISCARD auto Present( const VkPresentInfoKHR& info ) -> VkResult;
 
@@ -379,9 +393,6 @@ namespace mikoto::renderer::vulkan {
         float mPriority{ 1.0f };
         VkQueue mQueue{ VK_NULL_HANDLE };
 
-        eastl::fixed_vector<VkSemaphoreSubmitInfo, 10> mWaitInfos{};
-        eastl::fixed_vector<VkSemaphoreSubmitInfo, 10> mSignalInfos{};
-
         static constexpr core::u32 kMaxSubmits{ 115 };
 
         eastl::atomic<core::u64> mTimelineValue{};
@@ -389,13 +400,6 @@ namespace mikoto::renderer::vulkan {
 
         std::mutex mPoolsMutex{};
         ankerl::unordered_dense::map<std::thread::id, CommandPoolHandle> mPools{};
-
-        // Command list pending
-        // Some objects like upload textures create temporary command buffers
-        // to upload data, we need to keep the command list handle alive for as
-        // long as the GPU needs it
-        std::mutex mAliveCommandListMutex{};
-        ankerl::unordered_dense::map<const ICommandList*, CommandListHandle> mAliveCommandList{};
 
         // For debug
         eastl::string mSubmissionLabel{};

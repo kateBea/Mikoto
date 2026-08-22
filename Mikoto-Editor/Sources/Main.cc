@@ -82,7 +82,7 @@ auto InitEditor() -> bool {
     try {
         gApplication->Init();
 
-#if true
+#if false
         gApplication->PushLayer<EditorDebugLayer>( gWindow );
         gApplication->PushLayer<EditorRayTraceLayer>( gWindow );
         gApplication->PushLayer<EditorHelloTriangleLayer>( gWindow );

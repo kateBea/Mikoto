@@ -46,6 +46,8 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetMappedAddress() -> void*;
         MKT_NODISCARD auto GetMappedAddress() const -> const void*;
 
+        MKT_NODISCARD operator VkBuffer() const;
+
         ~Buffer() override;
 
     private:

@@ -97,7 +97,6 @@ namespace mikoto::renderer {
         auto PrepareSlangForD3D12() -> void;
         auto PrepareSlangForVulkan() -> void;
 
-
     private:
         Window* mWindow{ nullptr };
         GraphicsAPI mApi{ GraphicsAPI::eVulkan };

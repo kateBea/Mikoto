@@ -23,6 +23,8 @@
 
 namespace mikoto::threading {
 
+    using namespace mikoto::core;
+
     static auto TestCode() -> void {
         tf::Executor executor{};
         tf::Taskflow taskflow{};

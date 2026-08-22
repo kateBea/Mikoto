@@ -33,7 +33,7 @@
 #define MIKOTO_CONCAT_IMPL(a, b) a##b
 #define MIKOTO_CONCAT(a, b) MIKOTO_CONCAT_IMPL(a, b)
 
-#define BIT_SET(N) (1 << N)
+#define BIT_SET(N) (1ULL << N)
 #define MKT_STRINGIFY(x) #x
 
 #define DISABLE_COPY_AND_MOVE_FOR( CLASS_NAME )   \

@@ -35,25 +35,25 @@ namespace mikoto::renderer {
     inline constexpr u32 kMaxGlyphs{ 1024 * 1024 };
 
     struct TextDrawParameters {
-        float4x4 mProjection{};
-        float4x4 mView{};
-        float4x4 mModel{};
+        core::float4x4 mProjection{};
+        core::float4x4 mView{};
+        core::float4x4 mModel{};
 
-        float4 mOutlineColor{};
+        core::float4 mOutlineColor{};
 
-        float4 mPosition{};
-        float4 mSize{};
-        float4 mColor{};
+        core::float4 mPosition{};
+        core::float4 mSize{};
+        core::float4 mColor{};
 
-        float2 mTexCoords[4]{};
+        core::float2 mTexCoords[4]{};
 
-        f32 mOutlineWidth{};
-        u32 mTextureAtlasID{};
+        core::f32 mOutlineWidth{};
+        core::u32 mTextureAtlasID{};
     };
 
     struct TextVertexDescription {
-        float3 mPosition{};
-        u32 mTextureIndex{};
+        core::float3 mPosition{};
+        core::u32 mTextureIndex{};
     };
 
     struct TextRenderingPassParameters {
@@ -64,14 +64,14 @@ namespace mikoto::renderer {
 
     class TextRenderModule final {
     public:
-        explicit TextRenderModule( RenderResolution resolution);
+        explicit TextRenderModule( RenderResolution resolution );
 
-        auto SetScene(const scene::Scene* scene) -> void;
-        auto SetCamera(const scene::Camera* camera) -> void;
-        auto RegisterPasses(FrameGraph& graph) -> void;
+        auto SetScene( const scene::Scene* scene ) -> void;
+        auto SetCamera( const scene::Camera* camera ) -> void;
+        auto RegisterPasses( FrameGraph& graph ) -> void;
 
     private:
-        auto RegisterSlugPass(FrameGraph& graph) -> void;
+        auto RegisterSlugPass( FrameGraph& graph ) -> void;
         auto RegisterTextRender( FrameGraph& graph ) -> void;
 
         auto SetupTextRenderData( CommandContext& ctx, Blackboard& b ) -> void;
@@ -80,10 +80,10 @@ namespace mikoto::renderer {
         const scene::Scene* mScene{};
         const scene::Camera* mCamera{};
 
-        size_t mGlyphCount{};
+        core::usize mGlyphCount{};
         eastl::vector<TextDrawParameters> mTextInfo{};
 
-        RenderResolution mResolution{ RenderResolution::e1080P };
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
     };
 
 }// namespace Mikoto

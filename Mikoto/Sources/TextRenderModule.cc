@@ -34,7 +34,9 @@
 
 namespace mikoto::renderer {
 
+    using namespace mikoto::core;
     using namespace mikoto::scene;
+    using namespace mikoto::renderer::rhi;
 
     TextRenderModule::TextRenderModule( RenderResolution resolution )
         : mResolution{ resolution }
@@ -56,8 +58,18 @@ namespace mikoto::renderer {
     auto TextRenderModule::RegisterSlugPass( FrameGraph &graph) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // TODO: Slug implementation
+
         graph.RegisterPass(
-            "SlugTextRendering",
+            "SlugTextRendering_Upload",
+            FGPassType::eTransfer,
+            []( FGNodeBuilder&, Blackboard& ) -> void {
+            },
+            []( CommandContext&, Blackboard& ) -> void {
+            } );
+
+        graph.RegisterPass(
+            "SlugTextRendering_Render",
             FGPassType::eGraphics,
             []( FGNodeBuilder&, Blackboard& ) -> void {
             },
@@ -78,29 +90,27 @@ namespace mikoto::renderer {
             .AddColorFormat( Format::eRGBA8_UNORM )
             .PushShader( "MSDFText_Vert.slang", FGStageType::eVertex )
             .PushShader( "MSDFText_Frag.slang", FGStageType::ePixel ) };
-
         info.mMsdfPipeline = graph.Create( pipelineBuilder );
 
         auto textDataBufferDesc{ FGBufferDescription{}
             .SetName( "MSDFText_RenderData" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetSizeBytes( kMaxGlyphs * MKT_SIZEOF( TextDrawParameters ) )
-            .SetHeapType( HeapType::eDeviceLocal )};
-
+            .SetHeapType( HeapType::eDeviceLocal ) };
         info.mMsdfTextRenderData = graph.Create( textDataBufferDesc );
 
         graph.RegisterPass<TextRenderingPassParameters>(
             "MSDFText_Upload",
             FGPassType::eTransfer,
             []( FGNodeBuilder& b, TextRenderingPassParameters& info ) -> void {
-                b.Write( info.mMsdfTextRenderData, FGPipelineStage::eCopy );
+                b.UseResource( info.mMsdfTextRenderData, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
             [this]( CommandContext& ctx, Blackboard& b ) -> void {
                 SetupTextRenderData( ctx, b );
 
                 if (mGlyphCount != 0) {
-                    TextRenderingPassParameters& textInfo{ b.Get<TextRenderingPassParameters>() };
-                    ctx.CopyBuffer( textInfo.mMsdfTextRenderData,0,  mTextInfo.data(), sizeof( TextDrawParameters ) * mGlyphCount );
+                    auto& textInfo{ b.Get<TextRenderingPassParameters>() };
+                    ctx.CopyBuffer( textInfo.mMsdfTextRenderData,0,  mTextInfo.data(), MKT_SIZEOF( TextDrawParameters ) * mGlyphCount );
                 }
             } );
 
@@ -108,51 +118,48 @@ namespace mikoto::renderer {
             "MSDFTextPass_Render",
             FGPassType::eGraphics,
             []( FGNodeBuilder& builder, Blackboard& blackboard ) {
-                PrepassModuleInfo& prepass{ blackboard.Get<PrepassModuleInfo>() };
-                GeomShadingModuleInfo& finalImageInfo{ blackboard.Get<GeomShadingModuleInfo>() };
-                TextRenderingPassParameters& textInfo{ blackboard.Get<TextRenderingPassParameters>() };
+                const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
+                const auto& finalImageData{ blackboard.Get<GeomShadingModuleInfo>() };
+                const auto& textRenderData{ blackboard.Get<TextRenderingPassParameters>() };
 
-                builder.Read( textInfo.mMsdfTextRenderData, FGPipelineStage::ePixelShader );
+                builder.UseResource( textRenderData.mMsdfTextRenderData, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
 
-                builder.Write( finalImageInfo.mColorImage, FGPipelineStage::eRenderTarget );
-                builder.Write( prepass.mPrepassDepthTarget, FGPipelineStage::eDepthTarget );
+                builder.UseResource( finalImageData.mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+                builder.UseResource( prePassData.mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eWrite );
             },
-        [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
-            if (mGlyphCount == 0) {
-                return;
-            }
+            [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
+                if (mGlyphCount == 0) {
+                    return;
+                }
 
-            PrepassModuleInfo& prepass{ blackboard.Get<PrepassModuleInfo>() };
-            GeomShadingModuleInfo& finalImageInfo{ blackboard.Get<GeomShadingModuleInfo>() };
-            TextRenderingPassParameters& textInfo{ blackboard.Get<TextRenderingPassParameters>() };
+                const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
+                const auto& finalImageData{ blackboard.Get<GeomShadingModuleInfo>() };
+                const auto& textRenderData{ blackboard.Get<TextRenderingPassParameters>() };
 
-            struct DrawParams {
-                u32 mTextSamplerID{};
-                u32 mTextParametersID{};
-            } params{
-                .mTextSamplerID = ctx.PushSampler( finalImageInfo.mDefaultSampler ),
-                .mTextParametersID = ctx.PushBuffer_SRV( textInfo.mMsdfTextRenderData ),
-            };
+                struct DrawParams {
+                    u32 mTextSamplerID{};
+                    u32 mTextParametersID{};
+                } params{
+                    .mTextSamplerID = ctx.PushSampler( finalImageData.mDefaultSampler ),
+                    .mTextParametersID = ctx.PushBuffer_SRV( textRenderData.mMsdfTextRenderData ) };
+                ctx.PushConstants( params );
 
-            ctx.PushConstants( params );
+                const auto dimensions{ InferDimensions( mResolution ) };
+                const auto graphicsState{ ContextRenderState{}
+                    .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
+                    .AddDepthTarget( prePassData.mPrepassDepthTarget, LoadOp::eLoad )
+                    .AddRenderTarget( finalImageData.mColorImage, kColorBlack, LoadOp::eLoad ) };
+                ctx.BeginRender( graphicsState );
 
-            const auto dimensions{ InferDimensions( mResolution ) };
+                ctx.SetViewportState( ViewportState{}
+                    .AddViewportAndScissorRect( Viewport( as<u32>( dimensions.first ), as<u32>( dimensions.second ) ) ) );
 
-            const auto graphicsState{ ContextRenderState{}
-                .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
-                .AddDepthTarget( prepass.mPrepassDepthTarget, LoadOp::eLoad )
-                .AddRenderTarget( finalImageInfo.mColorImage, kColorBlack, LoadOp::eLoad ) };
-            ctx.BeginRender( graphicsState );
+                ctx.BindPipeline( textRenderData.mMsdfPipeline );
 
-            ctx.SetViewportState( ViewportState{}
-                .AddViewportAndScissorRect( Viewport( as<u32>( dimensions.first ), as<u32>( dimensions.second ) ) ) );
+                ctx.Draw( 6 );
 
-            ctx.BindPipeline( textInfo.mMsdfPipeline );
-
-            ctx.Draw( 6 );
-
-            ctx.EndRender();
-        } );
+                ctx.EndRender();
+            } );
     }
 
     auto TextRenderModule::SetupTextRenderData( CommandContext& ctx, Blackboard& ) -> void {

@@ -110,12 +110,10 @@ namespace mikoto::core {
                  .mRefreshRate = RefreshRate::eUnlimited,
                  .mApi = mWindow->GetApi(),
                  .mEnableImGui = true };
-            PushService<RenderSystem>( renderServiceCreateInfo );
+            PushMainThreadService<RenderSystem>( renderServiceCreateInfo );
 
             PushService<ScriptingService>( ScriptingServiceDescription{ .mScriptBasePath{ "Assets/Scripts" }} );
         }
-
-        BuildInitTasks();
 
         // Initialize main thread modules
         for (auto& [type, node] : mMainThreadNodes) {
@@ -123,6 +121,8 @@ namespace mikoto::core {
                 node.mService->Initialize();
             }
         }
+
+        BuildInitTasks();
 
         // Initialize rest of modules
         mExecutor.run(mInitTaskGraph).wait();
@@ -161,7 +161,7 @@ namespace mikoto::core {
                 continue;
             }
 
-            auto system{ as<ISubsystem*>( node.mService) };
+            auto system{ checked_cast<ISubsystem*>( node.mService) };
 
             if (system->IsInitialized() && !system->Sleeping()) {
                 system->Update( as<f32>( timeStep ) );

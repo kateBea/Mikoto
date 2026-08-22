@@ -131,6 +131,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     Instance::Instance( InstanceBuilder& builder ) {
+        // TODO: Test VK_LAYER_LUNARG_api_dump
         VkApplicationInfo appInfo{ initializers::ApplicationInfo() };
         appInfo.pApplicationName = builder.mAppName.c_str();
         appInfo.pEngineName = builder.mEngineName.c_str();

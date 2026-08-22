@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <EASTL/numeric_limits.h>
+
 #include <Renderer/Rhi/Vulkan/VulkanBuffer.hh>
 #include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
 #include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
@@ -124,14 +126,21 @@ namespace mikoto::renderer::vulkan {
         MKT_VK_CHECK( allocator->AllocateBuffer( mAllocation ) );
 
         if (!mUploadContents.IsEmpty()) {
+            u64 fenceValue{ 0 };
+            FenceHandle fence{ mDevice->CreateFence( fenceValue++ ) };
             CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
             cmd->Begin( { .mScopeName = string::Format( "Buffer upload: {}", mDebugName ) } );
             cmd->Write( this, mUploadContents->GetData(), mUploadContents->GetSize() );
             cmd->End();
 
+            // Signal fenceValue on one fence on completion of these
+            // commands, then we wait for that completion this blocks the caller
+            // but client should ideally offload this task to worker threads
             const auto submitInfo{ SubmitInfo{}
+                .AddSignal( fence, fenceValue )
                 .AddCommandList( cmd ) };
-            mDevice->GetQueue(QueueType::eTransfer)->ExecuteCommandLists( submitInfo );
+            mDevice->GetQueue( QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
+            ( void )fence->Wait( fenceValue, eastl::numeric_limits<u64>::max() );
         }
 
         if (!mKeepInitializerResources) {
@@ -171,6 +180,10 @@ namespace mikoto::renderer::vulkan {
 
     auto Buffer::GetMappedAddress() const -> const void * {
         return mAllocation.mAllocationInfo.pMappedData;
+    }
+
+    Buffer::operator VkBuffer() const {
+        return mAllocation.mBuffer;
     }
 
     auto Buffer::PersistentMap() -> void {

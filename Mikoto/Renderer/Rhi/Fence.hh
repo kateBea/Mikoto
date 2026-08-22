@@ -36,6 +36,8 @@ namespace mikoto::renderer::rhi {
     public:
 
         MKT_NODISCARD virtual auto GetCompletionValue() const -> core::u64 = 0;
+
+        MKT_NODISCARD virtual auto Signal( core::u64 fenceValue ) -> bool = 0;
         MKT_NODISCARD virtual auto Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool = 0;
 
         using DeviceObject::Initialize;

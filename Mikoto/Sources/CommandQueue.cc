@@ -21,6 +21,15 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    auto SubmitInfo::AddWait( FenceHandle fence, core::u64 value ) -> SubmitInfo & {
+        mWaits.emplace_back( SignalInfo{
+            .mSignalValue = value,
+            .mSinalFence = eastl::move( fence )
+        } );
+
+        return *this;
+    }
+
     auto SubmitInfo::AddSignal( FenceHandle fence, core::u64 value ) -> SubmitInfo & {
         mSignals.emplace_back( SignalInfo{
             .mSignalValue = value,
@@ -32,6 +41,11 @@ namespace mikoto::renderer::rhi {
 
     auto SubmitInfo::AddCommandLists( eastl::span<CommandListHandle> commands ) -> SubmitInfo & {
         mCommands.insert(mCommands.end(), commands.begin(), commands.end());
+        return *this;
+    }
+
+    auto SubmitInfo::AddWaits( eastl::span<SignalInfo> signals ) -> SubmitInfo & {
+        mWaits.insert(mSignals.end(), signals.begin(), signals.end());
         return *this;
     }
 

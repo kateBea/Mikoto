@@ -43,7 +43,7 @@ namespace mikoto::renderer::rhi {
 
         core::u32 mWidth{};
         core::u32 mHeight{};
-        core::u32 mDepth{};
+        core::u32 mDepth{ 1 };
         core::u32 mMipLevel{};
 
        core:: u32 mArrayLayer{};// Cube face for example

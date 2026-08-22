@@ -359,7 +359,7 @@ namespace mikoto::renderer::d3d12 {
         if (flags & rhi::PipelineStageFlagsBits::kPixelShader) result |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
         if (flags & rhi::PipelineStageFlagsBits::kComputeShader) result |= D3D12_BARRIER_SYNC_COMPUTE_SHADING;
         if (flags & rhi::PipelineStageFlagsBits::kColorAttachment) result |= D3D12_BARRIER_SYNC_RENDER_TARGET;
-        if (flags & rhi::PipelineStageFlagsBits::kDepthStencil) result |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
+        if (flags & rhi::PipelineStageFlagsBits::kEarlyFragmentTests) result |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
         if (flags & rhi::PipelineStageFlagsBits::kCopy) result |= D3D12_BARRIER_SYNC_COPY;
         if (flags & rhi::PipelineStageFlagsBits::kBottom) result |= D3D12_BARRIER_SYNC_ALL;
         if (flags & rhi::PipelineStageFlagsBits::kAll) result |= D3D12_BARRIER_SYNC_ALL;

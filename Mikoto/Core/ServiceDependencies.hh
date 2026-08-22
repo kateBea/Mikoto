@@ -469,7 +469,7 @@ namespace mikoto::core {
 
         MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
             return eastl::vector<std::type_index>{
-                typeid(renderer::RenderSystem)
+                //typeid(renderer::RenderSystem)
             };
         }
 
@@ -496,7 +496,7 @@ namespace mikoto::core {
 
         MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
             return eastl::vector<std::type_index>{
-                typeid(renderer::RenderSystem),
+                //typeid(renderer::RenderSystem),
                 typeid(audio::AudioService)
             };
         }
@@ -524,7 +524,7 @@ namespace mikoto::core {
 
         MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
             return eastl::vector<std::type_index>{
-                typeid(renderer::RenderSystem)
+                //typeid(renderer::RenderSystem)
             };
         }
 

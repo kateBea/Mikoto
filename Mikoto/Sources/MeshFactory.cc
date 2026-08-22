@@ -18,6 +18,7 @@
 #include <EASTL/string_view.h>
 #include <EASTL/utility.h>
 #include <EASTL/vector.h>
+#include <EASTL/numeric_limits.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -109,9 +110,18 @@ namespace mikoto::asset {
             }
 
             cmd->End();
-            auto submitInfo{ SubmitInfo{}
+
+            u64 fenceValue{ 0 };
+            FenceHandle fence{ mDevice->CreateFence( fenceValue++ ) };
+
+            // Signal fenceValue on one fence on completion of these
+            // commands, then we wait for that completion this blocks the caller
+            // but client should ideally offload this task to worker threads
+            const auto submitInfo{ SubmitInfo{}
+                .AddSignal( fence, fenceValue )
                 .AddCommandList( cmd ) };
             mDevice->GetQueue( QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
+            ( void )fence->Wait( fenceValue, eastl::numeric_limits<u64>::max() ); // Host wait
         }
 
         u32 meshIndex{ 0 };

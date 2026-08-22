@@ -64,10 +64,10 @@ namespace mikoto::renderer::vulkan {
         return mFormat;
     }
 
-    auto SwapChain::Present( u32 imageIndex, const BinarySemaphore &signalSemaphore ) -> VkResult {
+    auto SwapChain::Present( u32 imageIndex, const BinarySemaphore* signalSemaphore ) -> VkResult {
         const eastl::array swapChains{ mSwapChain };
 
-        VkSemaphore semaphore{ signalSemaphore.GetNativeHandle( ObjectType::Vk_Semaphore ) };
+        VkSemaphore semaphore{ *signalSemaphore };
         const eastl::array waitSemaphores{ semaphore };
 
         VkPresentInfoKHR presentInfo{ initializers::PresentInfoKHR() };
@@ -81,15 +81,11 @@ namespace mikoto::renderer::vulkan {
         presentInfo.waitSemaphoreCount = waitSemaphores.size();
         presentInfo.pWaitSemaphores = waitSemaphores.data();
 
-        Device* device{ checked_cast<Device*>( mDevice ) };
-        Queue* presentQueue{ checked_cast<Queue*>( device->GetQueue( QueueType::ePresent ) ) };
-        MKT_ASSERT( presentQueue, "No valid presentation queue" );
-
-        return presentQueue->Present( presentInfo );
+        return checked_cast<Queue*>( mPresentQueue )->Present( presentInfo );
     }
 
-    auto SwapChain::GetNextImageIndex( u32 &imageIndex, const BinarySemaphore &waitSemaphore ) -> VkResult {
-        VkSemaphore semaphore{ waitSemaphore.GetNativeHandle( ObjectType::Vk_Semaphore ) };
+    auto SwapChain::GetNextImageIndex( u32 &imageIndex, const BinarySemaphore* waitSemaphore ) -> VkResult {
+        VkSemaphore semaphore{ *waitSemaphore };
         return vkAcquireNextImageKHR( checked_cast<Device*>(mDevice)->GetDevice(), mSwapChain, ( eastl::numeric_limits<u64>::max )(),
            semaphore, VK_NULL_HANDLE, MKT_ADDRESSOF( imageIndex ) );
     }
@@ -228,6 +224,10 @@ namespace mikoto::renderer::vulkan {
         MKT_VK_CHECK( vkCreateSwapchainKHR( checked_cast<Device*>(mDevice)->GetDevice(), MKT_ADDRESSOF( createInfo ), nullptr, MKT_ADDRESSOF( mSwapChain ) ) );
 
         AcquireSwapChainImages();
+
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        mPresentQueue = checked_cast<Queue*>( device->GetQueue( QueueType::ePresent ) );
+        MKT_ASSERT( mPresentQueue, "No valid presentation queue" );
 
         mIsAllocated = true;
     }

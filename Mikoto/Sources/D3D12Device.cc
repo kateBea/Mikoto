@@ -65,13 +65,16 @@ namespace mikoto::renderer::d3d12 {
         mFence->SetName( string::ToWide( name ).c_str() );
     }
 
+    auto Fence::Signal( core::u64 fenceValue ) -> bool {
+        return SUCCEEDED( mFence->Signal( fenceValue ));
+    }
+
     auto Fence::Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool {
         if (!IsCompleted( fenceValue )) {
             HRESULT rs{ mFence->SetEventOnCompletion(mFenceValue, mFenceEvent) };
             if (FAILED(rs)) {
                 return false;
             }
-
             ::WaitForSingleObject(mFenceEvent, as<DWORD>(timeoutMs));
         }
 
@@ -742,19 +745,6 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
-    auto Queue::Wait( IFence* fence, u64 value ) -> void {
-        Fence* pFence{ checked_cast<Fence*>( fence ) };
-        ID3D12Fence* d3d12Fence{ *pFence };
-        mQueue->Wait( d3d12Fence, value );
-    }
-
-    auto Queue::Signal( IFence *fence, u64 value ) -> void {
-        Fence* pFence{ checked_cast<Fence*>( fence ) };
-
-        ID3D12Fence* d3d12Fence{ *pFence };
-        ThrowIfFailed(mQueue->Signal(d3d12Fence, value));
-    }
-
     auto Queue::ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void {
         eastl::fixed_vector<ID3D12CommandList*, 25> d3d12Commands{};
         d3d12Commands.reserve( submitInfo.mCommands.size() );
@@ -776,6 +766,17 @@ namespace mikoto::renderer::d3d12 {
 
                 ThrowIfFailed(mQueue->Signal(d3d12Fence, value));
                 ThrowIfFailed( d3d12Fence->SetEventOnCompletion(value, d3d12FenceEvent) );
+            }
+        }
+
+        if (!submitInfo.mWaits.empty()) {
+            for (const auto& [signalValue, signalFence] : submitInfo.mWaits) {
+                const Fence* pFence{ checked_cast<const Fence*>( signalFence.GetRaw() ) };
+
+                UINT64 value{ (UINT64)signalValue };
+                ID3D12Fence* d3d12Fence{ *pFence };
+
+                ThrowIfFailed(mQueue->Wait(d3d12Fence, value));
             }
         }
     }

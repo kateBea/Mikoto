@@ -2380,7 +2380,7 @@ namespace mikoto::editor {
         ImGui::Spacing();
 
         if ( ImGui::Button( string::Format( "{} Apply", ICON_MD_CLOUD_DOWNLOAD ).c_str()) ) {
-
+            
         }
 
         gui::SetCursorHandOnLastItemHovered();

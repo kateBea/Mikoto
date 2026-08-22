@@ -837,7 +837,7 @@ namespace mikoto::renderer::vulkan {
         bool foundAvailableCmdBuffer{};
         do {
             auto& recordCtx{ mRecordingContext[mRecordingContextIndex] };
-            if (queue->GetCompletionValue() >= recordCtx.mSubmissionID) {
+            if (queue->GetCurrentTimeline() >= recordCtx.mSubmissionID) {
                 mCurrentCommandBuffer = recordCtx.mCommandBuffer;
                 foundAvailableCmdBuffer = true;
             } else {
@@ -910,14 +910,109 @@ namespace mikoto::renderer::vulkan {
         VkImageMemoryBarrier2 barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 
-        barrier.srcStageMask  = GetStageMask(oldState);
-        barrier.srcAccessMask = GetAccessMask(oldState);
-
-        barrier.dstStageMask  = GetStageMask(newState);
-        barrier.dstAccessMask = GetAccessMask(newState);
-
+        barrier.srcStageMask = GetStageMask(oldState);
         barrier.oldLayout = GetImageLayout(oldState);
+
+        barrier.dstStageMask = GetStageMask(newState);
         barrier.newLayout = GetImageLayout(newState);
+
+         // Source layouts (old)
+        // Source access mask controls actions that have to be finished on the old layout
+        // before it will be transitioned to the new layout
+        switch ( barrier.oldLayout ) {
+            case VK_IMAGE_LAYOUT_UNDEFINED:
+                // Image layout is undefined (or does not matter)
+                // Only valid as initial layout
+                // No flags required, listed only for completeness
+                barrier.srcAccessMask = 0;
+                break;
+
+            case VK_IMAGE_LAYOUT_PREINITIALIZED:
+                // Image is preinitialized
+                // Only valid as initial layout for linear images, preserves memory contents
+                // Make sure host writes have been finished
+                barrier.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                // Image is a color attachment
+                // Make sure any writes to the color buffer have been finished
+                barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+                // Image is a depth/stencil attachment
+                // Make sure any writes to the depth/stencil buffer have been finished
+                barrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+                // Image is a depth/stencil attachment
+                // Make sure reads to the depth/stencil buffer have been finished
+                barrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+                // Image is a transfer source
+                // Make sure any reads from the image have been finished
+                barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                // Image is a transfer destination
+                // Make sure any writes to the image have been finished
+                barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                // Image is read by a shader
+                // Make sure any shader reads from the image have been finished
+                barrier.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+                break;
+            default:
+                // Other source layouts aren't handled (yet)
+                break;
+        }
+
+        // Target layouts (new)
+        // Destination access mask controls the dependency for the new image layout
+        switch ( barrier.newLayout ) {
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                // Image will be used as a transfer destination
+                // Make sure any writes to the image have been finished
+                barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+                // Image will be used as a transfer source
+                // Make sure any reads from the image have been finished
+                barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                // Image will be used as a color attachment
+                // Make sure any writes to the color buffer have been finished
+                barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+                // Image layout will be used as a depth/stencil attachment
+                // Make sure any writes to depth/stencil buffer have been finished
+                barrier.dstAccessMask = barrier.dstAccessMask | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                // Image will be read in a shader (sampler, input attachment)
+                // Make sure any writes to the image have been finished
+                if ( barrier.srcAccessMask == 0 ) {
+                    barrier.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                }
+                barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+                break;
+            default:
+                // Other source layouts aren't handled (yet)
+                break;
+        }
 
         barrier.image = texture->GetNativeHandle(ObjectType::Vk_Image);
 
@@ -1252,7 +1347,9 @@ namespace mikoto::renderer::vulkan {
                 }
             }
 
-            if (!state.mDepthTarget.mRenderTarget.IsEmpty() && state.mDepthTarget.mRenderTarget->GetResourceState() != ResourceStates::eDepthWrite) {
+            if (!state.mDepthTarget.mRenderTarget.IsEmpty() &&
+                state.mDepthTarget.mLoadOp != LoadOp::eClear &&
+                state.mDepthTarget.mRenderTarget->GetResourceState() != ResourceStates::eDepthWrite) {
                 RecordTransition( state.mDepthTarget.mRenderTarget.GetRaw(), ResourceStates::eDepthWrite );
             }
 
@@ -1487,8 +1584,8 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( srcTexture != nullptr, "Source Vulkan texture cannot be null" );
         MKT_ASSERT( dstTexture != nullptr, "Destination Vulkan texture cannot be null" );
 
-        VkImage srcImage{ srcTexture->GetNativeHandle( ObjectType::Vk_Image ) };
-        VkImage dstImage{ dstTexture->GetNativeHandle( ObjectType::Vk_Image ) };
+        VkImage srcImage{ *srcTexture };
+        VkImage dstImage{ *dstTexture };
 
         MKT_ASSERT( srcImage != VK_NULL_HANDLE, "Source Vulkan image is null" );
         MKT_ASSERT( dstImage != VK_NULL_HANDLE, "Destination Vulkan image is null" );
@@ -1621,7 +1718,7 @@ namespace mikoto::renderer::vulkan {
         // Check if there is any of the recording contexts still running
         Queue* queue{ checked_cast<Queue*>( mQueue ) };
         for (const auto& item : mRecordingContext) {
-            if (queue->GetCompletionValue() < item.mSubmissionID) {
+            if (queue->GetCurrentTimeline() < item.mSubmissionID) {
                 return true;
             }
         }
@@ -1756,6 +1853,55 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = false;
     }
 
+    auto SubmitSemaphoresInfo::AddCommandList( CommandListHandle cmd ) -> SubmitSemaphoresInfo& {
+        mCommands.emplace_back( cmd );
+        return *this;
+    }
+
+    auto SubmitSemaphoresInfo::AddWaitFence( FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo& {
+        mWaitSemaphores.emplace_back( VkSemaphoreSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = fence->GetNativeHandle( ObjectType::Vk_Semaphore ),
+            .value = value,
+            .stageMask = pipelineStage,
+            .deviceIndex = 0 } );
+        return *this;
+    }
+
+    auto SubmitSemaphoresInfo::AddSignalFence( FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo& {
+        mSignalSemaphores.emplace_back( VkSemaphoreSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = fence->GetNativeHandle( ObjectType::Vk_Semaphore ),
+            .value = value,
+            .stageMask = pipelineStage,
+            .deviceIndex = 0 } );
+        return *this;
+    }
+
+    auto SubmitSemaphoresInfo::AddWaitSemaphore( BinarySemaphoreHandle semaphore, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo& {
+        mWaitSemaphores.emplace_back( VkSemaphoreSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = *semaphore,
+            .value = 0,
+            .stageMask = pipelineStage,
+            .deviceIndex = 0 } );
+        return *this;
+    }
+
+    auto SubmitSemaphoresInfo::AddSignalSemaphore( BinarySemaphoreHandle semaphore, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo& {
+        mSignalSemaphores.emplace_back( VkSemaphoreSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = *semaphore,
+            .value = 0,
+            .stageMask = pipelineStage,
+            .deviceIndex = 0 } );
+        return *this;
+    }
+
     Queue::Queue( QueueType type, QueueOpSupportFlags opFlags, u32 queueFamilyIndex, u32 queueIndex)
         : IQueue{ type, opFlags }, mFamilyIndex{ queueFamilyIndex }, mQueueIndex{ queueIndex } {
         switch ( type ) {
@@ -1773,33 +1919,6 @@ namespace mikoto::renderer::vulkan {
                 break;
             default:;
         }
-    }
-
-    auto Queue::Wait( IFence* fence, u64 value ) -> void {
-        Device* device{ checked_cast<Device*>( mDevice ) };
-        VkSemaphore semaphore{ fence->GetNativeHandle( ObjectType::Vk_Semaphore ) };
-
-        VkSemaphoreWaitInfo waitInfo{
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-            .semaphoreCount = 1,
-            .pSemaphores = &semaphore,
-            .pValues = &value
-        };
-
-        MKT_VK_CHECK( vkWaitSemaphores( device->GetDevice(), &waitInfo, UINT64_MAX ) );
-    }
-
-    auto Queue::Signal( IFence* fence, u64 value ) -> void {
-        Device* device{ checked_cast<Device*>( mDevice ) };
-        VkSemaphore semaphore{ fence->GetNativeHandle( ObjectType::Vk_Semaphore ) };
-
-        VkSemaphoreSignalInfo signalInfo{
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
-            .semaphore = semaphore,
-            .value = value
-        };
-
-        MKT_VK_CHECK( vkSignalSemaphore( device->GetDevice(), &signalInfo ) );
     }
 
     auto Queue::Initialize() -> void {
@@ -1832,48 +1951,28 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Queue::RunGarbageCollection() -> void {
-        {
-            std::lock_guard lock{ mAliveCommandListMutex };
 
-            // Delete temporary command buffers if not in use
-            for ( auto it{ mAliveCommandList.begin() }; it != mAliveCommandList.end(); ) {
-                const CommandList* cmdList{ checked_cast<const CommandList*>( it->second.GetRaw() ) };
-                if ( !cmdList->IsInUse() ) {
-                    // Deleting this entry will remove the reference we are holding.
-                    // Queue should be the last one to keep it alive.
-                    // releasing this reference to delete the object because it is no longer in use
-                    it = mAliveCommandList.erase( it );
-                } else {
-                    ++it;
-                }
-            }
-        }
     }
 
     auto Queue::ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void {
         std::lock_guard lock{ mSubmissionMutex };
 
         eastl::vector<VkCommandBufferSubmitInfo> submissions{};
-        {
-            std::lock_guard lockAliveCommandLists{ mAliveCommandListMutex };
-            for (const auto& commandHandle : submitInfo.mCommands) {
-                const CommandList* cmd{ checked_cast<const CommandList*>( commandHandle.GetRaw() ) };
-                VkCommandBufferSubmitInfo submitInfo{
-                    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                    .commandBuffer = cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
-                    .deviceMask = 0
-                };
+        for (const auto& commandHandle : submitInfo.mCommands) {
+            const CommandList* cmd{ checked_cast<const CommandList*>( commandHandle.GetRaw() ) };
+            VkCommandBufferSubmitInfo commandSubmitInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                .commandBuffer = cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                .deviceMask = 0
+            };
 
-                submissions.emplace_back( submitInfo );
+            submissions.emplace_back( commandSubmitInfo );
 
-                const_cast<CommandList*>(cmd)->MarkExecuted(this, mTimelineValue);
-
-                mAliveCommandList[cmd] = commandHandle;
-            }
+            const_cast<CommandList*>(cmd)->MarkExecuted(this, mTimelineValue);
         }
 
         // Signal timelines
-        eastl::fixed_vector<VkSemaphoreSubmitInfo, 3> signalInfos{};
+        eastl::fixed_vector<VkSemaphoreSubmitInfo, 5> signalInfos{};
 
         // Queue timeline
         signalInfos.emplace_back( VkSemaphoreSubmitInfo{
@@ -1884,15 +1983,32 @@ namespace mikoto::renderer::vulkan {
             .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
             .deviceIndex = 0 } );
 
-        // Caller timeline
+        // Caller signals
         if (!submitInfo.mSignals.empty()) {
             for (const auto& [signalValue, signalFence] : submitInfo.mSignals) {
                 const Fence* fence{ checked_cast<const Fence*>( signalFence.GetRaw() ) };
                 signalInfos.emplace_back( VkSemaphoreSubmitInfo{
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                     .pNext = nullptr,
-                    .semaphore = fence->GetNativeHandle( ObjectType::Vk_Semaphore ),
+                    .semaphore = *fence,
                     .value = signalValue,
+                    .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                    .deviceIndex = 0 } );
+            }
+        }
+
+        // Wait timelines
+        eastl::fixed_vector<VkSemaphoreSubmitInfo, 5> waitInfos{};
+
+        // Caller waits
+        if (!submitInfo.mWaits.empty()) {
+            for (const auto& [waitValue, waitFence] : submitInfo.mWaits) {
+                const Fence* fence{ checked_cast<const Fence*>( waitFence.GetRaw() ) };
+                waitInfos.emplace_back( VkSemaphoreSubmitInfo{
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                    .pNext = nullptr,
+                    .semaphore = *fence,
+                    .value = waitValue,
                     .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
                     .deviceIndex = 0 } );
             }
@@ -1902,6 +2018,8 @@ namespace mikoto::renderer::vulkan {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
             .pNext = nullptr,
             .flags = 0,
+            .waitSemaphoreInfoCount = ( u32 )waitInfos.size(),
+            .pWaitSemaphoreInfos = waitInfos.data(),
             .commandBufferInfoCount = ( u32 )submissions.size(),
             .pCommandBufferInfos = submissions.data(),
             .signalSemaphoreInfoCount = ( u32 )signalInfos.size(),
@@ -1940,8 +2058,8 @@ namespace mikoto::renderer::vulkan {
         vkWaitSemaphores(device->GetDevice(), &waitInfo, UINT64_MAX);
     }
 
-    auto Queue::ExecuteCommandsWithSemaphores( eastl::span<CommandListHandle> commands, IFence* fence, u64 signalValue ) -> u64 {
-        if ( commands.empty() ) {
+    auto Queue::ExecuteCommandLists( SubmitSemaphoresInfo&& submitInfo ) -> u64 {
+        if ( submitInfo.mCommands.empty() ) {
             return 0;
         }
 
@@ -1951,34 +2069,20 @@ namespace mikoto::renderer::vulkan {
         Fence* timeline{ checked_cast<Fence*>( mTimelineSemaphore.GetRaw() ) };
 
         eastl::fixed_vector<VkCommandBufferSubmitInfo, kMaxSubmits> cmdInfos{};
-        {
-            std::lock_guard lockAliveCommandLists{ mAliveCommandListMutex };
-            for ( auto& commandHandle: commands ) {
-                CommandList* cmd{ checked_cast<CommandList*>( commandHandle.GetRaw() ) };
+        for ( auto& commandHandle: submitInfo.mCommands ) {
+            CommandList* cmd{ checked_cast<CommandList*>( commandHandle.GetRaw() ) };
 
-                cmdInfos.emplace_back( VkCommandBufferSubmitInfo{
-                    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                    .pNext = nullptr,
-                    .commandBuffer = cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
-                    .deviceMask = 0 } );
+            cmdInfos.emplace_back( VkCommandBufferSubmitInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                .pNext = nullptr,
+                .commandBuffer = cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
+                .deviceMask = 0 } );
 
-                cmd->MarkExecuted(this, mTimelineValue);
-
-                mAliveCommandList[cmd] = commandHandle;
-            }
+            cmd->MarkExecuted(this, mTimelineValue);
         }
 
-        // --- Wait semaphores ---
-        eastl::fixed_vector<VkSemaphoreSubmitInfo, 15> waitInfos{};
-        for ( const auto& w: mWaitInfos ) {
-            waitInfos.emplace_back( w );
-        }
-
-        // --- Signal semaphores ---
-        eastl::fixed_vector<VkSemaphoreSubmitInfo, 15> signalInfos{};
-        for ( const auto& s: mSignalInfos ) {
-            signalInfos.emplace_back( s );
-        }
+        auto waitInfos{ eastl::move( submitInfo.mWaitSemaphores ) };
+        auto signalInfos{ eastl::move( submitInfo.mSignalSemaphores ) };
 
         // --- Timeline signal ---
         signalInfos.emplace_back( VkSemaphoreSubmitInfo{
@@ -1989,50 +2093,34 @@ namespace mikoto::renderer::vulkan {
             .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
             .deviceIndex = 0 } );
 
-        // Caller timeline
-        if (fence) {
-            Fence* pFence{ checked_cast<Fence*>( fence ) };
-            signalInfos.emplace_back( VkSemaphoreSubmitInfo{
-                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                .pNext = nullptr,
-                .semaphore = pFence->GetNativeHandle( ObjectType::Vk_Semaphore ),
-                .value = signalValue,
-                .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                .deviceIndex = 0 } );
-        }
-
-        VkSubmitInfo2 submitInfo{
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-            .pNext = nullptr,
-            .flags = 0,
-            .waitSemaphoreInfoCount = ( u32 )waitInfos.size(),
-            .pWaitSemaphoreInfos = waitInfos.data(),
-            .commandBufferInfoCount = ( u32 )cmdInfos.size(),
-            .pCommandBufferInfos = cmdInfos.data(),
-            .signalSemaphoreInfoCount = ( u32 )signalInfos.size(),
-            .pSignalSemaphoreInfos = signalInfos.data()
-        };
-
         {
             mSubmissionLabel = string::Format( "Queue {} SubmissionID: {}", GetQueueName(mType).data(), submissionID ).c_str();
             VkDebugUtilsLabelEXT labelInfo = {};
             labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
             labelInfo.pLabelName = mSubmissionLabel.c_str();
-            labelInfo.color[0] = mSubmissionLabelColor.mR; // Optional: set a custom color (RGBA)
+            labelInfo.color[0] = mSubmissionLabelColor.mR;
             labelInfo.color[1] = mSubmissionLabelColor.mG;
             labelInfo.color[2] = mSubmissionLabelColor.mB;
             labelInfo.color[3] = mSubmissionLabelColor.mA;
 
             vkQueueBeginDebugUtilsLabelEXT(mQueue, &labelInfo);
-            MKT_VK_CHECK( vkQueueSubmit2( mQueue, 1, &submitInfo, VK_NULL_HANDLE ) );
+
+            VkSubmitInfo2 queueSubmitInfo{
+                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+                .pNext = nullptr,
+                .flags = 0,
+                .waitSemaphoreInfoCount = ( u32 )waitInfos.size(),
+                .pWaitSemaphoreInfos = waitInfos.data(),
+                .commandBufferInfoCount = ( u32 )cmdInfos.size(),
+                .pCommandBufferInfos = cmdInfos.data(),
+                .signalSemaphoreInfoCount = ( u32 )signalInfos.size(),
+                .pSignalSemaphoreInfos = signalInfos.data() };
+            MKT_VK_CHECK( vkQueueSubmit2( mQueue, 1, &queueSubmitInfo, VK_NULL_HANDLE ) );
 
             vkQueueEndDebugUtilsLabelEXT(mQueue);
 
             ++mTimelineValue;
         }
-
-        mWaitInfos.clear();
-        mSignalInfos.clear();
 
         return submissionID;
     }
@@ -2082,27 +2170,7 @@ namespace mikoto::renderer::vulkan {
         vkQueueWaitIdle( mQueue );
     }
 
-    auto Queue::PushSignalSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void {
-        mSignalInfos.emplace_back( VkSemaphoreSubmitInfo{
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-            .pNext = nullptr,
-            .semaphore = semaphore->GetNativeHandle( ObjectType::Vk_Semaphore ),
-            .value = 0,
-            .stageMask = stageFlags,
-            .deviceIndex = 0 } );
-    }
-
-    auto Queue::PushWaitSemaphore( BinarySemaphore* semaphore, VkPipelineStageFlags2 stageFlags ) -> void {
-        mWaitInfos.emplace_back( VkSemaphoreSubmitInfo{
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-            .pNext = nullptr,
-            .semaphore = semaphore->GetNativeHandle( ObjectType::Vk_Semaphore ),
-            .value = 0,
-            .stageMask = stageFlags,
-            .deviceIndex = 0 } );
-    }
-
-    auto Queue::GetCompletionValue() -> core::u64 {
+    auto Queue::GetCurrentTimeline() -> core::u64 {
         return mTimelineSemaphore->GetCompletionValue();
     }
 
@@ -2431,6 +2499,10 @@ namespace mikoto::renderer::vulkan {
         return Object( nullptr );
     }
 
+    BinarySemaphore::operator VkSemaphore() const {
+        return mSemaphore;
+    }
+
     BinarySemaphore::~BinarySemaphore() {
         if (mIsAllocated) {
             Release();
@@ -2530,8 +2602,7 @@ namespace mikoto::renderer::vulkan {
             .SetCpuAccessType( CpuAccessType::eWrite )
             .SetHeapType( HeapType::eUpload )
             .SetResourceType( ResourceType::eInvalid ) // Is not a shader resource
-            .SetBufferUsage( BufferUsageFlagsBits::kNone )
-        };
+            .SetBufferUsage( BufferUsageFlagsBits::kNone ) };
         BufferHandle result{ mDevice->CreateBuffer( bufferDes ) };
 
         auto& newAllocation{ mBuffers[result.GetRaw()] };
@@ -2548,11 +2619,22 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Fence::GetCompletionValue() const -> u64 {
-        auto* device{ checked_cast<Device*>(mDevice) };
+        Device* device{ checked_cast<Device*>(mDevice) };
 
         MKT_VK_CHECK(vkGetSemaphoreCounterValue(device->GetDevice(), mSemaphore, MKT_ADDRESSOF( mTimeline )));
 
         return mTimeline;
+    }
+
+    auto Fence::Signal( core::u64 fenceValue ) -> bool {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+
+        VkSemaphoreSignalInfo signalInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+            .semaphore = mSemaphore,
+            .value = fenceValue };
+
+        return vkSignalSemaphore( device->GetDevice(), &signalInfo ) != VK_SUCCESS;
     }
 
     auto Fence::Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool {
@@ -2562,9 +2644,10 @@ namespace mikoto::renderer::vulkan {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
             .semaphoreCount = 1,
             .pSemaphores = &mSemaphore,
-            .pValues = &fenceValue
-        };
+            .pValues = &fenceValue };
 
+        // Timeout is in nanoseconds
+        // https://docs.vulkan.org/refpages/latest/refpages/source/vkWaitSemaphores.html
         return vkWaitSemaphores( device->GetDevice(), &waitInfo, timeoutMs * 1000 ) != VK_SUCCESS;
     }
 
@@ -2597,6 +2680,10 @@ namespace mikoto::renderer::vulkan {
         }
 
         return Object( nullptr );
+    }
+
+    Fence::operator VkSemaphore() const {
+        return mSemaphore;
     }
 
     Fence::~Fence() {

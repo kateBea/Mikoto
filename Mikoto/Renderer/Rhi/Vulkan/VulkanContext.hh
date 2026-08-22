@@ -96,6 +96,8 @@ namespace mikoto::renderer::vulkan {
             BinarySemaphoreHandle mRenderFinishedSemaphore{};
         };
 
+        Queue* mGraphicsQueue{};
+
         CommandListHandle mCommandList{};
 
         eastl::fixed_vector<FrameContext, kMaxFramesInFlight> mFrames{};

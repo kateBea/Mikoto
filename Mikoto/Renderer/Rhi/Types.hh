@@ -475,25 +475,49 @@ namespace mikoto::renderer::rhi {
 
     // Pipeline stage flags
     struct PipelineStageFlagsProperties {
-        using Data = core::u32;
+        using Data = core::u64;
     };
     using PipelineStageFlags = core::Flags<PipelineStageFlagsProperties>;
 
     struct PipelineStageFlagsBits {
-        static constexpr PipelineStageFlags kNone{ 0 };
-        static constexpr PipelineStageFlags kTop{ BIT_SET(0) };
-        static constexpr PipelineStageFlags kDrawIndirect{ BIT_SET(1) };
-        static constexpr PipelineStageFlags kVertexInput{ BIT_SET(2) };
-        static constexpr PipelineStageFlags kVertexShader{ BIT_SET(3) };
-        static constexpr PipelineStageFlags kHullShader{ BIT_SET(4) };
-        static constexpr PipelineStageFlags kDomainShader{ BIT_SET(5) };
-        static constexpr PipelineStageFlags kGeometryShader{ BIT_SET(6) };
-        static constexpr PipelineStageFlags kPixelShader{ BIT_SET(7) };
-        static constexpr PipelineStageFlags kComputeShader{ BIT_SET(8) };
-        static constexpr PipelineStageFlags kColorAttachment{ BIT_SET(9) };
-        static constexpr PipelineStageFlags kDepthStencil{ BIT_SET(10) };
-        static constexpr PipelineStageFlags kCopy{ BIT_SET(11) };
-        static constexpr PipelineStageFlags kBottom{ BIT_SET(12) };
+        static constexpr PipelineStageFlags kNone{ BIT_SET( 0 ) };
+
+        static constexpr PipelineStageFlags kTop{ BIT_SET( 0 ) };
+        static constexpr PipelineStageFlags kDrawIndirect{ BIT_SET( 1 ) };
+        static constexpr PipelineStageFlags kVertexInput{ BIT_SET( 2 ) };
+        static constexpr PipelineStageFlags kVertexShader{ BIT_SET( 3 ) };
+        static constexpr PipelineStageFlags kHullShader{ BIT_SET( 4 ) };
+        static constexpr PipelineStageFlags kDomainShader{ BIT_SET( 5 ) };
+        static constexpr PipelineStageFlags kGeometryShader{ BIT_SET( 6 ) };
+        static constexpr PipelineStageFlags kPixelShader{ BIT_SET( 7 ) };
+
+        static constexpr PipelineStageFlags kEarlyFragmentTests{ BIT_SET( 8 ) };
+        static constexpr PipelineStageFlags kLateFragmentTests{ BIT_SET( 9 ) };
+        static constexpr PipelineStageFlags kColorAttachment{ BIT_SET( 10 ) };
+
+        static constexpr PipelineStageFlags kComputeShader{ BIT_SET( 11 ) };
+        static constexpr PipelineStageFlags kTransfer{ BIT_SET( 12 ) };
+
+        static constexpr PipelineStageFlags kBottom{ BIT_SET( 13 ) };
+        static constexpr PipelineStageFlags kHost{ BIT_SET( 14 ) };
+
+        static constexpr PipelineStageFlags kAllGraphics{ BIT_SET( 15 ) };
+        static constexpr PipelineStageFlags kAllCommands{ BIT_SET( 16 ) };
+
+        static constexpr PipelineStageFlags kCopy{ BIT_SET( 32 ) };
+        static constexpr PipelineStageFlags kResolve{ BIT_SET( 33 ) };
+        static constexpr PipelineStageFlags kBlit{ BIT_SET( 34 ) };
+        static constexpr PipelineStageFlags kClear{ BIT_SET( 35 ) };
+        static constexpr PipelineStageFlags kIndexInput{ BIT_SET( 36 ) };
+
+        static constexpr PipelineStageFlags kPreRasterizationShaders{ BIT_SET( 38 ) };
+
+        static constexpr PipelineStageFlags kTaskShader{ BIT_SET( 19 ) };
+        static constexpr PipelineStageFlags kMeshShader{ BIT_SET( 20 ) };
+
+        static constexpr PipelineStageFlags kAccelerationStructureBuild{ BIT_SET( 25 ) };
+        static constexpr PipelineStageFlags kRayTracingShader{ BIT_SET( 21 ) };
+
         static constexpr PipelineStageFlags kAll{ 0xFFFFFFFF };
     };
 

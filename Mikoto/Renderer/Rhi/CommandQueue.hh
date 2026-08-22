@@ -41,25 +41,30 @@ namespace mikoto::renderer::rhi {
 
     struct SubmitInfo {
         eastl::fixed_vector<CommandListHandle, 5> mCommands{};
+
+        eastl::fixed_vector<SignalInfo, 5> mWaits{};
         eastl::fixed_vector<SignalInfo, 5> mSignals{};
 
         auto AddCommandList(CommandListHandle cmd) -> SubmitInfo&;
+        auto AddWait(FenceHandle fence, core::u64 value) -> SubmitInfo&;
         auto AddSignal(FenceHandle fence, core::u64 value) -> SubmitInfo&;
 
         auto AddCommandLists(eastl::span<CommandListHandle> commands) -> SubmitInfo&;
+        auto AddWaits(eastl::span<SignalInfo> signals) -> SubmitInfo&;
         auto AddSignals(eastl::span<SignalInfo> signals) -> SubmitInfo&;
     };
 
+    // Queue waits and signals are specified via the SubmitInfo struct
+    // The list of signals specify a list of fences upon which we queue a signal
+    // on the Device side (GPU will change the value to the specified one when done
+    // processing the given batch of commands); on the other hand the list of waits
+    // queue a wait on Device to hold execution of commands until the specified
+    // value has been reached on the provided fences. For Host side wait/signal
+    // use the Fence interface instead.
     class IQueue : public DeviceObject {
     public:
         MKT_NODISCARD auto GetType() const -> QueueType;
         MKT_NODISCARD auto GetOpSupportFlags() const -> QueueOpSupportFlags;
-
-        // Don't execute subsequent work until this synchronization object has reached value
-        virtual auto Wait( IFence* fence, core::u64 value ) -> void = 0;
-
-        // Queue execution will eventually advance this synchronization object to value
-        virtual auto Signal( IFence* fence, core::u64 value ) -> void = 0;
 
         virtual auto ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void = 0;
 

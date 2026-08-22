@@ -366,7 +366,7 @@ namespace mikoto::renderer::d3d12 {
         // Wait for previous frame to finish.
         // This is not the best, doing it for now for simplicity and testing purposes.
         Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
-        queue->Signal(pFence, mFenceValue);
+        ( void )pFence->Signal( mFenceValue );
         ++mFenceValue;
 
         (void)pFence->Wait( mFenceValue, INFINITE );

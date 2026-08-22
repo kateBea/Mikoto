@@ -251,14 +251,6 @@ namespace mikoto::renderer::d3d11 {
     {
     }
 
-    auto Queue::Wait( IFence *fence, u64 value ) -> void {
-        // D3D11 Handles Synchronization
-    }
-
-    auto Queue::Signal( IFence *fence, u64 value ) -> void {
-        // D3D11 Handles Synchronization
-    }
-
     auto Queue::ExecuteCommandLists( const SubmitInfo& submitInfo  ) -> void {
         std::lock_guard lock{ mSubmitMutex };
 

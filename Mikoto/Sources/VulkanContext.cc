@@ -20,6 +20,7 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/utility.h>
 #include <EASTL/vector.h>
+#include <EASTL/numeric_limits.h>
 
 #include <Core/Core.hh>
 #include <Core/String.hh>
@@ -71,7 +72,7 @@ namespace mikoto::renderer::vulkan {
 #endif
             .QueryGLFWExtensions( true )
             .QuerySurfaceSupport( mWindow )
-            .SetValidationLevel( InstanceBuilder::ValidationLevel::eGpuAssisted )
+            .SetValidationLevel( InstanceBuilder::ValidationLevel::eCore )
             .Build();
 
         mMaxFramesInFlight = kMaxFramesInFlight;
@@ -143,10 +144,11 @@ namespace mikoto::renderer::vulkan {
     auto Context::BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void {
         std::lock_guard lock{ mBatchedSubmissionEmplaceMutex };
 
-        Device* device{ checked_cast<Device*>( mDevice.get() ) };
-        Queue* pQueue{ checked_cast<Queue*>( device->GetQueue( queue ) ) };
+        // I am only working with one queue for now
+        // Device* device{ checked_cast<Device*>( mDevice.get() ) };
+        // Queue* pQueue{ checked_cast<Queue*>( device->GetQueue( queue ) ) };
 
-        auto& submissionBatchMap{ mBatchedSubmissions[pQueue] };
+        auto& submissionBatchMap{ mBatchedSubmissions[mGraphicsQueue] };
 
         // Batch all commands and fences into same submit info
         // they go to the same submission batch anyway there is no need to split them.
@@ -155,10 +157,10 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Context::SubmitFrame() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+        //MKT_BEGIN_PROFILER_NAMED();
+        //MKT_PROFILE_SCOPE_MARKED( "VulkanContext::SubmitFrame B" );
 
         auto& frame{ mFrames[mCurrentFrameIndex] };
-        auto device{ checked_cast<Device*>( mDevice.get() ) };
 
         // Submit batched commands
         SubmitInfoMap swapMap{};
@@ -173,7 +175,7 @@ namespace mikoto::renderer::vulkan {
 
         // https://community.khronos.org/t/is-it-recommended-to-use-vkcmdcopyimage-to-copy-to-the-swapchain-image-instead-of-a-shader/112122
         if (!mPresentTarget.IsEmpty() && !mSwapchain.IsEmpty()) {
-#if true
+#if false
             // Blit via full quad render
             TextureHandle colorImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
@@ -216,11 +218,13 @@ namespace mikoto::renderer::vulkan {
 
             const TextureSlice srcSlice{
                 .mWidth = (u32)mPresentTarget->GetWidth(),
-                .mHeight = (u32)mPresentTarget->GetHeight() };
+                .mHeight = (u32)mPresentTarget->GetHeight(),
+                .mDepth = 1 };
 
             const TextureSlice dstSlice{
                 .mWidth = (u32)currentSwapchainImage->GetWidth(),
-                .mHeight = (u32)currentSwapchainImage->GetHeight() };
+                .mHeight = (u32)currentSwapchainImage->GetHeight(),
+                .mDepth = 1 };
 
             mCommandList->Copy(
                 mPresentTarget.GetRaw(), srcSlice,
@@ -234,34 +238,36 @@ namespace mikoto::renderer::vulkan {
 #endif
         }
 
-        Queue* queue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
+        // https://stackoverflow.com/questions/73075233/vksemaphoresubmitinfo-stagemask-field-for-vksubmitinfo2
+        // - For a Wait Operation it defines the latest pipeline stages in the
+        // upcoming batch that must wait for the semaphore. Any pipeline stages before the
+        // masked stage can start earlier without waiting.
 
-        queue->PushWaitSemaphore(
-                frame.mImageAvailableSemaphore.GetRaw(),
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT );
+        // - For a Signal Operation it defines the earliest pipeline stages that
+        // must complete before the semaphore is allowed to transition to the signaled state.
+        // Unrelated work past these stages does not delay the signal.
 
-        queue->PushSignalSemaphore(
-                frame.mRenderFinishedSemaphore.GetRaw(),
-                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT );
+        // ALL_TRANSFER if I copy instead of full-quad render
+        ++frame.mFenceValue;
 
-        frame.mFenceValue++;
-
-        eastl::array commandList{ mCommandList };
-        queue->ExecuteCommandsWithSemaphores( commandList, frame.mFence.GetRaw(), frame.mFenceValue );
+        auto submitInfo{ SubmitSemaphoresInfo{}
+            .AddCommandList( mCommandList )
+            .AddSignalFence( frame.mFence, frame.mFenceValue, VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT )
+            .AddSignalSemaphore( frame.mRenderFinishedSemaphore, VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT )
+            .AddWaitSemaphore( frame.mImageAvailableSemaphore, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT ) };
+        mGraphicsQueue->ExecuteCommandLists( eastl::move( submitInfo ) );
     }
 
     auto Context::PrepareFrame() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+        //MKT_BEGIN_PROFILER_NAMED();
+        //MKT_PROFILE_SCOPE_MARKED( "VulkanContext::PrepareFrame" );
 
         auto& frame{ mFrames[mCurrentFrameIndex] };
-        auto device{ checked_cast<Device*>( mDevice.get() ) };
 
-        Queue* graphicsQueue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
-
-        graphicsQueue->Wait( frame.mFence.GetRaw(), frame.mFenceValue );
+        ( void )frame.mFence->Wait( frame.mFenceValue, eastl::numeric_limits<u64>::max() );
         mDevice->RunGarbageCollection();
 
-        const auto ret{ mSwapchain->GetNextImageIndex( mCurrentImageIndex, *frame.mImageAvailableSemaphore.GetRaw() ) };
+        const auto ret{ mSwapchain->GetNextImageIndex( mCurrentImageIndex, frame.mImageAvailableSemaphore.GetRaw() ) };
 
         if ( ret == VK_ERROR_OUT_OF_DATE_KHR ) {
             mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
@@ -285,12 +291,12 @@ namespace mikoto::renderer::vulkan {
         }
 
         auto& frame{ mFrames[mCurrentFrameIndex] };
-        const auto result{ mSwapchain->Present( mCurrentImageIndex, *frame.mRenderFinishedSemaphore ) };
+        const auto result{ mSwapchain->Present( mCurrentImageIndex, frame.mRenderFinishedSemaphore.GetRaw() ) };
 
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
             mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
         } else if ( result != VK_SUCCESS ) {
-            MKT_ASSERT( false, "VulkanDevice Error failed present images to swapchain." );
+            MKT_THROW_RUNTIME_ERROR( "Vulkan Context: Error failed present images to swapchain." );
         }
 
         // Frame is advanced if we work with a swap chain
@@ -416,6 +422,10 @@ namespace mikoto::renderer::vulkan {
         mFrames.resize(mMaxFramesInFlight);
 
         for (u32 frameIndex{ 0 }; auto& frame : mFrames) {
+            // We do not increment the value here because in the first call to PrepareFrame() we will
+            // wait for this value which will return immediately because there is nothing to wait for
+            // which is essentially the same as a signaled vulkan fence; on the first call to SubmitFrame()
+            // we first increment the value or the next batch of work.
             frame.mFence = mDevice->CreateFence( frame.mFenceValue );
 
             frame.mImageAvailableSemaphore = device->CreateBinarySemaphore();
@@ -426,5 +436,7 @@ namespace mikoto::renderer::vulkan {
 
             ++frameIndex;
         }
+
+        mGraphicsQueue = checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) );
     }
 }// namespace mikoto::renderer::vulkan

@@ -39,6 +39,8 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
+        MKT_NODISCARD operator VkSampler() const;
+
         ~Sampler() override;
 
     private:
@@ -71,6 +73,8 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetRenderView( core::u32 mipLevel, core::u32 face = 0 ) const -> const VkImageView&;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
+
+        MKT_NODISCARD operator VkImage() const;
 
         ~Texture() override;
 

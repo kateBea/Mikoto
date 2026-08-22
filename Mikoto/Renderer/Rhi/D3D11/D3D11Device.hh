@@ -120,9 +120,6 @@ namespace mikoto::renderer::d3d11 {
     public:
         explicit Queue( QueueType type, QueueOpSupportFlags flags );
 
-        auto Wait( IFence* fence, u64 value ) -> void override;
-        auto Signal( IFence* fence, u64 value ) -> void override;
-
         auto ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void override;
 
         ~Queue() override;

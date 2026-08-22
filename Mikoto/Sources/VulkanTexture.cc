@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <EASTL/numeric_limits.h>
+
 #include <volk.h>
 
 #include <Core/Core.hh>
@@ -78,6 +80,10 @@ namespace mikoto::renderer::vulkan {
         return Object( mSampler );
     }
 
+    Sampler::operator VkSampler() const {
+        return mSampler;
+    }
+
     Sampler::~Sampler() {
         if ( mIsAllocated ) {
             Release();
@@ -134,6 +140,8 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Texture::InitInitialData2D() -> void {
+        u64 fenceValue{ 0 };
+        FenceHandle fence{ mDevice->CreateFence( fenceValue++ ) };
         CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
         cmd->Begin( { .mScopeName = string::Format( "Texture upload: {}", mDebugName ) } );
 
@@ -145,9 +153,14 @@ namespace mikoto::renderer::vulkan {
 
         cmd->End();
 
+        // Signal fenceValue on one fence on completion of these
+        // commands, then we wait for that completion this blocks the caller
+        // but client should ideally offload this task to worker threads
         const auto submitInfo{ SubmitInfo{}
+            .AddSignal( fence, fenceValue )
             .AddCommandList( cmd ) };
         mDevice->GetQueue( QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
+        ( void )fence->Wait( fenceValue, eastl::numeric_limits<u64>::max() ); // Host wait
     }
 
     auto Texture::SetDebugName( eastl::string_view name )  -> void {
@@ -166,6 +179,10 @@ namespace mikoto::renderer::vulkan {
                 device->SetDebugName( VK_OBJECT_TYPE_IMAGE_VIEW, rc_cast<u64>( face ), mDebugName );
             }
         }
+    }
+
+    Texture::operator VkImage() const {
+        return mImageAllocation.mImage;
     }
 
     auto Texture::InitInitialDataCube() -> void {

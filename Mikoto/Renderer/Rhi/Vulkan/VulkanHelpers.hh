@@ -61,7 +61,8 @@ namespace mikoto::renderer::vulkan {
     MKT_NODISCARD auto GetImageLayout( rhi::ResourceStates state ) -> VkImageLayout;
     MKT_NODISCARD auto GetResourceState( VkImageLayout layout ) -> rhi::ResourceStates;
     MKT_NODISCARD auto GetStageMask( rhi::ResourceStates state ) -> VkPipelineStageFlags2;
-    MKT_NODISCARD auto GetAccessMask( rhi::ResourceStates state ) -> VkAccessFlags2;
+
+    MKT_UNUSED_FUNC MKT_NODISCARD auto GetAccessMask( rhi::ResourceStates state ) -> VkAccessFlags2;
 
     MKT_NODISCARD auto GetIndexType( rhi::Format format ) -> VkIndexType;
 

@@ -24,10 +24,6 @@
 #include <Core/Service.hh>
 #include <Threading/TaskGraph.hh>
 #include <Threading/TaskManager.hh>
-#include <functional>
-#include <utility>
-
-
 
 namespace mikoto::threading {
 

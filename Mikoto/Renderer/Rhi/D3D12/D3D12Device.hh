@@ -50,6 +50,7 @@ namespace mikoto::renderer::d3d12 {
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
+        MKT_NODISCARD auto Signal( core::u64 fenceValue ) -> bool override;
         MKT_NODISCARD auto Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool override;
 
         MKT_NODISCARD auto IsCompleted( core::u64 fenceValue ) const -> bool;
@@ -372,9 +373,6 @@ namespace mikoto::renderer::d3d12 {
     class Queue final : public IQueue {
     public:
         explicit Queue( QueueType type, QueueOpSupportFlags flags );
-
-        auto Wait( IFence* fence, core::u64 value ) -> void override;
-        auto Signal( IFence* fence, core::u64 value ) -> void override;
 
         auto ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void override;
 

@@ -226,6 +226,18 @@ namespace mikoto::gui {
             CreateImages();
         }
 
+#if false
+        ImGui::Begin("Performance");
+
+        const float fps = ImGui::GetIO().Framerate;
+        const float frameTime = 1000.0f / fps;
+
+        ImGui::Text("FPS: %.1f", fps);
+        ImGui::Text("Frame time: %.2f ms", frameTime);
+
+        ImGui::End();
+#endif
+
         ImGui::Render();
 
         mCommandList->Begin( { .mScopeName = "ImGui Render" } );
@@ -237,7 +249,11 @@ namespace mikoto::gui {
 
         auto submitInfo{ SubmitInfo{}
             .AddCommandList( mCommandList ) };
-        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo), QueueType::eGraphics);
+        RenderSystem::Get()->BatchSubmission( eastl::move( submitInfo ), QueueType::eGraphics );
+
+#if false
+        RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
+#endif
 
         if ( const ImGuiIO & io{ ImGui::GetIO() }; io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();

@@ -77,7 +77,7 @@ namespace mikoto::renderer {
         mRayTracingPass.RegisterPasses( *mFrameGraph );
 
         // Post process
-        //mTextRendering.RegisterPasses( *mFrameGraph );
+        mTextRendering.RegisterPasses( *mFrameGraph );
         //mPostEffectsPasses.RegisterPasses( *mFrameGraph );
 
         mTonemapModule.RegisterPasses( *mFrameGraph );
@@ -85,7 +85,7 @@ namespace mikoto::renderer {
         // I am not sure about this pass, this one was designed to
         // ideally serve as helper for passes that required image blit-ting
         // which could be achieved with compute shaders for instance
-        //mHelperModule.RegisterPasses( *mFrameGraph );
+        mHelperModule.RegisterPasses( *mFrameGraph );
 
         // Render final contents into specified images
         mPresentationModule.RegisterPresentImage( *mFrameGraph, mPresentTexture );

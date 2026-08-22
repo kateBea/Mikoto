@@ -54,7 +54,6 @@ namespace mikoto::editor {
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
-
     ContentBrowserPanel::ContentBrowserPanel( const ContentBrowserPanelDescription& desc )
         : Panel{ "Explorer" },
           mDevice{ desc.mDevice },

@@ -43,6 +43,7 @@ namespace mikoto::material {
     enum class SkyboxType {
         eCubeFaces,
         eEquirectangular,
+        eCount,
     };
 
     struct SkyboxMaterialDescription {
@@ -68,7 +69,9 @@ namespace mikoto::material {
 
         auto SetFace( SkyboxFace face, renderer::rhi::TextureHandle texture ) -> void;
 
+        auto SetType( SkyboxType type ) -> void;
         MKT_NODISCARD auto IsType( SkyboxType type ) const -> bool;
+        MKT_NODISCARD auto GetType() const -> SkyboxType;
 
         MKT_NODISCARD auto GetFace(SkyboxFace face) -> renderer::rhi::TextureHandle;
         MKT_NODISCARD auto GetFaceTextures() -> ankerl::unordered_dense::map<SkyboxFace, renderer::rhi::TextureHandle>&;
@@ -77,6 +80,7 @@ namespace mikoto::material {
         ~SkyboxMaterial() override = default;
 
     private:
+        SkyboxType mType{ SkyboxType::eCubeFaces };
         renderer::rhi::TextureHandle mEquirectangular{};
         ankerl::unordered_dense::map<SkyboxFace, renderer::rhi::TextureHandle> mCubeFaces{};
     };

@@ -15,43 +15,37 @@
 #ifndef MIKOTO_BUFFER_SPAN_HH
 #define MIKOTO_BUFFER_SPAN_HH
 
-#include <cstdlib>
-
 #include <EASTL/vector.h>
-#include <EASTL/unique_ptr.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/Exception.hh>
 #include <Core/ResourcePool.hh>
 
 #include <Memory/Allocator.hh>
 
 namespace mikoto::memory {
 
-    using namespace mikoto::core;
-
     class BufferSpan : public ReferenceCounted {
     public:
 
-        explicit BufferSpan( size_t byteSize );
-        explicit BufferSpan( const void* data, size_t byteSize );
+        explicit BufferSpan( core::usize byteSize );
+        explicit BufferSpan( const void* data, core::usize byteSize );
 
         template<typename T >
         auto Push(const T& data) -> void {
             Push( MKT_ADDRESSOF( data ), MKT_SIZEOF( data ) );
         }
 
-        auto Push(const void* data, size_t dataSize) -> void;
+        auto Push(const void* data, core::usize dataSize) -> void;
 
-        MKT_NODISCARD auto GetSize() const -> size_t;
+        MKT_NODISCARD auto GetSize() const -> core::usize;
         MKT_NODISCARD auto GetData() const -> const void*;
 
         ~BufferSpan() override = default;
 
     private:
-        size_t mConsumedSize{ 0 };
-        eastl::vector<byte_t> mBuffer{};
+        core::usize mConsumedSize{ 0 };
+        eastl::vector<core::ubyte> mBuffer{};
     };
 
     using BufferSpanHandle = Ref<BufferSpan>;

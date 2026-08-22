@@ -265,7 +265,6 @@ namespace mikoto::editor {
                 TextureUsageFlagsBits::kShaderResource |
                 TextureUsageFlagsBits::kCopySrc )
             .SetFormat( Format::eBGRA8_UNORM ) };
-
         mEditorState->mFinalComposition = mDevice->CreateTexture( colorDesc );
         mEditorState->mFinalComposition->SetDebugName( "EditorColor" );
 
@@ -803,9 +802,9 @@ namespace mikoto::editor {
         mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - RenderTarget" } );
         mCommandList->SetTransition( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eRenderTarget );
         mCommandList->End();
-        auto submitInfo1{ SubmitInfo{}
+        auto submitInfo{ SubmitInfo{}
             .AddCommandList( mCommandList ) };
-        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo1), QueueType::eGraphics);
+        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo), QueueType::eGraphics);
 
         mSceneRenderer->Render( mEditorState->mActiveScene );
     }

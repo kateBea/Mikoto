@@ -2294,71 +2294,96 @@ namespace mikoto::editor {
         SkyboxMaterial* material{ checked_cast<SkyboxMaterial*>( sbComponent.GetMaterial().GetRaw() ) };
 
         // Select type of skybox texture (equirectangular or cube faces)
+        ImGui::Spacing();
+        ImGui::SeparatorText( "Skybox Type");
+        SkyboxType currentSkyboxType{ material->GetType() };
+        eastl::array<std::string, as<usize>(SkyboxType::eCount)> choicesAlpha{
+            "Cube Faces", "HDR Texture" };
 
+        SkyboxType newSkyboxType{ gui::Combo( choicesAlpha, currentSkyboxType ) };
+        if (newSkyboxType != currentSkyboxType) {
+            material->SetType( newSkyboxType );
+        }
+
+        ImGui::Spacing();
+        ImGui::SeparatorText( "Texture (s)");
 
         constexpr auto columnCount{ 2 };
         constexpr ImGuiTableFlags specularTableFlags{ ImGuiTableFlags_None | ImGuiTableFlags_BordersInner };
 
         ImGui::Spacing();
 
-        if ( ImGui::BeginTable( "SetupSkyboxComponentTable", columnCount, specularTableFlags ) ) {
-            static constexpr eastl::array<eastl::pair<SkyboxFace, eastl::string_view>, 6> kCubeFaces{{
-                { SkyboxFace::eTop,    "Top"    },
-                { SkyboxFace::eBottom, "Bottom" },
-                { SkyboxFace::eBack,   "Back"   },
-                { SkyboxFace::eFront,  "Front"  },
-                { SkyboxFace::eLeft,   "Left"   },
-                { SkyboxFace::eRight,  "Right"  }
-            }};
+        if (material->IsType( SkyboxType::eCubeFaces )) {
+            if ( ImGui::BeginTable( "SetupSkyboxComponentTable", columnCount, specularTableFlags ) ) {
+                static constexpr eastl::array<eastl::pair<SkyboxFace, eastl::string_view>, 6> kCubeFaces{{
+                    { SkyboxFace::eTop,    "Top"    },
+                    { SkyboxFace::eBottom, "Bottom" },
+                    { SkyboxFace::eBack,   "Back"   },
+                    { SkyboxFace::eFront,  "Front"  },
+                    { SkyboxFace::eLeft,   "Left"   },
+                    { SkyboxFace::eRight,  "Right"  }
+                }};
 
 
-            for (size_t i{}; i < kCubeFaces.size(); ++i ) {
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex( 0 );
+                for (usize i{}; i < kCubeFaces.size(); ++i ) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex( 0 );
 
-                TextureHandle face{ material ? material->GetFace( kCubeFaces[i].first ) : TextureHandle::CreateEmpty() };
+                    TextureHandle face{ material ? material->GetFace( kCubeFaces[i].first ) : TextureHandle::CreateEmpty() };
 
-                ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
-                ImGui::SameLine();
-                ImGui::TextUnformatted( string::Format( " Face {}", kCubeFaces[i].second ).c_str() );
+                    ImGui::TextUnformatted( fmt::format( "{}", ICON_MD_TEXTURE ).c_str() );
+                    ImGui::SameLine();
+                    ImGui::TextUnformatted( string::Format( " Face {}", kCubeFaces[i].second ).c_str() );
 
-                if ( face.IsEmpty() ) {
-                    face = AssetsService::Get()->GetDummyTexture();
-                }
+                    if ( face.IsEmpty() ) {
+                        face = AssetsService::Get()->GetDummyTexture();
+                    }
 
-                if ( PushImageButton( string::Format( "##SetupSkyboxComponentTab:{}", kCubeFaces[i].second ), ImGuiService::Get()->GetTextureID( face.GetRaw() ), ImVec2{ 64, 64 } ) ) {
-                    if (material) {
-                        LoadMaterialTexture( *material, kCubeFaces[i].first );
+                    if ( PushImageButton( string::Format( "##SetupSkyboxComponentTab:{}", kCubeFaces[i].second ), ImGuiService::Get()->GetTextureID( face.GetRaw() ), ImVec2{ 64, 64 } ) ) {
+                        if (material) {
+                            LoadMaterialTexture( *material, kCubeFaces[i].first );
+                        }
+                    }
+
+                    if ( ImGui::IsItemHovered() ) {
+                        if ( material->GetFace( kCubeFaces[i].first ).IsEmpty() ) {
+                            gui::ToolTip( "Click me to load a texture." );
+                        } else {
+                            gui::ToolTip( [&]() -> void {
+                                ShowTextureHoverTooltip( material->GetFace( kCubeFaces[i].first ).GetRaw() );
+                            }, ImGui::IsItemHovered() );
+                        }
+                        ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                    }
+
+                    ImGui::TableSetColumnIndex( 1 );
+
+                    gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+                    gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
+                    if ( ImGui::Button( string::Format("Remove {}", kCubeFaces[i].second ).c_str() ) ) {
+
+                    }
+
+                    if ( ImGui::IsItemHovered() ) {
+                        ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
                     }
                 }
 
-                if ( ImGui::IsItemHovered() ) {
-                    if ( material->GetFace( kCubeFaces[i].first ).IsEmpty() ) {
-                        gui::ToolTip( "Click me to load a texture." );
-                    } else {
-                        gui::ToolTip( [&]() -> void {
-                            ShowTextureHoverTooltip( material->GetFace( kCubeFaces[i].first ).GetRaw() );
-                        }, ImGui::IsItemHovered() );
-                    }
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
-
-                ImGui::TableSetColumnIndex( 1 );
-
-                gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-                gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
-
-                if ( ImGui::Button( string::Format("Remove {}", kCubeFaces[i].second ).c_str() ) ) {
-
-                }
-
-                if ( ImGui::IsItemHovered() ) {
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-                }
+                ImGui::EndTable();
             }
+        } else if (material->IsType( SkyboxType::eEquirectangular )) {
 
-            ImGui::EndTable();
         }
+
+        ImGui::SeparatorText( "Settings");
+        ImGui::Spacing();
+
+        if ( ImGui::Button( string::Format( "{} Apply", ICON_MD_CLOUD_DOWNLOAD ).c_str()) ) {
+
+        }
+
+        gui::SetCursorHandOnLastItemHovered();
     }
 
     auto InspectorPanel::DrawComponents( Entity* entity ) const -> void {

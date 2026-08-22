@@ -18,26 +18,28 @@
 
 namespace mikoto::memory {
 
-    BufferSpan::BufferSpan( size_t byteSize )
-        : mConsumedSize{ 0 }, mBuffer( byteSize, byte_t{} ) {
+    using namespace mikoto::core;
+
+    BufferSpan::BufferSpan( core::usize byteSize )
+        : mConsumedSize{ 0 }, mBuffer( byteSize, ubyte{} ) {
     }
 
-    BufferSpan::BufferSpan( const void *data, size_t byteSize )
-        : mConsumedSize{ 0 }, mBuffer( byteSize, byte_t{} )
+    BufferSpan::BufferSpan( const void *data, core::usize byteSize )
+        : mConsumedSize{ 0 }, mBuffer( byteSize, ubyte{} )
     {
         if (data) {
             Push( data, byteSize );
         }
     }
 
-    auto BufferSpan::Push( const void* data, size_t dataSize ) -> void {
+    auto BufferSpan::Push( const void* data, core::usize dataSize ) -> void {
         MKT_ASSERT( mConsumedSize != mBuffer.size(), "Buffer is full." );
-        eastl::copy_n( as<byte_t*>( data ), dataSize, mBuffer.begin() + mConsumedSize );
+        eastl::copy_n( as<ubyte*>( data ), dataSize, mBuffer.begin() + mConsumedSize );
 
         mConsumedSize += dataSize;
     }
 
-    auto BufferSpan::GetSize() const -> size_t {
+    auto BufferSpan::GetSize() const -> core::usize {
         return mConsumedSize;
     }
 

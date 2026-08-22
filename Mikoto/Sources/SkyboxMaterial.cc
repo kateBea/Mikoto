@@ -36,18 +36,26 @@ namespace mikoto::material {
     {}
 
     SkyboxMaterial::SkyboxMaterial( const SkyboxMaterialDescription &desc )
-        : Material{ desc.mName } {
+        : Material{ desc.mName }, mCubeFaces{ desc.mCubeFaces },
+            mEquirectangular{ desc.mEquirectangularTextureHandle }, mType{ desc.mSkyboxType } {
         mCubeFaces = desc.mCubeFaces;
         mEquirectangular = desc.mEquirectangularTextureHandle;
-        mName = desc.mName;
     }
 
     auto SkyboxMaterial::SetFace( SkyboxFace face, renderer::rhi::TextureHandle texture ) -> void {
         mCubeFaces[face] = texture;
     }
 
+    auto SkyboxMaterial::SetType( SkyboxType type ) -> void {
+        mType = type;
+    }
+
     auto SkyboxMaterial::IsType( SkyboxType type ) const -> bool {
-        return false;
+        return mType == type;
+    }
+
+    auto SkyboxMaterial::GetType() const -> SkyboxType {
+        return mType;
     }
 
     auto SkyboxMaterial::GetFace( SkyboxFace face ) -> renderer::rhi::TextureHandle {

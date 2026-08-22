@@ -19,6 +19,7 @@
 #include <Core/Types.hh>
 #include <Core/Profiler.hh>
 #include <Core/Platform.hh>
+#include <Core/Exception.hh>
 
 #include <Math/Math.hh>
 

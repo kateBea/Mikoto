@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <Core/Platform.hh>
+#include <Core/Exception.hh>
 
 #include <Renderer/Core/RenderSystem.hh>
 

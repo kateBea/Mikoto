@@ -27,6 +27,7 @@
 namespace mikoto::renderer {
 
     using namespace mikoto::core;
+    using namespace mikoto::scene;
     using namespace mikoto::material;
     using namespace mikoto::renderer::rhi;
 
@@ -38,7 +39,7 @@ namespace mikoto::renderer {
     auto SceneRenderer::Init() -> void {
         // Temporary, as the Direct3D 11 backend does not offer support for
         // bindless which the frame graph relies on for most of its functionality
-        if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11)) {
+        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) ) {
             MKT_CORE_LOGGER_WARN( "Scene renderer expects DirectX12 or Vulkan" );
             return;
         }
@@ -137,7 +138,7 @@ namespace mikoto::renderer {
 
         // Temporary, as the Direct3D 11 backend does not offer support for
         // bindless which the frame graph relies on for most of its functionality
-        if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11)) {
+        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) ) {
             return;
         }
 

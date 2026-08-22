@@ -36,6 +36,7 @@ namespace mikoto::editor {
 
     using namespace mikoto::gui;
     using namespace mikoto::core;
+    using namespace mikoto::scene;
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 

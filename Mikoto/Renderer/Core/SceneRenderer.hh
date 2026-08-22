@@ -43,8 +43,6 @@
 
 namespace mikoto::renderer {
 
-    using namespace mikoto::scene;
-
     struct SceneRendererCreateInfo {
         IGpuDevice* mDevice{};
         eastl::string_view mName{};
@@ -52,14 +50,14 @@ namespace mikoto::renderer {
 
         // Scene renderer does a full quad render on these
         // Just edit the final pass to specify what gets rendered onto these
-        TextureHandle mPresentTexture{};
+        rhi::TextureHandle mPresentTexture{};
 
-        RenderResolution mResolution{ RenderResolution::e1080P };
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
 
-        auto SetName(eastl::string_view name) -> SceneRendererCreateInfo&;
-        auto SetDevice(IGpuDevice* device) -> SceneRendererCreateInfo&;
-        auto SetPresentImage(TextureHandle texture) -> SceneRendererCreateInfo&;
-        auto SetRenderResolution(RenderResolution resolution) -> SceneRendererCreateInfo&;
+        auto SetName( eastl::string_view name ) -> SceneRendererCreateInfo&;
+        auto SetDevice( rhi::IGpuDevice* device ) -> SceneRendererCreateInfo&;
+        auto SetPresentImage( rhi::TextureHandle texture ) -> SceneRendererCreateInfo&;
+        auto SetRenderResolution( rhi::RenderResolution resolution ) -> SceneRendererCreateInfo&;
     };
 
     class SceneRenderer final : public IRenderer {
@@ -69,18 +67,18 @@ namespace mikoto::renderer {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        auto Render( const Scene* scene ) -> void override;
+        auto Render( const scene::Scene* scene ) -> void override;
 
         auto SetPresentType( PresentTarget type ) -> void;
 
-        auto SetMainCamera( const SceneCamera* camera ) -> void;
-        auto SetClearColor( const Color& color ) -> void;
+        auto SetMainCamera( const scene::SceneCamera* camera ) -> void;
+        auto SetClearColor( const rhi::Color& color ) -> void;
 
         auto SetTonemapType( ToneMappingType type ) -> void;
 
-        auto SetGamma( f32 gamma ) -> void;
-        auto SetExposure( f32 exposure ) -> void;
-        auto SetAmbientScale( f32 ambient ) -> void;
+        auto SetGamma( core::f32 gamma ) -> void;
+        auto SetExposure( core::f32 exposure ) -> void;
+        auto SetAmbientScale( core::f32 ambient ) -> void;
 
         auto SetSkyboxMaterial(material::MaterialHandle material) -> void;
 
@@ -89,23 +87,23 @@ namespace mikoto::renderer {
         auto DisablePass( eastl::string_view passName ) -> void;
         auto EnablePass( eastl::string_view passName ) -> void;
 
-        MKT_NODISCARD auto ReadPixel( u32 x, u32 y) const -> u32;
+        MKT_NODISCARD auto ReadPixel( core::u32 x, core::u32 y) const -> core::u32;
         MKT_NODISCARD auto ReadPixel( const ReadPixelViewportInfo& ínfo ) const -> core::u32;
 
         MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl&;
 
-        MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> TextureHandle;
-        MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> BufferHandle;
+        MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> rhi::TextureHandle;
+        MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> rhi::BufferHandle;
 
         MKT_NODISCARD static auto Create( const SceneRendererCreateInfo& spec) -> eastl::unique_ptr<SceneRenderer>;
 
     private:
-        IGpuDevice* mDevice{};
-        SceneCamera* mCamera{};
+        rhi::IGpuDevice* mDevice{};
+        scene::SceneCamera* mCamera{};
 
-        TextureHandle mPresentTexture{};
+        rhi::TextureHandle mPresentTexture{};
 
-        RenderResolution mTargetResolution{ RenderResolution::e1080P };
+        rhi::RenderResolution mTargetResolution{ rhi::RenderResolution::e1080P };
 
         // Passes
         CameraModule mCameraPass{ mTargetResolution };
@@ -139,7 +137,7 @@ namespace mikoto::renderer {
         RayTracingModule mRayTracingPass{};
 
         eastl::unique_ptr<FrameGraph> mFrameGraph{};
-        eastl::unique_ptr<ShaderLibrary> mShaderLibrary{};
+        eastl::unique_ptr<material::ShaderLibrary> mShaderLibrary{};
     };
 }// namespace Mikoto
 

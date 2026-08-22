@@ -373,7 +373,6 @@ namespace mikoto::editor {
     auto EditorHelloTriangleLayer::DrawWireframeMesh() -> void {
         float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) }; // seconds
 
-        mShaderParameters.mModel = glm::translate( math::constants::Identity<core::float4x4>(), float3{ 10.0f, 0.0f, 0.0f } );
         mShaderParameters.mModel = glm::rotate(
             mShaderParameters.mModel,
             angle,

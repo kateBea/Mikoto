@@ -17,6 +17,7 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Platform.hh>
+#include <Core/Exception.hh>
 
 #include <Logging/Assert.hh>
 

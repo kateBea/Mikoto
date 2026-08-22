@@ -19,7 +19,6 @@
 
 namespace mikoto::editor {
 
-
     auto ProjectSerializer::Serialize( const Project &obj, const filesystem::Path &savePath ) -> void {
     }
 

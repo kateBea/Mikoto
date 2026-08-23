@@ -31,6 +31,7 @@
 #include <Renderer/Passes/PathTracingModule.hh>
 #include <Renderer/Passes/PostProcessModule.hh>
 #include <Renderer/Passes/PrepassModule.hh>
+#include <Renderer/Passes/IndirectLightingModule.hh>
 #include <Renderer/Passes/PresentationModule.hh>
 #include <Renderer/Passes/RayTracingModule.hh>
 #include <Renderer/Passes/ShadowMappingModule.hh>
@@ -116,6 +117,8 @@ namespace mikoto::renderer {
         GeometryCullModule mGeometryManagement{};
         GeometryShadingModule mGeometryShading{ mTargetResolution };
         PresentationModule mPresentationModule{ mTargetResolution };
+
+        IndirectLightingModule mIndirectLightingModule{ mTargetResolution };
 
         TonemapModule mTonemapModule{ mTargetResolution };
 

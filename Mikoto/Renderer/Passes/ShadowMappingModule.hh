@@ -79,7 +79,7 @@ namespace mikoto::renderer {
         const scene::Camera* mCamera{};
         GeometryCullModule* mGeometryManager{};
 
-        RenderResolution mResolution{};
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
     };
 }
 

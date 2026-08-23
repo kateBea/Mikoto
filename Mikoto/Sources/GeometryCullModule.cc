@@ -154,7 +154,7 @@ namespace mikoto::renderer {
     auto GeometryCullModule::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        GeometryCullModuleInfo& info{ graph.GetOrCreate<GeometryCullModuleInfo>() };
+        auto& info{ graph.GetOrCreate<GeometryCullModuleInfo>() };
 
         auto indirectCommandsDesc{ FGBufferDescription{}
             .SetName( "GeometryIndirectCommands_Buffer" )

@@ -265,4 +265,12 @@ namespace mikoto::material {
 
         return rhi::TextureHandle::CreateEmpty();
     }
-}
+
+    auto PhysicalMaterial::SetShadingModel( ShadingModel model ) -> void {
+        mShadingModel = model;
+    }
+
+    auto PhysicalMaterial::GetShadingModel() const -> ShadingModel {
+        return mShadingModel;
+    }
+}// namespace mikoto::material

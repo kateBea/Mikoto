@@ -60,6 +60,16 @@ namespace mikoto::material {
         eSpecularGlossiness,
     };
 
+    enum class ShadingModel {
+        eDefaultPbr,
+        eClearCoat,
+        eToonShading,
+        eFlatShading,
+        eSubsurfaceScattering,
+
+        eCount,
+    };
+
     // I need to lead the sampler specifications for these materials
     // some mesh are properly rendered with specific type of sampler properties
     // I had issues rendering Sponza because I was using clamp to edge whereas
@@ -199,9 +209,17 @@ namespace mikoto::material {
         MKT_NODISCARD auto HasTexture( MapType type ) const -> bool;
         MKT_NODISCARD auto GetTexture( MapType type ) const -> renderer::rhi::TextureHandle;
 
+        // ===============================
+        // Shading Model
+        // ===============================
+        auto SetShadingModel( ShadingModel model ) -> void;
+        MKT_NODISCARD auto GetShadingModel() const -> ShadingModel;
+
         ~PhysicalMaterial() override = default;
 
     private:
+        ShadingModel mShadingModel{};
+
         AlphaMode mAlphaMask{ AlphaMode::Opaque };
         Workflow mWorkflow{ Workflow::eMetallicRoughness };
 

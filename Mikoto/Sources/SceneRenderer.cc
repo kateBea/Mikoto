@@ -101,6 +101,7 @@ namespace mikoto::renderer {
         mGeometryShading.SetGeometryManager( mGeometryManagement );
         mRenderPrepass.SetGeometryManager( mGeometryManagement );
         mMousePickingModule.SetGeometryManager( mGeometryManagement );
+        mIndirectLightingModule.SetGeometryManager( mGeometryManagement );
 
         // Execution policies
         mFrameGraph->SetExecutionPolicy( "BRDFLut", FGExecutionPolicy::eOnce );
@@ -111,12 +112,6 @@ namespace mikoto::renderer {
         mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Compute", FGExecutionPolicy::eOnChange );
         mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Transfer", FGExecutionPolicy::eOnChange );
         mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Graphics", FGExecutionPolicy::eOnChange );
-
-        // mFrameGraph->DisablePass( "PBR_Radiance" );
-        // mFrameGraph->DisablePass( "DepthPrePass" );
-        // mFrameGraph->DisablePass( "GBuffer" );
-        // mFrameGraph->DisablePass( "ObjectSelection_Render" );
-        // mFrameGraph->DisablePass( "SkyboxProjection" );
 
         // For some reason this makes subsequent passes to render in Wireframe mode
         //mFrameGraph->DisablePass( "WireframePass" );
@@ -153,6 +148,7 @@ namespace mikoto::renderer {
         mTextRendering.SetScene( scene );
         mPostEffectsPasses.SetScene( scene );
         mGeometryManagement.SetScene( scene );
+        mIndirectLightingModule.SetScene( scene );
 
         mFrameGraph->Execute();
         mFrameGraph->ExecuteReadbacks();

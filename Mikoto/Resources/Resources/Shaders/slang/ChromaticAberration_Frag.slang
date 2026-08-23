@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 
 struct FSOutput {
@@ -23,8 +24,19 @@ struct FSInput {
     float2 UV : TEXCOORD0;
 };
 
-[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]]
-ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
+struct DrawParams {
+    uint mSamplerID;
+    uint mTonemapImageID;
+
+    uint mCameraBufferID;
+};
+
+MKT_DECLARE_SAMPLERS samplers;
+MKT_DECLARE_STRUCTURED_SRV buffers;
+
+MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 // Credits:
 // Created by moonlightoctopus in 2025-05-25
@@ -32,20 +44,23 @@ ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
 
 float4 mainImage(float2 uv) {
     float distortionAmount = 3.0;
-    float2 resolution = u_Camera.ScreenDimensions;
+
+    CameraInfo camera = buffers[parameters.mCameraBufferID].Read<CameraInfo>(0, 0);
+
+    SamplerState sampler = samplers[parameters.mSamplerID];
+    Texture2D tonemappedImage = textures[parameters.mTonemapImageID];
+
+    float2 resolution = camera.ScreenDimensions.xy;
 
     float2 pixelSize = 1.0 / resolution;
 
-    float3 col1 = u_FinalComposition.Sample(uv).xyz;
-    float3 col2 = u_FinalComposition.Sample(uv - pixelSize * distortionAmount).xyz;
-    float3 col3 = u_FinalComposition.Sample(uv - pixelSize * 2.0 * distortionAmount).xyz;
+    float3 col1 = tonemappedImage.Sample(sampler, uv).xyz;
+    float3 col2 = tonemappedImage.Sample(sampler, uv - pixelSize * distortionAmount).xyz;
+    float3 col3 = tonemappedImage.Sample(sampler, uv - pixelSize * 2.0 * distortionAmount).xyz;
 
     float3 col = float3(col1.x, col2.y, col3.z);
     return float4(col, 1.0);
 }
-
-[[vk::binding(Slot_0, STATIC_SAMPLERS_SET_INDEX)]]
-Sampler2D u_FinalComposition;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {

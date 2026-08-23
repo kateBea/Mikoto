@@ -65,6 +65,7 @@ namespace mikoto::material {
         eClearCoat,
         eToonShading,
         eFlatShading,
+        eCellShading,
         eSubsurfaceScattering,
 
         eCount,

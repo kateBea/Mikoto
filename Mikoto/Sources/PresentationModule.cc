@@ -22,6 +22,7 @@
 #include <Renderer/Passes/PrepassModule.hh>
 #include <Renderer/Passes/PresentationModule.hh>
 #include <Renderer/Passes/GeometryCullModule.hh>
+#include <Renderer/Passes/DisplayEffectsModule.hh>
 
 #include <Renderer/Passes/GeometryShadingModule.hh>
 
@@ -72,6 +73,7 @@ namespace mikoto::renderer {
             case PresentTarget::eDepthPrepass: return b.Get<PrepassModuleInfo>().mDepthPrepassColorTarget;
             case PresentTarget::ePBRadiance_Output: return b.Get<GeomShadingModuleInfo>().mColorImage;
             case PresentTarget::eTonemap_Output: return b.Get<GeomShadingModuleInfo>().mTonemapColor;
+            case PresentTarget::eChromaticAberration: return b.Get<DisplayEffectsModuleInfo>().mChromaAbRenderTarget;
             default:;
         }
 
@@ -105,11 +107,14 @@ namespace mikoto::renderer {
                 const auto& wireframeData{ blackboard.Get<WireframeData>() };
                 const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
                 const auto& shadingPassData{ blackboard.Get<GeomShadingModuleInfo>() };
+                const auto& displayEffectsData{ blackboard.Get<DisplayEffectsModuleInfo>() };
 
                 builder.UseResource( prePassData.mGBufferPositionTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( prePassData.mGBufferNormalTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( prePassData.mGBufferColorTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( prePassData.mGBufferEmissiveTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+
+                builder.UseResource( displayEffectsData.mChromaAbRenderTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
 
                 builder.UseResource( wireframeData.mColorImage, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
 

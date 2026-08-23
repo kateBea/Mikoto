@@ -48,6 +48,7 @@ namespace mikoto::renderer {
 
     private:
         auto RegisterTonemapPass( FrameGraph& graph ) -> void;
+        auto RegisterColorGradientPass( FrameGraph& graph ) -> void;
 
     private:
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };

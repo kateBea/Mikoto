@@ -38,6 +38,7 @@
 #include <Renderer/Passes/TextRenderModule.hh>
 #include <Renderer/Passes/GeometryCullModule.hh>
 #include <Renderer/Passes/WaterSimulationModule.hh>
+#include <Renderer/Passes/DisplayEffectsModule.hh>
 #include <Renderer/Passes/GeometryShadingModule.hh>
 #include <Renderer/Passes/ParticleSimulationModule.hh>
 #include <Renderer/Passes/AtmosphericScatteringModule.hh>
@@ -85,6 +86,8 @@ namespace mikoto::renderer {
 
         auto SetRenderBackground( SceneBackgroundType bg ) -> void;
 
+        auto SetEnableInfiniteGrid( bool value ) -> void;
+
         auto DisablePass( eastl::string_view passName ) -> void;
         auto EnablePass( eastl::string_view passName ) -> void;
 
@@ -121,6 +124,7 @@ namespace mikoto::renderer {
         IndirectLightingModule mIndirectLightingModule{ mTargetResolution };
 
         TonemapModule mTonemapModule{ mTargetResolution };
+        DisplayEffectsModule mDisplayEffectsModule{ mTargetResolution };
 
         MousePickingModule mMousePickingModule{ mTargetResolution };
 

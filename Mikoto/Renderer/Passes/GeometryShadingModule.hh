@@ -82,6 +82,10 @@ namespace mikoto::renderer {
         FGTextureHandle mTonemapColor{};
         FGPipelineHandle mTonemapPipeline{};
 
+        // Color gradient
+        FGTextureHandle mColorGradientRenderTarget{};
+        FGPipelineHandle mColorGradientPipeline{};
+
         // Box
         core::usize mBoxIndicesCount{};
         core::usize mBoxVerticesCount{};

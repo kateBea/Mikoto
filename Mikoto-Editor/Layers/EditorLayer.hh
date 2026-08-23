@@ -135,6 +135,8 @@ namespace mikoto::editor {
 
         // Renderer display settings
         bool mShowRenderGraph{};
+        bool mShowInfiniteGrid{};
+
         gui::GraphEditor mGraphEditor{ "RenderGraph" };
 
         ScreenPresentTarget mScreenPresentTarget{ ScreenPresentTarget::ePanels };

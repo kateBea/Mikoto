@@ -35,6 +35,8 @@ namespace mikoto::renderer {
 
         eTonemap_Output,
 
+        eChromaticAberration,
+
         eCount,
     };
 
@@ -67,7 +69,7 @@ namespace mikoto::renderer {
 
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
 
-        PresentTarget mPresentTarget{ PresentTarget::ePBRadiance_Output };
+        PresentTarget mPresentTarget{ PresentTarget::eChromaticAberration };
     };
 
 }// namespace mikoto

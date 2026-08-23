@@ -59,9 +59,9 @@ namespace mikoto::renderer {
         RegisterBloom( graph );
         RegisterSsao( graph );
 
-        RegisterObjectOutline( graph );
+        RegisterEyeAdaptationPass( graph );
 
-        RegisterDepthOfField( graph );
+        RegisterObjectOutline( graph );
 
         RegisterPostProcess( graph );
 
@@ -204,57 +204,6 @@ namespace mikoto::renderer {
             },
             []( CommandContext&, Blackboard & ) {
                 // Nothing
-            } );
-    }
-
-    auto PostEffectsPass::RegisterDepthOfField( FrameGraph& graph ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        // Uses the scene main camera
-
-        // https://photographylife.com/what-is-depth-of-field
-        // https://dev.epicgames.com/documentation/en-us/unreal-engine/depth-of-field-in-unreal-engine
-        // https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-28-practical-post-process-depth-field
-        graph.RegisterPass(
-            "DepthOfField_InitializeCoC",
-            FGPassType::eGraphics,
-            []( FGNodeBuilder&, Blackboard & ) {
-
-            },
-            []( CommandContext&, Blackboard & ) {
-                // Nothing
-            } );
-
-        graph.RegisterPass(
-            "DepthOfField_ComputeNearCoC",
-            FGPassType::eGraphics,
-            []( FGNodeBuilder&, Blackboard & ) {
-
-            },
-            []( CommandContext&, Blackboard & ) {
-                // Nothing
-            } );
-
-        graph.RegisterPass(
-            "DepthOfField_BlurNearCoC",
-            FGPassType::eGraphics,
-            []( FGNodeBuilder&, Blackboard & ) {
-
-            },
-            []( CommandContext&, Blackboard & ) {
-                // Nothing
-            } );
-
-        graph.RegisterPass(
-            "DepthOfField_DebugPass",
-            FGPassType::eGraphics,
-            []( FGNodeBuilder&, Blackboard & ) {
-
-            },
-            []( CommandContext&, Blackboard & ) {
-                // Green close blur
-                // Black semi transparent not blurred
-                // Blue far blur
             } );
     }
 
@@ -574,181 +523,6 @@ namespace mikoto::renderer {
                     // fullscreen additive blur
                 } );
         }
-
-#if false
-        auto depthImage{ FGTextureDescription{}
-            .SetName( "ModelPass_DepthImage01" )
-            .SetWidth( as<i32>( 1920 ) )
-            .SetHeight( as<i32>( 1080 ) )
-            .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kDepthTarget )
-            .SetFormat( Format::eD32 ) };
-
-        renderModelPass.mDepthTarget = graph.Create( depthImage );
-
-        auto pipelineBuilder{ FGPipelineDescription{}
-            .SetName( "ModelPass_Pipeline01" )
-            .SetPipelineType( PipelineType::eGraphics )
-            .SetTopology( PrimitiveTopology::eTriangleList )
-            .SetDepthFormat( Format::eD32 )
-            .AddColorFormat( Format::eRGBA8_UNORM )
-            .PushShader( "HelloModel_Vert.slang", FGStageType::eVertex )
-            .PushShader( "HelloModel_Frag.slang", FGStageType::ePixel ) };
-
-        renderModelPass.mPipeline = graph.Create( pipelineBuilder );
-
-        graph.RegisterPass(
-            "BloomDownSampling",
-            FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, Blackboard& blackboard ) {
-                b.CreateTexture( "BloomDownSampling_ColorTarget", mResolution, TextureFormat::RGBA16_FLOAT, Multisampling::MSAA_X1, TextureUsage::COLOR, data.MipCount );
-
-                b.CreateBuffer( "Bloom_Parameters", BufferUsage::eUniform, sizeof( BloomParameters ), 1, ResourceUsageType::eStreaming );
-
-                GraphicsPipelineDescription graphicsDesc{
-                    .DepthTest{ true },
-                    .DepthWrite{ true },
-                    .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT }
-                };
-
-                b.UseShader( "Resources/Shaders/slang/BloomDown_Vert.slang", ShaderStage::eVertex );
-                b.UseShader( "Resources/Shaders/slang/BloomDown_Frag.slang", ShaderStage::eFragment );
-                b.CreatePipeline( "BloomDownSampling_Pipeline", graphicsDesc );
-
-                b.Write( "Bloom_Parameters", FrameResourceState::UniformBuffer );
-                b.Write( "BloomDownSampling_ColorTarget", FrameResourceState::RenderTarget );
-
-                b.Read( "CameraInfoPass_CameraData", FrameResourceState::UniformBuffer );
-                b.Read( "GBuffer_Emissive", FrameResourceState::ShaderRead_GraphicsPipeline );
-            },
-            [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
-                auto& data{ blackboard.Get<BloomParameters>() };
-
-                if (data.GBufferEmissiveSampler.IsEmpty() ) {
-                    SamplerDescription description{
-                        .MinFilter{ SamplerFilter::eLinear },
-                        .MagFilter{ SamplerFilter::eLinear },
-                        .WrapU{ SamplerWrapMode::eClampToEdge },
-                        .WrapV{ SamplerWrapMode::eClampToEdge },
-                        .WrapW{ SamplerWrapMode::eClampToEdge },
-                    };
-
-                    data.GBufferEmissiveSampler = ctx.CreateSampler( description );
-                }
-
-                ctx.BindBuffer( ResourceGroup::BufferViews, "CameraInfoPass_CameraData", ResourceSlot::Slot_0 );
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Emissive", data.GBufferEmissiveSampler, ResourceSlot::Slot_0 );
-
-                struct BloomDownParameters {
-                    Vec2F Resolution{};
-                } drawData;
-
-                for (UInt32 mipLevel{ 0 }; mipLevel < data.MipCount; ++mipLevel ) {
-                    ctx.SetColorRenderTarget( "BloomDownSampling_ColorTarget", mipLevel );
-
-                    PassRenderInfo info{ .ColorLoadOp{ LoadOp::LOAD } };
-                    ctx.BeginRender(info);
-
-                    const auto dimensions{ InferDimensions( mResolution, mipLevel ) };
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
-                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
-
-                    drawData.Resolution = Vec2F{ dimensions.first, dimensions.second };
-
-                    ctx.PushConstants( MKT_ADDRESSOF( drawData ), MKT_SIZEOF( drawData ) );
-                    ctx.BindPipeline( "BloomDownSampling_Pipeline" );
-                    ctx.Draw( 3 );
-
-                    ctx.EndRender();
-                }
-            } );
-
-        graph.RegisterPass(
-            "BloomUpSampling",
-            FGPassType::eGraphics,
-            []( FGNodeBuilder& builder, Blackboard& blackboard ) {
-                MKT_BEGIN_PROFILER_NAMED();
-
-                GraphicsPipelineDescription graphicsDesc{
-                    .DepthTest{ true },
-                    .DepthWrite{ true },
-                    .ColorAttachmentFormats{ TextureFormat::RGBA16_FLOAT }
-                };
-
-                b.UseShader( "Resources/Shaders/slang/BloomUp_Vert.slang", ShaderStage::eVertex );
-                b.UseShader( "Resources/Shaders/slang/BloomUp_Frag.slang", ShaderStage::eFragment );
-                b.CreatePipeline( "BloomUpSampling_Pipeline", graphicsDesc );
-
-                b.Read( "Bloom_Parameters", FrameResourceState::UniformBuffer );
-                b.Read( "BloomDownSampling_ColorTarget", FrameResourceState::RenderTarget );
-
-                b.Read( "GBuffer_Emissive", FrameResourceState::ShaderRead_GraphicsPipeline );
-            },
-            [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
-                MKT_BEGIN_PROFILER_NAMED();
-
-                auto& data{ blackboard.Get<BloomParameters>() };
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "GBuffer_Emissive", data.GBufferEmissiveSampler, ResourceSlot::Slot_0 );
-
-                for (UInt32 mipLevel{ 0 }; mipLevel < data.MipCount; ++mipLevel ) {
-                    ctx.SetColorRenderTarget( "BloomDownSampling_ColorTarget", mipLevel );
-
-                    PassRenderInfo info{ .ColorLoadOp{LoadOp::LOAD} };
-                    ctx.BeginRender(info);
-
-                    const auto dimensions{ InferDimensions( mResolution, mipLevel ) };
-                    ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
-                    ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
-
-                    ctx.BindPipeline( "BloomUpSampling_Pipeline" );
-                    ctx.Draw( 3 );
-
-                    ctx.EndRender();
-                }
-            } );
-
-        // Final bloom composition pass
-        graph.RegisterPass(
-            "BloomBlend",
-            FGPassType::eGraphics,
-            [this]( FGNodeBuilder &builder, Blackboard& blackboard ) -> void {
-                b.CreateTexture( "BloomBlend_ColorTarget", mResolution, TextureFormat::RGBA8_UNORM, Multisampling::MSAA_X1, TextureUsage::COLOR );
-
-                GraphicsPipelineDescription graphicsDesc{
-                    .DepthTest{ true },
-                    .DepthWrite{ true },
-                    .ColorAttachmentFormats{ TextureFormat::RGBA8_UNORM }
-                };
-
-                b.UseShader( "Resources/Shaders/slang/Bloom_Vert.slang", ShaderStage::eVertex );
-                b.UseShader( "Resources/Shaders/slang/Bloom_Frag.slang", ShaderStage::eFragment );
-                b.CreatePipeline( "BloomBlend_Pipeline", graphicsDesc );
-
-                b.Read( "BloomDownSampling_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
-                b.Read( "FinalShadingPass_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
-
-                b.Write( "BloomBlend_ColorTarget", FrameResourceState::RenderTarget );
-            },
-            [this]( CommandContext &ctx, Blackboard& blackboard ) -> void {
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "BloomDownSampling_ColorTarget", ResourceSlot::Slot_0 );
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "FinalShadingPass_ColorTarget", ResourceSlot::Slot_1 );
-
-                const auto dimensions{ InferDimensions( mResolution ) };
-                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
-                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
-
-                ctx.SetColorRenderTarget( "BloomBlend_ColorTarget" );
-
-                ctx.BeginRender();
-
-                ctx.BindPipeline( "BloomBlend_Pipeline" );
-
-                ctx.Draw( 3 );
-
-                ctx.EndRender();
-            } );
-#endif
     }
 
     auto PostEffectsPass::RegisterPostProcess( FrameGraph& graph ) -> void {
@@ -790,5 +564,31 @@ namespace mikoto::renderer {
             postProcessMaterial ]: renderables.each() ) {
 
         }
+    }
+
+    auto PostEffectsPass::RegisterEyeAdaptationPass( FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        // I might move this to the PostEffects passes so it happens before tonemap
+
+        graph.RegisterPass(
+            "EyeAdaptation_Luminance",
+            FGPassType::eCompute,
+            []( FGNodeBuilder&, Blackboard& ) {
+
+            },
+            []( CommandContext&, Blackboard& ) {
+                // Nothing
+            } );
+
+        graph.RegisterPass(
+            "EyeAdaptation",
+            FGPassType::eCompute,
+            []( FGNodeBuilder&, Blackboard& ) {
+
+            },
+            []( CommandContext&, Blackboard& ) {
+                // Nothing
+            } );
     }
 }

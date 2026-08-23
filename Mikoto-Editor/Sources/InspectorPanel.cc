@@ -888,6 +888,7 @@ namespace mikoto::editor {
             "Clear Coat",
             "Toon Shading",
             "Flat Shading",
+            "Cell Shading",
             "Subsurface Scattering",
         };
 

@@ -90,7 +90,8 @@ namespace mikoto::renderer {
         auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
 
         auto RegisterObjectOutline( FrameGraph& graph ) -> void;
-        auto RegisterDepthOfField( FrameGraph& graph ) -> void;
+
+        auto RegisterEyeAdaptationPass( FrameGraph& graph ) -> void;
 
         auto SetupPostProcessMaterials( CommandContext& ctx, Blackboard& b ) -> void;
 

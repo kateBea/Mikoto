@@ -81,6 +81,7 @@ namespace mikoto::renderer {
         mPostEffectsPasses.RegisterPasses( *mFrameGraph );
 
         mTonemapModule.RegisterPasses( *mFrameGraph );
+        mDisplayEffectsModule.RegisterPasses( *mFrameGraph );
 
         // I am not sure about this pass, this one was designed to
         // ideally serve as helper for passes that required image blit-ting
@@ -101,6 +102,7 @@ namespace mikoto::renderer {
         mGeometryShading.SetGeometryManager( mGeometryManagement );
         mRenderPrepass.SetGeometryManager( mGeometryManagement );
         mMousePickingModule.SetGeometryManager( mGeometryManagement );
+        mDisplayEffectsModule.SetGeometryManager( mGeometryManagement );
         mIndirectLightingModule.SetGeometryManager( mGeometryManagement );
 
         // Execution policies
@@ -148,6 +150,7 @@ namespace mikoto::renderer {
         mTextRendering.SetScene( scene );
         mPostEffectsPasses.SetScene( scene );
         mGeometryManagement.SetScene( scene );
+        mDisplayEffectsModule.SetScene( scene );
         mIndirectLightingModule.SetScene( scene );
 
         mFrameGraph->Execute();
@@ -165,6 +168,7 @@ namespace mikoto::renderer {
         mShadowMapping.SetCamera( camera );
         mPostEffectsPasses.SetCamera( camera );
         mGeometryManagement.SetCamera( camera );
+        mDisplayEffectsModule.SetCamera( camera );
     }
 
     auto SceneRenderer::SetClearColor( const Color& color ) -> void {
@@ -210,6 +214,14 @@ namespace mikoto::renderer {
 
     auto SceneRenderer::SetRenderBackground( SceneBackgroundType bg ) -> void {
         mGeometryShading.SetRenderBackground( bg );
+    }
+
+    auto SceneRenderer::SetEnableInfiniteGrid( bool value ) -> void {
+        if (value) {
+            mFrameGraph->EnablePass( "InfiniteGrid" );
+        } else {
+            mFrameGraph->DisablePass( "InfiniteGrid" );
+        }
     }
 
     auto SceneRenderer::DisablePass( eastl::string_view passName ) -> void {

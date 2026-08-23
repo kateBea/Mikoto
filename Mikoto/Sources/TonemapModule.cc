@@ -47,6 +47,7 @@ namespace mikoto::renderer {
     auto TonemapModule::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        RegisterColorGradientPass( graph );
         RegisterTonemapPass( graph );
     }
 
@@ -123,6 +124,85 @@ namespace mikoto::renderer {
                     .AddViewportAndScissorRect( Viewport( as<f32>(dimensions.first), as<f32>(dimensions.second) ) ) );
 
                 ctx.BindPipeline( geometryData.mTonemapPipeline );
+
+                ctx.Draw( 3 );
+
+                ctx.EndRender();
+            } );
+    }
+
+    auto TonemapModule::RegisterColorGradientPass( FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        auto& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+
+        const auto dimensions{ InferDimensions( mResolution ) };
+
+        auto colorImage{ FGTextureDescription{}
+            .SetName( "ColorGradient_ColorImage01" )
+            .SetWidth( as<i32>( dimensions.first ) )
+            .SetHeight( as<i32>( dimensions.second ) )
+            .SetDimensions( TextureDimension::eTexture2D )
+            .SetMultisampling( Multisampling::eMsaaX1 )
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetFormat( Format::eRGBA16_FLOAT ) };
+        info.mColorGradientRenderTarget = graph.Create( colorImage );
+
+        auto pipelineBuilder{ FGPipelineDescription{}
+            .SetName( "ColorGradient_Pipeline" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .AddColorFormat( Format::eRGBA16_FLOAT )
+            .SetCullMode( CullMode::eNone )
+            .PushShader( "ColorGradient_Vert.slang", FGStageType::eVertex )
+            .PushShader( "ColorGradient_Frag.slang", FGStageType::ePixel ) };
+        info.mColorGradientPipeline = graph.Create( pipelineBuilder );
+
+        graph.RegisterPass(
+            "ColorGradient",
+            FGPassType::eGraphics,
+            []( FGNodeBuilder& builder, Blackboard& blackboard ) {
+                auto& geometryData{ blackboard.Get<GeomShadingModuleInfo>() };
+
+                builder.UseResource( geometryData.mColorImage, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mColorGradientRenderTarget, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+            },
+            [this]( CommandContext &ctx, Blackboard& blackboard ) {
+                const auto& cameraData{ blackboard.Get<CameraModuleInfo>() };
+                const auto& geometryData{ blackboard.Get<GeomShadingModuleInfo>() };
+
+                struct DrawParams {
+                    u32 mSamplerID{};
+                    u32 mFinalImageID{};
+
+                    u32 mCameraBufferID{};
+
+                    f32 mExposure{};
+                    f32 mContrast{};
+                    f32 mSaturation{};
+                    float4 mColorTint{ 0.2f, 0.3f, 0.5f, 1.0f };
+                } params{
+                    .mSamplerID = ctx.PushSampler( geometryData.mDefaultSampler ),
+                    .mFinalImageID = ctx.PushTexture_SRV( geometryData.mColorImage ),
+
+                    .mCameraBufferID = ctx.PushBuffer_SRV( cameraData.mCameraData ),
+
+                    .mExposure = 2.3f,
+                    .mContrast = 3.5f,
+                    .mSaturation = 2.1f };
+
+                ctx.PushConstants( params );
+
+                const auto dimensions{ InferDimensions( mResolution ) };
+                const auto graphicsState{ ContextRenderState{}
+                    .SetRenderArea( Rect{ as<i32>(dimensions.first), as<i32>(dimensions.second) } )
+                    .AddRenderTarget( geometryData.mColorGradientRenderTarget, kColorCyan, LoadOp::eClear ) };
+                ctx.BeginRender( graphicsState );
+
+                ctx.SetViewportState( ViewportState{}
+                    .AddViewportAndScissorRect( Viewport( as<f32>(dimensions.first), as<f32>(dimensions.second) ) ) );
+
+                ctx.BindPipeline( geometryData.mColorGradientPipeline );
 
                 ctx.Draw( 3 );
 

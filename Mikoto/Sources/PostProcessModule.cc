@@ -405,55 +405,6 @@ namespace mikoto::renderer {
 
                 ctx.EndRender();
             } );
-
-#if false
-
-        graph.RegisterPass(
-            "SSAOBlur",
-            FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, Blackboard& blackboard ) {
-                b.CreateTexture( "SSAOBlur_ColorTarget", mResolution, TextureFormat::R8_UNORM, TextureUsage::COLOR );
-
-                GraphicsPipelineDescription graphicsDesc{
-                    .DepthTest{ false },
-                    .DepthWrite{ false },
-                    .ColorAttachmentFormats{ TextureFormat::R8_UNORM },
-                };
-
-                b.UseShader( "Resources/Shaders/slang/SSAOBlur_Vert.slang", ShaderStage::eVertex );
-                b.UseShader( "Resources/Shaders/slang/SSAOBlur_Frag.slang", ShaderStage::eFragment );
-                b.CreatePipeline( "SSAOBlur_Pipeline", graphicsDesc );
-
-                b.Write( "SSAOBlur_ColorTarget", FrameResourceState::RenderTarget );
-                b.Read( "SSAO_ColorTarget", FrameResourceState::ShaderRead_GraphicsPipeline );
-            },
-            [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
-                auto& constants{ blackboard.Get<FinalShadingConstants>() };
-                if ( !constants.EnableSSAO ) {
-                    return;
-                }
-
-                if ( m_Sampler.IsEmpty() ) {
-                    m_Sampler = ctx.CreateSampler( SamplerDescription{} );
-                }
-
-                ctx.BindImageSampler( ResourceGroup::StaticSamplers, "SSAO_ColorTarget", m_Sampler, ResourceSlot::Slot_0 );
-
-                ctx.SetColorRenderTarget( "SSAOBlur_ColorTarget" );
-
-                ctx.BeginRender();
-
-                const auto dimensions{ InferDimensions( mResolution ) };
-                ctx.SetViewport( 0, 0, dimensions.first, dimensions.second, false );
-                ctx.SetScissor( 0, 0, dimensions.first, dimensions.second );
-
-                ctx.BindPipeline( "SSAOBlur_Pipeline" );
-                ctx.Draw( 3 );
-
-                ctx.EndRender();
-            } );
-#endif
-
     }
 
     auto PostEffectsPass::RegisterBloom( FrameGraph& graph ) -> void {

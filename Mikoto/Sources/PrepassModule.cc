@@ -480,10 +480,11 @@ namespace mikoto::renderer {
 
                 const auto dimensions{ InferDimensions( mResolution ) };
 
+                // Black background because Inversed Z
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
                     .AddDepthTarget( prepassData.mPrepassDepthTarget, LoadOp::eClear )
-                    .AddRenderTarget( prepassData.mDepthPrepassColorTarget, kColorWhite, LoadOp::eClear ) };
+                    .AddRenderTarget( prepassData.mDepthPrepassColorTarget, kColorBlack, LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( ViewportState{}

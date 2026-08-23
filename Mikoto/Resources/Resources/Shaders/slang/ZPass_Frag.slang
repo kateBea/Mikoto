@@ -41,9 +41,10 @@ MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
-
+    
     CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
 
+    // Linear depth visualization
     float depth = LinearDepth(input.ScreenPos.z, camera.Planes.xy);
 
     float near = camera.Planes.x;
@@ -51,7 +52,8 @@ FSOutput main(FSInput input) {
 
     float depthNormalized = (depth - near) / (far - near);
 
-    o.Color = float4(depthNormalized, depthNormalized, depthNormalized, 1.0);
+    // Visualize inverted depth for better visibility
+    o.Color = float4(abs(1 - depthNormalized), abs(1 - depthNormalized), abs(1 - depthNormalized), 1.0);
 
     return o;
 }

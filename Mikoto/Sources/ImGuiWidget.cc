@@ -25,12 +25,16 @@
 
 namespace mikoto::gui {
 
+    using namespace mikoto::core;
+
     auto widget::MakeIconTitle( eastl::string_view panelIcon, eastl::string_view panelName ) -> eastl::string {
         return string::Format( "{} {}", panelIcon.data(), panelName.data() );
     }
 
     auto widget::MakeHelpPopUp( eastl::string_view description, eastl::string_view placeHolder ) -> void {
-        ImGui::TextDisabled( "%s", placeHolder.data() );
+        if (placeHolder.size() != 0) {
+            ImGui::TextDisabled( "%s", placeHolder.data() );
+        }
 
         if (ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort ) && ImGui::BeginTooltip()) {
             ImGui::PushTextWrapPos( ImGui::GetFontSize() * 35.0f );
@@ -41,4 +45,46 @@ namespace mikoto::gui {
             ImGui::EndTooltip();
         }
     }
+
+    auto widget::MakeHelpPopUpDelay(eastl::string_view description, eastl::string_view placeHolder, float duration) -> void {
+        if (!placeHolder.empty()) {
+            ImGui::TextDisabled("%.*s", (int)placeHolder.size(), placeHolder.data());
+        }
+
+        // These track timer state
+        static ImGuiID lastItemId{ 0 };
+        static f64 hoverStartTime{ 0.0 };
+
+        ImGuiID currentItemId{ ImGui::GetItemID() };
+
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+            f64 currentTime{ ImGui::GetTime() };
+
+            // First time hovering or change element
+            if (lastItemId != currentItemId || hoverStartTime == 0.0) {
+                lastItemId = currentItemId;
+                hoverStartTime = currentTime;
+            }
+
+            // How much time hovered
+            f64 elapsed{ currentTime - hoverStartTime };
+
+            // Only show tooltip text if elapsed lower active time (duration)
+            if (elapsed < as<f64>( duration ) ) {
+                if (ImGui::BeginTooltip()) {
+                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+
+                    ImGui::TextUnformatted(description.data(), description.data() + description.size());
+
+                    ImGui::PopTextWrapPos();
+                    ImGui::EndTooltip();
+                }
+            }
+        } else {
+            if (lastItemId == currentItemId) {
+                hoverStartTime = 0.0;
+            }
+        }
+    }
+
 }// namespace mikoto

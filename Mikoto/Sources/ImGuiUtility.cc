@@ -195,29 +195,31 @@ namespace mikoto::gui {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 2.5f };
 
-        const auto resizeCallback{ []( ImGuiInputTextCallbackData *data ) -> i32 {
+        auto resizeCallback = [](ImGuiInputTextCallbackData* data) -> int {
             if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-                std::string *str{ static_cast<std::string *>( data->UserData ) };
-
-                str->resize( data->BufTextLen );
+                auto* str{ static_cast<eastl::string*>(data->UserData) };
+                str->resize(data->BufTextLen);
                 data->Buf = str->data();
             }
             return 0;
-        } };
+        };
 
-        constexpr ImGuiInputTextFlags flags{ ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackResize };
+        constexpr ImGuiInputTextFlags flags{ ImGuiInputTextFlags_AllowTabInput |
+            ImGuiInputTextFlags_CallbackResize };
 
-        const ImVec2 windowSize{ ImGui::GetWindowSize() };
+        const ImVec2 size{ ComputeWidth(), ImGui::GetWindowSize().y * 0.3f };
 
-        constexpr float maxScale{ 3 };
-        constexpr float minScale{ 1 };
+        const bool active{ ImGui::InputTextMultiline(
+            "##TextArea:Input",
+            buffer.data(),
+            buffer.capacity() + 1,
+            size, flags, resizeCallback,
+            MKT_ADDRESSOF( buffer )
+        ) };
 
-        const bool active{ ImGui::InputTextMultiline( "##TextArea:Input", buffer.data(), buffer.capacity() + 1,
-                                                      ImVec2( ComputeWidth(), windowSize.y * 0.3f ), flags, resizeCallback, std::addressof( buffer ) ) };
-
-        if (ImGui::IsItemHovered()) { ImGui::SetMouseCursor( ImGuiMouseCursor_TextInput ); }
-
-        ImGui::SetWindowFontScale( minScale );
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_TextInput );
+        }
 
         return active;
     }

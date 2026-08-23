@@ -1843,7 +1843,7 @@ namespace mikoto::editor {
             textComponent.SetColor( color );
         }
 
-        widget::MakeHelpPopUp( "Select the current font.", "(?)" );
+        widget::MakeHelpPopUpDelay( "Select the current font.", "" );
 
         eastl::string fontPath{ "Select font" };
 
@@ -1878,7 +1878,9 @@ namespace mikoto::editor {
             return string::Equal( currentAlignment, target );
         }, "SetupTextComponentTab:Alignment" );
 
-        widget::MakeHelpPopUp( "Text alignment.", "(?)" );
+        if (!ImGui::IsItemActive()) {
+            widget::MakeHelpPopUpDelay( "Text alignment.", "" );
+        }
 
         // Slider float font size
         float currentSize{ textComponent.GetSize() };
@@ -1886,7 +1888,9 @@ namespace mikoto::editor {
         if ( gui::Slider( "##WorldSize", currentSize, { TextComponent::GetMinLetterSize(), 500.0f } ) ) {
             textComponent.SetSize( currentSize );
         }
-        widget::MakeHelpPopUp( "Text size in world space.", "(?)" );
+        if (!ImGui::IsItemActive()) {
+            widget::MakeHelpPopUpDelay( "Text size in world space.", "" );
+        }
 
         // Slider float letter spacing
         float spacing{ textComponent.GetSpacing() };
@@ -1895,7 +1899,10 @@ namespace mikoto::editor {
             textComponent.SetSpacing( spacing );
         }
 
-        widget::MakeHelpPopUp( "Text inner spacing.", "(?)" );
+        if (!ImGui::IsItemActive()) {
+            widget::MakeHelpPopUpDelay( "Text inner spacing.", "" );
+        }
+
 
         // Slider float letter spacing
         bool isWorldText{ textComponent.IsWorldText() };

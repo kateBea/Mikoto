@@ -25,6 +25,7 @@
 namespace mikoto::gui::widget {
 
     auto MakeHelpPopUp( eastl::string_view description, eastl::string_view placeHolder = "(?)" ) -> void;
+    auto MakeHelpPopUpDelay(eastl::string_view description, eastl::string_view placeHolder, float duration = 2.0f ) -> void;
 
     MKT_NODISCARD auto MakeIconTitle( eastl::string_view panelIcon, eastl::string_view panelName ) -> eastl::string;
 

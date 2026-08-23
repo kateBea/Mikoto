@@ -111,9 +111,5 @@ FSOutput main(FSInput input) {
     occlusion = 1.0f - (occlusion / float(SSAO_KERNEL_SIZE));
     o.Occlusion = occlusion;
 
-    // DEBUG
-    if (parameters.mSamplerID != 0) {
-        o.Occlusion = 1.0f;
-    }
     return o;
 }

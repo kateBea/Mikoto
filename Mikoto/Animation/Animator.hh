@@ -73,7 +73,6 @@ namespace mikoto::animation {
     private:
         ModelHandle mModel{};
 
-        u64 mAnimationID{};
         f32 mCurrentTime{};
 
         SkinnedAnimation* mCurrentAnimation{};

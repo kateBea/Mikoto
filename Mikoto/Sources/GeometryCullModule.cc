@@ -279,16 +279,16 @@ namespace mikoto::renderer {
             const PhysicalMaterial *meshMaterial{ checked_cast<const PhysicalMaterial*>( materialComponent.GetMaterial().GetRaw() ) };
 
             auto& meshBatch{ mBatch.Get( meshNode, ctx, b ) };
+            auto& meshBatchDrawInfo{ mMeshBatchInfos[meshNode] };
 
-            // Pack materials
             // If I have more instances than what I can hold
-            if ( meshBatch.mInstanceCount >= meshBatch.mGeometryList.size()) {
-                meshBatch.mGeometryList.emplace_back();
-                meshBatch.mMaterialsList.emplace_back();
+            if ( meshBatchDrawInfo.mInstanceCount >= meshBatchDrawInfo.mGeometryList.size()) {
+                meshBatchDrawInfo.mGeometryList.emplace_back();
+                meshBatchDrawInfo.mMaterialsList.emplace_back();
             }
 
-            MeshGeometryInfo& geometry{ meshBatch.mGeometryList[meshBatch.mInstanceCount] };
-            MeshMaterialInfo& material{ meshBatch.mMaterialsList[meshBatch.mInstanceCount] };
+            MeshGeometryInfo& geometry{ meshBatchDrawInfo.mGeometryList[meshBatchDrawInfo.mInstanceCount] };
+            MeshMaterialInfo& material{ meshBatchDrawInfo.mMaterialsList[meshBatchDrawInfo.mInstanceCount] };
 
             geometry.mIndexOffset = meshBatch.mGeometryInfo.mIndexOffset;
             geometry.mVertexOffset = meshBatch.mGeometryInfo.mVertexOffset;
@@ -306,6 +306,8 @@ namespace mikoto::renderer {
                 if ( animator != nullptr && animator->IsPlaying() ) {
                     geometry.mSkinningMatricesID = as<i32>( sm.GetAnimatorID() );
                     mActiveFinalMatsIndices.emplace( geometry.mSkinningMatricesID );
+                } else {
+                    geometry.mSkinningMatricesID = -1;
                 }
             }
 
@@ -342,7 +344,7 @@ namespace mikoto::renderer {
             material.mMetallicRoughnessIndex   = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eMetallicRoughness ) );
             material.mSpecularGlossinessIndex   = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eSpecularGlossiness ) );
 
-            meshBatch.mInstanceCount += 1;
+            meshBatchDrawInfo.mInstanceCount += 1;
         }
 
         PrepareSkinning( ctx, b );
@@ -373,11 +375,21 @@ namespace mikoto::renderer {
 
         GeometryCullModuleInfo& info{ b.Get<GeometryCullModuleInfo>() };
 
-        usize previousFirstInstance{};
         usize indirectDrawCount{};
+        usize previousFirstInstance{};
         for (auto& [node, instanceInfo] : mBatch.mInstanceCounts) {
-            if (instanceInfo.mInstanceCount == 0) {
+            auto& meshBatchDrawInfo{ mMeshBatchInfos[node] };
+            if (meshBatchDrawInfo.mInstanceCount == 0) {
                 continue;
+            }
+
+            // Grow vectors if required, we need to have enough space to hold at least
+            // the following number of instances
+            if ((previousFirstInstance + meshBatchDrawInfo.mInstanceCount) > mGeometryList.size()) {
+                const usize requiredExtraSpace{ (previousFirstInstance + meshBatchDrawInfo.mInstanceCount) - mGeometryList.size() };
+
+                mGeometryList.resize( mGeometryList.size() + requiredExtraSpace );
+                mMaterialsList.resize( mMaterialsList.size() + requiredExtraSpace );
             }
 
             // IMPORTANT: VertexCount must be the INDEX count when doing vertex pulling.
@@ -385,21 +397,20 @@ namespace mikoto::renderer {
             //     index = Indices[IndexOffset + VertexID]
             // Vertex count tells how many times the vertex shader will run.
             // So the shader must run once per index, not once per vertex.
-            mIndirectCmds[indirectDrawCount].mInstanceCount = instanceInfo.mInstanceCount;
+            mIndirectCmds[indirectDrawCount].mInstanceCount = meshBatchDrawInfo.mInstanceCount;
             mIndirectCmds[indirectDrawCount].mVertexCount = node->GetIndexBuffer()->GetSizeBytes() / MKT_SIZEOF( u32 ); // For vertex pulling it is the indices count
             mIndirectCmds[indirectDrawCount].mFirstInstance = previousFirstInstance;
 
-            context.CopyBuffer( info.mGeometryBuffer, previousFirstInstance * MKT_SIZEOF( MeshGeometryInfo ),
-                instanceInfo.mGeometryList.data(), instanceInfo.mInstanceCount * MKT_SIZEOF( MeshGeometryInfo ) );
-
-            context.CopyBuffer( info.mMaterialsBuffer, previousFirstInstance * MKT_SIZEOF( MeshMaterialInfo ),
-                instanceInfo.mMaterialsList.data(), instanceInfo.mInstanceCount * MKT_SIZEOF( MeshMaterialInfo ) );
+            void* geometryStartOffsetPtr{ previousFirstInstance + mGeometryList.data() };
+            void* materialStartOffsetPtr{ previousFirstInstance + mMaterialsList.data() };
+            std::memcpy( geometryStartOffsetPtr, meshBatchDrawInfo.mGeometryList.data(), MKT_VECTOR_SIZE_BYTES( meshBatchDrawInfo.mGeometryList ) );
+            std::memcpy( materialStartOffsetPtr, meshBatchDrawInfo.mMaterialsList.data(), MKT_VECTOR_SIZE_BYTES( meshBatchDrawInfo.mMaterialsList ) );
 
             // Advance base instance
-            previousFirstInstance += instanceInfo.mInstanceCount;
+            previousFirstInstance += meshBatchDrawInfo.mInstanceCount;
 
             // Reset for next frame
-            instanceInfo.mInstanceCount = 0;
+            meshBatchDrawInfo.mInstanceCount = 0;
 
             ++indirectDrawCount;
         }
@@ -407,6 +418,9 @@ namespace mikoto::renderer {
         mDrawCount = indirectDrawCount;
 
         if (mDrawCount != 0) {
+            context.CopyBuffer( info.mGeometryBuffer, 0, mGeometryList.data(), previousFirstInstance * MKT_SIZEOF( MeshGeometryInfo ) );
+            context.CopyBuffer( info.mMaterialsBuffer, 0, mMaterialsList.data(), previousFirstInstance * MKT_SIZEOF( MeshMaterialInfo ) );
+
             context.CopyBuffer( mIndirectBuffer, 0, mIndirectCmds.data(), mDrawCount * MKT_SIZEOF(DrawIndirectCommand) );
         }
     }

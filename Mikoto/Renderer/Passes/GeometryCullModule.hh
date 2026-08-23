@@ -159,12 +159,7 @@ namespace mikoto::renderer {
 
     struct MeshNodeInstancesInfo {
         core::u32 mAllocationIndex{};
-        core::u32 mInstanceCount{};
-
         GeometryAllocation mGeometryInfo{};
-
-        eastl::vector<MeshGeometryInfo> mGeometryList{};
-        eastl::vector<MeshMaterialInfo> mMaterialsList{};
     };
 
     struct GeometryCullModuleInfo {
@@ -211,10 +206,22 @@ namespace mikoto::renderer {
         auto PushTextureID( CommandContext& ctx, TextureHandle handle ) -> core::i32;
 
     private:
+        struct MeshBatchInfo {
+            core::usize mInstanceCount{};
+            eastl::vector<MeshGeometryInfo> mGeometryList{};
+            eastl::vector<MeshMaterialInfo> mMaterialsList{};
+        };
+
+    private:
         const scene::Scene* mScene{};
         const scene::Camera* mCamera{};
 
         GeometryBatch mBatch{};
+
+        eastl::vector<MeshGeometryInfo> mGeometryList{};
+        eastl::vector<MeshMaterialInfo> mMaterialsList{};
+
+        ankerl::unordered_dense::map<const asset::MeshNode*, MeshBatchInfo> mMeshBatchInfos{};
 
         // Indirect draw
         static constexpr core::u32 kMaxIndirectCommands{ 1000000 };

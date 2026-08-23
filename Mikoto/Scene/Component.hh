@@ -762,7 +762,7 @@ namespace mikoto::scene {
     class SkinnedMeshRenderer {
     public:
         explicit SkinnedMeshRenderer( u64 ID = 0)
-            : m_AnimatorID{ ID } {}
+            : mAnimatorID{ ID } {}
 
         SkinnedMeshRenderer( const SkinnedMeshRenderer& other ) = default;
         SkinnedMeshRenderer( SkinnedMeshRenderer&& other ) = default;
@@ -772,10 +772,10 @@ namespace mikoto::scene {
 
         ~SkinnedMeshRenderer() = default;
 
-        MKT_NODISCARD auto GetAnimatorID() const -> u64 { return m_AnimatorID; }
+        MKT_NODISCARD auto GetAnimatorID() const -> u64 { return mAnimatorID; }
 
     private:
-        u64 m_AnimatorID{};
+        u64 mAnimatorID{};
     };
 
     class PostProcessMaterialComponent {

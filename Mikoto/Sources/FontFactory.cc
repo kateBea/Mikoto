@@ -51,17 +51,13 @@ namespace mikoto::renderer {
             return result;
         }
 
-        // Storage for glyph geometry and their coordinates in the atlas
-        GeometryList glyphs{};
-
         std::vector<msdfgen::FontVariationAxis> axes{};
         msdfgen::listFontVariationAxes( axes, mFreeTypeHandle, font );
 
         // FontGeometry is a helper class that loads a set of glyphs from a single font.
         // It can also be used to get additional font metrics, kerning information, etc.
-
-        std::vector<msdf_atlas::GlyphGeometry> v{ glyphs.begin(), glyphs.end() };
-        msdf_atlas::FontGeometry fontGeometry( std::addressof( v ) );
+        GeometryList glyphs{};
+        msdf_atlas::FontGeometry fontGeometry( std::addressof( glyphs ) );
 
         constexpr float fontScale{ 2.0f };
 
@@ -72,12 +68,12 @@ namespace mikoto::renderer {
                 CharsetRange{ 0x0020, 0x007F },// Basic Latin
                 CharsetRange{ 0x3040, 0x309F },// Hiragana
                 CharsetRange{ 0x30A0, 0x30FF },// Katakana
-                CharsetRange{ 0x00A0, 0x00FF },// Latin-1 Supplement
+                //CharsetRange{ 0x00A0, 0x00FF },// Latin-1 Supplement
                 //CharsetRange{ 0x4E00, 0x9FFF }, // CJK Unified Ideographs
                 //CharsetRange{ 0x0100, 0x017F },// Latin Extended-A
                 //CharsetRange{ 0x0180, 0x024F },// Latin Extended-B
-                CharsetRange{ 0x0370, 0x03FF },// Greek & Coptic
-                CharsetRange{ 0x0400, 0x04FF } // Cyrillic
+                // CharsetRange{ 0x0370, 0x03FF },// Greek & Coptic
+                // CharsetRange{ 0x0400, 0x04FF } // Cyrillic
             };
 
             msdf_atlas::Charset charset{};
@@ -105,7 +101,7 @@ namespace mikoto::renderer {
 
             constexpr double maxCornerAngle{ 3.0 };
 
-            msdf_atlas::Workload( [&glyphs, &glyphSeed]( int i, int threadNo ) -> bool {
+            msdf_atlas::Workload( [&glyphs = glyphs, &glyphSeed]( int i, int threadNo ) -> bool {
                 glyphSeed = ( LCG_MULTIPLIER * ( coloringSeed ^ i ) + LCG_INCREMENT ) * !!coloringSeed;
                 glyphs[i].edgeColoring( msdfgen::edgeColoringInkTrap, maxCornerAngle, glyphSeed );
                 return true;
@@ -200,8 +196,10 @@ namespace mikoto::renderer {
         auto textureDesc{ TextureCreateDescription{}
             .SetWidth( atlasWidth )
             .SetHeight( atlasHeight )
-            .SetBufferData( BufferSpanHandle::Spawn( rc_cast<byte_t*>( bitmap.pixels ), as<size_t>( atlasWidth * atlasHeight * channelCount ) ) )
             .SetDimensions( TextureDimension::eTexture2D )
+            .SetMultisampling( Multisampling::eMsaaX1 )
+            .SetUsage( TextureUsageFlagsBits::kCopyDst | TextureUsageFlagsBits::kShaderResource )
+            .SetBufferData( BufferSpanHandle::Spawn( rc_cast<ubyte*>( bitmap.pixels ), as<usize>( atlasWidth * atlasHeight * channelCount ) ) )
             .SetFormat( Format::eRGBA8_UNORM ) };
 
         data.mAtlas = mDevice->CreateTexture( textureDesc );

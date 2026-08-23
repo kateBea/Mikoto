@@ -151,14 +151,14 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = false;
     }
 
-    auto Texture::InitInitialData2D() -> void {
+    auto Texture::InitInitialData2D( memory::BufferSpanHandle buffer ) -> void {
         u64 fenceValue{ 0 };
         FenceHandle fence{ mDevice->CreateFence( fenceValue++ ) };
         CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
         cmd->Begin( { .mScopeName = string::Format( "Texture upload: {}", mDebugName ) } );
 
         // Data is always writen at mip zero
-        cmd->Write( this, 0, mImageData->mBufferSpan->GetData(), mImageData->mBufferSpan->GetSize() );
+        cmd->Write( this, 0, buffer->GetData(), buffer->GetSize() );
 
         // These textures are often loaded to be read from shaders
         cmd->SetTransition( this, ResourceStates::eShaderResource );
@@ -197,7 +197,7 @@ namespace mikoto::renderer::vulkan {
         return mImageAllocation.mImage;
     }
 
-    auto Texture::InitInitialDataCube() -> void {
+    auto Texture::InitInitialDataCube( memory::BufferSpanHandle buffer ) -> void {
 
     }
 
@@ -290,9 +290,21 @@ namespace mikoto::renderer::vulkan {
 
             if ( !mImageData.IsEmpty() ) {
                 if (mDimension == TextureDimension::eTexture2D) {
-                    InitInitialData2D();
+                    InitInitialData2D( mImageData->mBufferSpan );
                 } else if (mDimension == TextureDimension::eTextureCube) {
-                    InitInitialDataCube();
+                    InitInitialDataCube( mImageData->mBufferSpan );
+                }
+
+                if (!mKeepInitializerResources) {
+                    mImageData.Reset();
+                }
+            }
+
+            if ( !mBufferSpan.IsEmpty() ) {
+                if (mDimension == TextureDimension::eTexture2D) {
+                    InitInitialData2D( mBufferSpan );
+                } else if (mDimension == TextureDimension::eTextureCube) {
+                    InitInitialDataCube( mBufferSpan );
                 }
 
                 if (!mKeepInitializerResources) {

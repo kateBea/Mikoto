@@ -40,6 +40,7 @@ namespace mikoto::renderer {
         core::float4x4 mModel{};
 
         core::float4 mOutlineColor{};
+        core::f32 mOutlineWidth{};
 
         core::float4 mPosition{};
         core::float4 mSize{};
@@ -47,7 +48,6 @@ namespace mikoto::renderer {
 
         core::float2 mTexCoords[4]{};
 
-        core::f32 mOutlineWidth{};
         core::u32 mTextureAtlasID{};
     };
 

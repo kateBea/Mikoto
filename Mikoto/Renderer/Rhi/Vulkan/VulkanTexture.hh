@@ -25,6 +25,8 @@
 #include <Core/String.hh>
 #include <Core/Types.hh>
 
+#include <Memory/BufferSpan.hh>
+
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Texture.hh>
 
@@ -84,8 +86,8 @@ namespace mikoto::renderer::vulkan {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
-        auto InitInitialData2D() -> void;
-        auto InitInitialDataCube() -> void;
+        auto InitInitialData2D( memory::BufferSpanHandle buffer ) -> void;
+        auto InitInitialDataCube( memory::BufferSpanHandle buffer ) -> void;
 
     private:
         VkImageAspectFlags mAspectFlags{};

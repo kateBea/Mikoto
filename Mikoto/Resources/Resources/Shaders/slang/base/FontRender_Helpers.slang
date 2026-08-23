@@ -100,9 +100,9 @@ struct TextVertexDescription {
 // Datos estáticos del Quad embebidos directamente en el shader
 static const TextVertexDescription kTextVertices[4] = {
     { float3(0.0f, 0.0f, 0.0f), 0 },
-    { float3(1.0f, 0.0f, 0.0f), 0 }, // Cambia el índice si usas texturas distintas por vértice
-    { float3(1.0f, 1.0f, 0.0f), 0 },
-    { float3(0.0f, 1.0f, 0.0f), 0 }
+    { float3(1.0f, 0.0f, 0.0f), 1 }, // Cambia el índice si usas texturas distintas por vértice
+    { float3(1.0f, 1.0f, 0.0f), 2 },
+    { float3(0.0f, 1.0f, 0.0f), 3 }
 };
 
 // Índices para el orden de dibujo del Quad

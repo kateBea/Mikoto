@@ -46,19 +46,18 @@ struct VSInput {
 
 struct VSOutput {
     float2 TexCoord : TEXCOORD0;
-    uint AtlasIndex : TEXCOORD1;
-    float4 Color : TEXCOORD2;
+    uint InstanceIndex : TEXCOORD1;
 
     float4 PositionH : SV_Position;
 };
 
 struct DrawParams {
-    uint TextSamplerID;
-    uint TextParametersID;
+    uint mTextSamplerID;
+    uint mTextParametersID;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("vertex")]
 VSOutput main(VSInput input) {
@@ -67,12 +66,11 @@ VSOutput main(VSInput input) {
     uint vertexIndex = kTextIndices[input.VertexID];
     TextVertexDescription vertex = kTextVertices[vertexIndex];
 
-    ByteAddressBuffer textBuffer = buffers[Parameters.TextParametersID];
-    FontRenderParams p = textBuffer.Read<FontRenderParams>(0, input.InstanceIndex);
+    FontRenderParams p = buffers[parameters.mTextParametersID]
+        .Read<FontRenderParams>(0, input.InstanceIndex);
 
     o.TexCoord = p.TextureCoords[vertex.mTextureIndex];
-    o.AtlasIndex = p.TextureIndex;
-    o.Color = p.Color;
+    o.InstanceIndex = input.InstanceIndex;
 
     float3 pos = vertex.mPosition * p.Size.xyz + p.Position.xyz;
 

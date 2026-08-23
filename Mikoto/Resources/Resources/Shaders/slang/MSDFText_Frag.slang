@@ -18,8 +18,7 @@
 
 struct FSInput {
     float2 TexCoord : TEXCOORD0;
-    uint AtlasIndex : TEXCOORD1;
-    float4 Color : TEXCOORD2;
+    uint InstanceIndex : TEXCOORD1;
 };
 
 struct FSOutput {
@@ -27,14 +26,15 @@ struct FSOutput {
 };
 
 struct DrawParams {
-    uint TextSamplerID;
-    uint TextParametersID;
+    uint mTextSamplerID;
+    uint mTextParametersID;
 };
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
-
-MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
 MKT_DECLARE_SAMPLERS samplers;
+MKT_DECLARE_STRUCTURED_SRV buffers;
+MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
@@ -42,8 +42,11 @@ FSOutput main(FSInput input) {
 
     float threshold = 0.5;
 
-    Texture2D msdfTexture = textures[input.AtlasIndex];
-    SamplerState textSampler = samplers[parameters.TextSamplerID];
+    FontRenderParams fontParams = buffers[parameters.mTextParametersID]
+        .Read<FontRenderParams>(0, input.InstanceIndex);
+
+    Texture2D msdfTexture = textures[fontParams.TextureIndex];
+    SamplerState textSampler = samplers[parameters.mTextSamplerID];
 
     float3 msdf = msdfTexture.Sample(textSampler, input.TexCoord).rgb;
     float sd = Median(msdf);
@@ -54,7 +57,7 @@ FSOutput main(FSInput input) {
     float opacity = clamp(screenPxDist + threshold, 0.0, 1.0);
 
     float4 bg = float4(0.0);
-    o.Color = lerp(bg, input.Color, opacity);
+    o.Color = lerp(bg, fontParams.Color, opacity);
 
     return o;
 }

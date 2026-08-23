@@ -306,10 +306,9 @@ namespace mikoto::asset {
         CreateAssetCacheFolder( path );
 
         return mFonts.LoadOrGet( path, [this, description, path, fontFile = description.mFile] {
-            // This lambda runs ONLY once (per asset)
             auto fontDesc{ FontLoadDescription{}
                 .SetFile( fontFile )
-                .SetSize( description.mFile ) };
+                .SetSize( description.mSize ) };
 
             FontHandle fontHandle{ mFontFactory->LoadFont( fontDesc ) };
 

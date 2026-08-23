@@ -80,7 +80,7 @@ namespace mikoto::renderer {
 
     private:
 
-        using GeometryList = eastl::vector<msdf_atlas::GlyphGeometry>;
+        using GeometryList = std::vector<msdf_atlas::GlyphGeometry>;
         using AtlasGenerator = msdf_atlas::ImmediateAtlasGenerator<float, 4,
             msdf_atlas::mtsdfGenerator, msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>>;
         using BitmapAtlasStorage = msdf_atlas::BitmapAtlasStorage<msdf_atlas::byte, 4>;

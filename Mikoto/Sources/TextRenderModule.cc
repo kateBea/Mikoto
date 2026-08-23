@@ -51,6 +51,8 @@ namespace mikoto::renderer {
     }
 
     auto TextRenderModule::RegisterPasses( FrameGraph &graph) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
         RegisterSlugPass( graph );
         RegisterTextRender( graph );
     }
@@ -87,7 +89,7 @@ namespace mikoto::renderer {
             .SetPipelineType( PipelineType::eGraphics )
             .SetTopology( PrimitiveTopology::eTriangleList )
             .SetDepthFormat( Format::eD32 )
-            .AddColorFormat( Format::eRGBA8_UNORM )
+            .AddColorFormat( Format::eRGBA16_FLOAT )
             .PushShader( "MSDFText_Vert.slang", FGStageType::eVertex )
             .PushShader( "MSDFText_Frag.slang", FGStageType::ePixel ) };
         info.mMsdfPipeline = graph.Create( pipelineBuilder );
@@ -156,7 +158,7 @@ namespace mikoto::renderer {
 
                 ctx.BindPipeline( textRenderData.mMsdfPipeline );
 
-                ctx.Draw( 6 );
+                ctx.Draw( 6, mGlyphCount );
 
                 ctx.EndRender();
             } );
@@ -258,7 +260,7 @@ namespace mikoto::renderer {
 
                         MKT_ASSERT( mGlyphCount <= kMaxGlyphs, "Exceeded max glyphs" );
 
-                        if (mGlyphCount > mTextInfo.size()) {
+                        if (mTextInfo.size() <= mGlyphCount) {
                             mTextInfo.emplace_back( fontParams );
                         } else {
                             mTextInfo[mGlyphCount++] = fontParams;

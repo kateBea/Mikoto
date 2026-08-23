@@ -67,11 +67,22 @@ namespace mikoto::material {
         explicit SkyboxMaterial( eastl::string_view name = "SkyboxMaterial" );
         explicit SkyboxMaterial( const SkyboxMaterialDescription& desc );
 
+        auto SetEquirectangular( renderer::rhi::TextureHandle texture ) -> void;
         auto SetFace( SkyboxFace face, renderer::rhi::TextureHandle texture ) -> void;
 
         auto SetType( SkyboxType type ) -> void;
+
+        auto SetExposure( core::f32 exposure ) -> void;
+        auto SetGamma( core::f32 gamma ) -> void;
+        auto SetAmbientScale( core::f32 scale ) -> void;
+
         MKT_NODISCARD auto IsType( SkyboxType type ) const -> bool;
         MKT_NODISCARD auto GetType() const -> SkyboxType;
+
+        MKT_NODISCARD auto GetExposure() const -> core::f32;
+        MKT_NODISCARD auto GetGamma() const -> core::f32;
+        MKT_NODISCARD auto GetAmbientScale() const -> core::f32;
+
 
         MKT_NODISCARD auto GetFace(SkyboxFace face) -> renderer::rhi::TextureHandle;
         MKT_NODISCARD auto GetFaceTextures() -> ankerl::unordered_dense::map<SkyboxFace, renderer::rhi::TextureHandle>&;
@@ -80,6 +91,10 @@ namespace mikoto::material {
         ~SkyboxMaterial() override = default;
 
     private:
+        core::f32 mExposure{ 2.0f };
+        core::f32 mGamma{ 2.0f };
+        core::f32 mAmbientScale{ 1.0f };
+
         SkyboxType mType{ SkyboxType::eCubeFaces };
         renderer::rhi::TextureHandle mEquirectangular{};
         ankerl::unordered_dense::map<SkyboxFace, renderer::rhi::TextureHandle> mCubeFaces{};

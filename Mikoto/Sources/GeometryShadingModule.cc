@@ -68,10 +68,6 @@ namespace mikoto::renderer {
         mResolution = resolution;
     }
 
-    auto GeometryShadingModule::SetEquirectangular( FGTextureHandle texture ) -> void {
-        mEquirectangularTexture = texture;
-    }
-
     auto GeometryShadingModule::SetSkyboxMaterial( material::MaterialHandle material ) -> void {
         // Release first descriptor table indices from old material textures
 
@@ -460,7 +456,7 @@ namespace mikoto::renderer {
                 } params{
                     .mMvp = math::constants::Identity<float4x4>(),
                     .mBasicSamplerID = ctx.PushSampler(data.mDefaultSampler),
-                    .mEquirectangularID = ctx.PushTexture_SRV(mEquirectangularTexture),
+                    .mEquirectangularID = ctx.PushTexture_SRV(ctx.ImportTexture( material->GetEquirectangular() )),
 
                     .mVertexBufferID = ctx.PushBuffer_SRV(data.mBoxVertexBuffer),
                     .mIndexBufferID = ctx.PushBuffer_SRV(data.mBoxIndexBuffer) };
@@ -533,15 +529,6 @@ namespace mikoto::renderer {
                 auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
             } );
 
-        const auto skyboxMatDesc{ SkyboxMaterialDescription{}
-            .SetCubeFace( SkyboxFace::eBack, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/back.jpg", TextureDimension::eTexture2D ) )
-            .SetCubeFace( SkyboxFace::eBottom, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/bottom.jpg", TextureDimension::eTexture2D ) )
-            .SetCubeFace( SkyboxFace::eFront, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/front.jpg", TextureDimension::eTexture2D ) )
-            .SetCubeFace( SkyboxFace::eLeft, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/left.jpg", TextureDimension::eTexture2D ) )
-            .SetCubeFace( SkyboxFace::eRight, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/right.jpg", TextureDimension::eTexture2D ) )
-            .SetCubeFace( SkyboxFace::eTop, AssetsService::Get()->LoadAsset<ITexture>( "Resources/Cubemaps/BlueSkybox/top.jpg", TextureDimension::eTexture2D ) ) };
-        mSkyboxMaterialDebug = AssetsService::Get()->CreateMaterial( skyboxMatDesc );
-
         // This pass is done for testing purposes,
         // to see if copy yields faster results than compute
 
@@ -561,17 +548,16 @@ namespace mikoto::renderer {
                 b.UseResource( info.mSkyboxCubeRT, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
             [this]( CommandContext& ctx, Blackboard& blackboard) {
-                // if (mSkyboxMaterial.IsEmpty()) {
-                //     return;
-                // }
+                if (mSkyboxMaterial.IsEmpty()) {
+                    return;
+                }
 
-                // auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
-                // if (!material->IsType( SkyboxType::eCubeFaces )) {
-                //     return;
-                // }
+                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
+                if (!material->IsType( SkyboxType::eCubeFaces )) {
+                    return;
+                }
 
                 // Prepare textures
-                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterialDebug.GetRaw() ) };
                 const auto& textures{ material->GetFaceTextures() };
                 for (const auto& [face, texture] : textures) {
                     mSkyboxFaces[face] = ctx.ImportTexture( texture );
@@ -723,7 +709,7 @@ namespace mikoto::renderer {
         // Resources:
         // https://github.khronos.org/Vulkan-Site/tutorial/latest/Building_a_Simple_Engine/Lighting_Materials/04_lighting_implementation.html
 
-        GeomShadingModuleInfo& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+        auto& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( "PBR_MetallicRoughness_Pipeline" )
@@ -838,7 +824,7 @@ namespace mikoto::renderer {
                     .mEnableSsao = mEnableSsao ? MKT_SHADER_TRUE : MKT_SHADER_FALSE,
                     .mSsaoIntensity = mSsaoIntensity,
                     .mPrefilteredCubeMipLevels = mPrefilterMipLevels,
-                    .mScaleIblAmbient = 5.0f,
+                    .mScaleIblAmbient = mAbientScale,
                     .mIsSkyboxActive = mBackgroundType != SceneBackgroundType::eClearColor ? MKT_SHADER_TRUE : MKT_SHADER_FALSE };
                 ctx.PushConstants( params );
 

@@ -115,10 +115,6 @@ namespace mikoto::renderer {
         auto SetExposure( core::f32 value ) -> void;
         auto SetAmbientScale( core::f32 ambient ) -> void;
 
-        // This guy will be deprecated as we
-        // will use skybox materials instead
-        auto SetEquirectangular( FGTextureHandle texture ) -> void;
-
         auto SetSkyboxMaterial( material::MaterialHandle material ) -> void;
 
         auto SetRenderBackground( SceneBackgroundType bg ) -> void;
@@ -188,10 +184,7 @@ namespace mikoto::renderer {
         core::f32 mGamma{ 1.0f };
         core::f32 mExposure{ 1.0f };
         core::f32 mAbientScale{ 1.0f };
-        rhi::TextureHandle mSkyboxHdrTexture{};
-        FGTextureHandle mEquirectangularTexture{};
         material::MaterialHandle mSkyboxMaterial{};
-        material::MaterialHandle mSkyboxMaterialDebug{};
 
         // Wireframe
         bool mIsWireframeActive{ false };

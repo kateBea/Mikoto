@@ -441,6 +441,10 @@ namespace mikoto::renderer {
     }
 
     auto FGStatisticsManager::RegisterNode( eastl::string_view name ) -> FGNodeStatistics* {
+        if ( !mGraphNodes.contains( name.data() ) ) {
+            mGraphNodes[name.data()] = eastl::make_unique<FGNodeStatistics>();
+        }
+
         return mGraphNodes[name.data()].get();
     }
 
@@ -709,7 +713,22 @@ namespace mikoto::renderer {
             const auto& barriers{ mExecutionPlan.mBarriers[passName] };
             ctx.CommitBarriers( barriers );
 
+            Timer timer{ false };
+            const double elapsed{ timer.GetCurrentProgress( TimeUnit::eMicroseconds ) };
+
             pass.mExecuteCallback( ctx, mBlackboard );
+
+            FGNodeStatistics& stats{ *mStatisticsManager->GetNode( pass.mName ) };
+
+            stats.mLastExecutionTime = elapsed;
+
+            if (elapsed > stats.mMaxExecutionTime) {
+                stats.mMaxExecutionTime = elapsed;
+            } else {
+                if (stats.mMinExecutionTime == 0) stats.mMinExecutionTime = stats.mLastExecutionTime;
+                else if (elapsed < stats.mMinExecutionTime) stats.mMinExecutionTime = elapsed;
+            }
+
             ctx.EndPass();
         }
 

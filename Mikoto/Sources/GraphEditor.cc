@@ -27,6 +27,8 @@
 #include <Core/Types.hh>
 #include <Core/String.hh>
 
+#include <Memory/Allocator.hh>
+
 #include <ImGui/GraphEditor.hh>
 
 namespace mikoto::gui {
@@ -70,11 +72,12 @@ namespace mikoto::gui {
         mNodes = std::move( builder.mNodes );
     }
 
-    auto GraphEditor::Render() -> void {
+    auto GraphEditor::Render( bool& open ) -> void {
         namespace ed = ax::NodeEditor;
 
-        ImGui::Begin("Graph Editor");
-        auto& io = ImGui::GetIO();
+        ImGui::Begin("Graph Editor", MKT_ADDRESSOF( open ));
+
+        auto& io{ ImGui::GetIO() };
 
         ImGui::Text("FPS: %.2f (%.2gms)", io.Framerate, io.Framerate ? 1000.0f / io.Framerate : 0.0f);
 

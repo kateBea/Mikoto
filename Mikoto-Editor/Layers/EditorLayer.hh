@@ -40,6 +40,8 @@
 #include <Scene/Scene.hh>
 #include <Scene/Entity.hh>
 
+#include <ImGui/GraphEditor.hh>
+
 #include <Panels/Panel.hh>
 
 #include <Theme/Theme.hh>
@@ -109,6 +111,8 @@ namespace mikoto::editor {
 
         auto RenderScene( float ts ) -> void;
 
+        auto RenderFrameGraphEditor() -> void;
+
         auto UpdateViewportState( float ts ) -> void;
         auto UpdateSceneState( float ts ) -> void;
         auto UpdateCameraState( float ts ) -> void;
@@ -127,6 +131,10 @@ namespace mikoto::editor {
         eastl::unique_ptr<core::ActionManager> mActionManager{};
 
         renderer::rhi::CommandListHandle mCommandList{};
+
+        // Renderer display settings
+        bool mShowRenderGraph{};
+        gui::GraphEditor mGraphEditor{ "RenderGraph" };
 
         ScreenPresentTarget mScreenPresentTarget{ ScreenPresentTarget::ePanels };
     };

@@ -55,7 +55,7 @@ namespace mikoto::gui {
     public:
         explicit GraphEditor( eastl::string_view name );
 
-        auto Render() -> void;
+        auto Render( bool& open ) -> void;
 
         auto Build( GraphEditorBuilder& builder ) -> void;
 

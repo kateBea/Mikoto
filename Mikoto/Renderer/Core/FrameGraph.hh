@@ -405,9 +405,9 @@ namespace mikoto::renderer {
         core::u32 mBufferUAVCount{};
 
         // Execution time in ms
-        core::usize mMixExecutionTime{};
-        core::usize mMinExecutionTime{};
-        core::usize mLastExecutionTime{};
+        core::f64 mMaxExecutionTime{};
+        core::f64 mMinExecutionTime{};
+        core::f64 mLastExecutionTime{};
     };
 
     class FGStatisticsManager {

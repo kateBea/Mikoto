@@ -134,6 +134,8 @@ namespace mikoto::editor {
             UpdateDockSpace();
             UpdateDockSpacePanels( timeStep );
 
+            RenderFrameGraphEditor();
+
             UpdateViewportState( timeStep );
         } else {
             RenderSystem::Get()->SetPresentTarget( mEditorState->mFinalComposition );
@@ -761,6 +763,10 @@ namespace mikoto::editor {
                 if (ImGui::MenuItem( "Profiler", "Ctrl+7" )) { /* Toggle core CPU/GPU performance profiler timeline */ }
                 if (ImGui::MenuItem( "Console", "Ctrl+Shift+C" )) { /* Toggle engine log, warning, and error outputs window */ }
 
+                if (ImGui::MenuItem( "Display RenderGraph", "Ctrl+Shift+G", false, !mShowRenderGraph )) {
+                    mShowRenderGraph = !mShowRenderGraph;
+                }
+
                 ImGui::EndMenu();
             }
 
@@ -807,6 +813,12 @@ namespace mikoto::editor {
         RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo), QueueType::eGraphics);
 
         mSceneRenderer->Render( mEditorState->mActiveScene );
+    }
+
+    auto EditorLayer::RenderFrameGraphEditor() -> void {
+        if (mShowRenderGraph) {
+            mGraphEditor.Render( mShowRenderGraph );
+        }
     }
 
     auto EditorLayer::UpdateViewportState( float ) -> void {

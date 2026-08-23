@@ -36,6 +36,8 @@ namespace mikoto::renderer::vulkan {
     public:
         explicit Sampler( const rhi::SamplerCreateDescription& desc );
 
+        auto SetDebugName( eastl::string_view name ) -> void override;
+
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 

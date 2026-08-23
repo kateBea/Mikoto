@@ -567,7 +567,7 @@ FSOutput main(FSInput input) {
     float3 iblLighting = float3(0.0);
 
     if (parameters.mIsSkyboxActive == MKT_SHADER_TRUE) {
-        iblLighting = GetIBLContribution(NdotV, diffuseColor, specularColor, perceptualRoughness, n, reflection, brdfLUT, irradianceMap, prefilteredMap, samplerCube);
+        iblLighting = GetIBLContribution(NdotV, diffuseColor, specularColor, perceptualRoughness, n, reflection, brdfLUT, irradianceMap, prefilteredMap, samplerBasic);
     }
 
     // Final color
@@ -608,10 +608,5 @@ FSOutput main(FSInput input) {
     color += emissiveContrib;
     output.Color = float4(color, baseColor.a);
 
-    // DEBUG: Visualize IBL contribution
-    if (material.EmissiveIndex != INVALID_TEXTURE_INDEX) {
-        output.Color = float4(GetIBLContribution(NdotV, diffuseColor, specularColor, perceptualRoughness, n, reflection, brdfLUT, irradianceMap, prefilteredMap, samplerCube), 1.0f);
-    }
-    
     return output;
 }

@@ -838,7 +838,7 @@ namespace mikoto::renderer {
                     .mEnableSsao = mEnableSsao ? MKT_SHADER_TRUE : MKT_SHADER_FALSE,
                     .mSsaoIntensity = mSsaoIntensity,
                     .mPrefilteredCubeMipLevels = mPrefilterMipLevels,
-                    .mScaleIblAmbient = 1.0f,
+                    .mScaleIblAmbient = 5.0f,
                     .mIsSkyboxActive = mBackgroundType != SceneBackgroundType::eClearColor ? MKT_SHADER_TRUE : MKT_SHADER_FALSE };
                 ctx.PushConstants( params );
 

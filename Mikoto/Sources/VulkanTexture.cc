@@ -64,6 +64,18 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
+    auto Sampler::SetDebugName( eastl::string_view name ) -> void {
+        mDebugName = name;
+
+        // There is no device before we call Initialize()
+        if (!mIsAllocated) {
+            return;
+        }
+
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        device->SetDebugName( VK_OBJECT_TYPE_SAMPLER, rc_cast<u64>( mSampler), mDebugName );
+    }
+
     auto Sampler::GetNativeHandle( ObjectType type ) -> Object {
         if ( type != ObjectType::Vk_Sampler ) {
             return Object( nullptr );

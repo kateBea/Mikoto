@@ -859,12 +859,45 @@ namespace mikoto::editor {
             return;
         }
 
-        DisplayTextureEditTreeNode( "Base Color", *material, EditBaseColorProperties );
-        DisplayTextureEditTreeNode( "Metal-ness", *material, EditMetallicProperties );
-        DisplayTextureEditTreeNode( "Roughness", *material, EditRoughnessProperties );
-        DisplayTextureEditTreeNode( "Ambient Occlusion", *material, EditAmbientOcclusionProperties );
-        DisplayTextureEditTreeNode( "Normals", *material, EditNormalsProperties );
-        DisplayTextureEditTreeNode( "Emission", *material, EditEmissionProperties );
+        // Select shading model
+        ImGui::TextUnformatted( "Shading model");
+
+        ImGui::SameLine();
+        ShadingModel currentShadingModel{ material->GetShadingModel() };
+        eastl::array<std::string, as<usize>(ShadingModel::eCount)> choicesAlpha{
+            "Default PBR",
+            "Clear Coat",
+            "Toon Shading",
+            "Flat Shading",
+            "Subsurface Scattering",
+        };
+
+        ShadingModel newShadingModel{ gui::Combo( choicesAlpha, currentShadingModel ) };
+        if (newShadingModel != currentShadingModel) {
+            material->SetShadingModel( newShadingModel );
+        }
+
+        ImGui::SeparatorText( "Properties" );
+
+        switch (newShadingModel) {
+            case ShadingModel::eDefaultPbr:
+                DisplayTextureEditTreeNode( "Base Color", *material, EditBaseColorProperties );
+                DisplayTextureEditTreeNode( "Metal-ness", *material, EditMetallicProperties );
+                DisplayTextureEditTreeNode( "Roughness", *material, EditRoughnessProperties );
+                DisplayTextureEditTreeNode( "Ambient Occlusion", *material, EditAmbientOcclusionProperties );
+                DisplayTextureEditTreeNode( "Normals", *material, EditNormalsProperties );
+                DisplayTextureEditTreeNode( "Emission", *material, EditEmissionProperties );
+                break;
+            case ShadingModel::eClearCoat:
+                break;
+            case ShadingModel::eToonShading:
+                break;
+            case ShadingModel::eFlatShading:
+                break;
+            case ShadingModel::eSubsurfaceScattering:
+                break;
+            default:;
+        }
     }
 
     static auto DrawComponentButton( Entity* entity ) -> void {
@@ -2380,7 +2413,7 @@ namespace mikoto::editor {
         ImGui::Spacing();
 
         if ( ImGui::Button( string::Format( "{} Apply", ICON_MD_CLOUD_DOWNLOAD ).c_str()) ) {
-            
+
         }
 
         gui::SetCursorHandOnLastItemHovered();

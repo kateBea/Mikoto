@@ -63,6 +63,8 @@ namespace mikoto::renderer {
         mCameraPass.RegisterPasses( *mFrameGraph );
         mGeometryManagement.RegisterPasses( *mFrameGraph );
 
+        mSimulationsModule.RegisterPasses( *mFrameGraph );
+
         mRenderPrepass.RegisterPasses( *mFrameGraph );
         mShadowMapping.RegisterPasses( *mFrameGraph );
 
@@ -101,6 +103,7 @@ namespace mikoto::renderer {
         mShadowMapping.SetGeometryManager( mGeometryManagement );
         mGeometryShading.SetGeometryManager( mGeometryManagement );
         mRenderPrepass.SetGeometryManager( mGeometryManagement );
+        mSimulationsModule.SetGeometryManager( mGeometryManagement );
         mMousePickingModule.SetGeometryManager( mGeometryManagement );
         mDisplayEffectsModule.SetGeometryManager( mGeometryManagement );
         mIndirectLightingModule.SetGeometryManager( mGeometryManagement );
@@ -148,6 +151,7 @@ namespace mikoto::renderer {
         mShadowMapping.SetScene( scene );
         mRenderPrepass.SetScene( scene );
         mTextRendering.SetScene( scene );
+        mSimulationsModule.SetScene( scene );
         mPostEffectsPasses.SetScene( scene );
         mGeometryManagement.SetScene( scene );
         mDisplayEffectsModule.SetScene( scene );
@@ -166,6 +170,7 @@ namespace mikoto::renderer {
         mRenderPrepass.SetCamera( camera );
         mTextRendering.SetCamera( camera );
         mShadowMapping.SetCamera( camera );
+        mSimulationsModule.SetCamera( camera );
         mPostEffectsPasses.SetCamera( camera );
         mGeometryManagement.SetCamera( camera );
         mDisplayEffectsModule.SetCamera( camera );

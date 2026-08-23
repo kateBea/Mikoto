@@ -69,7 +69,7 @@ namespace mikoto::renderer {
 
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
 
-        PresentTarget mPresentTarget{ PresentTarget::eChromaticAberration };
+        PresentTarget mPresentTarget{ PresentTarget::eTonemap_Output };
     };
 
 }// namespace mikoto

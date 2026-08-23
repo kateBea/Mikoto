@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@
 #include <Renderer/Passes/GeometryCullModule.hh>
 #include <Renderer/Passes/WaterSimulationModule.hh>
 #include <Renderer/Passes/DisplayEffectsModule.hh>
+#include <Renderer/Passes/SimulationsModule.hh>
 #include <Renderer/Passes/GeometryShadingModule.hh>
 #include <Renderer/Passes/ParticleSimulationModule.hh>
 #include <Renderer/Passes/AtmosphericScatteringModule.hh>
@@ -122,6 +123,8 @@ namespace mikoto::renderer {
         PresentationModule mPresentationModule{ mTargetResolution };
 
         IndirectLightingModule mIndirectLightingModule{ mTargetResolution };
+
+        SimulationsModule mSimulationsModule{ mTargetResolution };
 
         TonemapModule mTonemapModule{ mTargetResolution };
         DisplayEffectsModule mDisplayEffectsModule{ mTargetResolution };

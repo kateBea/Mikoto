@@ -37,6 +37,9 @@
 
 namespace mikoto::renderer {
 
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
+
     DisplayEffectsModule::DisplayEffectsModule( rhi::RenderResolution resolution )
         : mResolution{ resolution }
     {

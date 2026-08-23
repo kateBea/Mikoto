@@ -85,6 +85,7 @@ namespace mikoto::editor {
         InitEmptyScene();
         InitDockingSpace();
         InitSceneRenderer();
+        InitRenderGraphEditor();
         InitEditorCamera();
         InitEditorPanels();
 
@@ -386,6 +387,23 @@ namespace mikoto::editor {
         mActionManager->Bind(core::KeyCode::Key_C, core::ModKey::eControl | core::ModKey::eAlt, []() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + Shift + C (Open Console)" );
         });
+    }
+
+    auto EditorLayer::InitRenderGraphEditor() -> void {
+        // Renderer does not create passes yet for D3D11
+        if (mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 )) {
+            return;
+        }
+
+        GraphEditorBuilder builder{};
+
+        auto& passNodes{ mSceneRenderer->GetPassList() };
+
+        for ( const auto& [passName, pass]: passNodes ) {
+            builder.PushNode( passName );
+        }
+
+        mGraphEditor.Build( builder );
     }
 
     auto EditorLayer::InitEmptyScene() -> void {

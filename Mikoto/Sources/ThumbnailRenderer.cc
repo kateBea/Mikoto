@@ -82,8 +82,10 @@ namespace mikoto::renderer {
     }
 
     auto ThumbnailRenderer::Shutdown() -> void {
-        mShaderLibrary->Shutdown();
-        mShaderLibrary.reset();
+        if (mShaderLibrary) {
+            mShaderLibrary->Shutdown();
+            mShaderLibrary.reset();
+        }
     }
 
     auto ThumbnailRenderer::Render( const scene::Scene *scene ) -> void {

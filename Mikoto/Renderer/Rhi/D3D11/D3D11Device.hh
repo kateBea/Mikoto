@@ -46,6 +46,24 @@
 
 namespace mikoto::renderer::d3d11 {
 
+    // D3D11 does not need these as it handles synchronization
+    // itself internally, this is added for the sake of the RHI
+    class Fence final : public rhi::IFence {
+    public:
+        explicit Fence() = default;
+
+        MKT_NODISCARD auto GetCompletionValue() const -> core::u64 override;
+
+        MKT_NODISCARD auto Signal( core::u64 fenceValue ) -> bool override;
+        MKT_NODISCARD auto Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool override;
+
+        ~Fence() override;
+
+    private:
+        auto Initialize() -> void override;
+        auto Release() -> void override;
+    };
+
     class BindingLayout final : public IBindingLayout {
     public:
         explicit BindingLayout( const BindingLayoutDescription& desc );

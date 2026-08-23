@@ -432,20 +432,20 @@ namespace mikoto::renderer {
 
     auto FGStatisticsManager::GetNode( eastl::string_view name ) -> FGNodeStatistics* {
         MKT_ASSERT( mGraphNodes.contains( name.data() ), "Node does not exists" );
-        return mGraphNodes.at(name.data()).get();
+        return MKT_ADDRESSOF( mGraphNodes.at(name.data()) );
     }
 
     auto FGStatisticsManager::GetNode( eastl::string_view name ) const -> const FGNodeStatistics* {
         MKT_ASSERT( mGraphNodes.contains( name.data() ), "Node does not exists" );
-        return mGraphNodes.at(name.data()).get();
+        return MKT_ADDRESSOF( mGraphNodes.at(name.data()) );
     }
 
     auto FGStatisticsManager::RegisterNode( eastl::string_view name ) -> FGNodeStatistics* {
-        if ( !mGraphNodes.contains( name.data() ) ) {
-            mGraphNodes[name.data()] = eastl::make_unique<FGNodeStatistics>();
-        }
+        return MKT_ADDRESSOF( mGraphNodes[name.data()] );
+    }
 
-        return mGraphNodes[name.data()].get();
+    auto FGStatisticsManager::GetStatistics() const -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics>& {
+        return mGraphNodes;
     }
 
     FGReadbackManager::FGReadbackManager( Blackboard& blackboard, FGResourceManager& manager )
@@ -798,6 +798,10 @@ namespace mikoto::renderer {
 
     auto FrameGraph::GetNodeControl() const -> const FGNodeControl& {
         return *mNodeControl;
+    }
+
+    auto FrameGraph::GetStatisticsManager() const -> const FGStatisticsManager& {
+        return *mStatisticsManager;
     }
 
     auto FrameGraph::GetTexture( FGTextureHandle handle ) const -> TextureHandle {

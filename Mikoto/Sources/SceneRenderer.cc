@@ -129,8 +129,10 @@ namespace mikoto::renderer {
         mCamera = nullptr;
         mDevice = nullptr;
 
-        mShaderLibrary->Shutdown();
-        mShaderLibrary.reset();
+        if (mShaderLibrary) {
+            mShaderLibrary->Shutdown();
+            mShaderLibrary.reset();
+        }
     }
 
     auto SceneRenderer::Render( const Scene* scene ) -> void {
@@ -240,6 +242,14 @@ namespace mikoto::renderer {
 
     auto SceneRenderer::GetBuffer( FGBufferHandle handle ) const -> BufferHandle {
         return mFrameGraph->GetBuffer( handle );
+    }
+
+    auto SceneRenderer::GetPassList() const -> const ankerl::unordered_dense::map<eastl::string, FGNode>& {
+        return mFrameGraph->GetNodeControl().mNodes;
+    }
+
+    auto SceneRenderer::GetPassStatistics() const -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics>& {
+        return mFrameGraph->GetStatisticsManager().GetStatistics();
     }
 
     auto SceneRenderer::Create( const SceneRendererCreateInfo &spec ) -> eastl::unique_ptr<SceneRenderer> {

@@ -95,6 +95,9 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> rhi::TextureHandle;
         MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> rhi::BufferHandle;
 
+        MKT_NODISCARD auto GetPassList() const -> const ankerl::unordered_dense::map<eastl::string, FGNode>&;
+        MKT_NODISCARD auto GetPassStatistics() const -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics>&;
+
         MKT_NODISCARD static auto Create( const SceneRendererCreateInfo& spec) -> eastl::unique_ptr<SceneRenderer>;
 
     private:

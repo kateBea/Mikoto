@@ -44,6 +44,32 @@
 
 namespace mikoto::renderer::d3d11 {
 
+    auto Fence::GetCompletionValue() const -> core::u64 {
+        return 0;
+    }
+
+    auto Fence::Signal( core::u64 fenceValue ) -> bool {
+        return true;
+    }
+
+    auto Fence::Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool {
+        return true;
+    }
+
+    Fence::~Fence() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto Fence::Initialize() -> void {
+        mIsAllocated = true;
+    }
+
+    auto Fence::Release() -> void {
+        mIsAllocated = false;
+    }
+
     BindingLayout::BindingLayout( const BindingLayoutDescription &desc )
         : mBindingLayoutDesc{ desc }
     {}
@@ -959,8 +985,17 @@ namespace mikoto::renderer::d3d11 {
         return set;
     }
 
-    auto Device::CreateFence( u64 fenceInitialValue ) -> FenceHandle {
-        return FenceHandle::CreateEmpty();
+    auto Device::CreateFence( MKT_UNUSED_VAR u64 fenceInitialValue ) -> FenceHandle {
+        FenceHandle fence{ Ref<Fence>::Spawn() };
+
+        if ( fence.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate fence resource." );
+            return FenceHandle::CreateEmpty();
+        }
+
+        fence->Initialize( this );
+
+        return fence;
     }
 
     auto Device::UnMap( IBuffer *buffer ) -> void {

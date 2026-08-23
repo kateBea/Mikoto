@@ -100,6 +100,7 @@ namespace mikoto::editor {
         auto InitEditorPanels() -> void;
         auto InitDockingSpace() -> void;
         auto InitActionCallbacks() -> void;
+        auto InitRenderGraphEditor() -> void;
 
         auto InitEmptyScene() -> void;
 

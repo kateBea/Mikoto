@@ -417,11 +417,14 @@ namespace mikoto::renderer {
 
         MKT_NODISCARD auto GetNode( eastl::string_view name ) -> FGNodeStatistics*;
         MKT_NODISCARD auto GetNode( eastl::string_view name ) const -> const FGNodeStatistics*;
+
         MKT_NODISCARD auto RegisterNode( eastl::string_view name ) -> FGNodeStatistics*;
+
+        MKT_NODISCARD auto GetStatistics() const -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics>&;
 
     private:
         // unique_ptr for stable ptrs
-        ankerl::unordered_dense::map<eastl::string, eastl::unique_ptr<FGNodeStatistics>> mGraphNodes{};
+        ankerl::unordered_dense::map<eastl::string, FGNodeStatistics> mGraphNodes{};
     };
 
     struct FGReadbackTask {
@@ -524,6 +527,7 @@ namespace mikoto::renderer {
         auto EnablePass( eastl::string_view passName ) -> void;
 
         MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl&;
+        MKT_NODISCARD auto GetStatisticsManager() const -> const FGStatisticsManager&;
 
         MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> rhi::TextureHandle;
         MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> rhi::BufferHandle;

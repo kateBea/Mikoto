@@ -55,8 +55,11 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "ResourceTransition",
             FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, Blackboard & ) {
+            [this]( FGNodeBuilder& builder, Blackboard& blackboard ) {
+                const auto& shadingPassData{ blackboard.Get<GeomShadingModuleInfo>() };
+
                 builder.UseResource( mPresentTexture, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( shadingPassData.mTonemapColor, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
             },
             []( CommandContext&, Blackboard & ) {
                 // Nothing

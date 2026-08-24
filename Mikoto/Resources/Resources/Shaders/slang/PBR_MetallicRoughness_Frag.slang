@@ -54,6 +54,9 @@ struct DrawParams {
     float mScaleIblAmbient;
 
     uint mIsSkyboxActive;
+
+    uint mDirectionalShadowsInfoBufferID;
+    uint mDirectionalShadowCastersCount;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -104,8 +107,6 @@ struct FSInput {
     float4 VertexColor : TEXCOORD5;
 
     uint MaterialIndex : TEXCOORD6;
-
-    float4 FragPosLightSpace : TEXCOORD7;
 
     float4 ScreenPos : SV_Position;
     bool IsFrontFace : SV_IsFrontFace;
@@ -546,9 +547,19 @@ FSOutput main(FSInput input) {
         LightInfo light = lightCullingBuffer.Read<LightInfo>(0, lightIndex);
 
         if (light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL) {
-            // float shadow = ComputeShadow(input.FragPosLightSpace, light, n, textures2D[material.ShadowMapIndex], samplerBasic);
-            // lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs) * (1.0f - shadow);
-            lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs);
+
+            if (parameters.mDirectionalShadowCastersCount == 0) {
+                lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs);
+            } else {
+                for (uint count = 0; count < parameters.mDirectionalShadowCastersCount; ++count) {
+                    DirectionalShadowMapInfo shadowMapInfo = buffers[parameters.mDirectionalShadowsInfoBufferID]
+                        .Read<DirectionalShadowMapInfo>(0, count);
+                    float4 fragPosLightSpace = shadowMapInfo.mLightViewProjection * float4(input.FragmentWorldPos, 1.0f);
+
+                    float shadow = ComputeShadow(fragPosLightSpace, light, n, textures2D[shadowMapInfo.mCasterMapID], samplerBasic);
+                    lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs) * (1.0f - shadow);
+                }
+            }
             continue;
         }
 

@@ -16,6 +16,7 @@
 #include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Material_Helpers.slang"
+#include "base/Lighting_Helpers.slang"
 #include "base/Animation_Helpers.slang"
 
 struct VSInput {
@@ -35,7 +36,9 @@ struct DrawParams {
     uint mIndicesBufferID;
     uint mVerticesBufferID;
 
-    uint mCameraDataID;
+    uint mShadowCasterID;
+
+    uint mDirectionalShadowsInfoBufferID;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -45,11 +48,11 @@ MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    ByteAddressBuffer GeometryBuffer = buffers[parameters.mGeometryBufferID];
-    ByteAddressBuffer SkinningBuffer = buffers[parameters.mSkinningBufferID];
+    ByteAddressBuffer geometryBuffer = buffers[parameters.mGeometryBufferID];
+    ByteAddressBuffer skinnedBuffer = buffers[parameters.mSkinningBufferID];
 
     uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
-    MeshGeometryInfo meshInfo = GeometryBuffer.Read<MeshGeometryInfo>(0, instanceIndex);
+    MeshGeometryInfo meshInfo = geometryBuffer.Read<MeshGeometryInfo>(0, instanceIndex);
 
     ByteAddressBuffer Vertices = buffers[parameters.mVerticesBufferID];
     ByteAddressBuffer Indices = buffers[parameters.mIndicesBufferID];
@@ -68,10 +71,10 @@ VSOutput main(VSInput input) {
         uint animatorIndex = meshInfo.SkinningMatricesID - 1;
         uint boneBase = animatorIndex * sizeof(float4x4) * MAX_BONES;
 
-        float4x4 inJoinx = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.x);
-        float4x4 inJoiny = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.y);
-        float4x4 inJoinz = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.z);
-        float4x4 inJoinw = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.w);
+        float4x4 inJoinx = skinnedBuffer.Read<float4x4>(boneBase, (uint)inJoint0.x);
+        float4x4 inJoiny = skinnedBuffer.Read<float4x4>(boneBase, (uint)inJoint0.y);
+        float4x4 inJoinz = skinnedBuffer.Read<float4x4>(boneBase, (uint)inJoint0.z);
+        float4x4 inJoinw = skinnedBuffer.Read<float4x4>(boneBase, (uint)inJoint0.w);
 
         float4x4 skinMat =
             inWeight0.x * inJoinx +
@@ -92,11 +95,12 @@ VSOutput main(VSInput input) {
     float4 worldPos = mul(model, locPos);
     float3 worldNormal = normalize(mul((float3x3)model, normal));
 
-    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+    DirectionalShadowMapInfo shadowMapInfo = buffers[parameters.mDirectionalShadowsInfoBufferID]
+        .Read<DirectionalShadowMapInfo>(0, parameters.mShadowCasterID);
 
     o.Position =
-        mul(camera.Projection,
-            mul(camera.ViewMatrix, worldPos));
+        mul(shadowMapInfo.mLightProjection,
+            mul(shadowMapInfo.mLightView, worldPos));
 
     return o;
 }

@@ -726,6 +726,7 @@ namespace mikoto::renderer {
             "PBR_Radiance",
             FGPassType::eGraphics,
             []( FGNodeBuilder& builder, Blackboard & blackboard ) -> void {
+                const auto& shadowMapData{ blackboard.Get<ShadowMapInfo>() };
                 const auto& cameraData{ blackboard.Get<CameraModuleInfo>() };
                 const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
                 const auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
@@ -755,9 +756,14 @@ namespace mikoto::renderer {
                 // SSAO stuff here
 
                 // Shadow mapping stuff here
-                const auto& shadow{ blackboard.Get<ShadowMapInfo>() };
+                for (const auto& map : shadowMapData.mDirShadowMaps) {
+                    if (map.mHandle != 0) {
+                        builder.UseResource( map, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    }
+                }
             },
             [this]( CommandContext &ctx, Blackboard& blackboard ) -> void {
+                const auto& shadowMapData{ blackboard.Get<ShadowMapInfo>() };
                 const auto& cameraData{ blackboard.Get<CameraModuleInfo>() };
                 const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
                 const auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
@@ -797,6 +803,9 @@ namespace mikoto::renderer {
                     f32 mScaleIblAmbient{ 1.0f };
 
                     u32 mIsSkyboxActive{ MKT_SHADER_FALSE };
+
+                    u32 mDirectionalShadowsInfoBufferID{};
+                    u32 mDirectionalShadowCastersCount{};
                 } params{
                     .mCameraDataID = ctx.PushBuffer_SRV( cameraData.mCameraData ),
 
@@ -825,7 +834,9 @@ namespace mikoto::renderer {
                     .mSsaoIntensity = mSsaoIntensity,
                     .mPrefilteredCubeMipLevels = mPrefilterMipLevels,
                     .mScaleIblAmbient = mAbientScale,
-                    .mIsSkyboxActive = mBackgroundType != SceneBackgroundType::eClearColor ? MKT_SHADER_TRUE : MKT_SHADER_FALSE };
+                    .mIsSkyboxActive = mBackgroundType != SceneBackgroundType::eClearColor ? MKT_SHADER_TRUE : MKT_SHADER_FALSE,
+                    .mDirectionalShadowsInfoBufferID = ctx.PushBuffer_SRV( shadowMapData.mDirShadowsBuffer ),
+                    .mDirectionalShadowCastersCount = shadowMapData.mDirShadowCasterCount };
                 ctx.PushConstants( params );
 
                 LoadOp colorLoadOp{ LoadOp::eClear };

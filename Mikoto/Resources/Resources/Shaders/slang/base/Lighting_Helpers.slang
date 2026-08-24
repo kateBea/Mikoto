@@ -28,6 +28,14 @@ struct SkyBoxParameters {
     int IsSkyboxActive;
 };
 
+struct DirectionalShadowMapInfo {
+    float4x4 mLightView;
+    float4x4 mLightProjection;
+    float4x4 mLightViewProjection; // For final shading pass shadow calculation
+
+    uint mCasterMapID;
+};
+
 // ============================================================================
 // Helpers
 // ============================================================================

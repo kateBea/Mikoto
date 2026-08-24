@@ -31,9 +31,8 @@ namespace mikoto::renderer {
 
     struct ShadowMapInfo {
 
-        // Contains light space info, etc
-        FGBufferHandle mShadowsBuffer{};
-
+        core::u32 mDirShadowCasterCount{};
+        FGBufferHandle mDirShadowsBuffer{};
         FGSamplerHandle mDirShadowSampler{};
 
         FGPipelineHandle mDirShadowMapPipeline{};
@@ -55,17 +54,20 @@ namespace mikoto::renderer {
         // and ortho for directional, although it
         // can also be the latter for directional lights
         float4x4 mProjection{};
+        float4x4 mLightViewProjection{};
 
-        i32 mLightType{ -1 }; // Dir, spot, point
+        u32 mCasterMapID{};
     };
 
     class ShadowMappingModule final {
     public:
-        explicit ShadowMappingModule(RenderResolution resolution);
+        explicit ShadowMappingModule(rhi::RenderResolution resolution);
 
         auto SetScene( const scene::Scene* scene) -> void;
         auto SetCamera( const scene::Camera* camera ) -> void;
         auto SetGeometryManager( GeometryCullModule& culling ) -> void;
+
+        auto SetShadowMapsResolution( rhi::RenderResolution resolution ) -> void;
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
@@ -77,7 +79,7 @@ namespace mikoto::renderer {
     private:
         const scene::Scene* mScene{};
         const scene::Camera* mCamera{};
-        GeometryCullModule* mGeometryManager{};
+        GeometryCullModule* mGeometryManagement{};
 
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
     };

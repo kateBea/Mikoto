@@ -1631,8 +1631,10 @@ namespace mikoto::editor {
             ImGui::TextUnformatted( "Cast shadows" );
 
             ImGui::TableSetColumnIndex( 1 );
-            static bool castShadows{};
-            (void)CheckBox( "##DirectionalLightShadows", castShadows );
+            bool castShadows{ direLightData.IsShadowCaster() };
+            if (CheckBox( "##DirectionalLightShadows", castShadows )) {
+                direLightData.SetIsShadowCaster( castShadows );
+            }
 
             ImGui::EndTable();
         }

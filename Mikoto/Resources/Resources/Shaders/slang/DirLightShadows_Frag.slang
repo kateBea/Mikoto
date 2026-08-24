@@ -32,7 +32,9 @@ struct DrawParams {
     uint mIndicesBufferID;
     uint mVerticesBufferID;
 
-    uint mCameraDataID;
+    uint mShadowCasterID;
+
+    uint mDirectionalShadowsInfoBufferID;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -42,16 +44,7 @@ MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 FSOutput main(FSInput input) {
     FSOutput o;
 
-    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
-
-    float depth = LinearDepth(input.ScreenPos.z, camera.Planes.xy);
-
-    float near = camera.Planes.x;
-    float far = camera.Planes.y;
-
-    float depthNormalized = (depth - near) / (far - near);
-
-    o.Color = float4(depthNormalized, depthNormalized, depthNormalized, 1.0);
+    // TODO: implement shadow map sampling and output the shadowed color
 
     return o;
 }

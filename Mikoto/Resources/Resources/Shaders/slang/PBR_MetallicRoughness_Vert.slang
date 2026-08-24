@@ -49,8 +49,10 @@ struct DrawParams {
     float mScaleIblAmbient;
 
     uint mIsSkyboxActive;
-};
 
+    uint mDirectionalShadowsInfoBufferID;
+    uint mDirectionalShadowCastersCount;
+};
 MKT_DECLARE_STRUCTURED_SRV buffers;
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 

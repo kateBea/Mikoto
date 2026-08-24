@@ -440,7 +440,7 @@ namespace mikoto::renderer {
                 }
 
                 auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
-                if (!material->IsType( SkyboxType::eEquirectangular )) {
+                if (!material->IsType( SkyboxType::eEquirectangular ) || material->GetEquirectangular().IsEmpty()) {
                     return;
                 }
 

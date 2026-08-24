@@ -261,7 +261,7 @@ namespace mikoto::physics {
 
         auto GetJoltBody(u64 id) -> JPH::Body*;
 
-        auto UpdateBodyProperties(JPH::BodyID id, TransformComponent& tr, RigidBodyComponent& rbComponent ) const -> void;
+        auto UpdateBodyProperties(JPH::Body* body, TransformComponent& tr, RigidBodyComponent& rbComponent ) const -> void;
 
         MKT_NODISCARD static auto GetFloat4x4F( const JPH::RMat44& jphMat ) -> float4x4;
         MKT_NODISCARD static auto GetFloat3F( const JPH::Vec3& jphVec3 ) -> float3;

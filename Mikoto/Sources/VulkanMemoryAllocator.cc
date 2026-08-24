@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <volk.h>
-
 #include <EASTL/memory.h>
+
+// Needs to go before VMA for
+// vmaImportVulkanFunctionsFromVolk to be defined
+#include <volk.h>
 
 // Define VMA implementation in one source file
 #define VMA_IMPLEMENTATION

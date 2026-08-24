@@ -195,6 +195,7 @@ namespace mikoto::renderer {
                 ctx.EndRender();
             } );
 
+        // Maybe change this to compute
         graph.RegisterPass(
             "ObjectSelection_Readback",
             FGPassType::eTransfer,

@@ -84,9 +84,9 @@ namespace mikoto::scene {
         auto SetActive( const bool value ) -> void { mIsActive = value; }
 
     private:
-        eastl::string mTag{};
         Guid mGuid{};
-        
+        eastl::string mTag{};
+
         bool mIsActive{};
     };
 
@@ -95,24 +95,18 @@ namespace mikoto::scene {
     class HighlightComponent final {
     public:
 
-        auto SetHighlighted(bool value) -> void { m_IsHighlighted = value; }
-        MKT_NODISCARD auto IsHighlighted() const -> bool { return m_IsHighlighted; }
+        auto SetHighlighted(bool value) -> void;
+        MKT_NODISCARD auto IsHighlighted() const -> bool;
 
     private:
-        bool m_IsHighlighted{ false };
+        bool mIsHighlighted{ false };
     };
 
     class TransformComponent {
     public:
-        explicit TransformComponent() {
-            ComputeTransform( m_Translation, m_Scale, m_Rotation );
+        explicit TransformComponent();
 
-            m_WorldTransform = m_Transform;
-        };
-
-        TransformComponent( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) {
-            ComputeTransform( position, size, angles );
-        }
+        TransformComponent( const core::float3& position, const core::float3& size, const core::float3& angles );
 
         TransformComponent( const TransformComponent& other ) = default;
         TransformComponent( TransformComponent&& other ) = default;
@@ -120,109 +114,48 @@ namespace mikoto::scene {
         auto operator=( const TransformComponent& other ) -> TransformComponent& = default;
         auto operator=( TransformComponent&& other ) -> TransformComponent& = default;
 
-        MKT_NODISCARD auto GetTranslation() const -> const glm::vec3& { return m_Translation; }
-        MKT_NODISCARD auto GetRotation() const -> const glm::vec3& { return m_Rotation; }
-        MKT_NODISCARD auto GetScale() const -> const glm::vec3& { return m_Scale; }
-        MKT_NODISCARD auto GetTransform() const -> const glm::mat4& { return m_Transform; }
-        MKT_NODISCARD auto HasUniformScale() const -> bool { return m_HasUniformScale; }
+        MKT_NODISCARD auto GetTranslation() const -> const core::float3&;
+        MKT_NODISCARD auto GetRotation() const -> const core::float3&;
+        MKT_NODISCARD auto GetScale() const -> const core::float3&;
+        MKT_NODISCARD auto GetTransform() const -> const core::float4x4&;
+        MKT_NODISCARD auto HasUniformScale() const -> bool;
 
-        MKT_NODISCARD auto GetRotationQuat() const -> glm::quat {
-            return glm::quat( m_Rotation );
-        }
+        MKT_NODISCARD auto GetRotationQuat() const -> core::quat;
+        MKT_NODISCARD auto GetWorldTransform() const -> const core::float4x4&;
 
-        MKT_NODISCARD auto GetWorldTransform() const -> const float4x4& { return m_WorldTransform; }
-        auto SetWorldTransform( const float4x4& worldTransform ) -> void { m_WorldTransform = worldTransform; }
+        auto SetRotation( const float3& value ) -> void;
+        auto SetTranslation( const float3& value ) -> void;
+        auto SetTransform( const core::float4x4& transform ) -> void;
+        auto SetRotation( const core::quat& quaternion ) -> void;
 
-        auto ComputeTransform( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) -> void {
-            m_Translation = position;
-            m_Rotation = angles;
-            m_Scale = size;
+        auto SetWorldTransform( const float4x4& worldTransform ) -> void;
 
-            // NOTE:
-            // Euler rotations composed via successive glm::rotate calls can produce incorrect
-            // behavior because rotations are applied in world space, causing axis misalignment.
-            // Use quaternion-based rotation (or consistent multiplication order) to ensure
-            // rotations happen in local space around the object's pivot.
-            // Pivot (center of rotation)
+        auto SetScale( const core::float3& value ) -> void;
+        auto SetUniformSale( const bool value ) -> void;
 
-            // NOTE:
-            // Rotations must be applied in local space (object axes), not world axes.
-            // Chaining glm::rotate on an accumulating matrix can cause rotations to be
-            // applied in world space, leading to incorrect behavior.
-            // Use quaternions (glm::quat) or proper multiplication order to ensure
-            // rotations follow the object's local axes.
-
-            // TODO: See comment in RecomputeTransform, use RecomputeTransform that takes pivot
-            m_Transform = math::RecomputeTransform( position, size, angles );
-        }
-
-        auto SetTransform( const glm::mat4& transform ) -> void {
-            m_Transform = transform;
-            math::Decompose( m_Transform, m_Translation, m_Rotation, m_Scale );
-        }
-
-        auto SetTranslation( const float3& value ) -> void {
-            m_Translation = value;
-            m_Transform = math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
-        }
-
-        auto SetRotation( const float3& value ) -> void {
-            m_Rotation = value;
-            m_Transform = math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
-        }
-
-        auto SetRotation( const glm::quat& quaternion ) -> void {
-            m_Rotation = glm::eulerAngles( quaternion );
-            m_Transform = math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
-        }
-
-        auto SetScale( const float3& value ) -> void {
-            if ( !m_HasUniformScale ) {
-                m_Scale = value;
-            } else {
-                float offSet{ 0 };
-
-                if ( value.x != m_Scale.x ) {
-                    offSet = value.x - m_Scale.x;
-                } else if ( value.y != m_Scale.y ) {
-                    offSet = value.y - m_Scale.y;
-                } else if ( value.z != m_Scale.z ) {
-                    offSet = value.z - m_Scale.z;
-                }
-
-                if ( offSet != 0 ) {
-                    m_Scale.x += offSet;
-                    m_Scale.y += offSet;
-                    m_Scale.z += offSet;
-                }
-            }
-
-            m_Transform = math::RecomputeTransform( m_Translation, m_Scale, m_Rotation );
-        }
-
-        auto SetUniformSale( const bool value ) -> void { m_HasUniformScale = value; }
+        auto ComputeTransform( const core::float3& position, const core::float3& size, const core::float3& angles ) -> void;
 
         ~TransformComponent() = default;
 
     private:
         // Transform vectors
-        float3 m_Translation{ 0.0f, 0.0f, 0.0f };
-        float3 m_Rotation{};
-        float3 m_Scale{};
+        core::float3 mTranslation{ 0.0f, 0.0f, 0.0f };
+        core::float3 mRotation{};
+        core::float3 mScale{};
 
-        float4x4 m_WorldTransform{ 1.0f };
+        core::float4x4 mWorldTransform{ 1.0f };
 
         // Model matrix (defines object translation, rotation and scale
         // according to the current transform values/vectors
-        glm::mat4 m_Transform{};
+        core::float4x4 mTransform{};
 
-        bool m_HasUniformScale{};
+        bool mHasUniformScale{};
     };
 
     class RelationComponent {
     public:
         explicit RelationComponent( const std::optional<u64> parent = std::nullopt )
-            : m_Parent{ parent } {}
+            : mParent{ parent } {}
 
         RelationComponent( const RelationComponent& other ) = default;
         RelationComponent( RelationComponent&& other ) = default;
@@ -230,24 +163,24 @@ namespace mikoto::scene {
         auto operator=( const RelationComponent& other ) -> RelationComponent& = default;
         auto operator=( RelationComponent&& other ) -> RelationComponent& = default;
 
-        auto RegisterChild( const u64 id ) -> void { m_ChildrenIDs.emplace( id ); }
-        auto EraseChild( const u64 id ) -> void { m_ChildrenIDs.erase( id ); }
+        auto RegisterChild( const u64 id ) -> void { mChildrenIDs.emplace( id ); }
+        auto EraseChild( const u64 id ) -> void { mChildrenIDs.erase( id ); }
 
-        MKT_NODISCARD auto IsChild( const u64 id ) const -> bool { return m_ChildrenIDs.contains( id ); }
-        MKT_NODISCARD auto HasChildren() const -> bool { return !m_ChildrenIDs.empty(); }
+        MKT_NODISCARD auto IsChild( const u64 id ) const -> bool { return mChildrenIDs.contains( id ); }
+        MKT_NODISCARD auto HasChildren() const -> bool { return !mChildrenIDs.empty(); }
 
-        auto SetParent( u64 uid ) -> void { m_Parent = uid; }
-        MKT_NODISCARD auto HasParent() const -> bool { return m_Parent.has_value(); }
-        MKT_NODISCARD auto GetParent() const -> const std::optional<u64>& { return m_Parent; }
+        auto SetParent( u64 uid ) -> void { mParent = uid; }
+        MKT_NODISCARD auto HasParent() const -> bool { return mParent.has_value(); }
+        MKT_NODISCARD auto GetParent() const -> const std::optional<u64>& { return mParent; }
 
-        MKT_NODISCARD auto IsLeaf() const -> bool { return m_ChildrenIDs.empty(); }
-        MKT_NODISCARD auto GetChildren() const -> decltype( auto ) { return ( m_ChildrenIDs ); }
+        MKT_NODISCARD auto IsLeaf() const -> bool { return mChildrenIDs.empty(); }
+        MKT_NODISCARD auto GetChildren() const -> decltype( auto ) { return ( mChildrenIDs ); }
 
         ~RelationComponent() = default;
 
     private:
-        std::optional<u64> m_Parent{};
-        ankerl::unordered_dense::set<u64> m_ChildrenIDs{};
+        std::optional<u64> mParent{};
+        ankerl::unordered_dense::set<u64> mChildrenIDs{};
     };
 
     class MaterialComponent {
@@ -829,7 +762,7 @@ namespace mikoto::scene {
         ~ParticleEmitterComponent() = default;
 
     private:
-        Ref<renderer::ParticleEmitter> m_Emitter{};
+        ParticleEmitterHandle mEmitter{};
         bool mIsPlaying{ true };
     };
 }

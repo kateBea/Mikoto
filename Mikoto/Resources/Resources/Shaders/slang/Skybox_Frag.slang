@@ -66,7 +66,7 @@ FSOutput main(FSInput input) {
 
     TextureCube texture = Textures[index];
 
-    const float blur = 1;
+    const float blur = 0.5;
     float3 color;
 
     if (Parameters.MaxMipLevel > blur) {

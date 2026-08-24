@@ -111,12 +111,12 @@ namespace mikoto::renderer {
         // Execution policies
         mFrameGraph->SetExecutionPolicy( "BRDFLut", FGExecutionPolicy::eOnce );
 
-        mFrameGraph->SetExecutionPolicy( "PrefilterPass", FGExecutionPolicy::eOnChange );
-        mFrameGraph->SetExecutionPolicy( "IrradiancePass", FGExecutionPolicy::eOnChange );
-        mFrameGraph->SetExecutionPolicy( "SkyboxProjection", FGExecutionPolicy::eOnChange );
-        mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Compute", FGExecutionPolicy::eOnChange );
-        mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Transfer", FGExecutionPolicy::eOnChange );
-        mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Graphics", FGExecutionPolicy::eOnChange );
+        mFrameGraph->SetExecutionPolicy( "PrefilterPass", FGExecutionPolicy::eOnWake );
+        mFrameGraph->SetExecutionPolicy( "IrradiancePass", FGExecutionPolicy::eOnWake );
+        mFrameGraph->SetExecutionPolicy( "SkyboxProjection", FGExecutionPolicy::eOnWake );
+        mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Compute", FGExecutionPolicy::eOnWake );
+        mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Transfer", FGExecutionPolicy::eOnWake );
+        mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Graphics", FGExecutionPolicy::eOnWake );
 
         // For some reason this makes subsequent passes to render in Wireframe mode
         //mFrameGraph->DisablePass( "WireframePass" );

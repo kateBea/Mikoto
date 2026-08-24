@@ -46,7 +46,6 @@ namespace mikoto::scripting {
         entity.set_function("GetTransform", []( Entity& e ) -> TransformComponent& { return e.GetComponent<TransformComponent>(); } );
         auto transform{ state.new_usertype<TransformComponent>( "TransformComponent", sol::constructors<
                                                                                               TransformComponent(),
-                                                                                              TransformComponent( glm::vec3, glm::vec3 ),
                                                                                               TransformComponent( glm::vec3, glm::vec3, glm::vec3 )>() ) };
 
         transform.set_function( "GetTransform", []( const TransformComponent& transform ) -> glm::mat4 { return transform.GetTransform(); } );

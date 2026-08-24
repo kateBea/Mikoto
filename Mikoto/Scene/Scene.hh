@@ -61,21 +61,22 @@ namespace mikoto::scene {
 
         // Light config
         bool mIsLight{ false };
-        LightType mLightType{ LightType::eDirectional };
+        renderer::LightType mLightType{ renderer::LightType::eDirectional };
 
         // Text config
         bool mIsText{ false };
         bool mIsWorldText{ false };
-        float mTextSize{ 12.0f };
-        float mTextSpacing{ 1.0f };
+
+        core::f32 mTextSize{ 12.0f };
+        core::f32 mTextSpacing{ 1.0f };
         eastl::string mInitialContents{};
 
         // PostProcess material
-        TextureHandle mTextureHandle{}; // Post process apply their effects on a given texture
+        renderer::rhi::TextureHandle mTextureHandle{}; // Post process apply their effects on a given texture
 
         auto SetName( eastl::string_view name ) -> EntityCreateInfo&;
         auto SetRoot( Entity* root ) -> EntityCreateInfo&;
-        auto SetModel( ModelHandle modelMesh ) -> EntityCreateInfo&;
+        auto SetModel( asset::ModelHandle modelMesh ) -> EntityCreateInfo&;
     };
 
     class Scene final {
@@ -87,15 +88,15 @@ namespace mikoto::scene {
         auto SetState( SceneState state ) -> void;
         auto SetName( eastl::string_view name ) -> void;
 
-        auto RemoveEntity( u64 uniqueID ) -> void;
+        auto RemoveEntity( core::u64 uniqueID ) -> void;
 
-        MKT_NODISCARD auto FindByID( u64 uniqueID ) -> Entity*;
+        MKT_NODISCARD auto FindByID( core::u64 uniqueID ) -> Entity*;
         MKT_NODISCARD auto FindFirstByName( eastl::string_view name ) -> Entity*;
 
-        MKT_NODISCARD auto FindByID( u64 uniqueID ) const -> const Entity*;
+        MKT_NODISCARD auto FindByID( core::u64 uniqueID ) const -> const Entity*;
         MKT_NODISCARD auto FindFirstByName( eastl::string_view name ) const -> const Entity*;
 
-        MKT_NODISCARD auto ExistsByID( u64 uniqueID ) -> bool;
+        MKT_NODISCARD auto ExistsByID( core::u64 uniqueID ) -> bool;
         MKT_NODISCARD auto ExistsByName( eastl::string_view name ) -> bool;
 
         MKT_NODISCARD auto CreateEntity( eastl::string_view name ) -> Entity*;
@@ -115,12 +116,12 @@ namespace mikoto::scene {
         auto PushEntity( eastl::string_view name ) -> void;
         auto PushEntity( const EntityCreateInfo& createInfo = {} ) -> void;
 
-        // Call if the viewport where this scene is being rendered is resized
-        auto OnViewPortResize( float width, float height ) -> void;
+        // Adjusts all cameras aspect ratio to take into account the provided dimensions
+        auto OnViewPortResize( core::f32 width, core::f32 height ) -> void;
 
         MKT_NODISCARD auto GetName() const -> eastl::string_view;
-        MKT_NODISCARD auto GetEntityCount() const -> size_t;
-        MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<u64, eastl::unique_ptr<Entity>>&;
+        MKT_NODISCARD auto GetEntityCount() const -> core::usize;
+        MKT_NODISCARD auto GetEntities() const -> const ankerl::unordered_dense::map<core::u64, eastl::unique_ptr<Entity>>&;
 
         auto GetRegistry() -> entt::registry&;
         MKT_NODISCARD auto GetRegistry() const -> const entt::registry&;
@@ -138,12 +139,12 @@ namespace mikoto::scene {
             } Type{ Type::eCreate };
 
             EntityCreateInfo CreateInfo{};  // only for CREATE
-            u64 EntityID{ 0 };           // only for DESTROY
+            core::u64 EntityID{ 0 };           // only for DESTROY
         };
 
         auto ProcessPendingCommands() -> void;
 
-        MKT_NODISCARD auto DestroyEntitySingle( u64 entityID) -> bool;
+        MKT_NODISCARD auto DestroyEntitySingle( core::u64 entityID) -> bool;
         MKT_NODISCARD auto CreateEntitySingle( const EntityCreateInfo& createInfo) -> Entity*;
 
         auto UpdateIdle( double deltaTime ) -> void;
@@ -156,7 +157,7 @@ namespace mikoto::scene {
         auto OnRigidBodyRemoved(entt::registry& reg, entt::entity e ) const -> void;
         auto OnColliderRemoved(entt::registry& reg, entt::entity e ) const -> void;
 
-        auto SetupMeshComponent(Entity* entity, ModelHandle model, i32 index) -> void;
+        auto SetupMeshComponent(Entity* entity, asset::ModelHandle model, core::i32 index) -> void;
 
         auto CreateEntityDefault(const EntityCreateInfo& info ) -> Entity*;
 
@@ -164,9 +165,9 @@ namespace mikoto::scene {
         auto UpdateAudioListenerAndSources() -> void;
 
     private:
-        auto AddSingleEntityWithRoot(Entity * root, ModelHandle model, i32 index, u64 animatorID = 0 ) -> void;
+        auto AddSingleEntityWithRoot(Entity * root, asset::ModelHandle model, core::i32 index, core::u64 animatorID = 0 ) -> void;
 
-        auto WorkerDestroyEntity(u64 entityID) -> void;
+        auto WorkerDestroyEntity(core::u64 entityID) -> void;
         auto WorkerCreateEntity(const EntityCreateInfo& info) -> void;
 
     private:
@@ -182,7 +183,7 @@ namespace mikoto::scene {
         eastl::vector<EntityCommand> mEntityCommands{};
 
         // Unique because iterators are invalidated on resize
-        ankerl::unordered_dense::map<u64, eastl::unique_ptr<Entity>> mEntities{};
+        ankerl::unordered_dense::map<core::u64, eastl::unique_ptr<Entity>> mEntities{};
 
         // Entities with no parent
         // used to calculate hierarchical transform

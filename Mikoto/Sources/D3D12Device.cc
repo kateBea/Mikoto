@@ -1399,6 +1399,9 @@ namespace mikoto::renderer::d3d12 {
             mCommandAllocator.Get(), nullptr,
             IID_PPV_ARGS(&mCommandList)));
 
+        // Reset needed to start recording
+        ThrowIfFailed( mCommandList->Close() );
+
         mUploadManager = checked_cast<Device*>(mDevice)->GetUploadManager();
 
         mIsAllocated = true;

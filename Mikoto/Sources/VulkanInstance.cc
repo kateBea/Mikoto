@@ -167,7 +167,7 @@ namespace mikoto::renderer::vulkan {
         eastl::array<VkValidationFeatureEnableEXT, 5> enabledFeatures{
             VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
             VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
-            VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
+            VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT, // Got a validation error on ubuntu 24 on nvidia about gpu based validations cant be used with debugPrintf??
             VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
             VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT };
 

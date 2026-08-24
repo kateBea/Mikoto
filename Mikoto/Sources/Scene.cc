@@ -439,7 +439,7 @@ namespace mikoto::scene {
                         result->AddComponent<AnimatorComponent>( animatorID );
                     }
 
-                    for ( size_t index{}; index < createInfo.mModel->GetMeshNodeCount(); index++ ) {
+                    for ( usize index{}; index < createInfo.mModel->GetMeshNodeCount(); index++ ) {
                         AddSingleEntityWithRoot( result, createInfo.mModel, index, animatorID );
                     }
 

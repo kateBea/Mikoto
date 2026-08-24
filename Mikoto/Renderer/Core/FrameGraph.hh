@@ -146,7 +146,7 @@ namespace mikoto::renderer {
 
     enum class FGExecutionPolicy {
         ePerFrame,
-        eOnChange,
+        eOnWake,
         eOnce,
     };
 

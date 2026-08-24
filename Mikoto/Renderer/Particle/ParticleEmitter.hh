@@ -34,6 +34,8 @@ namespace mikoto::renderer {
         core::u32 mMaxParticles{};
     };
 
+    using ParticleEmitterHandle = core::Ref<renderer::ParticleEmitter>;
+
     // It is important to have an instance because
     // this is what will control the particles for every scene object
     // Imagine we might have a fire effect, this will can be shared with all torches for example

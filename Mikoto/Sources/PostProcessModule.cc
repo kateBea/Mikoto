@@ -298,7 +298,7 @@ namespace mikoto::renderer {
                 ctx.CopyBuffer( data.mSsaoKernelBuffer, 0, mSsaoKernelSamples.data(), MKT_VECTOR_SIZE_BYTES( mSsaoKernelSamples ) );
             } );
 
-        graph.SetExecutionPolicy( "SSAO_DataUpload", FGExecutionPolicy::eOnChange );
+        graph.SetExecutionPolicy( "SSAO_DataUpload", FGExecutionPolicy::eOnWake );
 
         const auto ssaoRenderPipelineDesc{ FGPipelineDescription{}
             .SetName( "SsaoRender_Pipeline01" )

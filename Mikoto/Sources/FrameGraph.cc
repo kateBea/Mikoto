@@ -716,6 +716,7 @@ namespace mikoto::renderer {
             Timer timer{ false };
             const double elapsed{ timer.GetCurrentProgress( TimeUnit::eMicroseconds ) };
 
+            // Run pass execute calback
             pass.mExecuteCallback( ctx, mBlackboard );
 
             FGNodeStatistics& stats{ *mStatisticsManager->GetNode( pass.mName ) };
@@ -736,6 +737,10 @@ namespace mikoto::renderer {
         mComputeCommands->End();
         mTransferCommands->End();
 
+        // I think I might end up having each command context own its own command list
+        // because the way I see this code its three queues each running commands in parallel
+        // which is not the case for Vulkan right now (Vulkan is using one queue now), so this assumes
+        // these tasks or commands have no dependency which is not the case necessarily.
         auto submitInfoTransfer{ SubmitInfo{}
             .AddSignal( mFence, mFenceValue++ )
             .AddCommandList( mTransferCommands ) };

@@ -50,9 +50,9 @@ namespace mikoto::renderer::vulkan {
 
         // Set options for the GLSL output
         spirv_cross::CompilerGLSL::Options options;
-        options.version = 450;                     // Set GLSL version (e.g., 450 for Vulkan/Desktop)
-        options.es = false;                        // Set to true for OpenGL ES (mobile)
-        options.vulkan_semantics = true;          // Set to true if targeting Vulkan GLSL specifically
+        options.version = 450;
+        options.es = false;
+        options.vulkan_semantics = true;
 
         glslCompiler.set_common_options(options);
 

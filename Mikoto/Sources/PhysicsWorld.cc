@@ -158,8 +158,8 @@ namespace mikoto::physics {
                 continue;
             }
 
-            const auto body{ GetJoltBody( rb.GetBodyID() ) };
-            UpdateBodyProperties( body->GetID(), tr, rb );
+            JPH::Body* body{ GetJoltBody( rb.GetBodyID() ) };
+            UpdateBodyProperties( body, tr, rb );
 
             // Jolt puts bodies to sleep to save resources
             if (!rb.IsBodyType( RigidBodyComponent::BodyType::eStatic ) && !mSimulationInfo.mBodyInterface->IsActive( body->GetID() ) ) {
@@ -168,48 +168,36 @@ namespace mikoto::physics {
         }
     }
 
-    auto PhysicsWorld::UpdateBodyProperties(JPH::BodyID id, TransformComponent& tr, RigidBodyComponent& rb ) const -> void {
-        const auto& lockInterface{ mSimulationInfo.mPhysicsSystem.GetBodyLockInterface() };
-        // Scoped lock
-        {
-            JPH::BodyLockWrite lock(lockInterface, id);
+    auto PhysicsWorld::UpdateBodyProperties(JPH::Body* body, TransformComponent& tr, RigidBodyComponent& rb ) const -> void {
+        // should only be called by the BodyInterface since it also requires updating the broadphase
+        mSimulationInfo.mBodyInterface->SetPositionAndRotation(
+            body->GetID(), GetFloat3F( tr.GetTranslation() ),
+            GetQuatF( tr.GetRotation() ), JPH::EActivation::Activate );
 
-            // body_id may no longer be valid
-            if (lock.Succeeded())  {
-                JPH::Body &body{ lock.GetBody() };
+        const auto motionType{ GetJoltMotionType( rb.GetBodyType( ) ) };
 
-                // should only be called by the BodyInterface since it also requires updating the broadphase
-                mSimulationInfo.mBodyInterface->SetPositionAndRotation(
-                    id, GetFloat3F( tr.GetTranslation() ),
-                    GetQuatF( tr.GetRotation() ), JPH::EActivation::Activate );
-
-                const auto motionType{ GetJoltMotionType( rb.GetBodyType( ) ) };
-
-                // Line up motion types if it has been updated
-                if (motionType != body.GetMotionType()) {
-                    body.SetMotionType( motionType );
-                }
-
-                if ( rb.IsBodyType( RigidBodyComponent::BodyType::eKinematic ) ) {
-                    body.SetAngularVelocity( GetFloat3F( rb.GetAngularVelocity() ) );
-                    body.SetLinearVelocity( GetFloat3F( rb.GetLinearVelocity() ) );
-                }
-
-                // Mass and friction
-                if (rb.IsBodyType(RigidBodyComponent::BodyType::eDynamic) && (1.0f / rb.GetMass()) != body.GetMotionProperties()->GetInverseMass()) {
-                    JPH::MassProperties	massPropertiesOverride{};
-                    massPropertiesOverride.mMass = rb.GetMass(); // Jolt uses kg, see docs
-                    body.GetMotionProperties()->SetMassProperties( body.GetMotionProperties()->GetAllowedDOFs(), massPropertiesOverride );
-                }
-
-                // Degrees of freedom dynamic objects (which axis the object is allowed to rotate, translate
-
-
-                // Restitution
-                body.SetRestitution( rb.GetRestitution() );
-            }
+        // Line up motion types if it has been updated
+        if (motionType != body->GetMotionType()) {
+            body->SetMotionType( motionType );
         }
 
+        if ( rb.IsBodyType( RigidBodyComponent::BodyType::eKinematic ) ) {
+            body->SetAngularVelocity( GetFloat3F( rb.GetAngularVelocity() ) );
+            body->SetLinearVelocity( GetFloat3F( rb.GetLinearVelocity() ) );
+        }
+
+        // Mass and friction
+        if (rb.IsBodyType(RigidBodyComponent::BodyType::eDynamic) && (1.0f / rb.GetMass()) != body->GetMotionProperties()->GetInverseMass()) {
+            JPH::MassProperties	massPropertiesOverride{};
+            massPropertiesOverride.mMass = rb.GetMass(); // Jolt uses kg, see docs
+            body->GetMotionProperties()->SetMassProperties( body->GetMotionProperties()->GetAllowedDOFs(), massPropertiesOverride );
+        }
+
+        // Degrees of freedom dynamic objects (which axis the object is allowed to rotate, translate
+
+
+        // Restitution
+        body->SetRestitution( rb.GetRestitution() );
     }
 
     auto PhysicsWorld::PostUpdate() -> void {
@@ -221,22 +209,15 @@ namespace mikoto::physics {
                 continue;
             }
 
-            const auto b{ GetJoltBody( rb.GetBodyID() ) };
-            {
-                // Scoped lock
-                JPH::BodyLockRead lock(lockInterface, b->GetID());
-                if (lock.Succeeded()) {
-                    const JPH::Body &body{ lock.GetBody() };
+            const JPH::Body* body{ GetJoltBody( rb.GetBodyID() ) };
 
-                    const JPH::RMat44 transform{ body.GetCenterOfMassTransform() };
+            const JPH::RMat44 transform{ body->GetCenterOfMassTransform() };
 
-                    const JPH::Vec3 position{ transform.GetTranslation() };
-                    const JPH::Quat rotation{ transform.GetRotation().GetQuaternion() };
+            const JPH::Vec3 position{ transform.GetTranslation() };
+            const JPH::Quat rotation{ transform.GetRotation().GetQuaternion() };
 
-                    tr.SetTranslation( GetFloat3F( position ) );
-                    tr.SetRotation( GetQuatF( rotation ) );
-                }
-            }
+            tr.SetTranslation( GetFloat3F( position ) );
+            tr.SetRotation( GetQuatF( rotation ) );
         }
     }
 
@@ -256,7 +237,7 @@ namespace mikoto::physics {
 
         RigidBodyComponent& rb{ entity->GetComponent<RigidBodyComponent>() };
 
-        const auto body{ GetJoltBody( rb.GetBodyID() ) };
+        const JPH::Body* body{ GetJoltBody( rb.GetBodyID() ) };
         mSimulationInfo.mBodyInterface->RemoveBody( body->GetID() );
         mSimulationInfo.mBodyInterface->DestroyBody( body->GetID() );
 

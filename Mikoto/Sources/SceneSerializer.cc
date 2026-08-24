@@ -108,6 +108,10 @@ namespace mikoto::scene {
         emitter << YAML::Key << "Rotation" << YAML::Value << rotation;
         emitter << YAML::Key << "Scale" << YAML::Value << scale;
         emitter << YAML::Key << "Uniform Scale" << YAML::Value << uniformScale;
+
+        // Store only WorldTransform because we want to know where it was in world space
+        // Local space can be recomputed from translation, rotation and scale vectors
+
         emitter << YAML::EndMap;
     }
 
@@ -181,7 +185,7 @@ namespace mikoto::scene {
         emitter << YAML::EndMap;
     }
 
-    static auto SerializeNode( YAML::Emitter& emitter, const Entity* root, const Scene& secene ) -> void {
+    static auto SerializeNode( YAML::Emitter& emitter, const Entity* root, const Scene& scene ) -> void {
         if ( root == nullptr ) {
             return;
         }
@@ -189,6 +193,7 @@ namespace mikoto::scene {
         emitter << YAML::BeginMap;
         emitter << YAML::Key << "Game Object";
 
+        // Tag and Transform components are always present
         emitter << YAML::Key << "TagComponent" << YAML::Value;
         SerializeComponent( root->GetComponent<TagComponent>(), emitter );
 
@@ -203,10 +208,11 @@ namespace mikoto::scene {
         MKT_SERIALIZE_COMPONENT_IF_PRESENT( TextComponent, "TextComponent" );
         MKT_SERIALIZE_COMPONENT_IF_PRESENT( ScriptComponent, "ScriptComponent" );
 
-        // I do not serialize the relationship component the hierarchy is stored explicitly by the nesting of the nodes in the yaml file.
-        // So if an entity has children they will be nested under it in the yaml file and if it does not have children it will just be a leaf node.
+        // I do not serialize the relationship component the hierarchy is stored explicitly by the nesting of the nodes in the YAML file.
+        // So if an entity has children they will be nested under it in the YAML file and if it does not have children it will just be a leaf node.
+        // Entity Unique ID is a runtime property that is established when it is created.
         for ( const auto& childID: root->GetComponent<RelationComponent>().GetChildren() ) {
-            SerializeNode( emitter, secene.FindByID( childID ), secene );
+            SerializeNode( emitter, scene.FindByID( childID ), scene );
         }
 
         emitter << YAML::EndMap;
@@ -214,9 +220,8 @@ namespace mikoto::scene {
 
     auto SceneSerializer::Serialize( const Scene& scene, const Path& saveFilePath ) -> void {
         FileHandle outputFile{ FileService::Get()->CreateNewFile( saveFilePath ) };
-
         if ( outputFile.IsEmpty() ) {
-            MKT_CORE_LOGGER_ERROR( "Could not open file '{}' required for scene serialization", saveFilePath.GetC_Str() );
+            MKT_CORE_LOGGER_ERROR( "Could not create or open file '{}' required for scene serialization.", saveFilePath.GetC_Str() );
             return;
         }
 
@@ -224,13 +229,19 @@ namespace mikoto::scene {
 
         emitter << YAML::BeginMap;
         emitter << YAML::Key << "Scene" << YAML::Value << scene.GetName().data();
+
+        // Game objects
         emitter << YAML::Key << "Objects" << YAML::Value << YAML::BeginSeq;
 
         for ( const auto& root: scene.GetRootEntities() ) {
             SerializeNode( emitter, root, scene );
         }
-
         emitter << YAML::EndSeq;
+
+        // Scene properties
+        emitter << YAML::Key << "Scene Properties" << YAML::Value << YAML::BeginSeq;
+
+
         emitter << YAML::EndMap;
 
         outputFile->SetContents( emitter.c_str() );

@@ -147,7 +147,7 @@ namespace mikoto::renderer {
         mCommands->EnbDebugLabel();
 
         if (mNode->mExecutionPolicy == FGExecutionPolicy::eOnce ||
-            mNode->mExecutionPolicy == FGExecutionPolicy::eOnChange) {
+            mNode->mExecutionPolicy == FGExecutionPolicy::eOnWake) {
             mNode->mIsAlive = false;
         }
     }

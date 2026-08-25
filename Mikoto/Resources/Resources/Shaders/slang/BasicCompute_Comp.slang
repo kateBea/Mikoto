@@ -62,5 +62,4 @@ void main(uint3 gid: SV_DispatchThreadID) {
 
     RWByteAddressBuffer buf = sBuffers[uParams.BufferID];
     buf.Write<MyStruct>(0, idx, s);
-
 }

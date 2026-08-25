@@ -250,7 +250,7 @@ namespace mikoto::gui {
         auto submitInfo{ SubmitInfo{}
             .AddCommandList( mCommandList ) };
         RenderSystem::Get()->BatchSubmission( eastl::move( submitInfo ), QueueType::eGraphics );
-
+        
 #if false
         RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
 #endif

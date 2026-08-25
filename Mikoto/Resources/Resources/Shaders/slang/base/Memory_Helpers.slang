@@ -54,20 +54,20 @@
 // Extensions
 extension RWByteAddressBuffer {
     void Write<T>(uint baseOffset, uint offset, T element) {
-        uint address = baseOffset + (offset * sizeof(T));
-        this.Store<T>(address, element);
+        uint address = (baseOffset + offset) * sizeof(T);
+        this.StoreByteOffset<T>( address, element );
     }
 
     T Read<T>(uint baseOffset, uint offset) {
-        uint address = baseOffset + (offset * sizeof(T));
-        return this.LoadByteOffset<T>(address);
+        uint address = ( baseOffset + offset ) * sizeof(T);
+        return this.LoadByteOffset<T>( address );
     }
 }
 
 extension ByteAddressBuffer {
     T Read<T>(uint baseOffset, uint offset) {
-        uint address = baseOffset + (offset * sizeof(T));
-        return this.LoadByteOffset<T>(address);
+        uint address = ( baseOffset + offset ) * sizeof(T);
+        return this.LoadByteOffset<T>( address );
     }
 }
 

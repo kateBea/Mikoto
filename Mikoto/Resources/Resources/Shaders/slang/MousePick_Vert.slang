@@ -67,7 +67,7 @@ VSOutput main(VSInput input) {
     float3 normal = float3(0, 0, 0);
     if (meshInfo.SkinningMatricesID != -1) {
         uint animatorIndex = meshInfo.SkinningMatricesID - 1;
-        uint boneBase = animatorIndex * sizeof(float4x4) * MAX_BONES;
+        uint boneBase = animatorIndex * MAX_BONES;
 
         float4x4 inJoinx = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.x);
         float4x4 inJoiny = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.y);

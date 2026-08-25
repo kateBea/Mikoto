@@ -290,8 +290,9 @@ namespace mikoto::renderer {
             MeshGeometryInfo& geometry{ meshBatchDrawInfo.mGeometryList[meshBatchDrawInfo.mInstanceCount] };
             MeshMaterialInfo& material{ meshBatchDrawInfo.mMaterialsList[meshBatchDrawInfo.mInstanceCount] };
 
-            geometry.mIndexOffset = meshBatch.mGeometryInfo.mIndexOffset;
-            geometry.mVertexOffset = meshBatch.mGeometryInfo.mVertexOffset;
+            // Offsets are in bytes, the shaders expects indices.
+            geometry.mIndexOffset = meshBatch.mGeometryInfo.mIndexOffset / MKT_SIZEOF( u32 );
+            geometry.mVertexOffset = meshBatch.mGeometryInfo.mVertexOffset / MKT_SIZEOF( asset::VertexDescription );
 
             geometry.mTransform = transformComponent.GetWorldTransform();
             geometry.mInverseModelView = glm::inverse( glm::mat3( mCamera->GetViewMatrix() * geometry.mTransform ) );
@@ -356,15 +357,16 @@ namespace mikoto::renderer {
 
         GeometryCullModuleInfo& info{ b.Get<GeometryCullModuleInfo>() };
 
+        u32 highestIndex{};
         for (const auto& index : mActiveFinalMatsIndices) {
             if ( Animator * animator{ AnimationSystem::Get()->GetAnimator( index ) } ) {
+                highestIndex = eastl::max( highestIndex, index );
                 auto &finalMats{ animator->GetFinalBoneMatrices() };
                 std::memcpy( mSkinningInfo[index - 1].mBoneTransforms.data(), finalMats.data(), finalMats.size() * MKT_SIZEOF( float4x4 ) );
             }
         }
 
         if (!mActiveFinalMatsIndices.empty()) {
-            u32 highestIndex{ *(--mActiveFinalMatsIndices.end()) + 1u };
             context.CopyBuffer( info.mSkinningBuffer, 0, mSkinningInfo.data(), highestIndex * MKT_SIZEOF( MeshSkinningInfo ) );
             mActiveFinalMatsIndices.clear();
         }

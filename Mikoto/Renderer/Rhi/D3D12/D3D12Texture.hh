@@ -45,11 +45,14 @@ namespace mikoto::renderer::d3d12 {
         auto Release() -> void override;
         auto Initialize() -> void override;
 
+    public:
+        auto SetDebugName( eastl::string_view name ) -> void override;
+
     private:
         D3D12_CPU_DESCRIPTOR_HANDLE mSamplerHandle{};
 
         DeviceResources* mResources{};
-        DescriptorIndex mSamplerDescriptorIndex{};
+        DescriptorIndex mSamplerDescriptorIndex{ kInvalidDescriptorIndex };
     };
 
     struct ExternalTextureDescription {
@@ -100,8 +103,8 @@ namespace mikoto::renderer::d3d12 {
 
         bool mIsExternalImage{};
 
-        DescriptorIndex mRtvDescriptorIndex{};
-        DescriptorIndex mDsvDescriptorIndex{};
+        DescriptorIndex mRtvDescriptorIndex{ kInvalidDescriptorIndex };
+        DescriptorIndex mDsvDescriptorIndex{ kInvalidDescriptorIndex };
     };
 
 }// namespace mikoto::renderer::d3d12

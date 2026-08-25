@@ -174,7 +174,12 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto GraphicsPipeline::SetDebugName( eastl::string_view name ) -> void {
-        IGraphicsPipeline::SetDebugName( name );
+        if (name.empty()) {
+            return;
+        }
+
+        mDebugName = name;
+        mPipelineState->SetName( string::ToWide( mDebugName ).c_str() );
     }
 
     GraphicsPipeline::~GraphicsPipeline() {

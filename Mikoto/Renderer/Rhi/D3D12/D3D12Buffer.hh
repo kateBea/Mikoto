@@ -77,7 +77,7 @@ namespace mikoto::renderer::d3d12 {
 
         DeviceResources* mResources{};
 
-        DescriptorIndex mSrvDescriptorIndex{};
+        DescriptorIndex mSrvDescriptorIndex{ kInvalidDescriptorIndex };
     };
 }
 

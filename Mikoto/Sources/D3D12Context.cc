@@ -268,8 +268,10 @@ namespace mikoto::renderer::d3d12 {
 
     auto Context::Shutdown() -> void {
         // Do a wait idle
+        Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
+        ( void )pFence->Wait( mFenceValue, eastl::numeric_limits<u64>::max() ); // Host wait
 
-        mFence.Reset();
+        mDevice->WaitIdle();
 
         mPipeline.Reset();
         mPipelineLayoutHandle.Reset();
@@ -289,6 +291,8 @@ namespace mikoto::renderer::d3d12 {
 
         mPresentTarget.Reset();
         mSwapChain.Reset();
+
+        mFence.Reset();
 
         mShaderCompiler->Shutdown();
         mShaderCompiler.reset();

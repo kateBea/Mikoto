@@ -59,6 +59,11 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Buffer::SetDebugName( eastl::string_view name ) -> void {
+        if (name.empty()) {
+            return;
+        }
+
+        mDebugName = name;
         mAllocation.mResource->SetName( string::ToWide( name ).c_str() );
     }
 

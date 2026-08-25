@@ -83,6 +83,10 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
+    auto Sampler::SetDebugName( eastl::string_view name ) -> void {
+        mDebugName = name;
+    }
+
     Texture::Texture( const TextureCreateDescription& desc, DeviceResources& resources)
         : ITexture{ desc }, mResources{ MKT_ADDRESSOF( resources ) }, mIsExternalImage{ false }
     {
@@ -105,6 +109,11 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Texture::SetDebugName( const eastl::string_view name ) -> void {
+        if (name.empty()) {
+            return;
+        }
+
+        mDebugName = name;
         mImageAllocation.mResource->SetName( string::ToWide( name ).c_str() );
     }
 

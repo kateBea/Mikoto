@@ -55,7 +55,7 @@ namespace mikoto::renderer::d3d12 {
     using namespace mikoto::renderer::rhi;
 
     Fence::Fence( u64 initialValue ) {
-        mFenceValue = initialValue;
+        mFenceInitialValue = initialValue;
     }
 
     auto Fence::GetCompletionValue() const -> u64 {
@@ -72,7 +72,7 @@ namespace mikoto::renderer::d3d12 {
 
     auto Fence::Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool {
         if (!IsCompleted( fenceValue )) {
-            HRESULT rs{ mFence->SetEventOnCompletion(mFenceValue, mFenceEvent) };
+            HRESULT rs{ mFence->SetEventOnCompletion(fenceValue, mFenceEvent) };
             if (FAILED(rs)) {
                 return false;
             }
@@ -123,7 +123,7 @@ namespace mikoto::renderer::d3d12 {
     auto Fence::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ThrowIfFailed(device->GetDevice()->CreateFence(
-            mFenceValue, D3D12_FENCE_FLAG_NONE,
+            mFenceInitialValue, D3D12_FENCE_FLAG_NONE,
             IID_PPV_ARGS(&mFence)));
 
         mFenceEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -197,7 +197,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto StaticDescriptorHeap::ReleaseDescriptors( DescriptorIndex baseIndex, u32 count ) -> void {
-        if ( count == 0 ) {
+        if ( count == 0 || baseIndex == kInvalidDescriptorIndex ) {
             return;
         }
 
@@ -577,8 +577,12 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto PipelineLayout::SetDebugName( const eastl::string_view name ) -> void {
+        if (name.empty()) {
+            return;
+        }
+
         mDebugName = name;
-        mRootSignature->SetName( string::ToWide( mDebugName ).c_str() );
+        mRootSignature->SetName( string::ToWide( name ).c_str() );
     }
 
     auto PipelineLayout::GetNativeHandle( ObjectType type ) -> Object {
@@ -805,6 +809,11 @@ namespace mikoto::renderer::d3d12 {
         handle->Initialize( mDevice );
 
         return handle;
+    }
+
+    auto Queue::WaitIdle() -> void {
+        // TODO: does not behave as expected
+        ( void )mFence->Wait( mFenceValue, INFINITE );
     }
 
     auto Queue::GetCurrentTimeline() -> core::u64 {
@@ -1200,14 +1209,14 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
-    auto CommandList::Write( IBuffer *buffer, size_t destOffset, const void *data, size_t byteSize ) -> void {
+    auto CommandList::Write( IBuffer *buffer, size_t destOffset, const void *data, core::usize byteSize ) -> void {
 
     }
 
-    auto CommandList::Write( IBuffer *buffer, const void *data, size_t byteSize ) -> void {
-        Buffer* bSrc{ checked_cast<Buffer*>( buffer ) };
+    auto CommandList::Write( IBuffer *buffer, const void *data, core::usize byteSize ) -> void {
+        Buffer* bDest{ checked_cast<Buffer*>( buffer ) };
 
-        switch (bSrc->GetHeapType()) {
+        switch (bDest->GetHeapType()) {
             case HeapType::eDeviceLocal: {
                 if (mEnableAutomaticBarriers) {
                     SetTransition(buffer, ResourceStates::eCopyDest);
@@ -1218,23 +1227,23 @@ namespace mikoto::renderer::d3d12 {
 
                 std::memcpy(allocation->mMappedMemory, data, byteSize);
 
-                Buffer* bDest{ checked_cast<Buffer*>( allocation->mBuffer ) };
+                Buffer* bSrc{ checked_cast<Buffer*>( allocation->mBuffer ) };
 
                 ID3D12Resource* d3d12BufferSrc{ *bSrc };
                 ID3D12Resource* d3d12BufferDest{ *bDest };
 
-                mCurrentRecordingContext->mCommandList->CopyBufferRegion( d3d12BufferDest, allocation->mOffset, d3d12BufferSrc, 0, byteSize );
+                mCurrentRecordingContext->mCommandList->CopyBufferRegion( d3d12BufferDest, 0, d3d12BufferSrc, allocation->mOffset, byteSize );
 
                 mCurrentRecordingContext->mUploadAllocations.emplace_back( allocation );
                 break;
             }
             case HeapType::eUpload: {
-                void* mappedAddress{ bSrc->PersistentMap() };
+                void* mappedAddress{ bDest->PersistentMap() };
 
                 MKT_ASSERT( mappedAddress, "Failed to map buffer" );
                 std::memcpy(mappedAddress, data, byteSize);
 
-                bSrc->PersistentUnmap();
+                bDest->PersistentUnmap();
                 break;
             }
             case HeapType::eReadback:
@@ -1613,27 +1622,103 @@ namespace mikoto::renderer::d3d12 {
 
     GpuUploadManager::GpuUploadManager( IGpuDevice *device )
         : mDevice{ device }
-    {
-    }
+    {}
 
-    auto GpuUploadManager::SubAllocate( size_t byteSize ) -> GpuUploadAllocation * {
-        return nullptr;
+    auto GpuUploadManager::SubAllocate( usize byteSize ) -> GpuUploadAllocation* {
+        std::lock_guard lock{ mMutex };
+        auto* device{ checked_cast<Device*>( mDevice ) };
+
+        StagingAllocation* stagingAlloc{};
+        eastl::optional<Allocation> subAllocProperties{};
+
+        // Find the first allocation I can suballocate from and lock it
+        if (mBuffers.empty()) {
+            stagingAlloc = CreateBuffer();
+            subAllocProperties = stagingAlloc->mMemoryArena->Allocate( byteSize, 1 );
+            if (!subAllocProperties.has_value()) {
+                MKT_ASSERT( false, "Failed to sub-allocate" );
+            }
+        } else {
+            // Try to find any buffer that has ranges available
+            for (auto& bufferInfo : mBuffers | std::views::values) {
+                stagingAlloc = bufferInfo.get();
+                subAllocProperties = stagingAlloc->mMemoryArena->Allocate( byteSize, 1 );
+
+                if (subAllocProperties.has_value()) {
+                    break;
+                }
+            }
+
+            // If none does allocate a new staging for uploads
+            if (!subAllocProperties.has_value()) {
+                stagingAlloc = CreateBuffer();
+                subAllocProperties = stagingAlloc->mMemoryArena->Allocate( byteSize, 1 );
+            }
+        }
+
+        MKT_ASSERT( subAllocProperties.has_value() && subAllocProperties->mSize >= byteSize, "Failed to sub-allocate" );
+
+        // Fill params
+        GpuUploadAllocation* result{ CreateSubAllocation( stagingAlloc->mBuffer.GetRaw() ) };
+
+        result->mMappedMemory = as<ubyte*>( checked_cast<Buffer *>( stagingAlloc->mBuffer.GetRaw() )->GetMappedAddress() ) + subAllocProperties->mOffset;
+        result->mSize = subAllocProperties->mSize;
+        result->mOffset = subAllocProperties->mOffset;
+        result->mBuffer = stagingAlloc->mBuffer.GetRaw();
+        result->mAllocation = *subAllocProperties;
+
+        return result;
     }
 
     auto GpuUploadManager::ReclaimMemory() -> void {
+        std::lock_guard lock{ mMutex };
 
+        // Check fence, I'm not sure maybe timeline semaphores can be used instead
+        for ( auto& [buffer, subAllocations]: mSubAllocations ) {
+            // Is it safe to return them back here?
+            for ( auto it{ subAllocations.begin() }; it != subAllocations.end(); ) {
+                if ( it->get() && !( *it )->mInUse.test() ) {
+                    mBuffers[buffer]->mMemoryArena->Free( ( *it )->mAllocation );
+                    it = subAllocations.erase( it );
+                } else {
+                    ++it;
+                }
+            }
+        }
     }
 
     GpuUploadManager::~GpuUploadManager() {
-
+        mBuffers.clear();
+        mSubAllocations.clear();
     }
 
-    auto GpuUploadManager::CreateBuffer() -> StagingAllocation* {
-        return nullptr;
+    auto GpuUploadManager::CreateBuffer() -> StagingAllocation * {
+        usize initialSize{ MKT_MEGABYTES( 512 ) };
+
+        auto bufferDes{ BufferCreateDescription{}
+            .SetByteSize( initialSize )
+            .SetCpuAccessType( CpuAccessType::eWrite )
+            .SetHeapType( HeapType::eUpload )
+            .SetResourceType( ResourceType::eInvalid ) // Is not a shader resource
+            .SetBufferUsage( BufferUsageFlagsBits::kNone ) };
+        BufferHandle result{ mDevice->CreateBuffer( bufferDes ) };
+
+        result->SetDebugName( string::Format( "UploadBuffer Size: {}", initialSize ) );
+
+        auto& newAllocation{ mBuffers[result.GetRaw()] };
+        newAllocation = eastl::make_unique<StagingAllocation>();
+        newAllocation->mBuffer = result;
+        newAllocation->mMemoryArena = eastl::make_unique<memory::MemoryArena<IBuffer, FreeListFirstFitAllocator>>( result, initialSize );
+
+        // Keep it mapped permanently
+        ( void )mDevice->Map( result.GetRaw() );
+
+        return newAllocation.get();
     }
 
-    auto GpuUploadManager::CreateSubAllocation( IBuffer *buffer ) -> GpuUploadAllocation * {
-        return nullptr;
+    auto GpuUploadManager::CreateSubAllocation( IBuffer* buffer ) -> GpuUploadAllocation * {
+        auto& result{ mSubAllocations[buffer].emplace_back( eastl::make_unique<GpuUploadAllocation>() ) };
+        return result.get();
     }
 
     Device::Device( const GpuDeviceCreateInfo &createInfo )
@@ -1943,6 +2028,9 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::WaitIdle() -> void {
         // For all queues see if they are ready up until latest fence value
+        // for (auto& queue : mQueues | std::views::values ) {
+        //     queue->WaitIdle();
+        // }
     }
 
     auto Device::GetDevice() -> ID3D12Device2 * {

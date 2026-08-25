@@ -88,6 +88,7 @@ namespace mikoto::editor {
 
         // A pipeline that takes no resources
         mPipelineLayoutHandle = mDevice->CreatePipelineLayout( PipelineLayoutCreateDescription{} );
+        mPipelineLayoutHandle->SetDebugName( "HelloTriangleLayer PipelineLayout" );
 
         auto graphicsPipelineDescription{ GraphicsPipelineDescription{}
             .AddShader( mPixelShader )

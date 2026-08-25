@@ -74,7 +74,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         HANDLE mFenceEvent{};
-        UINT64 mFenceValue{};
+        UINT64 mFenceInitialValue{};
         Microsoft::WRL::ComPtr<ID3D12Fence> mFence{};
     };
 
@@ -109,7 +109,7 @@ namespace mikoto::renderer::d3d12 {
     public:
         explicit GpuUploadManager( rhi::IGpuDevice* device );
 
-        auto SubAllocate( core::size_t byteSize ) -> GpuUploadAllocation*;
+        auto SubAllocate( core::usize byteSize ) -> GpuUploadAllocation*;
         auto ReclaimMemory() -> void;
 
         ~GpuUploadManager();
@@ -379,9 +379,11 @@ namespace mikoto::renderer::d3d12 {
 
         auto ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void override;
 
-        auto AllocateCmdList() -> CommandListHandle;
-
+        // D3D12 Specifics
         MKT_NODISCARD auto GetCurrentTimeline() -> core::u64;
+        MKT_NODISCARD auto AllocateCmdList() -> CommandListHandle;
+
+        auto WaitIdle() -> void;
 
         // Conversion operators
         operator ID3D12CommandQueue*() const;
@@ -443,15 +445,15 @@ namespace mikoto::renderer::d3d12 {
         auto SetClearColor( rhi::TextureHandle renderTarget, Color color ) -> void override;
 
         auto Write( IBuffer* src, ITexture* dest, core::u32 mipLevel ) -> void override;
-        auto Write( ITexture* texture, core::u32 mipLevel,const void* data, core::size_t byteSize ) -> void override;
+        auto Write( ITexture* texture, core::u32 mipLevel,const void* data, core::usize byteSize ) -> void override;
         auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
 
         auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
 
-        auto Write( IBuffer* buffer, core::size_t destOffset, const void* data, core::size_t byteSize ) -> void override;
-        auto Write( IBuffer* buffer, const void* data, core::size_t byteSize ) -> void override;
+        auto Write( IBuffer* buffer, core::usize destOffset, const void* data, core::usize byteSize ) -> void override;
+        auto Write( IBuffer* buffer, const void* data, core::usize byteSize ) -> void override;
         auto Copy( IBuffer* src, IBuffer* dest ) -> void override;
-        auto Copy( IBuffer* src, IBuffer* dest, core::size_t destOffset ) -> void override;
+        auto Copy( IBuffer* src, IBuffer* dest, core::usize destOffset ) -> void override;
 
         auto Copy( IBuffer *dest, ITexture *src ) -> void override;
 
@@ -476,12 +478,12 @@ namespace mikoto::renderer::d3d12 {
         auto BindIndirectBuffer( IBuffer* buffer ) -> void override;
         auto DrawIndexed( const DrawArguments& args ) -> void override;
 
-        auto DrawIndirect( u32 offset, u32 drawCount ) -> void override;
-        auto DrawIndexedIndirect( u32 offset, u32 drawCount ) -> void override;
+        auto DrawIndirect( core::u32 offset, core::u32 drawCount ) -> void override;
+        auto DrawIndexedIndirect( u32 offset, core::u32 drawCount ) -> void override;
 
-        auto Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) -> void override;
+        auto Dispatch( core::u32 groupsX, core::u32 groupsY, core::u32 groupsZ ) -> void override;
 
-        auto SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, ShaderFlags visibility ) -> void override;
+        auto SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, ShaderFlags visibility ) -> void override;
 
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;

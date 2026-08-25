@@ -15,6 +15,8 @@
 #ifndef MIKOTO_IMGUI_D3D12BACKEND_HH
 #define MIKOTO_IMGUI_D3D12BACKEND_HH
 
+#include <mutex>
+
 #include <EASTL/functional.h>
 
 #include <Core/Platform.hh>
@@ -31,6 +33,8 @@
 #include <directx/d3d12.h>
 
 #include <imgui_impl_dx12.h>
+
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
 
 namespace mikoto::gui {
 
@@ -91,6 +95,15 @@ namespace mikoto::gui {
         // I will have for now ImGui its own SRV descriptor heap and have it manage it
         inline static ExampleDescriptorHeapAllocator mSrvDescHeapAlloc{};
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mSrvDescHeap{};
+
+        renderer::d3d12::DeviceResources* mDeviceResources{};
+
+        struct ImTextureInfo {
+            D3D12_CPU_DESCRIPTOR_HANDLE mCpuHandle{};
+            D3D12_GPU_DESCRIPTOR_HANDLE mGpuHandle{};
+        };
+        std::mutex mImTextureAllocMutex{};
+        ankerl::unordered_dense::map<const renderer::rhi::ITexture*, ImTextureInfo> mTextureIdMap{};
 
         eastl::function<void(ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE*, D3D12_GPU_DESCRIPTOR_HANDLE*)> mSrvDescriptorAllocFn{};
         eastl::function<void(ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE)> mSrvDescriptorFreeFn{};

@@ -592,6 +592,7 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetDevice() -> ID3D12Device2*;
         MKT_NODISCARD auto GetAdapter() -> IDXGIAdapter4*;
 
+        MKT_NODISCARD auto GetHeapResources() -> DeviceResources*;
         MKT_NODISCARD auto GetHeapResources() const -> const DeviceResources*;
 
         MKT_NODISCARD auto GetAllocator() -> GpuMemoryAllocator*;

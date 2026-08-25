@@ -267,6 +267,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Context::Shutdown() -> void {
+        // Do a wait idle
 
         mFence.Reset();
 

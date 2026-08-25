@@ -107,6 +107,8 @@ namespace mikoto::gui {
         mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
         mCommandList->SetDebugName( "ImGui Command Buffer" );
 
+        mDeviceResources = checked_cast<d3d12::Device*>( mDevice )->GetHeapResources();
+
         mIsInitialized = true;
     }
 
@@ -124,6 +126,10 @@ namespace mikoto::gui {
         // Services in Mikoto do not do their cleanup in the destructor they do it on the Shutdown method
         mColorImage.Reset();
         mDepthImage.Reset();
+
+        for (const auto item : mTextureIdMap | std::views::values) {
+            mSrvDescHeapAlloc.Free( item.mCpuHandle, item.mGpuHandle );
+        }
 
         ImGui_ImplDX12_Shutdown();
         ImGui_ImplGlfw_Shutdown();
@@ -197,7 +203,24 @@ namespace mikoto::gui {
     }
 
     auto ImGuiD3D12Backend::ConstructImGuiTextureID( const ITexture *texture ) -> ImTextureID {
-        return 0;
+        if (!texture) {
+            return 0;
+        }
+
+        std::lock_guard lock{ mImTextureAllocMutex };
+        const d3d12::Texture* pTexture{ checked_cast<const d3d12::Texture*>( texture ) };
+        if (!mTextureIdMap.contains( texture )) {
+
+            auto& imTextureInfo{ mTextureIdMap[texture] = ImTextureInfo{}};
+
+            mSrvDescHeapAlloc.Alloc( &imTextureInfo.mCpuHandle, &imTextureInfo.mGpuHandle );
+            pTexture->CreateSRV(imTextureInfo.mCpuHandle.ptr, rhi::kAllSubResources, texture->GetFormat(), texture->GetDimension());
+
+            //ID3D12Device2* device{ checked_cast<d3d12::Device*>( mDevice )->GetDevice() };
+            //mDeviceResources->mShaderResourceViewHeap->CopyToShaderVisibleHeap(index);
+        }
+
+        return (ImTextureID)mTextureIdMap[texture].mGpuHandle.ptr;
     }
 
     auto ImGuiD3D12Backend::ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID {

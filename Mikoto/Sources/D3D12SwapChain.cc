@@ -198,6 +198,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto SwapChain::Release() -> void {
+        mDevice->WaitIdle();
         mIsAllocated = false;
     }
 }// namespace mikoto::renderer::d3d12

@@ -1942,7 +1942,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::WaitIdle() -> void {
-
+        // For all queues see if they are ready up until latest fence value
     }
 
     auto Device::GetDevice() -> ID3D12Device2 * {
@@ -1951,6 +1951,10 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::GetAdapter() -> IDXGIAdapter4 * {
         return mAdapter4.Get();
+    }
+
+    auto Device::GetHeapResources() -> DeviceResources* {
+        return MKT_ADDRESSOF( mResourceHeaps );
     }
 
     auto Device::GetHeapResources() const -> const DeviceResources * {

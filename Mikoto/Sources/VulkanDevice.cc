@@ -2687,7 +2687,7 @@ namespace mikoto::renderer::vulkan {
             .semaphore = mSemaphore,
             .value = fenceValue };
 
-        return vkSignalSemaphore( device->GetDevice(), &signalInfo ) != VK_SUCCESS;
+        return vkSignalSemaphore( device->GetDevice(), &signalInfo ) == VK_SUCCESS;
     }
 
     auto Fence::Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool {
@@ -2701,7 +2701,7 @@ namespace mikoto::renderer::vulkan {
 
         // Timeout is in nanoseconds
         // https://docs.vulkan.org/refpages/latest/refpages/source/vkWaitSemaphores.html
-        return vkWaitSemaphores( device->GetDevice(), &waitInfo, timeoutMs * 1000 ) != VK_SUCCESS;
+        return vkWaitSemaphores( device->GetDevice(), &waitInfo, timeoutMs * 1000 ) == VK_SUCCESS;
     }
 
     Fence::Fence( core::u64 initialValue )

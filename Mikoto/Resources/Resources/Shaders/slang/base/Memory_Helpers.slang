@@ -60,7 +60,7 @@ extension RWByteAddressBuffer {
 
     T Read<T>(uint baseOffset, uint offset) {
         uint address = baseOffset + (offset * sizeof(T));
-        return this.Load<T>(address);
+        return this.LoadByteOffset<T>(address);
     }
 }
 

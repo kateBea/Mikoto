@@ -391,7 +391,7 @@ namespace mikoto::editor {
 
     auto EditorLayer::InitRenderGraphEditor() -> void {
         // Renderer does not create passes yet for D3D11
-        if (mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 )) {
+        if (mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 )) {
             return;
         }
 

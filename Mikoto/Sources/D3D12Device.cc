@@ -1135,8 +1135,45 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
-    auto CommandList::Write( ITexture *texture, u32 mipLevel, const void *data, size_t byteSize ) -> void {
+    auto CommandList::Write( ITexture *texture, u32 mipLevel, const void *data, usize byteSize ) -> void {
+        // https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples#example-for-directx12-users
+        if (mEnableAutomaticBarriers) {
+            SetTransition( texture, ResourceStates::eCopyDest );
+        }
 
+        UINT uploadPitch{ (texture->GetWidth() * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) };
+        UINT uploadSize{ texture->GetHeight() * uploadPitch };
+
+        GpuUploadAllocation* allocation{ mUploadManager->SubAllocate( uploadSize ) };
+        SetTransition( allocation->mBuffer, ResourceStates::eCopySource );
+
+        Buffer* uploadBuffer{ checked_cast<Buffer*>( allocation->mBuffer ) };
+
+        for (usize y{}; y < texture->GetHeight(); y++) {
+            void* pDest{ (void*)((uintptr_t)allocation->mMappedMemory + y * uploadPitch) };
+            const void* pSrc{ as<const u8*>(data) + (ull)(y * texture->GetHeight() * 4) };
+
+            std::memcpy(pDest, pSrc, texture->GetWidth() * 4);
+        }
+
+        // Copy the upload resource content into the real resource
+        D3D12_TEXTURE_COPY_LOCATION srcLocation{};
+        srcLocation.pResource = *uploadBuffer;
+        srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        srcLocation.PlacedFootprint.Footprint.Format = d3d12::GetFormat( texture->GetFormat() );
+        srcLocation.PlacedFootprint.Footprint.Width = texture->GetWidth();
+        srcLocation.PlacedFootprint.Footprint.Height = texture->GetHeight();
+        srcLocation.PlacedFootprint.Footprint.Depth = 1;
+        srcLocation.PlacedFootprint.Footprint.RowPitch = uploadPitch;
+
+        Texture* pTexture{ checked_cast<Texture*>( texture ) };
+
+        D3D12_TEXTURE_COPY_LOCATION dstLocation{};
+        dstLocation.pResource = *pTexture;
+        dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        dstLocation.SubresourceIndex = 0;
+
+        mCurrentRecordingContext->mCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, NULL);
     }
 
     auto CommandList::Copy( ITexture *src, const TextureSlice &srcSlice, ITexture *dest, const TextureSlice &destSlice ) -> void {

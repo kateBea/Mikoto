@@ -62,8 +62,8 @@ namespace mikoto::renderer {
 
         // Temporary, as the Direct3D 11 backend does not offer support for
         // bindless which the frame graph relies on for most of its functionality
-        if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11)) {
-            MKT_CORE_LOGGER_WARN( "Scene renderer expects DirectX12 or Vulkan" );
+        if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 )) {
+            MKT_CORE_LOGGER_WARN( "Scene renderer expects Vulkan" );
             return;
         }
 
@@ -91,7 +91,7 @@ namespace mikoto::renderer {
     auto ThumbnailRenderer::Render( const scene::Scene *scene ) -> void {
         // Temporary, as the Direct3D 11 backend does not offer support for
         // bindless which the frame graph relies on for most of its functionality
-        if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11)) {
+        if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 )) {
             return;
         }
     }

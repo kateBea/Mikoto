@@ -44,6 +44,8 @@ namespace mikoto::renderer::d3d12 {
         D3D12_RESOURCE_DESC mDesc{};
         Microsoft::WRL::ComPtr<ID3D12Resource> mResource{};
 
+        const D3D12_CLEAR_VALUE* mOptimizedClearValue{ nullptr };
+
         D3D12MA::Allocation* mAllocation{};
         D3D12MA::ALLOCATION_DESC mAllocDesc{};
     };

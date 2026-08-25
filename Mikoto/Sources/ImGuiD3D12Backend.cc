@@ -163,7 +163,7 @@ namespace mikoto::gui {
             InitImages();
         }
 
-#if true
+#if false
         ImGui::Begin("Performance");
 
         const float fps = ImGui::GetIO().Framerate;
@@ -188,7 +188,7 @@ namespace mikoto::gui {
             .AddCommandList( mCommandList ) };
         RenderSystem::Get()->BatchSubmission( eastl::move( submitInfo ), QueueType::eGraphics );
 
-#if true
+#if false
         RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
 #endif
 

@@ -405,6 +405,24 @@ namespace mikoto::renderer::d3d12 {
 
             mImageAllocation.mAllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
+            // Optimized clear value
+            // ID3D12Device::CreatePlacedResource: pOptimizedClearValue must be NULL when D3D12_RESOURCE_DESC::Dimension is
+            // not D3D12_RESOURCE_DIMENSION_BUFFER and neither D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET nor
+            // D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL are set in D3D12_RESOURCE_DESC::Flags.
+            if ((mTextureUsage & rhi::TextureUsageFlagsBits::kRenderTarget) ||
+                (mTextureUsage & rhi::TextureUsageFlagsBits::kDepthTarget || mTextureUsage & rhi::TextureUsageFlagsBits::kDepthStencilTarget)) {
+                mOptimizedClearValue.Format = mImageAllocation.mDesc.Format;
+                mOptimizedClearValue.Color[0] = 0.0f;
+                mOptimizedClearValue.Color[1] = 0.0f;
+                mOptimizedClearValue.Color[2] = 0.0f;
+                mOptimizedClearValue.Color[3] = 1.0f;
+
+                mOptimizedClearValue.DepthStencil.Depth = 1.0f;
+                mOptimizedClearValue.DepthStencil.Stencil = 0;
+
+                mImageAllocation.mOptimizedClearValue = MKT_ADDRESSOF( mOptimizedClearValue );
+            }
+
             auto* allocator{ device->GetAllocator() };
             ThrowIfFailed( allocator->AllocateImage( mImageAllocation ) );
         }

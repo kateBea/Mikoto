@@ -136,6 +136,7 @@ namespace mikoto::renderer::d3d12 {
     // https://github.com/microsoft/DirectXTK12/wiki/DescriptorHeap
     // https://learn.microsoft.com/en-us/windows/win32/direct3d12/hardware-support
     // https://3dgep.blogspot.com/2016/02/a-journey-through-directx-12-dynamic.html
+    // https://logins.github.io/graphics/2020/07/31/DX12ResourceHandling.html
     class IDescriptorHeap {
     public:
         virtual auto AllocateDescriptors( core::u32 count ) -> DescriptorIndex = 0;

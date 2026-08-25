@@ -39,8 +39,8 @@ namespace mikoto::renderer {
     auto SceneRenderer::Init() -> void {
         // Temporary, as the Direct3D 11 backend does not offer support for
         // bindless which the frame graph relies on for most of its functionality
-        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) ) {
-            MKT_CORE_LOGGER_WARN( "Scene renderer expects DirectX12 or Vulkan" );
+        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 ) ) {
+            MKT_CORE_LOGGER_WARN( "Scene renderer expects Vulkan" );
             return;
         }
 
@@ -140,7 +140,7 @@ namespace mikoto::renderer {
 
         // Temporary, as the Direct3D 11 backend does not offer support for
         // bindless which the frame graph relies on for most of its functionality
-        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) ) {
+        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 ) ) {
             return;
         }
 
@@ -222,6 +222,10 @@ namespace mikoto::renderer {
     }
 
     auto SceneRenderer::SetEnableInfiniteGrid( bool value ) -> void {
+        if (!mFrameGraph) {
+            return;
+        }
+
         if (value) {
             mFrameGraph->EnablePass( "InfiniteGrid" );
         } else {
@@ -230,10 +234,18 @@ namespace mikoto::renderer {
     }
 
     auto SceneRenderer::DisablePass( eastl::string_view passName ) -> void {
+        if (!mFrameGraph) {
+            return;
+        }
+
         mFrameGraph->DisablePass( passName );
     }
 
     auto SceneRenderer::EnablePass( eastl::string_view passName ) -> void {
+        if (!mFrameGraph) {
+            return;
+        }
+
         mFrameGraph->EnablePass( passName );
     }
 
@@ -250,10 +262,18 @@ namespace mikoto::renderer {
     }
 
     auto SceneRenderer::GetTexture( FGTextureHandle handle ) const -> TextureHandle {
+        if (!mFrameGraph) {
+            return TextureHandle::CreateEmpty();
+        }
+
         return mFrameGraph->GetTexture( handle );
     }
 
     auto SceneRenderer::GetBuffer( FGBufferHandle handle ) const -> BufferHandle {
+        if (!mFrameGraph) {
+            return BufferHandle::CreateEmpty();
+        }
+
         return mFrameGraph->GetBuffer( handle );
     }
 

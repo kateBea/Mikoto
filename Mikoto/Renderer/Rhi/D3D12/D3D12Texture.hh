@@ -103,6 +103,8 @@ namespace mikoto::renderer::d3d12 {
 
         bool mIsExternalImage{};
 
+        D3D12_CLEAR_VALUE mOptimizedClearValue{};
+
         DescriptorIndex mRtvDescriptorIndex{ kInvalidDescriptorIndex };
         DescriptorIndex mDsvDescriptorIndex{ kInvalidDescriptorIndex };
     };

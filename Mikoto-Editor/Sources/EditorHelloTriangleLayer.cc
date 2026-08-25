@@ -24,13 +24,11 @@
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
-
 #include <Renderer/Core/RenderSystem.hh>
 
 #include <Layers/EditorHelloTriangleLayer.hh>
 
 namespace mikoto::editor {
-
     using namespace mikoto::core;
     using namespace mikoto::asset;
     using namespace mikoto::scene;
@@ -45,23 +43,6 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloTriangleLayer::OnCreate() -> void {
-        // Construct geometry: Index and vertex buffer for the triangle
-        auto verticesDesc{ BufferCreateDescription{}
-            .SetBufferUsage( BufferUsageFlagsBits::kVertex | BufferUsageFlagsBits::kCopyDst )
-            .SetHeapType( HeapType::eDeviceLocal )
-            .SetCpuAccessType( CpuAccessType::eRead )
-            .SetInitialData( BufferSpanHandle::Spawn( mVertices.data(), MKT_VECTOR_SIZE_BYTES(mVertices) ) ) };
-        mVertexBuffer = mDevice->CreateBuffer( verticesDesc );
-
-        // Create indices buffer
-        auto indicesDesc{ BufferCreateDescription{}
-            .SetBufferUsage( BufferUsageFlagsBits::kIndex | BufferUsageFlagsBits::kCopyDst )
-            .SetHeapType( HeapType::eDeviceLocal )
-            .SetCpuAccessType( CpuAccessType::eRead )
-            .SetFormat( Format::eR32_UINT )
-            .SetInitialData( BufferSpanHandle::Spawn( mIndices.data(), MKT_VECTOR_SIZE_BYTES(mIndices) ) ) };
-        mIndexBuffer = mDevice->CreateBuffer( indicesDesc );
-
         // Create color attachment
         auto colorDesc{ TextureCreateDescription{}
             .SetWidth( as<i32>( 1920 ) )
@@ -70,7 +51,6 @@ namespace mikoto::editor {
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
             .SetFormat( Format::eBGRA8_UNORM ) };
-
         mColorImage = mDevice->CreateTexture( colorDesc );
         mColorImage->SetDebugName( "HelloTriangleLayer Color image" );
 
@@ -82,12 +62,11 @@ namespace mikoto::editor {
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kDepthTarget )
             .SetFormat( Format::eD32 ) };
-
         mDepthImage = mDevice->CreateTexture( depthDesc );
         mDepthImage->SetDebugName( "HelloTriangleLayer Depth image" );
 
         // Create shaders
-        FileHandle vsShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangleBasic_Vert.slang" ) };
+        FileHandle vsShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloWorld_Vert.slang" ) };
         auto vertexShaderDescription{ ShaderModuleCreateDescription{}
             .SetContents( vsShader )
             .SetModuleName( vsShader->GetName() )
@@ -96,7 +75,7 @@ namespace mikoto::editor {
             .SetStage( ShaderType::eVertex ) };
         mVertexShader = mDevice->CreateShader( vertexShaderDescription );
 
-        FileHandle pxShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangleBasic_Frag.slang" ) };
+        FileHandle pxShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloWorld_Frag.slang" ) };
         auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
             .SetContents( pxShader )
             .SetModuleName( pxShader->GetName() )
@@ -106,132 +85,13 @@ namespace mikoto::editor {
         mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
 
         // Create pipeline
-        eastl::array<rhi::VertexBindingDescription, 1> bindings{
-    rhi::VertexBindingDescription{}
-            .SetBinding( 0 )
-            .SetStride( sizeof( asset::VertexDescription ) )
-            .SetInputRate( InputRate::ePerVertex ) };
 
-        eastl::array<rhi::VertexAttributeDescription, 9> attributes{
-    rhi::VertexAttributeDescription{}
-            .SetName( "POSITION" )
-            .SetLocation( 0 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGB32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mPosition ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "NORMAL" )
-            .SetLocation( 1 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGB32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mNormals ) ),
-
-    rhi::VertexAttributeDescription{}
-            .SetName( "COLOR" )
-            .SetLocation( 2 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mColors ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "TEXCOORD" )
-            .SetLocation( 3 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRG32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mUv0 ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "TEXCOORD" )
-            .SetLocation( 4 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRG32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mUv1 ) ),
-
-    rhi::VertexAttributeDescription{}
-            .SetName( "BLENDINDICES" )
-            .SetLocation( 5 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mJoints0 ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "BLENDWEIGHT" )
-            .SetLocation( 6 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mWeights0 ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "BLENDINDICES" )
-            .SetLocation( 7 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mJoints1 ) ),
-
-    rhi::VertexAttributeDescription{}
-            .SetName( "BLENDWEIGHT" )
-            .SetLocation( 8 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mWeights1 ) ), };
-
-        mVertexInputLayout = mDevice->CreateInputLayout( InputLayoutCreateDescription{}
-            .SetBindings( bindings )
-            .SetAttributes( attributes )
-            .SetShader( mVertexShader ) );
-
-        // Optional. Get the bindings ready to pass in the resources to the GPU
-        asset::ImageHandle image{ asset::ProcessImage2D( "Resources/Textures/diffuse.jpg" ) };
-        auto textureDbug{ TextureCreateDescription{}
-            .SetImageData( image )
-            .SetWidth( as<i32>( image->mWidth ) )
-            .SetHeight( as<i32>( image->mHeight ) )
-            .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kShaderResource )
-            .SetFormat( Format::eRGBA8_UNORM ) };
-        mSimpleTexture = mDevice->CreateTexture( textureDbug );
-
-        auto constantBufferDesc{ BufferCreateDescription{}
-            .SetCpuAccessType( CpuAccessType::eWrite )
-            .SetBufferUsage( BufferUsageFlagsBits::kConstant | BufferUsageFlagsBits::kCopyDst )
-            .SetResourceType( ResourceType::eConstantBuffer )
-            .SetByteSize(MKT_SIZEOF( MyData )) };
-        mConstantBuffer = mDevice->CreateBuffer(constantBufferDesc);
-
-        auto samplerDes{ SamplerCreateDescription{}
-            .SetFilter( rhi::SamplerFilter::eNearest )
-            .SetWrap( SamplerWrapMode::eRepeat )
-            .SetBorderColor( kColorWhite ) };
-        mSamplerState = mDevice->CreateSampler( samplerDes );
-
-        // Create the command list
-        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
-        mCommandList->SetEnableAutomaticBarriers( true );
-        mCommandList->SetDebugName( "HelloTriangle CommandList" );
-
-        // We will upload a texture and a buffer to do some effects, see Triangle_Frag
-        // Ideally we want to automate this process by allowing each backend to be able to use shader reflection
-        auto layoutDesc{ BindingLayoutDescription{}
-            .SetRegisterSpace( 0 )
-            .SetShaderVisibility(ShaderFlagsBits::kAll)
-            .AddItem(BindingLayoutItem::Sampler(0))
-            .AddItem(BindingLayoutItem::Texture_SRV(1))
-            .AddItem(BindingLayoutItem::ConstantBuffer(2)) };
-        mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
-
-        // A pipeline layout describes what kind of group of resources we can bind
-        // To a specific bind point. We can bind resources for Compute pipelines or Graphics pipelines, etc
-        // This is handy if we have too many pipelines that share same layout for group of resources
-        // we can just bind the resources once for all subsequent draws as long as the pipelines use same layout.
-        mPipelineLayoutHandle = mDevice->CreatePipelineLayout( PipelineLayoutCreateDescription{}
-            .AddBindingLayout( mBindingLayoutHandle ) );
+        // A pipeline that takes no resources
+        mPipelineLayoutHandle = mDevice->CreatePipelineLayout( PipelineLayoutCreateDescription{} );
 
         auto graphicsPipelineDescription{ GraphicsPipelineDescription{}
             .AddShader( mPixelShader )
             .AddShader( mVertexShader )
-            .SetInputLayout( mVertexInputLayout )
 
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eBGRA8_UNORM )
@@ -244,50 +104,25 @@ namespace mikoto::editor {
             .SetTopology( PrimitiveTopology::eTriangleList )
             .SetPipelineLayout( mPipelineLayoutHandle ) };
         mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
-        mPipeline->SetDebugName( "EditorTriangle Pipeline" );
+        mPipeline->SetDebugName( "HelloTriangleLayer Pipeline" );
 
-        auto wireframePipelineDescription{
-            GraphicsPipelineDescription{ graphicsPipelineDescription }
-            .SetPolygonMode( PolygonMode::eLines ) };
-        mPipelineWireframe = mDevice->CreatePipeline( wireframePipelineDescription );
-        mPipelineWireframe->SetDebugName( "EditorTriangle PipelineWireframe" );
-
-        auto bindingSetDesc{ BindingSetDescription{}
-            .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) )
-            .AddItem( BindingSetItem::Texture_SRV( 1, mSimpleTexture.GetRaw() ) )
-            .AddItem( BindingSetItem::ConstantBuffer( 2, mConstantBuffer.GetRaw() ) ) };
-        mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
-
-        SceneCameraDescription cameraDescription{
-            .mFov = 45.0,
-            .mAspectRatio = as<float>( mWindow->GetWidth() ) / as<float>( mWindow->GetHeight() ),
-            .mNearPlane = 0.1f,
-            .mFarPlane = 3000.0f,
-            .mWindow = mWindow };
-        mEditorCamera = eastl::make_unique<SceneCamera>( cameraDescription );
+        // Create the command list
+        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
+        mCommandList->SetEnableAutomaticBarriers( true );
+        mCommandList->SetDebugName( "HelloTriangleLayer CommandList" );
     }
 
     auto EditorHelloTriangleLayer::OnDestroy() -> void {
         mDevice->WaitIdle();
 
         mPipeline.Reset();
-        mPipelineWireframe.Reset();
         mPipelineLayoutHandle.Reset();
-        mBindingLayoutHandle.Reset();
-        mVertexInputLayout.Reset();
 
         mVertexShader.Reset();
         mPixelShader.Reset();
 
-        mConstantBuffer.Reset();
-
-        mSimpleTexture.Reset();
         mColorImage.Reset();
         mDepthImage.Reset();
-
-        mSamplerState.Reset();
-
-        mBindingSetHandle.Reset();
 
         mCommandList.Reset();
     }
@@ -295,9 +130,29 @@ namespace mikoto::editor {
     auto EditorHelloTriangleLayer::OnUpdate( float timeStep ) -> void {
         mCommandList->Begin( { .mScopeName = "EditorHelloTriangleLayer Render" } );
 
-        DrawWireframeMesh();
+        // Set graphics state
+        auto graphicsState{ GraphicsState{}
+            .SetRenderArea( Rect{ 1920, 1080 } )
+            .AddDepthTarget( mDepthImage )
+            .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
+        mCommandList->BeginRendering( graphicsState );
 
-        DrawNormalMesh();
+        // No resources but still need to specify the layout for the following pipelines
+        auto bindingDescription{ BindResourcesDescription{}
+            .SetBindPoint( PipelineType::eGraphics )
+            .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() ) };
+        mCommandList->BindPipelineResources( bindingDescription );
+        mCommandList->BindPipeline( mPipeline.GetRaw() );
+
+        mCommandList->SetViewportState( ViewportState{}
+            .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
+
+        constexpr auto drawArguments{ DrawArguments{}
+            .SetInstanceCount( 1 )
+            .SetVertexCount( 3 ) };
+        mCommandList->Draw( drawArguments );
+
+        mCommandList->EndRendering();
 
         mCommandList->SetTransition( mColorImage.GetRaw(), ResourceStates::eShaderResource );
 
@@ -310,122 +165,6 @@ namespace mikoto::editor {
         if (mIsImguiWindowActive) {
             DisplayImGuiWindow();
         }
-    }
-
-    auto EditorHelloTriangleLayer::DrawNormalMesh() -> void {
-        float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) }; // seconds
-        mShaderParameters.mModel = glm::rotate(
-            math::constants::Identity<core::float4x4>(),
-            angle,
-            math::constants::kUnitVectorY
-        );
-
-        mShaderParameters.mView = glm::lookAt(
-            glm::vec3{ 1.0f, 1.0f, 0.0f },// camera position
-            glm::vec3{ 0.0f, 0.0f, 0.0f },// target (sphere center)
-            glm::vec3{ 0.0f, 1.0f, 0.0f } // up direction
-        );
-
-        const f32 aspectRatio{ 1920.0f / 1080.0f };
-        mShaderParameters.mProjection = glm::perspective(
-            glm::radians( 60.0f ),// FOV
-            aspectRatio,          // width / height
-            0.1f,                 // near plane
-            100.0f                // far plane
-        );
-
-        mCommandList->Write( mConstantBuffer.GetRaw(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
-
-        // Set graphics state
-        auto graphicsState{ GraphicsState{}
-            .SetRenderArea( Rect{ 1920, 1080 } )
-            .AddDepthTarget( mDepthImage )
-            .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
-        mCommandList->BeginRendering( graphicsState );
-
-        auto bindingDescription{ BindResourcesDescription{}
-            .SetBindPoint( PipelineType::eGraphics )
-            .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-            .AddResourceSet( 0, mBindingSetHandle.GetRaw() ) };
-        mCommandList->BindPipelineResources( bindingDescription );
-
-        mCommandList->BindPipeline( mPipeline.GetRaw() );
-
-        auto vertexBufferDesc{ VertexBufferBinding{}
-            .SetBufferBinding( 0 )
-            .SetBuffer( mVertexBuffer.GetRaw() )
-            .SetElementStride( MKT_SIZEOF( asset::VertexDescription ) ) };
-        mCommandList->BindVertexBuffer( vertexBufferDesc );
-        mCommandList->BindIndexBuffer(mIndexBuffer.GetRaw() );
-
-        mCommandList->SetViewportState( ViewportState{}
-            .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
-
-        const auto drawArguments{ DrawArguments{}
-            .SetInstanceCount( 1 )
-            .SetIndexCount( mIndexBuffer->GetSizeBytes() / MKT_SIZEOF( u32 ) )
-            .SetVertexCount( mVertexBuffer->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription ) ) };
-        mCommandList->DrawIndexed( drawArguments );
-
-        mCommandList->EndRendering();
-    }
-
-    auto EditorHelloTriangleLayer::DrawWireframeMesh() -> void {
-        float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) }; // seconds
-
-        mShaderParameters.mModel = glm::rotate(
-            mShaderParameters.mModel,
-            angle,
-            math::constants::kUnitVectorY
-        );
-
-        mShaderParameters.mView = glm::lookAt(
-            glm::vec3{ 1.0f, 1.0f, 0.0f },// camera position
-            glm::vec3{ 0.0f, 0.0f, 0.0f },// target (sphere center)
-            glm::vec3{ 0.0f, 1.0f, 0.0f } // up direction
-        );
-
-        const f32 aspectRatio{ 1920.0f / 1080.0f };
-        mShaderParameters.mProjection = glm::perspective(
-            glm::radians( 60.0f ),// FOV
-            aspectRatio,          // width / height
-            0.1f,                 // near plane
-            100.0f                // far plane
-        );
-
-        mCommandList->Write( mConstantBuffer.GetRaw(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
-
-        // Set graphics state
-        auto graphicsState{ GraphicsState{}
-            .SetRenderArea( Rect{ 1920, 1080 } )
-            .AddDepthTarget( mDepthImage )
-            .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
-        mCommandList->BeginRendering( graphicsState );
-
-        auto bindingDescription{ BindResourcesDescription{}
-            .SetBindPoint( PipelineType::eGraphics )
-            .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-            .AddResourceSet( 0, mBindingSetHandle.GetRaw() ) };
-        mCommandList->BindPipelineResources( bindingDescription );
-        mCommandList->BindPipeline( mPipelineWireframe.GetRaw() );
-
-        auto vertexBufferDesc{ VertexBufferBinding{}
-            .SetBufferBinding( 0 )
-            .SetBuffer( mVertexBuffer.GetRaw() )
-            .SetElementStride( MKT_SIZEOF( asset::VertexDescription ) ) };
-        mCommandList->BindVertexBuffer( vertexBufferDesc );
-        mCommandList->BindIndexBuffer(mIndexBuffer.GetRaw() );
-
-        mCommandList->SetViewportState( ViewportState{}
-            .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
-
-        const auto drawArguments{ DrawArguments{}
-            .SetInstanceCount( 1 )
-            .SetIndexCount( mIndexBuffer->GetSizeBytes() / MKT_SIZEOF( u32 ) )
-            .SetVertexCount( mVertexBuffer->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription ) ) };
-        mCommandList->DrawIndexed( drawArguments );
-
-        mCommandList->EndRendering();
     }
 
     auto EditorHelloTriangleLayer::OnEvent( core::IEvent &event ) -> void {
@@ -468,4 +207,4 @@ namespace mikoto::editor {
 
         ImGui::End();
     }
-}// namespace mikoto::editor
+}

@@ -15,7 +15,12 @@
 #ifndef MIKOTO_EDITOR_HELLO_TRIANGLE_LAYER_HH
 #define MIKOTO_EDITOR_HELLO_TRIANGLE_LAYER_HH
 
+#include <EASTL/memory.h>
+#include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/string_view.h>
+
+#include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -30,9 +35,20 @@
 #include <Renderer/Rhi/GpuDevice.hh>
 
 #include <Renderer/Core/SceneRenderer.hh>
+#include <Renderer/Core/ThumbnailRenderer.hh>
+
+#include <Scene/Scene.hh>
+#include <Scene/Entity.hh>
+
+#include <Panels/Panel.hh>
+
+#include <Theme/Theme.hh>
 
 namespace mikoto::editor {
 
+    // The hello world of Graphics programming,
+    // features a simple color interpolated triangle
+    // No passing resources, everything is handled by the shader
     class EditorHelloTriangleLayer final : public core::ILayer {
     public:
         explicit EditorHelloTriangleLayer( platform::Window *window );
@@ -42,85 +58,15 @@ namespace mikoto::editor {
         auto OnUpdate( float timeStep ) -> void override;
 
         auto OnEvent( core::IEvent &event ) -> void override;
-    private:
-        struct MyData {
-            core::float4x4 mModel{};
-            core::float4x4 mView{};
-            core::float4x4 mProjection{};
-        };
 
+    private:
         auto DisplayImGuiWindow() -> void;
 
-        auto DrawNormalMesh() -> void;
-        auto DrawWireframeMesh() -> void;
-
     private:
-        // Cube definition
-        eastl::vector<asset::VertexDescription> mVertices{
-            // Front (+Z)
-            { { -0.5f, -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
-            { { 0.5f, -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
-            { { 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
-            { { -0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
-
-            // Back (-Z)
-            { { 0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
-            { { -0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
-            { { -0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
-            { { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
-
-            // Left (-X)
-            { { -0.5f, -0.5f, -0.5f }, { -1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
-            { { -0.5f, -0.5f, 0.5f }, { -1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
-            { { -0.5f, 0.5f, 0.5f }, { -1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
-            { { -0.5f, 0.5f, -0.5f }, { -1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
-
-            // Right (+X)
-            { { 0.5f, -0.5f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
-            { { 0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
-            { { 0.5f, 0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
-            { { 0.5f, 0.5f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
-
-            // Top (+Y)
-            { { -0.5f, 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
-            { { 0.5f, 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
-            { { 0.5f, 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
-            { { -0.5f, 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
-
-            // Bottom (-Y)
-            { { -0.5f, -0.5f, -0.5f }, { 0.0f, -1.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 0 } },
-            { { 0.5f, -0.5f, -0.5f }, { 0.0f, -1.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 0 } },
-            { { 0.5f, -0.5f, 0.5f }, { 0.0f, -1.0f, 0.0f }, { 1, 1, 1, 1 }, { 1, 1 } },
-            { { -0.5f, -0.5f, 0.5f }, { 0.0f, -1.0f, 0.0f }, { 1, 1, 1, 1 }, { 0, 1 } },
-        };
-
-        // Indices
-        eastl::vector<core::u32> mIndices{
-            0, 1, 2, 2, 3, 0,      // Front
-            4, 5, 6, 6, 7, 4,      // Back
-            8, 9, 10, 10, 11, 8,   // Left
-            12, 13, 14, 14, 15, 12,// Right
-            16, 17, 18, 18, 19, 16,// Top
-            20, 21, 22, 22, 23, 20 // Bottom
-        };
-
         renderer::IGpuDevice* mDevice{};
-
-        MyData mShaderParameters{};
-        eastl::unique_ptr<scene::SceneCamera> mEditorCamera{};
-        renderer::rhi::BufferHandle mConstantBuffer{};
-
-        renderer::rhi::BufferHandle mVertexBuffer{};
-        renderer::rhi::BufferHandle mIndexBuffer{};
 
         renderer::rhi::TextureHandle mColorImage{};
         renderer::rhi::TextureHandle mDepthImage{};
-
-        // Texture sampling
-        renderer::rhi::TextureHandle mSimpleTexture{};
-        renderer::rhi::SamplerHandle mSamplerState{};
-
-        renderer::rhi::InputLayoutHandle mVertexInputLayout{};
 
         renderer::rhi::ShaderModuleHandle mVertexShader{};
         renderer::rhi::ShaderModuleHandle mPixelShader{};
@@ -128,9 +74,6 @@ namespace mikoto::editor {
         renderer::rhi::CommandListHandle mCommandList{};
 
         renderer::rhi::PipelineHandle mPipeline{};
-        renderer::rhi::PipelineHandle mPipelineWireframe{};
-        renderer::rhi::BindingSetHandle mBindingSetHandle{};
-        renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};
         renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
 
         bool mIsImguiWindowActive{ false };
@@ -139,4 +82,4 @@ namespace mikoto::editor {
     };
 }// namespace mikoto::editor
 
-#endif //MIKOTO_EDITOR_HELLO_TRIANGLE_LAYER_HH
+#endif//MIKOTO_EDITOR_HELLO_TRIANGLE_LAYER_HH

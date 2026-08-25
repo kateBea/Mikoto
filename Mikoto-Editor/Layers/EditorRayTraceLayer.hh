@@ -46,6 +46,7 @@
 
 namespace mikoto::editor {
 
+    // Basic raytracing rainbow dorito (color interpolated triangle)
     class EditorRayTraceLayer final : public core::ILayer {
     public:
         explicit EditorRayTraceLayer( platform::Window *window );

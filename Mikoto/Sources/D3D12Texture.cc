@@ -25,6 +25,9 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
+#include <directx/d3d12.h>
+#include <directx/d3dx12.h>
+
 #include <D3D12MemAlloc.h>
 
 #include <Renderer/Rhi/D3D12/D3D12Device.hh>
@@ -81,9 +84,24 @@ namespace mikoto::renderer::d3d12 {
     }
 
     Texture::Texture( const TextureCreateDescription& desc, DeviceResources& resources)
-        : ITexture{ desc }, mResources{ MKT_ADDRESSOF( resources ) }
+        : ITexture{ desc }, mResources{ MKT_ADDRESSOF( resources ) }, mIsExternalImage{ false }
     {
 
+    }
+
+    Texture::Texture( const ExternalTextureDescription& info, DeviceResources& resources )
+        : ITexture{
+            TextureCreateDescription{}
+            .SetWidth( info.mWidth )
+            .SetHeight( info.mHeight )
+            .SetFormat( info.mFormat ) },
+        mResources{ MKT_ADDRESSOF( resources ) },
+        mIsExternalImage{ true } {
+
+        mImageAllocation.mResource = info.mImageResource;
+
+        mTextureUsage = info.mTextureUsage;
+        mDebugName = string::Format( "External Texture" );
     }
 
     auto Texture::SetDebugName( const eastl::string_view name ) -> void {
@@ -361,6 +379,28 @@ namespace mikoto::renderer::d3d12 {
     auto Texture::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
 
+        if (!mIsExternalImage) {
+            mImageAllocation.mDesc.Dimension = d3d12::GetDimension(mDimension);
+            mImageAllocation.mDesc.Alignment = 0;
+            mImageAllocation.mDesc.Width = mWidth;
+            mImageAllocation.mDesc.Height = mHeight;
+            mImageAllocation.mDesc.DepthOrArraySize = 1;
+            mImageAllocation.mDesc.MipLevels = mMipCount;
+            mImageAllocation.mDesc.Format = d3d12::GetFormat(mFormat);
+
+            mImageAllocation.mDesc.SampleDesc.Quality = 0;
+            mImageAllocation.mDesc.SampleDesc.Count = d3d12::GetSampleCount(mMultisampling);
+
+            mImageAllocation.mDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+            mImageAllocation.mDesc.Flags = d3d12::GetResourceFlags(mTextureUsage);
+
+            mImageAllocation.mAllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+            auto* allocator{ device->GetAllocator() };
+            ThrowIfFailed( allocator->AllocateImage( mImageAllocation ) );
+        }
+
+        // Create the descriptor when the resource already exists to not create a null view
         if (mTextureUsage & rhi::TextureUsageFlagsBits::kRenderTarget) {
             mRtvDescriptorIndex = mResources->mRenderTargetViewHeap->AllocateDescriptor();
             D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle{ mResources->mRenderTargetViewHeap->GetCpuHandle(mRtvDescriptorIndex) };
@@ -373,36 +413,26 @@ namespace mikoto::renderer::d3d12 {
             CreateDSV(cpuHandle.ptr, mSubResources );
         }
 
-        mImageAllocation.mDesc.Dimension = d3d12::GetDimension(mDimension);
-        mImageAllocation.mDesc.Alignment = 0;
-        mImageAllocation.mDesc.Width = mWidth;
-        mImageAllocation.mDesc.Height = mHeight;
-        mImageAllocation.mDesc.DepthOrArraySize = 1;
-        mImageAllocation.mDesc.MipLevels = mMipCount;
-        mImageAllocation.mDesc.Format = d3d12::GetFormat(mFormat);
-
-        mImageAllocation.mDesc.SampleDesc.Quality = 0;
-        mImageAllocation.mDesc.SampleDesc.Count = d3d12::GetSampleCount(mMultisampling);
-
-        mImageAllocation.mDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-        mImageAllocation.mDesc.Flags = d3d12::GetResourceFlags(mTextureUsage);
-
-        mImageAllocation.mAllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-
-        auto* allocator{ device->GetAllocator() };
-        ThrowIfFailed( allocator->AllocateImage( mImageAllocation ) );
-
         // Fill initial contents
         if ( !mImageData.IsEmpty() ) {
             if (mDimension == TextureDimension::eTexture2D) {
-                InitInitialData2D();
+                InitInitialData2D( mImageData->mBufferSpan );
             } else if (mDimension == TextureDimension::eTextureCube) {
-                InitInitialDataCube();
+                InitInitialDataCube( mImageData->mBufferSpan );
             }
+        }
 
-            if (!mKeepInitializerResources) {
-                mImageData.Reset();
+        if ( !mBufferSpan.IsEmpty() ) {
+            if (mDimension == TextureDimension::eTexture2D) {
+                InitInitialData2D( mBufferSpan );
+            } else if (mDimension == TextureDimension::eTextureCube) {
+                InitInitialDataCube( mBufferSpan );
             }
+        }
+
+        if (!mKeepInitializerResources) {
+            mImageData.Reset();
+            mBufferSpan.Reset();
         }
 
         mIsAllocated = true;
@@ -415,24 +445,31 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = false;
     }
 
-    auto Texture::InitInitialData2D() -> void {
-        // Example with STB_IMAGE:
-        // https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
-
+    auto Texture::InitInitialData2D( BufferSpanHandle buffer ) -> void {
+        u64 fenceValue{ 0 };
+        FenceHandle fence{ mDevice->CreateFence( fenceValue++ ) };
         CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
-        cmd->Begin( {} );
+        cmd->Begin( { .mScopeName = string::Format( "Texture upload: {}", mDebugName ) } );
 
-        cmd->Write( this, 0, mImageData->mBufferSpan->GetData(), mImageData->mBufferSpan->GetSize() );
+        // Data is always writen at mip zero
+        cmd->Write( this, 0, buffer->GetData(), buffer->GetSize() );
+
+        // These textures are often loaded to be read from shaders
         cmd->SetTransition( this, ResourceStates::eShaderResource );
 
         cmd->End();
 
-        auto submitInfo{ SubmitInfo{}
+        // Signal fenceValue on one fence on completion of these
+        // commands, then we wait for that completion this blocks the caller
+        // but client should ideally offload this task to worker threads
+        const auto submitInfo{ SubmitInfo{}
+            .AddSignal( fence, fenceValue )
             .AddCommandList( cmd ) };
         mDevice->GetQueue( QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
+        ( void )fence->Wait( fenceValue, eastl::numeric_limits<u64>::max() ); // Host wait
     }
 
-    auto Texture::InitInitialDataCube() -> void {
+    auto Texture::InitInitialDataCube( BufferSpanHandle buffer ) -> void {
 
     }
 }// namespace mikoto::renderer::d3d12

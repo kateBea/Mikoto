@@ -40,12 +40,13 @@
 #include <Renderer/Rhi/D3D12/D3D12Pipeline.hh>
 #include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
 
-// D3D12 extension library.
-#include <directx/d3d12.h>
-
-#include <dxgi1_6.h>
-#include <d3dcompiler.h>
+// D3D12 extension library
 #include <DirectXMath.h>
+#include <d3dcompiler.h>
+#include <dxgi1_6.h>
+
+#include <directx/d3d12.h>
+#include <directx/d3dx12.h>
 
 namespace mikoto::renderer::d3d12 {
 
@@ -750,12 +751,39 @@ namespace mikoto::renderer::d3d12 {
         d3d12Commands.reserve( submitInfo.mCommands.size() );
 
         for (auto& cmd : submitInfo.mCommands) {
-            ID3D12GraphicsCommandList7* pCommand{ *checked_cast<const CommandList*>( cmd.GetRaw() ) };
+            const CommandList* pCommandList{ checked_cast<const CommandList*>( cmd.GetRaw() ) };
+            ID3D12GraphicsCommandList7* pCommand{ *pCommandList };
             d3d12Commands.emplace_back( pCommand );
+
+            const_cast<CommandList*>(pCommandList)->MarkExecuted(this, mFenceValue);
+        }
+
+        // Caller waits
+        if (!submitInfo.mWaits.empty()) {
+            for (const auto& [signalValue, signalFence] : submitInfo.mWaits) {
+                const Fence* pFence{ checked_cast<const Fence*>( signalFence.GetRaw() ) };
+
+                UINT64 value{ (UINT64)signalValue };
+                ID3D12Fence* d3d12Fence{ *pFence };
+
+                ThrowIfFailed(mQueue->Wait(d3d12Fence, value));
+            }
         }
 
         mQueue->ExecuteCommandLists( as<UINT>(d3d12Commands.size()), d3d12Commands.data() );
 
+        // My signal timeline
+        {
+            const Fence* pFence{ checked_cast<const Fence*>( mFence.GetRaw() ) };
+            UINT64 fenceValue{ (UINT64)mFenceValue++ };
+            ID3D12Fence* d3d12Fence{ *pFence };
+            HANDLE d3d12FenceEvent{ *pFence };
+
+            ThrowIfFailed(mQueue->Signal(d3d12Fence, fenceValue));
+            ThrowIfFailed( d3d12Fence->SetEventOnCompletion(fenceValue, d3d12FenceEvent) );
+        }
+
+        // Caller signals
         if (!submitInfo.mSignals.empty()) {
             for (const auto& [signalValue, signalFence] : submitInfo.mSignals) {
                 const Fence* pFence{ checked_cast<const Fence*>( signalFence.GetRaw() ) };
@@ -768,17 +796,6 @@ namespace mikoto::renderer::d3d12 {
                 ThrowIfFailed( d3d12Fence->SetEventOnCompletion(value, d3d12FenceEvent) );
             }
         }
-
-        if (!submitInfo.mWaits.empty()) {
-            for (const auto& [signalValue, signalFence] : submitInfo.mWaits) {
-                const Fence* pFence{ checked_cast<const Fence*>( signalFence.GetRaw() ) };
-
-                UINT64 value{ (UINT64)signalValue };
-                ID3D12Fence* d3d12Fence{ *pFence };
-
-                ThrowIfFailed(mQueue->Wait(d3d12Fence, value));
-            }
-        }
     }
 
     auto Queue::AllocateCmdList() -> CommandListHandle {
@@ -788,6 +805,10 @@ namespace mikoto::renderer::d3d12 {
         handle->Initialize( mDevice );
 
         return handle;
+    }
+
+    auto Queue::GetCurrentTimeline() -> core::u64 {
+        return mFence->GetCompletionValue();
     }
 
     Queue::operator ID3D12CommandQueue*() const {
@@ -818,6 +839,9 @@ namespace mikoto::renderer::d3d12 {
         // Command queue
         ThrowIfFailed(device->GetDevice()->CreateCommandQueue(&desc, IID_PPV_ARGS(&mQueue)));
 
+        mFence = device->CreateFence( mFenceValue++ );
+        mFence->SetDebugName( string::Format("Queue [{}] Timeline", rc_cast<u64>(mQueue.Get())) );
+
         mIsAllocated = true;
     }
 
@@ -828,19 +852,36 @@ namespace mikoto::renderer::d3d12 {
 
     auto CommandList::Begin( const CommandListBeginDescription &desc ) -> void {
         ClearState();
+
+        // Find available command buffer to use
+        Queue* queue{ checked_cast<Queue*>( mQueue ) };
+        bool foundAvailableCmdBuffer{};
+        do {
+            auto& recordCtx{ mRecordingContext[mRecordingContextIndex] };
+            if (queue->GetCurrentTimeline() >= recordCtx.mSubmissionID) {
+                mCurrentRecordingContext = MKT_ADDRESSOF( mRecordingContext[mRecordingContextIndex] );
+                foundAvailableCmdBuffer = true;
+            } else {
+                // Only advance the index if we do not find an available context
+                mRecordingContextIndex = (mRecordingContextIndex + 1) % mRecordingContext.size();
+            }
+        } while (!foundAvailableCmdBuffer);
+
+        ThrowIfFailed( mCurrentRecordingContext->mCommandAllocator->Reset() );
+        ThrowIfFailed(mCurrentRecordingContext->mCommandList->Reset(mCurrentRecordingContext->mCommandAllocator.Get(), nullptr));
     }
 
     auto CommandList::End() -> void {
-        ThrowIfFailed(mCommandList->Close());
+        ThrowIfFailed(mCurrentRecordingContext->mCommandList->Close());
     }
 
     auto CommandList::SetDebugName( eastl::string_view name ) -> void {
-        if (name.empty()) {
+        if (name.empty() || !mCurrentRecordingContext) {
             return;
         }
 
         mDebugName = name;
-        mCommandList->SetName( string::ToWide( mDebugName ).c_str() );
+        mCurrentRecordingContext->mCommandList->SetName( string::ToWide( mDebugName ).c_str() );
     }
 
     auto CommandList::RecordBarrier( const BufferBarrierDescription &desc ) -> void {
@@ -907,7 +948,7 @@ namespace mikoto::renderer::d3d12 {
         group.NumBarriers = 1;
         group.pBufferBarriers = &barrier;
 
-        mCommandList->Barrier(1, &group);
+        mCurrentRecordingContext->mCommandList->Barrier(1, &group);
     }
 
     auto CommandList::SetBarrier( const TextureBarrierDescription &desc ) -> void {
@@ -940,12 +981,17 @@ namespace mikoto::renderer::d3d12 {
         group.NumBarriers = 1;
         group.pTextureBarriers = &barrier;
 
-        mCommandList->Barrier(1, &group);
+        mCurrentRecordingContext->mCommandList->Barrier(1, &group);
 
         // TODO: Update the resource state tracking (accessFlags, PipelineState, etc)
     }
 
      auto CommandList::RecordTransition( IBuffer *buffer, ResourceStates stateBits ) -> void {
+        // ID3D12CommandList::ResourceBarrier: Before and after states must be different.
+        if (d3d12::GetResourceState( buffer->GetResourceState() ) == d3d12::GetResourceState( stateBits )) {
+            return;
+        }
+
         Buffer* d3d12Buffer{ checked_cast<Buffer*>( buffer ) };
         ID3D12Resource* resource{ *d3d12Buffer };
 
@@ -958,9 +1004,16 @@ namespace mikoto::renderer::d3d12 {
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
         mResourceBarriers.emplace_back( barrier );
+
+        buffer->SetResourceState(stateBits);
     }
 
     auto CommandList::RecordTransition( ITexture *texture, ResourceStates stateBits ) -> void {
+        // ID3D12CommandList::ResourceBarrier: Before and after states must be different.
+        if (d3d12::GetResourceState( texture->GetResourceState() ) == d3d12::GetResourceState( stateBits )) {
+            return;
+        }
+
         Texture* d3d12Texture{ checked_cast<Texture*>( texture ) };
         ID3D12Resource* resource{ *d3d12Texture };
 
@@ -973,9 +1026,16 @@ namespace mikoto::renderer::d3d12 {
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
         mResourceBarriers.emplace_back( barrier );
+
+        texture->SetResourceState(stateBits);
     }
 
     auto CommandList::SetTransition( IBuffer *buffer, ResourceStates stateBits ) -> void {
+        // ID3D12CommandList::ResourceBarrier: Before and after states must be different.
+        if (d3d12::GetResourceState( buffer->GetResourceState() ) == d3d12::GetResourceState( stateBits )) {
+            return;
+        }
+
         Buffer* d3d12Buffer{ checked_cast<Buffer*>( buffer ) };
         ID3D12Resource* resource{ *d3d12Buffer };
 
@@ -987,10 +1047,17 @@ namespace mikoto::renderer::d3d12 {
         barrier.Transition.StateAfter = d3d12::GetResourceState( stateBits );
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-        mCommandList->ResourceBarrier(1, &barrier);
+        mCurrentRecordingContext->mCommandList->ResourceBarrier(1, &barrier);
+
+        buffer->SetResourceState(stateBits);
     }
 
     auto CommandList::SetTransition( ITexture *texture, ResourceStates stateBits ) -> void {
+        // ID3D12CommandList::ResourceBarrier: Before and after states must be different.
+        if (d3d12::GetResourceState( texture->GetResourceState() ) == d3d12::GetResourceState( stateBits )) {
+            return;
+        }
+
         Texture* d3d12Texture{ checked_cast<Texture*>( texture ) };
         ID3D12Resource* resource{ *d3d12Texture };
 
@@ -1002,7 +1069,9 @@ namespace mikoto::renderer::d3d12 {
         barrier.Transition.StateAfter = d3d12::GetResourceState( stateBits );
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-        mCommandList->ResourceBarrier(1, &barrier);
+        mCurrentRecordingContext->mCommandList->ResourceBarrier(1, &barrier);
+
+        texture->SetResourceState(stateBits);
     }
 
     auto CommandList::CommitBarriers() -> void {
@@ -1024,11 +1093,11 @@ namespace mikoto::renderer::d3d12 {
         }
 
         if (numGroups > 0) {
-            mCommandList->Barrier(numGroups, groups.data());
+            mCurrentRecordingContext->mCommandList->Barrier(numGroups, groups.data());
         }
 
         if (!mResourceBarriers.empty()) {
-            mCommandList->ResourceBarrier(as<UINT>(mResourceBarriers.size()), mResourceBarriers.data());
+            mCurrentRecordingContext->mCommandList->ResourceBarrier(as<UINT>(mResourceBarriers.size()), mResourceBarriers.data());
         }
 
         mBufferBarriers.clear();
@@ -1050,7 +1119,7 @@ namespace mikoto::renderer::d3d12 {
             deviceResources->mRenderTargetViewHeap->GetCpuHandle( texture->GetRtvDescriptorIndex() ) };
 
         const float clearColor[]{ color.mR, color.mG, color.mB, color.mA };
-        mCommandList->ClearRenderTargetView(rtvHandler, clearColor, 0, nullptr);
+        mCurrentRecordingContext->mCommandList->ClearRenderTargetView(rtvHandler, clearColor, 0, nullptr);
     }
 
     auto CommandList::Write( IBuffer *src, ITexture *dest, u32 mipLevel ) -> void {
@@ -1062,7 +1131,69 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::Copy( ITexture *src, const TextureSlice &srcSlice, ITexture *dest, const TextureSlice &destSlice ) -> void {
+        const auto srcTexture{ checked_cast<Texture*>( src ) };
+        const auto dstTexture{ checked_cast<Texture*>( dest ) };
 
+        MKT_ASSERT( srcTexture != nullptr, "Source D3D12 texture cannot be null" );
+        MKT_ASSERT( dstTexture != nullptr, "Destination D3D12 texture cannot be null" );
+
+        ID3D12Resource* srcResource{ *srcTexture };
+        ID3D12Resource* dstResource{ *dstTexture };
+
+        MKT_ASSERT( srcResource != nullptr, "Source D3D12 resource is null" );
+        MKT_ASSERT( dstResource != nullptr, "Destination D3D12 resource is null" );
+
+        if ( mIsRenderScopeActive ) {
+            EndRendering();
+        }
+
+        if ( mEnableAutomaticBarriers ) {
+            SetTransition( srcTexture, ResourceStates::eCopySource );
+            SetTransition( dstTexture, ResourceStates::eCopyDest );
+        }
+
+        // Source
+        TextureSubresourceSet srcSubresourceSet{ srcSlice.mMipLevel, 1, srcSlice.mArrayLayer, 1 };
+        D3D12_TEXTURE_COPY_LOCATION srcLocation{};
+        srcLocation.pResource = srcResource;
+        srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        srcLocation.SubresourceIndex =
+            D3D12CalcSubresource(
+                srcSubresourceSet.mBaseMipLevel,
+                srcSubresourceSet.mBaseArraySlice,
+                0,
+                srcTexture->GetMipLevelCount(),
+                srcSubresourceSet.mNumArraySlices);
+
+        // Destination
+        TextureSubresourceSet destSubresourceSet{ destSlice.mMipLevel, 1, destSlice.mArrayLayer, 1 };
+        D3D12_TEXTURE_COPY_LOCATION dstLocation{};
+        dstLocation.pResource = dstResource;
+        dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        dstLocation.SubresourceIndex =
+            D3D12CalcSubresource(
+                destSubresourceSet.mBaseArraySlice,
+                destSubresourceSet.mBaseArraySlice,
+                0,
+                destSubresourceSet.mNumMipLevels,
+                destSubresourceSet.mNumArraySlices
+            );
+
+        const D3D12_BOX sourceBox{
+            srcSlice.x,
+            srcSlice.y,
+            srcSlice.z,
+            srcSlice.x + srcSlice.mWidth,
+            srcSlice.y + srcSlice.mHeight,
+            srcSlice.z + srcSlice.mDepth };
+        mCurrentRecordingContext->mCommandList->CopyTextureRegion(
+            &dstLocation,
+            destSlice.x,
+            destSlice.y,
+            destSlice.z,
+            &srcLocation,
+            &sourceBox
+        );
     }
 
     auto CommandList::Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void {
@@ -1092,10 +1223,9 @@ namespace mikoto::renderer::d3d12 {
                 ID3D12Resource* d3d12BufferSrc{ *bSrc };
                 ID3D12Resource* d3d12BufferDest{ *bDest };
 
-                mCommandList->CopyBufferRegion( d3d12BufferDest, allocation->mOffset, d3d12BufferSrc, 0, byteSize );
+                mCurrentRecordingContext->mCommandList->CopyBufferRegion( d3d12BufferDest, allocation->mOffset, d3d12BufferSrc, 0, byteSize );
 
-                std::lock_guard lock{ mUploadAllocationsMutex };
-                mUploadAllocations.emplace_back( allocation );
+                mCurrentRecordingContext->mUploadAllocations.emplace_back( allocation );
                 break;
             }
             case HeapType::eUpload: {
@@ -1122,7 +1252,7 @@ namespace mikoto::renderer::d3d12 {
         ID3D12Resource* d3d12BufferSrc{ *bSrc };
         ID3D12Resource* d3d12BufferDest{ *bDest };
 
-        mCommandList->CopyResource( d3d12BufferDest, d3d12BufferSrc );
+        mCurrentRecordingContext->mCommandList->CopyResource( d3d12BufferDest, d3d12BufferSrc );
     }
 
     auto CommandList::Copy( IBuffer *src, IBuffer *dest, size_t destOffset ) -> void {
@@ -1132,7 +1262,7 @@ namespace mikoto::renderer::d3d12 {
         ID3D12Resource* d3d12BufferSrc{ *bSrc };
         ID3D12Resource* d3d12BufferDest{ *bDest };
 
-        mCommandList->CopyBufferRegion( d3d12BufferDest, destOffset, d3d12BufferSrc, 0, src->GetSizeBytes() );
+        mCurrentRecordingContext->mCommandList->CopyBufferRegion( d3d12BufferDest, destOffset, d3d12BufferSrc, 0, src->GetSizeBytes() );
     }
 
     auto CommandList::Copy( IBuffer *dest, ITexture *src ) -> void {
@@ -1140,7 +1270,10 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::BeginRendering( GraphicsState &state ) -> void {
+        mIsRenderScopeActive = true;
+
         Device* device{ checked_cast<Device*>( mDevice ) };
+
         const DeviceResources* deviceResources{ device->GetHeapResources() };
 
         eastl::fixed_vector<D3D12_CPU_DESCRIPTOR_HANDLE, kMaxRenderTargets> rtvHandles{};
@@ -1159,16 +1292,36 @@ namespace mikoto::renderer::d3d12 {
                 renderTarget.mClearColor.mG,
                 renderTarget.mClearColor.mB,
                 renderTarget.mClearColor.mA };
-            mCommandList->ClearRenderTargetView(rtvHandler, clearColor, 0, nullptr);
+            mCurrentRecordingContext->mCommandList->ClearRenderTargetView(rtvHandler, clearColor, 0, nullptr);
 
             rtvHandles.emplace_back(  rtvHandler );
         }
 
-        mCommandList->OMSetRenderTargets(as<UINT>(rtvHandles.size()), rtvHandles.data(), FALSE, nullptr);
+        // Depth stencil. Provide it if available
+        Texture* texture{ checked_cast<Texture*>( state.mDepthTarget.mRenderTarget.GetRaw() ) };
+        D3D12_CPU_DESCRIPTOR_HANDLE dsvHandler{ texture ?
+            deviceResources->mDepthStencilViewHeap->GetCpuHandle( texture->GetDsvDescriptorIndex() ) :
+            D3D12_CPU_DESCRIPTOR_HANDLE{} };
+
+        if (mEnableAutomaticBarriers && texture) {
+            if (state.mDepthTarget.mLoadOp == LoadOp::eLoad) {
+                SetTransition(texture, ResourceStates::eDepthRead);
+            } else {
+                SetTransition(texture, ResourceStates::eDepthWrite);
+            }
+
+            // DSV is created with D3D12_HEAP_FLAG_CREATE_NOT_ZEROED so we need to clear it first
+            mCurrentRecordingContext->mCommandList->ClearDepthStencilView( dsvHandler, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr );
+        }
+
+        mCurrentRecordingContext->mCommandList->OMSetRenderTargets(
+            as<UINT>(rtvHandles.size()),
+            rtvHandles.data(), FALSE,
+            MKT_ADDRESSOF( dsvHandler ));
     }
 
     auto CommandList::EndRendering() -> void {
-
+        mIsRenderScopeActive = false;
     }
 
     auto CommandList::BindPipeline( IPipeline* pipeline ) -> void {
@@ -1179,13 +1332,13 @@ namespace mikoto::renderer::d3d12 {
             ID3D12PipelineState* gfxPipelineState{ *gfxPipeline };
             D3D_PRIMITIVE_TOPOLOGY gfxPipelineTopology{ d3d12::GetCmdTopologyType( desc.mPrimitiveTopology ) };
 
-            mCommandList->SetPipelineState( gfxPipelineState );
-            mCommandList->IASetPrimitiveTopology( gfxPipelineTopology );
+            mCurrentRecordingContext->mCommandList->SetPipelineState( gfxPipelineState );
+            mCurrentRecordingContext->mCommandList->IASetPrimitiveTopology( gfxPipelineTopology );
         } else if ( pipelineType == PipelineType::eCompute ) {
             auto* computePipeline{ checked_cast<ComputePipeline*>( pipeline ) };
             ID3D12PipelineState* computePipelineState{ *computePipeline };
 
-            mCommandList->SetPipelineState( computePipelineState );
+            mCurrentRecordingContext->mCommandList->SetPipelineState( computePipelineState );
         }
     }
 
@@ -1202,7 +1355,7 @@ namespace mikoto::renderer::d3d12 {
             d3dViewports.emplace_back( value );
         }
 
-        mCommandList->RSSetViewports( as<UINT>( d3dViewports.size() ), d3dViewports.data() );
+        mCurrentRecordingContext->mCommandList->RSSetViewports( as<UINT>( d3dViewports.size() ), d3dViewports.data() );
     }
 
 
@@ -1217,7 +1370,7 @@ namespace mikoto::renderer::d3d12 {
             } );
         }
 
-        mCommandList->RSSetScissorRects(as<UINT>(scissors.size()), scissors.data());
+        mCurrentRecordingContext->mCommandList->RSSetScissorRects(as<UINT>(scissors.size()), scissors.data());
     }
 
     auto CommandList::SetViewportState( const ViewportState &vs ) -> void {
@@ -1235,7 +1388,7 @@ namespace mikoto::renderer::d3d12 {
         indexBufferView.Format = d3d12::GetFormat( indexBuffer->GetFormat() );
         indexBufferView.SizeInBytes = indexBuffer->GetSizeBytes();
 
-        mCommandList->IASetIndexBuffer(&indexBufferView);
+        mCurrentRecordingContext->mCommandList->IASetIndexBuffer(&indexBufferView);
     }
 
     auto CommandList::BindVertexBuffer( const VertexBufferBinding &binding ) -> void {
@@ -1257,7 +1410,7 @@ namespace mikoto::renderer::d3d12 {
             vertexBufferViews.emplace_back( bufferView );
         }
 
-        mCommandList->IASetVertexBuffers(0, as<UINT>(vertexBufferViews.size()), vertexBufferViews.data());
+        mCurrentRecordingContext->mCommandList->IASetVertexBuffers(0, as<UINT>(vertexBufferViews.size()), vertexBufferViews.data());
     }
 
     auto CommandList::BindPipelineResources( const BindResourcesDescription &desc ) -> void {
@@ -1266,19 +1419,21 @@ namespace mikoto::renderer::d3d12 {
         Device* device{ checked_cast<Device*>( mDevice ) };
         PipelineLayout* pipelineLayout{ checked_cast<PipelineLayout*>( desc.mPipelineLayout ) };
 
-        // Root signature
-        ID3D12RootSignature* rootSignature{ *pipelineLayout };
-        mCommandList->SetGraphicsRootSignature(rootSignature);
-
+        // SetDescriptorHeaps must be called to bind a CBV/SRV/UAV descriptor before setting a
+        // root signature with D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED flag
         const DeviceResources* deviceResources{ device->GetHeapResources() };
         eastl::vector<ID3D12DescriptorHeap*> descriptorHeaps{};
 
-        descriptorHeaps.emplace_back( deviceResources->mSamplerHeap->GetHeap() );
-        descriptorHeaps.emplace_back( deviceResources->mShaderResourceViewHeap->GetHeap() );
+        descriptorHeaps.emplace_back( deviceResources->mSamplerHeap->GetShaderVisibleHeap() );
+        descriptorHeaps.emplace_back( deviceResources->mShaderResourceViewHeap->GetShaderVisibleHeap() );
 
         // At most one CBV/SRV/UAV combined heap and one Sampler heap can be bound at any one time.
         // These heaps are shared between both the graphics and compute pipelines (described in their PSOs).
-        mCommandList->SetDescriptorHeaps(as<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
+        mCurrentRecordingContext->mCommandList->SetDescriptorHeaps(as<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
+
+        // Root signature
+        ID3D12RootSignature* rootSignature{ *pipelineLayout };
+        mCurrentRecordingContext->mCommandList->SetGraphicsRootSignature(rootSignature);
 
         const auto bindResource{
             [&](const DescriptorRange& range, u32 rootParamIndex, PipelineType pipelineType) {
@@ -1288,10 +1443,10 @@ namespace mikoto::renderer::d3d12 {
 
                 switch (pipelineType) {
                     case PipelineType::eGraphics:
-                        mCommandList->SetGraphicsRootDescriptorTable(rootParamIndex, range.mGpuHandle);
+                        mCurrentRecordingContext->mCommandList->SetGraphicsRootDescriptorTable(rootParamIndex, range.mGpuHandle);
                         break;
                     case PipelineType::eCompute:
-                        mCommandList->SetComputeRootDescriptorTable(rootParamIndex, range.mGpuHandle);
+                        mCurrentRecordingContext->mCommandList->SetComputeRootDescriptorTable(rootParamIndex, range.mGpuHandle);
                         break;
                     default:;
                 }
@@ -1314,7 +1469,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::Draw( const DrawArguments &args ) -> void {
-        mCommandList->DrawInstanced(
+        mCurrentRecordingContext->mCommandList->DrawInstanced(
             args.mVertexCount,
             args.mInstanceCount,
             args.mFirstVertex,
@@ -1323,7 +1478,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::DrawIndexed( const DrawArguments &args ) -> void {
-        mCommandList->DrawIndexedInstanced(
+        mCurrentRecordingContext->mCommandList->DrawIndexedInstanced(
             args.mIndexCount,
             args.mInstanceCount,
             args.mFirstIndex,
@@ -1341,7 +1496,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) -> void {
-        mCommandList->Dispatch( groupsX, groupsY, groupsZ );
+        mCurrentRecordingContext->mCommandList->Dispatch( groupsX, groupsY, groupsZ );
     }
 
     auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, core::size_t byteSize, ShaderFlags visibility ) -> void {
@@ -1350,14 +1505,14 @@ namespace mikoto::renderer::d3d12 {
         u32 numValues32Bit{ as<u32>( ( byteSize + 3 ) / 4 ) };
 
         if ( visibility == rhi::ShaderFlagsBits::kCompute ) {
-            mCommandList->SetComputeRoot32BitConstants(
+            mCurrentRecordingContext->mCommandList->SetComputeRoot32BitConstants(
                 rootParameterIndex,
                 numValues32Bit,
                 data,
                 0
             );
         } else {
-            mCommandList->SetGraphicsRoot32BitConstants(
+            mCurrentRecordingContext->mCommandList->SetGraphicsRoot32BitConstants(
                 rootParameterIndex,
                 numValues32Bit,
                 data,
@@ -1382,8 +1537,20 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
+    auto CommandList::IsInUse() const -> bool {
+        // Check if there is any of the recording contexts still running
+        Queue* queue{ checked_cast<Queue*>( mQueue ) };
+        for (const auto& item : mRecordingContext) {
+            if (queue->GetCurrentTimeline() < item.mSubmissionID) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     CommandList::operator ID3D12GraphicsCommandList7*() const {
-        return mCommandList.Get();
+        return mCurrentRecordingContext->mCommandList.Get();
     }
 
     CommandList::~CommandList() {
@@ -1395,16 +1562,23 @@ namespace mikoto::renderer::d3d12 {
     auto CommandList::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
 
-        const D3D12_COMMAND_LIST_TYPE cmdQueueType{ d3d12::GetQueueType(mQueueType) };
+        mUploadManager = checked_cast<Device*>(mDevice)->GetUploadManager();
 
-        ThrowIfFailed(device->GetDevice()->CreateCommandAllocator(cmdQueueType, IID_PPV_ARGS(&mCommandAllocator)));
-        ThrowIfFailed(device->GetDevice()->CreateCommandList(
-            0, d3d12::GetQueueType( mQueueType ),
-            mCommandAllocator.Get(), nullptr,
-            IID_PPV_ARGS(&mCommandList)));
+        mRecordingContext.resize( kMaxRecordingContext );
+        for (auto& item : mRecordingContext) {
+            const D3D12_COMMAND_LIST_TYPE cmdQueueType{ d3d12::GetQueueType(mQueueType) };
 
-        // Reset needed to start recording
-        ThrowIfFailed( mCommandList->Close() );
+            ThrowIfFailed(device->GetDevice()->CreateCommandAllocator(cmdQueueType, IID_PPV_ARGS(&item.mCommandAllocator)));
+            ThrowIfFailed(device->GetDevice()->CreateCommandList(
+                0, d3d12::GetQueueType( mQueueType ),
+                item.mCommandAllocator.Get(), nullptr,
+                IID_PPV_ARGS(&item.mCommandList)));
+
+            // Reset needed to start recording
+            ThrowIfFailed( item.mCommandList->Close() );
+        }
+
+        mCurrentRecordingContext = MKT_ADDRESSOF( mRecordingContext[0] );
 
         mUploadManager = checked_cast<Device*>(mDevice)->GetUploadManager();
 
@@ -1416,14 +1590,21 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::ClearState() -> void {
-        ThrowIfFailed( mCommandAllocator->Reset() );
-        ThrowIfFailed(mCommandList->Reset(mCommandAllocator.Get(), nullptr));
+        // Reset handles
+        //mIndirectBuffer = nullptr;
 
-        for (auto& subAllocations : mUploadAllocations) {
+        // Cleanup allocations not in use
+        for (auto& subAllocations : mRecordingContext[mRecordingContextIndex].mUploadAllocations) {
             // Set it to false we to tell the allocator
             // this allocation can already be destroyed
             subAllocations->mInUse.clear();
         }
+
+        mRecordingContext[mRecordingContextIndex].mUploadAllocations.clear();
+    }
+
+    auto CommandList::MarkExecuted( rhi::IQueue* queue, core::u64 submissionID ) -> void {
+        mRecordingContext[mRecordingContextIndex].mSubmissionID = submissionID;
     }
 
     auto CommandList::BindIndirectBuffer( IBuffer *buffer ) -> void {
@@ -1522,9 +1703,13 @@ namespace mikoto::renderer::d3d12 {
 
         mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE );
         mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_ERROR, TRUE );
+
+        // Expose break severity
+#if false
         mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_WARNING, TRUE );
         mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_INFO, TRUE );
         mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_MESSAGE, TRUE );
+#endif
 
         // https://github.com/microsoft/DirectX-Specs/blob/master/d3d/MessageCallback.md
         if ( SUCCEEDED(mDevice.As(&mInfoQueue1) )) {
@@ -1590,6 +1775,19 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::CreateTexture( const TextureCreateDescription &description ) -> TextureHandle {
         TextureHandle texture{ Ref<Texture>::Spawn(description, mResourceHeaps) };
+
+        if ( texture.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "D3D12Device - Failed to allocate texture" );
+            return TextureHandle::CreateEmpty();
+        }
+
+        texture->Initialize( this );
+
+        return texture;
+    }
+
+    auto Device::CreateTexture( const ExternalTextureDescription &info ) -> TextureHandle {
+        TextureHandle texture{ Ref<Texture>::Spawn(info, mResourceHeaps) };
 
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "D3D12Device - Failed to allocate texture" );

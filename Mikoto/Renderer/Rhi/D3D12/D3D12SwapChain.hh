@@ -31,7 +31,9 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-#include <d3d12.h>
+#include <directx/d3d12.h>
+#include <directx/d3dx12.h>
+
 #include <dxgi1_6.h>
 #include <wrl.h>
 
@@ -76,12 +78,6 @@ namespace mikoto::renderer::d3d12 {
 
         rhi::Format mFormat{ rhi::Format::eBGRA8_UNORM };
         rhi::RefreshRate mRefreshRate{ rhi::RefreshRate::eUnlimited };
-
-        // TODO: remove these, descriptor heaps are managed by the device
-        // the backbuffer resources will be part of the Texture class
-        UINT mRtvDescriptorSize{};
-        eastl::vector<ID3D12Resource*> mRenderTargetsViews{};
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRenderTargetViewHeap{};
 
         eastl::vector<rhi::TextureHandle> mBackBufferImages{};
 

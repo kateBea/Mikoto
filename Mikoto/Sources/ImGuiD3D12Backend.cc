@@ -157,6 +157,18 @@ namespace mikoto::gui {
             InitImages();
         }
 
+#if true
+        ImGui::Begin("Performance");
+
+        const float fps = ImGui::GetIO().Framerate;
+        const float frameTime = 1000.0f / fps;
+
+        ImGui::Text("FPS: %.1f", fps);
+        ImGui::Text("Frame time: %.2f ms", frameTime);
+
+        ImGui::End();
+#endif
+
         ImGui::Render();
 
         mCommandList->Begin( { .mScopeName = "ImGui Render" } );
@@ -168,7 +180,11 @@ namespace mikoto::gui {
 
         auto submitInfo{ SubmitInfo{}
             .AddCommandList( mCommandList ) };
-        mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo );
+        RenderSystem::Get()->BatchSubmission( eastl::move( submitInfo ), QueueType::eGraphics );
+
+#if true
+        RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
+#endif
 
         if ( const ImGuiIO & io{ ImGui::GetIO() }; io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();
@@ -231,8 +247,8 @@ namespace mikoto::gui {
         initInfo.Device = device->GetDevice();
         initInfo.CommandQueue = cmdQueue;
         initInfo.NumFramesInFlight = context->GetBackBufferCount();
-        initInfo.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-        initInfo.DSVFormat = DXGI_FORMAT_UNKNOWN;
+        initInfo.RTVFormat = d3d12::GetFormat( mColorImage->GetFormat() );
+        initInfo.DSVFormat = d3d12::GetFormat( mDepthImage->GetFormat() );
 
         static constexpr u32 kSrvHeapSize{ 64u };
 
@@ -277,7 +293,10 @@ namespace mikoto::gui {
         mCommandList->BeginRendering( graphicsState );
         mCommandList->SetClearColor( mColorImage, mClearColor );
 
-        d3d12CmdList->SetDescriptorHeaps(1, &mSrvDescHeap);
+        // ComPtr::operator&() is for output parameters and can release the existing pointer.
+        // Use Get() when passing an existing COM object to an API.
+        ID3D12DescriptorHeap* descriptorHeap{ mSrvDescHeap.Get() };
+        d3d12CmdList->SetDescriptorHeaps(1, &descriptorHeap);
 
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), d3d12CmdList);
 

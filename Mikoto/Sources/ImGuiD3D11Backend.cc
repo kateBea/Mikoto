@@ -148,6 +148,18 @@ namespace mikoto::gui {
             CreateImages();
         }
 
+#if true
+        ImGui::Begin("Performance");
+
+        const float fps = ImGui::GetIO().Framerate;
+        const float frameTime = 1000.0f / fps;
+
+        ImGui::Text("FPS: %.1f", fps);
+        ImGui::Text("Frame time: %.2f ms", frameTime);
+
+        ImGui::End();
+#endif
+
         ImGui::Render();
 
         // Grab device and device context
@@ -163,6 +175,10 @@ namespace mikoto::gui {
 
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         }
+
+#if true
+        RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
+#endif
 
         // Update and Render additional Platform Windows
         if (const ImGuiIO & io{ ImGui::GetIO() }; io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {

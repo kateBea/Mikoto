@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_GAME_LAYER_HH
-#define MIKOTO_GAME_LAYER_HH
+#ifndef MIKOTO_EDITOR_DEBUG_LAYER_HH
+#define MIKOTO_EDITOR_DEBUG_LAYER_HH
 
 #include <EASTL/array.h>
 #include <EASTL/unique_ptr.h>
@@ -33,7 +33,8 @@
 
 namespace mikoto::editor {
 
-    // Plays the game when the scene is simulating
+    // Debug layer that renders objects instanced
+    // and feature bindless textures
     class EditorDebugLayer final : public core::ILayer {
     public:
 
@@ -94,4 +95,4 @@ namespace mikoto::editor {
 
 }
 
-#endif//MIKOTO_GAME_LAYER_HH
+#endif//MIKOTO_EDITOR_DEBUG_LAYER_HH

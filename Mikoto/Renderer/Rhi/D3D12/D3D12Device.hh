@@ -31,10 +31,13 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-#include <d3d12.h>
+#include <directx/d3d12.h>
+#include <directx/d3dx12.h>
+
 #include <dxgi1_6.h>
 #include <wrl.h>
 
+#include <Renderer/Rhi/D3D12/D3D12Texture.hh>
 #include <Renderer/Rhi/D3D12/D3D12SwapChain.hh>
 #include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
 #include <Renderer/Rhi/D3D12/D3D12MemoryAllocator.hh>
@@ -378,6 +381,8 @@ namespace mikoto::renderer::d3d12 {
 
         auto AllocateCmdList() -> CommandListHandle;
 
+        MKT_NODISCARD auto GetCurrentTimeline() -> core::u64;
+
         // Conversion operators
         operator ID3D12CommandQueue*() const;
 
@@ -388,11 +393,23 @@ namespace mikoto::renderer::d3d12 {
         auto Initialize() -> void override;
 
     private:
+        eastl::atomic<core::u64> mFenceValue{};
+        rhi::FenceHandle mFence{};
+
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> mQueue{};
 
         // For debug
         eastl::string mSubmissionLabel{};
         Color mSubmissionLabelColor{};
+    };
+
+    struct RecordingContext {
+        core::u64 mSubmissionID{};
+
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mCommandAllocator{};
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7> mCommandList{};
+
+        eastl::fixed_vector<GpuUploadAllocation*, 10> mUploadAllocations{};
     };
 
     // https://learn.microsoft.com/en-us/windows/win32/direct3d12/recording-command-lists-and-bundles
@@ -472,6 +489,13 @@ namespace mikoto::renderer::d3d12 {
         auto BeginDebugLabel( eastl::string_view name, Color color ) -> void override;
         auto EnbDebugLabel() -> void override;
 
+        // D3D12 Specifics
+        MKT_NODISCARD auto IsInUse() const -> bool;
+
+        auto ClearState() -> void;
+
+        auto MarkExecuted( rhi::IQueue* queue, core::u64 submissionID) -> void;
+
         MKT_NODISCARD operator ID3D12GraphicsCommandList7*() const;
 
         ~CommandList() override;
@@ -481,17 +505,23 @@ namespace mikoto::renderer::d3d12 {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
-        auto ClearState() -> void;
-
     private:
         IQueue* mQueue{};
-        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mCommandAllocator{};
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7> mCommandList{};
+
+        // We picked 5 at most, but can grow if needed
+        // there are generally 3 frames in flight at most, more
+        // may introduce unnecessary latency. With 4 we could be sure
+        // that we will have at least one command buffer we can recycle
+        // because GPU has finished executing its commands
+        core::u32 mRecordingContextIndex{};
+        static constexpr core::u32 kMaxRecordingContext{ 5 };
+        eastl::vector<RecordingContext> mRecordingContext{};
+
+        RecordingContext* mCurrentRecordingContext{};
 
         GpuUploadManager* mUploadManager{};
-        std::mutex mUploadAllocationsMutex{};
-        eastl::fixed_vector<GpuUploadAllocation*, 10> mUploadAllocations{};
 
+        bool mIsRenderScopeActive{};
         bool mEnableAutomaticBarriers{ true };
 
         eastl::fixed_vector<D3D12_RESOURCE_BARRIER, rhi::kMaxBarriers> mResourceBarriers{};
@@ -548,6 +578,8 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetQueue( QueueType type ) -> IQueue* override;
 
         // D3D12 Specifics
+        MKT_NODISCARD auto CreateTexture( const ExternalTextureDescription& info ) -> rhi::TextureHandle;
+
         auto DumpMessages() -> void;
 
         static auto CALLBACK DebugMessageCallback(

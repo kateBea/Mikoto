@@ -21,16 +21,20 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Core/Profiler.hh>
 
 #include <Logging/Logger.hh>
 
-#include <Application/EditorApp.hh>
 #include <Application/Configuration.hh>
+#include <Application/EditorApp.hh>
+
 
 #include <Layers/EditorLayer.hh>
 #include <Layers/EditorDebugLayer.hh>
+#include <Layers/EditorDebugLayer.hh>
 #include <Layers/EditorRayTraceLayer.hh>
+#include <Layers/EditorHelloCubeLayer.hh>
 #include <Layers/EditorHelloTriangleLayer.hh>
 
 #include <Platform/Window.hh>
@@ -82,12 +86,13 @@ auto InitEditor() -> bool {
     try {
         gApplication->Init();
 
-#if false
-        gApplication->PushLayer<EditorDebugLayer>( gWindow );
-        gApplication->PushLayer<EditorRayTraceLayer>( gWindow );
+#if true
+        //gApplication->PushLayer<EditorDebugLayer>( gWindow );
+        //gApplication->PushLayer<EditorRayTraceLayer>( gWindow );
         gApplication->PushLayer<EditorHelloTriangleLayer>( gWindow );
+        //gApplication->PushLayer<EditorHelloCubeLayer>( gWindow );
 #endif
-        gApplication->PushLayer<EditorLayer>( gWindow );
+        //gApplication->PushLayer<EditorLayer>( gWindow );
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Init App exception - e.what(): {}", e.what() );
         return false;

@@ -23,6 +23,7 @@
 
 // D3D12 extension library.
 #include <directx/d3d12.h>
+#include <directx/d3dx12.h>
 
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
@@ -257,14 +258,21 @@ namespace mikoto::renderer::d3d12 {
         ThrowIfFailed( allocator->AllocateBuffer( mAllocation ) );
 
         if (!mUploadContents.IsEmpty()) {
+            u64 fenceValue{ 0 };
+            FenceHandle fence{ mDevice->CreateFence( fenceValue++ ) };
             CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
-            cmd->Begin( {} );
+            cmd->Begin( { .mScopeName = string::Format( "Buffer upload: {}", mDebugName ) } );
             cmd->Write( this, mUploadContents->GetData(), mUploadContents->GetSize() );
             cmd->End();
 
-            auto submitInfo{ SubmitInfo{}
+            // Signal fenceValue on one fence on completion of these
+            // commands, then we wait for that completion this blocks the caller
+            // but client should ideally offload this task to worker threads
+            const auto submitInfo{ SubmitInfo{}
+                .AddSignal( fence, fenceValue )
                 .AddCommandList( cmd ) };
             mDevice->GetQueue( QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
+            ( void )fence->Wait( fenceValue, eastl::numeric_limits<u64>::max() );
         }
 
         if (!mKeepInitializerResources) {

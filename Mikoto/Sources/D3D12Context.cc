@@ -29,6 +29,9 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
+#include <directx/d3d12.h>
+#include <directx/d3dx12.h>
+
 #include <Renderer/Rhi/D3D12/D3D12Device.hh>
 #include <Renderer/Rhi/D3D12/D3D12Context.hh>
 #include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
@@ -250,6 +253,8 @@ namespace mikoto::renderer::d3d12 {
             MKT_THROW_RUNTIME_ERROR( "Could not initialize D3D12 GPU Device." );
         }
         mDevice->Init();
+        mGraphicsQueue = checked_cast<Queue*>( mDevice->GetQueue( QueueType::eGraphics ) );
+
         if (mWindow) {
             // If no window is provided we use D3D12 headless
             InitializeSwapchain();
@@ -292,8 +297,19 @@ namespace mikoto::renderer::d3d12 {
         Device* device{ checked_cast<Device*>( mDevice.get() ) };
         Queue* queue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
 
+        // Submit batched commands
+        SubmitInfoMap swapMap{};
+        {
+            std::lock_guard lock{ mBatchedSubmissionProcessMutex };
+            swapMap = eastl::move(mBatchedSubmissions);
+        }
+
+        for (const auto& [queue, submitInfo] : swapMap) {
+            queue->ExecuteCommandLists( submitInfo );
+        }
+
         if (!mPresentTarget.IsEmpty() && !mSwapChain.IsEmpty()) {
-#if true
+#if false
             // Blit via full quad render
             TextureHandle colorImage{ mSwapChain->GetCurrentBackBufferImage() };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
@@ -337,8 +353,9 @@ namespace mikoto::renderer::d3d12 {
 
 #else
             // Blit via copy command
-            TextureHandle colorImage{ mSwapChain->GetCurrentBackBufferImage() };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
+
+            TextureHandle colorImage{ mSwapChain->GetCurrentBackBufferImage() };
 
             const TextureSlice srcSlice{
                 .mWidth = (u32)mPresentTarget->GetWidth(),
@@ -355,21 +372,20 @@ namespace mikoto::renderer::d3d12 {
             mCommandList->SetTransition( colorImage.GetRaw(), ResourceStates::ePresent );
 
             mCommandList->End();
-
-            auto submitInfo{ SubmitInfo{}
-                .AddCommandList( mCommandList ) };
-            mDevice->GetQueue(QueueType::eGraphics)->ExecuteCommandLists( submitInfo );
 #endif
         }
 
+        ++mFenceValue;
+
+        const auto submitInfo{ SubmitInfo{}
+            .AddSignal( mFence, mFenceValue )
+            .AddCommandList( mCommandList ) };
+        mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo );
 
         // Wait for previous frame to finish.
         // This is not the best, doing it for now for simplicity and testing purposes.
         Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
-        ( void )pFence->Signal( mFenceValue );
-        ++mFenceValue;
-
-        (void)pFence->Wait( mFenceValue, INFINITE );
+        ( void )pFence->Wait( mFenceValue, eastl::numeric_limits<u64>::max() ); // Host wait
     }
 
     auto Context::PrepareFrame() -> void {
@@ -397,7 +413,18 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Context::BatchSubmission( rhi::SubmitInfo&&submitInfo, rhi::QueueType queue ) -> void {
+        std::lock_guard lock{ mBatchedSubmissionEmplaceMutex };
 
+        // I am only working with one queue for now
+        // Device* device{ checked_cast<Device*>( mDevice.get() ) };
+        // Queue* pQueue{ checked_cast<Queue*>( device->GetQueue( queue ) ) };
+
+        auto& submissionBatchMap{ mBatchedSubmissions[mGraphicsQueue] };
+
+        // Batch all commands and fences into same submit info
+        // they go to the same submission batch anyway there is no need to split them.
+        submissionBatchMap.AddCommandLists( submitInfo.mCommands );
+        submissionBatchMap.AddSignals( submitInfo.mSignals );
     }
 
     auto Context::GetSwapChain() const -> SwapChainHandle {

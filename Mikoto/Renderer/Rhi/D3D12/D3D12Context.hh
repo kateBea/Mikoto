@@ -27,6 +27,7 @@
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandQueue.hh>
 
 #include <Renderer/Core/RenderContext.hh>
 
@@ -34,6 +35,7 @@
 
 // D3D12 extension library.
 #include <directx/d3d12.h>
+#include <directx/d3dx12.h>
 
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
@@ -155,6 +157,14 @@ namespace mikoto::renderer::d3d12 {
         static constexpr UINT kBackBufferCount{ 2 };
 
         eastl::unique_ptr<ShaderCompiler> mShaderCompiler{};
+
+        IQueue* mGraphicsQueue{};
+
+        using SubmitInfoMap = ankerl::unordered_dense::map<IQueue*, SubmitInfo>;
+
+        std::mutex mBatchedSubmissionProcessMutex{};
+        std::mutex mBatchedSubmissionEmplaceMutex{};
+        SubmitInfoMap mBatchedSubmissions{};
 
         // Swapchain blit objects
 

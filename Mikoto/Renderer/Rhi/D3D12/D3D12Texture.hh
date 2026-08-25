@@ -23,6 +23,7 @@
 #if defined( MIKOTO_PLATFORM_WINDOWS )
 
 #include <directx/d3d12.h>
+#include <directx/d3dx12.h>
 
 #include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
 #include <Renderer/Rhi/D3D12/D3D12MemoryAllocator.hh>
@@ -51,8 +52,19 @@ namespace mikoto::renderer::d3d12 {
         DescriptorIndex mSamplerDescriptorIndex{};
     };
 
+    struct ExternalTextureDescription {
+        core::u32 mWidth{};
+        core::u32 mHeight{};
+        rhi::Format mFormat{ rhi::Format::eBGRA8_UNORM };
+
+        rhi::TextureUsageFlags mTextureUsage{};
+
+        Microsoft::WRL::ComPtr<ID3D12Resource> mImageResource{};
+    };
+
     class Texture : public rhi::ITexture {
     public:
+        explicit Texture( const ExternalTextureDescription& spec, DeviceResources& resources );
         explicit Texture( const rhi::TextureCreateDescription& desc, DeviceResources& resources );
 
         auto SetDebugName( eastl::string_view name ) -> void override;
@@ -77,14 +89,16 @@ namespace mikoto::renderer::d3d12 {
         auto Initialize() -> void override;
         auto Release() -> void override;
 
-        auto InitInitialData2D() -> void;
-        auto InitInitialDataCube() -> void;
+        auto InitInitialData2D( memory::BufferSpanHandle buffer ) -> void;
+        auto InitInitialDataCube( memory::BufferSpanHandle buffer ) -> void;
 
     private:
         ImageAllocation mImageAllocation{};
         bool mKeepInitializerResources{ false };
 
         DeviceResources* mResources{};
+
+        bool mIsExternalImage{};
 
         DescriptorIndex mRtvDescriptorIndex{};
         DescriptorIndex mDsvDescriptorIndex{};

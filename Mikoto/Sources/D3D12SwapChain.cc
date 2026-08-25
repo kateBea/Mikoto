@@ -19,6 +19,9 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
+#include <directx/d3d12.h>
+#include <directx/d3dx12.h>
+
 #include <Platform/PlatformWin32.hh>
 #include <GLFW/glfw3.h>
 
@@ -29,6 +32,7 @@
 
 #include <Renderer/Rhi/D3D12/D3D12Device.hh>
 #include <Renderer/Rhi/D3D12/D3D12Context.hh>
+#include <Renderer/Rhi/D3D12/D3D12Texture.hh>
 #include <Renderer/Rhi/D3D12/D3D12SwapChain.hh>
 #include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
 
@@ -116,8 +120,6 @@ namespace mikoto::renderer::d3d12 {
         Device* device{ checked_cast<Device*>( mDevice ) };
         Context* ctx{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
 
-        mRenderTargetsViews.resize( (size_t)ctx->GetBackBufferCount() );
-
         // Surface dimensions
         mSurfaceSize.left = 0;
         mSurfaceSize.top = 0;
@@ -136,7 +138,7 @@ namespace mikoto::renderer::d3d12 {
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
         swapChainDesc.Width = mWidth;
         swapChainDesc.Height = mHeight;
-        swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        swapChainDesc.Format = d3d12::GetFormat( mFormat );
         swapChainDesc.Stereo = FALSE;
         swapChainDesc.SampleDesc = { 1, 0 };
         swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -172,33 +174,24 @@ namespace mikoto::renderer::d3d12 {
         ThrowIfFailed(ctx->GetDxGIFactory()->MakeWindowAssociation(win32Handle, DXGI_MWA_NO_ALT_ENTER));
         ThrowIfFailed(swapChain1.As(&mSwapChain));
 
-        // Describe and create a render target view (RTV) descriptor heap.
-        // It allocates memory on the GPU to hold a list of descriptors (views).
-        D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
-        rtvHeapDesc.NumDescriptors = ctx->GetBackBufferCount();
-        rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-        ThrowIfFailed(device->GetDevice()->CreateDescriptorHeap(
-            &rtvHeapDesc, IID_PPV_ARGS(&mRenderTargetViewHeap)));
+        const usize backBufferCount{ ctx->GetBackBufferCount() };
+        for (UINT index{}; index < backBufferCount; index++) {
+            Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTargetResource{};
+            ThrowIfFailed(mSwapChain->GetBuffer(index, IID_PPV_ARGS(&mRenderTargetResource)));
 
-        // Here I ask my specific GPU hardware: "How many bytes wide is one single RTV slot?"
-        mRtvDescriptorSize = device->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+            ExternalTextureDescription externalTextureDesc{
+                .mWidth = mWidth,
+                .mHeight = mHeight,
+                .mFormat = mFormat,
+                .mTextureUsage = TextureUsageFlagsBits::kRenderTarget,
+                .mImageResource = mRenderTargetResource };
 
-        // Frame resources
-        // Handle to beginning of render target descriptors
-        D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle{ mRenderTargetViewHeap->GetCPUDescriptorHandleForHeapStart() };
+            TextureHandle presentImage{ device->CreateTexture( externalTextureDesc ) };
+            if (!presentImage.IsEmpty()) {
+                presentImage->SetDebugName( string::Format( "Swapchain Img. Index {}", index ) );
+                mBackBufferImages.emplace_back(presentImage);
+            }
 
-        // TODO: Move these ID3D12Resources to the Texture class
-        // Create an RTV for each frame.
-        // Pull the raw texture resource handles out of the DXGI swapchain and save them
-        // into mRenderTargetsViews array, create the actual view, link the raw texture
-        // (mRenderTargetsViews[index]) to the current slot pointer (rtvHandle). nullptr is used to let
-        // the method infer the format automatically from the texture description.
-        // Finally advance the pointer forward by the byte size of exactly one descriptor slot.
-        for (UINT index{}; index < ctx->GetBackBufferCount(); index++) {
-            ThrowIfFailed(mSwapChain->GetBuffer(index, IID_PPV_ARGS(&mRenderTargetsViews[index])));
-            device->GetDevice()->CreateRenderTargetView(mRenderTargetsViews[index], nullptr, rtvHandle);
-            rtvHandle.ptr += 1 * mRtvDescriptorSize;
         }
 
         mIsAllocated = true;

@@ -31,7 +31,7 @@ namespace mikoto::renderer::rhi {
         // If text has to be UTF-8,
         // HLSL text specifically has to be wchar
         void* mShaderContents{};
-        core::size_t mShaderContentsSize{};
+        core::usize mShaderContentsSize{};
 
         ShaderType mType{ ShaderType::eInvalid };
         ShaderLanguage mLanguage{ ShaderLanguage::eSlang };
@@ -49,7 +49,7 @@ namespace mikoto::renderer::rhi {
         auto SetLanguage( ShaderLanguage language ) -> ShaderModuleCreateDescription&;
         auto SetEntryPoint( eastl::string_view name ) -> ShaderModuleCreateDescription&;
         auto SetContents( filesystem::FileHandle file ) -> ShaderModuleCreateDescription&;
-        auto SetContents( void* pContents, core::size_t contentsByteSize ) -> ShaderModuleCreateDescription&;
+        auto SetContents( void* pContents, core::usize contentsByteSize ) -> ShaderModuleCreateDescription&;
     };
 
     class IShaderModule : public DeviceObject {
@@ -57,7 +57,7 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD auto GetType() const -> ShaderType;
 
         MKT_NODISCARD virtual auto GetContents() const -> const void*;
-        MKT_NODISCARD virtual auto GetContentsByteSize() const -> size_t;
+        MKT_NODISCARD virtual auto GetContentsByteSize() const -> core::usize;
 
         virtual auto DumpShaderCode() -> void;
 

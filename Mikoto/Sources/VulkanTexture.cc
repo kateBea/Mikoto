@@ -294,10 +294,6 @@ namespace mikoto::renderer::vulkan {
                 } else if (mDimension == TextureDimension::eTextureCube) {
                     InitInitialDataCube( mImageData->mBufferSpan );
                 }
-
-                if (!mKeepInitializerResources) {
-                    mImageData.Reset();
-                }
             }
 
             if ( !mBufferSpan.IsEmpty() ) {
@@ -306,10 +302,11 @@ namespace mikoto::renderer::vulkan {
                 } else if (mDimension == TextureDimension::eTextureCube) {
                     InitInitialDataCube( mBufferSpan );
                 }
+            }
 
-                if (!mKeepInitializerResources) {
-                    mImageData.Reset();
-                }
+            if (!mKeepInitializerResources) {
+                mImageData.Reset();
+                mBufferSpan.Reset();
             }
 
             if ( mTextureUsage & TextureUsageFlagsBits::kDepthTarget ) {

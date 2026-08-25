@@ -269,6 +269,8 @@ namespace mikoto::renderer::rhi {
         virtual auto Write( ITexture* target, core::u32 mipLevel, const void* data, core::usize byteSize ) -> void = 0;
         virtual auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void = 0;
 
+        virtual auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void = 0;
+
         virtual auto Write( IBuffer* target, const void* data, core::usize byteSize ) -> void = 0;
         virtual auto Write( IBuffer* target, core::usize destOffset, const void* data, core::usize byteSize ) -> void = 0;
 

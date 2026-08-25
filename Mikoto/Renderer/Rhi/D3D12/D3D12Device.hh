@@ -429,6 +429,8 @@ namespace mikoto::renderer::d3d12 {
         auto Write( ITexture* texture, core::u32 mipLevel,const void* data, core::size_t byteSize ) -> void override;
         auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
 
+        auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
+
         auto Write( IBuffer* buffer, core::size_t destOffset, const void* data, core::size_t byteSize ) -> void override;
         auto Write( IBuffer* buffer, const void* data, core::size_t byteSize ) -> void override;
         auto Copy( IBuffer* src, IBuffer* dest ) -> void override;

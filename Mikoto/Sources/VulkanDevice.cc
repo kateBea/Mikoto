@@ -1678,6 +1678,59 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
+    auto CommandList::Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void {
+        // To resolve a multisample color image to a non-multisample color image.
+        const auto srcTexture{ checked_cast<Texture *>( src ) };
+        const auto dstTexture{ checked_cast<Texture *>( dest ) };
+
+        MKT_ASSERT( srcTexture != nullptr, "Source Vulkan texture cannot be null" );
+        MKT_ASSERT( dstTexture != nullptr, "Destination Vulkan texture cannot be null" );
+
+        VkImage srcImage{ *srcTexture };
+        VkImage dstImage{ *dstTexture };
+
+        MKT_ASSERT( srcImage != VK_NULL_HANDLE, "Source Vulkan image is null" );
+        MKT_ASSERT( dstImage != VK_NULL_HANDLE, "Destination Vulkan image is null" );
+
+        if (mEnableAutomaticBarriers) {
+            RecordTransition(srcTexture, ResourceStates::eCopySource);
+            RecordTransition(dstTexture, ResourceStates::eCopyDest);
+            CommitBarriers();
+        }
+
+        VkImageResolve2 imageResolve{};
+        imageResolve.sType = VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2;
+
+        // Source
+        TextureSubresourceSet srcSubresourceSet{ srcSlice.mMipLevel, 1, srcSlice.mArrayLayer, 1 };
+        imageResolve.srcSubresource.aspectMask = GetAspectMask( src->GetFormat() );
+        imageResolve.srcSubresource.baseArrayLayer = srcSubresourceSet.mBaseArraySlice;
+        imageResolve.srcSubresource.layerCount = srcSubresourceSet.mNumArraySlices;
+        imageResolve.srcSubresource.mipLevel = srcSubresourceSet.mBaseMipLevel;
+        imageResolve.srcOffset = { (i32)srcSlice.x, (i32)srcSlice.y, (i32)srcSlice.z };
+
+        // Destination
+        TextureSubresourceSet destSubresourceSet{ destSlice.mMipLevel, 1, destSlice.mArrayLayer, 1 };
+        imageResolve.dstSubresource.aspectMask = GetAspectMask( dest->GetFormat() );
+        imageResolve.dstSubresource.baseArrayLayer = destSubresourceSet.mBaseArraySlice;
+        imageResolve.dstSubresource.layerCount = destSubresourceSet.mNumArraySlices;
+        imageResolve.dstSubresource.mipLevel = destSubresourceSet.mBaseMipLevel;
+        imageResolve.dstOffset = { (i32)destSlice.x, (i32)destSlice.y, (i32)destSlice.z };
+
+        imageResolve.extent = { as<u32>(src->GetWidth()), as<u32>(src->GetHeight()), 1 };
+
+        VkResolveImageInfo2 info{};
+        info.sType = VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2;
+        info.srcImage = srcImage;
+        info.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        info.dstImage = dstImage;
+        info.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        info.regionCount = 1;
+        info.pRegions = &imageResolve;
+
+        vkCmdResolveImage2( mCurrentCommandBuffer, &info );
+    }
+
     auto CommandList::Dispatch( u32 x, u32 y, u32 z ) -> void {
         vkCmdDispatch( mCurrentCommandBuffer, x, y, z );
     }

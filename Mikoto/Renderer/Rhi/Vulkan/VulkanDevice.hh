@@ -243,6 +243,8 @@ namespace mikoto::renderer::vulkan {
         auto Write( rhi::ITexture* texture, core::u32 mipLevel, const void* data, core::size_t byteSize ) -> void override;
         auto Copy( rhi::ITexture* src, const rhi::TextureSlice& srcSlice, rhi::ITexture* dest, const rhi::TextureSlice& destSlice ) -> void override;
 
+        auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
+
         auto Write( rhi::IBuffer* buffer, core::size_t destOffset, const void* data, core::size_t byteSize ) -> void override;
         auto Write( rhi::IBuffer* buffer, const void* data, core::size_t byteSize ) -> void override;
         auto Copy( rhi::IBuffer* src, rhi::IBuffer* dest ) -> void override;

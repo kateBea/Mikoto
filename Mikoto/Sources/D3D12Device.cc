@@ -1065,6 +1065,10 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
+    auto CommandList::Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void {
+
+    }
+
     auto CommandList::Write( IBuffer *buffer, size_t destOffset, const void *data, size_t byteSize ) -> void {
 
     }

@@ -56,7 +56,6 @@ namespace mikoto::renderer {
 
         // Create directional shadow map textures
         for (u32 count{}; count < kMaxShadowMaps; ++count) {
-            // Depth images for directional light shadows
             auto depthImage{ FGTextureDescription{}
                 .SetName( string::Format( "DirDepthImage_{}", count ) )
                 .SetWidth( as<i32>( shadowMapDimensions.first ) )
@@ -69,9 +68,36 @@ namespace mikoto::renderer {
             info.mDirShadowMaps.emplace_back( graph.Create( depthImage ) );
         }
 
-        // Depth images for point light shadows
-        // Depth images for spotlight shadows
+        // Depth images for point light shadows. For these we use cube images
+        // as point lights use omnidirectional shadow mapping (they emit shadows
+        // in all directions surrounding the light source
+        for (u32 count{}; count < kMaxShadowMaps; ++count) {
+            auto depthImage{ FGTextureDescription{}
+                .SetName( string::Format( "PointDepthImage_{}", count ) )
+                .SetWidth( as<i32>( shadowMapDimensions.first ) )
+                .SetHeight( as<i32>( shadowMapDimensions.first ) ) // Same width and height
+                .SetDimensions( TextureDimension::eTextureCube )
+                .SetMultisampling( Multisampling::eMsaaX1 )
+                .SetUsage( TextureUsageFlagsBits::kDepthTarget | TextureUsageFlagsBits::kShaderResource )
+                .SetFormat( Format::eD32 ) };
 
+            info.mPointShadowMaps.emplace_back( graph.Create( depthImage ) );
+        }
+
+        // Depth images for spotlight shadows, spotlights like directional lights
+        // also use directional shadow mapping.
+        for (u32 count{}; count < kMaxShadowMaps; ++count) {
+            auto depthImage{ FGTextureDescription{}
+                .SetName( string::Format( "SpotDepthImage_{}", count ) )
+                .SetWidth( as<i32>( shadowMapDimensions.first ) )
+                .SetHeight( as<i32>( shadowMapDimensions.first ) ) // Same width and height
+                .SetDimensions( TextureDimension::eTexture2D ) // Spot works similar to directional lights
+                .SetMultisampling( Multisampling::eMsaaX1 )
+                .SetUsage( TextureUsageFlagsBits::kDepthTarget | TextureUsageFlagsBits::kShaderResource )
+                .SetFormat( Format::eD32 ) };
+
+            info.mSpotShadowMaps.emplace_back( graph.Create( depthImage ) );
+        }
 
         // These would ideally render and update the shadow maps
         // for dynamic shadow casters in a shadow texture atlas
@@ -104,7 +130,7 @@ namespace mikoto::renderer {
         info.mDirShadowSampler = graph.Create( samplerDes );
 
         auto bufferDesc{ FGBufferDescription{}
-            .SetName( "ShadowsBuffer01" )
+            .SetName( "DirShadowsBuffer01" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetElementsSize( kMaxShadowMaps, MKT_SIZEOF( ShadowMapParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
@@ -265,50 +291,116 @@ namespace mikoto::renderer {
     auto ShadowMappingModule::RegisterPointShadowMap( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        graph.RegisterPass(
-            "PointLightShadowMapPass",
-            FGPassType::eGraphics,
-            []( FGNodeBuilder& b, Blackboard& blackboard ) -> void {
-                const auto& geom{ blackboard.Get<GeometryCullModuleInfo>() };
-                const auto& cam{ blackboard.Get<CameraModuleInfo>() };
-                const auto& shadow{ blackboard.Get<ShadowMapInfo>() };
+        auto& info{ graph.GetOrCreate<ShadowMapInfo>() };
 
-                for (const auto& map : shadow.mPointShadowMaps) {
+        auto pipelineBuilder{ FGPipelineDescription{}
+            .SetName( "PointShadowMap_Pipeline01" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleStrip )
+            .SetDepthFormat( Format::eD32 )
+            .SetCullMode( CullMode::eCullBack )
+            .PushShader( "PointShadows_Vert.slang", FGStageType::eVertex ) };
+        info.mPointShadowMapPipeline = graph.Create( pipelineBuilder );
+
+        auto samplerDes{ FGSamplerDescription{}
+            .SetName( "PointShadowMap_Sampler01" )
+            .SetFilter( SamplerFilter::eNearest )
+            .SetWrap( SamplerWrapMode::eClampToBorder )
+            .SetBorderColor( kColorWhite ) };
+        info.mPointShadowSampler = graph.Create( samplerDes );
+
+        auto bufferDesc{ FGBufferDescription{}
+            .SetName( "PointShadowsBuffer01" )
+            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetElementsSize( kMaxShadowMaps, MKT_SIZEOF( ShadowMapParameters ) )
+            .SetHeapType( HeapType::eDeviceLocal ) };
+        info.mPointShadowsBuffer = graph.Create( bufferDesc );
+
+        graph.RegisterPass(
+            "PointLightShadowMapPass_Graphics",
+            FGPassType::eGraphics,
+            []( FGNodeBuilder& builder, Blackboard& blackboard ) -> void {
+                const auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
+                const auto& cameraPassData{ blackboard.Get<CameraModuleInfo>() };
+                const auto& shadowMapData{ blackboard.Get<ShadowMapInfo>() };
+
+                for (const auto& map : shadowMapData.mPointShadowMaps) {
                     if (map.mHandle != 0) {
-                        b.Write( map, FGPipelineStage::eDepthTarget );
+                        builder.UseResource( map, FGPipelineStage::eDepthTarget, FGResourceAccess::eWrite );
                     }
                 }
 
-                b.Read( cam.mCameraData, FGPipelineStage::ePixelShader );
-                b.Read( geom.mGeometryBuffer, FGPipelineStage::ePixelShader );
-                b.Read( geom.mSkinningBuffer, FGPipelineStage::ePixelShader );
+                builder.UseResource( shadowMapData.mPointShadowsBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+
+                builder.UseResource( cameraPassData.mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+
+                builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+
+                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+
+                builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
             },
-            []( CommandContext&, Blackboard& ) -> void {
+            []( CommandContext& ctx, Blackboard& b ) -> void {
         } );
     }
 
     auto ShadowMappingModule::RegisterSpotShadowMap( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        graph.RegisterPass(
-            "SpotLightShadowMapPass",
-            FGPassType::eGraphics,
-            []( FGNodeBuilder& b, Blackboard& blackboard ) -> void {
-                const auto& geom{ blackboard.Get<GeometryCullModuleInfo>() };
-                const auto& cam{ blackboard.Get<CameraModuleInfo>() };
-                const auto& shadow{ blackboard.Get<ShadowMapInfo>() };
+        auto& info{ graph.GetOrCreate<ShadowMapInfo>() };
 
-                for (const auto& map : shadow.mSpotShadowMaps) {
+        auto pipelineBuilder{ FGPipelineDescription{}
+            .SetName( "SpotShadowMap_Pipeline01" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleStrip )
+            .SetDepthFormat( Format::eD32 )
+            .SetCullMode( CullMode::eCullBack )
+            .PushShader( "SpotShadows_Vert.slang", FGStageType::eVertex ) };
+        info.mSpotShadowMapPipeline = graph.Create( pipelineBuilder );
+
+        auto samplerDes{ FGSamplerDescription{}
+            .SetName( "SpotShadowMap_Sampler01" )
+            .SetFilter( SamplerFilter::eNearest )
+            .SetWrap( SamplerWrapMode::eClampToBorder )
+            .SetBorderColor( kColorWhite ) };
+        info.mSpotShadowSampler = graph.Create( samplerDes );
+
+        auto bufferDesc{ FGBufferDescription{}
+            .SetName( "SpotShadowsBuffer01" )
+            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetElementsSize( kMaxShadowMaps, MKT_SIZEOF( ShadowMapParameters ) )
+            .SetHeapType( HeapType::eDeviceLocal ) };
+        info.mSpotShadowsBuffer = graph.Create( bufferDesc );
+
+        graph.RegisterPass(
+            "SpotLightShadowMapPass_Graphics",
+            FGPassType::eGraphics,
+            []( FGNodeBuilder& builder, Blackboard& blackboard ) -> void {
+                const auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
+                const auto& cameraPassData{ blackboard.Get<CameraModuleInfo>() };
+                const auto& shadowMapData{ blackboard.Get<ShadowMapInfo>() };
+
+                for (const auto& map : shadowMapData.mSpotShadowMaps) {
                     if (map.mHandle != 0) {
-                        b.Write( map, FGPipelineStage::eDepthTarget );
+                        builder.UseResource( map, FGPipelineStage::eDepthTarget, FGResourceAccess::eWrite );
                     }
                 }
 
-                b.Read( cam.mCameraData, FGPipelineStage::ePixelShader );
-                b.Read( geom.mGeometryBuffer, FGPipelineStage::ePixelShader );
-                b.Read( geom.mSkinningBuffer, FGPipelineStage::ePixelShader );
+                builder.UseResource( shadowMapData.mSpotShadowsBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+
+                builder.UseResource( cameraPassData.mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+
+                builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+
+                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+
+                builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
             },
-            []( CommandContext&, Blackboard& ) -> void {
+            []( CommandContext& ctx, Blackboard& b ) -> void {
             } );
     }
 }

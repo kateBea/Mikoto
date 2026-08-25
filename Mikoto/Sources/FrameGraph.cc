@@ -779,7 +779,8 @@ namespace mikoto::renderer {
     }
 
     auto FrameGraph::ExecuteReadbacks() -> void {
-        mReadbackManager->ExecuteCallbacks( mFenceValue );
+        const u64 currentValue{ mFence->GetCompletionValue() };
+        mReadbackManager->ExecuteCallbacks( currentValue );
     }
 
     auto FrameGraph::SetExecutionPolicy( eastl::string_view passName, FGExecutionPolicy policy ) -> void {

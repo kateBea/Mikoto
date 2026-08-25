@@ -34,10 +34,17 @@ namespace mikoto::renderer {
         core::u32 mDirShadowCasterCount{};
         FGBufferHandle mDirShadowsBuffer{};
         FGSamplerHandle mDirShadowSampler{};
-
         FGPipelineHandle mDirShadowMapPipeline{};
-        FGPipelineHandle mSpotShadowMapPipeline{};
+
+        core::u32 mPointShadowCasterCount{};
+        FGBufferHandle mPointShadowsBuffer{};
+        FGSamplerHandle mPointShadowSampler{};
         FGPipelineHandle mPointShadowMapPipeline{};
+
+        core::u32 mSpotShadowCasterCount{};
+        FGBufferHandle mSpotShadowsBuffer{};
+        FGSamplerHandle mSpotShadowSampler{};
+        FGPipelineHandle mSpotShadowMapPipeline{};
 
         eastl::fixed_vector<FGTextureHandle, kMaxShadowMaps> mDirShadowMaps{};
         eastl::fixed_vector<FGTextureHandle, kMaxShadowMaps> mSpotShadowMaps{};

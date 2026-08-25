@@ -551,6 +551,7 @@ FSOutput main(FSInput input) {
             if (parameters.mDirectionalShadowCastersCount == 0) {
                 lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs);
             } else {
+                // If there is a signel source that shades it we break because then the pixel is not in shadow.
                 for (uint count = 0; count < parameters.mDirectionalShadowCastersCount; ++count) {
                     DirectionalShadowMapInfo shadowMapInfo = buffers[parameters.mDirectionalShadowsInfoBufferID]
                         .Read<DirectionalShadowMapInfo>(0, count);

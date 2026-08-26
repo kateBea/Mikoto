@@ -81,10 +81,10 @@ VSOutput main(VSInput input) {
     VSOutput o;
 
     // Test debug BDA
-    uint64_t rawAddress = bdas[pushConstant.GeometryIndex];
+    uint64_t rawAddress = bdas[parameters.mGeometryBufferID];
 
     // Explicitly cast the 64-bit address to a strongly typed pointer
-    GeometryMeshInfo* buffer = (GeometryMeshInfo*)rawAddress; 
+    MeshGeometryInfo* buffer = (MeshGeometryInfo*)rawAddress; 
 
     ByteAddressBuffer GeometryBuffer = buffers[parameters.mGeometryBufferID];
     ByteAddressBuffer SkinningBuffer = buffers[parameters.mSkinningBufferID];

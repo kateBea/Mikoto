@@ -39,6 +39,8 @@ namespace mikoto::renderer::d3d11 {
     public:
         explicit Buffer( const rhi::BufferCreateDescription &description );
 
+        MKT_NODISCARD auto GetGpuDeviceAddress(IBuffer* buffer) -> rhi::DeviceAddress override;
+
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 

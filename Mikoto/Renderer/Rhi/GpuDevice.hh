@@ -82,8 +82,6 @@ namespace mikoto::renderer::rhi {
         virtual auto UnMap( IBuffer* buffer ) -> void = 0;
         MKT_NODISCARD virtual auto Map(IBuffer* buffer) -> void* = 0;
 
-        MKT_NODISCARD virtual auto GetGpuDeviceAddress(IBuffer* buffer) -> core::u64 = 0;
-
         // For backends that support it this allows us to create the layout from shader reflection
         MKT_NODISCARD virtual auto CreateBindingLayout( const BindingLayoutDescription& desc ) -> BindingLayoutHandle = 0;
         MKT_NODISCARD virtual auto CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle = 0;

@@ -48,6 +48,8 @@ namespace mikoto::renderer::d3d12 {
 
         auto SetDebugName( eastl::string_view name) -> void override;
 
+        MKT_NODISCARD auto GetGpuDeviceAddress(IBuffer* buffer) -> rhi::DeviceAddress override;
+
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 

@@ -67,6 +67,10 @@ namespace mikoto::renderer::d3d12 {
         mAllocation.mResource->SetName( string::ToWide( name ).c_str() );
     }
 
+    auto Buffer::GetGpuDeviceAddress( IBuffer* buffer ) -> rhi::DeviceAddress {
+        return (DeviceAddress)mAllocation.mResource->GetGPUVirtualAddress();
+    }
+
     auto Buffer::GetNativeHandle( rhi::ObjectType type ) -> rhi::Object {
         return IBuffer::GetNativeHandle( type );
     }

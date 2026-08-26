@@ -37,6 +37,10 @@ namespace mikoto::renderer::d3d11 {
         : IBuffer{ description }
     {}
 
+    auto Buffer::GetGpuDeviceAddress( IBuffer *buffer ) -> DeviceAddress {
+        return IBuffer::kNullDeviceAddress;
+    }
+
     auto Buffer::GetNativeHandle(rhi::ObjectType type) -> rhi::Object {
         switch (type) {
             case rhi::ObjectType::D3D11_Buffer:

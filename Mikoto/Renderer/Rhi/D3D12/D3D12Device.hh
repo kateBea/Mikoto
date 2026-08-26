@@ -566,7 +566,6 @@ namespace mikoto::renderer::d3d12 {
 
         auto UnMap( IBuffer* buffer ) -> void override;
         MKT_NODISCARD auto Map(IBuffer* buffer ) -> void* override;
-        MKT_NODISCARD auto GetGpuDeviceAddress(IBuffer* buffer) -> core::u64 override;
 
         // To support bindless techniques in modern graphics APIs
         MKT_NODISCARD auto CreateBindlessLayout( const BindlessLayoutDescription& desc ) -> BindingLayoutHandle override;

@@ -30,6 +30,8 @@
 
 namespace mikoto::renderer::rhi {
 
+    using DeviceAddress = core::u64;
+
     struct BufferCreateDescription {
         eastl::string mName{};
         bool mKeepInitializerResources{ false };
@@ -90,6 +92,9 @@ namespace mikoto::renderer::rhi {
 
     class IBuffer : public DeviceObject {
     public:
+        static constexpr DeviceAddress kNullDeviceAddress{ 0 };
+
+        MKT_NODISCARD virtual auto GetGpuDeviceAddress(IBuffer* buffer) -> DeviceAddress = 0;
 
         MKT_NODISCARD auto GetUsage() const -> BufferUsageFlags { return mUsage; }
         MKT_NODISCARD auto GetDataType() const -> BufferDataType { return mDataType; }

@@ -341,7 +341,10 @@ namespace mikoto::renderer {
         }
 
         IBuffer* buffer{ checked_cast<IBuffer*>( mResources.at( handle.mHandle )->mResource.GetRaw() ) };
-        return mDevice->GetGpuDeviceAddress( buffer );
+
+        MKT_ASSERT( buffer, "Invalid cast of resource to Buffer type" );
+
+        return buffer->GetGpuDeviceAddress( buffer );
     }
 
     auto FGResourceManager::AllocateTextureIndex_SRV( FGResourceHandle handle  ) -> u32 {

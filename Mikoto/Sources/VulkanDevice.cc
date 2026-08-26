@@ -327,14 +327,8 @@ namespace mikoto::renderer::vulkan {
                 break;
             case ResourceType::eTypedBuffer_UAV:
                 break;
+            case ResourceType::eConstantBuffer:
             case ResourceType::eStructuredBuffer_SRV:
-                writer.WriteBuffer(
-                    resourceSlot,
-                    checked_cast<Buffer*>( item.mResource )->GetNativeHandle( ObjectType::Vk_Buffer ),
-                    checked_cast<Buffer*>( item.mResource )->GetSizeBytes(),
-                    0,
-                    GetDescriptorType( item.mType ), item.mSlot );
-                break;
             case ResourceType::eStructuredBuffer_UAV:
                 writer.WriteBuffer(
                     resourceSlot,
@@ -346,14 +340,6 @@ namespace mikoto::renderer::vulkan {
             case ResourceType::eRawBuffer_SRV:
                 break;
             case ResourceType::eRawBuffer_UAV:
-                break;
-            case ResourceType::eConstantBuffer:
-                writer.WriteBuffer(
-                    resourceSlot,
-                    checked_cast<Buffer*>( item.mResource )->GetNativeHandle( ObjectType::Vk_Buffer ),
-                    checked_cast<Buffer*>( item.mResource )->GetSizeBytes(),
-                    0,
-                    GetDescriptorType( item.mType ), item.mSlot );
                 break;
             case ResourceType::eSampler:
                 writer.WriteSampler(
@@ -534,6 +520,7 @@ namespace mikoto::renderer::vulkan {
         mEnabled12Features.pNext = MKT_ADDRESSOF( mEnabled13Features );
 
         mEnabled12Features.descriptorIndexing = VK_TRUE;
+        mEnabled12Features.bufferDeviceAddress = VK_TRUE;
 
         mEnabled12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
         mEnabled12Features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;

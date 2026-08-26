@@ -459,6 +459,14 @@ namespace mikoto::renderer::rhi {
         };
     }
 
+    auto BindlessLayoutItem::BufferDeviceAddress( core::u32 slot, core::u32 maxCapacity ) -> BindlessLayoutItem {
+        return {
+            .mSlot = slot,
+            .mMaxCapacity = maxCapacity,
+            .mType = ResourceType::eBufferDeviceAddress,
+        };
+    }
+
     // --- Structured Buffers ---
     auto BindlessLayoutItem::StructuredBuffer_SRV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
         return {

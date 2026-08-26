@@ -44,6 +44,11 @@ namespace mikoto::renderer::vulkan {
         VmaAllocatorCreateInfo allocInfo{};
         allocInfo.instance = ctx->GetInstance().mInstance;
         allocInfo.vulkanApiVersion = ctx->GetApiVersion();
+        allocInfo.flags = MKT_VK_FLAGS_NONE;
+
+        if (device->GetActive12Features().bufferDeviceAddress == VK_TRUE) {
+            allocInfo.flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+        }
 
         allocInfo.device = device->GetDevice();
         allocInfo.physicalDevice = device->GetPhysicalDevice()->mPhysicalDevice;

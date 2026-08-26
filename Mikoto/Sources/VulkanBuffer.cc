@@ -58,6 +58,10 @@ namespace mikoto::renderer::vulkan {
                 break;
         }
 
+        // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/enabling_buffer_device_address.html
+        // The library automatically adds VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT* to allocated memory blocks wherever it might be needed
+        mAllocation.mBufferCreateInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
         if (mUsage.Has( BufferUsageFlagsBits::kVertex )) {
             mAllocation.mBufferCreateInfo.usage |=
                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;

@@ -54,6 +54,7 @@ struct DrawParams {
     uint mDirectionalShadowCastersCount;
 };
 MKT_DECLARE_STRUCTURED_SRV buffers;
+MKT_DECLARE_BUFFER_DEVICE_ADDRESS bdas;
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 struct VSInput {
@@ -78,6 +79,12 @@ struct VSOutput {
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
+
+    // Test debug BDA
+    uint64_t rawAddress = bdas[pushConstant.GeometryIndex];
+
+    // Explicitly cast the 64-bit address to a strongly typed pointer
+    GeometryMeshInfo* buffer = (GeometryMeshInfo*)rawAddress; 
 
     ByteAddressBuffer GeometryBuffer = buffers[parameters.mGeometryBufferID];
     ByteAddressBuffer SkinningBuffer = buffers[parameters.mSkinningBufferID];

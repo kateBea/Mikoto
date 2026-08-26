@@ -271,7 +271,7 @@ namespace mikoto::renderer {
             .AddBindlessItem( BindlessLayoutItem::Texture_UAV( MKT_TEXTURE_UAV_BINDING, 4096 ) )
             .AddBindlessItem( BindlessLayoutItem::StructuredBuffer_SRV( MKT_STRUCTURED_SRV_BINDING, 4096 ) )
             .AddBindlessItem( BindlessLayoutItem::StructuredBuffer_UAV( MKT_STRUCTURED_UAV_BINDING, 4096 ) )
-            .AddBindlessItem( BindlessLayoutItem::BufferDeviceAddress( MKT_BUFFER_DEVICE_ADDRESS_BINDING, 4096 ) ) };
+            .AddBindlessItem( BindlessLayoutItem::StructuredBuffer_SRV( MKT_BUFFER_DEVICE_ADDRESS_BINDING, 4096 ) ) };
             //.AddBindlessItem(BindlessLayoutItem::AccelerationStructures(MKT_ACCELERATION_STRUCTURE_BINDING, 4096)) };
         mBindlessLayout = mDevice->CreateBindlessLayout( layoutDesc );
         mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );

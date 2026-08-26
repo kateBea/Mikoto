@@ -115,7 +115,6 @@ namespace mikoto::renderer::rhi {
         // --- Raw / ByteAddress Buffers ---
         MKT_NODISCARD static auto Buffer_SRV(core::u32 slot, core::u32 maxCapacity) -> BindlessLayoutItem;
         MKT_NODISCARD static auto Buffer_UAV(core::u32 slot, core::u32 maxCapacity) -> BindlessLayoutItem;
-        MKT_NODISCARD static auto BufferDeviceAddress(core::u32 slot, core::u32 maxCapacity) -> BindlessLayoutItem;
 
         // --- Structured Buffers ---
         MKT_NODISCARD static auto StructuredBuffer_SRV(core::u32 slot, core::u32 maxCapacity) -> BindlessLayoutItem;

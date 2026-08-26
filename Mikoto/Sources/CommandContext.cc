@@ -182,6 +182,11 @@ namespace mikoto::renderer {
         mCommands->SetViewportState( vs );
     }
 
+    auto CommandContext::GetDeviceBufferAddress( FGBufferHandle handle ) -> core::u64 {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        return mResourceManager->GetGpuDeviceAddress( handle );
+    }
+
     auto CommandContext::PushTexture_SRV( FGTextureHandle handle ) -> u32 {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource resource{ mResourceManager->Get( handle.mHandle ) };

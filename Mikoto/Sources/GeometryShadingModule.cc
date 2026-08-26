@@ -806,6 +806,8 @@ namespace mikoto::renderer {
 
                     u32 mDirectionalShadowsInfoBufferID{};
                     u32 mDirectionalShadowCastersCount{};
+
+                    u64 mGeometryBufferBDA{};
                 } params{
                     .mCameraDataID = ctx.PushBuffer_SRV( cameraData.mCameraData ),
 
@@ -836,7 +838,8 @@ namespace mikoto::renderer {
                     .mScaleIblAmbient = mAbientScale,
                     .mIsSkyboxActive = mBackgroundType != SceneBackgroundType::eClearColor ? MKT_SHADER_TRUE : MKT_SHADER_FALSE,
                     .mDirectionalShadowsInfoBufferID = ctx.PushBuffer_SRV( shadowMapData.mDirShadowsBuffer ),
-                    .mDirectionalShadowCastersCount = shadowMapData.mDirShadowCasterCount };
+                    .mDirectionalShadowCastersCount = shadowMapData.mDirShadowCasterCount,
+                    .mGeometryBufferBDA = ctx.GetDeviceBufferAddress(geometryData.mGeometryBuffer) };
                 ctx.PushConstants( params );
 
                 LoadOp colorLoadOp{ LoadOp::eClear };

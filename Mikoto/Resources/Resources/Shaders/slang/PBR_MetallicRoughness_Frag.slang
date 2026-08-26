@@ -57,6 +57,9 @@ struct DrawParams {
 
     uint mDirectionalShadowsInfoBufferID;
     uint mDirectionalShadowCastersCount;
+
+    // EXPERIMENTAL: BufferDeviceAddress
+    uint64_t mGeometryBufferBDA;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;

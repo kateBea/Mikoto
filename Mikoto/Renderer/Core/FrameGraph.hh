@@ -349,6 +349,8 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto Allocate( FGResourceType type, IResource* resource = nullptr ) -> FGResource&;
         MKT_NODISCARD auto Free( FGResourceHandle name ) -> bool;
 
+        MKT_NODISCARD auto GetGpuDeviceAddress( FGBufferHandle handle ) -> core::u64;
+
         MKT_NODISCARD auto AllocateSamplerIndex( FGResourceHandle name ) -> u32;
         MKT_NODISCARD auto AllocateTextureIndex_SRV( FGResourceHandle name ) -> u32;
         MKT_NODISCARD auto AllocateTextureIndex_UAV( FGResourceHandle handle ) -> u32;
@@ -384,6 +386,9 @@ namespace mikoto::renderer {
 
         std::mutex mTableWriteMutex{};
         DescriptorTableHandle mDescriptorTable{};
+
+        // EXPERIMENTAL: Buffer device Addresses. List of uint64_t
+        rhi::BufferHandle mBufferDeviceAddresses{};
 
         // Example: [binding(0, 0)] Textures[] textures;
         // data.mTexture01 is at textures[0]

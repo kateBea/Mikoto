@@ -335,6 +335,15 @@ namespace mikoto::renderer {
         return false;
     }
 
+    auto FGResourceManager::GetGpuDeviceAddress( FGBufferHandle handle ) -> core::u64 {
+        if ( !mResources.contains( handle.mHandle ) ) {
+            return 0;
+        }
+
+        IBuffer* buffer{ checked_cast<IBuffer*>( mResources.at( handle.mHandle )->mResource.GetRaw() ) };
+        return mDevice->GetGpuDeviceAddress( buffer );
+    }
+
     auto FGResourceManager::AllocateTextureIndex_SRV( FGResourceHandle handle  ) -> u32 {
         std::lock_guard lock{ mTableWriteMutex };
 

@@ -276,6 +276,16 @@ namespace mikoto::renderer::vulkan {
         return b->GetMappedAddress();
     }
 
+    auto Device::GetGpuDeviceAddress( IBuffer* buffer ) -> core::u64 {
+        Buffer* pBuffer{ checked_cast<Buffer*>( buffer ) };
+
+        VkBufferDeviceAddressInfo addressInfo{};
+        addressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+        addressInfo.pNext = nullptr;
+        addressInfo.buffer = *pBuffer;
+        return as<u64>( vkGetBufferDeviceAddress( mLogicalDevice, MKT_ADDRESSOF( addressInfo ) ) );
+    }
+
     auto Device::CreateBindlessLayout( const BindlessLayoutDescription &desc ) -> BindingLayoutHandle {
         BindingLayoutHandle layout{ Ref<BindingLayout>::Spawn( desc ) };
 
@@ -547,6 +557,7 @@ namespace mikoto::renderer::vulkan {
         mEnabledFeatures.fillModeNonSolid = VK_TRUE;
         mEnabledFeatures.wideLines = VK_TRUE;
         mEnabledFeatures.samplerAnisotropy = VK_TRUE;
+        mEnabledFeatures.shaderInt64 = VK_TRUE;
 
         // --- Final root features struct ---
         mEnabledFeatures2 = initializers::PhysicalDeviceFeatures2();

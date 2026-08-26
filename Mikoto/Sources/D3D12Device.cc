@@ -2038,6 +2038,10 @@ namespace mikoto::renderer::d3d12 {
         return b->GetMappedAddress();
     }
 
+    auto Device::GetGpuDeviceAddress( IBuffer* buffer ) -> core::u64 {
+        return 0;
+    }
+
     auto Device::CreateBindlessLayout( const BindlessLayoutDescription &desc ) -> BindingLayoutHandle {
         BindingLayoutHandle layout{ Ref<BindingLayout>::Spawn( desc ) };
 

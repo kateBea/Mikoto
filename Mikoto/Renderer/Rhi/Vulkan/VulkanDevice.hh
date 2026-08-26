@@ -666,6 +666,7 @@ namespace mikoto::renderer::vulkan {
 
         auto UnMap( rhi::IBuffer* buffer ) -> void override;
         MKT_NODISCARD auto Map( rhi::IBuffer* buffer ) -> void* override;
+        MKT_NODISCARD auto GetGpuDeviceAddress(IBuffer* buffer) -> core::u64 override;
 
         // To support bindless techniques in modern graphics APIs
         MKT_NODISCARD auto CreateBindlessLayout( const rhi::BindlessLayoutDescription& desc ) -> rhi::BindingLayoutHandle override;

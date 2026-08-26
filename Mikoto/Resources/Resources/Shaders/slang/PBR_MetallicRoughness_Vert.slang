@@ -52,9 +52,12 @@ struct DrawParams {
 
     uint mDirectionalShadowsInfoBufferID;
     uint mDirectionalShadowCastersCount;
+
+    // EXPERIMENTAL: BufferDeviceAddress
+    uint64_t mGeometryBufferBDA;
 };
+
 MKT_DECLARE_STRUCTURED_SRV buffers;
-MKT_DECLARE_BUFFER_DEVICE_ADDRESS bdas;
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 struct VSInput {
@@ -81,16 +84,15 @@ VSOutput main(VSInput input) {
     VSOutput o;
 
     // Test debug BDA
-    //uint64_t rawAddress = bdas[parameters.mGeometryBufferID];
-
     // Explicitly cast the 64-bit address to a strongly typed pointer
-    //MeshGeometryInfo* buffer = (MeshGeometryInfo*)rawAddress; 
+    MeshGeometryInfo* meshBuffer = (MeshGeometryInfo*)parameters.mGeometryBufferBDA; 
 
     ByteAddressBuffer GeometryBuffer = buffers[parameters.mGeometryBufferID];
     ByteAddressBuffer SkinningBuffer = buffers[parameters.mSkinningBufferID];
 
     uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
-    MeshGeometryInfo meshInfo = GeometryBuffer.Read<MeshGeometryInfo>(0, instanceIndex);
+    //MeshGeometryInfo meshInfo = GeometryBuffer.Read<MeshGeometryInfo>(0, instanceIndex);
+    MeshGeometryInfo meshInfo = meshBuffer[instanceIndex];
 
     ByteAddressBuffer Vertices = buffers[parameters.mVerticesBufferID];
     ByteAddressBuffer Indices = buffers[parameters.mIndicesBufferID];

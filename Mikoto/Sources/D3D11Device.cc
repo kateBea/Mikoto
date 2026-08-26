@@ -1009,6 +1009,10 @@ namespace mikoto::renderer::d3d11 {
         return nullptr;
     }
 
+    auto Device::GetGpuDeviceAddress( IBuffer *buffer ) -> core::u64 {
+        return 0;
+    }
+
     auto Device::CreateBindlessLayout( const BindlessLayoutDescription &desc ) -> BindingLayoutHandle {
         return BindingLayoutHandle::CreateEmpty();
     }

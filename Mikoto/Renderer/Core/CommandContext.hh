@@ -87,6 +87,8 @@ namespace mikoto::renderer {
 
         auto SetViewportState(const rhi::ViewportState & vs ) -> void;
 
+        MKT_NODISCARD auto GetDeviceBufferAddress( FGBufferHandle handle ) -> core::u64;
+
         MKT_NODISCARD auto PushTexture_SRV( FGTextureHandle handle ) -> core::u32;
         MKT_NODISCARD auto PushSampler( FGSamplerHandle handle ) -> core::u32;
 

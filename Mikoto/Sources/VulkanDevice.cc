@@ -516,7 +516,7 @@ namespace mikoto::renderer::vulkan {
         // The way around this situation is to make everything an uvec2 (see GL_EXT_buffer_reference_uvec2).
         // For now we just ASSERT
         //https://docs.vulkan.org/guide/latest/buffer_device_address.html
-        
+        MKT_ASSERT( mPhysicalDevice->mFeatures.shaderInt64 == VK_TRUE, "Support for shaderInt64 is required" );
 
         // --- Vulkan 1.3 Features ---
         mEnabled13Features = initializers::PhysicalDeviceVulkan13Features();

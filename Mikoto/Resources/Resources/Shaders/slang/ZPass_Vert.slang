@@ -50,12 +50,12 @@ VSOutput main(VSInput input) {
     // Apply skinning
     MeshGeometryInfo *geometryBuffer = (MeshGeometryInfo *)parameters.mGeometryPtr;
     MeshGeometryInfo meshInfo = geometryBuffer[instanceIndex];
-
-    SkinningResult skinningResult = ApplySkinning(vertex, meshInfo, parameters.mSkinningPtr);
     
     // Compute world position
-    float4 worldPos = mul(meshInfo.Transform, skinningResult.mPosition);
-    float3 worldNormal = normalize(mul((float3x3)meshInfo.Transform, skinningResult.mNormal));
+    SkinningResult skinningResult = ApplySkinning(vertex, meshInfo, parameters.mSkinningPtr);
+    
+    float4 worldPos = skinningResult.mPosition;
+    float3 worldNormal = skinningResult.mNormal;
 
     CameraInfo *camera = (CameraInfo*)parameters.mCameraBda;
 

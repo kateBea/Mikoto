@@ -72,7 +72,7 @@ namespace mikoto::renderer::vulkan {
 #endif
             .QueryGLFWExtensions( true )
             .QuerySurfaceSupport( mWindow )
-            .SetValidationLevel( InstanceBuilder::ValidationLevel::eGpuAssisted )
+            .SetValidationLevel( InstanceBuilder::ValidationLevel::eCore )
             .Build();
 
         mMaxFramesInFlight = kMaxFramesInFlight;

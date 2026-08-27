@@ -809,7 +809,7 @@ namespace mikoto::editor {
 
     auto EditorLayer::RenderScene( float ) -> void {
         mSceneRenderer->Render( mEditorState->mActiveScene );
-        mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eDepthPrepass );
+        mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eChromaticAberration );
     }
 
     auto EditorLayer::RenderFrameGraphEditor() -> void {

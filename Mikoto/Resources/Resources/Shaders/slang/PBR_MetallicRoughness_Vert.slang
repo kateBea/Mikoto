@@ -19,10 +19,10 @@
 #include "base/Animation_Helpers.slang"
 
 struct DrawParams {
-    Pointer mGeometryAllocationBuffer;
-    Pointer mSkinningBuffer;
-    Pointer mGeometryBuffer;
-    Pointer mCameraBuffer;
+    GeometryAllocation* mGeometryAllocationBuffer;
+    BoneData* mSkinningBuffer;
+    MeshGeometryInfo *mGeometryBuffer;
+    CameraInfo *mCameraBuffer;
 
     uint mMaterialsBufferID;
     uint mClusterBufferID;

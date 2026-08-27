@@ -131,8 +131,6 @@ namespace mikoto::editor {
 
         eastl::unique_ptr<core::ActionManager> mActionManager{};
 
-        renderer::rhi::CommandListHandle mCommandList{};
-
         // Renderer display settings
         bool mShowRenderGraph{};
         bool mShowInfiniteGrid{};

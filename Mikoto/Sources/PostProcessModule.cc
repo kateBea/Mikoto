@@ -330,7 +330,7 @@ namespace mikoto::renderer {
                 const auto renderDimensions{ InferDimensions( mResolution ) };
                 const auto graphicsState{ ContextRenderState{}
                       .SetRenderArea( Rect{ as<i32>( renderDimensions.first ), as<i32>( renderDimensions.second ) } )
-                      .AddRenderTarget( ssaoData.mSsaoColorTarget, kColorGreen, LoadOp::eLoad ) };
+                      .AddRenderTarget( ssaoData.mSsaoColorTarget, kColorGreen, LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );
 
                 struct DrawParams {
@@ -386,7 +386,7 @@ namespace mikoto::renderer {
                 const auto renderDimensions{ InferDimensions( mResolution ) };
                 const auto graphicsState{ ContextRenderState{}
                       .SetRenderArea( Rect{ as<i32>( renderDimensions.first ), as<i32>( renderDimensions.second ) } )
-                      .AddRenderTarget( ssaoData.mSsaoBlurColorTarget, kColorGreen, LoadOp::eLoad ) };
+                      .AddRenderTarget( ssaoData.mSsaoBlurColorTarget, kColorGreen, LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );
 
                 struct DrawParams {

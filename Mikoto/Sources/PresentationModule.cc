@@ -38,16 +38,27 @@ namespace mikoto::renderer {
     auto PresentationModule::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        auto& info{ graph.GetOrCreate<PresentationPassData>() };
+
+        const auto dimensions{ InferDimensions( mResolution ) };
+
+        auto colorImage{ FGTextureDescription{}
+            .SetName( "PresentationPassData_ColorImage01" )
+            .SetWidth( as<i32>( dimensions.first ) )
+            .SetHeight( as<i32>( dimensions.second ) )
+            .SetDimensions( TextureDimension::eTexture2D )
+            .SetMultisampling( Multisampling::eMsaaX1 )
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetFormat( Format::eBGRA8_UNORM ) };
+        info.mColorImage = graph.Create( colorImage );
+
         RegisterFullQuadRender( graph );
         RegisterTransition( graph );
     }
 
-    auto PresentationModule::SetPresentType( PresentTarget type ) -> void {
+    auto PresentationModule::GetFinalImage( FrameGraph& graph, FinalImageType type ) -> TextureHandle {
         mPresentTarget = type;
-    }
-
-    auto PresentationModule::RegisterPresentImage( FrameGraph& graph, TextureHandle texture ) -> void {
-        mPresentTexture = graph.ImportTexture( texture );
+        return graph.GetTexture( GetTargetImage( graph.GetBlackBoard() ) );
     }
 
     auto PresentationModule::RegisterTransition( FrameGraph &graph ) -> void {
@@ -55,28 +66,27 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "ResourceTransition",
             FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, Blackboard& blackboard ) {
-                const auto& shadingPassData{ blackboard.Get<GeomShadingModuleInfo>() };
+            []( FGNodeBuilder& builder, Blackboard& blackboard ) {
+                const auto& presentData{ blackboard.Get<PresentationPassData>() };
 
-                builder.UseResource( mPresentTexture, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( shadingPassData.mTonemapColor, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( presentData.mColorImage, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
             },
             []( CommandContext&, Blackboard & ) {
                 // Nothing
             } );
     }
 
-    auto PresentationModule::GetTargetImage( Blackboard &b ) -> FGTextureHandle {
+    auto PresentationModule::GetTargetImage( const Blackboard &b ) -> FGTextureHandle {
         switch ( mPresentTarget ) {
-            case PresentTarget::eGBuffer_Color: return b.Get<PrepassModuleInfo>().mGBufferColorTarget;
-            case PresentTarget::eGBuffer_Position: return b.Get<PrepassModuleInfo>().mGBufferPositionTarget;
-            case PresentTarget::eGBuffer_Normals: return b.Get<PrepassModuleInfo>().mGBufferNormalTarget;
-            case PresentTarget::eGBuffer_Emissive: return b.Get<PrepassModuleInfo>().mGBufferEmissiveTarget;
-            case PresentTarget::eWireframe: return b.Get<WireframeData>().mColorImage;
-            case PresentTarget::eDepthPrepass: return b.Get<PrepassModuleInfo>().mDepthPrepassColorTarget;
-            case PresentTarget::ePBRadiance_Output: return b.Get<GeomShadingModuleInfo>().mColorImage;
-            case PresentTarget::eTonemap_Output: return b.Get<GeomShadingModuleInfo>().mTonemapColor;
-            case PresentTarget::eChromaticAberration: return b.Get<DisplayEffectsModuleInfo>().mChromaAbRenderTarget;
+            case FinalImageType::eGBuffer_Color: return b.Get<PrepassModuleInfo>().mGBufferColorTarget;
+            case FinalImageType::eGBuffer_Position: return b.Get<PrepassModuleInfo>().mGBufferPositionTarget;
+            case FinalImageType::eGBuffer_Normals: return b.Get<PrepassModuleInfo>().mGBufferNormalTarget;
+            case FinalImageType::eGBuffer_Emissive: return b.Get<PrepassModuleInfo>().mGBufferEmissiveTarget;
+            case FinalImageType::eWireframe: return b.Get<WireframeData>().mColorImage;
+            case FinalImageType::eDepthPrepass: return b.Get<PrepassModuleInfo>().mDepthPrepassColorTarget;
+            case FinalImageType::ePBRadiance_Output: return b.Get<GeomShadingModuleInfo>().mColorImage;
+            case FinalImageType::eTonemap_Output: return b.Get<GeomShadingModuleInfo>().mTonemapColor;
+            case FinalImageType::eChromaticAberration: return b.Get<DisplayEffectsModuleInfo>().mChromaAbRenderTarget;
             default:;
         }
 
@@ -107,6 +117,7 @@ namespace mikoto::renderer {
                 // The frame graph does not control access to it nor does it make sure the
                 // image is in proper layout
                 const auto& wireframeData{ blackboard.Get<WireframeData>() };
+                const auto& presentData{ blackboard.Get<PresentationPassData>() };
                 const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
                 const auto& shadingPassData{ blackboard.Get<GeomShadingModuleInfo>() };
                 const auto& displayEffectsData{ blackboard.Get<DisplayEffectsModuleInfo>() };
@@ -130,30 +141,32 @@ namespace mikoto::renderer {
                 AddPresentImage( shadingPassData.mTonemapColor );
                 AddPresentImage( shadingPassData.mColorImage );
                 AddPresentImage( prePassData.mDepthPrepassColorTarget );
+
+                builder.UseResource( presentData.mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
             [this]( CommandContext &ctx, Blackboard &b ) {
-                const auto &data{ b.Get<PresentationPassData>() };
-                const auto &geom{ b.Get<GeometryCullModuleInfo>() };
+                const auto &presentData{ b.Get<PresentationPassData>() };
+                const auto &geometryData{ b.Get<GeometryCullModuleInfo>() };
 
                 struct DrawParams {
                     u32 mTextureIndex{};
                     u32 mSamplerIndex{};
                 } params{
                     .mTextureIndex = ctx.PushTexture_SRV( GetTargetImage( b ) ),
-                    .mSamplerIndex = ctx.PushSampler( geom.mBasicSampler ) };
+                    .mSamplerIndex = ctx.PushSampler( geometryData.mBasicSampler ) };
                 ctx.PushConstants( params );
 
                 const auto dimensions{ InferDimensions( mResolution ) };
 
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
-                    .AddRenderTarget( mPresentTexture, Color{ .0f }, LoadOp::eClear ) };
+                    .AddRenderTarget( presentData.mColorImage, Color{ .0f }, LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( ViewportState{}
                     .AddViewportAndScissorRect( Viewport( as<f32>( dimensions.first ), as<f32>( dimensions.second ) ) ) );
 
-                ctx.BindPipeline( data.mPipeline );
+                ctx.BindPipeline( presentData.mPipeline );
                 ctx.Draw( 3 );
 
                 ctx.EndRender();

@@ -33,7 +33,6 @@ namespace mikoto::renderer {
 
     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo )
         : mDevice{ createInfo.mDevice },
-        mPresentTexture{ createInfo.mPresentTexture },
         mTargetResolution{ createInfo.mResolution } {}
 
     auto SceneRenderer::Init() -> void {
@@ -87,7 +86,6 @@ namespace mikoto::renderer {
         mHelperModule.RegisterPasses( *mFrameGraph );
 
         // Render final contents into specified images
-        mPresentationModule.RegisterPresentImage( *mFrameGraph, mPresentTexture );
         mPresentationModule.RegisterPasses( *mFrameGraph );
 
         // Build graph
@@ -119,8 +117,6 @@ namespace mikoto::renderer {
     }
 
     auto SceneRenderer::Shutdown() -> void {
-        mPresentTexture.Reset();
-
         mFrameGraph = nullptr;
         mCamera = nullptr;
         mDevice = nullptr;
@@ -157,8 +153,8 @@ namespace mikoto::renderer {
         mFrameGraph->ExecuteReadbacks();
     }
 
-    auto SceneRenderer::SetPresentType( PresentTarget type ) -> void {
-        mPresentationModule.SetPresentType( type );
+    auto SceneRenderer::GetFinalImage( FinalImageType type ) -> TextureHandle {
+        return mPresentationModule.GetFinalImage( *mFrameGraph, type );
     }
 
     auto SceneRenderer::SetMainCamera( const SceneCamera *camera ) -> void {
@@ -292,11 +288,6 @@ namespace mikoto::renderer {
 
     auto SceneRendererCreateInfo::SetDevice( IGpuDevice *device ) -> SceneRendererCreateInfo & {
         this->mDevice = device;
-        return *this;
-    }
-
-    auto SceneRendererCreateInfo::SetPresentImage( TextureHandle texture ) -> SceneRendererCreateInfo & {
-        mPresentTexture = texture;
         return *this;
     }
 

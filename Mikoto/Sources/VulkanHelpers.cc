@@ -293,7 +293,8 @@ namespace mikoto::renderer::vulkan {
     auto GetAccessMask(ResourceStates state) -> VkAccessFlags2 {
         switch (state) {
             case ResourceStates::eRenderTarget:
-                return VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+                return VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT |
+                    VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
 
             case ResourceStates::eDepthWrite:
                 return VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT |

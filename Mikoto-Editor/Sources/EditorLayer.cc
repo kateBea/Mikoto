@@ -90,8 +90,6 @@ namespace mikoto::editor {
         InitEditorPanels();
 
         InitActionCallbacks();
-
-        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
     }
 
     auto EditorLayer::OnDestroy() -> void {
@@ -110,8 +108,6 @@ namespace mikoto::editor {
 
         mThumbnailRenderer->Shutdown();
         mThumbnailRenderer.reset();
-
-        mCommandList.Reset();
 
         mDevice = nullptr;
         mWindow = nullptr;
@@ -258,23 +254,9 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::InitSceneRenderer() -> void {
-        const auto dimensions{ InferDimensions( mEditorState->mResolution ) };
-        const auto colorDesc{ TextureCreateDescription{}
-            .SetWidth( as<i32>( dimensions.first ) )
-            .SetHeight( as<i32>( dimensions.second ) )
-            .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget |
-                TextureUsageFlagsBits::kShaderResource |
-                TextureUsageFlagsBits::kCopySrc )
-            .SetFormat( Format::eBGRA8_UNORM ) };
-        mEditorState->mFinalComposition = mDevice->CreateTexture( colorDesc );
-        mEditorState->mFinalComposition->SetDebugName( "EditorColor" );
-
         // Scene renderer
         auto description{ SceneRendererCreateInfo{}
             .SetName( "MainSceneRenderer" )
-            .SetPresentImage( mEditorState->mFinalComposition )
             .SetRenderResolution( mEditorState->mResolution )
             .SetDevice( RenderSystem::Get()->GetGpuDevice() ) };
         mSceneRenderer = SceneRenderer::Create( description );
@@ -826,15 +808,8 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::RenderScene( float ) -> void {
-        // External textures are not managed by the frame graph
-        mCommandList->Begin( { .mScopeName = "EditorLayer::RenderScene - RenderTarget" } );
-        mCommandList->SetTransition( mEditorState->mFinalComposition.GetRaw(), ResourceStates::eRenderTarget );
-        mCommandList->End();
-        auto submitInfo{ SubmitInfo{}
-            .AddCommandList( mCommandList ) };
-        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo), QueueType::eGraphics);
-
         mSceneRenderer->Render( mEditorState->mActiveScene );
+        mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eDepthPrepass );
     }
 
     auto EditorLayer::RenderFrameGraphEditor() -> void {

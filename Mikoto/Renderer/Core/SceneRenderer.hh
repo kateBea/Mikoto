@@ -51,15 +51,10 @@ namespace mikoto::renderer {
         eastl::string_view mName{};
         eastl::string_view mShaderBasePath{};
 
-        // Scene renderer does a full quad render on these
-        // Just edit the final pass to specify what gets rendered onto these
-        rhi::TextureHandle mPresentTexture{};
-
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
 
         auto SetName( eastl::string_view name ) -> SceneRendererCreateInfo&;
         auto SetDevice( rhi::IGpuDevice* device ) -> SceneRendererCreateInfo&;
-        auto SetPresentImage( rhi::TextureHandle texture ) -> SceneRendererCreateInfo&;
         auto SetRenderResolution( rhi::RenderResolution resolution ) -> SceneRendererCreateInfo&;
     };
 
@@ -72,7 +67,7 @@ namespace mikoto::renderer {
 
         auto Render( const scene::Scene* scene ) -> void override;
 
-        auto SetPresentType( PresentTarget type ) -> void;
+        auto GetFinalImage( FinalImageType type ) -> rhi::TextureHandle;
 
         auto SetMainCamera( const scene::SceneCamera* camera ) -> void;
         auto SetClearColor( const rhi::Color& color ) -> void;
@@ -108,8 +103,6 @@ namespace mikoto::renderer {
     private:
         rhi::IGpuDevice* mDevice{};
         scene::SceneCamera* mCamera{};
-
-        rhi::TextureHandle mPresentTexture{};
 
         rhi::RenderResolution mTargetResolution{ rhi::RenderResolution::e1080P };
 

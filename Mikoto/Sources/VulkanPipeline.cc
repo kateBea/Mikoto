@@ -200,6 +200,8 @@ namespace mikoto::renderer::vulkan {
             shaders.emplace_back(shader);
         }
 
+        Device* device{ checked_cast<Device*>( mDevice ) };
+
         // TODO: This path will be done when we want reflection
         // When reflection is enabled the whole pipeline state is reflected
         // as in all necessary properties are inferred from provided shaders
@@ -251,7 +253,7 @@ namespace mikoto::renderer::vulkan {
         if (!mDesc.mPipelineLayout.IsEmpty()) {
             pipelineInfo.layout = mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout );
         } else {
-            pipelineInfo.layout = VK_NULL_HANDLE;
+            pipelineInfo.layout = *device->GetDummyPipelineLayout();
         }
 
         pipelineInfo.subpass = 0;
@@ -269,7 +271,7 @@ namespace mikoto::renderer::vulkan {
         pipelineInfo.pDepthStencilState = MKT_ADDRESSOF( mDepthStencilInfo );
 
         MKT_VK_CHECK( vkCreateGraphicsPipelines(
-            checked_cast<Device*>( mDevice )->GetDevice(),
+            device->GetDevice(),
             mPipelineCache,
             1,
             MKT_ADDRESSOF( pipelineInfo ),
@@ -343,6 +345,8 @@ namespace mikoto::renderer::vulkan {
     auto ComputePipeline::Initialize() -> void {
         eastl::array shaders{ mDesc.mStage };
 
+        Device* device{ checked_cast<Device*>( mDevice ) };
+
         // TODO: This path will be done when we want reflection
         // When reflection is enabled the whole pipeline state is reflected
         // as in all necessary properties are inferred from provided shaders
@@ -360,7 +364,7 @@ namespace mikoto::renderer::vulkan {
         if (!mDesc.mPipelineLayout.IsEmpty()) {
             pipelineInfo.layout = mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout );
         } else {
-            pipelineInfo.layout = VK_NULL_HANDLE;
+            pipelineInfo.layout = *device->GetDummyPipelineLayout();
         }
 
         MKT_VK_CHECK( vkCreateComputePipelines(

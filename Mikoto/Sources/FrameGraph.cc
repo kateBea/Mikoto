@@ -834,6 +834,10 @@ namespace mikoto::renderer {
         return mResourceManager->Get( handle.mHandle ).mResource;
     }
 
+    auto FrameGraph::GetBlackBoard() const -> const core::Blackboard& {
+        return mBlackboard;
+    }
+
     auto FrameGraph::Create( IGpuDevice* device, ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph> {
         MKT_BEGIN_PROFILER_NAMED();
         return eastl::make_unique<FrameGraph>( device, shaderLibrary );

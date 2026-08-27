@@ -1014,7 +1014,9 @@ namespace mikoto::renderer::d3d12 {
 
         mResourceBarriers.emplace_back( barrier );
 
-        buffer->SetResourceState(stateBits);
+        if (stateBits != ResourceStates::eUnknown) {
+            buffer->SetResourceState(stateBits);
+        }
     }
 
     auto CommandList::RecordTransition( ITexture *texture, ResourceStates stateBits ) -> void {
@@ -1036,7 +1038,9 @@ namespace mikoto::renderer::d3d12 {
 
         mResourceBarriers.emplace_back( barrier );
 
-        texture->SetResourceState(stateBits);
+        if (stateBits != ResourceStates::eUnknown) {
+            texture->SetResourceState(stateBits);
+        }
     }
 
     auto CommandList::SetTransition( IBuffer *buffer, ResourceStates stateBits ) -> void {
@@ -1058,7 +1062,9 @@ namespace mikoto::renderer::d3d12 {
 
         mCurrentRecordingContext->mCommandList->ResourceBarrier(1, &barrier);
 
-        buffer->SetResourceState(stateBits);
+        if (stateBits != ResourceStates::eUnknown) {
+            buffer->SetResourceState(stateBits);
+        }
     }
 
     auto CommandList::SetTransition( ITexture *texture, ResourceStates stateBits ) -> void {
@@ -1080,7 +1086,9 @@ namespace mikoto::renderer::d3d12 {
 
         mCurrentRecordingContext->mCommandList->ResourceBarrier(1, &barrier);
 
-        texture->SetResourceState(stateBits);
+        if (stateBits != ResourceStates::eUnknown) {
+            texture->SetResourceState(stateBits);
+        }
     }
 
     auto CommandList::CommitBarriers() -> void {

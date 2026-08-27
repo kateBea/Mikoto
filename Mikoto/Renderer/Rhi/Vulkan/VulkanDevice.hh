@@ -621,6 +621,9 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
+        // Vulkan Specifics
+        MKT_NODISCARD operator VkPipelineLayout() const;
+
         ~PipelineLayout() override;
 
     private:
@@ -687,6 +690,7 @@ namespace mikoto::renderer::vulkan {
         auto SetDebugName( VkObjectType objectType, core::u64 handle, eastl::string_view name ) -> void;
 
         MKT_NODISCARD auto GetDummySampler() -> Sampler*;
+        MKT_NODISCARD auto GetDummyPipelineLayout() -> PipelineLayout*;
         MKT_NODISCARD auto GetLayoutForEmptySet() -> VkDescriptorSetLayout;
 
         MKT_NODISCARD auto GetUploadManager() -> GpuUploadManager*;
@@ -753,6 +757,7 @@ namespace mikoto::renderer::vulkan {
         static constexpr eastl::string_view kPipelineCacheDirectory{ "Assets/.vulkan/" };
 
         rhi::SamplerHandle mDummySampler{};
+        rhi::PipelineLayoutHandle mEmptyPipelineLayout{};
         rhi::BindingLayoutHandle mEmptyBindingLayout{};
 
         eastl::unique_ptr<IDescriptorAllocatorPool> mDescriptorAllocatorPool{};

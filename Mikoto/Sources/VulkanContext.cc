@@ -175,7 +175,7 @@ namespace mikoto::renderer::vulkan {
 
         // https://community.khronos.org/t/is-it-recommended-to-use-vkcmdcopyimage-to-copy-to-the-swapchain-image-instead-of-a-shader/112122
         if (!mPresentTarget.IsEmpty() && !mSwapchain.IsEmpty()) {
-#if false
+#if true
             // Blit via full quad render
             TextureHandle colorImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );

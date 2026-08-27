@@ -22,7 +22,7 @@
 
 namespace mikoto::renderer {
 
-    enum class PresentTarget {
+    enum class FinalImageType {
         eGBuffer_Color,
         eGBuffer_Emissive,
         eGBuffer_Normals,
@@ -44,6 +44,7 @@ namespace mikoto::renderer {
         // Textures we will render the final image into
         eastl::vector<FGTextureHandle> mPresentTextures{};
 
+        FGTextureHandle mColorImage{};
         FGPipelineHandle mPipeline{};
     };
 
@@ -53,23 +54,18 @@ namespace mikoto::renderer {
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
-        auto SetPresentType( PresentTarget type ) -> void;
-
-        auto RegisterPresentImage( FrameGraph& graph, rhi::TextureHandle texture ) -> void;
+        auto GetFinalImage( FrameGraph& graph, FinalImageType type ) -> rhi::TextureHandle;
 
     private:
 
         auto RegisterTransition( FrameGraph& graph ) -> void;
 
-        auto GetTargetImage( Blackboard& ctx ) -> FGTextureHandle;
+        auto GetTargetImage( const Blackboard& ctx ) -> FGTextureHandle;
         auto RegisterFullQuadRender( FrameGraph& graph ) -> void;
 
     private:
-        FGTextureHandle mPresentTexture{};
-
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
-
-        PresentTarget mPresentTarget{ PresentTarget::eTonemap_Output };
+        FinalImageType mPresentTarget{ FinalImageType::eTonemap_Output };
     };
 
 }// namespace mikoto

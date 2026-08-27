@@ -546,6 +546,8 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> rhi::TextureHandle;
         MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> rhi::BufferHandle;
 
+        MKT_NODISCARD auto GetBlackBoard() const -> const core::Blackboard&;
+
         MKT_NODISCARD auto ImportTexture( const filesystem::Path& path ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportTexture( rhi::TextureHandle handle ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportBuffer( rhi::BufferHandle handle ) -> FGBufferHandle;

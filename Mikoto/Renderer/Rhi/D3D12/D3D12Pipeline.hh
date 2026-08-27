@@ -46,6 +46,8 @@ namespace mikoto::renderer::d3d12 {
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
+        // D312 Specifics
+        MKT_NODISCARD auto HasEmptyRootSignature() const -> bool;
         MKT_NODISCARD operator ID3D12PipelineState*() const;
 
         ~GraphicsPipeline() override;
@@ -60,6 +62,8 @@ namespace mikoto::renderer::d3d12 {
     private:
         Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState{};
         D3D12_GRAPHICS_PIPELINE_STATE_DESC mD3D12PipelineDesc{};
+
+        bool mRequiresEmptySignature{};
     };
 
     class ComputePipeline final :  public rhi::IComputePipeline {
@@ -71,6 +75,8 @@ namespace mikoto::renderer::d3d12 {
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
+        // D312 Specifics
+        MKT_NODISCARD auto HasEmptyRootSignature() const -> bool;
         MKT_NODISCARD operator ID3D12PipelineState*() const;
 
         ~ComputePipeline() override;
@@ -85,6 +91,8 @@ namespace mikoto::renderer::d3d12 {
     private:
         Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState{};
         D3D12_COMPUTE_PIPELINE_STATE_DESC mD3D12PipelineDesc{};
+
+        bool mRequiresEmptySignature{};
     };
 }
 

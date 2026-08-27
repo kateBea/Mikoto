@@ -337,6 +337,7 @@ namespace mikoto::renderer::d3d12 {
         eastl::fixed_hash_map<core::u32, VertexAttributeDescription, kMaxVertexAttributes> mAttributes{};
     };
 
+    // https://learn.microsoft.com/en-us/windows/win32/direct3d12/root-signatures
     class PipelineLayout : public IPipelineLayout {
     public:
 
@@ -583,6 +584,8 @@ namespace mikoto::renderer::d3d12 {
         // D3D12 Specifics
         MKT_NODISCARD auto CreateTexture( const ExternalTextureDescription& info ) -> rhi::TextureHandle;
 
+        MKT_NODISCARD auto GetEmptyRootSignature() const -> ID3D12RootSignature*;
+
         auto DumpMessages() -> void;
 
         static auto CALLBACK DebugMessageCallback(
@@ -609,6 +612,7 @@ namespace mikoto::renderer::d3d12 {
         // [Internal usage]
         auto InitInfoQueue() -> void;
         auto InitCommandQueues() -> void;
+        auto InitDummyResources() -> void;
         auto InitMemoryAllocator() -> void;
         auto InitDescriptorHeapManager() -> void;
 
@@ -626,6 +630,11 @@ namespace mikoto::renderer::d3d12 {
 
         // [Command list management]
         ankerl::unordered_dense::map<QueueType, Ref<Queue>> mQueues{};
+
+        // Dummy resources
+        Microsoft::WRL::ComPtr<ID3DBlob> mEmptyRootSignatureBlob{};
+        Microsoft::WRL::ComPtr<ID3DBlob> mEmptyRootSignatureErrorMessages{};
+        Microsoft::WRL::ComPtr<ID3D12RootSignature> mEmptyRootSignature{};
 
 #if defined(_DEBUG)
         DWORD mInfoQueueCallbackCookie{};

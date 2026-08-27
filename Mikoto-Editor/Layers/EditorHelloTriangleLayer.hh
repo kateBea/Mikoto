@@ -74,7 +74,6 @@ namespace mikoto::editor {
         renderer::rhi::CommandListHandle mCommandList{};
 
         renderer::rhi::PipelineHandle mPipeline{};
-        renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
 
         bool mIsImguiWindowActive{ false };
 

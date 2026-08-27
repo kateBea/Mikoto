@@ -62,6 +62,8 @@ namespace mikoto::renderer::rhi {
         eTransfer,
         eGraphics,
         eCompute,
+        eVideoEncode,
+        eVideoDecode,
         ePresent,
     };
 

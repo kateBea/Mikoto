@@ -86,10 +86,6 @@ namespace mikoto::editor {
 
         // Create pipeline
 
-        // A pipeline that takes no resources
-        mPipelineLayoutHandle = mDevice->CreatePipelineLayout( PipelineLayoutCreateDescription{} );
-        mPipelineLayoutHandle->SetDebugName( "HelloTriangleLayer PipelineLayout" );
-
         auto graphicsPipelineDescription{ GraphicsPipelineDescription{}
             .AddShader( mPixelShader )
             .AddShader( mVertexShader )
@@ -102,8 +98,7 @@ namespace mikoto::editor {
             .SetPolygonMode( PolygonMode::eFill )
             .SetCullMode( CullMode::eCullBack )
             .SetWindingOrder( WindingOrder::eCounterClockwise )
-            .SetTopology( PrimitiveTopology::eTriangleList )
-            .SetPipelineLayout( mPipelineLayoutHandle ) };
+            .SetTopology( PrimitiveTopology::eTriangleList ) };
         mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
         mPipeline->SetDebugName( "HelloTriangleLayer Pipeline" );
 
@@ -117,7 +112,6 @@ namespace mikoto::editor {
         mDevice->WaitIdle();
 
         mPipeline.Reset();
-        mPipelineLayoutHandle.Reset();
 
         mVertexShader.Reset();
         mPixelShader.Reset();
@@ -138,11 +132,6 @@ namespace mikoto::editor {
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
         mCommandList->BeginRendering( graphicsState );
 
-        // No resources but still need to specify the layout for the following pipelines
-        auto bindingDescription{ BindResourcesDescription{}
-            .SetBindPoint( PipelineType::eGraphics )
-            .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() ) };
-        mCommandList->BindPipelineResources( bindingDescription );
         mCommandList->BindPipeline( mPipeline.GetRaw() );
 
         mCommandList->SetViewportState( ViewportState{}

@@ -44,8 +44,10 @@ namespace mikoto::renderer::d3d12 {
     {
         // Resources
         PipelineLayout* pipelineLayout{ checked_cast<PipelineLayout*>( mDesc.mPipelineLayout.GetRaw() ) };
-        ID3D12RootSignature* rootSignature{ *pipelineLayout };
-        mD3D12PipelineDesc.pRootSignature = rootSignature;
+        if (pipelineLayout) {
+            ID3D12RootSignature* rootSignature{ *pipelineLayout };
+            mD3D12PipelineDesc.pRootSignature = rootSignature;
+        }
 
         // Input layout
         if (!mDesc.mInputLayout.IsEmpty()) {
@@ -163,6 +165,8 @@ namespace mikoto::renderer::d3d12 {
         // MSAA
         mD3D12PipelineDesc.SampleDesc.Count = 1;
         mD3D12PipelineDesc.SampleDesc.Quality = 0;
+
+        mRequiresEmptySignature = mDesc.mPipelineLayout.IsEmpty();
     }
 
     auto GraphicsPipeline::GetNativeHandle( rhi::ObjectType type ) -> rhi::Object {
@@ -182,6 +186,10 @@ namespace mikoto::renderer::d3d12 {
         mPipelineState->SetName( string::ToWide( mDebugName ).c_str() );
     }
 
+    auto GraphicsPipeline::HasEmptyRootSignature() const -> bool {
+        return mRequiresEmptySignature;
+    }
+
     GraphicsPipeline::~GraphicsPipeline() {
         if (mIsAllocated) {
             Release();
@@ -195,6 +203,10 @@ namespace mikoto::renderer::d3d12 {
     auto GraphicsPipeline::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device2* d3d12Device{ device->GetDevice() };
+
+        if (HasEmptyRootSignature()) {
+            mD3D12PipelineDesc.pRootSignature = device->GetEmptyRootSignature();
+        }
 
         ThrowIfFailed(d3d12Device->CreateGraphicsPipelineState(
             &mD3D12PipelineDesc,
@@ -212,8 +224,10 @@ namespace mikoto::renderer::d3d12 {
     {
         // Resources
         PipelineLayout* pipelineLayout{ checked_cast<PipelineLayout*>( mDesc.mPipelineLayout.GetRaw() ) };
-        ID3D12RootSignature* rootSignature{ *pipelineLayout };
-        mD3D12PipelineDesc.pRootSignature = rootSignature;
+        if (pipelineLayout) {
+            ID3D12RootSignature* rootSignature{ *pipelineLayout };
+            mD3D12PipelineDesc.pRootSignature = rootSignature;
+        }
 
         // Compute shader
         Shader* shader{ checked_cast<Shader*>( mDesc.mStage.GetRaw() ) };
@@ -225,6 +239,8 @@ namespace mikoto::renderer::d3d12 {
 
         mD3D12PipelineDesc.NodeMask = 0;
         mD3D12PipelineDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+        mRequiresEmptySignature = mDesc.mPipelineLayout.IsEmpty();
     }
 
     auto ComputePipeline::GetNativeHandle( rhi::ObjectType type ) -> rhi::Object {
@@ -244,6 +260,10 @@ namespace mikoto::renderer::d3d12 {
         mPipelineState->SetName( string::ToWide( mDebugName ).c_str() );
     }
 
+    auto ComputePipeline::HasEmptyRootSignature() const -> bool {
+        return mRequiresEmptySignature;
+    }
+
     ComputePipeline::operator ID3D12PipelineState*() const {
         return mPipelineState.Get();
     }
@@ -257,6 +277,10 @@ namespace mikoto::renderer::d3d12 {
     auto ComputePipeline::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device2* d3d12Device{ device->GetDevice() };
+
+        if (HasEmptyRootSignature()) {
+            mD3D12PipelineDesc.pRootSignature = device->GetEmptyRootSignature();
+        }
 
         ThrowIfFailed(d3d12Device->CreateComputePipelineState(
             &mD3D12PipelineDesc,

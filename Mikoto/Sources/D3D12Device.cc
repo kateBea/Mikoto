@@ -1371,6 +1371,12 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::BindPipeline( IPipeline* pipeline ) -> void {
+        if (!pipeline) {
+            return;
+        }
+
+        bool requiresEmptySignature{ false };
+
         const PipelineType pipelineType{ pipeline->GetPipelineType() };
         if ( pipelineType == PipelineType::eGraphics ) {
             auto* gfxPipeline{ checked_cast<GraphicsPipeline*>( pipeline ) };
@@ -1380,11 +1386,27 @@ namespace mikoto::renderer::d3d12 {
 
             mCurrentRecordingContext->mCommandList->SetPipelineState( gfxPipelineState );
             mCurrentRecordingContext->mCommandList->IASetPrimitiveTopology( gfxPipelineTopology );
+
+            requiresEmptySignature = gfxPipeline->HasEmptyRootSignature();
         } else if ( pipelineType == PipelineType::eCompute ) {
             auto* computePipeline{ checked_cast<ComputePipeline*>( pipeline ) };
             ID3D12PipelineState* computePipelineState{ *computePipeline };
 
             mCurrentRecordingContext->mCommandList->SetPipelineState( computePipelineState );
+            requiresEmptySignature = computePipeline->HasEmptyRootSignature();
+        }
+
+
+        // I should probably bind the previous resources only if empty root signature.
+        // This is more of a D3D12 limitation
+        // In vulkan the resources stay bound for the duration of the command buffer
+        // or until being invalidated by different pipeline layout
+        if (requiresEmptySignature) {
+            // If pipeline receives no resources we bind an empty root signature.
+            // We do this here because you need a pipeline bound before you issue draw/dispatch calls.
+            Device* device{ checked_cast<Device*>( mDevice ) };
+            ID3D12RootSignature* rootSignature{ device->GetEmptyRootSignature() };
+            mCurrentRecordingContext->mCommandList->SetGraphicsRootSignature(rootSignature);
         }
     }
 
@@ -1800,6 +1822,8 @@ namespace mikoto::renderer::d3d12 {
         InitMemoryAllocator();
         InitDescriptorHeapManager();
 
+        InitDummyResources();
+
 #if defined(_DEBUG)
         ThrowIfFailed(mDevice->QueryInterface( IID_PPV_ARGS(&mDebugDevice) ));
 #endif
@@ -1868,6 +1892,40 @@ namespace mikoto::renderer::d3d12 {
         }
     }
 
+    auto Device::InitDummyResources() -> void {
+        // Empty Root signature
+        D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData{};
+        featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+        if (FAILED(mDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE,
+            MKT_ADDRESSOF( featureData ), MKT_SIZEOF(featureData))))
+        {
+            featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+        }
+
+        D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc{};
+        rootSignatureDesc.Version = featureData.HighestVersion;
+        rootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+        rootSignatureDesc.Desc_1_1.NumParameters = 0;
+        rootSignatureDesc.Desc_1_1.pParameters = nullptr;
+        rootSignatureDesc.Desc_1_1.NumStaticSamplers = 0;
+        rootSignatureDesc.Desc_1_1.pStaticSamplers = nullptr;
+
+        HRESULT hr{ D3D12SerializeVersionedRootSignature(&rootSignatureDesc,
+            &mEmptyRootSignatureBlob, &mEmptyRootSignatureErrorMessages) };
+
+        if (mEmptyRootSignatureErrorMessages && mEmptyRootSignatureErrorMessages->GetBufferSize() != 0) {
+            eastl::string msg{ (const char *)mEmptyRootSignatureErrorMessages->GetBufferPointer() };
+            MKT_CORE_LOGGER_ERROR( "D3D12SerializeVersionedRootSignature Errors: {}", msg.c_str() );
+        }
+
+        ThrowIfFailed( hr );
+
+        ThrowIfFailed(mDevice->CreateRootSignature(0,
+            mEmptyRootSignatureBlob->GetBufferPointer(),
+            mEmptyRootSignatureBlob->GetBufferSize(),
+            IID_PPV_ARGS(&mEmptyRootSignature)));
+    }
+
     auto Device::InitMemoryAllocator() -> void {
         mGpuAllocator = memory::IGpuAllocator::Create( this );
         if ( !mGpuAllocator ) {
@@ -1919,6 +1977,10 @@ namespace mikoto::renderer::d3d12 {
         texture->Initialize( this );
 
         return texture;
+    }
+
+    auto Device::GetEmptyRootSignature() const -> ID3D12RootSignature* {
+        return mEmptyRootSignature.Get();
     }
 
     auto Device::CreateTextureNative( ObjectType type, Object object, const TextureCreateDescription &description ) -> TextureHandle {

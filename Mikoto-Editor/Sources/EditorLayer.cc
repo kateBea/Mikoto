@@ -127,8 +127,6 @@ namespace mikoto::editor {
         UpdateRendererState( timeStep );
         UpdateSceneState( timeStep );
 
-        mSceneRenderer->SetPresentType( PresentTarget::eDepthPrepass );
-
         RenderScene( timeStep );
 
         if (mScreenPresentTarget == ScreenPresentTarget::ePanels) {

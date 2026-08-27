@@ -248,9 +248,14 @@ namespace mikoto::renderer::vulkan {
         vertexInputInfo.vertexBindingDescriptionCount = as<u32>( mVertexBindingDescriptions.size() );
         vertexInputInfo.pVertexBindingDescriptions = mVertexBindingDescriptions.data();
 
+        if (!mDesc.mPipelineLayout.IsEmpty()) {
+            pipelineInfo.layout = mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout );
+        } else {
+            pipelineInfo.layout = VK_NULL_HANDLE;
+        }
+
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineIndex = -1;
-        pipelineInfo.layout = mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout );
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineInfo.pDynamicState = MKT_ADDRESSOF( mDynamicStateInfo );
 
@@ -351,7 +356,12 @@ namespace mikoto::renderer::vulkan {
         // [Shaders]
         const auto& shaderStageInfos{ GetShaderStagesInfo( shaders ) };
         pipelineInfo.stage = shaderStageInfos.front();
-        pipelineInfo.layout = mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout );;
+
+        if (!mDesc.mPipelineLayout.IsEmpty()) {
+            pipelineInfo.layout = mDesc.mPipelineLayout->GetNativeHandle( ObjectType::Vk_PipelineLayout );
+        } else {
+            pipelineInfo.layout = VK_NULL_HANDLE;
+        }
 
         MKT_VK_CHECK( vkCreateComputePipelines(
             checked_cast<Device*>( mDevice )->GetDevice(),

@@ -728,7 +728,7 @@ namespace mikoto::renderer {
             Timer timer{ false };
             const double elapsed{ timer.GetCurrentProgress( TimeUnit::eMicroseconds ) };
 
-            // Run pass execute calback
+            // Run pass execute callback
             pass.mExecuteCallback( ctx, mBlackboard );
 
             FGNodeStatistics& stats{ *mStatisticsManager->GetNode( pass.mName ) };

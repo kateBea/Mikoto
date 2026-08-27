@@ -82,7 +82,6 @@ namespace mikoto::renderer {
             case FGPipelineStage::eAccelStructBuildBlas:   return ResourceStates::eAccelStructBuildBlas;
         }
 
-        // Fallback (should never happen if enum is exhaustive)
         return ResourceStates::eUnknown;
     }
 
@@ -218,6 +217,9 @@ namespace mikoto::renderer {
             FGResource resource{ mResourceManager->Get( barrier.second.mResourceID ) };
             auto desired{ GetResourceState( barrier.second.mNewState, barrier.second.mAccess ) };
 
+            // Update the state I need to transition the resource from, some resources start with unknown state
+            // but then they stay and a known state, I need to do the transition from that know state.
+            // This uses still non enhanced barriers
             switch (resource.mType) {
                 case FGResourceType::eTexture:
                     mCommands->RecordTransition( checked_cast<ITexture*>( resource.mResource.GetRaw() ), desired );

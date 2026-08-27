@@ -102,7 +102,6 @@ namespace mikoto::renderer {
             "FullQuadRender",
             FGPassType::eGraphics,
             []( FGNodeBuilder &builder, Blackboard &blackboard ) {
-
                 // Specify the target you want to present
                 // The color target used in this pass is externally managed
                 // The frame graph does not control access to it nor does it make sure the
@@ -112,18 +111,25 @@ namespace mikoto::renderer {
                 const auto& shadingPassData{ blackboard.Get<GeomShadingModuleInfo>() };
                 const auto& displayEffectsData{ blackboard.Get<DisplayEffectsModuleInfo>() };
 
-                builder.UseResource( prePassData.mGBufferPositionTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( prePassData.mGBufferNormalTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( prePassData.mGBufferColorTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( prePassData.mGBufferEmissiveTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                const auto AddPresentImage{ [&](FGTextureHandle handle ) {
+                    if (handle.mHandle == FGResourceManager::kInvalidResourceHandle) {
+                        return;
+                    }
+                    builder.UseResource( handle, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                } };
 
-                builder.UseResource( displayEffectsData.mChromaAbRenderTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                AddPresentImage( prePassData.mGBufferPositionTarget );
+                AddPresentImage( prePassData.mGBufferNormalTarget );
+                AddPresentImage( prePassData.mGBufferColorTarget );
+                AddPresentImage( prePassData.mGBufferEmissiveTarget );
 
-                builder.UseResource( wireframeData.mColorImage, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                AddPresentImage( displayEffectsData.mChromaAbRenderTarget );
 
-                builder.UseResource( shadingPassData.mTonemapColor, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( shadingPassData.mColorImage, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( prePassData.mDepthPrepassColorTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                AddPresentImage( wireframeData.mColorImage );
+
+                AddPresentImage( shadingPassData.mTonemapColor );
+                AddPresentImage( shadingPassData.mColorImage );
+                AddPresentImage( prePassData.mDepthPrepassColorTarget );
             },
             [this]( CommandContext &ctx, Blackboard &b ) {
                 const auto &data{ b.Get<PresentationPassData>() };

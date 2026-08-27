@@ -510,6 +510,14 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::InitLogicalDevice() -> void {
+        // Assert mandatory features
+
+        // Some device might support bufferDeviceAddress, but not shaderInt64.
+        // The way around this situation is to make everything an uvec2 (see GL_EXT_buffer_reference_uvec2).
+        // For now we just ASSERT
+        //https://docs.vulkan.org/guide/latest/buffer_device_address.html
+        
+
         // --- Vulkan 1.3 Features ---
         mEnabled13Features = initializers::PhysicalDeviceVulkan13Features();
         mEnabled13Features.synchronization2 = VK_TRUE;

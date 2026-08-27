@@ -184,7 +184,7 @@ namespace mikoto::renderer {
 
     auto CommandContext::GetDeviceBufferAddress( FGBufferHandle handle ) -> core::u64 {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        return mResourceManager->GetGpuDeviceAddress( handle );
+        return (u64)CacheGpuDeviceAddress( handle );
     }
 
     auto CommandContext::PushTexture_SRV( FGTextureHandle handle ) -> u32 {
@@ -209,14 +209,14 @@ namespace mikoto::renderer {
         return mResourceManager->AllocateBufferIndex_UAV( handle.mHandle );
     }
 
-    auto CommandContext::CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>& barriers ) -> void {
+    auto CommandContext::CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>>& barriers ) -> void {
         if (barriers.empty()) {
             return;
         }
 
         for (const auto& [resourceID, barrier] : barriers) {
-            FGResource resource{ mResourceManager->Get( barrier.mResourceID ) };
-            auto desired{ GetResourceState( barrier.mNewState, barrier.mAccess ) };
+            FGResource resource{ mResourceManager->Get( barrier.second.mResourceID ) };
+            auto desired{ GetResourceState( barrier.second.mNewState, barrier.second.mAccess ) };
 
             switch (resource.mType) {
                 case FGResourceType::eTexture:
@@ -315,6 +315,18 @@ namespace mikoto::renderer {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         ITexture* image{ CacheResource( destImage ) };
         mCommands->Write( image, 0, data, size );
+    }
+
+    auto CommandContext::CacheGpuDeviceAddress( FGBufferHandle handle ) -> rhi::DeviceAddress {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        auto itFind{ mCachedBda.find( handle.mHandle ) };
+        if (itFind == mCachedBda.end()) {
+            FGResource resource{ mResourceManager->Get( handle.mHandle ) };
+            IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
+            itFind = mCachedBda.try_emplace( itFind, handle.mHandle, buffer->GetGpuDeviceAddress() );
+        }
+
+        return itFind->second;
     }
 
     auto CommandContext::CacheResource( FGBufferHandle handle ) -> IBuffer* {

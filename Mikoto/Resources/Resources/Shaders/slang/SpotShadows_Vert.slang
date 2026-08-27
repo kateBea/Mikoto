@@ -30,11 +30,10 @@ struct VSOutput {
 };
 
 struct DrawParams {
-    uint mGeometryBufferID;
-    uint mSkinningBufferID;
+    Pointer mGeometryBufferID;
+    Pointer mSkinningBufferID;
 
-    uint mIndicesBufferID;
-    uint mVerticesBufferID;
+    Pointer mGeometryAllocBuffer;
 };
 
 

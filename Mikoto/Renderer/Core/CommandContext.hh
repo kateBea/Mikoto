@@ -15,6 +15,8 @@
 #ifndef MIKOTO_COMMAND_CONTEXT_HH
 #define MIKOTO_COMMAND_CONTEXT_HH
 
+#include <string>
+
 #include <EASTL/span.h>
 #include <EASTL/utility.h>
 #include <EASTL/string_view.h>
@@ -95,7 +97,7 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto PushBuffer_SRV( FGBufferHandle handle ) -> core::u32;
         MKT_NODISCARD auto PushBuffer_UAV( FGBufferHandle handle ) -> core::u32;
 
-        auto CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>& barriers ) -> void;
+        auto CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>>& barriers ) -> void;
 
         MKT_NODISCARD auto ImportTexture( rhi::TextureHandle handle ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportSampler( rhi::SamplerHandle handle ) -> FGSamplerHandle;
@@ -124,10 +126,13 @@ namespace mikoto::renderer {
             const void* ptr{ MKT_ADDRESSOF( data ) };
             const core::usize size{ MKT_SIZEOF( data ) };
 
-            eastl::copy_n( core::as<core::ubyte*>( ptr ), size, mPushConstantsData.data() );
+            std::memset( mPushConstantsData.data(), 0, size );
+            std::memcpy( mPushConstantsData.data(), ptr, size );
         }
     private:
         // [Internal usage]
+        auto CacheGpuDeviceAddress( FGBufferHandle handle ) -> rhi::DeviceAddress;
+
         auto CacheResource( FGBufferHandle handle ) -> IBuffer*;
         auto CacheResource( FGTextureHandle handle ) -> ITexture*;
 
@@ -144,6 +149,8 @@ namespace mikoto::renderer {
         rhi::CommandListHandle mCommands{};
         rhi::PipelineLayoutHandle mPipelineLayout{};
 
+        eastl::fixed_hash_map<FGResourceHandle, rhi::DeviceAddress, 20> mCachedBda{};
+
         eastl::fixed_hash_map<FGResourceHandle, rhi::IBuffer*, 20> mCachedBuffers{};
         eastl::fixed_hash_map<FGResourceHandle, rhi::ITexture*, 20> mCachedTextures{};
 
@@ -157,7 +164,7 @@ namespace mikoto::renderer {
 
         eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderSamplers{};
 
-        eastl::fixed_vector<core::ubyte, rhi::kMaxPushConstantSize> mPushConstantsData{};
+        eastl::array<core::ubyte, rhi::kMaxPushConstantSize> mPushConstantsData{};
     };
 }// namespace mikoto::renderer
 

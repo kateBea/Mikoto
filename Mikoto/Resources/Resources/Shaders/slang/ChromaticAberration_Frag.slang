@@ -50,7 +50,7 @@ float4 mainImage(float2 uv) {
     SamplerState sampler = samplers[parameters.mSamplerID];
     Texture2D tonemappedImage = textures[parameters.mTonemapImageID];
 
-    float2 resolution = camera.ScreenDimensions.xy;
+    float2 resolution = camera.mScreenDimensions.xy;
 
     float2 pixelSize = 1.0 / resolution;
 

@@ -25,78 +25,44 @@ struct VSInput {
 };
 
 struct VSOutput {
+    CameraInfo mCameraBda : TEXCOORD0;
     float4 Position : SV_Position;
 };
 
 struct DrawParams {
-    uint mGeometryBufferID;
-    uint mSkinningBufferID;
+    Pointer mGeometryPtr;
+    Pointer mSkinningPtr;
+    Pointer mGeometryDescPtr;
 
-    uint mIndicesBufferID;
-    uint mVerticesBufferID;
-
-    uint mCameraDataID;
+    Pointer mCameraBda;
 };
 
-MKT_DECLARE_STRUCTURED_SRV buffers;
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    ByteAddressBuffer GeometryBuffer = buffers[parameters.mGeometryBufferID];
-    ByteAddressBuffer SkinningBuffer = buffers[parameters.mSkinningBufferID];
-
+    // Prepare vertex data
     uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
-    MeshGeometryInfo meshInfo = GeometryBuffer.Read<MeshGeometryInfo>(0, instanceIndex);
+    VertexDescription vertex = GetVertexDescription(instanceIndex, input.VertexID, parameters.mGeometryPtr, parameters.mGeometryDescPtr);
 
-    ByteAddressBuffer Vertices = buffers[parameters.mVerticesBufferID];
-    ByteAddressBuffer Indices = buffers[parameters.mIndicesBufferID];
+    // Apply skinning
+    MeshGeometryInfo *geometryBuffer = (MeshGeometryInfo *)parameters.mGeometryPtr;
+    MeshGeometryInfo meshInfo = geometryBuffer[instanceIndex];
 
-    uint index = Indices.Read<uint>(meshInfo.IndexOffset, input.VertexID);
-    VertexDescription vertex = Vertices.Read<VertexDescription>(meshInfo.VertexOffset, index);
+    SkinningResult skinningResult = ApplySkinning(vertex, meshInfo, parameters.mSkinningPtr);
+    
+    // Compute world position
+    float4 worldPos = mul(meshInfo.Transform, skinningResult.mPosition);
+    float3 worldNormal = normalize(mul((float3x3)meshInfo.Transform, skinningResult.mNormal));
 
-    float4x4 model = meshInfo.Transform;
+    CameraInfo *camera = (CameraInfo*)parameters.mCameraBda;
 
-    float4 inWeight0 = vertex.weights0;
-    float4 inJoint0 = vertex.joints0;
-
-    float4 locPos = float4(0, 0, 0, 0);
-    float3 normal = float3(0, 0, 0);
-    if (meshInfo.SkinningMatricesID != -1) {
-        uint animatorIndex = meshInfo.SkinningMatricesID - 1;
-        uint boneBase = animatorIndex * MAX_BONES;
-
-        float4x4 inJoinx = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.x);
-        float4x4 inJoiny = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.y);
-        float4x4 inJoinz = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.z);
-        float4x4 inJoinw = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.w);
-
-        float4x4 skinMat =
-            inWeight0.x * inJoinx +
-            inWeight0.y * inJoiny +
-            inWeight0.z * inJoinz +
-            inWeight0.w * inJoinw;
-
-        locPos = mul(skinMat, float4(vertex.position, 1.0));
-
-        normal = normalize(
-            mul((float3x3)skinMat, vertex.normal));
-    }
-    else {
-        locPos = float4(vertex.position, 1.0);
-        normal = vertex.normal;
-    }
-
-    float4 worldPos = mul(model, locPos);
-    float3 worldNormal = normalize(mul((float3x3)model, normal));
-
-    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
-
+    // Final position
     o.Position =
-        mul(camera.Projection,
-            mul(camera.ViewMatrix, worldPos));
+        mul(camera->mProjection,
+            mul(camera->mViewMatrix, worldPos));
 
     return o;
 }

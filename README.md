@@ -223,7 +223,7 @@ The engine ships with **precompiled Slang binaries**, so no manual setup is requ
 If you prefer to download or update Slang manually, you can find the official releases here:
 
 - **Slang GitHub Repository:** https://github.com/shader-slang/slang  
-- **Latest Slang Release Used by Mikoto (v2026.3.1):** https://github.com/shader-slang/slang/releases/tag/v2026.3.1
+- **Latest Slang Release Used by Mikoto (v2026.16):** https://github.com/shader-slang/slang/releases/tag/v2026.16
 
 Mikoto will automatically use the bundled version, but replacing it with another official release is supported as long as the Slang directory structure remains unchanged.
 

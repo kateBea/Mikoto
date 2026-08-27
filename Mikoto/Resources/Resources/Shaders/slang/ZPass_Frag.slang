@@ -15,7 +15,9 @@
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
+#include "base/Material_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
+#include "base/Animation_Helpers.slang"
 
 struct FSOutput {
     float4 Color : SV_Target0;
@@ -26,13 +28,11 @@ struct FSInput {
 };
 
 struct DrawParams {
-    uint mGeometryBufferID;
-    uint mSkinningBufferID;
+    Pointer mGeometryBufferID;
+    Pointer mSkinningBufferID;
+    Pointer mGeometryAllocationBufferID;
 
-    uint mIndicesBufferID;
-    uint mVerticesBufferID;
-
-    uint mCameraDataID;
+    Pointer mCameraBda;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -41,14 +41,14 @@ MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
-    
-    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+
+    CameraInfo camera = *(CameraInfo *)parameters.mCameraBda;
 
     // Linear depth visualization
-    float depth = LinearDepth(input.ScreenPos.z, camera.Planes.xy);
+    float depth = LinearDepth(input.ScreenPos.z, camera.mPlanes.xy);
 
-    float near = camera.Planes.x;
-    float far = camera.Planes.y;
+    float near = camera.mPlanes.x;
+    float far = camera.mPlanes.y;
 
     float depthNormalized = (depth - near) / (far - near);
 

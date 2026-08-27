@@ -18,21 +18,22 @@
 #include <EASTL/utility.h>
 #include <EASTL/vector.h>
 
-#include <Assets/AssetsService.hh>
-#include <Assets/ImageProcessor.hh>
-#include <Assets/Model.hh>
 #include <Core/Core.hh>
 #include <Core/Profiler.hh>
 #include <Core/String.hh>
 #include <Core/Types.hh>
-#include <Renderer/Core/CommandContext.hh>
+
+#include <Assets/AssetsService.hh>
+#include <Assets/ImageProcessor.hh>
+
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/CommandContext.hh>
+
 #include <Renderer/Passes/DebugModule.hh>
 #include <Renderer/Passes/GeometryCullModule.hh>
-#include <Scene/Component.hh>
-#include <Scene/Scene.hh>
 
-#include "Renderer/Rhi/Swapchain.hh"
+#include <Scene/Scene.hh>
+#include <Scene/Component.hh>
 
 namespace mikoto::renderer {
 
@@ -217,7 +218,7 @@ namespace mikoto::renderer {
         };
 
         // Create the resources
-        SimpleCompute& simpleCompute{ graph.GetOrCreate<SimpleCompute>() };
+        auto& simpleCompute{ graph.GetOrCreate<SimpleCompute>() };
 
         // GPU buffer (written by compute shader)
         auto gpuBufferDesc{ FGBufferDescription{}
@@ -251,9 +252,11 @@ namespace mikoto::renderer {
             []( CommandContext &ctx, Blackboard &blackboard ) {
                 const auto &data{ blackboard.Get<SimpleCompute>() };
                 struct ComputeParams {
-                    u32 mBufferIndex{};
+                    SPointer mBufferIndex{};
+                    SArraySize mBufferSize{};
                 } params{
-                    .mBufferIndex = ctx.PushBuffer_UAV( data.mComputeBuffer )
+                    .mBufferIndex = ctx.GetDeviceBufferAddress( data.mComputeBuffer ),
+                    .mBufferSize = data.mNumbersCount,
                 };
 
                 ctx.PushConstants( params );

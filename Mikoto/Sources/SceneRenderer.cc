@@ -62,17 +62,14 @@ namespace mikoto::renderer {
         // Scene pre-passes
         mCameraPass.RegisterPasses( *mFrameGraph );
         mGeometryManagement.RegisterPasses( *mFrameGraph );
-
         mSimulationsModule.RegisterPasses( *mFrameGraph );
-
         mRenderPrepass.RegisterPasses( *mFrameGraph );
         mShadowMapping.RegisterPasses( *mFrameGraph );
-
         mParticleRendering.RegisterPasses( *mFrameGraph );
-
-        mGeometryShading.RegisterPasses( *mFrameGraph );
-
         mMousePickingModule.RegisterPasses( *mFrameGraph );
+
+        // Shading
+        mGeometryShading.RegisterPasses( *mFrameGraph );
 
         // Raytracing
         mPathTracing.RegisterPasses( *mFrameGraph );
@@ -81,7 +78,6 @@ namespace mikoto::renderer {
         // Post process
         mTextRendering.RegisterPasses( *mFrameGraph );
         mPostEffectsPasses.RegisterPasses( *mFrameGraph );
-
         mTonemapModule.RegisterPasses( *mFrameGraph );
         mDisplayEffectsModule.RegisterPasses( *mFrameGraph );
 
@@ -118,8 +114,8 @@ namespace mikoto::renderer {
         mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Transfer", FGExecutionPolicy::eOnWake );
         mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Graphics", FGExecutionPolicy::eOnWake );
 
-        // For some reason this makes subsequent passes to render in Wireframe mode
-        //mFrameGraph->DisablePass( "WireframePass" );
+        //For some reason this makes subsequent passes to render in Wireframe mode
+        mFrameGraph->DisablePass( "WireframePass" );
     }
 
     auto SceneRenderer::Shutdown() -> void {
@@ -222,7 +218,7 @@ namespace mikoto::renderer {
     }
 
     auto SceneRenderer::SetEnableInfiniteGrid( bool value ) -> void {
-        if (!mFrameGraph) {
+        if (!mFrameGraph || !mFrameGraph->IsPassPresent("InfiniteGrid")) {
             return;
         }
 

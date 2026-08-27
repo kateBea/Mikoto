@@ -102,7 +102,7 @@ namespace mikoto::renderer::vulkan {
         // Look into VkUpdateBuffer when buffer is less than 64kb
     }
 
-    auto Buffer::GetGpuDeviceAddress( IBuffer* buffer ) -> rhi::DeviceAddress {
+    auto Buffer::GetGpuDeviceAddress() -> rhi::DeviceAddress {
         Device* device{ checked_cast<Device*>( mDevice ) };
         if (!device) {
             return IBuffer::kNullDeviceAddress;

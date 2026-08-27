@@ -103,14 +103,14 @@ FSOutput main(FSInput input) {
     const float t = -input.Near.y / (input.Far.y - input.Near.y);
     const float3 fragPos = input.Near + t * (input.Far - input.Near);
 
-    const float3 ndc = float3(WorldToNDC(float4(fragPos, 1.0), mul(camera.Projection, camera.ViewMatrix)));
+    const float3 ndc = float3(WorldToNDC(float4(fragPos, 1.0), mul(camera.mProjection, camera.mViewMatrix)));
     if (ndc.z >= 1.0) discard;
 
     o.FragDepth = ndc.z - EPSILON;
 
     o.Color = (Grid(fragPos, 0.01, 0.5, parameters.mInnerSquareColor.xyz) + Grid(fragPos, 0.5, 1, parameters.mOuterSquareColor.xyz)) * float(t > 0.0);
 
-    const float linearDepth = LinearizeDepth(camera.Planes.x, camera.Planes.y, ndc.z) / camera.Planes.y;
+    const float linearDepth = LinearizeDepth(camera.mPlanes.x, camera.mPlanes.y, ndc.z) / camera.mPlanes.y;
     o.Color.a *= max(0.0, (0.5 - linearDepth));
 
     return o;

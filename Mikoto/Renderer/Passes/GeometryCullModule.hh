@@ -38,6 +38,7 @@ namespace mikoto::renderer {
     inline constexpr core::i32 kInvalidTextureID{ -1 };
     inline constexpr core::u32 kMaxActiveLights{ 10000 };
     inline constexpr core::u32 kMaxSkinnedMeshes{ 1000 };
+    inline constexpr core::u32 kMaxUniqueModels{ 100'000 };
     inline constexpr core::u32 kMaxRenderableEntities{ 500'000 };
 
     inline constexpr core::u32 kVertexBufferSizeMB{ 512 };
@@ -84,11 +85,6 @@ namespace mikoto::renderer {
         core::float4x4 mTransform{};
         core::float4x4 mInverseModelView{};// inverse(view * model) computed in CPU for performance
 
-        // For vertex pulling, this tells the
-        // offset into the array of vertices
-        core::u32 mIndexOffset{};
-        core::u32 mVertexOffset{};
-
         // Index into the buffer
         // of list of skinning matrices
         core::i32 mSkinningMatricesID{ -1 };
@@ -100,6 +96,9 @@ namespace mikoto::renderer {
         // TODO: add a list of shadow casters. This will be an index into the array of shadow casters
         // buffer to know from which lights this entity needs shadows casted from, ofc there will be a limit you cannot
         // just slap a unlimited amount of shadow casters
+
+        // Index into buffer of geometry info
+        core::u32 mGeometryIndex{};
 
         // For entity selection
         core::u32 mObjectID{};
@@ -113,59 +112,35 @@ namespace mikoto::renderer {
     };
 
     struct GeometryAllocation {
-        core::u32 mVertexOffset{};
-        core::u32 mVertexSize{};
-
-        core::u32 mIndexOffset{};
-        core::u32 mIndexSize{};
-
-        core::u32 mOffsetID{};
-    };
-
-    struct BufferAllocation {
-        core::u32 mOffset{};
-        core::u32 mSize{};
-    };
-
-    class GeometryBufferAllocator {
-    public:
-        explicit GeometryBufferAllocator( core::usize bufferSize );
-
-        auto Free( const BufferAllocation& alloc ) -> void;
-        auto Allocate( core::usize sizeBytes ) -> eastl::optional<BufferAllocation>;
-
-    private:
-        struct FreeRange {
-            core::usize mOffset{};
-            core::usize mSize{};
-        };
-        auto AllocateFrom( eastl::vector<FreeRange>& freeList, core::usize size ) -> eastl::optional<core::usize>;
-
-    private:
-        eastl::vector<FreeRange> mFreeList{};
+        core::u64 mAllocationIndex{};
+        rhi::DeviceAddress mVertexBuffer{};
+        rhi::DeviceAddress mIndexBuffer{};
     };
 
     class GeometryAllocator {
     public:
+        explicit GeometryAllocator();
+
         auto GetOrAllocate( const asset::MeshNode* mesh ) -> GeometryAllocation;
-        auto GetOrAllocate( const asset::MeshNode* mesh, GeometryAllocation& outAlloc ) -> bool;
+
+        auto Flush( CommandContext& ctx, Blackboard& blackboard ) -> void;
 
     private:
-        GeometryBufferAllocator mVerticesAllocator{ MKT_MEGABYTES( kVertexBufferSizeMB ) };
-        GeometryBufferAllocator mIndicesAllocator{ MKT_MEGABYTES( kIndexBufferSizeMB ) };
-
-        ankerl::unordered_dense::map<const asset::MeshNode*, GeometryAllocation> mAllocations{};
+        bool mFlushRequired{};
+        core::u64 mCurrentAllocationIndex{};
+        eastl::vector<GeometryAllocation> mAllocations{};
+        ankerl::unordered_dense::map<const asset::MeshNode*, core::u64> mAllocationIndices{};
     };
 
-    struct MeshNodeInstancesInfo {
-        core::u32 mAllocationIndex{};
-        GeometryAllocation mGeometryInfo{};
+    struct GeometryBatch {
+        auto Get( const asset::MeshNode* node, CommandContext& ctx, Blackboard& b ) -> GeometryAllocation&;
+
+        GeometryAllocator mGeometryAllocator{};
+        ankerl::unordered_dense::map<const asset::MeshNode*, GeometryAllocation> mInstanceCounts{};
     };
 
     struct GeometryCullModuleInfo {
-        FGBufferHandle mVerticesBuffer{};
-        FGBufferHandle mIndicesBuffer{};
-
+        FGBufferHandle mGeometryAllocBuffer{};
         FGBufferHandle mMaterialsBuffer{};
         FGBufferHandle mGeometryBuffer{};
         FGBufferHandle mSkinningBuffer{};
@@ -173,17 +148,6 @@ namespace mikoto::renderer {
         FGSamplerHandle mBasicSampler{};
 
         FGBufferHandle mIndirectBuffer{};
-    };
-
-    struct GeometryBatch {
-
-        auto Get( const asset::MeshNode* node, CommandContext& ctx, Blackboard& b ) -> MeshNodeInstancesInfo&;
-
-        GeometryAllocator mGeometryAllocator{};
-
-        core::u32 mNodeAllocationIndex{};
-        eastl::vector<core::u32> mMeshFreeNodeAllocationIndices{};
-        ankerl::unordered_dense::map<const asset::MeshNode*, MeshNodeInstancesInfo> mInstanceCounts{};
     };
 
     class GeometryCullModule final {
@@ -217,6 +181,7 @@ namespace mikoto::renderer {
         const scene::Camera* mCamera{};
 
         GeometryBatch mBatch{};
+        GeometryAllocator mGeometryAllocator{};
 
         eastl::vector<MeshGeometryInfo> mGeometryList{};
         eastl::vector<MeshMaterialInfo> mMaterialsList{};

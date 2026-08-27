@@ -23,6 +23,13 @@ struct FSInput {
     
 };
 
+struct DrawParams {
+    Pointer mGeometryBufferID;
+    Pointer mSkinningBufferID;
+
+    Pointer mGeometryAllocBuffer;
+};
+
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;

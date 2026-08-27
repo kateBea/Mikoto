@@ -40,7 +40,8 @@ struct MyStruct {
 };
 
 struct ShaderParameters {
-    int BufferID;
+    Pointer mBufferID;
+    ArraySize mBufferSize;
 };
 
 MKT_DECLARE_PUSH_CONSTANT(ShaderParameters) uParams;
@@ -53,13 +54,16 @@ void main(uint3 gid: SV_DispatchThreadID) {
     s.y = gid.y;
 
     uint idx = gid.x;
-
+    if (idx >= uParams.mBufferSize) {
+        return;
+    }
+    
     uint value = 0;
     if (IsPrime(idx))
         value = idx;
 
     s.prime = value;
 
-    RWByteAddressBuffer buf = sBuffers[uParams.BufferID];
-    buf.Write<MyStruct>(0, idx, s);
+    MyStruct *buf = (MyStruct *)uParams.mBufferID;
+    buf[idx] = s;
 }

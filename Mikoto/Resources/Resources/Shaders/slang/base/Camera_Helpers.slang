@@ -29,13 +29,13 @@
 #pragma once
 
 struct CameraInfo {
-    float4x4 ViewMatrix;
-    float4x4 Projection;
+    float4x4 mViewMatrix;
+    float4x4 mProjection;
 
-    float4x4 InverseProjection;
-    float4x4 InverseViewProjection;
+    float4x4 mInverseProjection;
+    float4x4 mInverseViewProjection;
 
-    float4 ViewPosition;
-    float4 Planes;
-    float4 ScreenDimensions;
+    float4 mViewPosition;
+    float4 mPlanes;
+    float4 mScreenDimensions;
 };

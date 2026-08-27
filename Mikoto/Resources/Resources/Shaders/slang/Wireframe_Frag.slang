@@ -26,16 +26,13 @@ struct FSInput {
 };
 
 struct DrawParams {
-    uint mGeometryBufferID;
-    uint mSkinningBufferID;
+    Pointer mGeometryBuffer;
+    Pointer mSkinningBuffer;
+    Pointer mGeometryAllocationBuffer;
 
-    uint mIndicesBufferID;
-    uint mVerticesBufferID;
-
-    uint mCameraDataID;
+    Pointer mCameraBuffer;
 };
 
-MKT_DECLARE_STRUCTURED_SRV Buffers;
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
 
 [shader("fragment")]

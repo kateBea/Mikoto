@@ -37,7 +37,7 @@ namespace mikoto::renderer::d3d11 {
         : IBuffer{ description }
     {}
 
-    auto Buffer::GetGpuDeviceAddress( IBuffer *buffer ) -> DeviceAddress {
+    auto Buffer::GetGpuDeviceAddress() -> DeviceAddress {
         return IBuffer::kNullDeviceAddress;
     }
 

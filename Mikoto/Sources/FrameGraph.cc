@@ -344,7 +344,7 @@ namespace mikoto::renderer {
 
         MKT_ASSERT( buffer, "Invalid cast of resource to Buffer type" );
 
-        return buffer->GetGpuDeviceAddress( buffer );
+        return buffer->GetGpuDeviceAddress();
     }
 
     auto FGResourceManager::AllocateTextureIndex_SRV( FGResourceHandle handle  ) -> u32 {
@@ -814,6 +814,10 @@ namespace mikoto::renderer {
         CullGraphNodes();
     }
 
+    auto FrameGraph::IsPassPresent( eastl::string_view passName ) const -> bool {
+        return mNodeControl->mNodes.contains( passName.data() );
+    }
+
     auto FrameGraph::GetNodeControl() const -> const FGNodeControl& {
         return *mNodeControl;
     }
@@ -947,19 +951,22 @@ namespace mikoto::renderer {
                     // First use -> just set state, no barrier
                     // I think I wil probably remove this and transition all resources to general layout so that
                     // I only do the next check for barriers for each pass
-                    mExecutionPlan.mBarriers[passName][resourceHandle] = FGBarrier{
+                    mExecutionPlan.mBarriers[passName][resourceHandle] = eastl::make_pair(
+                        mNodeControl->mResources[resourceHandle].mName,
+                        FGBarrier{
                         resourceHandle,
                         access,
                         prevState,
-                        nextState };
+                        nextState });
                     mNodeControl->mResources[resourceHandle].mCurrentState = nextState;
                 }
                 else if (prevState != nextState || access == FGResourceAccess::eWrite ) {
-                    mExecutionPlan.mBarriers[passName][resourceHandle] = FGBarrier{
+                    mExecutionPlan.mBarriers[passName][resourceHandle] = eastl::make_pair(
+                        mNodeControl->mResources[resourceHandle].mName, FGBarrier{
                         resourceHandle,
                         access,
                         prevState,
-                        nextState };
+                        nextState });
 
                     mNodeControl->mResources[resourceHandle].mCurrentState = nextState;
                 }

@@ -146,8 +146,7 @@ namespace mikoto::renderer {
                 builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mGeometryAllocBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
                 builder.UseResource( prePassData.mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
 
@@ -160,21 +159,17 @@ namespace mikoto::renderer {
                 const auto& geometryData{ b.Get<GeometryCullModuleInfo>() };
 
                 struct DrawParams {
-                    u32 mGeometryInfoBufferID{};
-                    u32 mSkinningInfoBufferID{};
+                    SPointer mGeometryBuffer{};
+                    SPointer mSkinningBuffer{};
+                    SPointer mGeometryAllocationBufferID{};
 
-                    u32 mIndexID{};
-                    u32 mVertexID{};
-
-                    u32 mCameraInfoBufferID{};
+                    SPointer mCameraBuffer{};
                 } params{
-                    .mGeometryInfoBufferID = ctx.PushBuffer_SRV( geometryData.mGeometryBuffer ),
-                    .mSkinningInfoBufferID = ctx.PushBuffer_SRV( geometryData.mSkinningBuffer ),
+                    .mGeometryBuffer = ctx.GetDeviceBufferAddress( geometryData.mGeometryBuffer ),
+                    .mSkinningBuffer = ctx.GetDeviceBufferAddress( geometryData.mSkinningBuffer ),
 
-                    .mIndexID = ctx.PushBuffer_SRV( geometryData.mIndicesBuffer ),
-                    .mVertexID = ctx.PushBuffer_SRV( geometryData.mVerticesBuffer ),
-
-                    .mCameraInfoBufferID = ctx.PushBuffer_SRV( cameraPassData.mCameraData ) };
+                    .mGeometryAllocationBufferID = ctx.GetDeviceBufferAddress( geometryData.mGeometryAllocBuffer ),
+                    .mCameraBuffer = ctx.GetDeviceBufferAddress( cameraPassData.mCameraData ) };
                 ctx.PushConstants( params );
 
                 const auto dimensions{ InferDimensions( mResolution ) };

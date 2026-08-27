@@ -19,13 +19,12 @@
 #include "base/Animation_Helpers.slang"
 
 struct DrawParams {
-    uint mCameraDataID;
-    uint mVerticesBufferID;
-    uint mIndicesBufferID;
+    Pointer mGeometryAllocationBuffer;
+    Pointer mSkinningBuffer;
+    Pointer mGeometryBuffer;
+    Pointer mCameraBuffer;
 
-    uint mGeometryBufferID;
     uint mMaterialsBufferID;
-    uint mSkinningBufferID;
     uint mClusterBufferID;
 
     uint mLightCullingBufferID;
@@ -52,9 +51,6 @@ struct DrawParams {
 
     uint mDirectionalShadowsInfoBufferID;
     uint mDirectionalShadowCastersCount;
-
-    // EXPERIMENTAL: BufferDeviceAddress
-    uint64_t mGeometryBufferBDA;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -83,38 +79,38 @@ struct VSOutput {
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    // Test debug BDA
-    // Explicitly cast the 64-bit address to a strongly typed pointer
-    MeshGeometryInfo* meshBuffer = (MeshGeometryInfo*)parameters.mGeometryBufferBDA; 
-
-    ByteAddressBuffer GeometryBuffer = buffers[parameters.mGeometryBufferID];
-    ByteAddressBuffer SkinningBuffer = buffers[parameters.mSkinningBufferID];
-
+    // Prepare vertex data
     uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
-    //MeshGeometryInfo meshInfo = GeometryBuffer.Read<MeshGeometryInfo>(0, instanceIndex);
-    MeshGeometryInfo meshInfo = meshBuffer[instanceIndex];
 
-    ByteAddressBuffer Vertices = buffers[parameters.mVerticesBufferID];
-    ByteAddressBuffer Indices = buffers[parameters.mIndicesBufferID];
+    MeshGeometryInfo *geometryBuffer = (MeshGeometryInfo *)parameters.mGeometryBuffer;
+    GeometryAllocation *geometryAllocBuffer = (GeometryAllocation *)parameters.mGeometryAllocationBuffer;
 
-    uint index = Indices.Read<uint>(meshInfo.IndexOffset, input.VertexID);
-    VertexDescription vertex = Vertices.Read<VertexDescription>(meshInfo.VertexOffset, index);
+    MeshGeometryInfo meshInfo = geometryBuffer[instanceIndex];
+    GeometryAllocation geometryAlloc = geometryAllocBuffer[meshInfo.GeometryIndex];
 
+    uint *indexBuffer = (uint *)geometryAlloc.mIndexBufferBda;
+    VertexDescription *vertexBuffer = (VertexDescription *)geometryAlloc.mVertexBufferBda;
+
+    uint index = indexBuffer[input.VertexID];
+    VertexDescription vertex = vertexBuffer[index];
+
+    // Apply skinning
     float4x4 model = meshInfo.Transform;
-
     float4 inWeight0 = vertex.weights0;
     float4 inJoint0 = vertex.joints0;
 
     float4 locPos = float4(0, 0, 0, 0);
     float3 normal = float3(0, 0, 0);
     if (meshInfo.SkinningMatricesID != -1) {
+        BoneData *skinningBuffer = (BoneData *)parameters.mSkinningBuffer;
+
         uint animatorIndex = meshInfo.SkinningMatricesID - 1;
         uint boneBase = animatorIndex * MAX_BONES;
 
-        float4x4 inJoinx = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.x);
-        float4x4 inJoiny = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.y);
-        float4x4 inJoinz = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.z);
-        float4x4 inJoinw = SkinningBuffer.Read<float4x4>(boneBase, (uint)inJoint0.w);
+        float4x4 inJoinx = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.x];
+        float4x4 inJoiny = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.y];
+        float4x4 inJoinz = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.z];
+        float4x4 inJoinw = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.w];
 
         float4x4 skinMat =
             inWeight0.x * inJoinx +
@@ -135,21 +131,21 @@ VSOutput main(VSInput input) {
     float4 worldPos = mul(model, locPos);
     float3 worldNormal = normalize(mul((float3x3)model, normal));
 
-    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+    CameraInfo *camera = (CameraInfo *)parameters.mCameraBuffer;
 
     o.TexCoord0 = vertex.uv0;
     o.TexCoord1 = vertex.uv1;
     o.Color = vertex.color;
 
     o.FragmentWorldPos = worldPos.xyz;
-    o.FragmentViewPos = mul(camera.ViewMatrix, worldPos).xyz;
+    o.FragmentViewPos = mul(camera.mViewMatrix, worldPos).xyz;
     o.Normal = worldNormal;
 
     o.MaterialIndex = instanceIndex;
 
     o.PositionH =
-        mul(camera.Projection,
-            mul(camera.ViewMatrix, worldPos));
+        mul(camera.mProjection,
+            mul(camera.mViewMatrix, worldPos));
 
     return o;
 }

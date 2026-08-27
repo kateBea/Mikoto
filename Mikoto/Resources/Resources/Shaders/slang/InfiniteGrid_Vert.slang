@@ -46,7 +46,7 @@ MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 float3 NDCToWorld(float4 v) {
     CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
-    const float4 P = mul(camera.InverseViewProjection, v);
+    const float4 P = mul(camera.mInverseViewProjection, v);
     return P.xyz / P.w;
 }
 

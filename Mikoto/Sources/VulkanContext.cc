@@ -72,7 +72,7 @@ namespace mikoto::renderer::vulkan {
 #endif
             .QueryGLFWExtensions( true )
             .QuerySurfaceSupport( mWindow )
-            .SetValidationLevel( InstanceBuilder::ValidationLevel::eCore )
+            .SetValidationLevel( InstanceBuilder::ValidationLevel::eGpuAssisted )
             .Build();
 
         mMaxFramesInFlight = kMaxFramesInFlight;
@@ -247,13 +247,13 @@ namespace mikoto::renderer::vulkan {
         // must complete before the semaphore is allowed to transition to the signaled state.
         // Unrelated work past these stages does not delay the signal.
 
-        // ALL_TRANSFER if I copy instead of full-quad render
         ++frame.mFenceValue;
 
+        // ALL_TRANSFER if I copy instead of full-quad render?
         auto submitInfo{ SubmitSemaphoresInfo{}
             .AddCommandList( mCommandList )
-            .AddSignalFence( frame.mFence, frame.mFenceValue, VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT )
-            .AddSignalSemaphore( frame.mRenderFinishedSemaphore, VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT )
+            .AddSignalFence( frame.mFence, frame.mFenceValue, VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT )
+            .AddSignalSemaphore( frame.mRenderFinishedSemaphore, VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT )
             .AddWaitSemaphore( frame.mImageAvailableSemaphore, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT ) };
         mGraphicsQueue->ExecuteCommandLists( eastl::move( submitInfo ) );
     }

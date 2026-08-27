@@ -1121,7 +1121,7 @@ namespace mikoto::renderer::vulkan {
         mRecordingContext[mRecordingContextIndex].mUploadAllocations.emplace_back( allocation );
     }
 
-    auto CommandList::Write( IBuffer* buffer, size_t destOffset, const void* data, size_t byteSize ) -> void {
+    auto CommandList::Write( IBuffer* buffer, size_t destOffset, const void* data, usize byteSize ) -> void {
         MKT_ASSERT(buffer, "Buffer is nullptr");
         MKT_ASSERT(data, "Data is nullptr");
         MKT_ASSERT(byteSize > 0, "Size is 0");
@@ -1157,7 +1157,7 @@ namespace mikoto::renderer::vulkan {
             // to be protected, SetResourceState() by default protects the whole range of the buffer
             SetTransition( allocation->mBuffer, ResourceStates::eCopySource );
 
-            std::memcpy(allocation->mMappedMemory, data, byteSize);
+            std::memcpy( allocation->mMappedMemory, data, byteSize );
 
             VkBufferCopy copy{};
             copy.srcOffset = allocation->mOffset;

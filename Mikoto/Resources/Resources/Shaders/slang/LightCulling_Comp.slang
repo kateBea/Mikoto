@@ -23,15 +23,17 @@ MKT_DECLARE_STRUCTURED_SRV srvBuffers;
 MKT_DECLARE_STRUCTURED_UAV uavBuffers;
 
 struct ClusteredParams {
-    float4 GridSize;
-    uint ClusterBufferID;
-    uint CameraInfoBufferID;
-    uint LightsBufferID;
+    float4 mGridSize;
 
-    uint ActiveLightCount;
+    uint64_t mLightsPtr;
+    uint64_t mClustersPtr;
+    uint64_t mCameraInfoPtr;
+
+    uint mClusterCount;
+    uint mActiveLightCount;
 };
 
-MKT_DECLARE_PUSH_CONSTANT(ClusteredParams) Parameters;
+MKT_DECLARE_PUSH_CONSTANT(ClusteredParams) parameters;
 
 [shader("compute")]
 [numthreads(kLocalSize, 1, 1)]
@@ -40,43 +42,38 @@ void main(uint3 groupID: SV_GroupID,
           uint3 dispatchID: SV_DispatchThreadID)
 {
     // Get the buffers
-    ByteAddressBuffer lights = srvBuffers[Parameters.LightsBufferID];
-    RWByteAddressBuffer clusters = uavBuffers[Parameters.ClusterBufferID];
-    CameraInfo camera = srvBuffers[Parameters.CameraInfoBufferID].Read<CameraInfo>(0, 0);
-
-    uint totalBytes;
-    clusters.GetDimensions(totalBytes);
+    CameraInfo camera = *(CameraInfo *)parameters.mCameraInfoPtr;
+    LightInfo* lights = (LightInfo *)parameters.mLightsPtr;
+    Cluster* clusters = (Cluster *)parameters.mClustersPtr;
 
     uint index = groupID.x * kLocalSize + groupThreadID.x;
-    if (index >= totalBytes / sizeof(Cluster)) {
+    if (index >= parameters.mClusterCount) {
         return;
     }
 
-    Cluster cluster = clusters.Read<Cluster>(0, index);
-
     // we need to reset count because culling runs every frame,
     // otherwise it would accumulate.
-    cluster.Count = 0;
+    clusters[index].mCount = 0;
 
-    uint lightCount = Parameters.ActiveLightCount;
+    uint lightCount = parameters.mActiveLightCount;
 
     // I go up until lightCount because I want to find accross all
     // lights in the scene which ones affect this cluster
     for (uint i = 0; i < lightCount; ++i) {
         bool visible = false;
 
-        LightInfo light = lights.Read<LightInfo>(0, index);
+        LightInfo light = lights[index];
 
         switch (light.ActiveLightType) {
         case LIGHT_TYPE_POINT:
-            visible = TestSphereAABBPointLight(light, cluster, camera.ViewMatrix);
+            visible = TestSphereAABBPointLight(light, clusters[index], camera.mViewMatrix);
             //visible = true;
             break;
 
         case LIGHT_TYPE_SPOT:
             // TODO: real spotlight culling
             // improve. https://simoncoenen.com/blog/programming/graphics/SpotlightCulling
-            visible = TestSphereAABBPointLight(light, cluster, camera.ViewMatrix);
+            visible = TestSphereAABBPointLight(light, clusters[index], camera.mViewMatrix);
             //visible = true;
             break;
 
@@ -90,13 +87,9 @@ void main(uint3 groupID: SV_GroupID,
             break;
         }
 
-        // Write into cluster list
-        if (visible && cluster.Count <= MAX_LIGHT_CLUSTERS) {
-            cluster.LightIndices[cluster.Count] = i;
-            cluster.Count++;
+        if (visible && clusters[index].mCount <= MAX_LIGHT_CLUSTERS) {
+            clusters[index].mLightIndices[clusters[index].mCount] = i;
+            clusters[index].mCount++;
         }
     }
-
-    // Write back modified struct
-    clusters.Write(0, index, cluster);
 }

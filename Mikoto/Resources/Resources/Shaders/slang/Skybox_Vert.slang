@@ -57,7 +57,7 @@ VSOutput main(uint vID: SV_VertexID) {
     CameraInfo camera = SRV_Buffers[Parameters.CameraBufferID].Read<CameraInfo>(0, 0);
 
     // Remove translation from view matrix
-    float4x4 viewNoTrans = RemoveTranslation(camera.ViewMatrix);
+    float4x4 viewNoTrans = RemoveTranslation(camera.mViewMatrix);
 
     // Skybox direction
     o.Direction = vertex.position;
@@ -68,7 +68,7 @@ VSOutput main(uint vID: SV_VertexID) {
 #endif
 
     // Project to clip space
-    float4 clip = mul(camera.Projection, mul(viewNoTrans, float4(vertex.position, 1.0)));
+    float4 clip = mul(camera.mProjection, mul(viewNoTrans, float4(vertex.position, 1.0)));
     o.PositionH = clip;
 
     return o;

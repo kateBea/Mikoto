@@ -55,7 +55,7 @@ namespace mikoto::renderer {
     }
 
     auto PrepassModule::RegisterAabb( FrameGraph &graph ) -> void {
-        PrepassModuleInfo& info{ graph.GetOrCreate<PrepassModuleInfo>() };
+        auto& info{ graph.GetOrCreate<PrepassModuleInfo>() };
 
         auto gpuBufferDesc{ FGBufferDescription{}
             .SetName( "AABBGenComp_Clusters" )
@@ -63,6 +63,7 @@ namespace mikoto::renderer {
             .SetElementsSize( mNumClusters, MKT_SIZEOF( ClusterParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mClusterBuffer = graph.Create( gpuBufferDesc );
+        info.mClusterCount = mNumClusters;
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( "AABBCluster_Pipeline" )
@@ -86,12 +87,12 @@ namespace mikoto::renderer {
 
                 struct ComputeParams {
                     float4 mGridSize{};
-                    u32 mAabbBuffer{};
-                    u32 mCameraInfo{};
+                    u64 mAabbBuffer{};
+                    u64 mCameraInfoBuffer{};
                 } params{
                     .mGridSize = glm::vec4{ mGridSizeX, mGridSizeY, mGridSizeZ, 0.0f },
-                    .mAabbBuffer = ctx.PushBuffer_UAV( aabbData.mClusterBuffer ),
-                    .mCameraInfo = ctx.PushBuffer_SRV( cameraData.mCameraData ) };
+                    .mAabbBuffer = ctx.GetDeviceBufferAddress( aabbData.mClusterBuffer ),
+                    .mCameraInfoBuffer = ctx.GetDeviceBufferAddress( cameraData.mCameraData ) };
                 ctx.PushConstants( params );
                 ctx.BindPipeline( aabbData.mAabbGenPipeline );
 
@@ -104,14 +105,14 @@ namespace mikoto::renderer {
 
         mLights.resize( kMaxActiveLights );
 
-        PrepassModuleInfo& info{ graph.GetOrCreate<PrepassModuleInfo>() };
+        auto& info{ graph.GetOrCreate<PrepassModuleInfo>() };
 
         auto gpuBufferDesc{ FGBufferDescription{}
             .SetName( "LightCulling_Clusters" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetElementsSize( kMaxActiveLights, MKT_SIZEOF( LightParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
-        info.mLightCullingBuffer = graph.Create( gpuBufferDesc );
+        info.mLightsBuffer = graph.Create( gpuBufferDesc );
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( "LightCulling_Pipeline" )
@@ -124,11 +125,11 @@ namespace mikoto::renderer {
             FGPassType::eTransfer,
             []( FGNodeBuilder&b, Blackboard& blackboard ) {
                 const auto &data{ blackboard.Get<PrepassModuleInfo>() };
-                b.UseResource( data.mLightCullingBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                b.UseResource( data.mLightsBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
             [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
                 auto &data{ blackboard.Get<PrepassModuleInfo>() };
-                SetupLightList( ctx, data.mLightCullingBuffer );
+                SetupLightList( ctx, data.mLightsBuffer );
 
                 data.mActiveLightCount = mActiveLights;
             } );
@@ -144,32 +145,38 @@ namespace mikoto::renderer {
                 b.UseResource( aabbData.mClusterBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
                 b.UseResource( cameraData.mCameraData, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
 
-                b.UseResource( lightCullingData.mLightCullingBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+                b.UseResource( lightCullingData.mLightsBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
             },
             [this]( CommandContext& ctx, Blackboard& blackboard ) -> void {
                 const auto &cameraData{ blackboard.Get<CameraModuleInfo>() };
-                auto &lightCullingData{ blackboard.Get<PrepassModuleInfo>() };
+                auto &lightingData{ blackboard.Get<PrepassModuleInfo>() };
 
                 if (mActiveLights == 0) {
                     return;
                 }
 
-                lightCullingData.mGridSize = float4{ mGridSizeX, mGridSizeY, mGridSizeZ, 0.0f };
+                lightingData.mGridSize = float4{ mGridSizeX, mGridSizeY, mGridSizeZ, 0.0f };
 
                 struct ComputeParams {
                     float4 mGridSize{};
-                    u32 mClusterBuffer{};
-                    u32 mCameraInfo{};
-                    u32 mLightCullingBuffer{};
+
+                    u64 mLightsPtr{};
+                    u64 mClustersPtr{};
+                    u64 mCameraInfoPtr{};
+
+                    u32 mClusterCount{};
                     u32 mActiveLightCount{};
                 } params{
-                    .mGridSize = lightCullingData.mGridSize,
-                    .mClusterBuffer = ctx.PushBuffer_UAV( lightCullingData.mClusterBuffer ),
-                    .mCameraInfo = ctx.PushBuffer_SRV( cameraData.mCameraData ),
-                    .mLightCullingBuffer = ctx.PushBuffer_SRV( lightCullingData.mLightCullingBuffer ),
+                    .mGridSize = lightingData.mGridSize,
+
+                    .mLightsPtr = ctx.GetDeviceBufferAddress( lightingData.mLightsBuffer ),
+                    .mClustersPtr = ctx.GetDeviceBufferAddress( lightingData.mClusterBuffer ),
+                    .mCameraInfoPtr = ctx.GetDeviceBufferAddress( cameraData.mCameraData ),
+
+                    .mClusterCount = lightingData.mClusterCount,
                     .mActiveLightCount = mActiveLights };
                 ctx.PushConstants( params );
-                ctx.BindPipeline( lightCullingData.mLightCullingPipeline );
+                ctx.BindPipeline( lightingData.mLightCullingPipeline );
 
                 const auto numWorkGroupsX{ ( mNumClusters + mLocalSize - 1 ) / mLocalSize };
                 ctx.Dispatch( numWorkGroupsX, 1, 1 );
@@ -262,8 +269,7 @@ namespace mikoto::renderer {
     auto PrepassModule::RegisterGBuffer( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        PrepassModuleInfo& info{ graph.GetOrCreate<PrepassModuleInfo>() };
-
+        auto& info{ graph.GetOrCreate<PrepassModuleInfo>() };
         auto dimensions{ InferDimensions( mResolution ) };
 
         auto positionDesc{ FGTextureDescription{}
@@ -340,8 +346,7 @@ namespace mikoto::renderer {
                 builder.UseResource( geometryData.mMaterialsBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
 
-                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mGeometryAllocBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
 
                 builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
             },
@@ -351,27 +356,19 @@ namespace mikoto::renderer {
                 const auto& cameraPassData{ b.Get<CameraModuleInfo>() };
 
                 struct DrawParams {
-                    u32 mGeometryInfoBufferID{};
-                    u32 mMaterialsInfoBufferID{};
-                    u32 mSkinningInfoBufferID{};
-
+                    u64 mGeometryInfoBufferID{};
+                    u64 mMaterialsInfoBufferID{};
+                    u64 mSkinningInfoBufferID{};
+                    u64 mGeometryAllocBuffer{};
+                    u64 mCameraInfoBufferID{};
                     u32 mBasicSamplerID{};
-
-                    u32 mIndicesBufferID{};
-                    u32 mVerticesBufferID{};
-
-                    u32 mCameraInfoBufferID{};
                 } params{
-                    .mGeometryInfoBufferID = ctx.PushBuffer_SRV( geometryData.mGeometryBuffer ),
-                    .mMaterialsInfoBufferID = ctx.PushBuffer_SRV( geometryData.mMaterialsBuffer ),
-                    .mSkinningInfoBufferID = ctx.PushBuffer_SRV( geometryData.mSkinningBuffer ),
-
-                    .mBasicSamplerID = ctx.PushSampler( geometryData.mBasicSampler ),
-
-                    .mIndicesBufferID = ctx.PushBuffer_SRV( geometryData.mIndicesBuffer ),
-                    .mVerticesBufferID = ctx.PushBuffer_SRV( geometryData.mVerticesBuffer ),
-
-                    .mCameraInfoBufferID = ctx.PushBuffer_SRV( cameraPassData.mCameraData ) };
+                    .mGeometryInfoBufferID = ctx.GetDeviceBufferAddress( geometryData.mGeometryBuffer ),
+                    .mMaterialsInfoBufferID = ctx.GetDeviceBufferAddress( geometryData.mMaterialsBuffer ),
+                    .mSkinningInfoBufferID = ctx.GetDeviceBufferAddress( geometryData.mSkinningBuffer ),
+                    .mGeometryAllocBuffer = ctx.GetDeviceBufferAddress( geometryData.mGeometryAllocBuffer ),
+                    .mCameraInfoBufferID = ctx.GetDeviceBufferAddress( cameraPassData.mCameraData ),
+                    .mBasicSamplerID = ctx.PushSampler( geometryData.mBasicSampler ) };
                 ctx.PushConstants( params );
 
                 const auto dimensions{ InferDimensions( mResolution ) };
@@ -437,7 +434,7 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "DepthPrePass",
             FGPassType::eGraphics,
-            []( FGNodeBuilder&builder, Blackboard& blackboard ) {
+            []( FGNodeBuilder& builder, Blackboard& blackboard ) {
                 auto& prepassData{ blackboard.Get<PrepassModuleInfo>() };
                 auto& cameraPassData{ blackboard.Get<CameraModuleInfo>() };
                 auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
@@ -450,8 +447,7 @@ namespace mikoto::renderer {
                 builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mGeometryAllocBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
                 builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
             },
@@ -461,21 +457,18 @@ namespace mikoto::renderer {
                 const auto& geometryData{ b.Get<GeometryCullModuleInfo>() };
 
                 struct DrawParams {
-                    u32 mGeometryInfoBufferID{};
-                    u32 mSkinningInfoBufferID{};
+                    u64 mGeometryBufferID{};
+                    u64 mSkinningBufferID{};
+                    u64 mGeometryAllocationBufferID{};
 
-                    u32 mIndicesBufferID{};
-                    u32 mVerticesBufferID{};
-
-                    u32 mCameraInfoBufferID{};
+                    u64 mCameraBda{};
                 } params{
-                    .mGeometryInfoBufferID = ctx.PushBuffer_SRV( geometryData.mGeometryBuffer ),
-                    .mSkinningInfoBufferID = ctx.PushBuffer_SRV( geometryData.mSkinningBuffer ),
+                    .mGeometryBufferID = ctx.GetDeviceBufferAddress( geometryData.mGeometryBuffer ),
+                    .mSkinningBufferID = ctx.GetDeviceBufferAddress( geometryData.mSkinningBuffer ),
 
-                    .mIndicesBufferID = ctx.PushBuffer_SRV( geometryData.mIndicesBuffer ),
-                    .mVerticesBufferID = ctx.PushBuffer_SRV( geometryData.mVerticesBuffer ),
+                    .mGeometryAllocationBufferID = ctx.GetDeviceBufferAddress( geometryData.mGeometryAllocBuffer ),
 
-                    .mCameraInfoBufferID = ctx.PushBuffer_SRV( cameraPassData.mCameraData ) };
+                    .mCameraBda = ctx.GetDeviceBufferAddress( cameraPassData.mCameraData ) };
                 ctx.PushConstants( params );
 
                 const auto dimensions{ InferDimensions( mResolution ) };

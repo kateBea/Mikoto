@@ -46,7 +46,7 @@ namespace mikoto::renderer {
     auto CameraModule::RegisterCameraSetupPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        CameraModuleInfo& info{ graph.GetOrCreate<CameraModuleInfo>() };
+        auto& info{ graph.GetOrCreate<CameraModuleInfo>() };
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "CameraPass_Buffer01" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )

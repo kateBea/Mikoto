@@ -16,6 +16,9 @@
 
 #include "Base.slang"
 
+typedef uint64_t Pointer;
+typedef uint64_t ArraySize;
+
 #ifdef MKT_SUPPORT_D3D11
         #define MKT_DECLARE_CONSTANT_BUFFERS \
             ByteAddressBuffer ConstantBuffers[kArrayMaxSize] : register(t32)

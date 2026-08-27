@@ -274,14 +274,13 @@ namespace mikoto::renderer::vulkan {
 
             case ResourceStates::eCopySource:
             case ResourceStates::eCopyDest:
-                return VK_PIPELINE_STAGE_2_COPY_BIT;
 
             // https://github.com/KhronosGroup/Vulkan-Docs/issues/2575
             // VK_PIPELINE_STAGE_2_TRANSFER_BIT is an alias for VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT
             // for backwards compatibility
             case ResourceStates::eResolveSource:
             case ResourceStates::eResolveDest:
-                return VK_PIPELINE_STAGE_2_RESOLVE_BIT;
+                return VK_PIPELINE_STAGE_2_TRANSFER_BIT;
 
             case ResourceStates::ePresent:
                 return VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;

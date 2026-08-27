@@ -80,6 +80,10 @@ namespace mikoto::renderer {
 
     class CommandContext;
 
+    // Shader define
+    typedef core::u64 SPointer;
+    typedef core::u64 SArraySize;
+
     // Represents the handle for any resource
     using FGResourceHandle = core::u32;
 
@@ -512,7 +516,8 @@ namespace mikoto::renderer {
         eastl::vector<eastl::string> mSortedExecutionPasses{};
 
         // [passName, passBarriers] -> [resourceHandle, barrierType]
-        ankerl::unordered_dense::map<eastl::string, ankerl::unordered_dense::map<FGResourceHandle, FGBarrier>> mBarriers{};
+        ankerl::unordered_dense::map<eastl::string,
+            ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>>> mBarriers{};
 
         // Execution task graph
         tf::Taskflow mExecutionTaskGraph{};
@@ -532,6 +537,8 @@ namespace mikoto::renderer {
 
         auto DisablePass( eastl::string_view passName ) -> void;
         auto EnablePass( eastl::string_view passName ) -> void;
+
+        MKT_NODISCARD auto IsPassPresent( eastl::string_view passName ) const -> bool;
 
         MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl&;
         MKT_NODISCARD auto GetStatisticsManager() const -> const FGStatisticsManager&;

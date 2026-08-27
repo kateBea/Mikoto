@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "Material_Helpers.slang"
+
 // ============================================================================
 // Constants
 // ============================================================================
@@ -24,5 +26,54 @@ static const uint MAX_BONE_INFLUENCE = 4;
 // Structs
 // ============================================================================
 struct BoneData {
-    float4x4 BoneMatrices[MAX_BONES];
+    float4x4 mBoneMatrices[MAX_BONES];
 };
+
+struct SkinningResult {
+    float4 mPosition;
+    float3 mNormal;
+};
+
+SkinningResult ApplySkinning(VertexDescription vertex, MeshGeometryInfo meshInfo, Pointer skinningBufferPtr) {
+    BoneData *skinningBuffer = (BoneData *)skinningBufferPtr;
+
+    float4x4 model = meshInfo.Transform;
+    float4 inWeight0 = vertex.weights0;
+    float4 inJoint0 = vertex.joints0;
+
+    float4 locPos = float4(0, 0, 0, 0);
+    float3 normal = float3(0, 0, 0);
+    if (meshInfo.SkinningMatricesID != -1) {
+        uint animatorIndex = meshInfo.SkinningMatricesID - 1;
+        uint boneBase = animatorIndex * MAX_BONES;
+
+        float4x4 inJoinx = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.x];
+        float4x4 inJoiny = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.y];
+        float4x4 inJoinz = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.z];
+        float4x4 inJoinw = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.w];
+
+        float4x4 skinMat =
+            inWeight0.x * inJoinx +
+            inWeight0.y * inJoiny +
+            inWeight0.z * inJoinz +
+            inWeight0.w * inJoinw;
+
+        locPos = mul(skinMat, float4(vertex.position, 1.0));
+
+        normal = normalize(
+            mul((float3x3)skinMat, vertex.normal));
+    }
+    else {
+        locPos = float4(vertex.position, 1.0);
+        normal = vertex.normal;
+    }
+
+    float4 worldPos = mul(model, locPos);
+    float3 worldNormal = normalize(mul((float3x3)model, normal));
+
+    SkinningResult result;
+    result.mPosition = worldPos;
+    result.mNormal = worldNormal;
+
+    return result;
+}

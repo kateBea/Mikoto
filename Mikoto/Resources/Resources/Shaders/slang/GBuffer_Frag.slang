@@ -39,16 +39,13 @@ struct FSOutput {
 };
 
 struct DrawParams {
-    uint mGeometryBufferID;
-    uint mMaterialsBufferID;
-    uint mSkinningBufferID;
+    Pointer mGeometryBufferID;
+    Pointer mMaterialsBufferID;
+    Pointer mSkinningBufferID;
+    Pointer mGeometryAllocationBufferID;
+    Pointer mCameraDataID;
 
     uint mBasicSamplerID;
-
-    uint mIndicesBufferID;
-    uint mVerticesBufferID;
-
-    uint mCameraDataID;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -63,10 +60,10 @@ FSOutput main(FSInput input)
 {
     FSOutput o;
 
-    ByteAddressBuffer materialsBuffer = buffers[parameters.mMaterialsBufferID];
-    MaterialParameters materialInfo = materialsBuffer.Read<MaterialParameters>(0, input.MaterialIndex);
+    MaterialParameters *materialsBuffer = (MaterialParameters *)parameters.mMaterialsBufferID;
+    MaterialParameters materialInfo = materialsBuffer[input.MaterialIndex];
 
-    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+    CameraInfo camera = *(CameraInfo *)parameters.mCameraDataID;
 
     // NORMAL
     float2 normalUvs = materialInfo.NormalTextureSet == 0 ? input.Uv0 : input.Uv1;
@@ -81,7 +78,7 @@ FSOutput main(FSInput input)
     o.Normal = float4(normalize(N) * 0.5 + 0.5, 1.0);
 
     // POSITION (view-space + depth)
-    o.Position = normalize(float4(input.ViewPos, LinearDepth(input.ScreenPos.z, camera.Planes.xy)));
+    o.Position = normalize(float4(input.ViewPos, LinearDepth(input.ScreenPos.z, camera.mPlanes.xy)));
 
     // ALBEDO
     if (materialInfo.Workflow == PBR_WORKFLOW_METALLIC_ROUGHNESS) {

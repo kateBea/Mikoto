@@ -94,7 +94,7 @@ namespace mikoto::renderer::rhi {
     public:
         static constexpr DeviceAddress kNullDeviceAddress{ 0 };
 
-        MKT_NODISCARD virtual auto GetGpuDeviceAddress(IBuffer* buffer) -> DeviceAddress = 0;
+        MKT_NODISCARD virtual auto GetGpuDeviceAddress() -> DeviceAddress = 0;
 
         MKT_NODISCARD auto GetUsage() const -> BufferUsageFlags { return mUsage; }
         MKT_NODISCARD auto GetDataType() const -> BufferDataType { return mDataType; }

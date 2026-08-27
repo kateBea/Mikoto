@@ -30,51 +30,53 @@ struct VSOutput {
 };
 
 struct DrawParams {
-    uint mGeometryBufferID;
-    uint mSkinningBufferID;
+    Pointer mGeometryInfoBuffer;
+    Pointer mSkinningInfoBuffer;
 
-    uint mIndicesBufferID;
-    uint mVerticesBufferID;
+    Pointer mGeometryAllocBuffer;
 
+    Pointer mDirShadowsBuffer;
     uint mShadowCasterID;
-
-    uint mDirectionalShadowsInfoBufferID;
 };
 
-MKT_DECLARE_STRUCTURED_SRV buffers;
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("vertex")]
 VSOutput main(VSInput input) {
     VSOutput o;
 
-    ByteAddressBuffer geometryBuffer = buffers[parameters.mGeometryBufferID];
-    ByteAddressBuffer skinnedBuffer = buffers[parameters.mSkinningBufferID];
-
+    // Prepare vertex data
     uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
-    MeshGeometryInfo meshInfo = geometryBuffer.Read<MeshGeometryInfo>(0, instanceIndex);
 
-    ByteAddressBuffer Vertices = buffers[parameters.mVerticesBufferID];
-    ByteAddressBuffer Indices = buffers[parameters.mIndicesBufferID];
+    MeshGeometryInfo *geometryBuffer = (MeshGeometryInfo *)parameters.mGeometryInfoBuffer;
+    GeometryAllocation *geometryAllocBuffer = (GeometryAllocation *)parameters.mGeometryAllocBuffer;
 
-    uint index = Indices.Read<uint>(meshInfo.IndexOffset, input.VertexID);
-    VertexDescription vertex = Vertices.Read<VertexDescription>(meshInfo.VertexOffset, index);
+    MeshGeometryInfo meshInfo = geometryBuffer[instanceIndex];
+    GeometryAllocation geometryAlloc = geometryAllocBuffer[meshInfo.GeometryIndex];
 
+    uint *indexBuffer = (uint *)geometryAlloc.mIndexBufferBda;
+    VertexDescription *vertexBuffer = (VertexDescription *)geometryAlloc.mVertexBufferBda;
+
+    uint index = indexBuffer[input.VertexID];
+    VertexDescription vertex = vertexBuffer[index];
+
+    // Apply skinning
     float4x4 model = meshInfo.Transform;
-
     float4 inWeight0 = vertex.weights0;
     float4 inJoint0 = vertex.joints0;
 
     float4 locPos = float4(0, 0, 0, 0);
     float3 normal = float3(0, 0, 0);
     if (meshInfo.SkinningMatricesID != -1) {
+        BoneData *skinningBuffer = (BoneData *)parameters.mSkinningInfoBuffer;
+
         uint animatorIndex = meshInfo.SkinningMatricesID - 1;
         uint boneBase = animatorIndex * MAX_BONES;
 
-        float4x4 inJoinx = skinnedBuffer.Read<float4x4>(boneBase, (uint)inJoint0.x);
-        float4x4 inJoiny = skinnedBuffer.Read<float4x4>(boneBase, (uint)inJoint0.y);
-        float4x4 inJoinz = skinnedBuffer.Read<float4x4>(boneBase, (uint)inJoint0.z);
-        float4x4 inJoinw = skinnedBuffer.Read<float4x4>(boneBase, (uint)inJoint0.w);
+        float4x4 inJoinx = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.x];
+        float4x4 inJoiny = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.y];
+        float4x4 inJoinz = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.z];
+        float4x4 inJoinw = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.w];
 
         float4x4 skinMat =
             inWeight0.x * inJoinx +
@@ -95,12 +97,11 @@ VSOutput main(VSInput input) {
     float4 worldPos = mul(model, locPos);
     float3 worldNormal = normalize(mul((float3x3)model, normal));
 
-    DirectionalShadowMapInfo shadowMapInfo = buffers[parameters.mDirectionalShadowsInfoBufferID]
-        .Read<DirectionalShadowMapInfo>(0, parameters.mShadowCasterID);
+    DirectionalShadowMapInfo* shadowMapInfo = (DirectionalShadowMapInfo *)parameters.mDirShadowsBuffer;
 
     o.Position =
-        mul(shadowMapInfo.mLightProjection,
-            mul(shadowMapInfo.mLightView, worldPos));
+        mul(shadowMapInfo->mLightProjection,
+            mul(shadowMapInfo->mLightView, worldPos));
 
     return o;
 }

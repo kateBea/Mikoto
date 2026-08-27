@@ -107,6 +107,9 @@ namespace mikoto::renderer {
 
         // Stores specific configuration, like target
         // configuration (SPIR-V, DXIL, CPU, etc.)
+        // Currently, the global session type is not thread-safe. Applications that wish to compile on
+        // multiple threads will need to ensure that each concurrent thread compiles with a distinct global session.
+        //https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/08-compiling.html
         Slang::ComPtr<slang::ISession> mSlangCurrentSession{};
         Slang::ComPtr<slang::IGlobalSession> mSlangGlobalSession{};
 

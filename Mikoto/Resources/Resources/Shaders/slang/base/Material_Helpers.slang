@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "Memory_Helpers.slang"
+
 // ============================================================================
 // Constants
 // ============================================================================
@@ -94,19 +96,24 @@ struct VertexDescription {
     float4 weights1;
 };
 
+// Match CPU layout
+struct GeometryAllocation {
+    uint64_t mAllocationIndex;
+    uint64_t mVertexBufferBda;
+    uint64_t mIndexBufferBda;
+}
+
 struct MeshGeometryInfo {
     float4x4 Transform;
     float4x4 InverseModelView; // inverse(view * model) computed in CPU for performance
-
-    // For vertex pulling, this tells the
-    // offset into the array of vertices
-    uint IndexOffset;
-    uint VertexOffset;
 
     // Index into the buffer
     // of list of skinning matrices
     int SkinningMatricesID;
     int HasArmature;
+
+    // Index into buffer of geometry info
+    uint GeometryIndex;
 
     // TODO: add a list of shadow casters. This will be an index into the array of shadow casters
     // buffer to know from which lights this entity needs shadows casted from, ofc there will be a limit you cannot
@@ -143,4 +150,20 @@ float SphereLightAttenuation(float distance, float radius) {
     float r2 = radius * radius;
 
     return (2.0 / r2) * (1.0 - (distance / sqrt(d2 + r2)));
+}
+
+VertexDescription GetVertexDescription(uint instanceID, uint vertexID, Pointer gb, Pointer ab) {
+    MeshGeometryInfo *geometryBuffer = (MeshGeometryInfo *)gb;
+    GeometryAllocation *geometryAllocBuffer = (GeometryAllocation *)ab;
+
+    MeshGeometryInfo meshInfo = geometryBuffer[instanceID];
+    GeometryAllocation geometryAlloc = geometryAllocBuffer[meshInfo.GeometryIndex];
+
+    uint *indexBuffer = (uint *)geometryAlloc.mIndexBufferBda;
+    VertexDescription *vertexBuffer = (VertexDescription *)geometryAlloc.mVertexBufferBda;
+
+    uint index = indexBuffer[vertexID];
+    VertexDescription vertex = vertexBuffer[index];
+
+    return vertex;
 }

@@ -36,18 +36,18 @@ static const float LIGHT_MIN_INFLUENCE = 0.001f;
 // ============================================================================
 
 struct Cluster {
-    float4 Center;
-    float4 ClosestPoint;
-    float4 DistanceSquared;
+    float4 mCenter;
+    float4 mClosestPoint;
+    float4 mDistanceSquared;
 
-    float4 MinPoint;
-    float4 MaxPoint;
+    float4 mMinPoint;
+    float4 mMaxPoint;
 
     // Active lights affecting this cluster
-    uint Count;
+    uint mCount;
 
     // Indices into the global lights list
-    uint LightIndices[MAX_LIGHT_CLUSTERS];
+    uint mLightIndices[MAX_LIGHT_CLUSTERS];
 };
 
 // ============================================================================
@@ -109,8 +109,8 @@ bool TestSphereAABBPointLight(LightInfo light, Cluster cluster, float4x4 view) {
 
     float radius = GetPointLightRadius(light.Intensity);
 
-    float3 aabbMin = cluster.MinPoint.xyz;
-    float3 aabbMax = cluster.MaxPoint.xyz;
+    float3 aabbMin = cluster.mMinPoint.xyz;
+    float3 aabbMax = cluster.mMaxPoint.xyz;
 
     return SphereAABBIntersection(center, radius, aabbMin, aabbMax);
 }

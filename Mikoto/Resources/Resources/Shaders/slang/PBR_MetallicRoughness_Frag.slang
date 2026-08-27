@@ -24,13 +24,12 @@
 #include "base/ClusteringLights_Helpers.slang"
 
 struct DrawParams {
-    uint mCameraDataID;
-    uint mVerticesBufferID;
-    uint mIndicesBufferID;
+    Pointer mGeometryAllocationBuffer;
+    Pointer mSkinningBuffer;
+    Pointer mGeometryBuffer;
+    Pointer mCameraBuffer;
 
-    uint mGeometryBufferID;
     uint mMaterialsBufferID;
-    uint mSkinningBufferID;
     uint mClusterBufferID;
 
     uint mLightCullingBufferID;
@@ -57,9 +56,6 @@ struct DrawParams {
 
     uint mDirectionalShadowsInfoBufferID;
     uint mDirectionalShadowCastersCount;
-
-    // EXPERIMENTAL: BufferDeviceAddress
-    uint64_t mGeometryBufferBDA;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -399,7 +395,7 @@ FSOutput main(FSInput input) {
     ByteAddressBuffer clusterBuffer = buffers[parameters.mClusterBufferID];
     ByteAddressBuffer lightCullingBuffer = buffers[parameters.mLightCullingBufferID];
 
-    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+    CameraInfo *camera = (CameraInfo *)parameters.mCameraBuffer;
 
     // Fectch textures and samplers as needed, based on the material properties
     SamplerState samplerCube = samplers[parameters.mSamplerCubeID]; // nearest clamped sampler for cube maps
@@ -524,7 +520,7 @@ FSOutput main(FSInput input) {
         n.y *= -1.0f;
     }
 
-    float3 v = normalize(camera.ViewPosition.xyz - input.FragmentWorldPos); // Vector from surface point to camera
+    float3 v = normalize(camera->mViewPosition.xyz - input.FragmentWorldPos); // Vector from surface point to camera
     float3 reflection = normalize(reflect(-v, n));
 
     BaseInputs inputs;
@@ -541,12 +537,12 @@ FSOutput main(FSInput input) {
     // Cluster resolve
     // TODO: Check first if there are active lights 
     uint clusterIndex = ComputeTileIndex(input.FragmentViewPos, parameters.mGridSize.xyz, 
-        camera.Planes.xy, input.ScreenPos, camera.ScreenDimensions.xy);
+        camera->mPlanes.xy, input.ScreenPos, camera->mScreenDimensions.xy);
 
     Cluster cluster = clusterBuffer.Read<Cluster>(0, clusterIndex);
 
-    for (uint i = 0; i < cluster.Count && parameters.mActiveLightCount != 0; ++i) {
-        uint lightIndex = cluster.LightIndices[i];
+    for (uint i = 0; i < cluster.mCount && parameters.mActiveLightCount != 0; ++i) {
+        uint lightIndex = cluster.mLightIndices[i];
         LightInfo light = lightCullingBuffer.Read<LightInfo>(0, lightIndex);
 
         if (light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL) {
@@ -592,7 +588,7 @@ FSOutput main(FSInput input) {
     float ssao = 1.0f;
 
     if (parameters.mEnableSsao != MKT_SHADER_FALSE) {
-        float2 uv = input.ScreenPos.xy / camera.ScreenDimensions.xy;
+        float2 uv = input.ScreenPos.xy / camera->mScreenDimensions.xy;
 
         //ssao = parameters.mBl == MKT_SHADER_TRUE ? u_SSAOBlur.Sample(uv).r : u_SSAO.Sample(uv).r;
         //ssao = pow(ssao, u_Constants.SSAOIntensity);

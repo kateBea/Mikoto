@@ -78,8 +78,9 @@ namespace mikoto::renderer {
         FGPipelineHandle mGBufferPipeline{};
 
         // Light culling
+        core::u32 mClusterCount{};
         FGBufferHandle mClusterBuffer{};
-        FGBufferHandle mLightCullingBuffer{};
+        FGBufferHandle mLightsBuffer{};
         FGPipelineHandle mAabbGenPipeline{};
         FGPipelineHandle mLightCullingPipeline{};
 

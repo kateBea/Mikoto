@@ -38,7 +38,7 @@ namespace mikoto::renderer::vulkan {
 
         auto SetDebugName( eastl::string_view name) -> void override;
 
-        MKT_NODISCARD auto GetGpuDeviceAddress( IBuffer* buffer ) -> rhi::DeviceAddress override;
+        MKT_NODISCARD auto GetGpuDeviceAddress() -> rhi::DeviceAddress override;
 
         MKT_NODISCARD auto GetAlignedSize() const -> core::u32;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;

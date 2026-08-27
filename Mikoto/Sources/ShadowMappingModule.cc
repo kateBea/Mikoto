@@ -228,8 +228,7 @@ namespace mikoto::renderer {
             builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
             builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-            builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
-            builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+            builder.UseResource( geometryData.mGeometryAllocBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
             builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
         },
@@ -248,24 +247,21 @@ namespace mikoto::renderer {
                 FGTextureHandle shadowMapHandle{ shadowMapData.mDirShadowMaps[count] };
 
                     struct DrawParams {
-                        u32 mGeometryInfoBufferID{};
-                        u32 mSkinningInfoBufferID{};
+                        SPointer mGeometryInfoBuffer{};
+                        SPointer mSkinningInfoBuffer{};
 
-                        u32 mIndicesBufferID{};
-                        u32 mVerticesBufferID{};
+                        SPointer mGeometryAllocBuffer{};
+
+                        SPointer mDirShadowsBuffer{};
 
                         u32 mShadowCasterID{};
-
-                        u32 mDirectionalShadowsInfoBufferID{};
                     } params{
-                        .mGeometryInfoBufferID = ctx.PushBuffer_SRV( geometryData.mGeometryBuffer ),
-                        .mSkinningInfoBufferID = ctx.PushBuffer_SRV( geometryData.mSkinningBuffer ),
+                        .mGeometryInfoBuffer = ctx.GetDeviceBufferAddress( geometryData.mGeometryBuffer ),
+                        .mSkinningInfoBuffer = ctx.GetDeviceBufferAddress( geometryData.mSkinningBuffer ),
 
-                        .mIndicesBufferID = ctx.PushBuffer_SRV( geometryData.mIndicesBuffer ),
-                        .mVerticesBufferID = ctx.PushBuffer_SRV( geometryData.mVerticesBuffer ),
-
-                        .mShadowCasterID = count,
-                        .mDirectionalShadowsInfoBufferID = ctx.PushBuffer_SRV( shadowMapData.mDirShadowsBuffer ) };
+                        .mGeometryAllocBuffer = ctx.GetDeviceBufferAddress( geometryData.mGeometryAllocBuffer ),
+                        .mDirShadowsBuffer = ctx.GetDeviceBufferAddress( shadowMapData.mDirShadowsBuffer ),
+                        .mShadowCasterID = count };
                     ctx.PushConstants( params );
 
                     const auto dimensions{ InferDimensions( mResolution ) };
@@ -337,8 +333,7 @@ namespace mikoto::renderer {
                 builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mGeometryAllocBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
                 builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
             },
@@ -395,8 +390,7 @@ namespace mikoto::renderer {
                 builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-                builder.UseResource( geometryData.mVerticesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mIndicesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mGeometryAllocBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
                 builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
             },

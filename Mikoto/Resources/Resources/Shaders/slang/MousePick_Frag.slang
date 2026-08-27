@@ -26,8 +26,6 @@ struct FSInput {
     float4 ScreenPos : SV_Position;
 };
 
-MKT_DECLARE_STRUCTURED_SRV Buffers;
-
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;

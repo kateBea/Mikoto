@@ -1286,11 +1286,8 @@ namespace mikoto::renderer::vulkan {
         }
 
 #if MIKOTO_DEBUG
-        f32 targetWidth{};
-        f32 targetHeight{};
-
-        const f32 computedWidth{ as<f32>( state.mRenderArea.ComputeWidth() ) };
-        const f32 computedHeight{ as<f32>( state.mRenderArea.ComputeHeight() ) };
+        f32 targetWidth{ as<f32>( state.mRenderArea.ComputeWidth() ) };
+        f32 targetHeight{ as<f32>( state.mRenderArea.ComputeHeight() ) };
 #endif
 
         eastl::fixed_vector<VkRenderingAttachmentInfo, kMaxRenderTargets> colorImages{};
@@ -1298,8 +1295,8 @@ namespace mikoto::renderer::vulkan {
             const Texture* texture{ checked_cast<const Texture*>(renderTargetProps.mRenderTarget.GetRaw()) };
 
 #if MIKOTO_DEBUG
-            targetWidth = eastl::min(computedWidth, texture->GetWidth());
-            targetHeight = eastl::min(computedHeight, texture->GetHeight());
+            targetWidth = eastl::min(targetWidth, texture->GetWidth());
+            targetHeight = eastl::min(targetHeight, texture->GetHeight());
 #endif
 
             VkAttachmentLoadOp loadOp{ renderTargetProps.mLoadOp == LoadOp::eClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };

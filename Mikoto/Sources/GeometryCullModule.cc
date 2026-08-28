@@ -218,11 +218,11 @@ namespace mikoto::renderer {
                 continue;
             }
 
-            const MeshNode* meshNode{ meshComponent.GetMesh() };
-            const PhysicalMaterial *meshMaterial{ checked_cast<const PhysicalMaterial*>( materialComponent.GetMaterial().GetRaw() ) };
+            const MeshNode* pMeshNode{ meshComponent.GetMesh() };
+            const PhysicalMaterial *pPhysicalMaterial{ checked_cast<const PhysicalMaterial*>( materialComponent.GetMaterial().GetRaw() ) };
 
-            auto& meshBatch{ mBatch.Get( meshNode, ctx, b ) };
-            auto& meshBatchDrawInfo{ mMeshBatchInfos[meshNode] };
+            auto& meshBatch{ mBatch.Get( pMeshNode, ctx, b ) };
+            auto& meshBatchDrawInfo{ mMeshBatchInfos[pMeshNode] };
 
             // If I have more instances than what I can hold
             if ( meshBatchDrawInfo.mInstanceCount >= meshBatchDrawInfo.mGeometryList.size()) {
@@ -254,37 +254,39 @@ namespace mikoto::renderer {
             }
 
             // Materials
-            material.mBaseColorFactor = meshMaterial->GetBaseColorFactor();
-            material.mEmissiveFactor = float4{ meshMaterial->GetEmissiveFactor(), 1.0f };
-            material.mDiffuseFactor = meshMaterial->GetDiffuseFactor();
-            material.mSpecularFactor = meshMaterial->GetSpecularFactor();
+            material.mBaseColorFactor = pPhysicalMaterial->GetBaseColorFactor();
+            material.mEmissiveFactor = float4{ pPhysicalMaterial->GetEmissiveFactor(), 1.0f };
+            material.mDiffuseFactor = pPhysicalMaterial->GetDiffuseFactor();
+            material.mSpecularFactor = pPhysicalMaterial->GetSpecularFactor();
 
-            material.mWorkflow = as<i32>( meshMaterial->GetWorkflow() );
+            material.mWorkflow = as<i32>( pPhysicalMaterial->GetWorkflow() );
 
-            material.mMetallicFactor = meshMaterial->GetMetallicFactor();
-            material.mRoughnessFactor = meshMaterial->GetRoughnessFactor();
-            material.mEmissiveStrength = meshMaterial->GetEmissiveStrength();
-            material.mAlphaMask = as<f32>( meshMaterial->GetAlphaMask() );
-            material.mAlphaMaskCutoff = meshMaterial->GetAlphaMaskCutoff();
+            material.mMetallicFactor = pPhysicalMaterial->GetMetallicFactor();
+            material.mRoughnessFactor = pPhysicalMaterial->GetRoughnessFactor();
+            material.mEmissiveStrength = pPhysicalMaterial->GetEmissiveStrength();
+            material.mAlphaMask = as<f32>( pPhysicalMaterial->GetAlphaMask() );
+            material.mAlphaMaskCutoff = pPhysicalMaterial->GetAlphaMaskCutoff();
 
             // UV Sets
-            material.mBaseColorTextureSet = meshMaterial->GetBaseColorTextureSet();
-            material.mMetallicRoughnessTextureSet = meshMaterial->GetMetallicRoughnessTextureSet();
-            material.mSpecularGlossinessSet = meshMaterial->GetSpecularGlossinessSet();
-            material.mNormalTextureSet = meshMaterial->GetNormalTextureSet();
-            material.mOcclusionTextureSet = meshMaterial->GetOcclusionTextureSet();
-            material.mEmissiveTextureSet = meshMaterial->GetEmissiveTextureSet();
+            material.mBaseColorTextureSet = pPhysicalMaterial->GetBaseColorTextureSet();
+            material.mMetallicRoughnessTextureSet = pPhysicalMaterial->GetMetallicRoughnessTextureSet();
+            material.mSpecularGlossinessSet = pPhysicalMaterial->GetSpecularGlossinessSet();
+            material.mNormalTextureSet = pPhysicalMaterial->GetNormalTextureSet();
+            material.mOcclusionTextureSet = pPhysicalMaterial->GetOcclusionTextureSet();
+            material.mEmissiveTextureSet = pPhysicalMaterial->GetEmissiveTextureSet();
 
             // Texture
-            material.mAlbedoIndex = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eBaseColor ) );
-            material.mDiffuseIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eDiffuse ) );
-            material.mNormalIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eNormal ) );
-            material.mEmissiveIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eEmissive ) );
-            material.mAoIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eAmbientOcclusion ) );
-            material.mMetallicIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eMetallic ) );
-            material.mRoughnessIndex  = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eRoughness ) );
-            material.mMetallicRoughnessIndex   = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eMetallicRoughness ) );
-            material.mSpecularGlossinessIndex   = PushTextureID( ctx, meshMaterial->GetTexture( MapType::eSpecularGlossiness ) );
+            material.mAlbedoIndex = PushTextureID( ctx, pPhysicalMaterial->GetTexture( MapType::eBaseColor ) );
+            material.mDiffuseIndex  = PushTextureID( ctx, pPhysicalMaterial->GetTexture( MapType::eDiffuse ) );
+            material.mNormalIndex  = PushTextureID( ctx, pPhysicalMaterial->GetTexture( MapType::eNormal ) );
+            material.mEmissiveIndex  = PushTextureID( ctx, pPhysicalMaterial->GetTexture( MapType::eEmissive ) );
+            material.mAoIndex  = PushTextureID( ctx, pPhysicalMaterial->GetTexture( MapType::eAmbientOcclusion ) );
+            material.mMetallicIndex  = PushTextureID( ctx, pPhysicalMaterial->GetTexture( MapType::eMetallic ) );
+            material.mRoughnessIndex  = PushTextureID( ctx, pPhysicalMaterial->GetTexture( MapType::eRoughness ) );
+            material.mMetallicRoughnessIndex   = PushTextureID( ctx, pPhysicalMaterial->GetTexture( MapType::eMetallicRoughness ) );
+            material.mSpecularGlossinessIndex   = PushTextureID( ctx, pPhysicalMaterial->GetTexture( MapType::eSpecularGlossiness ) );
+
+            material.mIsBloomy = pPhysicalMaterial->IsBloomy();
 
             meshBatchDrawInfo.mInstanceCount += 1;
         }

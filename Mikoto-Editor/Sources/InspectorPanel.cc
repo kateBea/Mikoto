@@ -1284,7 +1284,7 @@ namespace mikoto::editor {
             const eastl::string& contents{ file->GetContentsString() };
 
             // Cap preview for performance
-            constexpr size_t kMaxPreviewSize{ 8192 * 4 };// more generous limit
+            constexpr usize kMaxPreviewSize{ 8192 * 4 };// more generous limit
             const bool truncated = contents.size() > kMaxPreviewSize;
             const std::string_view preview{
                 contents.data(),

@@ -165,6 +165,7 @@ namespace mikoto::renderer::rhi {
 
         auto SetPolygonMode( PolygonMode mode ) -> GraphicsPipelineDescription&;
         auto SetTopology( PrimitiveTopology topology ) -> GraphicsPipelineDescription&;
+        auto SetMultisampling( Multisampling msaa ) -> GraphicsPipelineDescription&;
 
         auto SetUseReflection( bool value ) -> GraphicsPipelineDescription&;
 

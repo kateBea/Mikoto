@@ -249,6 +249,7 @@ namespace mikoto::renderer {
     struct FGPipelineDescription {
         eastl::string mName{};
 
+        rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
         PrimitiveTopology mTopology{ PrimitiveTopology::eTriangleList };
         PipelineType mPipelineType{ PipelineType::eInvalid };
 
@@ -267,6 +268,8 @@ namespace mikoto::renderer {
 
         auto SetCullMode( CullMode mode ) -> FGPipelineDescription&;
         auto SetPolygonMode( PolygonMode mode ) -> FGPipelineDescription&;
+
+        auto SetMultisampling( Multisampling msaa ) -> FGPipelineDescription&;
 
         auto SetDepthTest( bool value ) -> FGPipelineDescription&;
         auto SetDepthWrite( bool value ) -> FGPipelineDescription&;

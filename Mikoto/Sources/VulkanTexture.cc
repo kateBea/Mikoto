@@ -256,7 +256,7 @@ namespace mikoto::renderer::vulkan {
 
             mImageAllocation.mImageCreateInfo.mipLevels = mMipCount;
             mImageAllocation.mImageCreateInfo.arrayLayers = vulkan::GetArraLayerCount(mDimension);
-            mImageAllocation.mImageCreateInfo.samples = vulkan::GetSampleCount(mMultisampling);
+            mImageAllocation.mImageCreateInfo.samples = vulkan::GetSampleCount(mMultisampling); // TODO: fallback to device max supported
             mImageAllocation.mImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
             mImageAllocation.mImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 

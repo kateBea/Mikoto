@@ -132,6 +132,11 @@ namespace mikoto::renderer {
         return *this;
     }
 
+    auto FGPipelineDescription::SetMultisampling( Multisampling msaa ) -> FGPipelineDescription& {
+        mMultisampling = msaa;
+        return *this;
+    }
+
     auto FGPipelineDescription::SetDepthTest( bool value ) -> FGPipelineDescription& {
         mEnableDepthTest = value;
         return *this;
@@ -797,7 +802,7 @@ namespace mikoto::renderer {
 
     auto FrameGraph::SetExecutionPolicy( eastl::string_view passName, FGExecutionPolicy policy ) -> void {
         if (!mNodeControl->mNodes.contains( passName.data())) {
-            MKT_CORE_LOGGER_ERROR( "Pass '{}' does not exist", passName.data() );
+            MKT_CORE_LOGGER_WARN( "Pass '{}' does not exist", passName.data() );
             return;
         }
 
@@ -806,7 +811,7 @@ namespace mikoto::renderer {
 
     auto FrameGraph::DisablePass( eastl::string_view passName ) -> void {
         if (!mNodeControl->mNodes.contains( passName.data())) {
-            MKT_CORE_LOGGER_ERROR( "Pass '{}' does not exist", passName.data() );
+            MKT_CORE_LOGGER_WARN( "Pass '{}' does not exist", passName.data() );
             return;
         }
 
@@ -817,7 +822,7 @@ namespace mikoto::renderer {
 
     auto FrameGraph::EnablePass( eastl::string_view passName ) -> void {
         if (!mNodeControl->mNodes.contains( passName.data())) {
-            MKT_CORE_LOGGER_ERROR( "Pass '{}' does not exist", passName.data() );
+            MKT_CORE_LOGGER_WARN( "Pass '{}' does not exist", passName.data() );
             return;
         }
 
@@ -1086,6 +1091,7 @@ namespace mikoto::renderer {
                 .SetPipelineLayout( mResourceManager->GetPipelineLayout() )
                 .SetTopology( desc.mTopology )
                 .SetCullMode( desc.mCullMode )
+                .SetMultisampling( desc.mMultisampling )
                 .SetPolygonMode( desc.mPolygonMode )
                 .SetBlendEnable( desc.mEnableBlend )
                 .SetDepthTest( desc.mEnableDepthTest )

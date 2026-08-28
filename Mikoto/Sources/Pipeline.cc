@@ -58,6 +58,12 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    auto GraphicsPipelineDescription::SetMultisampling( Multisampling msaa ) -> GraphicsPipelineDescription & {
+        mMultisampling = msaa;
+        return *this;
+    }
+
+
     auto GraphicsPipelineDescription::SetUseReflection( bool value ) -> GraphicsPipelineDescription & {
         mUseReflection = value;
         return *this;

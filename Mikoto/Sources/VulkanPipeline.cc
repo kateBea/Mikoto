@@ -94,7 +94,7 @@ namespace mikoto::renderer::vulkan {
         // [Multisampling]
         mMultisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         mMultisampleInfo.sampleShadingEnable = mDesc.mEnableSampleRateShading ? VK_TRUE : VK_FALSE;;
-        mMultisampleInfo.rasterizationSamples = GetSampleCount( mDesc.mMultisampling );
+        mMultisampleInfo.rasterizationSamples = GetSampleCount( mDesc.mMultisampling ); // TODO: fallback to device max supported
         mMultisampleInfo.minSampleShading = 1.0f;         // Optional
         mMultisampleInfo.pSampleMask = nullptr;           // Optional
         mMultisampleInfo.alphaToCoverageEnable = VK_FALSE;// Optional

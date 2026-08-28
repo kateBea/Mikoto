@@ -51,14 +51,18 @@ namespace mikoto::renderer {
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
             .SetFormat( Format::eBGRA8_UNORM ) };
         info.mColorImage = graph.Create( colorImage );
+        mFinalImageHandle = info.mColorImage;
 
         RegisterFullQuadRender( graph );
         RegisterTransition( graph );
     }
 
-    auto PresentationModule::GetFinalImage( FrameGraph& graph, FinalImageType type ) -> TextureHandle {
+    auto PresentationModule::GetFinalImage( FrameGraph& graph ) -> TextureHandle {
+        return graph.GetTexture( mFinalImageHandle );
+    }
+
+    auto PresentationModule::SetFinalImageTarget( FinalImageType type ) -> void {
         mPresentTarget = type;
-        return graph.GetTexture( GetTargetImage( graph.GetBlackBoard() ) );
     }
 
     auto PresentationModule::RegisterTransition( FrameGraph &graph ) -> void {
@@ -109,7 +113,7 @@ namespace mikoto::renderer {
         info.mPipeline = graph.Create( pipelineBuilder );
 
         graph.RegisterPass(
-            "FullQuadRender",
+            "FinalImage_Resolve",
             FGPassType::eGraphics,
             []( FGNodeBuilder &builder, Blackboard &blackboard ) {
                 // Specify the target you want to present

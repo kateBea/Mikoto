@@ -160,7 +160,10 @@ namespace mikoto::renderer {
             mFrameGraph->DisablePass( "WireframePass" );
         }
 
-        return mPresentationModule.GetFinalImage( *mFrameGraph, type );
+        // This is a deferred operation, we can specify the final image output
+        // but it is not until the next call to execute that we render it
+        mPresentationModule.SetFinalImageTarget( type );
+        return mPresentationModule.GetFinalImage( *mFrameGraph );
     }
 
     auto SceneRenderer::SetMainCamera( const SceneCamera *camera ) -> void {
@@ -222,7 +225,7 @@ namespace mikoto::renderer {
     }
 
     auto SceneRenderer::SetEnableInfiniteGrid( bool value ) -> void {
-        if (!mFrameGraph) {
+        if (!mFrameGraph || !mFrameGraph->IsPassPresent( "InfiniteGrid" )) {
             return;
         }
 

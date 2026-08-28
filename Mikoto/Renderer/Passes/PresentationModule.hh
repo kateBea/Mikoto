@@ -49,7 +49,9 @@ namespace mikoto::renderer {
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
-        auto GetFinalImage( FrameGraph& graph, FinalImageType type ) -> rhi::TextureHandle;
+        // Set the final image, because there is a resolve if needed when using multisampling
+        auto GetFinalImage( FrameGraph& graph ) -> rhi::TextureHandle;
+        auto SetFinalImageTarget( FinalImageType type ) -> void;
 
     private:
 
@@ -60,6 +62,8 @@ namespace mikoto::renderer {
 
     private:
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
+
+        FGTextureHandle mFinalImageHandle{ FGResourceManager::kInvalidResourceHandle };
         FinalImageType mPresentTarget{ FinalImageType::eTonemap_Output };
     };
 

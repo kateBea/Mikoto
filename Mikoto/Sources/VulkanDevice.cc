@@ -1285,10 +1285,22 @@ namespace mikoto::renderer::vulkan {
             vkCmdBeginDebugUtilsLabelEXT(mCurrentCommandBuffer, &labelInfo);
         }
 
-        eastl::fixed_vector<VkRenderingAttachmentInfo, kMaxRenderTargets> colorImages{};
+#if MIKOTO_DEBUG
+        f32 targetWidth{};
+        f32 targetHeight{};
 
+        const f32 computedWidth{ as<f32>( state.mRenderArea.ComputeWidth() ) };
+        const f32 computedHeight{ as<f32>( state.mRenderArea.ComputeHeight() ) };
+#endif
+
+        eastl::fixed_vector<VkRenderingAttachmentInfo, kMaxRenderTargets> colorImages{};
         for (const auto& renderTargetProps: state.mCurrentRenderTargets) {
             const Texture* texture{ checked_cast<const Texture*>(renderTargetProps.mRenderTarget.GetRaw()) };
+
+#if MIKOTO_DEBUG
+            targetWidth = eastl::min(computedWidth, texture->GetWidth());
+            targetHeight = eastl::min(computedHeight, texture->GetHeight());
+#endif
 
             VkAttachmentLoadOp loadOp{ renderTargetProps.mLoadOp == LoadOp::eClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
             VkRenderingAttachmentInfo &colorAttachment{ colorImages.emplace_back( VkRenderingAttachmentInfo{} ) };
@@ -1328,6 +1340,27 @@ namespace mikoto::renderer::vulkan {
         renderingInfo.pColorAttachments = colorImages.data();
         renderingInfo.pDepthAttachment = !hasDepthTarget ?
             nullptr : MKT_ADDRESSOF( depthAttachment );
+
+#if MIKOTO_DEBUG
+        // https://docs.vulkan.org/refpages/latest/refpages/source/VkRenderingInfo.html
+        // If the pNext chain does not contain VkDeviceGroupRenderPassBeginInfo or its deviceRenderAreaCount
+        // member is equal to 0, the height of the imageView member of each element of pColorAttachments,
+        // pDepthAttachment, or pStencilAttachment that is not VK_NULL_HANDLE must be greater than or
+        // equal to renderArea.offset.y + renderArea.extent.height
+
+        bool widthCorrect{ (renderingInfo.renderArea.extent.width + renderingInfo.renderArea.offset.x) <= targetWidth };
+        bool heightCorrect{ (renderingInfo.renderArea.extent.height + renderingInfo.renderArea.offset.y) <= targetHeight };
+
+        if (!widthCorrect || !heightCorrect) {
+            Rect patchRect{ (i32)targetWidth, (i32)targetHeight };
+            renderingInfo.renderArea = {
+                    { patchRect.mMinX, patchRect.mMinY },
+                    { (u32)patchRect.ComputeWidth(), (u32)patchRect.ComputeHeight() } };
+
+            MKT_CORE_LOGGER_WARN( "Using wrong dimensions for render area with provided images. Render area is [{},{}], expected is [{},{}]",
+                state.mRenderArea.ComputeWidth(), state.mRenderArea.ComputeHeight(), patchRect.ComputeWidth(), patchRect.ComputeHeight());
+        }
+#endif
 
         vkCmdBeginRendering( mCurrentCommandBuffer, std::addressof( renderingInfo ) );
 

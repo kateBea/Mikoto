@@ -225,7 +225,6 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>(  dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
             .SetFormat( Format::eR8_UNORM ) };
         info.mSsaoColorTarget = graph.Create( colorImage );
@@ -235,7 +234,6 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>(  dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
             .SetFormat( Format::eR8_UNORM ) };
         info.mSsaoBlurColorTarget = graph.Create( blurColorImage );
@@ -412,47 +410,103 @@ namespace mikoto::renderer {
 
         auto& info{ graph.GetOrCreate<PostProcessModuleInfo>() };
 
+        const auto bloomUpSamplePipelineDesc{ FGPipelineDescription{}
+            .SetName( "BloomUpSample_Pipeline01" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .AddColorFormat( Format::eRGBA16_FLOAT )
+            .PushShader( "BloomUp_Vert.slang", FGStageType::eVertex )
+            .PushShader( "BloomUp_Frag.slang", FGStageType::ePixel ) };
+        info.mBloomUpSamplePipeline = graph.Create( bloomUpSamplePipelineDesc );
+
+        const auto bloomDownSamplePipelineDesc{ FGPipelineDescription{}
+            .SetName( "BloomDownSample_Pipeline01" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .AddColorFormat( Format::eRGBA16_FLOAT )
+            .PushShader( "BloomDown_Vert.slang", FGStageType::eVertex )
+            .PushShader( "BloomDown_Frag.slang", FGStageType::ePixel ) };
+        info.mBloomDownSamplePipeline = graph.Create( bloomDownSamplePipelineDesc );
+
         // one image per mip level
         auto dimensions{ InferDimensions( mResolution ) };
         for (i32 mipLevel{}; mipLevel < kMaxBloomChainImages; ++mipLevel) {
             f32 width{ as<f32>(dimensions.first * std::pow(0.5f, mipLevel)) };
-            f32 heigh{ as<f32>(dimensions.second * std::pow(0.5f, mipLevel)) };
+            f32 height{ as<f32>(dimensions.second * std::pow(0.5f, mipLevel)) };
 
             auto colorImage{ FGTextureDescription{}
                 .SetName( string::Format( "BloomChainImage Mip {}", mipLevel ) )
                 .SetWidth( width )
-                .SetHeight( heigh )
+                .SetHeight( height )
                 .SetDimensions( TextureDimension::eTexture2D )
-                .SetMultisampling( Multisampling::eMsaaX1 )
                 .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
                 .SetFormat( Format::eRGBA16_FLOAT ) };
-            info.mBloomChainImages.emplace_back( graph.Create( colorImage ) );
+            info.mBloomChainImages.emplace_back( PostProcessModuleInfo::ImageDescription {
+                .mWidth = width,
+                .mHeight = height,
+                .mImage = graph.Create( colorImage ) });
         }
 
         // Downsampling chain
         for (i32 mipLevel{}; mipLevel < kMaxBloomChainImages; ++mipLevel) {
             graph.RegisterPass( mipLevel == 0 ?
-             string::Format( "BloomDownSample Emissive to Mip 0" ) :
-             string::Format( "BloomDownSample Mip{} to Mip {}",  mipLevel - 1, mipLevel ),
-             FGPassType::eGraphics,
-             [&]( FGNodeBuilder& builder, Blackboard& blackboard ) -> void {
-                 auto& postprocess{ blackboard.Get<PostProcessModuleInfo>() };
+            string::Format( "BloomDownSample Emissive to Mip 0" ) :
+            string::Format( "BloomDownSample Mip{} to Mip {}",  mipLevel - 1, mipLevel ),
+            FGPassType::eGraphics,
+            [&]( FGNodeBuilder& builder, Blackboard& blackboard ) -> void {
+                auto& postprocess{ blackboard.Get<PostProcessModuleInfo>() };
 
-                 // first mip is the only one that reads from GBuffer emissive images
-                 // because bloom is applied on emissive materials
-                 if (mipLevel == 0) {
+                // first mip is the only one that reads from GBuffer emissive images
+                // because bloom is applied on emissive materials
+                if (mipLevel == 0) {
                      auto& prepass{ blackboard.Get<PrepassModuleInfo>() };
                      builder.UseResource( prepass.mGBufferEmissiveTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                     builder.UseResource( postprocess.mBloomChainImages[mipLevel], FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
-                 } else {
+                     builder.UseResource( postprocess.mBloomChainImages[mipLevel].mImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+                } else {
                      // I read from previous mip and write to this mip
-                     builder.UseResource( postprocess.mBloomChainImages[mipLevel - 1], FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                     builder.UseResource( postprocess.mBloomChainImages[mipLevel], FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
-                 }
-             },
-             []( CommandContext&, Blackboard& ) -> void {
-                 // fullscreen additive blur
-             } );
+                     builder.UseResource( postprocess.mBloomChainImages[mipLevel - 1].mImage, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                     builder.UseResource( postprocess.mBloomChainImages[mipLevel].mImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+                }
+            },
+            [this, mipLevel]( CommandContext& ctx, Blackboard& b ) -> void {
+                const auto& prePassData{ b.Get<PrepassModuleInfo>() };
+                const auto& finalCompData{ b.Get<GeomShadingModuleInfo>() };
+                const auto& postProcessData{ b.Get<PostProcessModuleInfo>() };
+
+                // Emissive texture uses default render resolution specified by renderer
+                auto dimensions{ InferDimensions( mResolution ) };
+
+                FGTextureHandle readImage{};
+                if (mipLevel == 0) {
+                    readImage = prePassData.mGBufferEmissiveTarget;
+                } else {
+                    // I read from previous mip and write to this mip
+                    dimensions.first = postProcessData.mBloomChainImages[mipLevel].mWidth;
+                    dimensions.second = postProcessData.mBloomChainImages[mipLevel].mHeight;
+                    readImage = postProcessData.mBloomChainImages[mipLevel - 1].mImage;
+                }
+
+                const auto graphicsState{ ContextRenderState{}
+                    .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
+                    .AddRenderTarget( postProcessData.mBloomChainImages[mipLevel].mImage, kColorGreen, LoadOp::eClear ) };
+                ctx.BeginRender( graphicsState );
+
+                struct DrawParams {
+                    u32 mSampler{};
+                    u32 mTargetImage{};
+                } params{
+                    .mSampler = ctx.PushSampler( finalCompData.mSkyboxCubeSampler ),
+                    .mTargetImage = ctx.PushTexture_SRV( readImage ) };
+                ctx.PushConstants( params );
+
+                ctx.SetViewportState( ViewportState{}
+                    .AddViewportAndScissorRect( Viewport( as<f32>( dimensions.first ), as<f32>( dimensions.second ) ) ) );
+
+                ctx.BindPipeline( postProcessData.mBloomDownSamplePipeline );
+                ctx.Draw( 3 );
+
+                ctx.EndRender();
+            } );
         }
 
         // Upsampling chain
@@ -466,12 +520,39 @@ namespace mikoto::renderer {
                     const i32 srcMip{ as<i32>( kMaxBloomChainImages - mipLevel ) };
                     const i32 dstMip{ srcMip - 1 };
 
-                    builder.UseResource( postprocess.mBloomChainImages[srcMip], FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                    builder.UseResource( postprocess.mBloomChainImages[dstMip], FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+                    builder.UseResource( postprocess.mBloomChainImages[srcMip].mImage, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    builder.UseResource( postprocess.mBloomChainImages[dstMip].mImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 },
+                [mipLevel]( CommandContext& ctx, Blackboard& b ) -> void {
+                    const auto& finalCompData{ b.Get<GeomShadingModuleInfo>() };
+                    const auto& postProcessData{ b.Get<PostProcessModuleInfo>() };
 
-                []( CommandContext&, Blackboard& ) -> void {
-                    // fullscreen additive blur
+                    const i32 srcMip{ as<i32>( kMaxBloomChainImages - mipLevel ) };
+                    const i32 dstMip{ srcMip - 1 };
+
+                    const auto dimensions{ eastl::pair<f32, f32>{ postProcessData.mBloomChainImages[dstMip].mWidth,
+                        postProcessData.mBloomChainImages[dstMip].mHeight} };
+
+                    const auto graphicsState{ ContextRenderState{}
+                        .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
+                        .AddRenderTarget( postProcessData.mBloomChainImages[dstMip].mImage, kColorGreen, LoadOp::eClear ) };
+                    ctx.BeginRender( graphicsState );
+
+                    struct DrawParams {
+                        u32 mSampler{};
+                        u32 mTargetImage{};
+                    } params{
+                        .mSampler = ctx.PushSampler( finalCompData.mSkyboxCubeSampler ),
+                        .mTargetImage = ctx.PushTexture_SRV( postProcessData.mBloomChainImages[srcMip].mImage ) };
+                    ctx.PushConstants( params );
+
+                    ctx.SetViewportState( ViewportState{}
+                        .AddViewportAndScissorRect( Viewport( as<f32>( dimensions.first ), as<f32>( dimensions.second ) ) ) );
+
+                    ctx.BindPipeline( postProcessData.mBloomUpSamplePipeline );
+                    ctx.Draw( 3 );
+
+                    ctx.EndRender();
                 } );
         }
     }

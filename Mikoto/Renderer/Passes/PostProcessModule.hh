@@ -57,9 +57,17 @@ namespace mikoto::renderer {
         core::f32 mScatter{ 0.7f };
         core::u32 mMipCount{ 4 };
 
+        FGPipelineHandle mBloomUpSamplePipeline{};
+        FGPipelineHandle mBloomDownSamplePipeline{};
+
         // Fixed order: mBloomChainImages[0] highest mip (original resolution)
         // Resolution decreases as we move towards end of vector
-        eastl::fixed_vector<FGTextureHandle, kMaxBloomChainImages> mBloomChainImages{};
+        struct ImageDescription {
+            core::f32 mWidth{};
+            core::f32 mHeight{};
+            FGTextureHandle mImage{};
+        };
+        eastl::fixed_vector<ImageDescription, kMaxBloomChainImages> mBloomChainImages{};
 
         // Post-process
 

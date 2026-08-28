@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "base/Base.slang"
-#include "base/Camera_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 
 struct FSOutput {
     float4 Color : SV_Target0;
@@ -33,18 +33,17 @@ struct FSInput {
 // Remember to add bilinear minification filter for this texture!
 // Remember to use a floating-point texture format (for HDR)!
 // Remember to use edge clamping for this texture!
-[[vk::binding(Slot_0, STATIC_SAMPLERS_SET_INDEX)]]
-Sampler2D srcTexture;
+struct DrawParams {
+    uint mSamplerID;
+    uint mTargetImageID;
 
-[[vk::binding(Slot_0, BUFFER_VIEWS_SET_INDEX)]] 
-ConstantBuffer<CameraInfo, ScalarDataLayout> u_Camera;
-
-struct BloomDownParameters {
-    float2 Resolution;
+    float2 mResolution;
 };
 
-[[vk::push_constant]]
-BloomDownParameters u_Constants;
+MKT_DECLARE_SAMPLERS samplers;
+
+MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
@@ -52,7 +51,10 @@ FSOutput main(FSInput input) {
 
     float2 texCoord = input.UV;
 
-    float2 srcTexelSize = 1.0 / u_Constants.Resolution;
+    SamplerState sampler = samplers[parameters.mSamplerID];
+    Texture2D srcTexture = textures[parameters.mTargetImageID];
+
+    float2 srcTexelSize = 1.0 / parameters.mResolution;
     float x = srcTexelSize.x;
     float y = srcTexelSize.y;
 
@@ -63,22 +65,22 @@ FSOutput main(FSInput input) {
     // - l - m -
     // g - h - i
     // === ('e' is the current texel) ===
-    float3 a = srcTexture.Sample(float2(texCoord.x - 2 * x, texCoord.y + 2 * y)).rgb;
-    float3 b = srcTexture.Sample(float2(texCoord.x, texCoord.y + 2 * y)).rgb;
-    float3 c = srcTexture.Sample(float2(texCoord.x + 2 * x, texCoord.y + 2 * y)).rgb;
+    float3 a = srcTexture.Sample(sampler, float2(texCoord.x - 2 * x, texCoord.y + 2 * y)).rgb;
+    float3 b = srcTexture.Sample(sampler, float2(texCoord.x, texCoord.y + 2 * y)).rgb;
+    float3 c = srcTexture.Sample(sampler, float2(texCoord.x + 2 * x, texCoord.y + 2 * y)).rgb;
 
-    float3 d = srcTexture.Sample(float2(texCoord.x - 2 * x, texCoord.y)).rgb;
-    float3 e = srcTexture.Sample(float2(texCoord.x, texCoord.y)).rgb;
-    float3 f = srcTexture.Sample(float2(texCoord.x + 2 * x, texCoord.y)).rgb;
+    float3 d = srcTexture.Sample(sampler, float2(texCoord.x - 2 * x, texCoord.y)).rgb;
+    float3 e = srcTexture.Sample(sampler, float2(texCoord.x, texCoord.y)).rgb;
+    float3 f = srcTexture.Sample(sampler, float2(texCoord.x + 2 * x, texCoord.y)).rgb;
 
-    float3 g = srcTexture.Sample(float2(texCoord.x - 2 * x, texCoord.y - 2 * y)).rgb;
-    float3 h = srcTexture.Sample(float2(texCoord.x, texCoord.y - 2 * y)).rgb;
-    float3 i = srcTexture.Sample(float2(texCoord.x + 2 * x, texCoord.y - 2 * y)).rgb;
+    float3 g = srcTexture.Sample(sampler, float2(texCoord.x - 2 * x, texCoord.y - 2 * y)).rgb;
+    float3 h = srcTexture.Sample(sampler, float2(texCoord.x, texCoord.y - 2 * y)).rgb;
+    float3 i = srcTexture.Sample(sampler, float2(texCoord.x + 2 * x, texCoord.y - 2 * y)).rgb;
 
-    float3 j = srcTexture.Sample(float2(texCoord.x - x, texCoord.y + y)).rgb;
-    float3 k = srcTexture.Sample(float2(texCoord.x + x, texCoord.y + y)).rgb;
-    float3 l = srcTexture.Sample(float2(texCoord.x - x, texCoord.y - y)).rgb;
-    float3 m = srcTexture.Sample(float2(texCoord.x + x, texCoord.y - y)).rgb;
+    float3 j = srcTexture.Sample(sampler, float2(texCoord.x - x, texCoord.y + y)).rgb;
+    float3 k = srcTexture.Sample(sampler, float2(texCoord.x + x, texCoord.y + y)).rgb;
+    float3 l = srcTexture.Sample(sampler, float2(texCoord.x - x, texCoord.y - y)).rgb;
+    float3 m = srcTexture.Sample(sampler, float2(texCoord.x + x, texCoord.y - y)).rgb;
 
     // Apply weighted distribution:
     // 0.5 + 0.125 + 0.125 + 0.125 + 0.125 = 1

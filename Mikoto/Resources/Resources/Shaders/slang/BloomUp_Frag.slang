@@ -13,7 +13,8 @@
 // limitations under the License.
 
 #include "base/Base.slang"
-#include "base/Camera_Helpers.slang"
+#include "base/Memory_Helpers.slang"
+
 struct FSOutput {
     float4 Color : SV_Target0;
 };
@@ -30,12 +31,23 @@ struct FSInput {
 // Remember to add bilinear minification filter for this texture!
 // Remember to use a floating-point texture format (for HDR)!
 // Remember to use edge clamping for this texture!
-[[vk::binding(Slot_0, STATIC_SAMPLERS_SET_INDEX)]]
-Sampler2D srcTexture;
+struct DrawParams {
+    uint mSamplerID;
+    uint mTargetImageID;
+};
+
+MKT_DECLARE_SAMPLERS samplers;
+
+MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
+
+    SamplerState sampler = samplers[parameters.mSamplerID];
+    Texture2D srcTexture = textures[parameters.mTargetImageID];
 
     float filterRadius = 0.005f;
     float2 texCoord = input.UV;
@@ -50,17 +62,17 @@ FSOutput main(FSInput input) {
     // d - e - f
     // g - h - i
     // === ('e' is the current texel) ===
-    float3 a = srcTexture.Sample(float2(texCoord.x - x, texCoord.y + y)).rgb;
-    float3 b = srcTexture.Sample(float2(texCoord.x, texCoord.y + y)).rgb;
-    float3 c = srcTexture.Sample(float2(texCoord.x + x, texCoord.y + y)).rgb;
+    float3 a = srcTexture.Sample(sampler, float2(texCoord.x - x, texCoord.y + y)).rgb;
+    float3 b = srcTexture.Sample(sampler, float2(texCoord.x, texCoord.y + y)).rgb;
+    float3 c = srcTexture.Sample(sampler, float2(texCoord.x + x, texCoord.y + y)).rgb;
 
-    float3 d = srcTexture.Sample(float2(texCoord.x - x, texCoord.y)).rgb;
-    float3 e = srcTexture.Sample(float2(texCoord.x, texCoord.y)).rgb;
-    float3 f = srcTexture.Sample(float2(texCoord.x + x, texCoord.y)).rgb;
+    float3 d = srcTexture.Sample(sampler, float2(texCoord.x - x, texCoord.y)).rgb;
+    float3 e = srcTexture.Sample(sampler, float2(texCoord.x, texCoord.y)).rgb;
+    float3 f = srcTexture.Sample(sampler, float2(texCoord.x + x, texCoord.y)).rgb;
 
-    float3 g = srcTexture.Sample(float2(texCoord.x - x, texCoord.y - y)).rgb;
-    float3 h = srcTexture.Sample(float2(texCoord.x, texCoord.y - y)).rgb;
-    float3 i = srcTexture.Sample(float2(texCoord.x + x, texCoord.y - y)).rgb;
+    float3 g = srcTexture.Sample(sampler, float2(texCoord.x - x, texCoord.y - y)).rgb;
+    float3 h = srcTexture.Sample(sampler, float2(texCoord.x, texCoord.y - y)).rgb;
+    float3 i = srcTexture.Sample(sampler, float2(texCoord.x + x, texCoord.y - y)).rgb;
 
     // Apply weighted distribution, by using a 3x3 tent filter:
     //  1   | 1 2 1 |

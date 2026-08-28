@@ -27,10 +27,10 @@
 #include <shlobj.h>
 #endif
 
-namespace mikoto {
+namespace mikoto::filesystem {
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
-     auto OpenAndSelectFile( const std::wstring &filePath ) -> void {
+     auto OpenAndSelectFile( const eastl::wstring &filePath ) -> void {
          PIDLIST_ABSOLUTE pidl{ ILCreateFromPathW( filePath.c_str() ) };
          if ( pidl ) {
              SHOpenFolderAndSelectItems( pidl, 0, nullptr, 0 );
@@ -39,12 +39,12 @@ namespace mikoto {
      }
  #endif
 
-     auto filesystem::GetGetAbsolutePath( std::string_view path ) -> Path {
+     auto GetGetAbsolutePath( std::string_view path ) -> Path {
          Path absolutePath{ std::filesystem::absolute( path ) };
          return absolutePath;
      }
 
-    auto filesystem::CreateIfNotExistsDirectory( const Path &path ) -> bool {
+    auto CreateIfNotExistsDirectory( const Path &path ) -> bool {
         std::error_code ec{};
         const bool created{ std::filesystem::create_directories(path.GetPathTyped<std::string>(), ec) };
 
@@ -55,7 +55,7 @@ namespace mikoto {
         return created;
     }
 
-    auto filesystem::DisplayPopUp( eastl::string_view title, eastl::string_view message, PopUpChoice choice, PopUpIcon icon, core::i32 timeOut ) -> void {
+    auto DisplayPopUp( eastl::string_view title, eastl::string_view message, PopUpChoice choice, PopUpIcon icon, core::i32 timeOut ) -> void {
         constexpr auto kChoiceConvert{
             [](PopUpChoice choice) -> pfd::choice {
                 switch ( choice ) {
@@ -92,7 +92,7 @@ namespace mikoto {
          (void)m.ready( timeOut );
     }
 
-    auto filesystem::OpenFolderDialog() -> eastl::string {
+    auto OpenFolderDialog() -> eastl::string {
          auto result{ pfd::select_folder( "Select a folder", pfd::path::home() ).result() };
          if ( !result.empty() ) {
              return result.c_str();
@@ -100,7 +100,7 @@ namespace mikoto {
          return {};
     }
 
-    auto filesystem::OpenFileDialog( const FileDialogPair &filter ) -> eastl::string {
+    auto OpenFileDialog( const FileDialogPair &filter ) -> eastl::string {
          auto result = pfd::open_file( filter.mDescription.c_str(), filter.mPattern.c_str() ).result();
          if ( !result.empty() ) {
              return result[0].c_str();
@@ -108,7 +108,7 @@ namespace mikoto {
          return {};
     }
 
-    auto filesystem::OpenFileDialog( std::initializer_list<FileDialogPair> filters ) -> eastl::string {
+    auto OpenFileDialog( std::initializer_list<FileDialogPair> filters ) -> eastl::string {
          std::vector<std::string> filterList{};
          for ( const auto &filter: filters ) {
              filterList.push_back( filter.mDescription.c_str() );
@@ -121,13 +121,13 @@ namespace mikoto {
          return {};
     }
 
-    auto filesystem::OpenInExplorer( const Path &path ) -> void {
+    auto OpenInExplorer( const Path &path ) -> void {
 #if defined( MIKOTO_PLATFORM_WINDOWS )
+        eastl::wstring widePath{ path.GetPathTyped<eastl::wstring>() };
         if ( std::filesystem::is_regular_file( path.GetPathTyped<std::filesystem::path>() ) ) {
-            //OpenAndSelectFile( path.GetPathTyped<std::wstring>() );
+            OpenAndSelectFile( widePath );
         } else {
-            //std::wstring widePath{ path.GetPathTyped<std::wstring>() };
-            //ShellExecuteW( nullptr, L"open", widePath.c_str(), nullptr, nullptr, SW_SHOWDEFAULT );
+            ShellExecuteW( nullptr, L"open", widePath.c_str(), nullptr, nullptr, SW_SHOWDEFAULT );
         }
 #endif
     }

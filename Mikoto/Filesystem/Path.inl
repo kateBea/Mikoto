@@ -42,16 +42,16 @@ namespace mikoto::filesystem {
             return mPathUtf8.c_str();
         } else if constexpr ( std::is_same_v<StringType, std::filesystem::path> ) {
             return std::filesystem::path{ mPathUtf8.c_str() };
-        } else if constexpr ( std::is_same_v<StringType, std::string> ) {
-            return std::string{ mPathUtf8.c_str() };
         } else if constexpr ( std::is_same_v<StringType, std::wstring> ) {
             return std::filesystem::path{ mPathUtf8.c_str() }.wstring();
+        } else if constexpr ( std::is_same_v<StringType, eastl::wstring> ) {
+            return eastl::wstring{ string::ToWide( mPathUtf8 ) };
         } else {
             MKT_STATIC_ASSERT( false, "Not valid string type" );
         }
 
         // Make compiler happy
-        return "";
+        return StringType{};
     }
 }// namespace mikoto::filesystem
 

@@ -47,8 +47,8 @@ namespace mikoto::filesystem {
     MKT_NODISCARD auto IsRelativePath(const Path& path) -> bool;
 
     struct FileDialogPair {
-        eastl::string mPattern{};
         eastl::string mDescription{};
+        eastl::string mFilePattern{};
     };
 
     enum class PopUpChoice {
@@ -66,6 +66,8 @@ namespace mikoto::filesystem {
         eError,
         eQuestion,
     };
+
+    MKT_NODISCARD auto SaveFileDialog( eastl::string_view fileName,  std::initializer_list<FileDialogPair> filters ) -> Path;
 
     MKT_NODISCARD auto OpenFolderDialog() -> eastl::string;
     MKT_NODISCARD auto OpenFileDialog( const FileDialogPair &filter ) -> eastl::string;

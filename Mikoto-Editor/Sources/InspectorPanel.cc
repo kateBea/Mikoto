@@ -160,14 +160,14 @@ namespace mikoto::editor {
     }
 
     static auto UpdateMaterialTexture( PhysicalMaterial& standardMat, MapType mapType ) -> void {
-        const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+        const std::initializer_list<FileDialogPair> filters{
             { "Textures", "jpg,jpeg,png" },
             { "JPG", "jpg" },
             { "JPEG", "jpeg" },
             { "PNG", "png" }
         };
 
-        const Path path{ FileService::Get()->OpenDialog( filters ) };
+        const Path path{ filesystem::OpenFileDialog( filters ) };
         if ( !path.IsEmpty() ) {
             TextureHandle texture{ asset::AssetsService::Get()->LoadAsset<ITexture>( path, TextureDimension::eTexture2D ) };
             if (!texture.IsEmpty()) {
@@ -177,14 +177,14 @@ namespace mikoto::editor {
     }
 
     static auto LoadMaterialTexture( SkyboxMaterial& skyboxMat, SkyboxFace face ) -> void {
-        const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+        const std::initializer_list<FileDialogPair> filters{
                 { "Textures", "jpg,jpeg,png" },
                 { "JPG", "jpg" },
                 { "JPEG", "jpeg" },
                 { "PNG", "png" }
         };
 
-        const Path path{ FileService::Get()->OpenDialog( filters ) };
+        const Path path{ filesystem::OpenFileDialog( filters ) };
 
         if ( !path.IsEmpty() ) {
             TextureHandle textureHandle{ AssetsService::Get()->LoadAsset<ITexture>( path, TextureDimension::eTexture2D ) };
@@ -195,7 +195,7 @@ namespace mikoto::editor {
     }
 
     static auto LoadMaterialTexture( SkyboxMaterial& skyboxMat ) -> void {
-        const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+        const std::initializer_list<FileDialogPair> filters{
             { "Textures", "jpg,jpeg,png,hdr" },
             { "JPG", "jpg" },
             { "JPEG", "jpeg" },
@@ -203,7 +203,7 @@ namespace mikoto::editor {
             { "HDR", "hdr" }
         };
 
-        const Path path{ FileService::Get()->OpenDialog( filters ) };
+        const Path path{ filesystem::OpenFileDialog( filters ) };
 
         if ( !path.IsEmpty() ) {
             TextureHandle textureHandle{ AssetsService::Get()->LoadAsset<ITexture>( path, TextureDimension::eTexture2D ) };
@@ -1264,11 +1264,11 @@ namespace mikoto::editor {
         ImGui::SameLine();
 
         if ( ImGui::Button( fmt::format( " {} Load ", ICON_MD_SEARCH ).c_str() ) ) {
-            const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+            const std::initializer_list<FileDialogPair> filters{
                 { "LUA Files", "lua" }
             };
 
-            Path path{ FileService::Get()->OpenDialog( filters ) };
+            Path path{ filesystem::OpenFileDialog( filters ) };
             if ( !path.IsEmpty() ) {
                 scriptComponent.SetScript( ScriptingService::Get()->LoadScript( path, std::addressof( entity ) ) );
             }
@@ -1535,7 +1535,7 @@ namespace mikoto::editor {
         static bool loading{ false };
         if ( ImGui::Button( fmt::format( " {} Load ", ICON_MD_SEARCH ).c_str() ) ) {
             threading::TaskService::Get()->Submit( [rootEntity = std::addressof(entity), scene ]() -> void {
-                const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+                const std::initializer_list<FileDialogPair> filters{
                     { "Model files", "obj,gltf,fbx,glb" },
                     { "OBJ files", "obj" },
                     { "glTF files", "gltf" },
@@ -1543,7 +1543,7 @@ namespace mikoto::editor {
                     { "GLB files", "glb" },
                 };
 
-                Path targetModelPath{ FileService::Get()->OpenDialog( filters ) };
+                Path targetModelPath{ filesystem::OpenFileDialog( filters ) };
 
                 if ( !targetModelPath.IsEmpty() ) {
                     ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( targetModelPath ) };
@@ -1857,11 +1857,11 @@ namespace mikoto::editor {
         ImGui::SameLine();
         if ( ImGui::Button( "Load Font" ) ) {
             threading::TaskService::Get()->Submit( [&]() -> void {
-                const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+                const std::initializer_list<FileDialogPair> filters{
                     { "Font Files", "ttf" }
                 };
 
-                Path path{ FileService::Get()->OpenDialog( filters ) };
+                Path path{ filesystem::OpenFileDialog( filters ) };
                 if ( !path.IsEmpty() ) {
                     FontHandle newFont{ AssetsService::Get()->LoadAsset<Font>( path ) };
 
@@ -2034,11 +2034,11 @@ namespace mikoto::editor {
                 loading = true;
 
                 threading::TaskService::Get()->Submit( [&]() -> void {
-                    const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+                    const std::initializer_list<FileDialogPair> filters{
                         { "Audio Files", "wav,mp3,ogg" }
                     };
 
-                    Path path{ FileService::Get()->OpenDialog( filters ) };
+                    Path path{ filesystem::OpenFileDialog( filters ) };
                     if ( !path.IsEmpty() ) {
                         AudioHandle newClip{ AssetsService::Get()->LoadAsset<Audio>( AudioLoadDescription {
                             .mFile{ FileService::Get()->LoadFile( path ) }

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <nfd.hpp>
-
 #include <EASTL/memory.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
@@ -32,80 +30,10 @@ namespace mikoto::filesystem {
 
     FileService::FileService( const FileServiceCreateInfo& ) {}
 
-    auto FileService::SaveDialog( const eastl::string& defaultName, const std::initializer_list<eastl::pair<eastl::string, eastl::string>>& filters ) -> Path {
-        // Use method from mikoto::filesystem instead for file dialogs
-
-        std::string saveFilePath{};
-
-        // Process filters
-        std::vector<nfdfilteritem_t> filterItems{};
-
-        for ( const auto& [filterName, filterExtensions]: filters ) {
-            filterItems.emplace_back( nfdfilteritem_t{ filterName.data(), filterExtensions.data() } );
-        }
-
-        // initialize NFD
-        NFD::Guard nfdGuard{};
-
-        // auto-freeing memory
-        NFD::UniquePath outPath{};
-
-        // show the dialog
-        nfdresult_t result{ NFD::SaveDialog( outPath, filterItems.data(), filterItems.size(), nullptr, defaultName.data() ) };
-
-        if ( result == NFD_OKAY ) {
-            saveFilePath = outPath.get();
-        } else if ( result == NFD_CANCEL ) {
-            MKT_CORE_LOGGER_INFO( "Filesystem::SaveDialog - User canceled File open dialog" );
-        } else {
-            MKT_CORE_LOGGER_ERROR( "Filesystem::SaveDialog - Error in  File open dialog: {}", NFD::GetError() );
-        }
-
-        // NFD::Guard will automatically quit NFD.
-
-        return Path{ saveFilePath.c_str() };
-    }
-
-    auto FileService::OpenDialog( const std::initializer_list<eastl::pair<eastl::string, eastl::string>>& filters ) -> Path {
-        std::string filePath{};
-
-        // Process filters
-        std::vector<nfdfilteritem_t> filterItems{};
-
-        for ( const auto& [filterName, filterExtensions]: filters ) {
-            filterItems.emplace_back( nfdfilteritem_t{ filterName.data(), filterExtensions.data() } );
-        }
-
-        // initialize NFD
-        NFD::Guard nfdGuard{};
-
-        // auto-freeing memory
-        NFD::UniquePath outPath{};
-
-        // show the dialog
-        nfdresult_t result{ NFD::OpenDialog( outPath, filterItems.data(), filterItems.size() ) };
-
-        if ( result == NFD_OKAY ) {
-            filePath = outPath.get();
-        } else if ( result == NFD_CANCEL ) {
-            MKT_CORE_LOGGER_INFO( "User canceled File open dialog" );
-        } else {
-            MKT_CORE_LOGGER_ERROR( "Error in  File open dialog: {}", NFD::GetError() );
-        }
-
-        // NFD::Guard will automatically quit NFD.
-
-        return Path{ filePath };
-    }
-
     auto FileService::Initialize() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         MKT_CORE_LOGGER_INFO( "Initializing FileService..." );
-
-        if ( const auto result{ NFD::Init() == NFD_OKAY }; !result ) {
-            MKT_THROW_RUNTIME_ERROR( "FileManager - Failed to initialized File dialog library NFD." );
-        }
 
         mIsInitialized = true;
     }
@@ -120,8 +48,6 @@ namespace mikoto::filesystem {
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down FileService..." );
-
-        NFD::Quit();
     }
 
     auto FileService::LoadFile( const Path& path ) -> FileHandle {

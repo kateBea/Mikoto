@@ -48,10 +48,6 @@ namespace mikoto::filesystem {
         MKT_NODISCARD auto GetFile( const Path& path ) -> FileHandle;
         MKT_NODISCARD auto GetFile( const Path& path ) const -> const FileHandle;
 
-        // TODO: move to Filesystem helpers
-        MKT_NODISCARD auto OpenDialog( const std::initializer_list<eastl::pair<eastl::string, eastl::string>>& filters ) -> Path;
-        MKT_NODISCARD auto SaveDialog( const eastl::string& filename, const std::initializer_list<eastl::pair<eastl::string, eastl::string>>& filters ) -> Path;
-
         ~FileService() override = default;
 
     private:

@@ -8,14 +8,9 @@ cmake_minimum_required(VERSION 3.22)
 # --------------------------------------
 # CMP0135: DOWNLOAD_EXTRACT_TIMESTAMP
 # Reference: https://cmake.org/cmake/help/latest/policy/CMP0135.html
-# --------------------------------------
-# CMP0077
-# For NFD
-# Reference: https://cmake.org/cmake/help/latest/policy/CMP0077.html
 # ======================================
 cmake_policy(SET CMP0069 NEW)
 cmake_policy(SET CMP0135 NEW)
-cmake_policy(SET CMP0077 NEW)
 
 project(Mikoto VERSION 1.0 )
 
@@ -301,7 +296,6 @@ FetchContent_Declare(fmt
         GIT_TAG 11.0.2
 )
 FetchContent_MakeAvailable(fmt)
-#set_property(TARGET fmt PROPERTY FOLDER "ThirdParty")
 
 # glfw
 FetchContent_Declare(glfw
@@ -309,7 +303,6 @@ FetchContent_Declare(glfw
         GIT_TAG 3.3.9
 )
 FetchContent_MakeAvailable(glfw)
-#set_property(TARGET glfw PROPERTY FOLDER "ThirdParty")
 
 # ImGui (docking branch)
 FetchContent_Declare(imgui
@@ -317,7 +310,6 @@ FetchContent_Declare(imgui
         GIT_TAG v1.92.9b-docking
 )
 FetchContent_MakeAvailable(imgui)
-#set_property(TARGET imgui PROPERTY FOLDER "ThirdParty")
 
 # ImGuizmo
 FetchContent_Declare(ImGuizmo
@@ -325,7 +317,6 @@ FetchContent_Declare(ImGuizmo
         GIT_TAG 1.10
 )
 FetchContent_MakeAvailable(ImGuizmo)
-#set_property(TARGET ImGuizmo PROPERTY FOLDER "ThirdParty")
 
 # toml++ (header-only)
 FetchContent_Declare(tomlplusplus
@@ -333,7 +324,6 @@ FetchContent_Declare(tomlplusplus
         GIT_TAG v3.4.0
 )
 FetchContent_MakeAvailable(tomlplusplus)
-#set_property(TARGET tomlplusplus PROPERTY FOLDER "ThirdParty")
 
 # cpptrace
 FetchContent_Declare(cpptrace
@@ -341,7 +331,6 @@ FetchContent_Declare(cpptrace
         GIT_TAG v0.7.3
 )
 FetchContent_MakeAvailable(cpptrace)
-#set_property(TARGET cpptrace PROPERTY FOLDER "ThirdParty")
 
 # unordered_dense (header-only)
 FetchContent_Declare(unordered_dense
@@ -349,7 +338,6 @@ FetchContent_Declare(unordered_dense
         GIT_TAG v4.4.0
 )
 FetchContent_MakeAvailable(unordered_dense)
-#set_property(TARGET unordered_dense PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # EnTT
@@ -359,7 +347,6 @@ FetchContent_Declare(entt
         GIT_TAG v3.13.0
 )
 FetchContent_MakeAvailable(entt)
-#set_property(TARGET entt PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # Flecs
@@ -371,7 +358,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(flecs)
-#set_property(TARGET flecs PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # Direct3D Headers
@@ -383,7 +369,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(DirectX-Headers)
-#set_property(TARGET DirectX-Headers PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # PFD
@@ -394,7 +379,6 @@ FetchContent_Declare(
         GIT_TAG main
 )
 FetchContent_MakeAvailable(pfd)
-#set_property(TARGET pfd PROPERTY FOLDER "ThirdParty")
 
 # nlohmann_json
 FetchContent_Declare(
@@ -402,7 +386,6 @@ FetchContent_Declare(
         URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
 )
 FetchContent_MakeAvailable(nlohmann_json)
-#set_property(TARGET nlohmann_json PROPERTY FOLDER "ThirdParty")
 
 # Miniaudio
 FetchContent_Declare(miniaudio
@@ -410,7 +393,6 @@ FetchContent_Declare(miniaudio
         GIT_TAG 0.11.23
 )
 FetchContent_MakeAvailable(miniaudio)
-#set_property(TARGET miniaudio PROPERTY FOLDER "ThirdParty")
 
 # SpirV-Reflect
 FetchContent_Declare(spirv_reflect
@@ -418,7 +400,6 @@ FetchContent_Declare(spirv_reflect
         GIT_TAG main
 )
 FetchContent_MakeAvailable(spirv_reflect)
-#set_property(TARGET spirv_reflect PROPERTY FOLDER "ThirdParty")
 
 # Spirv Cross
 FetchContent_Declare(
@@ -434,8 +415,6 @@ FetchContent_Declare(volk
         GIT_TAG 1.4.304
 )
 FetchContent_MakeAvailable(volk)
-#set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
-
 
 # VulkanMemoryAllocator
 FetchContent_Declare(VulkanMemoryAllocator
@@ -443,7 +422,6 @@ FetchContent_Declare(VulkanMemoryAllocator
         GIT_TAG v3.3.0
 )
 FetchContent_MakeAvailable(VulkanMemoryAllocator)
-#set_property(TARGET VulkanMemoryAllocator PROPERTY FOLDER "ThirdParty")
 
 # yaml-cpp
 FetchContent_Declare(yaml_cpp
@@ -451,15 +429,6 @@ FetchContent_Declare(yaml_cpp
         GIT_TAG 0.8.0
 )
 FetchContent_MakeAvailable(yaml_cpp)
-#set_property(TARGET yaml_cpp PROPERTY FOLDER "ThirdParty")
-
-# nativefiledialog-extended
-FetchContent_Declare(nfd
-        GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended.git
-        GIT_TAG v1.1.1
-)
-FetchContent_MakeAvailable(nfd)
-#set_property(TARGET nfd PROPERTY FOLDER "ThirdParty")
 
 # freetype
 FetchContent_Declare(freetype
@@ -467,7 +436,6 @@ FetchContent_Declare(freetype
         GIT_TAG VER-2-13-2
 )
 FetchContent_MakeAvailable(freetype)
-#set_property(TARGET freetype PROPERTY FOLDER "ThirdParty")
 
 # JoltPhysics
 FetchContent_Declare(JoltPhysics
@@ -476,7 +444,6 @@ FetchContent_Declare(JoltPhysics
         SOURCE_SUBDIR Build
 )
 FetchContent_MakeAvailable(JoltPhysics)
-#set_property(TARGET JoltPhysics PROPERTY FOLDER "ThirdParty")
 
 # assimp
 FetchContent_Declare(assimp
@@ -484,7 +451,6 @@ FetchContent_Declare(assimp
         GIT_TAG v5.4.3
 )
 FetchContent_MakeAvailable(assimp)
-#set_property(TARGET assimp PROPERTY FOLDER "ThirdParty")
 
 # msdfgen
 FetchContent_Declare(msdfgen
@@ -492,7 +458,6 @@ FetchContent_Declare(msdfgen
         GIT_TAG v1.12
 )
 FetchContent_MakeAvailable(msdfgen)
-#set_property(TARGET msdfgen PROPERTY FOLDER "ThirdParty")
 
 # msdf-atlas-gen
 FetchContent_Declare(msdf_atlas_gen
@@ -500,7 +465,6 @@ FetchContent_Declare(msdf_atlas_gen
         GIT_TAG v1.3
 )
 FetchContent_MakeAvailable(msdf_atlas_gen)
-#set_property(TARGET msdf_atlas_gen PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # spdlog
@@ -510,7 +474,6 @@ FetchContent_Declare(spdlog
         GIT_TAG v1.12.0  # latest stable release
 )
 FetchContent_MakeAvailable(spdlog)
-#set_property(TARGET spdlog PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # STB_Image
@@ -520,7 +483,6 @@ FetchContent_Declare(stb
         GIT_TAG master  # stable is usually master for stb
 )
 FetchContent_MakeAvailable(stb)
-#set_property(TARGET stb PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # Toml++
@@ -530,7 +492,6 @@ fetchcontent_declare(tomlplusplus
         GIT_TAG v3.4.0
 )
 FetchContent_MakeAvailable(tomlplusplus)
-#set_property(TARGET tomlplusplus PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # GLM
@@ -542,7 +503,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(glm)
-#set_property(TARGET glm PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # Taskflow
@@ -554,7 +514,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(taskflow)
-#set_property(TARGET taskflow PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # sol2
@@ -566,7 +525,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(sol2)
-#set_property(TARGET sol2 PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # Asio
@@ -578,7 +536,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(asio)
-#set_property(TARGET asio PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # Tracy
@@ -590,7 +547,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(tracy)
-#set_property(TARGET tracy PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # Ozz
@@ -602,7 +558,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(ozz-animation)
-#set_property(TARGET ozz-animation PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # D3D12MemoryAllocator
@@ -614,7 +569,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(D3D12MemoryAllocator)
-#set_property(TARGET D3D12MemoryAllocator PROPERTY FOLDER "ThirdParty")
 
 # -------------------------------------------------------
 # Slang ( Target AMD64 architectures by default, see how to change this later)
@@ -642,7 +596,6 @@ elseif(UNIX)
             "${SLANG_LIB_DIR}/libslang-compiler.so"
     )
 endif()
-
 
 #Filewatch
 # Using https://github.com/ThomasMonkman/filewatch/tree/feature/fix-filesystem (currently working branch)
@@ -826,7 +779,6 @@ set(LIBRARIES
         assimp
         yaml-cpp
         glm
-        nfd
         cpptrace::cpptrace
         freetype
         Jolt
@@ -915,7 +867,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${yaml_cpp_SOURCE_DIR}/include
         ${nlohmann_json_SOURCE_DIR}/include
         ${unordered_dense_SOURCE_DIR}/include
-        ${nfd_SOURCE_DIR}/src
         ${freetype_SOURCE_DIR}/include
         ${joltphysics_SOURCE_DIR}/Jolt
         ${assimp_SOURCE_DIR}/include

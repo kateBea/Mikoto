@@ -92,6 +92,18 @@ namespace mikoto::filesystem {
          (void)m.ready( timeOut );
     }
 
+    auto SaveFileDialog( eastl::string_view fileName,  std::initializer_list<FileDialogPair> filters ) -> Path {
+         std::vector<std::string> filterList{};
+         for (const auto& item : filters) {
+             filterList.emplace_back( item.mDescription.c_str() );
+             filterList.emplace_back( item.mFilePattern.c_str() );
+         }
+
+         pfd::save_file f{ pfd::save_file("Choose file to save", pfd::path::home(), filterList, pfd::opt::none) };
+
+         return Path{ f.result() };
+    }
+
     auto OpenFolderDialog() -> eastl::string {
          auto result{ pfd::select_folder( "Select a folder", pfd::path::home() ).result() };
          if ( !result.empty() ) {
@@ -101,7 +113,7 @@ namespace mikoto::filesystem {
     }
 
     auto OpenFileDialog( const FileDialogPair &filter ) -> eastl::string {
-         auto result = pfd::open_file( filter.mDescription.c_str(), filter.mPattern.c_str() ).result();
+         auto result = pfd::open_file( filter.mDescription.c_str(), pfd::path::home() ).result();
          if ( !result.empty() ) {
              return result[0].c_str();
          }
@@ -112,9 +124,9 @@ namespace mikoto::filesystem {
          std::vector<std::string> filterList{};
          for ( const auto &filter: filters ) {
              filterList.push_back( filter.mDescription.c_str() );
-             filterList.push_back( filter.mPattern.c_str() );
+             filterList.push_back( filter.mFilePattern.c_str() );
          }
-         auto result{ pfd::open_file( "Select a file", "", filterList ).result() };
+         auto result{ pfd::open_file( "Select a file", pfd::path::home(), filterList ).result() };
          if ( !result.empty() ) {
              return result[0].c_str();
          }

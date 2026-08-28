@@ -34,6 +34,8 @@
 #include <Scene/Entity.hh>
 #include <Scene/Component.hh>
 
+#include <Filesystem/FileSystem.hh>
+
 #include <Assets/AssetsService.hh>
 
 #include <Threading/TaskService.hh>
@@ -367,7 +369,7 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER_NAMED();
 
         threading::TaskService::Get()->Submit( [this, root]() -> void {
-            const std::initializer_list<eastl::pair<eastl::string, eastl::string>> filters{
+            const std::initializer_list<FileDialogPair> filters{
                 { "Model files", "obj,gltf,fbx,glb" },
                 { "OBJ files", "obj" },
                 { "glTF files", "gltf" },
@@ -375,7 +377,7 @@ namespace mikoto::editor {
                 { "GLB files", "glb" },
             };
 
-            const Path path{ FileService::Get()->OpenDialog( filters ) };
+            const Path path{ filesystem::OpenFileDialog( filters ) };
             if (path.IsEmpty()) {
                 return;
             }

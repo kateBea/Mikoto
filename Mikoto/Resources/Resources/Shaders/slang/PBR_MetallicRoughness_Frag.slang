@@ -24,15 +24,21 @@
 #include "base/ClusteringLights_Helpers.slang"
 
 struct DrawParams {
-    Pointer mGeometryAllocationBuffer;
-    Pointer mSkinningBuffer;
-    Pointer mGeometryBuffer;
-    Pointer mCameraBuffer;
+    Pointer mGeometryDescPtr;
+    Pointer mSkinningPtr;
+    Pointer mGeometryPtr;
+    Pointer mCameraPtr;
 
-    uint mMaterialsBufferID;
-    uint mClusterBufferID;
+    Pointer mMaterialsPtr;
 
-    uint mLightCullingBufferID;
+    Pointer mClusterPtr;
+    Pointer mLightsPtr;
+
+    float2 mGridSize1;
+    float2 mGridSize2;
+
+    uint mEnableSsao;
+
     uint mBrdfColorTargetID;
     uint mPrefilterCubeRtID;
     uint mIrradianceCubeRtID;
@@ -40,14 +46,8 @@ struct DrawParams {
     uint mSamplerCubeID;
     uint mSamplerBasicID;
 
-    float4 mGridSize;
-    float mExposure;
-    float mGamma;
 
     uint mActiveLightCount;
-
-    uint mEnableSsao;
-    float mSsaoIntensity;
 
     uint mPrefilteredCubeMipLevels;
     float mScaleIblAmbient;
@@ -112,15 +112,15 @@ struct FSInput {
 };
 
 // Calculation of the lighting contribution from an optional Image Based Light source.
-float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor, float perceptualRoughness, float3 n, float3 reflection, Texture2D brdf, TextureCube irradianceMap, TextureCube prefilterMap, SamplerState sampler) {
+float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor, float perceptualRoughness, float3 n, float3 reflection, Texture2D brdf, TextureCube irradianceMap, TextureCube prefilterMap, SamplerState sampler, CameraInfo camera) {
     // Avoid rough reflections sample invalid mip levels
     float lod = perceptualRoughness * (parameters.mPrefilteredCubeMipLevels - 1);
 
     // retrieve a scale and bias to F0. See [1], Figure 3
     float3 brdf = brdf.Sample(sampler, float2(NdotV, 1.0 - perceptualRoughness)).rgb;
 
-    float3 diffuseLight = SRGBtoLINEAR(Tonemap_Uncharted2(irradianceMap.Sample(sampler, n), parameters.mExposure, parameters.mGamma)).rgb;
-    float3 specularLight = SRGBtoLINEAR(Tonemap_Uncharted2(prefilterMap.SampleLevel(sampler, reflection, lod), parameters.mExposure, parameters.mGamma)).rgb;
+    float3 diffuseLight = SRGBtoLINEAR(Tonemap_Uncharted2(irradianceMap.Sample(sampler, n), camera.mExposure, camera.mGamma)).rgb;
+    float3 specularLight = SRGBtoLINEAR(Tonemap_Uncharted2(prefilterMap.SampleLevel(sampler, reflection, lod), camera.mExposure, camera.mGamma)).rgb;
 
     float3 diffuse = diffuseLight * diffuseColor;
     float3 specular = specularLight * (specularColor * brdf.x + brdf.y);
@@ -389,13 +389,10 @@ FSOutput main(FSInput input) {
     FSOutput output;
 
     // Fecth buffers
-    ByteAddressBuffer materialsBuffer = buffers[parameters.mMaterialsBufferID];
-    MaterialParameters material = materialsBuffer.Read<MaterialParameters>(0, input.MaterialIndex);
+    MaterialParameters* materialsBuffer = (MaterialParameters*)parameters.mMaterialsPtr;
+    MaterialParameters material = materialsBuffer[input.MaterialIndex];
 
-    ByteAddressBuffer clusterBuffer = buffers[parameters.mClusterBufferID];
-    ByteAddressBuffer lightCullingBuffer = buffers[parameters.mLightCullingBufferID];
-
-    CameraInfo *camera = (CameraInfo *)parameters.mCameraBuffer;
+    CameraInfo camera = *((CameraInfo *)parameters.mCameraPtr);
 
     // Fectch textures and samplers as needed, based on the material properties
     SamplerState samplerCube = samplers[parameters.mSamplerCubeID]; // nearest clamped sampler for cube maps
@@ -520,7 +517,7 @@ FSOutput main(FSInput input) {
         n.y *= -1.0f;
     }
 
-    float3 v = normalize(camera->mViewPosition.xyz - input.FragmentWorldPos); // Vector from surface point to camera
+    float3 v = normalize(camera.mViewPosition.xyz - input.FragmentWorldPos); // Vector from surface point to camera
     float3 reflection = normalize(reflect(-v, n));
 
     BaseInputs inputs;
@@ -535,15 +532,23 @@ FSOutput main(FSInput input) {
     float3 lightContribution = float3(0.0);
 
     // Cluster resolve
-    // TODO: Check first if there are active lights 
-    uint clusterIndex = ComputeTileIndex(input.FragmentViewPos, parameters.mGridSize.xyz, 
-        camera->mPlanes.xy, input.ScreenPos, camera->mScreenDimensions.xy);
+    // TODO: Check first if there are active lights
+    Cluster *clusterBuffer = (Cluster *)parameters.mClusterPtr;
+    LightInfo *lightCullingBuffer = (LightInfo *)parameters.mLightsPtr;
 
-    Cluster cluster = clusterBuffer.Read<Cluster>(0, clusterIndex);
+    float3 gridSize = float3(parameters.mGridSize1.xy, parameters.mGridSize2.x);
 
-    for (uint i = 0; i < cluster.mCount && parameters.mActiveLightCount != 0; ++i) {
-        uint lightIndex = cluster.mLightIndices[i];
-        LightInfo light = lightCullingBuffer.Read<LightInfo>(0, lightIndex);
+    uint clusterIndex = ComputeTileIndex(input.FragmentViewPos, gridSize,
+        camera.mPlanes.xy, input.ScreenPos, camera.mScreenDimensions.xy);
+
+    // Slang produces invalid code when using structured buffers with arrays
+    // error: line 1008: OpPhi's number of incoming blocks (3) does not match block's predecessor count (2).
+    // % 840 = OpPhi % int % 841 % 90 % int_0 % 87 % int_0 % 87
+    //Cluster cluster = clusterBuffer[clusterIndex];
+
+    for (uint i = 0; i < clusterBuffer[clusterIndex].mCount && parameters.mActiveLightCount != 0; ++i) {
+        uint lightIndex = clusterBuffer[clusterIndex].mLightIndices[i];
+        LightInfo light = lightCullingBuffer[lightIndex];
 
         if (light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL) {
 
@@ -578,7 +583,7 @@ FSOutput main(FSInput input) {
     float3 iblLighting = float3(0.0);
 
     if (parameters.mIsSkyboxActive == MKT_SHADER_TRUE) {
-        iblLighting = GetIBLContribution(NdotV, diffuseColor, specularColor, perceptualRoughness, n, reflection, brdfLUT, irradianceMap, prefilteredMap, samplerBasic);
+        iblLighting = GetIBLContribution(NdotV, diffuseColor, specularColor, perceptualRoughness, n, reflection, brdfLUT, irradianceMap, prefilteredMap, samplerBasic, camera);
     }
 
     // Final color
@@ -588,7 +593,7 @@ FSOutput main(FSInput input) {
     float ssao = 1.0f;
 
     if (parameters.mEnableSsao != MKT_SHADER_FALSE) {
-        float2 uv = input.ScreenPos.xy / camera->mScreenDimensions.xy;
+        float2 uv = input.ScreenPos.xy / camera.mScreenDimensions.xy;
 
         //ssao = parameters.mBl == MKT_SHADER_TRUE ? u_SSAOBlur.Sample(uv).r : u_SSAO.Sample(uv).r;
         //ssao = pow(ssao, u_Constants.SSAOIntensity);
@@ -602,7 +607,9 @@ FSOutput main(FSInput input) {
 
         float ao = aoMap.Sample(samplerBasic, aoUVSet).r;
 
-        color *= lerp(color, color * ao, parameters.mSsaoIntensity) * ssaoContrib;
+        float ssaoIntensity = 1.0f;
+
+        color *= lerp(color, color * ao, ssaoIntensity) * ssaoContrib;
     }
 
     // Emission

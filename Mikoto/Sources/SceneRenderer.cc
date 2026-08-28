@@ -178,11 +178,13 @@ namespace mikoto::renderer {
 
     auto SceneRenderer::SetGamma( f32 gamma ) -> void {
         mGeometryShading.SetGamma( gamma );
+        mCameraPass.SetGamma( gamma );
         mPostEffectsPasses.SetGamma( gamma );
     }
 
     auto SceneRenderer::SetExposure( f32 exposure ) -> void {
         mGeometryShading.SetExposure( exposure );
+        mCameraPass.SetExposure( exposure );
         mPostEffectsPasses.SetExposure( exposure );
     }
 

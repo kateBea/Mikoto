@@ -38,4 +38,7 @@ struct CameraInfo {
     float4 mViewPosition;
     float4 mPlanes;
     float4 mScreenDimensions;
+
+    float mGamma;
+    float mExposure;
 };

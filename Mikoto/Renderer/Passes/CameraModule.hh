@@ -36,6 +36,9 @@ namespace mikoto::renderer {
 
         core::float4 mPlaneBounds{}; // Near and far plane (x = zNear, y = zFar)
         core::float4 mScreenDimensions{}; // Width and Height (x = Width, y = Height)
+
+        core::f32 mGamma{ 2.0f };
+        core::f32 mExposure{ 1.0f };
     };
 
     struct CameraModuleInfo {
@@ -48,6 +51,8 @@ namespace mikoto::renderer {
 
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
+        auto SetGamma( core::f32 value ) -> void;
+        auto SetExposure( core::f32 value ) -> void;
         auto SetCamera( const scene::Camera* camera ) -> void;
 
     private:
@@ -58,7 +63,10 @@ namespace mikoto::renderer {
         CameraData mCameraData{};
         const scene::Camera* mCamera{};
 
-        rhi::RenderResolution mResolution{};
+        core::f32 mGamma{ 1.0f };
+        core::f32 mExposure{ 1.0f };
+
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
     };
 }// namespace mikoto::renderer
 

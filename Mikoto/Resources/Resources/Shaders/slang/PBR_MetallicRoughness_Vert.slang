@@ -24,10 +24,16 @@ struct DrawParams {
     Pointer mGeometryPtr;
     Pointer mCameraPtr;
 
-    uint mMaterialsBufferID;
-    uint mClusterBufferID;
+    Pointer mMaterialsPtr;
 
-    uint mLightCullingBufferID;
+    Pointer mClusterPtr;
+    Pointer mLightsPtr;
+
+    float2 mGridSize1;
+    float2 mGridSize2;
+
+    uint mEnableSsao;
+
     uint mBrdfColorTargetID;
     uint mPrefilterCubeRtID;
     uint mIrradianceCubeRtID;
@@ -35,14 +41,7 @@ struct DrawParams {
     uint mSamplerCubeID;
     uint mSamplerBasicID;
 
-    float4 mGridSize;
-    float mExposure;
-    float mGamma;
-
     uint mActiveLightCount;
-
-    uint mEnableSsao;
-    float mSsaoIntensity;
 
     uint mPrefilteredCubeMipLevels;
     float mScaleIblAmbient;

@@ -771,16 +771,24 @@ namespace mikoto::renderer {
                 finalCompData.mExposure = mExposure;
                 finalCompData.mGamma = mGamma;
 
-                struct DrawParams {
-                    SPointer mGeometryAllocationBuffer{};
+                struct alignas(16) DrawParams {
+                    SPointer mGeometryDescBuffer{};
                     SPointer mSkinningBuffer{};
                     SPointer mGeometryBuffer{};
                     SPointer mCameraBuffer{};
 
-                    u32 mMaterialsBufferID{};
-                    u32 mClusterBufferID{};
+                    SPointer mMaterialsBuffer{};
 
-                    u32 mLightCullingBufferID{};
+                    SPointer mClusterBuffer{};
+                    SPointer mLightsBuffer{};
+
+                    // Split because push constant use st430
+                    // float4 is messed up
+                    float2 mGridSize1{};
+                    float2 mGridSize2{};
+
+                    u32 mEnableSsao{};
+
                     u32 mBrdfColorTargetID{};
                     u32 mPrefilterCubeRtID{};
                     u32 mIrradianceCubeRtID{};
@@ -788,15 +796,7 @@ namespace mikoto::renderer {
                     u32 mSamplerCubeID{};
                     u32 mSamplerBasicID{};
 
-                    // Pull from camera
-                    float4 mGridSize{};
-                    f32 mExposure{ 1.0f };
-                    f32 mGamma{ 2.0f };
-
                     u32 mActiveLightCount{};
-
-                    u32 mEnableSsao{ MKT_SHADER_FALSE };
-                    f32 mSsaoIntensity{ 1.f };
 
                     u32 mPrefilteredCubeMipLevels{};
                     f32 mScaleIblAmbient{ 1.0f };
@@ -806,15 +806,20 @@ namespace mikoto::renderer {
                     u32 mDirectionalShadowsInfoBufferID{};
                     u32 mDirectionalShadowCastersCount{};
                 } params{
-                    .mGeometryAllocationBuffer = ctx.GetDeviceBufferAddress( geometryData.mGeometryAllocBuffer ),
+                    .mGeometryDescBuffer = ctx.GetDeviceBufferAddress( geometryData.mGeometryAllocBuffer ),
                     .mSkinningBuffer = ctx.GetDeviceBufferAddress( geometryData.mSkinningBuffer ),
                     .mGeometryBuffer = ctx.GetDeviceBufferAddress( geometryData.mGeometryBuffer ),
                     .mCameraBuffer = ctx.GetDeviceBufferAddress( cameraData.mCameraData ),
 
-                    .mMaterialsBufferID = ctx.PushBuffer_SRV( geometryData.mMaterialsBuffer ),
+                    .mMaterialsBuffer = ctx.GetDeviceBufferAddress( geometryData.mMaterialsBuffer ),
 
-                    .mClusterBufferID = ctx.PushBuffer_SRV( prePassData.mClusterBuffer ),
-                    .mLightCullingBufferID = ctx.PushBuffer_SRV( prePassData.mLightsBuffer ),
+                    .mClusterBuffer = ctx.GetDeviceBufferAddress( prePassData.mClusterBuffer ),
+                    .mLightsBuffer = ctx.GetDeviceBufferAddress( prePassData.mLightsBuffer ),
+
+                    .mGridSize1 = { prePassData.mGridSize[0], prePassData.mGridSize[1] },
+                    .mGridSize2 = { prePassData.mGridSize[2], prePassData.mGridSize[3] },
+
+                    .mEnableSsao = mEnableSsao ? MKT_SHADER_TRUE : MKT_SHADER_FALSE,
 
                     .mBrdfColorTargetID = ctx.PushTexture_SRV( finalCompData.mBrdfColorTarget ),
                     .mPrefilterCubeRtID = ctx.PushTexture_SRV( finalCompData.mPrefilterCubeRT ),
@@ -823,12 +828,7 @@ namespace mikoto::renderer {
                     .mSamplerCubeID = ctx.PushSampler( finalCompData.mSkyboxCubeSampler ),
                     .mSamplerBasicID = ctx.PushSampler( finalCompData.mDefaultSampler ),
 
-                    .mGridSize = prePassData.mGridSize,
-                    .mExposure = mExposure,
-                    .mGamma = mGamma,
                     .mActiveLightCount = prePassData.mActiveLightCount,
-                    .mEnableSsao = mEnableSsao ? MKT_SHADER_TRUE : MKT_SHADER_FALSE,
-                    .mSsaoIntensity = mSsaoIntensity,
                     .mPrefilteredCubeMipLevels = mPrefilterMipLevels,
                     .mScaleIblAmbient = mAbientScale,
                     .mIsSkyboxActive = mBackgroundType != SceneBackgroundType::eClearColor ? MKT_SHADER_TRUE : MKT_SHADER_FALSE,

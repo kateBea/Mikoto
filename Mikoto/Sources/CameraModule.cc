@@ -33,6 +33,14 @@ namespace mikoto::renderer {
         : mResolution{ resolution }
     {}
 
+    auto CameraModule::SetExposure( f32 exposure ) -> void {
+        mExposure = exposure;
+    }
+
+    auto CameraModule::SetGamma( float value ) -> void {
+        mGamma = value;
+    }
+
     auto CameraModule::RegisterPasses( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -72,6 +80,9 @@ namespace mikoto::renderer {
                 mCameraData.mScreenDimensions = float4{ dimensions.first, dimensions.second, .0f, .0f };
                 mCameraData.mCameraPosition = float4{ mCamera->GetPosition(), 1.0f };
                 mCameraData.mInverseViewProjection = glm::inverse( mCameraData.mProjection * mCameraData.mView );
+
+                mCameraData.mGamma = mGamma;
+                mCameraData.mExposure = mExposure;
 
                 ctx.CopyBuffer( data.mCameraData, mCameraData, 0 );
             });

@@ -45,12 +45,11 @@ SkinningResult ApplySkinning(VertexDescription vertex, MeshGeometryInfo meshInfo
     float3 normal = float3(0, 0, 0);
     if (meshInfo.SkinningMatricesID != -1) {
         uint animatorIndex = meshInfo.SkinningMatricesID - 1;
-        uint boneBase = animatorIndex * MAX_BONES;
 
-        float4x4 inJoinx = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.x];
-        float4x4 inJoiny = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.y];
-        float4x4 inJoinz = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.z];
-        float4x4 inJoinw = skinningBuffer[boneBase].mBoneMatrices[(uint)inJoint0.w];
+        float4x4 inJoinx = skinningBuffer[animatorIndex].mBoneMatrices[(uint)inJoint0.x];
+        float4x4 inJoiny = skinningBuffer[animatorIndex].mBoneMatrices[(uint)inJoint0.y];
+        float4x4 inJoinz = skinningBuffer[animatorIndex].mBoneMatrices[(uint)inJoint0.z];
+        float4x4 inJoinw = skinningBuffer[animatorIndex].mBoneMatrices[(uint)inJoint0.w];
 
         float4x4 skinMat =
             inWeight0.x * inJoinx +

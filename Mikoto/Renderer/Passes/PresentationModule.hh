@@ -27,16 +27,11 @@ namespace mikoto::renderer {
         eGBuffer_Emissive,
         eGBuffer_Normals,
         eGBuffer_Position,
-
         eWireframe,
         eDepthPrepass,
-
         ePBRadiance_Output,
-
         eTonemap_Output,
-
         eChromaticAberration,
-
         eCount,
     };
 

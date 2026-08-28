@@ -279,6 +279,9 @@ namespace mikoto::editor {
 
         mEditorState->mSceneRenderer = mSceneRenderer.get();
         mEditorState->mThumbnailRenderer = mThumbnailRenderer.get();
+
+        // Prepare final image
+        mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eTonemap_Output );
     }
 
     auto EditorLayer::InitEditorCamera() -> void {
@@ -759,6 +762,37 @@ namespace mikoto::editor {
                     if (ImGui::MenuItem( "Display Grid", nullptr, mShowInfiniteGrid )) {
                         mShowInfiniteGrid = !mShowInfiniteGrid;
                     }
+
+                    if (ImGui::BeginMenu( "Output" )) {
+                        if (ImGui::MenuItem( "Color" )) {
+                            mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eGBuffer_Color );
+                        }
+                        if (ImGui::MenuItem( "Emission" )) {
+                            mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eGBuffer_Emissive );
+                        }
+                        if (ImGui::MenuItem( "Normals" )) {
+                            mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eGBuffer_Normals );
+                        }
+                        if (ImGui::MenuItem( "Positions" )) {
+                            mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eGBuffer_Position );
+                        }
+                        if (ImGui::MenuItem( "Wireframe" )) {
+                            mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eWireframe );
+                        }
+                        if (ImGui::MenuItem( "Depth" )) {
+                            mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eDepthPrepass );
+                        }
+                        if (ImGui::MenuItem( "Radiance" )) {
+                            mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::ePBRadiance_Output );
+                        }
+                        if (ImGui::MenuItem( "Default" )) {
+                            mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eTonemap_Output );
+                        }
+                        if (ImGui::MenuItem( "Chroma" )) {
+                            mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eChromaticAberration );
+                        }
+                        ImGui::EndMenu();
+                    }
                     ImGui::EndMenu();
                 }
 
@@ -809,7 +843,6 @@ namespace mikoto::editor {
 
     auto EditorLayer::RenderScene( float ) -> void {
         mSceneRenderer->Render( mEditorState->mActiveScene );
-        mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eChromaticAberration );
     }
 
     auto EditorLayer::RenderFrameGraphEditor() -> void {

@@ -54,10 +54,6 @@ namespace mikoto::renderer {
 
     }
 
-    auto GeometryShadingModule::SetEnableWireframe( bool enable ) -> void {
-        mIsWireframeActive = true;
-    }
-
     auto GeometryShadingModule::SetClearColor( const Color& color ) -> void {
         // Not sure if this is correct but otherwise clear colors look weird when tone-mapped.
         // Clear color is assumed to be in LDR we just conver it to an HDR value.
@@ -771,7 +767,7 @@ namespace mikoto::renderer {
                 finalCompData.mExposure = mExposure;
                 finalCompData.mGamma = mGamma;
 
-                struct alignas(16) DrawParams {
+                struct DrawParams {
                     SPointer mGeometryDescBuffer{};
                     SPointer mSkinningBuffer{};
                     SPointer mGeometryBuffer{};
@@ -915,10 +911,6 @@ namespace mikoto::renderer {
                 builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
             },
             [this]( CommandContext& ctx, Blackboard& b ) -> void {
-                if (!mIsWireframeActive) {
-                    return;
-                }
-
                 const auto& wireframeData{ b.Get<WireframeData>() };
                 const auto& prePassData{ b.Get<PrepassModuleInfo>() };
                 const auto& cameraPassData{ b.Get<CameraModuleInfo>() };

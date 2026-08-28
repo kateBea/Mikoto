@@ -8,9 +8,14 @@ cmake_minimum_required(VERSION 3.22)
 # --------------------------------------
 # CMP0135: DOWNLOAD_EXTRACT_TIMESTAMP
 # Reference: https://cmake.org/cmake/help/latest/policy/CMP0135.html
-# ======================================
+# --------------------------------------
+# CMP0077
+# For NFD
+# Reference: https://cmake.org/cmake/help/latest/policy/CMP0077.html
+# --------------------------------------
 cmake_policy(SET CMP0069 NEW)
 cmake_policy(SET CMP0135 NEW)
+cmake_policy(SET CMP0077 NEW)
 
 project(Mikoto VERSION 1.0 )
 
@@ -369,6 +374,15 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(DirectX-Headers)
+
+# -------------------------------------------------------
+# nativefiledialog-extended
+# -------------------------------------------------------
+FetchContent_Declare(nfd
+        GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended.git
+        GIT_TAG v1.3.0
+)
+FetchContent_MakeAvailable(nfd)
 
 # -------------------------------------------------------
 # PFD
@@ -779,6 +793,7 @@ set(LIBRARIES
         assimp
         yaml-cpp
         glm
+        nfd
         cpptrace::cpptrace
         freetype
         Jolt
@@ -867,6 +882,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${yaml_cpp_SOURCE_DIR}/include
         ${nlohmann_json_SOURCE_DIR}/include
         ${unordered_dense_SOURCE_DIR}/include
+        ${nfd_SOURCE_DIR}/src/include
         ${freetype_SOURCE_DIR}/include
         ${joltphysics_SOURCE_DIR}/Jolt
         ${assimp_SOURCE_DIR}/include

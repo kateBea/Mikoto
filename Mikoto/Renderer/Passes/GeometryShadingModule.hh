@@ -108,7 +108,6 @@ namespace mikoto::renderer {
         // Wireframe
         // Makes it so that our final composition image is merged with wireframe view
         auto SetMergeWireframeToFinalOutput( bool merge ) -> void;
-        auto SetEnableWireframe( bool enable ) -> void;
 
         // SSAO
         auto SetEnableSsao( bool enable ) -> void;
@@ -189,9 +188,6 @@ namespace mikoto::renderer {
         core::f32 mExposure{ 1.0f };
         core::f32 mAbientScale{ 1.0f };
         material::MaterialHandle mSkyboxMaterial{};
-
-        // Wireframe
-        bool mIsWireframeActive{ false };
 
         eastl::fixed_hash_map<material::SkyboxFace, FGTextureHandle, 6> mSkyboxFaces{};
 

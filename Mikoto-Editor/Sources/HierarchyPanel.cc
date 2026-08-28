@@ -374,9 +374,7 @@ namespace mikoto::editor {
                 { "OBJ files", "obj" },
                 { "glTF files", "gltf" },
                 { "FBX files", "fbx" },
-                { "GLB files", "glb" },
-            };
-
+                { "GLB files", "glb" } };
             const Path path{ filesystem::OpenFileDialog( filters ) };
             if (path.IsEmpty()) {
                 return;

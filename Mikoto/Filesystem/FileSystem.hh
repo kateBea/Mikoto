@@ -30,7 +30,7 @@ namespace mikoto::filesystem {
     MKT_NODISCARD auto IsRegularFile(const Path& path) -> bool;
     MKT_NODISCARD auto IsDirectory(const Path& path) -> bool;
 
-    // Process current working directory
+    // Process current working directory (absolute)
     MKT_NODISCARD auto GetProcessPath() -> Path;
 
     MKT_NODISCARD auto StripFileName(eastl::string_view path) -> eastl::string;
@@ -48,7 +48,7 @@ namespace mikoto::filesystem {
 
     struct FileDialogPair {
         eastl::string mDescription{};
-        eastl::string mFilePattern{};
+        eastl::string mPattern{};
     };
 
     enum class PopUpChoice {
@@ -67,11 +67,10 @@ namespace mikoto::filesystem {
         eQuestion,
     };
 
-    MKT_NODISCARD auto SaveFileDialog( eastl::string_view fileName,  std::initializer_list<FileDialogPair> filters ) -> Path;
+    MKT_NODISCARD auto OpenFolderDialog() -> Path;
 
-    MKT_NODISCARD auto OpenFolderDialog() -> eastl::string;
-    MKT_NODISCARD auto OpenFileDialog( const FileDialogPair &filter ) -> eastl::string;
-    MKT_NODISCARD auto OpenFileDialog( std::initializer_list<FileDialogPair> filters ) -> eastl::string;
+    MKT_NODISCARD auto OpenFileDialog( std::initializer_list<FileDialogPair> filters ) -> Path;
+    MKT_NODISCARD auto SaveFileDialog( eastl::string_view defaultName, std::initializer_list<FileDialogPair> filters ) -> Path;
 
     // 1s timeout default, hangs calling thread on the popup for timeout milliseconds or until OK button is clicked
     auto DisplayPopUp( eastl::string_view title, eastl::string_view message, PopUpChoice choice, PopUpIcon icon, core::i32 timeOut = 1000 ) -> void;

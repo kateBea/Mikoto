@@ -113,7 +113,7 @@ namespace mikoto::renderer {
         mFrameGraph->SetExecutionPolicy( "SkyboxProjection_Graphics", FGExecutionPolicy::eOnWake );
 
         //For some reason this makes subsequent passes to render in Wireframe mode
-        mFrameGraph->DisablePass( "WireframePass" );
+        //mFrameGraph->DisablePass( "WireframePass" );
     }
 
     auto SceneRenderer::Shutdown() -> void {
@@ -154,6 +154,12 @@ namespace mikoto::renderer {
     }
 
     auto SceneRenderer::GetFinalImage( FinalImageType type ) -> TextureHandle {
+        if (type == FinalImageType::eWireframe ) {
+            mFrameGraph->EnablePass( "WireframePass" );
+        } else {
+            mFrameGraph->DisablePass( "WireframePass" );
+        }
+
         return mPresentationModule.GetFinalImage( *mFrameGraph, type );
     }
 
@@ -216,7 +222,7 @@ namespace mikoto::renderer {
     }
 
     auto SceneRenderer::SetEnableInfiniteGrid( bool value ) -> void {
-        if (!mFrameGraph || !mFrameGraph->IsPassPresent("InfiniteGrid")) {
+        if (!mFrameGraph) {
             return;
         }
 

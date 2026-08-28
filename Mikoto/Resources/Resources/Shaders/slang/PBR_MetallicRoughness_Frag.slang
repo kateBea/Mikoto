@@ -46,7 +46,6 @@ struct DrawParams {
     uint mSamplerCubeID;
     uint mSamplerBasicID;
 
-
     uint mActiveLightCount;
 
     uint mPrefilteredCubeMipLevels;

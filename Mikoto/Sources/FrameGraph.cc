@@ -796,19 +796,31 @@ namespace mikoto::renderer {
     }
 
     auto FrameGraph::SetExecutionPolicy( eastl::string_view passName, FGExecutionPolicy policy ) -> void {
-        MKT_ASSERT( mNodeControl->mNodes.contains( passName.data() ), string::Format( "Pass '{}' does not exist", passName.data() ) );
+        if (!mNodeControl->mNodes.contains( passName.data())) {
+            MKT_CORE_LOGGER_ERROR( "Pass '{}' does not exist", passName.data() );
+            return;
+        }
+
         mNodeControl->mNodes[passName.data()].mExecutionPolicy = policy;
     }
 
     auto FrameGraph::DisablePass( eastl::string_view passName ) -> void {
-        MKT_ASSERT( mNodeControl->mNodes.contains( passName.data() ), string::Format( "Pass '{}' does not exist", passName.data() ) );
+        if (!mNodeControl->mNodes.contains( passName.data())) {
+            MKT_CORE_LOGGER_ERROR( "Pass '{}' does not exist", passName.data() );
+            return;
+        }
+
         mNodeControl->mNodes[passName.data()].mIsAlive = false;
 
         CullGraphNodes();
     }
 
     auto FrameGraph::EnablePass( eastl::string_view passName ) -> void {
-        MKT_ASSERT( mNodeControl->mNodes.contains( passName.data() ), string::Format( "Pass '{}' does not exist", passName.data() ) );
+        if (!mNodeControl->mNodes.contains( passName.data())) {
+            MKT_CORE_LOGGER_ERROR( "Pass '{}' does not exist", passName.data() );
+            return;
+        }
+
         mNodeControl->mNodes[passName.data()].mIsAlive = true;
 
         CullGraphNodes();

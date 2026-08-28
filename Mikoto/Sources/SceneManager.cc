@@ -47,11 +47,11 @@ namespace mikoto::scene {
     auto SceneManager::LoadFromDisk() -> Scene* {
         // File filters
         const std::initializer_list<FileDialogPair> filters{
-                { "Mikoto Scene files", "mkts,mktscene" },
-                { "Mikoto Project Files", "mkt,mktp,mktproject" }
+            { "Mikoto Scene files", "mkts,mktscene" },
+            { "Mikoto Project Files", "mkt,mktp,mktproject" }
         };
 
-        const Path savePath{ filesystem::SaveFileDialog( "Mikoto Scene", filters ) };
+        const Path savePath{ SaveFileDialog( "Mikoto Scene", filters ) };
         return Load( savePath );
     }
 
@@ -70,7 +70,7 @@ namespace mikoto::scene {
                 { "Mikoto Project Files", "mkt,mktp,mktproject" }
         };
 
-        const Path savePath{ filesystem::SaveFileDialog( "Mikoto Scene", filters ) };
+        const Path savePath{ SaveFileDialog( "Mikoto Scene", filters ) };
         Save( scene, savePath );
     }
 

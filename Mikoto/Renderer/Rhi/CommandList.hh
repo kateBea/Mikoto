@@ -290,6 +290,8 @@ namespace mikoto::renderer::rhi {
         virtual auto SetViewport( eastl::span<const Viewport> viewports ) -> void = 0;
         virtual auto SetScissors( eastl::span<const Rect> scissorRects ) -> void = 0;
 
+        virtual auto SetPolygonLineWidth( core::f32 width ) -> void = 0;
+
         virtual auto BindIndexBuffer( IBuffer* buffer ) -> void = 0;
         virtual auto BindIndirectBuffer( IBuffer* buffer ) -> void = 0;
         virtual auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void = 0;

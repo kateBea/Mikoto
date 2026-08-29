@@ -540,6 +540,10 @@ namespace mikoto::renderer::d3d11 {
         SetScissors( vs.mScissorRects );
     }
 
+    auto CommandList::SetPolygonLineWidth( core::f32 width ) -> void {
+        // Not supported
+    }
+
     auto CommandList::BindIndexBuffer( IBuffer *buffer ) -> void {
         if (!buffer) {
             mDeviceContextDeferred->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);

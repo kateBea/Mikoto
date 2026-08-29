@@ -883,6 +883,7 @@ namespace mikoto::renderer {
             .PushShader( "Wireframe_Frag.slang", FGStageType::ePixel ) };
         info.mPipeline = graph.Create( pipelineBuilder );
 
+        // Hardware wireframe
         graph.RegisterPass(
             "WireframePass",
             FGPassType::eGraphics,
@@ -937,6 +938,8 @@ namespace mikoto::renderer {
 
                 ctx.SetViewportState( ViewportState{}
                     .AddViewportAndScissorRect( Viewport( as<f32>( dimensions.first ), as<f32>( dimensions.second ) ) ) );
+
+                ctx.SetPolygonLineWidth( 3.0f );
 
                 ctx.BindPipeline( wireframeData.mPipeline );
 

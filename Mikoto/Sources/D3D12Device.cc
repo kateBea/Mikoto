@@ -1454,6 +1454,10 @@ namespace mikoto::renderer::d3d12 {
         SetScissors( vs.mScissorRects );
     }
 
+    auto CommandList::SetPolygonLineWidth( core::f32 width ) -> void {
+        // Not supported
+    }
+
     auto CommandList::BindIndexBuffer( IBuffer *buffer ) -> void {
         Buffer* indexBuffer{ checked_cast<Buffer*>( buffer ) };
         ID3D12Resource* resource{ *indexBuffer };

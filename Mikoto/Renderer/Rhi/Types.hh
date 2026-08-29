@@ -783,6 +783,8 @@ namespace mikoto::renderer::rhi {
     constexpr inline core::u32 kMaxBindlessRegisterSpaces{ 16 };
     constexpr inline core::u32 kMaxPushConstantSize{ 128 };
 
+    constexpr inline core::f32 kDefaultPolygonLineWidth{ 1.0f };
+
     const inline Color kColorWhite{ 1.f };
     const inline Color kColorBlack{ 0.f };
     const inline Color kColorTransparent{ 0.f, 0.f, 0.f, 0.f };

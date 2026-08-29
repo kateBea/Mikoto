@@ -103,6 +103,10 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto ImportSampler( rhi::SamplerHandle handle ) -> FGSamplerHandle;
         MKT_NODISCARD auto ImportBuffer( rhi::BufferHandle handle ) -> FGBufferHandle;
 
+        // Not all backends support this, and those who do which is basically vulkan
+        // support is limited to and dependent on the hardware
+        auto SetPolygonLineWidth( core::f32 width ) -> void;
+
         auto BindPipeline( FGPipelineHandle handle ) -> void;
 
         auto Draw( core::u32 vertexCount, core::u32 instanceCount = 1 ) -> void;

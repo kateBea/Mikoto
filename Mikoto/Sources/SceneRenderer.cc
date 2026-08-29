@@ -118,7 +118,6 @@ namespace mikoto::renderer {
 
     auto SceneRenderer::Shutdown() -> void {
         mFrameGraph = nullptr;
-        mCamera = nullptr;
         mDevice = nullptr;
 
         if (mShaderLibrary) {
@@ -224,6 +223,16 @@ namespace mikoto::renderer {
         mGeometryShading.SetRenderBackground( bg );
     }
 
+    auto SceneRenderer::SetMultisampling( rhi::Multisampling multisampling ) -> void {
+        // This might trigger a graph recompile, pending to implement graph recompile,
+        // should ideally just change what is needed.
+        mMultisampling = multisampling;
+    }
+
+    auto SceneRenderer::SetRenderResolution( rhi::RenderResolution resolution ) -> void {
+        mTargetResolution = resolution;
+    }
+
     auto SceneRenderer::SetEnableInfiniteGrid( bool value ) -> void {
         if (!mFrameGraph || !mFrameGraph->IsPassPresent( "InfiniteGrid" )) {
             return;
@@ -299,6 +308,10 @@ namespace mikoto::renderer {
 
     auto SceneRendererCreateInfo::SetDevice( IGpuDevice *device ) -> SceneRendererCreateInfo & {
         this->mDevice = device;
+        return *this;
+    }
+    auto SceneRendererCreateInfo::SetMultisampling( rhi::Multisampling multisampling ) -> SceneRendererCreateInfo & {
+        mMultisampling = multisampling;
         return *this;
     }
 

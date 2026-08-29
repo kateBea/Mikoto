@@ -1439,6 +1439,31 @@ namespace mikoto::renderer::vulkan {
         SetScissors( vs.mScissorRects );
     }
 
+    auto CommandList::SetPolygonLineWidth( core::f32 width ) -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        PhysicalDevice* pPhysicalDevice{ device->GetPhysicalDevice() };
+
+        // Does physical device support wide lines
+        if (pPhysicalDevice->mFeatures.wideLines == VK_FALSE) {
+            return;
+        }
+
+        // Is wide lines enabled?
+        if (device->GetActivePhysicalDeviceFeatures2().features.wideLines == VK_FALSE) {
+            return;
+        }
+
+        f32 minLineWidth{ pPhysicalDevice->mProperties.limits.lineWidthRange[0] };
+        f32 maxLineWidth{ pPhysicalDevice->mProperties.limits.lineWidthRange[1] };
+
+        if (!math::IsBetween(width, minLineWidth, maxLineWidth)) {
+            MKT_CORE_LOGGER_ERROR( "Trying to use polygon line width '{}' out of device limits [{}, {}]", width, minLineWidth, maxLineWidth );
+            width = rhi::kDefaultPolygonLineWidth;
+        }
+
+        vkCmdSetLineWidth(mCurrentCommandBuffer, width);
+    }
+
     auto CommandList::BindIndexBuffer( IBuffer *buffer ) -> void {
         vkCmdBindIndexBuffer( mCurrentCommandBuffer, buffer->GetNativeHandle( ObjectType::Vk_Buffer ), 0, GetIndexType(buffer->GetFormat()) );
     }

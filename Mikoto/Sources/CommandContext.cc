@@ -252,6 +252,10 @@ namespace mikoto::renderer {
         return mResourceManager->ImportBuffer(handle);
     }
 
+    auto CommandContext::SetPolygonLineWidth( core::f32 width ) -> void {
+        mCommands->SetPolygonLineWidth( width );
+    }
+
     auto CommandContext::BindPipeline( FGPipelineHandle handle ) -> void {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource pipeline{ mResourceManager->Get( handle.mHandle ) };

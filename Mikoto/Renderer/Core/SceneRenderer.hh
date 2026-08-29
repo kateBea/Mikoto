@@ -47,14 +47,18 @@
 namespace mikoto::renderer {
 
     struct SceneRendererCreateInfo {
-        IGpuDevice* mDevice{};
+        rhi::IGpuDevice* mDevice{};
         eastl::string_view mName{};
         eastl::string_view mShaderBasePath{};
 
+        rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
 
         auto SetName( eastl::string_view name ) -> SceneRendererCreateInfo&;
         auto SetDevice( rhi::IGpuDevice* device ) -> SceneRendererCreateInfo&;
+
+
+        auto SetMultisampling( rhi::Multisampling multisampling ) -> SceneRendererCreateInfo&;
         auto SetRenderResolution( rhi::RenderResolution resolution ) -> SceneRendererCreateInfo&;
     };
 
@@ -82,6 +86,9 @@ namespace mikoto::renderer {
 
         auto SetRenderBackground( SceneBackgroundType bg ) -> void;
 
+        auto SetMultisampling( rhi::Multisampling multisampling ) -> void;
+        auto SetRenderResolution( rhi::RenderResolution resolution ) -> void;
+
         auto SetEnableInfiniteGrid( bool value ) -> void;
 
         auto DisablePass( eastl::string_view passName ) -> void;
@@ -102,8 +109,8 @@ namespace mikoto::renderer {
 
     private:
         rhi::IGpuDevice* mDevice{};
-        scene::SceneCamera* mCamera{};
 
+        rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
         rhi::RenderResolution mTargetResolution{ rhi::RenderResolution::e1080P };
 
         // Passes

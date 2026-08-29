@@ -263,6 +263,8 @@ namespace mikoto::renderer::vulkan {
         auto SetScissors( eastl::span<const rhi::Rect> scissorRects ) -> void override;
         auto SetViewportState( const rhi::ViewportState& vs ) -> void override;
 
+        auto SetPolygonLineWidth( core::f32 width ) -> void override;
+
         auto BindIndexBuffer( rhi::IBuffer* buffer ) -> void override;
         auto BindIndirectBuffer( rhi::IBuffer* buffer ) -> void override;
         auto BindVertexBuffer( const rhi::VertexBufferBinding& binding ) -> void override;
@@ -700,9 +702,11 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetPhysicalDevice() -> PhysicalDevice*;
         MKT_NODISCARD auto GetAllocator() -> GpuMemoryAllocator*;
 
+        // Query the physical device features we have enabled ourselves
         MKT_NODISCARD auto GetActivePhysicalDeviceFeatures() const -> const VkPhysicalDeviceFeatures&;
         MKT_NODISCARD auto GetActivePhysicalDeviceFeatures2() const -> const VkPhysicalDeviceFeatures2&;
 
+        // Query the vulkan physical device features we have enabled ourselves
         MKT_NODISCARD auto GetActive11Features() const -> const VkPhysicalDeviceVulkan11Features&;
         MKT_NODISCARD auto GetActive12Features() const -> const VkPhysicalDeviceVulkan12Features&;
         MKT_NODISCARD auto GetActive13Features() const -> const VkPhysicalDeviceVulkan13Features&;

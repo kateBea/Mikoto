@@ -178,7 +178,7 @@ namespace mikoto::physics {
 
         // Line up motion types if it has been updated
         if (motionType != body->GetMotionType()) {
-            if (motionType != JPH::EMotionType::Static || !body->IsActive()) {
+            if (motionType == JPH::EMotionType::Static && body->IsActive()) {
                 mSimulationInfo.mBodyInterface->DeactivateBody( body->GetID() );
             }
 

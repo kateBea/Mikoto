@@ -470,6 +470,8 @@ namespace mikoto::renderer::d3d12 {
         auto SetScissors( eastl::span<const Rect> scissorRects ) -> void override;
         auto SetViewportState( const ViewportState& vs ) -> void override;
 
+        auto SetPolygonLineWidth( core::f32 width ) -> void override;
+
         auto BindIndexBuffer( IBuffer* buffer ) -> void override;
         auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void override;
         auto BindVertexBuffers( eastl::span<const VertexBufferBinding> binding ) -> void override;

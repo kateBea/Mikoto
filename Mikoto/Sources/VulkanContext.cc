@@ -75,6 +75,8 @@ namespace mikoto::renderer::vulkan {
             .SetValidationLevel( InstanceBuilder::ValidationLevel::eCore )
             .Build();
 
+        // https://erfan-ahmadi.github.io/blog/Nabla/fif
+        // https://docs.vulkan.org/samples/latest/samples/performance/swapchain_images/README.html
         mMaxFramesInFlight = kMaxFramesInFlight;
 
         // Initialize the device
@@ -261,6 +263,8 @@ namespace mikoto::renderer::vulkan {
     auto Context::PrepareFrame() -> void {
         //MKT_BEGIN_PROFILER_NAMED();
         //MKT_PROFILE_SCOPE_MARKED( "VulkanContext::PrepareFrame" );
+
+        //https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
 
         auto& frame{ mFrames[mCurrentFrameIndex] };
 

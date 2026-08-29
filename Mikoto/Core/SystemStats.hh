@@ -35,15 +35,16 @@ namespace mikoto::core {
 
         // Can be called by background thread every x time
         // to avoid overhead spinning cpu
-        auto Update(float ts) -> void override;
+        auto Update( f32 ts ) -> void override;
 
         // Tells how often we fetch system stats (in seconds)
-        auto SetUpdateFrequency( i32 frequency ) -> void;
+        auto SetUpdateFrequency( core::i32 frequency ) -> void;
 
         // CPU
         MKT_NODISCARD auto GetCpuUsage() const -> f64;
         MKT_NODISCARD auto GetCpuName() const -> eastl::string_view;
         MKT_NODISCARD auto GetProcessRamUsage() const -> f64;
+
         // In bytes
         MKT_NODISCARD auto GetSharedRam() const -> f64;
         MKT_NODISCARD auto GetFreeRam() const -> f64;
@@ -73,6 +74,6 @@ namespace mikoto::core {
 
         i32 mUpdateFrequency{ 1 };
     };
-}
+}// namespace mikoto::core
 
 #endif // MIKOTO_SYSTEM_STATS_HH

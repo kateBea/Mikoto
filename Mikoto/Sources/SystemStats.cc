@@ -31,15 +31,21 @@
 
 namespace mikoto::core {
 
+    using namespace mikoto::memory;
+
 #if defined( _WIN32 ) && defined(_MSC_VER)
 
-#include <pdh.h>
-#include <pdhmsg.h>
-#include <psapi.h>
+#include <Pdh.h>
+#include <PdhMsg.h>
+#include <Psapi.h>
 
     MKT_NODISCARD static auto ReadCpuName() -> eastl::string {
-        int cpuInfo[4]{ -1 };
-        char cpuBrandString[0x40]{};
+        // https://stackoverflow.com/questions/4443864/how-do-i-get-hardware-info-such-as-cpu-name-total-ram-etc-with-vb6
+        i32 cpuInfo[4]{ -1 };
+
+        // 0x40 + 1 because some strings are
+        // not guaranteed to be null terminated
+        char cpuBrandString[0x41]{};
 
         __cpuid( cpuInfo, 0x80000000 );
 
@@ -48,19 +54,24 @@ namespace mikoto::core {
         if ( nExIds >= 0x80000004 ) {
             int cpuData[4];
             __cpuid( cpuData, 0x80000002 );
-            memcpy( cpuBrandString, cpuData, sizeof( cpuData ) );
+            std::memcpy( cpuBrandString, cpuData, MKT_SIZEOF( cpuData ) );
+
             __cpuid( cpuData, 0x80000003 );
-            memcpy( cpuBrandString + 16, cpuData, sizeof( cpuData ) );
+            std::memcpy( cpuBrandString + 16, cpuData, MKT_SIZEOF( cpuData ) );
+
             __cpuid( cpuData, 0x80000004 );
-            memcpy( cpuBrandString + 32, cpuData, sizeof( cpuData ) );
+            std::memcpy( cpuBrandString + 32, cpuData, MKT_SIZEOF( cpuData ) );
         }
+
         return { cpuBrandString };
     }
 
     static auto GetProcessMemoryUsage() -> double {
-        PROCESS_MEMORY_COUNTERS pmc;
+        PROCESS_MEMORY_COUNTERS pmc{};
+
+        // GetProcessMemoryInfo is a macro
         if ( GetProcessMemoryInfo( GetCurrentProcess(), &pmc, sizeof( pmc ) ) ) {
-            return static_cast<double>( pmc.WorkingSetSize );
+            return as<f64>( pmc.WorkingSetSize );
         }
         return 0.0;
     }
@@ -72,7 +83,7 @@ namespace mikoto::core {
         if ( !GetSystemTimes( &idleTime, &kernelTime, &userTime ) )
             return 0.0;
 
-        ULARGE_INTEGER idle, kernel, user;
+        ULARGE_INTEGER idle{}, kernel{}, user{};
         idle.LowPart = idleTime.dwLowDateTime;
         idle.HighPart = idleTime.dwHighDateTime;
         kernel.LowPart = kernelTime.dwLowDateTime;
@@ -151,7 +162,6 @@ namespace mikoto::core {
 #endif
 
     auto SystemStats::Update( float ) -> void {
-
 #if defined( __linux__ )
         std::ifstream meminfo{ "/proc/meminfo" };
         if ( !meminfo.is_open() ) {
@@ -192,17 +202,14 @@ namespace mikoto::core {
 #endif
 
 #if defined( _WIN32 ) && defined(_MSC_VER)
-        MEMORYSTATUSEX memStatus{};
-        memStatus.dwLength = sizeof( memStatus );
-        if ( GlobalMemoryStatusEx( &memStatus ) ) {
-            mTotalRam = static_cast<double>( memStatus.ullTotalPhys );
-            mFreeRam = static_cast<double>( memStatus.ullAvailPhys );
+        MEMORYSTATUSEX memStatus{
+            .dwLength = MKT_SIZEOF( memStatus ) };
+        if ( GlobalMemoryStatusEx( MKT_ADDRESSOF( memStatus ) ) ) {
+            mTotalRam = as<f64>( memStatus.ullTotalPhys );
+            mFreeRam = as<f64>( memStatus.ullAvailPhys );
             mSharedRam = 0.0;// Windows does not expose shared memory like Linux
         }
 
-        if ( mCpuName.empty() ) {
-            mCpuName = ReadCpuName();
-        }
         mCpuUsage = GetCpuUsageWindows( mLastIdleTime, mLastKernelTime, mLastUserTime );
         mProcessRamUsage = GetProcessMemoryUsage();
 #endif
@@ -210,6 +217,14 @@ namespace mikoto::core {
 
     auto SystemStats::Initialize() -> void {
         MKT_CORE_LOGGER_DEBUG( "Initializing SystemStats" );
+
+        // No need to do this every frame, central processing unit
+        // expected to be the same the entire run
+#if defined( _WIN32 ) && defined(_MSC_VER)
+        if ( mCpuName.empty() ) {
+            mCpuName = ReadCpuName();
+        }
+#endif
 
         mIsInitialized = true;
     }

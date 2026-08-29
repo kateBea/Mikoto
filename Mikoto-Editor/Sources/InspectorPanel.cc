@@ -2294,12 +2294,14 @@ namespace mikoto::editor {
 
             ImGui::SameLine();
 
-            float4 colorFloat4{ cameraComponent.GetClearColor() };
-            constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_NoInputs };
+            if (newClearFlags == CameraClearFlags::eClearColor) {
+                float4 colorFloat4{ cameraComponent.GetClearColor() };
+                constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_NoInputs };
 
-            if ( ImGui::ColorEdit4( "##CameraClearColor", glm::value_ptr( colorFloat4 ), colorEditFlags ) ) {
-                cameraComponent.SetClearColor( colorFloat4 );
-                renderer->SetClearColor( colorFloat4 );
+                if ( ImGui::ColorEdit4( "##CameraClearColor", glm::value_ptr( colorFloat4 ), colorEditFlags ) ) {
+                    cameraComponent.SetClearColor( colorFloat4 );
+                    renderer->SetClearColor( colorFloat4 );
+                }
             }
 
             ImGui::Spacing();

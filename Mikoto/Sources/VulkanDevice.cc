@@ -390,7 +390,7 @@ namespace mikoto::renderer::vulkan {
         nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
         nameInfo.objectType = objectType;
         nameInfo.objectHandle = handle;
-        nameInfo.pObjectName = mName.c_str();
+        nameInfo.pObjectName = name.data();
 
         if ( vkSetDebugUtilsObjectNameEXT ) {
             vkSetDebugUtilsObjectNameEXT( mLogicalDevice, MKT_ADDRESSOF( nameInfo ) );

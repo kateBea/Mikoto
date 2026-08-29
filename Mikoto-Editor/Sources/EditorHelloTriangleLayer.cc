@@ -111,15 +111,15 @@ namespace mikoto::editor {
     auto EditorHelloTriangleLayer::OnDestroy() -> void {
         mDevice->WaitIdle();
 
-        mPipeline.Reset();
+        mPipeline.Release();
 
-        mVertexShader.Reset();
-        mPixelShader.Reset();
+        mVertexShader.Release();
+        mPixelShader.Release();
 
-        mColorImage.Reset();
-        mDepthImage.Reset();
+        mColorImage.Release();
+        mDepthImage.Release();
 
-        mCommandList.Reset();
+        mCommandList.Release();
     }
 
     auto EditorHelloTriangleLayer::OnUpdate( float timeStep ) -> void {

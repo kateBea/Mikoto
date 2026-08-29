@@ -146,6 +146,6 @@ namespace mikoto::network {
     }
 
     HttpClient::~HttpClient() {
-        mSocket.Reset();
+        mSocket.Release();
     }
 }

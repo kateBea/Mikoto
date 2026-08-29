@@ -82,7 +82,7 @@ namespace mikoto::material {
             .SetModuleName( shader->GetName() )
             .SetModulePath( shader->GetPath() )
             .SetLanguage( ShaderLanguage::eSlang )
-            .SetStage(type ) };
+            .SetStage( type ) };
 
         ShaderModuleHandle shaderModuleHandle{ mDevice->CreateShader( shaderDescription ) };
         if ( !shaderModuleHandle.IsEmpty() ) {

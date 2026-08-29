@@ -161,7 +161,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         if (!mKeepInitializerResources) {
-            mUploadContents.Reset();
+            mUploadContents.Release();
         }
 
         mIsAllocated = true;

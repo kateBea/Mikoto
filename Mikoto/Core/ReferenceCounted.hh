@@ -123,7 +123,7 @@ namespace mikoto::core {
             return *this;
         }
 
-        auto Reset() -> void {
+        auto Release() -> void {
             if ( mPtr ) {
                 mPtr->Free();
                 mPtr = nullptr;

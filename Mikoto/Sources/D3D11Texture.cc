@@ -247,8 +247,8 @@ namespace mikoto::renderer::d3d11 {
         }
 
         if (!mKeepInitializerResources) {
-            mImageData.Reset();
-            mBufferSpan.Reset();
+            mImageData.Release();
+            mBufferSpan.Release();
         }
     }
 

@@ -108,24 +108,24 @@ namespace mikoto::renderer::vulkan {
         Device* device{ checked_cast<Device*>(mDevice.get()) };
         device->WaitIdle();
 
-        mPipeline.Reset();
-        mPipelineLayoutHandle.Reset();
-        mBindingLayoutHandle.Reset();
+        mPipeline.Release();
+        mPipelineLayoutHandle.Release();
+        mBindingLayoutHandle.Release();
 
-        mBindlessLayout.Reset();
-        mDescriptorTable.Reset();
+        mBindlessLayout.Release();
+        mDescriptorTable.Release();
 
-        mVertexShader.Reset();
-        mPixelShader.Reset();
+        mVertexShader.Release();
+        mPixelShader.Release();
 
-        mSamplerState.Reset();
+        mSamplerState.Release();
 
-        mBindingSetHandle.Reset();
+        mBindingSetHandle.Release();
 
-        mCommandList.Reset();
+        mCommandList.Release();
 
-        mPresentTarget.Reset();
-        mSwapchain.Reset();
+        mPresentTarget.Release();
+        mSwapchain.Release();
 
         mFrames.clear();
 

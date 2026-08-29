@@ -120,7 +120,7 @@ namespace mikoto::renderer::d3d11 {
         }
 
         // Release initial data
-        mUploadContents.Reset();
+        mUploadContents.Release();
     }
 
     auto Buffer::Release() -> void {

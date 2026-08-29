@@ -119,7 +119,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Context::Shutdown() -> void {
-        mPresentTarget.Reset();
+        mPresentTarget.Release();
     }
 
     auto Context::SubmitFrame() -> void {

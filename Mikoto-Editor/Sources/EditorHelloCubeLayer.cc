@@ -269,26 +269,26 @@ namespace mikoto::editor {
     auto EditorHelloCubeLayer::OnDestroy() -> void {
         mDevice->WaitIdle();
 
-        mPipeline.Reset();
-        mPipelineWireframe.Reset();
-        mPipelineLayoutHandle.Reset();
-        mBindingLayoutHandle.Reset();
-        mVertexInputLayout.Reset();
+        mPipeline.Release();
+        mPipelineWireframe.Release();
+        mPipelineLayoutHandle.Release();
+        mBindingLayoutHandle.Release();
+        mVertexInputLayout.Release();
 
-        mVertexShader.Reset();
-        mPixelShader.Reset();
+        mVertexShader.Release();
+        mPixelShader.Release();
 
-        mConstantBuffer.Reset();
+        mConstantBuffer.Release();
 
-        mSimpleTexture.Reset();
-        mColorImage.Reset();
-        mDepthImage.Reset();
+        mSimpleTexture.Release();
+        mColorImage.Release();
+        mDepthImage.Release();
 
-        mSamplerState.Reset();
+        mSamplerState.Release();
 
-        mBindingSetHandle.Reset();
+        mBindingSetHandle.Release();
 
-        mCommandList.Reset();
+        mCommandList.Release();
     }
 
     auto EditorHelloCubeLayer::OnUpdate( float timeStep ) -> void {

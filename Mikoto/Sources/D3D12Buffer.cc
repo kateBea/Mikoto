@@ -285,7 +285,7 @@ namespace mikoto::renderer::d3d12 {
         }
 
         if (!mKeepInitializerResources) {
-            mUploadContents.Reset();
+            mUploadContents.Release();
         }
 
         mIsAllocated = true;

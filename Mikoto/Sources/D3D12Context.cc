@@ -273,26 +273,26 @@ namespace mikoto::renderer::d3d12 {
 
         mDevice->WaitIdle();
 
-        mPipeline.Reset();
-        mPipelineLayoutHandle.Reset();
-        mBindingLayoutHandle.Reset();
+        mPipeline.Release();
+        mPipelineLayoutHandle.Release();
+        mBindingLayoutHandle.Release();
 
-        mBindlessLayout.Reset();
-        mDescriptorTable.Reset();
+        mBindlessLayout.Release();
+        mDescriptorTable.Release();
 
-        mVertexShader.Reset();
-        mPixelShader.Reset();
+        mVertexShader.Release();
+        mPixelShader.Release();
 
-        mSamplerState.Reset();
+        mSamplerState.Release();
 
-        mBindingSetHandle.Reset();
+        mBindingSetHandle.Release();
 
-        mCommandList.Reset();
+        mCommandList.Release();
 
-        mPresentTarget.Reset();
-        mSwapChain.Reset();
+        mPresentTarget.Release();
+        mSwapChain.Release();
 
-        mFence.Reset();
+        mFence.Release();
 
         mShaderCompiler->Shutdown();
         mShaderCompiler.reset();

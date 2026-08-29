@@ -124,8 +124,8 @@ namespace mikoto::gui {
         // Handles need to be disabled as the destruction of the graphics context
         // is deferred to the ImGuiService destruction where we might not have a context ready
         // Services in Mikoto do not do their cleanup in the destructor they do it on the Shutdown method
-        mColorImage.Reset();
-        mDepthImage.Reset();
+        mColorImage.Release();
+        mDepthImage.Release();
 
         for (const auto item : mTextureIdMap | std::views::values) {
             mSrvDescHeapAlloc.Free( item.mCpuHandle, item.mGpuHandle );
@@ -134,7 +134,7 @@ namespace mikoto::gui {
         ImGui_ImplDX12_Shutdown();
         ImGui_ImplGlfw_Shutdown();
 
-        mCommandList.Reset();
+        mCommandList.Release();
 
         mIsInitialized = false;
     }

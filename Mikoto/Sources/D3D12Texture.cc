@@ -458,8 +458,8 @@ namespace mikoto::renderer::d3d12 {
         }
 
         if (!mKeepInitializerResources) {
-            mImageData.Reset();
-            mBufferSpan.Reset();
+            mImageData.Release();
+            mBufferSpan.Release();
         }
 
         mIsAllocated = true;

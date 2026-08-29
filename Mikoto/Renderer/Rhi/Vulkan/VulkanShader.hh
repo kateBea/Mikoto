@@ -44,7 +44,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetPipelineInfo() const -> const VkPipelineShaderStageCreateInfo&;
 
         MKT_NODISCARD auto GetContents() const -> const void* override;
-        MKT_NODISCARD auto GetContentsByteSize() const -> core::size_t override;
+        MKT_NODISCARD auto GetContentsByteSize() const -> core::usize override;
 
         ~Shader() override;
 
@@ -52,17 +52,20 @@ namespace mikoto::renderer::vulkan {
         auto Release() -> void override;
         auto Initialize() -> void override;
 
+        // [Internal usage]
+        auto CompileForSlang() -> void;
+
     private:
+        // Slang stuff
+        eastl::string mSlangContents{};
+        eastl::string mModulePath{ "" };
+        eastl::string mModuleName{ "" };
+
         Slang::ComPtr<ISlangBlob> mSlangSpirv{};
         Slang::ComPtr<slang::IModule> mSlangModule{};
 
         VkShaderModule mModule{};
         VkPipelineShaderStageCreateInfo mStageCreateInfo{};
-
-        memory::BufferSpanHandle mContents{};
-
-        eastl::string mModulePath{ "" };
-        eastl::string mModuleName{ "" };
 
 #if !defined(NDEBUG)
         eastl::string mShaderCode{};

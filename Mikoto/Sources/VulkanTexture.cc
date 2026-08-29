@@ -305,8 +305,8 @@ namespace mikoto::renderer::vulkan {
             }
 
             if (!mKeepInitializerResources) {
-                mImageData.Reset();
-                mBufferSpan.Reset();
+                mImageData.Release();
+                mBufferSpan.Release();
             }
 
             if ( mTextureUsage & TextureUsageFlagsBits::kDepthTarget ) {

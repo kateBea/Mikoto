@@ -344,30 +344,30 @@ namespace mikoto::editor {
         // Ensure GPU is done
         mDevice->WaitIdle();
 
-        mPipeline.Reset();
-        mPipelineLayoutHandle.Reset();
-        mBindingLayoutHandle.Reset();
-        mVertexInputLayout.Reset();
+        mPipeline.Release();
+        mPipelineLayoutHandle.Release();
+        mBindingLayoutHandle.Release();
+        mVertexInputLayout.Release();
 
-        mBindlessLayout.Reset();
-        mDescriptorTable.Reset();
+        mBindlessLayout.Release();
+        mDescriptorTable.Release();
 
-        mVertexShader.Reset();
-        mPixelShader.Reset();
+        mVertexShader.Release();
+        mPixelShader.Release();
 
-        mConstantBuffer.Reset();
+        mConstantBuffer.Release();
 
-        mSimpleTexture.Reset();
-        mColorImage.Reset();
-        mDepthImage.Reset();
+        mSimpleTexture.Release();
+        mColorImage.Release();
+        mDepthImage.Release();
 
-        mSamplerState.Reset();
+        mSamplerState.Release();
 
-        mBindingSetHandle.Reset();
+        mBindingSetHandle.Release();
 
-        mModelHandle.Reset();
+        mModelHandle.Release();
 
-        mCommandList.Reset();
+        mCommandList.Release();
     }
 
     auto EditorDebugLayer::OnEvent(IEvent& event) -> void {

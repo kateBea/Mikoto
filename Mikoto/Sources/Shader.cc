@@ -56,7 +56,7 @@ namespace mikoto::renderer::rhi {
         return SetContents(file->GetContentsBytes(), file->GetSize());
     }
 
-    auto ShaderModuleCreateDescription::SetContents( void *pContents, core::size_t contentsByteSize ) -> ShaderModuleCreateDescription & {
+    auto ShaderModuleCreateDescription::SetContents( void *pContents, core::usize contentsByteSize ) -> ShaderModuleCreateDescription & {
         mShaderContents = pContents;
         mShaderContentsSize = contentsByteSize;
 

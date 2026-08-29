@@ -874,7 +874,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::Shutdown() -> void {
-        mQueue.Reset();
+        mQueue.Release();
     }
 
     auto Device::CreateBuffer( const BufferCreateDescription &description ) -> BufferHandle {

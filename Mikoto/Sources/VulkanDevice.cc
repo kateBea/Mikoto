@@ -124,7 +124,7 @@ namespace mikoto::renderer::vulkan {
         mUploadManager.reset();
 
         for (auto& queue : mQueues | std::ranges::views::values ) {
-            queue.Reset();
+            queue.Release();
         }
 
         mGpuAllocator->Shutdown();
@@ -735,9 +735,9 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::DestroyDummyResources() -> void {
-        mDummySampler.Reset();
-        mEmptyBindingLayout.Reset();
-        mEmptyPipelineLayout.Reset();
+        mDummySampler.Release();
+        mEmptyBindingLayout.Release();
+        mEmptyPipelineLayout.Release();
     }
 
     auto Device::SerializePipelineCache() -> void {
@@ -1963,7 +1963,7 @@ namespace mikoto::renderer::vulkan {
         RunGarbageCollection();
 
         mPools.clear();
-        mTimelineSemaphore.Reset();
+        mTimelineSemaphore.Release();
 
         mIsAllocated = false;
     }

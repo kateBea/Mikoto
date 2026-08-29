@@ -25,7 +25,6 @@ struct VSInput {
 };
 
 struct VSOutput {
-    CameraInfo mCameraBda : TEXCOORD0;
     float4 Position : SV_Position;
 };
 

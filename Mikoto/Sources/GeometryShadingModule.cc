@@ -55,9 +55,7 @@ namespace mikoto::renderer {
     }
 
     auto GeometryShadingModule::SetClearColor( const Color& color ) -> void {
-        // Not sure if this is correct but otherwise clear colors look weird when tone-mapped.
-        // Clear color is assumed to be in LDR we just conver it to an HDR value.
-        mClearColor = color / ( 1.0f + color );
+        mClearColor = color;
     }
 
     auto GeometryShadingModule::SetResolution( RenderResolution resolution ) -> void {

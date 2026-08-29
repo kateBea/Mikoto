@@ -75,7 +75,7 @@ namespace mikoto::renderer::vulkan {
         static constexpr core::u32 kVersionMinor{ 3 };
         static constexpr core::u32 kVersionPatch{ 0 };
 
-        static constexpr core::u32 kMaxFramesInFlight{ 3 };
+        static constexpr core::u32 kMaxFramesInFlight{ 2 };
 
         rhi::TextureHandle mPresentTarget{};
 

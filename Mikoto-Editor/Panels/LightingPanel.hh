@@ -15,6 +15,10 @@
 #ifndef MIKOTO_LIGHTING_PANEL_HH
 #define MIKOTO_LIGHTING_PANEL_HH
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+
 #include <Panels/Panel.hh>
 #include <Renderer/Rhi/Types.hh>
 
@@ -34,12 +38,6 @@ namespace mikoto::editor {
         auto OnUpdate( float timeStep ) -> void override;
 
         ~LightingPanel() override = default;
-
-    private:
-        auto DrawSceneSettings() -> void;
-        auto DrawShadowsSettings() -> void;
-        auto DrawLightsSettings() -> void;
-        auto DrawEnvironmentSettings() -> void;
 
     private:
         EditorState* mEditorState{};

@@ -61,6 +61,7 @@ namespace mikoto::filesystem {
         }
 
         if ( !path.Exists() ) {
+            MKT_CORE_LOGGER_WARN( "FileService LoadFile - Path '{}' does not exist", path.GetAbsolute().c_str() );
             return FileHandle::CreateEmpty();
         }
 

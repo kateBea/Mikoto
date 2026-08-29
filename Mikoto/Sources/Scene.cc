@@ -19,7 +19,6 @@
 #include <EASTL/string_view.h>
 #include <EASTL/utility.h>
 
-#include <flecs.h>
 #include <entt/entt.hpp>
 
 #include <Core/Core.hh>

@@ -81,13 +81,6 @@ set(KTX_FEATURE_WRITE ON CACHE BOOL "" FORCE)
 set(KTX_FEATURE_TRANSCODE ON CACHE BOOL "" FORCE)
 
 # ======================================
-# Flecs
-# ======================================
-set(FLECS_STATIC ON CACHE BOOL "" FORCE)
-set(FLECS_SHARED OFF CACHE BOOL "" FORCE)
-set(FLECS_TESTS OFF CACHE BOOL "" FORCE)
-
-# ======================================
 # MeshOptimizer
 # ======================================
 set(MESHOPT_BUILD_DEMO OFF CACHE BOOL "" FORCE)
@@ -349,20 +342,9 @@ FetchContent_MakeAvailable(unordered_dense)
 # -------------------------------------------------------
 FetchContent_Declare(entt
         GIT_REPOSITORY https://github.com/skypjack/entt.git
-        GIT_TAG v3.13.0
+        GIT_TAG v4.0.0
 )
 FetchContent_MakeAvailable(entt)
-
-# -------------------------------------------------------
-# Flecs
-# -------------------------------------------------------
-FetchContent_Declare(
-        flecs
-        GIT_REPOSITORY https://github.com/SanderMertens/flecs.git
-        GIT_TAG v4.1.5
-)
-
-FetchContent_MakeAvailable(flecs)
 
 # -------------------------------------------------------
 # Direct3D Headers
@@ -788,7 +770,6 @@ set(LIBRARIES
         glfw
         fmt::fmt
         EnTT::EnTT
-        flecs::flecs_static
         volk
         assimp
         yaml-cpp
@@ -878,7 +859,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${fmt_SOURCE_DIR}/include
         ${glfw_SOURCE_DIR}/include
         ${entt_SOURCE_DIR}/single_include
-        ${flecs_SOURCE_DIR}/include
         ${yaml_cpp_SOURCE_DIR}/include
         ${nlohmann_json_SOURCE_DIR}/include
         ${unordered_dense_SOURCE_DIR}/include

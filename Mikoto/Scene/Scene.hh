@@ -18,7 +18,6 @@
 #include <memory>
 #include <mutex>
 
-#include <flecs.h> // TODO: test
 #include <entt/entt.hpp>
 
 #include <EASTL/string.h>

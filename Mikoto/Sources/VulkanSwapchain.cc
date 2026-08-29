@@ -184,7 +184,7 @@ namespace mikoto::renderer::vulkan {
         // before we can acquire another image to render to. Therefore, it is recommended
         // to request at least one more image, hence why we add 1. Likely the image count
         // results in the maximum swap chain image count so we do the check and clamp the resulting image count
-        u32 imageCount{ mPhysicalDevice->mCapabilities.minImageCount + 1 };
+        u32 imageCount{ mPhysicalDevice->mCapabilities.minImageCount };
         if ( mPhysicalDevice->mCapabilities.maxImageCount > 0 && imageCount > mPhysicalDevice->mCapabilities.maxImageCount ) {
             imageCount = mPhysicalDevice->mCapabilities.maxImageCount;
         }

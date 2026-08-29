@@ -231,22 +231,17 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER_NAMED();
 
         ankerl::unordered_dense::map<PrefabModelType, eastl::string_view> modelPaths{
-            { PrefabModelType::eCube, "Resources/Models/Prefabs/cube/gltf/scene.gltf" },
-            { PrefabModelType::eCone, "Resources/Models/Prefabs/cone/gltf/scene.gltf" },
-            { PrefabModelType::eSphere, "Resources/Models/Prefabs/sphere/gltf/scene.gltf" },
-            { PrefabModelType::eCylinder, "Resources/Models/Prefabs/cylinder/gltf/scene.gltf" },
+            { PrefabModelType::eCube, "Resources/Prefabs/cube/gltf/scene.gltf" },
+            { PrefabModelType::eCone, "Resources/Prefabs/cone/gltf/scene.gltf" },
+            { PrefabModelType::eSphere, "Resources/Prefabs/sphere/gltf/scene.gltf" },
+            { PrefabModelType::eCylinder, "Resources/Prefabs/cylinder/gltf/scene.gltf" },
         };
 
         // So each thread writes to its own slot, need to double-check
-        for ( const auto &type: modelPaths | std::views::keys ) {
-            mEditorState->mPrefabPaths[type] = ModelHandle::CreateEmpty();
+        for ( const auto &[type, path]: modelPaths ) {
+            ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( path ) };
+            mEditorState->mPrefabPaths[type] = model;
         }
-
-        // TODO: false sharing
-        threading::TaskService::Get()->ParallelFor(modelPaths,
-            [&](const PrefabModelType& type, const Path& path) -> void {
-            mEditorState->mPrefabPaths[type] = AssetsService::Get()->LoadAsset<Model>( path );
-        });
     }
 
     auto EditorLayer::InitEditorState() -> void {
@@ -343,6 +338,10 @@ namespace mikoto::editor {
         RendererPanelCreateInfo rendererPanelCreateInfo{};
         rendererPanelCreateInfo.mState = mEditorState.get();
         //mPanelRegistry.Register<RendererPanel>( rendererPanelCreateInfo );
+
+        LightingPanelCreateInfo lightingPanelCreateInfo{};
+        lightingPanelCreateInfo.mState = mEditorState.get();
+        mPanelRegistry.Register<LightingPanel>( lightingPanelCreateInfo );
     }
 
     auto EditorLayer::InitDockingSpace() -> void {
@@ -454,9 +453,7 @@ namespace mikoto::editor {
 
         EntityCreateInfo info{
             .mRoot = root,
-            .mModel = mEditorState->GetPrefab( PrefabModelType::eSphere )
-        };
-
+            .mModel = mEditorState->GetPrefab( PrefabModelType::eSphere ) };
         constexpr u32 gridSize{ 5 };    // gridSize * gridSize spheres
         constexpr f32 spacing{ 30.0f }; // Distance between spheres
 
@@ -466,18 +463,19 @@ namespace mikoto::editor {
 
                 if ( Entity * e{ mEditorState->mActiveScene->CreateEntity( info ) } ) {
                     auto &t{ e->GetComponent<TransformComponent>() };
-                    t.SetTranslation(
-                            { as<f32>( x ) * spacing,
-                              as<f32>( y ) * spacing, 0.0f } );
+                    t.SetTranslation( { as<f32>( x ) * spacing, as<f32>( y ) * spacing, 0.0f } );
+
+                    // TODO:
+                    // ENTT_ASSERT(contains(entt), "Set does not contain entity");
+
                     auto& materialComponent{ e->GetComponent<MaterialComponent>() };
-                    PhysicalMaterial *material{ checked_cast<PhysicalMaterial*>( materialComponent.GetMaterial().GetRaw() ) };
+                    auto* material{ checked_cast<PhysicalMaterial*>( materialComponent.GetMaterial().GetRaw() ) };
                     if (material) {
                         material->SetAlphaMaskCutoff( 1.0f );
                         material->SetMetallicFactor( as<f32>( x ) / as<f32>( gridSize - 1 ) );
                         material->SetRoughnessFactor( as<f32>( y ) / as<f32>( gridSize - 1 ) );
                     }
                 }
-
             }
         }
     }

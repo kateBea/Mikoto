@@ -79,9 +79,9 @@ namespace mikoto::renderer {
 
     class CommandContext final {
     public:
-        CommandContext( FGNode* pass, FGResourceManager* resourceManager, FGStatisticsManager* statsManager );
+        CommandContext( FGNode* pass, FGResourceManager* resourceManager, FGStatisticsManager* statsManager, rhi::CommandListHandle cmd );
 
-        auto BeginPass( rhi::CommandListHandle cmd ) -> void;
+        auto BeginPass() -> void;
         auto EndPass() -> void;
 
         auto BeginRender(const ContextRenderState & gs ) -> void;

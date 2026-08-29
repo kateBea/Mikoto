@@ -708,23 +708,8 @@ namespace mikoto::renderer {
             auto& pass{ mNodeControl->mNodes[passName] };
             auto& ctx{ mNodeControl->mContexts.at(passName) };
 
-            CommandListHandle commandList{};
-
-            switch (pass.mType) {
-                case FGPassType::eGraphics:
-                    commandList = mGraphicsCommands;
-                    break;
-                case FGPassType::eCompute:
-                    commandList = mComputeCommands;
-                    break;
-                case FGPassType::eTransfer:
-                    commandList = mTransferCommands;
-                    break;
-                default:;
-            }
-
             // Off load this work to workers threads?
-            ctx.BeginPass( commandList );
+            ctx.BeginPass();
 
             // Place pass barriers
             const auto& barriers{ mExecutionPlan.mBarriers[passName] };
@@ -1005,8 +990,23 @@ namespace mikoto::renderer {
 
     auto FrameGraph::BuildExecutionContext() -> void {
         // TODO: Pending redesign, after parallel command recording is properly implemented
+
         for (auto& [passName, node] : mNodeControl->mNodes ) {
-            mNodeControl->mContexts.try_emplace( passName, MKT_ADDRESSOF( node ), mResourceManager.get(), mStatisticsManager.get() );
+            CommandListHandle commandList{};
+            switch (node.mType) {
+                case FGPassType::eGraphics:
+                    commandList = mGraphicsCommands;
+                    break;
+                case FGPassType::eCompute:
+                    commandList = mComputeCommands;
+                    break;
+                case FGPassType::eTransfer:
+                    commandList = mTransferCommands;
+                    break;
+                default:;
+            }
+
+            mNodeControl->mContexts.try_emplace( passName, MKT_ADDRESSOF( node ), mResourceManager.get(), mStatisticsManager.get(), commandList );
         }
 
         // Create tasks
@@ -1041,7 +1041,7 @@ namespace mikoto::renderer {
 
                 // Off load this work to workers threads
                 // Vulkan could use secondary command buffers here
-                ctx.BeginPass( cmd );
+                ctx.BeginPass();
 
                 // Place pass barriers
                 const auto it{ mExecutionPlan.mBarriers.find( passName ) };

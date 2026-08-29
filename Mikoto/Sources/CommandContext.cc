@@ -127,7 +127,7 @@ namespace mikoto::renderer {
         return *this;
     }
 
-    CommandContext::CommandContext(  FGNode* pass, FGResourceManager* resourceManager, FGStatisticsManager* statsManager )
+    CommandContext::CommandContext(  FGNode* pass, FGResourceManager* resourceManager, FGStatisticsManager* statsManager, rhi::CommandListHandle cmd )
         : mNode{ pass }, mResourceManager{ resourceManager } {
         MKT_ASSERT( mNode, "Frame graph node cannot be null" );
         MKT_ASSERT( mResourceManager, "Resource manager cannot be null" );
@@ -135,10 +135,11 @@ namespace mikoto::renderer {
 
         mPipelineLayout = resourceManager->GetPipelineLayout();
         mNodeStatistics = statsManager->GetNode( pass->mName );
+
+        mCommands = cmd;
     }
 
-    auto CommandContext::BeginPass( CommandListHandle cmd ) -> void {
-        mCommands = cmd;
+    auto CommandContext::BeginPass() -> void {
         mCommands->BeginDebugLabel( string::Format( "Pass: {}", mNode->mName ), kColorTransparent );
     }
 

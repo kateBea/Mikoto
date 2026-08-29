@@ -2282,6 +2282,9 @@ namespace mikoto::editor {
                 };
 
                 cameraComponent.SetClearFlags( newClearFlags );
+
+                renderer->SetGamma( cameraComponent.GetGamma() );
+                renderer->SetExposure( cameraComponent.GetExposure() );
                 renderer->SetRenderBackground( GetRenderBackground(newClearFlags) );
 
                 if (newClearFlags == CameraClearFlags::eClearColor) {
@@ -2306,10 +2309,11 @@ namespace mikoto::editor {
 
             ImGui::TableSetColumnIndex( 1 );
             f32 exposure{ cameraComponent.GetExposure() };
-            cameraComponent.SetExposure( exposure );
-            renderer->SetExposure( cameraComponent.GetExposure() );
+            if (ImGui::SliderFloat( "##CameraExposureSlider", MKT_ADDRESSOF( exposure ), 0.1, 10.0f )) {
+                cameraComponent.SetExposure( exposure );
+                renderer->SetExposure( cameraComponent.GetExposure() );
+            }
 
-            ImGui::SliderFloat( "##CameraExposureSlider", MKT_ADDRESSOF( exposure ), 0.1, 10.0f );
             if (ImGui::IsItemHovered()) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
             }
@@ -2320,10 +2324,12 @@ namespace mikoto::editor {
 
             ImGui::TableSetColumnIndex( 1 );
             f32 gamma{ cameraComponent.GetGamma() };
-            cameraComponent.SetGamma( gamma );
-            renderer->SetGamma( cameraComponent.GetGamma() );
 
-            ImGui::SliderFloat( "##CameraGammaSlider", MKT_ADDRESSOF( gamma ), 0.1, 10.0f );
+            if (ImGui::SliderFloat( "##CameraGammaSlider", MKT_ADDRESSOF( gamma ), 0.1, 10.0f )) {
+                cameraComponent.SetGamma( gamma );
+                renderer->SetGamma( cameraComponent.GetGamma() );
+            }
+
             if (ImGui::IsItemHovered()) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
             }
@@ -2529,6 +2535,7 @@ namespace mikoto::editor {
                 if ( PushImageButton( "##SetupSkyboxComponentTable_FlatImage01", ImGuiService::Get()->GetTextureID( face.GetRaw() ), ImVec2{ 64, 64 } ) ) {
                     if (material) {
                         LoadMaterialTexture( *material );
+                        renderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
                     }
                 }
 
@@ -2589,23 +2596,7 @@ namespace mikoto::editor {
         DrawProperty( "Ambient Scale", "AmbientScale", ambientScale, 0.0f, 10.0f, labelWidth, sliderWidth );
 
         material->SetAmbientScale( ambientScale );
-
         renderer->SetAmbientScale( material->GetAmbientScale() );
-
-        {
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
-
-            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
-
-            if ( ImGui::Button( string::Format( "{} Apply", ICON_MD_CLOUD_DOWNLOAD ).c_str()) ) {
-                renderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
-            }
-        }
-
-        gui::SetCursorHandOnLastItemHovered();
     }
 
     auto InspectorPanel::DrawComponents( Entity* entity ) const -> void {

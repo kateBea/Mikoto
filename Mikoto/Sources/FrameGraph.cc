@@ -1195,7 +1195,7 @@ namespace mikoto::renderer {
 
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource {
             .mName{ string::Format( "FG Loaded Texture {}", path.GetC_Str() ) },
-            .mDescription = textureDesc,
+            .mDescription = {}, // I do not keep the description for imported textures
             .mVersions{ ResourceVersion{
                 .mWriterPass{}, // No writers
                 .mReaderPasses{}, // No readers

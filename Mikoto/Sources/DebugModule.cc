@@ -115,7 +115,7 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
 
         // Create the resources
-        TexturePassData& trianglePassData{ graph.GetOrCreate<TexturePassData>() };
+        auto& trianglePassData{ graph.GetOrCreate<TexturePassData>() };
 
         auto colorImage{ FGTextureDescription{}
             .SetName( "TexturePass_ColorImage01" )

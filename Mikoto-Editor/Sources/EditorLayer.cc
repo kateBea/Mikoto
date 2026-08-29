@@ -770,7 +770,6 @@ namespace mikoto::editor {
                 if (ImGui::BeginMenu( "Graphics" )) {
                     if (ImGui::MenuItem( "Render Pipeline Settings" )) { /* Open post-processing, MSAA, and shadow config */ }
                     if (ImGui::MenuItem( "Shader Compiler Status" )) { /* Open window tracking background shader variants compilation */ }
-                    if (ImGui::MenuItem( "Texture Packer" )) { /* Open sprite sheet generation utility */ }
 
                     if (ImGui::MenuItem( "Display Grid", nullptr, mShowInfiniteGrid )) {
                         mShowInfiniteGrid = !mShowInfiniteGrid;

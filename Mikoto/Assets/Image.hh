@@ -50,16 +50,16 @@ namespace mikoto::asset {
         eRight,
     };
 
-    constexpr inline u32 kCubeFaceCount{ 6 };
+    constexpr inline core::u32 kCubeFaceCount{ 6 };
 
     // Flat textures, equirectangular maps
-    struct Image : public ReferenceCounted {
-        FileHandle mFileHandle{};
-        BufferSpanHandle mBufferSpan{};
+    struct Image : public core::ReferenceCounted {
+        filesystem::FileHandle mFileHandle{};
+        memory::BufferSpanHandle mBufferSpan{};
 
-        u32 mWidth{};
-        u32 mHeight{};
-        u32 mChannels{};
+        core::u32 mWidth{};
+        core::u32 mHeight{};
+        core::u32 mChannels{};
 
         ImageFormat mFormat{ ImageFormat::eRGBA8_UINT };
 
@@ -70,8 +70,8 @@ namespace mikoto::asset {
     // images from KTX or cube images split into 6 faces
     struct ImageCube final : public Image {
         struct FaceSlice {
-            size_t mOffset{};
-            size_t mSizeBytes{};
+            core::usize mOffset{};
+            core::usize mSizeBytes{};
         };
 
         // When cube is list of 2D images in disk
@@ -82,7 +82,7 @@ namespace mikoto::asset {
         eastl::fixed_hash_map<ImageCubeFace, FaceSlice, kCubeFaceCount> mFaces{};
     };
 
-    using ImageHandle = Ref<Image>;
+    using ImageHandle = core::Ref<Image>;
 
 }// namespace Mikoto
 

@@ -204,7 +204,7 @@ namespace mikoto::editor {
                 Row( "RAM (Available)", string::Format( "{:.2f} MB", freeMB ) );
                 Row( "RAM (Shared)", string::Format( "{:.2f} MB", sharedMB ) );
                 Row( "GPU Device", string::Format( "{}", RenderSystem::Get()->GetGpuDevice()->GetDeviceName() ));
-                Row( "GPU V-RAM Usage", string::Format( "{:.2f} MB", SystemStats::Get()->GetGpuRamUsage() / 1'000'000.0 ),
+                Row( "GPU V-RAM Usage", string::Format( "{:.2f} MB", RenderSystem::Get()->GetGpuDevice()->GetMemoryUsage() / 1'000'000.0 ),
                      ImVec4( 0.7f, 0.5f, 1.0f, 1.0f ) );
                 Row( "Elapsed Time", TimeService::Get()->ToString( TimeService::Get()->GetTime() ) );
 

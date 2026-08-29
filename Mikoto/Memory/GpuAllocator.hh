@@ -34,9 +34,9 @@ namespace mikoto::memory {
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
-        MKT_NODISCARD virtual auto GetMemoryUsage() const -> size_t = 0;
-        MKT_NODISCARD virtual auto GetMemoryTotal() const -> size_t = 0;
-        MKT_NODISCARD virtual auto GetMemoryAvailable() const -> size_t = 0;
+        MKT_NODISCARD virtual auto GetMemoryUsage() const -> core::usize = 0;
+        MKT_NODISCARD virtual auto GetMemoryTotal() const -> core::usize = 0;
+        MKT_NODISCARD virtual auto GetMemoryAvailable() const -> core::usize = 0;
 
         virtual ~IGpuAllocator() = default;
 

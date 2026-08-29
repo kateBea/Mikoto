@@ -261,10 +261,6 @@ namespace mikoto::core {
         return mCpuUsage;
     }
 
-    auto SystemStats::GetGpuRamUsage() const -> f64 {
-        return mGpuRamUsage;
-    }
-
     auto SystemStats::GetProcessRamUsage() const -> f64 {
         return mProcessRamUsage;
     }

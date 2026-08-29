@@ -583,6 +583,10 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto GetQueue( QueueType type ) -> IQueue* override;
 
+        MKT_NODISCARD auto GetMemoryUsage() const -> core::usize override;
+        MKT_NODISCARD auto GetMemoryTotal() const -> core::usize override;
+        MKT_NODISCARD auto GetMemoryAvailable() const -> core::usize override;
+
         // D3D12 Specifics
         MKT_NODISCARD auto CreateTexture( const ExternalTextureDescription& info ) -> rhi::TextureHandle;
 

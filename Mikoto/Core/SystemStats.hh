@@ -50,16 +50,12 @@ namespace mikoto::core {
         MKT_NODISCARD auto GetFreeRam() const -> f64;
         MKT_NODISCARD auto GetTotalRam() const -> f64;
 
-        // GPU
-        MKT_NODISCARD auto GetGpuRamUsage() const -> f64;
-
 
     private:
         f64 mSharedRam{ 0.0 };
         f64 mFreeRam{ 0.0 };
         f64 mTotalRam{ 0.0 };
         f64 mCpuUsage{ 0.0 };
-        f64 mGpuRamUsage{ 0.0 };
 
         f64 mProcessRamUsage{ 0.0 };
 

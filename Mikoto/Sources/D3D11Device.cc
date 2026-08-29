@@ -1033,6 +1033,18 @@ namespace mikoto::renderer::d3d11 {
         return mQueue.GetRaw();
     }
 
+    auto Device::GetMemoryUsage() const -> core::usize {
+        return 0;
+    }
+
+    auto Device::GetMemoryTotal() const -> core::usize {
+        return 0;
+    }
+
+    auto Device::GetMemoryAvailable() const -> core::usize {
+        return 0;
+    }
+
     auto Device::WaitIdle() -> void {
 
     }

@@ -21,6 +21,7 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+
 #include <Filesystem/Path.hh>
 
 #include <Renderer/Rhi/Types.hh>
@@ -95,6 +96,10 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD virtual auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool = 0;
 
         MKT_NODISCARD virtual auto GetQueue( QueueType type ) -> IQueue* = 0;
+
+        MKT_NODISCARD virtual auto GetMemoryUsage() const -> core::usize = 0;
+        MKT_NODISCARD virtual auto GetMemoryTotal() const -> core::usize = 0;
+        MKT_NODISCARD virtual auto GetMemoryAvailable() const -> core::usize = 0;
 
         virtual auto RunGarbageCollection() -> void = 0;
 

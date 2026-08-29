@@ -2165,6 +2165,17 @@ namespace mikoto::renderer::d3d12 {
         return mQueues.at(type).GetRaw();
     }
 
+    auto Device::GetMemoryUsage() const -> core::usize {
+        return 0;
+    }
+
+    auto Device::GetMemoryTotal() const -> core::usize {
+        return 0;
+    }
+
+    auto Device::GetMemoryAvailable() const -> core::usize {
+        return 0;
+    }
 
     auto Device::GetAllocator() -> GpuMemoryAllocator * {
         return checked_cast<GpuMemoryAllocator*>( mGpuAllocator.get() );

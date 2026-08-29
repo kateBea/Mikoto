@@ -681,6 +681,10 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto GetQueue( rhi::QueueType type ) -> IQueue* override;
 
+        MKT_NODISCARD auto GetMemoryUsage() const -> core::usize override;
+        MKT_NODISCARD auto GetMemoryTotal() const -> core::usize override;
+        MKT_NODISCARD auto GetMemoryAvailable() const -> core::usize override;
+
         auto WaitIdle() -> void override;
 
         auto RunGarbageCollection() -> void override;

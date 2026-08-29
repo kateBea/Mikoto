@@ -120,19 +120,64 @@ namespace mikoto::renderer::vulkan {
         MapBuffer( allocation, false );
     }
 
-    auto GpuMemoryAllocator::GetMemoryUsage() const -> size_t {
-        vmaCalculateStatistics( mAllocator, MKT_ADDRESSOF( mStats ) );
-        return mStats.total.statistics.allocationBytes;
+    auto GpuMemoryAllocator::GetMemoryUsage() const -> usize {
+        // Too slow to call per frame
+        //vmaCalculateStatistics( mAllocator, MKT_ADDRESSOF( mStats ) );
+
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        eastl::fixed_vector<VmaBudget, VK_MAX_MEMORY_HEAPS> budgets{};
+        budgets.resize( device->GetPhysicalDevice()->mMemoryProperties.memoryHeapCount );
+
+        // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/staying_within_budget.html
+        // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/struct_vma_budget.html
+        vmaGetHeapBudgets( mAllocator, budgets.data() );
+
+        // Sum up the consumption in each heap
+        VkDeviceSize budgetSize{ 0 };
+        for (const auto& budget : budgets ) {
+            budgetSize += budget.usage;
+        }
+
+        return as<u64>(budgetSize);
     }
 
-    auto GpuMemoryAllocator::GetMemoryTotal() const -> size_t {
-        vmaCalculateStatistics( mAllocator, MKT_ADDRESSOF( mStats ) );
-        return 0;
+    auto GpuMemoryAllocator::GetMemoryTotal() const -> usize {
+        // Too slow to call per frame
+        // vmaCalculateStatistics( mAllocator, MKT_ADDRESSOF( mStats ) );
+
+        Device* device{ checked_cast<Device*>( mDevice ) };
+
+        VkDeviceSize total{ 0 };
+        for (usize heapIndex{}; heapIndex < device->GetPhysicalDevice()->mMemoryProperties.memoryHeapCount; ++heapIndex ) {
+            VkMemoryHeap heap = device->GetPhysicalDevice()->mMemoryProperties.memoryHeaps[heapIndex];
+
+            // Check if the heap belongs physically to the GPU device
+            if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+                total += heap.size;
+            }
+        }
+
+        return as<u64>(total);
     }
 
-    auto GpuMemoryAllocator::GetMemoryAvailable() const -> size_t {
-        vmaCalculateStatistics( mAllocator, MKT_ADDRESSOF( mStats ) );
-        return mStats.total.unusedRangeSizeMax;
+    auto GpuMemoryAllocator::GetMemoryAvailable() const -> usize {
+        // Too slow to call per frame
+        // vmaCalculateStatistics( mAllocator, MKT_ADDRESSOF( mStats ) );
+
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        eastl::fixed_vector<VmaBudget, VK_MAX_MEMORY_HEAPS> budgets{};
+        budgets.resize( device->GetPhysicalDevice()->mMemoryProperties.memoryHeapCount );
+
+        // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/struct_vma_budget.html
+        vmaGetHeapBudgets( mAllocator, budgets.data() );
+
+        // Sum up the consumption in each heap
+        VkDeviceSize available{ 0 };
+        for (const auto& budget : budgets ) {
+            available += budget.budget;
+        }
+
+        return as<u64>(available);
     }
 
     auto GpuMemoryAllocator::MapBuffer( BufferAllocation& allocation, bool map ) const -> void {

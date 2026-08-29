@@ -68,9 +68,9 @@ namespace mikoto::renderer::vulkan {
         auto UnmapBuffer( BufferAllocation& allocation ) const -> void;
 
         // These are slow use for debug only
-        MKT_NODISCARD auto GetMemoryUsage() const -> size_t override;
-        MKT_NODISCARD auto GetMemoryTotal() const -> size_t override;
-        MKT_NODISCARD auto GetMemoryAvailable() const -> size_t override;
+        MKT_NODISCARD auto GetMemoryUsage() const -> core::usize override;
+        MKT_NODISCARD auto GetMemoryTotal() const -> core::usize override;
+        MKT_NODISCARD auto GetMemoryAvailable() const -> core::usize override;
 
     private:
         // Map/Unmap Device memory to cpu accessible memory (map = true to map, false to unmap)

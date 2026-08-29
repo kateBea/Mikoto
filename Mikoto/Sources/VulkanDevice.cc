@@ -484,6 +484,18 @@ namespace mikoto::renderer::vulkan {
         return it != mQueues.end() ? it->second.GetRaw() : nullptr;
     }
 
+    auto Device::GetMemoryUsage() const -> core::usize {
+        return mGpuAllocator->GetMemoryUsage();
+    }
+
+    auto Device::GetMemoryTotal() const -> core::usize {
+        return mGpuAllocator->GetMemoryTotal();
+    }
+
+    auto Device::GetMemoryAvailable() const -> core::usize {
+        return mGpuAllocator->GetMemoryAvailable();
+    }
+
     auto Device::GetActivePhysicalDeviceFeatures() const -> const VkPhysicalDeviceFeatures & {
         return mEnabledFeatures;
     }

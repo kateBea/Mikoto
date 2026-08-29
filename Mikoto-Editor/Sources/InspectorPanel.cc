@@ -2232,7 +2232,12 @@ namespace mikoto::editor {
         }
     }
 
-    static auto SetupCameraComponentTab( Entity& entity ) -> void {
+    static auto SetupCameraComponentTab( Entity& entity, SceneRenderer* renderer ) -> void {
+        if (!renderer) {
+            MKT_CORE_LOGGER_ERROR( "Renderer is null" );
+            return;
+        }
+
         CameraComponent& cameraComponent{ entity.GetComponent<CameraComponent>() };
         static const eastl::array<std::string, 2> kCameraProjectionTypeNames{
             "Orthographic", "Perspective"
@@ -2251,7 +2256,80 @@ namespace mikoto::editor {
             ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_SizingStretchSame
         };
 
-        if ( ImGui::BeginTable( "DirectionalLightEditTable", 2, tableFlags ) ) {
+        if ( ImGui::BeginTable( "CameraComponentEditTable", 2, tableFlags ) ) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Clear flags" );
+
+            ImGui::TableSetColumnIndex( 1 );
+            CameraClearFlags currentClearFlags{ cameraComponent.GetClearFlags() };
+            eastl::array<std::string, as<usize>(CameraClearFlags::eCount)> choicesAlpha{
+                "Clear color", "Blurred Skybox", "Skybox" };
+
+            CameraClearFlags newClearFlags{ gui::Combo( choicesAlpha, currentClearFlags ) };
+            if (newClearFlags != currentClearFlags) {
+                auto GetRenderBackground{
+                    []( CameraClearFlags rb ) {
+                        switch (rb) {
+                            case CameraClearFlags::eSkybox: return SceneBackgroundType::eSkybox;
+                            case CameraClearFlags::eBlurredSkybox: return SceneBackgroundType::ePrefilterMap;
+                            case CameraClearFlags::eClearColor: return SceneBackgroundType::eClearColor;
+                            default:;
+                        }
+
+                        return SceneBackgroundType::eClearColor;
+                    }
+                };
+
+                cameraComponent.SetClearFlags( newClearFlags );
+                renderer->SetRenderBackground( GetRenderBackground(newClearFlags) );
+
+                if (newClearFlags == CameraClearFlags::eClearColor) {
+                    renderer->SetClearColor( cameraComponent.GetClearColor() );
+                }
+            }
+
+            ImGui::SameLine();
+
+            float4 colorFloat4{ cameraComponent.GetClearColor() };
+            constexpr ImGuiColorEditFlags colorEditFlags{ ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_NoInputs };
+
+            if ( ImGui::ColorEdit4( "##CameraClearColor", glm::value_ptr( colorFloat4 ), colorEditFlags ) ) {
+                cameraComponent.SetClearColor( colorFloat4 );
+                renderer->SetClearColor( colorFloat4 );
+            }
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Exposure" );
+
+            ImGui::TableSetColumnIndex( 1 );
+            f32 exposure{ cameraComponent.GetExposure() };
+            cameraComponent.SetExposure( exposure );
+            renderer->SetExposure( cameraComponent.GetExposure() );
+
+            ImGui::SliderFloat( "##CameraExposureSlider", MKT_ADDRESSOF( exposure ), 0.1, 10.0f );
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Gamma" );
+
+            ImGui::TableSetColumnIndex( 1 );
+            f32 gamma{ cameraComponent.GetGamma() };
+            cameraComponent.SetGamma( gamma );
+            renderer->SetGamma( cameraComponent.GetGamma() );
+
+            ImGui::SliderFloat( "##CameraGammaSlider", MKT_ADDRESSOF( gamma ), 0.1, 10.0f );
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
+            ImGui::Spacing();
+
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
             ImGui::TextUnformatted( "Projection Type" );
@@ -2485,8 +2563,6 @@ namespace mikoto::editor {
         ImGui::SeparatorText( "Settings");
         ImGui::Spacing();
 
-        f32 exposure{ material->GetExposure() };
-        f32 gamma{ material->GetGamma() };
         f32 ambientScale{ material->GetAmbientScale() };
 
         const f32 contentWidth{ ImGui::GetContentRegionAvail().x };
@@ -2509,16 +2585,11 @@ namespace mikoto::editor {
             ImGui::PopID();
         };
 
-        DrawProperty( "Exposure", "Exposure", exposure, -10.0f, 10.0f, labelWidth, sliderWidth );
-        DrawProperty( "Gamma", "Gamma", gamma, 0.1f, 4.0f, labelWidth, sliderWidth );
+        // Move exposure and gamma to environment tab
         DrawProperty( "Ambient Scale", "AmbientScale", ambientScale, 0.0f, 10.0f, labelWidth, sliderWidth );
 
-        material->SetExposure( exposure );
-        material->SetGamma( gamma );
         material->SetAmbientScale( ambientScale );
 
-        renderer->SetGamma( material->GetGamma() );
-        renderer->SetExposure( material->GetExposure() );
         renderer->SetAmbientScale( material->GetAmbientScale() );
 
         {
@@ -2554,7 +2625,8 @@ namespace mikoto::editor {
         DrawComponent<AudioListenerComponent>( fmt::format( "{} Audio Listener", ICON_MD_AUTO_GRAPH ), *entity, SetupAudioListenerComponentTab );
         DrawComponent<AudioSourceComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), *entity, SetupAudioComponentTab );
         DrawComponent<TextComponent>( fmt::format( "{} Text", ICON_MD_MESSAGE ), *entity, SetupTextComponentTab );
-        DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), *entity, SetupCameraComponentTab );
+        DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), *entity,
+            [&]( Entity& target ) -> void { SetupCameraComponentTab( target, mState->mSceneRenderer ); } );
         DrawComponent<ScriptComponent>( fmt::format( "{} Script", ICON_MD_CODE ), *entity, SetupScriptingComponentTab );
 
         DrawComponent<AnimatorComponent>( fmt::format( "{} Animator", ICON_MD_ANIMATION ), *entity, SetupAnimatorComponentTab );

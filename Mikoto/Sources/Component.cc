@@ -92,6 +92,77 @@ namespace mikoto::scene {
         mTransform = math::RecomputeTransform( position, size, angles );
     }
 
+    auto CameraComponent::SetClearFlags( CameraClearFlags bg ) -> void {
+        mClearFlags = bg;
+    }
+
+    auto CameraComponent::GetClearFlags() const -> CameraClearFlags {
+        return mClearFlags;
+    }
+
+    auto CameraComponent::SetClearColor( const renderer::rhi::Color& color ) -> void {
+        mColor = color;
+    }
+
+    auto CameraComponent::GetClearColor() const -> const renderer::rhi::Color & {
+        return mColor;
+    }
+
+    auto CameraComponent::IsMainCamera() const -> bool {
+        return mMainCam;
+    }
+
+    CameraComponent::CameraComponent( platform::Window* window ) {
+        SceneCameraDescription cameraDescription{
+            .mFov = 45.0,
+            .mNearPlane = 0.1f,
+            .mFarPlane = 3000.0f,
+            .mWindow = window };
+
+        if (window) {
+            cameraDescription.mAspectRatio = as<f32>( window->GetWidth() ) / as<f32>( window->GetHeight() );
+        }
+
+        mCamera = Ref<SceneCamera>::Spawn( cameraDescription );
+    }
+
+    auto CameraComponent::HasCamera() const -> bool {
+        return mCamera != nullptr;
+    }
+
+    auto CameraComponent::GetCamera() -> SceneCamera& {
+        return *mCamera;
+    }
+
+    auto CameraComponent::GetCamera() const -> const SceneCamera& {
+        return *mCamera;
+    }
+
+    auto CameraComponent::IsAspectRatioFixed() const -> bool {
+        return mFixedAspectRatio;
+    }
+
+    auto CameraComponent::SetGamma( float gamma ) -> void {
+        mGamma = gamma;
+    }
+
+    auto CameraComponent::SetExposure( float exposure ) -> void {
+        mExposure = exposure;
+    }
+
+    auto CameraComponent::GetGamma() const -> float {
+        return mGamma;
+    }
+
+    auto CameraComponent::GetExposure() const -> float {
+        return mExposure;
+    }
+
+    auto CameraComponent::SetFixedAspectRatio( const bool value ) -> void {
+        mFixedAspectRatio = value;
+    }
+
+
     auto TransformComponent::SetTransform( const glm::mat4 &transform ) -> void {
         mTransform = transform;
         math::Decompose( mTransform, mTranslation, mRotation, mScale );

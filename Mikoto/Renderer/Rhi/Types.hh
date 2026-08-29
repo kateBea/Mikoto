@@ -666,6 +666,8 @@ namespace mikoto::renderer::rhi {
         friend auto operator/( const Color& lhs, const Color& rhs ) -> Color {
             return { lhs.mR / rhs.mR, lhs.mG / rhs.mG, lhs.mB / rhs.mB, lhs.mA / rhs.mA };
         }
+
+        operator core::float4() const;
     };
 
     // Represents a viewport

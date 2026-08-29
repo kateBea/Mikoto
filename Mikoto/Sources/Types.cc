@@ -46,6 +46,10 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    Color::operator float4() const {
+        return float4{ mR, mG, mB, mA };
+    }
+
     auto InferAPI( eastl::string_view apiName ) -> GraphicsAPI {
         if ( apiName.empty() ) {
             return GraphicsAPI::eInvalid;

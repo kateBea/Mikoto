@@ -681,7 +681,7 @@ namespace mikoto::renderer {
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>(dimensions.first), as<i32>(dimensions.second) } )
                     .AddDepthTarget( prePassData.mPrepassDepthTarget, LoadOp::eLoad )
-                    .AddRenderTarget( finalCompData.mColorImage, kColorCyan, LoadOp::eClear ) };
+                    .AddRenderTarget( finalCompData.mColorImage, mClearColor, LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( ViewportState{}

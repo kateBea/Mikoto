@@ -304,7 +304,7 @@ namespace mikoto::editor {
             .mFarPlane = 3000.0f,
             .mWindow = mWindow };
 
-        mEditorCamera = eastl::make_unique<SceneCamera>( cameraDescription );
+        mEditorCamera = Ref<SceneCamera>::Spawn( cameraDescription );
 
         asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/deadpool/scene.gltf" );
         asset::AssetsService::Get()->LoadAssetAsync<asset::Model>( "Resources/Prefabs/miss_galaxy/scene.gltf" );

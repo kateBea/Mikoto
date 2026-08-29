@@ -62,7 +62,7 @@ namespace mikoto::editor {
 
         asset::ModelHandle mModelHandle{};
 
-        eastl::unique_ptr<scene::SceneCamera> mEditorCamera{};
+        core::Ref<scene::SceneCamera> mEditorCamera{};
 
         core::float3 mPosition{ 0.0f };
         core::float3 mScale{ 1.0f };

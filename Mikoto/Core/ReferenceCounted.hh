@@ -148,6 +148,14 @@ namespace mikoto::core {
             return *this;
         }
 
+        auto operator==( RefCountedType* ptr ) const -> bool {
+            return ptr == mPtr;
+        }
+
+        auto operator!=( RefCountedType* ptr ) const -> bool {
+            return ptr != mPtr;
+        }
+
         template<typename OtherRefCountedType>
         auto As() const -> Ref<OtherRefCountedType> {
             return Ref<OtherRefCountedType>( checked_cast<OtherRefCountedType*>( mPtr ) );

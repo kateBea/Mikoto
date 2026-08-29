@@ -17,6 +17,8 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/ReferenceCounted.hh>
+
 #include <Scene/Camera.hh>
 
 #include <Platform/Window.hh>
@@ -40,7 +42,7 @@ namespace mikoto::scene {
         auto SetAspectRatio( core::f32 width, core::f32 height ) -> SceneCameraDescription&;
     };
 
-    class SceneCamera final : public Camera {
+    class SceneCamera final : public Camera, public core::ReferenceCounted {
     public:
         explicit SceneCamera() = default;
         explicit SceneCamera( const SceneCameraDescription& desc );

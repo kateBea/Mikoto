@@ -78,24 +78,8 @@ namespace mikoto::material {
         return mEquirectangular;
     }
 
-    auto SkyboxMaterial::SetExposure( core::f32 exposure ) -> void {
-        mExposure = exposure;
-    }
-
-    auto SkyboxMaterial::SetGamma( core::f32 gamma ) -> void {
-        mGamma = gamma;
-    }
-
     auto SkyboxMaterial::SetAmbientScale( core::f32 scale ) -> void {
         mAmbientScale = scale;
-    }
-
-    auto SkyboxMaterial::GetExposure() const -> core::f32 {
-        return mExposure;
-    }
-
-    auto SkyboxMaterial::GetGamma() const -> core::f32 {
-        return mGamma;
     }
 
     auto SkyboxMaterial::GetAmbientScale() const -> core::f32 {

@@ -82,9 +82,9 @@ namespace mikoto::editor {
 
         InitAssets();
 
-        InitEmptyScene();
         InitDockingSpace();
         InitSceneRenderer();
+        InitEmptyScene();
         InitRenderGraphEditor();
         InitEditorCamera();
         InitEditorPanels();
@@ -120,8 +120,8 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER_NAMED();
 
         UpdateCameraState( timeStep );
-        UpdateRendererState( timeStep );
         UpdateSceneState( timeStep );
+        UpdateRendererState( timeStep );
 
         RenderScene( timeStep );
 
@@ -394,6 +394,22 @@ namespace mikoto::editor {
     auto EditorLayer::InitEmptyScene() -> void {
         mEditorState->mActiveScene = SceneManager::Get()->CreateScene( "Scene" );
 
+        // Camera
+        Entity *camera{ mEditorState->mActiveScene->CreateEntity( "Camera" ) };
+        auto& cameraComponent{ camera->AddComponent<CameraComponent>( mWindow ) };
+        cameraComponent.SetClearFlags( CameraClearFlags::eClearColor );
+
+        mSceneRenderer->SetClearColor( cameraComponent.GetClearColor() );
+        mSceneRenderer->SetRenderBackground( SceneBackgroundType::eClearColor );
+
+        // Directional light
+        const EntityCreateInfo lightCreateDesc{
+            .mName = "Directional light",
+            .mIsLight = true,
+            .mLightType = LightType::eDirectional };
+        //Entity *light{ mEditorState->mActiveScene->CreateEntity( lightCreateDesc ) };
+
+
         InitSphereMaterialsScene();
         //InitInstancingTestScene();
     }
@@ -403,8 +419,7 @@ namespace mikoto::editor {
 
         EntityCreateInfo info{
             .mRoot = root,
-            .mModel = mEditorState->GetPrefab( PrefabModelType::eCube )
-        };
+            .mModel = mEditorState->GetPrefab( PrefabModelType::eCube ) };
 
         constexpr u32 gridSize{ 40 };    // gridSize * gridSize * gridSize boxes
         constexpr f32 spacing{ 30.0f }; // Distance between boxes

@@ -520,47 +520,55 @@ namespace mikoto::scene {
         bool mIsTrigger{false};
     };
 
+    enum class CameraClearFlags {
+        eClearColor,
+        eBlurredSkybox,
+        eSkybox,
+        eCount,
+    };
+
     class CameraComponent {
     public:
-        enum class Background { CLEAR_COLOR, SKYBOX };
-
-        explicit CameraComponent() = default;
+        explicit CameraComponent( platform::Window* window = nullptr );
 
         CameraComponent( CameraComponent&& other ) noexcept = default;
         auto operator=( CameraComponent&& other ) -> CameraComponent& = default;
 
-        MKT_NODISCARD auto IsMainCamera() const -> bool { return m_MainCam; }
-        MKT_NODISCARD auto HasCamera() const -> bool { return m_Camera != nullptr; }
-        MKT_NODISCARD auto GetCamera() -> SceneCamera& { return *m_Camera; }
-        MKT_NODISCARD auto GetCamera() const -> const SceneCamera& { return *m_Camera; }
-        MKT_NODISCARD auto IsAspectRatioFixed() const -> bool { return m_FixedAspectRatio; }
+        MKT_NODISCARD auto HasCamera() const -> bool;
+        MKT_NODISCARD auto IsMainCamera() const -> bool;
 
-        auto SetBackGround(Background bg) -> void { m_Background = bg; }
-        MKT_NODISCARD auto GetBackGround() const -> Background { return m_Background; }
+        MKT_NODISCARD auto GetCamera() -> SceneCamera&;
+        MKT_NODISCARD auto GetCamera() const -> const SceneCamera&;
 
-        auto SetGamma( float gamma ) -> void { m_Gamma = gamma; }
-        auto SetExposure( float exposure ) -> void { m_Exposure = exposure; }
+        MKT_NODISCARD auto IsAspectRatioFixed() const -> bool;
 
-        MKT_NODISCARD auto GetGamma() const -> float { return m_Gamma; }
-        MKT_NODISCARD auto GetExposure() const -> float { return m_Exposure; }
+        auto SetClearFlags( CameraClearFlags bg ) -> void;
+        MKT_NODISCARD auto GetClearFlags() const -> CameraClearFlags;
 
-        auto SetFixedAspectRatio(const bool value) -> void { m_FixedAspectRatio = value; }
+        auto SetClearColor( const renderer::rhi::Color& color ) -> void;
+        MKT_NODISCARD auto GetClearColor() const -> const renderer::rhi::Color&;
+
+        auto SetGamma( float gamma ) -> void;
+        auto SetExposure( float exposure ) -> void;
+
+        MKT_NODISCARD auto GetGamma() const -> float;
+        MKT_NODISCARD auto GetExposure() const -> float;
+
+        auto SetFixedAspectRatio( bool value ) -> void;
 
         ~CameraComponent() = default;
 
-        // Camera component has its own camera not shared
-        DISABLE_COPY_FOR( CameraComponent );
-
     private:
-        eastl::unique_ptr<SceneCamera> m_Camera{};
+        core::Ref<scene::SceneCamera> mCamera{};
+        CameraClearFlags mClearFlags{ CameraClearFlags::eClearColor };
 
-        Background m_Background{ Background::CLEAR_COLOR };
+        renderer::rhi::Color mColor{ renderer::rhi::kColorGray };
 
-        float m_Gamma{ 1.0f };
-        float m_Exposure{ 3.0f };
+        float mGamma{ 2.0f };
+        float mExposure{ 2.0f };
 
-        bool m_MainCam{ true };
-        bool m_FixedAspectRatio{ false };
+        bool mMainCam{ true };
+        bool mFixedAspectRatio{ false };
     };
 
     class TextComponent {

@@ -2386,7 +2386,7 @@ namespace mikoto::editor {
 
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Perspective FOV" );
+                ImGui::TextUnformatted( "Field of view" );
 
                 ImGui::TableSetColumnIndex( 1 );
                 float fov{ sceneCamera.GetFOV() };
@@ -2400,7 +2400,7 @@ namespace mikoto::editor {
 
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Perspective Near" );
+                ImGui::TextUnformatted( "Near plane" );
 
                 ImGui::TableSetColumnIndex( 1 );
                 float nearPlane{ sceneCamera.GetNearPlane() };
@@ -2414,7 +2414,7 @@ namespace mikoto::editor {
 
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex( 0 );
-                ImGui::TextUnformatted( "Perspective Far" );
+                ImGui::TextUnformatted( "Far plane" );
 
                 ImGui::TableSetColumnIndex( 1 );
                 float farPlane{ ( sceneCamera.GetFarPlane() ) };

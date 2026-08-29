@@ -153,6 +153,10 @@ namespace mikoto::renderer {
     }
 
     auto SceneRenderer::GetFinalImage( FinalImageType type ) -> TextureHandle {
+        if (!mFrameGraph) {
+            return TextureHandle::CreateEmpty();
+        }
+
         if (type == FinalImageType::eWireframe ) {
             mFrameGraph->EnablePass( "WireframePass" );
         } else {

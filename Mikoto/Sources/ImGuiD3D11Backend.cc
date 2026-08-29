@@ -148,7 +148,7 @@ namespace mikoto::gui {
             CreateImages();
         }
 
-#if true
+#if false
         ImGui::Begin("Performance");
 
         const float fps = ImGui::GetIO().Framerate;
@@ -176,7 +176,7 @@ namespace mikoto::gui {
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         }
 
-#if true
+#if false
         RenderSystem::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
 #endif
 

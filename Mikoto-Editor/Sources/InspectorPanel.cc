@@ -597,7 +597,7 @@ namespace mikoto::editor {
             normalMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( gui::PushImageButton( normalMap->GetHandle(), ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
+        if ( gui::PushImageButton( (u64)normalMap, ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eNormal );
         }
 
@@ -661,7 +661,7 @@ namespace mikoto::editor {
             normalMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( gui::PushImageButton( normalMap->GetHandle(), ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
+        if ( gui::PushImageButton( (u64)normalMap, ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eEmissive );
         }
 
@@ -823,7 +823,7 @@ namespace mikoto::editor {
             aoMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( gui::PushImageButton( aoMap->GetHandle(), ImGuiService::Get()->GetTextureID( aoMap ), ImVec2{ 64, 64 } ) ) {
+        if ( gui::PushImageButton( (u64)aoMap, ImGuiService::Get()->GetTextureID( aoMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eAmbientOcclusion );
         }
 
@@ -1954,7 +1954,7 @@ namespace mikoto::editor {
             if ( font != nullptr ) {
                 TextureHandle atlas{ font->GetAtlas() };
 
-                if ( gui::PushImageButton( atlas->GetHandle(), ImGuiService::Get()->GetTextureID( atlas ), ImVec2{ 256, 256 } ) ) {
+                if ( gui::PushImageButton( (u64)atlas, ImGuiService::Get()->GetTextureID( atlas ), ImVec2{ 256, 256 } ) ) {
 
                 }
 

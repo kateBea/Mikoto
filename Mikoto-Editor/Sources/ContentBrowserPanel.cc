@@ -266,8 +266,14 @@ namespace mikoto::editor {
 
         for ( auto& entry: std::filesystem::directory_iterator( root.GetPathTyped<std::filesystem::path>() ) ) {
             if ( entry.is_directory()) {
-                bool isOpen{ ImGui::TreeNodeEx( entry.path().string().c_str(), treeNodeFlags, "%s",
-                    string::Format( "{} {}", ICON_MD_FOLDER, entry.path().stem().string() ).c_str() ) };
+                std::string nodeIDString{ entry.path().string() };
+                ImGuiID nodeID{ ImGui::GetID(nodeIDString.c_str()) };
+
+                ImGuiStorage* storage{ ImGui::GetStateStorage() };
+                bool isNodeOpened{ storage->GetBool(nodeID, false) };
+
+                bool isOpen{ ImGui::TreeNodeEx( nodeIDString.c_str(), treeNodeFlags, "%s",
+                    string::Format( "{} {}", isNodeOpened ? ICON_MD_FOLDER_OPEN : ICON_MD_FOLDER, entry.path().stem().string() ).c_str() ) };
 
                 SetCursorHandOnLastItemHovered();
 

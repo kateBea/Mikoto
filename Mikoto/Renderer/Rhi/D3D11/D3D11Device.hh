@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_D3D11DEVICE_HH
-#define MIKOTO_D3D11DEVICE_HH
+#ifndef MIKOTO_D3D11_DEVICE_HH
+#define MIKOTO_D3D11_DEVICE_HH
 
 #include <mutex>
 
@@ -87,9 +87,9 @@ namespace mikoto::renderer::d3d11 {
 
     // Variants?
     struct D3D11BindingData {
-        ID3D11ShaderResourceView* srv{ nullptr };
-        ID3D11SamplerState* sampler{ nullptr };
-        ID3D11Buffer* constantBuffer{ nullptr };
+        ID3D11ShaderResourceView* mSrv{ nullptr };
+        ID3D11SamplerState* mSampler{ nullptr };
+        ID3D11Buffer* mConstantBuffer{ nullptr };
     };
 
     class BindingSet : public IBindingSet {
@@ -353,7 +353,7 @@ namespace mikoto::renderer::d3d11 {
 
 
     private:
-        eastl::vector<D3D_FEATURE_LEVEL> mDeviceFeatureLevel{
+        eastl::fixed_vector<D3D_FEATURE_LEVEL, 5> mDeviceFeatureLevel{
             D3D_FEATURE_LEVEL_12_1,
             D3D_FEATURE_LEVEL_12_0,
             D3D_FEATURE_LEVEL_11_1,
@@ -388,4 +388,4 @@ namespace mikoto::renderer::d3d11 {
 
 #endif
 
-#endif//MIKOTO_D3D11DEVICE_HH
+#endif//MIKOTO_D3D11_DEVICE_HH

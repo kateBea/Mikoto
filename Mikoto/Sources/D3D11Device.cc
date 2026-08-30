@@ -121,15 +121,15 @@ namespace mikoto::renderer::d3d11 {
             auto &out = mResolvedBindings[i];
             switch ( item.mType ) {
                 case ResourceType::eTexture_SRV:
-                    out.srv = checked_cast<Texture*>( item.mResource )->GetNativeHandle( ObjectType::D3D11_SRV );
+                    out.mSrv = checked_cast<Texture*>( item.mResource )->GetNativeHandle( ObjectType::D3D11_SRV );
                     break;
 
                 case ResourceType::eConstantBuffer:
-                    out.constantBuffer = checked_cast<Buffer *>( item.mResource )->GetNativeHandle( ObjectType::D3D11_Buffer );
+                    out.mConstantBuffer = checked_cast<Buffer *>( item.mResource )->GetNativeHandle( ObjectType::D3D11_Buffer );
                     break;
 
                 case ResourceType::eSampler:
-                    out.sampler = checked_cast<Sampler*>( item.mResource )->GetNativeHandle( ObjectType::D3D11_Sampler );
+                    out.mSampler = checked_cast<Sampler*>( item.mResource )->GetNativeHandle( ObjectType::D3D11_Sampler );
                     break;
 
                 default:
@@ -167,15 +167,15 @@ namespace mikoto::renderer::d3d11 {
             }
 
             auto bindSRV = [&]( auto fn ) {
-                if ( data.srv ) fn( slot, 1, &data.srv );
+                if ( data.mSrv ) fn( slot, 1, &data.mSrv );
             };
 
             auto bindCB = [&]( auto fn ) {
-                if ( data.constantBuffer ) fn( slot, 1, &data.constantBuffer );
+                if ( data.mConstantBuffer ) fn( slot, 1, &data.mConstantBuffer );
             };
 
             auto bindSampler = [&]( auto fn ) {
-                if ( data.sampler ) fn( slot, 1, &data.sampler );
+                if ( data.mSampler ) fn( slot, 1, &data.mSampler );
             };
 
             switch ( item.mType ) {

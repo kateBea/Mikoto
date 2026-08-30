@@ -180,8 +180,8 @@ namespace mikoto::renderer::d3d11 {
 
         auto SetClearColor( TextureHandle renderTargets, Color color ) -> void override;
 
-        auto Write( IBuffer* src, ITexture* dest, u32 mipLevel ) -> void override;
-        auto Write( ITexture* target, u32 mipLevel,const void* data, size_t byteSize ) -> void override;
+        auto Write( IBuffer* src, ITexture* dest ) -> void override;
+        auto Write( ITexture* target, const void* data, size_t byteSize ) -> void override;
         auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
 
         auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;

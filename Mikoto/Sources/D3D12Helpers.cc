@@ -346,6 +346,22 @@ namespace mikoto::renderer::d3d12 {
         }
     }
 
+    auto GetBytesPerPixel( rhi::Format type ) -> UINT {
+        switch (type) {
+            case Format::eRGBA8_SNORM:
+            case Format::eRGBA8_UNORM:
+                return 4;
+            case Format::eRGBA32_FLOAT:
+            case Format::eRGBA32_SINT:
+            case Format::eRGBA32_UINT:
+                return 16;
+            default:;
+        }
+
+        MKT_ASSERT( false, "Unsupported format for bytes per pixel" );
+        return 0;
+    }
+
     auto GetBarrierSync( rhi::PipelineStageFlags flags ) -> D3D12_BARRIER_SYNC {
         D3D12_BARRIER_SYNC result{};
 

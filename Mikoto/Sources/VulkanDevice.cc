@@ -1012,11 +1012,11 @@ namespace mikoto::renderer::vulkan {
         vkCmdClearColorImage(mCurrentCommandBuffer, image->GetNativeHandle( ObjectType::Vk_Image ), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range);
     }
 
-    auto CommandList::Write( IBuffer *src, ITexture *dest, u32 mipLevel ) -> void {
+    auto CommandList::Write( IBuffer *src, ITexture *dest ) -> void {
 
     }
 
-    auto CommandList::Write( ITexture *texture, u32 mipLevel, const void *data, size_t byteSize ) -> void {
+    auto CommandList::Write( ITexture *texture, const void *data, size_t byteSize ) -> void {
         if (mEnableAutomaticBarriers) {
             SetTransition( texture, ResourceStates::eCopyDest );
         }
@@ -1034,7 +1034,7 @@ namespace mikoto::renderer::vulkan {
 
         copyRegion.imageSubresource.aspectMask = GetAspectMask( texture->GetFormat() );
 
-        copyRegion.imageSubresource.mipLevel = mipLevel;
+        copyRegion.imageSubresource.mipLevel = 0;
         copyRegion.imageSubresource.baseArrayLayer = 0;
         copyRegion.imageSubresource.layerCount = 1;
 

@@ -321,7 +321,7 @@ namespace mikoto::renderer {
     auto CommandContext::CopyTexture( FGTextureHandle destImage, const void* data, core::usize size ) -> void {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         ITexture* image{ CacheResource( destImage ) };
-        mCommands->Write( image, 0, data, size );
+        mCommands->Write( image, data, size );
     }
 
     auto CommandContext::CacheGpuDeviceAddress( FGBufferHandle handle ) -> rhi::DeviceAddress {

@@ -446,8 +446,8 @@ namespace mikoto::renderer::d3d12 {
 
         auto SetClearColor( rhi::TextureHandle renderTarget, Color color ) -> void override;
 
-        auto Write( IBuffer* src, ITexture* dest, core::u32 mipLevel ) -> void override;
-        auto Write( ITexture* texture, core::u32 mipLevel,const void* data, core::usize byteSize ) -> void override;
+        auto Write( IBuffer* src, ITexture* dest ) -> void override;
+        auto Write( ITexture* texture, const void* data, core::usize byteSize ) -> void override;
         auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
 
         auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;

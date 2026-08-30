@@ -162,13 +162,33 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    auto TextureCreateDescription::SetInitialDephtClearValue( core::f32 value ) -> TextureCreateDescription& {
+        mInitialDepthClearValue = value;
+        return *this;
+    }
+
+    auto TextureCreateDescription::SetInitialStencilClearValue( core::f32 value ) -> TextureCreateDescription& {
+        mInitialStencilClearValue = value;
+        return *this;
+    }
+
+    auto TextureCreateDescription::SetInitialColorClearValue( Color value ) -> TextureCreateDescription & {
+        mInitialClearValue = value;
+        return *this;
+    }
+
+    auto TextureCreateDescription::SetUseInitialClearValue( bool value ) -> TextureCreateDescription & {
+        mUseInitialClearValue = value;
+        return *this;
+    }
+
     auto TextureCreateDescription::SetKeepInitializerResources( bool value ) -> TextureCreateDescription & {
         mKeepInitializerResources = value;
         return *this;
     }
 
     auto TextureCreateDescription::SetMultisampling( Multisampling sampleCount ) -> TextureCreateDescription & {
-        mMSAA = sampleCount;
+        mMultisampling = sampleCount;
         return *this;
     }
 
@@ -348,6 +368,26 @@ namespace mikoto::renderer::rhi {
     auto SamplerCreateDescription::SetWrapW( SamplerWrapMode wrap ) -> SamplerCreateDescription & {
         mWrapW = wrap;
         return *this;
+    }
+
+    ITexture::ITexture( const TextureCreateDescription &desc )
+        : DeviceObject{ desc.mHeapType, desc.mResourceType },
+        mWidth{ desc.mWidth },
+        mHeight{ desc.mHeight },
+        mMipCount{ desc.mMipCount },
+        mInitialDepthClearValue{ desc.mInitialDepthClearValue },
+        mInitialStencilClearValue{ desc.mInitialStencilClearValue },
+        mInitialColorClearValue{ desc.mInitialClearValue },
+        mUseInitialClearValue{ desc.mUseInitialClearValue },
+        mImageData{ desc.mImageHandle },
+        mBufferSpan{ desc.mBufferSpan },
+        mFormat{ desc.mFormat },
+        mDimension{ desc.mDimension },
+        mTextureUsage{ desc.mUsage },
+        mMultisampling{ desc.mMultisampling },
+        mSubResources{ desc.mSubresourceSet }
+    {
+
     }
 
     auto VertexBindingDescription::SetBinding( u32 binding ) -> VertexBindingDescription & {

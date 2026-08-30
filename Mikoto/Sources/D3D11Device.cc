@@ -377,11 +377,11 @@ namespace mikoto::renderer::d3d11 {
         mCurrentClearColor = Color{};
     }
 
-    auto CommandList::Write( IBuffer *src, ITexture *dest, u32 mipLevel ) -> void {
+    auto CommandList::Write( IBuffer *src, ITexture *dest ) -> void {
 
     }
 
-    auto CommandList::Write( ITexture *target, u32 mipLevel, const void *data, size_t byteSize ) -> void {
+    auto CommandList::Write( ITexture *target, const void *data, size_t byteSize ) -> void {
 
     }
 

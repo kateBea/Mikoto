@@ -12,17 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #include <Audio/AudioUtility.hh>
-//
-// namespace mikoto {
-//
-//     AudioLoadDescription& AudioLoadDescription::WithFile( const File* source ) {
-//         this->AudioFile = source;
-//         return *this;
-//     }
-//
-//     AudioLoadDescription& AudioLoadDescription::SetVolume( const float volume ) {
-//         Volume = volume;
-//         return *this;
-//     }
-// }
+#include <Audio/AudioUtility.hh>
+
+namespace mikoto::audio {
+
+    using namespace mikoto::core;
+
+    auto AudioLoadDescription::SetFile( filesystem::FileHandle source ) -> AudioLoadDescription & {
+        mFile = source;
+        return *this;
+    }
+
+    auto AudioLoadDescription::SetVolume( f32 volume ) -> AudioLoadDescription & {
+        mVolume = volume;
+        return *this;
+    }
+}// namespace mikoto::audio

@@ -41,7 +41,13 @@ namespace mikoto::renderer::rhi {
         core::u32 mHeight{};
         core::u32 mMipCount{ 1 };
 
+        bool mTrackState{ true };
+        bool mUseInitialClearValue{ false };
         bool mKeepInitializerResources{ false };
+
+        Color mInitialClearValue{ kColorGreen };
+        core::f32 mInitialDepthClearValue{ 1.0f };
+        core::f32 mInitialStencilClearValue{ 0.0f };
 
         // Only one of these can be used, this is provided so we can
         // initialize a GPU texture from an Image or a buffer of raw bytes from CPU side
@@ -51,27 +57,28 @@ namespace mikoto::renderer::rhi {
         // from SSAO
         memory::BufferSpanHandle mBufferSpan{};
 
-        bool mTrackState{ true };
+        TextureSubresourceSet mSubresourceSet{};
+
+        ResourceType mResourceType{ ResourceType::eInvalid };
         ResourceStates mInitialState{ ResourceStates::eUnknown };
 
-        HeapType mHeapType{ HeapType::eDeviceLocal };
-
-        Multisampling mMSAA{ Multisampling::eMsaaX1 };
-
         Format mFormat{ Format::eRGBA8_SNORM };
+        HeapType mHeapType{ HeapType::eDeviceLocal };
+        Multisampling mMultisampling{ Multisampling::eMsaaX1 };
         TextureDimension mDimension{ TextureDimension::eTexture2D };
 
         TextureUsageFlags mUsage{ TextureUsageFlagsBits::kNone };
-
-        ResourceType mResourceType{ ResourceType::eInvalid };
-
-        TextureSubresourceSet mSubresourceSet{};
 
         auto SetName( eastl::string_view name ) -> TextureCreateDescription&;
         auto SetWidth( core::u32 width ) -> TextureCreateDescription&;
         auto SetHeight( core::u32 height ) -> TextureCreateDescription&;
         auto SetMipCount( core::u32 count ) -> TextureCreateDescription&;
 
+        // If the texture does not change the clear value
+        auto SetInitialDephtClearValue( core::f32 value ) -> TextureCreateDescription&;
+        auto SetInitialStencilClearValue( core::f32 value ) -> TextureCreateDescription&;
+        auto SetInitialColorClearValue( Color value ) -> TextureCreateDescription&;
+        auto SetUseInitialClearValue( bool value ) -> TextureCreateDescription&;
         auto SetKeepInitializerResources( bool value ) -> TextureCreateDescription&;
 
         auto SetImageData( asset::ImageHandle image) -> TextureCreateDescription&;
@@ -193,22 +200,19 @@ namespace mikoto::renderer::rhi {
         ~ITexture() override = default;
 
     protected:
-        explicit ITexture( const TextureCreateDescription& desc )
-            : DeviceObject{ desc.mHeapType, desc.mResourceType },
-              mWidth{ desc.mWidth },
-              mHeight{ desc.mHeight },
-              mMipCount{ desc.mMipCount },
-              mImageData{ desc.mImageHandle },
-              mBufferSpan{ desc.mBufferSpan },
-              mFormat{ desc.mFormat },
-              mDimension{ desc.mDimension },
-              mTextureUsage{ desc.mUsage },
-              mMultisampling{ desc.mMSAA }, mSubResources{ desc.mSubresourceSet } {}
+        explicit ITexture( const TextureCreateDescription& desc );
 
     protected:
         core::u32 mWidth{};
         core::u32 mHeight{};
         core::u32 mMipCount{ 1 };
+
+
+        core::f32 mInitialDepthClearValue{};
+        core::f32 mInitialStencilClearValue{};
+
+        Color mInitialColorClearValue{};
+        bool mUseInitialClearValue{ false };
 
         asset::ImageHandle mImageData{};
         memory::BufferSpanHandle mBufferSpan{};

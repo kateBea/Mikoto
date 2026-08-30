@@ -239,8 +239,8 @@ namespace mikoto::renderer::vulkan {
 
         auto SetClearColor( rhi::TextureHandle image, rhi::Color color ) -> void override;
 
-        auto Write( rhi::IBuffer* src, rhi::ITexture* dest, core::u32 mipLevel ) -> void override;
-        auto Write( rhi::ITexture* texture, core::u32 mipLevel, const void* data, core::size_t byteSize ) -> void override;
+        auto Write( rhi::IBuffer* src, rhi::ITexture* dest ) -> void override;
+        auto Write( rhi::ITexture* texture, const void* data, core::size_t byteSize ) -> void override;
         auto Copy( rhi::ITexture* src, const rhi::TextureSlice& srcSlice, rhi::ITexture* dest, const rhi::TextureSlice& destSlice ) -> void override;
 
         auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;

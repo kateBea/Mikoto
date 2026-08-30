@@ -265,8 +265,10 @@ namespace mikoto::renderer::rhi {
 
         virtual auto SetClearColor( TextureHandle renderTargets, Color color ) -> void = 0;
 
-        virtual auto Write( IBuffer* src, ITexture* dest, core::u32 mipLevel ) -> void = 0;
-        virtual auto Write( ITexture* target, core::u32 mipLevel, const void* data, core::usize byteSize ) -> void = 0;
+        // The format for the bytes within the buffer is specified by the texture
+        virtual auto Write( IBuffer* src, ITexture* dest) -> void = 0;
+        virtual auto Write( ITexture* target, const void* data, core::usize byteSize ) -> void = 0;
+
         virtual auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void = 0;
 
         virtual auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void = 0;

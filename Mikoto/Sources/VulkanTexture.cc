@@ -158,7 +158,7 @@ namespace mikoto::renderer::vulkan {
         cmd->Begin( { .mScopeName = string::Format( "Texture upload: {}", mDebugName ) } );
 
         // Data is always writen at mip zero
-        cmd->Write( this, 0, buffer->GetData(), buffer->GetSize() );
+        cmd->Write( this, buffer->GetData(), buffer->GetSize() );
 
         // These textures are often loaded to be read from shaders
         cmd->SetTransition( this, ResourceStates::eShaderResource );

@@ -269,7 +269,7 @@ namespace mikoto::renderer::d3d12 {
     auto Context::Shutdown() -> void {
         // Do a wait idle
         Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
-        ( void )pFence->Wait( mFenceValue, eastl::numeric_limits<u64>::max() ); // Host wait
+        ( void )pFence->Wait( mFenceValue, 4000 ); // Host wait
 
         mDevice->WaitIdle();
 

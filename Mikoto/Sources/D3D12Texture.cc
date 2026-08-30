@@ -409,18 +409,20 @@ namespace mikoto::renderer::d3d12 {
             // ID3D12Device::CreatePlacedResource: pOptimizedClearValue must be NULL when D3D12_RESOURCE_DESC::Dimension is
             // not D3D12_RESOURCE_DIMENSION_BUFFER and neither D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET nor
             // D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL are set in D3D12_RESOURCE_DESC::Flags.
-            if ((mTextureUsage & rhi::TextureUsageFlagsBits::kRenderTarget) ||
+            if (mUseInitialClearValue) {
+                if ((mTextureUsage & rhi::TextureUsageFlagsBits::kRenderTarget) ||
                 (mTextureUsage & rhi::TextureUsageFlagsBits::kDepthTarget || mTextureUsage & rhi::TextureUsageFlagsBits::kDepthStencilTarget)) {
-                mOptimizedClearValue.Format = mImageAllocation.mDesc.Format;
-                mOptimizedClearValue.Color[0] = 0.0f;
-                mOptimizedClearValue.Color[1] = 0.0f;
-                mOptimizedClearValue.Color[2] = 0.0f;
-                mOptimizedClearValue.Color[3] = 1.0f;
+                    mOptimizedClearValue.Format = mImageAllocation.mDesc.Format;
+                    mOptimizedClearValue.Color[0] = mInitialColorClearValue.mR;
+                    mOptimizedClearValue.Color[1] = mInitialColorClearValue.mG;
+                    mOptimizedClearValue.Color[2] = mInitialColorClearValue.mB;
+                    mOptimizedClearValue.Color[3] = mInitialColorClearValue.mA;
 
-                mOptimizedClearValue.DepthStencil.Depth = 1.0f;
-                mOptimizedClearValue.DepthStencil.Stencil = 0;
+                    mOptimizedClearValue.DepthStencil.Depth = mInitialDepthClearValue;
+                    mOptimizedClearValue.DepthStencil.Stencil = mInitialStencilClearValue;
 
-                mImageAllocation.mOptimizedClearValue = MKT_ADDRESSOF( mOptimizedClearValue );
+                    mImageAllocation.mOptimizedClearValue = MKT_ADDRESSOF( mOptimizedClearValue );
+                }
             }
 
             auto* allocator{ device->GetAllocator() };
@@ -479,7 +481,7 @@ namespace mikoto::renderer::d3d12 {
         cmd->Begin( { .mScopeName = string::Format( "Texture upload: {}", mDebugName ) } );
 
         // Data is always writen at mip zero
-        cmd->Write( this, 0, buffer->GetData(), buffer->GetSize() );
+        cmd->Write( this, buffer->GetData(), buffer->GetSize() );
 
         // These textures are often loaded to be read from shaders
         cmd->SetTransition( this, ResourceStates::eShaderResource );

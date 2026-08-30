@@ -74,6 +74,11 @@ namespace mikoto::material {
 
         auto SetAmbientScale( core::f32 scale ) -> void;
 
+        // For the given type of skybox textures, it specifies if all of them are present
+        // if equirectangular a flat image must be present (an HDR) otherwise for faces type
+        // all six faces must be present
+        MKT_NODISCARD auto HasRequiredTextures() const -> bool;
+
         MKT_NODISCARD auto IsType( SkyboxType type ) const -> bool;
         MKT_NODISCARD auto GetType() const -> SkyboxType;
 

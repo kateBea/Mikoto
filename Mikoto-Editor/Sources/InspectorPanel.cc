@@ -2451,6 +2451,7 @@ namespace mikoto::editor {
         SkyboxType newSkyboxType{ gui::Combo( choicesAlpha, currentSkyboxType ) };
         if (newSkyboxType != currentSkyboxType) {
             material->SetType( newSkyboxType );
+            renderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
         }
 
         ImGui::Spacing();
@@ -2462,14 +2463,14 @@ namespace mikoto::editor {
         ImGui::Spacing();
 
         if (material->IsType( SkyboxType::eCubeFaces )) {
-            if ( ImGui::BeginTable( "##SetupSkyboxComponentTable_CubeFcaes", columnCount, specularTableFlags ) ) {
+            if ( ImGui::BeginTable( "##SetupSkyboxComponentTable_CubeFaces", columnCount, specularTableFlags ) ) {
                 static constexpr eastl::array<eastl::pair<SkyboxFace, eastl::string_view>, 6> kCubeFaces{{
-                    { SkyboxFace::eTop,    "Top (+Y)"    },
-                    { SkyboxFace::eBottom, "Bottom (-Y)" },
-                    { SkyboxFace::eBack,   "Back (-Z)"   },
-                    { SkyboxFace::eFront,  "Front (+Z)"  },
-                    { SkyboxFace::eLeft,   "Left (-X)"   },
-                    { SkyboxFace::eRight,  "Right (+X)"  }
+                    { SkyboxFace::eTop,    "Top ( +Y )"    },
+                    { SkyboxFace::eBottom, "Bottom ( -Y )" },
+                    { SkyboxFace::eBack,   "Back ( -Z )"   },
+                    { SkyboxFace::eFront,  "Front ( +Z )"  },
+                    { SkyboxFace::eLeft,   "Left ( -X )"   },
+                    { SkyboxFace::eRight,  "Right ( +X )"  }
                 }};
 
                 for (usize i{}; i < kCubeFaces.size(); ++i ) {
@@ -2518,6 +2519,23 @@ namespace mikoto::editor {
                 }
 
                 ImGui::EndTable();
+            }
+
+            {
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+                gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+
+                if ( ImGui::Button( string::Format( "{} Apply", ICON_MD_CLOUD_DOWNLOAD ).c_str()) ) {
+                    renderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
+                }
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
             }
         } else if (material->IsType( SkyboxType::eEquirectangular )) {
             if ( ImGui::BeginTable( "##SetupSkyboxComponentTable_FlatImage", columnCount, specularTableFlags ) ) {

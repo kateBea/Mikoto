@@ -209,6 +209,11 @@ namespace mikoto::renderer {
             return;
         }
 
+        SkyboxMaterial* pMaterial{ checked_cast<SkyboxMaterial*>( material.GetRaw() ) };
+        if (!pMaterial->HasRequiredTextures()) {
+            return;
+        }
+
         mGeometryShading.SetSkyboxMaterial( material );
 
         // These passes sleep after every run,

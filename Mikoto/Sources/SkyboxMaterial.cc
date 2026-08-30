@@ -82,6 +82,25 @@ namespace mikoto::material {
         mAmbientScale = scale;
     }
 
+    auto SkyboxMaterial::HasRequiredTextures() const -> bool {
+        switch (mType) {
+            case SkyboxType::eCubeFaces:
+                if (mCubeFaces.size() != 6) {
+                    return false;
+                }
+
+                // All faces have a texture
+                return std::ranges::all_of(mCubeFaces, [](const auto& pair) {
+                    return !pair.second.IsEmpty();
+                });
+            case SkyboxType::eEquirectangular:
+                return !mEquirectangular.IsEmpty();
+            default:;
+        }
+
+        return false;
+    }
+
     auto SkyboxMaterial::GetAmbientScale() const -> core::f32 {
         return mAmbientScale;
     }

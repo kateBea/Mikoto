@@ -219,14 +219,16 @@ namespace mikoto::gui {
 
         const Path path{ PathBuilder()
             .SetPath( mFontsRootDir.GetC_Str() )
-            .SetPath( "Noto_Sans_JP" )
+            .SetPath( "JetBrains_Mono,Lexend,Noto_Sans_JP,Source_Code_Pro" )
+            .SetPath( "JetBrains_Mono" )
             .SetPath( "static" )
-            .SetPath( "NotoSansJP-Light.ttf" )
+            .SetPath( "JetBrainsMono-ExtraLight.ttf" )
             .Build() };
 
         // Add the main font
         AddFont(kFontBaseSize, path, nullptr, io.Fonts->GetGlyphRangesDefault() );
 
+        // Config for japanese characters
         ImFontConfig jpConfig{};
         jpConfig.MergeMode = true;
         jpConfig.OversampleH = 2;

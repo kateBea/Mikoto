@@ -127,7 +127,7 @@ namespace mikoto::gui {
         auto AddIconFont(float fontSize, const eastl::string &path, const eastl::array<ImWchar, 3> &iconRanges) -> void;
 
     private:
-        static constexpr float kFontBaseSize{ 19.0f };
+        static constexpr float kFontBaseSize{ 17.0f };
 
     private:
         platform::Window* mWindow{ nullptr };

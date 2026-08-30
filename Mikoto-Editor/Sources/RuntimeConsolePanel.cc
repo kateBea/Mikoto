@@ -18,13 +18,15 @@
 #include <EASTL/fixed_string.h>
 
 #include <imgui.h>
-#include <ImGui/IconsMaterialDesign.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/String.hh>
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
+
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/IconsMaterialDesign.h>
 
 #include <Memory/Allocator.hh>
 
@@ -56,41 +58,50 @@ namespace mikoto::editor {
         static bool showInfo{ true }, showWarn{ true }, showError{ true }, showDebug{ true };
 
         ImGui::Checkbox("Info", &showInfo);
+        gui::SetCursorHandOnLastItemHovered();
         ImGui::SameLine();
 
         ImGui::Checkbox("Warn", &showWarn);
+        gui::SetCursorHandOnLastItemHovered();
         ImGui::SameLine();
 
         ImGui::Checkbox("Error", &showError);
+        gui::SetCursorHandOnLastItemHovered();
         ImGui::SameLine();
 
         ImGui::Checkbox("Debug", &showDebug);
+        gui::SetCursorHandOnLastItemHovered();
 
         ImGui::Separator();
 
         ImGui::BeginChild("ConsoleScrollRegion", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false,
                           ImGuiWindowFlags_HorizontalScrollbar);
 
-        for (const auto& line : RuntimeConsole::Get()->GetLogs()) {
-            if (line.find("[INFO]") != eastl::string::npos && !showInfo) continue;
-            if (line.find("[WARN]") != eastl::string::npos && !showWarn) continue;
-            if (line.find("[ERROR]") != eastl::string::npos && !showError) continue;
-            if (line.find("[DEBUG]") != eastl::string::npos && !showDebug) continue;
+        {
+            gui::ImGuiScopedTextFont newFont{ ImGuiService::Get()->PushFont( "./Resources/Fonts/Google_Sans_Code/static/GoogleSansCode-Light.ttf" ) };
 
-            ImVec4 color{ ImGui::GetStyleColorVec4(ImGuiCol_Text) };
-            if (line.find("[ERROR]") != eastl::string::npos) {
-                color = { 1.0f, 0.3f, 0.3f, 1.0f };
-            }
-            else if (line.find("[WARN]") != eastl::string::npos) {
-                color = { 1.0f, 0.8f, 0.3f, 1.0f };
-            }
-            else if (line.find("[DEBUG]") != eastl::string::npos) {
-                color = { 0.5f, 0.8f, 1.0f, 1.0f };
+            for (const auto& line : RuntimeConsole::Get()->GetLogs()) {
+                if (line.find("[INFO]") != eastl::string::npos && !showInfo) continue;
+                if (line.find("[WARN]") != eastl::string::npos && !showWarn) continue;
+                if (line.find("[ERROR]") != eastl::string::npos && !showError) continue;
+                if (line.find("[DEBUG]") != eastl::string::npos && !showDebug) continue;
+
+                ImVec4 color{ ImGui::GetStyleColorVec4(ImGuiCol_Text) };
+                if (line.find("[ERROR]") != eastl::string::npos) {
+                    color = { 1.0f, 0.3f, 0.3f, 1.0f };
+                }
+                else if (line.find("[WARN]") != eastl::string::npos) {
+                    color = { 1.0f, 0.8f, 0.3f, 1.0f };
+                }
+                else if (line.find("[DEBUG]") != eastl::string::npos) {
+                    color = { 0.5f, 0.8f, 1.0f, 1.0f };
+                }
+
+                ImGui::PushStyleColor(ImGuiCol_Text, color);
+                ImGui::TextUnformatted(line.c_str());
+                ImGui::PopStyleColor();
             }
 
-            ImGui::PushStyleColor(ImGuiCol_Text, color);
-            ImGui::TextUnformatted(line.c_str());
-            ImGui::PopStyleColor();
         }
 
         if (mScrollToBottom) {

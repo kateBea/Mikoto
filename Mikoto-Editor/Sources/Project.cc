@@ -22,6 +22,12 @@ namespace mikoto::editor {
 
     }
 
+    Project::Project( const ProjectCreateDescription& desc )
+        : mName{ desc.mName }
+    {
+
+    }
+
     auto Project::Serialize( const filesystem::Path &filename ) const -> void {
 
     }
@@ -44,6 +50,14 @@ namespace mikoto::editor {
         }
 
         mName = name;
+    }
+
+    auto Project::SetAutoSaveInterval( core::f32 milliseconds ) -> void {
+        mAutoSaveInterval = milliseconds;
+    }
+
+    auto Project::SetEnableSaveInterval( bool enable ) -> void {
+        mIsAutoSaveEnabled = enable;
     }
 
     auto Project::GetName() const -> eastl::string_view {

@@ -136,7 +136,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateBuffer( const BufferCreateDescription &description ) -> BufferHandle {
-        BufferHandle buffer{ Ref<Buffer>::Spawn(description) };
+        BufferHandle buffer{ Ref<Buffer>::New(description) };
 
         if ( buffer.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate buffer resource." );
@@ -149,7 +149,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateTexture( const TextureCreateDescription &description ) -> TextureHandle {
-        TextureHandle texture{ Ref<Texture>::Spawn(description) };
+        TextureHandle texture{ Ref<Texture>::New(description) };
 
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice - Failed to allocate texture" );
@@ -166,7 +166,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateSampler( const SamplerCreateDescription &description ) -> SamplerHandle {
-        SamplerHandle sampler{ Ref<Sampler>::Spawn(description) };
+        SamplerHandle sampler{ Ref<Sampler>::New(description) };
 
         if ( sampler.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate sampler resource." );
@@ -183,7 +183,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateShader( const ShaderModuleCreateDescription &desc ) -> ShaderModuleHandle {
-        ShaderModuleHandle result{ Ref<Shader>::Spawn(desc) };
+        ShaderModuleHandle result{ Ref<Shader>::New(desc) };
 
         if ( result.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to create shader." );
@@ -196,7 +196,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateInputLayout( const InputLayoutCreateDescription& desc ) -> InputLayoutHandle {
-        InputLayoutHandle layout{ Ref<InputLayout>::Spawn( desc ) };
+        InputLayoutHandle layout{ Ref<InputLayout>::New( desc ) };
 
         if ( layout.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding layout resource." );
@@ -209,7 +209,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateBindingLayout( const BindingLayoutDescription &desc ) -> BindingLayoutHandle {
-        BindingLayoutHandle layout{ Ref<BindingLayout>::Spawn( desc ) };
+        BindingLayoutHandle layout{ Ref<BindingLayout>::New( desc ) };
 
         if ( layout.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding layout resource." );
@@ -222,7 +222,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle {
-        PipelineLayoutHandle layout{ Ref<PipelineLayout>::Spawn( desc ) };
+        PipelineLayoutHandle layout{ Ref<PipelineLayout>::New( desc ) };
 
         if ( layout.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate pipeline layout resource." );
@@ -235,7 +235,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateBindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
-        BindingSetHandle set{ Ref<BindingSet>::Spawn( desc, layout ) };
+        BindingSetHandle set{ Ref<BindingSet>::New( desc, layout ) };
 
         if ( set.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding set resource." );
@@ -248,7 +248,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateFence( u64 fenceInitialValue ) -> FenceHandle {
-        FenceHandle fence{ Ref<Fence>::Spawn( fenceInitialValue ) };
+        FenceHandle fence{ Ref<Fence>::New( fenceInitialValue ) };
 
         if ( fence.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate fence resource." );
@@ -277,7 +277,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateBindlessLayout( const BindlessLayoutDescription &desc ) -> BindingLayoutHandle {
-        BindingLayoutHandle layout{ Ref<BindingLayout>::Spawn( desc ) };
+        BindingLayoutHandle layout{ Ref<BindingLayout>::New( desc ) };
 
         if ( layout.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding layout resource." );
@@ -290,7 +290,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle {
-        DescriptorTableHandle table{ Ref<DescriptorTable>::Spawn( layout ) };
+        DescriptorTableHandle table{ Ref<DescriptorTable>::New( layout ) };
 
         if ( table.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate descriptor table resource." );
@@ -356,7 +356,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateTexture( const ExternalTextureDescription &info ) -> TextureHandle {
-        TextureHandle texture{ Ref<Texture>::Spawn(info) };
+        TextureHandle texture{ Ref<Texture>::New(info) };
 
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice - Failed to allocate texture" );
@@ -369,7 +369,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateBinarySemaphore() -> BinarySemaphoreHandle {
-        BinarySemaphoreHandle semaphore{ Ref<BinarySemaphore>::Spawn() };
+        BinarySemaphoreHandle semaphore{ Ref<BinarySemaphore>::New() };
 
         if ( semaphore.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "VulkanDevice - Failed to allocate texture" );
@@ -400,7 +400,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreatePipeline( const ComputePipelineDescription &description ) -> PipelineHandle {
-        PipelineHandle computePipeline{ Ref<ComputePipeline>::Spawn( description, mPipelineCache ) };
+        PipelineHandle computePipeline{ Ref<ComputePipeline>::New( description, mPipelineCache ) };
 
         if ( computePipeline.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate compute pipeline resource." );
@@ -413,7 +413,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreatePipeline( const GraphicsPipelineDescription &description ) -> PipelineHandle {
-        PipelineHandle graphicsPipeline{ Ref<GraphicsPipeline>::Spawn( description, mPipelineCache ) };
+        PipelineHandle graphicsPipeline{ Ref<GraphicsPipeline>::New( description, mPipelineCache ) };
 
         if ( graphicsPipeline.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate graphics pipeline resource." );
@@ -515,7 +515,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::CreateSwapChain( const SwapChainCreateInfo &createInfo ) -> SwapChainHandle {
-        SwapChainHandle handle{ SwapChainHandle::Spawn( createInfo ) };
+        SwapChainHandle handle{ SwapChainHandle::New( createInfo ) };
         if (!handle.IsEmpty()) {
             handle->Initialize(this);
         }
@@ -657,7 +657,7 @@ namespace mikoto::renderer::vulkan {
         for (constexpr u32 kQueueIndex{ 0 }; const auto& [queueType, queueData] : queuesIndices) {
             const auto it{ queueFamilyTracking.find( queueData->FamilyIndex ) };
             if (it == queueFamilyTracking.end()) {
-                QueueHandle queue{ Ref<Queue>::Spawn( queueType, queueData->mOpSupportFlags, queueData->FamilyIndex, kQueueIndex ) };
+                QueueHandle queue{ Ref<Queue>::New( queueType, queueData->mOpSupportFlags, queueData->FamilyIndex, kQueueIndex ) };
                 queue->Initialize( this );
 
                 mQueues[queueType] = queue;
@@ -2160,7 +2160,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Queue::AllocateCmdList(QueueType type) -> CommandListHandle {
         CommandPoolHandle pool{ AcquireThreadCmdPool() };
-        CommandListHandle result{ Ref<CommandList>::Spawn( type, this, pool ) };
+        CommandListHandle result{ Ref<CommandList>::New( type, this, pool ) };
 
         return result;
     }
@@ -2190,7 +2190,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         auto [result, success]{
-            mPools.emplace( id, CommandPoolHandle::Spawn( this ) )
+            mPools.emplace( id, CommandPoolHandle::New( this ) )
         };
 
         result->second->Initialize( mDevice );

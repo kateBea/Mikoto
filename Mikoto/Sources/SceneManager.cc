@@ -75,7 +75,7 @@ namespace mikoto::scene {
     }
 
     auto SceneManager::CreateScene( eastl::string_view name ) -> Scene * {
-        return Register( name, eastl::move( core::Ref<Scene>::Spawn( name ) ) );
+        return Register( name, eastl::move( core::Ref<Scene>::New( name ) ) );
     }
 
     auto SceneManager::GetByName( const eastl::string_view name ) -> Scene * {

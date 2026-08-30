@@ -44,7 +44,7 @@ namespace mikoto::renderer::d3d11 {
 
     Shader::Shader( const rhi::ShaderModuleCreateDescription& desc )
         : IShaderModule{ desc.mType, desc.mEntryPoint, desc.mLanguage }, mModulePath{ desc.mModulePath }, mModuleName{ desc.mModuleName } {
-        mContents = BufferSpanHandle::Spawn( desc.mShaderContents, desc.mShaderContentsSize );
+        mContents = BufferSpanHandle::New( desc.mShaderContents, desc.mShaderContentsSize );
 
         if (mStage == ShaderType::eVertex) {
             mTarget = "vs_5_0";

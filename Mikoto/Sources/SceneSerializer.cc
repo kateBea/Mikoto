@@ -44,7 +44,7 @@ namespace mikoto::scene {
             return Ref<ISerializable>::CreateEmpty();
         }
 
-        Ref<ISerializable> result{ Ref<Scene>::Spawn() };
+        Ref<ISerializable> result{ Ref<Scene>::New() };
         result->Deserialize( inputFile );
 
         return result;

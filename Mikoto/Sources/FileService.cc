@@ -67,7 +67,7 @@ namespace mikoto::filesystem {
 
         FileHandle result{};
         try {
-            result = FileHandle::Spawn( absolutePath, false );
+            result = FileHandle::New( absolutePath, false );
         } catch ( const std::exception& e ) {
             MKT_CORE_LOGGER_ERROR( "CreateNewFile exception. e.what()", e.what() );
             return FileHandle::CreateEmpty();
@@ -111,7 +111,7 @@ namespace mikoto::filesystem {
         FileHandle result{};
 
         try {
-            result = FileHandle::Spawn( absolutePath, true );
+            result = FileHandle::New( absolutePath, true );
         } catch ( const std::exception& e ) {
             MKT_CORE_LOGGER_ERROR( "CreateNewFile exception. e.what()", e.what() );
         }

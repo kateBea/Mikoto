@@ -49,7 +49,7 @@ namespace mikoto::renderer::d3d12 {
     Shader::Shader( const rhi::ShaderModuleCreateDescription &desc )
         : IShaderModule{ desc.mType, desc.mEntryPoint, desc.mLanguage }, mModulePath{ desc.mModulePath }, mModuleName{ desc.mModuleName }
     {
-        mContents = BufferSpanHandle::Spawn( desc.mShaderContents, desc.mShaderContentsSize );
+        mContents = BufferSpanHandle::New( desc.mShaderContents, desc.mShaderContentsSize );
     }
 
     auto Shader::DumpShaderCode() -> void {

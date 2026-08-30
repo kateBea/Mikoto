@@ -123,7 +123,7 @@ namespace mikoto::scene {
             cameraDescription.mAspectRatio = as<f32>( window->GetWidth() ) / as<f32>( window->GetHeight() );
         }
 
-        mCamera = Ref<SceneCamera>::Spawn( cameraDescription );
+        mCamera = Ref<SceneCamera>::New( cameraDescription );
     }
 
     auto CameraComponent::HasCamera() const -> bool {

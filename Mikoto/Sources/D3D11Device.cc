@@ -896,7 +896,7 @@ namespace mikoto::renderer::d3d11 {
             mName = string::FromWChar( wideDeviceName.c_str() );
         }
 
-        mQueue = Ref<Queue>::Spawn( QueueType::eGraphics, QueueOpSupportFlagsBits::kGraphics );
+        mQueue = Ref<Queue>::New( QueueType::eGraphics, QueueOpSupportFlagsBits::kGraphics );
         mQueue->Initialize( this );
     }
 
@@ -905,7 +905,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreateBuffer( const BufferCreateDescription &description ) -> BufferHandle {
-        BufferHandle buffer{ Ref<Buffer>::Spawn( description ) };
+        BufferHandle buffer{ Ref<Buffer>::New( description ) };
 
         if ( buffer.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "CreateBuffer - Failed to allocate texture resource." );
@@ -918,7 +918,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreateTexture( const TextureCreateDescription &description ) -> TextureHandle {
-        TextureHandle texture{ Ref<Texture>::Spawn( description ) };
+        TextureHandle texture{ Ref<Texture>::New( description ) };
 
         if ( texture.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "CreateTexture - Failed to allocate texture resource." );
@@ -935,7 +935,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreateSampler( const SamplerCreateDescription &description ) -> SamplerHandle {
-        SamplerHandle sampler{  Ref<Sampler>::Spawn( description ) };
+        SamplerHandle sampler{  Ref<Sampler>::New( description ) };
 
         if ( sampler.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate sampler resource." );
@@ -952,7 +952,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreateCommandList( QueueType type ) -> CommandListHandle {
-        CommandListHandle cmd{  Ref<CommandList>::Spawn( type ) };
+        CommandListHandle cmd{  Ref<CommandList>::New( type ) };
 
         if ( cmd.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate command list resource." );
@@ -965,7 +965,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreateShader( const ShaderModuleCreateDescription &desc ) -> ShaderModuleHandle {
-        ShaderModuleHandle shader{ Ref<Shader>::Spawn( desc ) };
+        ShaderModuleHandle shader{ Ref<Shader>::New( desc ) };
 
         if ( shader.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "CreateShader - Failed to allocate shader resource." );
@@ -978,7 +978,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreateInputLayout( const InputLayoutCreateDescription& desc ) -> InputLayoutHandle {
-        InputLayoutHandle layout{ Ref<InputLayout>::Spawn( desc ) };
+        InputLayoutHandle layout{ Ref<InputLayout>::New( desc ) };
 
         if ( layout.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding layout resource." );
@@ -991,7 +991,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreateBindingLayout( const BindingLayoutDescription &desc ) -> BindingLayoutHandle {
-        BindingLayoutHandle layout{ Ref<BindingLayout>::Spawn( desc ) };
+        BindingLayoutHandle layout{ Ref<BindingLayout>::New( desc ) };
 
         if ( layout.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding layout resource." );
@@ -1008,7 +1008,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreateBindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
-        BindingSetHandle set{ Ref<BindingSet>::Spawn( desc, layout ) };
+        BindingSetHandle set{ Ref<BindingSet>::New( desc, layout ) };
 
         if ( set.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding layout resource." );
@@ -1021,7 +1021,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreateFence( MKT_UNUSED_VAR u64 fenceInitialValue ) -> FenceHandle {
-        FenceHandle fence{ Ref<Fence>::Spawn() };
+        FenceHandle fence{ Ref<Fence>::New() };
 
         if ( fence.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate fence resource." );
@@ -1102,7 +1102,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreatePipeline( const ComputePipelineDescription &description ) -> PipelineHandle {
-        PipelineHandle computePipeline{ Ref<ComputePipeline>::Spawn( description ) };
+        PipelineHandle computePipeline{ Ref<ComputePipeline>::New( description ) };
 
         if ( computePipeline.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate compute pipeline resource." );
@@ -1115,7 +1115,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreatePipeline( const GraphicsPipelineDescription &description ) -> PipelineHandle {
-        PipelineHandle graphicsPipeline{ Ref<GraphicsPipeline>::Spawn( description ) };
+        PipelineHandle graphicsPipeline{ Ref<GraphicsPipeline>::New( description ) };
 
         if ( graphicsPipeline.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate graphics pipeline resource." );
@@ -1188,7 +1188,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::CreateSwapChain(platform::Window* window, Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory) -> SwapChainHandle {
-        auto handle{ SwapChainHandle::Spawn(window, dxgiFactory) };
+        auto handle{ SwapChainHandle::New(window, dxgiFactory) };
         if (!handle.IsEmpty()) {
             handle->Initialize(this);
         }

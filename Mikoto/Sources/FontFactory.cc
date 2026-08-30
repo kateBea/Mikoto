@@ -199,7 +199,7 @@ namespace mikoto::renderer {
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kCopyDst | TextureUsageFlagsBits::kShaderResource )
-            .SetBufferData( BufferSpanHandle::Spawn( rc_cast<ubyte*>( bitmap.pixels ), as<usize>( atlasWidth * atlasHeight * channelCount ) ) )
+            .SetBufferData( BufferSpanHandle::New( rc_cast<ubyte*>( bitmap.pixels ), as<usize>( atlasWidth * atlasHeight * channelCount ) ) )
             .SetFormat( Format::eRGBA8_UNORM ) };
 
         data.mAtlas = mDevice->CreateTexture( textureDesc );
@@ -254,7 +254,7 @@ namespace mikoto::renderer {
 #endif
 
         // Construct font
-        FontHandle newFont{ FontHandle::Spawn( result.mAtlas, description.mSize, description.mFile->GetPath() ) };
+        FontHandle newFont{ FontHandle::New( result.mAtlas, description.mSize, description.mFile->GetPath() ) };
 
         // Fill glyph data
         for ( auto &[codepoint, glyphData]: result.mGlyphMap ) {

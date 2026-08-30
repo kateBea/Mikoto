@@ -49,7 +49,7 @@ namespace mikoto::editor {
             .SetBufferUsage( BufferUsageFlagsBits::kVertex | BufferUsageFlagsBits::kCopyDst )
             .SetHeapType( HeapType::eDeviceLocal )
             .SetCpuAccessType( CpuAccessType::eRead )
-            .SetInitialData( BufferSpanHandle::Spawn( mVertices.data(), MKT_VECTOR_SIZE_BYTES(mVertices) ) ) };
+            .SetInitialData( BufferSpanHandle::New( mVertices.data(), MKT_VECTOR_SIZE_BYTES(mVertices) ) ) };
         mVertexBuffer = mDevice->CreateBuffer( verticesDesc );
 
         // Create indices buffer
@@ -58,7 +58,7 @@ namespace mikoto::editor {
             .SetHeapType( HeapType::eDeviceLocal )
             .SetCpuAccessType( CpuAccessType::eRead )
             .SetFormat( Format::eR32_UINT )
-            .SetInitialData( BufferSpanHandle::Spawn( mIndices.data(), MKT_VECTOR_SIZE_BYTES(mIndices) ) ) };
+            .SetInitialData( BufferSpanHandle::New( mIndices.data(), MKT_VECTOR_SIZE_BYTES(mIndices) ) ) };
         mIndexBuffer = mDevice->CreateBuffer( indicesDesc );
 
         // Create color attachment

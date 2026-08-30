@@ -138,7 +138,7 @@ namespace mikoto::asset {
 
     auto AssetsService::CreateMaterial( const PhysicMaterialDescription& desc ) -> MaterialHandle {
         // TODO: store materials in the materials default path or user specified one
-        MaterialHandle material{ Ref<PhysicalMaterial>::Spawn( desc ) };
+        MaterialHandle material{ Ref<PhysicalMaterial>::New( desc ) };
         if ( material.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "AssetsService::CreateMaterial - Failed to create material" );
         }
@@ -146,7 +146,7 @@ namespace mikoto::asset {
         return material;
     }
     auto AssetsService::CreateMaterial( const SkyboxMaterialDescription& desc ) -> MaterialHandle {
-        MaterialHandle material{ Ref<SkyboxMaterial>::Spawn( desc ) };
+        MaterialHandle material{ Ref<SkyboxMaterial>::New( desc ) };
         if ( material.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "AssetsService::CreateMaterial - Failed to create material" );
         }
@@ -155,7 +155,7 @@ namespace mikoto::asset {
     }
 
     auto AssetsService::CreateMaterial( const PostProcessMaterialDescription& desc ) -> MaterialHandle {
-        MaterialHandle material{ Ref<PostProcessMaterial>::Spawn( desc ) };
+        MaterialHandle material{ Ref<PostProcessMaterial>::New( desc ) };
         if ( material.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "AssetsService::CreateMaterial - Failed to create material" );
         }

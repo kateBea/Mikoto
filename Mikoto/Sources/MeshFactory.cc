@@ -133,7 +133,7 @@ namespace mikoto::asset {
                 .SetBufferUsage( BufferUsageFlagsBits::kVertex | BufferUsageFlagsBits::kCopyDst | BufferUsageFlagsBits::kCopySrc )
                 .SetHeapType( HeapType::eDeviceLocal )
                 .SetCpuAccessType( CpuAccessType::eRead )
-                .SetInitialData( BufferSpanHandle::Spawn(
+                .SetInitialData( BufferSpanHandle::New(
                     meshNode.mVertices.data(), MKT_VECTOR_SIZE_BYTES(meshNode.mVertices) ) ) };
             BufferHandle vertices{ mDevice->CreateBuffer( verticesDesc ) };
 
@@ -143,7 +143,7 @@ namespace mikoto::asset {
                 .SetHeapType( HeapType::eDeviceLocal )
                 .SetCpuAccessType( CpuAccessType::eRead )
                 .SetFormat( Format::eR32_UINT )
-                .SetInitialData( BufferSpanHandle::Spawn( meshNode.mIndices.data(), MKT_VECTOR_SIZE_BYTES(meshNode.mIndices) ) ) };
+                .SetInitialData( BufferSpanHandle::New( meshNode.mIndices.data(), MKT_VECTOR_SIZE_BYTES(meshNode.mIndices) ) ) };
             BufferHandle indices{ mDevice->CreateBuffer( indicesDesc ) };
 
             auto meshCreateInfo{ MeshCreateDescription{}
@@ -156,7 +156,7 @@ namespace mikoto::asset {
             modelDescription.AddMesh( meshIndex++, meshCreateInfo );
         }
 
-        return ModelHandle::Spawn( eastl::move( modelDescription ) );
+        return ModelHandle::New( eastl::move( modelDescription ) );
     }
 
     auto MeshFactory::Initialize() -> void {

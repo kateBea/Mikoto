@@ -24,13 +24,25 @@
 #include <Core/Serializable.hh>
 #include <Core/ReferenceCounted.hh>
 
+#include <Scene/Scene.hh>
+
 #include <Filesystem/Path.hh>
 
 namespace mikoto::editor {
 
+    struct ProjectCreateDescription {
+        eastl::string mName{};
+
+        filesystem::Path mAssetsRootDirectory{};
+        filesystem::Path mAssetsRegistryDirectory{}; // Cache loaded assets
+
+        core::Ref<scene::Scene> mCurrentScene{};
+    };
+
     class Project final : public core::ISerializable {
     public:
-        explicit Project( eastl::string_view name);
+        explicit Project( eastl::string_view name );
+        explicit Project( const ProjectCreateDescription& desc );
 
         auto Serialize( const filesystem::Path &filename ) const -> void override;
         auto Deserialize( const filesystem::Path &filename ) const -> void override;
@@ -39,10 +51,22 @@ namespace mikoto::editor {
         auto Deserialize( filesystem::FileHandle file ) const -> void override;
 
         auto SetName( eastl::string_view name ) -> void;
+
+        auto SetAutoSaveInterval( core::f32 milliseconds ) -> void;
+        auto SetEnableSaveInterval( bool enable ) -> void;
+
         MKT_NODISCARD auto GetName() const -> eastl::string_view;
 
     private:
         eastl::string mName{};
+
+        filesystem::Path mAssetsRootDirectory{};
+        filesystem::Path mAssetsRegistryDirectory{}; // Cache loaded assets
+
+        bool mIsAutoSaveEnabled{};
+        core::f32 mAutoSaveInterval{ 2000 }; // In milliseconds
+
+        core::Ref<scene::Scene> mCurrentScene{};
     };
 
     using ProjectHandle = core::Ref<Project>;

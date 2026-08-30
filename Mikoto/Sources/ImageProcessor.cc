@@ -132,7 +132,7 @@ namespace mikoto::asset {
         }
 
         // Create the instance
-        result = ImageHandle::Spawn();
+        result = ImageHandle::New();
 
         // channels will be ignored and will only contain the
         // actual image channel count
@@ -152,7 +152,7 @@ namespace mikoto::asset {
                     targetChannelCount ) };
 
             result->mFormat = ImageFormat::eRGBA32_FLOAT;
-            result->mBufferSpan = BufferSpanHandle::Spawn(
+            result->mBufferSpan = BufferSpanHandle::New(
                 rc_cast<byte_t*>( data ),
                 size_t{ as<size_t>( width * height * result->mChannels * MKT_SIZEOF( f32 ) ) } );
 
@@ -168,7 +168,7 @@ namespace mikoto::asset {
                     targetChannelCount ) };
 
             result->mFormat = ImageFormat::eRGBA8_UINT;
-            result->mBufferSpan = BufferSpanHandle::Spawn(
+            result->mBufferSpan = BufferSpanHandle::New(
                 as<byte_t*>( data ),
                 size_t{ as<size_t>( width * height * result->mChannels * MKT_SIZEOF( byte_t ) ) } );
 
@@ -238,7 +238,7 @@ namespace mikoto::asset {
         }
 
         // Create the instance
-        result = ImageHandle::Spawn();
+        result = ImageHandle::New();
 
         const u32 targetBPP{ 32 };
 

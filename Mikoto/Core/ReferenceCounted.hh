@@ -180,7 +180,7 @@ namespace mikoto::core {
         MKT_NODISCARD static auto Create( RefCountedType* ptr ) -> Ref { return Ref{ ptr }; }
 
         template<typename... Args>
-        MKT_NODISCARD static auto Spawn( Args&&... args ) -> Ref { return Ref{ new RefCountedType{ std::forward<Args>( args )... } }; }
+        MKT_NODISCARD static auto New( Args&&... args ) -> Ref { return Ref{ new RefCountedType{ std::forward<Args>( args )... } }; }
 
         auto operator->() -> RefCountedType* { return mPtr; }
         auto operator->() const -> const RefCountedType* { return mPtr; }

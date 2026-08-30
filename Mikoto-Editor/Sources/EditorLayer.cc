@@ -231,7 +231,7 @@ namespace mikoto::editor {
                 else if (mods & as<i32>(ModKey::eShift)) activeMod = ModKey::eShift;
                 else if (mods & as<i32>(ModKey::eAlt)) activeMod = ModKey::eAlt;
 
-                const bool shortcutTriggered{ mActionManager->Dispatch( as<KeyCode>( keyPressed->GetKeyCode() ), activeMod) };
+                (void)mActionManager->Dispatch( as<KeyCode>( keyPressed->GetKeyCode() ), activeMod);
             }
         }
     }
@@ -384,6 +384,29 @@ namespace mikoto::editor {
 
         mActionManager->Bind(core::KeyCode::Key_C, core::ModKey::eControl | core::ModKey::eAlt, []() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + Shift + C (Open Console)" );
+        });
+
+        // Guizmos
+        mActionManager->Bind(core::KeyCode::Key_1, core::ModKey::eControl, [this]() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 1 (Translation Guizmo)" );
+            ScenePanel* scenePanel{ mPanelRegistry.Get<ScenePanel>() };
+            if (scenePanel) {
+                scenePanel->SetManipulation( GuizmoType::eTranslation );
+            }
+        });
+        mActionManager->Bind(core::KeyCode::Key_2, core::ModKey::eControl, [this]() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 1 (Rotation Guizmo)" );
+            ScenePanel* scenePanel{ mPanelRegistry.Get<ScenePanel>() };
+            if (scenePanel) {
+                scenePanel->SetManipulation( GuizmoType::eRotation );
+            }
+        });
+        mActionManager->Bind(core::KeyCode::Key_3, core::ModKey::eControl, [this]() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 1 (Scale Guizmo)" );
+            ScenePanel* scenePanel{ mPanelRegistry.Get<ScenePanel>() };
+            if (scenePanel) {
+                scenePanel->SetManipulation( GuizmoType::eScale );
+            }
         });
     }
 

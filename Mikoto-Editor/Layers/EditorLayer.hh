@@ -134,6 +134,7 @@ namespace mikoto::editor {
         // Renderer display settings
         bool mShowRenderGraph{};
         bool mShowInfiniteGrid{};
+        bool mShowImGuiDebugInfo{};
 
         gui::GraphEditor mGraphEditor{ "RenderGraph" };
 

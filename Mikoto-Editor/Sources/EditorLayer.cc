@@ -137,6 +137,10 @@ namespace mikoto::editor {
         } else {
             RenderSystem::Get()->SetPresentTarget( mEditorState->mFinalComposition );
         }
+
+        if (mShowImGuiDebugInfo) {
+            ImGui::ShowMetricsWindow();
+        }
     }
 
     auto EditorLayer::OnEvent( IEvent &event ) -> void {
@@ -358,6 +362,12 @@ namespace mikoto::editor {
 
         mActionManager->Bind(core::KeyCode::Key_A, core::ModKey::eControl, []() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + A (Select all entities)" );
+        });
+
+        mActionManager->Bind(core::KeyCode::Key_I, core::ModKey::eControl, [this]() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + I (ImguiDebugInfo)" );
+
+            mShowImGuiDebugInfo = !mShowImGuiDebugInfo;
         });
 
         mActionManager->Bind(core::KeyCode::Key_A, core::ModKey::eControl, []() {
@@ -773,6 +783,10 @@ namespace mikoto::editor {
 
                     if (ImGui::MenuItem( "Display Grid", nullptr, mShowInfiniteGrid )) {
                         mShowInfiniteGrid = !mShowInfiniteGrid;
+                    }
+
+                    if (ImGui::MenuItem( "Display ImGui Debug Info", "Ctrl+I", mShowImGuiDebugInfo )) {
+                        mShowImGuiDebugInfo = !mShowImGuiDebugInfo;
                     }
 
                     if (ImGui::BeginMenu( "Output" )) {

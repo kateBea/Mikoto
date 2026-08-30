@@ -2176,15 +2176,15 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::GetMemoryUsage() const -> core::usize {
-        return 0;
+        return mGpuAllocator->GetMemoryUsage();
     }
 
     auto Device::GetMemoryTotal() const -> core::usize {
-        return 0;
+        return mGpuAllocator->GetMemoryUsage();
     }
 
     auto Device::GetMemoryAvailable() const -> core::usize {
-        return 0;
+        return mGpuAllocator->GetMemoryAvailable();
     }
 
     auto Device::GetAllocator() -> GpuMemoryAllocator * {

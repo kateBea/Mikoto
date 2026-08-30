@@ -96,16 +96,29 @@ namespace mikoto::renderer::d3d12 {
         allocation.mResource->Unmap(0, nullptr);
     }
 
-    auto GpuMemoryAllocator::GetMemoryUsage() const -> size_t {
-        return 0; // TODO
+    auto GpuMemoryAllocator::GetMemoryUsage() const -> usize {
+        // https://gpuopen-librariesandsdks.github.io/D3D12MemoryAllocator/html/optimal_allocation.html
+        D3D12MA::Budget videoMemBudget{};
+        mAllocator->GetBudget(&videoMemBudget, NULL);
+
+        return videoMemBudget.UsageBytes;
     }
 
-    auto GpuMemoryAllocator::GetMemoryTotal() const -> size_t {
-        return 0; // TODO
+    auto GpuMemoryAllocator::GetMemoryTotal() const -> usize {
+        // https://gpuopen-librariesandsdks.github.io/D3D12MemoryAllocator/html/class_d3_d12_m_a_1_1_allocator.html#a434ae3147209953253da26687bfd62dc
+        auto totalVideoMemory{ mAllocator->GetMemoryCapacity(DXGI_MEMORY_SEGMENT_GROUP_LOCAL ) };
+        return totalVideoMemory;
     }
 
-    auto GpuMemoryAllocator::GetMemoryAvailable() const -> size_t {
-        return 0; // TODO
+    auto GpuMemoryAllocator::GetMemoryAvailable() const -> usize {
+        // The full capacity of the memory can be queried using function D3D12MA::Allocator::GetMemoryCapacity.
+        // However, it is not recommended, because the amount of memory available to the application is
+        // typically smaller than the full capacity, as some portion of it is reserved by the operating
+        // system or used by other processes.
+        D3D12MA::Budget videoMemBudget{};
+        mAllocator->GetBudget(&videoMemBudget, NULL);
+
+        return as<usize>(videoMemBudget.BudgetBytes - videoMemBudget.UsageBytes);
     }
 }// namespace mikoto::renderer::d3d12
 

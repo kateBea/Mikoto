@@ -67,9 +67,9 @@ namespace mikoto::renderer::d3d12 {
         auto UnmapBuffer( BufferAllocation& allocation ) -> void;
 
         // These are slow use for debug only
-        MKT_NODISCARD auto GetMemoryUsage() const -> size_t override;
-        MKT_NODISCARD auto GetMemoryTotal() const -> size_t override;
-        MKT_NODISCARD auto GetMemoryAvailable() const -> size_t override;
+        MKT_NODISCARD auto GetMemoryUsage() const -> core::usize override;
+        MKT_NODISCARD auto GetMemoryTotal() const -> core::usize override;
+        MKT_NODISCARD auto GetMemoryAvailable() const -> core::usize override;
 
     private:
         D3D12MA::Allocator* mAllocator{};

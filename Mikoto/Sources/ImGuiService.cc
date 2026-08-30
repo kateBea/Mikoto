@@ -113,6 +113,8 @@ namespace mikoto::gui {
 
         style.Colors[ImGuiCol_Tab] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
 
+        style.Colors[ImGuiCol_NavCursor] = ImVec4(1.0f, 0.9f, 0.0f, 1.0f);
+
         style.Colors[ImGuiCol_Button] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
         style.Colors[ImGuiCol_ButtonHovered] = ImVec4( 0.26f, 0.26f, 0.26f, 1.0f );
         style.Colors[ImGuiCol_ButtonActive] = ImVec4( 0.4f, 0.4f, 0.4f, 1.0f );
@@ -135,8 +137,8 @@ namespace mikoto::gui {
         style.Colors[ImGuiCol_CheckMark] = ImVec4( 0.08f, 0.08f, 0.08f, 1.0f );
         style.Colors[ImGuiCol_CheckboxSelectedBg] = ImVec4( 0.08f, 0.08f, 0.08f, 1.0f );
 
-        //style.Colors[ImGuiCol_Border] = ImVec4( 0.08f, 0.08f, 0.08f, 1.0f );
-        // style.Colors[ImGuiCol_BorderShadow] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
+        style.Colors[ImGuiCol_Border] = ImVec4( 0.08f, 0.08f, 0.08f, 1.0f );
+        //style.Colors[ImGuiCol_BorderShadow] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
 
         style.Colors[ImGuiCol_SliderGrab] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
         style.Colors[ImGuiCol_SliderGrabActive] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
@@ -147,8 +149,8 @@ namespace mikoto::gui {
         style.Colors[ImGuiCol_CheckMark] = ImVec4( 1.00f, 1.00f, 1.00f, 1.00f );
 
         // borders
-        style.WindowBorderSize = 0.0f;
-        style.FrameBorderSize = 0.0f;
+        style.WindowBorderSize = 0.8f;
+        style.FrameBorderSize = 0.8f;
         style.PopupBorderSize = 0.0f;
 
         // Rounding values

@@ -48,9 +48,23 @@ namespace mikoto::gui {
     class ImGuiScopedStyleVar {
     public:
         template<typename... Args>
-        explicit ImGuiScopedStyleVar( Args &&... args ) { ImGui::PushStyleVar( std::forward<Args>( args )... ); }
+        explicit ImGuiScopedStyleVar( Args &&... args ) {
+            ImGui::PushStyleVar( eastl::forward<Args>( args )... );
+        }
 
         ~ImGuiScopedStyleVar() { ImGui::PopStyleVar(); }
+    };
+
+    class ImGuiScopedColor {
+    public:
+        template<typename... Args>
+        explicit ImGuiScopedColor( Args&&... args ) {
+            ImGui::PushStyleColor(  eastl::forward<Args>( args )... );
+        }
+
+        ~ImGuiScopedColor() {
+            ImGui::PopStyleColor();
+        }
     };
 
     class ImGuiScopedBorderColor {

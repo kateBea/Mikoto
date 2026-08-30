@@ -266,6 +266,22 @@ namespace mikoto::renderer::d3d11 {
         }
     }
 
+    auto GetBytesPerPixel( rhi::Format type ) -> UINT {
+        switch (type) {
+            case Format::eRGBA8_SNORM:
+            case Format::eRGBA8_UNORM:
+                return 4;
+            case Format::eRGBA32_FLOAT:
+            case Format::eRGBA32_SINT:
+            case Format::eRGBA32_UINT:
+                return 16;
+            default:;
+        }
+
+        MKT_ASSERT( false, "Unsupported format for bytes per pixel" );
+        return 0;
+    }
+
     auto GetInputElementDescription( const VertexAttributeDescription &desc, InputRate rate ) -> D3D11_INPUT_ELEMENT_DESC {
         D3D11_INPUT_ELEMENT_DESC result{};
 

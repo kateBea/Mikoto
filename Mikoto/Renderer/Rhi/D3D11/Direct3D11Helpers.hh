@@ -49,6 +49,8 @@ namespace mikoto::renderer::d3d11 {
     MKT_NODISCARD auto GetFilter( rhi::SamplerFilter min, rhi::SamplerFilter mag ) -> D3D11_FILTER;
     MKT_NODISCARD auto GetAddressMode( rhi::SamplerWrapMode mode ) -> D3D11_TEXTURE_ADDRESS_MODE;
 
+    MKT_NODISCARD auto GetBytesPerPixel( rhi::Format type ) -> UINT;
+
     MKT_NODISCARD auto GetInputElementDescription( const rhi::VertexAttributeDescription& desc, rhi::InputRate rate ) -> D3D11_INPUT_ELEMENT_DESC;
 
     MKT_NODISCARD auto ParseSemantic( eastl::string_view value ) -> Semantic;

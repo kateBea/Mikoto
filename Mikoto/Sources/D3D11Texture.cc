@@ -193,16 +193,27 @@ namespace mikoto::renderer::d3d11 {
             textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
         }
 
-        //populate initial data
+        // Populate initial data. Of the sources needs to be empty
+        MKT_ASSERT( mImageData.IsEmpty() || mBufferSpan.IsEmpty(), "Cannot provide buffer data and image at the same time" );
+
         D3D11_SUBRESOURCE_DATA initialData{};
 
         if ( !mImageData.IsEmpty() ) {
+            const UINT bytesPerPixel{ GetBytesPerPixel(mFormat) };
+
             initialData.pSysMem = mImageData->mBufferSpan->GetData();
-            initialData.SysMemPitch = mImageData->mChannels * mImageData->mWidth;
+            initialData.SysMemPitch = bytesPerPixel * mWidth;
+        }
+
+        if ( !mBufferSpan.IsEmpty() ) {
+            const UINT bytesPerPixel{ GetBytesPerPixel(mFormat) };
+
+            initialData.pSysMem = mBufferSpan->GetData();
+            initialData.SysMemPitch = bytesPerPixel * mWidth;
         }
 
         // Create the render target texture.
-        HRESULT result{ as<Device*>(mDevice)->GetDevice()->CreateTexture2D(&textureDesc,
+        HRESULT result{ checked_cast<Device*>(mDevice)->GetDevice()->CreateTexture2D(&textureDesc,
             mImageData.IsEmpty() ? nullptr : MKT_ADDRESSOF( initialData ), mTexture.GetAddressOf() ) };
         if(FAILED(result)) {
             MKT_CORE_LOGGER_ERROR( "D3D11Texture::Initialize CreateTexture2D failed" );
@@ -215,7 +226,8 @@ namespace mikoto::renderer::d3d11 {
             rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
             rtvDesc.Texture2D.MipSlice = 0;
 
-            result = as<Device*>(mDevice)->GetDevice()->CreateRenderTargetView(mTexture.Get(), MKT_ADDRESSOF( rtvDesc ), mRenderTargetView.GetAddressOf() );
+            result = checked_cast<Device*>(mDevice)->GetDevice()->CreateRenderTargetView(
+                mTexture.Get(), MKT_ADDRESSOF( rtvDesc ), mRenderTargetView.GetAddressOf() );
             if(FAILED(result)) {
                 MKT_CORE_LOGGER_ERROR( "D3D11Texture::Initialize CreateRenderTargetView failed" );
                 mIsAllocated = false;;
@@ -230,7 +242,8 @@ namespace mikoto::renderer::d3d11 {
             dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
             dsvDesc.Texture2D.MipSlice = 0;
 
-            result = as<Device*>(mDevice)->GetDevice()->CreateDepthStencilView(mTexture.Get(), MKT_ADDRESSOF( dsvDesc ), mDepthStencilTargetView.GetAddressOf() );
+            result = checked_cast<Device*>(mDevice)->GetDevice()->CreateDepthStencilView(mTexture.Get(),
+                MKT_ADDRESSOF( dsvDesc ), mDepthStencilTargetView.GetAddressOf() );
             if(FAILED(result)) {
                 MKT_CORE_LOGGER_ERROR( "D3D11Texture::Initialize CreateRenderTargetView failed" );
                 mIsAllocated = false;;
@@ -239,7 +252,8 @@ namespace mikoto::renderer::d3d11 {
 
         if (mTextureUsage.Has(TextureUsageFlagsBits::kShaderResource )) {
             // Create the shader target view.
-            result = as<Device*>(mDevice)->GetDevice()->CreateShaderResourceView(mTexture.Get(), nullptr, mShaderResourceView.GetAddressOf() );
+            result = checked_cast<Device*>(mDevice)->GetDevice()->CreateShaderResourceView(mTexture.Get(),
+                nullptr, mShaderResourceView.GetAddressOf() );
             if(FAILED(result)) {
                 MKT_CORE_LOGGER_ERROR( "D3D11Texture::Initialize CreateShaderResourceView failed" );
                 mIsAllocated = false;

@@ -113,8 +113,7 @@ namespace mikoto::editor {
     }
 
     static auto ShowTextureHoverTooltip( const ITexture* texture ) -> void {
-        if ( PushImageButton( texture->GetHandle(), ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 128, 128 } ) ) {
-        }
+        ( void )PushImageButton( ( u64 )texture, ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 128, 128 } );
 
         ImGui::SameLine();
 
@@ -131,27 +130,45 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( 1 );
             u32 width{ as<u32>( texture->GetWidth() ) };
             u32 height{ as<u32>( texture->GetHeight() ) };
-            ImGui::TextUnformatted( fmt::format( "{} x {}", width, height ).c_str() );
+            ImGui::TextUnformatted( fmt::format( "[{}, {}]", width, height ).c_str() );
 
             // Second row - first colum
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Type" );
+            ImGui::TextUnformatted( "Format" );
 
             // Second row - second colum
-            constexpr auto type{ FileType::eInvalid };
-
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( "Unknown" );
+            const FormatInfo& formatInfo{ rhi::GetFormatInfo( texture->GetFormat() ) };
+            ImGui::TextUnformatted(formatInfo.mName );
 
             // Third row - first colum
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "File size" );
+            ImGui::TextUnformatted( "Size (memory)" );
 
             // Third row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( fmt::format( "{} MB", math::Round( 2.33, 2 ) ).c_str() );
+            f32 sizeMB{ (f32)((texture->GetWidth() * texture->GetHeight()) * formatInfo.mBytesPerBlock) };
+            ImGui::TextUnformatted( string::Format( "{} MB", math::Round( sizeMB / 1'000'000, 2 ) ).c_str() );
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Antialiasing" );
+
+            // Third row - second colum
+            ImGui::TableSetColumnIndex( 1 );
+            auto multisamplingToString = [](Multisampling value) -> eastl::string_view {
+                switch (value) {
+                    case Multisampling::eMsaaX1:  return "MsaaX1";
+                    case Multisampling::eMsaaX2:  return "MsaaX2";
+                    case Multisampling::eMsaaX4:  return "MsaaX4";
+                    case Multisampling::eMsaaX8:  return "MsaaX8";
+                    case Multisampling::eMsaaX16: return "MsaaX16";
+                    default:                      return "Unknown";
+                }
+            };
+            ImGui::TextUnformatted( multisamplingToString( texture->GetSampleCount() ).data() );
 
             ImGui::EndTable();
         }
@@ -1019,19 +1036,18 @@ namespace mikoto::editor {
         ImGui::PopItemWidth();
     }
 
-    static auto DisplayMapInformation( const TextureHandle& texture, const eastl::string_view mapName ) -> void {
+    static auto DisplayMapInformation( TextureHandle texture, const eastl::string_view mapName ) -> void {
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
-        ImGui::TextUnformatted( fmt::format( "{} ", ICON_MD_PANORAMA ).c_str() );
+        ImGui::TextUnformatted( string::Format( "{} ", ICON_MD_PANORAMA ).c_str() );
         ImGui::SameLine();
         ImGui::TextUnformatted( mapName.data() );
 
         ImGui::Spacing();
 
-        if ( gui::PushImageButton( texture->GetHandle(), ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 64, 64 } ) ) {
-        }
+        ( void )gui::PushImageButton( ( u64 )texture.GetRaw(), ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 64, 64 } );
 
         ImGui::SameLine();
 
@@ -1046,33 +1062,45 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( 1 );
             u32 width{ static_cast<u32>( texture->GetWidth() ) };
             u32 height{ static_cast<u32>( texture->GetHeight() ) };
-            ImGui::TextUnformatted( fmt::format( "{} x {}", width, height ).c_str() );
+            ImGui::TextUnformatted( fmt::format( "[{}, {}]", width, height ).c_str() );
 
             // Second row - first colum
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Type" );
+            ImGui::TextUnformatted( "Format" );
 
             // Second row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( "Unknown" );
+            const FormatInfo& formatInfo{ rhi::GetFormatInfo( texture->GetFormat() ) };
+            ImGui::TextUnformatted(formatInfo.mName );
 
             // Third row - first colum
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "File size" );
+            ImGui::TextUnformatted( "Size (memory)" );
 
             // Third row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( fmt::format( "{} MB", math::Round( 111, 2 ) ).c_str() );
+            f32 sizeMB{ (f32)((texture->GetWidth() * texture->GetHeight()) * formatInfo.mBytesPerBlock) };
+            ImGui::TextUnformatted( string::Format( "{} MB", math::Round( sizeMB / 1'000'000, 2 ) ).c_str() );
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Channels" );
+            ImGui::TextUnformatted( "Antialiasing" );
 
             // Third row - second colum
             ImGui::TableSetColumnIndex( 1 );
-            ImGui::TextUnformatted( fmt::format( "{}", -1 ).c_str() );
+            auto multisamplingToString = [](Multisampling value) -> eastl::string_view {
+                switch (value) {
+                    case Multisampling::eMsaaX1:  return "MsaaX1";
+                    case Multisampling::eMsaaX2:  return "MsaaX2";
+                    case Multisampling::eMsaaX4:  return "MsaaX4";
+                    case Multisampling::eMsaaX8:  return "MsaaX8";
+                    case Multisampling::eMsaaX16: return "MsaaX16";
+                    default:                      return "Unknown";
+                }
+            };
+            ImGui::TextUnformatted( multisamplingToString( texture->GetSampleCount() ).data() );
 
             ImGui::EndTable();
         }

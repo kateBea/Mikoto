@@ -63,14 +63,17 @@ namespace mikoto::editor {
             if ( ImGui::BeginTabItem( "Environment" ) ) {
                 ImGui::EndTabItem();
             }
+            gui::SetCursorHandOnLastItemHovered();
 
             if ( ImGui::BeginTabItem( "Lights" ) ) {
                 ImGui::EndTabItem();
             }
+            gui::SetCursorHandOnLastItemHovered();
 
             if ( ImGui::BeginTabItem( "Scene" ) ) {
                 ImGui::EndTabItem();
             }
+            gui::SetCursorHandOnLastItemHovered();
 
             ImGui::EndTabBar();
         }

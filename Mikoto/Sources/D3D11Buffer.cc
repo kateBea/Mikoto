@@ -131,6 +131,10 @@ namespace mikoto::renderer::d3d11 {
     auto Buffer::SetDebugName( const eastl::string_view name ) -> void {
         mBuffer->SetPrivateData(WKPDID_D3DDebugObjectName,as<UINT>(name.size()), name.data() );
     }
+
+    Buffer::operator ID3D11Resource*() const {
+        return mBuffer.Get();
+    }
 }// namespace mikoto::renderer::d3d11
 
 #endif

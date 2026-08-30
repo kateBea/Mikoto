@@ -162,6 +162,10 @@ namespace mikoto::renderer::d3d11 {
         }
     }
 
+    Texture::operator ID3D11Resource*() const {
+        return mTexture.Get();
+    }
+
     Texture::~Texture() {
         if (mIsAllocated) {
             Release();

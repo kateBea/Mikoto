@@ -46,6 +46,8 @@ namespace mikoto::renderer::d3d11 {
 
         auto SetDebugName( const eastl::string_view name ) -> void override;
 
+        MKT_NODISCARD operator ID3D11Resource*() const;
+
         ~Buffer() override;
 
     private:

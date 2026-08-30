@@ -155,80 +155,80 @@ namespace mikoto::renderer::d3d11 {
     };
 
     // https://gamedev.stackexchange.com/questions/204429/difference-between-command-lists-and-deferred-context
-    class CommandList final : public ICommandList {
+    class CommandList final : public rhi::ICommandList {
     public:
-        explicit CommandList( QueueType type );
+        explicit CommandList( rhi::QueueType type );
 
-        auto Begin( const CommandListBeginDescription& desc ) -> void override;
+        auto Begin( const rhi::CommandListBeginDescription& desc ) -> void override;
         auto End() -> void override;
 
         // More relaxed versions of SetResourceState
-        auto RecordBarrier( const BufferBarrierDescription& barrier ) -> void override;
-        auto RecordBarrier( const TextureBarrierDescription& barrier ) -> void override;
+        auto RecordBarrier( const rhi::BufferBarrierDescription& barrier ) -> void override;
+        auto RecordBarrier( const rhi::TextureBarrierDescription& barrier ) -> void override;
 
-        auto RecordTransition(IBuffer* buffer, ResourceStates stateBits) -> void override;
-        auto RecordTransition(ITexture* buffer, ResourceStates stateBits) -> void override;
+        auto RecordTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
+        auto RecordTransition( rhi::ITexture* buffer, rhi::ResourceStates stateBits ) -> void override;
 
-        auto SetTransition(IBuffer* buffer, ResourceStates stateBits) -> void override;
-        auto SetTransition(ITexture* buffer, ResourceStates stateBits) -> void override;
+        auto SetTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
+        auto SetTransition( rhi::ITexture* buffer, rhi::ResourceStates stateBits ) -> void override;
 
         auto SetBarrier( const BufferBarrierDescription& barrier ) -> void override;
         auto SetBarrier( const TextureBarrierDescription& barrier ) -> void override;
 
         auto CommitBarriers() -> void override;
 
-        auto SetEnableAutomaticBarriers(  bool enable ) -> void override;
+        auto SetEnableAutomaticBarriers( bool enable ) -> void override;
 
-        auto SetClearColor( TextureHandle renderTargets, Color color ) -> void override;
+        auto SetClearColor( rhi::TextureHandle renderTargets, rhi::Color color ) -> void override;
 
-        auto Write( IBuffer* src, ITexture* dest ) -> void override;
-        auto Write( ITexture* target, const void* data, size_t byteSize ) -> void override;
-        auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
+        auto Write( rhi::IBuffer* src, rhi::ITexture* dest ) -> void override;
+        auto Write( rhi::ITexture* target, const void* data, core::usize byteSize ) -> void override;
+        auto Copy( rhi::ITexture* src, const rhi::TextureSlice& srcSlice, rhi::ITexture* dest, const rhi::TextureSlice& destSlice ) -> void override;
 
-        auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
+        auto Resolve( rhi::ITexture* src, const rhi::TextureSlice& srcSlice, rhi::ITexture* dest, const rhi::TextureSlice& destSlice ) -> void override;
 
-        auto Write( IBuffer* target, size_t destOffset, const void* data, size_t byteSize ) -> void override;
-        auto Write( IBuffer* target, const void* data, size_t byteSize ) -> void override;
-        auto Copy( IBuffer* src, IBuffer* dest ) -> void override;
-        auto Copy( IBuffer* src, IBuffer* dest, size_t destOffset ) -> void override;
+        auto Write( rhi::IBuffer* target, core::usize destOffset, const void* data, core::usize byteSize ) -> void override;
+        auto Write( rhi::IBuffer* target, const void* data, core::usize byteSize ) -> void override;
+        auto Copy( rhi::IBuffer* src, rhi::IBuffer* dest ) -> void override;
+        auto Copy( rhi::IBuffer* src, rhi::IBuffer* dest, core::usize destOffset ) -> void override;
 
-        auto Copy( IBuffer* dest, ITexture* src ) -> void override;
+        auto Copy( rhi::IBuffer* dest, rhi::ITexture* src ) -> void override;
 
-        auto BeginRendering( GraphicsState& state ) -> void override;
+        auto BeginRendering( rhi::GraphicsState& state ) -> void override;
         auto EndRendering() -> void override;
 
-        auto BindPipeline( IPipeline* pipeline ) -> void override;
+        auto BindPipeline( rhi::IPipeline* pipeline ) -> void override;
 
         // I am not sure if I wanna have these because the viewport is set on the images we
         // render to so it makes more sense to tie them to the graphics state when we specify the render targets
-        auto SetViewport( eastl::span<const Viewport> viewports ) -> void override;
-        auto SetScissors( eastl::span<const Rect> scissorRects ) -> void override;
-        auto SetViewportState( const ViewportState& vs ) -> void override;
+        auto SetViewport( eastl::span<const rhi::Viewport> viewports ) -> void override;
+        auto SetScissors( eastl::span<const rhi::Rect> scissorRects ) -> void override;
+        auto SetViewportState( const rhi::ViewportState& vs ) -> void override;
 
         auto SetPolygonLineWidth( core::f32 width ) -> void override;
 
-        auto BindIndexBuffer( IBuffer* buffer ) -> void override;
-        auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void override;
-        auto BindVertexBuffers( eastl::span<const VertexBufferBinding> bindings ) -> void override;
+        auto BindIndexBuffer( rhi::IBuffer* buffer ) -> void override;
+        auto BindVertexBuffer( const rhi::VertexBufferBinding& binding ) -> void override;
+        auto BindVertexBuffers( eastl::span<const rhi::VertexBufferBinding> bindings ) -> void override;
 
-        auto BindPipelineResources( const BindResourcesDescription& desc ) -> void override;
+        auto BindPipelineResources( const rhi::BindResourcesDescription& desc ) -> void override;
 
-        auto Draw( const DrawArguments& args ) -> void override;
-        auto BindIndirectBuffer( IBuffer* buffer ) -> void override;
-        auto DrawIndexed( const DrawArguments& args ) -> void override;
+        auto Draw( const rhi::DrawArguments& args ) -> void override;
+        auto BindIndirectBuffer( rhi::IBuffer* buffer ) -> void override;
+        auto DrawIndexed( const rhi::DrawArguments& args ) -> void override;
 
-        auto DrawIndirect( u32 offset, u32 drawCount ) -> void override;
-        auto DrawIndexedIndirect( u32 offset, u32 drawCount ) -> void override;
+        auto DrawIndirect( core::u32 offset, core::u32 drawCount ) -> void override;
+        auto DrawIndexedIndirect( core::u32 offset, core::u32 drawCount ) -> void override;
 
-        auto Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) -> void override;
+        auto Dispatch( core::u32 groupsX, core::u32 groupsY, core::u32 groupsZ ) -> void override;
 
-        auto SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, ShaderFlags visibility ) -> void override;
+        auto SetPushConstants( rhi::IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, ShaderFlags visibility ) -> void override;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
-        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
 
-        auto BeginDebugLabel( eastl::string_view name, Color color ) -> void override;
+        auto BeginDebugLabel( eastl::string_view name, rhi::Color color ) -> void override;
         auto EnbDebugLabel() -> void override;
 
         ~CommandList() override;
@@ -249,15 +249,15 @@ namespace mikoto::renderer::d3d11 {
         bool mEnableAutomaticBarriers{ true };
 
         // State
-        PipelineHandle mCurrentGraphicsPipeline{};
-        PipelineHandle mCurrentComputePipeline{};
+        rhi::PipelineHandle mCurrentGraphicsPipeline{};
+        rhi::PipelineHandle mCurrentComputePipeline{};
 
-        IBuffer* mCurrentIndirectBuffer{};
-        IBuffer* mCurrentIndexBuffer{};
-        IndexBufferBinding mCurrentIndexBufferBinding{};
+        rhi::IBuffer* mCurrentIndirectBuffer{};
+        rhi::IBuffer* mCurrentIndexBuffer{};
+        rhi::IndexBufferBinding mCurrentIndexBufferBinding{};
         eastl::fixed_vector<IBuffer*, kMaxVertexAttributes> mCurrentVertexBuffers{};
 
-        Color mCurrentClearColor{};
+        rhi::Color mCurrentClearColor{};
 
         bool mCurrentGraphicsStateValid{ false };
         bool mCurrentComputeStateValid{ false };

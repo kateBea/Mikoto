@@ -64,6 +64,8 @@ namespace mikoto::renderer::d3d11 {
 
         auto EnableUsage( ResourceStates state ) -> void;
 
+        MKT_NODISCARD operator ID3D11Resource*() const;
+
         ~Texture() override;
 
     private:

@@ -380,11 +380,25 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto CommandList::Write( IBuffer *src, ITexture *dest ) -> void {
+        ID3D11Resource* srcBuffer{ *checked_cast<Buffer*>( src ) };
+        ID3D11Resource* texture{ *checked_cast<Texture*>( dest ) };
 
+        mDeviceContextDeferred->CopySubresourceRegion( texture, 0, 0, 0, 0, srcBuffer, 0, nullptr );
     }
 
-    auto CommandList::Write( ITexture *target, const void *data, size_t byteSize ) -> void {
+    auto CommandList::Write( ITexture *target, const void *data, usize byteSize ) -> void {
+        //https://eatplayhate.me/2013/09/29/d3d11-texture-update-costs/
 
+        const UINT width{ target->GetWidth() };
+        const UINT height{ target->GetHeight() };
+        const UINT bytesPerPixel{ GetBytesPerPixel( target->GetFormat() ) };
+
+        const UINT rowPitch{ width * bytesPerPixel };
+
+        MKT_ASSERT( byteSize >= as<usize>( rowPitch ) * height, "Insufficient texture data" );
+
+        ID3D11Resource *texture{ *checked_cast<Texture *>( target ) };
+        mDeviceContextDeferred->UpdateSubresource( texture, 0, nullptr, data, rowPitch, 0 );
     }
 
     auto CommandList::Copy( ITexture *src, const TextureSlice &srcSlice, ITexture *dest, const TextureSlice &destSlice ) -> void {

@@ -114,7 +114,7 @@ namespace mikoto::editor {
     }
 
     auto StatsPanel::DrawPerformance( float timeStep ) -> void {
-        static size_t index{};
+        static usize index{};
         static float maxFps{ 0.0f };
         static eastl::array<float, 120> frameHistory{};
 
@@ -215,8 +215,10 @@ namespace mikoto::editor {
             ImGui::TextColored( ImVec4( 0.6f, 0.7f, 1.0f, 1.0f ), "Memory Usage" );
 
             ImGui::PushStyleColor( ImGuiCol_PlotHistogram, ImVec4( 0.6f, 0.7f, 1.0f, 1.0f ) );
-            ImGui::ProgressBar( ramPercent / 100.0f, ImVec2( -1, 0 ),
-                                string::Format( "{:4.1f}%% of {:.0f} MB used", ramPercent, totalMB ).c_str() );
+
+            f64 systemUsedRamPercent{ ( ( totalMB - freeMB ) / totalMB ) * 100.0 };
+            ImGui::ProgressBar( systemUsedRamPercent / 100.0f, ImVec2( -1, 0 ),
+                                string::Format( "{:4.1f}%% of {:.0f} GB used", systemUsedRamPercent, totalMB / 1000 ).c_str() );
             ImGui::PopStyleColor();
         } );
     }

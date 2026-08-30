@@ -70,6 +70,9 @@ namespace mikoto::renderer {
         // Shading
         mGeometryShading.RegisterPasses( *mFrameGraph );
 
+        // Debug overlay
+        mDebugOverlayModule.RegisterPasses( *mFrameGraph );
+
         // Raytracing
         mPathTracing.RegisterPasses( *mFrameGraph );
         mRayTracingPass.RegisterPasses( *mFrameGraph );
@@ -97,6 +100,7 @@ namespace mikoto::renderer {
         mShadowMapping.SetGeometryManager( mGeometryManagement );
         mGeometryShading.SetGeometryManager( mGeometryManagement );
         mRenderPrepass.SetGeometryManager( mGeometryManagement );
+        mDebugOverlayModule.SetGeometryManager( mGeometryManagement );
         mSimulationsModule.SetGeometryManager( mGeometryManagement );
         mMousePickingModule.SetGeometryManager( mGeometryManagement );
         mDisplayEffectsModule.SetGeometryManager( mGeometryManagement );
@@ -142,6 +146,7 @@ namespace mikoto::renderer {
         mShadowMapping.SetScene( scene );
         mRenderPrepass.SetScene( scene );
         mTextRendering.SetScene( scene );
+        mDebugOverlayModule.SetScene( scene );
         mSimulationsModule.SetScene( scene );
         mPostEffectsPasses.SetScene( scene );
         mGeometryManagement.SetScene( scene );
@@ -174,6 +179,7 @@ namespace mikoto::renderer {
         mRenderPrepass.SetCamera( camera );
         mTextRendering.SetCamera( camera );
         mShadowMapping.SetCamera( camera );
+        mDebugOverlayModule.SetCamera( camera );
         mSimulationsModule.SetCamera( camera );
         mPostEffectsPasses.SetCamera( camera );
         mGeometryManagement.SetCamera( camera );

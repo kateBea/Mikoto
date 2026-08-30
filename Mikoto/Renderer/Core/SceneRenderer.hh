@@ -31,6 +31,7 @@
 #include <Renderer/Passes/PathTracingModule.hh>
 #include <Renderer/Passes/PostProcessModule.hh>
 #include <Renderer/Passes/PrepassModule.hh>
+#include <Renderer/Passes/DebugOverlayModule.hh>
 #include <Renderer/Passes/IndirectLightingModule.hh>
 #include <Renderer/Passes/PresentationModule.hh>
 #include <Renderer/Passes/RayTracingModule.hh>
@@ -113,41 +114,40 @@ namespace mikoto::renderer {
         rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
         rhi::RenderResolution mTargetResolution{ rhi::RenderResolution::e1080P };
 
-        // Passes
-        CameraModule mCameraPass{ mTargetResolution };
-        DebugModule mDebugPasses{ mTargetResolution };
-        PrepassModule mRenderPrepass{ mTargetResolution };
-
+        // Scene prepass
         GeometryCullModule mGeometryManagement{};
-        GeometryShadingModule mGeometryShading{ mTargetResolution };
-        PresentationModule mPresentationModule{ mTargetResolution };
-
-        IndirectLightingModule mIndirectLightingModule{ mTargetResolution };
-
-        SimulationsModule mSimulationsModule{ mTargetResolution };
-
-        TonemapModule mTonemapModule{ mTargetResolution };
-        DisplayEffectsModule mDisplayEffectsModule{ mTargetResolution };
-
+        CameraModule mCameraPass{ mTargetResolution };
+        PrepassModule mRenderPrepass{ mTargetResolution };
+        ShadowMappingModule mShadowMapping{ mTargetResolution };
         MousePickingModule mMousePickingModule{ mTargetResolution };
 
-        MaterialModule mMaterialModule{ mTargetResolution };
-        ShadowMappingModule mShadowMapping{ mTargetResolution };
-
-        PostEffectsPass mPostEffectsPasses{ mTargetResolution };
-
+        // Simulations
+        WaterSimulationModule mWaterSimulation{};
+        SimulationsModule mSimulationsModule{ mTargetResolution };
         ParticleSimulationModule mParticleRendering{ mTargetResolution };
 
+        // Scene shading
         AtmosphericScatteringModule mAtmosModule{};
-        WaterSimulationModule mWaterSimulation{};
+        GeometryShadingModule mGeometryShading{ mTargetResolution };
+        IndirectLightingModule mIndirectLightingModule{ mTargetResolution };
 
+        // Special effects
+        TonemapModule mTonemapModule{ mTargetResolution };
         TextRenderModule mTextRendering{ mTargetResolution };
+        PostEffectsPass mPostEffectsPasses{ mTargetResolution };
+        DisplayEffectsModule mDisplayEffectsModule{ mTargetResolution };
 
         HelperModule mHelperModule{};
+        PresentationModule mPresentationModule{ mTargetResolution };
 
         // Raytracing
         PathTracingModule mPathTracing{};
         RayTracingModule mRayTracingPass{};
+
+        // Debug Passes
+        DebugModule mDebugPasses{ mTargetResolution };
+        MaterialModule mMaterialModule{ mTargetResolution };
+        DebugOverlayModule mDebugOverlayModule{ mTargetResolution };
 
         eastl::unique_ptr<FrameGraph> mFrameGraph{};
         eastl::unique_ptr<material::ShaderLibrary> mShaderLibrary{};

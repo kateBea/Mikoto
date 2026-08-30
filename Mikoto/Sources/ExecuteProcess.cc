@@ -44,10 +44,9 @@ namespace mikoto::core {
         constexpr eastl::string_view openMode{ "r" };
 
         eastl::string result{};
-        eastl::fixed_string<char, 256> buffer{};
-
+        eastl::array<char, 256> buffer{};
         if (std::FILE *pipe{ POPEN( cmd.c_str(), openMode.data() ) }) {
-            while (std::fgets( buffer.data(), buffer.size(), pipe ) != nullptr) { result += buffer.data(); }
+            while (std::fgets( buffer.data(), (usize)buffer.size(), pipe ) != nullptr) { result += buffer.data(); }
             PCLOSE( pipe );
         }
 
@@ -71,10 +70,9 @@ namespace mikoto::core {
             const eastl::string cmd{ command + " 2>&1" };
             constexpr eastl::string_view openMode{ "r" };
 
-            eastl::fixed_string<char, 256> buffer{};
-
+            eastl::array<char, 256> buffer{};
             if (std::FILE *pipe{ POPEN( cmd.c_str(), openMode.data() ) }) {
-                while (std::fgets( buffer.data(), as<size_t>( buffer.size() ), pipe ) != nullptr) {
+                while (std::fgets( buffer.data(), as<usize>( buffer.size() ), pipe ) != nullptr) {
                     if (onOutput) {
                         onOutput( buffer.data() );
                     }

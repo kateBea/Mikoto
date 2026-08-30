@@ -93,6 +93,7 @@ auto InitEditor() -> bool {
         gApplication->PushLayer<EditorLayer>( gWindow );
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Init App exception - e.what(): {}", e.what() );
+        MKT_FILE_LOGGER_ERROR( "{}", e.what() );
         return false;
     }
 

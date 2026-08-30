@@ -102,10 +102,9 @@ namespace mikoto::editor {
         ImGui::EndChild();
         ImGui::Separator();
 
-        static eastl::fixed_string<char, 256> buffer{};
-
+        eastl::array<char, 256> buffer{};
         if (ImGui::InputText("##ConsoleInput", buffer.data(), buffer.size() + 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            if ( eastl::string input{ buffer }; !input.empty()) {
+            if ( eastl::string input{ buffer.data() }; !input.empty()) {
                 RuntimeConsole::Get()->ExecuteCommand( input );
 
                 buffer[0] = '\0';

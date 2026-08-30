@@ -16,4 +16,37 @@
 
 namespace mikoto::editor {
 
+    Project::Project( eastl::string_view name )
+        : mName{ name }
+    {
+
+    }
+
+    auto Project::Serialize( const filesystem::Path &filename ) const -> void {
+
+    }
+
+    auto Project::Deserialize( const filesystem::Path &filename ) const -> void {
+
+    }
+
+    auto Project::Serialize( filesystem::FileHandle file ) const -> void {
+
+    }
+
+    auto Project::Deserialize( filesystem::FileHandle file ) const -> void {
+
+    }
+
+    auto Project::SetName( eastl::string_view name ) -> void {
+        if (name.empty()) {
+            return;
+        }
+
+        mName = name;
+    }
+
+    auto Project::GetName() const -> eastl::string_view {
+        return mName;
+    }
 }// namespace Mikoto

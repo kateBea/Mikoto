@@ -20,11 +20,10 @@
 
 namespace mikoto::editor {
 
-    auto ThemeSerializer::Serialize( const Theme &obj, const Path &savePath ) -> void {
-
+    auto ThemeSerializer::Serialize( const core::ISerializable *object, const filesystem::Path &savePath ) -> void {
+    }
+    auto ThemeSerializer::Deserialize( const filesystem::Path &loadPath ) -> core::Ref<core::ISerializable> {
+        return core::Ref<core::ISerializable>::CreateEmpty();
     }
 
-    auto ThemeSerializer::Deserialize( const Path &loadPath ) -> eastl::unique_ptr<Theme> {
-        return eastl::unique_ptr<Theme>(); // TODO:
-    }
 }// namespace Mikoto

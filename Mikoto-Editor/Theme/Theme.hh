@@ -15,11 +15,20 @@
 #ifndef MIKOTO_THEME_HH
 #define MIKOTO_THEME_HH
 
+#include <Core/Serializable.hh>
+
 namespace mikoto::editor {
-    class Theme final {
+
+    class Theme final : core::ISerializable {
     public:
 
         auto Apply() -> void;
+
+        auto Serialize( const filesystem::Path &filename ) const -> void override;
+        auto Deserialize( const filesystem::Path &filename ) const -> void override;
+
+        auto Serialize( filesystem::FileHandle file ) const -> void override;
+        auto Deserialize( filesystem::FileHandle file ) const -> void override;
 
     private:
     };

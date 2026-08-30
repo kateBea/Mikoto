@@ -15,17 +15,16 @@
 #ifndef MIKOTO_SCENE_SERIALIZER_HH
 #define MIKOTO_SCENE_SERIALIZER_HH
 
-#include <EASTL/unique_ptr.h>
-
 #include <Core/Serializer.hh>
+
 #include <Scene/Scene.hh>
 
 namespace mikoto::scene {
 
-    class SceneSerializer final : public ISerializer<Scene> {
+    class SceneSerializer final : public ISerializer {
     public:
-        auto Serialize( const Scene& scene, const Path& saveFilePath ) -> void override;
-        auto Deserialize( const Path& saveFilePath ) -> eastl::unique_ptr<Scene> override;
+        auto Serialize( const core::ISerializable* serializable, const filesystem::Path& saveFilePath ) -> void override;
+        auto Deserialize( const filesystem::Path& saveFilePath ) -> core::Ref<ISerializable> override;
     };
-}
+}// namespace mikoto::scene
 #endif // MIKOTO_SCENE_SERIALIZER_HH

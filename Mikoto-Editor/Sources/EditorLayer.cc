@@ -84,12 +84,16 @@ namespace mikoto::editor {
 
         InitDockingSpace();
         InitSceneRenderer();
-        InitEmptyScene();
         InitRenderGraphEditor();
+
+        InitActionCallbacks();
+
+        // These are part of a project settings
+        InitEmptyScene();
         InitEditorCamera();
         InitEditorPanels();
 
-        InitActionCallbacks();
+        InitLastProject();
     }
 
     auto EditorLayer::OnDestroy() -> void {
@@ -398,6 +402,10 @@ namespace mikoto::editor {
         }
 
         mGraphEditor.Build( builder );
+    }
+
+    auto EditorLayer::InitLastProject() -> void {
+
     }
 
     auto EditorLayer::InitEmptyScene() -> void {

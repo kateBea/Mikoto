@@ -15,18 +15,37 @@
 #ifndef MIKOTO_PROJECT_HH
 #define MIKOTO_PROJECT_HH
 
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Core/Serializable.hh>
+#include <Core/ReferenceCounted.hh>
+
 #include <Filesystem/Path.hh>
 
 namespace mikoto::editor {
 
     class Project final : public core::ISerializable {
     public:
+        explicit Project( eastl::string_view name);
 
-        auto Serialize( const filesystem::Path &filename ) -> void override;
-        auto Deserialize( const filesystem::Path &filename ) -> void override;
+        auto Serialize( const filesystem::Path &filename ) const -> void override;
+        auto Deserialize( const filesystem::Path &filename ) const -> void override;
 
+        auto Serialize( filesystem::FileHandle file ) const -> void override;
+        auto Deserialize( filesystem::FileHandle file ) const -> void override;
+
+        auto SetName( eastl::string_view name ) -> void;
+        MKT_NODISCARD auto GetName() const -> eastl::string_view;
+
+    private:
+        eastl::string mName{};
     };
+
+    using ProjectHandle = core::Ref<Project>;
 }
 
 #endif //MIKOTO_PROJECT_HH

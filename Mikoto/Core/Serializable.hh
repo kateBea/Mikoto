@@ -15,17 +15,23 @@
 #ifndef MIKOTO_SERIALIZABLE_HH
 #define MIKOTO_SERIALIZABLE_HH
 
+#include <Core/ReferenceCounted.hh>
+
 #include <Filesystem/Path.hh>
+#include <Filesystem/File.hh>
 
 namespace mikoto::core {
 
-    class ISerializable {
+    class ISerializable : public ReferenceCounted {
     public:
-        virtual ~ISerializable() = default;
+        ~ISerializable() override = default;
 
-        virtual auto Serialize(const filesystem::Path& filename) -> void = 0;
-        virtual auto Deserialize(const filesystem::Path& filename) -> void = 0;
+        virtual auto Serialize( const filesystem::Path& filename ) const -> void = 0;
+        virtual auto Deserialize( const filesystem::Path& filename ) const -> void = 0;
+
+        virtual auto Serialize( filesystem::FileHandle file ) const -> void = 0;
+        virtual auto Deserialize( filesystem::FileHandle file ) const -> void = 0;
     };
-}
+}// namespace mikoto::core
 
 #endif//MIKOTO_SERIALIZABLE_HH

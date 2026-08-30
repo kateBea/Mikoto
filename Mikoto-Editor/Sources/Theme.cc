@@ -16,4 +16,23 @@
 
 namespace mikoto::editor {
 
-}
+    auto Theme::Apply() -> void {
+
+    }
+
+    auto Theme::Serialize( const filesystem::Path &filename ) const -> void {
+
+    }
+
+    auto Theme::Deserialize( const filesystem::Path &filename ) const -> void {
+
+    }
+
+    auto Theme::Serialize( filesystem::FileHandle file ) const -> void {
+
+    }
+
+    auto Theme::Deserialize( filesystem::FileHandle file ) const -> void {
+
+    }
+}// namespace mikoto::editor

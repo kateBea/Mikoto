@@ -26,6 +26,12 @@
 
 #include <ankerl/unordered_dense.h>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Serializable.hh>
+#include <Core/ReferenceCounted.hh>
+
 #include <Assets/Model.hh>
 
 #include <Scene/Entity.hh>
@@ -78,11 +84,17 @@ namespace mikoto::scene {
         auto SetModel( asset::ModelHandle modelMesh ) -> EntityCreateInfo&;
     };
 
-    class Scene final {
+    class Scene final : public core::ISerializable {
     public:
         explicit Scene( eastl::string_view name = "New Scene" );
 
         auto Update( float timeStep ) -> void;
+
+        auto Serialize( const filesystem::Path& filename ) const -> void override;
+        auto Deserialize( const filesystem::Path& filename ) const -> void override;
+
+        auto Serialize( filesystem::FileHandle file ) const -> void override;
+        auto Deserialize( filesystem::FileHandle file ) const -> void override;
 
         auto SetState( SceneState state ) -> void;
         auto SetName( eastl::string_view name ) -> void;

@@ -17,7 +17,6 @@
 
 #include <mutex>
 
-#include <EASTL/unique_ptr.h>
 #include <EASTL/string_view.h>
 
 #include <ankerl/unordered_dense.h>
@@ -26,6 +25,7 @@
 #include <Core/Types.hh>
 #include <Core/String.hh>
 #include <Core/Service.hh>
+#include <Core/ReferenceCounted.hh>
 
 #include <Scene/Scene.hh>
 #include <Scene/SceneSerializer.hh>
@@ -57,11 +57,11 @@ namespace mikoto::scene {
 
     private:
         // [Internal usage]
-        auto Register(eastl::string_view name, eastl::unique_ptr<Scene>&& scene ) -> Scene*;
+        auto Register(eastl::string_view name, core::Ref<Scene>&& scene ) -> Scene*;
 
     private:
         SceneSerializer mSerializer{};
-        ankerl::unordered_dense::map<eastl::string, eastl::unique_ptr<Scene>> mScenes{};
+        ankerl::unordered_dense::map<eastl::string, core::Ref<Scene>> mScenes{};
 
         std::mutex mSceneRegisterMutex{};
     };

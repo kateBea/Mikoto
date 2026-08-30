@@ -46,6 +46,9 @@
 
 #include <Theme/Theme.hh>
 
+#include <Project/Project.hh>
+#include <Project/ProjectSerializer.hh>
+
 namespace mikoto::editor {
 
     enum class PrefabModelType {
@@ -102,6 +105,8 @@ namespace mikoto::editor {
         auto InitActionCallbacks() -> void;
         auto InitRenderGraphEditor() -> void;
 
+        auto InitLastProject() -> void;
+
         auto InitEmptyScene() -> void;
 
         auto InitInstancingTestScene() -> void;
@@ -130,6 +135,9 @@ namespace mikoto::editor {
         eastl::unique_ptr<renderer::ThumbnailRenderer> mThumbnailRenderer{};
 
         eastl::unique_ptr<core::ActionManager> mActionManager{};
+
+        ProjectHandle mProject{};
+        ProjectSerializer mProjectSerializer{};
 
         // Renderer display settings
         bool mShowRenderGraph{};

@@ -19,10 +19,10 @@
 
 namespace mikoto::editor {
 
-    auto ProjectSerializer::Serialize( const Project &obj, const filesystem::Path &savePath ) -> void {
+    auto ProjectSerializer::Serialize( const core::ISerializable *object, const filesystem::Path &savePath ) -> void {
     }
 
-    auto ProjectSerializer::Deserialize( const filesystem::Path&loadPath ) -> eastl::unique_ptr<Project> {
-        return {}; // TODO
+    auto ProjectSerializer::Deserialize( const filesystem::Path &loadPath ) -> core::Ref<core::ISerializable> {
+        return core::Ref<core::ISerializable>::CreateEmpty();
     }
 }// namespace Mikoto

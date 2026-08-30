@@ -57,11 +57,11 @@ namespace mikoto::scene {
 
     auto SceneManager::Load( const Path &path ) -> Scene * {
         auto deserialized{ mSerializer.Deserialize( path ) };
-        return Register( deserialized->GetName().data(), std::move( deserialized ) );
+        return Register( deserialized.As<Scene>()->GetName().data(), eastl::move( deserialized ) );
     }
 
     auto SceneManager::Save(const Scene* scene, const Path &path ) -> void {
-        mSerializer.Serialize( *scene, path );
+        mSerializer.Serialize( scene, path );
     }
 
     auto SceneManager::SaveToDisk( const Scene* scene) -> void {
@@ -75,14 +75,14 @@ namespace mikoto::scene {
     }
 
     auto SceneManager::CreateScene( eastl::string_view name ) -> Scene * {
-        return Register( name, eastl::move( eastl::make_unique<Scene>( name ) ) );
+        return Register( name, eastl::move( core::Ref<Scene>::Spawn( name ) ) );
     }
 
     auto SceneManager::GetByName( const eastl::string_view name ) -> Scene * {
-        return mScenes.at( name.data() ).get();
+        return mScenes.at( name.data() ).GetRaw();
     }
 
-    auto SceneManager::Register( const eastl::string_view name, eastl::unique_ptr<Scene> &&scene ) -> Scene * {
+    auto SceneManager::Register( const eastl::string_view name, core::Ref<Scene> &&scene ) -> Scene * {
         std::lock_guard lock{ mSceneRegisterMutex };
 
         const auto [it, success] {
@@ -90,7 +90,7 @@ namespace mikoto::scene {
         };
 
         if (success) {
-            return it->second.get();
+            return it->second.GetRaw();
         }
 
         return nullptr;

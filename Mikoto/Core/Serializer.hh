@@ -15,21 +15,18 @@
 #ifndef MIKOTO_SERIALIZER_HH
 #define MIKOTO_SERIALIZER_HH
 
-#include <EASTL/unique_ptr.h>
+#include <Core/Serializable.hh>
 
 #include <Filesystem/Path.hh>
 
 namespace mikoto::core {
 
-    using namespace mikoto::filesystem;
-
-    template <typename SerializedObjT>
     class ISerializer {
     public:
         virtual ~ISerializer() = default;
 
-        virtual auto Serialize(const SerializedObjT& obj, const Path& savePath) -> void = 0;
-        virtual auto Deserialize(const Path& loadPath) -> eastl::unique_ptr<SerializedObjT> = 0;
+        virtual auto Serialize(const ISerializable* object, const filesystem::Path& savePath) -> void = 0;
+        virtual auto Deserialize(const filesystem::Path& loadPath) -> core::Ref<ISerializable> = 0;
     };
 }
 #endif //MIKOTO_SERIALIZER_HH

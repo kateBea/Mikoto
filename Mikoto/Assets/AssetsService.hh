@@ -196,6 +196,9 @@ namespace mikoto::asset {
 
     struct AssetsServiceDescription {};
 
+    // This service will ultimately be scoped, we cannot tie this to the application
+    // Every project will load its own, when we load a new project we load its asset service
+    // and free everything from before
     class AssetsService final : public core::IService, public core::Singleton<AssetsService> {
     public:
 

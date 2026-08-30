@@ -135,4 +135,8 @@ namespace mikoto::core {
         MKT_ASSERT( mFile, "File Logger is NULL" );
         return mFile;
     }
+
+    auto stacktrace::ToString() -> eastl::string {
+        return cpptrace::generate_trace().to_string().c_str();
+    }
 }// namespace Mikoto

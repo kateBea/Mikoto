@@ -23,6 +23,7 @@
 #include <Core/Types.hh>
 #include <Core/String.hh>
 #include <Core/Profiler.hh>
+#include <Core/Exception.hh>
 
 #include <Logging/Logger.hh>
 
@@ -93,7 +94,9 @@ auto InitEditor() -> bool {
         gApplication->PushLayer<EditorLayer>( gWindow );
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Init App exception - e.what(): {}", e.what() );
-        MKT_FILE_LOGGER_ERROR( "{}", e.what() );
+
+        MKT_FILE_LOGGER_ERROR( "Exception\n{}", e.what() );
+        MKT_FILE_LOGGER_ERROR( "StackTrace\n{}", stacktrace::ToString() );
         return false;
     }
 

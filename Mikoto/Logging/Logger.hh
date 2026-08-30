@@ -19,12 +19,19 @@
 
 #include <EASTL/string.h>
 
+#include <cpptrace/cpptrace.hpp>
+
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Singleton.hh>
+
+namespace mikoto::core::stacktrace {
+
+    MKT_NODISCARD auto ToString() -> eastl::string;
+}
 
 namespace mikoto::core {
 
@@ -79,7 +86,7 @@ namespace mikoto::core {
     #define MKT_FILE_LOGGER_INFO(...) mikoto::core::Logger::Get()->GetStdFileLog()->info(fmt::format(__VA_ARGS__))
     #define MKT_FILE_LOGGER_DEBUG(...) mikoto::core::Logger::Get()->GetStdFileLog()->debug(fmt::format(__VA_ARGS__))
 
-    #define MKT_STACK_TRACE() cpptrace::generate_trace().print()
+    #define MKT_PRINT_STACK_TRACE() cpptrace::generate_trace().print()
 #else
     // I still want to see errors and critical logs
     #define MKT_CORE_LOGGER_ERROR(...) mikoto::core::Logger::Get()->GetStdErrLog()->error(fmt::format(__VA_ARGS__))

@@ -37,6 +37,7 @@
 
 #include <d3d11.h>
 #include <d3d11_3.h>
+#include <d3d11_4.h>
 #include <d3dcommon.h>
 #include <wrl.h>
 
@@ -359,7 +360,9 @@ namespace mikoto::renderer::d3d11 {
             D3D_FEATURE_LEVEL_11_0
         };
 
+        Microsoft::WRL::ComPtr<IDXGIDevice> mDxgiDevice{};
         Microsoft::WRL::ComPtr<IDXGIAdapter> mAdapter{};
+        Microsoft::WRL::ComPtr<IDXGIAdapter3> mAdapter3{};
 
         Microsoft::WRL::ComPtr<ID3D11Device> mDevice{};
         Microsoft::WRL::ComPtr<ID3D11Device3> mDevice3{};

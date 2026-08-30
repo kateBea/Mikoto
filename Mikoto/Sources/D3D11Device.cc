@@ -40,6 +40,8 @@
 #pragma comment(lib, "dxguid.lib")
 #endif
 
+#include <dxgi1_4.h>
+
 #include <Platform/PlatformWin32.hh>
 
 namespace mikoto::renderer::d3d11 {
@@ -847,7 +849,7 @@ namespace mikoto::renderer::d3d11 {
         MKT_CORE_LOGGER_DEBUG( "Picked adapter: {}", mName.c_str() );
 #endif
 
-        D3D_FEATURE_LEVEL choosenDeviceFeatureLevel{};
+        D3D_FEATURE_LEVEL chosenDeviceFeatureLevel{};
         if (FAILED(D3D11CreateDevice(
             nullptr,
             D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE,
@@ -857,17 +859,28 @@ namespace mikoto::renderer::d3d11 {
             as<UINT>(mDeviceFeatureLevel.size()),
             D3D11_SDK_VERSION,
             &mDevice,
-            &choosenDeviceFeatureLevel,
+            &chosenDeviceFeatureLevel,
             &mDeviceContext)))
             {
             MKT_THROW_RUNTIME_ERROR( "Failed to create device and device Context");
         }
 
-        mDevice->QueryInterface(IID_PPV_ARGS(&mDevice3));
-        mDeviceContext->QueryInterface(IID_PPV_ARGS(&mDeviceContext3));
+        // In the case we did not select one query the one selected by d3d11
+        if (!mAdapter || mAdapter3 ) {
+            mDevice->QueryInterface(IID_PPV_ARGS(&mDevice3));
+            mDeviceContext->QueryInterface(IID_PPV_ARGS(&mDeviceContext3));
 
-        // Store name of main adapter
-        mName = "D3D11 Device";
+            mDevice->QueryInterface(IID_PPV_ARGS(&mDxgiDevice));
+
+            mDxgiDevice->GetAdapter(&mAdapter);
+            mAdapter.As(&mAdapter3);
+        }
+
+        DXGI_ADAPTER_DESC desc{};
+        if (SUCCEEDED(mAdapter->GetDesc(&desc))) {
+            eastl::wstring wideDeviceName{ desc.Description };
+            mName = string::FromWChar( wideDeviceName.c_str() );
+        }
 
         mQueue = Ref<Queue>::Spawn( QueueType::eGraphics, QueueOpSupportFlagsBits::kGraphics );
         mQueue->Initialize( this );
@@ -1034,14 +1047,39 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::GetMemoryUsage() const -> core::usize {
+        if (mAdapter3) {
+            DXGI_QUERY_VIDEO_MEMORY_INFO memInfo{};
+            mAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &memInfo);
+
+            u64 currentVramUsage{ memInfo.CurrentUsage };
+            return as<usize>(currentVramUsage);
+        }
+
         return 0;
     }
 
     auto Device::GetMemoryTotal() const -> core::usize {
+        DXGI_ADAPTER_DESC desc{};
+        if (SUCCEEDED(mAdapter3->GetDesc(&desc))) {
+            u64 totalVRAM{ desc.DedicatedVideoMemory };
+
+            return totalVRAM;
+        }
+
         return 0;
     }
 
     auto Device::GetMemoryAvailable() const -> core::usize {
+        if (mAdapter3) {
+            DXGI_QUERY_VIDEO_MEMORY_INFO memInfo{};
+            mAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &memInfo);
+
+            u64 currentVramUsage{ memInfo.CurrentUsage }; // Bytes currently used
+            u64 vramBudget{ memInfo.Budget };             // OS recommended VRAM limit
+
+            return as<usize>(vramBudget - currentVramUsage);
+        }
+
         return 0;
     }
 

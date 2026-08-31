@@ -445,7 +445,7 @@ namespace mikoto::editor {
         // Directional light
         const EntityCreateInfo lightCreateDesc{
             .mName = "Directional light",
-            .mIsLight = true,
+            .mEntityType = EntityType::eLight,
             .mLightType = LightType::eDirectional };
         //Entity *light{ mEditorState->mActiveScene->CreateEntity( lightCreateDesc ) };
 

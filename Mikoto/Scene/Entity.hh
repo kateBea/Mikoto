@@ -15,7 +15,8 @@
 #ifndef MIKOTO_ENTITY_HH
 #define MIKOTO_ENTITY_HH
 
-#include <utility>
+#include <EASTL/utility.h>
+#include <EASTL/string_view.h>
 
 #include <entt/entt.hpp>
 
@@ -26,14 +27,51 @@
 
 namespace mikoto::scene {
 
-    // TODO: test flecs
-    // #if defined(MKT_USE_ECS_ENTT)
-    // # elif defined(MKT_USE_ECS_FLECS)
+    enum class EntityType {
+        eEmpty,
+        eSound,
+        eMaterial,
+        eLight,
+        eText,
+        eMesh,
+    };
 
     class Entity {
     public:
 
+        /**
+         * Sets the specific entity classification type
+         * @param type the new EntityType enum value to assign to this entity
+         * */
+        auto SetType( EntityType type ) -> void { mType = type; }
+
+        /**
+         * Retrieves the current classification type of the entity
+         * @returns the active EntityType configuration enum of this entity
+         * */
+        MKT_NODISCARD auto GetType() const -> EntityType { return mType; }
+
+        /**
+         * Provides access to the underlying registry handle managing this entity
+         * @returns a reference or copy of the internal registry handle object
+         * */
         MKT_NODISCARD auto Get() const -> decltype( auto ) { return (mHandle); }
+
+        /**
+         * Returns a string view representation of the current entity type
+         * @returns an eastl::string_view containing the name of the entity type
+         * */
+        MKT_NODISCARD static constexpr auto GetTypeString( EntityType type ) -> eastl::string_view {
+            switch ( type ) {
+                case EntityType::eEmpty: return "Empty";
+                case EntityType::eSound: return "Game";
+                case EntityType::eMaterial: return "Material";
+                case EntityType::eLight: return "Light";
+                case EntityType::eText: return "Text";
+                case EntityType::eMesh: return "Mesh";
+                default: return "Unknown";
+            }
+        }
 
         /**
          * Returns true if this entity contains all the components listed in the parameter pack
@@ -143,7 +181,7 @@ namespace mikoto::scene {
         }
 
     private:
-        explicit Entity(entt::registry& registry)
+        explicit Entity(entt::registry& registry, EntityType type )
             :   mHandle{ registry.create() }, mRegistry{ MKT_ADDRESSOF(registry) }
         {
             /**
@@ -169,6 +207,8 @@ namespace mikoto::scene {
     private:
         entt::entity mHandle{ entt::null };
         entt::registry* mRegistry{ nullptr };
+
+        EntityType mType{ EntityType::eEmpty };
     };
 
     template<typename ComponentType>

@@ -122,10 +122,9 @@ namespace mikoto::math::random {
 
     class Guid {
     public:
-        explicit Guid()
-            : mId{  GetRandomUInt32() } {}
+        explicit Guid();
 
-        MKT_NODISCARD operator u32 () const { return mId; }
+        MKT_NODISCARD operator u32 () const;
 
         ~Guid() = default;
 

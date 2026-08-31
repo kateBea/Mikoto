@@ -35,6 +35,7 @@
 #include <ImGui/ImGuiUtility.hh>
 #include <ImGui/IconsFontAwesome5.h>
 #include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/IconsMaterialDesignIcons.h>
 
 #include <Memory/Allocator.hh>
 
@@ -87,7 +88,7 @@ namespace mikoto::editor {
     auto ContentBrowserPanel::DrawHeader() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 1.5f );// Rounded Buttons
+        ImGuiScopedStyleVar roundedButtons{ ImGuiStyleVar_FrameRounding, 1.5f };
 
         // Settings for the content browser
         if ( gui::ButtonTextIcon( ICON_MD_SETTINGS_APPLICATIONS ) ) {
@@ -110,10 +111,13 @@ namespace mikoto::editor {
             ImGui::Spacing();
             ImGui::Separator();
 
-            // Show a file hint (small text under file name)
             (void)CheckBox( "##ShowFileTypeHint", mShowFileTypeHint );
             ImGui::SameLine();
             ImGui::Text( "Show file type hint in explorer" );
+
+            (void)CheckBox( "##ShowFilesOnlySideView", mShowDirectoryOnlyInSideView );
+            ImGui::SameLine();
+            ImGui::Text( "Show folders only in side view" );
 
             ImGui::EndPopup();
         }
@@ -128,15 +132,19 @@ namespace mikoto::editor {
             ImGui::SetCursorPosX( cursorPosX + ImGui::GetFontSize() * 0.5f );
 
             // TODO: grab the color from text color and lower alpha value
+            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(6.0f, 4.0f));
             ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 255, 255, 128 ) );
+
             ImGui::TextUnformatted( fmt::format( "{} Search...", ICON_MD_SEARCH ).c_str() );
+
+            ImGui::PopStyleVar();
             ImGui::PopStyleColor();
         }
 
         ImGui::Spacing();
         ImGui::Spacing();
 
-        gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.0f };
+        ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.0f };
 
         // Back button
         {
@@ -205,35 +213,44 @@ namespace mikoto::editor {
             mDirectoryStack = {};
             mDirectoryStack.push_front( mProjectBasePath );
         }
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-        }
+        SetCursorHandOnLastItemHovered();
+
+        ToolTip( []() -> void {
+            ImGui::TextUnformatted( "Go to home" );
+        }, ImGui::IsItemHovered() );
 
         ImGui::SameLine();
 
         // Folder icon (current directory)
-        if ( ImGui::Button( fmt::format( "{}", ICON_MD_FOLDER ).c_str() ) ) {
+        if ( ImGui::Button( string::Format( "{}", ICON_MD_FOLDER ).c_str() ) ) {
             OpenInExplorer( mCurrentDirectory );
         }
-
         SetCursorHandOnLastItemHovered();
 
         ToolTip( []() -> void {
             ImGui::TextUnformatted( "Open in explorer" );
         }, ImGui::IsItemHovered() );
 
-        ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 0.0f );
-        ImGui::PushStyleColor( ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f } );
-        ImGui::PushStyleColor( ImGuiCol_ButtonHovered, { 0.16f, 0.16f, 0.16f, 0.5f } );
-        ImGui::PushStyleColor( ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f } );
+        ImGuiScopedStyleVar frameBorderSize{ ImGuiStyleVar_FrameBorderSize, 0.0f };
+        ImGuiScopedColor button{ ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f } };
+        ImGuiScopedColor buttonHovered{ ImGuiCol_ButtonHovered, ImVec4{ 0.16f, 0.16f, 0.16f, 0.5f } };
+        ImGuiScopedColor buttonActive{ ImGuiCol_ButtonActive, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f } };
 
         // Directory buttons
+        bool firstSlash{ true };
         bool wantOpenDir{ false };
 
         auto pathIt{ mDirectoryStack.begin() };
         for ( ; pathIt != mDirectoryStack.end(); ++pathIt ) {
+            if (firstSlash) {
+                firstSlash = false;
+            } else {
+                ImGui::SameLine();
+                ImGui::Text( "/" );
+            }
+
             ImGui::SameLine();
-            if ( ImGui::Button( pathIt->GetStem().data() ) ) {
+            if ( ImGui::Button( Path{ pathIt->GetAbsolute() }.GetStem().data() ) ) {
                 mCurrentDirectory = *pathIt;
                 mForwardDirectory = Path{};
                 wantOpenDir = true;
@@ -243,20 +260,14 @@ namespace mikoto::editor {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
             }
 
-            ImGui::SameLine();
-            ImGui::Text( "/" );
-
             if ( wantOpenDir )
                 break;
         }
 
         mDirectoryStack.erase( pathIt, mDirectoryStack.end() );
-        if ( mDirectoryStack.empty() ) mDirectoryStack.push_back( mProjectBasePath );
-
-        ImGui::PopStyleColor( 3 );
-        ImGui::PopStyleVar();
-
-        ImGui::PopStyleVar();// Rounded Buttons
+        if ( mDirectoryStack.empty() ) {
+            mDirectoryStack.push_back( mProjectBasePath );
+        }
     }
 
     auto ContentBrowserPanel::DrawSideHierarchy(const Path& root) -> void {
@@ -265,8 +276,12 @@ namespace mikoto::editor {
                                                     ImGuiTreeNodeFlags_OpenOnArrow };
 
         for ( auto& entry: std::filesystem::directory_iterator( root.GetPathTyped<std::filesystem::path>() ) ) {
-            if ( entry.is_directory()) {
-                std::string nodeIDString{ entry.path().string() };
+            if (mShowDirectoryOnlyInSideView && !entry.is_directory()) {
+                continue;
+            }
+
+            std::string nodeIDString{ entry.path().string() };
+            if (entry.is_directory()) {
                 ImGuiID nodeID{ ImGui::GetID(nodeIDString.c_str()) };
 
                 ImGuiStorage* storage{ ImGui::GetStateStorage() };
@@ -287,6 +302,8 @@ namespace mikoto::editor {
                 }
 
                 SetCursorHandOnLastItemHovered();
+            } else {
+
             }
         }
 
@@ -356,6 +373,11 @@ namespace mikoto::editor {
         if ( ImGui::BeginTable( "ContentBrowserCurrentDir", columnCount, flags ) ) {
             ImGui::TableNextRow();
             for ( auto& entry: std::filesystem::directory_iterator( mCurrentDirectory.GetC_Str() ) ) {
+                std::string stem{ entry.path().stem().string() };
+                if (!mSearchFilter.PassFilter( stem.c_str() )) {
+                    continue;
+                }
+
                 ImGui::TableNextColumn();
 
                 ImTextureID icon{};
@@ -577,4 +599,4 @@ namespace mikoto::editor {
             ImGui::EndPopup();
         }
     }
-}// namespace Mikoto
+} // namespace Mikoto

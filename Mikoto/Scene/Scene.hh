@@ -50,26 +50,17 @@ namespace mikoto::scene {
         eSimulating
     };
 
-    enum class EntityCreateType {
-        eGameObject,
-        eLightObject,
-        eTextObject,
-        eMeshObject,
-    };
-
     struct EntityCreateInfo {
         Entity* mRoot{};
         eastl::string mName{};
         ModelHandle mModel{};
 
-        EntityCreateType mEntityType{ EntityCreateType::eGameObject };
+        EntityType mEntityType{ EntityType::eEmpty };
 
         // Light config
-        bool mIsLight{ false };
         renderer::LightType mLightType{ renderer::LightType::eDirectional };
 
         // Text config
-        bool mIsText{ false };
         bool mIsWorldText{ false };
 
         core::f32 mTextSize{ 12.0f };
@@ -77,7 +68,6 @@ namespace mikoto::scene {
         eastl::string mInitialContents{};
 
         // PostProcess material
-        renderer::rhi::TextureHandle mTextureHandle{}; // Post process apply their effects on a given texture
 
         auto SetName( eastl::string_view name ) -> EntityCreateInfo&;
         auto SetRoot( Entity* root ) -> EntityCreateInfo&;

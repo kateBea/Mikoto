@@ -83,8 +83,7 @@ namespace mikoto::editor {
 
         EntityCreateInfo entityCreateInfo{
             .mRoot = root,
-            .mIsLight = true
-        };
+            .mEntityType = EntityType::eLight };
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -122,33 +121,31 @@ namespace mikoto::editor {
             return;
         }
 
+        const TagComponent& tagComponent{ entity->GetComponent<TagComponent>() };
+        if (!mSearchFilter.PassFilter( tagComponent.GetTag().c_str() )) {
+            return;
+        }
+
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+
         Entity* currentSelection{ mEditorState->mSelectedEntity };
-        const TagComponent& entityTag{ entity->GetComponent<TagComponent>() };
-        const RelationComponent& entityRelation{ entity->GetComponent<RelationComponent>() };
+        const RelationComponent& relationComponent{ entity->GetComponent<RelationComponent>() };
 
         const auto thisEntityIsSelected{ currentSelection != nullptr &&
-            entityID == currentSelection->GetComponent<TagComponent>().GetGUID() };
-
+                                         entityID == currentSelection->GetComponent<TagComponent>().GetGUID() };
         const ImGuiTreeNodeFlags styleFlags{
             ImGuiTreeNodeFlags_OpenOnArrow |
             ImGuiTreeNodeFlags_OpenOnDoubleClick |
-            ImGuiTreeNodeFlags_SpanAvailWidth |
+            ImGuiTreeNodeFlags_SpanFullWidth |
             ImGuiTreeNodeFlags_FramePadding |
-            ( entityRelation.IsLeaf() ? ImGuiTreeNodeFlags_Leaf : ImGuiTreeNodeFlags_None ) |
+            ( relationComponent.IsLeaf() ? ImGuiTreeNodeFlags_Leaf : ImGuiTreeNodeFlags_None ) |
             ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None )
         };
 
-        const ImGuiTreeNodeFlags flags{ styleFlags | ( thisEntityIsSelected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None ) };
-
-        // Icons for ICON_MD for assets U+F1B2, U+F1B3, U+F6D1
-        // TODO: find the actual ICON_MD macros
-        // U+F6D1  ->  63185
-        // U+F1B2  ->  61874
-        // U+F1B3  ->  61875
-        const eastl::string icon { GetStringFromUnicode( 63185 ) };
-        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<const void*>( entityTag.GetGUID() ),
-            flags, "%s", string::Format( " {} {}",  icon.data(), entityTag.GetTag() ).c_str() ) };
-
+        const eastl::string icon{ GetStringFromUnicode( 63185 ) };
+        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<const void*>( tagComponent.GetGUID() ),
+                                                styleFlags, "%s", string::Format( " {} {}", icon.data(), tagComponent.GetTag() ).c_str() ) };
         gui::SetCursorHandOnLastItemHovered();
 
         if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
@@ -157,14 +154,22 @@ namespace mikoto::editor {
 
         OnEntityRightClickMenu( entity );
 
+        ImGui::TableNextColumn();
+        ImGui::TextUnformatted( Entity::GetTypeString( entity->GetType() ).data() );
+
+        ImGui::TableNextColumn();
+        eastl::string visibilityIcon{ string::Format("  {}", tagComponent.IsActive() ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF ) };
+        ImGui::TextUnformatted( visibilityIcon.c_str() );
+
         if ( expanded ) {
-            for ( auto& childID: entityRelation.GetChildren() ) {
+            for ( auto& childID: relationComponent.GetChildren() ) {
                 DrawNodeTree( childID );
             }
 
             ImGui::TreePop();
         }
     }
+
 
     auto HierarchyPanel::OnEntityRightClickMenu( Entity* entity ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
@@ -282,11 +287,11 @@ namespace mikoto::editor {
             ImGui::SameLine();
             ImGui::SetCursorPosX( cursorPosX + ImGui::GetFontSize() * 0.5f );
 
-            // TODO: grab the color from text color and lower alpha value
             ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 255, 255, 128 ) );
 
             const eastl::string searchText{ LocalizationService::Get()->Translate( "hierarchy_search" ) };
             ImGui::TextUnformatted( string::Format( "{} {}...", ICON_MD_SEARCH, searchText.c_str() ).c_str() );
+
             ImGui::PopStyleColor();
             ImGui::Spacing();
         }
@@ -310,7 +315,7 @@ namespace mikoto::editor {
             const EntityCreateInfo entityCreateInfo{
                 .mRoot = root,
                 .mName = "Text",
-                .mIsText = true ,
+                .mEntityType = EntityType::eText,
                 .mIsWorldText = false,
                 .mTextSize = TextComponent::GetMinLetterSize(),
                 .mTextSpacing = TextComponent::GetMinLetterSpacing(),
@@ -324,7 +329,7 @@ namespace mikoto::editor {
             const EntityCreateInfo entityCreateInfo{
                 .mRoot = root,
                 .mName = "Text",
-                .mIsText = true ,
+                .mEntityType = EntityType::eText,
                 .mIsWorldText = true,
                 .mTextSize = TextComponent::GetMinLetterSize(),
                 .mTextSpacing = TextComponent::GetMinLetterSpacing(),
@@ -443,13 +448,49 @@ namespace mikoto::editor {
 
         DrawSearchBar();
 
+        if (ImGui::TreeNodeEx("Scripts", ImGuiTreeNodeFlags_Framed)) {
+            gui::SetCursorHandOnLastItemHovered();
+
+            ImGui::TreePop();
+        }
+        // If node is not opened
+        gui::SetCursorHandOnLastItemHovered();
+
+        const float lineHeight{ ImGui::GetTextLineHeight() };
+
         if (mEditorState->mActiveScene) {
-            auto& entityList{ mEditorState->mActiveScene->GetEntities() };
-            for ( auto& [entityID, entity]: entityList ) {
-                const RelationComponent& relation{ entity->GetComponent<RelationComponent>() };
-                if ( !relation.HasParent() ) {
-                    DrawNodeTree( entityID );
+            if (ImGui::TreeNodeEx("Entities", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
+                gui::SetCursorHandOnLastItemHovered();
+
+                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_BordersInner |
+                                            ImGuiTableFlags_ScrollY };
+                if (ImGui::BeginTable("HierarchyTable", 3, tableFlags)) {
+                    ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_NoHide);
+                    ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, lineHeight * 3.0f);
+
+                    eastl::string visibilityIcon{ string::Format("  {}", ICON_MD_VISIBILITY) };
+                    ImGui::TableSetupColumn(visibilityIcon.c_str(), ImGuiTableColumnFlags_WidthFixed, lineHeight * 2.0f);
+
+                    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(6.0f, 4.0f));
+
+                    ImGui::TableHeadersRow();
+
+                    ImGui::PopStyleVar();
+
+                    auto& entityList{ mEditorState->mActiveScene->GetEntities() };
+                    for ( auto& [entityID, entity]: entityList ) {
+                        const RelationComponent& relation{ entity->GetComponent<RelationComponent>() };
+
+                        // ONLY trigger root items. The function handles its own rows now!
+                        if ( !relation.HasParent() ) {
+                            DrawNodeTree( entityID );
+                        }
+                    }
+
+                    ImGui::EndTable();
                 }
+
+                ImGui::TreePop();
             }
 
             if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {

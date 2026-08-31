@@ -428,7 +428,7 @@ namespace mikoto::scene {
     }
 
     auto Scene::CreateEntityDefault( const EntityCreateInfo& info ) -> Entity* {
-        const auto entity{ new Entity{ mRegistry } };
+        const auto entity{ new Entity{ mRegistry, info.mEntityType } };
 
         // [Constants for default entity parameters]
         constexpr float3 initialSize{ 1.0f, 1.0f, 1.0f };
@@ -468,11 +468,11 @@ namespace mikoto::scene {
         if ( success ) {
             result = it->second.get();
 
-            if ( createInfo.mIsLight ) {
+            if ( createInfo.mEntityType == EntityType::eLight ) {
                 result->AddComponent<LightComponent>( createInfo.mLightType );
             }
 
-            if ( createInfo.mIsText ) {
+            if ( createInfo.mEntityType == EntityType::eText ) {
                 result->AddComponent<TextComponent>(
                         createInfo.mInitialContents,
                         createInfo.mTextSize,
@@ -490,6 +490,8 @@ namespace mikoto::scene {
 
             // in root model is not empty, we create the children for this entity each children well hold a mesh
             if ( !createInfo.mModel.IsEmpty() ) {
+                result->SetType( EntityType::eMesh );
+
                 if ( createInfo.mModel->GetMeshNodeCount() > 1 ) {
                     u64 animatorID{};
 

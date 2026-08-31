@@ -99,6 +99,8 @@ namespace mikoto::editor {
         bool mShowFileTypeHint{ false };
         float mThumbnailSize{ 100.0f };
 
+        bool mShowDirectoryOnlyInSideView{ false };
+
         eastl::deque<Path> mDirectoryStack{};
 
         // NOTE: texture is static because drag and

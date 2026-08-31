@@ -128,6 +128,8 @@ namespace mikoto::gui {
         style.Colors[ImGuiCol_HeaderHovered] = ImVec4( 0.26f, 0.26f, 0.26f, 1.0f );
         style.Colors[ImGuiCol_HeaderActive] = ImVec4( 0.4f, 0.4f, 0.4f, 1.0f );
 
+        style.Colors[ImGuiCol_TableHeaderBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+
         style.Colors[ImGuiCol_MenuBarBg] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
 
         style.Colors[ImGuiCol_FrameBg] = ImVec4( 0.08f, 0.08f, 0.08f, 1.0f );
@@ -221,22 +223,29 @@ namespace mikoto::gui {
 
         const Path path{ PathBuilder()
             .SetPath( mFontsRootDir.GetC_Str() )
-            .SetPath( "JetBrains_Mono,Lexend,Noto_Sans_JP,Source_Code_Pro" )
-            .SetPath( "JetBrains_Mono" )
-            .SetPath( "static" )
-            .SetPath( "JetBrainsMono-ExtraLight.ttf" )
+            .SetPath( "Fira_Sans,JetBrains_Mono,Lexend,Noto_Sans_JP,Source_Code_Pro" )
+            .SetPath( "Fira_Sans" )
+            .SetPath( "FiraSans-Light.ttf" )
             .Build() };
 
         // Add the main font
-        AddFont(kFontBaseSize, path, nullptr, io.Fonts->GetGlyphRangesDefault() );
+        ImFontConfig defaultConfig{};
+        AddFont(kFontBaseSize, path, MKT_ADDRESSOF( defaultConfig ), io.Fonts->GetGlyphRangesDefault() );
 
         // Config for japanese characters
+        const Path notoSansPath{ PathBuilder()
+            .SetPath( mFontsRootDir.GetC_Str() )
+            .SetPath( "Noto_Sans_JP" )
+            .SetPath( "static" )
+            .SetPath( "NotoSansJP-Light.ttf" )
+            .Build() };
+
         ImFontConfig jpConfig{};
         jpConfig.MergeMode = true;
         jpConfig.OversampleH = 2;
         jpConfig.OversampleV = 2;
         jpConfig.PixelSnapH = false;
-        AddFont(kFontBaseSize, path, MKT_ADDRESSOF( jpConfig ), io.Fonts->GetGlyphRangesJapanese() );
+        AddFont(kFontBaseSize, notoSansPath, MKT_ADDRESSOF( jpConfig ), io.Fonts->GetGlyphRangesJapanese() );
 
         const Path fontPath{
             PathBuilder()

@@ -61,6 +61,7 @@ namespace mikoto::gui {
     auto CheckBox( eastl::string_view label, bool &value ) -> bool {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 0.8f };
         ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 3.5f };
+        ImGuiScopedStyleVar framePadding{ ImGuiStyleVar_FramePadding, ImVec2{3.0f, 3.0f} };
 
         ImGuiScopedColor borderColor{ ImGuiCol_Border, ImVec4(0.5f, 0.5f, 0.5f, 0.3f) };
 

@@ -172,13 +172,17 @@ namespace mikoto::renderer {
             .mRefreshRate = mRefreshRate,
             .mApi = mApi };
 
-        mContext = RenderContext::Create(createInfo);
-        if (!mContext->Init()) {
+        mContext = RenderContext::Create( createInfo );
+        if ( !mContext ) {
+            MKT_THROW_RUNTIME_ERROR( "No valid context could be selected" );
+        }
+
+        if ( !mContext->Init() ) {
             MKT_CORE_LOGGER_CRITICAL( "RenderSystem::Init - Could not initialize Render context." );
         } else {
             // If we managed to create a valid API
             // context we can initialize the GUI library
-            if (mEnableImGui && mWindow) {
+            if ( mEnableImGui && mWindow ) {
                 InitGuiService();
             }
         }

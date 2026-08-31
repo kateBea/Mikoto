@@ -25,6 +25,98 @@
 
 namespace mikoto::filesystem {
 
+    inline constexpr eastl::string_view kMikotoSceneExtension{ ".mktscene" };
+    inline constexpr eastl::string_view kMikotoProjectExtension{ ".mktproj" };
+    inline constexpr eastl::string_view kMikotoMaterialExtension{ ".mktmat" };
+
+    enum class FileType {
+        eInvalid = -1,
+
+        // Application
+        eExe,
+
+
+        // --- Common images ---
+        eBmp,
+        eIco,
+        eJpeg,
+        eJpg,
+        eJng,
+        ePng,
+        eTarga,
+        eTiff,
+        eGif,
+        ePsd,
+        eHdr,
+        eExr,
+        eWebp,
+        eJxr,
+
+        // --- Portable / Netpbm ---
+        ePbm,
+        ePbmRaw,
+        ePgm,
+        ePgmRaw,
+        ePpm,
+        ePpmRaw,
+
+        // --- Other image formats ---
+        eKoala,
+        eIff,
+        eMng,
+        ePcd,
+        ePcx,
+        eRas,
+        eWbmp,
+        eCut,
+        eXbm,
+        eXpm,
+        eFaxG3,
+        eSgi,
+        eJ2k,
+        eJp2,
+        ePfm,
+        ePict,
+        eRaw,
+
+        // --- GPU / engine-relevant ---
+        eDds,
+        eKtx,
+
+        // --- Media ---
+        eMp4,
+        eMp3,
+        eWav,
+
+        // Shader
+        eSlang,
+        eSprv,
+        eGlsl,
+        eHlsl,
+
+        eFrag,
+        eVert,
+
+        // Data transfer format
+        eJson,
+
+        // Config files
+        eIni,
+        eToml,
+        eCmake,
+
+        // Github
+        eGitignore,
+
+        // Text
+        eMarkdown,
+
+        // Mikoto formats
+        eMikoto_Scene,
+        eMikoto_Project,
+        eMikoto_Material
+    };
+
     auto OpenInExplorer( const Path& path ) -> void;
 
     MKT_NODISCARD auto IsRegularFile(const Path& path) -> bool;
@@ -42,6 +134,10 @@ namespace mikoto::filesystem {
 
     // Creates parent directories if they do not exist
     MKT_NODISCARD auto CreateIfNotExistsDirectory(const Path& path) -> bool;
+
+    MKT_NODISCARD auto GetFileTypeName(FileType type) -> eastl::string_view;
+    MKT_NODISCARD auto GetFileTypeDisplayName(FileType type) -> eastl::string_view;
+    MKT_NODISCARD auto InferFileTypeFromExtension(eastl::string_view extension) -> FileType;
 
     MKT_NODISCARD auto IsAbsolutePath(const Path& path) -> bool;
     MKT_NODISCARD auto IsRelativePath(const Path& path) -> bool;

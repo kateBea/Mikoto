@@ -489,7 +489,9 @@ namespace mikoto::editor {
                 // Type of file
                 if ( mShowFileTypeHint ) {
                     ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 255, 255, 128 ) );
-                    gui::CenteredText( fmt::format( "{}", fileType.c_str() ).c_str(), mThumbnailSize );
+                    eastl::string inferredFileType{ entry.is_directory() ? "Folder" : filesystem::GetFileTypeName(
+                        filesystem::InferFileTypeFromExtension(entry.path().extension().string().c_str())) };
+                    gui::CenteredText( inferredFileType.c_str(), mThumbnailSize );
                     ImGui::PopStyleColor();
                 }
             }

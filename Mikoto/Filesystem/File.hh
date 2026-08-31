@@ -33,66 +33,11 @@
 #include <Core/ReferenceCounted.hh>
 
 #include <Filesystem/Path.hh>
+#include <Filesystem/FileSystem.hh>
 
 namespace mikoto::filesystem {
 
     using namespace mikoto::core;
-
-    enum class FileType {
-        eInvalid = -1,
-
-        // --- Common images ---
-        eBmp,
-        eIco,
-        eJpeg,
-        eJpg,
-        eJng,
-        ePng,
-        eTarga,
-        eTiff,
-        eGif,
-        ePsd,
-        eHdr,
-        eExr,
-        eWebp,
-        eJxr,
-
-        // --- Portable / Netpbm ---
-        ePbm,
-        ePbmRaw,
-        ePgm,
-        ePgmRaw,
-        ePpm,
-        ePpmRaw,
-
-        // --- Other image formats ---
-        eKoala,
-        eIff,
-        eMng,
-        ePcd,
-        ePcx,
-        eRas,
-        eWbmp,
-        eCut,
-        eXbm,
-        eXpm,
-        eFaxG3,
-        eSgi,
-        eJ2k,
-        eJp2,
-        ePfm,
-        ePict,
-        eRaw,
-
-        // --- GPU / engine-relevant ---
-        eDds,
-        eKtx,
-
-        // --- Media ---
-        eMp4,
-        eMp3,
-        eWav,
-    };
 
     // This object is exsposed to the application which does not care about internal
     // it facilitates operations on files such as loading the current contents of a file and exposing it to the engine

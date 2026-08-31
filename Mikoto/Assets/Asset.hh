@@ -21,6 +21,7 @@
 #include <Core/Types.hh>
 
 #include <Filesystem/Path.hh>
+#include <Filesystem/FileSystem.hh>
 
 namespace mikoto::asset {
 
@@ -29,7 +30,11 @@ namespace mikoto::asset {
     MKT_NODISCARD auto GetHashedAssetID(const filesystem::Path& path) -> AssetID;
 
     MKT_NODISCARD auto IsFileImage( const filesystem::Path& path ) -> bool;
+    MKT_NODISCARD auto IsFileImage( filesystem::FileType type ) -> bool;
+
     MKT_NODISCARD auto IsFileModel( const filesystem::Path& path ) -> bool;
+    MKT_NODISCARD auto IsFileModel( filesystem::FileType type ) -> bool;
+
     MKT_NODISCARD auto IsFileAudio( const filesystem::Path& path ) -> bool;
     MKT_NODISCARD auto IsFileFont( const filesystem::Path& path ) -> bool;
     MKT_NODISCARD auto IsFileMaterial( const filesystem::Path& path ) -> bool;

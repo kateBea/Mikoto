@@ -268,11 +268,11 @@ namespace mikoto::editor {
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                 TextureHandle dstAlbedoMap{ *static_cast<TextureHandle*>( payload->Data ) };
                 material.SetTexture( MapType::eDiffuse, dstAlbedoMap );
 
-                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
             }
             ImGui::EndDragDropTarget();
         }
@@ -341,11 +341,11 @@ namespace mikoto::editor {
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                 TextureHandle dstAlbedoMap{ *static_cast<TextureHandle*>( payload->Data ) };
                 material.SetTexture( MapType::eBaseColor, dstAlbedoMap );
 
-                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
             }
             ImGui::EndDragDropTarget();
         }
@@ -456,11 +456,11 @@ namespace mikoto::editor {
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                 TextureHandle dstMetallicMap{ *static_cast<TextureHandle*>( payload->Data ) };
                 material.SetTexture( MapType::eMetallicRoughness, dstMetallicMap );
 
-                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
             }
             ImGui::EndDragDropTarget();
         }
@@ -528,11 +528,11 @@ namespace mikoto::editor {
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                 TextureHandle dstMetallicMap{ *static_cast<TextureHandle*>( payload->Data ) };
                 material.SetTexture( MapType::eMetallic, dstMetallicMap );
 
-                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
             }
             ImGui::EndDragDropTarget();
         }
@@ -603,11 +603,11 @@ namespace mikoto::editor {
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                 TextureHandle dstNormalMap{ *static_cast<TextureHandle*>( payload->Data ) };
                 material.SetTexture( MapType::eNormal, dstNormalMap );
 
-                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
             }
             ImGui::EndDragDropTarget();
         }
@@ -667,11 +667,11 @@ namespace mikoto::editor {
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                 TextureHandle dstNormalMap{ *static_cast<TextureHandle*>( payload->Data ) };
                 material.SetTexture( MapType::eEmissive, dstNormalMap );
 
-                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
             }
             ImGui::EndDragDropTarget();
         }
@@ -754,11 +754,11 @@ namespace mikoto::editor {
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                 TextureHandle dstRoughnessMap{ *static_cast<TextureHandle*>( payload->Data ) };
                 material.SetTexture( MapType::eRoughness, dstRoughnessMap );
 
-                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
             }
             ImGui::EndDragDropTarget();
         }
@@ -829,11 +829,11 @@ namespace mikoto::editor {
 
         // Target from content browser
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                 TextureHandle dstAoMap{ *static_cast<TextureHandle*>( payload->Data ) };
                 material.SetTexture( MapType::eAmbientOcclusion, dstAoMap );
 
-                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
             }
 
             ImGui::EndDragDropTarget();
@@ -2522,11 +2522,11 @@ namespace mikoto::editor {
                     }
 
                     if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                        if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                             TextureHandle cubeMap{ *as<TextureHandle*>( payload->Data ) };
                             material->SetFace( kCubeFaces[i].first, cubeMap );
 
-                            RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                            RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
                         }
                         ImGui::EndDragDropTarget();
                     }
@@ -2598,11 +2598,11 @@ namespace mikoto::editor {
                 }
 
                 if (ImGui::BeginDragDropTarget()) {
-                    if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                    if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                         TextureHandle cubeMap{ *as<TextureHandle*>( payload->Data ) };
                         material->SetEquirectangular( cubeMap );
 
-                        RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                        RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
                     }
                     ImGui::EndDragDropTarget();
                 }

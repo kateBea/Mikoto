@@ -34,6 +34,16 @@ namespace mikoto::asset {
                ext == "hdr";
     }
 
+    auto IsFileImage( filesystem::FileType type ) -> bool {
+        return type == FileType::ePng ||
+                type == FileType::eJpg ||
+                type == FileType::eJpeg ||
+                type == FileType::eBmp ||
+                type == FileType::eTarga ||
+                type == FileType::eHdr ||
+                type == FileType::eGlb;
+    }
+
     auto IsFileModel(const Path& path) -> bool {
         const auto& ext{ path.GetNormalizedExtension() };
 
@@ -41,6 +51,13 @@ namespace mikoto::asset {
                ext == "fbx" ||
                ext == "gltf" ||
                ext == "glb";
+    }
+
+    auto IsFileModel( filesystem::FileType type ) -> bool {
+        return type == FileType::eObj ||
+               type == FileType::eFbx ||
+               type == FileType::eGltf ||
+               type == FileType::eGlb;
     }
 
     auto IsFileAudio(const Path& path) -> bool {

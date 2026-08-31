@@ -26,6 +26,7 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/String.hh>
+#include <Core/RuntimeConsole.hh>
 
 #include <Math/Math.hh>
 
@@ -34,6 +35,8 @@
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiUtility.hh>
 #include <ImGui/ImGuiWidget.hh>
+
+#include <Threading/TaskManager.hh>
 
 #include <Layers/EditorLayer.hh>
 
@@ -81,6 +84,45 @@ namespace mikoto::editor {
         ImGuiScopedStyleVar winPad ( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
 
         ImGui::Begin( mPanelHeaderName.c_str(), MKT_ADDRESSOF( mPanelIsVisible ), windowFlags );
+        // Using the window itself does not work for drag and drop, it does not
+        // seem to be flagged as hovered when drag and drop is up
+
+        // Save the original cursor position where ImGui was about to draw your UI layout.
+        ImVec2 startCursorPos{ ImGui::GetCursorPos() };
+
+        // Stretch an invisible element across the entire remaining content region of this window.
+        // This acts as a "safety net" to catch mouse hover events over transparent areas.
+        ImGui::Dummy(ImGui::GetContentRegionAvail());
+
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload(
+                "CONTENT_BROWSER_TEXT_MODEL", ImGuiDragDropFlags_AcceptNoDrawDefaultRect) }) {
+                Path path{ *as<Path*>( payload->Data ) };
+
+                if (!path.IsEmpty()) {
+                    threading::TaskService::Get()->Submit( [this, path]() -> void {
+                        ModelLoadDescription description{
+                            .mFile = FileService::Get()->LoadFile( path ),
+                            .mExtractTextures = true };
+                        const ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( description ) };
+
+                        const EntityCreateInfo entityCreateInfo{
+                            .mRoot = nullptr,
+                            .mName{ description.mFile->GetName() },
+                            .mModel = model };
+                        mEditorState->mActiveScene->PushEntity( entityCreateInfo );
+                    } );
+                }
+
+                RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_MODEL" );
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        // Restore the cursor position back to the top-left starting point.
+        // This ensures any overlay buttons, gizmos, or transformation tools drawn below
+        // will render directly on top of the drop zone without being pushed down.
+        ImGui::SetCursorPos(startCursorPos);
 
         mPanelIsFocused = ImGui::IsWindowFocused();
         mPanelIsHovered = ImGui::IsWindowHovered();
@@ -92,8 +134,7 @@ namespace mikoto::editor {
             .mX = viewportMin.x,
             .mY = viewportMin.y,
             .mWidth = viewportSize.x,
-            .mHeight = viewportSize.y
-        };
+            .mHeight = viewportSize.y };
 
         UpdateViewport();
 

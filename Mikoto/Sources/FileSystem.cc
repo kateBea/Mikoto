@@ -121,6 +121,13 @@ namespace mikoto::filesystem {
             case FileType::eMp3: return "MP3";
             case FileType::eWav: return "WAV";
 
+            case FileType::eGltf:  return "glTF";
+            case FileType::eGlb:   return "GLB";
+            case FileType::eFbx:   return "FBX";
+            case FileType::eObj:   return "OBJ";
+            case FileType::eBlend: return "Blend";
+            case FileType::eDae:   return "Collada";
+
             case FileType::eMikoto_Scene:    return "MikotoScene";
             case FileType::eMikoto_Project:  return "MikotoProject";
             case FileType::eMikoto_Material: return "MikotoMaterial";
@@ -133,6 +140,7 @@ namespace mikoto::filesystem {
             case FileType::eVert:  return "VERT";
 
             case FileType::eJson:  return "JSON";
+            case FileType::eXml:   return "XML";
 
             case FileType::eIni:   return "INI";
             case FileType::eToml:  return "TOML";
@@ -197,6 +205,13 @@ namespace mikoto::filesystem {
             case FileType::eMp3: return "MP3 Audio Track";
             case FileType::eWav: return "WAVE Audio Waveform";
 
+            case FileType::eGltf:  return "glTF Scene";
+            case FileType::eGlb:   return "GLB Binary";
+            case FileType::eFbx:   return "FBX Scene";
+            case FileType::eObj:   return "Wavefront OBJ Model";
+            case FileType::eBlend: return "Blender Project File";
+            case FileType::eDae:   return "Collada File";
+
             case FileType::eMikoto_Scene:    return "Scene";
             case FileType::eMikoto_Project:  return "Project";
             case FileType::eMikoto_Material: return "Material";
@@ -208,7 +223,8 @@ namespace mikoto::filesystem {
             case FileType::eFrag:  return "Fragment Shader Stage";
             case FileType::eVert:  return "Vertex Shader Stage";
 
-            case FileType::eJson:  return "JSON Data File";
+            case FileType::eJson:  return "JSON File";
+            case FileType::eXml:   return "XML Document";
 
             case FileType::eIni:   return "INI Configuration File";
             case FileType::eToml:  return "TOML Configuration File";
@@ -218,7 +234,7 @@ namespace mikoto::filesystem {
 
             case FileType::eMarkdown:  return "Markdown Documentation";
 
-            default: return "Unsupported File Format";
+            default: return "File";
         }
     }
 
@@ -285,7 +301,15 @@ namespace mikoto::filesystem {
         if ( extension == "frag" )              return FileType::eFrag;
         if ( extension == "vert" )              return FileType::eVert;
 
-        if ( extension == "json" )              return FileType::eJson;
+        if ( extension == "gltf" )  return FileType::eGltf;
+        if ( extension == "glb" )   return FileType::eGlb;
+        if ( extension == "fbx" )   return FileType::eFbx;
+        if ( extension == "obj" )   return FileType::eObj;
+        if ( extension == "blend" ) return FileType::eBlend;
+        if ( extension == "dae" )   return FileType::eDae;
+
+        if ( extension == "json" )  return FileType::eJson;
+        if ( extension == "xml" )   return FileType::eXml;
 
         if ( extension == "ini" )               return FileType::eIni;
         if ( extension == "toml" )              return FileType::eToml;

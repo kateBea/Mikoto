@@ -35,7 +35,6 @@ namespace mikoto::filesystem {
         // Application
         eExe,
 
-
         // --- Common images ---
         eBmp,
         eIco,
@@ -99,6 +98,7 @@ namespace mikoto::filesystem {
 
         // Data transfer format
         eJson,
+        eXml,
 
         // Config files
         eIni,
@@ -107,6 +107,14 @@ namespace mikoto::filesystem {
 
         // Github
         eGitignore,
+
+        // 3D Models
+        eGltf,
+        eGlb,
+        eFbx,
+        eObj,
+        eBlend,
+        eDae,
 
         // Text
         eMarkdown,

@@ -419,27 +419,46 @@ namespace mikoto::editor {
                     }
                 } else {
                     // If we have a thumbnail get its ImTextureID
-                    static ImTextureID imguiTextID{};
-                    imguiTextID = ImGuiService::Get()->GetTextureID( mThumbnail );
-                    if ( ImGui::ImageButton( nodeID.c_str(), imguiTextID, ImVec2{ mThumbnailSize, mThumbnailSize }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, buttonColor ) ) {
+                    icon = ImGuiService::Get()->GetTextureID( mThumbnail );
+                    if ( ImGui::ImageButton( nodeID.c_str(), icon, ImVec2{ mThumbnailSize, mThumbnailSize }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, buttonColor ) ) {
                         // empty
                     }
+                }
 
-                    if (isEntryImage) {
-                        // DRAG SOURCE must be checked after drawing the item
-                        if (ImGui::BeginDragDropSource()) {
+                if ( asset::IsFileImage( fileType ) ) {
+                    // DRAG SOURCE must be checked after drawing the item
+                    if ( ImGui::BeginDragDropSource() ) {
 
-                            // Send the texture handle or the path maybe because these thumbnails are not supposed to be the final image
-                            // these thumbnails are supposed to be downscaled versions of the original image
-                            ImGui::SetDragDropPayload( "CONTENT_BROWSER_TEXT", std::addressof( mThumbnail ), MKT_SIZEOF( TextureHandle ) );
+                        // Send the texture handle or the path maybe because these thumbnails are not supposed to be the final image
+                        // these thumbnails are supposed to be downscaled versions of the original image
+                        ImGui::SetDragDropPayload( "CONTENT_BROWSER_TEXT_IMAGE", std::addressof( mThumbnail ), MKT_SIZEOF( TextureHandle ) );
 
-                            // Preview
-                            constexpr float previewDimensions{ 48.0f };
-                            ImGui::Image(imguiTextID, ImVec2(previewDimensions, previewDimensions));
-                            gui::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
+                        // Preview
+                        constexpr float previewDimensions{ 48.0f };
+                        ImGui::Image( icon, ImVec2( previewDimensions, previewDimensions ) );
+                        gui::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
 
-                            ImGui::EndDragDropSource();
-                        }
+                        ImGui::EndDragDropSource();
+                    }
+                }
+
+                if ( asset::IsFileModel( fileType ) ) {
+                    // DRAG SOURCE must be checked after drawing the item
+                    if ( ImGui::BeginDragDropSource() ) {
+                        // Needs to persist across frames
+                        static Path dragPath{};
+                        dragPath = entry.path();
+
+                        // Send the texture handle or the path maybe because these thumbnails are not supposed to be the final image
+                        // these thumbnails are supposed to be downscaled versions of the original image
+                        ImGui::SetDragDropPayload( "CONTENT_BROWSER_TEXT_MODEL", MKT_ADDRESSOF( dragPath ), MKT_SIZEOF( Path ) );
+
+                        // Preview
+                        constexpr float previewDimensions{ 48.0f };
+                        ImGui::Image( icon, ImVec2( previewDimensions, previewDimensions ) );
+                        gui::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
+
+                        ImGui::EndDragDropSource();
                     }
                 }
 

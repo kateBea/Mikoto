@@ -360,8 +360,19 @@ namespace mikoto::editor {
         mActionManager = eastl::make_unique<ActionManager>( ActionManagerCreateInfo{} );
         mActionManager->Initialize();
 
-        mActionManager->Bind(core::KeyCode::Key_P, core::ModKey::eControl, []() {
-            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + P (Create New project)" );
+        mActionManager->Bind(core::KeyCode::Key_P, core::ModKey::eControl, [this]() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + P (Create project)" );
+            CreateProject();
+        });
+
+        mActionManager->Bind(core::KeyCode::Key_U, core::ModKey::eControl, [this]() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + U (Open project)" );
+            OpenProject();
+        });
+
+        mActionManager->Bind(core::KeyCode::Key_G, core::ModKey::eControl, [this]() {
+            SaveProject();
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + G (Save project)" );
         });
 
         mActionManager->Bind(core::KeyCode::Key_A, core::ModKey::eControl, []() {
@@ -596,9 +607,17 @@ namespace mikoto::editor {
                 if (ImGui::MenuItem( MKT_LOC( "save_scene" ).c_str(), "Ctrl + S" )) {}
 
                 ImGui::Separator();
-                if (ImGui::MenuItem( MKT_LOC( "new_project" ).c_str(), "Ctrl + P" )) {}
-                if (ImGui::MenuItem( MKT_LOC( "open_project" ).c_str(), "Ctrl + U" )) {}
-                if (ImGui::MenuItem( MKT_LOC( "save_project" ).c_str(), "Ctrl + G" )) {}
+                if (ImGui::MenuItem( MKT_LOC( "new_project" ).c_str(), "Ctrl + P" )) {
+                    CreateProject();
+                }
+
+                if (ImGui::MenuItem( MKT_LOC( "open_project" ).c_str(), "Ctrl + U" )) {
+                    OpenProject();
+                }
+
+                if (ImGui::MenuItem( MKT_LOC( "save_project" ).c_str(), "Ctrl + G" )) {
+                    SaveProject();
+                }
 
                 ImGui::Separator();
 
@@ -958,5 +977,24 @@ namespace mikoto::editor {
 
         mSceneRenderer->SetMainCamera( mEditorCamera.get() );
         mSceneRenderer->SetEnableInfiniteGrid( mShowInfiniteGrid );
+    }
+
+    auto EditorLayer::OpenProject() -> void {
+        std::initializer_list<FileDialogPair> filters{
+            FileDialogPair{ "Mikoto Project Files", "mktproj" } };
+        const Path path{ filesystem::OpenFileDialog( filters ) };
+        mProject = mProjectSerializer.Deserialize( path );
+    }
+
+    auto EditorLayer::SaveProject() -> void {
+        eastl::string projName{ mProject.IsEmpty() ? "Untitled" : mProject->GetName() };
+        std::initializer_list<FileDialogPair> filters{
+            FileDialogPair{ "Mikoto Project Files", "mktproj" } };
+        const Path path{ filesystem::SaveFileDialog( string::Format("{}.mktproj", projName), filters ) };
+        mProjectSerializer.Serialize( mProject.GetRaw(), path );
+    }
+
+    auto EditorLayer::CreateProject() -> void {
+
     }
 }// namespace mikoto

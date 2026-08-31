@@ -28,7 +28,7 @@
 
 #include <Filesystem/Path.hh>
 
-namespace mikoto::editor {
+namespace mikoto::project {
 
     struct ProjectCreateDescription {
         eastl::string mName{};

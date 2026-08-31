@@ -14,7 +14,7 @@
 
 #include <Project/Project.hh>
 
-namespace mikoto::editor {
+namespace mikoto::project {
 
     Project::Project( eastl::string_view name )
         : mName{ name }

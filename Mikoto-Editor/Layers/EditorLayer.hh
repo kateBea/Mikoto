@@ -17,34 +17,32 @@
 
 #include <EASTL/memory.h>
 #include <EASTL/string.h>
-#include <EASTL/unique_ptr.h>
 #include <EASTL/string_view.h>
-
+#include <EASTL/unique_ptr.h>
 #include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
+#include <Core/Core.hh>
 #include <Core/Event.hh>
+#include <Core/String.hh>
 #include <Core/Registry.hh>
 #include <Core/LayerStack.hh>
 #include <Core/ActionManager.hh>
 
-#include <Assets/Model.hh>
-
 #include <Platform/Window.hh>
 
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Core/SceneRenderer.hh>
-#include <Renderer/Core/ThumbnailRenderer.hh>
+#include <ImGui/GraphEditor.hh>
+
+#include <Theme/Theme.hh>
+#include <Assets/Model.hh>
+#include <Panels/Panel.hh>
 
 #include <Scene/Scene.hh>
 #include <Scene/Entity.hh>
 
-#include <ImGui/GraphEditor.hh>
-
-#include <Panels/Panel.hh>
-
-#include <Theme/Theme.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Core/SceneRenderer.hh>
+#include <Renderer/Core/ThumbnailRenderer.hh>
 
 #include <Project/Project.hh>
 #include <Project/ProjectSerializer.hh>
@@ -124,6 +122,10 @@ namespace mikoto::editor {
         auto UpdateCameraState( float ts ) -> void;
         auto UpdateRendererState( float ts ) -> void;
 
+        auto OpenProject() -> void;
+        auto SaveProject() -> void;
+        auto CreateProject() -> void;
+
     private:
         platform::Window* mWindow{};
         renderer::rhi::IGpuDevice* mDevice{};
@@ -136,8 +138,8 @@ namespace mikoto::editor {
 
         eastl::unique_ptr<core::ActionManager> mActionManager{};
 
-        ProjectHandle mProject{};
-        ProjectSerializer mProjectSerializer{};
+        project::ProjectHandle mProject{};
+        project::ProjectSerializer mProjectSerializer{};
 
         // Renderer display settings
         bool mShowRenderGraph{};

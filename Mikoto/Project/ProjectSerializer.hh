@@ -21,7 +21,7 @@
 
 #include <Filesystem/Path.hh>
 
-namespace mikoto::editor {
+namespace mikoto::project {
 
     class ProjectSerializer final : public core::ISerializer {
     public:

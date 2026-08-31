@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <EASTL/unique_ptr.h>
-
 #include <Filesystem/Path.hh>
+
 #include <Project/ProjectSerializer.hh>
 
-namespace mikoto::editor {
+namespace mikoto::project {
 
     auto ProjectSerializer::Serialize( const core::ISerializable *object, const filesystem::Path &savePath ) -> void {
+
     }
 
     auto ProjectSerializer::Deserialize( const filesystem::Path &loadPath ) -> core::Ref<core::ISerializable> {

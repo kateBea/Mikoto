@@ -94,6 +94,8 @@ namespace mikoto::scene {
         MKT_NODISCARD auto FindByID( core::u64 uniqueID ) -> Entity*;
         MKT_NODISCARD auto FindFirstByName( eastl::string_view name ) -> Entity*;
 
+        MKT_NODISCARD auto DuplicateEntity( Entity* other ) -> Entity*;
+
         MKT_NODISCARD auto FindByID( core::u64 uniqueID ) const -> const Entity*;
         MKT_NODISCARD auto FindFirstByName( eastl::string_view name ) const -> const Entity*;
 

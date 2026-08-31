@@ -454,13 +454,90 @@ namespace mikoto::scene {
         return entity;
     }
 
+    auto Scene::DuplicateEntity( Entity* other ) -> Entity* {
+        if (!other) {
+            return nullptr;
+        }
+
+        const TagComponent& otherTagComponent{ other->GetComponent<TagComponent>() };
+        const RelationComponent& otherRelationComponent{ other->GetComponent<RelationComponent>() };
+
+        Entity* otherParent{ nullptr };
+        if (otherRelationComponent.HasParent()) {
+            otherParent = FindByID( *otherRelationComponent.GetParent() );
+        }
+
+        EntityCreateInfo createInfo{
+            .mRoot{ otherParent },
+            .mName{ otherTagComponent.GetTag() },
+            .mEntityType = other->GetType() };
+        if (other->HasComponent<MeshComponent>()) {
+            const MeshComponent& otherMeshComponent{ other->GetComponent<MeshComponent>() };
+            //createInfo.mModel = otherMeshComponent.GetModel();
+        }
+
+        Entity* result{ CreateEntityDefault( createInfo ) };
+        const u64 guid{ result->GetComponent<TagComponent>().GetGUID() };
+        const auto [it, success]{
+            mEntities.try_emplace( guid, result ) };
+        if ( success ) {
+            result = it->second.get();
+
+            if ( createInfo.mEntityType == EntityType::eLight ) {
+                result->AddComponent<LightComponent>( createInfo.mLightType );
+            }
+
+            if ( createInfo.mEntityType == EntityType::eText ) {
+                result->AddComponent<TextComponent>(
+                        createInfo.mInitialContents,
+                        createInfo.mTextSize,
+                        createInfo.mTextSpacing,
+                        createInfo.mIsWorldText );
+            }
+
+            // if root is not empty this entity must be registered as child of root entity
+            if ( createInfo.mRoot != nullptr ) {
+                Entity* parent{ createInfo.mRoot };
+                RelationComponent& parentRelation{ parent->GetComponent<RelationComponent>() };
+
+                parentRelation.RegisterChild( guid );
+            }
+
+            // in root model is not empty, we create the children for this entity each children well hold a mesh
+            if ( !createInfo.mModel.IsEmpty() ) {
+                result->SetType( EntityType::eMesh );
+
+                if ( createInfo.mModel->GetMeshNodeCount() > 1 ) {
+                    u64 animatorID{};
+
+                    if ( createInfo.mModel->IsSkinned() ) {
+                        animatorID = AnimationSystem::Get()->RegisterAnimation( createInfo.mModel );
+                        result->AddComponent<AnimatorComponent>( animatorID );
+                    }
+
+                    for ( usize index{}; index < createInfo.mModel->GetMeshNodeCount(); index++ ) {
+                        AddSingleEntityWithRoot( result, createInfo.mModel, index, animatorID );
+                    }
+
+                } else {
+                    if ( createInfo.mModel->IsSkinned() ) {
+                        u64 animatorID{ AnimationSystem::Get()->RegisterAnimation( createInfo.mModel ) };
+                        result->AddComponent<AnimatorComponent>( animatorID );
+                        result->AddComponent<SkinnedMeshRenderer>( animatorID );
+                    }
+
+                    SetupMeshComponent( result, createInfo.mModel, 0 );
+                }
+            }
+        }
+    }
+
     auto Scene::CreateEntitySingle( const EntityCreateInfo& createInfo ) -> Entity* {
         MKT_BEGIN_PROFILER_NAMED();
 
         Entity* result{ CreateEntityDefault( createInfo ) };
 
         const u64 guid{ result->GetComponent<TagComponent>().GetGUID() };
-
         const auto [it, success]{
             mEntities.try_emplace( guid, result )
         };

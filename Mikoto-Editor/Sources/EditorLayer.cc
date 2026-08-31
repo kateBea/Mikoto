@@ -360,6 +360,11 @@ namespace mikoto::editor {
         mActionManager = eastl::make_unique<ActionManager>( ActionManagerCreateInfo{} );
         mActionManager->Initialize();
 
+        mActionManager->Bind(core::KeyCode::Key_D, core::ModKey::eControl, [this]() {
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + D (Duplicate Entity)" );
+            (void)mEditorState->mActiveScene->DuplicateEntity( mEditorState->mSelectedEntity );
+        });
+
         mActionManager->Bind(core::KeyCode::Key_P, core::ModKey::eControl, [this]() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + P (Create project)" );
             CreateProject();

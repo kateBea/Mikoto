@@ -32,19 +32,15 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::asset;
-    using namespace mikoto::renderer;
-    using namespace mikoto::renderer::rhi;
-
     // Thumbnail info
     struct Thumbnail {
-        rhi::TextureHandle mThumbnail{};
+        renderer::rhi::TextureHandle mThumbnail{};
     };
 
     class ThumbnailCache {
     public:
 
-        explicit ThumbnailCache(IGpuDevice* device);
+        explicit ThumbnailCache(renderer::rhi::IGpuDevice* device);
 
         MKT_NODISCARD auto Contains(const filesystem::Path& path ) const -> bool;
         MKT_NODISCARD auto GetThumbnail(const filesystem::Path& path) const -> Thumbnail;
@@ -53,8 +49,14 @@ namespace mikoto::editor {
         MKT_NODISCARD auto CreateThumbnail(const filesystem::Path& path) -> Thumbnail;
 
     private:
-        IGpuDevice* mDevice{};
-        AssetCache<ITexture> mThumbnails{};
+        // [Internal usage]
+        auto LoadTexture( const filesystem::Path &path ) -> renderer::rhi::TextureHandle;
+        auto InsertThumbnail( const filesystem::Path &path, renderer::rhi::TextureHandle texture ) -> void;
+
+    private:
+        mutable std::mutex mMutex{};
+        renderer::rhi::IGpuDevice* mDevice{};
+        ankerl::unordered_dense::map<filesystem::Path, Thumbnail> mThumbnails{};
     };
 
 }// namespace Mikoto

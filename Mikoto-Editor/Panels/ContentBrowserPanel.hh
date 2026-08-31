@@ -59,8 +59,8 @@ namespace mikoto::editor {
         renderer::rhi::IGpuDevice* mDevice{ nullptr };
         EditorState* mState{ nullptr };
 
-        Path mProjectBasePath{};
-        Path mResourcesBasePath{};
+        filesystem::Path mProjectBasePath{};
+        filesystem::Path mResourcesBasePath{};
     };
 
     class ContentBrowserPanel final : public Panel {
@@ -73,7 +73,7 @@ namespace mikoto::editor {
 
     private:
         auto DrawHeader() -> void;
-        auto DrawSideHierarchy( const Path& root ) -> void;
+        auto DrawSideHierarchy( const filesystem::Path& root ) -> void;
         auto DrawMainBody() -> void;
 
         auto DrawBlankSpaceRightClickMenu() -> void;
@@ -89,25 +89,25 @@ namespace mikoto::editor {
         eastl::unique_ptr<ThumbnailCache> mThumbnailCache{};
         ankerl::unordered_dense::map<IconType, ImTextureID> mThumbnailHandles{};
 
-        Path mProjectBasePath{};
-        Path mResourcesBasePath{};
+        filesystem::Path mProjectBasePath{};
+        filesystem::Path mResourcesBasePath{};
 
-        Path mCurrentDirectory{};
-        Path mPreviousDirectory{};
-        Path mForwardDirectory{};
+        filesystem::Path mCurrentDirectory{};
+        filesystem::Path mPreviousDirectory{};
+        filesystem::Path mForwardDirectory{};
 
         bool mShowFileTypeHint{ false };
         float mThumbnailSize{ 100.0f };
 
         bool mShowDirectoryOnlyInSideView{ false };
 
-        eastl::deque<Path> mDirectoryStack{};
+        eastl::deque<filesystem::Path> mDirectoryStack{};
 
         // NOTE: texture is static because drag and
         // drop needs this to persis
         renderer::rhi::TextureHandle mThumbnail{};
 
-        Path mSelectedItem{};
+        filesystem::Path mSelectedItem{};
     };
 }
 

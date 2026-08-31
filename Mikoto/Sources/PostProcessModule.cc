@@ -406,6 +406,8 @@ namespace mikoto::renderer {
     }
 
     auto PostEffectsPass::RegisterBloom( FrameGraph& graph ) -> void {
+        // https://www.froyok.fr/blog/2021-12-ue4-custom-bloom/
+        // https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
         MKT_BEGIN_PROFILER_NAMED();
 
         auto& info{ graph.GetOrCreate<PostProcessModuleInfo>() };

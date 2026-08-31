@@ -459,7 +459,8 @@ namespace mikoto::editor {
         const float lineHeight{ ImGui::GetTextLineHeight() };
 
         if (mEditorState->mActiveScene) {
-            if (ImGui::TreeNodeEx("Entities", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
+            bool isEntitiesHierarchyOpen{ ImGui::TreeNodeEx("Entities", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen) };
+            if (isEntitiesHierarchyOpen) {
                 gui::SetCursorHandOnLastItemHovered();
 
                 constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_BordersInner |
@@ -491,6 +492,12 @@ namespace mikoto::editor {
                 }
 
                 ImGui::TreePop();
+            }
+
+            // Make cursor hand only when entity list tree node is closed
+            // otherwise cursor hand will leak to other items
+            if (!isEntitiesHierarchyOpen) {
+                gui::SetCursorHandOnLastItemHovered();
             }
 
             if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {

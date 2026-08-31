@@ -2521,6 +2521,16 @@ namespace mikoto::editor {
                         }
                     }
 
+                    if (ImGui::BeginDragDropTarget()) {
+                        if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                            TextureHandle cubeMap{ *as<TextureHandle*>( payload->Data ) };
+                            material->SetFace( kCubeFaces[i].first, cubeMap );
+
+                            RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+
                     if ( ImGui::IsItemHovered() ) {
                         if ( material->GetFace( kCubeFaces[i].first ).IsEmpty() ) {
                             gui::ToolTip( "Click me to load a texture." );
@@ -2585,6 +2595,16 @@ namespace mikoto::editor {
                         LoadMaterialTexture( *material );
                         renderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
                     }
+                }
+
+                if (ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT") }) {
+                        TextureHandle cubeMap{ *as<TextureHandle*>( payload->Data ) };
+                        material->SetEquirectangular( cubeMap );
+
+                        RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT" );
+                    }
+                    ImGui::EndDragDropTarget();
                 }
 
                 if ( ImGui::IsItemHovered() ) {

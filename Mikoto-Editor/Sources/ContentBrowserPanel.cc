@@ -69,7 +69,7 @@ namespace mikoto::editor {
         Path file{ PathBuilder()
              .SetPath( mResourcesBasePath )
              .SetPath( "Icons" )
-             .SetPath( "file4.png" )
+             .SetPath( "FileIcon.png" )
              .Build() };
 
         auto result{ mThumbnailCache->CreateThumbnail( file ) };
@@ -380,14 +380,16 @@ namespace mikoto::editor {
 
                 ImGui::TableNextColumn();
 
-                ImTextureID icon{};
-                std::string fileType{};
+                eastl::string nodeID{ entry.path().string().c_str() };
+                eastl::string extension{ entry.path().extension().string().c_str() };
+                FileType fileType{ filesystem::InferFileTypeFromExtension( extension.c_str() ) };
 
                 // For image files we load the preview
-                if (entry.path().string().ends_with( ".png" )
-                    || entry.path().string().ends_with( ".jpg" )
-                    || entry.path().string().ends_with( ".hdr" )) {
-
+                const bool isEntryImage{ fileType == FileType::ePng ||
+                    fileType == FileType::eJpg ||
+                    fileType == FileType::eJpeg ||
+                    fileType == FileType::eHdr };
+                if (isEntryImage) {
                     if (mThumbnailCache->Contains( entry.path() )) {
                         mThumbnail = mThumbnailCache->GetThumbnail( entry.path() ).mThumbnail;
                     } else {
@@ -398,64 +400,43 @@ namespace mikoto::editor {
                     mThumbnail = TextureHandle::CreateEmpty();
                 }
 
+                ImTextureID icon{};
                 if ( entry.is_directory() ) {
                     icon = mThumbnailHandles[IconType::eFolder];
-                    fileType = "Folder";
                 } else {
                     // find type (texture, material, text file) file now for simplicity
                     icon = mThumbnailHandles[IconType::eRegularFile];
-                    fileType = "File";
                 }
 
                 const auto buttonColor{ mSelectedItem == entry ? ImGui::GetStyleColorVec4( ImGuiCol_ButtonActive ) : ImVec4( 0, 0, 0, 0 ) };
                 ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );
+
+                // If we do not have a thumbnail
+                // use we use the default icons
                 if (mThumbnail.IsEmpty()) {
-                    if ( ImGui::ImageButton( entry.path().string().c_str(), icon, ImVec2{ mThumbnailSize, mThumbnailSize }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, buttonColor ) ) {
+                    if ( ImGui::ImageButton( nodeID.c_str(), icon, ImVec2{ mThumbnailSize, mThumbnailSize }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, buttonColor ) ) {
                         // empty
                     }
                 } else {
+                    // If we have a thumbnail get its ImTextureID
                     static ImTextureID imguiTextID{};
                     imguiTextID = ImGuiService::Get()->GetTextureID( mThumbnail );
-                    if ( ImGui::ImageButton( entry.path().string().c_str(), imguiTextID, ImVec2{ mThumbnailSize, mThumbnailSize }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, buttonColor ) ) {
+                    if ( ImGui::ImageButton( nodeID.c_str(), imguiTextID, ImVec2{ mThumbnailSize, mThumbnailSize }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, buttonColor ) ) {
                         // empty
                     }
 
-                    if (entry.path().string().ends_with( ".png" )
-                    || entry.path().string().ends_with( ".jpg" )) {
+                    if (isEntryImage) {
                         // DRAG SOURCE must be checked after drawing the item
                         if (ImGui::BeginDragDropSource()) {
 
-                            // Send the texture handle
-                            ImGui::SetDragDropPayload("CONTENT_BROWSER_TEXT", std::addressof( mThumbnail ), sizeof(TextureHandle));
+                            // Send the texture handle or the path maybe because these thumbnails are not supposed to be the final image
+                            // these thumbnails are supposed to be downscaled versions of the original image
+                            ImGui::SetDragDropPayload( "CONTENT_BROWSER_TEXT", std::addressof( mThumbnail ), MKT_SIZEOF( TextureHandle ) );
 
                             // Preview
                             constexpr float previewDimensions{ 48.0f };
                             ImGui::Image(imguiTextID, ImVec2(previewDimensions, previewDimensions));
                             gui::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
-
-                            ImGui::EndDragDropSource();
-                        }
-                    }
-
-                    // DRAG for HDR load in Lighting panel
-                    if (entry.path().string().ends_with( ".hdr" )) {
-                        if (ImGui::BeginDragDropSource()) {
-                            static std::string path{};
-
-                            path = entry.path().string();
-
-                            // Send the texture handle
-                            // Reminder: Payload type can be at most 32 characters long
-                            ImGui::SetDragDropPayload("HDR_LOAD_LIGHT_PANEL", std::addressof( path ), sizeof(path));
-
-                            // Preview
-                            constexpr float previewDimensions{ 48.0f };
-                            ImGui::Image(ImGuiService::Get()->GetTextureID( mThumbnail ), ImVec2(previewDimensions, previewDimensions), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-                            gui::CenteredText( fmt::format( "Skybox" ).c_str(), previewDimensions );
-
-                            if ( !ImGui::IsItemClicked() ) {
-                                mSelectedItem = "";
-                            }
 
                             ImGui::EndDragDropSource();
                         }
@@ -478,6 +459,7 @@ namespace mikoto::editor {
                     }
                 }
 
+
                 if ( ImGui::IsItemHovered() && ( ImGui::IsMouseClicked( ImGuiMouseButton_Left ) || ImGui::IsMouseClicked( ImGuiMouseButton_Right ) ) ) {
                     mSelectedItem = entry;
                 }
@@ -489,8 +471,8 @@ namespace mikoto::editor {
                 // Type of file
                 if ( mShowFileTypeHint ) {
                     ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 255, 255, 128 ) );
-                    eastl::string inferredFileType{ entry.is_directory() ? "Folder" : filesystem::GetFileTypeName(
-                        filesystem::InferFileTypeFromExtension(entry.path().extension().string().c_str())) };
+                    eastl::string inferredFileType{ entry.is_directory() ? "Folder" :
+                        filesystem::GetFileTypeName(fileType) };
                     gui::CenteredText( inferredFileType.c_str(), mThumbnailSize );
                     ImGui::PopStyleColor();
                 }
@@ -498,6 +480,7 @@ namespace mikoto::editor {
 
             ImGui::EndTable();
         }
+
         mCurrentDirectory = directoryToOpen;
     }
 

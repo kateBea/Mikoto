@@ -250,11 +250,17 @@ namespace mikoto::editor {
             }
 
             ImGui::SameLine();
-            if ( ImGui::Button( Path{ pathIt->GetAbsolute() }.GetStem().data() ) ) {
+
+            // To avoid ID collisions use absolute path as ID and stem as label
+            ImGui::PushID(pathIt->GetAbsolute().data());
+
+            if (ImGui::Button(Path{ pathIt->GetAbsolute() }.GetStem().data())) {
                 mCurrentDirectory = *pathIt;
                 mForwardDirectory = Path{};
                 wantOpenDir = true;
             }
+
+            ImGui::PopID();
 
             if ( ImGui::IsItemHovered() ) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );

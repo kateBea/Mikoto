@@ -29,6 +29,8 @@
 namespace mikoto::renderer {
 
     using namespace mikoto::core;
+    using namespace mikoto::asset;
+    using namespace mikoto::filesystem;
     using namespace mikoto::renderer::rhi;
 
     auto ThumbnailRendererCreateInfo::SetName( eastl::string_view name ) -> ThumbnailRendererCreateInfo & {

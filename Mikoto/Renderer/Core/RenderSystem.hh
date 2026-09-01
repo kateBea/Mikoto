@@ -15,31 +15,25 @@
 #ifndef MIKOTO_RENDER_SERVICE_HH
 #define MIKOTO_RENDER_SERVICE_HH
 
-#include <slang.h>
-#include <slang-com-ptr.h>
-
 #include <EASTL/unique_ptr.h>
+#include <slang-com-ptr.h>
+#include <slang.h>
 
+#include <../../Assets/ShaderLibrary.hh>
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Subsystem.hh>
-
-#include <Platform/Window.hh>
-
-#include <Material/ShaderLibrary.hh>
-
+#include <Core/Types.hh>
 #include <ImGui/ImGuiService.hh>
-
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/GpuDevice.hh>
+#include <Platform/Window.hh>
 #include <Renderer/Core/RenderContext.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::renderer {
 
     using namespace mikoto::gui;
     using namespace mikoto::core;
     using namespace mikoto::platform;
-    using namespace mikoto::material;
     using namespace mikoto::renderer::rhi;
 
     struct RenderSystemCreateInfo {

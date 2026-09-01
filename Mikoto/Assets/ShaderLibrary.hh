@@ -29,7 +29,7 @@
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Shader.hh>
 
-namespace mikoto::material {
+namespace mikoto::asset {
 
     using namespace mikoto::core;
     using namespace mikoto::renderer;

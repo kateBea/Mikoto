@@ -108,7 +108,7 @@ namespace mikoto::editor {
         eastl::array<rhi::VertexBindingDescription, 1> bindings{
     rhi::VertexBindingDescription{}
             .SetBinding( 0 )
-            .SetStride( sizeof( asset::VertexDescription ) )
+            .SetStride( sizeof( asset::VertexDescription_Std430Alignment ) )
             .SetInputRate( InputRate::ePerVertex ) };
 
         eastl::array<rhi::VertexAttributeDescription, 9> attributes{
@@ -117,63 +117,63 @@ namespace mikoto::editor {
             .SetLocation( 0 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGB32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mPosition ) ),
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mPosition ) ),
 
             rhi::VertexAttributeDescription{}
             .SetName( "NORMAL" )
             .SetLocation( 1 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGB32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mNormals ) ),
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mNormals ) ),
 
     rhi::VertexAttributeDescription{}
             .SetName( "COLOR" )
             .SetLocation( 2 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mColors ) ),
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mColors ) ),
 
             rhi::VertexAttributeDescription{}
             .SetName( "TEXCOORD" )
             .SetLocation( 3 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRG32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mUv0 ) ),
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mUv0 ) ),
 
             rhi::VertexAttributeDescription{}
             .SetName( "TEXCOORD" )
             .SetLocation( 4 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRG32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mUv1 ) ),
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mUv1 ) ),
 
     rhi::VertexAttributeDescription{}
             .SetName( "BLENDINDICES" )
             .SetLocation( 5 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mJoints0 ) ),
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mJoints0 ) ),
 
             rhi::VertexAttributeDescription{}
             .SetName( "BLENDWEIGHT" )
             .SetLocation( 6 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mWeights0 ) ),
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mWeights0 ) ),
 
             rhi::VertexAttributeDescription{}
             .SetName( "BLENDINDICES" )
             .SetLocation( 7 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mJoints1 ) ),
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mJoints1 ) ),
 
     rhi::VertexAttributeDescription{}
             .SetName( "BLENDWEIGHT" )
             .SetLocation( 8 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mWeights1 ) ), };
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mWeights1 ) ), };
 
         mVertexInputLayout = mDevice->CreateInputLayout( InputLayoutCreateDescription{}
             .SetBindings( bindings )
@@ -353,7 +353,7 @@ namespace mikoto::editor {
         auto vertexBufferDesc{ VertexBufferBinding{}
             .SetBufferBinding( 0 )
             .SetBuffer( mVertexBuffer.GetRaw() )
-            .SetElementStride( MKT_SIZEOF( asset::VertexDescription ) ) };
+            .SetElementStride( MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->BindVertexBuffer( vertexBufferDesc );
         mCommandList->BindIndexBuffer(mIndexBuffer.GetRaw() );
 
@@ -363,7 +363,7 @@ namespace mikoto::editor {
         const auto drawArguments{ DrawArguments{}
             .SetInstanceCount( 1 )
             .SetIndexCount( mIndexBuffer->GetSizeBytes() / MKT_SIZEOF( u32 ) )
-            .SetVertexCount( mVertexBuffer->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription ) ) };
+            .SetVertexCount( mVertexBuffer->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->DrawIndexed( drawArguments );
 
         mCommandList->EndRendering();
@@ -411,7 +411,7 @@ namespace mikoto::editor {
         auto vertexBufferDesc{ VertexBufferBinding{}
             .SetBufferBinding( 0 )
             .SetBuffer( mVertexBuffer.GetRaw() )
-            .SetElementStride( MKT_SIZEOF( asset::VertexDescription ) ) };
+            .SetElementStride( MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->BindVertexBuffer( vertexBufferDesc );
         mCommandList->BindIndexBuffer(mIndexBuffer.GetRaw() );
 
@@ -421,7 +421,7 @@ namespace mikoto::editor {
         const auto drawArguments{ DrawArguments{}
             .SetInstanceCount( 1 )
             .SetIndexCount( mIndexBuffer->GetSizeBytes() / MKT_SIZEOF( u32 ) )
-            .SetVertexCount( mVertexBuffer->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription ) ) };
+            .SetVertexCount( mVertexBuffer->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->DrawIndexed( drawArguments );
 
         mCommandList->EndRendering();

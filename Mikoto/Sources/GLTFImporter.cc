@@ -1108,8 +1108,8 @@ namespace mikoto::asset {
             const tinygltf::Model& model,
             const tinygltf::Primitive& primitive,
             const std::string& attributeName,
-            eastl::vector<VertexDescription>& vertices,
-            TVec VertexDescription::* member,
+            eastl::vector<VertexDescription_Std430Alignment>& vertices,
+            TVec VertexDescription_Std430Alignment::* member,
             size_t componentCount ) -> void {
 
         if ( !primitive.attributes.contains( attributeName ) ) {
@@ -1196,7 +1196,7 @@ namespace mikoto::asset {
                         primitive,
                         "POSITION",
                         node.mVertices,
-                        &VertexDescription::mPosition,
+                        &VertexDescription_Std430Alignment::mPosition,
                         3 );
 
                 // NORMAL
@@ -1205,7 +1205,7 @@ namespace mikoto::asset {
                         primitive,
                         "NORMAL",
                         node.mVertices,
-                        &VertexDescription::mNormals,
+                        &VertexDescription_Std430Alignment::mNormals,
                         3 );
 
                 // COLOR_0 (can be VEC3 or VEC4)
@@ -1217,7 +1217,7 @@ namespace mikoto::asset {
                             primitive,
                             "COLOR_0",
                             node.mVertices,
-                            &VertexDescription::mColors,
+                            &VertexDescription_Std430Alignment::mColors,
                             compCount == 4 ? 4 : 3 );
                 }
 
@@ -1227,7 +1227,7 @@ namespace mikoto::asset {
                         primitive,
                         "TEXCOORD_0",
                         node.mVertices,
-                        &VertexDescription::mUv0,
+                        &VertexDescription_Std430Alignment::mUv0,
                         2 );
 
                 // TEXCOORD_1
@@ -1236,7 +1236,7 @@ namespace mikoto::asset {
                         primitive,
                         "TEXCOORD_1",
                         node.mVertices,
-                        &VertexDescription::mUv1,
+                        &VertexDescription_Std430Alignment::mUv1,
                         2 );
 
                 // JOINTS_0
@@ -1245,7 +1245,7 @@ namespace mikoto::asset {
                         primitive,
                         "JOINTS_0",
                         node.mVertices,
-                        &VertexDescription::mJoints0,
+                        &VertexDescription_Std430Alignment::mJoints0,
                         4 );
 
                 // JOINTS_1
@@ -1254,7 +1254,7 @@ namespace mikoto::asset {
                         primitive,
                         "JOINTS_1",
                         node.mVertices,
-                        &VertexDescription::mJoints1,
+                        &VertexDescription_Std430Alignment::mJoints1,
                         4 );
 
                 // WEIGHTS_0
@@ -1263,7 +1263,7 @@ namespace mikoto::asset {
                         primitive,
                         "WEIGHTS_0",
                         node.mVertices,
-                        &VertexDescription::mWeights0,
+                        &VertexDescription_Std430Alignment::mWeights0,
                         4 );
 
                 // WEIGHTS_1
@@ -1272,7 +1272,7 @@ namespace mikoto::asset {
                         primitive,
                         "WEIGHTS_0",
                         node.mVertices,
-                        &VertexDescription::mWeights1,
+                        &VertexDescription_Std430Alignment::mWeights1,
                         4 );
 
                 if ( primitive.indices >= 0 ) {

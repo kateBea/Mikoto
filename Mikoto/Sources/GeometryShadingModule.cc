@@ -223,13 +223,13 @@ namespace mikoto::renderer {
 
         mBoxModel = AssetsService::Get()->LoadAsset<Model>( "Resources/Prefabs/box/Box.gltf" );
 
-        info.mBoxVerticesCount = mBoxModel->GetMeshNode( 0 ).GetVertexBuffer()->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription );
+        info.mBoxVerticesCount = mBoxModel->GetMeshNode( 0 ).GetVertexBuffer()->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription_Std430Alignment );
         info.mBoxIndicesCount = mBoxModel->GetMeshNode( 0 ).GetIndexBuffer()->GetSizeBytes() / MKT_SIZEOF( u32 );
 
         auto vertexDesc{ FGBufferDescription{}
             .SetName( "GeometryShadingBox_Vertices" )
             .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
-            .SetElementsSize( info.mBoxVerticesCount, MKT_SIZEOF( asset::VertexDescription ) )
+            .SetElementsSize( info.mBoxVerticesCount, MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mBoxVertexBuffer = graph.Create( vertexDesc );
 

@@ -12,33 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <sstream>
+
 #include <ranges>
+#include <sstream>
+
+#include <taskflow/taskflow.hpp>
 
 #include <EASTL/queue.h>
 #include <EASTL/string.h>
+#include <EASTL/vector.h>
 #include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/vector.h>
-
-#include <taskflow/taskflow.hpp>
 
 #include <Core/Core.hh>
 #include <Core/Profiler.hh>
 #include <Core/String.hh>
 #include <Core/Types.hh>
 
+#include <Assets/ShaderLibrary.hh>
 #include <Assets/AssetsService.hh>
 #include <Assets/ImageProcessor.hh>
 
-#include <Filesystem/Path.hh>
 #include <Filesystem/File.hh>
+#include <Filesystem/Path.hh>
 #include <Filesystem/FileService.hh>
 
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
-
-#include <Material/ShaderLibrary.hh>
 
 #include <Memory/Allocator.hh>
 #include <Memory/MemoryArena.hh>
@@ -46,15 +46,18 @@
 
 #include <Threading/TaskService.hh>
 #include <Threading/ThreadUtility.hh>
+
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/Core/CommandContext.hh>
 
 namespace mikoto::renderer {
 
     using namespace mikoto::core;
+    using namespace mikoto::asset;
     using namespace mikoto::memory;
     using namespace mikoto::material;
+    using namespace mikoto::filesystem;
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 

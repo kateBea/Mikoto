@@ -21,12 +21,13 @@
 #include <Filesystem/FileService.hh>
 #include <Filesystem/FileSystem.hh>
 
-#include <Material/ShaderLibrary.hh>
+#include <Assets/ShaderLibrary.hh>
 
+#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/RenderSystem.hh>
 
-namespace mikoto::material {
+namespace mikoto::asset {
 
     using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;

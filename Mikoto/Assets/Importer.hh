@@ -31,13 +31,30 @@
 namespace mikoto::asset {
 
     // Aligned to make it easy to use in shaders
-    struct alignas(16) VertexDescription {
+    struct alignas(16) VertexDescription_Std430Alignment {
         core::float3 mPosition{};
         core::f32    mPad0;
 
         core::float3 mNormals{};
         core::f32    mPad1;
-        
+
+        core::float4 mColors{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+        core::float2 mUv0{};
+        core::float2 mUv1{};
+
+        core::float4 mJoints0{ -1.0f, -1.0f, -1.0f, -1.0f };
+        core::float4 mWeights0{};
+
+        core::float4 mJoints1{ -1.0f, -1.0f, -1.0f, -1.0f };
+        core::float4 mWeights1{};
+    };
+
+    struct VertexDescription {
+        core::float3 mPosition{};
+
+        core::float3 mNormals{};
+
         core::float4 mColors{ 1.0f, 1.0f, 1.0f, 1.0f };
 
         core::float2 mUv0{};
@@ -56,7 +73,7 @@ namespace mikoto::asset {
         core::float4x4 mTransform{ 1.0f }; // Identity by default
 
         eastl::vector<core::u32> mIndices{};
-        eastl::vector<VertexDescription> mVertices{};
+        eastl::vector<VertexDescription_Std430Alignment> mVertices{};
 
         // Unsigned because it needs at least one material
         core::u32 MaterialIndex{};

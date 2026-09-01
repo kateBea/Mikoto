@@ -58,7 +58,7 @@ namespace mikoto::editor {
 
     private:
         // Cube definition
-        eastl::vector<asset::VertexDescription> mVertices{
+        eastl::vector<asset::VertexDescription_Std430Alignment> mVertices{
             // Front (+Z)
             { { -0.5f, -0.5f, 0.5f }, 0.0f, { 0.0f, 0.0f, 1.0f }, 0.0f, { 1, 1, 1, 1 }, { 0, 0 } },
             { { 0.5f, -0.5f, 0.5f }, 0.0f, { 0.0f, 0.0f, 1.0f }, 0.0f, { 1, 1, 1, 1 }, { 1, 0 } },

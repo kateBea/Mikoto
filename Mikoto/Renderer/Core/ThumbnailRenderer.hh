@@ -18,13 +18,11 @@
 #include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
 
-#include <Material/ShaderLibrary.hh>
+#include <../../Assets/ShaderLibrary.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/Renderer.hh>
-
-#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
-
+#include <Renderer/Rhi/Types.hh>
 #include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
@@ -63,7 +61,7 @@ namespace mikoto::renderer {
         rhi::IGpuDevice* mDevice{};
 
         eastl::unique_ptr<FrameGraph> mFrameGraph{};
-        eastl::unique_ptr<material::ShaderLibrary> mShaderLibrary{};
+        eastl::unique_ptr<asset::ShaderLibrary> mShaderLibrary{};
     };
 
 }// namespace Mikoto

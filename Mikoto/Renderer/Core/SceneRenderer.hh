@@ -152,7 +152,7 @@ namespace mikoto::renderer {
         DebugOverlayModule mDebugOverlayModule{ mTargetResolution };
 
         eastl::unique_ptr<FrameGraph> mFrameGraph{};
-        eastl::unique_ptr<material::ShaderLibrary> mShaderLibrary{};
+        eastl::unique_ptr<asset::ShaderLibrary> mShaderLibrary{};
     };
 }// namespace Mikoto
 

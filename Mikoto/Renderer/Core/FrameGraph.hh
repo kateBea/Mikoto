@@ -24,34 +24,30 @@
 #ifndef MIKOTO_FRAME_GRAPH_HH
 #define MIKOTO_FRAME_GRAPH_HH
 
-#include <EASTL/string.h>
-#include <EASTL/vector.h>
-#include <EASTL/string_view.h>
-#include <EASTL/unique_ptr.h>
 #include <EASTL/fixed_hash_map.h>
 #include <EASTL/functional.h>
-
-#include <taskflow/taskflow.hpp>
-
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/vector.h>
 #include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
-#include <Core/String.hh>
 #include <Core/Types.hh>
+#include <Core/String.hh>
 #include <Core/Blackboard.hh>
 #include <Core/ResourcePool.hh>
 
-#include <Material/ShaderLibrary.hh>
+#include <Assets/AssetsService.hh>
+#include <Assets/ShaderLibrary.hh>
 
 #include <Memory/Allocator.hh>
 #include <Memory/MemoryArena.hh>
 #include <Memory/FreeListAllocator.hh>
 
-#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
-
-
-#include <Assets/AssetsService.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <taskflow/taskflow.hpp>
 
 namespace mikoto::renderer {
 
@@ -253,7 +249,7 @@ namespace mikoto::renderer {
         PrimitiveTopology mTopology{ PrimitiveTopology::eTriangleList };
         PipelineType mPipelineType{ PipelineType::eInvalid };
 
-        eastl::fixed_hash_map<FGStageType, Path,
+        eastl::fixed_hash_map<FGStageType, filesystem::Path,
             as<u32>( FGStageType::eCount )> mShaders{};
 
         PolygonMode mPolygonMode{ PolygonMode::eFill };
@@ -280,7 +276,7 @@ namespace mikoto::renderer {
         auto AddColorFormat( Format format ) -> FGPipelineDescription&;
         auto SetName( eastl::string_view name ) -> FGPipelineDescription&;
         auto SetPipelineType( PipelineType type ) -> FGPipelineDescription&;
-        auto PushShader( const Path& path, FGStageType stage) -> FGPipelineDescription&;
+        auto PushShader( const filesystem::Path& path, FGStageType stage) -> FGPipelineDescription&;
         auto SetTopology(PrimitiveTopology) -> FGPipelineDescription&;
     };
 
@@ -529,7 +525,7 @@ namespace mikoto::renderer {
 
     class FrameGraph final {
     public:
-        explicit FrameGraph( rhi::IGpuDevice* device, material::ShaderLibrary* shaderLibrary );
+        explicit FrameGraph( rhi::IGpuDevice* device, asset::ShaderLibrary* shaderLibrary );
 
         auto Compile() -> void;
         auto Execute() -> void;
@@ -618,7 +614,7 @@ namespace mikoto::renderer {
 
         auto RegisterReadback( FGReadbackTask::Callback &&execute, bool runEveryFrame = false ) -> void;
 
-        MKT_NODISCARD static auto Create( IGpuDevice* device, material::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph>;
+        MKT_NODISCARD static auto Create( IGpuDevice* device, asset::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph>;
 
     private:
         auto BindResources( rhi::CommandListHandle commandList ) -> void;
@@ -641,7 +637,7 @@ namespace mikoto::renderer {
 
     private:
         rhi::IGpuDevice* mDevice{};
-        material::ShaderLibrary* mShaderLibrary{};
+        asset::ShaderLibrary* mShaderLibrary{};
 
         core::Blackboard mBlackboard{};
 

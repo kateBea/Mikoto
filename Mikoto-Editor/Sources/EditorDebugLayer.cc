@@ -113,7 +113,7 @@ namespace mikoto::editor {
             mCommandList->BindVertexBuffer( VertexBufferBinding{}
                 .SetBufferBinding( 0 )
                 .SetBuffer( mesh->GetVertexBuffer().GetRaw() )
-                .SetElementStride( MKT_SIZEOF( asset::VertexDescription ) ) );
+                .SetElementStride( MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) );
 
             mCommandList->SetViewportState( ViewportState{}
                 .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
@@ -122,7 +122,7 @@ namespace mikoto::editor {
             const auto drawArguments{ DrawArguments{}
                 .SetInstanceCount( 1000 )
                 .SetIndexCount( mesh->GetIndexBuffer()->GetSizeBytes() / MKT_SIZEOF( u32 ) )
-                .SetVertexCount( mesh->GetVertexBuffer()->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription ) ) };
+                .SetVertexCount( mesh->GetVertexBuffer()->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
             mCommandList->DrawIndexed( drawArguments );
         }
 
@@ -190,7 +190,7 @@ namespace mikoto::editor {
         eastl::array bindings{
     rhi::VertexBindingDescription{}
             .SetBinding( 0 )
-            .SetStride( sizeof( asset::VertexDescription ) )
+            .SetStride( sizeof( asset::VertexDescription_Std430Alignment ) )
             .SetInputRate( InputRate::ePerVertex ) };
 
         eastl::array attributes{
@@ -199,14 +199,14 @@ namespace mikoto::editor {
             .SetLocation( 0 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRGB32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mPosition ) ),
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mPosition ) ),
 
             rhi::VertexAttributeDescription{}
             .SetName( "TEXCOORD" )
             .SetLocation( 1 )
             .SetBinding( 0 )
             .SetFormat( rhi::Format::eRG32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription, mUv0 ) ) };
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mUv0 ) ) };
 
         mVertexInputLayout = mDevice->CreateInputLayout( InputLayoutCreateDescription{}
             .SetBindings( bindings )

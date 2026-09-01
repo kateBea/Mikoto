@@ -48,6 +48,7 @@
 namespace mikoto::renderer::vulkan {
 
     using namespace mikoto::core;
+    using namespace mikoto::filesystem;
     using namespace mikoto::renderer::rhi;
 
     Context::Context( const RenderContextCreateInfo& createInfo )

@@ -48,6 +48,7 @@ namespace mikoto::gui {
 
     using namespace mikoto::core;
     using namespace mikoto::platform;
+    using namespace mikoto::filesystem;
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 

@@ -139,12 +139,24 @@ namespace mikoto::filesystem {
             case FileType::eFrag:  return "FRAG";
             case FileType::eVert:  return "VERT";
 
+            case FileType::eC_Source: return "C-SOURCE";
+            case FileType::eC_Header: return "C-HEADER";
+            case FileType::eCpp_Source:  return "CPP";
+            case FileType::eCpp_Header:  return "CPP-HEADER";
+            case FileType::ePython:  return "PYTHON";
+            case FileType::eLua:  return "LUA";
+            case FileType::eCSharp:  return "C#";
+
             case FileType::eJson:  return "JSON";
             case FileType::eXml:   return "XML";
 
             case FileType::eIni:   return "INI";
             case FileType::eToml:  return "TOML";
             case FileType::eCmake: return "CMake";
+
+            case FileType::eTtf:   return "TTF";
+            case FileType::eOtf:   return "OTF";
+            case FileType::eWoff:  return "WOFF";
 
             case FileType::eGitignore: return "Gitignore";
 
@@ -223,16 +235,28 @@ namespace mikoto::filesystem {
             case FileType::eFrag:  return "Fragment Shader Stage";
             case FileType::eVert:  return "Vertex Shader Stage";
 
+            case FileType::eC_Source: return "C Source";
+            case FileType::eC_Header: return "C Header";
+            case FileType::eCpp_Source:  return "C++ Source";
+            case FileType::eCpp_Header:  return "C++ Header";
+            case FileType::ePython:  return "Python";
+            case FileType::eLua:  return "Lua";
+            case FileType::eCSharp:  return "C#";
+
             case FileType::eJson:  return "JSON File";
             case FileType::eXml:   return "XML Document";
 
-            case FileType::eIni:   return "INI Configuration File";
-            case FileType::eToml:  return "TOML Configuration File";
+            case FileType::eIni:   return "Ini File";
+            case FileType::eToml:  return "TOML File";
             case FileType::eCmake: return "CMake Build Script";
 
-            case FileType::eGitignore: return "Git Ignore File";
+            case FileType::eTtf:   return "TrueType Font (TTF)";
+            case FileType::eOtf:   return "OpenType Font (OTF)";
+            case FileType::eWoff:  return "Web Open Font Format (WOFF)";
 
-            case FileType::eMarkdown:  return "Markdown Documentation";
+            case FileType::eGitignore: return "Git Ignore";
+
+            case FileType::eMarkdown:  return "Markdown";
 
             default: return "File";
         }
@@ -300,6 +324,18 @@ namespace mikoto::filesystem {
         if ( extension == "hlsl" )              return FileType::eHlsl;
         if ( extension == "frag" )              return FileType::eFrag;
         if ( extension == "vert" )              return FileType::eVert;
+
+        if ( extension == "c" )                 return FileType::eC_Source;
+        if ( extension == "h" )                 return FileType::eC_Header;
+        if ( extension == "cpp" || extension == "cc" || extension == "cxx" ) return FileType::eCpp_Source;
+        if ( extension == "hpp" || extension == "inl" ) return FileType::eCpp_Header;
+        if ( extension == "py"  || extension == "pyw" ) return FileType::ePython;
+        if ( extension == "lua" )               return FileType::eLua;
+        if ( extension == "cs" )                return FileType::eCSharp;
+
+        if ( extension == "ttf" )               return FileType::eTtf;
+        if ( extension == "otf" )               return FileType::eOtf;
+        if ( extension == "woff" || extension == "woff2" ) return FileType::eWoff;
 
         if ( extension == "gltf" )  return FileType::eGltf;
         if ( extension == "glb" )   return FileType::eGlb;

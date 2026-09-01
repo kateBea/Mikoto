@@ -71,7 +71,9 @@ namespace mikoto::renderer::d3d12 {
 
         Context* ctx{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
         mSwapChain->ResizeBuffers(ctx->GetBackBufferCount(), mWidth, mHeight,
-                                 DXGI_FORMAT_R8G8B8A8_UNORM, 0);
+                                 d3d12::GetFormat( mFormat ), 0);
+
+        Initialize();
     }
 
     auto SwapChain::SetRefreshRate( RefreshRate type ) -> void {
@@ -117,6 +119,9 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto SwapChain::Initialize() -> void {
+        // This is also called from the OnResize()
+        mBackBufferImages.clear();
+
         Device* device{ checked_cast<Device*>( mDevice ) };
         Context* ctx{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
 

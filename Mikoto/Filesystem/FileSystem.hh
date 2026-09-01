@@ -87,6 +87,11 @@ namespace mikoto::filesystem {
         eMp3,
         eWav,
 
+        // Font
+        eTtf,
+        eOtf,
+        eWoff,
+
         // Shader
         eSlang,
         eSprv,
@@ -118,6 +123,15 @@ namespace mikoto::filesystem {
 
         // Text
         eMarkdown,
+
+        // Code
+        eC_Source,
+        eC_Header,
+        eCpp_Source,
+        eCpp_Header,
+        ePython,
+        eLua,
+        eCSharp,
 
         // Mikoto formats
         eMikoto_Scene,

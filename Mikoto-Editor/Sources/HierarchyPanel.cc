@@ -121,7 +121,7 @@ namespace mikoto::editor {
             return;
         }
 
-        const TagComponent& tagComponent{ entity->GetComponent<TagComponent>() };
+        TagComponent& tagComponent{ entity->GetComponent<TagComponent>() };
         if (!mSearchFilter.PassFilter( tagComponent.GetTag().c_str() )) {
             return;
         }
@@ -144,9 +144,11 @@ namespace mikoto::editor {
         };
 
         const eastl::string icon{ GetStringFromUnicode( 63185 ) };
-        const bool expanded{ ImGui::TreeNodeEx( reinterpret_cast<const void*>( tagComponent.GetGUID() ),
-                                                styleFlags, "%s", string::Format( " {} {}", icon.data(), tagComponent.GetTag() ).c_str() ) };
-        gui::SetCursorHandOnLastItemHovered();
+        const eastl::string nodeID{ string::Format( "##DrawTreeNode_{}", tagComponent.GetGUID() ) };
+        const eastl::string nodeLabel{  string::Format( " {} {}", icon.data(), tagComponent.GetTag() ) };
+
+        const bool expanded{ ImGui::TreeNodeEx( nodeID.c_str(), styleFlags, "%s", nodeLabel.c_str() ) };
+        SetCursorHandOnLastItemHovered();
 
         if ( ImGui::IsItemClicked( ImGuiMouseButton_Left ) ) {
             mEditorState->mSelectedEntity = entity;
@@ -159,7 +161,19 @@ namespace mikoto::editor {
 
         ImGui::TableNextColumn();
         eastl::string visibilityIcon{ string::Format("  {}", tagComponent.IsActive() ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF ) };
-        ImGui::TextUnformatted( visibilityIcon.c_str() );
+
+        ImVec2 textPos{ ImGui::GetCursorScreenPos() };
+
+        ImGui::TextUnformatted(visibilityIcon.c_str());
+        SetCursorHandOnLastItemHovered();
+
+        ImVec2 textSize{ ImGui::CalcTextSize(visibilityIcon.c_str()) };
+
+        ImGui::SetCursorScreenPos(textPos);
+        const eastl::string nodeVisibilityButtonID{ string::Format( "##DrawNodeTreeTextIconClick_{}", tagComponent.GetGUID() ) };
+        if (ImGui::InvisibleButton(nodeVisibilityButtonID.c_str(), textSize)) {
+            tagComponent.SetActive(!tagComponent.IsActive());
+        }
 
         if ( expanded ) {
             for ( auto& childID: relationComponent.GetChildren() ) {

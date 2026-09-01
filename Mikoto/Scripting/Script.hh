@@ -28,22 +28,16 @@
 
 namespace mikoto::scripting {
 
-    using namespace mikoto::core;
-    using namespace mikoto::scene;
-    using namespace mikoto::filesystem;
-
-    class Script final : public IResource {
+    class Script final : public core::IResource {
     public:
-        explicit Script(FileHandle file, sol::state& state, Entity* entity);
+        explicit Script(filesystem::FileHandle file, sol::state& state, scene::Entity* entity);
 
         auto Update( float dt ) -> void;
 
         auto ReloadScript(sol::state& state) -> void;
 
-        auto SetEnable(bool value) -> void;
-
-        MKT_NODISCARD auto IsEnabled() const -> bool;
-        MKT_NODISCARD auto GetFile() const -> FileHandle;
+        MKT_NODISCARD auto GetFile() const -> filesystem::FileHandle;
+        MKT_NODISCARD auto GetEntity() const -> scene::Entity*;
 
         ~Script() override;
 
@@ -56,12 +50,10 @@ namespace mikoto::scripting {
 
     private:
 
-        Entity* mEntity{};
+        scene::Entity* mEntity{};
+        filesystem::FileHandle mFile{};
 
         sol::state* mState{};
-        FileHandle mFile{};
-
-        bool mEnabled{ false };
 
         sol::table mObject{};
 
@@ -69,7 +61,7 @@ namespace mikoto::scripting {
         sol::function mOnUpdate{};
     };
 
-    using ScriptHandle = Ref<Script>;
+    using ScriptHandle = core::Ref<Script>;
 
 }
 

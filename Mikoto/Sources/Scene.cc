@@ -192,36 +192,27 @@ namespace mikoto::scene {
         mPhysicsWorld = physics::PhysicSystem::Get()->CreatePhysicsWorld( spec );
     }
 
-    auto Scene::UpdateIdle( double ) -> void {
-        // This is only done on simulate but here too for debugging purposes
+    auto Scene::UpdateIdle( double timeStep ) -> void {
+
+    }
+
+    auto Scene::UpdateSimulate( double timeStep ) -> void {
         physics::PhysicSystem::Get()->SetSimulationTarget( this );
 
-        // Mark scripts as updatable so the scripting system updates their states
+        // Update scripts (Ideally only when playing not when simulating)
         auto scriptEntities{ mRegistry.view<ScriptComponent>() };
         for ( auto& entity: scriptEntities ) {
             ScriptComponent& script{ mRegistry.get<ScriptComponent>( entity ) };
             ScriptHandle handle{ script.GetHandle() };
 
             if ( !handle.IsEmpty() ) {
-                // Should be false here. But will remain true for testing purposes
-                handle->SetEnable( true );
+                handle->Update( timeStep );
             }
         }
     }
 
-    auto Scene::UpdateSimulate( double ) -> void {
-        physics::PhysicSystem::Get()->SetSimulationTarget( this );
+    auto Scene::UpdatePlaying( double deltaTime ) -> void {
 
-        // Update scripts
-        auto scriptEntities{ mRegistry.view<ScriptComponent>() };
-        for ( auto& entity: scriptEntities ) {
-            ScriptComponent& script{ mRegistry.get<ScriptComponent>( entity ) };
-            ScriptHandle handle{ script.GetHandle() };
-
-            if ( !handle.IsEmpty() ) {
-                handle->SetEnable( true );
-            }
-        }
     }
 
     auto Scene::OnRigidBodyAdded( entt::registry& reg, entt::entity e ) -> void {
@@ -263,7 +254,7 @@ namespace mikoto::scene {
         ScriptComponent& scriptComponent{ reg.get<ScriptComponent>( e ) };
 
         ScriptHandle scriptHandle{};
-        if ( Entity * entity{ FindByID( tag.GetGUID() ) } ) {
+        if ( Entity* entity{ FindByID( tag.GetGUID() ) } ) {
             if (!scriptComponent.GetFilePath().IsEmpty()) {
                 // Component created with a path to an existing script
                 scriptHandle = ScriptingService::Get()->LoadScript( scriptComponent.GetFilePath(), entity );
@@ -352,6 +343,10 @@ namespace mikoto::scene {
             case SceneState::eSimulating:
                 UpdateSimulate( timeStep );
                 break;
+            case SceneState::ePlaying:
+                UpdatePlaying( timeStep );
+                break;
+            default:;
         }
 
         UpdateWorldTransformations();

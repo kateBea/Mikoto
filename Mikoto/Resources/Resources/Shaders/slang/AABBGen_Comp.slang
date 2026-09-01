@@ -20,8 +20,8 @@
 struct ClusteredParams {
     float4 mGridSize;
 
-    uint64_t mClustersPtr;
-    uint64_t mCameraInfoPtr;
+    Cluster* mClustersPtr;
+    CameraInfo* mCameraInfoPtr;
 };
 
 MKT_DECLARE_PUSH_CONSTANT(ClusteredParams) parameters;
@@ -32,7 +32,7 @@ void main(uint3 groupID: SV_GroupID,
           uint3 groupIndex: SV_GroupThreadID,
           uint3 dispatchID: SV_DispatchThreadID)
 {
-    CameraInfo camera = *(CameraInfo *)parameters.mCameraInfoPtr;
+    CameraInfo camera = *parameters.mCameraInfoPtr;
 
     uint tileIndex =
         groupID.x +
@@ -65,7 +65,7 @@ void main(uint3 groupID: SV_GroupID,
     float3 maxPointFar = LineIntersectionWithZPlane(cameraPosViewSpace, maxTile, planeFar);
 
     // Store cluster AABB
-    Cluster* clusters = (Cluster*)parameters.mClustersPtr;
+    Cluster* clusters = parameters.mClustersPtr;
     
     //Cluster c;
     //c.mMinPoint = float4(min(minPointNear, minPointFar), 0.0);

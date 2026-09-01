@@ -19,11 +19,12 @@
 #include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
+#include <Core/Serializable.hh>
 #include <Core/ReferenceCounted.hh>
 
 namespace mikoto::material {
 
-    class Material : public core::ReferenceCounted {
+    class Material : public core::ISerializable {
     public:
         explicit Material(const eastl::string_view name = "Base Material")
             :  mName{ name }

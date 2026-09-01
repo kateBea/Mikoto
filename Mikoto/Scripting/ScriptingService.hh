@@ -15,6 +15,8 @@
 #ifndef MIKOTO_SCRIPTING_SERVICE_HH
 #define MIKOTO_SCRIPTING_SERVICE_HH
 
+#include <mutex>
+
 #include <EASTL/vector.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
@@ -35,39 +37,38 @@
 
 namespace mikoto::scripting {
 
-    using namespace mikoto::core;
-    using namespace mikoto::scene;
-    using namespace mikoto::filesystem;
-
     struct ScriptingServiceDescription {
-        Path mScriptBasePath{};
+        filesystem::Path mScriptBasePath{};
     };
 
-    class ScriptingService final : public ISubsystem, public Singleton<ScriptingService> {
+    // Will highly likely become scoped service and not application level service
+    // because scripts are tied to a project, new project -> new scripts
+    class ScriptingService final : public core::ISubsystem, public core::Singleton<ScriptingService> {
     public:
         explicit ScriptingService( const ScriptingServiceDescription& config );
 
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        auto Update(float timeStep) -> void override;
+        auto Update( float timeStep ) -> void override;
 
-        auto CreateScript( Entity* entity ) -> ScriptHandle;
-        auto LoadScript(const Path& path, Entity* entity) -> ScriptHandle;
+        auto CreateScript( scene::Entity* entity ) -> ScriptHandle;
+        auto LoadScript( const filesystem::Path& path, scene::Entity* entity ) -> ScriptHandle;
 
     private:
-
         auto InitState() -> void;
         auto InitBindings() -> void;
 
     private:
+        filesystem::Path mBasePath{};
+
         sol::state mLuaState{};
 
-        Path mBasePath{};
+        std::mutex mScriptsMutex{};
 
-        Registry<ScriptingBinding> mBindings{};
-        ResourcePoolTyped<Script> mScriptPool{};
+        core::Registry<ScriptingBinding> mBindings{};
+        eastl::vector<ScriptHandle> mScripts{};
     };
-}
+}// namespace mikoto::scripting
 
 #endif//MIKOTO_SCRIPTING_SERVICE_HH

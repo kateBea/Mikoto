@@ -265,6 +265,19 @@ namespace mikoto::asset {
             });
         }
 
+
+        // Materials can be serialized or deserialized from a YAML file with mktmtl file extension
+        // the type is stored in the YAML file
+        // material::MaterialHandle material{ AssetService::Get()->DeserializeMaterial("assets/materials/wireframe.mtl") };
+        // material::MaterialHandle material{ AssetService::Get()->DeserializeMaterial("assets/materials/postprocess.mtl") };
+
+        MKT_NODISCARD auto SerializeMaterial( material::MaterialHandle material ) const -> bool;
+        MKT_NODISCARD auto SerializeMaterial( material::MaterialHandle material, filesystem::Path& path ) const -> bool;
+        MKT_NODISCARD auto SerializeMaterial( material::MaterialHandle material, filesystem::FileHandle file ) const -> bool;
+
+        MKT_NODISCARD auto DeSerializeMaterial( filesystem::FileHandle file ) const -> material::MaterialHandle;
+        MKT_NODISCARD auto DeSerializeMaterial( const filesystem::Path& file ) const -> material::MaterialHandle;
+
         MKT_NODISCARD auto CreateMaterial( const material::PhysicMaterialDescription& spec) -> material::MaterialHandle;
         MKT_NODISCARD auto CreateMaterial( const material::SkyboxMaterialDescription& desc) -> material::MaterialHandle;
         MKT_NODISCARD auto CreateMaterial( const material::PostProcessMaterialDescription& desc) -> material::MaterialHandle;

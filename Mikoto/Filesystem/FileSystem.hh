@@ -25,9 +25,9 @@
 
 namespace mikoto::filesystem {
 
-    inline constexpr eastl::string_view kMikotoSceneExtension{ ".mktscene" };
-    inline constexpr eastl::string_view kMikotoProjectExtension{ ".mktproj" };
-    inline constexpr eastl::string_view kMikotoMaterialExtension{ ".mktmat" };
+    inline constexpr eastl::string_view kMikotoSceneExtension{ ".mktscn" };
+    inline constexpr eastl::string_view kMikotoProjectExtension{ ".mktprj" };
+    inline constexpr eastl::string_view kMikotoMaterialExtension{ ".mktmtl" };
 
     enum class FileType {
         eInvalid = -1,

@@ -26,6 +26,10 @@
 
 namespace mikoto::scripting {
 
+    using namespace mikoto::core;
+    using namespace mikoto::scene;
+    using namespace mikoto::filesystem;
+
     auto SceneBinding::Init( sol::state& state ) -> void {
         auto entity{ state.new_usertype<Entity>( "Entity" ) };
 

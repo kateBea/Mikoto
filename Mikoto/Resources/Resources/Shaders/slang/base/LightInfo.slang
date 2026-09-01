@@ -17,7 +17,7 @@
 struct LightInfo {
     float4 Position;
     float4 Direction;
-    float3 Diffuse;
+    float4 Diffuse;
 
     float CutOff;
     float OuterCutOff;
@@ -26,4 +26,6 @@ struct LightInfo {
     float Radius;
 
     int ActiveLightType;
+
+    float mPadding[3];
 };

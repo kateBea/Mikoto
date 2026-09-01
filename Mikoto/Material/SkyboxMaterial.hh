@@ -67,6 +67,11 @@ namespace mikoto::material {
         explicit SkyboxMaterial( eastl::string_view name = "SkyboxMaterial" );
         explicit SkyboxMaterial( const SkyboxMaterialDescription& desc );
 
+        auto Serialize( const filesystem::Path &filename ) const -> void override;
+        auto Deserialize( const filesystem::Path &filename ) const -> void override;
+        auto Serialize( filesystem::FileHandle file ) const -> void override;
+        auto Deserialize( filesystem::FileHandle file ) const -> void override;
+
         auto SetEquirectangular( renderer::rhi::TextureHandle texture ) -> void;
         auto SetFace( SkyboxFace face, renderer::rhi::TextureHandle texture ) -> void;
 

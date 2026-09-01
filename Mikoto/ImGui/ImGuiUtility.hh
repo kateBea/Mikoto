@@ -136,6 +136,8 @@ namespace mikoto::gui {
 
     auto InputText(eastl::string_view viewData, bool readOnly = false) -> bool;
 
+    auto InputText(eastl::string& viewData, ImGuiTextFlags flags ) -> bool;
+
     template<typename InputIt, typename Pred>
     auto ComboList( InputIt start, InputIt end, eastl::string &currentlyActive, Pred &&isSelectedPred, const eastl::string_view label ) -> void {
         ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.2f };

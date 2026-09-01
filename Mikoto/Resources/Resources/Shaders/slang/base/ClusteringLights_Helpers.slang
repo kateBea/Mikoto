@@ -45,6 +45,7 @@ struct Cluster {
 
     // Active lights affecting this cluster
     uint mCount;
+    uint mPadding[3];
 
     // Indices into the global lights list
     uint mLightIndices[MAX_LIGHT_CLUSTERS];
@@ -104,10 +105,10 @@ bool SphereAABBIntersection(float3 center, float radius, float3 aabbMin, float3 
 
 // TODO: Review point light attenuation algorithm to implement proper culling
 
-bool TestSphereAABBPointLight(LightInfo light, Cluster cluster, float4x4 view) {
-    float3 center = mul(view, float4(light.Position.xyz, 1.0)).xyz;
+bool TestSphereAABBPointLight(LightInfo* lightPtr, uint32_t index, Cluster cluster, float4x4 view) {
+    float3 center = mul(view, float4(lightPtr[index].Position.xyz, 1.0)).xyz;
 
-    float radius = GetPointLightRadius(light.Intensity);
+    float radius = GetPointLightRadius(lightPtr[index].Intensity);
 
     float3 aabbMin = cluster.mMinPoint.xyz;
     float3 aabbMax = cluster.mMaxPoint.xyz;

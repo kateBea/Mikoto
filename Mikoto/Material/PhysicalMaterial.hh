@@ -132,6 +132,11 @@ namespace mikoto::material {
         explicit PhysicalMaterial( eastl::string_view name = "PBR" );
         explicit PhysicalMaterial( const PhysicMaterialDescription& props );
 
+        auto Serialize( const filesystem::Path &filename ) const -> void override;
+        auto Deserialize( const filesystem::Path &filename ) const -> void override;
+        auto Serialize( filesystem::FileHandle file ) const -> void override;
+        auto Deserialize( filesystem::FileHandle file ) const -> void override;
+
         auto RemoveTexture( MapType type ) -> void;
         auto SetTexture( MapType type, const renderer::rhi::TextureHandle& texture ) -> void;
 

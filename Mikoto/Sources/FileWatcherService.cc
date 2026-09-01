@@ -29,19 +29,22 @@
 
 namespace mikoto::filesystem {
 
+    using namespace mikoto::core;
+
     FileWatcherService::FileWatcherService( const FileWatcherServiceCreateInfo& )
     {}
 
-    auto FileWatcherService::Watch( const Path &path, FileWatcher::WatcherCallback&& callback ) -> void {
+    auto FileWatcherService::Watch( const Path &path, WatcherCallback&& callback ) -> void {
+        std::lock_guard lock{ mWatcherInsertMutex };
+
         const Path fileAbsolutePath{ path.ToAbsolute() };
-        const auto it{ mWatchedPaths.find( fileAbsolutePath ) };
+        auto it{ mWatchedPaths.find( fileAbsolutePath ) };
 
         if (it == mWatchedPaths.end()) {
-            std::lock_guard lock{ mWatcherInsertMutex };
-            mWatchedPaths[fileAbsolutePath] = eastl::make_unique<FileWatcher>( fileAbsolutePath );
+            it = mWatchedPaths.try_emplace( it, fileAbsolutePath, eastl::make_unique<FileWatcher>( fileAbsolutePath ) );
         }
 
-        mWatchedPaths.at(fileAbsolutePath)->RegisterWatchCallback( eastl::move( callback ) );
+        it->second->RegisterWatchCallback( eastl::move( callback ) );
     }
 
     auto FileWatcherService::Initialize() -> void {

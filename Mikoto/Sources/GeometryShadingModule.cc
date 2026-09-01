@@ -933,7 +933,7 @@ namespace mikoto::renderer {
 
                     SPointer mCameraBuffer{};
 
-                    float4 mLineColor{ 0.572f, 0.996f, 0.556f, 1.0f };
+                    float4 mLineColor{ 0.172f, 0.996f, 0.156f, 1.0f };
                 } params{
                     .mGeometryBuffer = ctx.GetDeviceBufferAddress( geometryData.mGeometryBuffer ),
                     .mSkinningBuffer = ctx.GetDeviceBufferAddress( geometryData.mSkinningBuffer ),

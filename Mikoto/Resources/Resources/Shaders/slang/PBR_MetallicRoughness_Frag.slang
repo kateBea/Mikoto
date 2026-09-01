@@ -206,7 +206,7 @@ float3 ComputeDirectionalLightContribution(float3 n, float3 v, LightInfo lightIn
     float3 specContrib = F * G * D / (4.0 * NdotL * NdotV);
 
     // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
-    float3 color = NdotL * lightInfo.Diffuse * (diffuseContrib + specContrib);
+    float3 color = NdotL * lightInfo.Diffuse.xyz * (diffuseContrib + specContrib);
 
     return color;
 }
@@ -250,7 +250,7 @@ float3 ComputePointlLightContribution(float3 n, float3 v, LightInfo lightInfo, B
     attenuation *= GetDistanceAtt(lightVector, lightInvSqrAttRadius);
     
     const float intensityBaseFactor = 1000.0f;
-    const float3 lightIntensity = lightInfo.Diffuse * (lightInfo.Intensity * intensityBaseFactor) * attenuation;
+    const float3 lightIntensity = lightInfo.Diffuse.xyz * (lightInfo.Intensity * intensityBaseFactor) * attenuation;
     
     const float3 l = lightVector / distance;
     const float3 h = normalize(l + v);
@@ -311,7 +311,7 @@ float3 ComputeSpotLightContribution(float3 n, float3 v, LightInfo lightInfo, Bas
     float attenuation = distanceAttenuation * coneAttenuation;
 
     const float intensityBaseFactor = 1000.0f;
-    float3 lightIntensity = lightInfo.Diffuse * (lightInfo.Intensity * intensityBaseFactor) * attenuation;
+    const float3 lightIntensity = lightInfo.Diffuse.xyz * (lightInfo.Intensity * intensityBaseFactor) * attenuation;
 
     float3 h = normalize(l + v);
 

@@ -895,7 +895,15 @@ namespace mikoto::editor {
             return;
         }
 
+        // Name
+        ImGui::TextUnformatted( "Material name ");
+        ImGui::SameLine();
+        if (gui::InputText( material->GetName(), true ) ) {
+            // Nothing
+        }
+
         // Select shading model
+        ImGui::Spacing();
         ImGui::TextUnformatted( "Shading model");
 
         ImGui::SameLine();
@@ -2469,13 +2477,24 @@ namespace mikoto::editor {
         SkyboxMaterialComponent& sbComponent{ entity.GetComponent<SkyboxMaterialComponent>() };
         SkyboxMaterial* material{ checked_cast<SkyboxMaterial*>( sbComponent.GetMaterial().GetRaw() ) };
 
+        if (!material) {
+            return;
+        }
+
+        ImGui::TextUnformatted( "Material name");
+        ImGui::SameLine();
+        if (gui::InputText( material->GetName(), true ) ) {
+            // Nothing
+        }
+
         // Select type of skybox texture (equirectangular or cube faces)
         ImGui::Spacing();
-        ImGui::SeparatorText( "Skybox Type");
+        ImGui::TextUnformatted( "Skybox Type");
         SkyboxType currentSkyboxType{ material->GetType() };
         eastl::array<std::string, as<usize>(SkyboxType::eCount)> choicesAlpha{
             "Cube Faces", "HDR Texture" };
 
+        ImGui::SameLine();
         SkyboxType newSkyboxType{ gui::Combo( choicesAlpha, currentSkyboxType ) };
         if (newSkyboxType != currentSkyboxType) {
             material->SetType( newSkyboxType );

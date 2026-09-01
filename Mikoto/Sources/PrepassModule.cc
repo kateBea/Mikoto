@@ -160,9 +160,9 @@ namespace mikoto::renderer {
                 struct ComputeParams {
                     float4 mGridSize{};
 
-                    u64 mLightsPtr{};
-                    u64 mClustersPtr{};
-                    u64 mCameraInfoPtr{};
+                    SPointer mLightsPtr{};
+                    SPointer mClustersPtr{};
+                    SPointer mCameraInfoPtr{};
 
                     u32 mClusterCount{};
                     u32 mActiveLightCount{};

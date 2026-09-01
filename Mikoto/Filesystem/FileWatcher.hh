@@ -18,38 +18,47 @@
 #include <vector>
 #include <memory>
 
+#include <EASTL/chrono.h>
+#include <EASTL/vector.h>
+#include <EASTL/functional.h>
 #include <EASTL/unique_ptr.h>
 
 #include <FileWatch.hh>
-#include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Types.hh>
+
 #include <Filesystem/Path.hh>
 
 namespace mikoto::filesystem {
 
-    using namespace mikoto::core;
+    enum class FileWatchEvent {
+        eInvalid,
+        eModified,
+        eCreated,
+        eDeleted,
+        eMoved
+    };
 
-    enum class FileWatchEvent { eModified, eCreated, eDeleted, eMoved };
+    using WatcherCallback = eastl::function<void( const Path& path, FileWatchEvent )>;
 
     class FileWatcher final {
     public:
-        using WatcherCallback = std::function< void( const Path& path, FileWatchEvent ) >;
 
         // eventTimeOut is used for debouncing (in ms).
         // Helps to prevent redundant, rapid-fire actions by waiting for an event to
         // stop triggering (e.g., after 100-500ms) before executing a handler
-        explicit FileWatcher( const Path& path, u32 timeOut = 500 );
+        explicit FileWatcher( const Path& path, core::u32 timeOut = 500 );
 
         auto RegisterWatchCallback(WatcherCallback&& callback) -> void;
 
     private:
         Path mWatchedPath{};
-        std::chrono::milliseconds mDebounceTime{};
-        std::vector<WatcherCallback> mCallbacks{};
+        eastl::chrono::milliseconds mDebounceTime{};
+        eastl::vector<WatcherCallback> mCallbacks{};
 
+        // filewatch::FileWatch expects std::string
         eastl::unique_ptr<filewatch::FileWatch<std::string>> mWatcher{};
     };
 }

@@ -53,6 +53,8 @@ namespace mikoto::filesystem {
     auto FileService::LoadFile( const Path& path ) -> FileHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
+        std::lock_guard lock{ mFileLoadMutex };
+
         const auto& absolutePath{ path.GetAbsolute() };
         const auto findIt{ mFiles.find( absolutePath ) };
 
@@ -65,33 +67,30 @@ namespace mikoto::filesystem {
             return FileHandle::CreateEmpty();
         }
 
-        FileHandle result{};
+        FileHandle fileHandle{};
         try {
-            result = FileHandle::New( absolutePath, false );
+            fileHandle = FileHandle::New( absolutePath, false );
         } catch ( const std::exception& e ) {
             MKT_CORE_LOGGER_ERROR( "CreateNewFile exception. e.what()", e.what() );
             return FileHandle::CreateEmpty();
         }
 
-        {
-            std::lock_guard lock{ mFileLoadMutex };
-            const auto [insertIt, success]{
-                mFiles.try_emplace( absolutePath, result )
-            };
+        const auto [insertIt, success]{
+            mFiles.try_emplace( absolutePath, fileHandle )
+        };
 
-            if ( success ) {
-                //If we managed to load the file listen on update notifications to update the file contents
-                FileWatcherService::Get()->Watch( result->GetPath(),
-                    [result]( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
-                    if ( event == FileWatchEvent::eModified ) {
-                    result->UpdateContentsFromDisk();
-                    MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.GetC_Str() );
-                    }
-                } );
-            }
+        if ( success ) {
+            //If we managed to load the file listen on update notifications to update the file contents
+            FileWatcherService::Get()->Watch( fileHandle->GetPath(),
+                [fileHandle]( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
+                if ( event == FileWatchEvent::eModified ) {
+                fileHandle->UpdateContentsFromDisk();
+                MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.GetC_Str() );
+                }
+            } );
         }
 
-        return result;
+        return fileHandle;
     }
 
     auto FileService::CreateNewFile( eastl::string_view path ) -> FileHandle {
@@ -101,6 +100,8 @@ namespace mikoto::filesystem {
     auto FileService::CreateNewFile( const Path& path ) -> FileHandle {
         MKT_BEGIN_PROFILER_NAMED();
 
+        std::lock_guard lock{ mFileLoadMutex };
+
         const auto& absolutePath{ path.GetAbsolute() };
         const auto findIt{ mFiles.find( absolutePath ) };
 
@@ -108,33 +109,28 @@ namespace mikoto::filesystem {
             return findIt->second;
         }
 
-        FileHandle result{};
-
+        FileHandle fileHandle{};
         try {
-            result = FileHandle::New( absolutePath, true );
+            fileHandle = FileHandle::New( absolutePath, true );
         } catch ( const std::exception& e ) {
             MKT_CORE_LOGGER_ERROR( "CreateNewFile exception. e.what()", e.what() );
+            return FileHandle::CreateEmpty();
         }
 
-        {
-            std::lock_guard lock{ mFileLoadMutex };
-            const auto [insertIt, success]{
-                mFiles.try_emplace( absolutePath, result )
-            };
-
-            if ( success ) {
-                //If we managed to load the file listen on update notifications to update the file contents
-                FileWatcherService::Get()->Watch( result->GetPath(),
-                    [result]( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
-                    if ( event == FileWatchEvent::eModified ) {
-                    result->UpdateContentsFromDisk();
-                    MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.GetC_Str() );
-                    }
-                } );
-            }
+        const auto [insertIt, success]{
+            mFiles.try_emplace( absolutePath, fileHandle ) };
+        if ( success ) {
+            //If we managed to load the file listen on update notifications to update the file contents
+            FileWatcherService::Get()->Watch( fileHandle->GetPath(),
+                [fileHandle]( const Path& pathCallable, FileWatchEvent event ) mutable -> void {
+                if ( event == FileWatchEvent::eModified ) {
+                fileHandle->UpdateContentsFromDisk();
+                MKT_CORE_LOGGER_INFO( "File at path {} was modified. Updating it's contents", pathCallable.GetC_Str() );
+                }
+            } );
         }
 
-        return result;
+        return fileHandle;
     }
 
     auto FileService::GetFile( const Path &path ) -> FileHandle {

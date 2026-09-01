@@ -47,6 +47,7 @@ namespace mikoto::scene {
 
     enum class SceneState {
         eIdle,
+        ePlaying,
         eSimulating
     };
 
@@ -152,6 +153,7 @@ namespace mikoto::scene {
 
         auto UpdateIdle( double deltaTime ) -> void;
         auto UpdateSimulate( double deltaTime ) -> void;
+        auto UpdatePlaying( double deltaTime ) -> void;
 
         auto OnScriptAdded(entt::registry& reg, entt::entity e ) -> void;
 

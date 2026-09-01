@@ -30,11 +30,9 @@
 
 namespace mikoto::filesystem {
 
-    using namespace mikoto::core;
-
     struct FileWatcherServiceCreateInfo {};
 
-    class FileWatcherService final : public IService, public Singleton<FileWatcherService> {
+    class FileWatcherService final : public core::IService, public core::Singleton<FileWatcherService> {
     public:
 
         explicit FileWatcherService( const FileWatcherServiceCreateInfo& info);
@@ -42,10 +40,12 @@ namespace mikoto::filesystem {
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        auto Watch(const Path& path, FileWatcher::WatcherCallback&& callback) -> void;
+        auto Watch(const Path& path, WatcherCallback&& callback) -> void;
 
     private:
         std::mutex mWatcherInsertMutex{};
+
+        // Unique pointers for stable references
         ankerl::unordered_dense::map<Path, eastl::unique_ptr<FileWatcher>> mWatchedPaths{};
     };
 }

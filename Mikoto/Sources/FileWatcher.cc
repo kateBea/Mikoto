@@ -34,12 +34,9 @@ namespace mikoto::filesystem {
 
     MKT_NODISCARD static auto ConverEventType( filewatch::Event action ) -> FileWatchEvent {
         switch (action) {
-            case filewatch::Event::added:
-                return FileWatchEvent::eCreated;
-            case filewatch::Event::removed:
-                return FileWatchEvent::eDeleted;
-            case filewatch::Event::modified:
-                return FileWatchEvent::eModified;
+            case filewatch::Event::added: return FileWatchEvent::eCreated;
+            case filewatch::Event::removed: return FileWatchEvent::eDeleted;
+            case filewatch::Event::modified: return FileWatchEvent::eModified;
 
             case filewatch::Event::renamed_old:
             case filewatch::Event::renamed_new:
@@ -49,7 +46,7 @@ namespace mikoto::filesystem {
         }
 
         // Make compiler happy
-        return FileWatchEvent::eCreated;
+        return FileWatchEvent::eInvalid;
     }
 
     FileWatcher::FileWatcher( const Path &path, u32 timeOut )

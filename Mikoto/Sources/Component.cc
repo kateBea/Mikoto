@@ -14,9 +14,12 @@
 
 #include <Scene/Component.hh>
 
+#include <Scripting/ScriptingService.hh>
+
 namespace mikoto::scene {
 
     using namespace mikoto::core;
+    using namespace mikoto::scripting;
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
@@ -160,6 +163,39 @@ namespace mikoto::scene {
 
     auto CameraComponent::SetFixedAspectRatio( const bool value ) -> void {
         mFixedAspectRatio = value;
+    }
+
+    ScriptComponent::ScriptComponent( const Path &filePath )
+        : mFilePath{ filePath }
+    {
+
+    }
+
+    auto ScriptComponent::SetScript( ScriptHandle handle, bool replace ) -> void {
+        if ( handle.IsEmpty() ) {
+            return;
+        }
+
+        if (replace && !mScript.IsEmpty()) {
+            FileHandle file{ mScript->GetFile() };
+            FileHandle otherFile{ handle->GetFile() };
+
+            MKT_ASSERT( !otherFile.IsEmpty(), "Script must have a file" );
+
+            mFilePath = otherFile->GetPath();
+            mScript = ScriptingService::Get()->LoadScript( otherFile->GetPath(), mScript->GetEntity() );
+        } else {
+            mScript = handle;
+            mFilePath = mScript->GetFile()->GetPath();
+        }
+    }
+
+    auto ScriptComponent::GetHandle() -> ScriptHandle {
+        return mScript;
+    }
+
+    auto ScriptComponent::GetFilePath() const -> const Path & {
+        return mFilePath;
     }
 
 

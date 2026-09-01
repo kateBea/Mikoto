@@ -25,9 +25,9 @@ MKT_DECLARE_STRUCTURED_UAV uavBuffers;
 struct ClusteredParams {
     float4 mGridSize;
 
-    uint64_t mLightsPtr;
-    uint64_t mClustersPtr;
-    uint64_t mCameraInfoPtr;
+    LightInfo* mLightsPtr;
+    Cluster* mClustersPtr;
+    CameraInfo* mCameraPtr;
 
     uint mClusterCount;
     uint mActiveLightCount;
@@ -42,9 +42,9 @@ void main(uint3 groupID: SV_GroupID,
           uint3 dispatchID: SV_DispatchThreadID)
 {
     // Get the buffers
-    CameraInfo camera = *(CameraInfo *)parameters.mCameraInfoPtr;
-    LightInfo* lights = (LightInfo *)parameters.mLightsPtr;
-    Cluster* clusters = (Cluster *)parameters.mClustersPtr;
+    CameraInfo camera = *parameters.mCameraPtr;
+    LightInfo* lights = parameters.mLightsPtr;
+    Cluster* clusters = parameters.mClustersPtr;
 
     uint index = groupID.x * kLocalSize + groupThreadID.x;
     if (index >= parameters.mClusterCount) {
@@ -62,18 +62,16 @@ void main(uint3 groupID: SV_GroupID,
     for (uint i = 0; i < lightCount; ++i) {
         bool visible = false;
 
-        LightInfo light = lights[index];
-
-        switch (light.ActiveLightType) {
+        switch (lights[index].ActiveLightType) {
         case LIGHT_TYPE_POINT:
-            visible = TestSphereAABBPointLight(light, clusters[index], camera.mViewMatrix);
+            visible = TestSphereAABBPointLight(lights, index, clusters[index], camera.mViewMatrix);
             //visible = true;
             break;
 
         case LIGHT_TYPE_SPOT:
             // TODO: real spotlight culling
             // improve. https://simoncoenen.com/blog/programming/graphics/SpotlightCulling
-            visible = TestSphereAABBPointLight(light, clusters[index], camera.mViewMatrix);
+            visible = TestSphereAABBPointLight(lights, index, clusters[index], camera.mViewMatrix);
             //visible = true;
             break;
 

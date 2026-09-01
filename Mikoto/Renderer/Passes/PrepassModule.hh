@@ -47,10 +47,11 @@ namespace mikoto::renderer {
         core::float4 mMaxPoint{};
 
         core::u32 mCount{};
+        core::u32 mPadding[3]{};
         core::u32 mLightIndices[kMaxLightPerCluster]{};
     };
 
-    struct LightParameters {
+    struct alignas(16) LightParameters {
         core::float4 mPosition{};
         core::float4 mDirection{};
         core::float4 mDiffuse{};
@@ -62,6 +63,8 @@ namespace mikoto::renderer {
         core::f32 mRadius{};
 
         core::i32 mActiveLightType{};
+
+        core::f32 mPadding[3]{};
     };
 
     struct PrepassModuleInfo {

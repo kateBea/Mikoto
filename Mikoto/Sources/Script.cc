@@ -27,6 +27,10 @@
 
 namespace mikoto::scripting {
 
+    using namespace mikoto::core;
+    using namespace mikoto::scene;
+    using namespace mikoto::filesystem;
+
     Script::Script( FileHandle file, sol::state &state, Entity* entity )
         : mEntity{ entity }, mState{ std::addressof( state ) }, mFile{ file }
     {
@@ -64,11 +68,6 @@ namespace mikoto::scripting {
     }
 
     auto Script::Update( const float dt ) -> void {
-        // called every frame when scene is simulating
-        if (!mEnabled) {
-            return;
-        }
-
         OnUpdate( dt );
     }
 
@@ -102,16 +101,12 @@ namespace mikoto::scripting {
         }
     }
 
-    auto Script::SetEnable( const bool value ) -> void {
-        mEnabled = value;
-    }
-
-    auto Script::IsEnabled() const -> bool {
-        return  mEnabled;
-    }
-
     auto Script::GetFile() const -> FileHandle {
         return mFile;
+    }
+
+    auto Script::GetEntity() const -> scene::Entity* {
+        return mEntity;
     }
 
     Script::~Script() {

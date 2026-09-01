@@ -62,6 +62,22 @@ namespace mikoto::material {
         }
     }
 
+    auto PhysicalMaterial::Serialize( const filesystem::Path& filename ) const -> void {
+
+    }
+
+    auto PhysicalMaterial::Deserialize( const filesystem::Path& filename ) const -> void {
+
+    }
+
+    auto PhysicalMaterial::Serialize( filesystem::FileHandle file ) const -> void {
+
+    }
+
+    auto PhysicalMaterial::Deserialize( filesystem::FileHandle file ) const -> void {
+
+    }
+
     auto PhysicalMaterial::RemoveTexture( MapType type ) -> void {
         mTextures.erase( type );
     }

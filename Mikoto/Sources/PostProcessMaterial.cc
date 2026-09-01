@@ -38,4 +38,20 @@ namespace mikoto::material {
 
     PostProcessMaterial::~PostProcessMaterial() = default;
 
+    auto PostProcessMaterial::Serialize( const filesystem::Path &filename ) const -> void {
+
+    }
+
+    auto PostProcessMaterial::Deserialize( const filesystem::Path &filename ) const -> void {
+
+    }
+
+    auto PostProcessMaterial::Serialize( filesystem::FileHandle file ) const -> void {
+
+    }
+
+    auto PostProcessMaterial::Deserialize( filesystem::FileHandle file ) const -> void {
+
+    }
+
 }// namespace Mikoto

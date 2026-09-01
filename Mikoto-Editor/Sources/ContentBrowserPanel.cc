@@ -252,6 +252,8 @@ namespace mikoto::editor {
             ImGui::SameLine();
 
             // To avoid ID collisions use absolute path as ID and stem as label
+            // Alternatively "MyButtonLabel##MyButtonID" before the has goes the the label
+            // the ID comes after that
             ImGui::PushID(pathIt->GetAbsolute().data());
 
             if (ImGui::Button(Path{ pathIt->GetAbsolute() }.GetStem().data())) {

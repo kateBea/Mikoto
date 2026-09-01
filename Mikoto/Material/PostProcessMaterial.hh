@@ -43,6 +43,11 @@ namespace mikoto::material {
 
         ~PostProcessMaterial() override;
 
+        auto Serialize( const filesystem::Path &filename ) const -> void override;
+        auto Deserialize( const filesystem::Path &filename ) const -> void override;
+        auto Serialize( filesystem::FileHandle file ) const -> void override;
+        auto Deserialize( filesystem::FileHandle file ) const -> void override;
+
     private:
 
         core::f32 mContrast{};

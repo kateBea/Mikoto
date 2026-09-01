@@ -29,6 +29,7 @@
 #include <Core/Exception.hh>
 #include <Logging/Logger.hh>
 
+#include <Filesystem/FileSystem.hh>
 #include <Filesystem/FileService.hh>
 #include <Filesystem/FileWatcherService.hh>
 
@@ -72,27 +73,27 @@ namespace mikoto::scripting {
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down ScriptingService..." );
-
-        mScriptPool.Shutdown();
     }
 
-    auto ScriptingService::Update( const float timeStep ) -> void {
-        for (auto& script : mScriptPool | std::ranges::views::values) {
-            script.As<Script>()->Update( timeStep );
-        }
+    auto ScriptingService::Update( float timeStep ) -> void {
+
     }
 
     auto ScriptingService::LoadScript( const Path &path, Entity* entity ) -> ScriptHandle {
         ScriptHandle handle{};
         if (FileHandle file{ FileService::Get()->LoadFile( path ) }) {
+            std::lock_guard lock{ mScriptsMutex };
+
             try {
-                handle = mScriptPool.Allocate( file,  mLuaState, entity );
+                handle = ScriptHandle::New( file,  mLuaState, entity );
                 FileWatcherService::Get()->Watch( file->GetPath(),
                 [handle, this](const Path& , FileWatchEvent event) mutable -> void {
                     if (event == FileWatchEvent::eModified) {
                         handle->ReloadScript(mLuaState);
                     }
                 } );
+
+                mScripts.emplace_back( handle );
 
             } catch ( const std::exception &e ) {
                 MKT_CORE_LOGGER_ERROR( "ScriptingService::LoadScript. File {}. Exception: '{}'", file->GetPath().GetC_Str(), e.what() );
@@ -103,20 +104,16 @@ namespace mikoto::scripting {
     }
 
     auto ScriptingService::CreateScript(Entity* entity) -> ScriptHandle {
-        static std::atomic_uint64_t scriptCount{};
+        // Create a temporary file
+        ( void )CreateIfNotExistsDirectory( mBasePath );
 
-        // Move this logic to the asset service, by doing it that way we can benefit from unique hash IDs for the script asset
-        // Need to properly give it a thought tho, a single script might be shared by multiple scene objects
-        Path scriptPath{ string::Format( "{}/Script.lua", mBasePath.GetDirectoryName() ) };
-        if ( scriptPath.IsFile() ) {
-            scriptPath = Path{ string::Format( "{}/Script-{}.lua", mBasePath.GetDirectoryName(), scriptCount.load() ) };
-
-            ++scriptCount;
-        }
+        Path scriptPath{ string::Format( "{}/Script.lua", mBasePath.GetPath() ) };
 
         ScriptHandle handle{};
 
         if ( FileHandle file{ FileService::Get()->CreateNewFile( scriptPath ) } ) {
+            std::lock_guard lock{ mScriptsMutex };
+
             // This script is an empty template used to create new scripts
             FileHandle scriptBase{ FileService::Get()->LoadFile( "Resources/Script-Examples/base.lua" ) };
 
@@ -125,7 +122,7 @@ namespace mikoto::scripting {
             file->FlushContents();
 
             try {
-                handle = mScriptPool.Allocate( file, mLuaState, entity );
+                handle = ScriptHandle::New( file, mLuaState, entity );
 
                 FileWatcherService::Get()->Watch( file->GetPath(),
                 [handle, this]( const Path&, FileWatchEvent event ) mutable -> void {
@@ -133,6 +130,8 @@ namespace mikoto::scripting {
                         handle->ReloadScript( mLuaState );
                     }
                 } );
+
+                mScripts.emplace_back( handle );
 
             } catch ( const std::exception& e ) {
                 MKT_CORE_LOGGER_ERROR( "ScriptingService::CreateScript. File {}. Exception: '{}'", file->GetPath().GetC_Str(), e.what() );

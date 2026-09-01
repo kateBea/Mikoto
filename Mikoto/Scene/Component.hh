@@ -651,11 +651,7 @@ namespace mikoto::scene {
     public:
         // The script can be constructed from a script on disk
         // if left empty we will use a blank script with minimal setup
-        explicit ScriptComponent(const Path& filePath)
-            : mFilePath{ filePath } {}
-
-        explicit ScriptComponent(eastl::string_view filePath = "")
-            : mFilePath{ filePath } {}
+        explicit ScriptComponent(const filesystem::Path& filePath = {});
 
         ScriptComponent( const ScriptComponent& other ) = default;
         ScriptComponent( ScriptComponent&& other ) = default;
@@ -663,21 +659,18 @@ namespace mikoto::scene {
         auto operator=( const ScriptComponent& other ) -> ScriptComponent& = default;
         auto operator=( ScriptComponent&& other ) -> ScriptComponent& = default;
 
-        auto SetScript( ScriptHandle handle ) -> void {
-            if ( !handle.IsEmpty( ) ) {
-                mScript = handle;
-                mFilePath = mScript->GetFile()->GetPath();
-            }
-        }
+        // When replace is true we replace our own script this means
+        // that we copy the contents of other script into our file and reload the state
+        auto SetScript( scripting::ScriptHandle handle, bool replace = true ) -> void;
 
-        MKT_NODISCARD auto GetHandle() -> ScriptHandle { return mScript; }
-        MKT_NODISCARD auto GetFilePath() const -> const Path& { return mFilePath; }
+        MKT_NODISCARD auto GetHandle() -> scripting::ScriptHandle;
+        MKT_NODISCARD auto GetFilePath() const -> const filesystem::Path&;
 
         ~ScriptComponent() = default;
 
     private:
-        Path mFilePath{};
-        ScriptHandle mScript{};
+        filesystem::Path mFilePath{};
+        scripting::ScriptHandle mScript{};
     };
 
     class AnimatorComponent {

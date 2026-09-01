@@ -518,7 +518,7 @@ namespace mikoto::gui {
         return selectionIndex;
     }
 
-    auto InputText(eastl::string_view viewData, bool readOnly) -> bool {
+    auto InputText(eastl::string_view viewData, bool readOnly ) -> bool {
         ImGuiTextFlags flags{ ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll };
 
         if (readOnly) {
@@ -526,10 +526,23 @@ namespace mikoto::gui {
         }
 
         constexpr u32 kLength{ 1024 };
-        eastl::fixed_string<char, kLength> name{};
-
+        eastl::array<char, kLength> name{};
         std::ranges::copy( viewData, name.data() );
 
         return ImGui::InputText( "##DrawNameTextInputTag", name.data(), name.max_size(), flags );
     }
-}
+
+    auto InputText( eastl::string &viewData, ImGuiTextFlags flags ) -> bool {
+
+        constexpr u32 kLength{ 1024 };
+        eastl::array<char, kLength> name{};
+        std::ranges::copy( viewData, name.data() );
+
+        bool v{ ImGui::InputText( "##DrawNameTextInputTag", name.data(), name.max_size(), flags ) };
+        if (v) {
+            viewData = name.data();
+        }
+
+        return v;
+    }
+}// namespace mikoto::gui

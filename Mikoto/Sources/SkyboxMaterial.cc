@@ -42,6 +42,22 @@ namespace mikoto::material {
         mEquirectangular = desc.mEquirectangularTextureHandle;
     }
 
+    auto SkyboxMaterial::Serialize( const filesystem::Path &filename ) const -> void {
+
+    }
+
+    auto SkyboxMaterial::Deserialize( const filesystem::Path &filename ) const -> void {
+
+    }
+
+    auto SkyboxMaterial::Serialize( filesystem::FileHandle file ) const -> void {
+
+    }
+
+    auto SkyboxMaterial::Deserialize( filesystem::FileHandle file ) const -> void {
+
+    }
+
     auto SkyboxMaterial::SetEquirectangular( renderer::rhi::TextureHandle texture ) -> void {
         if (texture.IsEmpty()) {
             return;

@@ -30,9 +30,14 @@
 
 namespace mikoto::asset {
 
-    struct VertexDescription {
+    // Aligned to make it easy to use in shaders
+    struct alignas(16) VertexDescription {
         core::float3 mPosition{};
+        core::f32    mPad0;
+
         core::float3 mNormals{};
+        core::f32    mPad1;
+        
         core::float4 mColors{ 1.0f, 1.0f, 1.0f, 1.0f };
 
         core::float2 mUv0{};

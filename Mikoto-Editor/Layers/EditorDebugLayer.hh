@@ -35,6 +35,7 @@ namespace mikoto::editor {
 
     // Debug layer that renders objects instanced
     // and feature bindless textures
+    // Broken need to review vertex description layout
     class EditorDebugLayer final : public core::ILayer {
     public:
 

@@ -67,6 +67,8 @@ struct MaterialParameters {
     int    IsBloomy;
 
     int    Workflow;
+
+    int mPadding[2];
 };
 
 struct MeshParameters {
@@ -82,8 +84,9 @@ struct MeshParameters {
 };
 
 struct VertexDescription {
-    float3 position;
-    float3 normal;
+    float3 position; float mPad0;
+    float3 normal;   float mPad1;
+    
     float4 color;
 
     float2 uv0;
@@ -120,6 +123,8 @@ struct MeshGeometryInfo {
     // just slap a unlimited amount of shadow casters
 
     uint ObjectID;
+
+    uint mPadding[4];
 };
 
 // ============================================================================

@@ -45,7 +45,7 @@ namespace mikoto::renderer {
     inline constexpr core::u32 kIndexBufferSizeMB{ 512 };
 
     // Material information
-    struct MeshMaterialInfo {
+    struct alignas(16) MeshMaterialInfo {
         core::float4 mBaseColorFactor{};
         core::float4 mEmissiveFactor{};
         core::float4 mDiffuseFactor{};
@@ -78,10 +78,12 @@ namespace mikoto::renderer {
         core::i32 mIsBloomy{ MKT_SHADER_FALSE };
 
         core::i32 mWorkflow{};
+
+        core::i32 mPadding[2];
     };
 
     // Geometry information
-    struct MeshGeometryInfo {
+    struct alignas(16) MeshGeometryInfo {
         core::float4x4 mTransform{};
         core::float4x4 mInverseModelView{};// inverse(view * model) computed in CPU for performance
 
@@ -102,6 +104,8 @@ namespace mikoto::renderer {
 
         // For entity selection
         core::u32 mObjectID{};
+
+        core::u32 mPadding{};
     };
 
     // Info that I pass per mesh

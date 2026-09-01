@@ -182,7 +182,7 @@ namespace mikoto::scene {
 
     private:
         explicit Entity(entt::registry& registry, EntityType type )
-            :   mHandle{ registry.create() }, mRegistry{ MKT_ADDRESSOF(registry) }
+            :   mHandle{ registry.create() }, mRegistry{ MKT_ADDRESSOF(registry) }, mType{ type }
         {
             /**
              * See: Observe changes section from https://github.com/skypjack/entt/wiki/Entity-Component-System

@@ -1125,7 +1125,7 @@ namespace mikoto::editor {
 
     static auto DrawVec3Transform( const std::string_view label, glm::vec3& data, const double resetValue = 0.0, const double columWidth = 100.0, bool uniform = false ) -> void {
         // This Group is part of a unique label
-        const std::string labelId{ fmt::format( "{}:{}", MKT_STRINGIFY( DrawVec3Transform ), label.data() ) };
+        const eastl::string labelId{ string::Format( "{}:{}", MKT_STRINGIFY( DrawVec3Transform ), label.data() ) };
 
         ImGui::PushID( labelId.data() );
 

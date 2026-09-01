@@ -170,7 +170,6 @@ namespace mikoto::editor {
         }
     }
 
-
     auto HierarchyPanel::OnEntityRightClickMenu( Entity* entity ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -266,6 +265,7 @@ namespace mikoto::editor {
                 EntityCreateInfo createInfo{
                     .mRoot = entity,
                     .mName = "Empty object",
+                    .mEntityType = EntityType::eEmpty,
                 };
 
                 mEditorState->mActiveScene->PushEntity( createInfo );
@@ -352,6 +352,7 @@ namespace mikoto::editor {
                 .mRoot = root,
                 .mName{ description.mFile->GetName() },
                 .mModel = model,
+                .mEntityType = EntityType::eMesh,
             };
 
             mEditorState->mActiveScene->PushEntity( entityCreateInfo );
@@ -364,6 +365,7 @@ namespace mikoto::editor {
                 .mRoot = root,
                 .mName{ model->GetName() },
                 .mModel = model,
+                .mEntityType = EntityType::eMesh,
             };
 
             mEditorState->mActiveScene->PushEntity( entityCreateInfo );
@@ -395,6 +397,7 @@ namespace mikoto::editor {
                 .mRoot = root,
                 .mName{ description.mFile->GetName() },
                 .mModel = model,
+                .mEntityType = EntityType::eMesh,
             };
 
             mEditorState->mActiveScene->PushEntity( entityCreateInfo );
@@ -448,23 +451,24 @@ namespace mikoto::editor {
 
         DrawSearchBar();
 
-        if (ImGui::TreeNodeEx("Scripts", ImGuiTreeNodeFlags_Framed)) {
+        if (ImGui::TreeNodeEx("Scripts", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_FramePadding )) {
             gui::SetCursorHandOnLastItemHovered();
 
             ImGui::TreePop();
         }
         // If node is not opened
-        gui::SetCursorHandOnLastItemHovered();
+        SetCursorHandOnLastItemHovered();
 
         const float lineHeight{ ImGui::GetTextLineHeight() };
 
         if (mEditorState->mActiveScene) {
             bool isEntitiesHierarchyOpen{ ImGui::TreeNodeEx("Entities", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen) };
-            if (isEntitiesHierarchyOpen) {
-                gui::SetCursorHandOnLastItemHovered();
 
-                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_BordersInner |
-                                            ImGuiTableFlags_ScrollY };
+            UnindentScoped und{};
+            if (isEntitiesHierarchyOpen) {
+                SetCursorHandOnLastItemHovered();
+
+                constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_BordersInner };
                 if (ImGui::BeginTable("HierarchyTable", 3, tableFlags)) {
                     ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_NoHide);
                     ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, lineHeight * 3.0f);

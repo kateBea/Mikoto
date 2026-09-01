@@ -128,7 +128,7 @@ namespace mikoto::gui {
         style.Colors[ImGuiCol_HeaderHovered] = ImVec4( 0.26f, 0.26f, 0.26f, 1.0f );
         style.Colors[ImGuiCol_HeaderActive] = ImVec4( 0.4f, 0.4f, 0.4f, 1.0f );
 
-        style.Colors[ImGuiCol_TableHeaderBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+        style.Colors[ImGuiCol_TableHeaderBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.2f);
 
         style.Colors[ImGuiCol_MenuBarBg] = ImVec4( 0.16f, 0.16f, 0.16f, 1.0f );
 

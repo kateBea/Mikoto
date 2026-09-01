@@ -2601,6 +2601,7 @@ namespace mikoto::editor {
                     if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                         TextureHandle cubeMap{ *as<TextureHandle*>( payload->Data ) };
                         material->SetEquirectangular( cubeMap );
+                        renderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
 
                         RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
                     }

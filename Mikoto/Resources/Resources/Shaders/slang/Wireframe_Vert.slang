@@ -34,6 +34,8 @@ struct DrawParams {
     Pointer mGeometryDescPtr;
 
     Pointer mCameraBda;
+
+    float4 mLineColor;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;

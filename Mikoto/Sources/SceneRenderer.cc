@@ -210,6 +210,20 @@ namespace mikoto::renderer {
         mGeometryShading.SetAmbientScale( ambient );
     }
 
+    auto SceneRenderer::SetEnablePolygonComplexity( bool value ) -> void {
+        if (!mFrameGraph || !mFrameGraph->IsPassPresent( "WireframePass" )) {
+            return;
+        }
+
+        if (value) {
+            mFrameGraph->EnablePass( "WireframePass" );
+        } else {
+            mFrameGraph->DisablePass( "WireframePass" );
+        }
+
+        mGeometryShading.SetMergeWireframeToFinalOutput( value );
+    }
+
     auto SceneRenderer::SetSkyboxMaterial( MaterialHandle material ) -> void {
         if (material.IsEmpty() || !mFrameGraph) {
             return;

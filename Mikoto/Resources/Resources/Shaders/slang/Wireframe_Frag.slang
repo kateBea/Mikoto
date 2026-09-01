@@ -26,11 +26,13 @@ struct FSInput {
 };
 
 struct DrawParams {
-    Pointer mGeometryBuffer;
-    Pointer mSkinningBuffer;
-    Pointer mGeometryAllocationBuffer;
+    Pointer mGeometryPtr;
+    Pointer mSkinningPtr;
+    Pointer mGeometryDescPtr;
 
-    Pointer mCameraBuffer;
+    Pointer mCameraBda;
+
+    float4 mLineColor;
 };
 
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
@@ -39,7 +41,7 @@ MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
 FSOutput main(FSInput input) {
     FSOutput o;
 
-    o.Color = float4(0.0, 0.0, 0.0, 1.0);
+    o.Color = Parameters.mLineColor;
 
     return o;
 }

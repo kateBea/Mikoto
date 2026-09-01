@@ -49,7 +49,8 @@ namespace mikoto::renderer {
 
     struct WireframeData {
         FGTextureHandle mColorImage{};
-        FGPipelineHandle mPipeline{};
+        FGPipelineHandle mDefaultPipeline{};
+        FGPipelineHandle mOutputMergePipeline{};
     };
 
     struct GeomShadingModuleInfo {
@@ -188,6 +189,9 @@ namespace mikoto::renderer {
         core::f32 mExposure{ 1.0f };
         core::f32 mAbientScale{ 1.0f };
         material::MaterialHandle mSkyboxMaterial{};
+
+        // Polygon complexity
+        bool mMergeWireframeToFinalImage{};
 
         eastl::fixed_hash_map<material::SkyboxFace, FGTextureHandle, 6> mSkyboxFaces{};
 

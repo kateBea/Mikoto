@@ -844,6 +844,10 @@ namespace mikoto::editor {
                         mShowImGuiDebugInfo = !mShowImGuiDebugInfo;
                     }
 
+                    if (ImGui::MenuItem( "Display Polygon Complexity", nullptr, mShowPolygonComplexity )) {
+                        mShowPolygonComplexity = !mShowPolygonComplexity;
+                    }
+
                     if (ImGui::BeginMenu( "Output" )) {
                         if (ImGui::MenuItem( "Color" )) {
                             mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eGBuffer_Color );
@@ -982,6 +986,7 @@ namespace mikoto::editor {
 
         mSceneRenderer->SetMainCamera( mEditorCamera.get() );
         mSceneRenderer->SetEnableInfiniteGrid( mShowInfiniteGrid );
+        mSceneRenderer->SetEnablePolygonComplexity( mShowPolygonComplexity );
     }
 
     auto EditorLayer::OpenProject() -> void {

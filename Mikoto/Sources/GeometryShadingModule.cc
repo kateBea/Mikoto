@@ -51,7 +51,7 @@ namespace mikoto::renderer {
     }
 
     auto GeometryShadingModule::SetMergeWireframeToFinalOutput( bool merge ) -> void {
-
+        mMergeWireframeToFinalImage = merge;
     }
 
     auto GeometryShadingModule::SetClearColor( const Color& color ) -> void {
@@ -869,8 +869,8 @@ namespace mikoto::renderer {
             .SetFormat( Format::eRGBA8_UNORM ) };
         info.mColorImage = graph.Create( colorImage );
 
-        auto pipelineBuilder{ FGPipelineDescription{}
-            .SetName( "Wireframe_Pipeline" )
+        auto defaultWireframePipelineBuilder{ FGPipelineDescription{}
+            .SetName( "DefaultWireframe_Pipeline" )
             .SetPipelineType( PipelineType::eGraphics )
             .SetTopology( PrimitiveTopology::eTriangleList )
             .SetPolygonMode( PolygonMode::eLines )
@@ -879,7 +879,19 @@ namespace mikoto::renderer {
             .AddColorFormat( Format::eRGBA8_UNORM )
             .PushShader( "Wireframe_Vert.slang", FGStageType::eVertex )
             .PushShader( "Wireframe_Frag.slang", FGStageType::ePixel ) };
-        info.mPipeline = graph.Create( pipelineBuilder );
+        info.mDefaultPipeline = graph.Create( defaultWireframePipelineBuilder );
+
+        auto outputMergeWireframePipelineBuilder{ FGPipelineDescription{}
+            .SetName( "OutputMergeWireframe_Pipeline" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .SetPolygonMode( PolygonMode::eLines )
+            .SetDepthFormat( Format::eD32 )
+            .SetCullMode( CullMode::eNone )
+            .AddColorFormat( Format::eRGBA16_FLOAT )
+            .PushShader( "Wireframe_Vert.slang", FGStageType::eVertex )
+            .PushShader( "Wireframe_Frag.slang", FGStageType::ePixel ) };
+        info.mOutputMergePipeline = graph.Create( outputMergeWireframePipelineBuilder );
 
         // Hardware wireframe
         graph.RegisterPass(
@@ -909,6 +921,7 @@ namespace mikoto::renderer {
             },
             [this]( CommandContext& ctx, Blackboard& b ) -> void {
                 const auto& wireframeData{ b.Get<WireframeData>() };
+                const auto& finalCompData{ b.Get<GeomShadingModuleInfo>() };
                 const auto& prePassData{ b.Get<PrepassModuleInfo>() };
                 const auto& cameraPassData{ b.Get<CameraModuleInfo>() };
                 const auto& geometryData{ b.Get<GeometryCullModuleInfo>() };
@@ -919,6 +932,8 @@ namespace mikoto::renderer {
                     SPointer mGeometryAllocationBufferID{};
 
                     SPointer mCameraBuffer{};
+
+                    float4 mLineColor{ 0.572f, 0.996f, 0.556f, 1.0f };
                 } params{
                     .mGeometryBuffer = ctx.GetDeviceBufferAddress( geometryData.mGeometryBuffer ),
                     .mSkinningBuffer = ctx.GetDeviceBufferAddress( geometryData.mSkinningBuffer ),
@@ -927,19 +942,30 @@ namespace mikoto::renderer {
                     .mCameraBuffer = ctx.GetDeviceBufferAddress( cameraPassData.mCameraData ) };
                 ctx.PushConstants( params );
 
+                LoadOp rtLoadOp{ LoadOp::eClear };
+                FGTextureHandle renderTarget{ wireframeData.mColorImage };
+                FGPipelineHandle pipeline{ wireframeData.mDefaultPipeline };
+
+                if (mMergeWireframeToFinalImage) {
+                    rtLoadOp = LoadOp::eLoad;
+                    renderTarget = finalCompData.mColorImage;
+                    pipeline = wireframeData.mOutputMergePipeline;
+
+                }
+
                 const auto dimensions{ InferDimensions( mResolution ) };
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>( dimensions.first ), as<i32>( dimensions.second ) } )
                     .AddDepthTarget( prePassData.mPrepassDepthTarget, LoadOp::eLoad )
-                    .AddRenderTarget( wireframeData.mColorImage, kColorWhite, LoadOp::eClear ) };
+                    .AddRenderTarget( renderTarget, kColorWhite, rtLoadOp ) };
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( ViewportState{}
                     .AddViewportAndScissorRect( Viewport( as<f32>( dimensions.first ), as<f32>( dimensions.second ) ) ) );
 
-                ctx.SetPolygonLineWidth( 3.0f );
+                ctx.SetPolygonLineWidth( 1.0f );
 
-                ctx.BindPipeline( wireframeData.mPipeline );
+                ctx.BindPipeline( pipeline );
 
                 mGeometryManagement->DrawInstancesIndirect( ctx );
 

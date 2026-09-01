@@ -83,6 +83,8 @@ namespace mikoto::renderer {
         auto SetExposure( core::f32 exposure ) -> void;
         auto SetAmbientScale( core::f32 ambient ) -> void;
 
+        auto SetEnablePolygonComplexity( bool value ) -> void;
+
         auto SetSkyboxMaterial(material::MaterialHandle material) -> void;
 
         auto SetRenderBackground( SceneBackgroundType bg ) -> void;

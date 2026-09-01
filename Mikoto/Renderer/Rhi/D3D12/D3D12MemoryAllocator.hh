@@ -19,10 +19,9 @@
 #include <Core/Types.hh>
 #include <Core/Platform.hh>
 
-#include <Memory/GpuAllocator.hh>
-
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi//GpuAllocator.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
 
@@ -50,7 +49,7 @@ namespace mikoto::renderer::d3d12 {
         D3D12MA::ALLOCATION_DESC mAllocDesc{};
     };
 
-    class GpuMemoryAllocator final : public memory::IGpuAllocator {
+    class GpuMemoryAllocator final : public rhi::IGpuAllocator {
     public:
         explicit GpuMemoryAllocator( rhi::IGpuDevice* device );
 

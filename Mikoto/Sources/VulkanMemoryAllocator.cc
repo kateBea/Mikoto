@@ -23,10 +23,10 @@
 #include <vk_mem_alloc.h>
 
 #include <Memory/Allocator.hh>
-#include <Memory/GpuAllocator.hh>
 
 #include <Renderer/Core/RenderSystem.hh>
 
+#include <Renderer/Rhi/GpuAllocator.hh>
 #include <Renderer/Rhi/Vulkan/VulkanContext.hh>
 #include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
 #include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
@@ -38,8 +38,8 @@ namespace mikoto::renderer::vulkan {
         : IGpuAllocator{ device } {}
 
     auto GpuMemoryAllocator::Init() -> void {
-        Device* device{ as<Device*>( mDevice ) };
-        Context* ctx{ as<Context*>( RenderSystem::Get()->GetContext() ) };
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        Context* ctx{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
 
         VmaAllocatorCreateInfo allocInfo{};
         allocInfo.instance = ctx->GetInstance().mInstance;

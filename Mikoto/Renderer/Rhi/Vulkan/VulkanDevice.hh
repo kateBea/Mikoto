@@ -756,7 +756,7 @@ namespace mikoto::renderer::vulkan {
         static constexpr core::f32 kQueueDefaultPriority{ 1.0f };
 
         // [Memory management]
-        eastl::unique_ptr<memory::IGpuAllocator> mGpuAllocator{};
+        eastl::unique_ptr<rhi::IGpuAllocator> mGpuAllocator{};
         eastl::unique_ptr<GpuUploadManager> mUploadManager{};
 
         // [Cache]

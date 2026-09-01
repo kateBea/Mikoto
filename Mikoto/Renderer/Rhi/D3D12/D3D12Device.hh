@@ -28,6 +28,7 @@
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Fence.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/GpuAllocator.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
@@ -631,7 +632,7 @@ namespace mikoto::renderer::d3d12 {
 
         // [Memory management]
         DeviceResources mResourceHeaps{};
-        eastl::unique_ptr<memory::IGpuAllocator> mGpuAllocator{};
+        eastl::unique_ptr<rhi::IGpuAllocator> mGpuAllocator{};
         eastl::unique_ptr<GpuUploadManager> mUploadManager{};
 
         // [Command list management]

@@ -16,16 +16,15 @@
 #define MIKOTO_VULKAN_MEMORY_ALLOCATOR_H
 
 // Volk must be included before VMA
-#include <volk.h>
 #include <vk_mem_alloc.h>
+#include <volk.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <Memory/GpuAllocator.hh>
-
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/GpuAllocator.hh>
 
 namespace mikoto::renderer::vulkan {
 
@@ -51,7 +50,7 @@ namespace mikoto::renderer::vulkan {
 
     // Allocations are sync internally by VMA so it is safe
     // to call Allocation functions from any thread
-    class GpuMemoryAllocator final : public memory::IGpuAllocator {
+    class GpuMemoryAllocator final : public rhi::IGpuAllocator {
     public:
         explicit GpuMemoryAllocator( rhi::IGpuDevice* device );
 

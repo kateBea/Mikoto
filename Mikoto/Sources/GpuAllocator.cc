@@ -17,22 +17,18 @@
 
 #include <Core/Platform.hh>
 
-#include <Memory/GpuAllocator.hh>
+#include <Renderer/Core/RenderSystem.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
-#include <Renderer/Core/RenderSystem.hh>
-
-#include <Memory/GpuAllocator.hh>
+#include <Renderer/Rhi/GpuAllocator.hh>
 #include <Renderer/Rhi/Vulkan/VulkanMemoryAllocator.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
 #include <Renderer/Rhi/D3D12/D3D12MemoryAllocator.hh>
 #endif
 
-namespace mikoto::memory {
-
-    using namespace mikoto::renderer;
+namespace mikoto::renderer::rhi {
 
     auto IGpuAllocator::Create(IGpuDevice* device) -> eastl::unique_ptr<IGpuAllocator> {
         switch ( device->GetGraphicsApi() ) {

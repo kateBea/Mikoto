@@ -273,7 +273,7 @@ namespace mikoto::gui {
         initInfo.RTVFormat = d3d12::GetFormat( mColorImage->GetFormat() );
         initInfo.DSVFormat = d3d12::GetFormat( mDepthImage->GetFormat() );
 
-        static constexpr u32 kSrvHeapSize{ 64u };
+        static constexpr u32 kSrvHeapSize{ 4096u };
 
         D3D12_DESCRIPTOR_HEAP_DESC desc{};
         desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;

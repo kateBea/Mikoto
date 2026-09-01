@@ -1949,7 +1949,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::InitMemoryAllocator() -> void {
-        mGpuAllocator = memory::IGpuAllocator::Create( this );
+        mGpuAllocator = rhi::IGpuAllocator::Create( this );
         if ( !mGpuAllocator ) {
             MKT_THROW_RUNTIME_ERROR( "D3D12Device - Could not create GPU Allocator." );
         }

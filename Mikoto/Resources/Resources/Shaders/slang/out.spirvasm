@@ -1,0 +1,458 @@
+; SPIR-V
+; Version: 1.0
+; Generator: Khronos Glslang Reference Front End; 11
+; Bound: 297
+; Schema: 0
+               OpCapability Shader
+               OpCapability Int64
+               OpCapability PhysicalStorageBufferAddresses
+               OpExtension "SPV_KHR_physical_storage_buffer"
+          %1 = OpExtInstImport "GLSL.std.450"
+               OpMemoryModel PhysicalStorageBuffer64 GLSL450
+               OpEntryPoint GLCompute %main "main" %gl_WorkGroupID
+               OpExecutionMode %main LocalSize 1 1 1
+               OpSource GLSL 450
+               OpSourceExtension "GL_EXT_buffer_reference"
+               OpSourceExtension "GL_EXT_buffer_reference2"
+               OpSourceExtension "GL_EXT_scalar_block_layout"
+               OpSourceExtension "GL_EXT_shader_explicit_arithmetic_types_int64"
+               OpName %main "main"
+               OpName %ScreenToView_0_vf2_vf2_mf44_ "ScreenToView_0(vf2;vf2;mf44;"
+               OpName %screenCoord_0 "screenCoord_0"
+               OpName %screenDimensions_0 "screenDimensions_0"
+               OpName %viewInverseProj_0 "viewInverseProj_0"
+               OpName %LineIntersectionWithZPlane_0_vf3_vf3_f1_ "LineIntersectionWithZPlane_0(vf3;vf3;f1;"
+               OpName %startPoint_0 "startPoint_0"
+               OpName %endPoint_0 "endPoint_0"
+               OpName %zDistance_0 "zDistance_0"
+               OpName %v_0 "v_0"
+               OpName %direction_0 "direction_0"
+               OpName %_S5 "_S5"
+               OpName %block_ClusteredParams_natural_0 "block_ClusteredParams_natural_0"
+               OpMemberName %block_ClusteredParams_natural_0 0 "mGridSize_0"
+               OpMemberName %block_ClusteredParams_natural_0 1 "mClustersPtr_0"
+               OpMemberName %block_ClusteredParams_natural_0 2 "mCameraInfoPtr_0"
+               OpName %parameters_0 "parameters_0"
+               OpName %_S6 "_S6"
+               OpName %gl_WorkGroupID "gl_WorkGroupID"
+               OpName %_S7 "_S7"
+               OpName %CameraInfo_0 "CameraInfo_0"
+               OpMemberName %CameraInfo_0 0 "mViewMatrix_0"
+               OpMemberName %CameraInfo_0 1 "mProjection_0"
+               OpMemberName %CameraInfo_0 2 "mInverseProjection_0"
+               OpMemberName %CameraInfo_0 3 "mInverseViewProjection_0"
+               OpMemberName %CameraInfo_0 4 "mViewPosition_0"
+               OpMemberName %CameraInfo_0 5 "mPlanes_0"
+               OpMemberName %CameraInfo_0 6 "mScreenDimensions_0"
+               OpMemberName %CameraInfo_0 7 "mGamma_0"
+               OpMemberName %CameraInfo_0 8 "mExposure_0"
+               OpName %BufferPointer_CameraInfo_0_1 "BufferPointer_CameraInfo_0_1"
+               OpMemberName %BufferPointer_CameraInfo_0_1 0 "_data"
+               OpName %tileSize_0 "tileSize_0"
+               OpName %_S8 "_S8"
+               OpName %minTile_0 "minTile_0"
+               OpName %param "param"
+               OpName %param_0 "param"
+               OpName %param_1 "param"
+               OpName %maxTile_0 "maxTile_0"
+               OpName %param_2 "param"
+               OpName %param_3 "param"
+               OpName %param_4 "param"
+               OpName %nearZ_0 "nearZ_0"
+               OpName %farZ_0 "farZ_0"
+               OpName %_S9 "_S9"
+               OpName %planeNear_0 "planeNear_0"
+               OpName %planeFar_0 "planeFar_0"
+               OpName %maxPointNear_0 "maxPointNear_0"
+               OpName %param_5 "param"
+               OpName %param_6 "param"
+               OpName %param_7 "param"
+               OpName %maxPointFar_0 "maxPointFar_0"
+               OpName %param_8 "param"
+               OpName %param_9 "param"
+               OpName %param_10 "param"
+               OpName %Cluster_0 "Cluster_0"
+               OpMemberName %Cluster_0 0 "mCenter_0"
+               OpMemberName %Cluster_0 1 "mClosestPoint_0"
+               OpMemberName %Cluster_0 2 "mDistanceSquared_0"
+               OpMemberName %Cluster_0 3 "mMinPoint_0"
+               OpMemberName %Cluster_0 4 "mMaxPoint_0"
+               OpMemberName %Cluster_0 5 "mCount_0"
+               OpMemberName %Cluster_0 6 "mLightIndices_0"
+               OpName %BufferPointer_Cluster_0_2 "BufferPointer_Cluster_0_2"
+               OpMemberName %BufferPointer_Cluster_0_2 0 "_data"
+               OpName %param_11 "param"
+               OpName %param_12 "param"
+               OpName %param_13 "param"
+               OpName %param_14 "param"
+               OpName %param_15 "param"
+               OpName %param_16 "param"
+               OpDecorate %block_ClusteredParams_natural_0 Block
+               OpMemberDecorate %block_ClusteredParams_natural_0 0 Offset 0
+               OpMemberDecorate %block_ClusteredParams_natural_0 1 Offset 16
+               OpMemberDecorate %block_ClusteredParams_natural_0 2 Offset 24
+               OpDecorate %gl_WorkGroupID BuiltIn WorkgroupId
+               OpMemberDecorate %CameraInfo_0 0 RowMajor
+               OpMemberDecorate %CameraInfo_0 0 MatrixStride 16
+               OpMemberDecorate %CameraInfo_0 0 Offset 0
+               OpMemberDecorate %CameraInfo_0 1 RowMajor
+               OpMemberDecorate %CameraInfo_0 1 MatrixStride 16
+               OpMemberDecorate %CameraInfo_0 1 Offset 64
+               OpMemberDecorate %CameraInfo_0 2 RowMajor
+               OpMemberDecorate %CameraInfo_0 2 MatrixStride 16
+               OpMemberDecorate %CameraInfo_0 2 Offset 128
+               OpMemberDecorate %CameraInfo_0 3 RowMajor
+               OpMemberDecorate %CameraInfo_0 3 MatrixStride 16
+               OpMemberDecorate %CameraInfo_0 3 Offset 192
+               OpMemberDecorate %CameraInfo_0 4 Offset 256
+               OpMemberDecorate %CameraInfo_0 5 Offset 272
+               OpMemberDecorate %CameraInfo_0 6 Offset 288
+               OpMemberDecorate %CameraInfo_0 7 Offset 304
+               OpMemberDecorate %CameraInfo_0 8 Offset 308
+               OpDecorate %BufferPointer_CameraInfo_0_1 Block
+               OpMemberDecorate %BufferPointer_CameraInfo_0_1 0 Offset 0
+               OpDecorate %_arr_uint_uint_256 ArrayStride 4
+               OpMemberDecorate %Cluster_0 0 Offset 0
+               OpMemberDecorate %Cluster_0 1 Offset 16
+               OpMemberDecorate %Cluster_0 2 Offset 32
+               OpMemberDecorate %Cluster_0 3 Offset 48
+               OpMemberDecorate %Cluster_0 4 Offset 64
+               OpMemberDecorate %Cluster_0 5 Offset 80
+               OpMemberDecorate %Cluster_0 6 Offset 84
+               OpDecorate %BufferPointer_Cluster_0_2 Block
+               OpMemberDecorate %BufferPointer_Cluster_0_2 0 Offset 0
+               OpDecorate %gl_WorkGroupSize BuiltIn WorkgroupSize
+       %void = OpTypeVoid
+          %3 = OpTypeFunction %void
+      %float = OpTypeFloat 32
+    %v2float = OpTypeVector %float 2
+%_ptr_Function_v2float = OpTypePointer Function %v2float
+    %v4float = OpTypeVector %float 4
+%mat4v4float = OpTypeMatrix %v4float 4
+%_ptr_Function_mat4v4float = OpTypePointer Function %mat4v4float
+    %v3float = OpTypeVector %float 3
+         %13 = OpTypeFunction %v3float %_ptr_Function_v2float %_ptr_Function_v2float %_ptr_Function_mat4v4float
+%_ptr_Function_v3float = OpTypePointer Function %v3float
+%_ptr_Function_float = OpTypePointer Function %float
+         %21 = OpTypeFunction %v3float %_ptr_Function_v3float %_ptr_Function_v3float %_ptr_Function_float
+%_ptr_Function_v4float = OpTypePointer Function %v4float
+    %float_2 = OpConstant %float 2
+    %float_1 = OpConstant %float 1
+    %float_0 = OpConstant %float 0
+       %uint = OpTypeInt 32 0
+     %uint_3 = OpConstant %uint 3
+   %float_n1 = OpConstant %float -1
+         %60 = OpConstantComposite %v3float %float_0 %float_0 %float_n1
+      %ulong = OpTypeInt 64 0
+%block_ClusteredParams_natural_0 = OpTypeStruct %v4float %ulong %ulong
+%_ptr_PushConstant_block_ClusteredParams_natural_0 = OpTypePointer PushConstant %block_ClusteredParams_natural_0
+%parameters_0 = OpVariable %_ptr_PushConstant_block_ClusteredParams_natural_0 PushConstant
+        %int = OpTypeInt 32 1
+      %int_0 = OpConstant %int 0
+     %uint_0 = OpConstant %uint 0
+%_ptr_PushConstant_float = OpTypePointer PushConstant %float
+%_ptr_Function_uint = OpTypePointer Function %uint
+     %v3uint = OpTypeVector %uint 3
+%_ptr_Input_v3uint = OpTypePointer Input %v3uint
+%gl_WorkGroupID = OpVariable %_ptr_Input_v3uint Input
+     %uint_2 = OpConstant %uint 2
+%_ptr_Input_uint = OpTypePointer Input %uint
+      %int_2 = OpConstant %int 2
+%_ptr_PushConstant_ulong = OpTypePointer PushConstant %ulong
+               OpTypeForwardPointer %_ptr_PhysicalStorageBuffer_BufferPointer_CameraInfo_0_1 PhysicalStorageBuffer
+%CameraInfo_0 = OpTypeStruct %mat4v4float %mat4v4float %mat4v4float %mat4v4float %v4float %v4float %v4float %float %float
+%BufferPointer_CameraInfo_0_1 = OpTypeStruct %CameraInfo_0
+%_ptr_PhysicalStorageBuffer_BufferPointer_CameraInfo_0_1 = OpTypePointer PhysicalStorageBuffer %BufferPointer_CameraInfo_0_1
+      %int_6 = OpConstant %int 6
+%_ptr_PhysicalStorageBuffer_v4float = OpTypePointer PhysicalStorageBuffer %v4float
+%_ptr_PushConstant_v4float = OpTypePointer PushConstant %v4float
+     %v2uint = OpTypeVector %uint 2
+%_ptr_Function_v2uint = OpTypePointer Function %v2uint
+%_ptr_PhysicalStorageBuffer_mat4v4float = OpTypePointer PhysicalStorageBuffer %mat4v4float
+     %uint_1 = OpConstant %uint 1
+      %int_5 = OpConstant %int 5
+%_ptr_PhysicalStorageBuffer_float = OpTypePointer PhysicalStorageBuffer %float
+        %193 = OpConstantComposite %v3float %float_0 %float_0 %float_0
+      %int_1 = OpConstant %int 1
+               OpTypeForwardPointer %_ptr_PhysicalStorageBuffer_BufferPointer_Cluster_0_2 PhysicalStorageBuffer
+   %uint_256 = OpConstant %uint 256
+%_arr_uint_uint_256 = OpTypeArray %uint %uint_256
+  %Cluster_0 = OpTypeStruct %v4float %v4float %v4float %v4float %v4float %uint %_arr_uint_uint_256
+%BufferPointer_Cluster_0_2 = OpTypeStruct %Cluster_0
+%_ptr_PhysicalStorageBuffer_BufferPointer_Cluster_0_2 = OpTypePointer PhysicalStorageBuffer %BufferPointer_Cluster_0_2
+       %long = OpTypeInt 64 1
+ %ulong_1108 = OpConstant %ulong 1108
+      %int_3 = OpConstant %int 3
+      %int_4 = OpConstant %int 4
+%gl_WorkGroupSize = OpConstantComposite %v3uint %uint_1 %uint_1 %uint_1
+       %main = OpFunction %void None %3
+          %5 = OpLabel
+        %_S5 = OpVariable %_ptr_Function_float Function
+        %_S6 = OpVariable %_ptr_Function_uint Function
+        %_S7 = OpVariable %_ptr_Function_v2float Function
+ %tileSize_0 = OpVariable %_ptr_Function_v2float Function
+        %_S8 = OpVariable %_ptr_Function_v2uint Function
+  %minTile_0 = OpVariable %_ptr_Function_v3float Function
+      %param = OpVariable %_ptr_Function_v2float Function
+    %param_0 = OpVariable %_ptr_Function_v2float Function
+    %param_1 = OpVariable %_ptr_Function_mat4v4float Function
+  %maxTile_0 = OpVariable %_ptr_Function_v3float Function
+    %param_2 = OpVariable %_ptr_Function_v2float Function
+    %param_3 = OpVariable %_ptr_Function_v2float Function
+    %param_4 = OpVariable %_ptr_Function_mat4v4float Function
+    %nearZ_0 = OpVariable %_ptr_Function_float Function
+     %farZ_0 = OpVariable %_ptr_Function_float Function
+        %_S9 = OpVariable %_ptr_Function_float Function
+%planeNear_0 = OpVariable %_ptr_Function_float Function
+ %planeFar_0 = OpVariable %_ptr_Function_float Function
+%maxPointNear_0 = OpVariable %_ptr_Function_v3float Function
+    %param_5 = OpVariable %_ptr_Function_v3float Function
+    %param_6 = OpVariable %_ptr_Function_v3float Function
+    %param_7 = OpVariable %_ptr_Function_float Function
+%maxPointFar_0 = OpVariable %_ptr_Function_v3float Function
+    %param_8 = OpVariable %_ptr_Function_v3float Function
+    %param_9 = OpVariable %_ptr_Function_v3float Function
+   %param_10 = OpVariable %_ptr_Function_float Function
+   %param_11 = OpVariable %_ptr_Function_v3float Function
+   %param_12 = OpVariable %_ptr_Function_v3float Function
+   %param_13 = OpVariable %_ptr_Function_float Function
+   %param_14 = OpVariable %_ptr_Function_v3float Function
+   %param_15 = OpVariable %_ptr_Function_v3float Function
+   %param_16 = OpVariable %_ptr_Function_float Function
+         %81 = OpAccessChain %_ptr_PushConstant_float %parameters_0 %int_0 %uint_0
+         %82 = OpLoad %float %81
+               OpStore %_S5 %82
+         %90 = OpAccessChain %_ptr_Input_uint %gl_WorkGroupID %uint_2
+         %91 = OpLoad %uint %90
+               OpStore %_S6 %91
+         %95 = OpAccessChain %_ptr_PushConstant_ulong %parameters_0 %int_2
+         %96 = OpLoad %ulong %95
+        %100 = OpConvertUToPtr %_ptr_PhysicalStorageBuffer_BufferPointer_CameraInfo_0_1 %96
+        %103 = OpAccessChain %_ptr_PhysicalStorageBuffer_v4float %100 %int_0 %int_6
+        %104 = OpLoad %v4float %103 Aligned 4
+        %105 = OpVectorShuffle %v2float %104 %104 0 1
+               OpStore %_S7 %105
+        %107 = OpLoad %v2float %_S7
+        %109 = OpAccessChain %_ptr_PushConstant_v4float %parameters_0 %int_0
+        %110 = OpLoad %v4float %109
+        %111 = OpVectorShuffle %v2float %110 %110 0 1
+        %112 = OpFDiv %v2float %107 %111
+               OpStore %tileSize_0 %112
+        %116 = OpLoad %v3uint %gl_WorkGroupID
+        %117 = OpVectorShuffle %v2uint %116 %116 0 1
+               OpStore %_S8 %117
+        %119 = OpLoad %v2uint %_S8
+        %120 = OpConvertUToF %v2float %119
+        %121 = OpLoad %v2float %tileSize_0
+        %122 = OpFMul %v2float %120 %121
+        %123 = OpAccessChain %_ptr_PushConstant_ulong %parameters_0 %int_2
+        %124 = OpLoad %ulong %123
+        %125 = OpConvertUToPtr %_ptr_PhysicalStorageBuffer_BufferPointer_CameraInfo_0_1 %124
+               OpStore %param %122
+        %128 = OpLoad %v2float %_S7
+               OpStore %param_0 %128
+        %131 = OpAccessChain %_ptr_PhysicalStorageBuffer_mat4v4float %125 %int_0 %int_2
+        %132 = OpLoad %mat4v4float %131 Aligned 4
+               OpStore %param_1 %132
+        %133 = OpFunctionCall %v3float %ScreenToView_0_vf2_vf2_mf44_ %param %param_0 %param_1
+               OpStore %minTile_0 %133
+        %135 = OpLoad %v2uint %_S8
+        %137 = OpCompositeConstruct %v2uint %uint_1 %uint_1
+        %138 = OpIAdd %v2uint %135 %137
+        %139 = OpConvertUToF %v2float %138
+        %140 = OpLoad %v2float %tileSize_0
+        %141 = OpFMul %v2float %139 %140
+        %142 = OpAccessChain %_ptr_PushConstant_ulong %parameters_0 %int_2
+        %143 = OpLoad %ulong %142
+        %144 = OpConvertUToPtr %_ptr_PhysicalStorageBuffer_BufferPointer_CameraInfo_0_1 %143
+               OpStore %param_2 %141
+        %147 = OpLoad %v2float %_S7
+               OpStore %param_3 %147
+        %149 = OpAccessChain %_ptr_PhysicalStorageBuffer_mat4v4float %144 %int_0 %int_2
+        %150 = OpLoad %mat4v4float %149 Aligned 4
+               OpStore %param_4 %150
+        %151 = OpFunctionCall %v3float %ScreenToView_0_vf2_vf2_mf44_ %param_2 %param_3 %param_4
+               OpStore %maxTile_0 %151
+        %153 = OpAccessChain %_ptr_PushConstant_ulong %parameters_0 %int_2
+        %154 = OpLoad %ulong %153
+        %155 = OpConvertUToPtr %_ptr_PhysicalStorageBuffer_BufferPointer_CameraInfo_0_1 %154
+        %158 = OpAccessChain %_ptr_PhysicalStorageBuffer_float %155 %int_0 %int_5 %uint_1
+        %159 = OpLoad %float %158 Aligned 4
+               OpStore %nearZ_0 %159
+        %161 = OpAccessChain %_ptr_PushConstant_ulong %parameters_0 %int_2
+        %162 = OpLoad %ulong %161
+        %163 = OpConvertUToPtr %_ptr_PhysicalStorageBuffer_BufferPointer_CameraInfo_0_1 %162
+        %164 = OpAccessChain %_ptr_PhysicalStorageBuffer_float %163 %int_0 %int_5 %uint_0
+        %165 = OpLoad %float %164 Aligned 4
+               OpStore %farZ_0 %165
+        %167 = OpAccessChain %_ptr_PushConstant_float %parameters_0 %int_0 %uint_2
+        %168 = OpLoad %float %167
+               OpStore %_S9 %168
+        %170 = OpLoad %float %nearZ_0
+        %171 = OpLoad %float %farZ_0
+        %172 = OpLoad %float %nearZ_0
+        %173 = OpFDiv %float %171 %172
+        %174 = OpLoad %uint %_S6
+        %175 = OpConvertUToF %float %174
+        %176 = OpLoad %float %_S9
+        %177 = OpFDiv %float %175 %176
+        %178 = OpExtInst %float %1 Pow %173 %177
+        %179 = OpFMul %float %170 %178
+               OpStore %planeNear_0 %179
+        %181 = OpLoad %float %nearZ_0
+        %182 = OpLoad %float %farZ_0
+        %183 = OpLoad %float %nearZ_0
+        %184 = OpFDiv %float %182 %183
+        %185 = OpLoad %uint %_S6
+        %186 = OpIAdd %uint %185 %uint_1
+        %187 = OpConvertUToF %float %186
+        %188 = OpLoad %float %_S9
+        %189 = OpFDiv %float %187 %188
+        %190 = OpExtInst %float %1 Pow %184 %189
+        %191 = OpFMul %float %181 %190
+               OpStore %planeFar_0 %191
+               OpStore %param_5 %193
+        %196 = OpLoad %v3float %maxTile_0
+               OpStore %param_6 %196
+        %198 = OpLoad %float %planeNear_0
+               OpStore %param_7 %198
+        %199 = OpFunctionCall %v3float %LineIntersectionWithZPlane_0_vf3_vf3_f1_ %param_5 %param_6 %param_7
+               OpStore %maxPointNear_0 %199
+               OpStore %param_8 %193
+        %203 = OpLoad %v3float %maxTile_0
+               OpStore %param_9 %203
+        %205 = OpLoad %float %planeFar_0
+               OpStore %param_10 %205
+        %206 = OpFunctionCall %v3float %LineIntersectionWithZPlane_0_vf3_vf3_f1_ %param_8 %param_9 %param_10
+               OpStore %maxPointFar_0 %206
+        %208 = OpAccessChain %_ptr_PushConstant_ulong %parameters_0 %int_1
+        %209 = OpLoad %ulong %208
+        %215 = OpConvertUToPtr %_ptr_PhysicalStorageBuffer_BufferPointer_Cluster_0_2 %209
+        %216 = OpConvertPtrToU %ulong %215
+        %217 = OpAccessChain %_ptr_Input_uint %gl_WorkGroupID %uint_0
+        %218 = OpLoad %uint %217
+        %219 = OpAccessChain %_ptr_Input_uint %gl_WorkGroupID %uint_1
+        %220 = OpLoad %uint %219
+        %221 = OpLoad %float %_S5
+        %222 = OpConvertFToU %uint %221
+        %223 = OpIMul %uint %220 %222
+        %224 = OpIAdd %uint %218 %223
+        %225 = OpLoad %uint %_S6
+        %226 = OpLoad %float %_S5
+        %227 = OpAccessChain %_ptr_PushConstant_float %parameters_0 %int_0 %uint_1
+        %228 = OpLoad %float %227
+        %229 = OpFMul %float %226 %228
+        %230 = OpConvertFToU %uint %229
+        %231 = OpIMul %uint %225 %230
+        %232 = OpIAdd %uint %224 %231
+        %234 = OpUConvert %ulong %232
+        %235 = OpBitcast %long %234
+        %236 = OpBitcast %ulong %235
+        %238 = OpIMul %ulong %236 %ulong_1108
+        %239 = OpIAdd %ulong %216 %238
+        %240 = OpConvertUToPtr %_ptr_PhysicalStorageBuffer_BufferPointer_Cluster_0_2 %239
+               OpStore %param_11 %193
+        %244 = OpLoad %v3float %minTile_0
+               OpStore %param_12 %244
+        %246 = OpLoad %float %planeNear_0
+               OpStore %param_13 %246
+        %247 = OpFunctionCall %v3float %LineIntersectionWithZPlane_0_vf3_vf3_f1_ %param_11 %param_12 %param_13
+               OpStore %param_14 %193
+        %250 = OpLoad %v3float %minTile_0
+               OpStore %param_15 %250
+        %252 = OpLoad %float %planeFar_0
+               OpStore %param_16 %252
+        %253 = OpFunctionCall %v3float %LineIntersectionWithZPlane_0_vf3_vf3_f1_ %param_14 %param_15 %param_16
+        %254 = OpExtInst %v3float %1 FMin %247 %253
+        %255 = OpCompositeExtract %float %254 0
+        %256 = OpCompositeExtract %float %254 1
+        %257 = OpCompositeExtract %float %254 2
+        %258 = OpCompositeConstruct %v4float %255 %256 %257 %float_0
+        %259 = OpAccessChain %_ptr_PhysicalStorageBuffer_v4float %240 %int_0 %int_3
+               OpStore %259 %258 Aligned 4
+        %260 = OpAccessChain %_ptr_PushConstant_ulong %parameters_0 %int_1
+        %261 = OpLoad %ulong %260
+        %262 = OpConvertUToPtr %_ptr_PhysicalStorageBuffer_BufferPointer_Cluster_0_2 %261
+        %263 = OpConvertPtrToU %ulong %262
+        %264 = OpAccessChain %_ptr_Input_uint %gl_WorkGroupID %uint_0
+        %265 = OpLoad %uint %264
+        %266 = OpAccessChain %_ptr_Input_uint %gl_WorkGroupID %uint_1
+        %267 = OpLoad %uint %266
+        %268 = OpLoad %float %_S5
+        %269 = OpConvertFToU %uint %268
+        %270 = OpIMul %uint %267 %269
+        %271 = OpIAdd %uint %265 %270
+        %272 = OpLoad %uint %_S6
+        %273 = OpLoad %float %_S5
+        %274 = OpAccessChain %_ptr_PushConstant_float %parameters_0 %int_0 %uint_1
+        %275 = OpLoad %float %274
+        %276 = OpFMul %float %273 %275
+        %277 = OpConvertFToU %uint %276
+        %278 = OpIMul %uint %272 %277
+        %279 = OpIAdd %uint %271 %278
+        %280 = OpUConvert %ulong %279
+        %281 = OpBitcast %long %280
+        %282 = OpBitcast %ulong %281
+        %283 = OpIMul %ulong %282 %ulong_1108
+        %284 = OpIAdd %ulong %263 %283
+        %285 = OpConvertUToPtr %_ptr_PhysicalStorageBuffer_BufferPointer_Cluster_0_2 %284
+        %287 = OpLoad %v3float %maxPointNear_0
+        %288 = OpLoad %v3float %maxPointFar_0
+        %289 = OpExtInst %v3float %1 FMax %287 %288
+        %290 = OpCompositeExtract %float %289 0
+        %291 = OpCompositeExtract %float %289 1
+        %292 = OpCompositeExtract %float %289 2
+        %293 = OpCompositeConstruct %v4float %290 %291 %292 %float_0
+        %294 = OpAccessChain %_ptr_PhysicalStorageBuffer_v4float %285 %int_0 %int_4
+               OpStore %294 %293 Aligned 4
+               OpReturn
+               OpFunctionEnd
+%ScreenToView_0_vf2_vf2_mf44_ = OpFunction %v3float None %13
+%screenCoord_0 = OpFunctionParameter %_ptr_Function_v2float
+%screenDimensions_0 = OpFunctionParameter %_ptr_Function_v2float
+%viewInverseProj_0 = OpFunctionParameter %_ptr_Function_mat4v4float
+         %18 = OpLabel
+        %v_0 = OpVariable %_ptr_Function_v4float Function
+         %29 = OpLoad %v2float %screenCoord_0
+         %30 = OpLoad %v2float %screenDimensions_0
+         %31 = OpFDiv %v2float %29 %30
+         %33 = OpVectorTimesScalar %v2float %31 %float_2
+         %35 = OpCompositeConstruct %v2float %float_1 %float_1
+         %36 = OpFSub %v2float %33 %35
+         %38 = OpCompositeExtract %float %36 0
+         %39 = OpCompositeExtract %float %36 1
+         %40 = OpCompositeConstruct %v4float %38 %39 %float_0 %float_1
+         %41 = OpLoad %mat4v4float %viewInverseProj_0
+         %42 = OpVectorTimesMatrix %v4float %40 %41
+               OpStore %v_0 %42
+         %43 = OpLoad %v4float %v_0
+         %46 = OpAccessChain %_ptr_Function_float %v_0 %uint_3
+         %47 = OpLoad %float %46
+         %48 = OpCompositeConstruct %v4float %47 %47 %47 %47
+         %49 = OpFDiv %v4float %43 %48
+         %50 = OpVectorShuffle %v3float %49 %49 0 1 2
+               OpReturnValue %50
+               OpFunctionEnd
+%LineIntersectionWithZPlane_0_vf3_vf3_f1_ = OpFunction %v3float None %21
+%startPoint_0 = OpFunctionParameter %_ptr_Function_v3float
+ %endPoint_0 = OpFunctionParameter %_ptr_Function_v3float
+%zDistance_0 = OpFunctionParameter %_ptr_Function_float
+         %26 = OpLabel
+%direction_0 = OpVariable %_ptr_Function_v3float Function
+         %54 = OpLoad %v3float %endPoint_0
+         %55 = OpLoad %v3float %startPoint_0
+         %56 = OpFSub %v3float %54 %55
+               OpStore %direction_0 %56
+         %57 = OpLoad %v3float %startPoint_0
+         %58 = OpLoad %float %zDistance_0
+         %61 = OpLoad %v3float %startPoint_0
+         %62 = OpDot %float %60 %61
+         %63 = OpFSub %float %58 %62
+         %64 = OpLoad %v3float %direction_0
+         %65 = OpDot %float %60 %64
+         %66 = OpFDiv %float %63 %65
+         %67 = OpLoad %v3float %direction_0
+         %68 = OpVectorTimesScalar %v3float %67 %66
+         %69 = OpFAdd %v3float %57 %68
+               OpReturnValue %69
+               OpFunctionEnd

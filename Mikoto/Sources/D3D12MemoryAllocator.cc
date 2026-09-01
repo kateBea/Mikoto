@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/Core.hh>
 #include <Core/Platform.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
-
-#include <Memory/GpuAllocator.hh>
+#include <Renderer/Rhi/GpuAllocator.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
 

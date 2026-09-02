@@ -102,6 +102,9 @@ namespace mikoto::physics {
         // of your own job scheduler. JobSystemThreadPool is an example implementation.
         mJobSystem = eastl::make_unique<JPH::JobSystemThreadPool>( JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, threading::GetThreadConcurrency() );
 
+        // Can only create one instance of DebugRenderer
+
+#if false
         // Physics debug renderer
         auto physicsRendererDesc{ PhysicsDebugRendererCreateInfo{}
             .SetName( "PhysicsDebugRenderer" )
@@ -112,6 +115,7 @@ namespace mikoto::physics {
         if (mPhysicsDebugRenderer) {
             mPhysicsDebugRenderer->Init();
         }
+#else
 
         // Physics debug renderer simple
         auto physicsRendererSimpleDesc{ PhysicsDebugRendererSimpleCreateInfo{}
@@ -123,8 +127,7 @@ namespace mikoto::physics {
         if (mPhysicsDebugRendererSimple) {
             mPhysicsDebugRendererSimple->Init();
         }
-
-        JPH::DebugRenderer::sInstance = mPhysicsDebugRendererSimple.get();
+#endif
 
         mIsInitialized = true;
     }
@@ -163,7 +166,13 @@ namespace mikoto::physics {
             // Physics world is drawn using debug lines, when not paused
             // Draw state prior to step so that debug lines are created from the same state
             // (the constraints are solved on the current state and then the world is stepped)
-            mActiveWorld->DrawPhysics( mPhysicsDebugRenderer.get() );
+            if (mPhysicsDebugRenderer) {
+                mActiveWorld->DrawPhysics( mPhysicsDebugRenderer.get() );
+            }
+
+            if (mPhysicsDebugRendererSimple) {
+                mActiveWorld->DrawPhysics( mPhysicsDebugRendererSimple.get() );
+            }
         }
     }
 

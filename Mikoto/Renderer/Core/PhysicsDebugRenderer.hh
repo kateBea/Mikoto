@@ -38,6 +38,8 @@
 
 namespace mikoto::renderer {
 
+    // https://jrouwe.github.io/JoltPhysics/?utm_source=chatgpt.com
+
     struct PhysicsDebugRendererCreateInfo {
         rhi::IGpuDevice* mDevice{};
         eastl::string_view mName{};

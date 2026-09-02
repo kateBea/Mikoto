@@ -96,7 +96,6 @@ namespace mikoto::editor {
             .SetUseReflection( false )
 
             .SetPolygonMode( PolygonMode::eFill )
-            .SetCullMode( CullMode::eCullBack )
             .SetWindingOrder( WindingOrder::eCounterClockwise )
             .SetTopology( PrimitiveTopology::eTriangleList ) };
         mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );

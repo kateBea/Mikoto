@@ -63,12 +63,15 @@ namespace mikoto::renderer::vulkan {
         mViewportInfo.scissorCount = 1;
         mViewportInfo.pScissors = nullptr;
 
+        mDynamicStates.emplace_back( VK_DYNAMIC_STATE_VIEWPORT );
+        mDynamicStates.emplace_back( VK_DYNAMIC_STATE_SCISSOR );
+
         // [Raster]
         mRasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         mRasterizationInfo.depthClampEnable = VK_FALSE;
         mRasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
         mRasterizationInfo.polygonMode = vulkan::GetPolygonMode(mDesc.mPolygonMode);
-        mRasterizationInfo.cullMode = GetCullMode(mDesc.mCullMode);
+        mRasterizationInfo.cullMode = vulkan::GetCullMode(mDesc.mCullMode);
 
         constexpr float GPU_STANDARD_LINE_WIDTH{ 1.0f };
         mRasterizationInfo.lineWidth = GPU_STANDARD_LINE_WIDTH;
@@ -77,7 +80,7 @@ namespace mikoto::renderer::vulkan {
             // This dynamic state is not added because not all hardware support width != 1
             // so we just keep it at 1.0f for everyone by default
             // vkCmdSetLineWidth can be used to change the width
-            //mDynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
+            mDynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
         }
 
         mRasterizationInfo.cullMode = vulkan::GetCullMode( mDesc.mCullMode );;
@@ -135,10 +138,6 @@ namespace mikoto::renderer::vulkan {
         mColorBlendInfo.blendConstants[1] = 0.0f;
         mColorBlendInfo.blendConstants[2] = 0.0f;
         mColorBlendInfo.blendConstants[3] = 0.0f;
-
-        // [Dynamic states]
-        mDynamicStates.emplace_back( VK_DYNAMIC_STATE_VIEWPORT );
-        mDynamicStates.emplace_back( VK_DYNAMIC_STATE_SCISSOR );
 
         mDynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
         mDynamicStateInfo.pDynamicStates = mDynamicStates.data();

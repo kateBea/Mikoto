@@ -710,7 +710,7 @@ namespace mikoto::renderer {
             .SetTopology( PrimitiveTopology::eTriangleList )
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eRGBA16_FLOAT )
-            .SetCullMode( CullMode::eCullBack )
+            .SetCullMode( CullMode::eNone )
             .PushShader( "PBR_MetallicRoughness_Vert.slang", FGStageType::eVertex )
             .PushShader( "PBR_MetallicRoughness_Frag.slang", FGStageType::ePixel ) };
         info.mShadingPipeline = graph.Create( pipelineBuilder );

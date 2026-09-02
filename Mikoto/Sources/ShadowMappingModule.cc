@@ -118,7 +118,6 @@ namespace mikoto::renderer {
             .SetPipelineType( PipelineType::eGraphics )
             .SetTopology( PrimitiveTopology::eTriangleStrip )
             .SetDepthFormat( Format::eD32 )
-            .SetCullMode( CullMode::eCullBack )
             .PushShader( "DirLightShadows_Vert.slang", FGStageType::eVertex ) };
         info.mDirShadowMapPipeline = graph.Create( pipelineBuilder );
 
@@ -294,7 +293,6 @@ namespace mikoto::renderer {
             .SetPipelineType( PipelineType::eGraphics )
             .SetTopology( PrimitiveTopology::eTriangleStrip )
             .SetDepthFormat( Format::eD32 )
-            .SetCullMode( CullMode::eCullBack )
             .PushShader( "PointShadows_Vert.slang", FGStageType::eVertex ) };
         info.mPointShadowMapPipeline = graph.Create( pipelineBuilder );
 
@@ -351,7 +349,6 @@ namespace mikoto::renderer {
             .SetPipelineType( PipelineType::eGraphics )
             .SetTopology( PrimitiveTopology::eTriangleStrip )
             .SetDepthFormat( Format::eD32 )
-            .SetCullMode( CullMode::eCullBack )
             .PushShader( "SpotShadows_Vert.slang", FGStageType::eVertex ) };
         info.mSpotShadowMapPipeline = graph.Create( pipelineBuilder );
 

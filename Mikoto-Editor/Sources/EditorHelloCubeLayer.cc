@@ -38,13 +38,13 @@ namespace mikoto::editor {
     using namespace mikoto::filesystem;
 
     EditorHelloCubeLayer::EditorHelloCubeLayer( platform::Window *window )
-        : ILayer{ "EditorHelloTriangleLayer" }, mWindow{ window }
+        : ILayer{ "EditorHelloCubeLayer" }, mWindow{ window }
     {
         mDevice = RenderSystem::Get()->GetGpuDevice();
     }
 
     auto EditorHelloCubeLayer::OnCreate() -> void {
-        // Construct geometry: Index and vertex buffer for the triangle
+        // Construct geometry: Index and vertex buffer for the cube
         auto verticesDesc{ BufferCreateDescription{}
             .SetBufferUsage( BufferUsageFlagsBits::kVertex | BufferUsageFlagsBits::kCopyDst )
             .SetHeapType( HeapType::eDeviceLocal )
@@ -238,7 +238,6 @@ namespace mikoto::editor {
             .SetUseReflection( false )
 
             .SetPolygonMode( PolygonMode::eFill )
-            .SetCullMode( CullMode::eCullBack )
             .SetWindingOrder( WindingOrder::eCounterClockwise )
             .SetTopology( PrimitiveTopology::eTriangleList )
             .SetPipelineLayout( mPipelineLayoutHandle ) };
@@ -292,7 +291,7 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloCubeLayer::OnUpdate( float timeStep ) -> void {
-        mCommandList->Begin( { .mScopeName = "EditorHelloTriangleLayer Render" } );
+        mCommandList->Begin( { .mScopeName = "EditorHelloCubeLayer Render" } );
 
         DrawWireframeMesh();
 
@@ -440,7 +439,7 @@ namespace mikoto::editor {
     auto EditorHelloCubeLayer::DisplayImGuiWindow() -> void {
         ImGui::SetNextWindowSize( ImVec2( 420.0f, 500.0f ), ImGuiCond_FirstUseEver );
 
-        if ( ImGui::Begin( "Hello Triangle Tests", &mIsImguiWindowActive ) ) {
+        if ( ImGui::Begin( "Hello Cube Tests", &mIsImguiWindowActive ) ) {
             auto imageID{ ImGuiService::Get()->GetTextureID( mColorImage ) };
             ImGui::Image( imageID, ImVec2{ 1280, 720 } );
 

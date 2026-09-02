@@ -254,7 +254,7 @@ namespace mikoto::renderer {
             as<u32>( FGStageType::eCount )> mShaders{};
 
         PolygonMode mPolygonMode{ PolygonMode::eFill };
-        CullMode mCullMode{ CullMode::eCullBack };
+        CullMode mCullMode{ CullMode::eNone };
 
         Format mDepthFormat{};
         eastl::fixed_vector<Format, kMaxColorFormats> mColorFormats{};

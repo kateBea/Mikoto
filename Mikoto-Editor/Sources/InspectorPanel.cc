@@ -56,14 +56,20 @@ namespace mikoto::editor {
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
-    template<typename ComponentType, typename UIFunction, typename... Args>
-    static auto DrawComponent( const std::string_view componentLabel, Entity& entity, const UIFunction& uiFunc, const bool hasRemoveButton = true, Args&&... args ) -> void {
+    template<typename ComponentType>
+    static auto DrawComponent(
+            InspectorPanel& panel,
+            const eastl::string_view componentLabel,
+            Entity& entity,
+            const InspectorPanel::ComponentUIFunc& uiFunc,
+            const bool hasRemoveButton = true ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        static constexpr ImGuiTreeNodeFlags treeNodeFlags{ ImGuiTreeNodeFlags_DefaultOpen |
-                                                           ImGuiTreeNodeFlags_Framed |
-                                                           ImGuiTreeNodeFlags_SpanAvailWidth |
-                                                           ImGuiTreeNodeFlags_FramePadding };
+        constexpr ImGuiTreeNodeFlags treeNodeFlags{
+            ImGuiTreeNodeFlags_DefaultOpen |
+            ImGuiTreeNodeFlags_Framed |
+            ImGuiTreeNodeFlags_SpanAvailWidth |
+            ImGuiTreeNodeFlags_FramePadding };
 
         if ( entity.HasComponent<ComponentType>() ) {
             bool removeComponent{ false };
@@ -73,7 +79,7 @@ namespace mikoto::editor {
 
             // See ImGui implementation for button dimensions computation
             const float lineHeight{ GImGui->FontSize + GImGui->Style.FramePadding.y * 2.0f };
-            const bool componentNodeOpen{ ImGui::TreeNodeEx( reinterpret_cast<void*>( typeid( ComponentType ).hash_code() ), treeNodeFlags, "%s", componentLabel.data() ) };
+            const bool componentNodeOpen{ ImGui::TreeNodeEx( rc_cast<const void*>( &entity.GetComponent<ComponentType>() ), treeNodeFlags, "%s", componentLabel.data() ) };
 
             SetCursorHandOnLastItemHovered();
 
@@ -81,13 +87,13 @@ namespace mikoto::editor {
 
             if ( hasRemoveButton ) {
                 ImGui::SameLine( contentRegionAvailable.x - lineHeight * 0.5f );
-                if ( ImGui::Button( string::Format( "{}", ICON_MD_SETTINGS ).c_str(), ImVec2{ lineHeight, lineHeight } ) ) {
-                    ImGui::OpenPopup( "ComponentSettingsButton" );
+                if ( ImGui::Button( string::Format( "{}##DrawComponent_Button{}", ICON_MD_SETTINGS,  typeid( ComponentType ).hash_code() ).c_str(), ImVec2{ lineHeight, lineHeight } ) ) {
+                    ImGui::OpenPopup( "##DrawComponent_ButtonPopUp" );
                 }
 
                 SetCursorHandOnLastItemHovered();
 
-                if ( ImGui::BeginPopup( "ComponentSettingsButton" ) ) {
+                if ( ImGui::BeginPopup( "##DrawComponent_ButtonPopUp" ) ) {
                     if ( ImGui::MenuItem( "Remove Component" ) ) {
                         removeComponent = true;
                         ImGui::CloseCurrentPopup();
@@ -98,7 +104,7 @@ namespace mikoto::editor {
             }
 
             if ( componentNodeOpen ) {
-                uiFunc( entity, std::forward<Args>( args )... );
+                ( panel.*uiFunc )( entity );
                 ImGui::TreePop();
             }
 
@@ -230,7 +236,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DisplayTextureEditTreeNode( const std::string_view title, PhysicalMaterial& standardMat, const std::function<void( PhysicalMaterial& standardMat )>& func ) -> void {
+    static auto DisplayTextureEditTreeNode( const eastl::string_view title, PhysicalMaterial& standardMat, const eastl::function<void( PhysicalMaterial& standardMat )>& func ) -> void {
         constexpr ImGuiTreeNodeFlags treeNodeFlags{
             ImGuiTreeNodeFlags_DefaultOpen |
             ImGuiTreeNodeFlags_Framed |
@@ -1244,7 +1250,205 @@ namespace mikoto::editor {
         }
     }
 
-    static auto SetupTransformComponentTab( Entity& entity, Scene* scene ) -> void {
+    static auto DrawPointLightOptions( LightComponent& lightComponent ) -> void {
+        constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_SizingFixedFit };
+
+        if ( ImGui::BeginTable( "PointLightMainTable", 2, tableFlags ) ) {
+            auto& pointLightData{ lightComponent.Get<PointLight>() };
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            glm::vec3 diffuseComponent{ pointLightData.GetColor() };
+            if ( gui::ColorEdit3( "Color", diffuseComponent ) ) {
+                pointLightData.SetColor( diffuseComponent );
+            }
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float intensity{ pointLightData.GetIntensity() };
+            if ( gui::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
+                pointLightData.SetIntensity( intensity );
+            }
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float radius{ pointLightData.GetRadius() };
+            if ( gui::Slider( "Radius", radius, { 1.0f, 500.0f } ) ) {
+                pointLightData.SetRadius( radius );
+            }
+
+            if ( ImGui::IsItemHovered() ) {
+                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+            }
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            static bool castShadows{};
+            if ( gui::CheckBox( "Cast shadows", castShadows ) ) {
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    static auto DrawSpotLightLightOptions( LightComponent& lightComponent ) -> void {
+        constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_SizingFixedFit };
+
+        if ( ImGui::BeginTable( "SpotLightEditTable", 2, tableFlags ) ) {
+            auto& spotLightData{ lightComponent.Get<SpotLight>() };
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            glm::vec3 direction{ spotLightData.GetDirection() };
+            if ( DragFloat3( "Direction", "%.2f", direction, 0.01f, -math::constants::kPi, math::constants::kPi ) ) {
+                spotLightData.SetDirection( direction );
+            }
+
+            ImGui::SameLine();
+            widget::MakeHelpPopUp( "The spot position is determined by the objects position." );
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float3 color{ spotLightData.GetColor() };
+            if ( gui::ColorEdit3( "Color", color ) ) {
+                spotLightData.SetColor( color );
+            }
+            gui::SetCursorHandOnLastItemHovered();
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float intensity{ spotLightData.GetIntensity() };
+            if ( gui::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
+                spotLightData.SetIntensity( intensity );
+            }
+            gui::SetCursorHandOnLastItemHovered();
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float radius{ spotLightData.GetRadius() };
+            if ( gui::Slider( "Attenuation Radius", radius, { 1.0f, 500.0f } ) ) {
+                spotLightData.SetRadius( radius );
+            }
+            gui::SetCursorHandOnLastItemHovered();
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float angle{ spotLightData.GetAngle() };
+            if ( gui::Slider( "Angle", angle, { 1.0f, SpotLight::GetMaxAngle() } ) ) {
+                spotLightData.SetAngle( angle );
+            }
+            gui::SetCursorHandOnLastItemHovered();
+
+            ImGui::SameLine();
+            widget::MakeHelpPopUp( "Cone angle in degrees" );
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            float softness{ spotLightData.GetSoftness() };
+            if ( gui::Slider( "Softness", softness, { 0.0f, SpotLight::GetMaxSoftness() } ) ) {
+                spotLightData.SetSoftness( softness );
+            }
+
+            ImGui::SameLine();
+            widget::MakeHelpPopUp( "Edge softness of the spotlight" );
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+
+            static bool castShadows{};
+            CheckBox( "Cast shadows", castShadows );
+
+            ImGui::EndTable();
+        }
+    }
+
+    static auto DrawDirectionalLightOptions( LightComponent& lightComponent ) -> void {
+        constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_SizingFixedFit };
+
+        if ( ImGui::BeginTable( "DirectionalLightEditTable", 2, tableFlags ) ) {
+
+            auto& direLightData{ lightComponent.Get<DirectionalLight>() };
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Intensity" );
+
+            ImGui::TableSetColumnIndex( 1 );
+            float intensity{ direLightData.GetIntensity() };
+            if ( gui::Slider( "##Intensity", intensity, { 1.0f, 10.0f } ) ) {
+                direLightData.SetIntensity( intensity );
+            }
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Color" );
+
+            ImGui::TableSetColumnIndex( 1 );
+
+            glm::vec4 diffuse{ direLightData.GetColor(), 1.0f };
+            if ( gui::ColorEdit4( "##DirectionalLightDiffuse", diffuse ) ) {
+                direLightData.SetColor( diffuse );
+            }
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Direction" );
+
+            ImGui::SameLine();
+
+            widget::MakeHelpPopUp(
+                    "In the case of the fourth component having a value of 1.0f\n"
+                    "we do light calculations using the light's position instead\n"
+                    "which is the position of the game object." );
+
+            ImGui::TableSetColumnIndex( 1 );
+
+            constexpr float PI{ std::numbers::pi_v<float> };
+            glm::vec3 direction{ direLightData.GetDirection() };
+
+            if ( DragFloat3( "##DirectionalLightDirection", "%.2f", direction, 0.01f, -PI, PI ) ) {
+                direLightData.SetDirection( direction );
+            }
+
+            ImGui::Spacing();
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex( 0 );
+            ImGui::TextUnformatted( "Cast shadows" );
+
+            ImGui::TableSetColumnIndex( 1 );
+            bool castShadows{ direLightData.IsShadowCaster() };
+            if (CheckBox( "##DirectionalLightShadows", castShadows )) {
+                direLightData.SetIsShadowCaster( castShadows );
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    auto InspectorPanel::DrawTransformComponentTab( Entity& entity ) -> void {
         TransformComponent& transformComponent{ entity.GetComponent<TransformComponent>() };
 
         glm::vec3 newTranslation{ transformComponent.GetTranslation() };
@@ -1285,7 +1489,7 @@ namespace mikoto::editor {
         transformComponent.SetScale( newScale );
     }
 
-    static auto SetupScriptingComponentTab( Entity& entity ) -> void {
+    auto InspectorPanel::DrawScriptingComponentTab( Entity& entity ) -> void {
         ScriptComponent& scriptComponent{ entity.GetComponent<ScriptComponent>() };
 
         // Static so ImGui input buffer persists
@@ -1375,7 +1579,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto SetupAnimatorComponentTab( Entity& entity ) -> void {
+    auto InspectorPanel::DrawAnimatorComponentTab( Entity& entity ) -> void {
         AnimatorComponent& animatorComponent{ entity.GetComponent<AnimatorComponent>() };
         Animator* animator{
             AnimationSystem::Get()->GetAnimator( animatorComponent.GetAnimatorID() )
@@ -1433,12 +1637,11 @@ namespace mikoto::editor {
         }
     }
 
-    static auto SetupSkinMeshComponentTab( Entity& entity ) -> void {
+    auto InspectorPanel::DrawSkinMeshComponentTab( Entity& entity ) -> void {
         SkinnedMeshRenderer& skinnedMeshRendererComp{ entity.GetComponent<SkinnedMeshRenderer>() };
     }
 
-
-    static auto SetupMaterialComponentTab( Entity& entity ) -> void {
+    auto InspectorPanel::DrawMaterialComponentTab( Entity& entity ) -> void {
         // ImGui by default will indent because the items in this function because this method is run inside the DrawComponent function,
         // so we are within a Tree Node, items within a tree node appear indented by default when you expand it
         ImGui::Unindent();
@@ -1452,7 +1655,7 @@ namespace mikoto::editor {
         ImGui::Indent();
     }
 
-    static auto SetupPhysicsComponentTab( Entity& entity ) -> void {
+    auto InspectorPanel::DrawPhysicsComponentTab( Entity& entity ) -> void {
         if (!entity.HasComponent<RigidBodyComponent>()) {
             return;
         }
@@ -1539,8 +1742,10 @@ namespace mikoto::editor {
         }
     }
 
-    static auto SetupRenderComponentTab( Entity& entity, Scene* scene ) -> void {
-        MeshComponent& component{ entity.GetComponent<MeshComponent>() };
+    auto InspectorPanel::DrawRenderComponentTab( Entity& entity ) -> void {
+        if (!entity.HasComponent<MeshComponent>()) {
+            return;
+        }
 
         ImGui::Unindent();
         ImGui::Spacing();
@@ -1552,6 +1757,8 @@ namespace mikoto::editor {
         ImGui::SameLine();
 
         Path path{ "" };
+        MeshComponent& component{ entity.GetComponent<MeshComponent>() };
+
         const MeshNode* mesh{ component.GetMesh() };
         if ( mesh != nullptr ) {
             path = component.GetModel()->GetPath();
@@ -1559,38 +1766,33 @@ namespace mikoto::editor {
 
         // Imgui Will need this later, so the buffer must still exist
         // can't be made a with automatic storage duration
-        static eastl::string formatedPath{};
-        formatedPath = string::Format( "{}", path.GetC_Str() );
+        eastl::string formatedPath{ string::Format( "{}", path.GetC_Str() ) };
 
         // See imgui assert on the size of the buffer
         // formatedPath.size() already includes the terminator
-        ImGui::InputText( "##PathToModel", formatedPath.data(), formatedPath.size() + 1, ImGuiInputTextFlags_ReadOnly );
+        ImGui::InputText( "##DrawRenderComponentTab_PathToModel", formatedPath.data(),
+            formatedPath.size() + 1, ImGuiInputTextFlags_ReadOnly );
 
         ImGui::SameLine();
 
-        static bool loading{ false };
-        if ( ImGui::Button( fmt::format( " {} Load ", ICON_MD_SEARCH ).c_str() ) ) {
-            threading::TaskService::Get()->Submit( [rootEntity = std::addressof(entity), scene ]() -> void {
+        if ( ImGui::Button( string::Format( " {} Load ##DrawRenderComponentTab_SearchButton", ICON_MD_SEARCH ).c_str() ) ) {
+            threading::TaskService::Get()->Submit( [rootEntity = std::addressof(entity), this]() -> void {
                 const std::initializer_list<FileDialogPair> filters{
                     { "Model files", "obj,gltf,fbx,glb" },
                     { "OBJ files", "obj" },
                     { "glTF files", "gltf" },
                     { "FBX files", "fbx" },
-                    { "GLB files", "glb" },
-                };
+                    { "GLB files", "glb" } };
+                Path modelPath{ OpenFileDialog( filters ) };
 
-                Path targetModelPath{ filesystem::OpenFileDialog( filters ) };
-
-                if ( !targetModelPath.IsEmpty() ) {
-                    ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( targetModelPath ) };
+                if ( !modelPath.IsEmpty() ) {
+                    ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( modelPath ) };
 
                     const EntityCreateInfo entityCreateInfo{
                         .mRoot = rootEntity,
                         .mName{ model->GetName() },
-                        .mModel = model,
-                    };
-
-                    scene->PushEntity( entityCreateInfo );
+                        .mModel = model };
+                    mState->mActiveScene->PushEntity( entityCreateInfo );
                 }
             });
         }
@@ -1610,205 +1812,7 @@ namespace mikoto::editor {
         ImGui::Indent();
     }
 
-    static auto SetupDirectionalLightOptions( LightComponent& lightComponent ) -> void {
-        constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_SizingFixedFit };
-
-        if ( ImGui::BeginTable( "DirectionalLightEditTable", 2, tableFlags ) ) {
-
-            auto& direLightData{ lightComponent.Get<DirectionalLight>() };
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Intensity" );
-
-            ImGui::TableSetColumnIndex( 1 );
-            float intensity{ direLightData.GetIntensity() };
-            if ( gui::Slider( "##Intensity", intensity, { 1.0f, 10.0f } ) ) {
-                direLightData.SetIntensity( intensity );
-            }
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Color" );
-
-            ImGui::TableSetColumnIndex( 1 );
-
-            glm::vec4 diffuse{ direLightData.GetColor(), 1.0f };
-            if ( gui::ColorEdit4( "##DirectionalLightDiffuse", diffuse ) ) {
-                direLightData.SetColor( diffuse );
-            }
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Direction" );
-
-            ImGui::SameLine();
-
-            widget::MakeHelpPopUp(
-                    "In the case of the fourth component having a value of 1.0f\n"
-                    "we do light calculations using the light's position instead\n"
-                    "which is the position of the game object." );
-
-            ImGui::TableSetColumnIndex( 1 );
-
-            constexpr float PI{ std::numbers::pi_v<float> };
-            glm::vec3 direction{ direLightData.GetDirection() };
-
-            if ( DragFloat3( "##DirectionalLightDirection", "%.2f", direction, 0.01f, -PI, PI ) ) {
-                direLightData.SetDirection( direction );
-            }
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-            ImGui::TextUnformatted( "Cast shadows" );
-
-            ImGui::TableSetColumnIndex( 1 );
-            bool castShadows{ direLightData.IsShadowCaster() };
-            if (CheckBox( "##DirectionalLightShadows", castShadows )) {
-                direLightData.SetIsShadowCaster( castShadows );
-            }
-
-            ImGui::EndTable();
-        }
-    }
-
-    static auto SetupPointLightOptions( LightComponent& lightComponent ) -> void {
-        constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_SizingFixedFit };
-
-        if ( ImGui::BeginTable( "PointLightMainTable", 2, tableFlags ) ) {
-            auto& pointLightData{ lightComponent.Get<PointLight>() };
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-            glm::vec3 diffuseComponent{ pointLightData.GetColor() };
-            if ( gui::ColorEdit3( "Color", diffuseComponent ) ) {
-                pointLightData.SetColor( diffuseComponent );
-            }
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            float intensity{ pointLightData.GetIntensity() };
-            if ( gui::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
-                pointLightData.SetIntensity( intensity );
-            }
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            float radius{ pointLightData.GetRadius() };
-            if ( gui::Slider( "Radius", radius, { 1.0f, 500.0f } ) ) {
-                pointLightData.SetRadius( radius );
-            }
-
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
-            }
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            static bool castShadows{};
-            if ( gui::CheckBox( "Cast shadows", castShadows ) ) {
-            }
-
-            ImGui::EndTable();
-        }
-    }
-
-    static auto SetupSpotLightLightOptions( LightComponent& lightComponent ) -> void {
-        constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_SizingFixedFit };
-
-        if ( ImGui::BeginTable( "SpotLightEditTable", 2, tableFlags ) ) {
-            auto& spotLightData{ lightComponent.Get<SpotLight>() };
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            glm::vec3 direction{ spotLightData.GetDirection() };
-            if ( DragFloat3( "Direction", "%.2f", direction, 0.01f, -math::constants::kPi, math::constants::kPi ) ) {
-                spotLightData.SetDirection( direction );
-            }
-
-            ImGui::SameLine();
-            widget::MakeHelpPopUp( "The spot position is determined by the objects position." );
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            float3 color{ spotLightData.GetColor() };
-            if ( gui::ColorEdit3( "Color", color ) ) {
-                spotLightData.SetColor( color );
-            }
-            gui::SetCursorHandOnLastItemHovered();
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            float intensity{ spotLightData.GetIntensity() };
-            if ( gui::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
-                spotLightData.SetIntensity( intensity );
-            }
-            gui::SetCursorHandOnLastItemHovered();
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            float radius{ spotLightData.GetRadius() };
-            if ( gui::Slider( "Attenuation Radius", radius, { 1.0f, 500.0f } ) ) {
-                spotLightData.SetRadius( radius );
-            }
-            gui::SetCursorHandOnLastItemHovered();
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            float angle{ spotLightData.GetAngle() };
-            if ( gui::Slider( "Angle", angle, { 1.0f, SpotLight::GetMaxAngle() } ) ) {
-                spotLightData.SetAngle( angle );
-            }
-            gui::SetCursorHandOnLastItemHovered();
-
-            ImGui::SameLine();
-            widget::MakeHelpPopUp( "Cone angle in degrees" );
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            float softness{ spotLightData.GetSoftness() };
-            if ( gui::Slider( "Softness", softness, { 0.0f, SpotLight::GetMaxSoftness() } ) ) {
-                spotLightData.SetSoftness( softness );
-            }
-
-            ImGui::SameLine();
-            widget::MakeHelpPopUp( "Edge softness of the spotlight" );
-
-            ImGui::Spacing();
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex( 0 );
-
-            static bool castShadows{};
-            CheckBox( "Cast shadows", castShadows );
-
-            ImGui::EndTable();
-        }
-    }
-
-    static auto SetupLightComponentTab( Entity& entity ) -> void {
+    auto InspectorPanel::DrawLightComponentTab( Entity& entity ) -> void {
         LightComponent& lightComponent{ entity.GetComponent<LightComponent>() };
 
         static constexpr std::array<std::string_view, 3> lightTypes{ "Directional light", "Point light", "Spot light" };
@@ -1857,21 +1861,21 @@ namespace mikoto::editor {
 
         switch ( lightComponent.GetActiveType() ) {
             case LightType::eDirectional:
-                SetupDirectionalLightOptions( lightComponent );
+                DrawDirectionalLightOptions( lightComponent );
                 break;
 
             case LightType::ePoint:
-                SetupPointLightOptions( lightComponent );
+                DrawPointLightOptions( lightComponent );
                 break;
 
             case LightType::eSpot:
-                SetupSpotLightLightOptions( lightComponent );
+                DrawSpotLightLightOptions( lightComponent );
                 break;
             default:;
         }
     }
 
-    static auto SetupTextComponentTab( Entity& entity ) -> void {
+    auto InspectorPanel::DrawTextComponentTab( Entity& entity ) -> void {
         TextComponent& textComponent{ entity.GetComponent<TextComponent>() };
 
         glm::vec4 color{ textComponent.GetColor() };
@@ -1980,7 +1984,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto SetupAudioListenerComponentTab( Entity& entity ) -> void {
+    auto InspectorPanel::DrawAudioListenerComponentTab( Entity& entity ) -> void {
         AudioListenerComponent& alc{ entity.GetComponent<AudioListenerComponent>() };
 
         if ( !alc.IsActive() ) {
@@ -2043,7 +2047,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto SetupAudioComponentTab( Entity& entity ) -> void {
+    auto InspectorPanel::DrawAudioComponentTab( Entity& entity ) -> void {
         AudioSourceComponent& audioComponent{ entity.GetComponent<AudioSourceComponent>() };
 
         AudioSourceHandle source{ audioComponent.GetSource() };
@@ -2268,16 +2272,17 @@ namespace mikoto::editor {
         }
     }
 
-    static auto SetupCameraComponentTab( Entity& entity, SceneRenderer* renderer ) -> void {
-        if (!renderer) {
-            MKT_CORE_LOGGER_ERROR( "Renderer is null" );
+    auto InspectorPanel::DrawCameraComponentTab( Entity& entity ) -> void {
+        if (!entity.HasComponent<CameraComponent>()) {
+            return;
+        }
+
+        if (!mState->mSceneRenderer) {
             return;
         }
 
         CameraComponent& cameraComponent{ entity.GetComponent<CameraComponent>() };
-        static const eastl::array<std::string, 2> kCameraProjectionTypeNames{
-            "Orthographic", "Perspective"
-        };
+        const eastl::array<std::string, 2> kCameraProjectionTypeNames{ "Orthographic", "Perspective" };
 
         if ( !cameraComponent.HasCamera() ) {
             if ( !ButtonTextIcon( string::Concat( ICON_MD_ADD, " Add camera" ).c_str() ) ) {
@@ -2288,10 +2293,7 @@ namespace mikoto::editor {
         SceneCamera& sceneCamera{ cameraComponent.GetCamera() };
         const auto cameraCurrentProjectionType{ sceneCamera.GetProjectionType() };
 
-        constexpr ImGuiTableFlags tableFlags{
-            ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_SizingStretchSame
-        };
-
+        constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_SizingStretchSame };
         if ( ImGui::BeginTable( "CameraComponentEditTable", 2, tableFlags ) ) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
@@ -2319,12 +2321,12 @@ namespace mikoto::editor {
 
                 cameraComponent.SetClearFlags( newClearFlags );
 
-                renderer->SetGamma( cameraComponent.GetGamma() );
-                renderer->SetExposure( cameraComponent.GetExposure() );
-                renderer->SetRenderBackground( GetRenderBackground(newClearFlags) );
+                mState->mSceneRenderer->SetGamma( cameraComponent.GetGamma() );
+                mState->mSceneRenderer->SetExposure( cameraComponent.GetExposure() );
+                mState->mSceneRenderer->SetRenderBackground( GetRenderBackground(newClearFlags) );
 
                 if (newClearFlags == CameraClearFlags::eClearColor) {
-                    renderer->SetClearColor( cameraComponent.GetClearColor() );
+                    mState->mSceneRenderer->SetClearColor( cameraComponent.GetClearColor() );
                 }
             }
 
@@ -2336,7 +2338,7 @@ namespace mikoto::editor {
 
                 if ( ImGui::ColorEdit4( "##CameraClearColor", glm::value_ptr( colorFloat4 ), colorEditFlags ) ) {
                     cameraComponent.SetClearColor( colorFloat4 );
-                    renderer->SetClearColor( colorFloat4 );
+                    mState->mSceneRenderer->SetClearColor( colorFloat4 );
                 }
             }
 
@@ -2349,7 +2351,7 @@ namespace mikoto::editor {
             f32 exposure{ cameraComponent.GetExposure() };
             if (ImGui::SliderFloat( "##CameraExposureSlider", MKT_ADDRESSOF( exposure ), 0.1, 10.0f )) {
                 cameraComponent.SetExposure( exposure );
-                renderer->SetExposure( cameraComponent.GetExposure() );
+                mState->mSceneRenderer->SetExposure( cameraComponent.GetExposure() );
             }
 
             if (ImGui::IsItemHovered()) {
@@ -2365,7 +2367,7 @@ namespace mikoto::editor {
 
             if (ImGui::SliderFloat( "##CameraGammaSlider", MKT_ADDRESSOF( gamma ), 0.1, 10.0f )) {
                 cameraComponent.SetGamma( gamma );
-                renderer->SetGamma( cameraComponent.GetGamma() );
+                mState->mSceneRenderer->SetGamma( cameraComponent.GetGamma() );
             }
 
             if (ImGui::IsItemHovered()) {
@@ -2469,7 +2471,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto SetupSkyboxComponentTab( Entity& entity, SceneRenderer* renderer ) -> void {
+    auto InspectorPanel::DrawSkyboxComponentTab( Entity& entity ) -> void {
         if (!entity.HasComponent<SkyboxMaterialComponent>()) {
             return;
         }
@@ -2498,7 +2500,7 @@ namespace mikoto::editor {
         SkyboxType newSkyboxType{ gui::Combo( choicesAlpha, currentSkyboxType ) };
         if (newSkyboxType != currentSkyboxType) {
             material->SetType( newSkyboxType );
-            renderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
+            mState->mSceneRenderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
         }
 
         ImGui::Spacing();
@@ -2587,7 +2589,7 @@ namespace mikoto::editor {
                 gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
                 if ( ImGui::Button( string::Format( "{} Apply", ICON_MD_CLOUD_DOWNLOAD ).c_str()) ) {
-                    renderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
+                    mState->mSceneRenderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
                 }
 
                 if ( ImGui::IsItemHovered() ) {
@@ -2612,7 +2614,7 @@ namespace mikoto::editor {
                 if ( PushImageButton( "##SetupSkyboxComponentTable_FlatImage01", ImGuiService::Get()->GetTextureID( face.GetRaw() ), ImVec2{ 64, 64 } ) ) {
                     if (material) {
                         LoadMaterialTexture( *material );
-                        renderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
+                        mState->mSceneRenderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
                     }
                 }
 
@@ -2620,7 +2622,7 @@ namespace mikoto::editor {
                     if (const ImGuiPayload* payload{ ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXT_IMAGE") }) {
                         TextureHandle cubeMap{ *as<TextureHandle*>( payload->Data ) };
                         material->SetEquirectangular( cubeMap );
-                        renderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
+                        mState->mSceneRenderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
 
                         RuntimeConsole::Get()->Debug( "You dropped texture from CONTENT_BROWSER_TEXT_IMAGE" );
                     }
@@ -2684,41 +2686,269 @@ namespace mikoto::editor {
         DrawProperty( "Ambient Scale", "AmbientScale", ambientScale, 0.0f, 10.0f, labelWidth, sliderWidth );
 
         material->SetAmbientScale( ambientScale );
-        renderer->SetAmbientScale( material->GetAmbientScale() );
+        mState->mSceneRenderer->SetAmbientScale( material->GetAmbientScale() );
     }
 
-    auto InspectorPanel::DrawComponents( Entity* entity ) const -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        if ( entity == nullptr ) {
+    auto InspectorPanel::DrawMeshColliderComponentTab( Entity& entity ) -> void {
+        if (!entity.HasComponent<MeshColliderComponent>()) {
             return;
         }
+    }
 
-        DrawComponent<TransformComponent>( fmt::format( "{} Transform", ICON_MD_DEVICE_HUB ), *entity,
-            [&]( Entity& target ) -> void { SetupTransformComponentTab( target, mState->mActiveScene ); }, false );
-        DrawComponent<MaterialComponent>( fmt::format( "{} Material", ICON_MD_INSIGHTS ), *entity, SetupMaterialComponentTab );
-        DrawComponent<MeshComponent>( fmt::format( "{} Mesh", ICON_MD_VIEW_IN_AR ), *entity,
-            [&]( Entity& target ) -> void { SetupRenderComponentTab( target, mState->mActiveScene ); } );
-        DrawComponent<RigidBodyComponent>( fmt::format( "{} Physics", ICON_MD_FITNESS_CENTER ), *entity, SetupPhysicsComponentTab );
-        DrawComponent<LightComponent>( fmt::format( "{} Light", ICON_MD_LIGHT ), *entity, SetupLightComponentTab );
-        DrawComponent<AudioListenerComponent>( fmt::format( "{} Audio Listener", ICON_MD_AUTO_GRAPH ), *entity, SetupAudioListenerComponentTab );
-        DrawComponent<AudioSourceComponent>( fmt::format( "{} Audio", ICON_MD_AUDIOTRACK ), *entity, SetupAudioComponentTab );
-        DrawComponent<TextComponent>( fmt::format( "{} Text", ICON_MD_MESSAGE ), *entity, SetupTextComponentTab );
-        DrawComponent<CameraComponent>( fmt::format( "{} Camera", ICON_MD_CAMERA_ALT ), *entity,
-            [&]( Entity& target ) -> void { SetupCameraComponentTab( target, mState->mSceneRenderer ); } );
-        DrawComponent<ScriptComponent>( fmt::format( "{} Script", ICON_MD_CODE ), *entity, SetupScriptingComponentTab );
+    auto InspectorPanel::DrawBoxColliderComponentTab( Entity& entity ) -> void {
+        if (!entity.HasComponent<BoxColliderComponent>()) {
+            return;
+        }
+    }
 
-        DrawComponent<AnimatorComponent>( fmt::format( "{} Animator", ICON_MD_ANIMATION ), *entity, SetupAnimatorComponentTab );
-        DrawComponent<SkinnedMeshRenderer>( fmt::format( "{} SkinRenderer", ICON_MD_COOKIE ), *entity, SetupSkinMeshComponentTab );
+    auto InspectorPanel::DrawSphereColliderComponentTab( Entity& entity ) -> void {
+        if (!entity.HasComponent<SphereColliderComponent>()) {
+            return;
+        }
+    }
 
-        DrawComponent<SkyboxMaterialComponent>( fmt::format( "{} Skybox", ICON_MD_CLOUD ), *entity,
-            [&]( Entity& target ) { SetupSkyboxComponentTab( target, mState->mSceneRenderer ); });
+    auto InspectorPanel::DrawCapsuleColliderComponentTab( Entity& entity ) -> void {
+        if (!entity.HasComponent<CapsuleColliderComponent>()) {
+            return;
+        }
     }
 
     InspectorPanel::InspectorPanel( const InspectorPanelCreateInfo& createInfo )
-        : Panel{  "Inspector" }, mState( createInfo.mState ) {
-
+        : Panel{ "Inspector" }, mState( createInfo.mState ) {
         mPanelHeaderName = widget::MakeIconTitle( ICON_MD_ERROR_OUTLINE, mPanelName );
+
+        mComponentUis.emplace(
+            entt::type_hash<TransformComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Transform", ICON_MD_DEVICE_HUB ),
+                .mCallback = &InspectorPanel::DrawTransformComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<MeshComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Mesh", ICON_MD_VIEW_IN_AR ),
+                .mCallback = &InspectorPanel::DrawRenderComponentTab } );
+
+        // Physics
+        mComponentUis.emplace(
+            entt::type_hash<RigidBodyComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Physics", ICON_MD_FITNESS_CENTER ),
+                .mCallback = &InspectorPanel::DrawPhysicsComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<MeshColliderComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Mesh Collider", ICON_MD_PERSON_3 ),
+                .mCallback = &InspectorPanel::DrawMeshColliderComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<BoxColliderComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Box Collider", ICON_MD_GIF_BOX ),
+                .mCallback = &InspectorPanel::DrawBoxColliderComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<SphereColliderComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Sphere Collider", ICON_MD_CIRCLE ),
+                .mCallback = &InspectorPanel::DrawSphereColliderComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<CapsuleColliderComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Capsule Collider", ICON_MD_BUNGALOW ),
+                .mCallback = &InspectorPanel::DrawCapsuleColliderComponentTab } );
+
+        // Rendering / audio / misc
+        mComponentUis.emplace(
+            entt::type_hash<LightComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Light", ICON_MD_LIGHT ),
+                .mCallback = &InspectorPanel::DrawLightComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<AudioListenerComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Audio Listener", ICON_MD_AUTO_GRAPH ),
+                .mCallback = &InspectorPanel::DrawAudioListenerComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<AudioSourceComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Audio", ICON_MD_AUDIOTRACK ),
+                .mCallback = &InspectorPanel::DrawAudioComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<TextComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Text", ICON_MD_MESSAGE ),
+                .mCallback = &InspectorPanel::DrawTextComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<CameraComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Camera", ICON_MD_CAMERA_ALT ),
+                .mCallback = &InspectorPanel::DrawCameraComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<ScriptComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Script", ICON_MD_CODE ),
+                .mCallback = &InspectorPanel::DrawScriptingComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<AnimatorComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Animator", ICON_MD_ANIMATION ),
+                .mCallback = &InspectorPanel::DrawAnimatorComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<SkinnedMeshRenderer>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} SkinRenderer", ICON_MD_COOKIE ),
+                .mCallback = &InspectorPanel::DrawSkinMeshComponentTab } );
+
+        // Materials
+        mComponentUis.emplace(
+            entt::type_hash<MaterialComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Material", ICON_MD_INSIGHTS ),
+                .mCallback = &InspectorPanel::DrawMaterialComponentTab } );
+
+        mComponentUis.emplace(
+            entt::type_hash<SkyboxMaterialComponent>::value(),
+            ComponentUiInfo{
+                .mLabel = string::Format( "{} Skybox", ICON_MD_CLOUD ),
+                .mCallback = &InspectorPanel::DrawSkyboxComponentTab } );
+    }
+
+    auto InspectorPanel::DrawComponents( Entity* entity ) -> void {
+        MKT_BEGIN_PROFILER_NAMED();
+
+        if ( entity == nullptr || mState->mActiveScene == nullptr ) {
+            return;
+        }
+
+        const auto& registry{ mState->mActiveScene->GetRegistry() };
+
+        for ( auto&& [type, storage]: registry.storage() ) {
+            if ( !storage.contains( entity->Get() ) ) {
+                continue;
+            }
+
+            const auto it{ mComponentUis.find( type ) };
+            if ( it == mComponentUis.end() ) {
+                continue;
+            }
+
+            const ComponentUiInfo& inspector{ it->second };
+
+            if ( type == entt::type_hash<TransformComponent>::value() ) {
+                DrawComponent<TransformComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback,
+                    false );
+            } else if ( type == entt::type_hash<MeshComponent>::value() ) {
+                DrawComponent<MeshComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<RigidBodyComponent>::value() ) {
+                DrawComponent<RigidBodyComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<MeshColliderComponent>::value() ) {
+                DrawComponent<MeshColliderComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<BoxColliderComponent>::value() ) {
+                DrawComponent<BoxColliderComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<SphereColliderComponent>::value() ) {
+                DrawComponent<SphereColliderComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<CapsuleColliderComponent>::value() ) {
+                DrawComponent<CapsuleColliderComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<LightComponent>::value() ) {
+                DrawComponent<LightComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<AudioListenerComponent>::value() ) {
+                DrawComponent<AudioListenerComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<AudioSourceComponent>::value() ) {
+                DrawComponent<AudioSourceComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<TextComponent>::value() ) {
+                DrawComponent<TextComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<CameraComponent>::value() ) {
+                DrawComponent<CameraComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<ScriptComponent>::value() ) {
+                DrawComponent<ScriptComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<AnimatorComponent>::value() ) {
+                DrawComponent<AnimatorComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<SkinnedMeshRenderer>::value() ) {
+                DrawComponent<SkinnedMeshRenderer>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<MaterialComponent>::value() ) {
+                DrawComponent<MaterialComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            } else if ( type == entt::type_hash<SkyboxMaterialComponent>::value() ) {
+                DrawComponent<SkyboxMaterialComponent>(
+                    *this,
+                    inspector.mLabel,
+                    *entity,
+                    inspector.mCallback );
+            }
+        }
     }
 
     auto InspectorPanel::OnUpdate( float ) -> void {

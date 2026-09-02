@@ -24,6 +24,8 @@
 #ifndef MIKOTO_FRAME_GRAPH_HH
 #define MIKOTO_FRAME_GRAPH_HH
 
+#include <taskflow/taskflow.hpp>
+
 #include <EASTL/fixed_hash_map.h>
 #include <EASTL/functional.h>
 #include <EASTL/string.h>
@@ -47,7 +49,6 @@
 
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Rhi/Types.hh>
-#include <taskflow/taskflow.hpp>
 
 namespace mikoto::renderer {
 

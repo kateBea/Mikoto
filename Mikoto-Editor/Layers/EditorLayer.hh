@@ -43,6 +43,7 @@
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/SceneRenderer.hh>
 #include <Renderer/Core/ThumbnailRenderer.hh>
+#include <Renderer/Core/PhysicsDebugRenderer.hh>
 
 #include <Project/Project.hh>
 #include <Project/ProjectSerializer.hh>
@@ -67,6 +68,7 @@ namespace mikoto::editor {
         scene::SceneCamera* mActiveCamera{};
         renderer::SceneRenderer* mSceneRenderer{};
         renderer::ThumbnailRenderer* mThumbnailRenderer{};
+        renderer::PhysicsDebugRenderer* mPhysicsDebugRenderer{};
 
         Theme* mActiveTheme{};
 

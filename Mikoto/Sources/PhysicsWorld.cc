@@ -48,6 +48,8 @@
 
 #include <Threading/ThreadUtility.hh>
 
+#include <Renderer/Core/PhysicsDebugRenderer.hh>
+
 namespace mikoto::physics {
 
     using namespace mikoto::core;
@@ -148,6 +150,30 @@ namespace mikoto::physics {
         mSimulationInfo.mPhysicsSystem.Update( dt, collisionSteps, mSimulationInfo.mTempAllocator.get(), PhysicSystem::Get()->GetJoltJobSystem() );
 
         PostUpdate();
+    }
+
+    auto PhysicsWorld::DrawPhysics() -> void {
+        mBodyDrawSettings.mDrawShape = true;
+        mBodyDrawSettings.mDrawBoundingBox = true;
+
+#ifdef JPH_DEBUG_RENDERER
+        mSimulationInfo.mPhysicsSystem.DrawBodies(mBodyDrawSettings, PhysicSystem::Get()->GetDebugRenderer());
+
+        if (mDrawConstraints) {
+            mSimulationInfo.mPhysicsSystem.DrawConstraints(PhysicSystem::Get()->GetDebugRenderer());
+        }
+
+        if (mDrawConstraintLimits) {
+            mSimulationInfo.mPhysicsSystem.DrawConstraintLimits(PhysicSystem::Get()->GetDebugRenderer());
+        }
+
+        if (mDrawConstraintReferenceFrame) {
+            mSimulationInfo.mPhysicsSystem.DrawConstraintReferenceFrame(PhysicSystem::Get()->GetDebugRenderer());
+        }
+
+        // if (mDrawBroadPhaseBounds)
+        //     mSimulationInfo.mPhysicsSystem.DrawWireBox(mSimulationInfo.mPhysicsSystem.GetBroadPhaseQuery().GetBounds(), JPH::Color::sGreen);
+#endif // JPH_DEBUG_RENDERER
     }
 
     auto PhysicsWorld::PreUpdate() -> void {
@@ -302,7 +328,7 @@ namespace mikoto::physics {
             return;
         }
 
-        ColliderComponent& colliderComponent{ entity->GetComponent<ColliderComponent>() };
+        MeshColliderComponent& colliderComponent{ entity->GetComponent<MeshColliderComponent>() };
         physics::ColliderType colliderType{ colliderComponent.GetColliderType() };
     }
 

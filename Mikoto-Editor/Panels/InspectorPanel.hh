@@ -15,6 +15,8 @@
 #ifndef MIKOTO_INSPECTOR_PANEL_HH
 #define MIKOTO_INSPECTOR_PANEL_HH
 
+#include <ankerl/unordered_dense.h>
+
 #include <Panels/Panel.hh>
 
 #include <Scene/Entity.hh>
@@ -28,6 +30,8 @@ namespace mikoto::editor {
 
     class InspectorPanel final : public Panel {
     public:
+        using ComponentUIFunc = void (InspectorPanel::*)(scene::Entity&);
+
         explicit InspectorPanel( const InspectorPanelCreateInfo& createInfo );
 
         auto OnUpdate( float timeStep ) -> void override;
@@ -35,10 +39,33 @@ namespace mikoto::editor {
         ~InspectorPanel() override = default;
 
     private:
-        auto DrawComponents( scene::Entity* entity ) const -> void;
+        auto DrawComponents( scene::Entity* entity ) -> void;
+
+        auto DrawTransformComponentTab( scene::Entity& entity ) -> void;
+        auto DrawScriptingComponentTab( scene::Entity& entity ) -> void;
+        auto DrawAnimatorComponentTab( scene::Entity& entity ) -> void;
+        auto DrawSkinMeshComponentTab( scene::Entity& entity ) -> void;
+        auto DrawMaterialComponentTab( scene::Entity& entity ) -> void;
+        auto DrawPhysicsComponentTab( scene::Entity& entity ) -> void;
+        auto DrawRenderComponentTab( scene::Entity& entity ) -> void;
+        auto DrawLightComponentTab( scene::Entity& entity ) -> void;
+        auto DrawTextComponentTab( scene::Entity& entity ) -> void;
+        auto DrawAudioListenerComponentTab( scene::Entity& entity ) -> void;
+        auto DrawAudioComponentTab( scene::Entity& entity ) -> void;
+        auto DrawCameraComponentTab( scene::Entity& entity ) -> void;
+        auto DrawSkyboxComponentTab( scene::Entity& entity ) -> void;
+        auto DrawMeshColliderComponentTab( scene::Entity& entity ) -> void;
+        auto DrawBoxColliderComponentTab( scene::Entity& entity ) -> void;
+        auto DrawSphereColliderComponentTab( scene::Entity& entity ) -> void;
+        auto DrawCapsuleColliderComponentTab( scene::Entity& entity ) -> void;
 
     private:
         EditorState* mState{};
+
+        struct ComponentUiInfo {
+            eastl::string mLabel{};
+            ComponentUIFunc mCallback{}; };
+        ankerl::unordered_dense::map<entt::id_type, ComponentUiInfo> mComponentUis{};
     };
 }// namespace Mikoto
 

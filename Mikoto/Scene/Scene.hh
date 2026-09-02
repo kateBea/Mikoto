@@ -37,7 +37,9 @@
 #include <Scene/Entity.hh>
 #include <Scene/Component.hh>
 
-#include <Physics/PhysicsWorld.hh>
+namespace mikoto::physics {
+    class PhysicsWorld;
+}
 
 namespace mikoto::scene {
 
@@ -153,14 +155,17 @@ namespace mikoto::scene {
 
         auto UpdateIdle( double deltaTime ) -> void;
         auto UpdateSimulate( double deltaTime ) -> void;
-        auto UpdatePlaying( double deltaTime ) -> void;
+        auto UpdatePlaying( double timeStep ) -> void;
+
+        auto OnEntityAdded(entt::registry& reg, entt::entity e ) -> void;
+        auto OnEntityRemoved(entt::registry& reg, entt::entity e ) -> void;
 
         auto OnScriptAdded(entt::registry& reg, entt::entity e ) -> void;
 
         auto OnRigidBodyAdded(entt::registry& reg, entt::entity e ) -> void;
         auto OnColliderAdded(entt::registry& reg, entt::entity e ) -> void;
-        auto OnRigidBodyRemoved(entt::registry& reg, entt::entity e ) const -> void;
-        auto OnColliderRemoved(entt::registry& reg, entt::entity e ) const -> void;
+        auto OnRigidBodyRemoved(entt::registry& reg, entt::entity e ) -> void;
+        auto OnColliderRemoved(entt::registry& reg, entt::entity e ) -> void;
 
         auto SetupMeshComponent(Entity* entity, asset::ModelHandle model, core::i32 index) -> void;
 

@@ -27,6 +27,7 @@
 #include <Core/Types.hh>
 #include <Core/String.hh>
 #include <Core/Profiler.hh>
+#include <Core/Platform.hh>
 #include <Core/RuntimeConsole.hh>
 
 #include <Math/Random.hh>
@@ -95,6 +96,8 @@ namespace YAML {
 }// namespace YAML
 
 namespace mikoto::scene {
+
+    // https://skypjack.github.io/entt/index.html
 
     using namespace mikoto::core;
     using namespace mikoto::renderer;
@@ -181,15 +184,22 @@ namespace mikoto::scene {
 
         // Physics
         mRegistry.on_construct<RigidBodyComponent>().connect<&Scene::OnRigidBodyAdded>( this );
-        mRegistry.on_construct<ColliderComponent>().connect<&Scene::OnColliderAdded>( this );
-        mRegistry.on_destroy<RigidBodyComponent>().connect<&Scene::OnRigidBodyRemoved>( this );
-        mRegistry.on_destroy<ColliderComponent>().connect<&Scene::OnColliderRemoved>( this );
+        mRegistry.on_construct<MeshColliderComponent>().connect<&Scene::OnColliderAdded>( this );
 
         physics::PhysicsWorldCreateInfo spec{
             .mScene = this,
-            .mGravity = physics::PhysicsWorld::GetGravityFor( physics::GravityBody::eEarth )
-        };
+            .mGravity = physics::PhysicsWorld::GetGravityFor( physics::GravityBody::eEarth ) };
         mPhysicsWorld = physics::PhysicSystem::Get()->CreatePhysicsWorld( spec );
+
+#if MIKOTO_DEBUG
+        mRegistry.storage<entt::entity>()
+            .on_destroy()
+            .connect<&Scene::OnEntityRemoved>( this );
+
+        mRegistry.storage<entt::entity>()
+            .on_construct()
+            .connect<&Scene::OnEntityAdded>( this );
+#endif
     }
 
     auto Scene::UpdateIdle( double timeStep ) -> void {
@@ -211,11 +221,38 @@ namespace mikoto::scene {
         }
     }
 
-    auto Scene::UpdatePlaying( double deltaTime ) -> void {
+    auto Scene::UpdatePlaying( double timeStep ) -> void {
+        // Update scripts (Ideally only when playing not when simulating)
+        auto scriptEntities{ mRegistry.view<ScriptComponent>() };
+        for ( auto& entity: scriptEntities ) {
+            ScriptComponent& script{ mRegistry.get<ScriptComponent>( entity ) };
+            ScriptHandle handle{ script.GetHandle() };
+
+            if ( !handle.IsEmpty() ) {
+                handle->Update( timeStep );
+            }
+        }
+    }
+
+    auto Scene::OnEntityAdded( entt::registry& reg, entt::entity e ) -> void {
+
+    }
+
+    auto Scene::OnEntityRemoved( entt::registry& reg, entt::entity e ) -> void {
 
     }
 
     auto Scene::OnRigidBodyAdded( entt::registry& reg, entt::entity e ) -> void {
+        if ( !reg.any_of<BoxColliderComponent>( e ) ) {
+            reg.emplace_or_replace<BoxColliderComponent>( e );
+        } else if ( !reg.any_of<SphereColliderComponent>( e ) ) {
+            reg.emplace_or_replace<SphereColliderComponent>( e );
+        }else if ( !reg.any_of<CapsuleColliderComponent>( e ) ) {
+            reg.emplace_or_replace<CapsuleColliderComponent>( e );
+        }else if ( !reg.any_of<MeshColliderComponent>( e ) ) {
+            reg.emplace_or_replace<MeshColliderComponent>( e );
+        }
+
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
         Entity* entity{ FindByID( tag.GetGUID() ) };
         mPhysicsWorld->AddRigidBody( entity );
@@ -230,16 +267,21 @@ namespace mikoto::scene {
         mPhysicsWorld->AddCollider( entity );
     }
 
-    auto Scene::OnRigidBodyRemoved( entt::registry& reg, entt::entity e ) const -> void {
-        // Add the component if it does not exist
-        if ( !reg.any_of<TransformComponent>( e ) ) {
-            reg.emplace_or_replace<RigidBodyComponent>( e );
+    auto Scene::OnRigidBodyRemoved( entt::registry& reg, entt::entity e ) -> void {
+        if (!mRegistry.valid( e ) || !mRegistry.any_of<RigidBodyComponent>( e )) {
+            return;
         }
 
-        RigidBodyComponent& rb{ reg.get<RigidBodyComponent>( e ) };
+        const TagComponent& tag{ reg.get<TagComponent>( e ) };
+        Entity* entity{ FindByID( tag.GetGUID() ) };
+        mPhysicsWorld->RemoveRigidBody( entity );
     }
 
-    auto Scene::OnColliderRemoved( entt::registry& reg, entt::entity e ) const -> void {
+    auto Scene::OnColliderRemoved( entt::registry& reg, entt::entity e ) -> void {
+        if (mRegistry.orphan(e)) {
+            return;
+        }
+
         // This does not remove the rigid body component. The idea is that
         // if there is no collider nobody will not respond to any type of collisions
         // Could use a custom collision (empty) in Jolt's side maybe? WIP
@@ -247,6 +289,9 @@ namespace mikoto::scene {
         // https://jrouwe.github.io/JoltPhysics/class_empty_shape.html
 
         // More complex shapes can be created with vertices
+        const TagComponent& tag{ reg.get<TagComponent>( e ) };
+        Entity* entity{ FindByID( tag.GetGUID() ) };
+        mPhysicsWorld->RemoveColliderBody( entity );
     }
 
     auto Scene::OnScriptAdded( entt::registry& reg, entt::entity e ) -> void {
@@ -699,8 +744,14 @@ namespace mikoto::scene {
             ( void )DestroyEntitySingle( childID );
         }
 
+        // Do entity cleanup
+        OnRigidBodyRemoved( mRegistry, mEntities[entityID]->mHandle );
+        OnColliderRemoved( mRegistry, mEntities[entityID]->mHandle );
+
+        // Remove from ECS
         mRegistry.destroy( mEntities[entityID]->mHandle );
 
+        // Remove from scene tracker
         const auto it{ mEntities.find( entityID ) };
         // Use iterator because we want to remove the pointer from root entities set
         // it is an entity that exists so we do not check against .end()
@@ -823,7 +874,7 @@ namespace mikoto::scene {
         emitter << YAML::EndMap;
     }
 
-    static auto SerializeComponent( const ColliderComponent& physicsComponent, YAML::Emitter& emitter ) -> void {
+    static auto SerializeComponent( const MeshColliderComponent& physicsComponent, YAML::Emitter& emitter ) -> void {
         emitter << YAML::BeginMap;
 
         emitter << YAML::EndMap;

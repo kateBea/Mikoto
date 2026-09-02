@@ -30,6 +30,8 @@
 #include <Core/Subsystem.hh>
 #include <Core/Singleton.hh>
 
+#include <Renderer/Core/PhysicsDebugRenderer.hh>
+
 namespace mikoto::scene {
     class Scene;
 }
@@ -57,6 +59,8 @@ namespace mikoto::physics {
 
         auto SetSimulationTarget( scene::Scene* scene ) -> void;
 
+        MKT_NODISCARD auto GetDebugRenderer() const -> renderer::PhysicsDebugRenderer*;
+
         MKT_NODISCARD auto GetJoltJobSystem() -> JPH::JobSystemThreadPool*;
         MKT_NODISCARD auto CreatePhysicsWorld(const PhysicsWorldCreateInfo& spec) -> PhysicsWorld*;
 
@@ -65,7 +69,10 @@ namespace mikoto::physics {
     private:
 
         PhysicsWorld* mActiveWorld{};
+
         eastl::unique_ptr<JPH::JobSystemThreadPool> mJobSystem{};
+        eastl::unique_ptr<renderer::PhysicsDebugRenderer> mPhysicsDebugRenderer{};
+
         ankerl::unordered_dense::map<scene::Scene*, eastl::unique_ptr<PhysicsWorld>> mWorlds{};
     };
 }

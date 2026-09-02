@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 #include <ranges>
 #include <cstdarg>
 #include <utility>
@@ -40,6 +41,12 @@
 
 #include <Physics/PhysicSystem.hh>
 #include <Physics/PhysicsWorld.hh>
+#include <Renderer/Core/PhysicsDebugRenderer.hh>
+
+// TODO: Command context needed because incomplete class
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/Core/CommandContext.hh>
 
 namespace mikoto::physics {
 
@@ -95,6 +102,17 @@ namespace mikoto::physics {
         // of your own job scheduler. JobSystemThreadPool is an example implementation.
         mJobSystem = eastl::make_unique<JPH::JobSystemThreadPool>( JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, threading::GetThreadConcurrency() );
 
+        // Physics debug renderer
+        auto physicsRendererDesc{ PhysicsDebugRendererCreateInfo{}
+            .SetName( "PhysicsDebugRenderer" )
+            .SetShaderBasePath( "Resources/Shaders/slang" )
+            .SetDevice( RenderSystem::Get()->GetGpuDevice() ) };
+        mPhysicsDebugRenderer = PhysicsDebugRenderer::Create( physicsRendererDesc );
+
+        if (mPhysicsDebugRenderer) {
+            mPhysicsDebugRenderer->Init();
+        }
+
         mIsInitialized = true;
     }
 
@@ -128,6 +146,11 @@ namespace mikoto::physics {
 
         if (mActiveWorld) {
             mActiveWorld->Update( dt );
+
+            // Physics world is drawn using debug lines, when not paused
+            // Draw state prior to step so that debug lines are created from the same state
+            // (the constraints are solved on the current state and then the world is stepped)
+            mActiveWorld->DrawPhysics();
         }
     }
 
@@ -139,6 +162,10 @@ namespace mikoto::physics {
         } else {
             MKT_ASSERT( false, string::Format( "No physics simulation world for scene {}", scene->GetName() ).c_str() );
         }
+    }
+
+    auto PhysicSystem::GetDebugRenderer() const -> renderer::PhysicsDebugRenderer * {
+        return mPhysicsDebugRenderer.get();
     }
 
     auto PhysicSystem::GetJoltJobSystem() -> JPH::JobSystemThreadPool * {
@@ -156,4 +183,4 @@ namespace mikoto::physics {
 
         return it->second.get();
     }
-}
+}// namespace mikoto::physics

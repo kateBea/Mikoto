@@ -32,6 +32,7 @@
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Skeleton/SkeletonPose.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -210,6 +211,8 @@ namespace mikoto::physics {
         auto Shutdown() -> void override;
         auto Update( float timeStep ) -> void override;
 
+        auto DrawPhysics() -> void;
+
         auto AddRigidBody( Entity* entity ) -> void;
         auto AddCollider( Entity* entity ) -> void;
 
@@ -281,6 +284,17 @@ namespace mikoto::physics {
 
         std::atomic_uint64_t mBodyIdCounter{ 0 };
         ankerl::unordered_dense::map<u64, JPH::Body*> mBodies{};
+
+        // Drawing settings
+#ifdef JPH_DEBUG_RENDERER
+        bool mDrawGetTriangles{ true };            // Draw all shapes using Shape::GetTrianglesStart/Next
+        bool mDrawConstraints{ true };             // If the constraints should be drawn
+        bool mDrawConstraintLimits{ true };        // If the constraint limits should be drawn
+        bool mDrawConstraintReferenceFrame{ true };// If the constraint reference frames should be drawn
+        bool mDrawBroadPhaseBounds{ true };        // If the bounds of the broadphase should be drawn
+        JPH::BodyManager::DrawSettings mBodyDrawSettings{};										// Settings for how to draw bodies from the body manager
+        JPH::SkeletonPose::DrawSettings mPoseDrawSettings{};										// Settings for drawing skeletal poses
+#endif // JPH_DEBUG_RENDERER
     };
 }
 

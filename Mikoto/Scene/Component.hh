@@ -494,17 +494,17 @@ namespace mikoto::scene {
         bool m_IsValidBody{ false };
     };
 
-    class ColliderComponent {
+    class MeshColliderComponent {
     public:
-        explicit ColliderComponent() = default;
+        explicit MeshColliderComponent() = default;
 
-        ColliderComponent( const ColliderComponent& other ) = default;
-        ColliderComponent( ColliderComponent&& other ) = default;
+        MeshColliderComponent( const MeshColliderComponent& other ) = default;
+        MeshColliderComponent( MeshColliderComponent&& other ) = default;
 
-        auto operator=( const ColliderComponent& other ) -> ColliderComponent& = default;
-        auto operator=( ColliderComponent&& other ) -> ColliderComponent& = default;
+        auto operator=( const MeshColliderComponent& other ) -> MeshColliderComponent& = default;
+        auto operator=( MeshColliderComponent&& other ) -> MeshColliderComponent& = default;
 
-        ~ColliderComponent() = default;
+        ~MeshColliderComponent() = default;
 
         MKT_NODISCARD auto GetRadius() const -> core::f32 { return mRadius; }
         MKT_NODISCARD auto GetHeight() const -> core::f32 { return mHeight; }
@@ -518,6 +518,54 @@ namespace mikoto::scene {
         core::f32 mHeight{};
 
         bool mIsTrigger{false};
+    };
+
+    class CapsuleColliderComponent {
+    public:
+        explicit CapsuleColliderComponent() = default;
+
+        CapsuleColliderComponent( const CapsuleColliderComponent& other ) = default;
+        CapsuleColliderComponent( CapsuleColliderComponent&& other ) = default;
+
+        auto operator=( const CapsuleColliderComponent& other ) -> CapsuleColliderComponent& = default;
+        auto operator=( CapsuleColliderComponent&& other ) -> CapsuleColliderComponent& = default;
+
+        ~CapsuleColliderComponent() = default;
+
+    private:
+        physics::ColliderType mType{ physics::ColliderType::eMesh };
+    };
+
+    class SphereColliderComponent {
+    public:
+        explicit SphereColliderComponent() = default;
+
+        SphereColliderComponent( const SphereColliderComponent& other ) = default;
+        SphereColliderComponent( SphereColliderComponent&& other ) = default;
+
+        auto operator=( const SphereColliderComponent& other ) -> SphereColliderComponent& = default;
+        auto operator=( SphereColliderComponent&& other ) -> SphereColliderComponent& = default;
+
+        ~SphereColliderComponent() = default;
+
+    private:
+        physics::ColliderType mType{ physics::ColliderType::eCapsule };
+    };
+
+    class BoxColliderComponent {
+    public:
+        explicit BoxColliderComponent() = default;
+
+        BoxColliderComponent( const BoxColliderComponent& other ) = default;
+        BoxColliderComponent( BoxColliderComponent&& other ) = default;
+
+        auto operator=( const BoxColliderComponent& other ) -> BoxColliderComponent& = default;
+        auto operator=( BoxColliderComponent&& other ) -> BoxColliderComponent& = default;
+
+        ~BoxColliderComponent() = default;
+
+    private:
+        physics::ColliderType mType{ physics::ColliderType::eSphere };
     };
 
     enum class CameraClearFlags {

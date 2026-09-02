@@ -41,6 +41,8 @@
 
 #include <Renderer/Core/RenderSystem.hh>
 
+#include <Physics/PhysicSystem.hh>
+
 #include <Panels/ScenePanel.hh>
 #include <Panels/StatsPanel.hh>
 #include <Panels/ProjectPanel.hh>
@@ -282,6 +284,7 @@ namespace mikoto::editor {
 
         mEditorState->mSceneRenderer = mSceneRenderer.get();
         mEditorState->mThumbnailRenderer = mThumbnailRenderer.get();
+        mEditorState->mPhysicsDebugRenderer = physics::PhysicSystem::Get()->GetDebugRenderer();
 
         // Prepare final image
         mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eTonemap_Output );
@@ -942,7 +945,7 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::UpdateSceneState( float ts  ) -> void {
-        mEditorState->mActiveScene->SetState( SceneState::eIdle );
+        mEditorState->mActiveScene->SetState( SceneState::eSimulating );
         mEditorState->mActiveScene->Update( ts );
     }
 

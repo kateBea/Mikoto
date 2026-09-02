@@ -30,9 +30,9 @@ option(MIKOTO_ENABLE_TRACY_PROFILING "Enable tracy profiling" OFF)
 # ======================================
 # Mikoto MSVC configurations
 # ======================================
-if(MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
-endif()
+#if(MSVC)
+#    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
+#endif()
 
 # ======================================
 # Language requirements

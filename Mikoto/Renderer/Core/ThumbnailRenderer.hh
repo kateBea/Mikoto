@@ -18,12 +18,14 @@
 #include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
 
-#include <../../Assets/ShaderLibrary.hh>
-#include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/Renderer.hh>
-#include <Renderer/Rhi/GpuDevice.hh>
-#include <Renderer/Rhi/Types.hh>
 #include <Scene/Scene.hh>
+
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Core/Renderer.hh>
+#include <Renderer/Core/FrameGraph.hh>
+
+#include <Assets/ShaderLibrary.hh>
 
 namespace mikoto::renderer {
 

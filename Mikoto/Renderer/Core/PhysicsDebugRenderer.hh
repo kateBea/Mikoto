@@ -60,6 +60,8 @@ namespace mikoto::renderer {
 
         auto Render( const scene::Scene* scene ) -> void override;
 
+        auto SetCameraPos(JPH::RVec3Arg inCameraPos) -> void;
+
         auto DrawLine(
             JPH::RVec3Arg inFrom,
             JPH::RVec3Arg inTo,
@@ -106,9 +108,71 @@ namespace mikoto::renderer {
     private:
         rhi::IGpuDevice* mDevice{};
 
+        JPH::RVec3 mCameraPos{};
+
         eastl::unique_ptr<FrameGraph> mFrameGraph{};
         eastl::unique_ptr<asset::ShaderLibrary> mShaderLibrary{};
     };
+
+
+    // Simplified physics debug renderer
+    struct PhysicsDebugRendererSimpleCreateInfo {
+        rhi::IGpuDevice* mDevice{};
+        eastl::string_view mName{};
+        eastl::string_view mShaderBasePath{};
+
+        rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
+
+        auto SetName( eastl::string_view name ) -> PhysicsDebugRendererSimpleCreateInfo&;
+        auto SetDevice( rhi::IGpuDevice* device ) -> PhysicsDebugRendererSimpleCreateInfo&;
+        auto SetShaderBasePath( eastl::string_view path ) -> PhysicsDebugRendererSimpleCreateInfo&;
+        auto SetRenderResolution( rhi::RenderResolution resolution ) -> PhysicsDebugRendererSimpleCreateInfo&;
+    };
+
+    class PhysicsDebugRendererSimple final : public IRenderer, public JPH::DebugRendererSimple  {
+    public:
+        explicit PhysicsDebugRendererSimple( const PhysicsDebugRendererSimpleCreateInfo& spec );
+
+        auto Init() -> void override;
+        auto Shutdown() -> void override;
+
+        auto Render( const scene::Scene* scene ) -> void override;
+
+        auto DrawLine(
+            JPH::RVec3Arg inFrom,
+            JPH::RVec3Arg inTo,
+            JPH::ColorArg inColor ) -> void override;
+
+        auto DrawText3D(
+            JPH::RVec3Arg inPosition,
+            const std::string_view& inString,
+            JPH::ColorArg inColor, float inHeight ) -> void override;
+
+        auto DrawTriangle(
+            JPH::RVec3Arg inV1,
+            JPH::RVec3Arg inV2,
+            JPH::RVec3Arg inV3,
+            JPH::ColorArg inColor,
+            ECastShadow inCastShadow ) -> void override;
+
+        MKT_NODISCARD static auto Create( const PhysicsDebugRendererSimpleCreateInfo& spec ) -> eastl::unique_ptr<PhysicsDebugRendererSimple>;
+
+    private:
+        // [Internal usage]
+        auto InitPasses() -> void;
+
+    private:
+        rhi::IGpuDevice* mDevice{};
+
+        eastl::unique_ptr<FrameGraph> mFrameGraph{};
+        eastl::unique_ptr<asset::ShaderLibrary> mShaderLibrary{};
+    };
+
+
+    // Debug renderer playback
+
+
+    // Debug renderer recorder
 }// namespace Mikoto
 
 #endif //MIKOTO_PHYSICS_DEBUG_RENDERER_HH

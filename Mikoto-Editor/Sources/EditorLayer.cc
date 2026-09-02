@@ -285,6 +285,7 @@ namespace mikoto::editor {
         mEditorState->mSceneRenderer = mSceneRenderer.get();
         mEditorState->mThumbnailRenderer = mThumbnailRenderer.get();
         mEditorState->mPhysicsDebugRenderer = physics::PhysicSystem::Get()->GetDebugRenderer();
+        mEditorState->mPhysicsDebugRendererSimple = physics::PhysicSystem::Get()->GetDebugRendererSimple();
 
         // Prepare final image
         mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eTonemap_Output );
@@ -982,6 +983,17 @@ namespace mikoto::editor {
         }
 
         mEditorCamera->Update( ts );
+
+        float3 camePos{ mEditorCamera->GetPosition() };
+        JPH::RVec3 cameraPositionWorldSpace{ camePos.x, camePos.y, camePos.z };
+
+        if (mEditorState->mPhysicsDebugRenderer) {
+            mEditorState->mPhysicsDebugRenderer->SetCameraPos( cameraPositionWorldSpace );
+        }
+
+        if (mEditorState->mPhysicsDebugRendererSimple) {
+            mEditorState->mPhysicsDebugRendererSimple->SetCameraPos( cameraPositionWorldSpace );
+        }
     }
 
     auto EditorLayer::UpdateRendererState( float ts ) -> void {

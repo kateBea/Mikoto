@@ -69,6 +69,7 @@ namespace mikoto::editor {
         renderer::SceneRenderer* mSceneRenderer{};
         renderer::ThumbnailRenderer* mThumbnailRenderer{};
         renderer::PhysicsDebugRenderer* mPhysicsDebugRenderer{};
+        renderer::PhysicsDebugRendererSimple* mPhysicsDebugRendererSimple{};
 
         Theme* mActiveTheme{};
 

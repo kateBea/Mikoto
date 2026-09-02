@@ -113,6 +113,19 @@ namespace mikoto::physics {
             mPhysicsDebugRenderer->Init();
         }
 
+        // Physics debug renderer simple
+        auto physicsRendererSimpleDesc{ PhysicsDebugRendererSimpleCreateInfo{}
+            .SetName( "PhysicsDebugRendererSimple" )
+            .SetShaderBasePath( "Resources/Shaders/slang" )
+            .SetDevice( RenderSystem::Get()->GetGpuDevice() ) };
+        mPhysicsDebugRendererSimple = PhysicsDebugRendererSimple::Create( physicsRendererSimpleDesc );
+
+        if (mPhysicsDebugRendererSimple) {
+            mPhysicsDebugRendererSimple->Init();
+        }
+
+        JPH::DebugRenderer::sInstance = mPhysicsDebugRendererSimple.get();
+
         mIsInitialized = true;
     }
 
@@ -150,7 +163,7 @@ namespace mikoto::physics {
             // Physics world is drawn using debug lines, when not paused
             // Draw state prior to step so that debug lines are created from the same state
             // (the constraints are solved on the current state and then the world is stepped)
-            mActiveWorld->DrawPhysics();
+            mActiveWorld->DrawPhysics( mPhysicsDebugRenderer.get() );
         }
     }
 
@@ -166,6 +179,10 @@ namespace mikoto::physics {
 
     auto PhysicSystem::GetDebugRenderer() const -> renderer::PhysicsDebugRenderer * {
         return mPhysicsDebugRenderer.get();
+    }
+
+    auto PhysicSystem::GetDebugRendererSimple() const -> renderer::PhysicsDebugRendererSimple * {
+        return mPhysicsDebugRendererSimple.get();
     }
 
     auto PhysicSystem::GetJoltJobSystem() -> JPH::JobSystemThreadPool * {

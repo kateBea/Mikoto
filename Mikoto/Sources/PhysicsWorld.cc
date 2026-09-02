@@ -152,23 +152,23 @@ namespace mikoto::physics {
         PostUpdate();
     }
 
-    auto PhysicsWorld::DrawPhysics() -> void {
+    auto PhysicsWorld::DrawPhysics( JPH::DebugRenderer* renderer ) -> void {
         mBodyDrawSettings.mDrawShape = true;
         mBodyDrawSettings.mDrawBoundingBox = true;
 
 #ifdef JPH_DEBUG_RENDERER
-        mSimulationInfo.mPhysicsSystem.DrawBodies(mBodyDrawSettings, PhysicSystem::Get()->GetDebugRenderer());
+        mSimulationInfo.mPhysicsSystem.DrawBodies(mBodyDrawSettings, renderer);
 
         if (mDrawConstraints) {
-            mSimulationInfo.mPhysicsSystem.DrawConstraints(PhysicSystem::Get()->GetDebugRenderer());
+            mSimulationInfo.mPhysicsSystem.DrawConstraints(renderer);
         }
 
         if (mDrawConstraintLimits) {
-            mSimulationInfo.mPhysicsSystem.DrawConstraintLimits(PhysicSystem::Get()->GetDebugRenderer());
+            mSimulationInfo.mPhysicsSystem.DrawConstraintLimits(renderer);
         }
 
         if (mDrawConstraintReferenceFrame) {
-            mSimulationInfo.mPhysicsSystem.DrawConstraintReferenceFrame(PhysicSystem::Get()->GetDebugRenderer());
+            mSimulationInfo.mPhysicsSystem.DrawConstraintReferenceFrame(renderer);
         }
 
         // if (mDrawBroadPhaseBounds)

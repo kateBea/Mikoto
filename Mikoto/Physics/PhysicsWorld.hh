@@ -211,7 +211,7 @@ namespace mikoto::physics {
         auto Shutdown() -> void override;
         auto Update( float timeStep ) -> void override;
 
-        auto DrawPhysics() -> void;
+        auto DrawPhysics( JPH::DebugRenderer* renderer ) -> void;
 
         auto AddRigidBody( Entity* entity ) -> void;
         auto AddCollider( Entity* entity ) -> void;

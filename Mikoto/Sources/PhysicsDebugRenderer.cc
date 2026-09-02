@@ -102,6 +102,10 @@ namespace mikoto::renderer {
         }
     }
 
+    auto PhysicsDebugRenderer::SetCameraPos( JPH::RVec3Arg inCameraPos ) -> void {
+        mCameraPos = inCameraPos;
+    }
+
     auto PhysicsDebugRenderer::DrawLine(
             JPH::RVec3Arg inFrom,
             JPH::RVec3Arg inTo,
@@ -159,5 +163,102 @@ namespace mikoto::renderer {
 
     auto PhysicsDebugRenderer::Create( const PhysicsDebugRendererCreateInfo& spec ) -> eastl::unique_ptr<PhysicsDebugRenderer> {
         return eastl::make_unique<PhysicsDebugRenderer>( spec );
+    }
+
+
+    auto PhysicsDebugRendererSimpleCreateInfo::SetName( eastl::string_view name ) -> PhysicsDebugRendererSimpleCreateInfo & {
+        mName = name;
+        return *this;
+    }
+
+    auto PhysicsDebugRendererSimpleCreateInfo::SetDevice( IGpuDevice *device ) -> PhysicsDebugRendererSimpleCreateInfo & {
+        mDevice = device;
+        return *this;
+    }
+
+    auto PhysicsDebugRendererSimpleCreateInfo::SetShaderBasePath( eastl::string_view path ) -> PhysicsDebugRendererSimpleCreateInfo & {
+        mShaderBasePath = path;
+        return *this;
+    }
+
+    auto PhysicsDebugRendererSimpleCreateInfo::SetRenderResolution( RenderResolution resolution ) -> PhysicsDebugRendererSimpleCreateInfo & {
+        mResolution = resolution;
+        return *this;
+    }
+
+    PhysicsDebugRendererSimple::PhysicsDebugRendererSimple( const PhysicsDebugRendererSimpleCreateInfo& desc  )
+        : mDevice{ desc.mDevice }
+    {
+
+    }
+
+    auto PhysicsDebugRendererSimple::Init() -> void {
+        DebugRenderer::Initialize();
+
+        // Temporary, as the Direct3D 11 backend does not offer support for
+        // bindless which the frame graph relies on for most of its functionality
+        if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 )) {
+            MKT_CORE_LOGGER_WARN( "Scene renderer expects Vulkan" );
+            return;
+        }
+
+        const ShaderLibraryDescription description{
+            .mDevice = mDevice,
+            .mRootPath{ "Resources/Shaders/slang" } };
+        mShaderLibrary = eastl::make_unique<ShaderLibrary>( description );
+
+        if (mShaderLibrary) {
+            mShaderLibrary->Initialize();
+        }
+
+        mFrameGraph = FrameGraph::Create( mDevice, mShaderLibrary.get() );
+
+        InitPasses();
+    }
+
+    auto PhysicsDebugRendererSimple::Shutdown() -> void {
+        if (mShaderLibrary) {
+            mShaderLibrary->Shutdown();
+            mShaderLibrary.reset();
+        }
+    }
+
+    auto PhysicsDebugRendererSimple::Render( const scene::Scene* scene ) -> void {
+        // Temporary, as the Direct3D 11 backend does not offer support for
+        // bindless which the frame graph relies on for most of its functionality
+        if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 )) {
+            return;
+        }
+    }
+
+    auto PhysicsDebugRendererSimple::DrawLine(
+            JPH::RVec3Arg inFrom,
+            JPH::RVec3Arg inTo,
+            JPH::ColorArg inColor ) -> void {
+        MKT_CORE_LOGGER_TRACE( "PhysicsDebugRendererSimple::DrawLine" );
+    }
+
+    auto PhysicsDebugRendererSimple::DrawTriangle(
+        JPH::RVec3Arg inV1,
+        JPH::RVec3Arg inV2,
+        JPH::RVec3Arg inV3,
+        JPH::ColorArg inColor,
+        ECastShadow inCastShadow ) -> void {
+        MKT_CORE_LOGGER_TRACE( "PhysicsDebugRendererSimple::DrawTriangle" );
+    }
+
+    auto PhysicsDebugRendererSimple::DrawText3D(
+        JPH::RVec3Arg inPosition,
+        const std::string_view& inString,
+        JPH::ColorArg inColor, float inHeight ) -> void {
+        MKT_CORE_LOGGER_TRACE( "PhysicsDebugRendererSimple::DrawText3D" );
+    }
+
+    auto PhysicsDebugRendererSimple::InitPasses() -> void {
+
+    }
+
+    auto PhysicsDebugRendererSimple::Create( const PhysicsDebugRendererSimpleCreateInfo& spec ) -> eastl::unique_ptr<PhysicsDebugRendererSimple> {
+        return eastl::make_unique<PhysicsDebugRendererSimple>( spec );
     }
 }// namespace mikoto::renderer

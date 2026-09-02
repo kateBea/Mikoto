@@ -88,10 +88,10 @@ auto InitEditor() -> bool {
 
         // gApplication->PushLayer<EditorDebugLayer>( gWindow );
         // gApplication->PushLayer<EditorRayTraceLayer>( gWindow );
-        // gApplication->PushLayer<EditorHelloTriangleLayer>( gWindow );
-        // gApplication->PushLayer<EditorHelloCubeLayer>( gWindow );
+        //gApplication->PushLayer<EditorHelloTriangleLayer>( gWindow );
+        //gApplication->PushLayer<EditorHelloCubeLayer>( gWindow );
 
-        gApplication->PushLayer<EditorLayer>( gWindow );
+        //gApplication->PushLayer<EditorLayer>( gWindow );
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Init App exception - e.what(): {}", e.what() );
 

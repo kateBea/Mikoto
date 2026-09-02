@@ -395,7 +395,7 @@ namespace mikoto::renderer::vulkan {
             .AddColorFormat( Format::eBGRA8_UNORM )
 
             .SetPolygonMode( PolygonMode::eFill )
-            .SetCullMode( CullMode::eCullBack )
+            .SetCullMode( CullMode::eNone )
             .SetWindingOrder( WindingOrder::eCounterClockwise )
             .SetTopology( PrimitiveTopology::eTriangleList )
             .SetPipelineLayout( mPipelineLayoutHandle ) };

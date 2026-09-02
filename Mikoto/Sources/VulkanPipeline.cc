@@ -77,16 +77,11 @@ namespace mikoto::renderer::vulkan {
             // This dynamic state is not added because not all hardware support width != 1
             // so we just keep it at 1.0f for everyone by default
             // vkCmdSetLineWidth can be used to change the width
-            mDynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
+            //mDynamicStates.emplace_back( VK_DYNAMIC_STATE_LINE_WIDTH );
         }
 
-        // The maximum line width that is supported depends on the hardware,
-        // any line thicker than 1.0f requires you to enable the wideLines GPU feature.
-        mRasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+        mRasterizationInfo.cullMode = vulkan::GetCullMode( mDesc.mCullMode );;
         mRasterizationInfo.frontFace = vulkan::GetWindingOrder(mDesc.mWindingOrder);
-
-        // This produces black screen on my PC
-        //mRasterizationInfo.cullMode = vulkan::GetCullMode( mDesc.mCullMode );
 
         mRasterizationInfo.depthBiasEnable = VK_FALSE;
         mRasterizationInfo.depthBiasConstantFactor = 0.0f;

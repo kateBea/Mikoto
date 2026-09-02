@@ -430,7 +430,7 @@ namespace mikoto::editor {
     auto EditorHelloCubeLayer::OnEvent( core::IEvent &event ) -> void {
         if (event.IsType( EventType::KEY_PRESSED_EVENT )) {
             if (const auto *keyPressed{ dynamic_cast<core::KeyPressedEvent *>( MKT_ADDRESSOF( event ) ) }) {
-                if (keyPressed->GetKeyCode() == KeyCode::Key_H) {
+                if (keyPressed->GetKeyCode() == KeyCode::Key_Y) {
                     mIsImguiWindowActive = !mIsImguiWindowActive;
                 }
             }

@@ -60,7 +60,7 @@ namespace mikoto::renderer {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        auto Render( const scene::Scene* scene ) -> void override;
+        auto Render() -> void override;
 
         auto SetCameraPos(JPH::RVec3Arg inCameraPos) -> void;
 
@@ -161,7 +161,7 @@ namespace mikoto::renderer {
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        auto Render( const scene::Scene* scene ) -> void override;
+        auto Render() -> void override;
 
         auto SetCamera( const scene::Camera* camera ) -> void;
 
@@ -189,7 +189,6 @@ namespace mikoto::renderer {
 
     private:
         // [Internal usage]
-        auto InitPasses() -> void;
         auto InitSimpleDrawPasses() -> void;
 
         auto RenderLines() -> void;

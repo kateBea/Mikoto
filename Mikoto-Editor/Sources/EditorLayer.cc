@@ -949,11 +949,11 @@ namespace mikoto::editor {
         mSceneRenderer->Render( mEditorState->mActiveScene );
 
         if (mEditorState->mPhysicsDebugRenderer) {
-            mEditorState->mPhysicsDebugRenderer->Render( mEditorState->mActiveScene );
+            mEditorState->mPhysicsDebugRenderer->Render();
         }
 
         if (mEditorState->mPhysicsDebugRendererSimple) {
-            mEditorState->mPhysicsDebugRendererSimple->Render( mEditorState->mActiveScene );
+            mEditorState->mPhysicsDebugRendererSimple->Render();
         }
     }
 

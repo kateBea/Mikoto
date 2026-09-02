@@ -121,7 +121,7 @@ namespace mikoto::renderer {
         }
     }
 
-    auto PhysicsDebugRenderer::Render( const scene::Scene* scene ) -> void {
+    auto PhysicsDebugRenderer::Render() -> void {
         // Temporary, as the Direct3D 11 backend does not offer support for
         // bindless which the frame graph relies on for most of its functionality
         if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 )) {
@@ -222,16 +222,24 @@ namespace mikoto::renderer {
     auto PhysicsDebugRendererSimple::Init() -> void {
         DebugRenderer::Initialize();
 
-        const ShaderLibraryDescription description{
-            .mDevice = mDevice,
-            .mRootPath{ "Resources/Shaders/slang" } };
-
-        InitPasses();
+        // For some reason slang is unable to generate spirv shader code
+        // it is loaded from spirv files instead for now
+        if (!mDevice->IsGraphicsApi(GraphicsAPI::eVulkan)) {
+            MKT_CORE_LOGGER_WARN( "PhysicsDebugRendererSimple expects Vulkan" );
+            return;
+        }
 
         InitSimpleDrawPasses();
     }
 
     auto PhysicsDebugRendererSimple::Shutdown() -> void {
+        // For some reason slang is unable to generate spirv shader code
+        // it is loaded from spirv files instead for now
+        if (!mDevice->IsGraphicsApi(GraphicsAPI::eVulkan)) {
+            MKT_CORE_LOGGER_WARN( "PhysicsDebugRendererSimple expects Vulkan" );
+            return;
+        }
+
         mDevice->WaitIdle();
 
         mPipelineLines.Release();
@@ -258,7 +266,13 @@ namespace mikoto::renderer {
         mTrianglesBuffer.Release();
     }
 
-    auto PhysicsDebugRendererSimple::Render( const scene::Scene* scene ) -> void {
+    auto PhysicsDebugRendererSimple::Render() -> void {
+        // For some reason slang is unable to generate spirv shader code
+        // it is loaded from spirv files instead for now
+        if (!mDevice->IsGraphicsApi(GraphicsAPI::eVulkan)) {
+            return;
+        }
+
         mCommandList->Begin( { .mScopeName = "PhysicsDebugRendererSimple Render" } );
 
         if (!mLines.empty()) {
@@ -316,10 +330,6 @@ namespace mikoto::renderer {
             .mColor = ToDebugColor( inColor ),
             .mHeight = inHeight,
             .mText = { inString.data(), inString.size() } } );
-    }
-
-    auto PhysicsDebugRendererSimple::InitPasses() -> void {
-
     }
 
     auto PhysicsDebugRendererSimple::InitSimpleDrawPasses() -> void {
@@ -447,7 +457,7 @@ namespace mikoto::renderer {
         auto graphicsState{ GraphicsState{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImageLines )
-            .AddRenderTarget( mColorImageLines, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
+            .AddRenderTarget( mColorImageLines, rhi::kColorBlack ) };
         mCommandList->BeginRendering( graphicsState );
 
         auto bindingDescription{ BindResourcesDescription{}
@@ -463,7 +473,7 @@ namespace mikoto::renderer {
 
         const auto drawArguments{ DrawArguments{}
             .SetInstanceCount( 1 )
-            .SetVertexCount( as<u32>(mLines.size()) ) };
+            .SetVertexCount( as<u32>(mLines.size()) * 2 ) };
         mCommandList->Draw( drawArguments );
 
         mCommandList->EndRendering();
@@ -491,7 +501,7 @@ namespace mikoto::renderer {
         auto graphicsState{ GraphicsState{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImageTriangles )
-            .AddRenderTarget( mColorImageTriangles, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
+            .AddRenderTarget( mColorImageTriangles, rhi::kColorBlack ) };
         mCommandList->BeginRendering( graphicsState );
 
         auto bindingDescription{ BindResourcesDescription{}
@@ -516,6 +526,13 @@ namespace mikoto::renderer {
     }
 
     auto PhysicsDebugRendererSimple::DisplayImGuiWindowTriangles(bool &open) -> void {
+        // For some reason slang is unable to generate spirv shader code
+        // it is loaded from spirv files instead for now
+        if (!mDevice->IsGraphicsApi(GraphicsAPI::eVulkan)) {
+            MKT_CORE_LOGGER_WARN( "PhysicsDebugRendererSimple expects Vulkan" );
+            return;
+        }
+
         ImGui::SetNextWindowSize( ImVec2( 420.0f, 500.0f ), ImGuiCond_FirstUseEver );
 
         if ( ImGui::Begin( "Physics Debug Triangles", &open  ) ) {
@@ -545,6 +562,13 @@ namespace mikoto::renderer {
     }
 
     auto PhysicsDebugRendererSimple::DisplayImGuiWindowLines( bool& open  ) -> void {
+        // For some reason slang is unable to generate spirv shader code
+        // it is loaded from spirv files instead for now
+        if (!mDevice->IsGraphicsApi(GraphicsAPI::eVulkan)) {
+            MKT_CORE_LOGGER_WARN( "PhysicsDebugRendererSimple expects Vulkan" );
+            return;
+        }
+
         ImGui::SetNextWindowSize( ImVec2( 420.0f, 500.0f ), ImGuiCond_FirstUseEver );
 
         if ( ImGui::Begin( "Physics Debug Lines", &open ) ) {

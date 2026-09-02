@@ -26,7 +26,8 @@ namespace mikoto::renderer {
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
 
-        virtual auto Render( const scene::Scene* scene ) -> void = 0;
+        virtual auto Render() -> void {}
+        virtual auto Render( const scene::Scene* scene ) -> void {}
     };
 }
 

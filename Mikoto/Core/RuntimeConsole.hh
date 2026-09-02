@@ -78,12 +78,14 @@ namespace mikoto::core {
         MKT_NODISCARD auto GetLogs() const -> const eastl::vector<eastl::string>&;
 
     private:
+        auto ClearLogs() -> void;
         auto RegisterDefaultCommands() -> void;
 
     private:
-        eastl::string m_Name{};
+        eastl::string mName{};
         eastl::vector<eastl::string> mLogEntries{};
 
+        std::mutex mLogRegisterMutex{};
         std::mutex mCommandRegisterMutex{};
         ankerl::unordered_dense::map<eastl::string, Command> mRegisteredCommands{};
     };

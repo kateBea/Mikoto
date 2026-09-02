@@ -119,6 +119,8 @@ namespace mikoto::core {
     }
 
     auto RuntimeConsole::AddLog( ConsoleMessage message ) -> void {
+        std::lock_guard lock{ mLogRegisterMutex };
+
         eastl::string prefix{};
 
         switch ( message.Level ) {
@@ -147,20 +149,31 @@ namespace mikoto::core {
         return mLogEntries;
     }
 
+    auto RuntimeConsole::ClearLogs() -> void {
+        std::lock_guard lock{ mLogRegisterMutex };
+        mLogEntries.clear();
+    }
+
     auto RuntimeConsole::RegisterDefaultCommands() -> void {
         RegisterCommand("echo", "Prints a message to the console",
-            []( const eastl::vector<eastl::string>& args ) {
+            [this]( const eastl::vector<eastl::string>& args ) {
                 eastl::string msg{};
                 for ( auto& arg: args ) {
                     msg += string::Format( "{} ", arg);
                 }
 
-                Get()->AddLog( { ConsoleLogLevel::eInfo, msg } );
+                AddLog( { ConsoleLogLevel::eInfo, msg } );
             } );
 
-        RegisterCommand( "/", "Executes an external system command", []( const eastl::vector<eastl::string>& args ) {
+        RegisterCommand("clear", "Clears all console messages",
+            [this]( const eastl::vector<eastl::string>& ) {
+                ClearLogs();
+            } );
+
+        RegisterCommand( "/", "Executes an external system command",
+            [this]( const eastl::vector<eastl::string>& args ) {
             if ( args.empty() ) {
-                Get()->AddLog( { ConsoleLogLevel::eWarning, "Usage: /<command> [ARGS]" } );
+                AddLog( { ConsoleLogLevel::eWarning, "Usage: /<command> [ARGS]" } );
                 return;
             }
 
@@ -171,9 +184,9 @@ namespace mikoto::core {
             }
 
             // Submit for execution
-            Get()->AddLog( { ConsoleLogLevel::eDebug, "Running command: " + cmd } );
-            process::RunAsync( cmd, []( const eastl::string& line ) {
-                Get()->AddLog( { ConsoleLogLevel::eInfo, line } );
+            AddLog( { ConsoleLogLevel::eDebug, "Running command: " + cmd } );
+            process::RunAsync( cmd, [this]( const eastl::string& line ) {
+                AddLog( { ConsoleLogLevel::eInfo, line } );
             } );
         } );
     }

@@ -54,6 +54,8 @@ namespace mikoto::renderer::vulkan {
 
         // [Internal usage]
         auto CompileForSlang() -> void;
+        auto CompileForGlsl() -> void;
+        auto CompileForSpirv() -> void;
 
     private:
         // Slang stuff
@@ -66,6 +68,9 @@ namespace mikoto::renderer::vulkan {
 
         VkShaderModule mModule{};
         VkPipelineShaderStageCreateInfo mStageCreateInfo{};
+
+        // SpirV
+        eastl::vector<core::u32> mSpirvContents{};
 
 #if !defined(NDEBUG)
         eastl::string mShaderCode{};

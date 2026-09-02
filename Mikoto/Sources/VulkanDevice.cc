@@ -3030,17 +3030,11 @@ namespace mikoto::renderer::vulkan {
                     case ResourceType::eTexture_UAV:
                         break;
                     case ResourceType::eTypedBuffer_SRV:
-                        break;
                     case ResourceType::eTypedBuffer_UAV:
-                        break;
                     case ResourceType::eStructuredBuffer_SRV:
-                        break;
                     case ResourceType::eStructuredBuffer_UAV:
-                        break;
                     case ResourceType::eRawBuffer_SRV:
-                        break;
                     case ResourceType::eRawBuffer_UAV:
-                        break;
                     case ResourceType::eConstantBuffer:
                         writer.WriteBuffer(
                             item.mSlot,

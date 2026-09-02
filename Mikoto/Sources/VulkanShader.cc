@@ -73,7 +73,21 @@ namespace mikoto::renderer::vulkan {
         // Contents are expected to be UTF-8 string, HLSL specifically expected WCHAR cause windows things
         // I use an string because I do not know for certain client will keep contents alive until the creation of the shader
         // in the call to Initialize()
-        mSlangContents = eastl::string{ (cstr)desc.mShaderContents, desc.mShaderContentsSize };
+
+        switch (mLanguage) {
+            case ShaderLanguage::eSlang:
+                mSlangContents = eastl::string{ (cstr)desc.mShaderContents, desc.mShaderContentsSize };
+                break;
+            case ShaderLanguage::eGLSL:
+                break;
+            case ShaderLanguage::eSPIRV: {
+                mSpirvContents = eastl::vector<u32>{
+                    static_cast<const u32*>(desc.mShaderContents),
+                    static_cast<const u32*>(desc.mShaderContents) + desc.mShaderContentsSize / sizeof(u32) };
+                break;
+            }
+            default:;
+        }
     }
 
     auto Shader::DumpShaderCode() -> void {
@@ -117,6 +131,12 @@ namespace mikoto::renderer::vulkan {
             case ShaderLanguage::eSlang:
                 CompileForSlang();
                 break;
+            case ShaderLanguage::eGLSL:
+                CompileForGlsl();
+                break;
+            case ShaderLanguage::eSPIRV:
+                CompileForSpirv();
+                break;
             default:
                 MKT_ASSERT( false, "Only slang supported for vulkan now." );
         }
@@ -133,7 +153,7 @@ namespace mikoto::renderer::vulkan {
         Slang::ComPtr<slang::IBlob> diagnosticsBlob{};
 
         // Attempt to load from provided string
-        mSlangModule = session->loadModuleFromSourceString( moduleName.data(), modulePath.data(), mSlangContents.c_str(), diagnosticsBlob.writeRef() );
+        mSlangModule = session->loadModuleFromSource( moduleName.data(), modulePath.data(), nullptr, diagnosticsBlob.writeRef() );
 
         // If fails we attempt to load from path
         if ( !mSlangModule ) {
@@ -143,7 +163,7 @@ namespace mikoto::renderer::vulkan {
                 MKT_CORE_LOGGER_ERROR( "Vulkan shader Error loading slang from contents: \n{}", errorMessages );
             }
 
-            mSlangModule = session->loadModuleFromSource( moduleName.data(), modulePath.data(), nullptr, diagnosticsBlob.writeRef() );
+            mSlangModule = session->loadModuleFromSourceString( moduleName.data(), modulePath.data(), mSlangContents.c_str(), diagnosticsBlob.writeRef() );
             if ( !mSlangModule ) {
                 if ( diagnosticsBlob ) {
                     cstr errorMessages = ( cstr )diagnosticsBlob->getBufferPointer();
@@ -204,6 +224,50 @@ namespace mikoto::renderer::vulkan {
 
         mModuleName.clear();
         mModuleName.shrink_to_fit();
+    }
+
+    auto Shader::CompileForGlsl() -> void {
+
+    }
+
+    auto Shader::CompileForSpirv() -> void {
+#if MIKOTO_DEBUG
+        // Check client specified correctly the stage
+        SpvReflectShaderModule module{};
+        SpvReflectResult result{ spvReflectCreateShaderModule(MKT_VECTOR_SIZE_BYTES( mSpirvContents ), mSpirvContents.data(), &module) };
+        if (result == SPV_REFLECT_RESULT_SUCCESS) {
+            VkShaderStageFlagBits moduleStage{ as<VkShaderStageFlagBits>( module.shader_stage ) };
+            if (GetShaderModuleStage( mStage ) != moduleStage) {
+                mStage = GetShaderModuleStage( moduleStage );
+                MKT_CORE_LOGGER_WARN( "Specified wrong stage for shader {}. Changed to right type.", mModulePath.c_str() );
+            }
+        }
+#endif
+
+        VkShaderModuleCreateInfo moduleCreateInfo{ initializers::ShaderModuleCreateInfo() };
+        moduleCreateInfo.codeSize = MKT_VECTOR_SIZE_BYTES( mSpirvContents );
+        moduleCreateInfo.pCode = as<u32*>( mSpirvContents.data() );
+
+        MKT_VK_CHECK( vkCreateShaderModule(
+            checked_cast<Device*>( mDevice )->GetDevice(),
+            MKT_ADDRESSOF( moduleCreateInfo ),
+            nullptr,
+            MKT_ADDRESSOF( mModule ) ));
+
+        mStageCreateInfo = initializers::PipelineShaderStageCreateInfo();
+        mStageCreateInfo.stage = GetShaderModuleStage( mStage );
+        mStageCreateInfo.module = mModule;
+        mStageCreateInfo.pName = mEntryPoint.c_str();
+        mStageCreateInfo.flags = 0;
+        mStageCreateInfo.pNext = nullptr;
+        mStageCreateInfo.pSpecializationInfo = nullptr;
+
+#if !defined(NDEBUG)
+        // For debug purposes I store as GLSL
+        //mShaderCode = GetGlslFromSpirv( mSpirvContents.data(), MKT_VECTOR_SIZE_BYTES( mSpirvContents ) );
+#endif
+
+        mSpirvContents.clear();
     }
 
     auto Shader::Release() -> void {

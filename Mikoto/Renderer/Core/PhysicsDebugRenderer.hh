@@ -131,6 +131,29 @@ namespace mikoto::renderer {
         auto SetRenderResolution( rhi::RenderResolution resolution ) -> PhysicsDebugRendererSimpleCreateInfo&;
     };
 
+    struct DebugVertex {
+        core::float4 mPosition{};
+        core::float4 mColor{};
+    };
+
+    struct DebugLine {
+        DebugVertex mFrom{};
+        DebugVertex mTo{};
+    };
+
+    struct DebugTriangle {
+        DebugVertex mV1{};
+        DebugVertex mV2{};
+        DebugVertex mV3{};
+    };
+
+    struct DebugText {
+        core::float4 mPosition{};
+        core::float4 mColor{};
+        core::f32 mHeight{};
+        eastl::string mText{};
+    };
+
     class PhysicsDebugRendererSimple final : public IRenderer, public JPH::DebugRendererSimple  {
     public:
         explicit PhysicsDebugRendererSimple( const PhysicsDebugRendererSimpleCreateInfo& spec );
@@ -139,6 +162,8 @@ namespace mikoto::renderer {
         auto Shutdown() -> void override;
 
         auto Render( const scene::Scene* scene ) -> void override;
+
+        auto SetCamera( const scene::Camera* camera ) -> void;
 
         auto DrawLine(
             JPH::RVec3Arg inFrom,
@@ -157,17 +182,52 @@ namespace mikoto::renderer {
             JPH::ColorArg inColor,
             ECastShadow inCastShadow ) -> void override;
 
+        auto DisplayImGuiWindowLines( bool& open ) -> void;
+        auto DisplayImGuiWindowTriangles( bool& open ) -> void;
+
         MKT_NODISCARD static auto Create( const PhysicsDebugRendererSimpleCreateInfo& spec ) -> eastl::unique_ptr<PhysicsDebugRendererSimple>;
 
     private:
         // [Internal usage]
         auto InitPasses() -> void;
+        auto InitSimpleDrawPasses() -> void;
+
+        auto RenderLines() -> void;
+        auto RenderTexts() -> void;
+        auto RenderTriangles() -> void;
 
     private:
         rhi::IGpuDevice* mDevice{};
 
-        eastl::unique_ptr<FrameGraph> mFrameGraph{};
-        eastl::unique_ptr<asset::ShaderLibrary> mShaderLibrary{};
+        const scene::Camera* mCamera{};
+
+        eastl::vector<DebugLine> mLines{};
+        eastl::vector<DebugText> mTexts{};
+        eastl::vector<DebugTriangle> mTriangles{};
+
+        bool mIsImguiWindowActiveLines{};
+        bool mIsImguiWindowActiveTriangles{};
+
+        renderer::rhi::BufferHandle mLinesBuffer{};
+        renderer::rhi::BufferHandle mTrianglesBuffer{};
+
+        renderer::rhi::TextureHandle mColorImageTriangles{};
+        renderer::rhi::TextureHandle mDepthImageTriangles{};
+
+        renderer::rhi::TextureHandle mColorImageLines{};
+        renderer::rhi::TextureHandle mDepthImageLines{};
+
+        renderer::rhi::ShaderModuleHandle mVertexShader{};
+        renderer::rhi::ShaderModuleHandle mPixelShader{};
+
+        renderer::rhi::CommandListHandle mCommandList{};
+
+        renderer::rhi::PipelineHandle mPipelineLines{};
+        renderer::rhi::PipelineHandle mPipelineTriangles{};
+        renderer::rhi::BindingSetHandle mBindingSetLinesHandle{};
+        renderer::rhi::BindingSetHandle mBindingSetTrianglesHandle{};
+        renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};
+        renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
     };
 
 

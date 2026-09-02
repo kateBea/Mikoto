@@ -139,6 +139,16 @@ namespace mikoto::physics {
 
         mActiveWorld = nullptr;
 
+        if (mPhysicsDebugRenderer) {
+            mPhysicsDebugRenderer->Shutdown();
+            mPhysicsDebugRenderer.reset();
+        }
+
+        if (mPhysicsDebugRendererSimple) {
+            mPhysicsDebugRendererSimple->Shutdown();
+            mPhysicsDebugRendererSimple.reset();
+        }
+
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down PhysicService..." );

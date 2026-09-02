@@ -223,6 +223,10 @@ namespace mikoto::editor {
                             panel->SetVisible( panelsVisibilityState[panel.get()] );
                         }
                     }
+                } else if (keyPressed->GetKeyCode() == KeyCode::Key_F4) {
+                    mDisplayPhysicsPanelLines = !mDisplayPhysicsPanelLines;
+                } else if (keyPressed->GetKeyCode() == KeyCode::Key_F5) {
+                    mDisplayPhysicsPanelTriangles = !mDisplayPhysicsPanelTriangles;
                 }
 
                 // Handle shortcuts
@@ -928,10 +932,29 @@ namespace mikoto::editor {
         for ( const auto &panel: mPanelRegistry | std::ranges::views::values ) {
             panel->OnUpdate( ts );
         }
+
+        // Make it dockable
+        if (mEditorState->mPhysicsDebugRendererSimple) {
+            if (mDisplayPhysicsPanelLines) {
+                mEditorState->mPhysicsDebugRendererSimple->DisplayImGuiWindowLines( mDisplayPhysicsPanelLines );
+            }
+
+            if (mDisplayPhysicsPanelTriangles) {
+                mEditorState->mPhysicsDebugRendererSimple->DisplayImGuiWindowTriangles( mDisplayPhysicsPanelTriangles );
+            }
+        }
     }
 
     auto EditorLayer::RenderScene( float ) -> void {
         mSceneRenderer->Render( mEditorState->mActiveScene );
+
+        if (mEditorState->mPhysicsDebugRenderer) {
+            mEditorState->mPhysicsDebugRenderer->Render( mEditorState->mActiveScene );
+        }
+
+        if (mEditorState->mPhysicsDebugRendererSimple) {
+            mEditorState->mPhysicsDebugRendererSimple->Render( mEditorState->mActiveScene );
+        }
     }
 
     auto EditorLayer::RenderFrameGraphEditor() -> void {
@@ -998,6 +1021,10 @@ namespace mikoto::editor {
 
     auto EditorLayer::UpdateRendererState( float ts ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
+
+        if (mEditorState->mPhysicsDebugRendererSimple) {
+            mEditorState->mPhysicsDebugRendererSimple->SetCamera( mEditorCamera.get() );
+        }
 
         mSceneRenderer->SetMainCamera( mEditorCamera.get() );
         mSceneRenderer->SetEnableInfiniteGrid( mShowInfiniteGrid );

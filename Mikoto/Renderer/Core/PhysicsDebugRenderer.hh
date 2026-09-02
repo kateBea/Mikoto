@@ -197,6 +197,9 @@ namespace mikoto::renderer {
         auto RenderTriangles() -> void;
 
     private:
+        static constexpr core::usize kMaxVerticesLines{ 64'000 };
+        static constexpr core::usize kMaxVerticesTriangles{ 64'000 };
+
         rhi::IGpuDevice* mDevice{};
 
         const scene::Camera* mCamera{};

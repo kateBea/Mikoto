@@ -323,19 +323,19 @@ namespace mikoto::renderer {
     }
 
     auto PhysicsDebugRendererSimple::InitSimpleDrawPasses() -> void {
-        auto verticesDesc{ BufferCreateDescription{}
+        auto linesDesc{ BufferCreateDescription{}
             .SetBufferUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetHeapType( HeapType::eDeviceLocal )
-            .ForElement( MKT_SIZEOF( DebugLine ), 1000 )
+            .ForElement( MKT_SIZEOF( DebugLine ), kMaxVerticesLines )
             .SetCpuAccessType( CpuAccessType::eRead ) };
-        mLinesBuffer = mDevice->CreateBuffer( verticesDesc );
+        mLinesBuffer = mDevice->CreateBuffer( linesDesc );
 
-        auto indicesDesc{ BufferCreateDescription{}
+        auto trianglesDesc{ BufferCreateDescription{}
             .SetBufferUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
             .SetHeapType( HeapType::eDeviceLocal )
-            .ForElement( MKT_SIZEOF( DebugTriangle ), 1000 )
+            .ForElement( MKT_SIZEOF( DebugTriangle ), kMaxVerticesTriangles )
             .SetCpuAccessType( CpuAccessType::eRead ) };
-        mTrianglesBuffer = mDevice->CreateBuffer( indicesDesc );
+        mTrianglesBuffer = mDevice->CreateBuffer( trianglesDesc );
 
         // Create color attachment
         auto colorDesc{ TextureCreateDescription{}
@@ -431,6 +431,8 @@ namespace mikoto::renderer {
     }
 
     auto PhysicsDebugRendererSimple::RenderLines() -> void {
+        MKT_ASSERT( mLines.size() <= kMaxVerticesLines, "Exceeded buffer capacity" );
+
         mCommandList->Write( mLinesBuffer.GetRaw(), mLines.data(), MKT_VECTOR_SIZE_BYTES( mLines ) );
 
         eastl::array<ubyte, kMaxPushConstantSize> ps{};
@@ -474,6 +476,7 @@ namespace mikoto::renderer {
     }
 
     auto PhysicsDebugRendererSimple::RenderTriangles() -> void {
+        MKT_ASSERT( mLines.size() <= kMaxVerticesTriangles, "Exceeded buffer capacity" );
         mCommandList->Write( mTrianglesBuffer.GetRaw(), mTriangles.data(), MKT_VECTOR_SIZE_BYTES( mTriangles ) );
 
         eastl::array<ubyte, kMaxPushConstantSize> ps{};

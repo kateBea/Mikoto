@@ -31,7 +31,7 @@ namespace mikoto::renderer::rhi {
 
     MKT_NODISCARD auto InferAPI( eastl::string_view apiName ) -> GraphicsAPI;
 
-    MKT_NODISCARD auto GetFormatInfo(Format format) -> const FormatInfo&;
+    MKT_NODISCARD auto GetFormatInfo( Format format ) -> const FormatInfo&;
 
     MKT_NODISCARD auto InferDimensions( RenderResolution resolution ) -> eastl::pair<float, float>;
     MKT_NODISCARD auto InferDimensions( RenderResolution resolution, core::u32 mipLevel ) -> eastl::pair<core::u32, core::u32>;
@@ -39,9 +39,12 @@ namespace mikoto::renderer::rhi {
 
     MKT_NODISCARD auto InferElementCount( Format dataType, core::size_t sizeBytes ) -> core::size_t;
 
-    MKT_NODISCARD auto IsBuffer(ResourceType type) noexcept -> bool;
-    MKT_NODISCARD auto IsTexture(ResourceType type) noexcept -> bool;
-    MKT_NODISCARD auto IsSampler(ResourceType type) noexcept -> bool;
-}
+    MKT_NODISCARD auto IsBuffer( ResourceType type ) noexcept -> bool;
+    MKT_NODISCARD auto IsTexture( ResourceType type ) noexcept -> bool;
+    MKT_NODISCARD auto IsSampler( ResourceType type ) noexcept -> bool;
+
+    MKT_NODISCARD auto IsMultiple( core::usize value, core::usize compare ) -> bool;
+    MKT_NODISCARD auto NextMultiple( core::usize value, core::usize multiple ) -> core::usize;
+}// namespace mikoto::renderer::rhi
 
 #endif//MIKOTO_RHI_UTILITY_HH

@@ -132,6 +132,13 @@ namespace mikoto::renderer::rhi {
         return mDesc.mPipelineLayout;
     }
 
+    auto PipelineLayoutCreateDescription::SetPushConstantSize( core::usize size ) -> PipelineLayoutCreateDescription & {
+        MKT_ASSERT( size != 0, "Push constants size cannot be zero" );
+
+        mPushConstantsSize = size;
+        return *this;
+    }
+
     auto PipelineLayoutCreateDescription::SetPushConstantsVisibility( ShaderFlags stage ) -> PipelineLayoutCreateDescription & {
         mPushConstantsVisibility = stage;
         return *this;

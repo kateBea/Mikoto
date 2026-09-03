@@ -529,6 +529,8 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
+        MKT_NODISCARD operator VkDescriptorSetLayout() const;
+
         ~BindingLayout() override;
 
     private:
@@ -641,7 +643,7 @@ namespace mikoto::renderer::vulkan {
     private:
         VkPipelineLayout mPipelineLayout{};
 
-        rhi::PipelineLayoutCreateDescription mDesc{};
+        rhi::PipelineLayoutCreateDescription mDescription{};
     };
 
     class Device final : public rhi::IGpuDevice {

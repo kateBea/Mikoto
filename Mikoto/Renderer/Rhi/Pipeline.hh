@@ -96,9 +96,11 @@ namespace mikoto::renderer::rhi {
     using PipelineLayoutHandle = core::Ref<IPipelineLayout>;
 
     struct PipelineLayoutCreateDescription {
+        core::usize mPushConstantsSize{ kMaxPushConstantSize };
         ShaderFlags mPushConstantsVisibility{ ShaderFlagsBits::kAll };
         eastl::fixed_vector<BindingLayoutHandle, kMaxBindingLayouts> mBindingLayouts{};
 
+        auto SetPushConstantSize( core::usize size ) -> PipelineLayoutCreateDescription&;
         auto SetPushConstantsVisibility( ShaderFlags stage ) -> PipelineLayoutCreateDescription&;
         auto AddBindingLayout( BindingLayoutHandle layout ) -> PipelineLayoutCreateDescription&;
     };

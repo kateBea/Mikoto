@@ -2885,6 +2885,10 @@ namespace mikoto::renderer::vulkan {
         return Object( nullptr );
     }
 
+    BindingLayout::operator VkDescriptorSetLayout() const {
+        return mDescriptorSetLayout;
+    }
+
     BindingLayout::~BindingLayout() {
         if (mIsAllocated) {
             Release();
@@ -3212,7 +3216,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     PipelineLayout::PipelineLayout( const PipelineLayoutCreateDescription& desc )
-        : mDesc{ desc }
+        : mDescription{ desc }
     {}
 
     auto PipelineLayout::GetNativeHandle( ObjectType type ) -> Object {
@@ -3268,7 +3272,7 @@ namespace mikoto::renderer::vulkan {
 
         // Find the highest set index
         u32 maxSet{ 0 };
-        for ( const auto& bindingLayout: mDesc.mBindingLayouts ) {
+        for ( const auto& bindingLayout: mDescription.mBindingLayouts ) {
             maxSet = eastl::max( maxSet, bindingLayout->GetRegisterSpace() );
         }
 
@@ -3277,9 +3281,8 @@ namespace mikoto::renderer::vulkan {
         eastl::vector<VkDescriptorSetLayout> setLayouts( maxSet + 1, emptySetLayout );
 
         // Place set layouts at correct set indices
-        for ( const auto& bindingLayout: mDesc.mBindingLayouts ) {
-            setLayouts[bindingLayout->GetRegisterSpace()] =
-                checked_cast<const BindingLayout*>( bindingLayout.GetRaw() )->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout );
+        for ( const auto& bindingLayout: mDescription.mBindingLayouts ) {
+            setLayouts[bindingLayout->GetRegisterSpace()] = *checked_cast<const BindingLayout*>( bindingLayout.GetRaw() );
         }
 
         VkPipelineLayoutCreateInfo plInfo{ initializers::PipelineLayoutCreateInfo() };
@@ -3291,8 +3294,19 @@ namespace mikoto::renderer::vulkan {
         // pipeline layouts, although limited to amount guaranteed by vulkan across devices (128 bytes)
         VkPushConstantRange range{};
         range.offset = 0;
-        range.size   = kMaxPushConstantSize;
-        range.stageFlags = GetShaderStageFlags(mDesc.mPushConstantsVisibility);
+        range.size   = math::Min( kMaxPushConstantSize, mDescription.mPushConstantsSize ); // Get the min, kMaxPushConstantSize is guaranteed max across devices
+        range.stageFlags = GetShaderStageFlags(mDescription.mPushConstantsVisibility);
+
+        // size validations offset and size need to be multiple of 4
+        // https://docs.vulkan.org/refpages/latest/refpages/source/VkPushConstantRange.html
+        usize size{ rhi::NextMultiple(range.size, 4) };
+#if MIKOTO_DEBUG
+        if ( size != mDescription.mPushConstantsSize) {
+            MKT_CORE_LOGGER_WARN( "Size for push constant range is not multiple of 4, changing size to {}", size );
+        }
+#endif
+        range.size = size;
+        mDescription.mPushConstantsSize = size;
 
         eastl::array psRanges{ range };
 

@@ -186,4 +186,4 @@ namespace mikoto::math {
             DumpMat4Beautify( matrices[i], i );
         }
     }
-}
+}// namespace mikoto::math

@@ -223,5 +223,17 @@ namespace mikoto::renderer::rhi {
                    type == ResourceType::eSamplerFeedbackTexture_UAV;
     }
 
+
+    auto IsMultiple( core::usize value, core::usize compare ) -> bool {
+        return value % compare == 0;
+    }
+
+    auto NextMultiple( core::usize value, core::usize multiple ) -> core::usize {
+        if (value % multiple == 0) {
+            return value;
+        }
+
+        return value - (value % multiple) + multiple;
+    }
     
 }

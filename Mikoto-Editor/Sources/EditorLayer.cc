@@ -419,14 +419,14 @@ namespace mikoto::editor {
             }
         });
         mActionManager->Bind(core::KeyCode::Key_2, core::ModKey::eControl, [this]() {
-            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 1 (Rotation Guizmo)" );
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 2 (Rotation Guizmo)" );
             ScenePanel* scenePanel{ mPanelRegistry.Get<ScenePanel>() };
             if (scenePanel) {
                 scenePanel->SetManipulation( GuizmoType::eRotation );
             }
         });
         mActionManager->Bind(core::KeyCode::Key_3, core::ModKey::eControl, [this]() {
-            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 1 (Scale Guizmo)" );
+            MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 3 (Scale Guizmo)" );
             ScenePanel* scenePanel{ mPanelRegistry.Get<ScenePanel>() };
             if (scenePanel) {
                 scenePanel->SetManipulation( GuizmoType::eScale );

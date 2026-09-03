@@ -157,19 +157,21 @@ namespace mikoto::scene {
             reg.emplace<MaterialComponent>( e );
         }
 
-        auto& meshComponent{ reg.get<MeshComponent>( e ) };
-        auto meshNode{ meshComponent.GetMesh() };
+        MaterialComponent& materialComponent{ reg.get<MaterialComponent>( e ) };
+        if (materialComponent.HasMaterial()) {
+            return;
+        }
 
-        auto& material{ reg.get<MaterialComponent>( e ) };
-
+        MeshComponent& meshComponent{ reg.get<MeshComponent>( e ) };
+        MeshNode* meshNode{ meshComponent.GetMesh() };
         if ( meshNode ) {
             // Material is internal as it comes from the mesh itself
             // these kind of materials do not need to be serialized
-            material.SetIsInternal( true );
-            material.SetMaterial( AssetsService::Get()->CreateMaterial( meshNode->GetProperties() ) );
+            materialComponent.SetIsInternal( true );
+            materialComponent.SetMaterial( AssetsService::Get()->CreateMaterial( meshNode->GetProperties() ) );
         } else {
-            material.SetIsInternal( false );
-            material.SetMaterial( AssetsService::Get()->CreateMaterial( PhysicMaterialDescription{} ) );
+            materialComponent.SetIsInternal( false );
+            materialComponent.SetMaterial( AssetsService::Get()->CreateMaterial( PhysicMaterialDescription{} ) );
         }
     }
 

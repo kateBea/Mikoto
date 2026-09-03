@@ -179,7 +179,9 @@ namespace mikoto::editor {
             ImGui::EndTable();
         }
 
-        if ( ImGui::IsItemHovered() ) { ImGui::SetMouseCursor( ImGuiMouseCursor_Hand ); }
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
     }
 
     static auto UpdateMaterialTexture( PhysicalMaterial& standardMat, MapType mapType ) -> void {
@@ -894,7 +896,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto EditMaterial( PhysicalMaterial* material ) -> void {
+    static auto EditMaterial( PhysicalMaterial* material, bool isInternal ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( material == nullptr ) {
@@ -904,9 +906,27 @@ namespace mikoto::editor {
         // Name
         ImGui::TextUnformatted( "Material name ");
         ImGui::SameLine();
-        if (gui::InputText( material->GetName(), true ) ) {
-            // Nothing
+        ( void )InputText( material->GetName(), true );
+
+        ImGui::SameLine();
+
+        // Cannot serialize internal materials, they are
+        // part of the model file and loaded along with it
+        ImGui::BeginDisabled(isInternal);
+
+        eastl::string saveMaterialButtonID{ string::Format("{}##SaveMaterialButton", ICON_MD_SAVE_ALT ) };
+        if (ImGui::Button( saveMaterialButtonID.c_str() )) {
+            const std::initializer_list<FileDialogPair> filters{
+                { "Material", filesystem::kMikotoMaterialExtension.data() } };
+            Path materialPath{ SaveFileDialog( material->GetName(), filters ) };
+            ( void )AssetsService::Get()->SerializeMaterial( MaterialHandle::Create( material ) );
         }
+
+        SetCursorHandOnLastItemHovered();
+
+        ImGui::EndDisabled();
+
+        widget::MakeHelpPopUpDelay( "Save material", "" );
 
         // Select shading model
         ImGui::Spacing();
@@ -920,10 +940,8 @@ namespace mikoto::editor {
             "Toon Shading",
             "Flat Shading",
             "Cell Shading",
-            "Subsurface Scattering",
-        };
-
-        ShadingModel newShadingModel{ gui::Combo( choicesAlpha, currentShadingModel ) };
+            "Subsurface Scattering" };
+        ShadingModel newShadingModel{ Combo( choicesAlpha, currentShadingModel ) };
         if (newShadingModel != currentShadingModel) {
             material->SetShadingModel( newShadingModel );
         }
@@ -1647,9 +1665,32 @@ namespace mikoto::editor {
         ImGui::Unindent();
 
         MaterialComponent& materialComponent{ entity.GetComponent<MaterialComponent>() };
-
         if ( materialComponent.HasMaterial() ) {
-            EditMaterial( materialComponent.GetMaterial().Dynamic<PhysicalMaterial>() );
+            EditMaterial( checked_cast<PhysicalMaterial*>( materialComponent.GetMaterial().GetRaw() ), materialComponent.IsInternal() );
+        } else {
+            ( void )InputText( "Mesh has no material", true );
+
+            ImGui::SameLine();
+
+            eastl::string createMaterialID{ string::Format("{} Create##CreateMaterialID", ICON_MD_CREATE ) };
+            if (ImGui::Button( createMaterialID.c_str() )) {
+                materialComponent.SetIsInternal( false );
+                materialComponent.SetMaterial( AssetsService::Get()->CreateMaterial( PhysicMaterialDescription{} ) );
+            }
+            SetCursorHandOnLastItemHovered();
+
+            ImGui::SameLine();
+
+            eastl::string loadMaterialID{ string::Format("{} Load##LoadMaterialID", ICON_MD_SAVE_ALT ) };
+            if (ImGui::Button( loadMaterialID.c_str() )) {
+                const std::initializer_list<FileDialogPair> filters{
+                    { "Material", filesystem::kMikotoMaterialExtension.data() } };
+                Path materialPath{ OpenFileDialog( filters ) };
+
+                materialComponent.SetIsInternal( false );
+                materialComponent.SetMaterial( AssetsService::Get()->DeSerializeMaterial( materialPath ) );
+            }
+            SetCursorHandOnLastItemHovered();
         }
 
         ImGui::Indent();
@@ -1665,43 +1706,35 @@ namespace mikoto::editor {
         if (ImGui::CollapsingHeader("Rigid Body", ImGuiTreeNodeFlags_DefaultOpen)) {
 
             // --- Body Type ---
-            {
-                std::array bodyTypes{ "Static", "Kinematic", "Dynamic" };
-                i32 currentType{ static_cast<int>( rb.GetBodyType() ) };
+            eastl::array bodyTypes{ "Static", "Kinematic", "Dynamic" };
+            i32 currentType{ as<i32>( rb.GetBodyType() ) };
 
-                ImGui::Text("Body Type");
-                ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
-                if ( ImGui::Combo( "##BodyType", &currentType, bodyTypes.data(), bodyTypes.size()) ) {
-                    rb.SetBodyType(static_cast<RigidBodyComponent::BodyType>(currentType));
-                }
+            ImGui::Text("Body Type");
+            ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
+            if ( ImGui::Combo( "##BodyType", &currentType, bodyTypes.data(), bodyTypes.size()) ) {
+                rb.SetBodyType(static_cast<RigidBodyComponent::BodyType>(currentType));
             }
 
             // --- Use Gravity ---
-            {
-                bool useGravity{ rb.UseGravity() };
-                if (ImGui::Checkbox("Use Gravity", &useGravity)) {
-                    rb.SetUseGravity(useGravity);
-                }
+            bool useGravity{ rb.UseGravity() };
+            if (ImGui::Checkbox("Use Gravity", &useGravity)) {
+                rb.SetUseGravity(useGravity);
             }
 
             // --- Mass ---
-            {
-                float mass{ rb.GetMass() };
-                ImGui::Text("Mass");
-                ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
-                if (ImGui::DragFloat("##Mass", &mass, 0.1f, 0.0f, 1000.0f, "%.2f")) {
-                    rb.SetMass(mass);
-                }
+            float mass{ rb.GetMass() };
+            ImGui::Text("Mass");
+            ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
+            if (ImGui::DragFloat("##Mass", &mass, 0.1f, 0.0f, 1000.0f, "%.2f")) {
+                rb.SetMass(mass);
             }
 
             // --- Friction ---
-            {
-                float friction{ rb.GetFriction() };
-                ImGui::Text("Friction");
-                ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
-                if (ImGui::SliderFloat("##Friction", &friction, 0.0f, 1.0f, "%.2f")) {
-                    rb.SetFriction(friction);
-                }
+            float friction{ rb.GetFriction() };
+            ImGui::Text("Friction");
+            ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
+            if (ImGui::SliderFloat("##Friction", &friction, 0.0f, 1.0f, "%.2f")) {
+                rb.SetFriction(friction);
             }
 
             // --- Internal Handle Info (read-only) ---
@@ -1718,23 +1751,20 @@ namespace mikoto::editor {
                 ImGui::Text("No BodyID");
             }
 
-            {
-                float3 linearVel{ rb.GetLinearVelocity() };
-                ImGui::Text("Linear Velocity");
-                ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
-                if (ImGui::DragFloat3("##LinearVelocity", &linearVel.x, 0.1f)) {
-                    rb.SetLinearVelocity(linearVel);
-                }
+            // --- Linear Velocity ---
+            float3 linearVel{ rb.GetLinearVelocity() };
+            ImGui::Text("Linear Velocity");
+            ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
+            if (ImGui::DragFloat3("##LinearVelocity", &linearVel.x, 0.1f)) {
+                rb.SetLinearVelocity(linearVel);
             }
 
             // --- Angular Velocity ---
-            {
-                float3 angularVel{ rb.GetAngularVelocity() };
-                ImGui::Text("Angular Velocity");
-                ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
-                if (ImGui::DragFloat3("##AngularVelocity", &angularVel.x, 0.1f)) {
-                    rb.SetAngularVelocity(angularVel);
-                }
+            float3 angularVel{ rb.GetAngularVelocity() };
+            ImGui::Text("Angular Velocity");
+            ImGui::SameLine(ImGui::GetWindowWidth() * 0.35f);
+            if (ImGui::DragFloat3("##AngularVelocity", &angularVel.x, 0.1f)) {
+                rb.SetAngularVelocity(angularVel);
             }
 
             ImGui::Spacing();

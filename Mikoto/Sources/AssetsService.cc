@@ -136,6 +136,26 @@ namespace mikoto::asset {
         return mTextures2D[kDummyTexturePath];
     }
 
+    auto AssetsService::SerializeMaterial( material::MaterialHandle material ) const -> bool {
+        return false;
+    }
+
+    auto AssetsService::SerializeMaterial( material::MaterialHandle material, filesystem::Path& path ) const -> bool {
+        return false;
+    }
+
+    auto AssetsService::SerializeMaterial( material::MaterialHandle material, filesystem::FileHandle file ) const -> bool {
+        return false;
+    }
+
+    auto AssetsService::DeSerializeMaterial( filesystem::FileHandle file ) const -> material::MaterialHandle {
+        return MaterialHandle::CreateEmpty();
+    }
+
+    auto AssetsService::DeSerializeMaterial( const filesystem::Path& file ) const -> material::MaterialHandle {
+        return MaterialHandle::CreateEmpty();
+    }
+
     auto AssetsService::CreateMaterial( const PhysicMaterialDescription& desc ) -> MaterialHandle {
         // TODO: store materials in the materials default path or user specified one
         MaterialHandle material{ Ref<PhysicalMaterial>::New( desc ) };

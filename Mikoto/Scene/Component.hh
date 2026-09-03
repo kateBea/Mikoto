@@ -136,10 +136,11 @@ namespace mikoto::scene {
         core::float3 mRotation{};
         core::float3 mScale{};
 
-        core::float4x4 mWorldTransform{ 1.0f };
+        // Defines transformations in world space
+        core::float4x4 mWorldTransform{ math::constants::Identity<core::float4x4>() };
 
         // Model matrix (defines object translation, rotation and scale
-        // according to the current transform values/vectors
+        // according to the current transform values/vectors in model space
         core::float4x4 mTransform{};
 
         bool mHasUniformScale{};
@@ -178,27 +179,24 @@ namespace mikoto::scene {
 
     class MaterialComponent {
     public:
-        explicit MaterialComponent( MaterialHandle mat = MaterialHandle::CreateEmpty() )
-            : mMaterial{ std::move( mat ) } {
-        }
+        // Is internal is used for material that are part of loaded models
+        explicit MaterialComponent( material::MaterialHandle mat =
+            material::MaterialHandle::CreateEmpty(), bool isInternal = true );
 
-        MaterialComponent( MaterialComponent&& ) = default;
-        auto operator=( MaterialComponent&& ) -> MaterialComponent& = default;
+        MKT_NODISCARD auto HasMaterial() const -> bool;
+        MKT_NODISCARD auto GetMaterial() const -> material::MaterialHandle;
+        MKT_NODISCARD auto IsInternal() const -> bool;
 
-        MKT_NODISCARD auto HasMaterial() const -> bool { return !mMaterial.IsEmpty(); }
-        MKT_NODISCARD auto GetMaterial() -> MaterialHandle { return mMaterial; }
-        MKT_NODISCARD auto GetMaterial() const -> MaterialHandle { return mMaterial; }
-
-        auto SetMaterial( const MaterialHandle& mat ) -> void {
-            if ( !mat.IsEmpty() ) {
-                mMaterial = mat;
-            }
-        }
+        auto SetIsInternal( bool value ) -> void;
+        auto SetMaterial( material::MaterialHandle mat ) -> void;
 
         ~MaterialComponent() = default;
 
+        MKT_PUSH_DEFAULT_MOVE_AND_COPY( MaterialComponent );
+
     private:
-        MaterialHandle mMaterial{};
+        bool mIsInternalMaterial{ true };
+        material::MaterialHandle mMaterial{};
     };
 
     /**

@@ -127,6 +127,39 @@ namespace mikoto::scene {
         mTransform = math::RecomputeTransform( position, size, angles );
     }
 
+    MaterialComponent::MaterialComponent( MaterialHandle mat, bool isInternal )
+        : mIsInternalMaterial{ isInternal }
+    {
+        // Set material does some necessary validations
+        SetMaterial( mat );
+    }
+
+    auto MaterialComponent::HasMaterial() const -> bool {
+        return !mMaterial.IsEmpty();
+    }
+
+    auto MaterialComponent::GetMaterial() const -> material::MaterialHandle {
+        return mMaterial;
+    }
+
+    auto MaterialComponent::IsInternal() const -> bool {
+        return mIsInternalMaterial;
+    }
+
+    auto MaterialComponent::SetIsInternal( bool value ) -> void {
+        mIsInternalMaterial = value;
+    }
+
+    auto MaterialComponent::SetMaterial( MaterialHandle mat ) -> void {
+        // Needs to be a physical material and not null
+        PhysicalMaterial* pMaterial{ dynamic_cast<PhysicalMaterial*>(mat.GetRaw()) };
+        if (!pMaterial) {
+            return;
+        }
+
+        mMaterial = mat;
+    }
+
     auto CameraComponent::SetClearFlags( CameraClearFlags bg ) -> void {
         mClearFlags = bg;
     }

@@ -163,8 +163,12 @@ namespace mikoto::scene {
         auto& material{ reg.get<MaterialComponent>( e ) };
 
         if ( meshNode ) {
+            // Material is internal as it comes from the mesh itself
+            // these kind of materials do not need to be serialized
+            material.SetIsInternal( true );
             material.SetMaterial( AssetsService::Get()->CreateMaterial( meshNode->GetProperties() ) );
         } else {
+            material.SetIsInternal( false );
             material.SetMaterial( AssetsService::Get()->CreateMaterial( PhysicMaterialDescription{} ) );
         }
     }
@@ -892,6 +896,12 @@ namespace mikoto::scene {
     }
 
     static auto SerializeComponent( const MaterialComponent& materialComponent, YAML::Emitter& emitter ) -> void {
+        // Internal materials are not serialized because they are part of the model
+        // and loaded at runtime with it
+        if (materialComponent.IsInternal()) {
+            return;
+        }
+
         emitter << YAML::BeginMap;
 
         emitter << YAML::EndMap;

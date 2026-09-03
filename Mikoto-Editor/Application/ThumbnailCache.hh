@@ -27,6 +27,7 @@
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Core/ThumbnailRenderer.hh>
 
 #include <Assets/AssetsService.hh>
 
@@ -40,7 +41,10 @@ namespace mikoto::editor {
     class ThumbnailCache {
     public:
 
-        explicit ThumbnailCache(renderer::rhi::IGpuDevice* device);
+        explicit ThumbnailCache(
+            renderer::ThumbnailRenderer* renderer,
+            renderer::rhi::IGpuDevice* device,
+            eastl::string_view thumbNailsPath = "Assets/.cache/Thumbnails");
 
         MKT_NODISCARD auto Contains(const filesystem::Path& path ) const -> bool;
         MKT_NODISCARD auto GetThumbnail(const filesystem::Path& path) const -> Thumbnail;
@@ -55,7 +59,12 @@ namespace mikoto::editor {
 
     private:
         mutable std::mutex mMutex{};
+
+        filesystem::Path mThumbnailPath{};
+
         renderer::rhi::IGpuDevice* mDevice{};
+        renderer::ThumbnailRenderer* mThumbnailRenderer{};
+
         ankerl::unordered_dense::map<filesystem::Path, Thumbnail> mThumbnails{};
     };
 

@@ -33,11 +33,13 @@ namespace mikoto::renderer {
         rhi::IGpuDevice* mDevice{};
         eastl::string_view mName{};
         eastl::string_view mShaderBasePath{};
+        eastl::string_view mAssetCacheThumbnails{ "Assets/.cache/Thumbnails" };
 
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
 
         auto SetName( eastl::string_view name ) -> ThumbnailRendererCreateInfo&;
         auto SetDevice( rhi::IGpuDevice* device ) -> ThumbnailRendererCreateInfo&;
+        auto SetAssetCachePathThumbnails( eastl::string_view path ) -> ThumbnailRendererCreateInfo&;
         auto SetShaderBasePath( eastl::string_view path ) -> ThumbnailRendererCreateInfo&;
         auto SetRenderResolution( rhi::RenderResolution resolution ) -> ThumbnailRendererCreateInfo&;
     };
@@ -53,6 +55,11 @@ namespace mikoto::renderer {
         auto Shutdown() -> void override;
         auto Render( const scene::Scene* scene ) -> void override;
 
+        // It creates the reduced version, there is no need
+        // to render the full texture when displayed icon will be very small
+        auto GenerateThumbnail( rhi::TextureHandle original, Rect slice ) -> rhi::TextureHandle;
+        auto GenerateThumbnail( rhi::TextureHandle original, core::i32 width, core::i32 height ) -> rhi::TextureHandle;
+
         MKT_NODISCARD static auto Create( const ThumbnailRendererCreateInfo& spec ) -> eastl::unique_ptr<ThumbnailRenderer>;
 
     private:
@@ -64,6 +71,8 @@ namespace mikoto::renderer {
 
         eastl::unique_ptr<FrameGraph> mFrameGraph{};
         eastl::unique_ptr<asset::ShaderLibrary> mShaderLibrary{};
+
+        filesystem::Path mAssetCacheThumbnails{ "Assets/.cache/Thumbnails" };
     };
 
 }// namespace Mikoto

@@ -64,7 +64,7 @@ namespace mikoto::editor {
           mCurrentDirectory{ desc.mProjectBasePath } {
         mPanelHeaderName = widget::MakeIconTitle( ICON_MD_DNS, mPanelName );
 
-        mThumbnailCache = eastl::make_unique<ThumbnailCache>( mDevice );
+        mThumbnailCache = eastl::make_unique<ThumbnailCache>(  mEditorState->mThumbnailRenderer, mDevice );
         // Load files icon
         Path file{ PathBuilder()
              .SetPath( mResourcesBasePath )

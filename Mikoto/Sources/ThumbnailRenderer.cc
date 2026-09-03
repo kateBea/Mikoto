@@ -43,6 +43,11 @@ namespace mikoto::renderer {
         return *this;
     }
 
+    auto ThumbnailRendererCreateInfo::SetAssetCachePathThumbnails( eastl::string_view path ) -> ThumbnailRendererCreateInfo & {
+        mAssetCacheThumbnails = path;
+        return *this;
+    }
+
     auto ThumbnailRendererCreateInfo::SetShaderBasePath( eastl::string_view path ) -> ThumbnailRendererCreateInfo & {
         mShaderBasePath = path;
         return *this;
@@ -54,7 +59,7 @@ namespace mikoto::renderer {
     }
 
     ThumbnailRenderer::ThumbnailRenderer( const ThumbnailRendererCreateInfo& desc  )
-        : mDevice{ desc.mDevice }
+        : mDevice{ desc.mDevice }, mAssetCacheThumbnails{ desc.mAssetCacheThumbnails }
     {
 
     }
@@ -96,6 +101,20 @@ namespace mikoto::renderer {
         if (mDevice->IsGraphicsApi(GraphicsAPI::eD3D11) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 )) {
             return;
         }
+    }
+
+    auto ThumbnailRenderer::GenerateThumbnail( rhi::TextureHandle original, Rect slice ) -> rhi::TextureHandle {
+        i32 width{ slice.ComputeWidth() };
+        i32 height{ slice.ComputeWidth() };
+
+
+        return TextureHandle::CreateEmpty();
+    }
+
+    auto ThumbnailRenderer::GenerateThumbnail( rhi::TextureHandle original, core::i32 width, core::i32 height ) -> rhi::TextureHandle {
+        // From middle of original image I create a square as big as specified dimensions
+
+        return TextureHandle::CreateEmpty();
     }
 
     auto ThumbnailRenderer::Create( const ThumbnailRendererCreateInfo &spec ) -> eastl::unique_ptr<ThumbnailRenderer> {

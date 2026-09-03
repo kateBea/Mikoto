@@ -28,9 +28,12 @@ namespace mikoto::editor {
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
-    ThumbnailCache::ThumbnailCache( IGpuDevice *device )
-        : mDevice{ device }
-    {}
+    ThumbnailCache::ThumbnailCache(renderer::ThumbnailRenderer* renderer, IGpuDevice *device, eastl::string_view thumbNailsPath )
+        : mThumbnailPath{ thumbNailsPath }, mDevice{ device }, mThumbnailRenderer{ renderer }
+    {
+        // Load all thumbnails from disk to have them ready (use absolute paths)
+
+    }
 
     auto ThumbnailCache::Contains( const filesystem::Path &path ) const -> bool {
         std::lock_guard lock{ mMutex };
@@ -62,6 +65,8 @@ namespace mikoto::editor {
     }
 
     auto ThumbnailCache::LoadTexture( const filesystem::Path &path ) -> renderer::rhi::TextureHandle {
+        // Can use the asset service instead of this, then generate the actual thumbnail using the renderer
+        // which is a version ready to be displayed in the content browser as icon
         FileHandle file{ FileService::Get()->LoadFile( path ) };
         ImageHandle image{ ProcessImage2D( path ) };
         auto textureDesc{ TextureCreateDescription{}
@@ -81,6 +86,8 @@ namespace mikoto::editor {
 
     auto ThumbnailCache::InsertThumbnail( const filesystem::Path &path, renderer::rhi::TextureHandle texture ) -> void {
         std::lock_guard lock{ mMutex };
+
+        // Serialize first to disk so next time I just load from there
 
         // Emplace is not used because the entry might already exist
         mThumbnails[path] = Thumbnail{ .mThumbnail = texture };

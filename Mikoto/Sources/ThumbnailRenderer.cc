@@ -103,9 +103,7 @@ namespace mikoto::renderer {
         }
     }
 
-    auto ThumbnailRenderer::GenerateThumbnail( rhi::TextureHandle original, Rect slice ) -> rhi::TextureHandle {
-        i32 width{ slice.ComputeWidth() };
-        i32 height{ slice.ComputeWidth() };
+    auto ThumbnailRenderer::GenerateThumbnail( rhi::TextureHandle original,  rhi::TextureSubresourceSet slice ) -> rhi::TextureHandle {
 
 
         return TextureHandle::CreateEmpty();

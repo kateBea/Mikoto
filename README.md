@@ -111,6 +111,8 @@ Mikoto/
 
 Some demonstration models used by Mikoto are sourced from [Morgan McGuire's Computer Graphics Archive](https://casual-effects.com/data/).
 
+---
+
 ## Building
 
 Mikoto is currently verified to build on both **Windows** and **Linux**.
@@ -130,6 +132,8 @@ see the **[Building Guide](BUILDING.md)**.
 
 > **Windows:** Visual Studio and the Vulkan SDK are required.
 > **Linux:** Required system dependencies must be installed before building.
+
+---
 ## Dependencies
 
 Mikoto builds upon a range of open-source libraries that provide functionality across rendering, asset management, physics, audio, scripting, editor tooling, and engine infrastructure.
@@ -138,12 +142,14 @@ The complete list of third-party dependencies, including their purpose and upstr
 
 Mikoto would not be possible without the work of the developers and communities behind these projects.
 
+---
 ## Networking
 
 Mikoto provides a lightweight networking layer built on top of [chriskohlhoff/asio](https://github.com/chriskohlhoff/asio), with support for **TCP**, **HTTP**, and **HTTPS** connections.
 
 HTTPS support requires **OpenSSL** to be available on the target system. When OpenSSL is not installed, Mikoto automatically falls back to **HTTP-only** support.
 
+---
 ## Profiling with Tracy
 
 Mikoto integrates the Tracy Profiler for CPU, GPU, and memory profiling.
@@ -154,6 +160,7 @@ If the profiler is not connected, Tracy will continue to run internally, which c
 > 
 > User will need to run Mikoto with Tracy's Profiler v3.3.0 which is the version used by the engine.
 
+---
 ## Slang in Mikoto
 
 Mikoto uses the **Slang shading language** for runtime shader compilation (Reflection is still done by spirv-reflect).  
@@ -166,12 +173,12 @@ If you prefer to download or update Slang manually, you can find the official re
 
 Mikoto will automatically use the bundled version, but replacing it with another official release is supported as long as the Slang directory structure remains unchanged.
 
+---
 ## Goals
 
 The primary goal of Mikoto Engine is to serve as a learning platform for exploring modern graphics programming techniques. Features are implemented progressively as new concepts and ideas are explored.
 
 ---
-
 ## Special Thanks
 
 The development of Mikoto has been inspired by the work of the following:
@@ -185,14 +192,12 @@ The development of Mikoto has been inspired by the work of the following:
 - **Marco Castorina and Gabriel Sassone** for the Mastering Graphics Programming with Vulkan Book.
 
 ---
-
 ## Future Development
 
 Mikoto Engine is still in its early stages, and additional features and optimizations will be added over time.
 Feedback is always welcome!
 
 ---
-
 ## License
 
 This project is licensed under the **Apache License 2.0**.

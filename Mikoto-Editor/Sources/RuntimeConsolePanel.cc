@@ -39,7 +39,7 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::gui;
+    using namespace mikoto::imgui;
 
     RuntimeConsolePanel::RuntimeConsolePanel(const RuntimeConsolePanelCreateInfo& info)
         : Panel{ "Console" }, mState{ info.mState } {
@@ -58,19 +58,19 @@ namespace mikoto::editor {
         static bool showInfo{ true }, showWarn{ true }, showError{ true }, showDebug{ true };
 
         ImGui::Checkbox("Info", &showInfo);
-        gui::SetCursorHandOnLastItemHovered();
+        imgui::SetCursorHandOnLastItemHovered();
         ImGui::SameLine();
 
         ImGui::Checkbox("Warn", &showWarn);
-        gui::SetCursorHandOnLastItemHovered();
+        imgui::SetCursorHandOnLastItemHovered();
         ImGui::SameLine();
 
         ImGui::Checkbox("Error", &showError);
-        gui::SetCursorHandOnLastItemHovered();
+        imgui::SetCursorHandOnLastItemHovered();
         ImGui::SameLine();
 
         ImGui::Checkbox("Debug", &showDebug);
-        gui::SetCursorHandOnLastItemHovered();
+        imgui::SetCursorHandOnLastItemHovered();
 
         ImGui::Separator();
 
@@ -78,7 +78,7 @@ namespace mikoto::editor {
                           ImGuiWindowFlags_HorizontalScrollbar);
 
         {
-            gui::ImGuiScopedTextFont newFont{ ImGuiService::Get()->PushFont( "./Resources/Fonts/Google_Sans_Code/static/GoogleSansCode-Light.ttf" ) };
+            imgui::ImGuiScopedTextFont newFont{ ImGuiService::Get()->PushFont( "./Resources/Fonts/Google_Sans_Code/static/GoogleSansCode-Light.ttf" ) };
 
             for (const auto& line : RuntimeConsole::Get()->GetLogs()) {
                 if (line.find("[INFO]") != eastl::string::npos && !showInfo) continue;

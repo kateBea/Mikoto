@@ -15,7 +15,7 @@
 #ifndef MIKOTOROOT_IMGUI_DEBUG_HH
 #define MIKOTOROOT_IMGUI_DEBUG_HH
 
-namespace mikoto::gui::debug {
+namespace mikoto::imgui::debug {
 
     // Panel that displays memory for this process
     class MemoryInspector {

@@ -34,7 +34,7 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::gui;
+    using namespace mikoto::imgui;
     using namespace mikoto::core;
     using namespace mikoto::scene;
     using namespace mikoto::renderer;
@@ -91,7 +91,7 @@ namespace mikoto::editor {
             widget::MakeHelpPopUp( "Adjust camera rotation speed." );
 
             ImGui::Spacing();
-            if ( gui::Slider( "##SettingsPanel::OnUpdate::Damping", mData.mDampingFactor, { 5, 30 } ) ) {
+            if ( imgui::Slider( "##SettingsPanel::OnUpdate::Damping", mData.mDampingFactor, { 5, 30 } ) ) {
                 mEditorState->mActiveCamera->SetDampingFactor( mData.mDampingFactor );
             }
             ImGui::SameLine();
@@ -132,7 +132,7 @@ namespace mikoto::editor {
 
             bool isVsyncEnabled{ RenderSystem::Get()->GetContext()->IsRefreshType( RefreshRate::eSync ) };
 
-            if ( gui::CheckBox( "Limit FPS", isVsyncEnabled ) ) {
+            if ( imgui::CheckBox( "Limit FPS", isVsyncEnabled ) ) {
                 if (isVsyncEnabled) {
                     RenderSystem::Get()->GetContext()->SetRefreshRate( RefreshRate::eSync );
                 } else {
@@ -188,11 +188,11 @@ namespace mikoto::editor {
 
         ImGui::Begin( mPanelHeaderName.c_str(), MKT_ADDRESSOF( mPanelIsVisible ), ImGuiWindowFlags_NoCollapse );
 
-        gui::DrawNode( "Camera", [this] () -> void {
+        imgui::DrawNode( "Camera", [this] () -> void {
             DrawCameraConfig();
         } );
 
-        gui::DrawNode( "Camera properties", [this] () -> void {
+        imgui::DrawNode( "Camera properties", [this] () -> void {
             DrawCameraProperties();
         } );
 

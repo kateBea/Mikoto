@@ -44,7 +44,7 @@ namespace mikoto::editor {
 
         auto OnUpdate(float ts) -> void override;
 
-        auto SetManipulation( gui::GuizmoType mode ) -> void;
+        auto SetManipulation( imgui::GuizmoType mode ) -> void;
         auto SetTexture( renderer::rhi::TextureHandle texture ) -> void;
 
         ~ScenePanel() override = default;
@@ -74,7 +74,7 @@ namespace mikoto::editor {
 
         core::float2 mGuizmoPosition{ 1.0f };
 
-        gui::GuizmoType mManipulationType{ gui::GuizmoType::eTranslation };
+        imgui::GuizmoType mManipulationType{ imgui::GuizmoType::eTranslation };
     };
 }
 

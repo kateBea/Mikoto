@@ -31,7 +31,7 @@
 
 namespace mikoto::renderer {
 
-    using namespace mikoto::gui;
+    using namespace mikoto::imgui;
     using namespace mikoto::core;
     using namespace mikoto::platform;
     using namespace mikoto::renderer::rhi;

@@ -26,7 +26,7 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     using namespace mikoto::core;
     using namespace mikoto::platform;

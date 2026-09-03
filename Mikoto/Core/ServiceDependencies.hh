@@ -509,7 +509,7 @@ namespace mikoto::core {
     };
 
     template <>
-    struct ServiceDependencies<gui::ImGuiService> {
+    struct ServiceDependencies<imgui::ImGuiService> {
         MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
             switch (type) {
 

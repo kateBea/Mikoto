@@ -56,7 +56,7 @@ namespace mikoto::editor {
 
         PresentTargetType mPresentTargetType{ PresentTargetType::eFinalImage };
 
-        gui::GraphEditor mGraphEditor{ "Pass Graph" };
+        imgui::GraphEditor mGraphEditor{ "Pass Graph" };
     };
 }
 

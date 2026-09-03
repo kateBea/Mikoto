@@ -31,7 +31,7 @@
 
 #include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     // Since Mikoto defaults to 1.3
     // ImGuiVulkanBackend wil be using Dynamic Rendering by default

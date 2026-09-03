@@ -49,7 +49,7 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::gui;
+    using namespace mikoto::imgui;
     using namespace mikoto::core;
     using namespace mikoto::asset;
     using namespace mikoto::renderer;
@@ -91,7 +91,7 @@ namespace mikoto::editor {
         ImGuiScopedStyleVar roundedButtons{ ImGuiStyleVar_FrameRounding, 1.5f };
 
         // Settings for the content browser
-        if ( gui::ButtonTextIcon( ICON_MD_SETTINGS_APPLICATIONS ) ) {
+        if ( imgui::ButtonTextIcon( ICON_MD_SETTINGS_APPLICATIONS ) ) {
             ImGui::OpenPopup( "HeaderSettingsPopup" );
         }
 
@@ -100,7 +100,7 @@ namespace mikoto::editor {
         }
 
         if ( ImGui::BeginPopup( "HeaderSettingsPopup" ) ) {
-            if ( gui::ButtonTextIcon( ICON_MD_RESTORE ) ) {
+            if ( imgui::ButtonTextIcon( ICON_MD_RESTORE ) ) {
                 mThumbnailSize = 128.0f;
             }
 
@@ -444,7 +444,7 @@ namespace mikoto::editor {
                         // Preview
                         constexpr float previewDimensions{ 48.0f };
                         ImGui::Image( icon, ImVec2( previewDimensions, previewDimensions ) );
-                        gui::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
+                        imgui::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
 
                         ImGui::EndDragDropSource();
                     }
@@ -464,7 +464,7 @@ namespace mikoto::editor {
                         // Preview
                         constexpr float previewDimensions{ 48.0f };
                         ImGui::Image( icon, ImVec2( previewDimensions, previewDimensions ) );
-                        gui::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
+                        imgui::CenteredText( fmt::format( "Move Icon" ).c_str(), previewDimensions );
 
                         ImGui::EndDragDropSource();
                     }
@@ -493,14 +493,14 @@ namespace mikoto::editor {
 
                 // File name
                 ImGui::PopStyleColor();
-                gui::CenteredText( fmt::format( "{}", entry.path().stem().string() ).c_str(), mThumbnailSize );
+                imgui::CenteredText( fmt::format( "{}", entry.path().stem().string() ).c_str(), mThumbnailSize );
 
                 // Type of file
                 if ( mShowFileTypeHint ) {
                     ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 255, 255, 128 ) );
                     eastl::string inferredFileType{ entry.is_directory() ? "Folder" :
                         filesystem::GetFileTypeDisplayName(fileType) };
-                    gui::CenteredText( inferredFileType.c_str(), mThumbnailSize );
+                    imgui::CenteredText( inferredFileType.c_str(), mThumbnailSize );
                     ImGui::PopStyleColor();
                 }
             }

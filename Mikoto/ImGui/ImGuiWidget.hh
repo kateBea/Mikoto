@@ -22,7 +22,7 @@
 #include <Core/Types.hh>
 #include <Core/String.hh>
 
-namespace mikoto::gui::widget {
+namespace mikoto::imgui::widget {
 
     auto MakeHelpPopUp( eastl::string_view description, eastl::string_view placeHolder = "(?)" ) -> void;
     auto MakeHelpPopUpDelay(eastl::string_view description, eastl::string_view placeHolder, float duration = 2.0f ) -> void;

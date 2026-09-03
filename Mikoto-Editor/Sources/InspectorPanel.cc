@@ -50,7 +50,7 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::gui;
+    using namespace mikoto::imgui;
     using namespace mikoto::core;
     using namespace mikoto::scene;
     using namespace mikoto::renderer;
@@ -286,14 +286,14 @@ namespace mikoto::editor {
         }
 
         if ( material.HasTexture( MapType::eDiffuse ) ) {
-            gui::ToolTip( [&]() -> void {
+            imgui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( material.GetTexture( MapType::eDiffuse ).GetRaw() );
             },ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
             if ( !material.HasTexture( MapType::eDiffuse ) ) {
-                gui::ToolTip( "Click me to load a texture." );
+                imgui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -322,8 +322,8 @@ namespace mikoto::editor {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
 
-            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            imgui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            imgui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
                 material.RemoveTexture( MapType::eDiffuse );
@@ -343,7 +343,7 @@ namespace mikoto::editor {
             diffuseMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( gui::PushImageButton( "##EditBaseColorProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
+        if ( imgui::PushImageButton( "##EditBaseColorProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eBaseColor );
         }
 
@@ -359,14 +359,14 @@ namespace mikoto::editor {
         }
 
         if ( material.HasTexture( MapType::eBaseColor ) ) {
-            gui::ToolTip( [&]() -> void {
+            imgui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( material.GetTexture( MapType::eBaseColor ).GetRaw() );
             }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
             if ( !material.HasTexture( MapType::eBaseColor ) ) {
-                gui::ToolTip( "Click me to load a texture." );
+                imgui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -399,15 +399,15 @@ namespace mikoto::editor {
 
             // Merge color with objects base color
             float cutOff{ material.GetAlphaMaskCutoff() };
-            if ( gui::Slider( "Alpha Cut-Off", cutOff, { 0.0f, 1.0f } ) ) {
+            if ( imgui::Slider( "Alpha Cut-Off", cutOff, { 0.0f, 1.0f } ) ) {
                 material.SetAlphaMaskCutoff( cutOff );
             }
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndex );
 
-            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            imgui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            imgui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
                 material.RemoveTexture( MapType::eBaseColor );
@@ -421,7 +421,7 @@ namespace mikoto::editor {
                 "Opaque", "Mask", "Blend",
             };
 
-            AlphaMode newAlphaMode{ gui::Combo( choicesAlpha, currentAlphaMode ) };
+            AlphaMode newAlphaMode{ imgui::Combo( choicesAlpha, currentAlphaMode ) };
             if (currentAlphaMode != newAlphaMode) {
                 material.SetAlphaMask( newAlphaMode );
             }
@@ -434,7 +434,7 @@ namespace mikoto::editor {
                 "Metallic-Roughness", "Specular-Glossiness",
             };
 
-            Workflow newWorkFlow{ gui::Combo( choicesWorkflow, currentWorkFlow ) };
+            Workflow newWorkFlow{ imgui::Combo( choicesWorkflow, currentWorkFlow ) };
             if (newWorkFlow != currentWorkFlow) {
                 material.SetWorkflow( newWorkFlow );
             }
@@ -458,7 +458,7 @@ namespace mikoto::editor {
             metallicMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( gui::PushImageButton( "##EditMetallicRoughnessProperties:TextureID", ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
+        if ( imgui::PushImageButton( "##EditMetallicRoughnessProperties:TextureID", ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eMetallicRoughness );
         }
 
@@ -474,14 +474,14 @@ namespace mikoto::editor {
         }
 
         if ( material.HasTexture( MapType::eMetallicRoughness ) ) {
-            gui::ToolTip( [&]() -> void {
+            imgui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( metallicMap.GetRaw() );
             },ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
             if ( !material.HasTexture( MapType::eMetallicRoughness ) ) {
-                gui::ToolTip( "Click me to load a texture." );
+                imgui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -497,16 +497,16 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
             static float perceptualRoughness{ 0 }; // TODO
-            if ( gui::Slider( "Perceptual Roughness", perceptualRoughness, { 0.0f, 1.0f } ) ) {
+            if ( imgui::Slider( "Perceptual Roughness", perceptualRoughness, { 0.0f, 1.0f } ) ) {
             }
 
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
-            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            imgui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            imgui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
                 material.RemoveTexture( MapType::eMetallicRoughness );
@@ -530,7 +530,7 @@ namespace mikoto::editor {
             metallicMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( gui::PushImageButton( "##EditMetallicProperties::TextureID", ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
+        if ( imgui::PushImageButton( "##EditMetallicProperties::TextureID", ImGuiService::Get()->GetTextureID( metallicMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eMetallic );
         }
 
@@ -546,14 +546,14 @@ namespace mikoto::editor {
         }
 
         if ( material.HasTexture( MapType::eMetallic ) ) {
-            gui::ToolTip( [&]() -> void {
+            imgui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( metallicMap.GetRaw() );
             }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
             if ( !material.HasTexture( MapType::eMetallic ) ) {
-                gui::ToolTip( "Click me to load a texture." );
+                imgui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -571,15 +571,15 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
             float strength{ material.GetMetallicFactor() };
-            if ( gui::Slider( "Metal factor", strength, { 0.0f, 1.0f } ) ) {
+            if ( imgui::Slider( "Metal factor", strength, { 0.0f, 1.0f } ) ) {
                 material.SetMetallicFactor( strength );
             }
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
-            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            imgui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            imgui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
                 material.RemoveTexture( MapType::eMetallic );
@@ -605,7 +605,7 @@ namespace mikoto::editor {
             normalMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( gui::PushImageButton( (u64)normalMap, ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
+        if ( imgui::PushImageButton( (u64)normalMap, ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eNormal );
         }
 
@@ -621,14 +621,14 @@ namespace mikoto::editor {
         }
 
         if ( material.HasTexture( MapType::eNormal ) ) {
-            gui::ToolTip( [&]() -> void {
+            imgui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( normalMap.GetRaw() );
             }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
             if ( !material.HasTexture( MapType::eNormal ) ) {
-                gui::ToolTip( "Click me to load a texture." );
+                imgui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -644,8 +644,8 @@ namespace mikoto::editor {
         if ( ImGui::BeginTable( "NormalMapEditContentsTable", columnCount, specularTableFlags ) ) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
-            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            imgui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            imgui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
                 material.RemoveTexture( MapType::eNormal );
@@ -669,7 +669,7 @@ namespace mikoto::editor {
             normalMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( gui::PushImageButton( (u64)normalMap, ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
+        if ( imgui::PushImageButton( (u64)normalMap, ImGuiService::Get()->GetTextureID( normalMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eEmissive );
         }
 
@@ -685,14 +685,14 @@ namespace mikoto::editor {
         }
 
         if ( material.HasTexture( MapType::eEmissive ) ) {
-            gui::ToolTip( [&]() -> void {
+            imgui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( normalMap.GetRaw() );
             }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
             if ( !material.HasTexture( MapType::eEmissive ) ) {
-                gui::ToolTip( "Click me to load a texture." );
+                imgui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -710,19 +710,19 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
             float3 factors{ material.GetEmissiveFactor() };
-            if ( gui::ColorEdit3( "Factors", factors ) ) {
+            if ( imgui::ColorEdit3( "Factors", factors ) ) {
                 material.SetEmissiveFactor( factors );
             }
 
             float strength{ material.GetEmissiveStrength() };
-            if ( gui::Slider( "Strength", strength, { 0.0f, 10.0f } ) ) {
+            if ( imgui::Slider( "Strength", strength, { 0.0f, 10.0f } ) ) {
                 material.SetEmissiveStrength( strength );
             }
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
             bool isBloomy{ material.IsBloomy() };
-            if (gui::CheckBox( "##EditEmissionProperties:IsBloomy", isBloomy ) ) {
+            if (imgui::CheckBox( "##EditEmissionProperties:IsBloomy", isBloomy ) ) {
                 material.EnableBloom( isBloomy );
             }
 
@@ -731,8 +731,8 @@ namespace mikoto::editor {
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
-            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            imgui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            imgui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
                 material.RemoveTexture( MapType::eEmissive );
@@ -756,7 +756,7 @@ namespace mikoto::editor {
             roughnessMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( gui::PushImageButton( "##EditRoughnessProperties:TextureID", ImGuiService::Get()->GetTextureID( roughnessMap ), ImVec2{ 64, 64 } ) ) {
+        if ( imgui::PushImageButton( "##EditRoughnessProperties:TextureID", ImGuiService::Get()->GetTextureID( roughnessMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eRoughness );
         }
 
@@ -772,14 +772,14 @@ namespace mikoto::editor {
         }
 
         if ( material.HasTexture( MapType::eRoughness ) ) {
-            gui::ToolTip( [&]() -> void {
+            imgui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( roughnessMap.GetRaw() );
             }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
             if ( !material.HasTexture( MapType::eRoughness ) ) {
-                gui::ToolTip( "Click me to load a texture." );
+                imgui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -797,17 +797,17 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
             float strength{ material.GetRoughnessFactor() };
-            if ( gui::Slider( "Roughness", strength, { 0.0f, 1.0f } ) ) {
+            if ( imgui::Slider( "Roughness", strength, { 0.0f, 1.0f } ) ) {
                 material.SetRoughnessFactor( strength );
             }
 
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
-            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            imgui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            imgui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
                 material.RemoveTexture( MapType::eRoughness );
@@ -831,7 +831,7 @@ namespace mikoto::editor {
             aoMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( gui::PushImageButton( (u64)aoMap, ImGuiService::Get()->GetTextureID( aoMap ), ImVec2{ 64, 64 } ) ) {
+        if ( imgui::PushImageButton( (u64)aoMap, ImGuiService::Get()->GetTextureID( aoMap ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eAmbientOcclusion );
         }
 
@@ -848,14 +848,14 @@ namespace mikoto::editor {
         }
 
         if ( material.HasTexture( MapType::eAmbientOcclusion ) ) {
-            gui::ToolTip( [&]() -> void {
+            imgui::ToolTip( [&]() -> void {
                 ShowTextureHoverTooltip( aoMap.GetRaw() );
             }, ImGui::IsItemHovered() );
         }
 
         if ( ImGui::IsItemHovered() ) {
             if ( !material.HasTexture( MapType::eAmbientOcclusion ) ) {
-                gui::ToolTip( "Click me to load a texture." );
+                imgui::ToolTip( "Click me to load a texture." );
             }
 
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -874,15 +874,15 @@ namespace mikoto::editor {
 
             float factor{ material.GetAoFactor() };
 
-            if ( gui::Slider( "AO Factor", factor, { 0.0f, 10.0f } ) ) {
+            if ( imgui::Slider( "AO Factor", factor, { 0.0f, 10.0f } ) ) {
                 material.SetAoFactor( factor );
             }
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( columnIndexSpecular );
 
-            gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-            gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+            imgui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+            imgui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
             if ( ImGui::Button( "Remove Texture" ) ) {
                 material.RemoveTexture( MapType::eAmbientOcclusion );
@@ -1079,7 +1079,7 @@ namespace mikoto::editor {
 
         ImGui::Spacing();
 
-        ( void )gui::PushImageButton( ( u64 )texture.GetRaw(), ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 64, 64 } );
+        ( void )imgui::PushImageButton( ( u64 )texture.GetRaw(), ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 64, 64 } );
 
         ImGui::SameLine();
 
@@ -1167,8 +1167,8 @@ namespace mikoto::editor {
         ImGui::NextColumn();
         ImGui::PushMultiItemsWidths( 3, ImGui::CalcItemWidth() );
 
-        gui::ImGuiScopedStyleVar frameBorderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-        gui::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 7.0f, 5.0f } };
+        imgui::ImGuiScopedStyleVar frameBorderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+        imgui::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 7.0f, 5.0f } };
 
         const float lineHeight{ GImGui->FontSize + GImGui->Style.FramePadding.y * 3.0f };
         const ImVec2 buttonSize{ lineHeight + 3.0f, lineHeight };
@@ -1244,7 +1244,7 @@ namespace mikoto::editor {
         TagComponent& tag{ entity->GetComponent<TagComponent>() };
 
         bool isActive{ tag.IsActive() };
-        if ( gui::CheckBox( "##DrawVisibilityCheckBox::Checkbox", isActive ) ) {
+        if ( imgui::CheckBox( "##DrawVisibilityCheckBox::Checkbox", isActive ) ) {
             tag.SetActive( isActive );
         }
     }
@@ -1278,7 +1278,7 @@ namespace mikoto::editor {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
             glm::vec3 diffuseComponent{ pointLightData.GetColor() };
-            if ( gui::ColorEdit3( "Color", diffuseComponent ) ) {
+            if ( imgui::ColorEdit3( "Color", diffuseComponent ) ) {
                 pointLightData.SetColor( diffuseComponent );
             }
 
@@ -1287,7 +1287,7 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( 0 );
 
             float intensity{ pointLightData.GetIntensity() };
-            if ( gui::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
+            if ( imgui::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
                 pointLightData.SetIntensity( intensity );
             }
 
@@ -1296,7 +1296,7 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( 0 );
 
             float radius{ pointLightData.GetRadius() };
-            if ( gui::Slider( "Radius", radius, { 1.0f, 500.0f } ) ) {
+            if ( imgui::Slider( "Radius", radius, { 1.0f, 500.0f } ) ) {
                 pointLightData.SetRadius( radius );
             }
 
@@ -1309,7 +1309,7 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( 0 );
 
             static bool castShadows{};
-            if ( gui::CheckBox( "Cast shadows", castShadows ) ) {
+            if ( imgui::CheckBox( "Cast shadows", castShadows ) ) {
             }
 
             ImGui::EndTable();
@@ -1339,40 +1339,40 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( 0 );
 
             float3 color{ spotLightData.GetColor() };
-            if ( gui::ColorEdit3( "Color", color ) ) {
+            if ( imgui::ColorEdit3( "Color", color ) ) {
                 spotLightData.SetColor( color );
             }
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
             float intensity{ spotLightData.GetIntensity() };
-            if ( gui::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
+            if ( imgui::Slider( "Intensity", intensity, { 1.0f, 1000.0f } ) ) {
                 spotLightData.SetIntensity( intensity );
             }
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
             float radius{ spotLightData.GetRadius() };
-            if ( gui::Slider( "Attenuation Radius", radius, { 1.0f, 500.0f } ) ) {
+            if ( imgui::Slider( "Attenuation Radius", radius, { 1.0f, 500.0f } ) ) {
                 spotLightData.SetRadius( radius );
             }
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             ImGui::Spacing();
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex( 0 );
 
             float angle{ spotLightData.GetAngle() };
-            if ( gui::Slider( "Angle", angle, { 1.0f, SpotLight::GetMaxAngle() } ) ) {
+            if ( imgui::Slider( "Angle", angle, { 1.0f, SpotLight::GetMaxAngle() } ) ) {
                 spotLightData.SetAngle( angle );
             }
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             ImGui::SameLine();
             widget::MakeHelpPopUp( "Cone angle in degrees" );
@@ -1382,7 +1382,7 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( 0 );
 
             float softness{ spotLightData.GetSoftness() };
-            if ( gui::Slider( "Softness", softness, { 0.0f, SpotLight::GetMaxSoftness() } ) ) {
+            if ( imgui::Slider( "Softness", softness, { 0.0f, SpotLight::GetMaxSoftness() } ) ) {
                 spotLightData.SetSoftness( softness );
             }
 
@@ -1414,7 +1414,7 @@ namespace mikoto::editor {
 
             ImGui::TableSetColumnIndex( 1 );
             float intensity{ direLightData.GetIntensity() };
-            if ( gui::Slider( "##Intensity", intensity, { 1.0f, 10.0f } ) ) {
+            if ( imgui::Slider( "##Intensity", intensity, { 1.0f, 10.0f } ) ) {
                 direLightData.SetIntensity( intensity );
             }
 
@@ -1426,7 +1426,7 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( 1 );
 
             glm::vec4 diffuse{ direLightData.GetColor(), 1.0f };
-            if ( gui::ColorEdit4( "##DirectionalLightDiffuse", diffuse ) ) {
+            if ( imgui::ColorEdit4( "##DirectionalLightDiffuse", diffuse ) ) {
                 direLightData.SetColor( diffuse );
             }
 
@@ -1491,7 +1491,7 @@ namespace mikoto::editor {
 
         ImGui::Spacing();
 
-        if ( gui::CheckBox( "##SetupTransformComponentTab:UniformScale", uniformScale ) ) {
+        if ( imgui::CheckBox( "##SetupTransformComponentTab:UniformScale", uniformScale ) ) {
             entity.GetComponent<TransformComponent>().SetUniformSale( uniformScale );
         }
 
@@ -1569,7 +1569,7 @@ namespace mikoto::editor {
 
             const float height{ ImGui::GetTextLineHeightWithSpacing() * 15.0f };
             if ( ImGui::BeginChild( "ScriptPreviewChild", ImVec2{ 0, height }, true, ImGuiWindowFlags_HorizontalScrollbar ) ) {
-                gui::ImGuiScopedTextFont newFont{ ImGuiService::Get()->PushFont( "./Resources/Fonts/Google_Sans_Code/static/GoogleSansCode-Light.ttf" ) };
+                imgui::ImGuiScopedTextFont newFont{ ImGuiService::Get()->PushFont( "./Resources/Fonts/Google_Sans_Code/static/GoogleSansCode-Light.ttf" ) };
 
                 ImGuiListClipper clipper{};
                 clipper.Begin( static_cast<i32>( lines.size() ) );
@@ -1609,9 +1609,9 @@ namespace mikoto::editor {
                 currentAnimationName = current->GetName();
         }
 
-        gui::UnindentScoped und{};
+        imgui::UnindentScoped und{};
 
-        gui::DrawNode( "Animation List", [animator, &currentAnimationName]() -> void {
+        imgui::DrawNode( "Animation List", [animator, &currentAnimationName]() -> void {
             if ( !animator )
                 return;
 
@@ -1627,7 +1627,7 @@ namespace mikoto::editor {
                 animationNames.push_back( animation->GetName() );
 
             const i32 selectionIndex{
-                gui::Combo(
+                imgui::Combo(
                         animationNames.data(),
                         static_cast<size_t>( animationNames.size() ),
                         currentAnimationName )
@@ -1644,7 +1644,7 @@ namespace mikoto::editor {
         if ( animator )
             play = animator->IsPlaying();
 
-        if ( gui::CheckBox( "Play selected animation", play ) ) {
+        if ( imgui::CheckBox( "Play selected animation", play ) ) {
             if ( !animator )
                 return;
 
@@ -1957,7 +1957,7 @@ namespace mikoto::editor {
         // Slider float font size
         float currentSize{ textComponent.GetSize() };
         ImGui::Spacing();
-        if ( gui::Slider( "##WorldSize", currentSize, { TextComponent::GetMinLetterSize(), 500.0f } ) ) {
+        if ( imgui::Slider( "##WorldSize", currentSize, { TextComponent::GetMinLetterSize(), 500.0f } ) ) {
             textComponent.SetSize( currentSize );
         }
         if (!ImGui::IsItemActive()) {
@@ -1967,7 +1967,7 @@ namespace mikoto::editor {
         // Slider float letter spacing
         float spacing{ textComponent.GetSpacing() };
         ImGui::Spacing();
-        if ( gui::Slider( "##Spacing", spacing, { TextComponent::GetMinLetterSpacing(), 35.0f } ) ) {
+        if ( imgui::Slider( "##Spacing", spacing, { TextComponent::GetMinLetterSpacing(), 35.0f } ) ) {
             textComponent.SetSpacing( spacing );
         }
 
@@ -1979,14 +1979,14 @@ namespace mikoto::editor {
         // Slider float letter spacing
         bool isWorldText{ textComponent.IsWorldText() };
         ImGui::Spacing();
-        if ( gui::CheckBox( "Is World Text", isWorldText) ) {
+        if ( imgui::CheckBox( "Is World Text", isWorldText) ) {
             textComponent.SetIsWorldText( isWorldText );
         }
 
         ImGui::Spacing();
 
         eastl::string content{ textComponent.GetContents() };
-        if ( gui::TextArea( content ) ) {
+        if ( imgui::TextArea( content ) ) {
             textComponent.SetContents( content );
         }
 
@@ -1996,11 +1996,11 @@ namespace mikoto::editor {
             if ( font != nullptr ) {
                 TextureHandle atlas{ font->GetAtlas() };
 
-                if ( gui::PushImageButton( (u64)atlas, ImGuiService::Get()->GetTextureID( atlas ), ImVec2{ 256, 256 } ) ) {
+                if ( imgui::PushImageButton( (u64)atlas, ImGuiService::Get()->GetTextureID( atlas ), ImVec2{ 256, 256 } ) ) {
 
                 }
 
-                gui::ToolTip( [&]() -> void {
+                imgui::ToolTip( [&]() -> void {
                     ShowTextureHoverTooltip( atlas.GetRaw() );
                 },  ImGui::IsItemHovered() );
 
@@ -2133,7 +2133,7 @@ namespace mikoto::editor {
         if ( ImGui::Checkbox( "##IsSpatizlizedAudio", MKT_ADDRESSOF( isSpatialized ) ) ) {
             if ( source ) source->SetSpatialization( isSpatialized );
         }
-        gui::SetCursorHandOnLastItemHovered();
+        imgui::SetCursorHandOnLastItemHovered();
 
         // --- Muted ---
         ImGui::TableNextRow();
@@ -2144,7 +2144,7 @@ namespace mikoto::editor {
         if ( ImGui::Checkbox( "##IsMutedAudio", &isMuted ) ) {
             if ( source ) source->Mute( isMuted );
         }
-        gui::SetCursorHandOnLastItemHovered();
+        imgui::SetCursorHandOnLastItemHovered();
 
         // --- Loop ---
         ImGui::TableNextRow();
@@ -2155,7 +2155,7 @@ namespace mikoto::editor {
         if ( ImGui::Checkbox( "##IsLoopingAudio", &isLooping ) ) {
             if ( source ) source->SetLooping( isLooping );
         }
-        gui::SetCursorHandOnLastItemHovered();
+        imgui::SetCursorHandOnLastItemHovered();
 
         // --- Volume ---
         ImGui::TableNextRow();
@@ -2168,7 +2168,7 @@ namespace mikoto::editor {
                 source->SetVolume( volume );
             }
         }
-        gui::SetCursorHandOnLastItemHovered();
+        imgui::SetCursorHandOnLastItemHovered();
 
         // --- Playback controls ---
         if (!source.IsEmpty()) {
@@ -2181,19 +2181,19 @@ namespace mikoto::editor {
             if ( ImGui::Button( string::Concat( ICON_MD_PLAY_ARROW, " Play" ).c_str() ) ) {
                 source->Play();
             }
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             ImGui::SameLine();
             if ( ImGui::Button( string::Concat( ICON_MD_PAUSE, " Pause" ).c_str() ) ) {
                 source->Pause();
             }
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             ImGui::SameLine();
             if ( ImGui::Button( string::Concat( ICON_MD_STOP, " Stop" ).c_str() ) ) {
                 source->Stop();
             }
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             // --- Progress bar ---
             ImGui::TableNextRow();
@@ -2334,7 +2334,7 @@ namespace mikoto::editor {
             eastl::array<std::string, as<usize>(CameraClearFlags::eCount)> choicesAlpha{
                 "Clear color", "Blurred Skybox", "Skybox" };
 
-            CameraClearFlags newClearFlags{ gui::Combo( choicesAlpha, currentClearFlags ) };
+            CameraClearFlags newClearFlags{ imgui::Combo( choicesAlpha, currentClearFlags ) };
             if (newClearFlags != currentClearFlags) {
                 auto GetRenderBackground{
                     []( CameraClearFlags rb ) {
@@ -2515,7 +2515,7 @@ namespace mikoto::editor {
 
         ImGui::TextUnformatted( "Material name");
         ImGui::SameLine();
-        if (gui::InputText( material->GetName(), true ) ) {
+        if (imgui::InputText( material->GetName(), true ) ) {
             // Nothing
         }
 
@@ -2527,7 +2527,7 @@ namespace mikoto::editor {
             "Cube Faces", "HDR Texture" };
 
         ImGui::SameLine();
-        SkyboxType newSkyboxType{ gui::Combo( choicesAlpha, currentSkyboxType ) };
+        SkyboxType newSkyboxType{ imgui::Combo( choicesAlpha, currentSkyboxType ) };
         if (newSkyboxType != currentSkyboxType) {
             material->SetType( newSkyboxType );
             mState->mSceneRenderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
@@ -2584,9 +2584,9 @@ namespace mikoto::editor {
 
                     if ( ImGui::IsItemHovered() ) {
                         if ( material->GetFace( kCubeFaces[i].first ).IsEmpty() ) {
-                            gui::ToolTip( "Click me to load a texture." );
+                            imgui::ToolTip( "Click me to load a texture." );
                         } else {
-                            gui::ToolTip( [&]() -> void {
+                            imgui::ToolTip( [&]() -> void {
                                 ShowTextureHoverTooltip( material->GetFace( kCubeFaces[i].first ).GetRaw() );
                             }, ImGui::IsItemHovered() );
                         }
@@ -2595,8 +2595,8 @@ namespace mikoto::editor {
 
                     ImGui::TableSetColumnIndex( 1 );
 
-                    gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-                    gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+                    imgui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+                    imgui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
                     if ( ImGui::Button( string::Format("Remove {}", kCubeFaces[i].second ).c_str() ) ) {
 
@@ -2615,8 +2615,8 @@ namespace mikoto::editor {
                 ImGui::Separator();
                 ImGui::Spacing();
 
-                gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-                gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+                imgui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+                imgui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
                 if ( ImGui::Button( string::Format( "{} Apply", ICON_MD_CLOUD_DOWNLOAD ).c_str()) ) {
                     mState->mSceneRenderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
@@ -2661,9 +2661,9 @@ namespace mikoto::editor {
 
                 if ( ImGui::IsItemHovered() ) {
                     if ( material->GetEquirectangular().IsEmpty() ) {
-                        gui::ToolTip( "Click me to load a texture." );
+                        imgui::ToolTip( "Click me to load a texture." );
                     } else {
-                        gui::ToolTip( [&]() -> void {
+                        imgui::ToolTip( [&]() -> void {
                             ShowTextureHoverTooltip( material->GetEquirectangular().GetRaw() );
                         }, ImGui::IsItemHovered() );
                     }
@@ -2672,8 +2672,8 @@ namespace mikoto::editor {
 
                 ImGui::TableSetColumnIndex( 1 );
 
-                gui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
-                gui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
+                imgui::ImGuiScopedStyleVar borderSize{ ImGuiStyleVar_FrameBorderSize, 1.5f };
+                imgui::ImGuiScopedStyleVar innerSpacing{ ImGuiStyleVar_FramePadding, ImVec2{ 5.0f, 5.0f } };
 
                 if ( ImGui::Button( "Remove Image" ) ) {
 

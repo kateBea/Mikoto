@@ -30,7 +30,7 @@
 
 #include <Memory/Allocator.hh>
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     auto PushImageButton( eastl::string_view ID, ImTextureID textureHandle, ImVec2 size ) -> bool {
         return ImGui::ImageButton( ID.data(), textureHandle, size );

@@ -27,7 +27,7 @@
 #include <Core/Types.hh>
 #include <Core/String.hh>
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     struct GraphNode {
         core::i32 mID{};

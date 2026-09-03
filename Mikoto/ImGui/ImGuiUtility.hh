@@ -25,7 +25,7 @@
 #include <Logging/Assert.hh>
 #include <glm/gtc/type_ptr.hpp>
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     using namespace mikoto::core;
 

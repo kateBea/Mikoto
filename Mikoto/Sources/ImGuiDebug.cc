@@ -14,6 +14,6 @@
 
 #include <ImGui/ImGuiDebug.hh>
 
-namespace mikoto::gui::debug {
+namespace mikoto::imgui::debug {
 
 }

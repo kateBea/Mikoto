@@ -31,7 +31,7 @@
 
 #include <ImGui/GraphEditor.hh>
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     using namespace mikoto::core;
 

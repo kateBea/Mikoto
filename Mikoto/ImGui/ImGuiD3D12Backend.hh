@@ -36,7 +36,7 @@
 
 #include <Renderer/Rhi/D3D12/D3D12Device.hh>
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;

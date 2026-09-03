@@ -39,7 +39,7 @@
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_glfw.h>
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::d3d11;

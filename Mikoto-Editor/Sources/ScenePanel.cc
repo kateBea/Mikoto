@@ -47,19 +47,19 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::gui;
+    using namespace mikoto::imgui;
     using namespace mikoto::core;
     using namespace mikoto::scene;
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
-    MKT_NODISCARD static auto InferManipulationMode( gui::GuizmoType manipulation ) -> ImGuizmo::OPERATION {
+    MKT_NODISCARD static auto InferManipulationMode( imgui::GuizmoType manipulation ) -> ImGuizmo::OPERATION {
         switch (manipulation) {
-            case gui::GuizmoType::eTranslation:
+            case imgui::GuizmoType::eTranslation:
                 return ImGuizmo::OPERATION::TRANSLATE;
-            case gui::GuizmoType::eRotation:
+            case imgui::GuizmoType::eRotation:
                 return ImGuizmo::OPERATION::ROTATE;
-            case gui::GuizmoType::eScale:
+            case imgui::GuizmoType::eScale:
                 return ImGuizmo::OPERATION::SCALE;
 
             default: ;
@@ -283,7 +283,7 @@ namespace mikoto::editor {
 
             auto makeTool = [&]( const char *icon, GuizmoType type ) {
                 const bool active{
-                    mManipulationType == as<gui::GuizmoType>( type )
+                    mManipulationType == as<imgui::GuizmoType>( type )
                 };
 
                 const ImVec2 btnSize{ 28.0f, 28.0f };
@@ -296,7 +296,7 @@ namespace mikoto::editor {
                 ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, iconPadding );
 
                 if (ImGui::Button( icon, btnSize )) {
-                    mManipulationType = as<gui::GuizmoType>( type );
+                    mManipulationType = as<imgui::GuizmoType>( type );
                 }
 
                 ImGui::PopStyleVar();
@@ -308,11 +308,11 @@ namespace mikoto::editor {
 
             // Extra spacing on first button
             ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 6.0f, 0.0f } );
-            makeTool( ICON_MD_OPEN_WITH, gui::GuizmoType::eTranslation );
+            makeTool( ICON_MD_OPEN_WITH, imgui::GuizmoType::eTranslation );
             ImGui::PopStyleVar();
 
-            makeTool( ICON_MD_ROTATE_RIGHT, gui::GuizmoType::eRotation );
-            makeTool( ICON_MD_OPEN_IN_FULL, gui::GuizmoType::eScale );
+            makeTool( ICON_MD_ROTATE_RIGHT, imgui::GuizmoType::eRotation );
+            makeTool( ICON_MD_OPEN_IN_FULL, imgui::GuizmoType::eScale );
 
             ImGui::NewLine();
         }

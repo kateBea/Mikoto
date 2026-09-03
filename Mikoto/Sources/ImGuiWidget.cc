@@ -23,7 +23,7 @@
 
 #include <ImGui/ImGuiWidget.hh>
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     using namespace mikoto::core;
 

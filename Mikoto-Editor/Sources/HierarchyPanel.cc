@@ -52,7 +52,7 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::gui;
+    using namespace mikoto::imgui;
     using namespace mikoto::core;
     using namespace mikoto::scene;
     using namespace mikoto::renderer;
@@ -196,9 +196,9 @@ namespace mikoto::editor {
             ImGuiPopupFlags_MouseButtonRight
         };
 
-        gui::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
-        gui::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f } };
-        gui::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
+        imgui::ImGuiScopedStyleVar popupBorder{ ImGuiStyleVar_PopupBorderSize, 1.0f };
+        imgui::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 11.0f, 11.0f } };
+        imgui::ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 12.0f, 12.0f } };
 
         if ( ImGui::BeginPopupContextItem( nullptr, popupWindowFlags ) ) {
             if ( ImGui::BeginMenu( "Add component" ) ) {
@@ -466,7 +466,7 @@ namespace mikoto::editor {
         DrawSearchBar();
 
         if (ImGui::TreeNodeEx("Scripts", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_FramePadding )) {
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             ImGui::TreePop();
         }
@@ -515,7 +515,7 @@ namespace mikoto::editor {
             // Make cursor hand only when entity list tree node is closed
             // otherwise cursor hand will leak to other items
             if (!isEntitiesHierarchyOpen) {
-                gui::SetCursorHandOnLastItemHovered();
+                imgui::SetCursorHandOnLastItemHovered();
             }
 
             if ( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() ) {

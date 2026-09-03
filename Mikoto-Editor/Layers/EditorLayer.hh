@@ -156,7 +156,7 @@ namespace mikoto::editor {
         bool mDisplayPhysicsPanelTriangles{};
         bool mShowPolygonComplexity{};
 
-        gui::GraphEditor mGraphEditor{ "RenderGraph" };
+        imgui::GraphEditor mGraphEditor{ "RenderGraph" };
 
         ScreenPresentTarget mScreenPresentTarget{ ScreenPresentTarget::ePanels };
     };

@@ -29,7 +29,7 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::gui;
+    using namespace mikoto::imgui;
     using namespace mikoto::core;
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
@@ -63,17 +63,17 @@ namespace mikoto::editor {
             if ( ImGui::BeginTabItem( "Environment" ) ) {
                 ImGui::EndTabItem();
             }
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             if ( ImGui::BeginTabItem( "Lights" ) ) {
                 ImGui::EndTabItem();
             }
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             if ( ImGui::BeginTabItem( "Scene" ) ) {
                 ImGui::EndTabItem();
             }
-            gui::SetCursorHandOnLastItemHovered();
+            imgui::SetCursorHandOnLastItemHovered();
 
             ImGui::EndTabBar();
         }

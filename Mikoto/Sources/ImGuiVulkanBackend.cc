@@ -42,7 +42,7 @@
 #include <Renderer/Rhi/Vulkan/VulkanContext.hh>
 #include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     using namespace mikoto::core;
     using namespace mikoto::renderer;

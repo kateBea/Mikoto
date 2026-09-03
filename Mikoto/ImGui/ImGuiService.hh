@@ -34,7 +34,7 @@
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     struct ImGuiBackendCreateInfo {
         platform::Window* mWindow{ nullptr };

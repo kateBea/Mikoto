@@ -44,7 +44,7 @@
 #include <ImGui/ImGuiD3D12Backend.hh>
 #endif
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     using namespace mikoto::core;
     using namespace mikoto::platform;

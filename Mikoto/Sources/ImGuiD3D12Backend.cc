@@ -49,7 +49,7 @@
 #include <Renderer/Rhi/D3D12/D3D12Context.hh>
 #include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
 
-namespace mikoto::gui {
+namespace mikoto::imgui {
 
     using namespace mikoto::core;
     using namespace mikoto::renderer;

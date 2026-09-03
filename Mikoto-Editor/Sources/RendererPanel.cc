@@ -66,18 +66,18 @@ namespace mikoto::editor {
 
         ImGui::SeparatorText( "FrameGraph Info" );
 
-        gui::DrawNode( "Passes", [this] () -> void {
-            gui::UnindentScoped und{};
+        imgui::DrawNode( "Passes", [this] () -> void {
+            imgui::UnindentScoped und{};
 
         });
 
-        gui::DrawNode( "Renderer", [this] () -> void {
+        imgui::DrawNode( "Renderer", [this] () -> void {
             // TODO: add aspect ratio, auto, 16:1 etc
         });
 
         ImGui::SeparatorText( "Renderer Settings" );
-        gui::DrawNode( "Monitor", [this] () -> void {
-            gui::UnindentScoped und{};
+        imgui::DrawNode( "Monitor", [this] () -> void {
+            imgui::UnindentScoped und{};
 
             ImGui::SameLine();
             ImGui::TextUnformatted( "Refresh Rate" );

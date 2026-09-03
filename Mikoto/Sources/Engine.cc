@@ -56,7 +56,7 @@
 namespace mikoto::core {
 
     using namespace mikoto::core;
-    using namespace mikoto::gui;
+    using namespace mikoto::imgui;
     using namespace mikoto::threading;
     using namespace mikoto::audio;
     using namespace mikoto::network;

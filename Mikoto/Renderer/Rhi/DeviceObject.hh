@@ -95,6 +95,8 @@ namespace mikoto::renderer::rhi {
         HeapType mHeapType{ HeapType::eDeviceLocal };
         CpuAccessType mCpuAccess{ CpuAccessType::eNone };
     };
+
+    using DeviceObjectHandle = core::Ref<DeviceObject>;
 }// namespace mikoto::renderer::rhi
 
 #endif //MIKOTO_RHI_DEVICE_OBJECT_HH

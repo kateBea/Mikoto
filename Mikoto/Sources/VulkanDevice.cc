@@ -1055,7 +1055,7 @@ namespace mikoto::renderer::vulkan {
             1,
             &copyRegion );
 
-        mRecordingContext[mRecordingContextIndex].mUploadAllocations.emplace_back( allocation );
+        mRecordingContext[mRecordingContextIndex].mInFlightSubAllocations.emplace_back( allocation );
     }
 
     auto CommandList::Write( IBuffer* buffer, size_t destOffset, const void* data, usize byteSize ) -> void {
@@ -1109,7 +1109,7 @@ namespace mikoto::renderer::vulkan {
                 &copy
             );
 
-            mRecordingContext[mRecordingContextIndex].mUploadAllocations.emplace_back( allocation );
+            mRecordingContext[mRecordingContextIndex].mInFlightSubAllocations.emplace_back( allocation );
         }
     }
 
@@ -1795,13 +1795,14 @@ namespace mikoto::renderer::vulkan {
         mIndirectBuffer = nullptr;
 
         // Cleanup allocations not in use
-        for (auto& subAllocations : mRecordingContext[mRecordingContextIndex].mUploadAllocations) {
+        for (auto& subAllocations : mRecordingContext[mRecordingContextIndex].mInFlightSubAllocations) {
             // Set it to false we to tell the allocator
             // this allocation can already be destroyed
             subAllocations->mInUse.clear();
         }
 
-        mRecordingContext[mRecordingContextIndex].mUploadAllocations.clear();
+        mRecordingContext[mRecordingContextIndex].mInFlightResources.clear();
+        mRecordingContext[mRecordingContextIndex].mInFlightSubAllocations.clear();
     }
 
     CommandPool::CommandPool( rhi::IQueue* queue )

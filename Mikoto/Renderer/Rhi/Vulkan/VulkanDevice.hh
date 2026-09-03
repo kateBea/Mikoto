@@ -208,7 +208,13 @@ namespace mikoto::renderer::vulkan {
         core::u64 mSubmissionID{};
         VkCommandBuffer mCommandBuffer{};
 
-        eastl::fixed_vector<GpuUploadAllocation*, 10> mUploadAllocations{};
+        // Resources that I'm currently using,
+        // I keep a strong reference to them to avoid
+        // destroying them while this command buffer is still being executed
+        eastl::fixed_vector<DeviceObjectHandle, 50> mInFlightResources{};
+
+        // Suballocations that I'm currently using
+        eastl::fixed_vector<GpuUploadAllocation*, 10> mInFlightSubAllocations{};
     };
 
     class CommandList final : public rhi::ICommandList {

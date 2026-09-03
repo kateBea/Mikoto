@@ -3310,8 +3310,10 @@ namespace mikoto::renderer::vulkan {
 
         eastl::array psRanges{ range };
 
-        plInfo.pushConstantRangeCount = as<u32>( psRanges.size() );
-        plInfo.pPushConstantRanges = psRanges.data();
+        if (range.size != 0) {
+            plInfo.pushConstantRangeCount = as<u32>( psRanges.size() );
+            plInfo.pPushConstantRanges = psRanges.data();
+        }
 
         MKT_VK_CHECK( vkCreatePipelineLayout( device->GetDevice(), &plInfo, nullptr, MKT_ADDRESSOF( mPipelineLayout ) ) );
         mIsAllocated = true;

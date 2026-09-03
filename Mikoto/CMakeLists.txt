@@ -316,13 +316,6 @@ FetchContent_Declare(ImGuizmo
 )
 FetchContent_MakeAvailable(ImGuizmo)
 
-# toml++ (header-only)
-FetchContent_Declare(tomlplusplus
-        GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
-        GIT_TAG v3.4.0
-)
-FetchContent_MakeAvailable(tomlplusplus)
-
 # cpptrace
 FetchContent_Declare(cpptrace
         GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git

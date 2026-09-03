@@ -21,41 +21,35 @@ passes, amongst other features.
 ![Mikoto Engine](Resources/Screenshots/img17.png)
 
 ---
+### Features
 
-### Feature List
+Mikoto is built around a Vulkan renderer and a collection of focused, open-source libraries. The currently supported features include:
 
-| **Category**       | **Feature Name**               | **Feature Description**                                                                             | **Supported** |
-|--------------------|--------------------------------|-----------------------------------------------------------------------------------------------------|---------------|
-| **Core Engine**    | Model Loading                  | Load 3D models via GLTF (for gltf scenes), defaults to Assimp for other formats                     | ✔️            |
-|                    | Image Loading                  | Texture/Image loading via STB_Image                                                                 | ✔️            |
-|                    | Cube maps                      | Load equirectangular HDR images and use them as cube maps, requires pass to project from 2D to Cube | ✔️            |
-|                    | Entity Component System        | ECS for scene/game object management                                                                | ✔️            |
-|                    | Scene Serialization            | Editor scene save/load                                                                              | ❌             |
-|                    | Particle System                | GPU particle simulation (fire, smoke, sparks, etc.)                                                 | ❌             |
-|                    | Ray Tracing                    | Hardware accelerated RT                                                                             | ❌             |
-|                    | Physics Integration            | Basic collision detection with Jolt                                                                 | ✔️            |
-|                    | UI Integration (ImGui)         | Runtime + editor ImGui                                                                              | ✔️            |
-|                    | Animation System               | Skeletal animation, skinning                                                                        | ❌             |
-|                    | Audio Support                  | Load and play audio                                                                                 | ✔️            |
-|                    | Text Rendering / Overlay       | MSDF-based text rendering                                                                           | ✔️            |
-| **Visual Effects** | Clustered Forward+             | Main render path with clustered/forward+ lighting                                                   | ✔️            |
-|                    | Clustered Light Culling        | Per-tile/cluster light assignment                                                                   | ✔️            |
-|                    | Mesh Culling                   | CPU mesh visibility culling                                                                         | ❌             |
-|                    | IBL (Image-Based Lighting)     | Diffuse irradiance + specular reflections                                                           | ❌             |
-|                    | Shadows                        | Directional, point, spot shadows                                                                    | ❌             |
-|                    | Cascaded Shadow Maps (CSM)     | Multi-split directional shadows                                                                     | ❌             |
-|                    | Outline Pass                   | Object outlining effect                                                                             | ❌             |
-|                    | Infinite Grid                  | Procedural grid for editor/world                                                                    | ✔️            |
-|                    | Bloom                          | Multi-pass bright blur                                                                              | ❌             |
-|                    | Depth of Field (DoF)           | DoF effect                                                                                          | ❌             |
-|                    | Screen-Space Reflections (SSR) | Reflections in screen space                                                                         | ❌             |
-|                    | Screen-Space GI (SSGI)         | Screen-space diffuse bounce lighting                                                                | ❌             |
-| **Editor / Tools** | Gizmos (ImGuizmo)              | Move/rotate/scale gizmos                                                                            | ✔️            |
-|                    | Profiling / GPU Timers         | Pass timing, pipeline stats                                                                         | ❌             |
-|                    | Asset Streaming                | Task-based async resource loading                                                                   | ❌             |
-|                    | Shader hot reloading           | Shader hot reload                                                                                   | ❌             |
-|                    | Asset hot reloading            | Asset hot reload for scripts, etc.                                                                  | ✔️            |
+**Core**
 
+* **Entity Component System** — Scene and game object management powered by [skypjack/entt](https://github.com/skypjack/entt).
+* **3D Model Loading** — GLTF support through [syoyo/tinygltf](https://github.com/syoyo/tinygltf), with [assimp/assimp](https://github.com/assimp/assimp) used for additional model formats.
+* **Image Loading** — Texture and image loading through [nothings/stb](https://github.com/nothings/stb), with Wuffs being considered for future format support.
+* **HDR & Environment Maps** — HDR image loading through `stb_image`, with support for converting equirectangular environments into cube maps.
+* **Physics** — Rigid-body physics and collision handling through [jrouwe/JoltPhysics](https://github.com/jrouwe/JoltPhysics).
+* **Audio** — Audio playback [mackron/miniaudio](https://github.com/mackron/miniaudio).
+* **Scripting** — Lua scripting integrated through [ThePhD/sol2](https://github.com/ThePhD/sol2).
+* **Text Rendering** — MSDF-based text rendering using [Chlumsky/msdfgen](https://github.com/Chlumsky/msdfgen).
+
+**Rendering**
+
+* **Vulkan Renderer** — Vulkan-based rendering architecture with a scene graph.
+* **Clustered Forward+** — Clustered lighting and light culling for the primary rendering path.
+* **Infinite Grid** — Procedural editor/world grid.
+* **HDR Rendering** — HDR image and environment support.
+
+**Editor**
+
+* **ImGui Integration** — Runtime and editor UI through [ocornut/imgui](https://github.com/ocornut/imgui).
+* **Transform Gizmos** — Move, rotate, and scale tools through [CedricGuillemet/ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo).
+* **Asset Hot Reloading** — Reload supported assets and scripts without restarting the editor.
+
+For a complete list of third-party libraries and how they are used throughout the engine, see the **[Third-Party Libraries](THIRD_PARTY.md)** page.
 
 ### **Platform Support**
 
@@ -72,25 +66,50 @@ passes, amongst other features.
 
 ## Requirements
 
-### Software Requirements
+Mikoto currently targets **C++20** and uses **CMake** for project configuration and builds.
 
-- **CMake 3.22+** – Required for configuring and building the project.
-- **Vulkan SDK** – Install from the official [LunarG SDK](https://vulkan.lunarg.com/).
-- **C++20-compatible compiler** – Tested with **GCC 13.3.0**; other C++20 compilers should work but are untested.
-- **Visual Studio 2022 onwards (Windows)** – Recommended IDE and toolchain for Windows builds.
+### Supported Platforms
+
+* **Windows** — Visual Studio 2022 or newer with the Vulkan SDK.
+* **Linux** — GCC 13.3.0 or newer with the Vulkan development packages installed.
+
+### Required Software
+
+* **CMake 3.22+** — Used to configure and generate the project build system.
+* **Vulkan SDK** — Required for Vulkan development, validation, and shader tooling. Install the latest SDK from [LunarG](https://vulkan.lunarg.com/).
+* **C++20-compatible compiler** — Mikoto is developed and tested with **GCC 13.3.0** on Linux and **MSVC** through Visual Studio on Windows.
+* **Visual Studio 2022+** — Required on Windows and provides the recommended MSVC toolchain and IDE.
+
+Additional platform-specific dependencies and setup instructions are covered in the **[Building Guide](BUILDING.md)**.
 
 ---
 
 ## Folder Structure
 
-- **`Resources/`**: Resources screenshots and some models to play around with.
-- **`Mikoto-Engine/`**: The core engine that powers the editor.
-- **`Mikoto-Editor/`**: The editor project for creating and managing game scenes.
-- **`Mikoto-Sandbox/`**: A sample project that demonstrates some of the engine's features.
-- **`Mikoto-Tests/`**: Contains lists of tests against the core engine.
-- **`Mikoto-Apps/`**: Standalone applications that showcase Mikoto features
+The repository is organized into separate projects for the engine, editor, examples, and tests:
 
->Some models used for demos were downloaded from Morgan McGuire's Computer Graphics Archive https://casual-effects.com/data
+```text
+Mikoto/
+├── Resources/
+├── Mikoto-Engine/
+├── Mikoto-Editor/
+├── Mikoto-Sandbox/
+├── Mikoto-Tests/
+└── Mikoto-Apps/
+```
+
+| Directory             | Description                                                                                                            |
+|-----------------------|------------------------------------------------------------------------------------------------------------------------|
+| **`Resources/`**      | Repo stuff and some models, textures, and other assets to play around with.                                            |
+| **`Mikoto-Engine/`**  | Core engine implementation, including rendering, ECS, physics, asset management, scripting, and other runtime systems. |
+| **`Mikoto-Editor/`**  | Editor application built on top of the engine for creating, editing, and managing scenes.                              |
+| **`Mikoto-Sandbox/`** | Sample application used to experiment with and demonstrate Mikoto's features.                                          |
+| **`Mikoto-Tests/`**   | Tests covering engine systems and core functionality.                                                                  |
+| **`Mikoto-Apps/`**    | Standalone applications and smaller examples built with Mikoto.                                                        |
+
+### External Assets
+
+Some demonstration models used by Mikoto are sourced from [Morgan McGuire's Computer Graphics Archive](https://casual-effects.com/data/).
 
 ## Building
 
@@ -111,37 +130,19 @@ see the **[Building Guide](BUILDING.md)**.
 
 > **Windows:** Visual Studio and the Vulkan SDK are required.
 > **Linux:** Required system dependencies must be installed before building.
-
 ## Dependencies
 
-The development of Mikoto Engine is made possible thanks to these fantastic third-party libraries:
+Mikoto builds upon a range of open-source libraries that provide functionality across rendering, asset management, physics, audio, scripting, editor tooling, and engine infrastructure.
 
-| Library                       | Description                                   | Link                                                                                                                |
-|-------------------------------|-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| **FMT**                       | Modern C++ formatting library                 | [fmtlib/fmt](https://github.com/fmtlib/fmt)                                                                         |
-| **GLEW**                      | OpenGL Extension Wrangler Library             | [GLEW](https://glew.sourceforge.net/)                                                                               |
-| **GLFW**                      | Multi-platform library for window management  | [glfw/glfw](https://github.com/glfw/glfw)                                                                           |
-| **GLM**                       | OpenGL Mathematics library                    | [g-truc/glm](https://github.com/g-truc/glm)                                                                         |
-| **ImGui**                     | Immediate Mode GUI library                    | [ocornut/imgui](https://github.com/ocornut/imgui)                                                                   |
-| **Spdlog**                    | Fast C++ logging library                      | [gabime/spdlog](https://github.com/gabime/spdlog)                                                                   |
-| **EnTT**                      | Fast and efficient Entity-Component System    | [skypjack/entt](https://github.com/skypjack/entt)                                                                   |
-| **Volk**                      | Meta-loader for Vulkan API                    | [zeux/volk](https://github.com/zeux/volk)                                                                           |
-| **Assimp**                    | Asset importer library                        | [assimp/assimp](https://github.com/assimp/assimp)                                                                   |
-| **VulkanMemoryAllocator**     | Memory allocation for Vulkan resources        | [GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) |
-| **ImGuizmo**                  | Gizmo manipulator for ImGui                   | [CedricGuillemet/ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo)                                             |
-| **yaml-cpp**                  | YAML parser and emitter for C++               | [jbeder/yaml-cpp](https://github.com/jbeder/yaml-cpp)                                                               |
-| **nativefiledialog-extended** | File dialog library for native UIs            | [btzy/nativefiledialog-extended](https://github.com/btzy/nativefiledialog-extended)                                 |
-| **JoltPhysics**               | Physics engine library                        | [jrouwe/JoltPhysics](https://github.com/jrouwe/JoltPhysics)                                                         |
-| **tomlplusplus**              | TOML configuration file parser for C++        | [marzer/tomlplusplus](https://github.com/marzer/tomlplusplus)                                                       |
-| **stb_image**                 | Image loading library                         | [nothings/stb](https://github.com/nothings/stb.git)                                                                 |
-| **msdf-atlas-gen**            | Multi-channel signed distance field generator | [Chlumsky/msdf-atlas-gen](https://github.com/Chlumsky/msdf-atlas-gen.git)                                           |
-| **TaskFlow**                  | Moder C++ Task library                        | [taskflow/taskflow](https://github.com/taskflow/taskflow)                                                           |
-| **Sol2**                      | Moder C++ Library for Scripting with Lua      | [ThePhD/sol2](https://github.com/ThePhD/sol2)                                                                       |
+The complete list of third-party dependencies, including their purpose and upstream repositories, is maintained separately in the **[Third-Party Libraries](THIRD_PARTY.md)** document.
+
+Mikoto would not be possible without the work of the developers and communities behind these projects.
 
 ## Networking
-Mikoto includes a networking layer built on top of ASIO to support TCP sockets.
-The engine supports both HTTP and HTTPS connections, but HTTPS requires OpenSSL to be installed on your system.
-If OpenSSL is not available the engine falls back to HTTP support only.
+
+Mikoto provides a lightweight networking layer built on top of [chriskohlhoff/asio](https://github.com/chriskohlhoff/asio), with support for **TCP**, **HTTP**, and **HTTPS** connections.
+
+HTTPS support requires **OpenSSL** to be available on the target system. When OpenSSL is not installed, Mikoto automatically falls back to **HTTP-only** support.
 
 ## Profiling with Tracy
 

@@ -199,6 +199,8 @@ namespace mikoto::scene {
         // used to calculate hierarchical transform
         ankerl::unordered_dense::set<Entity*> mRootEntities{};
     };
+
+    using SceneHandle = core::Ref<Scene>;
 }
 
 #include <Scene/Scene.inl>

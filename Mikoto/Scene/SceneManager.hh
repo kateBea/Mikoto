@@ -57,11 +57,11 @@ namespace mikoto::scene {
 
     private:
         // [Internal usage]
-        auto Register(eastl::string_view name, core::Ref<Scene>&& scene ) -> Scene*;
+        auto Register(eastl::string_view name, SceneHandle scene ) -> Scene*;
 
     private:
         SceneSerializer mSerializer{};
-        ankerl::unordered_dense::map<eastl::string, core::Ref<Scene>> mScenes{};
+        ankerl::unordered_dense::map<eastl::string, SceneHandle> mScenes{};
 
         std::mutex mSceneRegisterMutex{};
     };

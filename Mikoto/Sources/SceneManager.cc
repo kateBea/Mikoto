@@ -24,6 +24,8 @@
 #include <Core/Service.hh>
 
 #include <Scene/SceneManager.hh>
+
+#include <Filesystem/FileSystem.hh>
 #include <Filesystem/FileService.hh>
 
 namespace mikoto::scene {
@@ -47,8 +49,8 @@ namespace mikoto::scene {
     auto SceneManager::LoadFromDisk() -> Scene* {
         // File filters
         const std::initializer_list<FileDialogPair> filters{
-            { "Mikoto Scene files", "mkts,mktscene" },
-            { "Mikoto Project Files", "mkt,mktp,mktproject" }
+            { "Mikoto Scene", "mktscn" },
+            { "Mikoto Project", "mktprj" }
         };
 
         const Path savePath{ SaveFileDialog( "Mikoto Scene", filters ) };
@@ -66,8 +68,8 @@ namespace mikoto::scene {
 
     auto SceneManager::SaveToDisk( const Scene* scene) -> void {
         const std::initializer_list<FileDialogPair> filters{
-                { "Mikoto Scene files", "mkts,mktscene" },
-                { "Mikoto Project Files", "mkt,mktp,mktproject" }
+                { "Mikoto Scene", "mktscn" },
+                { "Mikoto Project", "mktprj" }
         };
 
         const Path savePath{ SaveFileDialog( "Mikoto Scene", filters ) };
@@ -75,14 +77,14 @@ namespace mikoto::scene {
     }
 
     auto SceneManager::CreateScene( eastl::string_view name ) -> Scene * {
-        return Register( name, eastl::move( core::Ref<Scene>::New( name ) ) );
+        return Register( name, SceneHandle::New( name ) );
     }
 
     auto SceneManager::GetByName( const eastl::string_view name ) -> Scene * {
         return mScenes.at( name.data() ).GetRaw();
     }
 
-    auto SceneManager::Register( const eastl::string_view name, core::Ref<Scene> &&scene ) -> Scene * {
+    auto SceneManager::Register( const eastl::string_view name, SceneHandle scene ) -> Scene * {
         std::lock_guard lock{ mSceneRegisterMutex };
 
         const auto [it, success] {

@@ -129,6 +129,10 @@ namespace mikoto::editor {
         auto SaveProject() -> void;
         auto CreateProject() -> void;
 
+        auto OpenScene() -> void;
+        auto SaveScene() -> void;
+        auto CreateScene() -> void;
+
     private:
         platform::Window* mWindow{};
         renderer::rhi::IGpuDevice* mDevice{};

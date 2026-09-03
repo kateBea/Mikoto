@@ -15,6 +15,12 @@
 #include <iomanip>
 #include <iostream>
 
+#include <EASTL/span.h>
+#include <EASTL/vector.h>
+#include <EASTL/string.h>
+#include <EASTL/utility.h>
+#include <EASTL/algorithm.h>
+
 #include <imgui.h>
 #include <ImGuizmo.h>
 
@@ -31,46 +37,70 @@ namespace mikoto::math {
 
     using namespace mikoto::core;
 
-    // static auto DumpMat4( const float4x4& m, size_type index ) -> void {
-    //     std::cout << "index: " << index << "\n";
-    //     std::cout << "=========================\n";
-    //
-    //     for ( i32 row{ 0 }; row < 4; ++row ) {
-    //         for ( i32 col{ 0 }; col < 4; ++col ) {
-    //             std::cout << std::setw( 10 )
-    //                       << std::setprecision( 5 )
-    //                       << std::fixed
-    //                       << m[col][row] << " ";
-    //         }
-    //         std::cout << "\n";
-    //     }
-    //
-    //     // endl to flush
-    //     std::cout << "=========================" << std::endl;
-    // }
-    //
-    // static auto DumpMat4Beautify( const float4x4& m, size_type index ) -> void {
-    //     std::string out{};
-    //
-    //     out += ::Format( "index: {}\n", index );
-    //     out += "=========================\n";
-    //
-    //     for ( Int32 row{ 0 }; row < 4; ++row ) {
-    //         out += StringUtil::Format(
-    //                 "{:>10.5f} {:>10.5f} {:>10.5f} {:>10.5f}\n",
-    //                 m[0][row],
-    //                 m[1][row],
-    //                 m[2][row],
-    //                 m[3][row] );
-    //     }
-    //
-    //     out += "=========================\n";
-    //
-    //     MKT_COLOR_PRINT_FORMATTED_FLUSH(
-    //             MKT_FMT_COLOR_BLUE_VIOLET,
-    //             "{}",
-    //             out );
-    // }
+    static auto DumpMat4( const float4x4& m, usize index ) -> void {
+        std::cout << "index: " << index << "\n";
+        std::cout << "=========================\n";
+
+        for ( i32 row{ 0 }; row < 4; ++row ) {
+            for ( i32 col{ 0 }; col < 4; ++col ) {
+                std::cout << std::setw( 10 )
+                          << std::setprecision( 5 )
+                          << std::fixed
+                          << m[col][row] << " ";
+            }
+            std::cout << "\n";
+        }
+
+        std::cout << "=========================" << std::endl;
+    }
+
+    static auto DumpMat4Beautify( const float4x4& m, usize index ) -> void {
+        eastl::string out{};
+
+        out += string::Format( "index: {}\n", index );
+        out += "=========================\n";
+
+        for ( i32 row{ 0 }; row < 4; ++row ) {
+            out += string::Format(
+                    "{:>10.5f} {:>10.5f} {:>10.5f} {:>10.5f}\n",
+                    m[0][row],
+                    m[1][row],
+                    m[2][row],
+                    m[3][row] );
+        }
+
+        out += "=========================\n";
+
+        MKT_COLOR_PRINT_FORMATTED_FLUSH(
+                MKT_FMT_COLOR_BLUE_VIOLET,
+                "{}",
+                out );
+    }
+
+    auto RecomputeTransform( const float3 &position, const float3 &size, const float3 &angles ) -> core::float4x4 {
+        // Compute scale matrix
+        const float4x4 scale{ glm::scale( constants::kIdentityMat, size ) };
+
+        // Compute rotation matrix
+        float4x4 rotation{ glm::rotate( constants::kIdentityMat, ( float )glm::radians( angles.y ), constants::kUnitVectorY ) };
+        rotation = glm::rotate( rotation, ( float )glm::radians( angles.x ), constants::kUnitVectorX );
+        rotation = glm::rotate( rotation, ( float )glm::radians( angles.z ), constants::kUnitVectorZ );
+
+        return glm::translate( constants::kIdentityMat, position ) * rotation * scale;
+    }
+
+    auto RecomputeTransform( const float3 &position, const float3 &scale, const float3 &angles, const float3 &pivot ) -> glm::mat4 {
+        const float4x4 T{ glm::translate( float4x4( 1.0f ), position ) };
+        const float4x4 Tp{ glm::translate( float4x4( 1.0f ), pivot ) };
+        const float4x4 Tn{ glm::translate( float4x4( 1.0f ), -pivot ) };
+
+        const quat q{ quat( glm::radians( angles ) ) };
+        const float4x4 R{ glm::toMat4( q ) };
+
+        const float4x4 S{ glm::scale( glm::mat4( 1.0f ), scale ) };
+
+        return T * Tp * R * S * Tn;
+    }
 
     auto Floor( const double value ) -> double {
         return glm::floor( value );
@@ -145,15 +175,15 @@ namespace mikoto::math {
         return value;
     }
 
-    auto DumpMat4FList( const std::vector<glm::mat4>& m ) -> void {
-        // for ( Size i{}; i < m.size(); ++i ) {
-        //     DumpMat4( m[i], i );
-        // }
+    auto DumpMat4FList( eastl::span<const core::float4x4> matrices ) -> void {
+        for ( usize i{}; i < matrices.size(); ++i ) {
+            DumpMat4( matrices[i], i );
+        }
     }
 
-    auto DumpMat4FListBeautify( const std::vector<glm::mat4>& m ) -> void {
-        // for ( Size i{}; i < m.size(); ++i ) {
-        //     DumpMat4Beautify( m[i], i );
-        // }
+    auto DumpMat4FListBeautify( eastl::span<const core::float4x4> matrices  ) -> void {
+        for ( usize i{}; i < matrices.size(); ++i ) {
+            DumpMat4Beautify( matrices[i], i );
+        }
     }
 }

@@ -66,22 +66,16 @@ namespace mikoto::scene {
     class TagComponent {
     public:
         explicit TagComponent() = default;
+        explicit TagComponent( eastl::string_view tag, bool active = true );
 
-        explicit TagComponent( const eastl::string_view tag, bool active = true )
-            : mTag{ tag }, mIsActive{ active } {}
+        MKT_NODISCARD auto GetGuid() const -> core::u32;
+        MKT_NODISCARD auto IsActive() const -> bool;
+        MKT_NODISCARD auto GetTag() const -> const eastl::string&;
 
-        TagComponent( const TagComponent& other ) = default;
-        TagComponent( TagComponent&& other ) noexcept = default;
+        auto SetActive( bool value ) -> void;
+        auto SetTag( eastl::string_view newName ) -> void;
 
-        auto operator=( const TagComponent& other ) -> TagComponent& = default;
-        auto operator=( TagComponent&& other ) -> TagComponent& = default;
-
-        MKT_NODISCARD auto IsActive() const -> bool { return mIsActive; }
-        MKT_NODISCARD auto GetTag() const -> const eastl::string& { return mTag; }
-        MKT_NODISCARD auto GetGUID() const -> u32 { return mGuid; }
-
-        auto SetTag( const eastl::string_view newName ) -> void { mTag = newName; }
-        auto SetActive( const bool value ) -> void { mIsActive = value; }
+        MKT_PUSH_DEFAULT_MOVE_AND_COPY(TagComponent);
 
     private:
         Guid mGuid{};
@@ -94,8 +88,7 @@ namespace mikoto::scene {
     // should be part of outline, highlight passes
     class HighlightComponent final {
     public:
-
-        auto SetHighlighted(bool value) -> void;
+        auto SetHighlighted( bool value ) -> void;
         MKT_NODISCARD auto IsHighlighted() const -> bool;
 
     private:
@@ -106,13 +99,11 @@ namespace mikoto::scene {
     public:
         explicit TransformComponent();
 
-        TransformComponent( const core::float3& position, const core::float3& size, const core::float3& angles );
-
-        TransformComponent( const TransformComponent& other ) = default;
-        TransformComponent( TransformComponent&& other ) = default;
-
-        auto operator=( const TransformComponent& other ) -> TransformComponent& = default;
-        auto operator=( TransformComponent&& other ) -> TransformComponent& = default;
+        TransformComponent(
+            const core::float3& position,
+            const core::float3& size,
+            const core::float3& angles,
+            const core::float4x4& worldTransform = math::constants::Identity<core::float4x4>() );
 
         MKT_NODISCARD auto GetTranslation() const -> const core::float3&;
         MKT_NODISCARD auto GetRotation() const -> const core::float3&;
@@ -137,9 +128,11 @@ namespace mikoto::scene {
 
         ~TransformComponent() = default;
 
+        MKT_PUSH_DEFAULT_MOVE_AND_COPY(TransformComponent);
+
     private:
         // Transform vectors
-        core::float3 mTranslation{ 0.0f, 0.0f, 0.0f };
+        core::float3 mTranslation{};
         core::float3 mRotation{};
         core::float3 mScale{};
 

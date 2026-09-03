@@ -23,6 +23,32 @@ namespace mikoto::scene {
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
+    TagComponent::TagComponent( eastl::string_view tag, bool active )
+        : mTag{ tag }, mIsActive{ active }
+    {
+
+    }
+
+    auto TagComponent::GetGuid() const -> u32 {
+        return mGuid;
+    }
+
+    auto TagComponent::IsActive() const -> bool {
+        return mIsActive;
+    }
+
+    auto TagComponent::GetTag() const -> const eastl::string & {
+        return mTag;
+    }
+
+    auto TagComponent::SetTag( eastl::string_view newName ) -> void {
+        mTag = newName;
+    }
+
+    auto TagComponent::SetActive( bool value ) -> void {
+        mIsActive = value;
+    }
+
     auto HighlightComponent::SetHighlighted( bool value ) -> void {
         mIsHighlighted = value;
     }
@@ -36,7 +62,13 @@ namespace mikoto::scene {
         mWorldTransform = mTransform;
     }
 
-    TransformComponent::TransformComponent( const core::float3 &position, const core::float3 &size, const core::float3 &angles ) {
+    TransformComponent::TransformComponent(
+            const core::float3& position,
+            const core::float3& size,
+            const core::float3& angles,
+            const core::float4x4& worldTransform )
+        : mWorldTransform{ worldTransform }
+    {
         ComputeTransform( position, size, angles );
     }
 

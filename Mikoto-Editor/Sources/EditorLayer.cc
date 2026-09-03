@@ -615,9 +615,17 @@ namespace mikoto::editor {
                 // Disabling fullscreen would allow the window to be moved to the front of other windows,
                 // which we can't undo at the moment without finer window depth/z control.
 
-                if (ImGui::MenuItem( MKT_LOC( "new_scene" ).c_str(), "Ctrl + N" )) {}
-                if (ImGui::MenuItem( MKT_LOC( "open_scene" ).c_str(), "Ctrl + L" )) {}
-                if (ImGui::MenuItem( MKT_LOC( "save_scene" ).c_str(), "Ctrl + S" )) {}
+                if (ImGui::MenuItem( MKT_LOC( "new_scene" ).c_str(), "Ctrl + N" )) {
+                    CreateScene();
+                }
+
+                if (ImGui::MenuItem( MKT_LOC( "open_scene" ).c_str(), "Ctrl + L" )) {
+                    OpenScene();
+                }
+
+                if (ImGui::MenuItem( MKT_LOC( "save_scene" ).c_str(), "Ctrl + S" )) {
+                    SaveScene();
+                }
 
                 ImGui::Separator();
                 if (ImGui::MenuItem( MKT_LOC( "new_project" ).c_str(), "Ctrl + P" )) {
@@ -1047,6 +1055,18 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::CreateProject() -> void {
+
+    }
+
+    auto EditorLayer::OpenScene() -> void {
+        mEditorState->mActiveScene = SceneManager::Get()->LoadFromDisk();
+    }
+
+    auto EditorLayer::SaveScene() -> void {
+        SceneManager::Get()->SaveToDisk( mEditorState->mActiveScene );
+    }
+
+    auto EditorLayer::CreateScene() -> void {
 
     }
 }// namespace mikoto

@@ -46,9 +46,11 @@
 #include <Scene/Component.hh>
 
 namespace YAML {
+    using namespace mikoto::core;
+
     template<>
-    struct convert<glm::vec3> {
-        static Node encode( const glm::vec3& rhs ) {
+    struct convert<float3> {
+        static auto encode( const float3& rhs ) -> Node {
             Node node{};
             node.push_back( rhs.x );
             node.push_back( rhs.y );
@@ -56,22 +58,22 @@ namespace YAML {
             return node;
         }
 
-        static bool decode( const Node& node, glm::vec3& rhs ) {
-            if ( !node.IsSequence() || node.size() != glm::vec3::length() ) {
+        static auto decode( const Node& node, float3& rhs ) -> bool {
+            if ( !node.IsSequence() || node.size() != float3::length() ) {
                 return false;
             }
 
-            rhs.x = node[0].as<glm::vec3::type::value_type>();
-            rhs.y = node[1].as<glm::vec3::type::value_type>();
-            rhs.z = node[2].as<glm::vec3::type::value_type>();
+            rhs.x = node[0].as<float3::type::value_type>();
+            rhs.y = node[1].as<float3::type::value_type>();
+            rhs.z = node[2].as<float3::type::value_type>();
 
             return true;
         }
     };
 
     template<>
-    struct convert<glm::vec4> {
-        static Node encode( const glm::vec4& rhs ) {
+    struct convert<float4> {
+        static auto encode( const float4& rhs ) -> Node {
             Node node{};
             node.push_back( rhs.x );
             node.push_back( rhs.y );
@@ -80,15 +82,40 @@ namespace YAML {
             return node;
         }
 
-        static bool decode( const Node& node, glm::vec4& rhs ) {
+        static auto decode( const Node& node, float4& rhs ) -> bool {
             if ( !node.IsSequence() || node.size() != glm::vec4::length() ) {
                 return false;
             }
 
-            rhs.x = node[0].as<glm::vec4::type::value_type>();
-            rhs.y = node[1].as<glm::vec4::type::value_type>();
-            rhs.z = node[2].as<glm::vec4::type::value_type>();
-            rhs.w = node[3].as<glm::vec4::type::value_type>();
+            rhs.x = node[0].as<float4::type::value_type>();
+            rhs.y = node[1].as<float4::type::value_type>();
+            rhs.z = node[2].as<float4::type::value_type>();
+            rhs.w = node[3].as<float4::type::value_type>();
+
+            return true;
+        }
+    };
+
+    template<>
+    struct convert<float4x4> {
+        static auto encode(const float4x4& rhs) -> Node {
+            Node node{};
+            node.push_back(rhs[0]);
+            node.push_back(rhs[1]);
+            node.push_back(rhs[2]);
+            node.push_back(rhs[3]);
+            return node;
+        }
+
+        static auto decode(const Node& node, float4x4& rhs) -> bool {
+            if (!node.IsSequence() || node.size() != 4) {
+                return false;
+            }
+
+            rhs[0] = node[0].as<float4>();
+            rhs[1] = node[1].as<float4>();
+            rhs[2] = node[2].as<float4>();
+            rhs[3] = node[3].as<float4>();
 
             return true;
         }
@@ -254,7 +281,7 @@ namespace mikoto::scene {
         }
 
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
-        Entity* entity{ FindByID( tag.GetGUID() ) };
+        Entity* entity{ FindByID( tag.GetGuid() ) };
         mPhysicsWorld->AddRigidBody( entity );
     }
 
@@ -263,7 +290,7 @@ namespace mikoto::scene {
         // this is because a collisions do not only happen with rigid bodies
         // collision areas can be used to trigger effects upon entering certain areas
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
-        Entity* entity{ FindByID( tag.GetGUID() ) };
+        Entity* entity{ FindByID( tag.GetGuid() ) };
         mPhysicsWorld->AddCollider( entity );
     }
 
@@ -273,7 +300,7 @@ namespace mikoto::scene {
         }
 
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
-        Entity* entity{ FindByID( tag.GetGUID() ) };
+        Entity* entity{ FindByID( tag.GetGuid() ) };
         mPhysicsWorld->RemoveRigidBody( entity );
     }
 
@@ -290,7 +317,7 @@ namespace mikoto::scene {
 
         // More complex shapes can be created with vertices
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
-        Entity* entity{ FindByID( tag.GetGUID() ) };
+        Entity* entity{ FindByID( tag.GetGuid() ) };
         mPhysicsWorld->RemoveColliderBody( entity );
     }
 
@@ -299,7 +326,7 @@ namespace mikoto::scene {
         ScriptComponent& scriptComponent{ reg.get<ScriptComponent>( e ) };
 
         ScriptHandle scriptHandle{};
-        if ( Entity* entity{ FindByID( tag.GetGUID() ) } ) {
+        if ( Entity* entity{ FindByID( tag.GetGuid() ) } ) {
             if (!scriptComponent.GetFilePath().IsEmpty()) {
                 // Component created with a path to an existing script
                 scriptHandle = ScriptingService::Get()->LoadScript( scriptComponent.GetFilePath(), entity );
@@ -477,7 +504,7 @@ namespace mikoto::scene {
 
         if ( info.mRoot != nullptr ) {
             const TagComponent& parentTag{ info.mRoot->GetComponent<TagComponent>() };
-            entity->AddComponent<RelationComponent>( std::make_optional( parentTag.GetGUID() ) );
+            entity->AddComponent<RelationComponent>( std::make_optional( parentTag.GetGuid() ) );
         } else {
             entity->AddComponent<RelationComponent>();
         }
@@ -517,7 +544,7 @@ namespace mikoto::scene {
         }
 
         Entity* result{ CreateEntityDefault( createInfo ) };
-        const u64 guid{ result->GetComponent<TagComponent>().GetGUID() };
+        const u64 guid{ result->GetComponent<TagComponent>().GetGuid() };
         const auto [it, success]{
             mEntities.try_emplace( guid, result ) };
         if ( success ) {
@@ -577,7 +604,7 @@ namespace mikoto::scene {
 
         Entity* result{ CreateEntityDefault( createInfo ) };
 
-        const u64 guid{ result->GetComponent<TagComponent>().GetGUID() };
+        const u64 guid{ result->GetComponent<TagComponent>().GetGuid() };
         const auto [it, success]{
             mEntities.try_emplace( guid, result )
         };
@@ -804,16 +831,28 @@ namespace mikoto::scene {
         SerializeComponent( root->GetComponent<TYPE>(), emitter ); \
     }
 
-    static auto operator<<( YAML::Emitter& out, const glm::vec4& v ) -> YAML::Emitter& {
+    static auto operator<<( YAML::Emitter& out, const float4& v ) -> YAML::Emitter& {
         out << YAML::Flow;
         out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
         return out;
     }
 
-    static auto operator<<( YAML::Emitter& out, const glm::vec3& v ) -> YAML::Emitter& {
+    static auto operator<<( YAML::Emitter& out, const float3& v ) -> YAML::Emitter& {
         out << YAML::Flow;
         out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
         return out;
+    }
+
+    static auto operator<<(YAML::Emitter& emitter, const float4x4& matrix) -> YAML::Emitter& {
+        emitter << YAML::Flow << YAML::BeginSeq;
+
+        emitter << matrix[0];
+        emitter << matrix[1];
+        emitter << matrix[2];
+        emitter << matrix[3];
+
+        emitter << YAML::EndSeq;
+        return emitter;
     }
 
     static auto SerializeComponent( const TransformComponent& transform, YAML::Emitter& emitter ) -> void {
@@ -830,6 +869,8 @@ namespace mikoto::scene {
 
         // Store only WorldTransform because we want to know where it was in world space
         // Local space can be recomputed from translation, rotation and scale vectors
+        const float4x4 worldTransform{ transform.GetWorldTransform() };
+        emitter << YAML::Key << "World Transform" << YAML::Value << worldTransform;
 
         emitter << YAML::EndMap;
     }
@@ -937,24 +978,19 @@ namespace mikoto::scene {
         emitter << YAML::EndMap;
     }
 
-    auto Scene::Serialize( filesystem::FileHandle file ) const -> void {
+    auto Scene::Serialize( FileHandle file ) const -> void {
         YAML::Emitter emitter{};
 
         emitter << YAML::BeginMap;
-        emitter << YAML::Key << "Scene" << YAML::Value << GetName().data();
+        emitter << YAML::Key << "Scene Properties" << YAML::Value << YAML::BeginSeq;
 
-        // Game objects
+        emitter << YAML::Key << "Scene" << YAML::Value << GetName().data();
         emitter << YAML::Key << "Objects" << YAML::Value << YAML::BeginSeq;
 
         for ( const auto& root: mRootEntities ) {
             SerializeNode( emitter, root, *this );
         }
         emitter << YAML::EndSeq;
-
-        // Scene properties
-        emitter << YAML::Key << "Scene Properties" << YAML::Value << YAML::BeginSeq;
-
-
         emitter << YAML::EndMap;
 
         file->SetContents( emitter.c_str() );

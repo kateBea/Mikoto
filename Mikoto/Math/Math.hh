@@ -16,18 +16,17 @@
 #define MIKOTO_MATH_HH
 
 // I love Windows.h defining min and max macros that break everything
-#ifdef min
-#undef min
-#endif
-
-#ifdef max
-#undef max
-#endif
+#include <Platform/PlatformWin32.hh>
 
 #include <vector>
 #include <numbers>
 #include <algorithm>
 #include <type_traits>
+
+#include <EASTL/span.h>
+#include <EASTL/vector.h>
+#include <EASTL/utility.h>
+#include <EASTL/algorithm.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -54,27 +53,23 @@ namespace mikoto::math::constants {
     inline constexpr auto kUnitVectorY{ core::float3{ 0.0f, 1.0f, 0.0f } };
     inline constexpr auto kUnitVectorZ{ core::float3{ 0.0f, 0.0f, 1.0f } };
     inline constexpr auto kIdentityMat{ Identity<core::float4x4>() };
-
 }
 
 namespace mikoto::math {
 
     using namespace mikoto::core;
 
-    MKT_NODISCARD
-    inline auto MakePos( float x, float y, float z ) -> glm::vec4 {
+    MKT_NODISCARD inline auto MakePos( float x, float y, float z ) -> core::float4 {
         return { x, y, z, 1.0f };
     }
 
-    MKT_NODISCARD
-    inline auto MakeDir( float x, float y, float z ) -> glm::vec4 {
+    MKT_NODISCARD inline auto MakeDir( float x, float y, float z ) -> core::float4 {
         return { x, y, z, .0f };
     }
 
-    MKT_NODISCARD
-    inline auto Round( const double value, const size_t decimalsCount ) -> double {
-        const double factor{ std::pow( 10, decimalsCount ) };
-        return std::round( value * factor ) / factor;
+    MKT_NODISCARD inline auto Round( const double value, const core::usize decimalsCount ) -> double {
+        const double factor{ glm::pow( 10, decimalsCount ) };
+        return glm::round( value * factor ) / factor;
     }
 
     template<typename T>
@@ -92,8 +87,7 @@ namespace mikoto::math {
         return glm::rotate( mat, glm::radians( degrees ), angle );
     }
 
-    MKT_NODISCARD
-    inline auto DecomposeTransform( const glm::mat4& transform, glm::vec3& translation,
+    MKT_NODISCARD inline auto DecomposeTransform( const glm::mat4& transform, glm::vec3& translation,
                                     glm::vec3& rotation, glm::vec3& scale ) -> bool {
         // From glm::decompose in matrix_decompose.inl
 
@@ -162,40 +156,17 @@ namespace mikoto::math {
         return true;
     }
 
+    auto Decompose( const core::float4x4& transform, core::float3& translation, core::float3& rotation, core::float3& scale ) -> void;
+    auto Recompose( core::float4x4& transform, const core::float3& translation, const core::float3& rotation, const core::float3& scale ) -> void;
+
     // Rotates the object around the standard basis axis [1, 0, 0], [0, 1, 0], [0, 0, 1]
     // which might not be what you want, often times you want to rotate the vertices
     // around what is supposed to be the center of the whole object.
-    // For example the way you'd do it for 2D objects (nor complicated morphs) you sum all vertices and divide by count
+    // For example the way you'd do it for 2D objects (for not complicated morphs) you sum all vertices and divide by count
     // this way you get the Z vector you are supposed to rotate the mesh around, you get a proper rotation
-    // around the center of the mesh even if it has like 2 trinagles (a rectangle)
-    MKT_NODISCARD inline auto RecomputeTransform( const glm::vec3& position, const glm::vec3& size, const glm::vec3& angles = glm::vec3( 0.0f ) ) -> glm::mat4 {
-        // Compute scale matrix
-        const glm::mat4 scale{ glm::scale( constants::kIdentityMat, size ) };
-
-        // Compute rotation matrix
-        glm::mat4 rotation{ glm::rotate( constants::kIdentityMat, ( float )glm::radians( angles.y ), constants::kUnitVectorY ) };
-        rotation = glm::rotate( rotation, ( float )glm::radians( angles.x ), constants::kUnitVectorX );
-        rotation = glm::rotate( rotation, ( float )glm::radians( angles.z ), constants::kUnitVectorZ );
-
-        return glm::translate( constants::kIdentityMat, position ) * rotation * scale;
-    }
-
-    MKT_NODISCARD inline auto RecomputeTransform(
-            const float3& position,
-            const float3& scale,
-            const float3& angles,
-            const float3& pivot ) -> glm::mat4 {
-        const glm::mat4 T = glm::translate( glm::mat4( 1.0f ), position );
-        const glm::mat4 Tp = glm::translate( glm::mat4( 1.0f ), pivot );
-        const glm::mat4 Tn = glm::translate( glm::mat4( 1.0f ), -pivot );
-
-        const glm::quat q = glm::quat( glm::radians( angles ) );
-        const glm::mat4 R = glm::toMat4( q );
-
-        const glm::mat4 S = glm::scale( glm::mat4( 1.0f ), scale );
-
-        return T * Tp * R * S * Tn;
-    }
+    // around the center of the mesh even if it has like 2 tringles (a rectangle)
+    MKT_NODISCARD auto RecomputeTransform( const core::float3& position, const core::float3& size, const core::float3& angles ) -> core::float4x4;
+    MKT_NODISCARD auto RecomputeTransform( const core::float3& position, const core::float3& scale, const core::float3& angles, const core::float3& pivot ) -> core::float4x4;
 
     MKT_NODISCARD auto Floor(double value) -> double;
 
@@ -208,44 +179,24 @@ namespace mikoto::math {
 
     MKT_NODISCARD auto Lerp(float a, float b, float f) -> double;
 
-    auto Recompose( float4x4& transform, const float3& translation, const float3& rotation, const float3& scale ) -> void;
-    auto Decompose( const float4x4& transform, float3& translation, float3& rotation, float3& scale ) -> void;
+    MKT_NODISCARD auto NextPowerOf2( core::u32 value ) -> core::u32;
 
-    MKT_NODISCARD auto NextPowerOf2( core::u32 value ) -> u32;
-
-    // Re-enable when other math file gets deleted
-    // template<typename T>
-    // MKT_NODISCARD auto IsBetween( const T& value, const T& lowerBound, const T& upperBound ) -> bool {
-    //     return value >= lowerBound && value <= upperBound;
-    // }
-    //
-    // template<typename T>
-    // MKT_NODISCARD auto Clamp( const T& value, const T& min, const T& max ) -> T {
-    //     return std::max( min, std::min( value, max ) );
-    // }
-
-    auto DumpMat4FList( const std::vector<glm::mat4>& m ) -> void;
-    auto DumpMat4FListBeautify( const std::vector<glm::mat4>& m ) -> void;
+    auto DumpMat4FList( eastl::span<const core::float4x4> matrices ) -> void;
+    auto DumpMat4FListBeautify( eastl::span<const core::float4x4> matrices ) -> void;
 
     template<typename T, typename... Ts>
-    auto Max( T first, Ts... args ) -> std::common_type_t<T, Ts...> {
+    auto Max( T first, Ts... args ) -> eastl::common_type_t<T, Ts...> {
         using ReturnT = std::common_type_t<T, Ts...>;
-
         ReturnT result{ first };
-
         ( ( result = glm::max( result, static_cast<ReturnT>( args ) ) ), ... );
-
         return result;
     }
 
     template<typename T, typename... Ts>
-    auto Min( T first, Ts... args ) -> std::common_type_t<T, Ts...> {
+    auto Min( T first, Ts... args ) -> eastl::common_type_t<T, Ts...> {
         using ReturnT = std::common_type_t<T, Ts...>;
-
         ReturnT result{ first };
-
         ( ( result = glm::min( result, static_cast<ReturnT>( args ) ) ), ... );
-
         return result;
     }
 
@@ -256,11 +207,10 @@ namespace mikoto::math {
 
     template<typename T>
     MKT_NODISCARD auto Clamp( const T& value, const T& min, const T& max ) -> T {
-        return std::max( min, std::min( value, max ) );
+        return glm::max( min, glm::min( value, max ) );
     }
-
 }
-#include <Math/Math.inl>
 
+#include <Math/Math.inl>
 
 #endif //MIKOTO_MATH_HH

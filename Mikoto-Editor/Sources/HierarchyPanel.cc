@@ -133,7 +133,7 @@ namespace mikoto::editor {
         const RelationComponent& relationComponent{ entity->GetComponent<RelationComponent>() };
 
         const auto thisEntityIsSelected{ currentSelection != nullptr &&
-                                         entityID == currentSelection->GetComponent<TagComponent>().GetGUID() };
+                                         entityID == currentSelection->GetComponent<TagComponent>().GetGuid() };
         const ImGuiTreeNodeFlags styleFlags{
             ImGuiTreeNodeFlags_OpenOnArrow |
             ImGuiTreeNodeFlags_OpenOnDoubleClick |
@@ -144,7 +144,7 @@ namespace mikoto::editor {
         };
 
         const eastl::string icon{ GetStringFromUnicode( 63185 ) };
-        const eastl::string nodeID{ string::Format( "##DrawTreeNode_{}", tagComponent.GetGUID() ) };
+        const eastl::string nodeID{ string::Format( "##DrawTreeNode_{}", tagComponent.GetGuid() ) };
         const eastl::string nodeLabel{  string::Format( " {} {}", icon.data(), tagComponent.GetTag() ) };
 
         const bool expanded{ ImGui::TreeNodeEx( nodeID.c_str(), styleFlags, "%s", nodeLabel.c_str() ) };
@@ -170,7 +170,7 @@ namespace mikoto::editor {
         ImVec2 textSize{ ImGui::CalcTextSize(visibilityIcon.c_str()) };
 
         ImGui::SetCursorScreenPos(textPos);
-        const eastl::string nodeVisibilityButtonID{ string::Format( "##DrawNodeTreeTextIconClick_{}", tagComponent.GetGUID() ) };
+        const eastl::string nodeVisibilityButtonID{ string::Format( "##DrawNodeTreeTextIconClick_{}", tagComponent.GetGuid() ) };
         if (ImGui::InvisibleButton(nodeVisibilityButtonID.c_str(), textSize)) {
             tagComponent.SetActive(!tagComponent.IsActive());
         }
@@ -271,7 +271,7 @@ namespace mikoto::editor {
             }
 
             if ( ImGui::MenuItem( "Remove object" ) ) {
-                mEditorState->mActiveScene->RemoveEntity( entity->GetComponent<TagComponent>().GetGUID() );
+                mEditorState->mActiveScene->RemoveEntity( entity->GetComponent<TagComponent>().GetGuid() );
                 mEditorState->mSelectedEntity = nullptr;
             }
 

@@ -42,6 +42,12 @@
     CLASS_NAME( CLASS_NAME&& ) = delete;          \
     auto operator=( CLASS_NAME&& ) = delete
 
+#define MKT_PUSH_DEFAULT_MOVE_AND_COPY( CLASS_NAME )                  \
+    CLASS_NAME( const CLASS_NAME& other ) = default;                  \
+    CLASS_NAME( CLASS_NAME&& other ) noexcept = default;              \
+    auto operator=( const CLASS_NAME& other )->CLASS_NAME& = default; \
+    auto operator=( CLASS_NAME&& other )->CLASS_NAME& = default
+
 #define DISABLE_COPY_FOR( CLASS_NAME )        \
     CLASS_NAME( const CLASS_NAME& ) = delete; \
     auto operator=( const CLASS_NAME& ) = delete

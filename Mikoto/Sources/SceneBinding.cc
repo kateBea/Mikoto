@@ -38,7 +38,7 @@ namespace mikoto::scripting {
                                                                                               TagComponent(),
                                                                                               TransformComponent( const char* )>() ) };
 
-        tag.set_function( "GetGuid", []( const TagComponent& tag ) { return tag.GetGUID(); } );
+        tag.set_function( "GetGuid", []( const TagComponent& tag ) { return tag.GetGuid(); } );
         tag.set_function( "GetTag", []( const TagComponent& tag ) { return tag.GetTag().c_str(); } );
         tag.set_function( "IsActive", []( const TagComponent& tag ) { return tag.IsActive(); } );
 

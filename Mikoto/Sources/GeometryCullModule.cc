@@ -238,7 +238,7 @@ namespace mikoto::renderer {
             geometry.mTransform = transformComponent.GetWorldTransform();
             geometry.mInverseModelView = glm::inverse( glm::mat3( mCamera->GetViewMatrix() * geometry.mTransform ) );
 
-            geometry.mObjectID = tagComponent.GetGUID();
+            geometry.mObjectID = tagComponent.GetGuid();
 
             if (meshComponent.IsSkinned()) {
                 // Instead of uploading the animator final matrices we want to upload matrices that deform the object if any

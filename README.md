@@ -92,87 +92,25 @@ passes, amongst other features.
 
 >Some models used for demos were downloaded from Morgan McGuire's Computer Graphics Archive https://casual-effects.com/data
 
----
+## Building
 
-## Building Mikoto Engine
+Mikoto is currently verified to build on both **Windows** and **Linux**.
 
-The build process is currently verified on both Linux and Windows.
-On Windows, the only requirements are the Vulkan SDK and Visual Studio.
+The build setup is managed through **CMake**, with platform-specific instructions covering dependencies, prerequisites, and development environments.
 
-## Pre-Setup
+For a complete guide, including:
 
-Mikoto uses **Lua 5.1+** for scripting. To set it up on Linux, follow these steps:
+* Windows and Linux prerequisites
+* Lua setup
+* Linux dependency installation
+* Repository and submodule setup
+* CMake configuration and build commands
+* Visual Studio and CLion workflows
 
-1. Download Lua from the official Lua downloads page: [https://www.lua.org/download.html](https://www.lua.org/download.html) and get the `.tar.gz` file.
+see the **[Building Guide](BUILDING.md)**.
 
-2. Run the following commands in your terminal:
-```bash
-# Access contents
-tar -xvf lua-5.4.8.tar.gz
-cd lua-5.4.8
-
-# Install and tests lua
-sudo make
-sudo make test
-sudo make install
-```
-If lua has been installed, the command ``lua -v`` should print something like the following:
-
-```
-Lua 5.4.8  Copyright (C) 1994-2025 Lua.org, PUC-Rio
-```
-
->Precompiled binaries are shipped with Mikoto to compile with MSVC on Windows.
-
-## Project Build
-
-On Linux, we need to install certain dependencies to get started, we can do so by passing target InstallDependencies
-(``--target InstallDependencies``) to CMake command to install necessary dependencies, user might be
-prompted to give permissions:
-
-```
-cmake --build . --target InstallDependencies --config Release 
-cmake --build . --config Release
-```
-
-### Linux Required libraries
-
-Following there's an example installation directly from the terminal on Ubuntu 24.04 (commands extracted from [install.sh](/Mikoto/Resources/installs.sh)):
-
-```shell
-# Vulkan
-sudo apt install vulkan-tools
-sudo apt install libvulkan-dev  vulkan-validationlayers
-sudo apt install vulkan-utility-libraries-dev spirv-tools
-
-# Native file dialog
-sudo apt-get install libgtk-3-dev
-
-# GLFW
-sudo apt install libwayland-dev libxkbcommon-dev xorg-dev
-   
-   ```
----
-
-With the dependencies installed we can proceed with building the project:
-
-```shell
-# Fetch the repository. Recurse to pull the submodules
-git clone --recursive https://github.com/kateBea/Mikoto.git
-cd Mikoto
-
-# Generate platform specific build system files
-mkdir build && cd build
-
-# This will pull the necessary third party repos
-cmake -S .. -B .
-
-# Build the application
-cmake --build . --config Release
-```
----
-For Visual Studio users, CMake will generate `.sln` files by default. We want to open the solution in Visual Studio 
-and build from  there. CLion users can open the project directly and build it without extra steps.
+> **Windows:** Visual Studio and the Vulkan SDK are required.
+> **Linux:** Required system dependencies must be installed before building.
 
 ## Dependencies
 

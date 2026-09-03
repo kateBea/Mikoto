@@ -28,6 +28,7 @@ namespace mikoto::renderer {
         FGTextureHandle mColorTarget{};
         FGTextureHandle mDepthTarget{};
         FGTextureHandle mImportedTexture{};
+        FGBufferHandle mReadBackBuffer{};
 
         FGPipelineHandle mPipeline{};
     };

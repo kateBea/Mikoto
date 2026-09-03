@@ -115,7 +115,7 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER_NAMED();
 
         // Create the resources
-        auto& trianglePassData{ graph.GetOrCreate<TexturePassData>() };
+        auto& info{ graph.GetOrCreate<TexturePassData>() };
 
         auto colorImage{ FGTextureDescription{}
             .SetName( "TexturePass_ColorImage01" )
@@ -123,10 +123,9 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
-            .SetFormat( Format::eBGRA8_UNORM ) };
-
-        trianglePassData.mColorTarget = graph.Create( colorImage );
+            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource | TextureUsageFlagsBits::kCopySrc )
+            .SetFormat( Format::eRGBA8_UNORM ) };
+        info.mColorTarget = graph.Create( colorImage );
 
         auto depthImage{ FGTextureDescription{}
             .SetName( "TexturePass_DepthImage01" )
@@ -136,8 +135,7 @@ namespace mikoto::renderer {
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kDepthTarget )
             .SetFormat( Format::eD32 ) };
-
-        trianglePassData.mDepthTarget = graph.Create( depthImage );
+        info.mDepthTarget = graph.Create( depthImage );
 
         auto samplerDes{ FGSamplerDescription{}
             .SetName( "TexturePass_Sampler01" )
@@ -145,20 +143,27 @@ namespace mikoto::renderer {
             .SetWrap( SamplerWrapMode::eRepeat )
             .SetBorderColor( kColorWhite ) };
 
-        trianglePassData.mSampler = graph.Create( samplerDes );
+        info.mSampler = graph.Create( samplerDes );
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( "TexturePass_Pipeline01" )
             .SetPipelineType( PipelineType::eGraphics )
             .SetTopology( PrimitiveTopology::eTriangleStrip )
             .SetDepthFormat( Format::eD32 )
-            .AddColorFormat( Format::eBGRA8_UNORM )
+            .AddColorFormat( Format::eRGBA8_UNORM )
             .PushShader( "HelloTexture_Vert.slang", FGStageType::eVertex )
             .PushShader( "HelloTexture_Frag.slang", FGStageType::ePixel ) };
 
-        trianglePassData.mPipeline = graph.Create( pipelineBuilder );
+        info.mPipeline = graph.Create( pipelineBuilder );
+        info.mImportedTexture = graph.ImportTexture( "Resources/Textures/diffuse.jpg" );
 
-        trianglePassData.mImportedTexture = graph.ImportTexture( "Resources/Textures/diffuse.jpg" );
+        const auto& formatInfo{ rhi::GetFormatInfo( Format::eRGBA8_UNORM ) };
+        auto bufferDesc{ FGBufferDescription{}
+            .SetName( "TexturePass_Pipeline01_ReadbackBuffer" )
+            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetSizeBytes( 1920 * 1080 * formatInfo.mBytesPerBlock )
+            .SetHeapType( HeapType::eReadback ) };
+        info.mReadBackBuffer = graph.Create( bufferDesc );
 
         graph.RegisterPass<TexturePassData>(
             "SimpleTexture",
@@ -194,6 +199,41 @@ namespace mikoto::renderer {
 
                 ctx.EndRender();
             } );
+
+        // Maybe change this to compute
+        graph.RegisterPass(
+            "SimpleTexture_Readback",
+            FGPassType::eTransfer,
+            []( FGNodeBuilder &builder, Blackboard & blackboard ) {
+                const auto& texturePassData{ blackboard.Get<TexturePassData>() };
+
+                builder.UseResource( texturePassData.mReadBackBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                builder.UseResource( texturePassData.mColorTarget, FGPipelineStage::eCopy, FGResourceAccess::eRead );
+            },
+            []( CommandContext &ctx, Blackboard & b ) {
+                const auto& texturePassData{ b.Get<TexturePassData>() };
+
+                // Try doing this with a compute shader instead
+                // This takes a lot, in Nsight Graphics this shows 0.32ms
+                ctx.Copy( texturePassData.mReadBackBuffer, texturePassData.mColorTarget );
+            } );
+
+        graph.RegisterReadback(
+            []( Blackboard &blackboard, const FGResourceManager& manager ) {
+                const auto& formatInfo{ rhi::GetFormatInfo( Format::eRGBA8_UNORM ) };
+                const auto &data{ blackboard.Get<TexturePassData>() };
+
+                core::usize totalBytes{ 1920u * 1080u * formatInfo.mBytesPerBlock };
+
+                eastl::vector<u32> blob{};
+                blob.resize( totalBytes / sizeof(core::u32) );
+
+                if ( const void *mappedAddress{ manager.GetBufferMappedAddress( data.mReadBackBuffer ) } ) {
+                    std::memcpy( blob.data(), mappedAddress, totalBytes );
+                }
+
+                asset::WriteImage( "Resources/image.png", blob.data(), 1920, 1080, ImageFormat::eRGBA8_UINT );
+            }, false );
     }
 
     auto DebugModule::RegisterSimpleComputePass( FrameGraph &graph ) -> void {

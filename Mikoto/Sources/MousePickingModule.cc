@@ -18,6 +18,8 @@
 
 #include <Memory/Allocator.hh>
 
+#include <Assets/ImageProcessor.hh>
+
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
 
@@ -117,7 +119,9 @@ namespace mikoto::renderer {
             .SetSizeBytes( dimensions.first * dimensions.second * formatInfo.mBytesPerBlock )
             .SetHeapType( HeapType::eReadback ) };
         info.mReadBackBuffer = graph.Create( bufferDesc );
-        mData.resize( dimensions.first * dimensions.second * formatInfo.mBytesPerBlock );
+
+        core::usize totalBytes{ (usize)(dimensions.first * dimensions.second * formatInfo.mBytesPerBlock) };
+        mData.resize( totalBytes / sizeof(core::u32) );
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( "ObjectSelection_Pipeline" )
@@ -212,7 +216,8 @@ namespace mikoto::renderer {
                 const auto &data{ blackboard.Get<MousePickingModuleInfo>() };
 
                 if ( const void *mappedAddress{ manager.GetBufferMappedAddress( data.mReadBackBuffer ) } ) {
-                    std::memcpy( mData.data(), mappedAddress, mData.size() * MKT_SIZEOF( u32 ) );
+                    core::usize bytesToCopy{ mData.size() * sizeof(core::u32) };
+                    std::memcpy( mData.data(), mappedAddress, bytesToCopy );
                 }
             }, true );
     }

@@ -61,7 +61,7 @@ namespace mikoto::filesystem {
         MKT_NODISCARD auto GetContentsString() const -> const eastl::string&;
 
         // Size in bytes
-        MKT_NODISCARD auto GetSize() const -> size_t;
+        MKT_NODISCARD auto GetSize() const -> usize;
         MKT_NODISCARD auto GetType() const -> FileType;
 
         MKT_NODISCARD auto GetExtension() const ->  eastl::string_view;
@@ -70,7 +70,7 @@ namespace mikoto::filesystem {
         auto SetContents( eastl::string&& contents ) -> void;
 
         // Set contents and flush
-        auto Write( const void* ptr, size_t sizeBytes) -> void;
+        auto Write( const void* ptr, usize sizeBytes) -> void;
 
         auto UpdateContentsFromDisk() -> void;
 

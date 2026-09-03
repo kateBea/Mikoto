@@ -33,14 +33,15 @@ namespace mikoto::asset {
     // Pending transition to Google Wuffs
     // Using STB_Image for the time being
 
-    auto ProcessImage2D( FileHandle file ) -> ImageHandle;
-    auto ProcessImage2D( const Path& filepath ) -> ImageHandle;
+    auto ProcessImage2D( filesystem::FileHandle file ) -> ImageHandle;
+    auto ProcessImage2D( const filesystem::Path& filepath ) -> ImageHandle;
 
     // Attempts to construct the cube image from the equirectangular file
-    auto ProcessImageCube( FileHandle file ) -> ImageHandle;
+    auto ProcessImageCube( filesystem::FileHandle file ) -> ImageHandle;
 
-    auto ProcessImageCube( const eastl::fixed_hash_map<ImageCubeFace, FileHandle, kCubeFaceCount>& files ) -> ImageHandle;
+    auto ProcessImageCube( const eastl::fixed_hash_map<ImageCubeFace, filesystem::FileHandle, kCubeFaceCount>& files ) -> ImageHandle;
 
+    auto WriteImage( const filesystem::Path& path, const void* data, core::u32 width, core::u32 height, ImageFormat format ) -> void;
 
     // TODO(kate): HDR image processor
     // Will take an HDR equirectangular image from file path and project it into a cube

@@ -174,7 +174,7 @@ namespace mikoto::filesystem {
         return mContents;
     }
 
-    auto File::GetSize() const -> size_t {
+    auto File::GetSize() const -> usize {
         return mContents.size();
     }
 
@@ -198,7 +198,7 @@ namespace mikoto::filesystem {
         mContents = std::move( contents );
     }
 
-    auto File::Write( const void *ptr, size_t sizeBytes ) -> void {
+    auto File::Write( const void *ptr, usize sizeBytes ) -> void {
         // Open to overwrite
         mFileStream = std::fstream{ mPath.GetC_Str(), std::ios::out | std::ios::trunc | std::ios::binary };
         mFileStream.write(as<const char*>(ptr), as<std::streamsize>( sizeBytes ));

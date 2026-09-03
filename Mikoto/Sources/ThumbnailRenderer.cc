@@ -103,6 +103,14 @@ namespace mikoto::renderer {
         }
     }
 
+    auto ThumbnailRenderer::GenerateThumbnail( asset::ModelHandle model, core::i32 width, core::i32 height ) -> rhi::TextureHandle {
+        return TextureHandle::CreateEmpty();
+    }
+
+    auto ThumbnailRenderer::GenerateThumbnail( asset::FontHandle model, core::i32 width, core::i32 height ) -> rhi::TextureHandle {
+        return TextureHandle::CreateEmpty();
+    }
+
     auto ThumbnailRenderer::GenerateThumbnail( rhi::TextureHandle original,  rhi::TextureSubresourceSet slice ) -> rhi::TextureHandle {
 
 

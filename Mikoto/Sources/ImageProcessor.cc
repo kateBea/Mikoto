@@ -20,6 +20,7 @@
 #include <EASTL/vector.h>
 
 #include <stb_image.h>
+#include <stb_image_write.h>
 
 #include <portable-file-dialogs.h>
 
@@ -122,6 +123,28 @@ namespace mikoto::asset {
     auto ProcessImage2D( const Path &filepath ) -> ImageHandle {
         FileHandle fileHandle{ FileService::Get()->LoadFile( filepath ) };
         return ProcessImage2D( fileHandle );
+    }
+
+    static auto WriteImageUint8( const filesystem::Path& path, const void* data, core::u32 width, core::u32 height ) -> void {
+        constexpr u32 kChannelNumber{ 4 };
+        stbi_write_png(path.GetAbsolute().c_str(), width, height, kChannelNumber, data, width * kChannelNumber);
+    }
+
+    static auto WriteImageFloat32( const filesystem::Path& path, const void* data, core::u32 width, core::u32 height ) -> void {
+        constexpr u32 kChannelNumber{ 4 };
+        stbi_write_hdr(path.GetAbsolute().c_str(), width, height, kChannelNumber, as<const float*>(data));
+    }
+
+    auto WriteImage( const filesystem::Path& path, const void* data, core::u32 width, core::u32 height, ImageFormat format ) -> void {
+        switch (format) {
+            case ImageFormat::eRGBA8_UINT:
+                WriteImageUint8( path, data, width, height );
+                break;
+            case ImageFormat::eRGBA32_FLOAT:
+                WriteImageFloat32( path, data, width, height );
+                break;
+            default:;
+        }
     }
 
     auto ProcessImage2D( FileHandle file ) -> ImageHandle {

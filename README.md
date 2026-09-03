@@ -10,6 +10,10 @@ passes, amongst other features.
 
 ---
 
+![Mikoto Engine](Resources/Screenshots/img21.png)
+
+---
+
 ![Mikoto Engine](Resources/Screenshots/img19.png)
 
 ---
@@ -112,7 +116,6 @@ Mikoto/
 Some demonstration models used by Mikoto are sourced from [Morgan McGuire's Computer Graphics Archive](https://casual-effects.com/data/).
 
 ---
-
 ## Building
 
 Mikoto is currently verified to build on both **Windows** and **Linux**.

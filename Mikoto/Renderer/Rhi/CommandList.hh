@@ -41,8 +41,8 @@ namespace mikoto::renderer::rhi {
         core::u32 y{};
         core::u32 z{};
 
-        core::u32 mWidth{};
-        core::u32 mHeight{};
+        core::u32 mWidth{ 4 };
+        core::u32 mHeight{ 4 };
         core::u32 mDepth{ 1 };
         core::u32 mMipLevel{};
 
@@ -280,6 +280,7 @@ namespace mikoto::renderer::rhi {
         virtual auto Copy( IBuffer* src, IBuffer* dest, core::usize destOffset ) -> void = 0;
 
         virtual auto Copy( IBuffer* dest, ITexture* src ) -> void = 0;
+        virtual auto Copy( IBuffer* dest, ITexture* src, const TextureSlice& srcSlice ) -> void = 0;
 
         virtual auto BeginRendering( GraphicsState& state ) -> void = 0;
         virtual auto EndRendering() -> void = 0;

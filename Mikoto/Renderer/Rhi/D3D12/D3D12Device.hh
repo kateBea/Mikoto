@@ -414,7 +414,13 @@ namespace mikoto::renderer::d3d12 {
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mCommandAllocator{};
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7> mCommandList{};
 
-        eastl::fixed_vector<GpuUploadAllocation*, 10> mUploadAllocations{};
+        // Resources that I'm currently using,
+        // I keep a strong reference to them to avoid
+        // destroying them while this command buffer is still being executed
+        eastl::fixed_vector<DeviceObjectHandle, 50> mInFlightResources{};
+
+        // Suballocations that I'm currently using
+        eastl::fixed_vector<GpuUploadAllocation*, 10> mInFlightSubAllocations{};
     };
 
     // https://learn.microsoft.com/en-us/windows/win32/direct3d12/recording-command-lists-and-bundles
@@ -459,6 +465,7 @@ namespace mikoto::renderer::d3d12 {
         auto Copy( IBuffer* src, IBuffer* dest, core::usize destOffset ) -> void override;
 
         auto Copy( IBuffer *dest, ITexture *src ) -> void override;
+        auto Copy( IBuffer *dest, ITexture *src, const TextureSlice& srcSlice ) -> void override;
 
         auto BeginRendering( GraphicsState& state ) -> void override;
         auto EndRendering() -> void override;

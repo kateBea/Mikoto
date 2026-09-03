@@ -59,7 +59,7 @@ namespace mikoto::renderer {
         // to render the full texture when displayed icon will be very small
         auto GenerateThumbnail( asset::ModelHandle model, core::i32 width, core::i32 height ) -> rhi::TextureHandle;
         auto GenerateThumbnail( asset::FontHandle model, core::i32 width, core::i32 height ) -> rhi::TextureHandle;
-        auto GenerateThumbnail( rhi::TextureHandle original, rhi::TextureSubresourceSet slice ) -> rhi::TextureHandle;
+        auto GenerateThumbnail( rhi::TextureHandle original, const rhi::TextureSlice& slice ) -> rhi::TextureHandle;
         auto GenerateThumbnail( rhi::TextureHandle original, core::i32 width, core::i32 height ) -> rhi::TextureHandle;
 
         MKT_NODISCARD static auto Create( const ThumbnailRendererCreateInfo& spec ) -> eastl::unique_ptr<ThumbnailRenderer>;

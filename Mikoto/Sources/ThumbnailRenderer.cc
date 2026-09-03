@@ -111,7 +111,7 @@ namespace mikoto::renderer {
         return TextureHandle::CreateEmpty();
     }
 
-    auto ThumbnailRenderer::GenerateThumbnail( rhi::TextureHandle original,  rhi::TextureSubresourceSet slice ) -> rhi::TextureHandle {
+    auto ThumbnailRenderer::GenerateThumbnail( rhi::TextureHandle original,  const rhi::TextureSlice& slice ) -> rhi::TextureHandle {
 
 
         return TextureHandle::CreateEmpty();

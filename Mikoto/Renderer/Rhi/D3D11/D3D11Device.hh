@@ -193,6 +193,7 @@ namespace mikoto::renderer::d3d11 {
         auto Copy( rhi::IBuffer* src, rhi::IBuffer* dest, core::usize destOffset ) -> void override;
 
         auto Copy( rhi::IBuffer* dest, rhi::ITexture* src ) -> void override;
+        auto Copy( rhi::IBuffer* dest, rhi::ITexture* src, const TextureSlice& srcSlice ) -> void override;
 
         auto BeginRendering( rhi::GraphicsState& state ) -> void override;
         auto EndRendering() -> void override;

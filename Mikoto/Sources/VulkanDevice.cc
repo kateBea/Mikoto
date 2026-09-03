@@ -1220,7 +1220,7 @@ namespace mikoto::renderer::vulkan {
 
         VkBufferImageCopy region{
             // Start of data in the buffer (in bytes).
-            // Must be a multiple of the pixel size (e.g., 4 bytes for R32_UINT).
+            // Must be a multiple of the pixel size
             .bufferOffset = 0,
 
             // Number of pixels in a row for buffer layout.
@@ -1240,7 +1240,7 @@ namespace mikoto::renderer::vulkan {
             },
 
             // Destination starting coordinates (x, y, z) within the image.
-            .imageOffset = {0, 0, 0},
+            .imageOffset = {0, 0, 0 },
 
             // Size of the pixel region to copy.
             .imageExtent = {
@@ -1248,6 +1248,53 @@ namespace mikoto::renderer::vulkan {
                 src->GetWidth(),            // Width of the region in pixels
                 .height = src->GetHeight(), // Height of the region in pixels
                 .depth = 1                  // Depth is 1 for standard 2D textures
+            }
+        };
+
+        eastl::array regions{ region };
+
+        VkImage image{ src->GetNativeHandle( ObjectType::Vk_Image ) };
+        VkBuffer buffer{ dest->GetNativeHandle( ObjectType::Vk_Buffer ) };
+
+        vkCmdCopyImageToBuffer( mCurrentCommandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, as<u32>(regions.size()), regions.data());
+    }
+
+    auto CommandList::Copy( rhi::IBuffer* dest, rhi::ITexture* src, const TextureSlice& srcSlice ) -> void {
+        if (mEnableAutomaticBarriers) {
+            RecordTransition( src, ResourceStates::eCopySource  );
+            RecordTransition( dest, ResourceStates::eCopyDest  );
+            CommitBarriers();
+        }
+
+        VkBufferImageCopy region{
+            // Start of data in the buffer (in bytes).
+            // Must be a multiple of the pixel size
+            .bufferOffset = 0,
+
+            // Number of pixels in a row for buffer layout.
+            // Set to 0 if data is tightly packed with no extra padding.
+            .bufferRowLength = 0,
+
+            // Number of rows in the buffer for 3D layout padding.
+            // Set to 0 if data is tightly packed with no extra padding.
+            .bufferImageHeight = 0,
+
+            // Target texture subresource options (mip levels, array layers).
+            .imageSubresource = {
+                .aspectMask = checked_cast<Texture*>( src )->GetAspectMask(),
+                .mipLevel = srcSlice.mMipLevel,
+                .baseArrayLayer = srcSlice.mArrayLayer,
+                .layerCount = 1
+            },
+
+            // Destination starting coordinates (x, y, z) within the image.
+            .imageOffset = { ( i32 )srcSlice.x, ( i32 )srcSlice.y, ( i32 )srcSlice.z },
+
+            // Size of the pixel region to copy.
+            .imageExtent = {
+                .width = srcSlice.mWidth,
+                .height = srcSlice.mHeight,
+                .depth = srcSlice.mDepth
             }
         };
 

@@ -1289,7 +1289,7 @@ namespace mikoto::renderer::d3d12 {
 
                 mCurrentRecordingContext->mCommandList->CopyBufferRegion( d3d12BufferDest, 0, d3d12BufferSrc, allocation->mOffset, byteSize );
 
-                mCurrentRecordingContext->mUploadAllocations.emplace_back( allocation );
+                mCurrentRecordingContext->mInFlightSubAllocations.emplace_back( allocation );
                 break;
             }
             case HeapType::eUpload: {
@@ -1330,6 +1330,10 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::Copy( IBuffer *dest, ITexture *src ) -> void {
+
+    }
+
+    auto CommandList::Copy( IBuffer* dest, ITexture* src, const TextureSlice& srcSlice ) -> void {
 
     }
 
@@ -1681,16 +1685,17 @@ namespace mikoto::renderer::d3d12 {
 
     auto CommandList::ClearState() -> void {
         // Reset handles
-        //mIndirectBuffer = nullptr;
+        // mIndirectBuffer = nullptr;
 
         // Cleanup allocations not in use
-        for (auto& subAllocations : mRecordingContext[mRecordingContextIndex].mUploadAllocations) {
+        for (auto& subAllocations : mRecordingContext[mRecordingContextIndex].mInFlightSubAllocations) {
             // Set it to false we to tell the allocator
             // this allocation can already be destroyed
             subAllocations->mInUse.clear();
         }
 
-        mRecordingContext[mRecordingContextIndex].mUploadAllocations.clear();
+        mRecordingContext[mRecordingContextIndex].mInFlightResources.clear();
+        mRecordingContext[mRecordingContextIndex].mInFlightSubAllocations.clear();
     }
 
     auto CommandList::MarkExecuted( rhi::IQueue* queue, core::u64 submissionID ) -> void {

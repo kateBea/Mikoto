@@ -437,6 +437,10 @@ namespace mikoto::renderer::d3d11 {
 
     }
 
+    auto CommandList::Copy( rhi::IBuffer *dest, rhi::ITexture *src, const TextureSlice &srcSlice ) -> void {
+
+    }
+
     auto CommandList::BeginRendering( GraphicsState &state ) -> void {
         // Render targets
         eastl::fixed_vector<ID3D11RenderTargetView*, kMaxRenderTargets> renderTargetViews{};

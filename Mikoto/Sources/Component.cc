@@ -214,6 +214,10 @@ namespace mikoto::scene {
         mGamma = gamma;
     }
 
+    auto CameraComponent::SetSkyboxBlur( float value ) -> void {
+        mSkyboxBlur = math::Clamp( value, 0.0f, 1.0f );
+    }
+
     auto CameraComponent::SetExposure( float exposure ) -> void {
         mExposure = exposure;
     }
@@ -224,6 +228,10 @@ namespace mikoto::scene {
 
     auto CameraComponent::GetExposure() const -> float {
         return mExposure;
+    }
+
+    auto CameraComponent::GetSkyboxBlur() const -> float {
+        return mSkyboxBlur;
     }
 
     auto CameraComponent::SetFixedAspectRatio( const bool value ) -> void {

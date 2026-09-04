@@ -118,6 +118,10 @@ float3 GetIBLContribution(float NdotV, float3 diffuseColor, float3 specularColor
     // Avoid rough reflections sample invalid mip levels
     float lod = perceptualRoughness * (parameters.mPrefilteredCubeMipLevels - 1);
 
+#if defined(MKT_SUPPORT_VULKAN)
+    reflection.y *= -1.0;
+#endif
+
     // retrieve a scale and bias to F0. See [1], Figure 3
     float3 brdf = brdf.Sample(sampler, float2(NdotV, 1.0 - perceptualRoughness)).rgb;
 

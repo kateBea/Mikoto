@@ -116,6 +116,7 @@ namespace mikoto::renderer {
 
         // HDR
         auto SetGamma( core::f32 value ) -> void;
+        auto SetSkyboxBlur( core::f32 blur ) -> void;
         auto SetExposure( core::f32 value ) -> void;
         auto SetAmbientScale( core::f32 ambient ) -> void;
 
@@ -138,6 +139,10 @@ namespace mikoto::renderer {
         auto PrepareGeometryShadingAssets( FrameGraph& graph ) -> void;
 
     private:
+        // https://www.sctheblog.com/blog/vulkan-frame/
+        // https://matthewwellings.com/blog/the-new-vulkan-coordinate-system/
+        // https://docs.vulkan.org/spec/latest/chapters/textures.html#_cube_map_face_selection
+        // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
         inline static const eastl::fixed_vector<core::float4x4, kMaxCubeFaces> kMatrices{
             // POSITIVE_X
             glm::rotate( glm::rotate( glm::mat4( 1.0f ), glm::radians( 90.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ) ), glm::radians( 180.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ) ),
@@ -188,6 +193,7 @@ namespace mikoto::renderer {
         core::f32 mGamma{ 1.0f };
         core::f32 mExposure{ 1.0f };
         core::f32 mAbientScale{ 1.0f };
+        core::f32 mSkyboxBlur{ .05f };
         material::MaterialHandle mSkyboxMaterial{};
 
         // Polygon complexity

@@ -41,28 +41,31 @@ struct DrawParams {
     float Gamma;
 };
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
-MKT_DECLARE_STRUCTURED_SRV SRV_Buffers;
+MKT_DECLARE_STRUCTURED_SRV buffers;
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
 
 [shader("vertex")]
 VSOutput main(uint vID: SV_VertexID) {
     VSOutput o;
 
-    ByteAddressBuffer vertexBuffer = SRV_Buffers[Parameters.mVertexBufferID];
-    ByteAddressBuffer indexBuffer = SRV_Buffers[Parameters.mIndexBufferID];
+    ByteAddressBuffer vertexBuffer = buffers[parameters.mVertexBufferID];
+    ByteAddressBuffer indexBuffer = buffers[parameters.mIndexBufferID];
 
     uint index = indexBuffer.Read<uint>(0, vID);
     VertexDescription vertex = vertexBuffer.Read<VertexDescription>(0, index);
 
-    CameraInfo camera = SRV_Buffers[Parameters.CameraBufferID].Read<CameraInfo>(0, 0);
+    CameraInfo camera = buffers[parameters.CameraBufferID].Read<CameraInfo>(0, 0);
 
-    // Remove translation from view matrix
+    // Remove translation from view matrix to expan the cube
     float4x4 viewNoTrans = RemoveTranslation(camera.mViewMatrix);
 
     // Skybox direction
     o.Direction = vertex.position;
 
     // Rotate by the Y axis for Vulkan otherwise cube appears upside down
+    // Vulkan uses a different coordinate system than OpenGL, Y is flipped
+    // https://www.sctheblog.com/blog/vulkan-frame/
+    // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
 #if defined(MKT_SUPPORT_VULKAN)
     o.Direction.y *= -1.0;
 #endif

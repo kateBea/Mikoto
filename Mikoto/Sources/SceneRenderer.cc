@@ -206,6 +206,10 @@ namespace mikoto::renderer {
         mPostEffectsPasses.SetExposure( exposure );
     }
 
+    auto SceneRenderer::SetSkyboxBlur( core::f32 blur ) -> void {
+        mGeometryShading.SetSkyboxBlur( blur );
+    }
+
     auto SceneRenderer::SetAmbientScale( f32 ambient ) -> void {
         mGeometryShading.SetAmbientScale( ambient );
     }

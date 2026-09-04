@@ -81,6 +81,7 @@ namespace mikoto::renderer {
 
         auto SetGamma( core::f32 gamma ) -> void;
         auto SetExposure( core::f32 exposure ) -> void;
+        auto SetSkyboxBlur( core::f32 blur ) -> void;
         auto SetAmbientScale( core::f32 ambient ) -> void;
 
         auto SetEnablePolygonComplexity( bool value ) -> void;

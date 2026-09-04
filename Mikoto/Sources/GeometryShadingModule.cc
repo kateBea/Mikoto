@@ -403,6 +403,10 @@ namespace mikoto::renderer {
         mGamma = value;
     }
 
+    auto GeometryShadingModule::SetSkyboxBlur( core::f32 blur ) -> void {
+        mSkyboxBlur = blur;
+    }
+
     auto GeometryShadingModule::RegisterSkyboxProjection( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -660,6 +664,7 @@ namespace mikoto::renderer {
                     u32 mMaxMipLevel{};
                     f32 mExposure{ 1.0f };
                     f32 mGamma{ 2.0f };
+                    f32 mSkyboxBlur{ .5f };
                 } params{
                     .mCameraBufferID = ctx.PushBuffer_SRV( cameraData.mCameraData ),
                     .mBasicSamplerID = ctx.PushSampler( finalCompData.mSkyboxCubeSampler ),
@@ -672,7 +677,8 @@ namespace mikoto::renderer {
 
                     .mBackGroundType = as<u32>( mBackgroundType ),
 
-                    .mMaxMipLevel = mPrefilterMipLevels };
+                    .mMaxMipLevel = mPrefilterMipLevels,
+                    .mSkyboxBlur = mSkyboxBlur };
                 ctx.PushConstants( params );
 
                 const auto dimensions{ InferDimensions( mResolution ) };

@@ -2371,6 +2371,24 @@ namespace mikoto::editor {
                     mState->mSceneRenderer->SetClearColor( colorFloat4 );
                 }
             }
+            
+            if (newClearFlags == CameraClearFlags::eBlurredSkybox) {
+                ImGui::Spacing();
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex( 0 );
+                ImGui::TextUnformatted( "Blur" );
+
+                ImGui::TableSetColumnIndex( 1 );
+                f32 blur{ cameraComponent.GetSkyboxBlur() };
+                if (ImGui::SliderFloat( "##CameraSkyboxBlurrSlider", MKT_ADDRESSOF( blur ), 0.0, 1.0f )) {
+                    cameraComponent.SetSkyboxBlur( blur );
+                    mState->mSceneRenderer->SetSkyboxBlur( blur );
+                }
+
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                }
+            }
 
             ImGui::Spacing();
             ImGui::TableNextRow();

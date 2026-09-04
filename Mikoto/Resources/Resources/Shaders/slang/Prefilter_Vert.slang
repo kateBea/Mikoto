@@ -51,6 +51,9 @@ VSOutput main(uint vertexID : SV_VertexID) {
     o.PositionH = mul(parameters.MVP, float4(vertex.position, 1.0));
 
     // Rotate by the Y axis for Vulkan otherwise cube appears upside down
+    // Vulkan uses a different coordinate system than OpenGL, Y is flipped
+    // https://www.sctheblog.com/blog/vulkan-frame/
+    // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
 #if defined(MKT_SUPPORT_VULKAN)
     o.PositionH.y *= -1.0;
 #endif

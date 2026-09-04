@@ -581,19 +581,20 @@ namespace mikoto::scene {
 
         MKT_NODISCARD auto IsAspectRatioFixed() const -> bool;
 
-        auto SetClearFlags( CameraClearFlags bg ) -> void;
         MKT_NODISCARD auto GetClearFlags() const -> CameraClearFlags;
 
-        auto SetClearColor( const renderer::rhi::Color& color ) -> void;
         MKT_NODISCARD auto GetClearColor() const -> const renderer::rhi::Color&;
-
-        auto SetGamma( float gamma ) -> void;
-        auto SetExposure( float exposure ) -> void;
 
         MKT_NODISCARD auto GetGamma() const -> float;
         MKT_NODISCARD auto GetExposure() const -> float;
+        MKT_NODISCARD auto GetSkyboxBlur() const -> float;
 
+        auto SetGamma( float gamma ) -> void;
+        auto SetSkyboxBlur( float value ) -> void;
+        auto SetExposure( float exposure ) -> void;
         auto SetFixedAspectRatio( bool value ) -> void;
+        auto SetClearFlags( CameraClearFlags bg ) -> void;
+        auto SetClearColor( const renderer::rhi::Color& color ) -> void;
 
         ~CameraComponent() = default;
 
@@ -605,6 +606,7 @@ namespace mikoto::scene {
 
         float mGamma{ 2.0f };
         float mExposure{ 2.0f };
+        float mSkyboxBlur{ 0.3f };
 
         bool mMainCam{ true };
         bool mFixedAspectRatio{ false };

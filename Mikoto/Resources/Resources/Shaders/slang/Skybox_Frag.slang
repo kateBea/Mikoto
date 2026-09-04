@@ -44,6 +44,7 @@ struct DrawParams {
     uint MaxMipLevel;
     float Exposure;
     float Gamma;
+    float mSkyboxBlur;
 };
 
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
@@ -66,7 +67,9 @@ FSOutput main(FSInput input) {
 
     TextureCube texture = Textures[index];
 
-    const float blur = 0.5;
+    // This is just the LOD
+    // https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-to-samplelevel
+    const float blur = Parameters.mSkyboxBlur;
     float3 color;
 
     if (Parameters.MaxMipLevel > blur) {

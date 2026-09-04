@@ -32,6 +32,9 @@ struct DrawParams {
     float2 mGridSize1;
     float2 mGridSize2;
 
+    uint mClusterBufferSize;
+    uint mLightsBufferSize;
+
     uint mEnableSsao;
 
     uint mBrdfColorTargetID;

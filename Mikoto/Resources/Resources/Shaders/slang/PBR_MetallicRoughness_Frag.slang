@@ -37,6 +37,9 @@ struct DrawParams {
     float2 mGridSize1;
     float2 mGridSize2;
 
+    uint mClusterBufferSize;
+    uint mLightsBufferSize;
+
     uint mEnableSsao;
 
     uint mBrdfColorTargetID;
@@ -545,35 +548,37 @@ FSOutput main(FSInput input) {
     // % 840 = OpPhi % int % 841 % 90 % int_0 % 87 % int_0 % 87
     //Cluster cluster = clusterBuffer[clusterIndex];
 
-    for (uint i = 0; i < clusterBuffer[clusterIndex].mCount && parameters.mActiveLightCount != 0; ++i) {
-        uint lightIndex = clusterBuffer[clusterIndex].mLightIndices[i];
-        LightInfo light = lightCullingBuffer[lightIndex];
+    if (clusterIndex < parameters.mClusterBufferSize) {
+        for (uint i = 0; i < clusterBuffer[clusterIndex].mCount && parameters.mActiveLightCount != 0; ++i) {
+            uint lightIndex = clusterBuffer[clusterIndex].mLightIndices[i];
+            LightInfo light = lightCullingBuffer[lightIndex];
 
-        if (light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL) {
+            if (light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL) {
 
-            if (parameters.mDirectionalShadowCastersCount == 0) {
-                lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs);
-            } else {
-                // If there is a signel source that shades it we break because then the pixel is not in shadow.
-                for (uint count = 0; count < parameters.mDirectionalShadowCastersCount; ++count) {
-                    DirectionalShadowMapInfo shadowMapInfo = buffers[parameters.mDirectionalShadowsInfoBufferID]
-                        .Read<DirectionalShadowMapInfo>(0, count);
-                    float4 fragPosLightSpace = shadowMapInfo.mLightViewProjection * float4(input.FragmentWorldPos, 1.0f);
+                if (parameters.mDirectionalShadowCastersCount == 0) {
+                    lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs);
+                } else {
+                    // If there is a signel source that shades it we break because then the pixel is not in shadow.
+                    for (uint count = 0; count < parameters.mDirectionalShadowCastersCount; ++count) {
+                        DirectionalShadowMapInfo shadowMapInfo = buffers[parameters.mDirectionalShadowsInfoBufferID]
+                                                                     .Read<DirectionalShadowMapInfo>(0, count);
+                        float4 fragPosLightSpace = shadowMapInfo.mLightViewProjection * float4(input.FragmentWorldPos, 1.0f);
 
-                    float shadow = ComputeShadow(fragPosLightSpace, light, n, textures2D[shadowMapInfo.mCasterMapID], samplerBasic);
-                    lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs) * (1.0f - shadow);
+                        float shadow = ComputeShadow(fragPosLightSpace, light, n, textures2D[shadowMapInfo.mCasterMapID], samplerBasic);
+                        lightContribution += ComputeDirectionalLightContribution(n, v, light, inputs) * (1.0f - shadow);
+                    }
                 }
+                continue;
             }
-            continue;
-        }
 
-        if (light.ActiveLightType == LIGHT_TYPE_POINT) {
-            lightContribution += ComputePointlLightContribution(n, v, light, inputs, input.FragmentWorldPos);
-            continue;
-        }
+            if (light.ActiveLightType == LIGHT_TYPE_POINT) {
+                lightContribution += ComputePointlLightContribution(n, v, light, inputs, input.FragmentWorldPos);
+                continue;
+            }
 
-        if (light.ActiveLightType == LIGHT_TYPE_SPOT) {
-            lightContribution += ComputeSpotLightContribution(n, v, light, inputs, input.FragmentWorldPos);
+            if (light.ActiveLightType == LIGHT_TYPE_SPOT) {
+                lightContribution += ComputeSpotLightContribution(n, v, light, inputs, input.FragmentWorldPos);
+            }
         }
     }
 

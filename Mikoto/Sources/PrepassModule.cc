@@ -113,6 +113,7 @@ namespace mikoto::renderer {
             .SetElementsSize( kMaxActiveLights, MKT_SIZEOF( LightParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mLightsBuffer = graph.Create( gpuBufferDesc );
+        info.mLightsBufferCount = kMaxActiveLights;
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( "LightCulling_Pipeline" )

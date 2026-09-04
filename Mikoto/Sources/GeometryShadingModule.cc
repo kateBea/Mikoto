@@ -780,6 +780,9 @@ namespace mikoto::renderer {
                     float2 mGridSize1{};
                     float2 mGridSize2{};
 
+                    u32 mClusterBufferSize{};
+                    u32 mLightsBufferSize{};
+
                     u32 mEnableSsao{};
 
                     u32 mBrdfColorTargetID{};
@@ -811,6 +814,9 @@ namespace mikoto::renderer {
 
                     .mGridSize1 = { prePassData.mGridSize[0], prePassData.mGridSize[1] },
                     .mGridSize2 = { prePassData.mGridSize[2], prePassData.mGridSize[3] },
+
+                    .mClusterBufferSize = prePassData.mClusterCount,
+                    .mLightsBufferSize = prePassData.mLightsBufferCount,
 
                     .mEnableSsao = mEnableSsao ? MKT_SHADER_TRUE : MKT_SHADER_FALSE,
 

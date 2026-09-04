@@ -680,7 +680,7 @@ namespace mikoto::renderer {
                     .mMaxMipLevel = mPrefilterMipLevels,
                     .mSkyboxBlur = mSkyboxBlur };
                 ctx.PushConstants( params );
-
+                
                 const auto dimensions{ InferDimensions( mResolution ) };
                 const auto graphicsState{ ContextRenderState{}
                     .SetRenderArea( Rect{ as<i32>(dimensions.first), as<i32>(dimensions.second) } )
@@ -717,6 +717,8 @@ namespace mikoto::renderer {
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eRGBA16_FLOAT )
             .SetCullMode( CullMode::eNone )
+            .SetDepthWrite( false )
+            .SetDepthTest( true )
             .PushShader( "PBR_MetallicRoughness_Vert.slang", FGStageType::eVertex )
             .PushShader( "PBR_MetallicRoughness_Frag.slang", FGStageType::ePixel ) };
         info.mShadingPipeline = graph.Create( pipelineBuilder );

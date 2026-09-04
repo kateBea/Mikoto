@@ -315,6 +315,8 @@ namespace mikoto::renderer {
             .SetTopology( PrimitiveTopology::eTriangleList )
             .SetCullMode( CullMode::eNone )
             .SetDepthFormat( Format::eD32 )
+            .SetDepthWrite( false )
+            .SetDepthTest( true )
             .AddColorFormat( Format::eRGBA32_FLOAT )
             .AddColorFormat( Format::eRGBA8_UNORM )
             .AddColorFormat( Format::eRGBA8_UNORM )
@@ -421,6 +423,8 @@ namespace mikoto::renderer {
             .SetTopology( PrimitiveTopology::eTriangleList )
             .SetDepthFormat( Format::eD32 )
             .SetCullMode( CullMode::eNone )
+            .SetDepthWrite( true )
+            .SetDepthTest( true )
             .AddColorFormat( Format::eRGBA8_UNORM )
             .PushShader( "ZPass_Vert.slang", FGStageType::eVertex )
             .PushShader( "ZPass_Frag.slang", FGStageType::ePixel ) };

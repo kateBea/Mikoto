@@ -128,6 +128,8 @@ namespace mikoto::renderer {
             .SetPipelineType( PipelineType::eGraphics )
             .SetTopology( PrimitiveTopology::eTriangleList )
             .SetBlendEnable( false )
+            .SetDepthWrite( false )
+            .SetDepthTest( true )
             .SetCullMode( CullMode::eNone )
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eR32_UINT )

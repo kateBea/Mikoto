@@ -726,7 +726,8 @@ namespace mikoto::asset {
             aiProcess_Triangulate |
             aiProcess_GenSmoothNormals |
             aiProcess_GenUVCoords |
-            aiProcess_TransformUVCoords /*| aiProcess_FlipUVs*/ ) };
+            aiProcess_TransformUVCoords |
+            aiProcess_FlipUVs  ) };
 
         FileHandle file{ description.mFile };
         const Path path{ file->GetPath() };

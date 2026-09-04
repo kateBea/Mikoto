@@ -203,7 +203,10 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto SwapChain::Release() -> void {
-        mDevice->WaitIdle();
+
+        for (auto& item : mBackBufferImages) {
+            item.Release();
+        }
         mIsAllocated = false;
     }
 }// namespace mikoto::renderer::d3d12

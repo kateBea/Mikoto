@@ -269,8 +269,17 @@ namespace mikoto::renderer::d3d12 {
 
     auto Context::Shutdown() -> void {
         // Do a wait idle
-        Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
-        ( void )pFence->Wait( mFenceValue, 4000 ); // Host wait
+        Fence* pFence{checked_cast<Fence*>(mFence.GetRaw())};
+        Queue* queue{checked_cast<Queue*>(mGraphicsQueue)};
+
+        (void)queue->Signal(pFence, ++mFenceValue);
+        (void)pFence->Wait(mFenceValue, 3000);
+
+        (void)queue->Signal(pFence, ++mFenceValue);
+        (void)pFence->Wait(mFenceValue, 3000);
+
+        queue->WaitIdle();
+        queue->WaitIdle();
 
         mDevice->WaitIdle();
 
@@ -300,9 +309,6 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Context::SubmitFrame() -> void {
-        Device* device{ checked_cast<Device*>( mDevice.get() ) };
-        Queue* queue{ checked_cast<Queue*>( device->GetQueue( QueueType::eGraphics ) ) };
-
         // Submit batched commands
         SubmitInfoMap swapMap{};
         {
@@ -387,14 +393,12 @@ namespace mikoto::renderer::d3d12 {
             .AddSignal( mFence, mFenceValue )
             .AddCommandList( mCommandList ) };
         mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo );
-
-        // Wait for previous frame to finish.
-        // This is not the best, doing it for now for simplicity and testing purposes.
-        Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
-        ( void )pFence->Wait( mFenceValue, eastl::numeric_limits<u64>::max() ); // Host wait
     }
 
     auto Context::PrepareFrame() -> void {
+        Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
+        ( void )pFence->Wait( mFenceValue, eastl::numeric_limits<u64>::max() ); // Host wait
+
         mDevice->RunGarbageCollection();
 
         if (mWindow) {

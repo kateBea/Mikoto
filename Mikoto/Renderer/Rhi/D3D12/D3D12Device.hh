@@ -396,6 +396,7 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto AllocateCmdList() -> CommandListHandle;
 
         auto WaitIdle() -> void;
+        auto Signal(Fence* fence, core::u64 value) -> void;
 
         // Conversion operators
         operator ID3D12CommandQueue*() const;

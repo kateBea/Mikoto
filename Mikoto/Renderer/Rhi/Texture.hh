@@ -42,12 +42,7 @@ namespace mikoto::renderer::rhi {
         core::u32 mMipCount{ 1 };
 
         bool mTrackState{ true };
-        bool mUseInitialClearValue{ false };
         bool mKeepInitializerResources{ false };
-
-        Color mInitialClearValue{ kColorGreen };
-        core::f32 mInitialDepthClearValue{ 1.0f };
-        core::f32 mInitialStencilClearValue{ 0.0f };
 
         // Only one of these can be used, this is provided so we can
         // initialize a GPU texture from an Image or a buffer of raw bytes from CPU side
@@ -73,13 +68,6 @@ namespace mikoto::renderer::rhi {
         auto SetWidth( core::u32 width ) -> TextureCreateDescription&;
         auto SetHeight( core::u32 height ) -> TextureCreateDescription&;
         auto SetMipCount( core::u32 count ) -> TextureCreateDescription&;
-
-        // If the texture does not change the clear value
-        auto SetInitialDephtClearValue( core::f32 value ) -> TextureCreateDescription&;
-        auto SetInitialStencilClearValue( core::f32 value ) -> TextureCreateDescription&;
-        auto SetInitialColorClearValue( Color value ) -> TextureCreateDescription&;
-        auto SetUseInitialClearValue( bool value ) -> TextureCreateDescription&;
-        auto SetKeepInitializerResources( bool value ) -> TextureCreateDescription&;
 
         auto SetImageData( asset::ImageHandle image) -> TextureCreateDescription&;
         auto SetBufferData( memory::BufferSpanHandle buffer) -> TextureCreateDescription&;
@@ -212,13 +200,6 @@ namespace mikoto::renderer::rhi {
         core::u32 mWidth{};
         core::u32 mHeight{};
         core::u32 mMipCount{ 1 };
-
-
-        core::f32 mInitialDepthClearValue{};
-        core::f32 mInitialStencilClearValue{};
-
-        Color mInitialColorClearValue{};
-        bool mUseInitialClearValue{ false };
 
         asset::ImageHandle mImageData{};
         memory::BufferSpanHandle mBufferSpan{};

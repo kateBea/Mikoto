@@ -868,8 +868,16 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Queue::WaitIdle() -> void {
-        // TODO: does not behave as expected
-        ( void )mFence->Wait( mFenceValue, INFINITE );
+        Fence* pFence{ checked_cast<Fence*>(mFence.GetRaw())};
+        ID3D12Fence* d3d12Fence{ *pFence };
+        mQueue->Wait(d3d12Fence, ++mFenceValue);
+
+        ( void )mFence->Wait( mFenceValue, 3000 );
+    }
+
+    auto Queue::Signal(Fence* fence, core::u64 value) -> void {
+        ID3D12Fence* d3d12Fence{ *fence };
+        mQueue->Wait(d3d12Fence, value);
     }
 
     auto Queue::GetCurrentTimeline() -> core::u64 {

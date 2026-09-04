@@ -233,8 +233,6 @@ namespace mikoto::imgui {
         auto colorDesc{ TextureCreateDescription{}
             .SetWidth( as<i32>( mDimensions.Width ) )
             .SetHeight( as<i32>( mDimensions.Height ) )
-            .SetUseInitialClearValue( true )
-            .SetInitialColorClearValue( rhi::kColorMagenta )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kCopySrc | TextureUsageFlagsBits::kShaderResource ) // I will copy from this guy to swapchain image
@@ -247,7 +245,6 @@ namespace mikoto::imgui {
         auto depthDesc{ TextureCreateDescription{}
             .SetWidth( as<i32>( mDimensions.Width ) )
             .SetHeight( as<i32>( mDimensions.Height ) )
-            .SetUseInitialClearValue( true )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::kDepthTarget )

@@ -162,31 +162,6 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto TextureCreateDescription::SetInitialDephtClearValue( core::f32 value ) -> TextureCreateDescription& {
-        mInitialDepthClearValue = value;
-        return *this;
-    }
-
-    auto TextureCreateDescription::SetInitialStencilClearValue( core::f32 value ) -> TextureCreateDescription& {
-        mInitialStencilClearValue = value;
-        return *this;
-    }
-
-    auto TextureCreateDescription::SetInitialColorClearValue( Color value ) -> TextureCreateDescription & {
-        mInitialClearValue = value;
-        return *this;
-    }
-
-    auto TextureCreateDescription::SetUseInitialClearValue( bool value ) -> TextureCreateDescription & {
-        mUseInitialClearValue = value;
-        return *this;
-    }
-
-    auto TextureCreateDescription::SetKeepInitializerResources( bool value ) -> TextureCreateDescription & {
-        mKeepInitializerResources = value;
-        return *this;
-    }
-
     auto TextureCreateDescription::SetMultisampling( Multisampling sampleCount ) -> TextureCreateDescription & {
         mMultisampling = sampleCount;
         return *this;
@@ -380,10 +355,6 @@ namespace mikoto::renderer::rhi {
         mWidth{ desc.mWidth },
         mHeight{ desc.mHeight },
         mMipCount{ desc.mMipCount },
-        mInitialDepthClearValue{ desc.mInitialDepthClearValue },
-        mInitialStencilClearValue{ desc.mInitialStencilClearValue },
-        mInitialColorClearValue{ desc.mInitialClearValue },
-        mUseInitialClearValue{ desc.mUseInitialClearValue },
         mImageData{ desc.mImageHandle },
         mBufferSpan{ desc.mBufferSpan },
         mFormat{ desc.mFormat },

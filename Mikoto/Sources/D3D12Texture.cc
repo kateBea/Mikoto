@@ -415,28 +415,25 @@ namespace mikoto::renderer::d3d12 {
 
             mImageAllocation.mAllocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
-            // Optimized clear value
+            // Optimized clear value. This warning appears on debug builds but it has been disabled. See infoQueue setup
             // ID3D12Device::CreatePlacedResource: pOptimizedClearValue must be NULL when D3D12_RESOURCE_DESC::Dimension is
             // not D3D12_RESOURCE_DIMENSION_BUFFER and neither D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET nor
             // D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL are set in D3D12_RESOURCE_DESC::Flags.
-            // Tbf I do not know how to handle this, at the moment the RHI exposes a flag for starting clear value
             // https://wiki.libsdl.org/SDL3/SDL_BeginGPURenderPass
             // https://github.com/libsdl-org/SDL/issues/10758
-            if (mUseInitialClearValue) {
-                if ((mTextureUsage & rhi::TextureUsageFlagsBits::kRenderTarget) ||
+            if ((mTextureUsage & rhi::TextureUsageFlagsBits::kRenderTarget) ||
                 (mTextureUsage & rhi::TextureUsageFlagsBits::kDepthTarget || mTextureUsage & rhi::TextureUsageFlagsBits::kDepthStencilTarget)) {
-                    mOptimizedClearValue.Format = mImageAllocation.mDesc.Format;
-                    mOptimizedClearValue.Color[0] = mInitialColorClearValue.mR;
-                    mOptimizedClearValue.Color[1] = mInitialColorClearValue.mG;
-                    mOptimizedClearValue.Color[2] = mInitialColorClearValue.mB;
-                    mOptimizedClearValue.Color[3] = mInitialColorClearValue.mA;
+                Color clearColor{ rhi::kColorMagenta };
+                mOptimizedClearValue.Format = mImageAllocation.mDesc.Format;
+                mOptimizedClearValue.Color[0] = clearColor.mR;
+                mOptimizedClearValue.Color[1] = clearColor.mG;
+                mOptimizedClearValue.Color[2] = clearColor.mB;
+                mOptimizedClearValue.Color[3] = clearColor.mA;
 
-                    mOptimizedClearValue.DepthStencil.Depth = mInitialDepthClearValue;
-                    mOptimizedClearValue.DepthStencil.Stencil = mInitialStencilClearValue;
+                mOptimizedClearValue.DepthStencil.Depth = 1.0f;
+                mOptimizedClearValue.DepthStencil.Stencil = .0f;
 
-                    mImageAllocation.mOptimizedClearValue = MKT_ADDRESSOF( mOptimizedClearValue );
-                }
-            }
+                mImageAllocation.mOptimizedClearValue = MKT_ADDRESSOF( mOptimizedClearValue );}
 
             auto* allocator{ device->GetAllocator() };
             ThrowIfFailed( allocator->AllocateImage( mImageAllocation ) );

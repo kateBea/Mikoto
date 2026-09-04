@@ -57,17 +57,17 @@ For a complete list of third-party libraries and how they are used throughout th
 
 ### **Platform Support**
 
-| Platform / Toolchain          | Architecture | Status             | Notes |
-|-------------------------------|--------------|--------------------|-------|
-| Ubuntu 24.04 LTS (GCC 13.3.0) | x86_64       | Supported (Tested) | -     |
-| Other Linux Distros           | x86_64       | Untested           | -     |
-| Windows (MSVC)                | x86_64       | Supported (Tested) | -     |
-| Windows (MinGW-w64)           | x86_64       | Untested           | -     |
+| Platform        | Architecture | Compiler | CMake Generator      | Rendering API       |
+|-----------------|--------------|----------|----------------------|---------------------|
+| **Windows 10+** | x86_64       | MSVC     | Visual Studio, Ninja | Vulkan, Direct3D 12 |
+| **Linux**       | x86_64       | GCC      | Ninja, Make          | Vulkan              |
 
-> Note: This project has been tested on Ubuntu 24.04 for Linux compatibility. While it 
-> works properly on Windows, other Linux distributions are currently untested.
+Mikoto is currently developed and tested on **Windows** and **Ubuntu 24.04 LTS**.
+The primary development toolchains are **MSVC** on Windows and **GCC 13.3.0** on Linux.
+
+Other distributions, architectures, compilers, and build generators may be supported, but have not been formally tested.
+
 ---
-
 ## Requirements
 
 Mikoto currently targets **C++20** and uses **CMake** for project configuration and builds.

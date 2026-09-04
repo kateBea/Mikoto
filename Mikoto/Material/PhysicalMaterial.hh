@@ -40,7 +40,7 @@ namespace mikoto::material {
     };
 
     enum class AlphaMode {
-        Opaque,
+        eOpaque,
         eMask,
         eBlend,
         eCount,
@@ -76,13 +76,13 @@ namespace mikoto::material {
     // I had issues rendering Sponza because I was using clamp to edge whereas
     // the wall bricks needed repeat
     struct SamplingProperties {
-        float MipLevels{ 1.0f };
+        float mMipLevels{ 1.0f };
 
-        renderer::rhi::SamplerFilter MinFilter{ renderer::rhi::SamplerFilter::eNearest };
-        renderer::rhi::SamplerFilter MagFilter{ renderer::rhi::SamplerFilter::eNearest };
-        renderer::rhi::SamplerWrapMode WrapU{ renderer::rhi::SamplerWrapMode::eRepeat };
-        renderer::rhi::SamplerWrapMode WrapV{ renderer::rhi::SamplerWrapMode::eRepeat };
-        renderer::rhi::SamplerWrapMode WrapW{ renderer::rhi::SamplerWrapMode::eRepeat };
+        renderer::rhi::SamplerFilter mMinFilter{ renderer::rhi::SamplerFilter::eNearest };
+        renderer::rhi::SamplerFilter mMagFilter{ renderer::rhi::SamplerFilter::eNearest };
+        renderer::rhi::SamplerWrapMode mWrapU{ renderer::rhi::SamplerWrapMode::eRepeat };
+        renderer::rhi::SamplerWrapMode mWrapV{ renderer::rhi::SamplerWrapMode::eRepeat };
+        renderer::rhi::SamplerWrapMode mWrapW{ renderer::rhi::SamplerWrapMode::eRepeat };
     };
 
     struct PBRMap {
@@ -93,7 +93,7 @@ namespace mikoto::material {
     struct PhysicMaterialDescription {
         eastl::string mName{};
 
-        AlphaMode mAlphaMask{ AlphaMode::Opaque };
+        AlphaMode mAlphaMask{ AlphaMode::eOpaque };
         Workflow mWorkflow{ Workflow::eMetallicRoughness };
 
         // Base color/Albedo
@@ -226,7 +226,7 @@ namespace mikoto::material {
     private:
         ShadingModel mShadingModel{};
 
-        AlphaMode mAlphaMask{ AlphaMode::Opaque };
+        AlphaMode mAlphaMask{ AlphaMode::eOpaque };
         Workflow mWorkflow{ Workflow::eMetallicRoughness };
 
         // Base color/Albedo

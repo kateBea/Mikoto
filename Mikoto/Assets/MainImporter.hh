@@ -20,11 +20,12 @@
 #include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
 
+#include <assimp/mesh.h>
+#include <assimp/scene.h>
 #include <assimp/IOStream.hpp>
 #include <assimp/IOSystem.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/LogStream.hpp>
-
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -34,43 +35,82 @@
 #include <Assets/Importer.hh>
 
 #include <Animation/SkinningBuilder.hh>
+
+#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::asset {
 
-    using namespace mikoto::core;
-    using namespace mikoto::renderer::rhi;
-
     class MainImporter final : public ModelImporter {
     public:
-        explicit MainImporter(IGpuDevice* device);
+        explicit MainImporter( renderer::rhi::IGpuDevice* device );
 
-        auto Import( const ModelLoadDescription &description, ModelDataDescription& out) -> void override;
+        auto Import( const ModelLoadDescription& description, ModelDataDescription& out ) -> void override;
 
     private:
         struct ImporterInfo {
-            i32 Index{ -1 };
-            Assimp::Importer MeshImporter{};
-            std::atomic_bool IsFree{ true };
+            core::i32 mIndex{ -1 };
+            Assimp::Importer mMeshImporter{};
+            eastl::atomic_flag mIsFree{ true };
 
-            eastl::unique_ptr<Assimp::IOSystem> CustomFileHandlingImpl{};
+            eastl::unique_ptr<Assimp::IOSystem> mCustomFileHandlingImpl{};
 
             ImporterInfo() = default;
             ~ImporterInfo() = default;
 
             // Assimp::Importer copy is forbidden
-            ImporterInfo(const ImporterInfo&) = delete;
-            ImporterInfo& operator=(const ImporterInfo&) = delete;
+            ImporterInfo( const ImporterInfo& ) = delete;
+            ImporterInfo& operator=( const ImporterInfo& ) = delete;
+        };
+
+        struct LoadTextureDescription {
+            filesystem::Path mPath{};
+            renderer::rhi::TextureHandle mTexture{};
         };
 
     private:
-        MKT_NODISCARD auto TryAcquireImporter() -> eastl::vector<eastl::unique_ptr<ImporterInfo>>::iterator;
-        auto Import(ImporterInfo& loaderData,const ModelLoadDescription& description, ModelDataDescription& modelData) -> void;
+        auto Import(
+            ImporterInfo& loaderData,
+            const ModelLoadDescription& description,
+            ModelDataDescription& modelData ) -> void;
+
+        auto LoadTextures(
+            const filesystem::Path& modelRootPath,
+            const aiMesh *mesh,
+            const aiScene *scene,
+            material::PhysicMaterialDescription& properties ) -> void;
+
+        auto LoadMaterial( aiMaterial const *material,
+            material::PhysicMaterialDescription &properties ) -> void;
+
+        auto LoadModelMeshes( const Path& rootPath,
+            const aiNode *node, const aiScene *scene,
+            const ModelLoadDescription& loadInfo,
+            ModelDataDescription& modelData ) -> void;
+
+        auto ConstructMeshNode( const Path& rootPath,
+            const aiMesh *mesh, const aiScene *scene,
+            MeshNodeDescription& meshNodeData,
+            material::PhysicMaterialDescription& material ) -> void;
+
+        auto LoadIndices( const aiMesh *mesh,
+            MeshNodeDescription &meshNodeData ) -> void;
+
+        auto LoadVertices( const aiMesh *mesh,
+            MeshNodeDescription &meshNodeData ) -> void;
+
+        MKT_NODISCARD auto TryAcquireImporter() ->
+            eastl::vector<eastl::unique_ptr<ImporterInfo>>::iterator;
+
+        MKT_NODISCARD auto LoadTexture(
+            const Path& modelRootPath,
+            const aiMaterial *material, aiTextureType type,
+            const aiScene *scene ) -> LoadTextureDescription;
 
     private:
-        eastl::unique_ptr<Assimp::LogStream> m_LogImpl{};
-        eastl::vector<eastl::unique_ptr<ImporterInfo>> m_Importers{};
+        eastl::unique_ptr<Assimp::LogStream> mLogImpl{};
+        eastl::vector<eastl::unique_ptr<ImporterInfo>> mImporters{};
     };
-}
+}// namespace mikoto::asset
 
 #endif // MIKOTO_MAIN_IMPORTER_HH

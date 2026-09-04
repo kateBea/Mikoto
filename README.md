@@ -38,7 +38,6 @@ Mikoto is built around a Vulkan renderer and a collection of focused, open-sourc
 * **Physics** — Rigid-body physics and collision handling through [jrouwe/JoltPhysics](https://github.com/jrouwe/JoltPhysics).
 * **Audio** — Audio playback [mackron/miniaudio](https://github.com/mackron/miniaudio).
 * **Scripting** — Lua scripting integrated through [ThePhD/sol2](https://github.com/ThePhD/sol2).
-* **Text Rendering** — MSDF-based text rendering using [Chlumsky/msdfgen](https://github.com/Chlumsky/msdfgen).
 
 **Rendering**
 
@@ -46,6 +45,7 @@ Mikoto is built around a Vulkan renderer and a collection of focused, open-sourc
 * **Clustered Forward+** — Clustered lighting and light culling for the primary rendering path.
 * **Infinite Grid** — Procedural editor/world grid.
 * **HDR Rendering** — HDR image and environment support.
+* * **Text Rendering** — MSDF-based text rendering using [Chlumsky/msdfgen](https://github.com/Chlumsky/msdfgen).
 
 **Editor**
 

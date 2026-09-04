@@ -249,6 +249,10 @@ namespace mikoto::asset {
         if ( description.mDimension == TextureDimension::eTexture2D ) {
             return mTextures2D.LoadOrGet( path, [this, path]() -> TextureHandle {
                 asset::ImageHandle image{ asset::ProcessImage2D( path ) };
+                if (image.IsEmpty() ) {
+                    return TextureHandle::CreateEmpty();
+                }
+
                 auto textureDescription{ TextureCreateDescription{}
                      .SetImageData( image )
                      .SetWidth( as<i32>( image->mWidth ) )

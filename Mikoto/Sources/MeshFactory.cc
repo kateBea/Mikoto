@@ -125,7 +125,7 @@ namespace mikoto::asset {
         }
 
         u32 meshIndex{ 0 };
-        for (const auto& meshNode : data.mMeshNodes) {
+        for ( const auto &meshNode: data.mMeshNodes ) {
             // Optimize vertices and indices
 
             // Create vertices buffer (WindingOrder counter-clockwise)
@@ -161,7 +161,7 @@ namespace mikoto::asset {
 
     auto MeshFactory::Initialize() -> void {
         mGltfImporter = eastl::make_unique<GLTFImporter>( mDevice );
-        //mMainImporter = eastl::make_unique<MainImporter>( mDevice );
+        mMainImporter = eastl::make_unique<MainImporter>( mDevice );
 
         mIsInitialized = true;
     }

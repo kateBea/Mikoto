@@ -30,11 +30,14 @@
 namespace mikoto::asset {
     using namespace mikoto::filesystem;
 
-    // Pending transition to Google Wuffs
+    // Pending test with Google Wuffs
     // Using STB_Image for the time being
 
     auto ProcessImage2D( filesystem::FileHandle file ) -> ImageHandle;
     auto ProcessImage2D( const filesystem::Path& filepath ) -> ImageHandle;
+
+    // Compressed image in memory
+    auto ProcessImage2D( const void* data, core::usize sizeBytes, ImageFormat format ) -> ImageHandle;
 
     // Attempts to construct the cube image from the equirectangular file
     auto ProcessImageCube( filesystem::FileHandle file ) -> ImageHandle;

@@ -66,7 +66,7 @@ namespace mikoto::project {
         bool mIsAutoSaveEnabled{};
         core::f32 mAutoSaveInterval{ 2000 }; // In milliseconds
 
-        core::Ref<scene::Scene> mCurrentScene{};
+        scene::SceneHandle mCurrentScene{};
     };
 
     using ProjectHandle = core::Ref<Project>;

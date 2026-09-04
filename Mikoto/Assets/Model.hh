@@ -58,22 +58,9 @@ namespace mikoto::asset {
     };
 
     struct ModelLoadDescription {
-        FileHandle mFile{};
+        filesystem::FileHandle mFile{};
         renderer::rhi::GraphicsAPI mApi{ renderer::rhi::GraphicsAPI::eInvalid };
         bool mExtractTextures{ true };
-
-        // Specifies the order we want attributes in
-        // Default is order specified by DEFAULT_VERTEX_BUFFER_LAYOUT in Pipeline.hh file
-        eastl::vector<VertexAttribute> mAttributes{
-            VertexAttribute::ePositions,
-            VertexAttribute::eNormals,
-            VertexAttribute::eColors,
-            VertexAttribute::eUV0,
-            VertexAttribute::eUV1,
-
-            VertexAttribute::eJoints, // Bone IDs
-            VertexAttribute::eWeights, // Weight IDs
-        };
 
         auto LoadTextures( bool value ) -> ModelLoadDescription&;
         auto WithFilePath( FileHandle file ) -> ModelLoadDescription&;
@@ -88,7 +75,7 @@ namespace mikoto::asset {
         material::PhysicMaterialDescription mProperties{};
 
         auto SetName( eastl::string_view name ) -> MeshCreateDescription&;
-        auto SetTransform( const float4x4& t ) -> MeshCreateDescription&;
+        auto SetTransform( const core::float4x4& t ) -> MeshCreateDescription&;
         auto SetMaterial( const material::PhysicMaterialDescription& mat ) -> MeshCreateDescription&;
         auto SetVertices( renderer::rhi::BufferHandle vertices ) -> MeshCreateDescription&;
         auto SetIndices( renderer::rhi::BufferHandle indices ) -> MeshCreateDescription&;
@@ -96,14 +83,14 @@ namespace mikoto::asset {
 
     class MeshNode final {
     public:
-        MeshNode( u32 index, const MeshCreateDescription& desc);
-        MeshNode(MeshNode&& other) noexcept = default;
+        MeshNode(core::u32 index, const MeshCreateDescription& desc);
+        MeshNode(asset::MeshNode&& other) noexcept = default;
 
         MKT_NODISCARD auto GetName() -> const eastl::string& { return mName; }
 
         MKT_NODISCARD auto GetTransform() const -> const float4x4& { return mTransform; }
         MKT_NODISCARD auto GetMeshIndex() const -> size_t { return mMeshIndex; }
-        MKT_NODISCARD auto GetVertexBuffer() -> renderer::rhi::BufferHandle { return  mVertices; }
+        MKT_NODISCARD auto GetVertexBuffer() -> renderer::rhi::BufferHandle { return mVertices; }
         MKT_NODISCARD auto GetIndexBuffer() -> renderer::rhi::BufferHandle { return mIndices; }
 
         MKT_NODISCARD auto GetVertexBuffer() const -> renderer::rhi::BufferHandle { return mVertices; }
@@ -111,7 +98,7 @@ namespace mikoto::asset {
 
         MKT_NODISCARD auto GetProperties() const -> const material::PhysicMaterialDescription& { return mProperties; }
 
-        DISABLE_COPY_FOR( MeshNode );
+        DISABLE_COPY_FOR(MeshNode);
 
     private:
         eastl::string mName{};

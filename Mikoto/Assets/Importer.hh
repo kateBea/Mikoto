@@ -31,12 +31,12 @@
 namespace mikoto::asset {
 
     // Aligned to make it easy to use in shaders
-    struct alignas(16) VertexDescription_Std430Alignment {
+    struct alignas( 16 ) VertexDescription_Std430Alignment {
         core::float3 mPosition{};
-        core::f32    mPad0;
+        core::f32 mPad0;
 
         core::float3 mNormals{};
-        core::f32    mPad1;
+        core::f32 mPad1;
 
         core::float4 mColors{ 1.0f, 1.0f, 1.0f, 1.0f };
 
@@ -70,7 +70,7 @@ namespace mikoto::asset {
     struct MeshNodeDescription {
         eastl::string mName{};
 
-        core::float4x4 mTransform{ 1.0f }; // Identity by default
+        core::float4x4 mTransform{ 1.0f };// Identity by default
 
         eastl::vector<core::u32> mIndices{};
         eastl::vector<VertexDescription_Std430Alignment> mVertices{};
@@ -94,10 +94,10 @@ namespace mikoto::asset {
 
     class ModelImporter {
     public:
-        explicit ModelImporter(renderer::rhi::IGpuDevice* device)
+        explicit ModelImporter( renderer::rhi::IGpuDevice* device )
             : mDevice{ device } {}
 
-        virtual auto Import(const ModelLoadDescription& description, ModelDataDescription& out) -> void = 0;
+        virtual auto Import( const ModelLoadDescription& description, ModelDataDescription& out ) -> void = 0;
 
         virtual ~ModelImporter() = default;
 
@@ -105,6 +105,6 @@ namespace mikoto::asset {
         renderer::rhi::IGpuDevice* mDevice{ nullptr };
     };
 
-}
+}// namespace mikoto::asset
 
 #endif//MIKOTO_IMPORTER_HH

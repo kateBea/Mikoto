@@ -14,28 +14,28 @@
 
 // Needed with FreeImage on Windows otherwise nonsense errors happen
 // warning C4828: The file contains a character starting at offset 0xa9 that is illegal in the current source character set (codepage 65001).
-#include <Platform/PlatformWin32.hh>
-#include <FreeImage.h>
-
 #include <EASTL/vector.h>
+
+#if MKT_ENABLE_FREE_IMAGE
+#include <FreeImage.h>
+#endif
 
 #include <stb_image.h>
 #include <stb_image_write.h>
-
-#include <portable-file-dialogs.h>
 
 #include <Core/Core.hh>
 #include <Core/String.hh>
 #include <Core/Types.hh>
 
-#include <Logging/Assert.hh>
+#include <Assets/ImageProcessor.hh>
 
 #include <Filesystem/File.hh>
 #include <Filesystem/Path.hh>
 #include <Filesystem/FileService.hh>
 
-#include <Assets/ImageProcessor.hh>
+#include <Logging/Assert.hh>
 
+#include <Platform/PlatformWin32.hh>
 #include <Renderer/Core/RenderSystem.hh>
 
 // Refs: https://github.com/dfranx/DDS
@@ -145,6 +145,66 @@ namespace mikoto::asset {
                 break;
             default:;
         }
+    }
+
+    auto ProcessImage2D( const void* data, core::usize sizeBytes, ImageFormat format ) -> ImageHandle {
+        ImageHandle result{ ImageHandle::CreateEmpty() };
+        if (!data) {
+            return result;
+        }
+
+        // Create the instance
+        result = ImageHandle::New();
+
+        // channels will be ignored and will only contain the
+        // actual image channel count
+        i32 width{}, height{}, channels{};
+
+        // Work with RGBA formats by default to simplify usage
+        result->mChannels = 4u;
+
+        int targetChannelCount{ STBI_rgb_alpha };
+
+        switch (format) {
+            case ImageFormat::eRGBA8_UINT: {
+                stbi_uc* ucData{ stbi_load_from_memory(
+                    reinterpret_cast<const stbi_uc*>( data ),
+                    sizeBytes,
+                    MKT_ADDRESSOF( width ),
+                    MKT_ADDRESSOF( height ),
+                    MKT_ADDRESSOF( channels ),
+                    targetChannelCount ) };
+
+                result->mFormat = ImageFormat::eRGBA8_UINT;
+                result->mBufferSpan = BufferSpanHandle::New(
+                    as<byte_t*>( data ),
+                    size_t{ as<size_t>( width * height * result->mChannels * MKT_SIZEOF( byte_t ) ) } );
+
+                stbi_image_free( (void*)ucData );
+            } break;
+            case ImageFormat::eRGBA32_FLOAT: {
+                float* floatData{ stbi_loadf_from_memory(
+                    reinterpret_cast<const stbi_uc*>( data ),
+                    sizeBytes,
+                    MKT_ADDRESSOF( width ),
+                    MKT_ADDRESSOF( height ),
+                    MKT_ADDRESSOF( channels ),
+                    targetChannelCount ) };
+
+                result->mFormat = ImageFormat::eRGBA32_FLOAT;
+                result->mBufferSpan = BufferSpanHandle::New(
+                    rc_cast<byte_t*>( data ),
+                    size_t{ as<size_t>( width * height * result->mChannels * MKT_SIZEOF( f32 ) ) } );
+
+                stbi_image_free( (void*)floatData );
+            } break;
+            default:;
+        }
+
+        result->mWidth = width;
+        result->mHeight = height;
+
+        return result;
     }
 
     auto ProcessImage2D( FileHandle file ) -> ImageHandle {

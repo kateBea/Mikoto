@@ -22,6 +22,7 @@
 #include <Core/Exception.hh>
 
 #include <Math/Math.hh>
+#include <Math/Random.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
@@ -912,6 +913,11 @@ namespace mikoto::renderer::d3d12 {
     CommandList::CommandList( IQueue* queue )
         : ICommandList{ queue->GetType() }, mQueue{ queue }
     {
+        mLabelColor = Color(
+            (f32)math::random::GetRandomReal( 0.0f, 1.0f ),
+            (f32)math::random::GetRandomReal( 0.0f, 1.0f ),
+            (f32)math::random::GetRandomReal( 0.0f, 1.0f ),
+            0.1f );
     }
 
     auto CommandList::Begin( const CommandListBeginDescription &desc ) -> void {
@@ -933,6 +939,8 @@ namespace mikoto::renderer::d3d12 {
 
         ThrowIfFailed( mCurrentRecordingContext->mCommandAllocator->Reset() );
         ThrowIfFailed(mCurrentRecordingContext->mCommandList->Reset(mCurrentRecordingContext->mCommandAllocator.Get(), nullptr));
+
+        mRecordingScopeName = desc.mScopeName.empty() ? "UnnamedScope" : desc.mScopeName.c_str();
     }
 
     auto CommandList::End() -> void {
@@ -1939,6 +1947,26 @@ namespace mikoto::renderer::d3d12 {
         mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_MESSAGE, TRUE );
 #endif
 
+
+        // Skip warnings
+        // [06:03:38] STDOUT LOG [thread 37372] [D3D12] [WARNING] ID3D12CommandList::ClearRenderTargetView: The clear
+        // values do not match those passed to resource creation. The clear operation is typically slower as a result;
+        // but will still clear to the desired value.
+        D3D12_INFO_QUEUE_FILTER filter{};
+
+        D3D12_INFO_QUEUE_FILTER_DESC denyListDesc{};
+        eastl::array denyIds {
+            D3D12_MESSAGE_ID_CREATE_COMMANDLIST12,
+            D3D12_MESSAGE_ID_DESTROY_COMMANDLIST12,
+            D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
+            D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE };
+
+        denyListDesc.pIDList = denyIds.data();
+        denyListDesc.NumIDs = as<UINT>(denyIds.size());
+        filter.DenyList = denyListDesc;
+
+        ThrowIfFailed(mInfoQueue->PushStorageFilter(&filter));
+
         // https://github.com/microsoft/DirectX-Specs/blob/master/d3d/MessageCallback.md
         if ( SUCCEEDED(mDevice.As(&mInfoQueue1) )) {
             ThrowIfFailed(
@@ -1949,6 +1977,8 @@ namespace mikoto::renderer::d3d12 {
                     &mInfoQueueCallbackCookie ) );
 
             MKT_CORE_LOGGER_DEBUG( "Using ID3D12InfoQueue1 message callback." );
+
+            ThrowIfFailed(mInfoQueue1->PushStorageFilter(&filter));
         } else {
             MKT_CORE_LOGGER_DEBUG( "ID3D12InfoQueue1 unavailable, falling back to polling." );
         }

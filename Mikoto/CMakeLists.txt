@@ -573,6 +573,7 @@ if (MSVC)
             "${SLANG_LIB_DIR}/slang.lib"
             "${SLANG_LIB_DIR}/slang-compiler.lib"
     )
+
 elseif(UNIX)
     set(SLANG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Slang/slang-2026.10-linux-x86_64-glibc-2.28")
     message(STATUS "Setup slang for Unix x86_64. SlangRoot is ${SLANG_ROOT}")

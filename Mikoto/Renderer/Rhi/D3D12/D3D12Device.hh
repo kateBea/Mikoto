@@ -509,6 +509,7 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
         MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
 
+        // https://renderdoc.org/docs/how/how_annotate_capture.html
         auto BeginDebugLabel( eastl::string_view name, Color color ) -> void override;
         auto EnbDebugLabel() -> void override;
 
@@ -551,6 +552,11 @@ namespace mikoto::renderer::d3d12 {
 
         eastl::fixed_vector<D3D12_BUFFER_BARRIER, rhi::kMaxBarriers> mBufferBarriers{};
         eastl::fixed_vector<D3D12_TEXTURE_BARRIER, rhi::kMaxBarriers> mTextureBarriers{};
+
+        // For debug
+        rhi::Color mLabelColor{};
+        eastl::string mRecordingScopeName{};
+        eastl::string mRenderingScopeName{};
     };
 
     class Device final : public IGpuDevice {

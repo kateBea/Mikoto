@@ -27,6 +27,7 @@
 // D3D12 extension library.
 #include <directx/d3d12.h>
 
+#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 

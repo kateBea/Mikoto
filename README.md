@@ -57,37 +57,17 @@ For a complete list of third-party libraries and how they are used throughout th
 
 ### **Platform Support**
 
-<table width="100%">
-  <thead>
-    <tr>
-      <th>Platform</th>
-      <th>Architecture</th>
-      <th>Compiler</th>
-      <th>CMake Generator</th>
-      <th>Rendering API</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>Windows 10+</strong></td>
-      <td>x86_64</td>
-      <td>MSVC</td>
-      <td>Visual Studio, Ninja</td>
-      <td>Vulkan, Direct3D 12</td>
-    </tr>
-    <tr>
-      <td><strong>Linux</strong></td>
-      <td>x86_64</td>
-      <td>GCC, Clang</td>
-      <td>Ninja, Make</td>
-      <td>Vulkan</td>
-    </tr>
-  </tbody>
-</table>
+| Platform        | Architecture | Compiler | CMake Generator      | Rendering API       |
+|-----------------|--------------|----------|----------------------|---------------------|
+| **Windows 10+** | x86_64       | MSVC     | Visual Studio, Ninja | Vulkan, Direct3D 12 |
+| **Linux**       | x86_64       | GCC      | Ninja, Make          | Vulkan              |
 
-Mikoto is currently developed and tested on **Windows** and **Ubuntu 24.04 LTS**. The primary development toolchains are **MSVC** on Windows and **GCC 13.3.0** on Linux.
+Mikoto is currently developed and tested on **Windows** and **Ubuntu 24.04 LTS**.
+The primary development toolchains are **MSVC** on Windows and **GCC 13.3.0** on Linux.
 
 Other distributions, architectures, compilers, and build generators may be supported, but have not been formally tested.
+
+---
 ## Requirements
 
 Mikoto currently targets **C++20** and uses **CMake** for project configuration and builds.

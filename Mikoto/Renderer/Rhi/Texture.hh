@@ -108,6 +108,10 @@ namespace mikoto::renderer::rhi {
     struct SamplerCreateDescription {
         core::f32 mMipLevels{ 1.0f };
 
+        CompareOp mCompareOp{ CompareOp::eNever };
+
+        SamplerMipmapMode mMipMapMode{ SamplerMipmapMode::eLinear };
+
         SamplerFilter mMinFilter{ SamplerFilter::eNearest };
         SamplerFilter mMagFilter{ SamplerFilter::eNearest };
         SamplerWrapMode mWrapU{ SamplerWrapMode::eRepeat };
@@ -119,6 +123,8 @@ namespace mikoto::renderer::rhi {
         auto SetMipLevels( float mipLevels) -> SamplerCreateDescription&;
 
         auto SetBorderColor( const Color& color ) -> SamplerCreateDescription&;
+
+        auto SetMipmapMode( SamplerMipmapMode mode ) -> SamplerCreateDescription&;
 
         auto SetFilter( SamplerFilter filter ) -> SamplerCreateDescription&;
         auto SetMinFilter( SamplerFilter filter ) -> SamplerCreateDescription&;

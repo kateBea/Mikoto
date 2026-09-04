@@ -36,13 +36,6 @@ namespace mikoto::renderer {
         mTargetResolution{ createInfo.mResolution } {}
 
     auto SceneRenderer::Init() -> void {
-        // Temporary, as the Direct3D 11 backend does not offer support for
-        // bindless which the frame graph relies on for most of its functionality
-        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 ) ) {
-            MKT_CORE_LOGGER_WARN( "Scene renderer expects Vulkan" );
-            return;
-        }
-
         const ShaderLibraryDescription description{
             .mDevice = mDevice,
             .mRootPath{ "Resources/Shaders/slang" } };
@@ -50,6 +43,13 @@ namespace mikoto::renderer {
 
         if (mShaderLibrary) {
             mShaderLibrary->Initialize();
+        }
+
+        // Temporary, as the Direct3D 11 backend does not offer support for
+        // bindless which the frame graph relies on for most of its functionality
+        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 ) ) {
+            MKT_CORE_LOGGER_WARN( "Scene renderer expects Vulkan" );
+            return;
         }
 
         mFrameGraph = FrameGraph::Create( mDevice, mShaderLibrary.get() );

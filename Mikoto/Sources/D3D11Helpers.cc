@@ -209,30 +209,30 @@ namespace mikoto::renderer::d3d11 {
         return D3D11_CULL_NONE;
     }
 
-    auto GetComparisonFunc(DepthCompareOp op) -> D3D11_COMPARISON_FUNC {
+    auto GetComparisonFunc(CompareOp op) -> D3D11_COMPARISON_FUNC {
         switch (op) {
-            case DepthCompareOp::eNever:
+            case CompareOp::eNever:
                 return D3D11_COMPARISON_NEVER;
 
-            case DepthCompareOp::eLess:
+            case CompareOp::eLess:
                 return D3D11_COMPARISON_LESS;
 
-            case DepthCompareOp::eEqual:
+            case CompareOp::eEqual:
                 return D3D11_COMPARISON_EQUAL;
 
-            case DepthCompareOp::eLessOrEqual:
+            case CompareOp::eLessOrEqual:
                 return D3D11_COMPARISON_LESS_EQUAL;
 
-            case DepthCompareOp::eGreater:
+            case CompareOp::eGreater:
                 return D3D11_COMPARISON_GREATER;
 
-            case DepthCompareOp::eNotEqual:
+            case CompareOp::eNotEqual:
                 return D3D11_COMPARISON_NOT_EQUAL;
 
-            case DepthCompareOp::eGreaterOrEqual:
+            case CompareOp::eGreaterOrEqual:
                 return D3D11_COMPARISON_GREATER_EQUAL;
 
-            case DepthCompareOp::eAlways:
+            case CompareOp::eAlways:
                 return D3D11_COMPARISON_ALWAYS;
 
             default:

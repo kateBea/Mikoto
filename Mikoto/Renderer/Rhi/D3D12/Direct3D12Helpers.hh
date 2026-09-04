@@ -51,13 +51,16 @@ namespace mikoto::renderer::d3d12 {
     MKT_NODISCARD auto GetFormat( rhi::Format format ) -> DXGI_FORMAT;
     MKT_NODISCARD auto GetFillMode( rhi::PolygonMode type ) -> D3D12_FILL_MODE;
     MKT_NODISCARD auto GetCullMode( rhi::CullMode type ) -> D3D12_CULL_MODE;
-    MKT_NODISCARD auto GetDepthCompareOp( rhi::DepthCompareOp op ) -> D3D12_COMPARISON_FUNC;
+    MKT_NODISCARD auto GetCompareOp( rhi::CompareOp op ) -> D3D12_COMPARISON_FUNC;
     MKT_NODISCARD auto GetTopologyType( rhi::PrimitiveTopology type ) -> D3D12_PRIMITIVE_TOPOLOGY_TYPE;
     MKT_NODISCARD auto GetCmdTopologyType( rhi::PrimitiveTopology type ) -> D3D_PRIMITIVE_TOPOLOGY;
 
     MKT_NODISCARD auto GetResourceState( rhi::ResourceStates type ) -> D3D12_RESOURCE_STATES;
 
     MKT_NODISCARD auto GetBytesPerPixel( rhi::Format type ) -> UINT;
+
+    MKT_NODISCARD auto GetAddressMode(rhi::SamplerWrapMode mode) -> D3D12_TEXTURE_ADDRESS_MODE;
+    MKT_NODISCARD auto GetFilter(rhi::SamplerFilter minFilter, rhi::SamplerFilter magFilter, rhi::SamplerMipmapMode mode, rhi::CompareOp op) -> D3D12_FILTER;
 
     // https://microsoft.github.io/DirectX-Specs/d3d/D3D12EnhancedBarriers.html#equivalent-d3d12_barrier_sync-bit-for-each-d3d12_resource_states-bit
     MKT_NODISCARD auto GetBarrierSync( rhi::PipelineStageFlags flags ) -> D3D12_BARRIER_SYNC;

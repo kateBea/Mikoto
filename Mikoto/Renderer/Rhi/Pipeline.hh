@@ -150,7 +150,7 @@ namespace mikoto::renderer::rhi {
         PolygonMode mPolygonMode{ PolygonMode::eFill };
         PrimitiveTopology mPrimitiveTopology{ PrimitiveTopology::eTriangleList };
         WindingOrder mWindingOrder{ WindingOrder::eCounterClockwise };
-        DepthCompareOp mDepthCompareOp{ DepthCompareOp::eLessOrEqual };
+        CompareOp mDepthCompareOp{ CompareOp::eLessOrEqual };
 
         // Resources
         InputLayoutHandle mInputLayout{};

@@ -253,16 +253,16 @@ namespace mikoto::renderer::d3d12 {
         return D3D12_CULL_MODE_NONE;
     }
 
-    auto GetDepthCompareOp( rhi::DepthCompareOp op ) -> D3D12_COMPARISON_FUNC {
+    auto GetCompareOp( rhi::CompareOp op ) -> D3D12_COMPARISON_FUNC {
         switch (op) {
-            case rhi::DepthCompareOp::eNever:          return D3D12_COMPARISON_FUNC_NEVER;
-            case rhi::DepthCompareOp::eLess:           return D3D12_COMPARISON_FUNC_LESS;
-            case rhi::DepthCompareOp::eEqual:          return D3D12_COMPARISON_FUNC_EQUAL;
-            case rhi::DepthCompareOp::eLessOrEqual:    return D3D12_COMPARISON_FUNC_LESS_EQUAL;
-            case rhi::DepthCompareOp::eGreater:        return D3D12_COMPARISON_FUNC_GREATER;
-            case rhi::DepthCompareOp::eNotEqual:       return D3D12_COMPARISON_FUNC_NOT_EQUAL;
-            case rhi::DepthCompareOp::eGreaterOrEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-            case rhi::DepthCompareOp::eAlways:         return D3D12_COMPARISON_FUNC_ALWAYS;
+            case rhi::CompareOp::eNever:          return D3D12_COMPARISON_FUNC_NEVER;
+            case rhi::CompareOp::eLess:           return D3D12_COMPARISON_FUNC_LESS;
+            case rhi::CompareOp::eEqual:          return D3D12_COMPARISON_FUNC_EQUAL;
+            case rhi::CompareOp::eLessOrEqual:    return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+            case rhi::CompareOp::eGreater:        return D3D12_COMPARISON_FUNC_GREATER;
+            case rhi::CompareOp::eNotEqual:       return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+            case rhi::CompareOp::eGreaterOrEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+            case rhi::CompareOp::eAlways:         return D3D12_COMPARISON_FUNC_ALWAYS;
             default:                                   return D3D12_COMPARISON_FUNC_NEVER;
         }
     }
@@ -360,6 +360,43 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_ASSERT( false, "Unsupported format for bytes per pixel" );
         return 0;
+    }
+
+    auto GetFilter(rhi::SamplerFilter minFilter, rhi::SamplerFilter magFilter, rhi::SamplerMipmapMode mode, rhi::CompareOp op) -> D3D12_FILTER {
+        const bool isCompare{ (op != rhi::CompareOp::eNever) };
+
+        if (!isCompare) {
+            if (minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eNearest) return D3D12_FILTER_MIN_MAG_MIP_POINT;
+            if (minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eLinear  && mode == rhi::SamplerMipmapMode::eNearest) return D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
+            if (minFilter == rhi::SamplerFilter::eLinear  && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eNearest) return D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+            if (minFilter == rhi::SamplerFilter::eLinear  && magFilter == rhi::SamplerFilter::eLinear  && mode == rhi::SamplerMipmapMode::eNearest) return D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+
+            if (minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eLinear)  return D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR;
+            if (minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eLinear  && mode == rhi::SamplerMipmapMode::eLinear)  return D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR;
+            if (minFilter == rhi::SamplerFilter::eLinear  && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eLinear)  return D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+            if (minFilter == rhi::SamplerFilter::eLinear  && magFilter == rhi::SamplerFilter::eLinear  && mode == rhi::SamplerMipmapMode::eLinear)  return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        } else {
+            if (minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eNearest) return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+            if (minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eLinear  && mode == rhi::SamplerMipmapMode::eNearest) return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT;
+            if (minFilter == rhi::SamplerFilter::eLinear  && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eNearest) return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT;
+            if (minFilter == rhi::SamplerFilter::eLinear  && magFilter == rhi::SamplerFilter::eLinear  && mode == rhi::SamplerMipmapMode::eNearest) return D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+
+            if (minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eLinear)  return D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR;
+            if (minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eLinear  && mode == rhi::SamplerMipmapMode::eLinear)  return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR;
+            if (minFilter == rhi::SamplerFilter::eLinear  && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eLinear)  return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+            if (minFilter == rhi::SamplerFilter::eLinear  && magFilter == rhi::SamplerFilter::eLinear  && mode == rhi::SamplerMipmapMode::eLinear)  return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+        }
+
+        return D3D12_FILTER_MIN_MAG_MIP_POINT;
+    }
+
+    auto GetAddressMode(rhi::SamplerWrapMode mode) -> D3D12_TEXTURE_ADDRESS_MODE {
+        if (mode == rhi::SamplerWrapMode::eRepeat)         return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        if (mode == rhi::SamplerWrapMode::eMirroredRepeat) return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+        if (mode == rhi::SamplerWrapMode::eClampToEdge)     return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        if (mode == rhi::SamplerWrapMode::eClampToBorder)   return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+
+        return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
     }
 
     auto GetBarrierSync( rhi::PipelineStageFlags flags ) -> D3D12_BARRIER_SYNC {

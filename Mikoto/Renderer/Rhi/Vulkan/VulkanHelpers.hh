@@ -46,7 +46,7 @@ namespace mikoto::renderer::vulkan {
     MKT_NODISCARD auto GetSampleCount( rhi::Multisampling msaa ) -> VkSampleCountFlagBits;
     MKT_NODISCARD auto GetCullMode( rhi::CullMode mode ) -> VkCullModeFlags;
     MKT_NODISCARD auto GetWindingOrder( rhi::WindingOrder order ) -> VkFrontFace;
-    MKT_NODISCARD auto GetCompareOp( rhi::DepthCompareOp op ) -> VkCompareOp;
+    MKT_NODISCARD auto GetCompareOp( rhi::CompareOp op ) -> VkCompareOp;
 
     MKT_NODISCARD auto GetInputRate( rhi::InputRate rate ) -> VkVertexInputRate;
 
@@ -61,6 +61,8 @@ namespace mikoto::renderer::vulkan {
     MKT_NODISCARD auto GetImageLayout( rhi::ResourceStates state ) -> VkImageLayout;
     MKT_NODISCARD auto GetResourceState( VkImageLayout layout ) -> rhi::ResourceStates;
     MKT_NODISCARD auto GetStageMask( rhi::ResourceStates state ) -> VkPipelineStageFlags2;
+
+    MKT_NODISCARD auto GetMipmapMode( rhi::SamplerMipmapMode mode ) -> VkSamplerMipmapMode;
 
     MKT_UNUSED_FUNC MKT_NODISCARD auto GetAccessMask( rhi::ResourceStates state ) -> VkAccessFlags2;
 

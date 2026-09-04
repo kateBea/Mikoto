@@ -125,6 +125,11 @@ namespace mikoto::renderer::rhi {
         eDontCare,
     };
 
+    enum class SamplerMipmapMode {
+        eNearest,
+        eLinear
+    };
+
     enum class SamplerFilter {
         eNearest,
         eLinear,
@@ -158,7 +163,7 @@ namespace mikoto::renderer::rhi {
         eCullBack,
     };
 
-    enum class DepthCompareOp {
+    enum class CompareOp {
         eNever,
         eLess,
         eEqual,

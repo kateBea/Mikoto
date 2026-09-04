@@ -37,14 +37,14 @@ namespace mikoto::renderer::vulkan {
     using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;
 
-    Sampler::Sampler( const SamplerCreateDescription& info )
-        : ISampler{ info } {
+    Sampler::Sampler( const SamplerCreateDescription& desc )
+        : ISampler{ desc } {
         // Create a Sampler for the texture we will display in the viewport
         mCreateInfo = initializers::SamplerCreateInfo();
 
         mCreateInfo.magFilter = GetSamplerFilter( mMagFilter );
         mCreateInfo.minFilter = GetSamplerFilter( mMinFilter );
-        mCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        mCreateInfo.mipmapMode = vulkan::GetMipmapMode(desc.mMipMapMode);
 
         mCreateInfo.addressModeU = GetSamplerWrap( mWrapU );
         mCreateInfo.addressModeV = GetSamplerWrap( mWrapV );
@@ -58,8 +58,16 @@ namespace mikoto::renderer::vulkan {
         mCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
         mCreateInfo.anisotropyEnable = VK_TRUE;
 
+        if (desc.mCompareOp == rhi::CompareOp::eNever) {
+            mCreateInfo.compareEnable = VK_FALSE;
+            mCreateInfo.compareOp     = VK_COMPARE_OP_NEVER;
+        } else {
+            mCreateInfo.compareEnable = VK_TRUE;
+            mCreateInfo.compareOp     = GetCompareOp(desc.mCompareOp);
+        }
+
         // Currently we only support transparent white or transparent black
-        if ( info.mBorderColor == kColorWhite ) {
+        if ( desc.mBorderColor == kColorWhite ) {
             mCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
         }
     }

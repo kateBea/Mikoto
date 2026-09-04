@@ -284,7 +284,7 @@ namespace mikoto::renderer::d3d12 {
         auto Release() -> void override;
 
     private:
-        BindingLayoutHandle mBindingLayout{};
+        rhi::BindingLayoutHandle mBindingLayout{};
         BindingSetDescription mBindingDescription{};
 
         DeviceResources* mDeviceResources{};
@@ -295,7 +295,7 @@ namespace mikoto::renderer::d3d12 {
 
     class DescriptorTable : public IDescriptorTable {
     public:
-        explicit DescriptorTable();
+        explicit DescriptorTable( rhi::BindingLayoutHandle setLayout, DeviceResources& resources );
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
@@ -311,7 +311,16 @@ namespace mikoto::renderer::d3d12 {
         auto Release() -> void override;
 
     private:
+        core::usize mCapacity{};
 
+        DeviceResources* mDeviceResources{};
+
+        rhi::BindingLayoutHandle mBindingLayout{};
+
+        DescriptorRange mSrvRange{};
+        DescriptorRange mSamplerRange{};
+
+        eastl::fixed_hash_map<rhi::ResourceType, core::i32, rhi::kMaxSlotsPerTable> mSlotResourceType{};
     };
 
     class InputLayout : public IInputLayout {

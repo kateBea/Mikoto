@@ -106,6 +106,7 @@ namespace mikoto::renderer::d3d12 {
 
         ThrowIfFailed( mCompilerUtils->CreateDefaultIncludeHandler( &mCompilerIncHeader ) );
 
+        // Shader model 6.6 used for bindless
         mProfiles = {
             { ShaderType::eVertex,   L"vs_6_6" },
             { ShaderType::ePixel,    L"ps_6_6" },

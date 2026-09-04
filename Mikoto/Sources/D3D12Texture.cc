@@ -40,10 +40,19 @@ namespace mikoto::renderer::d3d12 {
     using namespace mikoto::memory;
     using namespace mikoto::renderer::rhi;
 
-    Sampler::Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources* resources )
-        : ISampler{ desc }, mResources{ resources }
+    Sampler::Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources& resources )
+        : ISampler{ desc }, mDeviceResources{ MKT_ADDRESSOF( resources ) }
     {
-
+        mSamplerDescription.Filter = d3d12::GetFilter( desc.mMinFilter, desc.mMagFilter, desc.mMipMapMode, desc.mCompareOp );
+        mSamplerDescription.AddressU = d3d12::GetAddressMode( desc.mWrapU );
+        mSamplerDescription.AddressV = d3d12::GetAddressMode( desc.mWrapV );
+        mSamplerDescription.AddressW = d3d12::GetAddressMode( desc.mWrapW );
+        mSamplerDescription.MinLOD = 0;
+        mSamplerDescription.MaxLOD = D3D12_FLOAT32_MAX;
+        mSamplerDescription.MipLODBias = 0.0f;
+        mSamplerDescription.MaxAnisotropy = 1;
+        mSamplerDescription.ComparisonFunc = d3d12::GetCompareOp(desc.mCompareOp);
+        mSamplerDescription.BorderColor[0] = mSamplerDescription.BorderColor[1] = mSamplerDescription.BorderColor[2] = mSamplerDescription.BorderColor[3] = 0;
     }
 
     auto Sampler::GetNativeHandle( rhi::ObjectType type ) -> rhi::Object {
@@ -67,19 +76,10 @@ namespace mikoto::renderer::d3d12 {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device1* d3d12Device{ device->GetDevice() };
 
-        D3D12_SAMPLER_DESC wrapSamplerDesc{};
-        wrapSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-        wrapSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        wrapSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        wrapSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        wrapSamplerDesc.MinLOD = 0;
-        wrapSamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
-        wrapSamplerDesc.MipLODBias = 0.0f;
-        wrapSamplerDesc.MaxAnisotropy = 1;
-        wrapSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-        wrapSamplerDesc.BorderColor[0] = wrapSamplerDesc.BorderColor[1] = wrapSamplerDesc.BorderColor[2] = wrapSamplerDesc.BorderColor[3] = 0;
+        mSamplerDescriptorIndex = mDeviceResources->mSamplerHeap->AllocateDescriptors(1);
+        D3D12_CPU_DESCRIPTOR_HANDLE handle{ mDeviceResources->mSamplerHeap->GetCpuHandle(mSamplerDescriptorIndex) };
 
-        d3d12Device->CreateSampler(&wrapSamplerDesc, mSamplerHandle);
+        d3d12Device->CreateSampler(&mSamplerDescription, handle);
         mIsAllocated = true;
     }
 

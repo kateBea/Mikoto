@@ -332,6 +332,11 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    auto SamplerCreateDescription::SetMipmapMode( SamplerMipmapMode mode ) -> SamplerCreateDescription & {
+        mMipMapMode = mode;
+        return *this;
+    }
+
     auto SamplerCreateDescription::SetFilter( SamplerFilter filter ) -> SamplerCreateDescription & {
         mMinFilter = filter;
         mMagFilter = filter;

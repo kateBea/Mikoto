@@ -290,6 +290,13 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
+    auto GetMipmapMode( rhi::SamplerMipmapMode mode ) -> VkSamplerMipmapMode {
+        if (mode == rhi::SamplerMipmapMode::eNearest) return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        if (mode == rhi::SamplerMipmapMode::eLinear)  return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+        return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    }
+
     auto GetAccessMask(ResourceStates state) -> VkAccessFlags2 {
         switch (state) {
             case ResourceStates::eRenderTarget:
@@ -443,30 +450,30 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto GetCompareOp(DepthCompareOp op) -> VkCompareOp {
+    auto GetCompareOp(CompareOp op) -> VkCompareOp {
         switch (op) {
-            case DepthCompareOp::eNever:
+            case CompareOp::eNever:
                 return VK_COMPARE_OP_NEVER;
 
-            case DepthCompareOp::eLess:
+            case CompareOp::eLess:
                 return VK_COMPARE_OP_LESS;
 
-            case DepthCompareOp::eEqual:
+            case CompareOp::eEqual:
                 return VK_COMPARE_OP_EQUAL;
 
-            case DepthCompareOp::eLessOrEqual:
+            case CompareOp::eLessOrEqual:
                 return VK_COMPARE_OP_LESS_OR_EQUAL;
 
-            case DepthCompareOp::eGreater:
+            case CompareOp::eGreater:
                 return VK_COMPARE_OP_GREATER;
 
-            case DepthCompareOp::eNotEqual:
+            case CompareOp::eNotEqual:
                 return VK_COMPARE_OP_NOT_EQUAL;
 
-            case DepthCompareOp::eGreaterOrEqual:
+            case CompareOp::eGreaterOrEqual:
                 return VK_COMPARE_OP_GREATER_OR_EQUAL;
 
-            case DepthCompareOp::eAlways:
+            case CompareOp::eAlways:
                 return VK_COMPARE_OP_ALWAYS;
 
             default:

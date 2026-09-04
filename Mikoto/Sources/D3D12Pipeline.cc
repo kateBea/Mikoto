@@ -149,8 +149,8 @@ namespace mikoto::renderer::d3d12 {
         mD3D12PipelineDesc.BlendState = blendDesc;
 
         // Depth/Stencil State
-        mD3D12PipelineDesc.DepthStencilState.DepthFunc = d3d12::GetDepthCompareOp(mDesc.mDepthCompareOp);
-        mD3D12PipelineDesc.DepthStencilState.DepthFunc = d3d12::GetDepthCompareOp(mDesc.mDepthCompareOp);
+        mD3D12PipelineDesc.DepthStencilState.DepthFunc = d3d12::GetCompareOp(mDesc.mDepthCompareOp);
+        mD3D12PipelineDesc.DepthStencilState.DepthFunc = d3d12::GetCompareOp(mDesc.mDepthCompareOp);
         mD3D12PipelineDesc.DepthStencilState.DepthEnable = mDesc.mEnableDepthTest ? TRUE : FALSE;
         mD3D12PipelineDesc.DepthStencilState.StencilEnable = mDesc.mEnableStencilTest ? TRUE : FALSE;
         mD3D12PipelineDesc.SampleMask = UINT_MAX;

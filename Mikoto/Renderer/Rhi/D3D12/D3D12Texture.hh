@@ -34,7 +34,7 @@ namespace mikoto::renderer::d3d12 {
 
     class Sampler final : public rhi::ISampler {
     public:
-        explicit Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources* resources );
+        explicit Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources& resources );
 
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
@@ -49,10 +49,10 @@ namespace mikoto::renderer::d3d12 {
         auto SetDebugName( eastl::string_view name ) -> void override;
 
     private:
-        D3D12_CPU_DESCRIPTOR_HANDLE mSamplerHandle{};
-
-        DeviceResources* mResources{};
+        DeviceResources* mDeviceResources{};
         DescriptorIndex mSamplerDescriptorIndex{ kInvalidDescriptorIndex };
+
+        D3D12_SAMPLER_DESC mSamplerDescription{};
     };
 
     struct ExternalTextureDescription {

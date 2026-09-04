@@ -3127,6 +3127,12 @@ namespace mikoto::renderer::vulkan {
     {}
 
     auto DescriptorTable::SetDebugName( eastl::string_view name ) -> void {
+        if (name.empty()) {
+            return;
+        }
+
+        mDebugName = name;
+
         auto* device{ checked_cast<Device*>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_DESCRIPTOR_SET, rc_cast<u64>( mDescriptorSet ), mDebugName );
     }

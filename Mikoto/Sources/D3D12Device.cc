@@ -515,6 +515,60 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = false;
     }
 
+    DescriptorTable::DescriptorTable( BindingLayoutHandle setLayout, DeviceResources& resources )
+        : mBindingLayout{ eastl::move( setLayout ) }, mDeviceResources{ MKT_ADDRESSOF( resources ) }
+    {}
+
+    auto DescriptorTable::SetDebugName( eastl::string_view name ) -> void {
+        if (name.empty()) {
+            return;
+        }
+
+        mDebugName = name;
+    }
+
+    auto DescriptorTable::GetCapacity( u32 slot ) const -> u32 {
+        const BindingLayout* layout{ checked_cast<const BindingLayout*>( mBindingLayout.GetRaw() ) };
+        const auto& blDesc{ layout->GetBindlessLayoutDesc() };
+
+        const auto it{ eastl::find_if( blDesc.mSlots.begin(), blDesc.mSlots.end(),
+            [slot](const BindlessLayoutItem& item) {
+                return item.mSlot == slot;
+            }) };
+
+        return it != blDesc.mSlots.end() ? it->mMaxCapacity : 0;
+    }
+
+    auto DescriptorTable::Initialize() -> void {
+        mIsAllocated = true;
+    }
+
+    auto DescriptorTable::Release() -> void {
+        mIsAllocated = false;
+    }
+
+    DescriptorTable::~DescriptorTable() {
+        if (mIsAllocated) {
+            Release();
+        }
+    }
+
+    auto DescriptorTable::GetNativeHandle( ObjectType type ) -> Object {
+        if ( type != ObjectType::Vk_DescriptorSet ) {
+            return Object( nullptr );
+        }
+
+        return Object( nullptr );
+    }
+
+    auto DescriptorTable::GetNativeHandle( ObjectType type ) const -> Object {
+        if ( type != ObjectType::Vk_DescriptorSet ) {
+            return Object( nullptr );
+        }
+
+        return Object( nullptr );
+    }
+
     InputLayout::InputLayout( const InputLayoutCreateDescription &desc )
         : mDescription{ desc }
     {
@@ -2016,7 +2070,16 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateSampler( const SamplerCreateDescription &description ) -> SamplerHandle {
-        return SamplerHandle::CreateEmpty();
+        SamplerHandle sampler{ Ref<Sampler>::New(description, mResourceHeaps) };
+
+        if ( sampler.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate sampler resource." );
+            return SamplerHandle::CreateEmpty();
+        }
+
+        sampler->Initialize( this );
+
+        return sampler;
     }
 
     auto Device::CreateAccelStructure( const AccelStructureCreateDescription &description ) -> AccelStructureHandle {
@@ -2142,7 +2205,16 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle {
-        return DescriptorTableHandle::CreateEmpty();
+        DescriptorTableHandle table{ Ref<DescriptorTable>::New( layout, mResourceHeaps ) };
+
+        if ( table.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate descriptor table resource." );
+            return DescriptorTableHandle::CreateEmpty();
+        }
+
+        table->Initialize( this );
+
+        return table;
     }
 
     auto Device::ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool {

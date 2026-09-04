@@ -116,12 +116,20 @@ namespace mikoto::renderer::vulkan {
     auto SwapChain::Release() -> void {
         Device* device{ checked_cast<Device*>(mDevice) };
 
+        // Ensure the device is idle before destroying any swapchain-backed resources.
+        device->WaitIdle();
+
         mImages.clear();
 
-        // Destroy handles
-        // The device is owned by the context and is destroyed before the instance and after any object is
-        // created from it has finished being used
-        vkDestroySwapchainKHR( device->GetDevice(), mSwapChain, nullptr );
+        if (mSwapChain != VK_NULL_HANDLE) {
+            vkDestroySwapchainKHR( device->GetDevice(), mSwapChain, nullptr );
+            mSwapChain = VK_NULL_HANDLE;
+        }
+
+        if (mOldSwapChain != VK_NULL_HANDLE) {
+            vkDestroySwapchainKHR( device->GetDevice(), mOldSwapChain, nullptr );
+            mOldSwapChain = VK_NULL_HANDLE;
+        }
 
         mIsAllocated = false;
     }

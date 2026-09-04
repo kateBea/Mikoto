@@ -62,6 +62,11 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto GpuMemoryAllocator::AllocateImage( ImageAllocation &allocation ) -> HRESULT {
+        // https://logins.github.io/graphics/2020/07/31/DX12ResourceHandling.html
+        // D3D12 heap resource alignment appears in forms of common fixed constants:
+        // 64KB for every buffer and base textures types
+        // 4MB for MSAA textures
+
         HRESULT result{ mAllocator->CreateResource(
             &allocation.mAllocDesc, &allocation.mDesc,
             D3D12_RESOURCE_STATE_COMMON, allocation.mOptimizedClearValue,

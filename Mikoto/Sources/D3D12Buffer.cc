@@ -246,6 +246,14 @@ namespace mikoto::renderer::d3d12 {
     auto Buffer::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
 
+        // https://logins.github.io/graphics/2020/07/31/DX12ResourceHandling.html
+        // We can also use D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT constant
+        // instead of specifying buffer and base textures alignment size for the
+        // functions that require it and D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT
+        // for MSAA textures, but we can also set the field to 0, and that will
+        // be automatically resolved by the SDK depending on the resource.
+        // Still those values represent the minimum size for a resource heap memory allocation.
+
         // Allocate buffer memory
         mAllocation.mDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
         mAllocation.mDesc.Alignment = 0;

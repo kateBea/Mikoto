@@ -1280,6 +1280,7 @@ namespace mikoto::renderer::d3d12 {
                 GpuUploadAllocation* allocation{ mUploadManager->SubAllocate( byteSize ) };
                 SetTransition( allocation->mBuffer, ResourceStates::eCopySource );
 
+                // https://fgiesen.wordpress.com/2013/01/29/write-combining-is-not-your-friend/
                 std::memcpy(allocation->mMappedMemory, data, byteSize);
 
                 Buffer* bSrc{ checked_cast<Buffer*>( allocation->mBuffer ) };

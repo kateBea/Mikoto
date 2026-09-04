@@ -388,6 +388,16 @@ namespace mikoto::renderer::d3d12 {
     auto Texture::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
 
+        // https://asawicki.info/news_1726_secrets_of_direct3d_12_resource_alignment
+        // https://logins.github.io/graphics/2020/07/31/DX12ResourceHandling.html
+        // We can also use D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT constant
+        // instead of specifying buffer and base textures alignment size for the
+        // functions that require it and D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT
+        // for MSAA textures, but we can also set the field to 0, and that will
+        // be automatically resolved by the SDK depending on the resource.
+        // Still those values represent the minimum size for a resource heap memory allocation.
+
+
         if (!mIsExternalImage) {
             mImageAllocation.mDesc.Dimension = d3d12::GetDimension(mDimension);
             mImageAllocation.mDesc.Alignment = 0;
@@ -409,6 +419,9 @@ namespace mikoto::renderer::d3d12 {
             // ID3D12Device::CreatePlacedResource: pOptimizedClearValue must be NULL when D3D12_RESOURCE_DESC::Dimension is
             // not D3D12_RESOURCE_DIMENSION_BUFFER and neither D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET nor
             // D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL are set in D3D12_RESOURCE_DESC::Flags.
+            // Tbf I do not know how to handle this, at the moment the RHI exposes a flag for starting clear value
+            // https://wiki.libsdl.org/SDL3/SDL_BeginGPURenderPass
+            // https://github.com/libsdl-org/SDL/issues/10758
             if (mUseInitialClearValue) {
                 if ((mTextureUsage & rhi::TextureUsageFlagsBits::kRenderTarget) ||
                 (mTextureUsage & rhi::TextureUsageFlagsBits::kDepthTarget || mTextureUsage & rhi::TextureUsageFlagsBits::kDepthStencilTarget)) {

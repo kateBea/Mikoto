@@ -282,6 +282,8 @@ namespace mikoto::imgui {
         d3d12::ThrowIfFailed( device->GetDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&mSrvDescHeap)));
         mSrvDescHeapAlloc.Create(device->GetDevice(), mSrvDescHeap.Get());
 
+        mSrvDescHeap->SetName( L"Imgui SRV Heap" );
+
         // Allocating SRV descriptors (for textures) is up to the application, so we provide callbacks.
         // (current version of the backend will only allocate one descriptor, future versions will need to allocate more)
         initInfo.SrvDescriptorHeap = mSrvDescHeap.Get();

@@ -174,7 +174,7 @@ namespace mikoto::renderer::d3d11 {
 
     auto Texture::Initialize() -> void {
         // Assumes everything went right
-        // unless otherwise specified
+        // unless otherwise specified, some checks are done on the fly
         mIsAllocated = true;
 
         D3D11_TEXTURE2D_DESC textureDesc{};

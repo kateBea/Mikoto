@@ -471,7 +471,7 @@ namespace mikoto::editor {
             .mName = "Directional light",
             .mEntityType = EntityType::eLight,
             .mLightType = LightType::eDirectional };
-        //Entity *light{ mEditorState->mActiveScene->CreateEntity( lightCreateDesc ) };
+        Entity *light{ mEditorState->mActiveScene->CreateEntity( lightCreateDesc ) };
 
 
         InitSphereMaterialsScene();
@@ -864,6 +864,13 @@ namespace mikoto::editor {
                         mShowPolygonComplexity = !mShowPolygonComplexity;
                     }
 
+                    if (ImGui::MenuItem( "Display Performance Overlay", nullptr, mShowPerformanceOverlay )) {
+                        mShowPerformanceOverlay = !mShowPerformanceOverlay;
+
+                        ScenePanel* panel{ mPanelRegistry.Get<ScenePanel>() };
+                        panel->SetEnablePerformanceOverlay( mShowPerformanceOverlay );
+                    }
+
                     if (ImGui::BeginMenu( "Output" )) {
                         if (ImGui::MenuItem( "Color" )) {
                             mEditorState->mFinalComposition = mSceneRenderer->GetFinalImage( FinalImageType::eGBuffer_Color );
@@ -941,7 +948,7 @@ namespace mikoto::editor {
             panel->OnRender( ts );
         }
 
-        // Make it dockable
+        // Make physics debug image dockable
         if (mEditorState->mPhysicsDebugRendererSimple) {
             if (mDisplayPhysicsPanelLines) {
                 mEditorState->mPhysicsDebugRendererSimple->DisplayImGuiWindowLines( mDisplayPhysicsPanelLines );

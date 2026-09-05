@@ -48,6 +48,10 @@ namespace mikoto::editor {
         auto SetGizmoMode( imgui::GizmoMode mode ) -> void;
         auto SetTexture( renderer::rhi::TextureHandle texture ) -> void;
 
+        auto SetEnableUtilityOverlay( bool enable ) -> void;
+        auto SetEnablePerformanceOverlay( bool enable ) -> void;
+        auto SetEnableSceneButtonsOverlay( bool enable ) -> void;
+
         ~ScenePanel() override = default;
 
         MKT_NODISCARD auto GetWidth() const -> float;
@@ -59,11 +63,12 @@ namespace mikoto::editor {
         auto DrawFinalImage() -> void;
         auto UpdateManipulation() -> void;
 
-        auto DrawSceneButtons() -> void;
         auto DrawTransformGizmos() -> void;
-        auto DrawUtilitiesOverlay() -> void;
 
-        auto DrawSceneToolbar() -> void;
+        auto DrawUtilitiesOverlay() -> void;
+        auto DrawSceneButtonsOverlay() -> void;
+        auto DrawPerformanceOverlay( bool showOnlyFps ) -> void;
+
         auto DrawManipulationGizmos() -> void;
 
         MKT_NODISCARD auto IsDisplayTextureValid() const -> bool;
@@ -75,8 +80,16 @@ namespace mikoto::editor {
         core::f32 mViewportWidth{ 1920 };
         core::f32 mViewportHeight{ 1080 };
 
+        ImVec2 mStartWindowPos{ 0.0f, 0.0f };
         ImVec2 mStartCursorPos{ 0.0f, 0.0f };
+        ImVec2 mStartWindowSize{ 0.0f, 0.0f };
         ImVec2 mGizmoPosition{ 1.0f, 1.0f };
+
+        ImGuiViewport* mPanelViewport{};
+
+        bool mEnableSceneButtonsOverlay{ true };
+        bool mEnablePerformanceOverlay{ false };
+        bool mEnableUtilityOverlay{ true };
 
         imgui::GizmoType mGizmoType{ imgui::GizmoType::eTranslation };
         imgui::GizmoMode mGizmoMode{ imgui::GizmoMode::eWorld };

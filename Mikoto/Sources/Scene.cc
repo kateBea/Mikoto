@@ -232,6 +232,8 @@ namespace mikoto::scene {
         mRegistry.storage<entt::entity>()
             .on_construct()
             .connect<&Scene::OnEntityAdded>( this );
+
+        // Edit/Create/Destroy light component to gather debug info, same for other relevant components
 #endif
     }
 
@@ -289,6 +291,8 @@ namespace mikoto::scene {
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
         Entity* entity{ FindByID( tag.GetGuid() ) };
         mPhysicsWorld->AddRigidBody( entity );
+
+        mStatistics.mRigidBodyCount += 1;
     }
 
     auto Scene::OnColliderAdded( entt::registry& reg, entt::entity e ) -> void {
@@ -298,6 +302,8 @@ namespace mikoto::scene {
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
         Entity* entity{ FindByID( tag.GetGuid() ) };
         mPhysicsWorld->AddCollider( entity );
+
+        mStatistics.mRigidBodyCount += 1;
     }
 
     auto Scene::OnRigidBodyRemoved( entt::registry& reg, entt::entity e ) -> void {
@@ -308,6 +314,8 @@ namespace mikoto::scene {
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
         Entity* entity{ FindByID( tag.GetGuid() ) };
         mPhysicsWorld->RemoveRigidBody( entity );
+
+        mStatistics.mRigidBodyCount -= 1;
     }
 
     auto Scene::OnColliderRemoved( entt::registry& reg, entt::entity e ) -> void {
@@ -325,6 +333,8 @@ namespace mikoto::scene {
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
         Entity* entity{ FindByID( tag.GetGuid() ) };
         mPhysicsWorld->RemoveColliderBody( entity );
+
+        mStatistics.mRigidBodyCount -= 1;
     }
 
     auto Scene::OnScriptAdded( entt::registry& reg, entt::entity e ) -> void {
@@ -377,6 +387,10 @@ namespace mikoto::scene {
 
     auto Scene::IsSimulating() const -> bool {
         return mSceneState  == SceneState::eSimulating;
+    }
+
+    auto Scene::GetSceneStats() const -> const SceneStatistics& {
+        return mStatistics;
     }
 
     auto Scene::SetState( const SceneState state ) -> void {

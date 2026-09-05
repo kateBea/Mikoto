@@ -53,8 +53,8 @@ namespace mikoto::editor {
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
-    MKT_NODISCARD static auto InferManipulationMode( imgui::GizmoType manipulation ) -> ImGuizmo::OPERATION {
-        switch (manipulation) {
+    MKT_NODISCARD static auto GetGizmoType( imgui::GizmoType type ) -> ImGuizmo::OPERATION {
+        switch (type) {
             case imgui::GizmoType::eTranslation:
                 return ImGuizmo::OPERATION::TRANSLATE;
             case imgui::GizmoType::eRotation:
@@ -66,6 +66,19 @@ namespace mikoto::editor {
         }
 
         return ImGuizmo::OPERATION::TRANSLATE;
+    }
+
+    MKT_NODISCARD static auto GetGizmoMode( imgui::GizmoMode mode ) -> ImGuizmo::MODE {
+        switch (mode) {
+            case imgui::GizmoMode::eLocal:
+                return ImGuizmo::MODE::LOCAL;
+            case imgui::GizmoMode::eWorld:
+                return ImGuizmo::MODE::WORLD;
+
+            default: ;
+        }
+
+        return ImGuizmo::MODE::LOCAL;
     }
 
     ScenePanel::ScenePanel( const ScenePanelCreateInfo &createInfo )
@@ -89,6 +102,9 @@ namespace mikoto::editor {
 
         // Save the original cursor position where ImGui was about to draw your UI layout.
         mStartCursorPos = ImGui::GetCursorPos();
+        mStartWindowPos = ImGui::GetWindowPos();
+        mPanelViewport = ImGui::GetWindowViewport();
+        mStartWindowSize = ImGui::GetWindowSize();
 
         // Stretch an invisible element across the entire remaining content region of this window.
         // This acts as a "safety net" to catch mouse hover events over transparent areas.
@@ -140,10 +156,19 @@ namespace mikoto::editor {
 
         ImGui::SetCursorPos(mStartCursorPos);
 
-        DrawSceneButtons();
-        DrawTransformGizmos();
-        DrawUtilitiesOverlay();
+        if (mEnableSceneButtonsOverlay) {
+            DrawSceneButtonsOverlay();
+        }
 
+        if (mEnablePerformanceOverlay) {
+            DrawPerformanceOverlay( false );
+        }
+
+        if (mEnableUtilityOverlay) {
+            DrawUtilitiesOverlay();
+        }
+
+        DrawTransformGizmos();
         UpdateManipulation();
         DrawManipulationGizmos();
         DrawOrientationAxis();
@@ -165,6 +190,18 @@ namespace mikoto::editor {
         }
 
         mColorImageID = ImGuiService::Get()->GetTextureID( texture );
+    }
+
+    auto ScenePanel::SetEnableUtilityOverlay( bool enable ) -> void {
+        mEnableUtilityOverlay = enable;
+    }
+
+    auto ScenePanel::SetEnablePerformanceOverlay( bool enable ) -> void {
+        mEnablePerformanceOverlay = enable;
+    }
+
+    auto ScenePanel::SetEnableSceneButtonsOverlay( bool enable ) -> void {
+        mEnableSceneButtonsOverlay = enable;
     }
 
     auto ScenePanel::GetWidth() const -> float {
@@ -191,6 +228,64 @@ namespace mikoto::editor {
     }
 
     auto ScenePanel::DrawUtilitiesOverlay() -> void {
+
+    }
+
+    auto ScenePanel::DrawPerformanceOverlay( bool showOnlyFps ) -> void {
+        ImVec2 padding{ 19.0f, 40.0f };
+        ImVec2 workPos{ mStartWindowPos };
+        ImVec2 workSize{ mStartWindowSize };
+
+        ImGuiWindowFlags overlayFlags{
+            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoInputs |
+            ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+            ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove };
+        ImVec2 windowPos{};
+        ImVec2 windowPosPivot{};
+        windowPos.x = workPos.x + workSize.x - padding.x;
+        windowPos.y = workPos.y + padding.y;
+        windowPosPivot.x = 1.0f;
+        windowPosPivot.y = 0.0f;
+
+        ImGui::SetNextWindowBgAlpha( 0.35f );
+
+        // Pivot defines which part of the window (main viewport) aligns with 'windowPos'.
+        // ImVec2(X, Y) ranges from 0.0f (left/top) to 1.0f (right/bottom):
+        //   - ImVec2(0.0f, 0.0f) : Top-left corner (Default behavior)
+        //   - ImVec2(0.5f, 0.5f) : Exact center of the window (Great for centered popups)
+        //   - ImVec2(1.0f, 1.0f) : Bottom-right corner (Great for bottom-right corner overlays)
+        ImGui::SetNextWindowPos( windowPos, ImGuiCond_Always, windowPosPivot );
+        ImGui::SetNextWindowSize( ImVec2{ 0.f, 0.f }, ImGuiCond_Always );
+
+        ImGui::SetNextWindowViewport( mPanelViewport->ID );
+
+        ImGuiScopedStyleVar innerPadding(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f) );
+        ImGuiScopedStyleVar windowRounding( ImGuiStyleVar_WindowRounding, 2.0f );
+        ImGuiScopedStyleVar windowBorderSize( ImGuiStyleVar_WindowBorderSize, 0.0f );
+
+        const eastl::string nodeID{ string::Format( "##ScenePanelPerformanceOverlay" ) };
+        if ( ImGui::Begin( nodeID.c_str(), nullptr, overlayFlags ) ) {
+            ImGui::Text( "%.1f FPS (%.1f ms)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate );
+
+            const SceneStatistics& sceneStatistics{ mEditorState->mActiveScene->GetSceneStats() };
+
+            if ( !showOnlyFps ) {
+                ImGui::Text( "Script count: %zu", sceneStatistics.mScriptCount );
+                ImGui::Text( "Renderables count: %zu", sceneStatistics.mMeshCount );
+
+                ImGui::Text( "Spot light count: %zu", sceneStatistics.mSpotLightCount );
+                ImGui::Text( "Point light count: %zu", sceneStatistics.mPointLightCount );
+                ImGui::Text( "Directional light count: %zu", sceneStatistics.mDirectionalLightCount );
+
+                ImGui::Text( "Total lights: %zu", sceneStatistics.mLightCount );
+                ImGui::Text( "Particle emitters: %zu", sceneStatistics.mParticleEmitterCount );
+                ImGui::Text( "Rigid body count: %zu", sceneStatistics.mRigidBodyCount );
+                ImGui::Text( "Audio source count: %zu", sceneStatistics.mAudioSourceCount );
+            }
+        }
+
+        ImGui::End();
     }
 
     auto ScenePanel::IsDisplayTextureValid() const -> bool {
@@ -229,7 +324,10 @@ namespace mikoto::editor {
         ImGuizmo::SetRect( windowPosition.x, windowPosition.y, windowDimensions.x, windowDimensions.y );
     }
 
-    auto ScenePanel::DrawSceneButtons() -> void {
+    auto ScenePanel::DrawSceneButtonsOverlay() -> void {
+
+        imgui::DebugShowMaterialIcons();
+
         constexpr float buttonCount{ 3.0f };
         constexpr float paddingVertical{ 3.0f };
 
@@ -245,7 +343,8 @@ namespace mikoto::editor {
 
             const bool isSceneSimulating{ mEditorState->mActiveScene->IsSimulating() };
             ImGui::BeginDisabled(isSceneSimulating);
-            eastl::string simulateButtonLabel{ string::Format( "{}##SceneSimulateButtonID", ICON_MD_BRUSH ) };
+            const eastl::string iconSimulation{ GetStringFromUnicode( 57412 ) };
+            const eastl::string simulateButtonLabel{ string::Format( "{}##SceneSimulateButtonID", iconSimulation ) };
             if (ImGui::Button(simulateButtonLabel.c_str(), buttonSize)) {
                 mEditorState->mActiveScene->SetState( SceneState::eSimulating );
             }
@@ -258,8 +357,10 @@ namespace mikoto::editor {
             const bool isScenePlaying{ mEditorState->mActiveScene->IsPlaying() };
 
             ImGui::BeginDisabled(isScenePlaying);
+            const eastl::string iconPlay{ GetStringFromUnicode( 57399 ) };
+            const eastl::string iconPause{ GetStringFromUnicode( 57396 ) };
             eastl::string playButtonLabel{ string::Format( "{}##ScenePlayButtonID",
-                isScenePlaying ? ICON_MD_PAUSE : ICON_MD_PLAY_ARROW ) }; // TODO: remove pause option?
+                isScenePlaying ? iconPlay : iconPause ) }; // TODO: remove pause option?
             if (ImGui::Button(playButtonLabel.c_str(), buttonSize)) {
                 mEditorState->mActiveScene->SetState( SceneState::ePlaying );
             }
@@ -270,7 +371,8 @@ namespace mikoto::editor {
             ImGui::SameLine();
 
             ImGui::BeginDisabled(!isScenePlaying && !isSceneSimulating);
-            eastl::string stopButtonLabel{ string::Format( "{}##SceneStopButtonID", ICON_MD_STOP ) };
+            const eastl::string iconStop{ GetStringFromUnicode( 57415 ) };
+            eastl::string stopButtonLabel{ string::Format( "{}##SceneStopButtonID", iconStop ) };
             if (ImGui::Button(stopButtonLabel.c_str(), buttonSize)) {
                 mEditorState->mActiveScene->SetState( SceneState::eIdle );
             }
@@ -301,22 +403,23 @@ namespace mikoto::editor {
         frameColor.w = 0.5f;
         ImGui::RenderFrame( bb.Min, bb.Max, ImGui::GetColorU32( frameColor ), false, ImGui::GetStyle().FrameRounding );
 
-        const auto tempGizmoPosition = mGizmoPosition;
-        ImGui::SetCursorPos(
-                { mStartCursorPos.x + tempGizmoPosition.x + framePadding.x, mStartCursorPos.y + tempGizmoPosition.y } );
+        const ImVec2 tempGizmoPosition{ mGizmoPosition };
+        ImGui::SetCursorPos( { mStartCursorPos.x + tempGizmoPosition.x + framePadding.x,
+            mStartCursorPos.y + tempGizmoPosition.y } );
         ImGui::BeginGroup();
         {
             ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 0.0f );
             ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, { 1, 1 } );
 
             const ImVec2 draggerCursorPos{ ImGui::GetCursorPos() };
-            ImGui::SetCursorPosX( draggerCursorPos.x + framePadding.x );
-            const eastl::string iconDots{ GetStringFromUnicode( 57952 ) };
-            ImGui::TextUnformatted( iconDots.c_str() );
+            ImGui::SetCursorPosX( draggerCursorPos.x + framePadding.x - 1.0f );
+            const eastl::string iconDots{ GetStringFromUnicode( 58835 ) };
+            ImVec2 iconDotsTextSize{ ImGui::CalcTextSize(iconDots.c_str()) };
+            imgui::CenteredText( iconDots.c_str(), 0, iconDotsTextSize.y );
             ImVec2 draggerSize{ ImGui::CalcTextSize( iconDots.c_str() ) };
             draggerSize.x *= 2.0f;
             ImGui::SetCursorPos( draggerCursorPos );
-            ImGui::InvisibleButton( "GizmoDragger", draggerSize );
+            ImGui::InvisibleButton( "##ScenePanelGizmoDragger", draggerSize );
             static ImVec2 lastMousePosition{ ImGui::GetMousePos() };
             const ImVec2 mousePos{ ImGui::GetMousePos() };
             if ( ImGui::IsItemActive() ) {
@@ -405,94 +508,14 @@ namespace mikoto::editor {
 
         float4x4 objectTransform{ transformComponent.GetTransform() };
 
-        ImGuizmo::OPERATION operation{ InferManipulationMode( mGizmoType ) };
-        ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ), operation, ImGuizmo::MODE::WORLD, glm::value_ptr( objectTransform ) );
+        ImGuizmo::MODE mode{ GetGizmoMode( mGizmoMode ) };
+        ImGuizmo::OPERATION type{ GetGizmoType( mGizmoType ) };
+
+        ImGuizmo::Manipulate( glm::value_ptr( cameraView ), glm::value_ptr( cameraProjection ),
+            type, mode, glm::value_ptr( objectTransform ) );
 
         if (ImGuizmo::IsUsing()) {
             transformComponent.SetTransform( objectTransform );
         }
     }
-
-    auto ScenePanel::DrawSceneToolbar() -> void {
-        // Static so user dragging persists
-        static bool firstFrame{ true };
-        static ImVec2 toolbarPos{};
-
-        const ImVec2 windowPos{ ImGui::GetWindowPos() };
-        const ImVec2 windowSize{ ImGui::GetWindowSize() };
-
-        // Initial center positioning
-        if (firstFrame) {
-            toolbarPos = ImVec2{
-                windowPos.x + windowSize.x * 0.5f - 70.0f,
-                windowPos.y + 20.0f
-            };
-            firstFrame = false;
-        }
-
-        ImGui::SetNextWindowPos( toolbarPos, ImGuiCond_Always );
-        ImGui::SetNextWindowBgAlpha( 0.20f );// transparent inner
-
-        // Styles
-        ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4{ 0.0f, 0.0f, 0.0f, 0.20f } );// inner transparent
-        ImGui::PushStyleColor( ImGuiCol_Border, ImVec4{ 0.0f, 0.0f, 0.0f, 1.00f } );  // opaque border
-
-        ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 6.0f );
-        ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 1.3f );
-        ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 4.0f );
-
-        ImGuiWindowFlags flags{
-            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking
-        };
-
-        if (ImGui::Begin( "SceneToolsOverlay", nullptr, flags )) {
-            // Drag anywhere inside window
-            if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging( ImGuiMouseButton_Left )) {
-                const ImVec2 delta{ ImGui::GetIO().MouseDelta };
-                toolbarPos.x += delta.x;
-                toolbarPos.y += delta.y;
-            }
-
-            auto makeTool = [&]( const char *icon, GizmoType type ) {
-                const bool active{
-                    mGizmoType == as<imgui::GizmoType>( type )
-                };
-
-                const ImVec2 btnSize{ 28.0f, 28.0f };
-                const ImVec2 iconPadding{ 2.0f, 2.0f };
-
-                if (active) {
-                    ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.75f, 0.75f, 0.75f, 0.85f } );
-                }
-
-                ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, iconPadding );
-
-                if (ImGui::Button( icon, btnSize )) {
-                    mGizmoType = as<imgui::GizmoType>( type );
-                }
-
-                ImGui::PopStyleVar();
-
-                if (active) ImGui::PopStyleColor();
-
-                ImGui::SameLine();
-            };
-
-            // Extra spacing on first button
-            ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 6.0f, 0.0f } );
-            makeTool( ICON_MD_OPEN_WITH, imgui::GizmoType::eTranslation );
-            ImGui::PopStyleVar();
-
-            makeTool( ICON_MD_ROTATE_RIGHT, imgui::GizmoType::eRotation );
-            makeTool( ICON_MD_OPEN_IN_FULL, imgui::GizmoType::eScale );
-
-            ImGui::NewLine();
-        }
-
-        ImGui::End();
-
-        ImGui::PopStyleVar( 3 );
-        ImGui::PopStyleColor( 2 );
-    }
-
 }// namespace Mikoto

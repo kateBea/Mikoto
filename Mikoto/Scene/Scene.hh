@@ -77,6 +77,22 @@ namespace mikoto::scene {
         auto SetModel( asset::ModelHandle modelMesh ) -> EntityCreateInfo&;
     };
 
+    struct SceneStatistics {
+        core::usize mEntityCount{ 0 };
+        core::usize mMeshCount{ 0 };
+        core::usize mLightCount{ 0 };
+        core::usize mCameraCount{ 0 };
+        core::usize mTextCount{ 0 };
+        core::usize mRigidBodyCount{ 0 };
+        core::usize mColliderCount{ 0 };
+        core::usize mSpotLightCount{ 0 };
+        core::usize mPointLightCount{ 0 };
+        core::usize mDirectionalLightCount{ 0 };
+        core::usize mScriptCount{ 0 };
+        core::usize mParticleEmitterCount{ 0 };
+        core::usize mAudioSourceCount{ 0 };
+    };
+
     class Scene final : public core::ISerializable {
     public:
         explicit Scene( eastl::string_view name = "New Scene" );
@@ -96,6 +112,8 @@ namespace mikoto::scene {
 
         MKT_NODISCARD auto IsPlaying() const -> bool;
         MKT_NODISCARD auto IsSimulating() const -> bool;
+
+        MKT_NODISCARD auto GetSceneStats() const -> const SceneStatistics&;
 
         MKT_NODISCARD auto FindByID( core::u64 uniqueID ) -> Entity*;
         MKT_NODISCARD auto FindFirstByName( eastl::string_view name ) -> Entity*;
@@ -201,6 +219,9 @@ namespace mikoto::scene {
         // Entities with no parent
         // used to calculate hierarchical transform
         ankerl::unordered_dense::set<Entity*> mRootEntities{};
+
+        // This is updated from when we create/destroy entities
+        SceneStatistics mStatistics{};
     };
 
     using SceneHandle = core::Ref<Scene>;

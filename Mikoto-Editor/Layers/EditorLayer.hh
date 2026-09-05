@@ -155,6 +155,7 @@ namespace mikoto::editor {
         bool mDisplayPhysicsPanelLines{};
         bool mDisplayPhysicsPanelTriangles{};
         bool mShowPolygonComplexity{};
+        bool mShowPerformanceOverlay{};
 
         imgui::GraphEditor mGraphEditor{ "RenderGraph" };
 

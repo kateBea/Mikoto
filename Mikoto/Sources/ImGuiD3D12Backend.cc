@@ -160,6 +160,11 @@ namespace mikoto::imgui {
             mDimensions.Width = swapChain->GetWidth();
             mDimensions.Height = swapChain->GetHeight();
 
+            // Might not be optimal, but ensures the device is idle before recreating resources.
+            // This blocks this thread until the GPU is idle, which can cause a performance,
+            // But resizing should not be happening often
+            mDevice->WaitIdle();
+
             InitImages();
         }
 

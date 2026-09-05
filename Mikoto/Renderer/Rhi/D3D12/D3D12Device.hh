@@ -162,7 +162,7 @@ namespace mikoto::renderer::d3d12 {
 
     class StaticDescriptorHeap final : public IDescriptorHeap {
     public:
-        explicit StaticDescriptorHeap( IGpuDevice* device );
+        explicit StaticDescriptorHeap( IGpuDevice* device, eastl::string_view debugName = "" );
 
         auto CopyToShaderVisibleHeap( DescriptorIndex index, core::u32 count = 1 ) -> void;
 
@@ -205,6 +205,9 @@ namespace mikoto::renderer::d3d12 {
         ID3D12Device2* mDevice{};
 
         std::mutex mMutex{};
+
+        // Debug
+        eastl::string mDebugName{};
     };
 
     class DeviceResources {

@@ -138,7 +138,9 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = false;
     }
 
-    StaticDescriptorHeap::StaticDescriptorHeap( IGpuDevice* device ) {
+    StaticDescriptorHeap::StaticDescriptorHeap( IGpuDevice* device, eastl::string_view debugName )
+        : mDebugName{ debugName }
+    {
         Device* pDev{ checked_cast<Device*>( device ) };
         mDevice = pDev->GetDevice();
     }
@@ -235,11 +237,23 @@ namespace mikoto::renderer::d3d12 {
             return hr;
         }
 
+        if (!mDebugName.empty()) {
+            const eastl::string debugName{ string::Format( "{}_Heap_Type({})",
+                mDebugName.empty() ? "Unnamed" : mDebugName.c_str(), GetHeapTypeName( heapType ) ) };
+            mHeap->SetName( string::ToWide( debugName ).c_str() );
+        }
+
         if ( shaderVisible ) {
             heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
             hr = mDevice->CreateDescriptorHeap( &heapDesc, IID_PPV_ARGS( &mShaderVisibleHeap ) );
             if ( FAILED( hr ) ) {
                 return hr;
+            }
+
+            if (!mDebugName.empty()) {
+                const eastl::string debugName{ string::Format( "{}_ShaderVisibleHeap_Type({})",
+                    mDebugName.empty() ? "Unnamed" : mDebugName.c_str(), GetHeapTypeName( heapType ) ) };
+                mShaderVisibleHeap->SetName( string::ToWide( debugName ).c_str() );
             }
 
             mStartCpuHandleShaderVisible = mShaderVisibleHeap->GetCPUDescriptorHandleForHeapStart();
@@ -874,6 +888,7 @@ namespace mikoto::renderer::d3d12 {
         // Submit an empty batch of work
         CommandListHandle handle{ AllocateCmdList() };
         handle->Begin( CommandListBeginDescription{} );
+        handle->SetDebugName( "QueueWaitIdle CommandList" );
         handle->End();
 
         CommandList* pCommandList{ checked_cast<CommandList*>( handle.GetRaw() ) };
@@ -2076,11 +2091,11 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Device::InitDescriptorHeapManager() -> void {
-        mResourceHeaps.mRenderTargetViewHeap = eastl::make_unique<StaticDescriptorHeap>( this );
-        mResourceHeaps.mDepthStencilViewHeap = eastl::make_unique<StaticDescriptorHeap>( this );
+        mResourceHeaps.mRenderTargetViewHeap = eastl::make_unique<StaticDescriptorHeap>( this, "RenderTargets" );
+        mResourceHeaps.mDepthStencilViewHeap = eastl::make_unique<StaticDescriptorHeap>( this, "DepthStencil" );
 
-        mResourceHeaps.mSamplerHeap = eastl::make_unique<StaticDescriptorHeap>( this );
-        mResourceHeaps.mShaderResourceViewHeap = eastl::make_unique<StaticDescriptorHeap>( this );
+        mResourceHeaps.mSamplerHeap = eastl::make_unique<StaticDescriptorHeap>( this, "Samplers" );
+        mResourceHeaps.mShaderResourceViewHeap = eastl::make_unique<StaticDescriptorHeap>( this, "ShaderResources" );
 
 
         // Pre-allocate

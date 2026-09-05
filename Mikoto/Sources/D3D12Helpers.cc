@@ -362,6 +362,16 @@ namespace mikoto::renderer::d3d12 {
         return 0;
     }
 
+    auto GetHeapTypeName( D3D12_DESCRIPTOR_HEAP_TYPE type ) -> eastl::string_view {
+        switch (type) {
+            case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV: return "CBV_SRV_UAV";
+            case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:     return "SAMPLER";
+            case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:         return "RTV";
+            case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:         return "DSV";
+            default:                                     return "UNKNOWN";
+        }
+    }
+
     auto GetFilter(rhi::SamplerFilter minFilter, rhi::SamplerFilter magFilter, rhi::SamplerMipmapMode mode, rhi::CompareOp op) -> D3D12_FILTER {
         const bool isCompare{ (op != rhi::CompareOp::eNever) };
 

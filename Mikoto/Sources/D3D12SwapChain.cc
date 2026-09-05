@@ -69,11 +69,35 @@ namespace mikoto::renderer::d3d12 {
         mWidth = width;
         mHeight = height;
 
+        mDevice->WaitIdle();
+
+        Device* device{ checked_cast<Device*>( mDevice ) };
         Context* ctx{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
         mSwapChain->ResizeBuffers(ctx->GetBackBufferCount(), mWidth, mHeight,
                                  d3d12::GetFormat( mFormat ), 0);
 
-        Initialize();
+        // This is also called from the OnResize()
+        mBackBufferImages.clear();
+
+        const usize backBufferCount{ ctx->GetBackBufferCount() };
+        for (UINT index{}; index < backBufferCount; index++) {
+            Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTargetResource{};
+            ThrowIfFailed(mSwapChain->GetBuffer(index, IID_PPV_ARGS(&mRenderTargetResource)));
+
+            ExternalTextureDescription externalTextureDesc{
+                .mWidth = mWidth,
+                .mHeight = mHeight,
+                .mFormat = mFormat,
+                .mTextureUsage = TextureUsageFlagsBits::kRenderTarget,
+                .mImageResource = mRenderTargetResource };
+
+            TextureHandle presentImage{ device->CreateTexture( externalTextureDesc ) };
+            if (!presentImage.IsEmpty()) {
+                presentImage->SetDebugName( string::Format( "Swapchain Img. Index {}", index ) );
+                mBackBufferImages.emplace_back(presentImage);
+            }
+
+        }
     }
 
     auto SwapChain::SetRefreshRate( RefreshRate type ) -> void {
@@ -119,9 +143,6 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto SwapChain::Initialize() -> void {
-        // This is also called from the OnResize()
-        mBackBufferImages.clear();
-
         Device* device{ checked_cast<Device*>( mDevice ) };
         Context* ctx{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
 

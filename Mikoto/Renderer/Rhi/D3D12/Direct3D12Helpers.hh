@@ -60,6 +60,8 @@ namespace mikoto::renderer::d3d12 {
 
     MKT_NODISCARD auto GetBytesPerPixel( rhi::Format type ) -> UINT;
 
+    MKT_NODISCARD auto GetHeapTypeName( D3D12_DESCRIPTOR_HEAP_TYPE type ) -> eastl::string_view;
+
     MKT_NODISCARD auto GetAddressMode(rhi::SamplerWrapMode mode) -> D3D12_TEXTURE_ADDRESS_MODE;
     MKT_NODISCARD auto GetFilter(rhi::SamplerFilter minFilter, rhi::SamplerFilter magFilter, rhi::SamplerMipmapMode mode, rhi::CompareOp op) -> D3D12_FILTER;
 

@@ -325,9 +325,6 @@ namespace mikoto::editor {
     }
 
     auto ScenePanel::DrawSceneButtonsOverlay() -> void {
-
-        imgui::DebugShowMaterialIcons();
-
         constexpr float buttonCount{ 3.0f };
         constexpr float paddingVertical{ 3.0f };
 
@@ -420,6 +417,10 @@ namespace mikoto::editor {
             draggerSize.x *= 2.0f;
             ImGui::SetCursorPos( draggerCursorPos );
             ImGui::InvisibleButton( "##ScenePanelGizmoDragger", draggerSize );
+
+            ImGui::Spacing();
+            ImGui::Spacing();
+
             static ImVec2 lastMousePosition{ ImGui::GetMousePos() };
             const ImVec2 mousePos{ ImGui::GetMousePos() };
             if ( ImGui::IsItemActive() ) {

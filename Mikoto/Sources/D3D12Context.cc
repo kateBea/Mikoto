@@ -399,7 +399,6 @@ namespace mikoto::renderer::d3d12 {
         mDevice->RunGarbageCollection();
 
         if (mWindow) {
-            // TODO: Error corruption because resources still in use
             if (mSwapChain->GetWidth() != mWindow->GetWidth() || mSwapChain->GetHeight() != mWindow->GetHeight()) {
                 mSwapChain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
             }

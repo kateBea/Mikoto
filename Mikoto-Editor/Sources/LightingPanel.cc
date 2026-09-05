@@ -39,7 +39,7 @@ namespace mikoto::editor {
         mPanelHeaderName = widget::MakeIconTitle( ICON_MD_LIGHTBULB, mPanelName );
     }
 
-    auto LightingPanel::OnUpdate( float timeStep ) -> void {
+    auto LightingPanel::OnRender( float timeStep ) -> void {
         if (!mPanelIsVisible) {
             return;
         }

@@ -94,6 +94,9 @@ namespace mikoto::scene {
 
         auto RemoveEntity( core::u64 uniqueID ) -> void;
 
+        MKT_NODISCARD auto IsPlaying() const -> bool;
+        MKT_NODISCARD auto IsSimulating() const -> bool;
+
         MKT_NODISCARD auto FindByID( core::u64 uniqueID ) -> Entity*;
         MKT_NODISCARD auto FindFirstByName( eastl::string_view name ) -> Entity*;
 

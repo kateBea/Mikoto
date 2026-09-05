@@ -67,7 +67,7 @@ namespace mikoto::editor {
     public:
         explicit ContentBrowserPanel(const ContentBrowserPanelDescription& desc);
 
-        auto OnUpdate(float timeStep) -> void override;
+        auto OnRender(float timeStep) -> void override;
 
         ~ContentBrowserPanel() override = default;
 

@@ -16,7 +16,7 @@
 
 namespace mikoto::editor {
 
-    auto AnimatorTimelinePanel::OnUpdate( float timeStep ) -> void {
+    auto AnimatorTimelinePanel::OnRender( float timeStep ) -> void {
 
     }
 }// namespace Mikoto

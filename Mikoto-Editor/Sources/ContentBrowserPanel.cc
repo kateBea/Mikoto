@@ -295,6 +295,7 @@ namespace mikoto::editor {
                 ImGuiStorage* storage{ ImGui::GetStateStorage() };
                 bool isNodeOpened{ storage->GetBool(nodeID, false) };
 
+                //const eastl::string iconRotate{ GetStringFromUnicode( 61473 ) };
                 bool isOpen{ ImGui::TreeNodeEx( nodeIDString.c_str(), treeNodeFlags, "%s",
                     string::Format( "{} {}", isNodeOpened ? ICON_MD_FOLDER_OPEN : ICON_MD_FOLDER, entry.path().stem().string() ).c_str() ) };
 
@@ -321,7 +322,7 @@ namespace mikoto::editor {
         DrawCurrentDirItems();
     }
 
-    auto ContentBrowserPanel::OnUpdate( float timeStep ) -> void {
+    auto ContentBrowserPanel::OnRender( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( !mPanelIsVisible ) {

@@ -29,7 +29,7 @@ namespace mikoto::editor {
     public:
         explicit GamePreviewPanel( const GamePreviewPanelCreateInfo& createInfo );
 
-        auto OnUpdate( float timeStep ) -> void override;
+        auto OnRender( float timeStep ) -> void override;
 
         ~GamePreviewPanel() override = default;
 

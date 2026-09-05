@@ -21,7 +21,7 @@ namespace mikoto::editor {
 
     class AnimatorTimelinePanel final : public Panel {
     public:
-        auto OnUpdate( float timeStep ) -> void override;
+        auto OnRender( float timeStep ) -> void override;
     };
 
 }// namespace Mikoto

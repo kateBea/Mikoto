@@ -46,7 +46,7 @@ namespace mikoto::editor {
     public:
         explicit RendererPanel(const RendererPanelCreateInfo& createInfo);
 
-        auto OnUpdate(float timeStep) -> void override;
+        auto OnRender(float timeStep) -> void override;
 
         ~RendererPanel() override = default;
 

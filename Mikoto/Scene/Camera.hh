@@ -29,8 +29,8 @@
 namespace mikoto::scene {
 
     enum class ProjectionType {
-        ORTHOGRAPHIC,
-        PERSPECTIVE,
+        eOrthographic,
+        ePerspective,
     };
 
     class Camera {
@@ -93,7 +93,7 @@ namespace mikoto::scene {
         }
 
         MKT_NODISCARD auto GetProjectionType() const -> ProjectionType { return mProjectionType; }
-        MKT_NODISCARD auto IsOrthographic() const -> bool { return mProjectionType == ProjectionType::ORTHOGRAPHIC; }
+        MKT_NODISCARD auto IsOrthographic() const -> bool { return mProjectionType == ProjectionType::eOrthographic; }
 
         auto SetProjectionType( const ProjectionType type ) -> void {
             mProjectionType = type;
@@ -102,7 +102,7 @@ namespace mikoto::scene {
         ~Camera() = default;
 
     protected:
-        explicit Camera(const glm::mat4& projection = glm::mat4(1.0f), const glm::mat4& transform = glm::mat4(1.0f), ProjectionType projectionType = ProjectionType::PERSPECTIVE )
+        explicit Camera(const glm::mat4& projection = glm::mat4(1.0f), const glm::mat4& transform = glm::mat4(1.0f), ProjectionType projectionType = ProjectionType::ePerspective )
             :   mProjection{ projection }, mTransform{ transform }, mProjectionType{ projectionType }
         {
             UpdateProjection();
@@ -112,10 +112,10 @@ namespace mikoto::scene {
             mAspectRatio = mViewportWidth / mViewportHeight;
 
             switch(mProjectionType) {
-                case ProjectionType::ORTHOGRAPHIC:
+                case ProjectionType::eOrthographic:
                     mProjection = glm::ortho(0.0f, mViewportWidth, 0.0f, mViewportHeight);
                 break;
-                case ProjectionType::PERSPECTIVE:
+                case ProjectionType::ePerspective:
                     mProjection = glm::perspective(glm::radians(mFov), mAspectRatio, mNearPlane, mFarPlane);
                 break;
             }
@@ -149,7 +149,7 @@ namespace mikoto::scene {
         float mRoll{ 0.0f };
         float mPitch{ 0.0f };
 
-        ProjectionType mProjectionType{ ProjectionType::PERSPECTIVE };
+        ProjectionType mProjectionType{ ProjectionType::ePerspective };
     };
 }
 

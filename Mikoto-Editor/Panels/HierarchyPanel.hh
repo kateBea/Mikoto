@@ -36,7 +36,7 @@ namespace mikoto::editor {
     public:
         explicit HierarchyPanel( const HierarchyPanelCreateInfo& createInfo );
 
-        auto OnUpdate( float ts ) -> void override;
+        auto OnRender( float ts ) -> void override;
 
         ~HierarchyPanel() override = default;
 

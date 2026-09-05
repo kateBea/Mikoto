@@ -29,7 +29,7 @@ namespace mikoto::editor {
     public:
         explicit MaterialEditorPanel( const MaterialEditorPanelDescription& description );
 
-        auto OnUpdate( float timeStep ) -> void override;
+        auto OnRender( float timeStep ) -> void override;
 
     private:
         EditorState* mEditorState{};

@@ -139,17 +139,24 @@ namespace mikoto::renderer::d3d12 {
         ~Context() override = default;
 
     private:
+        struct FrameContext {
+            rhi::FenceHandle mFence{};
+            core::u64 mFenceValue{};
+        };
+
+    private:
         // [Internal usage]
         auto InitializeSwapchain() -> void;
         auto InitSwapchainRender() -> void;
+        auto InitSynchronization() -> void;
         auto InitializeShaderCompiler() -> void;
 
     private:
-        core::u64 mFenceValue{};
-        rhi::FenceHandle mFence{};
-
         rhi::CommandListHandle mCommandList{};
         rhi::TextureHandle mPresentTarget{};
+
+        core::usize mCurrentFrameIndex{};
+        eastl::vector<FrameContext> mFrameContexts{};
 
         SwapChainHandle mSwapChain{};
         Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory{};
@@ -158,9 +165,9 @@ namespace mikoto::renderer::d3d12 {
 
         eastl::unique_ptr<ShaderCompiler> mShaderCompiler{};
 
-        IQueue* mGraphicsQueue{};
+        rhi::IQueue* mGraphicsQueue{};
 
-        using SubmitInfoMap = ankerl::unordered_dense::map<IQueue*, SubmitInfo>;
+        using SubmitInfoMap = ankerl::unordered_dense::map<rhi::IQueue*, rhi::SubmitInfo>;
 
         std::mutex mBatchedSubmissionProcessMutex{};
         std::mutex mBatchedSubmissionEmplaceMutex{};

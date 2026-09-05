@@ -35,7 +35,7 @@ namespace mikoto::editor {
 
         explicit LightingPanel( const LightingPanelCreateInfo& info );
 
-        auto OnUpdate( float timeStep ) -> void override;
+        auto OnRender( float timeStep ) -> void override;
 
         ~LightingPanel() override = default;
 

@@ -46,7 +46,7 @@ namespace mikoto::editor {
         mPanelHeaderName = widget::MakeIconTitle(ICON_MD_TERMINAL, mPanelName);
     }
 
-    auto RuntimeConsolePanel::OnUpdate(float timeStep) -> void {
+    auto RuntimeConsolePanel::OnRender(float timeStep) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if (!mPanelIsVisible) {

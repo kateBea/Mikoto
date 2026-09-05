@@ -21,7 +21,7 @@ namespace mikoto::editor {
         :   mEditorState{ info.mState }
     {}
 
-    auto ProjectPanel::OnUpdate( float timeStep ) -> void {
+    auto ProjectPanel::OnRender( float timeStep ) -> void {
 
     }
 

@@ -28,7 +28,7 @@ namespace mikoto::editor {
     public:
         explicit ProjectPanel(const ProjectPanelCreateInfo& info);
 
-        auto OnUpdate( float timeStep ) -> void override;
+        auto OnRender( float timeStep ) -> void override;
 
     private:
         EditorState* mEditorState{};

@@ -818,6 +818,22 @@ namespace mikoto::renderer::d3d12 {
             const_cast<CommandList*>(pCommandList)->MarkExecuted(this, mFenceValue);
         }
 
+        // Submission is thread safe
+        // https://learn.microsoft.com/en-us/windows/win32/direct3d12/design-philosophy-of-command-queues-and-command-lists
+        mQueue->ExecuteCommandLists( as<UINT>(d3d12Commands.size()), d3d12Commands.data() );
+
+        // My signal timeline to control submission work,
+        // later is used to implement a wait idle (wait for all commands to finish.
+        {
+            const Fence* pFence{ checked_cast<const Fence*>( mFence.GetRaw() ) };
+            UINT64 fenceValue{ (UINT64)mFenceValue++ };
+            ID3D12Fence* d3d12Fence{ *pFence };
+            HANDLE d3d12FenceEvent{ *pFence };
+
+            ThrowIfFailed(mQueue->Signal(d3d12Fence, fenceValue));
+            ThrowIfFailed( d3d12Fence->SetEventOnCompletion(fenceValue, d3d12FenceEvent) );
+        }
+
         // Caller waits
         if (!submitInfo.mWaits.empty()) {
             for (const auto& [signalValue, signalFence] : submitInfo.mWaits) {
@@ -828,19 +844,6 @@ namespace mikoto::renderer::d3d12 {
 
                 ThrowIfFailed(mQueue->Wait(d3d12Fence, value));
             }
-        }
-
-        mQueue->ExecuteCommandLists( as<UINT>(d3d12Commands.size()), d3d12Commands.data() );
-
-        // My signal timeline
-        {
-            const Fence* pFence{ checked_cast<const Fence*>( mFence.GetRaw() ) };
-            UINT64 fenceValue{ (UINT64)mFenceValue++ };
-            ID3D12Fence* d3d12Fence{ *pFence };
-            HANDLE d3d12FenceEvent{ *pFence };
-
-            ThrowIfFailed(mQueue->Signal(d3d12Fence, fenceValue));
-            ThrowIfFailed( d3d12Fence->SetEventOnCompletion(fenceValue, d3d12FenceEvent) );
         }
 
         // Caller signals
@@ -868,11 +871,26 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Queue::WaitIdle() -> void {
-        Fence* pFence{ checked_cast<Fence*>(mFence.GetRaw())};
-        ID3D12Fence* d3d12Fence{ *pFence };
-        mQueue->Wait(d3d12Fence, ++mFenceValue);
+        // Submit an empty batch of work
+        CommandListHandle handle{ AllocateCmdList() };
+        handle->Begin( CommandListBeginDescription{} );
+        handle->End();
 
-        ( void )mFence->Wait( mFenceValue, 3000 );
+        CommandList* pCommandList{ checked_cast<CommandList*>( handle.GetRaw() ) };
+        eastl::array<ID3D12CommandList*, 1> d3d12Commands{ *pCommandList };
+        mQueue->ExecuteCommandLists( as<UINT>(d3d12Commands.size()), d3d12Commands.data() );
+
+        // My signal timeline to control submission work,
+        // later is used to implement a wait idle (wait for all commands to finish.
+        const Fence* pFence{ checked_cast<const Fence*>( mFence.GetRaw() ) };
+        UINT64 fenceValue{ (UINT64)mFenceValue++ };
+        ID3D12Fence* d3d12Fence{ *pFence };
+        HANDLE d3d12FenceEvent{ *pFence };
+
+        ThrowIfFailed(mQueue->Signal(d3d12Fence, fenceValue));
+        ThrowIfFailed( d3d12Fence->SetEventOnCompletion(fenceValue, d3d12FenceEvent) );
+
+        ( void )mFence->Wait( fenceValue, UINT64_MAX );
     }
 
     auto Queue::Signal(Fence* fence, core::u64 value) -> void {
@@ -2265,9 +2283,9 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::WaitIdle() -> void {
         // For all queues see if they are ready up until latest fence value
-        // for (auto& queue : mQueues | std::views::values ) {
-        //     queue->WaitIdle();
-        // }
+        for (auto& queue : mQueues | std::views::values ) {
+            queue->WaitIdle();
+        }
     }
 
     auto Device::GetDevice() -> ID3D12Device2 * {

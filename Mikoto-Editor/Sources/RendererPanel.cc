@@ -56,7 +56,7 @@ namespace mikoto::editor {
         mGraphEditor.Build( builder );
     }
 
-    auto RendererPanel::OnUpdate( float timeStep ) -> void {
+    auto RendererPanel::OnRender( float timeStep ) -> void {
         if (!mPanelIsVisible) {
             return;
         }

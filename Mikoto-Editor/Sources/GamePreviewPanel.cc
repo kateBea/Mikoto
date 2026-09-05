@@ -20,7 +20,7 @@ namespace mikoto::editor {
 
     }
 
-    auto GamePreviewPanel::OnUpdate( float timeStep ) -> void {
+    auto GamePreviewPanel::OnRender( float timeStep ) -> void {
 
     }
 }

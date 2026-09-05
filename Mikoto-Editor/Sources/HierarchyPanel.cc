@@ -451,7 +451,7 @@ namespace mikoto::editor {
         mPanelHeaderName = widget::MakeIconTitle( ICON_MD_MERGE, mPanelName );
     }
 
-    auto HierarchyPanel::OnUpdate( float ) -> void {
+    auto HierarchyPanel::OnRender( float ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( !mPanelIsVisible ) {

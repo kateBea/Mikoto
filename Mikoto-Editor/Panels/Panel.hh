@@ -61,7 +61,7 @@ namespace mikoto::editor {
          * @brief Updates the state of this panel.
          * @param timeStep time elapsed since last frame.
          * */
-        virtual auto OnUpdate( float timeStep ) -> void = 0;
+        virtual auto OnRender( float timeStep ) -> void = 0;
 
         /**
          * @brief Hides or reveals this panel in the docking space.

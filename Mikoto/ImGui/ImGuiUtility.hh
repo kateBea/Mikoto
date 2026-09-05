@@ -29,10 +29,16 @@ namespace mikoto::imgui {
 
     using namespace mikoto::core;
 
-    enum class GuizmoType {
+    enum class GizmoType {
         eTranslation,
         eRotation,
         eScale,
+        eBounds,
+    };
+
+    enum class GizmoMode {
+        eLocal,
+        eWorld
     };
 
     class UnindentScoped {

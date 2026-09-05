@@ -100,7 +100,7 @@ namespace mikoto::renderer::vulkan {
 
         CommandListHandle mCommandList{};
 
-        eastl::fixed_vector<FrameContext, kMaxFramesInFlight> mFrames{};
+        eastl::fixed_vector<FrameContext, kMaxFramesInFlight> mFrameContexts{};
 
         using SubmitInfoMap = ankerl::unordered_dense::map<IQueue*, SubmitInfo>;
 

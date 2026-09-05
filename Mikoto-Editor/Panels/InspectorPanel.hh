@@ -34,7 +34,7 @@ namespace mikoto::editor {
 
         explicit InspectorPanel( const InspectorPanelCreateInfo& createInfo );
 
-        auto OnUpdate( float timeStep ) -> void override;
+        auto OnRender( float timeStep ) -> void override;
 
         ~InspectorPanel() override = default;
 

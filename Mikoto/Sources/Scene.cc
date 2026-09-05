@@ -371,6 +371,14 @@ namespace mikoto::scene {
         } );
     }
 
+    auto Scene::IsPlaying() const -> bool {
+        return mSceneState  == SceneState::ePlaying;
+    }
+
+    auto Scene::IsSimulating() const -> bool {
+        return mSceneState  == SceneState::eSimulating;
+    }
+
     auto Scene::SetState( const SceneState state ) -> void {
         mSceneState = state;
     }

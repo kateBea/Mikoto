@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
@@ -22,6 +23,7 @@
 #include <Core/String.hh>
 
 #include <ImGui/ImGuiWidget.hh>
+#include <ImGui/ImGuiUtility.hh>
 
 namespace mikoto::imgui {
 
@@ -85,6 +87,44 @@ namespace mikoto::imgui {
                 hoverStartTime = 0.0;
             }
         }
+    }
+
+    auto widget::ToggleButton(
+            core::cstr label,
+            bool state,
+            bool handOnHover,
+            ImVec2 size,
+            core::f32 alpha,
+            core::f32 pressedAlpha,
+            ImGuiButtonFlags buttonFlags,
+            ImGuiCol activeColor) -> bool {
+        if ( state ) {
+            ImVec4 color{ ImGui::GetStyle().Colors[activeColor] };
+
+            color.w = pressedAlpha;
+            ImGui::PushStyleColor( ImGuiCol_Button, color );
+            ImGui::PushStyleColor( ImGuiCol_ButtonHovered, color );
+            ImGui::PushStyleColor( ImGuiCol_ButtonActive, color );
+        } else {
+            ImVec4 color{ ImGui::GetStyle().Colors[ImGuiCol_Button] };
+            ImVec4 hoveredColor{ ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered] };
+            color.w = alpha;
+            hoveredColor.w = pressedAlpha;
+            ImGui::PushStyleColor( ImGuiCol_Button, color );
+            ImGui::PushStyleColor( ImGuiCol_ButtonHovered, hoveredColor );
+            color.w = pressedAlpha;
+            ImGui::PushStyleColor( ImGuiCol_ButtonActive, color );
+        }
+
+        const bool clicked{ ImGui::ButtonEx( label, size, buttonFlags ) };
+
+        if (handOnHover) {
+            SetCursorHandOnLastItemHovered();
+        }
+
+        ImGui::PopStyleColor( 3 );
+
+        return clicked;
     }
 
 }// namespace mikoto

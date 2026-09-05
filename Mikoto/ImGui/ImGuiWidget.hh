@@ -15,6 +15,8 @@
 #ifndef MIKOTOROOT_IMGUI_WIDGET_HH
 #define MIKOTOROOT_IMGUI_WIDGET_HH
 
+#include <imgui.h>
+
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
@@ -28,6 +30,16 @@ namespace mikoto::imgui::widget {
     auto MakeHelpPopUpDelay(eastl::string_view description, eastl::string_view placeHolder, float duration = 2.0f ) -> void;
 
     MKT_NODISCARD auto MakeIconTitle( eastl::string_view panelIcon, eastl::string_view panelName ) -> eastl::string;
+
+    auto ToggleButton(
+        core::cstr label,
+        bool state,
+        bool handOnHover,
+        ImVec2 size = {0, 0},
+        core::f32 alpha = 1.0f,
+        core::f32 pressedAlpha = 1.0f,
+        ImGuiButtonFlags buttonFlags = ImGuiButtonFlags_None,
+        ImGuiCol activeColor = ImGuiCol_ButtonActive ) -> bool;
 
 }// namespace mikoto
 

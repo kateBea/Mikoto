@@ -415,21 +415,21 @@ namespace mikoto::editor {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 1 (Translation Guizmo)" );
             ScenePanel* scenePanel{ mPanelRegistry.Get<ScenePanel>() };
             if (scenePanel) {
-                scenePanel->SetManipulation( GuizmoType::eTranslation );
+                scenePanel->SetGizmoType( GizmoType::eTranslation );
             }
         });
         mActionManager->Bind(core::KeyCode::Key_2, core::ModKey::eControl, [this]() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 2 (Rotation Guizmo)" );
             ScenePanel* scenePanel{ mPanelRegistry.Get<ScenePanel>() };
             if (scenePanel) {
-                scenePanel->SetManipulation( GuizmoType::eRotation );
+                scenePanel->SetGizmoType( GizmoType::eRotation );
             }
         });
         mActionManager->Bind(core::KeyCode::Key_3, core::ModKey::eControl, [this]() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 3 (Scale Guizmo)" );
             ScenePanel* scenePanel{ mPanelRegistry.Get<ScenePanel>() };
             if (scenePanel) {
-                scenePanel->SetManipulation( GuizmoType::eScale );
+                scenePanel->SetGizmoType( GizmoType::eScale );
             }
         });
     }
@@ -938,7 +938,7 @@ namespace mikoto::editor {
     auto EditorLayer::UpdateDockSpacePanels( float ts ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
         for ( const auto &panel: mPanelRegistry | std::ranges::views::values ) {
-            panel->OnUpdate( ts );
+            panel->OnRender( ts );
         }
 
         // Make it dockable
@@ -977,7 +977,6 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::UpdateSceneState( float ts  ) -> void {
-        mEditorState->mActiveScene->SetState( SceneState::eSimulating );
         mEditorState->mActiveScene->Update( ts );
     }
 

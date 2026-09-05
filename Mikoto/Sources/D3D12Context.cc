@@ -32,9 +32,11 @@
 #include <directx/d3d12.h>
 #include <directx/d3dx12.h>
 
-#include <Renderer/Rhi/D3D12/D3D12Device.hh>
 #include <Renderer/Rhi/D3D12/D3D12Context.hh>
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
 #include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
+
+#include "Renderer/Rhi/Vulkan/VulkanContext.hh"
 
 namespace mikoto::renderer::d3d12 {
 
@@ -263,24 +265,13 @@ namespace mikoto::renderer::d3d12 {
 
         InitializeShaderCompiler();
         InitSwapchainRender();
+        InitSynchronization();
 
         return true;
     }
 
     auto Context::Shutdown() -> void {
         // Do a wait idle
-        Fence* pFence{checked_cast<Fence*>(mFence.GetRaw())};
-        Queue* queue{checked_cast<Queue*>(mGraphicsQueue)};
-
-        (void)queue->Signal(pFence, ++mFenceValue);
-        (void)pFence->Wait(mFenceValue, 3000);
-
-        (void)queue->Signal(pFence, ++mFenceValue);
-        (void)pFence->Wait(mFenceValue, 3000);
-
-        queue->WaitIdle();
-        queue->WaitIdle();
-
         mDevice->WaitIdle();
 
         mPipeline.Release();
@@ -302,13 +293,15 @@ namespace mikoto::renderer::d3d12 {
         mPresentTarget.Release();
         mSwapChain.Release();
 
-        mFence.Release();
+        mFrameContexts.clear();
 
         mShaderCompiler->Shutdown();
         mShaderCompiler.reset();
     }
 
     auto Context::SubmitFrame() -> void {
+        auto& frame{ mFrameContexts[mCurrentFrameIndex] };
+
         // Submit batched commands
         SubmitInfoMap swapMap{};
         {
@@ -387,17 +380,21 @@ namespace mikoto::renderer::d3d12 {
 #endif
         }
 
-        ++mFenceValue;
+        ++frame.mFenceValue;
 
         const auto submitInfo{ SubmitInfo{}
-            .AddSignal( mFence, mFenceValue )
+            .AddSignal( frame.mFence, frame.mFenceValue )
             .AddCommandList( mCommandList ) };
         mDevice->GetQueue( QueueType::eGraphics )->ExecuteCommandLists( submitInfo );
     }
 
     auto Context::PrepareFrame() -> void {
-        Fence* pFence{ checked_cast<Fence*>( mFence.GetRaw() ) };
-        ( void )pFence->Wait( mFenceValue, eastl::numeric_limits<u64>::max() ); // Host wait
+        // If it is the first frame we don't need to wait for anything
+        // Otherwise mCurrentFrameIndex has advanced and we just wait for this frame to be done
+        auto& frame{ mFrameContexts[mCurrentFrameIndex] };
+
+        Fence* pFence{ checked_cast<Fence*>( frame.mFence.GetRaw() ) };
+        ( void )pFence->Wait( frame.mFenceValue, eastl::numeric_limits<u64>::max() ); // Host wait
 
         mDevice->RunGarbageCollection();
 
@@ -414,7 +411,15 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Context::Present() -> void {
+        // Nothing to present if there is no window
+        if (!mWindow) {
+            return;
+        }
+
         mSwapChain->Present();
+
+        // Frame is advanced if we work with a swap chain
+        mCurrentFrameIndex = ( mCurrentFrameIndex + 1 ) % GetBackBufferCount();
     }
 
     auto Context::SetPresentTarget( TextureHandle texture ) -> void {
@@ -484,8 +489,6 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Context::InitSwapchainRender() -> void {
-        mFence = mDevice->CreateFence( mFenceValue );
-
         // Create shaders
         FileHandle vsShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Vert.slang" ) };
         auto vertexShaderDescription{ ShaderModuleCreateDescription{}
@@ -552,6 +555,14 @@ namespace mikoto::renderer::d3d12 {
 
         mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
         mCommandList->SetDebugName( "Context Swapchain CommandBuffer" );
+    }
+
+    auto Context::InitSynchronization() -> void {
+        mFrameContexts.resize( GetBackBufferCount() );
+
+        for (auto& context : mFrameContexts) {
+            context.mFence = mDevice->CreateFence( context.mFenceValue );
+        }
     }
 
     auto Context::InitializeShaderCompiler() -> void {

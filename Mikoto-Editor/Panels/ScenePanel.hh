@@ -42,9 +42,10 @@ namespace mikoto::editor {
     public:
         explicit ScenePanel(const ScenePanelCreateInfo& createInfo);
 
-        auto OnUpdate(float ts) -> void override;
+        auto OnRender(float ts) -> void override;
 
-        auto SetManipulation( imgui::GuizmoType mode ) -> void;
+        auto SetGizmoType( imgui::GizmoType type ) -> void;
+        auto SetGizmoMode( imgui::GizmoMode mode ) -> void;
         auto SetTexture( renderer::rhi::TextureHandle texture ) -> void;
 
         ~ScenePanel() override = default;
@@ -55,13 +56,15 @@ namespace mikoto::editor {
     private:
         auto DrawOrientationAxis() -> void;
 
-        auto UpdateViewport() -> void;
+        auto DrawFinalImage() -> void;
         auto UpdateManipulation() -> void;
 
+        auto DrawSceneButtons() -> void;
+        auto DrawTransformGizmos() -> void;
         auto DrawUtilitiesOverlay() -> void;
 
         auto DrawSceneToolbar() -> void;
-        auto DrawManipulationGuizmos() -> void;
+        auto DrawManipulationGizmos() -> void;
 
         MKT_NODISCARD auto IsDisplayTextureValid() const -> bool;
 
@@ -72,9 +75,11 @@ namespace mikoto::editor {
         core::f32 mViewportWidth{ 1920 };
         core::f32 mViewportHeight{ 1080 };
 
-        core::float2 mGuizmoPosition{ 1.0f };
+        ImVec2 mStartCursorPos{ 0.0f, 0.0f };
+        ImVec2 mGizmoPosition{ 1.0f, 1.0f };
 
-        imgui::GuizmoType mManipulationType{ imgui::GuizmoType::eTranslation };
+        imgui::GizmoType mGizmoType{ imgui::GizmoType::eTranslation };
+        imgui::GizmoMode mGizmoMode{ imgui::GizmoMode::eWorld };
     };
 }
 

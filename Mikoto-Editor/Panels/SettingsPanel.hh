@@ -54,7 +54,7 @@ namespace mikoto::editor {
     public:
         explicit SettingsPanel(const SettingsPanelCreateInfo& data);
 
-        auto OnUpdate(float timeStep) -> void override;
+        auto OnRender(float timeStep) -> void override;
 
         MKT_NODISCARD auto GetData() -> SettingsPanelData&;
         MKT_NODISCARD auto GetData() const -> const SettingsPanelData&;

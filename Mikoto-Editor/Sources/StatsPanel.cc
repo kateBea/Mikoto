@@ -72,7 +72,7 @@ namespace mikoto::editor {
         mPanelHeaderName = widget::MakeIconTitle( ICON_MD_TABLE_CHART, mPanelName );
     }
 
-    auto StatsPanel::OnUpdate( float timeStep ) -> void {
+    auto StatsPanel::OnRender( float timeStep ) -> void {
         if ( !mPanelIsVisible ) {
             return;
         }

@@ -79,7 +79,7 @@ namespace mikoto::editor {
             ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
         }
 
-        if ( sceneCamera.GetProjectionType() == ProjectionType::PERSPECTIVE ) {
+        if ( sceneCamera.GetProjectionType() == ProjectionType::ePerspective ) {
             ImGui::Spacing();
             (void)Slider( "##SettingsPanel::OnUpdate::CameraSpeed", mData.mEditorCameraMovementSpeed, { 2, 5000 } );
             ImGui::SameLine();
@@ -143,7 +143,7 @@ namespace mikoto::editor {
             widget::MakeHelpPopUp( "Enable Vertical Sync" );
         }
 
-        if ( sceneCamera.GetProjectionType() == ProjectionType::ORTHOGRAPHIC ) {}
+        if ( sceneCamera.GetProjectionType() == ProjectionType::eOrthographic ) {}
     }
 
     auto SettingsPanel::DrawCameraProperties() -> void {
@@ -179,7 +179,7 @@ namespace mikoto::editor {
         mPanelHeaderName = widget::MakeIconTitle( ICON_MD_CONSTRUCTION, mPanelName );
     }
 
-    auto SettingsPanel::OnUpdate( float timeStep ) -> void {
+    auto SettingsPanel::OnRender( float timeStep ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if (!mPanelIsVisible) {

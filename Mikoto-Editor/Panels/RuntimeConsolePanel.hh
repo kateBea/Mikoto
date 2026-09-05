@@ -28,7 +28,7 @@ namespace mikoto::editor {
     public:
         explicit RuntimeConsolePanel(const RuntimeConsolePanelCreateInfo& info);
 
-        auto OnUpdate(float timeStep) -> void override;
+        auto OnRender(float timeStep) -> void override;
 
         ~RuntimeConsolePanel() override = default;
 

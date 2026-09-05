@@ -128,7 +128,7 @@ namespace mikoto::renderer::vulkan {
         mPresentTarget.Release();
         mSwapchain.Release();
 
-        mFrames.clear();
+        mFrameContexts.clear();
 
         mDevice->Shutdown();
         mDevice.reset();
@@ -163,7 +163,7 @@ namespace mikoto::renderer::vulkan {
         //MKT_BEGIN_PROFILER_NAMED();
         //MKT_PROFILE_SCOPE_MARKED( "VulkanContext::SubmitFrame B" );
 
-        auto& frame{ mFrames[mCurrentFrameIndex] };
+        auto& frame{ mFrameContexts[mCurrentFrameIndex] };
 
         // Submit batched commands
         SubmitInfoMap swapMap{};
@@ -267,7 +267,7 @@ namespace mikoto::renderer::vulkan {
 
         //https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
 
-        auto& frame{ mFrames[mCurrentFrameIndex] };
+        auto& frame{ mFrameContexts[mCurrentFrameIndex] };
 
         ( void )frame.mFence->Wait( frame.mFenceValue, eastl::numeric_limits<u64>::max() );
         mDevice->RunGarbageCollection();
@@ -295,7 +295,7 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        auto& frame{ mFrames[mCurrentFrameIndex] };
+        auto& frame{ mFrameContexts[mCurrentFrameIndex] };
         const auto result{ mSwapchain->Present( mCurrentImageIndex, frame.mRenderFinishedSemaphore.GetRaw() ) };
 
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
@@ -424,9 +424,9 @@ namespace mikoto::renderer::vulkan {
     auto Context::InitSynchronization() -> void {
         Device* device{ checked_cast<Device*>(mDevice.get()) };
 
-        mFrames.resize(mMaxFramesInFlight);
+        mFrameContexts.resize(mMaxFramesInFlight);
 
-        for (u32 frameIndex{ 0 }; auto& frame : mFrames) {
+        for (u32 frameIndex{ 0 }; auto& frame : mFrameContexts) {
             // We do not increment the value here because in the first call to PrepareFrame() we will
             // wait for this value which will return immediately because there is nothing to wait for
             // which is essentially the same as a signaled vulkan fence; on the first call to SubmitFrame()

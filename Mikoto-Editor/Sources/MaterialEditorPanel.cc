@@ -20,6 +20,6 @@ namespace mikoto::editor {
     MaterialEditorPanel::MaterialEditorPanel( const MaterialEditorPanelDescription & ) {
     }
 
-    auto MaterialEditorPanel::OnUpdate( float timeStep ) -> void {
+    auto MaterialEditorPanel::OnRender( float timeStep ) -> void {
     }
 }// namespace Mikoto

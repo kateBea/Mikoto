@@ -408,8 +408,10 @@ namespace mikoto::renderer::d3d12 {
         auto Initialize() -> void override;
 
     private:
-        eastl::atomic<core::u64> mFenceValue{};
+        // Submission is thread safe internally within D3D12
+        // we use atomic u64 to control fence value increment
         rhi::FenceHandle mFence{};
+        eastl::atomic<core::u64> mFenceValue{};
 
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> mQueue{};
 

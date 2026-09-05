@@ -2468,7 +2468,7 @@ namespace mikoto::editor {
             ImGui::EndTable();
         }
 
-        if ( sceneCamera.GetProjectionType() == ProjectionType::PERSPECTIVE ) {
+        if ( sceneCamera.GetProjectionType() == ProjectionType::ePerspective ) {
 
             if ( ImGui::BeginTable( "##PerspectiveProjControl", 2, tableFlags ) ) {
 
@@ -2999,7 +2999,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::OnUpdate( float ) -> void {
+    auto InspectorPanel::OnRender( float ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( !mPanelIsVisible ) {

@@ -30,6 +30,8 @@
 #include <Core/Subsystem.hh>
 #include <Core/Singleton.hh>
 
+#include <Physics/PhysicsWorld.hh>
+
 #include <Renderer/Core/PhysicsDebugRenderer.hh>
 
 namespace mikoto::scene {
@@ -38,15 +40,8 @@ namespace mikoto::scene {
 
 namespace mikoto::physics {
 
-    class PhysicsWorld;
-
     struct PhysicServiceCreateInfo {
         core::u32 mMaxBodies{ 1024 }; // Max simulation bodies
-    };
-
-    struct PhysicsWorldCreateInfo {
-        scene::Scene* mScene{ nullptr };
-        core::float3 mGravity{ 0.0f, -9.81f, 0.0f };
     };
 
     class PhysicSystem final : public core::ISubsystem, public core::Singleton<PhysicSystem> {

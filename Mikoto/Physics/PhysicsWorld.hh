@@ -40,8 +40,6 @@
 
 #include <Scene/Component.hh>
 
-#include <Physics/PhysicSystem.hh>
-
 namespace mikoto::scene {
     class Scene;
 }
@@ -198,6 +196,12 @@ namespace mikoto::physics {
         auto OnContactRemoved( const JPH::SubShapeIDPair &inSubShapePair ) -> void override {
             MKT_CORE_LOGGER_DEBUG( "A contact was removed" );
         }
+    };
+
+
+    struct PhysicsWorldCreateInfo {
+        scene::Scene* mScene{ nullptr };
+        core::float3 mGravity{ 0.0f, -9.81f, 0.0f };
     };
 
     // Every scene has its own physics  simulation world

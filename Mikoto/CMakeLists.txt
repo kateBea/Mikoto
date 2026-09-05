@@ -755,6 +755,7 @@ set(ALL_SOURCES
         ${SPIRV_REFLECT_SOURCES}
         ${MINIAUDIO_SOURCES}
         ${IMGUI_NODES_SOURCES}
+        ImGui/ImGuiWidget.inl
 )
 
 # ======================================

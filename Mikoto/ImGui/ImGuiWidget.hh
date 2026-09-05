@@ -16,7 +16,9 @@
 #define MIKOTOROOT_IMGUI_WIDGET_HH
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
+#include <EASTL/span.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
@@ -41,6 +43,43 @@ namespace mikoto::imgui::widget {
         ImGuiButtonFlags buttonFlags = ImGuiButtonFlags_None,
         ImGuiCol activeColor = ImGuiCol_ButtonActive ) -> bool;
 
-}// namespace mikoto
+    // =======================================================================================================================================
+    // Text widgets
+    // =======================================================================================================================================
+    auto ToolTip( eastl::string_view description ) -> void;
+    auto ToolTip( const eastl::function<void()> &func, bool enable ) -> void;
+
+
+    // =======================================================================================================================================
+    // Button widgets
+    // =======================================================================================================================================
+    auto TextArea( eastl::string &buffer ) -> bool;
+    auto CheckBox( eastl::string_view label, bool &value ) -> bool;
+    auto InputText( eastl::string &data, ImGuiTextFlags flags ) -> bool;
+    auto ButtonTextIcon( eastl::string_view icon, ImVec2 size = { 0.0f, 0.0f } ) -> bool;
+    auto PushImageButton( core::u64 textureId, ImTextureID textureHandle, ImVec2 size ) -> bool;
+    auto PushImageButton( eastl::string_view ID, ImTextureID textureHandle, ImVec2 size ) -> bool;
+
+    // =======================================================================================================================================
+    // Drag widgets
+    // =======================================================================================================================================
+    auto Slider( eastl::string_view label, core::f32 &value, const core::float2 &bounds, eastl::string_view format = "%.2f" ) -> bool;
+    auto DragFloat4( eastl::string_view label, eastl::string_view format, core::float4 &vect, core::f32 speed, core::f32 minVal, core::f32 maxVal ) -> bool;
+    auto DragFloat3( eastl::string_view label, eastl::string_view format, core::float3 &vect, core::f32 speed, core::f32 minVal, core::f32 maxVal ) -> bool;
+
+    // =======================================================================================================================================
+    // Dropdown widgets
+    // =======================================================================================================================================
+    // Returns the index of the selected item, or -1 if no selection was made
+    MKT_NODISCARD auto Combo( eastl::span<const eastl::string> choices, core::usize currentSelectionIndex ) -> core::i32;
+
+    // =======================================================================================================================================
+    // Color widgets
+    // =======================================================================================================================================
+    auto ColorEdit4( eastl::string_view label, core::float4 &vect ) -> bool;
+    auto ColorEdit3( eastl::string_view label, core::float4 &vect ) -> bool;
+}// namespace mikoto::imgui::widget
+
+#include <ImGui/ImGuiWidget.inl>
 
 #endif//MIKOTOROOT_IMGUI_WIDGET_HH

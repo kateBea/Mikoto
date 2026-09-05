@@ -377,10 +377,6 @@ namespace mikoto::imgui {
         }
     }
 
-    auto ImImageVK( const ImTextureID image, const ImVec2 dim ) -> void {
-        return ImGui::Image( image, dim );
-    }
-
     auto GetStringFromUnicode( u32 codePoint ) -> eastl::string {
         eastl::fixed_string<char, 64> utf8{};
         ImTextCharToUtf8( utf8.data(), codePoint );

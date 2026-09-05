@@ -27,6 +27,9 @@
 
 namespace mikoto::imgui {
 
+    // TODO: this file will include ImGui helpers, for instance color converters
+    // string formatters, etc, widgets are moved to widget namespace
+
     using namespace mikoto::core;
 
     enum class GizmoType {
@@ -127,8 +130,6 @@ namespace mikoto::imgui {
     auto CenteredText( const char *label, float width, float height = 20.0f ) -> void;
 
     auto DragDropDemo() -> void;
-
-    auto ImImageVK( ImTextureID image, ImVec2 dim )-> void;
 
     MKT_NODISCARD auto GetStringFromUnicode( u32 codePoint ) -> eastl::string;
 

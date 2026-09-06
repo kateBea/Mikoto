@@ -19,6 +19,8 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
+#include <dxgi1_5.h>
+
 #include <directx/d3d12.h>
 #include <directx/d3dx12.h>
 
@@ -186,6 +188,23 @@ namespace mikoto::renderer::d3d12 {
         Queue* queue{ checked_cast<Queue*>( device->GetQueue( QueueType::ePresent ) ) };
         ID3D12CommandQueue* cmdQueue{ *queue };
 
+        BOOL allowTearing{ FALSE };
+        Microsoft::WRL::ComPtr<IDXGIFactory5> factory5;
+        if (SUCCEEDED(mDxgiFactory.As(&factory5))) {
+            HRESULT hr{ factory5->CheckFeatureSupport(
+                DXGI_FEATURE_PRESENT_ALLOW_TEARING,
+                &allowTearing,
+                sizeof(allowTearing) ) };
+
+            if (FAILED(hr)) {
+                allowTearing = FALSE;
+            }
+        }
+
+        if (allowTearing) {
+            swapChainDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+        }
+
         Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain1{};
         ThrowIfFailed(ctx->GetDxGIFactory4()->CreateSwapChainForHwnd(
             cmdQueue,
@@ -217,7 +236,6 @@ namespace mikoto::renderer::d3d12 {
                 presentImage->SetDebugName( string::Format( "Swapchain Img. Index {}", index ) );
                 mBackBufferImages.emplace_back(presentImage);
             }
-
         }
 
         mIsAllocated = true;

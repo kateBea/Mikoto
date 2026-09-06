@@ -107,9 +107,6 @@ Mikoto/
 | **`Resources/`**      | Repo stuff and some models, textures, and other assets to play around with.                                            |
 | **`Mikoto-Engine/`**  | Core engine implementation, including rendering, ECS, physics, asset management, scripting, and other runtime systems. |
 | **`Mikoto-Editor/`**  | Editor application built on top of the engine for creating, editing, and managing scenes.                              |
-| **`Mikoto-Sandbox/`** | Sample application used to experiment with and demonstrate Mikoto's features.                                          |
-| **`Mikoto-Tests/`**   | Tests covering engine systems and core functionality.                                                                  |
-| **`Mikoto-Apps/`**    | Standalone applications and smaller examples built with Mikoto.                                                        |
 
 ### External Assets
 

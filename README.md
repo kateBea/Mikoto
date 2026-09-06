@@ -92,13 +92,6 @@ Additional platform-specific dependencies and setup instructions are covered in 
 
 The repository is organized into separate projects for the engine, editor, examples, and tests:
 
-```text
-Mikoto/
-├── Resources/
-├── Mikoto-Engine/
-├── Mikoto-Editor/
-```
-
 | Directory             | Description                                                                                                            |
 |-----------------------|------------------------------------------------------------------------------------------------------------------------|
 | **`Resources/`**      | Repo stuff and some models, textures, and other assets to play around with.                                            |

@@ -334,14 +334,14 @@ namespace mikoto::renderer {
 
     auto PhysicsDebugRendererSimple::InitSimpleDrawPasses() -> void {
         auto linesDesc{ BufferCreateDescription{}
-            .SetBufferUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetBufferUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetHeapType( HeapType::eDeviceLocal )
             .ForElement( MKT_SIZEOF( DebugLine ), kMaxVerticesLines )
             .SetCpuAccessType( AccessType::eRead ) };
         mLinesBuffer = mDevice->CreateBuffer( linesDesc );
 
         auto trianglesDesc{ BufferCreateDescription{}
-            .SetBufferUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetBufferUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetHeapType( HeapType::eDeviceLocal )
             .ForElement( MKT_SIZEOF( DebugTriangle ), kMaxVerticesTriangles )
             .SetCpuAccessType( AccessType::eRead ) };

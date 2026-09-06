@@ -674,7 +674,7 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto CreateBindingLayout( const rhi::BindingLayoutDescription& desc ) -> rhi::BindingLayoutHandle override;
         MKT_NODISCARD auto CreatePipelineLayout( const rhi::PipelineLayoutCreateDescription& desc ) -> rhi::PipelineLayoutHandle override;
-        MKT_NODISCARD auto CreateBindingSet( const rhi::BindingTableDescription& desc, rhi::BindingLayoutHandle layout ) -> rhi::BindingSetHandle override;
+        MKT_NODISCARD auto CreateBindingSet( const rhi::BindingTableDescription& desc, rhi::BindingLayoutHandle layout ) -> rhi::BindingTableHandle override;
 
         MKT_NODISCARD auto CreateFence( core::u64 fenceInitialValue ) -> rhi::FenceHandle override;
 
@@ -712,8 +712,8 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetDescriptorAllocator() -> DescriptorAllocatorHandle;
 
         MKT_NODISCARD auto GetDevice() -> VkDevice;
-        MKT_NODISCARD auto GetPhysicalDevice() -> PhysicalDevice*;
         MKT_NODISCARD auto GetAllocator() -> GpuMemoryAllocator*;
+        MKT_NODISCARD auto GetPhysicalDevice() const -> const PhysicalDevice*;
 
         // Query the physical device features we have enabled ourselves
         MKT_NODISCARD auto GetActivePhysicalDeviceFeatures() const -> const VkPhysicalDeviceFeatures&;

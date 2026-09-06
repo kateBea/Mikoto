@@ -250,7 +250,7 @@ namespace mikoto::renderer {
 
         const auto kernelBufferDesc{ FGBufferDescription{}
             .SetName( "SSAO_KernelBuffer" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( MKT_VECTOR_SIZE_BYTES( mSsaoKernelSamples ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mSsaoKernelBuffer = graph.Create( kernelBufferDesc );

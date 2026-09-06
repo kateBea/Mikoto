@@ -85,7 +85,7 @@ namespace mikoto::editor {
         renderer::rhi::CommandListHandle mCommandList{};
 
         renderer::rhi::PipelineHandle mPipeline{};
-        renderer::rhi::BindingSetHandle mBindingSetHandle{};
+        renderer::rhi::BindingTableHandle mBindingSetHandle{};
         renderer::rhi::BindingLayoutHandle mBindlessLayout{};
         renderer::rhi::DescriptorTableHandle mDescriptorTable{};
         renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};

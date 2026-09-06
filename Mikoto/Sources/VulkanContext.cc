@@ -92,21 +92,24 @@ namespace mikoto::renderer::vulkan {
         });
 
         if (!mDevice) {
-            MKT_THROW_RUNTIME_ERROR( "VulkanContext - Could not create GPU Device." );
+            MKT_THROW_RUNTIME_ERROR( "Could not create GPU Device." );
         }
         mDevice->Init();
+
+        if (!mDevice->IsInitialized()) {
+            MKT_THROW_RUNTIME_ERROR( "Could not initialize GPU Device." );
+        }
 
         CreateSwapchain();
         InitSynchronization();
 
         InitSwapchainRender();
 
-        return mDevice && mDevice->IsInitialized();
+        return mDevice != nullptr;
     }
 
     auto Context::Shutdown() -> void {
-        Device* device{ checked_cast<Device*>(mDevice.get()) };
-        device->WaitIdle();
+        mDevice->WaitIdle();
 
         mPipeline.Release();
         mPipelineLayoutHandle.Release();

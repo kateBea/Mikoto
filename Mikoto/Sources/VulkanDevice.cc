@@ -236,12 +236,12 @@ namespace mikoto::renderer::vulkan {
         return layout;
     }
 
-    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
-        BindingSetHandle set{ Ref<BindingTable>::New( desc, layout ) };
+    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingTableHandle {
+        BindingTableHandle set{ Ref<BindingTable>::New( desc, layout ) };
 
         if ( set.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding set resource." );
-            return BindingSetHandle::CreateEmpty();
+            return BindingTableHandle::CreateEmpty();
         }
 
         set->Initialize( this );
@@ -471,7 +471,7 @@ namespace mikoto::renderer::vulkan {
         return mDescriptorAllocatorPool->GetAllocator();
     }
 
-    auto Device::GetPhysicalDevice() -> PhysicalDevice* {
+    auto Device::GetPhysicalDevice() const -> const PhysicalDevice* {
         return mPhysicalDevice;
     }
 
@@ -1501,7 +1501,7 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::SetPolygonLineWidth( core::f32 width ) -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
-        PhysicalDevice* pPhysicalDevice{ device->GetPhysicalDevice() };
+        const PhysicalDevice* pPhysicalDevice{ device->GetPhysicalDevice() };
 
         // Does physical device support wide lines
         if (pPhysicalDevice->mFeatures.wideLines == VK_FALSE) {

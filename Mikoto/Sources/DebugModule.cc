@@ -160,7 +160,7 @@ namespace mikoto::renderer {
         const auto& formatInfo{ rhi::GetFormatInfo( Format::eRGBA8_UNORM ) };
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "TexturePass_Pipeline01_ReadbackBuffer" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 1920 * 1080 * formatInfo.mBytesPerBlock )
             .SetHeapType( HeapType::eReadback ) };
         info.mReadBackBuffer = graph.Create( bufferDesc );
@@ -263,7 +263,7 @@ namespace mikoto::renderer {
         // GPU buffer (written by compute shader)
         auto gpuBufferDesc{ FGBufferDescription{}
             .SetName( "SimpleCompute_ComputeBuffer" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopySource )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopySource )
             .SetElementsSize( simpleCompute.mNumbersCount, MKT_SIZEOF( MyStruct ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         simpleCompute.mComputeBuffer = graph.Create( gpuBufferDesc );

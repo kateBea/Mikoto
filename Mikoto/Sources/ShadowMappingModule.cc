@@ -130,7 +130,7 @@ namespace mikoto::renderer {
 
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "DirShadowsBuffer01" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxShadowMaps, MKT_SIZEOF( ShadowMapParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mDirShadowsBuffer = graph.Create( bufferDesc );
@@ -305,7 +305,7 @@ namespace mikoto::renderer {
 
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "PointShadowsBuffer01" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxShadowMaps, MKT_SIZEOF( ShadowMapParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mPointShadowsBuffer = graph.Create( bufferDesc );
@@ -361,7 +361,7 @@ namespace mikoto::renderer {
 
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "SpotShadowsBuffer01" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxShadowMaps, MKT_SIZEOF( ShadowMapParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mSpotShadowsBuffer = graph.Create( bufferDesc );

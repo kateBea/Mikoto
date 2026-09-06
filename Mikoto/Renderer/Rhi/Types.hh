@@ -422,7 +422,7 @@ namespace mikoto::renderer::rhi {
         static constexpr BufferUsageFlags Vertex{ BIT_SET(0) };
         static constexpr BufferUsageFlags Index{ BIT_SET(1) };
         static constexpr BufferUsageFlags Constant{ BIT_SET(2) };
-        static constexpr BufferUsageFlags Storage{ BIT_SET(3) };
+        static constexpr BufferUsageFlags Structured{ BIT_SET(3) };
         static constexpr BufferUsageFlags IndirectDraw{ BIT_SET(5) };
         static constexpr BufferUsageFlags CopySource{ BIT_SET(6) };
         static constexpr BufferUsageFlags CopyDest{ BIT_SET(7) };

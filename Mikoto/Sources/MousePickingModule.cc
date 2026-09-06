@@ -115,7 +115,7 @@ namespace mikoto::renderer {
         const auto& formatInfo{ rhi::GetFormatInfo( format ) };
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "ObjectSelection_ReadbackBuffer" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( dimensions.first * dimensions.second * formatInfo.mBytesPerBlock )
             .SetHeapType( HeapType::eReadback ) };
         info.mReadBackBuffer = graph.Create( bufferDesc );

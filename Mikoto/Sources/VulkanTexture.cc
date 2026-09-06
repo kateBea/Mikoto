@@ -58,12 +58,12 @@ namespace mikoto::renderer::vulkan {
         mCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
         mCreateInfo.anisotropyEnable = VK_TRUE;
 
-        if (desc.mCompareOp == rhi::CompareOp::eNever) {
+        if ( desc.mCompareOp == rhi::CompareOp::eNever ) {
             mCreateInfo.compareEnable = VK_FALSE;
-            mCreateInfo.compareOp     = VK_COMPARE_OP_NEVER;
+            mCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
         } else {
             mCreateInfo.compareEnable = VK_TRUE;
-            mCreateInfo.compareOp     = GetCompareOp(desc.mCompareOp);
+            mCreateInfo.compareOp = GetCompareOp( desc.mCompareOp );
         }
 
         // Currently we only support transparent white or transparent black
@@ -116,8 +116,15 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Sampler::Initialize() -> void {
-        mCreateInfo.maxAnisotropy = checked_cast<Device*>( mDevice )->GetPhysicalDevice()->mProperties.limits.maxSamplerAnisotropy;
-        MKT_VK_CHECK( vkCreateSampler( checked_cast<Device*>( mDevice )->GetDevice(), MKT_ADDRESSOF( mCreateInfo ), nullptr, MKT_ADDRESSOF( mSampler ) ) );
+        const Device* device{ checked_cast<const Device*>( mDevice ) };
+        const VkPhysicalDeviceProperties& deviceProps{ device->GetPhysicalDevice()->mProperties };
+        const f32 deviceMaxAnisotropy{ deviceProps.limits.maxSamplerAnisotropy };
+        if (mCreateInfo.maxAnisotropy > deviceMaxAnisotropy) {
+            mCreateInfo.maxAnisotropy = deviceMaxAnisotropy;
+        }
+
+        MKT_VK_CHECK( vkCreateSampler( checked_cast<Device*>( mDevice )->GetDevice(),
+            MKT_ADDRESSOF( mCreateInfo ), nullptr, MKT_ADDRESSOF( mSampler ) ) );
 
         mIsAllocated = true;
     }

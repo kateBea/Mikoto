@@ -2243,12 +2243,12 @@ namespace mikoto::renderer::d3d12 {
         return layout;
     }
 
-    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
-        BindingSetHandle set{ Ref<BindingTable>::New( desc, layout, mResourceHeaps ) };
+    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingTableHandle {
+        BindingTableHandle set{ Ref<BindingTable>::New( desc, layout, mResourceHeaps ) };
 
         if ( set.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding set resource." );
-            return BindingSetHandle::CreateEmpty();
+            return BindingTableHandle::CreateEmpty();
         }
 
         set->Initialize( this );

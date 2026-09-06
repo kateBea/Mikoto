@@ -57,7 +57,7 @@ namespace mikoto::renderer {
         auto& info{ graph.GetOrCreate<CameraModuleInfo>() };
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "CameraPass_Buffer01" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( MKT_SIZEOF( CameraData ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mCameraData = graph.Create( bufferDesc );

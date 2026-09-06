@@ -33,8 +33,6 @@
 
 #include <Platform/MainWindow.hh>
 
-#include <Renderer/Rhi/GpuDevice.hh>
-
 namespace mikoto::renderer::vulkan {
 
     struct VulkanQueueData {

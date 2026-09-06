@@ -186,7 +186,7 @@ namespace mikoto::renderer::d3d12 {
         rhi::ShaderModuleHandle mVertexShader{};
         rhi::ShaderModuleHandle mPixelShader{};
         rhi::PipelineHandle mPipeline{};
-        rhi::BindingSetHandle mBindingSetHandle{};
+        rhi::BindingTableHandle mBindingSetHandle{};
         rhi::BindingLayoutHandle mBindlessLayout{};
         rhi::DescriptorTableHandle mDescriptorTable{};
         rhi::BindingLayoutHandle mBindingLayoutHandle{};

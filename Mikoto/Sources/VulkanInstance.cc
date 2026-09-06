@@ -292,7 +292,6 @@ namespace mikoto::renderer::vulkan {
             vkGetPhysicalDeviceProperties( physicalDevice, MKT_ADDRESSOF( dev.mProperties ) );
             vkGetPhysicalDeviceMemoryProperties( physicalDevice, MKT_ADDRESSOF( dev.mMemoryProperties ) );
 
-
             // Queues info
             u32 queueFamilyCount{};
             vkGetPhysicalDeviceQueueFamilyProperties( physicalDevice, MKT_ADDRESSOF( queueFamilyCount ), nullptr );
@@ -343,8 +342,6 @@ namespace mikoto::renderer::vulkan {
 
             // Load swapchain capabilities
             if (mSurface != VK_NULL_HANDLE) {
-                vkGetPhysicalDeviceSurfaceCapabilitiesKHR( physicalDevice, mSurface, MKT_ADDRESSOF( dev.mCapabilities ) );
-
                 u32 formatCount{};
                 vkGetPhysicalDeviceSurfaceFormatsKHR( physicalDevice, mSurface, MKT_ADDRESSOF( formatCount ), nullptr );
                 if ( formatCount != 0 ) {

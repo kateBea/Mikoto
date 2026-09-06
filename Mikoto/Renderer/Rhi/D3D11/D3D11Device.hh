@@ -315,7 +315,7 @@ namespace mikoto::renderer::d3d11 {
 
         MKT_NODISCARD auto CreateBindingLayout( const BindingLayoutDescription& desc ) -> BindingLayoutHandle override;
         MKT_NODISCARD auto CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle override;
-        MKT_NODISCARD auto CreateBindingSet( const BindingTableDescription& desc, BindingLayoutHandle layout ) -> BindingSetHandle override;
+        MKT_NODISCARD auto CreateBindingSet( const BindingTableDescription& desc, BindingLayoutHandle layout ) -> BindingTableHandle override;
 
         MKT_NODISCARD auto CreateFence( u64 fenceInitialValue ) -> FenceHandle override;
 

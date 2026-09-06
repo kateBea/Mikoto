@@ -36,7 +36,7 @@ namespace mikoto::renderer::vulkan {
     class BinarySemaphore;
 
     struct SwapChainCreateInfo {
-        PhysicalDevice* mPhysicalDevice{};
+        const PhysicalDevice* mPhysicalDevice{};
 
         core::u32 mWidth{};
         core::u32 mHeight{};
@@ -82,11 +82,12 @@ namespace mikoto::renderer::vulkan {
         core::u32 mWidth{};
         core::u32 mHeight{};
 
-        PhysicalDevice* mPhysicalDevice{};
+        const PhysicalDevice* mPhysicalDevice{};
 
         VkSurfaceKHR mSurface{};
         VkColorSpaceKHR mColorSpace{ VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
         VkFormat mSurfaceSupportedFormat{};
+        VkSurfaceCapabilitiesKHR mSurfaceCapabilities{};
 
         eastl::vector<rhi::TextureHandle> mImages{};
 

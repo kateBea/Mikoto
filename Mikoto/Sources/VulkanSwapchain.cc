@@ -170,16 +170,16 @@ namespace mikoto::renderer::vulkan {
         // If it is equal to the maximum unsigned integer, you need to define the extent yourself within the bounds
         // of minImageExtent and maxImageExtent.
         // For now, it gets ignored
-        MKT_VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice->mPhysicalDevice, mSurface, &mPhysicalDevice->mCapabilities));
+        MKT_VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice->mPhysicalDevice, mSurface, &mSurfaceCapabilities));
 
         VkExtent2D actualExtent{};
-        if ( mPhysicalDevice->mCapabilities.currentExtent.width != ( eastl::numeric_limits<u32>::max )() ) {
-            actualExtent = mPhysicalDevice->mCapabilities.currentExtent;
+        if ( mSurfaceCapabilities.currentExtent.width != ( eastl::numeric_limits<u32>::max )() ) {
+            actualExtent = mSurfaceCapabilities.currentExtent;
         } else {
             // Because Windows macros are powerful af, we enclose max between parenthesis
             actualExtent = VkExtent2D{
-                .width = ( eastl::max )( mPhysicalDevice->mCapabilities.minImageExtent.width, eastl::min( mPhysicalDevice->mCapabilities.maxImageExtent.width, mWidth ) ),
-                .height = ( eastl::max )( mPhysicalDevice->mCapabilities.minImageExtent.height, eastl::min( mPhysicalDevice->mCapabilities.maxImageExtent.height, mHeight ) ),
+                .width = ( eastl::max )( mSurfaceCapabilities.minImageExtent.width, eastl::min( mSurfaceCapabilities.maxImageExtent.width, mWidth ) ),
+                .height = ( eastl::max )( mSurfaceCapabilities.minImageExtent.height, eastl::min( mSurfaceCapabilities.maxImageExtent.height, mHeight ) ),
             };
         }
 
@@ -192,9 +192,9 @@ namespace mikoto::renderer::vulkan {
         // before we can acquire another image to render to. Therefore, it is recommended
         // to request at least one more image, hence why we add 1. Likely the image count
         // results in the maximum swap chain image count so we do the check and clamp the resulting image count
-        u32 imageCount{ mPhysicalDevice->mCapabilities.minImageCount };
-        if ( mPhysicalDevice->mCapabilities.maxImageCount > 0 && imageCount > mPhysicalDevice->mCapabilities.maxImageCount ) {
-            imageCount = mPhysicalDevice->mCapabilities.maxImageCount;
+        u32 imageCount{ mSurfaceCapabilities.minImageCount };
+        if ( mSurfaceCapabilities.maxImageCount > 0 && imageCount > mSurfaceCapabilities.maxImageCount ) {
+            imageCount = mSurfaceCapabilities.maxImageCount;
         }
 
         VkSwapchainCreateInfoKHR createInfo{ initializers::SwapchainCreateInfoKHR() };
@@ -227,7 +227,7 @@ namespace mikoto::renderer::vulkan {
         createInfo.presentMode = presentMode;
         createInfo.oldSwapchain = mOldSwapChain;
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        createInfo.preTransform = mPhysicalDevice->mCapabilities.currentTransform;
+        createInfo.preTransform = mSurfaceCapabilities.currentTransform;
 
         MKT_VK_CHECK( vkCreateSwapchainKHR( checked_cast<Device*>(mDevice)->GetDevice(), MKT_ADDRESSOF( createInfo ), nullptr, MKT_ADDRESSOF( mSwapChain ) ) );
 

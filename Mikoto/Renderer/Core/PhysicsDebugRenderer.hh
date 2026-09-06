@@ -226,8 +226,8 @@ namespace mikoto::renderer {
 
         renderer::rhi::PipelineHandle mPipelineLines{};
         renderer::rhi::PipelineHandle mPipelineTriangles{};
-        renderer::rhi::BindingSetHandle mBindingSetLinesHandle{};
-        renderer::rhi::BindingSetHandle mBindingSetTrianglesHandle{};
+        renderer::rhi::BindingTableHandle mBindingSetLinesHandle{};
+        renderer::rhi::BindingTableHandle mBindingSetTrianglesHandle{};
         renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};
         renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
     };

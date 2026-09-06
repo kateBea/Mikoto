@@ -34,7 +34,7 @@ namespace mikoto::renderer::vulkan {
         // Perf. Warn: vkBindBufferMemory(): Trying to bind VkBuffer 0x2780000000278 to a memory block which is
         // fully consumed by the buffer. The required size of the allocation is 2880, but smaller buffers like
         // this should be sub-allocated from larger memory blocks. (Current threshold is 1048576 bytes)
-        const size_t threshHold{ MKT_MIBIBYTES( 1 ) };
+        const usize threshHold{ MKT_MIBIBYTES( 1 ) };
         mAllocation.mBufferCreateInfo.size = mElementCount == 0 ? mElementSize : mElementCount * mElementSize;
 
         switch (mHeapType) {
@@ -72,7 +72,7 @@ namespace mikoto::renderer::vulkan {
                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         }
 
-        if (mUsage.Has( BufferUsageFlagsBits::Storage )) {
+        if (mUsage.Has( BufferUsageFlagsBits::Structured )) {
             mAllocation.mBufferCreateInfo.usage |=
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         }
@@ -228,9 +228,5 @@ namespace mikoto::renderer::vulkan {
 
         auto* device{ checked_cast<Device*>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_BUFFER, rc_cast<u64>( mAllocation.mBuffer ), mDebugName );
-    }
-
-    auto Buffer::GetAlignedSize() const -> u32 {
-        return mAlignedSizeBytes;
     }
 }// namespace Mikoto

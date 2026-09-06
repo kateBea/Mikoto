@@ -171,7 +171,7 @@ namespace mikoto::renderer::rhi {
         auto Release() -> void override = 0;
     };
 
-    using BindingSetHandle = core::Ref<IBindingTable>;
+    using BindingTableHandle = core::Ref<IBindingTable>;
 
     // A resizable BindingSet
     class IDescriptorTable : public IBindingTable {

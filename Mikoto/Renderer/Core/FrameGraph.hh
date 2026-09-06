@@ -288,7 +288,7 @@ namespace mikoto::renderer {
         core::u32 mElementSizeBytes{}; // If we do not know the size of individual elements this is equal to the whole range
 
         rhi::HeapType mHeapType{ rhi::HeapType::eDeviceLocal };
-        rhi::BufferUsageFlags mBufferUsageFlags{ BufferUsageFlagsBits::Storage };
+        rhi::BufferUsageFlags mBufferUsageFlags{ BufferUsageFlagsBits::Structured };
 
         memory::BufferSpanHandle mInitialContents{};
 

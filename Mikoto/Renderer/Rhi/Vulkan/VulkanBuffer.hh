@@ -40,7 +40,6 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto GetGpuDeviceAddress() -> rhi::DeviceAddress override;
 
-        MKT_NODISCARD auto GetAlignedSize() const -> core::u32;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
@@ -57,11 +56,6 @@ namespace mikoto::renderer::vulkan {
         auto Initialize() -> void override;
 
     private:
-        // If the buffer is dynamic this value contains
-        // the size of each frame in flight slice
-        core::size_t mAlignedSizeBytes{};
-        core::size_t mStagingSliceSize{};
-
         BufferAllocation mAllocation{};
 
         bool mKeepInitializerResources{ false };

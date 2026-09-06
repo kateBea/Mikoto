@@ -131,7 +131,7 @@ namespace mikoto::editor {
 
         renderer::rhi::PipelineHandle mPipeline{};
         renderer::rhi::PipelineHandle mPipelineWireframe{};
-        renderer::rhi::BindingSetHandle mBindingSetHandle{};
+        renderer::rhi::BindingTableHandle mBindingSetHandle{};
         renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};
         renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
 

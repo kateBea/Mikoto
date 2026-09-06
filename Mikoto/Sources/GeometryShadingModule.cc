@@ -228,14 +228,14 @@ namespace mikoto::renderer {
 
         auto vertexDesc{ FGBufferDescription{}
             .SetName( "GeometryShadingBox_Vertices" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( info.mBoxVerticesCount, MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mBoxVertexBuffer = graph.Create( vertexDesc );
 
         auto indexDesc{ FGBufferDescription{}
             .SetName( "GeometryShadingBox_Indices" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( info.mBoxIndicesCount, MKT_SIZEOF( u32 ) )
             .SetHeapType( HeapType::eDeviceLocal )};
         info.mBoxIndexBuffer = graph.Create( indexDesc );

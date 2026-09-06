@@ -447,7 +447,6 @@ namespace mikoto::renderer::d3d11 {
         for ( const auto &v: state.mCurrentRenderTargets ) {
             auto& rtv{ renderTargetViews.emplace_back( as<ID3D11RenderTargetView *>( v.mRenderTarget->GetNativeHandle( ObjectType::D3D11_RTV ) ) ) };
 
-            auto& rtvClear{ v.mRenderTarget };
             const eastl::array clearColor{ v.mClearColor.mR, v.mClearColor.mG, v.mClearColor.mB, v.mClearColor.mA };
             mDeviceContextDeferred->ClearRenderTargetView(rtv, clearColor.data());
         }
@@ -1011,12 +1010,12 @@ namespace mikoto::renderer::d3d11 {
         return PipelineLayoutHandle::CreateEmpty();
     }
 
-    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
-        BindingSetHandle set{ Ref<BindingTable>::New( desc, layout ) };
+    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingTableHandle {
+        BindingTableHandle set{ Ref<BindingTable>::New( desc, layout ) };
 
         if ( set.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding layout resource." );
-            return BindingSetHandle::CreateEmpty();
+            return BindingTableHandle::CreateEmpty();
         }
 
         set->Initialize( this );

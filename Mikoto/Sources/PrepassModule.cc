@@ -59,7 +59,7 @@ namespace mikoto::renderer {
 
         auto gpuBufferDesc{ FGBufferDescription{}
             .SetName( "AABBGenComp_Clusters" )
-            .SetUsage( BufferUsageFlagsBits::Storage )
+            .SetUsage( BufferUsageFlagsBits::Structured )
             .SetElementsSize( mNumClusters, MKT_SIZEOF( ClusterParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mClusterBuffer = graph.Create( gpuBufferDesc );
@@ -109,7 +109,7 @@ namespace mikoto::renderer {
 
         auto gpuBufferDesc{ FGBufferDescription{}
             .SetName( "LightCulling_Clusters" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxActiveLights, MKT_SIZEOF( LightParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mLightsBuffer = graph.Create( gpuBufferDesc );

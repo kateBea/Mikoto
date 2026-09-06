@@ -96,7 +96,7 @@ namespace mikoto::renderer {
 
         auto textDataBufferDesc{ FGBufferDescription{}
             .SetName( "MSDFText_RenderData" )
-            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( kMaxGlyphs * MKT_SIZEOF( TextDrawParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mMsdfTextRenderData = graph.Create( textDataBufferDesc );

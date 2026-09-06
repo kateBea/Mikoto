@@ -437,6 +437,9 @@ namespace mikoto::renderer::d3d12 {
 
             auto* allocator{ device->GetAllocator() };
             ThrowIfFailed( allocator->AllocateImage( mImageAllocation ) );
+
+            // Allocator creates them in common state
+            mResourceState = ResourceStates::eCommon;
         }
 
         // Create the descriptor when the resource already exists to not create a null view

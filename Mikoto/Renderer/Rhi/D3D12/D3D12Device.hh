@@ -438,6 +438,7 @@ namespace mikoto::renderer::d3d12 {
         eastl::fixed_vector<GpuUploadAllocation*, 10> mInFlightSubAllocations{};
     };
 
+    // https://devblogs.microsoft.com/directx/a-look-inside-d3d12-resource-state-barriers/
     // https://learn.microsoft.com/en-us/windows/win32/direct3d12/recording-command-lists-and-bundles
     class CommandList final : public ICommandList {
     public:

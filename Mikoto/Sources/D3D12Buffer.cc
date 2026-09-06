@@ -274,6 +274,9 @@ namespace mikoto::renderer::d3d12 {
             mAllocation.mDesc.Width = d3d12::kConstantBufferOffsetSizeAlignment;
         }
 
+        // Allocator creates them in common state
+        mResourceState = ResourceStates::eCommon;
+
         mAllocation.mAllocDesc.HeapType = d3d12::GetHeapType(mHeapType);
 
         auto* allocator{ device->GetAllocator() };

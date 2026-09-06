@@ -235,6 +235,7 @@ namespace mikoto::renderer::d3d12 {
         mDebugController->EnableDebugLayer();
         mDebugController->SetEnableGPUBasedValidation( true );
         mDebugController->SetEnableSynchronizedCommandQueueValidation( true );
+        mDebugController->SetForceLegacyBarrierValidation( true );
 
         ThrowIfFailed( DXGIGetDebugInterface1( 0, IID_PPV_ARGS( &mDxGIDebug ) ) );
 #endif
@@ -536,6 +537,8 @@ namespace mikoto::renderer::d3d12 {
             .AddShader( mVertexShader )
 
             .AddColorFormat( Format::eBGRA8_UNORM )
+            .SetDepthTest( false )
+            .SetDepthWrite( false )
 
             .SetPolygonMode( PolygonMode::eFill )
             .SetCullMode( CullMode::eCullBack )

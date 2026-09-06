@@ -71,10 +71,17 @@ namespace mikoto::renderer::rhi {
         eInvalid,
         eSPIRV,
         eGLSL,
-        eHLSL_5_0,
-        eHLSL_5_1,
+        eHLSL,
         eDXIL,
         eSlang,
+    };
+
+    enum class ViewportConvention {
+        eNone,
+        eLeftHanded_OriginTopLeft,
+        eLeftHanded_OriginBottomLeft,
+        eRightHanded_OriginTopLeft,
+        eRightHanded_OriginBottomLeft,
     };
 
     enum class ObjectType {
@@ -327,7 +334,7 @@ namespace mikoto::renderer::rhi {
         eReadback
     };
 
-    enum class CpuAccessType {
+    enum class AccessType {
         eNone,
         eRead,
         eWrite,
@@ -411,14 +418,14 @@ namespace mikoto::renderer::rhi {
     using BufferUsageFlags = core::Flags<BufferUsageFlagsProperties>;
 
     struct BufferUsageFlagsBits {
-        static constexpr BufferUsageFlags kNone{ 0 };
-        static constexpr BufferUsageFlags kVertex{ BIT_SET(0) };
-        static constexpr BufferUsageFlags kIndex{ BIT_SET(1) };
-        static constexpr BufferUsageFlags kConstant{ BIT_SET(2) };
-        static constexpr BufferUsageFlags kStorage{ BIT_SET(3) };
-        static constexpr BufferUsageFlags kIndirectDraw{ BIT_SET(5) };
-        static constexpr BufferUsageFlags kCopySrc{ BIT_SET(6) };
-        static constexpr BufferUsageFlags kCopyDst{ BIT_SET(7) };
+        static constexpr BufferUsageFlags None{ 0 };
+        static constexpr BufferUsageFlags Vertex{ BIT_SET(0) };
+        static constexpr BufferUsageFlags Index{ BIT_SET(1) };
+        static constexpr BufferUsageFlags Constant{ BIT_SET(2) };
+        static constexpr BufferUsageFlags Storage{ BIT_SET(3) };
+        static constexpr BufferUsageFlags IndirectDraw{ BIT_SET(5) };
+        static constexpr BufferUsageFlags CopySource{ BIT_SET(6) };
+        static constexpr BufferUsageFlags CopyDest{ BIT_SET(7) };
     };
 
     // Texture usage flags
@@ -429,15 +436,15 @@ namespace mikoto::renderer::rhi {
     using TextureUsageFlags = core::Flags<TextureFlagsProperties>;
 
     struct TextureUsageFlagsBits {
-        static constexpr TextureUsageFlags kNone{ 0 };
+        static constexpr TextureUsageFlags None{ 0 };
 
-        static constexpr TextureUsageFlags kRenderTarget{ BIT_SET( 0 ) };
-        static constexpr TextureUsageFlags kDepthTarget{ BIT_SET( 1 ) };
-        static constexpr TextureUsageFlags kStencilTarget{ BIT_SET( 2 ) };
-        static constexpr TextureUsageFlags kDepthStencilTarget{ BIT_SET( 3 ) };
-        static constexpr TextureUsageFlags kShaderResource{ BIT_SET( 4 ) };
-        static constexpr TextureUsageFlags kCopySrc{ BIT_SET(5) };
-        static constexpr TextureUsageFlags kCopyDst{ BIT_SET(6) };
+        static constexpr TextureUsageFlags RenderTarget{ BIT_SET( 0 ) };
+        static constexpr TextureUsageFlags DepthTarget{ BIT_SET( 1 ) };
+        static constexpr TextureUsageFlags StencilTarget{ BIT_SET( 2 ) };
+        static constexpr TextureUsageFlags DepthStencilTarget{ BIT_SET( 3 ) };
+        static constexpr TextureUsageFlags ShaderResource{ BIT_SET( 4 ) };
+        static constexpr TextureUsageFlags CopySource{ BIT_SET( 5 ) };
+        static constexpr TextureUsageFlags CopyDest{ BIT_SET( 6 ) };
     };
 
     // Shader usage flags
@@ -448,22 +455,22 @@ namespace mikoto::renderer::rhi {
     using ShaderFlags = core::Flags<ShaderFlagsProperties>;
 
     struct ShaderFlagsBits {
-        static constexpr ShaderFlags kVertex{ BIT_SET( 0 ) };
-        static constexpr ShaderFlags kPixel{ BIT_SET( 1 ) };
-        static constexpr ShaderFlags kCompute{ BIT_SET( 2 ) };
+        static constexpr ShaderFlags Vertex{ BIT_SET( 0 ) };
+        static constexpr ShaderFlags Pixel{ BIT_SET( 1 ) };
+        static constexpr ShaderFlags Compute{ BIT_SET( 2 ) };
 
-        static constexpr ShaderFlags kGeometry{ BIT_SET( 3 ) };
+        static constexpr ShaderFlags Geometry{ BIT_SET( 3 ) };
 
-        static constexpr ShaderFlags kHull{ BIT_SET( 4 ) };
-        static constexpr ShaderFlags kDomain{ BIT_SET( 5 ) };
+        static constexpr ShaderFlags Hull{ BIT_SET( 4 ) };
+        static constexpr ShaderFlags Domain{ BIT_SET( 5 ) };
 
-        static constexpr ShaderFlags kRayGeneration{ BIT_SET( 6 ) };
-        static constexpr ShaderFlags kIntersection{ BIT_SET( 7 ) };
-        static constexpr ShaderFlags kAnyHit{ BIT_SET( 8 ) };
-        static constexpr ShaderFlags kClosestHit{ BIT_SET( 9 ) };
-        static constexpr ShaderFlags kMiss{ BIT_SET( 10 ) };
+        static constexpr ShaderFlags RayGeneration{ BIT_SET( 6 ) };
+        static constexpr ShaderFlags Intersection{ BIT_SET( 7 ) };
+        static constexpr ShaderFlags AnyHit{ BIT_SET( 8 ) };
+        static constexpr ShaderFlags ClosestHit{ BIT_SET( 9 ) };
+        static constexpr ShaderFlags Miss{ BIT_SET( 10 ) };
 
-        static constexpr ShaderFlags kAll{ ~0U };
+        static constexpr ShaderFlags All{ ~0U };
     };
 
     // Queue support flags
@@ -474,10 +481,12 @@ namespace mikoto::renderer::rhi {
     using QueueOpSupportFlags = core::Flags<QueueOpSupportFlagsProperties>;
 
     struct QueueOpSupportFlagsBits {
-        static constexpr QueueOpSupportFlags kGraphics{ BIT_SET( 0 ) };
-        static constexpr QueueOpSupportFlags kTransfer{ BIT_SET( 1 ) };
-        static constexpr QueueOpSupportFlags kCompute{ BIT_SET( 2 ) };
-        static constexpr QueueOpSupportFlags kPresentation{ BIT_SET( 3 ) };
+        static constexpr QueueOpSupportFlags Graphics{ BIT_SET( 0 ) };
+        static constexpr QueueOpSupportFlags Transfer{ BIT_SET( 1 ) };
+        static constexpr QueueOpSupportFlags Compute{ BIT_SET( 2 ) };
+        static constexpr QueueOpSupportFlags Presentation{ BIT_SET( 3 ) };
+        static constexpr QueueOpSupportFlags VideoEncode{ BIT_SET( 4 ) };
+        static constexpr QueueOpSupportFlags VideoDecode{ BIT_SET( 5 ) };
     };
 
     // Pipeline stage flags
@@ -487,66 +496,45 @@ namespace mikoto::renderer::rhi {
     using PipelineStageFlags = core::Flags<PipelineStageFlagsProperties>;
 
     struct PipelineStageFlagsBits {
-        static constexpr PipelineStageFlags kNone{ BIT_SET( 0 ) };
+        static constexpr PipelineStageFlags None{ BIT_SET( 0 ) };
 
-        static constexpr PipelineStageFlags kTop{ BIT_SET( 0 ) };
-        static constexpr PipelineStageFlags kDrawIndirect{ BIT_SET( 1 ) };
-        static constexpr PipelineStageFlags kVertexInput{ BIT_SET( 2 ) };
-        static constexpr PipelineStageFlags kVertexShader{ BIT_SET( 3 ) };
-        static constexpr PipelineStageFlags kHullShader{ BIT_SET( 4 ) };
-        static constexpr PipelineStageFlags kDomainShader{ BIT_SET( 5 ) };
-        static constexpr PipelineStageFlags kGeometryShader{ BIT_SET( 6 ) };
-        static constexpr PipelineStageFlags kPixelShader{ BIT_SET( 7 ) };
+        static constexpr PipelineStageFlags Top{ BIT_SET( 0 ) };
+        static constexpr PipelineStageFlags DrawIndirect{ BIT_SET( 1 ) };
+        static constexpr PipelineStageFlags VertexInput{ BIT_SET( 2 ) };
+        static constexpr PipelineStageFlags VertexShader{ BIT_SET( 3 ) };
+        static constexpr PipelineStageFlags HullShader{ BIT_SET( 4 ) };
+        static constexpr PipelineStageFlags DomainShader{ BIT_SET( 5 ) };
+        static constexpr PipelineStageFlags GeometryShader{ BIT_SET( 6 ) };
+        static constexpr PipelineStageFlags PixelShader{ BIT_SET( 7 ) };
 
-        static constexpr PipelineStageFlags kEarlyFragmentTests{ BIT_SET( 8 ) };
-        static constexpr PipelineStageFlags kLateFragmentTests{ BIT_SET( 9 ) };
-        static constexpr PipelineStageFlags kColorAttachment{ BIT_SET( 10 ) };
+        static constexpr PipelineStageFlags EarlyFragmentTests{ BIT_SET( 8 ) };
+        static constexpr PipelineStageFlags LateFragmentTests{ BIT_SET( 9 ) };
+        static constexpr PipelineStageFlags RenderTarget{ BIT_SET( 10 ) };
 
-        static constexpr PipelineStageFlags kComputeShader{ BIT_SET( 11 ) };
-        static constexpr PipelineStageFlags kTransfer{ BIT_SET( 12 ) };
+        static constexpr PipelineStageFlags ComputeShader{ BIT_SET( 11 ) };
+        static constexpr PipelineStageFlags Transfer{ BIT_SET( 12 ) };
 
-        static constexpr PipelineStageFlags kBottom{ BIT_SET( 13 ) };
-        static constexpr PipelineStageFlags kHost{ BIT_SET( 14 ) };
+        static constexpr PipelineStageFlags Bottom{ BIT_SET( 13 ) };
+        static constexpr PipelineStageFlags Host{ BIT_SET( 14 ) };
 
-        static constexpr PipelineStageFlags kAllGraphics{ BIT_SET( 15 ) };
-        static constexpr PipelineStageFlags kAllCommands{ BIT_SET( 16 ) };
+        static constexpr PipelineStageFlags AllGraphics{ BIT_SET( 15 ) };
+        static constexpr PipelineStageFlags AllCommands{ BIT_SET( 16 ) };
 
-        static constexpr PipelineStageFlags kCopy{ BIT_SET( 32 ) };
-        static constexpr PipelineStageFlags kResolve{ BIT_SET( 33 ) };
-        static constexpr PipelineStageFlags kBlit{ BIT_SET( 34 ) };
-        static constexpr PipelineStageFlags kClear{ BIT_SET( 35 ) };
-        static constexpr PipelineStageFlags kIndexInput{ BIT_SET( 36 ) };
+        static constexpr PipelineStageFlags Copy{ BIT_SET( 32 ) };
+        static constexpr PipelineStageFlags Resolve{ BIT_SET( 33 ) };
+        static constexpr PipelineStageFlags Blit{ BIT_SET( 34 ) };
+        static constexpr PipelineStageFlags Clear{ BIT_SET( 35 ) };
+        static constexpr PipelineStageFlags IndexInput{ BIT_SET( 36 ) };
 
-        static constexpr PipelineStageFlags kPreRasterizationShaders{ BIT_SET( 38 ) };
+        static constexpr PipelineStageFlags PreRasterizationShaders{ BIT_SET( 38 ) };
 
-        static constexpr PipelineStageFlags kTaskShader{ BIT_SET( 19 ) };
-        static constexpr PipelineStageFlags kMeshShader{ BIT_SET( 20 ) };
+        static constexpr PipelineStageFlags TaskShader{ BIT_SET( 19 ) };
+        static constexpr PipelineStageFlags MeshShader{ BIT_SET( 20 ) };
 
-        static constexpr PipelineStageFlags kAccelerationStructureBuild{ BIT_SET( 25 ) };
-        static constexpr PipelineStageFlags kRayTracingShader{ BIT_SET( 21 ) };
+        static constexpr PipelineStageFlags AccelerationStructureBuild{ BIT_SET( 25 ) };
+        static constexpr PipelineStageFlags RayTracingShader{ BIT_SET( 21 ) };
 
-        static constexpr PipelineStageFlags kAll{ 0xFFFFFFFF };
-    };
-
-    // Resource access flags
-    struct AccessFlagsProperties {
-        using Data = core::u32;
-    };
-    using AccessFlags = core::Flags<AccessFlagsProperties>;
-
-    struct AccessFlagsBits {
-        static constexpr AccessFlags kNone{ 0 };
-        static constexpr AccessFlags kIndirectRead{ BIT_SET(0) };
-        static constexpr AccessFlags kIndexRead{ BIT_SET(1) };
-        static constexpr AccessFlags kVertexRead{ BIT_SET(2) };
-        static constexpr AccessFlags kConstantRead{ BIT_SET(3) };
-        static constexpr AccessFlags kShaderRead{ BIT_SET(4) };
-        static constexpr AccessFlags kShaderWrite{ BIT_SET(5) };
-        static constexpr AccessFlags kRenderTarget{ BIT_SET(6) };
-        static constexpr AccessFlags kDepthStencilRead{ BIT_SET(7) };
-        static constexpr AccessFlags kDepthStencilWrite{ BIT_SET(8) };
-        static constexpr AccessFlags kCopyRead{ BIT_SET(9) };
-        static constexpr AccessFlags kCopyWrite{ BIT_SET(10) };
+        static constexpr PipelineStageFlags All{ ~0ULL };
     };
 
     // Texture layout flags
@@ -556,16 +544,15 @@ namespace mikoto::renderer::rhi {
     using TextureLayoutFlags = core::Flags<TextureLayoutProperties>;
 
     struct TextureLayoutBits {
-        static constexpr TextureLayoutFlags kUnknown{ 0 };
-        static constexpr TextureLayoutFlags kGeneral{ BIT_SET(1) };
-        static constexpr TextureLayoutFlags kColorAttachment{ BIT_SET(2) };
-        static constexpr TextureLayoutFlags kDepthStencilWrite{ BIT_SET(3) };
-        static constexpr TextureLayoutFlags kDepthStencilRead{ BIT_SET(4) };
-        static constexpr TextureLayoutFlags kShaderResource{ BIT_SET(5) };
-        static constexpr TextureLayoutFlags kUnorderedAccess{ BIT_SET(6) }; // For RW textures
-        static constexpr TextureLayoutFlags kCopySrc{ BIT_SET(7) };
-        static constexpr TextureLayoutFlags kCopyDst{ BIT_SET(8) };
-        static constexpr TextureLayoutFlags kPresent{ BIT_SET(9) };
+        static constexpr TextureLayoutFlags Unknown{ 0 };
+        static constexpr TextureLayoutFlags General{ BIT_SET(1) };
+        static constexpr TextureLayoutFlags RenderTarget{ BIT_SET(2) };
+        static constexpr TextureLayoutFlags DepthStencil{ BIT_SET(3) };
+        static constexpr TextureLayoutFlags ShaderResource{ BIT_SET(4) };
+        static constexpr TextureLayoutFlags UnorderedAccess{ BIT_SET(5) }; // For RW textures
+        static constexpr TextureLayoutFlags CopySource{ BIT_SET(6) };
+        static constexpr TextureLayoutFlags CopyDest{ BIT_SET(7) };
+        static constexpr TextureLayoutFlags Present{ BIT_SET(8) };
     };
 
     // Resource format info
@@ -575,14 +562,14 @@ namespace mikoto::renderer::rhi {
         core::u8 mBytesPerBlock{};
         core::u8 mBlockSize{};
         FormatKind mKind{};
-        bool mHasRed : 1 {};
-        bool mHasGreen : 1 {};
-        bool mHasBlue : 1 {};
-        bool mHasAlpha : 1 {};
-        bool mHasDepth : 1 {};
-        bool mHasStencil : 1 {};
-        bool mIsSigned : 1 {};
-        bool mIsSRGB : 1 {};
+        bool mHasRed{};
+        bool mHasGreen{};
+        bool mHasBlue{};
+        bool mHasAlpha{};
+        bool mHasDepth{};
+        bool mHasStencil{};
+        bool mIsSigned{};
+        bool mIsSRGB{};
     };
 
     // Describes a piece of a buffer

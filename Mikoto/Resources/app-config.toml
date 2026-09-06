@@ -21,7 +21,7 @@ fonts = "Fonts" # Path to the fonts
 logs = "Logs" # Path to the fonts
 
 [renderer]
-api = "vulkan"                     # Rendering API (vulkan)
+api = "d3d12"                     # Rendering API (vulkan)
 vsync = true                       # Enable/disable VSync
 
 [application]

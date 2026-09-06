@@ -451,37 +451,37 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = false;
     }
 
-    BindingSet::BindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout, DeviceResources& resources )
+    BindingTable::BindingTable( const BindingTableDescription &desc, BindingLayoutHandle layout, DeviceResources& resources )
        : mBindingLayout{ layout }, mBindingDescription{ desc }, mDeviceResources{ MKT_ADDRESSOF( resources ) }
     {}
 
-    auto BindingSet::SetDebugName( eastl::string_view name ) -> void {
+    auto BindingTable::SetDebugName( eastl::string_view name ) -> void {
 
     }
 
-    auto BindingSet::GetNativeHandle( ObjectType type ) -> Object {
-        return IBindingSet::GetNativeHandle( type );
+    auto BindingTable::GetNativeHandle( ObjectType type ) -> Object {
+        return IBindingTable::GetNativeHandle( type );
     }
 
-    auto BindingSet::GetNativeHandle( ObjectType type ) const -> Object {
-        return IBindingSet::GetNativeHandle( type );
+    auto BindingTable::GetNativeHandle( ObjectType type ) const -> Object {
+        return IBindingTable::GetNativeHandle( type );
     }
 
-    auto BindingSet::GetSrvRange() const -> const DescriptorRange& {
+    auto BindingTable::GetSrvRange() const -> const DescriptorRange& {
         return mSrvRange;
     }
 
-    auto BindingSet::GetSamplerRange() const -> const DescriptorRange& {
+    auto BindingTable::GetSamplerRange() const -> const DescriptorRange& {
         return mSamplerRange;
     }
 
-    BindingSet::~BindingSet() {
+    BindingTable::~BindingTable() {
         if (mIsAllocated) {
             Release();
         }
     }
 
-    auto BindingSet::Initialize() -> void {
+    auto BindingTable::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
 
         // Allocate one contiguous range for all SRV/etc descriptors
@@ -490,7 +490,7 @@ namespace mikoto::renderer::d3d12 {
         mSrvRange.mCount = descriptorCount;
 
         for (u32 i{}; i < descriptorCount; ++i) {
-            const BindingSetItem& binding{ mBindingDescription.mBindings[i] };
+            const BindingTableItem& binding{ mBindingDescription.mBindings[i] };
 
             DescriptorIndex index{ mSrvRange.mBaseIndex + i };
             D3D12_CPU_DESCRIPTOR_HANDLE cpu{ mDeviceResources->mShaderResourceViewHeap->GetCpuHandle(index) };
@@ -522,7 +522,7 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    auto BindingSet::Release() -> void {
+    auto BindingTable::Release() -> void {
         // Release descriptor indices
         u32 descriptorCount{ as<u32>(mBindingDescription.mBindings.size()) };
         mDeviceResources->mShaderResourceViewHeap->ReleaseDescriptors(mSrvRange.mBaseIndex, descriptorCount);
@@ -1004,8 +1004,8 @@ namespace mikoto::renderer::d3d12 {
         barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
         barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
 
-        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
-        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mStageBefore, desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mStageAfter, desc.mAccessAfter);
 
         barrier.pResource    = *buffer;
         barrier.Offset       = desc.mRange.mByteOffset;
@@ -1022,11 +1022,11 @@ namespace mikoto::renderer::d3d12 {
         barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
         barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
 
-        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
-        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mStageBefore, desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mStageAfter, desc.mAccessAfter);
 
-        barrier.LayoutBefore = d3d12::GetBarrierLayout(desc.mLayoutBefore);
-        barrier.LayoutAfter  = d3d12::GetBarrierLayout(desc.mLayoutAfter);
+        barrier.LayoutBefore = d3d12::GetBarrierLayout(desc.mLayoutBefore, desc.mAccessBefore);
+        barrier.LayoutAfter  = d3d12::GetBarrierLayout(desc.mLayoutAfter, desc.mAccessAfter);
 
         barrier.pResource = *texture;
 
@@ -1049,8 +1049,8 @@ namespace mikoto::renderer::d3d12 {
         barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
         barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
 
-        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
-        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mStageBefore, desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mStageAfter, desc.mAccessAfter);
 
         barrier.pResource    = *buffer;
         barrier.Offset       = desc.mRange.mByteOffset;
@@ -1072,11 +1072,11 @@ namespace mikoto::renderer::d3d12 {
         barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
         barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
 
-        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
-        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mStageBefore, desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mStageAfter, desc.mAccessAfter);
 
-        barrier.LayoutBefore = d3d12::GetBarrierLayout(desc.mLayoutBefore);
-        barrier.LayoutAfter  = d3d12::GetBarrierLayout(desc.mLayoutAfter);
+        barrier.LayoutBefore = d3d12::GetBarrierLayout(desc.mLayoutBefore, desc.mAccessBefore);
+        barrier.LayoutAfter  = d3d12::GetBarrierLayout(desc.mLayoutAfter, desc.mAccessAfter);
 
         barrier.pResource = *texture;
 
@@ -1652,7 +1652,7 @@ namespace mikoto::renderer::d3d12 {
         };
 
         for (const auto& [rootParameterIndex, bindingSet] : desc.mResourceSets) {
-            const BindingSet* table{ checked_cast<BindingSet*>(bindingSet) };
+            const BindingTable* table{ checked_cast<BindingTable*>(bindingSet) };
             const DescriptorRange& srvRange{ table->GetSrvRange() };
             const DescriptorRange& samplerRange{ table->GetSamplerRange() };
 
@@ -1702,7 +1702,7 @@ namespace mikoto::renderer::d3d12 {
         u32 rootParameterIndex{ d3d12PipelineLayout->GetRootConstantIndex() };
         u32 numValues32Bit{ as<u32>( ( byteSize + 3 ) / 4 ) };
 
-        if ( visibility == rhi::ShaderFlagsBits::kCompute ) {
+        if ( visibility == rhi::ShaderFlagsBits::Compute ) {
             mCurrentRecordingContext->mCommandList->SetComputeRoot32BitConstants(
                 rootParameterIndex,
                 numValues32Bit,
@@ -1887,10 +1887,10 @@ namespace mikoto::renderer::d3d12 {
 
         auto bufferDes{ BufferCreateDescription{}
             .SetByteSize( initialSize )
-            .SetCpuAccessType( CpuAccessType::eWrite )
+            .SetCpuAccessType( AccessType::eWrite )
             .SetHeapType( HeapType::eUpload )
             .SetResourceType( ResourceType::eInvalid ) // Is not a shader resource
-            .SetBufferUsage( BufferUsageFlagsBits::kNone ) };
+            .SetBufferUsage( BufferUsageFlagsBits::None ) };
         BufferHandle result{ mDevice->CreateBuffer( bufferDes ) };
 
         result->SetDebugName( string::Format( "UploadBuffer Size: {}", initialSize ) );
@@ -1912,29 +1912,95 @@ namespace mikoto::renderer::d3d12 {
     }
 
     Device::Device( const GpuDeviceCreateInfo &createInfo )
-        : IGpuDevice{ createInfo.mApi, createInfo.mFeaturesSupport }
+        : IGpuDevice{ createInfo.mApi, createInfo.mDeviceType, createInfo.mFeatureSupportFlags }
     {}
 
     auto Device::Init() -> void {
-        IDXGIFactory4* factory{ checked_cast<Context*>( RenderSystem::Get()->GetContext() )->GetDxGIFactory() };
-        MKT_ASSERT( factory, "A valid DirectX factory interface is required to create the device." );
+        IDXGIFactory4* factory4{ checked_cast<Context*>( RenderSystem::Get()->GetContext() )->GetDxGIFactory4() };
+        IDXGIFactory6* factory6{ checked_cast<Context*>( RenderSystem::Get()->GetContext() )->GetDxGIFactory6() };
 
-        // We use adapter 1 to query available physical devices
-        for (UINT adapterIndex{};
-            DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(adapterIndex, &mAdapter1);
-            ++adapterIndex)
-        {
-            DXGI_ADAPTER_DESC1 desc{};
-            mAdapter1->GetDesc1(&desc);
+        MKT_ASSERT( factory4, "A valid DirectX factory interface is required to create the device." );
 
-            // Don't select the Basic Render Driver adapter.
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
-                continue;
+        SIZE_T maxDedicatedVideoMemory{};
+        Microsoft::WRL::ComPtr<IDXGIAdapter1> adapterForDescription{};
+
+        // Factory 6 makes it easy to query dedicated graphics card otherwise we need to manually handle it
+        // easiest is to keep track of dedicated video memory which is higher in discrete GPUs.
+        // Here we basically keep in mAdapter1 an instance of the adapter that matches our look up criteria
+        // adapterForDescription is simply used to fetch descriptions and not mAdapter1 as the later would otherwise get overwritten
+        // from EnumAdapterByGpuPreference
+        if (!factory6) {
+            DXGI_GPU_PREFERENCE preference{ DXGI_GPU_PREFERENCE_UNSPECIFIED };
+
+            switch (mDeviceType) {
+                case GpuDeviceType::eDiscrete:
+                    preference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
+                    break;
+                case GpuDeviceType::eIntegrated:
+                    preference = DXGI_GPU_PREFERENCE_MINIMUM_POWER;
+                    break;
+                default:
+                    preference = DXGI_GPU_PREFERENCE_UNSPECIFIED;
+                    break;
             }
 
-            // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-            if ( SUCCEEDED( D3D12CreateDevice( mAdapter1.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
-                break;
+            for (UINT adapterIndex{}; DXGI_ERROR_NOT_FOUND !=
+                factory6->EnumAdapterByGpuPreference(adapterIndex,
+                preference, IID_PPV_ARGS(&adapterForDescription)); ++adapterIndex)
+            {
+                DXGI_ADAPTER_DESC1 desc{};
+                adapterForDescription->GetDesc1( &desc );
+
+                // Don't select the Basic Render Driver adapter if we did not ask for it
+                if ( mDeviceType == GpuDeviceType::eSoftwareRasterizer) {
+                    if ( (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE )) {
+                        if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
+                            mAdapter1 = adapterForDescription;
+                        }
+                    }
+                } else {
+                    // Only update if it has higher memory. And do not accept software rasterizer
+                    if (desc.DedicatedVideoMemory > maxDedicatedVideoMemory && !(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
+                        maxDedicatedVideoMemory = desc.DedicatedVideoMemory;
+
+                        // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
+                        if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
+                            mAdapter1 = adapterForDescription;
+                        }
+                    }
+                }
+            }
+        } else {
+            for (UINT adapterIndex{};
+                DXGI_ERROR_NOT_FOUND != factory4->EnumAdapters1(adapterIndex, &adapterForDescription);
+                ++adapterIndex)
+            {
+                DXGI_ADAPTER_DESC1 desc{};
+                adapterForDescription->GetDesc1(&desc);
+
+                if ( mDeviceType == GpuDeviceType::eSoftwareRasterizer) {
+                    if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
+                        // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
+                        if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
+                            mAdapter1 = adapterForDescription;
+                            break;
+                        }
+                    }
+                } else if (mDeviceType == GpuDeviceType::eDiscrete) {
+                    if (desc.DedicatedVideoMemory > maxDedicatedVideoMemory && !(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
+                        maxDedicatedVideoMemory = desc.DedicatedVideoMemory;
+
+                        // Only when we know it has more dedicated video memory than the previous one we check for D3D12 support.
+                        if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
+                            mAdapter1 = adapterForDescription;
+                        }
+                    }
+                } else {
+                    // Here we pick whatever we get
+                    if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
+                        mAdapter1 = adapterForDescription;
+                    }
+                }
             }
         }
 
@@ -1946,7 +2012,8 @@ namespace mikoto::renderer::d3d12 {
         ThrowIfFailed( D3D12CreateDevice( mAdapter4.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS( &mDevice ) ) );
         mDevice->SetName( mDeviceDescription3.Description );
 
-        mName = string::FromWChar( mDeviceDescription3.Description );
+        mDeviceName = string::FromWChar( mDeviceDescription3.Description );
+        mVendorID = string::Format( "{}", mDeviceDescription3.VendorId );
 
         InitInfoQueue();
         InitCommandQueues();
@@ -2031,8 +2098,8 @@ namespace mikoto::renderer::d3d12 {
         // are guaranteed to be supported which is all we need for Graphics, Compute, Transfer and Present.
         // For the time being we will use one command queue type for all operations (D3D12_COMMAND_LIST_TYPE_DIRECT in this case)
         QueueHandle queue{ Ref<Queue>::New( QueueType::eGraphics,
-            QueueOpSupportFlagsBits::kGraphics | QueueOpSupportFlagsBits::kCompute |
-            QueueOpSupportFlagsBits::kTransfer | QueueOpSupportFlagsBits::kPresentation ) };
+            QueueOpSupportFlagsBits::Graphics | QueueOpSupportFlagsBits::Compute |
+            QueueOpSupportFlagsBits::Transfer | QueueOpSupportFlagsBits::Presentation ) };
 
         queue->Initialize(this);
 
@@ -2220,8 +2287,8 @@ namespace mikoto::renderer::d3d12 {
         return layout;
     }
 
-    auto Device::CreateBindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
-        BindingSetHandle set{ Ref<BindingSet>::New( desc, layout, mResourceHeaps ) };
+    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
+        BindingSetHandle set{ Ref<BindingTable>::New( desc, layout, mResourceHeaps ) };
 
         if ( set.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding set resource." );
@@ -2292,7 +2359,7 @@ namespace mikoto::renderer::d3d12 {
         return false;
     }
 
-    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem &item ) -> bool {
+    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem &item ) -> bool {
         return false;
     }
 

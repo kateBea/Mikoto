@@ -141,19 +141,19 @@ namespace mikoto::renderer::d3d11 {
     auto GetBindFlags( BufferUsageFlags flags ) -> UINT {
         UINT result{};
 
-        if (flags.Has( BufferUsageFlagsBits::kVertex )) {
+        if (flags.Has( BufferUsageFlagsBits::Vertex )) {
             result |= D3D11_BIND_VERTEX_BUFFER;
         }
 
-        if (flags.Has( BufferUsageFlagsBits::kIndex )) {
+        if (flags.Has( BufferUsageFlagsBits::Index )) {
             result |= D3D11_BIND_INDEX_BUFFER;
         }
 
-        if (flags.Has( BufferUsageFlagsBits::kConstant )) {
+        if (flags.Has( BufferUsageFlagsBits::Constant )) {
             result |= D3D11_BIND_CONSTANT_BUFFER;
         }
 
-        if (flags.Has( BufferUsageFlagsBits::kStorage )) {
+        if (flags.Has( BufferUsageFlagsBits::Storage )) {
             result |= D3D11_BIND_UNORDERED_ACCESS;
         }
 
@@ -164,17 +164,17 @@ namespace mikoto::renderer::d3d11 {
         UINT result{};
 
         // Either render target or depth
-        if (flags.Has( TextureUsageFlagsBits::kRenderTarget )) {
+        if (flags.Has( TextureUsageFlagsBits::RenderTarget )) {
             result = result | D3D11_BIND_RENDER_TARGET;
         }
 
-        if (flags.Has( TextureUsageFlagsBits::kDepthTarget |
-            TextureUsageFlagsBits::kDepthStencilTarget |
-            TextureUsageFlagsBits::kStencilTarget )) {
+        if (flags.Has( TextureUsageFlagsBits::DepthTarget |
+            TextureUsageFlagsBits::DepthStencilTarget |
+            TextureUsageFlagsBits::StencilTarget )) {
             result = D3D11_BIND_DEPTH_STENCIL ;
         }
 
-        if (flags.Has( TextureUsageFlagsBits::kShaderResource )) {
+        if (flags.Has( TextureUsageFlagsBits::ShaderResource )) {
             result = result | D3D11_BIND_SHADER_RESOURCE;
         }
 

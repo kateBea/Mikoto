@@ -334,17 +334,17 @@ namespace mikoto::renderer {
 
     auto PhysicsDebugRendererSimple::InitSimpleDrawPasses() -> void {
         auto linesDesc{ BufferCreateDescription{}
-            .SetBufferUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetBufferUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetHeapType( HeapType::eDeviceLocal )
             .ForElement( MKT_SIZEOF( DebugLine ), kMaxVerticesLines )
-            .SetCpuAccessType( CpuAccessType::eRead ) };
+            .SetCpuAccessType( AccessType::eRead ) };
         mLinesBuffer = mDevice->CreateBuffer( linesDesc );
 
         auto trianglesDesc{ BufferCreateDescription{}
-            .SetBufferUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetBufferUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetHeapType( HeapType::eDeviceLocal )
             .ForElement( MKT_SIZEOF( DebugTriangle ), kMaxVerticesTriangles )
-            .SetCpuAccessType( CpuAccessType::eRead ) };
+            .SetCpuAccessType( AccessType::eRead ) };
         mTrianglesBuffer = mDevice->CreateBuffer( trianglesDesc );
 
         // Create color attachment
@@ -353,7 +353,7 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eBGRA8_UNORM ) };
 
         mColorImageTriangles = mDevice->CreateTexture( colorDesc );
@@ -368,7 +368,7 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kDepthTarget )
+            .SetUsage( TextureUsageFlagsBits::DepthTarget )
             .SetFormat( Format::eD32 ) };
 
         mDepthImageTriangles = mDevice->CreateTexture( depthDesc );
@@ -405,7 +405,7 @@ namespace mikoto::renderer {
         // Ideally we want to automate this process by allowing each backend to be able to use shader reflection
         auto layoutDesc{ BindingLayoutDescription{}
             .SetRegisterSpace( 0 )
-            .SetShaderVisibility(ShaderFlagsBits::kAll)
+            .SetShaderVisibility(ShaderFlagsBits::All)
             .AddItem(BindingLayoutItem::StructuredBuffer_SRV(0)) };
         mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
 
@@ -431,12 +431,12 @@ namespace mikoto::renderer {
         mPipelineTriangles = mDevice->CreatePipeline( trianglesPipelineDescription );
         mPipelineTriangles->SetDebugName( "PhysicsDebugRendererSimple Triangles Pipeline" );
 
-        auto bindingSetLinesDesc{ BindingSetDescription{}
-            .AddItem( BindingSetItem::StructuredBuffer_SRV( 0, mLinesBuffer.GetRaw() ) ) };
+        auto bindingSetLinesDesc{ BindingTableDescription{}
+            .AddItem( BindingTableItem::StructuredBuffer_SRV( 0, mLinesBuffer.GetRaw() ) ) };
         mBindingSetLinesHandle = mDevice->CreateBindingSet( bindingSetLinesDesc, mBindingLayoutHandle );
 
-        auto bindingSetTrianglesDesc{ BindingSetDescription{}
-            .AddItem( BindingSetItem::StructuredBuffer_SRV( 0, mTrianglesBuffer.GetRaw() ) ) };
+        auto bindingSetTrianglesDesc{ BindingTableDescription{}
+            .AddItem( BindingTableItem::StructuredBuffer_SRV( 0, mTrianglesBuffer.GetRaw() ) ) };
         mBindingSetTrianglesHandle = mDevice->CreateBindingSet( bindingSetTrianglesDesc, mBindingLayoutHandle );
     }
 
@@ -451,7 +451,7 @@ namespace mikoto::renderer {
         } params {
             .mViewProjection = mCamera->GetProjection() * mCamera->GetViewMatrix() };
         std::memcpy( ps.data(), MKT_ADDRESSOF( params ), MKT_SIZEOF( params ) );
-        mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
+        mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
 
         // Set graphics state
         auto graphicsState{ GraphicsState{}
@@ -495,7 +495,7 @@ namespace mikoto::renderer {
         } params {
             .mViewProjection = mCamera->GetProjection() * mCamera->GetViewMatrix() };
         std::memcpy( ps.data(), MKT_ADDRESSOF( params ), MKT_SIZEOF( params ) );
-        mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
+        mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
 
         // Set graphics state
         auto graphicsState{ GraphicsState{}

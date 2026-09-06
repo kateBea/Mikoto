@@ -259,7 +259,7 @@ namespace mikoto::asset {
                      .SetHeight( as<i32>( image->mHeight ) )
                      .SetDimensions( TextureDimension::eTexture2D )
                      .SetMultisampling( Multisampling::eMsaaX1 )
-                     .SetUsage( TextureUsageFlagsBits::kShaderResource | TextureUsageFlagsBits::kCopyDst )
+                     .SetUsage( TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::CopyDest )
                      .SetFormat( image->mFormat == ImageFormat::eRGBA8_UINT ? Format::eRGBA8_UNORM : Format::eRGBA32_FLOAT ) };
 
                 TextureHandle texture{ mGpuDevice->CreateTexture( textureDescription ) };

@@ -57,11 +57,11 @@ namespace mikoto::renderer::rhi {
 
         Format mFormat{ Format::eUnknown };
         HeapType mHeapType{ HeapType::eDeviceLocal };
-        CpuAccessType mCpuAccess{ CpuAccessType::eNone };
+        AccessType mCpuAccess{ AccessType::eNone };
         ResourceType mResourceType{ ResourceType::eConstantBuffer };
 
         BufferDataType mDataType{ BufferDataType::eInvalid };
-        BufferUsageFlags mUsageFlags{ BufferUsageFlagsBits::kNone };
+        BufferUsageFlags mUsageFlags{ BufferUsageFlagsBits::None };
 
         auto SetName( eastl::string_view name ) -> BufferCreateDescription&;
         auto ForElement( core::size_t byteSize, core::size_t count ) -> BufferCreateDescription&;
@@ -71,7 +71,7 @@ namespace mikoto::renderer::rhi {
         auto SetBufferUsage( BufferUsageFlags usage ) -> BufferCreateDescription&;
         auto SetBufferDataType( BufferDataType type ) -> BufferCreateDescription&;
         auto SetHeapType( HeapType type ) -> BufferCreateDescription&;
-        auto SetCpuAccessType( CpuAccessType type ) -> BufferCreateDescription&;
+        auto SetCpuAccessType( AccessType type ) -> BufferCreateDescription&;
         auto SetResourceType( ResourceType type ) -> BufferCreateDescription&;
 
         auto SetKeepInitializerResources( bool value ) -> BufferCreateDescription&;
@@ -136,7 +136,7 @@ namespace mikoto::renderer::rhi {
         core::size_t mElementSize{};
 
         BufferDataType mDataType{ BufferDataType::eInvalid };
-        BufferUsageFlags mUsage{ BufferUsageFlagsBits::kNone };
+        BufferUsageFlags mUsage{ BufferUsageFlagsBits::None };
 
         bool mIsVolatile{};
         core::size_t mMaxVersions{ 0 };

@@ -224,7 +224,7 @@ namespace mikoto::renderer::d3d11 {
             mIsAllocated = false;
         }
 
-        if ( mTextureUsage & TextureUsageFlagsBits::kRenderTarget ) {
+        if ( mTextureUsage & TextureUsageFlagsBits::RenderTarget ) {
             D3D11_RENDER_TARGET_VIEW_DESC rtvDesc{};
             rtvDesc.Format = d3d11::GetFormat( mFormat );
             rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
@@ -238,9 +238,9 @@ namespace mikoto::renderer::d3d11 {
             }
         }
 
-        if ( mTextureUsage & TextureUsageFlagsBits::kDepthTarget ||
-            mTextureUsage & TextureUsageFlagsBits::kDepthStencilTarget ||
-            mTextureUsage & TextureUsageFlagsBits::kStencilTarget ) {
+        if ( mTextureUsage & TextureUsageFlagsBits::DepthTarget ||
+            mTextureUsage & TextureUsageFlagsBits::DepthStencilTarget ||
+            mTextureUsage & TextureUsageFlagsBits::StencilTarget ) {
             D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
             dsvDesc.Format = d3d11::GetFormat( mFormat );
             dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
@@ -254,7 +254,7 @@ namespace mikoto::renderer::d3d11 {
             }
         }
 
-        if (mTextureUsage.Has(TextureUsageFlagsBits::kShaderResource )) {
+        if (mTextureUsage.Has(TextureUsageFlagsBits::ShaderResource )) {
             // Create the shader target view.
             result = checked_cast<Device*>(mDevice)->GetDevice()->CreateShaderResourceView(mTexture.Get(),
                 nullptr, mShaderResourceView.GetAddressOf() );

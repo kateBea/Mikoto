@@ -87,12 +87,11 @@ namespace mikoto::renderer::d3d11 {
         // Init the device when the context is ready
         mDevice = IGpuDevice::Create({
             .mApi = GraphicsAPI::eD3D11,
-            .mFeaturesSupport{
+            .mDeviceType = GpuDeviceType::eDiscrete,
+            .mFeatureSupportFlags =
                 // If  the context was created with a window
                 // we request for a device with support for presentation
-                .mEnablePresentation = mWindow != nullptr,
-                .mDeviceType = GpuDeviceType::eDiscrete,
-            },
+                mWindow != nullptr ? GpuFeatureSupportFlagsBits::EnablePresentation : GpuFeatureSupportFlagsBits::None
         });
 
         if (!mDevice) {

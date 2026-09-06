@@ -62,7 +62,7 @@ namespace mikoto::renderer::vulkan {
     using namespace mikoto::renderer::rhi;
 
     Device::Device( const GpuDeviceCreateInfo& createInfo )
-        : IGpuDevice{ createInfo.mApi, createInfo.mFeaturesSupport }{
+        : IGpuDevice{ createInfo.mApi, createInfo.mDeviceType, createInfo.mFeatureSupportFlags }{
     }
 
     auto Device::Init() -> void {
@@ -73,7 +73,7 @@ namespace mikoto::renderer::vulkan {
         Instance& instance{ ctx->GetInstance() };
 
         // Choose primary physical device
-        if ( mFeaturesSupport.mEnablePresentation ) {
+        if ( mFeatureSupportFlags & GpuFeatureSupportFlagsBits::EnablePresentation ) {
             mSurface = instance.mSurface;
             mExtensions.emplace_back( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
         }
@@ -84,9 +84,11 @@ namespace mikoto::renderer::vulkan {
 
         if (pdIt != instance.mPhysicalDevices.end()) {
             mPhysicalDevice = MKT_ADDRESSOF( *pdIt );
-            mName = mPhysicalDevice->mProperties.deviceName;
+            mDeviceName = mPhysicalDevice->mProperties.deviceName;
+            mVendorID = string::Format( "{}", mPhysicalDevice->mProperties.vendorID );
+            mDriverVersion = string::Format( "{}", mPhysicalDevice->mProperties.driverVersion );
         } else {
-            MKT_CORE_LOGGER_INFO( "VulkanDevice - No suitable physical device with the desired features." );
+            MKT_CORE_LOGGER_INFO( "No suitable physical device with the desired features." );
             return;
         }
 
@@ -234,8 +236,8 @@ namespace mikoto::renderer::vulkan {
         return layout;
     }
 
-    auto Device::CreateBindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
-        BindingSetHandle set{ Ref<BindingSet>::New( desc, layout ) };
+    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
+        BindingSetHandle set{ Ref<BindingTable>::New( desc, layout ) };
 
         if ( set.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding set resource." );
@@ -306,7 +308,7 @@ namespace mikoto::renderer::vulkan {
         return false;
     }
 
-    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool {
+    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> bool {
         DescriptorTable* table{ checked_cast<DescriptorTable*>( descriptorTable.GetRaw() ) };
 
         i32 resourceSlot{ table->GetResourceSlot( item.mType ) };
@@ -583,12 +585,12 @@ namespace mikoto::renderer::vulkan {
         // I find a queue family index that supports the operations I want to perform
         // Right we are only looking for graphics, transfer, compute and optionally present
         ankerl::unordered_dense::set<u32> queueFamilies{};
-        queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kGraphics ) );
-        queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kCompute ) );
-        queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kTransfer ) );
+        queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::Graphics ) );
+        queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::Compute ) );
+        queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::Transfer ) );
 
-        if (mFeaturesSupport.mEnablePresentation) {
-            queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::kPresentation ) );
+        if (mFeatureSupportFlags & GpuFeatureSupportFlagsBits::EnablePresentation) {
+            queueFamilies.emplace( mPhysicalDevice->GetFamilyIndexWithSupport( QueueOpSupportFlagsBits::Presentation ) );
         }
 
         MKT_ASSERT( !queueFamilies.contains( PhysicalDevice::kInvalidQueueFamilyIndex ) && !queueFamilies.empty(),
@@ -643,12 +645,12 @@ namespace mikoto::renderer::vulkan {
         // semaphores even if they belong to same family.
 
         ankerl::unordered_dense::map<QueueType, const VulkanQueueData*> queuesIndices{};
-        queuesIndices[QueueType::eGraphics] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kGraphics );
-        queuesIndices[QueueType::eCompute] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kCompute );
-        queuesIndices[QueueType::eTransfer] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kTransfer );
+        queuesIndices[QueueType::eGraphics] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::Graphics );
+        queuesIndices[QueueType::eCompute] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::Compute );
+        queuesIndices[QueueType::eTransfer] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::Transfer );
 
-        if (mFeaturesSupport.mEnablePresentation) {
-            queuesIndices[QueueType::ePresent] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::kPresentation );
+        if (mFeatureSupportFlags & GpuFeatureSupportFlagsBits::EnablePresentation) {
+            queuesIndices[QueueType::ePresent] = mPhysicalDevice->GetQueueWithSupport( QueueOpSupportFlagsBits::Presentation );
         }
 
         // Keep track of families that already have a queue
@@ -775,7 +777,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         // Check type of GPU
-        VkPhysicalDeviceType devType{ GetGpuDeviceType( mFeaturesSupport.mDeviceType ) };
+        VkPhysicalDeviceType devType{ GetGpuDeviceType( mDeviceType ) };
         if (devType != device.mProperties.deviceType) {
             return false;
         }
@@ -783,9 +785,9 @@ namespace mikoto::renderer::vulkan {
         // By default, we look for a device that supports
         // compute, graphics, transfer and optionally presentation
         QueueOpSupportFlags opSupportFlags{
-            QueueOpSupportFlagsBits::kGraphics |
-            QueueOpSupportFlagsBits::kCompute |
-            QueueOpSupportFlagsBits::kTransfer };
+            QueueOpSupportFlagsBits::Graphics |
+            QueueOpSupportFlagsBits::Compute |
+            QueueOpSupportFlagsBits::Transfer };
 
         // Dynamic rendering is mandatory because Mikoto targets
         // Vulkan 1.3 by default where this feature is core, this should be just a sanity check
@@ -801,22 +803,23 @@ namespace mikoto::renderer::vulkan {
         }
 
         // Wireframe support if requested
-        if (mFeaturesSupport.mHardwareWireframe && !device.mFeatures.fillModeNonSolid) {
+        if (mFeatureSupportFlags & GpuFeatureSupportFlagsBits::HardwareWireframe &&
+            !device.mFeatures.fillModeNonSolid) {
             return false;
         }
 
         // Improved texture quality if requested
-        if (mFeaturesSupport.mAnisotropicFiltering && !device.mFeatures.samplerAnisotropy ) {
+        if (mFeatureSupportFlags & GpuFeatureSupportFlagsBits::AnisotropicFiltering && !device.mFeatures.samplerAnisotropy ) {
             return false;
         }
 
         // Presentation support
-        if (mFeaturesSupport.mEnablePresentation) {
+        if (mFeatureSupportFlags & GpuFeatureSupportFlagsBits::EnablePresentation) {
             if (device.mFormats.empty() || device.mPresentModes.empty()) {
                 return false;
             }
 
-            opSupportFlags |= QueueOpSupportFlagsBits::kPresentation;
+            opSupportFlags |= QueueOpSupportFlagsBits::Presentation;
         }
 
         if (!device.HasQueueSupport( opSupportFlags )) {
@@ -1588,7 +1591,7 @@ namespace mikoto::renderer::vulkan {
 
         for (const auto& resourceSet : desc.mResourceSets) {
             // Get the interface because descriptor tables can also be IBindingSet
-            const IBindingSet* set{ checked_cast<const IBindingSet*>( resourceSet.second ) };
+            const IBindingTable* set{ checked_cast<const IBindingTable*>( resourceSet.second ) };
 
             std::array<VkDescriptorSet, 1> sets{ set->GetNativeHandle( ObjectType::Vk_DescriptorSet ) };
 
@@ -2676,14 +2679,14 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto GpuUploadManager::CreateBuffer() -> StagingAllocation * {
-        size_t initialSize{ MKT_MEGABYTES( 512 ) };
+        usize initialSize{ MKT_MEGABYTES( 512 ) };
 
         auto bufferDes{ BufferCreateDescription{}
             .SetByteSize( initialSize )
-            .SetCpuAccessType( CpuAccessType::eWrite )
+            .SetCpuAccessType( AccessType::eWrite )
             .SetHeapType( HeapType::eUpload )
             .SetResourceType( ResourceType::eInvalid ) // Is not a shader resource
-            .SetBufferUsage( BufferUsageFlagsBits::kNone ) };
+            .SetBufferUsage( BufferUsageFlagsBits::None ) };
         BufferHandle result{ mDevice->CreateBuffer( bufferDes ) };
 
         auto& newAllocation{ mBuffers[result.GetRaw()] };
@@ -3032,15 +3035,15 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = false;
     }
 
-    BindingSet::BindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout )
+    BindingTable::BindingTable( const BindingTableDescription &desc, BindingLayoutHandle layout )
         : mBindingLayout{ layout }, mBindingDescription{ desc }
     {}
 
-    auto BindingSet::SetDebugName( eastl::string_view name ) -> void {
-        IBindingSet::SetDebugName( name );
+    auto BindingTable::SetDebugName( eastl::string_view name ) -> void {
+        IBindingTable::SetDebugName( name );
     }
 
-    auto BindingSet::GetNativeHandle( ObjectType type ) -> Object {
+    auto BindingTable::GetNativeHandle( ObjectType type ) -> Object {
         if ( type != ObjectType::Vk_DescriptorSet ) {
             return Object( nullptr );
         }
@@ -3048,7 +3051,7 @@ namespace mikoto::renderer::vulkan {
         return Object( mDescriptorSet );
     }
 
-    auto BindingSet::GetNativeHandle( ObjectType type ) const -> Object {
+    auto BindingTable::GetNativeHandle( ObjectType type ) const -> Object {
         if ( type != ObjectType::Vk_DescriptorSet ) {
             return Object( nullptr );
         }
@@ -3056,13 +3059,13 @@ namespace mikoto::renderer::vulkan {
         return Object( mDescriptorSet );
     }
 
-    BindingSet::~BindingSet() {
+    BindingTable::~BindingTable() {
         if (mIsAllocated) {
             Release();
         }
     }
 
-    auto BindingSet::Initialize() -> void {
+    auto BindingTable::Initialize() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
         auto* layout{ checked_cast<BindingLayout*>( mBindingLayout.GetRaw() ) };
 
@@ -3111,7 +3114,7 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto BindingSet::Release() -> void {
+    auto BindingTable::Release() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
         MKT_VK_CHECK( vkFreeDescriptorSets(
             device->GetDevice(),

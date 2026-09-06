@@ -103,7 +103,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA16_FLOAT ) }; // Will support HDR values
         info.mColorImage = graph.Create( colorImage );
 
@@ -120,7 +120,7 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( 2540 ) )
             .SetDimensions( TextureDimension::eTextureCube )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA32_FLOAT ) }; // For HDR values
         info.mSkyboxCubeRT = graph.Create( skyboxCube );
 
@@ -149,7 +149,7 @@ namespace mikoto::renderer {
             .SetMipCount( as<i32>( kIrradianceMipLevels ) )
             .SetDimensions( TextureDimension::eTextureCube )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA32_FLOAT ) }; // For HDR values
         info.mIrradianceCubeRT = graph.Create( colorImage );
 
@@ -228,14 +228,14 @@ namespace mikoto::renderer {
 
         auto vertexDesc{ FGBufferDescription{}
             .SetName( "GeometryShadingBox_Vertices" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( info.mBoxVerticesCount, MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mBoxVertexBuffer = graph.Create( vertexDesc );
 
         auto indexDesc{ FGBufferDescription{}
             .SetName( "GeometryShadingBox_Indices" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( info.mBoxIndicesCount, MKT_SIZEOF( u32 ) )
             .SetHeapType( HeapType::eDeviceLocal )};
         info.mBoxIndexBuffer = graph.Create( indexDesc );
@@ -273,7 +273,7 @@ namespace mikoto::renderer {
             .SetDimensions( TextureDimension::eTextureCube )
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetMipCount( mPrefilterMipLevels )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA16_FLOAT ) }; // For HDR values
         info.mPrefilterCubeRT = graph.Create( colorImage );
 
@@ -354,7 +354,7 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( 512 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRG16_FLOAT ) };
         info.mBrdfColorTarget = graph.Create( colorImage );
 
@@ -879,7 +879,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA8_UNORM ) };
         info.mColorImage = graph.Create( colorImage );
 

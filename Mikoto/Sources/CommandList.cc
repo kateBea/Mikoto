@@ -79,7 +79,7 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto BindResourcesDescription::AddResourceSet( u32 bindingIndex, IBindingSet *set ) -> BindResourcesDescription & {
+    auto BindResourcesDescription::AddResourceSet( u32 bindingIndex, IBindingTable *set ) -> BindResourcesDescription & {
         MKT_ASSERT( set, "ResourceSet is null" );
         mResourceSets.insert_or_assign( bindingIndex, set );
 
@@ -102,7 +102,7 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto BufferBarrierDescription::SetBeforeAccess( AccessFlags access ) -> BufferBarrierDescription & {
+    auto BufferBarrierDescription::SetBeforeAccess( AccessType access ) -> BufferBarrierDescription & {
         mAccessBefore = access;
         return *this;
     }
@@ -112,7 +112,7 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto BufferBarrierDescription::SetAfterAccess( AccessFlags access ) -> BufferBarrierDescription & {
+    auto BufferBarrierDescription::SetAfterAccess( AccessType access ) -> BufferBarrierDescription & {
         mAccessAfter = access;
         return *this;
     }
@@ -138,7 +138,7 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto TextureBarrierDescription::SetBeforeAccess( AccessFlags access ) -> TextureBarrierDescription & {
+    auto TextureBarrierDescription::SetBeforeAccess( AccessType access ) -> TextureBarrierDescription & {
         mAccessBefore = access;
         return *this;
     }
@@ -154,7 +154,7 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto TextureBarrierDescription::SetAfterAccess( AccessFlags access ) -> TextureBarrierDescription & {
+    auto TextureBarrierDescription::SetAfterAccess( AccessType access ) -> TextureBarrierDescription & {
         mAccessAfter = access;
         return *this;
     }

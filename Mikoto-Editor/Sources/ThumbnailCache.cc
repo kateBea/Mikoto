@@ -75,7 +75,7 @@ namespace mikoto::editor {
             .SetImageData( image )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::ShaderResource )
             .SetFormat( image->mFormat == ImageFormat::eRGBA8_UINT ? Format::eRGBA8_UNORM : Format::eRGBA32_FLOAT ) };
 
         TextureHandle result{ mDevice->CreateTexture( textureDesc ) };

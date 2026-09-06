@@ -46,17 +46,17 @@ namespace mikoto::editor {
     auto EditorHelloCubeLayer::OnCreate() -> void {
         // Construct geometry: Index and vertex buffer for the cube
         auto verticesDesc{ BufferCreateDescription{}
-            .SetBufferUsage( BufferUsageFlagsBits::kVertex | BufferUsageFlagsBits::kCopyDst )
+            .SetBufferUsage( BufferUsageFlagsBits::Vertex | BufferUsageFlagsBits::CopyDest )
             .SetHeapType( HeapType::eDeviceLocal )
-            .SetCpuAccessType( CpuAccessType::eRead )
+            .SetCpuAccessType( AccessType::eRead )
             .SetInitialData( BufferSpanHandle::New( mVertices.data(), MKT_VECTOR_SIZE_BYTES(mVertices) ) ) };
         mVertexBuffer = mDevice->CreateBuffer( verticesDesc );
 
         // Create indices buffer
         auto indicesDesc{ BufferCreateDescription{}
-            .SetBufferUsage( BufferUsageFlagsBits::kIndex | BufferUsageFlagsBits::kCopyDst )
+            .SetBufferUsage( BufferUsageFlagsBits::Index | BufferUsageFlagsBits::CopyDest )
             .SetHeapType( HeapType::eDeviceLocal )
-            .SetCpuAccessType( CpuAccessType::eRead )
+            .SetCpuAccessType( AccessType::eRead )
             .SetFormat( Format::eR32_UINT )
             .SetInitialData( BufferSpanHandle::New( mIndices.data(), MKT_VECTOR_SIZE_BYTES(mIndices) ) ) };
         mIndexBuffer = mDevice->CreateBuffer( indicesDesc );
@@ -67,7 +67,7 @@ namespace mikoto::editor {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eBGRA8_UNORM ) };
 
         mColorImage = mDevice->CreateTexture( colorDesc );
@@ -79,7 +79,7 @@ namespace mikoto::editor {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kDepthTarget )
+            .SetUsage( TextureUsageFlagsBits::DepthTarget )
             .SetFormat( Format::eD32 ) };
 
         mDepthImage = mDevice->CreateTexture( depthDesc );
@@ -188,13 +188,13 @@ namespace mikoto::editor {
             .SetHeight( as<i32>( image->mHeight ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA8_UNORM ) };
         mSimpleTexture = mDevice->CreateTexture( textureDbug );
 
         auto constantBufferDesc{ BufferCreateDescription{}
-            .SetCpuAccessType( CpuAccessType::eWrite )
-            .SetBufferUsage( BufferUsageFlagsBits::kConstant | BufferUsageFlagsBits::kCopyDst )
+            .SetCpuAccessType( AccessType::eWrite )
+            .SetBufferUsage( BufferUsageFlagsBits::Constant | BufferUsageFlagsBits::CopyDest )
             .SetResourceType( ResourceType::eConstantBuffer )
             .SetByteSize(MKT_SIZEOF( MyData )) };
         mConstantBuffer = mDevice->CreateBuffer(constantBufferDesc);
@@ -214,7 +214,7 @@ namespace mikoto::editor {
         // Ideally we want to automate this process by allowing each backend to be able to use shader reflection
         auto layoutDesc{ BindingLayoutDescription{}
             .SetRegisterSpace( 0 )
-            .SetShaderVisibility(ShaderFlagsBits::kAll)
+            .SetShaderVisibility(ShaderFlagsBits::All)
             .AddItem(BindingLayoutItem::Sampler(0))
             .AddItem(BindingLayoutItem::Texture_SRV(1))
             .AddItem(BindingLayoutItem::ConstantBuffer(2)) };
@@ -250,10 +250,10 @@ namespace mikoto::editor {
         mPipelineWireframe = mDevice->CreatePipeline( wireframePipelineDescription );
         mPipelineWireframe->SetDebugName( "HelloCubeLayer PipelineWireframe" );
 
-        auto bindingSetDesc{ BindingSetDescription{}
-            .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) )
-            .AddItem( BindingSetItem::Texture_SRV( 1, mSimpleTexture.GetRaw() ) )
-            .AddItem( BindingSetItem::ConstantBuffer( 2, mConstantBuffer.GetRaw() ) ) };
+        auto bindingSetDesc{ BindingTableDescription{}
+            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) )
+            .AddItem( BindingTableItem::Texture_SRV( 1, mSimpleTexture.GetRaw() ) )
+            .AddItem( BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetRaw() ) ) };
         mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
 
         SceneCameraDescription cameraDescription{

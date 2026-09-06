@@ -53,7 +53,6 @@ namespace mikoto::renderer::rhi {
 
     // Format mapping table. The rows must be in the exactly same order as Format enum members are defined.
     static constexpr FormatInfo kFormatInfo[]{
-        //        format                   name             bytes blk         kind               red   green   blue  alpha  depth  stencil signed  srgb
         { Format::eUnknown, "UNKNOWN", 0, 0, FormatKind::Integer, false, false, false, false, false, false, false, false },
         { Format::eR8_UINT, "R8_UINT", 1, 1, FormatKind::Integer, true, false, false, false, false, false, false, false },
         { Format::eR8_SINT, "R8_SINT", 1, 1, FormatKind::Integer, true, false, false, false, false, false, true, false },

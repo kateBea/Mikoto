@@ -198,7 +198,7 @@ namespace mikoto::renderer {
             .SetHeight( atlasHeight )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kCopyDst | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::CopyDest | TextureUsageFlagsBits::ShaderResource )
             .SetBufferData( BufferSpanHandle::New( rc_cast<ubyte*>( bitmap.pixels ), as<usize>( atlasWidth * atlasHeight * channelCount ) ) )
             .SetFormat( Format::eRGBA8_UNORM ) };
 

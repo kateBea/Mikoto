@@ -240,7 +240,7 @@ namespace mikoto::imgui {
             .SetHeight( as<i32>( mDimensions.Height ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kCopySrc | TextureUsageFlagsBits::kShaderResource ) // I will copy from this guy to swapchain image
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::CopySource | TextureUsageFlagsBits::ShaderResource ) // I will copy from this guy to swapchain image
             .SetFormat( Format::eBGRA8_UNORM ) };
 
         mColorImage = mDevice->CreateTexture( colorDesc );
@@ -252,7 +252,7 @@ namespace mikoto::imgui {
             .SetHeight( as<i32>( mDimensions.Height ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kDepthTarget )
+            .SetUsage( TextureUsageFlagsBits::DepthTarget )
             .SetFormat( Format::eD32 ) };
 
         mDepthImage = mDevice->CreateTexture( depthDesc );

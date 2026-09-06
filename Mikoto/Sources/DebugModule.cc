@@ -63,7 +63,7 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eBGRA8_UNORM ) };
         passData.mColorTarget = graph.Create( colorImage );
 
@@ -73,7 +73,7 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kDepthTarget )
+            .SetUsage( TextureUsageFlagsBits::DepthTarget )
             .SetFormat( Format::eD32 ) };
         passData.mDepthTarget = graph.Create( depthImage  );
 
@@ -123,7 +123,7 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource | TextureUsageFlagsBits::kCopySrc )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::CopySource )
             .SetFormat( Format::eRGBA8_UNORM ) };
         info.mColorTarget = graph.Create( colorImage );
 
@@ -133,7 +133,7 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kDepthTarget )
+            .SetUsage( TextureUsageFlagsBits::DepthTarget )
             .SetFormat( Format::eD32 ) };
         info.mDepthTarget = graph.Create( depthImage );
 
@@ -160,7 +160,7 @@ namespace mikoto::renderer {
         const auto& formatInfo{ rhi::GetFormatInfo( Format::eRGBA8_UNORM ) };
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "TexturePass_Pipeline01_ReadbackBuffer" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 1920 * 1080 * formatInfo.mBytesPerBlock )
             .SetHeapType( HeapType::eReadback ) };
         info.mReadBackBuffer = graph.Create( bufferDesc );
@@ -263,7 +263,7 @@ namespace mikoto::renderer {
         // GPU buffer (written by compute shader)
         auto gpuBufferDesc{ FGBufferDescription{}
             .SetName( "SimpleCompute_ComputeBuffer" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopySrc )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopySource )
             .SetElementsSize( simpleCompute.mNumbersCount, MKT_SIZEOF( MyStruct ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         simpleCompute.mComputeBuffer = graph.Create( gpuBufferDesc );
@@ -271,7 +271,7 @@ namespace mikoto::renderer {
         // Readback buffer (CPU visible, copy destination)
         auto readbackDesc{ FGBufferDescription{}
             .SetName( "SimpleCompute_ReadBackBuffer" )
-            .SetUsage( BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( simpleCompute.mNumbersCount, MKT_SIZEOF( MyStruct ) )
             .SetHeapType( HeapType::eReadback ) };
         simpleCompute.mReadbackBuffer = graph.Create( readbackDesc );

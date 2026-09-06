@@ -165,21 +165,21 @@ namespace mikoto::renderer::rhi {
         BufferRange mRange{};
 
         // Previous State
-        PipelineStageFlags mStageBefore{ PipelineStageFlagsBits::kNone };
-        AccessFlags mAccessBefore{ AccessFlagsBits::kNone };
+        PipelineStageFlags mStageBefore{ PipelineStageFlagsBits::None };
+        AccessType mAccessBefore{ AccessType::eNone };
 
         // New State
-        PipelineStageFlags mStageAfter{ PipelineStageFlagsBits::kNone };
-        AccessFlags mAccessAfter{ AccessFlagsBits::kNone };
+        PipelineStageFlags mStageAfter{ PipelineStageFlagsBits::None };
+        AccessType mAccessAfter{ AccessType::eNone };
 
         auto SetBuffer( BufferHandle handle ) -> BufferBarrierDescription&;
         auto SetRange( BufferRange range ) -> BufferBarrierDescription&;
 
         auto SetBeforeStage( PipelineStageFlags stage ) -> BufferBarrierDescription&;
-        auto SetBeforeAccess( AccessFlags access ) -> BufferBarrierDescription&;
+        auto SetBeforeAccess( AccessType access ) -> BufferBarrierDescription&;
 
         auto SetAfterStage( PipelineStageFlags stage ) -> BufferBarrierDescription&;
-        auto SetAfterAccess( AccessFlags access ) -> BufferBarrierDescription&;
+        auto SetAfterAccess( AccessType access ) -> BufferBarrierDescription&;
     };
 
     struct TextureBarrierDescription {
@@ -188,25 +188,25 @@ namespace mikoto::renderer::rhi {
         TextureSubresourceSet mSubresourceSet{ kAllSubResources };
 
         // Previous State
-        TextureLayoutFlags mLayoutBefore{ TextureLayoutBits::kUnknown };
-        PipelineStageFlags mStageBefore{ PipelineStageFlagsBits::kNone };
-        AccessFlags mAccessBefore{ AccessFlagsBits::kNone };
+        TextureLayoutFlags mLayoutBefore{ TextureLayoutBits::Unknown };
+        PipelineStageFlags mStageBefore{ PipelineStageFlagsBits::None };
+        AccessType mAccessBefore{ AccessType::eNone };
 
         // New State
-        TextureLayoutFlags mLayoutAfter{ TextureLayoutBits::kUnknown };
-        PipelineStageFlags mStageAfter{ PipelineStageFlagsBits::kNone };
-        AccessFlags mAccessAfter{ AccessFlagsBits::kNone };
+        TextureLayoutFlags mLayoutAfter{ TextureLayoutBits::Unknown };
+        PipelineStageFlags mStageAfter{ PipelineStageFlagsBits::None };
+        AccessType mAccessAfter{ AccessType::eNone };
 
         auto SetTexture( TextureHandle handle ) -> TextureBarrierDescription&;
         auto SetSubresourceSet( TextureSubresourceSet subResources ) -> TextureBarrierDescription&;
 
         auto SetBeforeLayout( TextureLayoutFlags layout ) -> TextureBarrierDescription&;
         auto SetBeforeStage( PipelineStageFlags stage ) -> TextureBarrierDescription&;
-        auto SetBeforeAccess( AccessFlags access ) -> TextureBarrierDescription&;
+        auto SetBeforeAccess( AccessType access ) -> TextureBarrierDescription&;
 
         auto SetAfterLayout( TextureLayoutFlags layout ) -> TextureBarrierDescription&;
         auto SetAfterStage( PipelineStageFlags stage ) -> TextureBarrierDescription&;
-        auto SetAfterAccess( AccessFlags access ) -> TextureBarrierDescription&;
+        auto SetAfterAccess( AccessType access ) -> TextureBarrierDescription&;
     };
 
     struct BindResourcesDescription {
@@ -217,7 +217,7 @@ namespace mikoto::renderer::rhi {
         static constexpr core::u32 kMaxResourceSets{ 32 };
 
         // key = binding index (set index)
-        eastl::fixed_hash_map<core::u32, IBindingSet*, kMaxResourceSets> mResourceSets{};
+        eastl::fixed_hash_map<core::u32, IBindingTable*, kMaxResourceSets> mResourceSets{};
 
         IPipelineLayout* mPipelineLayout{};
         PipelineType mBindPoint{};
@@ -227,7 +227,7 @@ namespace mikoto::renderer::rhi {
 
         auto SetPushConstants( const void* ptr, core::usize sizeBytes, ShaderFlags stage ) -> BindResourcesDescription&;
 
-        auto AddResourceSet( core::u32 bindingIndex, IBindingSet* set ) -> BindResourcesDescription&;
+        auto AddResourceSet( core::u32 bindingIndex, IBindingTable* set ) -> BindResourcesDescription&;
     };
 
     struct CommandListBeginDescription {

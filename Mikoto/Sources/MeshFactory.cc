@@ -96,7 +96,7 @@ namespace mikoto::asset {
                         .SetHeight( as<i32>( image->mHeight ) )
                         .SetDimensions( TextureDimension::eTexture2D )
                         .SetMultisampling( Multisampling::eMsaaX1 )
-                        .SetUsage( TextureUsageFlagsBits::kShaderResource | TextureUsageFlagsBits::kCopyDst )
+                        .SetUsage( TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::CopyDest )
                         .SetFormat( Format::eRGBA8_UNORM ) };
 
                     pbrMapInfo.mTexture = mDevice->CreateTexture( textureDescription );
@@ -130,18 +130,18 @@ namespace mikoto::asset {
 
             // Create vertices buffer (WindingOrder counter-clockwise)
             auto verticesDesc{ BufferCreateDescription{}
-                .SetBufferUsage( BufferUsageFlagsBits::kVertex | BufferUsageFlagsBits::kCopyDst | BufferUsageFlagsBits::kCopySrc )
+                .SetBufferUsage( BufferUsageFlagsBits::Vertex | BufferUsageFlagsBits::CopyDest | BufferUsageFlagsBits::CopySource )
                 .SetHeapType( HeapType::eDeviceLocal )
-                .SetCpuAccessType( CpuAccessType::eRead )
+                .SetCpuAccessType( AccessType::eRead )
                 .SetInitialData( BufferSpanHandle::New(
                     meshNode.mVertices.data(), MKT_VECTOR_SIZE_BYTES(meshNode.mVertices) ) ) };
             BufferHandle vertices{ mDevice->CreateBuffer( verticesDesc ) };
 
             // Create indices buffer
             auto indicesDesc{ BufferCreateDescription{}
-                .SetBufferUsage( BufferUsageFlagsBits::kIndex | BufferUsageFlagsBits::kCopyDst | BufferUsageFlagsBits::kCopySrc )
+                .SetBufferUsage( BufferUsageFlagsBits::Index | BufferUsageFlagsBits::CopyDest | BufferUsageFlagsBits::CopySource )
                 .SetHeapType( HeapType::eDeviceLocal )
-                .SetCpuAccessType( CpuAccessType::eRead )
+                .SetCpuAccessType( AccessType::eRead )
                 .SetFormat( Format::eR32_UINT )
                 .SetInitialData( BufferSpanHandle::New( meshNode.mIndices.data(), MKT_VECTOR_SIZE_BYTES(meshNode.mIndices) ) ) };
             BufferHandle indices{ mDevice->CreateBuffer( indicesDesc ) };

@@ -34,21 +34,29 @@
 
 namespace mikoto::renderer::rhi {
 
-    struct GpuFeatureSupport {
-        // Properties we want the device to support
-        // used to pick the appropriate physical device
-        bool mChooseDiscreteDevice{ true };
-        bool mAnisotropicFiltering{ true };
-        bool mHardwareWireframe{ true };
-        bool mEnablePresentation{ true };
-        bool mEnableRayTracingSupport{ true };
+    struct GpuFeatureSupportProperties {
+        using Data = core::u64;
+    };
 
-        GpuDeviceType mDeviceType{ GpuDeviceType::eDiscrete };
+    using GpuFeatureSupportFlags = core::Flags<GpuFeatureSupportProperties>;
+
+    struct GpuFeatureSupportFlagsBits {
+        // Device with bare minimum support
+        static constexpr GpuFeatureSupportFlags None{ 0 };
+
+        static constexpr GpuFeatureSupportFlags ChooseDiscreteDevice{ BIT_SET(0) };
+        static constexpr GpuFeatureSupportFlags AnisotropicFiltering{ BIT_SET(1) };
+        static constexpr GpuFeatureSupportFlags HardwareWireframe{ BIT_SET(2) };
+        static constexpr GpuFeatureSupportFlags EnablePresentation{ BIT_SET(3) };
+        static constexpr GpuFeatureSupportFlags EnableRayTracing{ BIT_SET(4) };
+        static constexpr GpuFeatureSupportFlags EnableMeshShaders{ BIT_SET(5) };
+        static constexpr GpuFeatureSupportFlags BCTextureCompression{ BIT_SET(6) };
     };
 
     struct GpuDeviceCreateInfo {
-        GraphicsAPI mApi{ GraphicsAPI::eVulkan };
-        GpuFeatureSupport mFeaturesSupport{};
+        GraphicsAPI mApi{ GraphicsAPI::eInvalid };
+        GpuDeviceType mDeviceType{ GpuDeviceType::eInvalid };
+        GpuFeatureSupportFlags mFeatureSupportFlags{ GpuFeatureSupportFlagsBits::None };
     };
 
     class IGpuDevice {
@@ -86,14 +94,14 @@ namespace mikoto::renderer::rhi {
         // For backends that support it this allows us to create the layout from shader reflection
         MKT_NODISCARD virtual auto CreateBindingLayout( const BindingLayoutDescription& desc ) -> BindingLayoutHandle = 0;
         MKT_NODISCARD virtual auto CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle = 0;
-        MKT_NODISCARD virtual auto CreateBindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout ) -> BindingSetHandle = 0;
+        MKT_NODISCARD virtual auto CreateBindingSet( const BindingTableDescription& desc, BindingLayoutHandle layout ) -> BindingSetHandle = 0;
 
         // To support bindless techniques in modern graphics APIs
         MKT_NODISCARD virtual auto CreateBindlessLayout( const BindlessLayoutDescription& desc ) -> BindingLayoutHandle = 0;
 
         MKT_NODISCARD virtual auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle = 0;
         MKT_NODISCARD virtual auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool = 0;
-        MKT_NODISCARD virtual auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool = 0;
+        MKT_NODISCARD virtual auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> bool = 0;
 
         MKT_NODISCARD virtual auto GetQueue( QueueType type ) -> IQueue* = 0;
 
@@ -108,22 +116,31 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD auto IsInitialized() const -> bool;
         MKT_NODISCARD auto IsGraphicsApi( GraphicsAPI api ) const -> bool;
         MKT_NODISCARD auto GetGraphicsApi() const -> GraphicsAPI;
+
         MKT_NODISCARD auto GetDeviceName() const -> eastl::string_view;
+        MKT_NODISCARD auto GetVendorID() const -> eastl::string_view;
+        MKT_NODISCARD auto GetDriverVersion() const -> eastl::string_view;
 
         virtual ~IGpuDevice() = default;
 
         MKT_NODISCARD static auto Create( const GpuDeviceCreateInfo& createInfo ) -> eastl::unique_ptr<IGpuDevice>;
 
     protected:
-        explicit IGpuDevice( GraphicsAPI api, const GpuFeatureSupport& featuresSupport );
+        explicit IGpuDevice( GraphicsAPI api, GpuDeviceType deviceType, GpuFeatureSupportFlags featureFlags );
 
     protected:
-        eastl::string mName{};
+        eastl::string mVendorID{};
+        eastl::string mDeviceName{};
+        eastl::string mDriverVersion{};
 
         GraphicsAPI mApi{};
-        GpuFeatureSupport mFeaturesSupport{};
-
         bool mIsInitialized{ false };
+
+        // OpenGL convention
+        ViewportConvention mViewportConvention{ ViewportConvention::eRightHanded_OriginBottomLeft };
+
+        GpuDeviceType mDeviceType{ GpuDeviceType::eInvalid };
+        GpuFeatureSupportFlags mFeatureSupportFlags{ GpuFeatureSupportFlagsBits::None };
     };
 }// namespace mikoto::renderer
 

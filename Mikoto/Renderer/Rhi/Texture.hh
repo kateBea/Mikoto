@@ -62,7 +62,7 @@ namespace mikoto::renderer::rhi {
         Multisampling mMultisampling{ Multisampling::eMsaaX1 };
         TextureDimension mDimension{ TextureDimension::eTexture2D };
 
-        TextureUsageFlags mUsage{ TextureUsageFlagsBits::kNone };
+        TextureUsageFlags mUsage{ TextureUsageFlagsBits::None };
 
         auto SetName( eastl::string_view name ) -> TextureCreateDescription&;
         auto SetWidth( core::u32 width ) -> TextureCreateDescription&;
@@ -207,7 +207,7 @@ namespace mikoto::renderer::rhi {
         Format mFormat{ Format::eUnknown };
         TextureDimension mDimension{ TextureDimension::eInvalid };
 
-        TextureUsageFlags mTextureUsage{ TextureUsageFlagsBits::kShaderResource };
+        TextureUsageFlags mTextureUsage{ TextureUsageFlagsBits::ShaderResource };
 
         Multisampling mMultisampling{ Multisampling::eMsaaX1 };
 

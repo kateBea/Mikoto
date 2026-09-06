@@ -62,39 +62,39 @@ namespace mikoto::renderer::vulkan {
         // The library automatically adds VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT* to allocated memory blocks wherever it might be needed
         mAllocation.mBufferCreateInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-        if (mUsage.Has( BufferUsageFlagsBits::kVertex )) {
+        if (mUsage.Has( BufferUsageFlagsBits::Vertex )) {
             mAllocation.mBufferCreateInfo.usage |=
                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         }
 
-        if (mUsage.Has( BufferUsageFlagsBits::kIndex )) {
+        if (mUsage.Has( BufferUsageFlagsBits::Index )) {
             mAllocation.mBufferCreateInfo.usage |=
                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         }
 
-        if (mUsage.Has( BufferUsageFlagsBits::kStorage )) {
+        if (mUsage.Has( BufferUsageFlagsBits::Storage )) {
             mAllocation.mBufferCreateInfo.usage |=
                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         }
 
-        if (mUsage.Has( BufferUsageFlagsBits::kConstant )) {
+        if (mUsage.Has( BufferUsageFlagsBits::Constant )) {
             mAllocation.mBufferCreateInfo.usage |=
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         }
 
-        if (mUsage.Has( BufferUsageFlagsBits::kIndirectDraw )) {
+        if (mUsage.Has( BufferUsageFlagsBits::IndirectDraw )) {
             // Mark as storage because it can be used to read and write from compute shaders
             mAllocation.mBufferCreateInfo.usage |=
                 VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
         }
 
         // Explicit copy flags (this is what you were missing)
-        if (mUsage.Has(BufferUsageFlagsBits::kCopySrc)) {
+        if (mUsage.Has(BufferUsageFlagsBits::CopySource)) {
             mAllocation.mBufferCreateInfo.usage |=
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         }
 
-        if (mUsage.Has(BufferUsageFlagsBits::kCopyDst)) {
+        if (mUsage.Has(BufferUsageFlagsBits::CopyDest)) {
             mAllocation.mBufferCreateInfo.usage |=
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         }

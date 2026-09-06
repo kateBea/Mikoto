@@ -196,7 +196,7 @@ namespace mikoto::renderer {
 
         // If you specify initial data it means you to copy it to this
         // resource which means it must support being a copy Dest resource
-        SetUsage( BufferUsageFlagsBits::kCopyDst );
+        SetUsage( BufferUsageFlagsBits::CopyDest );
 
         return *this;
     }
@@ -272,7 +272,7 @@ namespace mikoto::renderer {
     {
         // Prepare layouts
         const auto layoutDesc{ BindlessLayoutDescription{}
-            .SetVisibility( ShaderFlagsBits::kAll )
+            .SetVisibility( ShaderFlagsBits::All )
             .SetRegisterSpace( MKT_DEFAULT_REGISTER_SPACE )
             .AddBindlessItem( BindlessLayoutItem::Samplers( MKT_SAMPLER_BINDING, 4096 ) )
             .AddBindlessItem( BindlessLayoutItem::Texture_SRV( MKT_TEXTURE_SRV_BINDING, 4096 ) )
@@ -367,7 +367,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Texture_SRV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
 
         return newID;
     }
@@ -384,7 +384,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_UAV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Texture_UAV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
 
         return newID;
     }
@@ -399,7 +399,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         ISampler* sampler{ checked_cast<ISampler*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Sampler( newID, sampler ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Sampler( newID, sampler ) );
 
         return newID;
     }
@@ -414,7 +414,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::StructuredBuffer_SRV( newID, buffer ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredBuffer_SRV( newID, buffer ) );
 
         return newID;
     }
@@ -429,7 +429,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::StructuredBuffer_UAV( newID, buffer ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredBuffer_UAV( newID, buffer ) );
 
         return newID;
     }
@@ -1154,7 +1154,7 @@ namespace mikoto::renderer {
             .SetName( desc.mName )
             .ForElement( desc.mElementSizeBytes, desc.mElementCount )
             .SetHeapType( desc.mHeapType )
-            .SetCpuAccessType( desc.mHeapType == HeapType::eUpload ? CpuAccessType::eWrite : CpuAccessType::eRead )
+            .SetCpuAccessType( desc.mHeapType == HeapType::eUpload ? AccessType::eWrite : AccessType::eRead )
             .SetByteSize( desc.mElementSizeBytes )
         };
 
@@ -1186,7 +1186,7 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( image->mHeight ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA8_UNORM ) };
 
         // Use the asset service when it is re

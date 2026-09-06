@@ -108,14 +108,14 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kCopySrc )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::CopySource )
             .SetFormat( format ) };
         info.mColorImage = graph.Create( imageDesc );
 
         const auto& formatInfo{ rhi::GetFormatInfo( format ) };
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "ObjectSelection_ReadbackBuffer" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( dimensions.first * dimensions.second * formatInfo.mBytesPerBlock )
             .SetHeapType( HeapType::eReadback ) };
         info.mReadBackBuffer = graph.Create( bufferDesc );

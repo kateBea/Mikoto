@@ -487,7 +487,7 @@ namespace mikoto::asset {
                                 .SetHeight( image->mHeight )
                                 .SetDimensions( TextureDimension::eTexture2D )
                                 .SetMultisampling( Multisampling::eMsaaX1 )
-                                .SetUsage( TextureUsageFlagsBits::kCopyDst | TextureUsageFlagsBits::kShaderResource )
+                                .SetUsage( TextureUsageFlagsBits::CopyDest | TextureUsageFlagsBits::ShaderResource )
                                 .SetImageData( image )
                                 .SetFormat( Format::eRGBA8_UNORM ) };
 
@@ -500,7 +500,7 @@ namespace mikoto::asset {
                                 .SetHeight( tex->mHeight )
                                 .SetDimensions( TextureDimension::eTexture2D )
                                 .SetMultisampling( Multisampling::eMsaaX1 )
-                                .SetUsage( TextureUsageFlagsBits::kCopyDst | TextureUsageFlagsBits::kShaderResource )
+                                .SetUsage( TextureUsageFlagsBits::CopyDest | TextureUsageFlagsBits::ShaderResource )
                                 .SetBufferData( BufferSpanHandle::New( rc_cast<ubyte*>( tex->pcData ),
                                     as<usize>( tex->mWidth * tex->mHeight * kChannelCount ) ) )
                                 .SetFormat( Format::eRGBA8_UNORM ) };

@@ -86,14 +86,10 @@ namespace mikoto::renderer::rhi {
         ResourceType mResourceType{ ResourceType::eInvalid };
         ResourceStates mResourceState{ ResourceStates::eUnknown };
 
-        AccessFlags mAccessAfter{ AccessFlagsBits::kNone };
-        TextureLayoutFlags mLayoutAfter{ TextureLayoutBits::kUnknown };
-        PipelineStageFlags mStageAfter{ PipelineStageFlagsBits::kNone };
-
         // By default, the resource is device local
         // lives in memory "only accessible by device"
         HeapType mHeapType{ HeapType::eDeviceLocal };
-        CpuAccessType mCpuAccess{ CpuAccessType::eNone };
+        AccessType mCpuAccess{ AccessType::eNone };
     };
 
     using DeviceObjectHandle = core::Ref<DeviceObject>;

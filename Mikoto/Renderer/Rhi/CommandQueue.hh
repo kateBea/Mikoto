@@ -77,7 +77,7 @@ namespace mikoto::renderer::rhi {
 
     protected:
         QueueType mType{ QueueType::eInvalid };
-        QueueOpSupportFlags mOpSupportFlags{ QueueOpSupportFlagsBits::kGraphics };
+        QueueOpSupportFlags mOpSupportFlags{ QueueOpSupportFlagsBits::Graphics };
     };
 
     using QueueHandle = core::Ref<IQueue>;

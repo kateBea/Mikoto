@@ -109,7 +109,7 @@ namespace mikoto::renderer {
 
         auto indirectCommandsDesc{ FGBufferDescription{}
             .SetName( "GeometryIndirectCommands_Buffer" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kIndirectDraw | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::IndirectDraw | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxIndirectCommands, MKT_SIZEOF( DrawIndirectCommand ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         mIndirectBuffer = graph.Create( indirectCommandsDesc );
@@ -137,28 +137,28 @@ namespace mikoto::renderer {
 
         auto vertexDesc{ FGBufferDescription{}
             .SetName( "GeometryDescription_Buffer01" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxUniqueModels, MKT_SIZEOF( GeometryAllocation ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         geometryFilterInfo.mGeometryAllocBuffer = graph.Create( vertexDesc );
 
         auto materialsDesc{ FGBufferDescription{}
             .SetName( "GeometryMaterials_Buffer01" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxRenderableEntities, MKT_SIZEOF( MeshMaterialInfo ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         geometryFilterInfo.mMaterialsBuffer = graph.Create( materialsDesc );
 
         auto geometryDesc{ FGBufferDescription{}
             .SetName( "GeometryRender_Buffer01" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxRenderableEntities, MKT_SIZEOF( MeshGeometryInfo ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         geometryFilterInfo.mGeometryBuffer = graph.Create( geometryDesc );
 
         auto skinningDesc{ FGBufferDescription{}
             .SetName( "Geometry_SkinningBuffer01" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxSkinnedMeshes, MKT_SIZEOF( MeshSkinningInfo ) )
             .SetHeapType( HeapType::eDeviceLocal )};
         geometryFilterInfo.mSkinningBuffer = graph.Create( skinningDesc );

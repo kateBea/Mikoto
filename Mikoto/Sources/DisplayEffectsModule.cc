@@ -135,7 +135,7 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA8_UNORM ) };
         info.mChromaAbRenderTarget = graph.Create( colorImage );
 

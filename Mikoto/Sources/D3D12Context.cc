@@ -240,23 +240,27 @@ namespace mikoto::renderer::d3d12 {
 #endif
 
         constexpr UINT dxgiFactoryFlags{ DXGI_CREATE_FACTORY_DEBUG };
-        ThrowIfFailed( CreateDXGIFactory2( dxgiFactoryFlags, IID_PPV_ARGS( &mDxgiFactory ) ) );
+        ThrowIfFailed( CreateDXGIFactory2( dxgiFactoryFlags, IID_PPV_ARGS( &mDxgiFactory4 ) ) );
+
+        if (FAILED(mDxgiFactory4.As(&mDxgiFactory6))) {
+            MKT_CORE_LOGGER_WARN( "Could not acquire IDXGIFactory6 interface." );
+        }
 
         // Init the device when the context is ready
         mDevice = IGpuDevice::Create({
             .mApi = GraphicsAPI::eD3D12,
-            .mFeaturesSupport{
+            .mDeviceType = GpuDeviceType::eDiscrete,
+            .mFeatureSupportFlags =
                 // If  the context was created with a window
                 // we request for a device with support for presentation
-                .mEnablePresentation = mWindow != nullptr,
-                .mDeviceType = GpuDeviceType::eDiscrete,
-            },
+                mWindow != nullptr ? GpuFeatureSupportFlagsBits::EnablePresentation : GpuFeatureSupportFlagsBits::None
         });
+
         if ( !mDevice ) {
             MKT_THROW_RUNTIME_ERROR( "Could not initialize D3D12 GPU Device." );
         }
         mDevice->Init();
-        mGraphicsQueue = checked_cast<Queue*>( mDevice->GetQueue( QueueType::eGraphics ) );
+        mGraphicsQueue = mDevice->GetQueue( QueueType::eGraphics );
 
         if (mWindow) {
             // If no window is provided we use D3D12 headless
@@ -321,7 +325,7 @@ namespace mikoto::renderer::d3d12 {
             mCommandList->SetTransition( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
 
             if (mTableUpdateRequired) {
-                (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( 0, mPresentTarget.GetRaw() ) );
+                (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Texture_SRV( 0, mPresentTarget.GetRaw() ) );
                 mTableUpdateRequired = false;
             }
 
@@ -452,8 +456,12 @@ namespace mikoto::renderer::d3d12 {
         return mSwapChain;
     }
 
-    auto Context::GetDxGIFactory() const -> IDXGIFactory4* {
-        return mDxgiFactory.Get();
+    auto Context::GetDxGIFactory4() const -> IDXGIFactory4* {
+        return mDxgiFactory4.Get();
+    }
+
+    auto Context::GetDxGIFactory6() const -> IDXGIFactory6* {
+        return mDxgiFactory6.Get();
     }
 
     auto Context::GetShaderCompiler() const -> ShaderCompiler* {
@@ -481,7 +489,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Context::InitializeSwapchain() -> void {
-        mSwapChain = checked_cast<Device*>( GetGpuDevice() )->CreateSwapChain( mWindow, mDxgiFactory );
+        mSwapChain = checked_cast<Device*>( GetGpuDevice() )->CreateSwapChain( mWindow, mDxgiFactory4 );
         if (!mSwapChain.IsEmpty()) {
             mSwapChain->SetRefreshRate( mRefreshRate );
         }
@@ -509,12 +517,12 @@ namespace mikoto::renderer::d3d12 {
 
         auto layoutDesc{ BindingLayoutDescription{}
             .SetRegisterSpace( 0 )
-            .SetShaderVisibility(ShaderFlagsBits::kAll)
+            .SetShaderVisibility(ShaderFlagsBits::All)
             .AddItem(BindingLayoutItem::Sampler(0))};
         mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
 
         auto bindlessLayout{ BindlessLayoutDescription{}
-            .SetVisibility(ShaderFlagsBits::kAll)
+            .SetVisibility(ShaderFlagsBits::All)
             .SetRegisterSpace( 1 )
             .AddBindlessItem(BindlessLayoutItem::Texture_SRV(0, 1)) }; // I just need one image slot I can update
         mBindlessLayout = mDevice->CreateBindlessLayout( bindlessLayout );
@@ -548,8 +556,8 @@ namespace mikoto::renderer::d3d12 {
         mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
 
         // Non-bindless set
-        auto bindingSetDesc{ BindingSetDescription{}
-            .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
+        auto bindingSetDesc{ BindingTableDescription{}
+            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
         mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
 
         mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );

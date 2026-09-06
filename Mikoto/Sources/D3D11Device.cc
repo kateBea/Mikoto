@@ -102,17 +102,17 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = false;
     }
 
-    BindingSet::BindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout )
+    BindingTable::BindingTable( const BindingTableDescription &desc, BindingLayoutHandle layout )
         : mBindingLayout{ std::move( layout ) }, mBindingDescription{ desc }
     {}
 
-    BindingSet::~BindingSet() {
+    BindingTable::~BindingTable() {
         if (mIsAllocated) {
             Release();
         }
     }
 
-    auto BindingSet::Initialize() -> void {
+    auto BindingTable::Initialize() -> void {
         mResolvedBindings.clear();
         mResolvedBindings.resize(mBindingDescription.mBindings.size());
 
@@ -140,7 +140,7 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = true;
     }
 
-    auto BindingSet::Bind( ID3D11DeviceContext *ctx, ShaderFlags visibility ) const -> void {
+    auto BindingTable::Bind( ID3D11DeviceContext *ctx, ShaderFlags visibility ) const -> void {
 
         // Slots start from 0 for each type of register and increment in order
         u32 constantBuffrSlotIndex{ 0 };
@@ -180,64 +180,64 @@ namespace mikoto::renderer::d3d11 {
 
             switch ( item.mType ) {
                 case ResourceType::eTexture_SRV:
-                    if ( visibility & ShaderFlagsBits::kVertex )
+                    if ( visibility & ShaderFlagsBits::Vertex )
                         bindSRV( [&]( auto... args ) { ctx->VSSetShaderResources( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kPixel )
+                    if ( visibility & ShaderFlagsBits::Pixel )
                         bindSRV( [&]( auto... args ) { ctx->PSSetShaderResources( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kGeometry )
+                    if ( visibility & ShaderFlagsBits::Geometry )
                         bindSRV( [&]( auto... args ) { ctx->GSSetShaderResources( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kHull )
+                    if ( visibility & ShaderFlagsBits::Hull )
                         bindSRV( [&]( auto... args ) { ctx->HSSetShaderResources( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kDomain )
+                    if ( visibility & ShaderFlagsBits::Domain )
                         bindSRV( [&]( auto... args ) { ctx->DSSetShaderResources( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kCompute )
+                    if ( visibility & ShaderFlagsBits::Compute )
                         bindSRV( [&]( auto... args ) { ctx->CSSetShaderResources( args... ); } );
 
                     break;
 
                 case ResourceType::eConstantBuffer:
-                    if ( visibility & ShaderFlagsBits::kVertex )
+                    if ( visibility & ShaderFlagsBits::Vertex )
                         bindCB( [&]( auto... args ) { ctx->VSSetConstantBuffers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kPixel )
+                    if ( visibility & ShaderFlagsBits::Pixel )
                         bindCB( [&]( auto... args ) { ctx->PSSetConstantBuffers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kGeometry )
+                    if ( visibility & ShaderFlagsBits::Geometry )
                         bindCB( [&]( auto... args ) { ctx->GSSetConstantBuffers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kHull )
+                    if ( visibility & ShaderFlagsBits::Hull )
                         bindCB( [&]( auto... args ) { ctx->HSSetConstantBuffers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kDomain )
+                    if ( visibility & ShaderFlagsBits::Domain )
                         bindCB( [&]( auto... args ) { ctx->DSSetConstantBuffers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kCompute )
+                    if ( visibility & ShaderFlagsBits::Compute )
                         bindCB( [&]( auto... args ) { ctx->CSSetConstantBuffers( args... ); } );
 
                     break;
 
                 case ResourceType::eSampler:
-                    if ( visibility & ShaderFlagsBits::kVertex )
+                    if ( visibility & ShaderFlagsBits::Vertex )
                         bindSampler( [&]( auto... args ) { ctx->VSSetSamplers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kPixel )
+                    if ( visibility & ShaderFlagsBits::Pixel )
                         bindSampler( [&]( auto... args ) { ctx->PSSetSamplers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kGeometry )
+                    if ( visibility & ShaderFlagsBits::Geometry )
                         bindSampler( [&]( auto... args ) { ctx->GSSetSamplers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kHull )
+                    if ( visibility & ShaderFlagsBits::Hull )
                         bindSampler( [&]( auto... args ) { ctx->HSSetSamplers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kDomain )
+                    if ( visibility & ShaderFlagsBits::Domain )
                         bindSampler( [&]( auto... args ) { ctx->DSSetSamplers( args... ); } );
 
-                    if ( visibility & ShaderFlagsBits::kCompute )
+                    if ( visibility & ShaderFlagsBits::Compute )
                         bindSampler( [&]( auto... args ) { ctx->CSSetSamplers( args... ); } );
 
                     break;
@@ -248,7 +248,7 @@ namespace mikoto::renderer::d3d11 {
         }
     }
 
-    auto BindingSet::Release() -> void {
+    auto BindingTable::Release() -> void {
         mIsAllocated = false;
     }
 
@@ -616,10 +616,10 @@ namespace mikoto::renderer::d3d11 {
         PipelineLayout* pl{ checked_cast<PipelineLayout*>( desc.mPipelineLayout ) };
 
         for (const auto& resourceSet : desc.mResourceSets) {
-            const BindingSet* set{ checked_cast<const BindingSet*>( resourceSet.second ) };
+            const BindingTable* set{ checked_cast<const BindingTable*>( resourceSet.second ) };
 
             // For D3D11 we default to making resources visible to all stages
-            set->Bind(mDeviceContextDeferred.Get(), ShaderFlagsBits::kAll);
+            set->Bind(mDeviceContextDeferred.Get(), ShaderFlagsBits::All);
         }
     }
 
@@ -826,7 +826,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     Device::Device( const GpuDeviceCreateInfo &createInfo )
-        : IGpuDevice{ createInfo.mApi, createInfo.mFeaturesSupport }
+        : IGpuDevice{ createInfo.mApi, createInfo.mDeviceType, createInfo.mFeatureSupportFlags }
     {}
 
     auto Device::Init() -> void {
@@ -860,11 +860,11 @@ namespace mikoto::renderer::d3d11 {
             if (desc.DedicatedVideoMemory > maxVideoMemory) {
                 maxVideoMemory = desc.DedicatedVideoMemory;
                 mAdapter = adapter;
-                mName = string::FromWChar( desc.Description, desc.Description + 128 );
+                mDeviceName = string::FromWChar( desc.Description, desc.Description + 128 );
             }
         }
 
-        MKT_CORE_LOGGER_DEBUG( "Picked adapter: {}", mName.c_str() );
+        MKT_CORE_LOGGER_DEBUG( "Picked adapter: {}", mDeviceName.c_str() );
 #endif
 
         D3D_FEATURE_LEVEL chosenDeviceFeatureLevel{};
@@ -897,10 +897,10 @@ namespace mikoto::renderer::d3d11 {
         DXGI_ADAPTER_DESC desc{};
         if (SUCCEEDED(mAdapter->GetDesc(&desc))) {
             eastl::wstring wideDeviceName{ desc.Description };
-            mName = string::FromWChar( wideDeviceName.c_str() );
+            mDeviceName = string::FromWChar( wideDeviceName.c_str() );
         }
 
-        mQueue = Ref<Queue>::New( QueueType::eGraphics, QueueOpSupportFlagsBits::kGraphics );
+        mQueue = Ref<Queue>::New( QueueType::eGraphics, QueueOpSupportFlagsBits::Graphics );
         mQueue->Initialize( this );
     }
 
@@ -1011,8 +1011,8 @@ namespace mikoto::renderer::d3d11 {
         return PipelineLayoutHandle::CreateEmpty();
     }
 
-    auto Device::CreateBindingSet( const BindingSetDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
-        BindingSetHandle set{ Ref<BindingSet>::New( desc, layout ) };
+    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingSetHandle {
+        BindingSetHandle set{ Ref<BindingTable>::New( desc, layout ) };
 
         if ( set.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to allocate binding layout resource." );
@@ -1056,7 +1056,7 @@ namespace mikoto::renderer::d3d11 {
         return false;
     }
 
-    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem &item ) -> bool {
+    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem &item ) -> bool {
         return false;
     }
 

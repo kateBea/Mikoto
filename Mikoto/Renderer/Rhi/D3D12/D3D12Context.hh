@@ -128,7 +128,8 @@ namespace mikoto::renderer::d3d12 {
 
         // D3D12 Specifics
         MKT_NODISCARD auto GetSwapChain() const -> SwapChainHandle;
-        MKT_NODISCARD auto GetDxGIFactory() const -> IDXGIFactory4*;
+        MKT_NODISCARD auto GetDxGIFactory4() const -> IDXGIFactory4*;
+        MKT_NODISCARD auto GetDxGIFactory6() const -> IDXGIFactory6*;
         MKT_NODISCARD auto GetShaderCompiler() const -> ShaderCompiler*;
 
         MKT_NODISCARD auto GetBackBufferCount() const -> UINT;
@@ -159,7 +160,8 @@ namespace mikoto::renderer::d3d12 {
         eastl::vector<FrameContext> mFrameContexts{};
 
         SwapChainHandle mSwapChain{};
-        Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory{};
+        Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory4{};
+        Microsoft::WRL::ComPtr<IDXGIFactory6> mDxgiFactory6{};
 
         static constexpr UINT kBackBufferCount{ 2 };
 

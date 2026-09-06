@@ -421,8 +421,8 @@ namespace mikoto::renderer::d3d12 {
             // D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL are set in D3D12_RESOURCE_DESC::Flags.
             // https://wiki.libsdl.org/SDL3/SDL_BeginGPURenderPass
             // https://github.com/libsdl-org/SDL/issues/10758
-            if ((mTextureUsage & rhi::TextureUsageFlagsBits::kRenderTarget) ||
-                (mTextureUsage & rhi::TextureUsageFlagsBits::kDepthTarget || mTextureUsage & rhi::TextureUsageFlagsBits::kDepthStencilTarget)) {
+            if ((mTextureUsage & rhi::TextureUsageFlagsBits::RenderTarget) ||
+                (mTextureUsage & rhi::TextureUsageFlagsBits::DepthTarget || mTextureUsage & rhi::TextureUsageFlagsBits::DepthStencilTarget)) {
                 Color clearColor{ rhi::kColorMagenta };
                 mOptimizedClearValue.Format = mImageAllocation.mDesc.Format;
                 mOptimizedClearValue.Color[0] = clearColor.mR;
@@ -440,13 +440,13 @@ namespace mikoto::renderer::d3d12 {
         }
 
         // Create the descriptor when the resource already exists to not create a null view
-        if (mTextureUsage & rhi::TextureUsageFlagsBits::kRenderTarget) {
+        if (mTextureUsage & rhi::TextureUsageFlagsBits::RenderTarget) {
             mRtvDescriptorIndex = mResources->mRenderTargetViewHeap->AllocateDescriptor();
             D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle{ mResources->mRenderTargetViewHeap->GetCpuHandle(mRtvDescriptorIndex) };
             CreateRTV(cpuHandle.ptr, mSubResources, mFormat );
         }
 
-        if (mTextureUsage & rhi::TextureUsageFlagsBits::kDepthTarget || mTextureUsage & rhi::TextureUsageFlagsBits::kDepthStencilTarget) {
+        if (mTextureUsage & rhi::TextureUsageFlagsBits::DepthTarget || mTextureUsage & rhi::TextureUsageFlagsBits::DepthStencilTarget) {
             mDsvDescriptorIndex = mResources->mDepthStencilViewHeap->AllocateDescriptor();
             D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle{ mResources->mDepthStencilViewHeap->GetCpuHandle(mDsvDescriptorIndex) };
             CreateDSV(cpuHandle.ptr, mSubResources );

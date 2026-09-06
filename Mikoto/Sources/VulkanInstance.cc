@@ -317,17 +317,17 @@ namespace mikoto::renderer::vulkan {
 
                 // Check if the queue supports graphics operations
                 if (properties.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                    queueData.mOpSupportFlags |= QueueOpSupportFlagsBits::kGraphics;
+                    queueData.mOpSupportFlags |= QueueOpSupportFlagsBits::Graphics;
                 }
 
                 // Check if the queue supports transfer operations
                 if (properties.queueFlags & VK_QUEUE_TRANSFER_BIT) {
-                    queueData.mOpSupportFlags |= QueueOpSupportFlagsBits::kTransfer;
+                    queueData.mOpSupportFlags |= QueueOpSupportFlagsBits::Transfer;
                 }
 
                 // Check if the queue supports compute operations
                 if (properties.queueFlags & VK_QUEUE_COMPUTE_BIT) {
-                    queueData.mOpSupportFlags |= QueueOpSupportFlagsBits::kCompute;
+                    queueData.mOpSupportFlags |= QueueOpSupportFlagsBits::Compute;
                 }
 
                 if (mSurface != VK_NULL_HANDLE) {
@@ -336,7 +336,7 @@ namespace mikoto::renderer::vulkan {
                     MKT_VK_CHECK( vkGetPhysicalDeviceSurfaceSupportKHR( physicalDevice, queueFamilyIndex, mSurface, MKT_ADDRESSOF( presentSupport ) ) );
 
                     if (presentSupport == VK_TRUE) {
-                        queueData.mOpSupportFlags |= QueueOpSupportFlagsBits::kPresentation;
+                        queueData.mOpSupportFlags |= QueueOpSupportFlagsBits::Presentation;
                     }
                 }
             }

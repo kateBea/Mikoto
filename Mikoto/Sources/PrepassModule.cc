@@ -59,7 +59,7 @@ namespace mikoto::renderer {
 
         auto gpuBufferDesc{ FGBufferDescription{}
             .SetName( "AABBGenComp_Clusters" )
-            .SetUsage( BufferUsageFlagsBits::kStorage )
+            .SetUsage( BufferUsageFlagsBits::Storage )
             .SetElementsSize( mNumClusters, MKT_SIZEOF( ClusterParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mClusterBuffer = graph.Create( gpuBufferDesc );
@@ -109,7 +109,7 @@ namespace mikoto::renderer {
 
         auto gpuBufferDesc{ FGBufferDescription{}
             .SetName( "LightCulling_Clusters" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxActiveLights, MKT_SIZEOF( LightParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mLightsBuffer = graph.Create( gpuBufferDesc );
@@ -278,7 +278,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA32_FLOAT ) };
         info.mGBufferPositionTarget = graph.Create( positionDesc );
 
@@ -287,7 +287,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA8_UNORM ) };
         info.mGBufferNormalTarget = graph.Create( normalDesc );
 
@@ -296,7 +296,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA8_UNORM ) };
         info.mGBufferColorTarget = graph.Create( colorDesc );
 
@@ -305,7 +305,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA16_FLOAT ) };
         info.mGBufferEmissiveTarget = graph.Create( emissiveDesc );
 
@@ -404,7 +404,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA8_UNORM ) };
         info.mDepthPrepassColorTarget = graph.Create( colorImage );
 
@@ -413,7 +413,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kDepthTarget )
+            .SetUsage( TextureUsageFlagsBits::DepthTarget )
             .SetFormat( Format::eD32 ) };
         info.mPrepassDepthTarget = graph.Create( depthImage );
 

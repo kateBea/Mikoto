@@ -25,8 +25,8 @@ namespace mikoto::renderer::rhi {
     using namespace mikoto::core;
     using namespace mikoto::memory;
 
-    auto BindingSetItem::Texture_SRV( u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingSetItem {
-        return BindingSetItem{
+    auto BindingTableItem::Texture_SRV( u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingTableItem {
+        return BindingTableItem{
             .mResource = texture,
             .mSlot = slot,
             .mType = ResourceType::eTexture_SRV,
@@ -36,8 +36,8 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    auto BindingSetItem::Texture_UAV( core::u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingSetItem {
-        return BindingSetItem{
+    auto BindingTableItem::Texture_UAV( core::u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingTableItem {
+        return BindingTableItem{
             .mResource = texture,
             .mSlot = slot,
             .mType = ResourceType::eTexture_UAV,
@@ -47,16 +47,16 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    auto BindingSetItem::Sampler( u32 slot, ISampler *sampler ) -> BindingSetItem {
-        return BindingSetItem{
+    auto BindingTableItem::Sampler( u32 slot, ISampler *sampler ) -> BindingTableItem {
+        return BindingTableItem{
             .mResource = sampler,
             .mSlot = slot,
             .mType = ResourceType::eSampler,
         };
     }
 
-    auto BindingSetItem::StructuredBuffer_SRV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingSetItem {
-        return BindingSetItem{
+    auto BindingTableItem::StructuredBuffer_SRV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingTableItem {
+        return BindingTableItem{
             .mResource = buffer,
             .mSlot = slot,
             .mRange = range,
@@ -64,8 +64,8 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    auto BindingSetItem::StructuredBuffer_UAV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingSetItem {
-        return BindingSetItem{
+    auto BindingTableItem::StructuredBuffer_UAV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingTableItem {
+        return BindingTableItem{
             .mResource = buffer,
             .mSlot = slot,
             .mRange = range,
@@ -132,8 +132,8 @@ namespace mikoto::renderer::rhi {
         return result;
     }
 
-    auto BindingSetItem::ConstantBuffer( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingSetItem {
-        BindingSetItem result{
+    auto BindingTableItem::ConstantBuffer( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingTableItem {
+        BindingTableItem result{
             .mResource = buffer,
             .mSlot = slot,
             .mType = ResourceType::eConstantBuffer,
@@ -172,7 +172,7 @@ namespace mikoto::renderer::rhi {
 
         // If you specify initial data it means you to copy it to this
         // resource which means it must support being a copy Dest resource
-        SetUsage( TextureUsageFlagsBits::kCopyDst );
+        SetUsage( TextureUsageFlagsBits::CopyDest );
 
         return *this;
     }
@@ -182,7 +182,7 @@ namespace mikoto::renderer::rhi {
 
         // If you specify initial data it means you to copy it to this
         // resource which means it must support being a copy Dest resource
-        SetUsage( TextureUsageFlagsBits::kCopyDst );
+        SetUsage( TextureUsageFlagsBits::CopyDest );
 
         return *this;
     }
@@ -246,7 +246,7 @@ namespace mikoto::renderer::rhi {
 
         // If you specify initial data it means you to copy it to this
         // resource which means it must support being a copy Dest resource
-        SetBufferUsage( BufferUsageFlagsBits::kCopyDst );
+        SetBufferUsage( BufferUsageFlagsBits::CopyDest );
 
         return *this;
     }
@@ -266,11 +266,11 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto BufferCreateDescription::SetCpuAccessType( CpuAccessType type ) -> BufferCreateDescription & {
+    auto BufferCreateDescription::SetCpuAccessType( AccessType type ) -> BufferCreateDescription & {
         mCpuAccess = type;
 
         // Cannot have a CPU writeable memory that is in VRAM
-        if ( mCpuAccess == CpuAccessType::eWrite && mHeapType == HeapType::eDeviceLocal ) {
+        if ( mCpuAccess == AccessType::eWrite && mHeapType == HeapType::eDeviceLocal ) {
             mHeapType = HeapType::eUpload;
         }
 
@@ -406,12 +406,12 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto BindingSetDescription::AddItem( const BindingSetItem &value ) -> BindingSetDescription & {
+    auto BindingTableDescription::AddItem( const BindingTableItem &value ) -> BindingTableDescription & {
         mBindings.emplace_back( value );
         return *this;
     }
 
-    auto BindingSetDescription::AddShader( ShaderModuleHandle shader ) -> BindingSetDescription & {
+    auto BindingTableDescription::AddShader( ShaderModuleHandle shader ) -> BindingTableDescription & {
         mShaders.emplace_back( shader );
         return *this;
     }

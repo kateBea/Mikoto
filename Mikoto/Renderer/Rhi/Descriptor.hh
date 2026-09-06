@@ -50,7 +50,7 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD static auto StructuredBuffer_UAV(core::u32 slot) -> BindingLayoutItem;
     };
 
-    struct BindingSetItem {
+    struct BindingTableItem {
         core::IResource* mResource{};
 
         core::u32 mSlot{};
@@ -61,26 +61,26 @@ namespace mikoto::renderer::rhi {
         TextureDimension mDimension{ TextureDimension::eInvalid };
         TextureSubresourceSet mSubResourceSet{};
 
-        static auto None(core::u32 slot = 0) -> BindingSetItem;
+        static auto None(core::u32 slot = 0) -> BindingTableItem;
 
-        static auto ConstantBuffer(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer ) -> BindingSetItem;
+        static auto ConstantBuffer(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer ) -> BindingTableItem;
 
         static auto Texture_SRV(core::u32 slot, ITexture* texture, Format format = Format::eUnknown,
-            TextureSubresourceSet subResources = kAllSubResources, TextureDimension dimension = TextureDimension::eInvalid) -> BindingSetItem;
+            TextureSubresourceSet subResources = kAllSubResources, TextureDimension dimension = TextureDimension::eInvalid) -> BindingTableItem;
         static auto Texture_UAV(core::u32 slot, ITexture* texture, Format format = Format::eUnknown,
             TextureSubresourceSet subResources = TextureSubresourceSet(0, 1, 0, TextureSubresourceSet::kAllArraySlices),
-            TextureDimension dimension = TextureDimension::eInvalid) -> BindingSetItem;
+            TextureDimension dimension = TextureDimension::eInvalid) -> BindingTableItem;
 
-        static auto TypedBuffer_SRV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingSetItem;
-        static auto TypedBuffer_UAV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingSetItem;
+        static auto TypedBuffer_SRV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingTableItem;
+        static auto TypedBuffer_UAV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingTableItem;
 
-        static auto Sampler(core::u32 slot, ISampler* sampler) -> BindingSetItem;
+        static auto Sampler(core::u32 slot, ISampler* sampler) -> BindingTableItem;
 
-        static auto StructuredBuffer_SRV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingSetItem;
-        static auto StructuredBuffer_UAV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingSetItem;
+        static auto StructuredBuffer_SRV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingTableItem;
+        static auto StructuredBuffer_UAV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingTableItem;
 
-        static auto RawBuffer_SRV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingSetItem;
-        static auto RawBuffer_UAV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingSetItem;
+        static auto RawBuffer_SRV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingTableItem;
+        static auto RawBuffer_UAV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingTableItem;
     };
 
     struct BindingLayoutDescription {
@@ -88,7 +88,7 @@ namespace mikoto::renderer::rhi {
         core::u32 mRegisterSpace{};
 
         eastl::vector<BindingLayoutItem> mBindings{};
-        ShaderFlags mStageVisibility{ ShaderFlagsBits::kVertex };
+        ShaderFlags mStageVisibility{ ShaderFlagsBits::Vertex };
 
         auto SetRegisterSpace( core::u32 group ) -> BindingLayoutDescription&;
         auto AddItem( const BindingLayoutItem& item ) -> BindingLayoutDescription&;
@@ -128,7 +128,7 @@ namespace mikoto::renderer::rhi {
     struct BindlessLayoutDescription {
         eastl::string mName{};
         core::u32 mRegisterSpace{};
-        ShaderFlags mStageVisibility{ ShaderFlagsBits::kVertex };
+        ShaderFlags mStageVisibility{ ShaderFlagsBits::Vertex };
 
         eastl::fixed_vector<BindlessLayoutItem, kMaxBindlessRegisterSpaces> mSlots{};
 
@@ -143,8 +143,8 @@ namespace mikoto::renderer::rhi {
         auto AddShader( ShaderModuleHandle shader ) -> BindlessLayoutDescription&;
     };
 
-    struct BindingSetDescription {
-        eastl::vector<BindingSetItem> mBindings{};
+    struct BindingTableDescription {
+        eastl::vector<BindingTableItem> mBindings{};
 
         // TODO: Move this to a reflection module
         // Vulkan for instance via the spirv_reflect library allows us to
@@ -154,12 +154,14 @@ namespace mikoto::renderer::rhi {
         bool mUseReflection{};
         eastl::fixed_vector<ShaderModuleHandle, kMaxShaders> mShaders{};
 
-        auto AddItem(const BindingSetItem& value) -> BindingSetDescription&;
-        auto AddShader( ShaderModuleHandle shader ) -> BindingSetDescription&;
+        auto AddItem(const BindingTableItem& value) -> BindingTableDescription&;
+        auto AddShader( ShaderModuleHandle shader ) -> BindingTableDescription&;
     };
 
     // Upon creation, its contents cannot mutate
-    class IBindingSet : public DeviceObject {
+    // Treated as a table of bindings where each one has a unique
+    // slot index
+    class IBindingTable : public DeviceObject {
     public:
 
         using DeviceObject::Initialize;
@@ -169,10 +171,10 @@ namespace mikoto::renderer::rhi {
         auto Release() -> void override = 0;
     };
 
-    using BindingSetHandle = core::Ref<IBindingSet>;
+    using BindingSetHandle = core::Ref<IBindingTable>;
 
     // A resizable BindingSet
-    class IDescriptorTable : public IBindingSet {
+    class IDescriptorTable : public IBindingTable {
     public:
         // How many indices it holds for instance on Vulkan when we
         // say the descriptor set size for bindless descriptor indexing

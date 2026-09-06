@@ -67,8 +67,9 @@ namespace mikoto::renderer::d3d12 {
 
     // https://microsoft.github.io/DirectX-Specs/d3d/D3D12EnhancedBarriers.html#equivalent-d3d12_barrier_sync-bit-for-each-d3d12_resource_states-bit
     MKT_NODISCARD auto GetBarrierSync( rhi::PipelineStageFlags flags ) -> D3D12_BARRIER_SYNC;
-    MKT_NODISCARD auto GetBarrierAccess( rhi::AccessFlags flags ) -> D3D12_BARRIER_ACCESS;
-    MKT_NODISCARD auto GetBarrierLayout( rhi::TextureLayoutFlags layout ) -> D3D12_BARRIER_LAYOUT;
+    MKT_NODISCARD auto GetBarrierLayout( rhi::TextureLayoutFlags layout, rhi::AccessType accessType ) -> D3D12_BARRIER_LAYOUT;
+
+    MKT_NODISCARD auto GetBarrierAccess( rhi::PipelineStageFlags flags, rhi::AccessType accessType ) -> D3D12_BARRIER_ACCESS;
 
     MKT_NODISCARD auto GetHeapType( rhi::HeapType type ) -> D3D12_HEAP_TYPE;
     MKT_NODISCARD auto GetDescriptorHeapType( rhi::ResourceType type ) -> D3D12_DESCRIPTOR_HEAP_TYPE;

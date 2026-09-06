@@ -92,14 +92,14 @@ namespace mikoto::renderer::d3d11 {
         ID3D11Buffer* mConstantBuffer{ nullptr };
     };
 
-    class BindingSet : public IBindingSet {
+    class BindingTable : public IBindingTable {
     public:
 
-        explicit BindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout );
+        explicit BindingTable( const BindingTableDescription& desc, BindingLayoutHandle layout );
 
         auto Bind(ID3D11DeviceContext* ctx, rhi::ShaderFlags stage ) const -> void;
 
-        ~BindingSet() override;
+        ~BindingTable() override;
 
     protected:
         auto Initialize() -> void override;
@@ -107,7 +107,7 @@ namespace mikoto::renderer::d3d11 {
 
     private:
         BindingLayoutHandle mBindingLayout{};
-        BindingSetDescription mBindingDescription{};
+        BindingTableDescription mBindingDescription{};
 
         eastl::vector<D3D11BindingData> mResolvedBindings{};
     };
@@ -315,7 +315,7 @@ namespace mikoto::renderer::d3d11 {
 
         MKT_NODISCARD auto CreateBindingLayout( const BindingLayoutDescription& desc ) -> BindingLayoutHandle override;
         MKT_NODISCARD auto CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle override;
-        MKT_NODISCARD auto CreateBindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout ) -> BindingSetHandle override;
+        MKT_NODISCARD auto CreateBindingSet( const BindingTableDescription& desc, BindingLayoutHandle layout ) -> BindingSetHandle override;
 
         MKT_NODISCARD auto CreateFence( u64 fenceInitialValue ) -> FenceHandle override;
 
@@ -327,7 +327,7 @@ namespace mikoto::renderer::d3d11 {
 
         MKT_NODISCARD auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle override;
         MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
-        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool override;
+        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> bool override;
 
         MKT_NODISCARD auto GetQueue( QueueType type ) -> IQueue* override;
 

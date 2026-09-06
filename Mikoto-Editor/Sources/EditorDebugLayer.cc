@@ -147,7 +147,7 @@ namespace mikoto::editor {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eBGRA8_UNORM ) };
 
         mColorImage = mDevice->CreateTexture( colorDesc );
@@ -159,7 +159,7 @@ namespace mikoto::editor {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kDepthTarget )
+            .SetUsage( TextureUsageFlagsBits::DepthTarget )
             .SetFormat( Format::eD32 ) };
 
         mDepthImage = mDevice->CreateTexture( depthDesc );
@@ -221,13 +221,13 @@ namespace mikoto::editor {
             .SetHeight( as<i32>( image->mHeight ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA8_UNORM ) };
         mSimpleTexture = mDevice->CreateTexture( textureDbug );
 
         auto constantBufferDesc{ BufferCreateDescription{}
-            .SetCpuAccessType( CpuAccessType::eWrite )
-            .SetBufferUsage( BufferUsageFlagsBits::kConstant | BufferUsageFlagsBits::kCopyDst )
+            .SetCpuAccessType( AccessType::eWrite )
+            .SetBufferUsage( BufferUsageFlagsBits::Constant | BufferUsageFlagsBits::CopyDest )
             .SetResourceType( ResourceType::eConstantBuffer )
             .SetByteSize(MKT_SIZEOF( ConstantBuffer )) };
         mConstantBuffer = mDevice->CreateBuffer(constantBufferDesc);
@@ -247,7 +247,7 @@ namespace mikoto::editor {
         // Ideally we want to automate this process by allowing each backend to be able to use shader reflection
         auto layoutDesc{ BindingLayoutDescription{}
             .SetRegisterSpace( 0 )
-            .SetShaderVisibility(ShaderFlagsBits::kAll)
+            .SetShaderVisibility(ShaderFlagsBits::All)
             .AddItem(BindingLayoutItem::Sampler(0))
             .AddItem(BindingLayoutItem::Texture_SRV(1))
             .AddItem(BindingLayoutItem::ConstantBuffer(2)) };
@@ -255,7 +255,7 @@ namespace mikoto::editor {
 
         // Bindless setup
         auto bindlessLayout{ BindlessLayoutDescription{}
-            .SetVisibility(ShaderFlagsBits::kAll)
+            .SetVisibility(ShaderFlagsBits::All)
             .SetRegisterSpace( 1 )
             .AddBindlessItem(BindlessLayoutItem::Texture_SRV(0, 1024))
             .AddBindlessItem(BindlessLayoutItem::Samplers(1, 1024)) };
@@ -288,14 +288,14 @@ namespace mikoto::editor {
 
         mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
 
-        auto bindingSetDesc{ BindingSetDescription{}
-            .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) )
-            .AddItem( BindingSetItem::Texture_SRV( 1, mSimpleTexture.GetRaw() ) )
-            .AddItem( BindingSetItem::ConstantBuffer( 2, mConstantBuffer.GetRaw() ) ) };
+        auto bindingSetDesc{ BindingTableDescription{}
+            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) )
+            .AddItem( BindingTableItem::Texture_SRV( 1, mSimpleTexture.GetRaw() ) )
+            .AddItem( BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetRaw() ) ) };
         mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
 
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) );
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( 0, mSimpleTexture.GetRaw() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Texture_SRV( 0, mSimpleTexture.GetRaw() ) );
 
         SceneCameraDescription cameraDescription{
             .mFov = 45.0,

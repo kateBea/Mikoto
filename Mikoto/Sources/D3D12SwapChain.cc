@@ -88,7 +88,7 @@ namespace mikoto::renderer::d3d12 {
                 .mWidth = mWidth,
                 .mHeight = mHeight,
                 .mFormat = mFormat,
-                .mTextureUsage = TextureUsageFlagsBits::kRenderTarget,
+                .mTextureUsage = TextureUsageFlagsBits::RenderTarget,
                 .mImageResource = mRenderTargetResource };
 
             TextureHandle presentImage{ device->CreateTexture( externalTextureDesc ) };
@@ -187,7 +187,7 @@ namespace mikoto::renderer::d3d12 {
         ID3D12CommandQueue* cmdQueue{ *queue };
 
         Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain1{};
-        ThrowIfFailed(ctx->GetDxGIFactory()->CreateSwapChainForHwnd(
+        ThrowIfFailed(ctx->GetDxGIFactory4()->CreateSwapChainForHwnd(
             cmdQueue,
             win32Handle,
             &swapChainDesc,
@@ -197,7 +197,7 @@ namespace mikoto::renderer::d3d12 {
 
         // Disable the Alt+Enter fullscreen toggle feature.
         // Switching to fullscreen will be handled manually.
-        ThrowIfFailed(ctx->GetDxGIFactory()->MakeWindowAssociation(win32Handle, DXGI_MWA_NO_ALT_ENTER));
+        ThrowIfFailed(ctx->GetDxGIFactory4()->MakeWindowAssociation(win32Handle, DXGI_MWA_NO_ALT_ENTER));
         ThrowIfFailed(swapChain1.As(&mSwapChain));
 
         const usize backBufferCount{ ctx->GetBackBufferCount() };
@@ -209,7 +209,7 @@ namespace mikoto::renderer::d3d12 {
                 .mWidth = mWidth,
                 .mHeight = mHeight,
                 .mFormat = mFormat,
-                .mTextureUsage = TextureUsageFlagsBits::kRenderTarget,
+                .mTextureUsage = TextureUsageFlagsBits::RenderTarget,
                 .mImageResource = mRenderTargetResource };
 
             TextureHandle presentImage{ device->CreateTexture( externalTextureDesc ) };

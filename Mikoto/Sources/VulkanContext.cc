@@ -84,12 +84,11 @@ namespace mikoto::renderer::vulkan {
         // Init the device when the context is ready
         mDevice = IGpuDevice::Create({
             .mApi = GraphicsAPI::eVulkan,
-            .mFeaturesSupport{
+            .mDeviceType = GpuDeviceType::eDiscrete,
+            .mFeatureSupportFlags =
                 // If  the context was created with a window
                 // we request for a device with support for presentation
-                .mEnablePresentation = mWindow != nullptr,
-                .mDeviceType = GpuDeviceType::eDiscrete,
-            },
+                mWindow != nullptr ? GpuFeatureSupportFlagsBits::EnablePresentation : GpuFeatureSupportFlagsBits::None
         });
 
         if (!mDevice) {
@@ -185,7 +184,7 @@ namespace mikoto::renderer::vulkan {
             mCommandList->SetTransition( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
 
             if (mTableUpdateRequired) {
-                (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingSetItem::Texture_SRV( 0, mPresentTarget.GetRaw() ) );
+                (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Texture_SRV( 0, mPresentTarget.GetRaw() ) );
                 mTableUpdateRequired = false;
             }
 
@@ -374,12 +373,12 @@ namespace mikoto::renderer::vulkan {
 
         auto layoutDesc{ BindingLayoutDescription{}
             .SetRegisterSpace( 0 )
-            .SetShaderVisibility(ShaderFlagsBits::kAll)
+            .SetShaderVisibility(ShaderFlagsBits::All)
             .AddItem(BindingLayoutItem::Sampler(0))};
         mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
 
         auto bindlessLayout{ BindlessLayoutDescription{}
-            .SetVisibility(ShaderFlagsBits::kAll)
+            .SetVisibility(ShaderFlagsBits::All)
             .SetRegisterSpace( 1 )
             .AddBindlessItem(BindlessLayoutItem::Texture_SRV(0, 1)) }; // I just need one image slot I can update
         mBindlessLayout = mDevice->CreateBindlessLayout( bindlessLayout );
@@ -413,8 +412,8 @@ namespace mikoto::renderer::vulkan {
         mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
 
         // Non-bindless set
-        auto bindingSetDesc{ BindingSetDescription{}
-            .AddItem( BindingSetItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
+        auto bindingSetDesc{ BindingTableDescription{}
+            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
         mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
 
         mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );

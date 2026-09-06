@@ -288,7 +288,7 @@ namespace mikoto::renderer {
         core::u32 mElementSizeBytes{}; // If we do not know the size of individual elements this is equal to the whole range
 
         rhi::HeapType mHeapType{ rhi::HeapType::eDeviceLocal };
-        rhi::BufferUsageFlags mBufferUsageFlags{ BufferUsageFlagsBits::kStorage };
+        rhi::BufferUsageFlags mBufferUsageFlags{ BufferUsageFlagsBits::Storage };
 
         memory::BufferSpanHandle mInitialContents{};
 
@@ -309,7 +309,7 @@ namespace mikoto::renderer {
 
         rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
         rhi::TextureDimension mDimension{ rhi::TextureDimension::eTexture2D };
-        rhi::TextureUsageFlags mUsage{ rhi::TextureUsageFlagsBits::kShaderResource };
+        rhi::TextureUsageFlags mUsage{ rhi::TextureUsageFlagsBits::ShaderResource };
 
         rhi::Format mFormat{ rhi::Format::eRGBA8_SNORM };
         rhi::HeapType mHeapType{ rhi::HeapType::eDeviceLocal };

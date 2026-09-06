@@ -49,7 +49,7 @@ namespace mikoto::editor {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eBGRA8_UNORM ) };
         mColorImage = mDevice->CreateTexture( colorDesc );
         mColorImage->SetDebugName( "HelloTriangleLayer Color image" );
@@ -60,7 +60,7 @@ namespace mikoto::editor {
             .SetHeight( as<i32>( 1080 ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kDepthTarget )
+            .SetUsage( TextureUsageFlagsBits::DepthTarget )
             .SetFormat( Format::eD32 ) };
         mDepthImage = mDevice->CreateTexture( depthDesc );
         mDepthImage->SetDebugName( "HelloTriangleLayer Depth image" );

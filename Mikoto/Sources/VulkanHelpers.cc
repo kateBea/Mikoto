@@ -625,23 +625,23 @@ namespace mikoto::renderer::vulkan {
 
     auto GetImageUsage( TextureUsageFlags flags ) -> VkImageUsageFlags {
         VkImageUsageFlags result{};
-        if (flags & TextureUsageFlagsBits::kRenderTarget) {
+        if (flags & TextureUsageFlagsBits::RenderTarget) {
             result |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         }
 
-        if (flags & TextureUsageFlagsBits::kDepthTarget) {
+        if (flags & TextureUsageFlagsBits::DepthTarget) {
             result |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
         }
 
-        if (flags & TextureUsageFlagsBits::kShaderResource) {
+        if (flags & TextureUsageFlagsBits::ShaderResource) {
             result |= VK_IMAGE_USAGE_SAMPLED_BIT;
         }
 
-        if (flags & TextureUsageFlagsBits::kCopySrc) {
+        if (flags & TextureUsageFlagsBits::CopySource) {
             result |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         }
 
-        if (flags & TextureUsageFlagsBits::kCopyDst) {
+        if (flags & TextureUsageFlagsBits::CopyDest) {
             result |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         }
 
@@ -834,42 +834,42 @@ namespace mikoto::renderer::vulkan {
 
     auto GetShaderStageFlags(  ShaderFlags visibility ) -> VkShaderStageFlags {
         // Fast path
-        if ( visibility == ShaderFlagsBits::kAll ) {
+        if ( visibility == ShaderFlagsBits::All ) {
             return VK_SHADER_STAGE_ALL;
         }
 
         VkShaderStageFlags flags{};
 
-        if ( visibility & ShaderFlagsBits::kVertex ) {
+        if ( visibility & ShaderFlagsBits::Vertex ) {
             flags |= VK_SHADER_STAGE_VERTEX_BIT;
         }
 
-        if ( visibility & ShaderFlagsBits::kPixel ) {
+        if ( visibility & ShaderFlagsBits::Pixel ) {
             flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
         }
 
-        if ( visibility & ShaderFlagsBits::kCompute ) {
+        if ( visibility & ShaderFlagsBits::Compute ) {
             flags |= VK_SHADER_STAGE_COMPUTE_BIT;
         }
 
-        if ( visibility & ShaderFlagsBits::kGeometry ) {
+        if ( visibility & ShaderFlagsBits::Geometry ) {
             flags |= VK_SHADER_STAGE_GEOMETRY_BIT;
         }
 
-        if ( visibility & ShaderFlagsBits::kHull ) {
+        if ( visibility & ShaderFlagsBits::Hull ) {
             flags |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
             flags |= VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
         }
 
-        if ( visibility & ShaderFlagsBits::kRayGeneration ) {
+        if ( visibility & ShaderFlagsBits::RayGeneration ) {
             flags |= VK_SHADER_STAGE_RAYGEN_BIT_KHR;
         }
 
-        if ( visibility & ShaderFlagsBits::kMiss ) {
+        if ( visibility & ShaderFlagsBits::Miss ) {
             flags |= VK_SHADER_STAGE_MISS_BIT_KHR;
         }
 
-        if ( visibility & ShaderFlagsBits::kClosestHit ) {
+        if ( visibility & ShaderFlagsBits::ClosestHit ) {
             flags |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
         }
 

@@ -225,7 +225,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>(  dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eR8_UNORM ) };
         info.mSsaoColorTarget = graph.Create( colorImage );
 
@@ -234,7 +234,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>(  dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eR8_UNORM ) };
         info.mSsaoBlurColorTarget = graph.Create( blurColorImage );
 
@@ -244,13 +244,13 @@ namespace mikoto::renderer {
             .SetHeight( as<i32>( kSsaoNoiseDimensions ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource | TextureUsageFlagsBits::kCopyDst )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::CopyDest )
             .SetFormat( Format::eRGBA32_FLOAT ) };
         info.mSsaoNoiseTexture = graph.Create( noiseTexture );
 
         const auto kernelBufferDesc{ FGBufferDescription{}
             .SetName( "SSAO_KernelBuffer" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( MKT_VECTOR_SIZE_BYTES( mSsaoKernelSamples ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mSsaoKernelBuffer = graph.Create( kernelBufferDesc );
@@ -441,7 +441,7 @@ namespace mikoto::renderer {
                 .SetWidth( width )
                 .SetHeight( height )
                 .SetDimensions( TextureDimension::eTexture2D )
-                .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+                .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
                 .SetFormat( Format::eRGBA16_FLOAT ) };
             info.mBloomChainImages.emplace_back( PostProcessModuleInfo::ImageDescription {
                 .mWidth = width,

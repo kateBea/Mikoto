@@ -41,7 +41,15 @@ namespace mikoto::renderer {
     }
 
     auto IGpuDevice::GetDeviceName() const -> eastl::string_view {
-        return mName;
+        return mDeviceName;
+    }
+
+    auto IGpuDevice::GetVendorID() const -> eastl::string_view {
+        return mVendorID;
+    }
+
+    auto IGpuDevice::GetDriverVersion() const -> eastl::string_view {
+        return mDriverVersion;
     }
 
     auto IGpuDevice::Create( const GpuDeviceCreateInfo &createInfo ) -> eastl::unique_ptr<IGpuDevice> {
@@ -60,7 +68,7 @@ namespace mikoto::renderer {
         return nullptr;
     }
 
-    IGpuDevice::IGpuDevice( const GraphicsAPI api, const GpuFeatureSupport& featuresSupport )
-        : mApi{ api }, mFeaturesSupport{ featuresSupport }
+    IGpuDevice::IGpuDevice( GraphicsAPI api, GpuDeviceType deviceType, GpuFeatureSupportFlags featureFlags )
+        : mApi{ api }, mDeviceType{ deviceType }, mFeatureSupportFlags{ featureFlags }
     {}
 }

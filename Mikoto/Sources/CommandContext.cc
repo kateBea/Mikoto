@@ -265,7 +265,7 @@ namespace mikoto::renderer {
 
     auto CommandContext::Draw( u32 vertexCount, u32 instanceCount ) -> void {
         IPipelineLayout* layout{ mPipelineLayout.GetRaw() };
-        mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
+        mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
         mCommands->Draw( DrawArguments{}
             .SetVertexCount( vertexCount )
             .SetInstanceCount( instanceCount ) );
@@ -280,14 +280,14 @@ namespace mikoto::renderer {
         FGResource resource{ mResourceManager->Get( state.mIndirectBuffer.mHandle ) };
 
         IPipelineLayout* layout{ mPipelineLayout.GetRaw() };
-        mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
+        mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
         mCommands->BindIndirectBuffer( checked_cast<IBuffer*>( resource.mResource.GetRaw() ) );
         mCommands->DrawIndirect( 0, state.mInstanceCount );
     }
 
     auto CommandContext::Dispatch( u32 groupX, u32 groupY, u32 groupZ ) -> void {
         IPipelineLayout* layout{ mPipelineLayout.GetRaw() };
-        mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::kAll );
+        mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
         mCommands->Dispatch( groupX, groupY, groupZ );
     }
 

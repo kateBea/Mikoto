@@ -62,7 +62,7 @@ namespace mikoto::renderer {
                 .SetHeight( as<i32>( shadowMapDimensions.first ) ) // Same width and height
                 .SetDimensions( TextureDimension::eTexture2D )
                 .SetMultisampling( Multisampling::eMsaaX1 )
-                .SetUsage( TextureUsageFlagsBits::kDepthTarget | TextureUsageFlagsBits::kShaderResource )
+                .SetUsage( TextureUsageFlagsBits::DepthTarget | TextureUsageFlagsBits::ShaderResource )
                 .SetFormat( Format::eD32 ) };
 
             info.mDirShadowMaps.emplace_back( graph.Create( depthImage ) );
@@ -78,7 +78,7 @@ namespace mikoto::renderer {
                 .SetHeight( as<i32>( shadowMapDimensions.first ) ) // Same width and height
                 .SetDimensions( TextureDimension::eTextureCube )
                 .SetMultisampling( Multisampling::eMsaaX1 )
-                .SetUsage( TextureUsageFlagsBits::kDepthTarget | TextureUsageFlagsBits::kShaderResource )
+                .SetUsage( TextureUsageFlagsBits::DepthTarget | TextureUsageFlagsBits::ShaderResource )
                 .SetFormat( Format::eD32 ) };
 
             info.mPointShadowMaps.emplace_back( graph.Create( depthImage ) );
@@ -93,7 +93,7 @@ namespace mikoto::renderer {
                 .SetHeight( as<i32>( shadowMapDimensions.first ) ) // Same width and height
                 .SetDimensions( TextureDimension::eTexture2D ) // Spot works similar to directional lights
                 .SetMultisampling( Multisampling::eMsaaX1 )
-                .SetUsage( TextureUsageFlagsBits::kDepthTarget | TextureUsageFlagsBits::kShaderResource )
+                .SetUsage( TextureUsageFlagsBits::DepthTarget | TextureUsageFlagsBits::ShaderResource )
                 .SetFormat( Format::eD32 ) };
 
             info.mSpotShadowMaps.emplace_back( graph.Create( depthImage ) );
@@ -130,7 +130,7 @@ namespace mikoto::renderer {
 
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "DirShadowsBuffer01" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxShadowMaps, MKT_SIZEOF( ShadowMapParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mDirShadowsBuffer = graph.Create( bufferDesc );
@@ -305,7 +305,7 @@ namespace mikoto::renderer {
 
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "PointShadowsBuffer01" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxShadowMaps, MKT_SIZEOF( ShadowMapParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mPointShadowsBuffer = graph.Create( bufferDesc );
@@ -361,7 +361,7 @@ namespace mikoto::renderer {
 
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "SpotShadowsBuffer01" )
-            .SetUsage( BufferUsageFlagsBits::kStorage | BufferUsageFlagsBits::kCopyDst )
+            .SetUsage( BufferUsageFlagsBits::Storage | BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxShadowMaps, MKT_SIZEOF( ShadowMapParameters ) )
             .SetHeapType( HeapType::eDeviceLocal ) };
         info.mSpotShadowsBuffer = graph.Create( bufferDesc );

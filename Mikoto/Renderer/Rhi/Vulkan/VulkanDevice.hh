@@ -579,15 +579,15 @@ namespace mikoto::renderer::vulkan {
         rhi::BindingLayoutHandle mBindingLayout{};
     };
 
-    class BindingSet : public rhi::IBindingSet {
+    class BindingTable : public rhi::IBindingTable {
     public:
-        explicit BindingSet( const rhi::BindingSetDescription& desc, rhi::BindingLayoutHandle layout );
+        explicit BindingTable( const rhi::BindingTableDescription& desc, rhi::BindingLayoutHandle layout );
 
         auto SetDebugName( eastl::string_view name ) -> void override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
-        ~BindingSet() override;
+        ~BindingTable() override;
 
     protected:
         auto Initialize() -> void override;
@@ -600,7 +600,7 @@ namespace mikoto::renderer::vulkan {
         DescriptorAllocatorHandle mDescriptorAllocatorHandle{};
 
         rhi::BindingLayoutHandle mBindingLayout{};
-        rhi::BindingSetDescription mBindingDescription{};
+        rhi::BindingTableDescription mBindingDescription{};
     };
 
     class InputLayout : public rhi::IInputLayout {
@@ -674,7 +674,7 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto CreateBindingLayout( const rhi::BindingLayoutDescription& desc ) -> rhi::BindingLayoutHandle override;
         MKT_NODISCARD auto CreatePipelineLayout( const rhi::PipelineLayoutCreateDescription& desc ) -> rhi::PipelineLayoutHandle override;
-        MKT_NODISCARD auto CreateBindingSet( const rhi::BindingSetDescription& desc, rhi::BindingLayoutHandle layout ) -> rhi::BindingSetHandle override;
+        MKT_NODISCARD auto CreateBindingSet( const rhi::BindingTableDescription& desc, rhi::BindingLayoutHandle layout ) -> rhi::BindingSetHandle override;
 
         MKT_NODISCARD auto CreateFence( core::u64 fenceInitialValue ) -> rhi::FenceHandle override;
 
@@ -686,7 +686,7 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto CreateDescriptorTable( rhi::BindingLayoutHandle layout ) -> rhi::DescriptorTableHandle override;
         MKT_NODISCARD auto ResizeDescriptorTable( rhi::DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool override;
-        MKT_NODISCARD auto WriteDescriptorTable( rhi::DescriptorTableHandle descriptorTable, const rhi::BindingSetItem& item ) -> bool override;
+        MKT_NODISCARD auto WriteDescriptorTable( rhi::DescriptorTableHandle descriptorTable, const rhi::BindingTableItem& item ) -> bool override;
 
         MKT_NODISCARD auto GetQueue( rhi::QueueType type ) -> IQueue* override;
 

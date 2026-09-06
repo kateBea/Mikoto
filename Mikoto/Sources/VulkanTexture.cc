@@ -317,9 +317,9 @@ namespace mikoto::renderer::vulkan {
                 mBufferSpan.Release();
             }
 
-            if ( mTextureUsage & TextureUsageFlagsBits::kDepthTarget ) {
+            if ( mTextureUsage & TextureUsageFlagsBits::DepthTarget ) {
                 mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-            } else if ( mTextureUsage & TextureUsageFlagsBits::kDepthStencilTarget ) {
+            } else if ( mTextureUsage & TextureUsageFlagsBits::DepthStencilTarget ) {
                 mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
             } else {
                 mAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;

@@ -268,9 +268,9 @@ namespace mikoto::renderer::d3d12 {
         DescriptorIndex mBaseIndex{ d3d12::kInvalidDescriptorIndex };
     };
 
-    class BindingSet : public IBindingSet {
+    class BindingTable : public IBindingTable {
     public:
-        explicit BindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout, DeviceResources& resources );
+        explicit BindingTable( const BindingTableDescription& desc, BindingLayoutHandle layout, DeviceResources& resources );
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
@@ -280,7 +280,7 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetSrvRange() const -> const DescriptorRange&;
         MKT_NODISCARD auto GetSamplerRange() const -> const DescriptorRange&;
 
-        ~BindingSet() override;
+        ~BindingTable() override;
 
     protected:
         auto Initialize() -> void override;
@@ -288,7 +288,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         rhi::BindingLayoutHandle mBindingLayout{};
-        BindingSetDescription mBindingDescription{};
+        BindingTableDescription mBindingDescription{};
 
         DeviceResources* mDeviceResources{};
 
@@ -592,7 +592,7 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto CreateBindingLayout( const BindingLayoutDescription& desc ) -> BindingLayoutHandle override;
         MKT_NODISCARD auto CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle override;
-        MKT_NODISCARD auto CreateBindingSet( const BindingSetDescription& desc, BindingLayoutHandle layout ) -> BindingSetHandle override;
+        MKT_NODISCARD auto CreateBindingSet( const BindingTableDescription& desc, BindingLayoutHandle layout ) -> BindingSetHandle override;
 
         MKT_NODISCARD auto CreateFence( u64 fenceInitialValue ) -> FenceHandle override;
 
@@ -604,7 +604,7 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle override;
         MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
-        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingSetItem& item ) -> bool override;
+        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> bool override;
 
         auto RunGarbageCollection() -> void override;
 

@@ -68,7 +68,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA8_UNORM ) };
         info.mTonemapColor = graph.Create( colorImage );
 
@@ -142,7 +142,7 @@ namespace mikoto::renderer {
             .SetWidth( as<i32>( dimensions.first ) )
             .SetHeight( as<i32>( dimensions.second ) )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::kRenderTarget | TextureUsageFlagsBits::kShaderResource )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
             .SetFormat( Format::eRGBA16_FLOAT ) };
         info.mColorGradientRenderTarget = graph.Create( colorImage );
 

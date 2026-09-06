@@ -97,7 +97,7 @@ namespace mikoto::renderer::rhi {
 
     struct PipelineLayoutCreateDescription {
         core::usize mPushConstantsSize{ kMaxPushConstantSize };
-        ShaderFlags mPushConstantsVisibility{ ShaderFlagsBits::kAll };
+        ShaderFlags mPushConstantsVisibility{ ShaderFlagsBits::All };
         eastl::fixed_vector<BindingLayoutHandle, kMaxBindingLayouts> mBindingLayouts{};
 
         auto SetPushConstantSize( core::usize size ) -> PipelineLayoutCreateDescription&;

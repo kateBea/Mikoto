@@ -45,7 +45,7 @@ Mikoto is built around a Vulkan renderer and a collection of focused, open-sourc
 * **Clustered Forward+** — Clustered lighting and light culling for the primary rendering path.
 * **Infinite Grid** — Procedural editor/world grid.
 * **HDR Rendering** — HDR image and environment support.
-* * **Text Rendering** — MSDF-based text rendering using [Chlumsky/msdfgen](https://github.com/Chlumsky/msdfgen).
+* **Text Rendering** — MSDF-based text rendering using [Chlumsky/msdfgen](https://github.com/Chlumsky/msdfgen).
 
 **Editor**
 

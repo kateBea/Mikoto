@@ -516,8 +516,8 @@ namespace mikoto::renderer::vulkan {
         return mEnabled13Features;
     }
 
-    auto Device::CreateSwapChain( const SwapChainCreateInfo &createInfo ) -> SwapChainHandle {
-        SwapChainHandle handle{ SwapChainHandle::New( createInfo ) };
+    auto Device::CreateSwapChain( const SwapChainCreateInfo &createInfo ) -> VulkanSwapChainHandle {
+        VulkanSwapChainHandle handle{ VulkanSwapChainHandle::New( createInfo ) };
         if (!handle.IsEmpty()) {
             handle->Initialize(this);
         }

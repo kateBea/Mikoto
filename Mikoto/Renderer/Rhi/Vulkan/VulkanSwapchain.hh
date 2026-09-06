@@ -19,17 +19,14 @@
 #include <volk.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/ResourcePool.hh>
-
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/Texture.hh>
-#include <Renderer/Rhi/Swapchain.hh>
-
+#include <Core/Types.hh>
 #include <Renderer/Core/RenderContext.hh>
-
-#include <Renderer/Rhi/Vulkan/VulkanTexture.hh>
+#include <Renderer/Rhi/SwapChain.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Vulkan/VulkanInstance.hh>
+#include <Renderer/Rhi/Vulkan/VulkanTexture.hh>
 
 namespace mikoto::renderer::vulkan {
 
@@ -101,7 +98,7 @@ namespace mikoto::renderer::vulkan {
         rhi::RefreshRate mRefreshRate{ rhi::RefreshRate::eUnlimited };
     };
 
-    using SwapChainHandle = core::Ref<SwapChain>;
+    using VulkanSwapChainHandle = core::Ref<SwapChain>;
 
 }// namespace mikoto::renderer::vulkan
 

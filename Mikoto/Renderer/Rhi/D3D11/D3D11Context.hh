@@ -62,7 +62,7 @@ namespace mikoto::renderer::d3d11 {
         auto BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void override;
 
         // D3D11 Specifics
-        MKT_NODISCARD auto GetSwapChain() const -> SwapChainHandle;
+        MKT_NODISCARD auto GetSwapChain() const -> D3D11SwapChainHandle;
         MKT_NODISCARD auto GetDxiFactory() const -> IDXGIFactory2*;
 
         auto DumpDXGIMessages() -> void;
@@ -81,7 +81,7 @@ namespace mikoto::renderer::d3d11 {
         std::mutex mBatchedSubmissionEmplaceMutex{};
         SubmitInfoMap mBatchedSubmissions{};
 
-        SwapChainHandle mSwapChain{};
+        D3D11SwapChainHandle mSwapChain{};
         Microsoft::WRL::ComPtr<IDXGIFactory2> mDxgiFactory{};
 
 #if !defined(NDEBUG)

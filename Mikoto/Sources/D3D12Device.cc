@@ -2444,8 +2444,8 @@ namespace mikoto::renderer::d3d12 {
         }
     }
 
-    auto Device::CreateSwapChain( Window *window, Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory ) -> SwapChainHandle {
-        auto handle{ SwapChainHandle::New(window, dxgiFactory) };
+    auto Device::CreateSwapChain( Window *window, Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory ) -> D3D12SwapChainHandle {
+        auto handle{ D3D12SwapChainHandle::New(window, dxgiFactory) };
         if (!handle.IsEmpty()) {
             handle->Initialize(this);
         }

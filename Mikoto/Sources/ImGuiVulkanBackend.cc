@@ -218,7 +218,7 @@ namespace mikoto::imgui {
         Context* context{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
 
         // If the swap chain has been resized, we need to recreate the framebuffers and images
-        SwapChainHandle swapChain{ context->GetSwapChain() };
+        VulkanSwapChainHandle swapChain{ context->GetSwapChain() };
         if ( swapChain->GetWidth() != mDimensions.width || swapChain->GetHeight() != mDimensions.height ) {
             mDimensions.width = swapChain->GetWidth();
             mDimensions.height = swapChain->GetHeight();
@@ -352,7 +352,7 @@ namespace mikoto::imgui {
         const auto nativeCmdListHandle{ mCommandList->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
 
         Context* context{ checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
-        SwapChainHandle vulkanSwapChain{ context->GetSwapChain() };
+        VulkanSwapChainHandle vulkanSwapChain{ context->GetSwapChain() };
 
         // Set Viewport and Scissor
         VkViewport viewport{

@@ -348,7 +348,7 @@ namespace mikoto::renderer::d3d11 {
 
         auto DumpErrorMessages() -> void;
 
-        auto CreateSwapChain(Window* window, Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory) -> SwapChainHandle;
+        auto CreateSwapChain(Window* window, Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory) -> D3D11SwapChainHandle;
 
         ~Device() override = default;
 

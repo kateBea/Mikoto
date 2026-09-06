@@ -60,7 +60,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetInstance() -> Instance&;
         MKT_NODISCARD auto GetInstance() const -> const Instance&;
 
-        MKT_NODISCARD auto GetSwapChain() -> SwapChainHandle;
+        MKT_NODISCARD auto GetSwapChain() -> VulkanSwapChainHandle;
 
         MKT_NODISCARD auto GetApiVersion() const -> core::u32;
 
@@ -79,7 +79,7 @@ namespace mikoto::renderer::vulkan {
 
         rhi::TextureHandle mPresentTarget{};
 
-        SwapChainHandle mSwapchain{};
+        VulkanSwapChainHandle mSwapchain{};
 
         // Current frame
         core::u32 mCurrentFrameIndex{};

@@ -330,7 +330,7 @@ namespace mikoto::renderer::vulkan {
         return *mInstance;
     }
 
-    auto Context::GetSwapChain() -> SwapChainHandle {
+    auto Context::GetSwapChain() -> VulkanSwapChainHandle {
         return mSwapchain;
     }
 

@@ -639,7 +639,7 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetAllocator() -> GpuMemoryAllocator*;
         MKT_NODISCARD auto GetUploadManager() -> GpuUploadManager*;
 
-        MKT_NODISCARD auto CreateSwapChain(platform::Window* window, Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory) -> SwapChainHandle;
+        MKT_NODISCARD auto CreateSwapChain(platform::Window* window, Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory) -> D3D12SwapChainHandle;
 
         ~Device() override = default;
 

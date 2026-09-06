@@ -187,7 +187,7 @@ namespace mikoto::renderer::d3d11 {
         submissionBatchMap.AddSignals( submitInfo.mSignals );
     }
 
-    auto Context::GetSwapChain() const -> SwapChainHandle {
+    auto Context::GetSwapChain() const -> D3D11SwapChainHandle {
         return mSwapChain;
     }
 

@@ -242,6 +242,24 @@ namespace mikoto::renderer::rhi {
         eLoad,
     };
 
+    enum class ColorSpace : core::i32 {
+        eSrgbNonlinear,
+        eDisplayP3Nonlinear,
+        eExtendedSrgbLinear,
+        eDisplayP3Linear,
+        eDciP3Nonlinear,
+        eBt709Linear,
+        eBt709Nonlinear,
+        eBt2020Linear,
+        eHdr10St2084,
+        eHdr10Hlg,
+        eAdobeRgbLinear,
+        eAdobeRgbNonlinear,
+        ePassThrough,
+        eExtendedSrgbNonlinear,
+        eDisplayNativeAmd
+    };
+
     enum class Format {
         eUnknown,
 
@@ -408,6 +426,17 @@ namespace mikoto::renderer::rhi {
         Normalized,
         Float,
         DepthStencil
+    };
+
+    struct Extent2D {
+        core::u32 mWidth{};
+        core::u32 mHeight{};
+    };
+
+    struct Extent3D {
+        core::u32 mWidth{};
+        core::u32 mHeight{};
+        core::u32 mDepth{};
     };
 
     // Buffer usage flags

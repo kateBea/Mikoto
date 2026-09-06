@@ -18,16 +18,13 @@
 #include <EASTL/vector.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Platform.hh>
 #include <Core/ReferenceCounted.hh>
-
+#include <Core/Types.hh>
 #include <Platform/Window.hh>
-
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/Swapchain.hh>
-
 #include <Renderer/Core/RenderContext.hh>
+#include <Renderer/Rhi/SwapChain.hh>
+#include <Renderer/Rhi/Types.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
@@ -88,7 +85,7 @@ namespace mikoto::renderer::d3d12 {
         Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory{};
     };
 
-    using SwapChainHandle = core::Ref<SwapChain>;
+    using D3D12SwapChainHandle = core::Ref<SwapChain>;
 
 }// namespace mikoto
 

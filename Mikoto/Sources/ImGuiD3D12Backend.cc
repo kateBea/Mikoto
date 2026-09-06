@@ -155,7 +155,7 @@ namespace mikoto::imgui {
         d3d12::Context* context{ checked_cast<d3d12::Context*>( RenderSystem::Get()->GetContext() ) };
 
         // If the swap chain has been resized, we need to recreate the framebuffers and images
-        d3d12::SwapChainHandle swapChain{ context->GetSwapChain() };
+        d3d12::D3D12SwapChainHandle swapChain{ context->GetSwapChain() };
         if ( swapChain->GetWidth() != mDimensions.Width || swapChain->GetHeight() != mDimensions.Height ) {
             mDimensions.Width = swapChain->GetWidth();
             mDimensions.Height = swapChain->GetHeight();

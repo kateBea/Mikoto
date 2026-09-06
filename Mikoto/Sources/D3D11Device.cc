@@ -1190,8 +1190,8 @@ namespace mikoto::renderer::d3d11 {
         infoQueue->ClearStoredMessages();
     }
 
-    auto Device::CreateSwapChain(platform::Window* window, Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory) -> SwapChainHandle {
-        auto handle{ SwapChainHandle::New(window, dxgiFactory) };
+    auto Device::CreateSwapChain(platform::Window* window, Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory) -> D3D11SwapChainHandle {
+        auto handle{ D3D11SwapChainHandle::New(window, dxgiFactory) };
         if (!handle.IsEmpty()) {
             handle->Initialize(this);
         }

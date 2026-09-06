@@ -127,7 +127,7 @@ namespace mikoto::renderer::d3d12 {
         auto BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void override;
 
         // D3D12 Specifics
-        MKT_NODISCARD auto GetSwapChain() const -> SwapChainHandle;
+        MKT_NODISCARD auto GetSwapChain() const -> D3D12SwapChainHandle;
         MKT_NODISCARD auto GetDxGIFactory4() const -> IDXGIFactory4*;
         MKT_NODISCARD auto GetDxGIFactory6() const -> IDXGIFactory6*;
         MKT_NODISCARD auto GetShaderCompiler() const -> ShaderCompiler*;
@@ -159,7 +159,7 @@ namespace mikoto::renderer::d3d12 {
         core::usize mCurrentFrameIndex{};
         eastl::vector<FrameContext> mFrameContexts{};
 
-        SwapChainHandle mSwapChain{};
+        D3D12SwapChainHandle mSwapChain{};
         Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory4{};
         Microsoft::WRL::ComPtr<IDXGIFactory6> mDxgiFactory6{};
 

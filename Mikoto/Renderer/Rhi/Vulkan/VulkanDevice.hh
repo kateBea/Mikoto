@@ -724,7 +724,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetActive12Features() const -> const VkPhysicalDeviceVulkan12Features&;
         MKT_NODISCARD auto GetActive13Features() const -> const VkPhysicalDeviceVulkan13Features&;
 
-        auto CreateSwapChain( const SwapChainCreateInfo& createInfo ) -> SwapChainHandle;
+        auto CreateSwapChain( const SwapChainCreateInfo& createInfo ) -> VulkanSwapChainHandle;
 
         ~Device() override = default;
 

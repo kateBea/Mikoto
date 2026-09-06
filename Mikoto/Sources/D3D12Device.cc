@@ -1917,85 +1917,41 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::Init() -> void {
         IDXGIFactory4* factory4{ checked_cast<Context*>( RenderSystem::Get()->GetContext() )->GetDxGIFactory4() };
-        IDXGIFactory6* factory6{ checked_cast<Context*>( RenderSystem::Get()->GetContext() )->GetDxGIFactory6() };
 
         MKT_ASSERT( factory4, "A valid DirectX factory interface is required to create the device." );
 
         SIZE_T maxDedicatedVideoMemory{};
         Microsoft::WRL::ComPtr<IDXGIAdapter1> adapterForDescription{};
 
-        // Factory 6 makes it easy to query dedicated graphics card otherwise we need to manually handle it
-        // easiest is to keep track of dedicated video memory which is higher in discrete GPUs.
         // Here we basically keep in mAdapter1 an instance of the adapter that matches our look up criteria
         // adapterForDescription is simply used to fetch descriptions and not mAdapter1 as the later would otherwise get overwritten
         // from EnumAdapterByGpuPreference
-        if (!factory6) {
-            DXGI_GPU_PREFERENCE preference{ DXGI_GPU_PREFERENCE_UNSPECIFIED };
-
-            switch (mDeviceType) {
-                case GpuDeviceType::eDiscrete:
-                    preference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
-                    break;
-                case GpuDeviceType::eIntegrated:
-                    preference = DXGI_GPU_PREFERENCE_MINIMUM_POWER;
-                    break;
-                default:
-                    preference = DXGI_GPU_PREFERENCE_UNSPECIFIED;
-                    break;
-            }
-
-            for (UINT adapterIndex{}; DXGI_ERROR_NOT_FOUND !=
-                factory6->EnumAdapterByGpuPreference(adapterIndex,
-                preference, IID_PPV_ARGS(&adapterForDescription)); ++adapterIndex)
-            {
-                DXGI_ADAPTER_DESC1 desc{};
-                adapterForDescription->GetDesc1( &desc );
-
-                // Don't select the Basic Render Driver adapter if we did not ask for it
-                if ( mDeviceType == GpuDeviceType::eSoftwareRasterizer) {
-                    if ( (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE )) {
-                        if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
-                            mAdapter1 = adapterForDescription;
-                        }
-                    }
-                } else {
-                    // Only update if it has higher memory. And do not accept software rasterizer
-                    if (desc.DedicatedVideoMemory > maxDedicatedVideoMemory && !(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
-                        maxDedicatedVideoMemory = desc.DedicatedVideoMemory;
-
-                        // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-                        if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
-                            mAdapter1 = adapterForDescription;
-                        }
-                    }
-                }
-            }
-        } else {
-            for (UINT adapterIndex{};
+        for (UINT adapterIndex{};
                 DXGI_ERROR_NOT_FOUND != factory4->EnumAdapters1(adapterIndex, &adapterForDescription);
                 ++adapterIndex)
-            {
-                DXGI_ADAPTER_DESC1 desc{};
-                adapterForDescription->GetDesc1(&desc);
+        {
+            DXGI_ADAPTER_DESC1 desc{};
+            adapterForDescription->GetDesc1(&desc);
 
-                if ( mDeviceType == GpuDeviceType::eSoftwareRasterizer) {
-                    if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
-                        // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-                        if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
-                            mAdapter1 = adapterForDescription;
-                            break;
-                        }
+            if ( mDeviceType == GpuDeviceType::eSoftwareRasterizer) {
+                if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
+                    // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
+                    if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
+                        mAdapter1 = adapterForDescription;
+                        break;
                     }
-                } else if (mDeviceType == GpuDeviceType::eDiscrete) {
-                    if (desc.DedicatedVideoMemory > maxDedicatedVideoMemory && !(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
-                        maxDedicatedVideoMemory = desc.DedicatedVideoMemory;
+                }
+            } else if (mDeviceType == GpuDeviceType::eDiscrete) {
+                if (desc.DedicatedVideoMemory > maxDedicatedVideoMemory && !(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
+                    maxDedicatedVideoMemory = desc.DedicatedVideoMemory;
 
-                        // Only when we know it has more dedicated video memory than the previous one we check for D3D12 support.
-                        if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
-                            mAdapter1 = adapterForDescription;
-                        }
+                    // Only when we know it has more dedicated video memory than the previous one we check for D3D12 support.
+                    if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
+                        mAdapter1 = adapterForDescription;
                     }
-                } else {
+                }
+            } else {
+                if (!(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
                     // Here we pick whatever we get
                     if ( SUCCEEDED( D3D12CreateDevice( adapterForDescription.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof( ID3D12Device ), nullptr ) ) ) {
                         mAdapter1 = adapterForDescription;

@@ -153,7 +153,7 @@ namespace mikoto::renderer {
     }
 
     auto CommandContext::BeginRender( const ContextRenderState &gs ) -> void {
-        auto graphicsState{ GraphicsState{}
+        auto graphicsState{ RenderDescription{}
             .SetRenderArea( gs.mRenderArea ) };
         if ( gs.mDepthTarget.mRenderTarget.mHandle != FGResourceManager::kInvalidResourceHandle ) {
             graphicsState.AddDepthTarget( mResourceManager->Get( gs.mDepthTarget.mRenderTarget.mHandle ).mResource, gs.mDepthTarget.mLoadOp );

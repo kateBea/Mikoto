@@ -140,7 +140,7 @@ namespace mikoto::renderer::rhi {
         auto SetOffset(core::u32 value)-> IndexBufferBinding& { mOffset = value; return *this; }
     };
 
-    struct GraphicsState {
+    struct RenderDescription {
         struct RenderTargetState {
             Color mClearColor{ kColorWhite };
             LoadOp mLoadOp{ LoadOp::eLoad };
@@ -154,10 +154,10 @@ namespace mikoto::renderer::rhi {
         RenderTargetState mDepthTarget{};
         eastl::fixed_vector<RenderTargetState, kMaxRenderTargets> mCurrentRenderTargets{};
 
-        auto SetScopeName( eastl::string_view name ) -> GraphicsState&;
-        auto SetRenderArea( const Rect& rec ) -> GraphicsState&;
-        auto AddDepthTarget(TextureHandle target, LoadOp op = LoadOp::eClear ) -> GraphicsState&;
-        auto AddRenderTarget(TextureHandle target, const Color& c, LoadOp op = LoadOp::eClear, TextureSubresourceSet set = kAllSubResources) -> GraphicsState&;
+        auto SetScopeName( eastl::string_view name ) -> RenderDescription&;
+        auto SetRenderArea( const Rect& rec ) -> RenderDescription&;
+        auto AddDepthTarget(TextureHandle target, LoadOp op = LoadOp::eClear ) -> RenderDescription&;
+        auto AddRenderTarget(TextureHandle target, const Color& c, LoadOp op = LoadOp::eClear, TextureSubresourceSet set = kAllSubResources) -> RenderDescription&;
     };
 
     struct BufferBarrierDescription {
@@ -282,7 +282,7 @@ namespace mikoto::renderer::rhi {
         virtual auto Copy( IBuffer* dest, ITexture* src ) -> void = 0;
         virtual auto Copy( IBuffer* dest, ITexture* src, const TextureSlice& srcSlice ) -> void = 0;
 
-        virtual auto BeginRendering( GraphicsState& state ) -> void = 0;
+        virtual auto BeginRendering( RenderDescription& state ) -> void = 0;
         virtual auto EndRendering() -> void = 0;
 
         virtual auto BindPipeline( IPipeline* pipeline ) -> void = 0;

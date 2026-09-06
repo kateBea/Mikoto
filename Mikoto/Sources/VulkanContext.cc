@@ -188,7 +188,7 @@ namespace mikoto::renderer::vulkan {
                 mTableUpdateRequired = false;
             }
 
-            auto graphicsState{ GraphicsState{}
+            auto graphicsState{ RenderDescription{}
                 .SetRenderArea( Rect{ as<i32>(mSwapchain->GetWidth()), as<i32>(mSwapchain->GetHeight()) } )
                 .AddRenderTarget( colorImage, Color{ .0f } ) };
 

@@ -31,17 +31,17 @@ namespace mikoto::renderer::rhi {
         return mQueueType;
     }
 
-    auto GraphicsState::SetScopeName( eastl::string_view name ) -> GraphicsState & {
+    auto RenderDescription::SetScopeName( eastl::string_view name ) -> RenderDescription & {
         mName = name;
         return *this;
     }
 
-    auto GraphicsState::SetRenderArea( const Rect &rec ) -> GraphicsState & {
+    auto RenderDescription::SetRenderArea( const Rect &rec ) -> RenderDescription & {
         mRenderArea = rec;
         return *this;
     }
 
-    auto GraphicsState::AddDepthTarget( TextureHandle target, LoadOp op ) -> GraphicsState & {
+    auto RenderDescription::AddDepthTarget( TextureHandle target, LoadOp op ) -> RenderDescription & {
         mDepthTarget = RenderTargetState{
             .mClearColor = kColorWhite,
             .mLoadOp = op,
@@ -51,7 +51,7 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto GraphicsState::AddRenderTarget( TextureHandle target, const Color &c, LoadOp op, TextureSubresourceSet set ) -> GraphicsState & {
+    auto RenderDescription::AddRenderTarget( TextureHandle target, const Color &c, LoadOp op, TextureSubresourceSet set ) -> RenderDescription & {
         mCurrentRenderTargets.emplace_back( RenderTargetState{
                 .mClearColor = c,
                 .mLoadOp = op,

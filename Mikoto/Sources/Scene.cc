@@ -625,6 +625,8 @@ namespace mikoto::scene {
                 }
             }
         }
+
+        return result;
     }
 
     auto Scene::CreateEntitySingle( const EntityCreateInfo& createInfo ) -> Entity* {

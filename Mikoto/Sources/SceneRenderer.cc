@@ -33,7 +33,8 @@ namespace mikoto::renderer {
 
     SceneRenderer::SceneRenderer( const SceneRendererCreateInfo &createInfo )
         : mDevice{ createInfo.mDevice },
-        mTargetResolution{ createInfo.mResolution } {}
+        mTargetResolution{ createInfo.mResolution },
+        mViewportConvention{ createInfo.mViewportConvention } {}
 
     auto SceneRenderer::Init() -> void {
         const ShaderLibraryDescription description{
@@ -350,6 +351,11 @@ namespace mikoto::renderer {
 
     auto SceneRendererCreateInfo::SetRenderResolution( RenderResolution resolution ) -> SceneRendererCreateInfo & {
         mResolution = resolution;
+        return *this;
+    }
+
+    auto SceneRendererCreateInfo::SetViewportConvention( rhi::ViewportConvention convention ) -> SceneRendererCreateInfo & {
+        mViewportConvention = convention;
         return *this;
     }
 }// namespace Mikoto

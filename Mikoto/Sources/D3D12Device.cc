@@ -1441,7 +1441,7 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
-    auto CommandList::BeginRendering( GraphicsState &state ) -> void {
+    auto CommandList::BeginRendering( RenderDescription &state ) -> void {
         mIsRenderScopeActive = true;
 
         Device* device{ checked_cast<Device*>( mDevice ) };

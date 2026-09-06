@@ -335,7 +335,7 @@ namespace mikoto::editor {
         mCommandList->Write( mConstantBuffer.GetRaw(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
 
         // Set graphics state
-        auto graphicsState{ GraphicsState{}
+        auto graphicsState{ RenderDescription{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
@@ -394,7 +394,7 @@ namespace mikoto::editor {
         mCommandList->Write( mConstantBuffer.GetRaw(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
 
         // Set graphics state
-        auto graphicsState{ GraphicsState{}
+        auto graphicsState{ RenderDescription{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };

@@ -454,7 +454,7 @@ namespace mikoto::renderer {
         mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
 
         // Set graphics state
-        auto graphicsState{ GraphicsState{}
+        auto graphicsState{ RenderDescription{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImageLines )
             .AddRenderTarget( mColorImageLines, rhi::kColorBlack ) };
@@ -498,7 +498,7 @@ namespace mikoto::renderer {
         mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
 
         // Set graphics state
-        auto graphicsState{ GraphicsState{}
+        auto graphicsState{ RenderDescription{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImageTriangles )
             .AddRenderTarget( mColorImageTriangles, rhi::kColorBlack ) };

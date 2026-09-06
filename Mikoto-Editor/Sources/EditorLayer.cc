@@ -55,6 +55,7 @@
 #include <Panels/MaterialEditorPanel.hh>
 #include <Panels/ContentBrowserPanel.hh>
 #include <Panels/RuntimeConsolePanel.hh>
+#include <Panels/AnimationGraphPanel.hh>
 #include <Panels/AnimatorTimelinePanel.hh>
 #include <Panels/ParticleSimulationPanel.hh>
 

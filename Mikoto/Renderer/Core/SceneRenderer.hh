@@ -54,6 +54,7 @@ namespace mikoto::renderer {
 
         rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
+        rhi::ViewportConvention mViewportConvention{ rhi::ViewportConvention::eRightHanded_OriginBottomLeft };
 
         auto SetName( eastl::string_view name ) -> SceneRendererCreateInfo&;
         auto SetDevice( rhi::IGpuDevice* device ) -> SceneRendererCreateInfo&;
@@ -61,6 +62,7 @@ namespace mikoto::renderer {
 
         auto SetMultisampling( rhi::Multisampling multisampling ) -> SceneRendererCreateInfo&;
         auto SetRenderResolution( rhi::RenderResolution resolution ) -> SceneRendererCreateInfo&;
+        auto SetViewportConvention( rhi::ViewportConvention convention ) -> SceneRendererCreateInfo&;
     };
 
     class SceneRenderer final : public IRenderer {
@@ -116,6 +118,7 @@ namespace mikoto::renderer {
 
         rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
         rhi::RenderResolution mTargetResolution{ rhi::RenderResolution::e1080P };
+        rhi::ViewportConvention mViewportConvention{ rhi::ViewportConvention::eRightHanded_OriginBottomLeft };
 
         // Scene prepass
         GeometryCullModule mGeometryManagement{};

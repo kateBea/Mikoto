@@ -329,7 +329,7 @@ namespace mikoto::renderer::d3d12 {
                 mTableUpdateRequired = false;
             }
 
-            auto graphicsState{ GraphicsState{}
+            auto graphicsState{ RenderDescription{}
                 .SetRenderArea( Rect{ as<i32>(mSwapChain->GetWidth()), as<i32>(mSwapChain->GetHeight()) } )
                 .AddRenderTarget( colorImage, Color{ .0f } ) };
             mCommandList->BeginRendering( graphicsState );

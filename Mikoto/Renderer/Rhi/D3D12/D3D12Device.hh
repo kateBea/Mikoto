@@ -482,7 +482,7 @@ namespace mikoto::renderer::d3d12 {
         auto Copy( IBuffer *dest, ITexture *src ) -> void override;
         auto Copy( IBuffer *dest, ITexture *src, const TextureSlice& srcSlice ) -> void override;
 
-        auto BeginRendering( GraphicsState& state ) -> void override;
+        auto BeginRendering( RenderDescription& state ) -> void override;
         auto EndRendering() -> void override;
 
         auto BindPipeline( IPipeline* pipeline ) -> void override;

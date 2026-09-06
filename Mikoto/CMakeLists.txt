@@ -663,7 +663,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(magic_enum)
 
 # -------------------------------------------------------
-# Magic-Enum
+# Reflect
 # -------------------------------------------------------
 FetchContent_Declare(
         reflect
@@ -762,38 +762,38 @@ set(ALL_SOURCES
 # Libraries to link
 # ======================================
 set(LIBRARIES
-        glfw
-        fmt::fmt
-        EnTT::EnTT
-        volk
-        assimp
-        yaml-cpp
-        glm
-        nfd
-        cpptrace::cpptrace
-        freetype
-        Jolt
-        msdfgen::msdfgen
-        msdf-atlas-gen::msdf-atlas-gen
-        unordered_dense::unordered_dense
-        nlohmann_json::nlohmann_json
-        sol2::sol2
-        Tracy::TracyClient
-        OpenCL::OpenCL
-        ozz_animation
-        ozz_animation_tools
-        ozz_animation_offline
-        meshoptimizer
-        tinygltf
-        ktx
-        portable_file_dialogs
-        ${SLANG_LIBS}
-        EASTL
-        EABase
-        FreeImage
-        magic_enum::magic_enum
-        spirv-cross-core
-        spirv-cross-glsl
+    glfw
+    fmt::fmt
+    EnTT::EnTT
+    volk
+    assimp
+    yaml-cpp
+    glm
+    nfd
+    cpptrace::cpptrace
+    freetype
+    Jolt
+    msdfgen::msdfgen
+    msdf-atlas-gen::msdf-atlas-gen
+    unordered_dense::unordered_dense
+    nlohmann_json::nlohmann_json
+    sol2::sol2
+    Tracy::TracyClient
+    OpenCL::OpenCL
+    ozz_animation
+    ozz_animation_tools
+    ozz_animation_offline
+    meshoptimizer
+    tinygltf
+    ktx
+    portable_file_dialogs
+    ${SLANG_LIBS}
+    EASTL
+    EABase
+    FreeImage
+    magic_enum::magic_enum
+    spirv-cross-core
+    spirv-cross-glsl
 )
 
 # ======================================
@@ -846,51 +846,51 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARIES} ${LUA_LIBRARIES})
 # ======================================
 target_include_directories(${PROJECT_NAME} PUBLIC .)
 target_include_directories(${PROJECT_NAME} PUBLIC
-        ${imgui_SOURCE_DIR}
-        ${imgui_SOURCE_DIR}/backends
-        ${imguizmo_SOURCE_DIR}/src
-        ${spirv_reflect_SOURCE_DIR}
-        ${miniaudio_SOURCE_DIR}
-        ${fmt_SOURCE_DIR}/include
-        ${glfw_SOURCE_DIR}/include
-        ${entt_SOURCE_DIR}/single_include
-        ${yaml_cpp_SOURCE_DIR}/include
-        ${nlohmann_json_SOURCE_DIR}/include
-        ${unordered_dense_SOURCE_DIR}/include
-        ${nfd_SOURCE_DIR}/src/include
-        ${freetype_SOURCE_DIR}/include
-        ${joltphysics_SOURCE_DIR}/Jolt
-        ${assimp_SOURCE_DIR}/include
-        ${msdfgen_SOURCE_DIR}/include
-        ${msdf_atlas_gen_SOURCE_DIR}/include
-        ${spdlog_SOURCE_DIR}/include
-        ${tomlplusplus_SOURCE_DIR}/include
-        ${stb_SOURCE_DIR}
-        ${glm_SOURCE_DIR}
-        ${vulkanmemoryallocator_SOURCE_DIR}/include
-        ${taskflow_SOURCE_DIR}
-        ${sol2_SOURCE_DIR}/include
-        ${asio_SOURCE_DIR}/include
-        ${tracy_SOURCE_DIR}/asio/include
-        ${LUA_INCLUDE_DIR}
-        ${FILEWATCH_INCLUDE_DIR}
-        ${IMOGUIZMO_INCLUDE_DIR}
-        ${OpenCL-SDK_SOURCE_DIR}/lib/include
-        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
-        ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include
-        ${ozz_SOURCE_DIR}/include
-        ${ktx_SOURCE_DIR}
-        ${meshoptimizer_SOURCE_DIR}/src
-        ${tinygltf_SOURCE_DIR}
-        ${IMGUI_NO_EDITOR_INCLUDE_DIR}
-        ${SLANG_INCLUDE_DIR}
-        ${eastl_SOURCE_DIR}/include
-        ${freeimage_SOURCE_DIR}/Source
-        ${magic_enum_SOURCE_DIR}/include
-        ${reflect_SOURCE_DIR}
-        ${spirv_cross_SOURCE_DIR}
-        ${directx-headers_SOURCE_DIR}/include
-        ${d3d12memoryallocator_SOURCE_DIR}/include
+    ${imgui_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}/backends
+    ${imguizmo_SOURCE_DIR}/src
+    ${spirv_reflect_SOURCE_DIR}
+    ${miniaudio_SOURCE_DIR}
+    ${fmt_SOURCE_DIR}/include
+    ${glfw_SOURCE_DIR}/include
+    ${entt_SOURCE_DIR}/single_include
+    ${yaml_cpp_SOURCE_DIR}/include
+    ${nlohmann_json_SOURCE_DIR}/include
+    ${unordered_dense_SOURCE_DIR}/include
+    ${nfd_SOURCE_DIR}/src/include
+    ${freetype_SOURCE_DIR}/include
+    ${joltphysics_SOURCE_DIR}/Jolt
+    ${assimp_SOURCE_DIR}/include
+    ${msdfgen_SOURCE_DIR}/include
+    ${msdf_atlas_gen_SOURCE_DIR}/include
+    ${spdlog_SOURCE_DIR}/include
+    ${tomlplusplus_SOURCE_DIR}/include
+    ${stb_SOURCE_DIR}
+    ${glm_SOURCE_DIR}
+    ${vulkanmemoryallocator_SOURCE_DIR}/include
+    ${taskflow_SOURCE_DIR}
+    ${sol2_SOURCE_DIR}/include
+    ${asio_SOURCE_DIR}/include
+    ${tracy_SOURCE_DIR}/asio/include
+    ${LUA_INCLUDE_DIR}
+    ${FILEWATCH_INCLUDE_DIR}
+    ${IMOGUIZMO_INCLUDE_DIR}
+    ${OpenCL-SDK_SOURCE_DIR}/lib/include
+    ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-Headers
+    ${OpenCL-SDK_SOURCE_DIR}/external/OpenCL-CLHPP/include
+    ${ozz_SOURCE_DIR}/include
+    ${ktx_SOURCE_DIR}
+    ${meshoptimizer_SOURCE_DIR}/src
+    ${tinygltf_SOURCE_DIR}
+    ${IMGUI_NO_EDITOR_INCLUDE_DIR}
+    ${SLANG_INCLUDE_DIR}
+    ${eastl_SOURCE_DIR}/include
+    ${freeimage_SOURCE_DIR}/Source
+    ${magic_enum_SOURCE_DIR}/include
+    ${reflect_SOURCE_DIR}
+    ${spirv_cross_SOURCE_DIR}
+    ${directx-headers_SOURCE_DIR}/include
+    ${d3d12memoryallocator_SOURCE_DIR}/include
 )
 
 # ======================================
@@ -916,7 +916,6 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC TRACY_ENABLE)
 
 # Required by FreeImage if linked statically
 target_compile_definitions(${PROJECT_NAME} PUBLIC FREEIMAGE_LIB)
-
 
 # Tracy
 if(MIKOTO_ENABLE_TRACY_PROFILING)

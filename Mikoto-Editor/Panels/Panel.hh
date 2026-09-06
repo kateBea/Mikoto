@@ -69,6 +69,10 @@ namespace mikoto::editor {
          * */
         auto SetVisible( const bool value ) -> void { mPanelIsVisible = value; }
 
+        /**
+        * @brief Retrieves the current viewport information.
+        * @return A const reference to the ViewportInfo structure containing  the viewport configuration.
+        */
         MKT_NODISCARD auto GetViewport() const -> const ViewportInfo& { return mViewport; }
 
         /**
@@ -89,7 +93,16 @@ namespace mikoto::editor {
          * */
         MKT_NODISCARD auto IsVisible() const -> bool { return mPanelIsVisible; }
 
+        /**
+        * @brief Retrieves the unique name identifier of the panel.
+        * @return An string view representing the panel's name.
+        * */
         MKT_NODISCARD auto GetName() const -> eastl::string_view { return mPanelName; }
+
+        /**
+        * @brief Retrieves the display name used in the panel's header.
+        * @return An string view representing the panel's header name.
+        * */
         MKT_NODISCARD auto GetHeaderName() const -> eastl::string_view { return mPanelHeaderName; }
 
         /**

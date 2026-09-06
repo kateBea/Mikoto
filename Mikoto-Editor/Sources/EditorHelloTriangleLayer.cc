@@ -125,7 +125,7 @@ namespace mikoto::editor {
         mCommandList->Begin( { .mScopeName = "EditorHelloTriangleLayer Render" } );
 
         // Set graphics state
-        auto graphicsState{ GraphicsState{}
+        auto graphicsState{ RenderDescription{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };

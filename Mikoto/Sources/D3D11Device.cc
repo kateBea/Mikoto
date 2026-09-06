@@ -441,7 +441,7 @@ namespace mikoto::renderer::d3d11 {
 
     }
 
-    auto CommandList::BeginRendering( GraphicsState &state ) -> void {
+    auto CommandList::BeginRendering( RenderDescription &state ) -> void {
         // Render targets
         eastl::fixed_vector<ID3D11RenderTargetView*, kMaxRenderTargets> renderTargetViews{};
         for ( const auto &v: state.mCurrentRenderTargets ) {

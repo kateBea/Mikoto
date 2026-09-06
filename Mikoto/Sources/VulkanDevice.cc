@@ -1309,7 +1309,7 @@ namespace mikoto::renderer::vulkan {
         vkCmdCopyImageToBuffer( mCurrentCommandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, as<u32>(regions.size()), regions.data());
     }
 
-    auto CommandList::BeginRendering( GraphicsState& state ) -> void {
+    auto CommandList::BeginRendering( RenderDescription& state ) -> void {
         bool hasColorTarget{ !state.mCurrentRenderTargets.empty() };
         bool hasDepthTarget{ !state.mDepthTarget.mRenderTarget.IsEmpty() };
 

@@ -183,7 +183,6 @@ namespace mikoto::imgui {
         ImGui::Render();
 
         mCommandList->Begin( { .mScopeName = "ImGui Render" } );
-        mCommandList->SetTransition( mColorImage.GetRaw(), ResourceStates::eRenderTarget );
 
         RecordCommands();
 
@@ -316,7 +315,7 @@ namespace mikoto::imgui {
         d3d12::CommandList* cmd{ checked_cast<d3d12::CommandList*>( mCommandList.GetRaw() ) };
         ID3D12GraphicsCommandList* d3d12CmdList{ *cmd };
 
-        auto graphicsState{ GraphicsState{}
+        auto graphicsState{ RenderDescription{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
             .AddRenderTarget( mColorImage, rhi::kColorMagenta ) };

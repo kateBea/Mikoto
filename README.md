@@ -97,9 +97,6 @@ Mikoto/
 ├── Resources/
 ├── Mikoto-Engine/
 ├── Mikoto-Editor/
-├── Mikoto-Sandbox/
-├── Mikoto-Tests/
-└── Mikoto-Apps/
 ```
 
 | Directory             | Description                                                                                                            |

@@ -216,7 +216,7 @@ namespace mikoto::editor {
             .SetRegisterSpace( 0 )
             .SetShaderVisibility(ShaderFlagsBits::All)
             .AddItem(BindingLayoutItem::Sampler(0))
-            .AddItem(BindingLayoutItem::Texture_SRV(1))
+            .AddItem(BindingLayoutItem::TextureSRV(1))
             .AddItem(BindingLayoutItem::ConstantBuffer(2)) };
         mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
 
@@ -235,8 +235,6 @@ namespace mikoto::editor {
             .SetDepthFormat( Format::eD32 )
             .AddColorFormat( Format::eBGRA8_UNORM )
 
-            .SetUseReflection( false )
-
             .SetPolygonMode( PolygonMode::eFill )
             .SetWindingOrder( WindingOrder::eCounterClockwise )
             .SetTopology( PrimitiveTopology::eTriangleList )
@@ -252,9 +250,9 @@ namespace mikoto::editor {
 
         auto bindingSetDesc{ BindingTableDescription{}
             .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) )
-            .AddItem( BindingTableItem::Texture_SRV( 1, mSimpleTexture.GetRaw() ) )
+            .AddItem( BindingTableItem::TextureSRV( 1, mSimpleTexture.GetRaw() ) )
             .AddItem( BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetRaw() ) ) };
-        mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
+        mBindingTableHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
 
         SceneCameraDescription cameraDescription{
             .mFov = 45.0,
@@ -285,7 +283,7 @@ namespace mikoto::editor {
 
         mSamplerState.Release();
 
-        mBindingSetHandle.Release();
+        mBindingTableHandle.Release();
 
         mCommandList.Release();
     }
@@ -311,7 +309,7 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloCubeLayer::DrawNormalMesh() -> void {
-        float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) }; // seconds
+        float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) * mRotationSpeed }; // seconds
         mShaderParameters.mModel = glm::rotate(
             math::constants::Identity<core::float4x4>(),
             angle,
@@ -344,7 +342,7 @@ namespace mikoto::editor {
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
             .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-            .AddResourceSet( 0, mBindingSetHandle.GetRaw() ) };
+            .AddResourceSet( 0, mBindingTableHandle.GetRaw() ) };
         mCommandList->BindPipelineResources( bindingDescription );
 
         mCommandList->BindPipeline( mPipeline.GetRaw() );
@@ -369,7 +367,7 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloCubeLayer::DrawWireframeMesh() -> void {
-        float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) }; // seconds
+        float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) * mRotationSpeed }; // seconds
 
         mShaderParameters.mModel = glm::rotate(
             mShaderParameters.mModel,
@@ -403,7 +401,7 @@ namespace mikoto::editor {
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
             .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-            .AddResourceSet( 0, mBindingSetHandle.GetRaw() ) };
+            .AddResourceSet( 0, mBindingTableHandle.GetRaw() ) };
         mCommandList->BindPipelineResources( bindingDescription );
         mCommandList->BindPipeline( mPipelineWireframe.GetRaw() );
 
@@ -452,16 +450,15 @@ namespace mikoto::editor {
             ImGui::Spacing();
             ImGui::Separator();
 
-            static f32 rotationSpeed{ 1.0f };
             static eastl::array<f32, 4> clearColor{ 0.10f, 0.10f, 0.12f, 1.0f };
 
-            ImGui::SliderFloat( "Rotation Speed", &rotationSpeed, 0.0f, 10.0f );
+            ImGui::SliderFloat( "Rotation Speed", &mRotationSpeed, 1.0f, 50.0f );
             ImGui::ColorEdit4( "Clear Color", clearColor.data() );
 
             ImGui::Spacing();
             ImGui::Separator();
 
-            ImGui::TextDisabled( "Press H to hide/show this window." );
+            ImGui::TextDisabled( "Press Y to hide/show this window." );
         }
 
         ImGui::End();

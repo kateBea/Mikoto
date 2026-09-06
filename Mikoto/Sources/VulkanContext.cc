@@ -187,7 +187,7 @@ namespace mikoto::renderer::vulkan {
             mCommandList->SetTransition( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
 
             if (mTableUpdateRequired) {
-                (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Texture_SRV( 0, mPresentTarget.GetRaw() ) );
+                (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 0, mPresentTarget.GetRaw() ) );
                 mTableUpdateRequired = false;
             }
 
@@ -383,7 +383,7 @@ namespace mikoto::renderer::vulkan {
         auto bindlessLayout{ BindlessLayoutDescription{}
             .SetVisibility(ShaderFlagsBits::All)
             .SetRegisterSpace( 1 )
-            .AddBindlessItem(BindlessLayoutItem::Texture_SRV(0, 1)) }; // I just need one image slot I can update
+            .AddBindlessItem(BindlessLayoutItem::TextureSRV(0, 1)) }; // I just need one image slot I can update
         mBindlessLayout = mDevice->CreateBindlessLayout( bindlessLayout );
 
         mPipelineLayoutHandle = mDevice->CreatePipelineLayout( PipelineLayoutCreateDescription{}

@@ -25,7 +25,7 @@ namespace mikoto::renderer::rhi {
     using namespace mikoto::core;
     using namespace mikoto::memory;
 
-    auto BindingTableItem::Texture_SRV( u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingTableItem {
+    auto BindingTableItem::TextureSRV( u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingTableItem {
         return BindingTableItem{
             .mResource = texture,
             .mSlot = slot,
@@ -36,7 +36,7 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    auto BindingTableItem::Texture_UAV( core::u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingTableItem {
+    auto BindingTableItem::TextureUAV( core::u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingTableItem {
         return BindingTableItem{
             .mResource = texture,
             .mSlot = slot,
@@ -55,7 +55,7 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    auto BindingTableItem::StructuredBuffer_SRV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingTableItem {
+    auto BindingTableItem::StructuredSRV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingTableItem {
         return BindingTableItem{
             .mResource = buffer,
             .mSlot = slot,
@@ -64,7 +64,7 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    auto BindingTableItem::StructuredBuffer_UAV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingTableItem {
+    auto BindingTableItem::StructuredUAV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingTableItem {
         return BindingTableItem{
             .mResource = buffer,
             .mSlot = slot,
@@ -88,7 +88,7 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto BindingLayoutItem::Texture_SRV( u32 slot ) -> BindingLayoutItem {
+    auto BindingLayoutItem::TextureSRV( u32 slot ) -> BindingLayoutItem {
         BindingLayoutItem result{
             .mSlot = slot,
             .mType = ResourceType::eTexture_SRV,
@@ -114,7 +114,7 @@ namespace mikoto::renderer::rhi {
 
         return result;
     }
-    auto BindingLayoutItem::StructuredBuffer_SRV( u32 slot ) -> BindingLayoutItem {
+    auto BindingLayoutItem::StructuredSRV( u32 slot ) -> BindingLayoutItem {
         BindingLayoutItem result{
             .mSlot = slot,
             .mType = ResourceType::eStructuredBuffer_SRV,
@@ -123,7 +123,7 @@ namespace mikoto::renderer::rhi {
         return result;
     }
 
-    auto BindingLayoutItem::StructuredBuffer_UAV( u32 slot ) -> BindingLayoutItem {
+    auto BindingLayoutItem::StructuredUAV( u32 slot ) -> BindingLayoutItem {
         BindingLayoutItem result{
             .mSlot = slot,
             .mType = ResourceType::eStructuredBuffer_UAV,
@@ -424,8 +424,7 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    // --- Textures ---
-    auto BindlessLayoutItem::Texture_SRV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
+    auto BindlessLayoutItem::TextureSRV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
         return {
             .mSlot = slot,
             .mMaxCapacity = maxCapacity,
@@ -433,7 +432,7 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    auto BindlessLayoutItem::Texture_UAV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
+    auto BindlessLayoutItem::TextureUAV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
         return {
             .mSlot = slot,
             .mMaxCapacity = maxCapacity,
@@ -441,7 +440,6 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    // --- Constant Buffers ---
     auto BindlessLayoutItem::ConstantBuffer( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
         return {
             .mSlot = slot,
@@ -450,16 +448,7 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    auto BindlessLayoutItem::ConstantBuffer_UAV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
-        return {
-            .mSlot = slot,
-            .mMaxCapacity = maxCapacity,
-            .mType = ResourceType::eStructuredBuffer_UAV
-        };
-    }
-
-    // --- Raw Buffers ---
-    auto BindlessLayoutItem::Buffer_SRV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
+    auto BindlessLayoutItem::RawBufferSRV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
         return {
             .mSlot = slot,
             .mMaxCapacity = maxCapacity,
@@ -467,7 +456,7 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    auto BindlessLayoutItem::Buffer_UAV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
+    auto BindlessLayoutItem::RawBufferUAV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
         return {
             .mSlot = slot,
             .mMaxCapacity = maxCapacity,
@@ -475,8 +464,7 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    // --- Structured Buffers ---
-    auto BindlessLayoutItem::StructuredBuffer_SRV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
+    auto BindlessLayoutItem::StructuredSRV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
         return {
             .mSlot = slot,
             .mMaxCapacity = maxCapacity,
@@ -484,7 +472,7 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    auto BindlessLayoutItem::StructuredBuffer_UAV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
+    auto BindlessLayoutItem::StructuredUAV( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
         return {
             .mSlot = slot,
             .mMaxCapacity = maxCapacity,
@@ -492,8 +480,7 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    // --- Acceleration Structures ---
-    auto BindlessLayoutItem::AccelerationStructures( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
+    auto BindlessLayoutItem::AccelerationStructure( u32 slot, u32 maxCapacity ) -> BindlessLayoutItem {
         return {
             .mSlot = slot,
             .mMaxCapacity = maxCapacity,

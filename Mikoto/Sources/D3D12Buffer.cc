@@ -269,6 +269,11 @@ namespace mikoto::renderer::d3d12 {
         mAllocation.mDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
         mAllocation.mDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
+        // Constant buffer needs to be 256 bytes at least
+        if ( mAllocation.mDesc.Width < d3d12::kConstantBufferOffsetSizeAlignment && mResourceType == ResourceType::eConstantBuffer) {
+            mAllocation.mDesc.Width = d3d12::kConstantBufferOffsetSizeAlignment;
+        }
+
         mAllocation.mAllocDesc.HeapType = d3d12::GetHeapType(mHeapType);
 
         auto* allocator{ device->GetAllocator() };

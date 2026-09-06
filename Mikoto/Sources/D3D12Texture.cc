@@ -55,6 +55,12 @@ namespace mikoto::renderer::d3d12 {
         mSamplerDescription.BorderColor[0] = mSamplerDescription.BorderColor[1] = mSamplerDescription.BorderColor[2] = mSamplerDescription.BorderColor[3] = 0;
     }
 
+    auto Sampler::AllocateSampler( D3D12_CPU_DESCRIPTOR_HANDLE handle ) -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+        ID3D12Device1* d3d12Device{ device->GetDevice() };
+        d3d12Device->CreateSampler(&mSamplerDescription, handle);
+    }
+
     auto Sampler::GetNativeHandle( rhi::ObjectType type ) -> rhi::Object {
         return ISampler::GetNativeHandle( type );
     }
@@ -73,13 +79,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Sampler::Initialize() -> void {
-        Device* device{ checked_cast<Device*>( mDevice ) };
-        ID3D12Device1* d3d12Device{ device->GetDevice() };
 
-        mSamplerDescriptorIndex = mDeviceResources->mSamplerHeap->AllocateDescriptors(1);
-        D3D12_CPU_DESCRIPTOR_HANDLE handle{ mDeviceResources->mSamplerHeap->GetCpuHandle(mSamplerDescriptorIndex) };
-
-        d3d12Device->CreateSampler(&mSamplerDescription, handle);
         mIsAllocated = true;
     }
 

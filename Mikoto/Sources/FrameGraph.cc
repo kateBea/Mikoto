@@ -275,10 +275,10 @@ namespace mikoto::renderer {
             .SetVisibility( ShaderFlagsBits::All )
             .SetRegisterSpace( MKT_DEFAULT_REGISTER_SPACE )
             .AddBindlessItem( BindlessLayoutItem::Samplers( MKT_SAMPLER_BINDING, 4096 ) )
-            .AddBindlessItem( BindlessLayoutItem::Texture_SRV( MKT_TEXTURE_SRV_BINDING, 4096 ) )
-            .AddBindlessItem( BindlessLayoutItem::Texture_UAV( MKT_TEXTURE_UAV_BINDING, 4096 ) )
-            .AddBindlessItem( BindlessLayoutItem::StructuredBuffer_SRV( MKT_STRUCTURED_SRV_BINDING, 4096 ) )
-            .AddBindlessItem( BindlessLayoutItem::StructuredBuffer_UAV( MKT_STRUCTURED_UAV_BINDING, 4096 ) ) };
+            .AddBindlessItem( BindlessLayoutItem::TextureSRV( MKT_TEXTURE_SRV_BINDING, 4096 ) )
+            .AddBindlessItem( BindlessLayoutItem::TextureUAV( MKT_TEXTURE_UAV_BINDING, 4096 ) )
+            .AddBindlessItem( BindlessLayoutItem::StructuredSRV( MKT_STRUCTURED_SRV_BINDING, 4096 ) )
+            .AddBindlessItem( BindlessLayoutItem::StructuredUAV( MKT_STRUCTURED_UAV_BINDING, 4096 ) ) };
             //.AddBindlessItem(BindlessLayoutItem::AccelerationStructures(MKT_ACCELERATION_STRUCTURE_BINDING, 4096)) };
         mBindlessLayout = mDevice->CreateBindlessLayout( layoutDesc );
         mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
@@ -367,7 +367,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Texture_SRV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
 
         return newID;
     }
@@ -384,7 +384,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Texture_UAV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureUAV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
 
         return newID;
     }
@@ -414,7 +414,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredBuffer_SRV( newID, buffer ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredSRV( newID, buffer ) );
 
         return newID;
     }
@@ -429,7 +429,7 @@ namespace mikoto::renderer {
         u32 newID{ table[handle] = table.size() };
         auto& resource{ Get(handle) };
         IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredBuffer_UAV( newID, buffer ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredUAV( newID, buffer ) );
 
         return newID;
     }

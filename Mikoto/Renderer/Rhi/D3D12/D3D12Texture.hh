@@ -36,6 +36,8 @@ namespace mikoto::renderer::d3d12 {
     public:
         explicit Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources& resources );
 
+        auto AllocateSampler(D3D12_CPU_DESCRIPTOR_HANDLE handle) -> void;
+
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 

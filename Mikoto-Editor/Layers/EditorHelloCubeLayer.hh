@@ -33,8 +33,6 @@
 
 namespace mikoto::editor {
 
-    // Debug layer with spinning cube
-    // Broken need to review vertex description layout
     class EditorHelloCubeLayer final : public core::ILayer {
     public:
         explicit EditorHelloCubeLayer( platform::Window *window );
@@ -108,6 +106,8 @@ namespace mikoto::editor {
 
         renderer::IGpuDevice* mDevice{};
 
+        core::f32 mRotationSpeed{ 1.0f };
+
         MyData mShaderParameters{};
         eastl::unique_ptr<scene::SceneCamera> mEditorCamera{};
         renderer::rhi::BufferHandle mConstantBuffer{};
@@ -131,7 +131,7 @@ namespace mikoto::editor {
 
         renderer::rhi::PipelineHandle mPipeline{};
         renderer::rhi::PipelineHandle mPipelineWireframe{};
-        renderer::rhi::BindingTableHandle mBindingSetHandle{};
+        renderer::rhi::BindingTableHandle mBindingTableHandle{};
         renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};
         renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
 

@@ -157,6 +157,10 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto StaticDescriptorHeap::AllocateDescriptors( u32 count ) -> DescriptorIndex {
+        if (count == 0) {
+            return d3d12::kInvalidDescriptorIndex;
+        }
+
         std::lock_guard lockGuard{ mMutex };
 
         u32 freeCount{ 0 };
@@ -484,40 +488,97 @@ namespace mikoto::renderer::d3d12 {
     auto BindingTable::Initialize() -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
 
-        // Allocate one contiguous range for all SRV/etc descriptors
-        u32 descriptorCount{ as<u32>(mBindingDescription.mBindings.size()) };
-        mSrvRange.mBaseIndex = mDeviceResources->mShaderResourceViewHeap->AllocateDescriptors(descriptorCount);
-        mSrvRange.mCount = descriptorCount;
+        // Handle samplers first
+        u32 totalSamplerCount{ (u32)std::ranges::count_if(mBindingDescription.mBindings,
+            [](const BindingTableItem& binding) {
+                return binding.mType == ResourceType::eSampler;
+            }) };
 
-        for (u32 i{}; i < descriptorCount; ++i) {
-            const BindingTableItem& binding{ mBindingDescription.mBindings[i] };
+        mSamplerRange.mBaseIndex = mDeviceResources->mSamplerHeap->AllocateDescriptors(totalSamplerCount);
+        mSamplerRange.mCount = totalSamplerCount;
 
-            DescriptorIndex index{ mSrvRange.mBaseIndex + i };
-            D3D12_CPU_DESCRIPTOR_HANDLE cpu{ mDeviceResources->mShaderResourceViewHeap->GetCpuHandle(index) };
+        for (u32 samplerIndex{}, bindingIndex{}; samplerIndex < totalSamplerCount
+            && bindingIndex < mBindingDescription.mBindings.size(); ++bindingIndex)
+        {
+            const BindingTableItem& binding{ mBindingDescription.mBindings[bindingIndex] };
+            if (rhi::IsSampler( binding.mType )) {
+                DescriptorIndex index{ mSamplerRange.mBaseIndex + samplerIndex };
+                D3D12_CPU_DESCRIPTOR_HANDLE cpu{ mDeviceResources->mSamplerHeap->GetCpuHandle(index) };
 
-            if (rhi::IsBuffer( binding.mType )) {
-                Buffer* buffer{ checked_cast<Buffer*>(binding.mResource) };
-                if (binding.mResource) {
-                    buffer->CreateSRV(cpu.ptr, binding.mRange, binding.mType, binding.mFormat);
-                }
-                else {
-                    Buffer::CreateNullSRV(cpu.ptr, binding.mFormat, device->GetDevice());
-                }
-            } else if (rhi::IsTexture( binding.mType )) {
-                Texture* texture{ checked_cast<Texture*>(binding.mResource) };
-                if (binding.mResource) {
-                    texture->CreateSRV(cpu.ptr, binding.mSubResourceSet, binding.mFormat, binding.mDimension);
-                }
-            } else if ( rhi::IsSampler(binding.mType) ) {
+                Sampler* sampler{ checked_cast<Sampler*>(binding.mResource) };
+                sampler->AllocateSampler( cpu );
 
-            } else {
-                MKT_ASSERT( false, "Invalid type" );
+                mDeviceResources->mSamplerHeap->CopyToShaderVisibleHeap(index);
+                ++samplerIndex;
             }
-
-            mDeviceResources->mShaderResourceViewHeap->CopyToShaderVisibleHeap(index);
         }
 
-        mSrvRange.mGpuHandle = mDeviceResources->mShaderResourceViewHeap->GetGpuHandle(mSrvRange.mBaseIndex);
+        if (totalSamplerCount != 0) {
+            mSamplerRange.mGpuHandle = mDeviceResources->mSamplerHeap->GetGpuHandle(mSamplerRange.mBaseIndex);
+        }
+
+        // Handle rest of descriptor types
+        // Allocate one contiguous range for all SRV/etc descriptors
+        u32 totalDescriptorCount{ as<u32>(mBindingDescription.mBindings.size()) - totalSamplerCount };
+
+        mSrvRange.mBaseIndex = mDeviceResources->mShaderResourceViewHeap->AllocateDescriptors(totalDescriptorCount);
+        mSrvRange.mCount = totalDescriptorCount;
+
+        for (u32 descriptorIndex{}, bindingIndex{}; descriptorIndex < totalDescriptorCount
+            && bindingIndex < mBindingDescription.mBindings.size(); ++bindingIndex) {
+            const BindingTableItem& binding{ mBindingDescription.mBindings[bindingIndex] };
+
+            if (!rhi::IsSampler( binding.mType )) {
+                DescriptorIndex index{ mSrvRange.mBaseIndex + descriptorIndex };
+                D3D12_CPU_DESCRIPTOR_HANDLE cpu{ mDeviceResources->mShaderResourceViewHeap->GetCpuHandle(index) };
+
+                if (rhi::IsBuffer( binding.mType )) {
+                    Buffer* buffer{ checked_cast<Buffer*>(binding.mResource) };
+                    if (binding.mResource) {
+                        switch (binding.mType) {
+                            case ResourceType::eRawBuffer_SRV:
+                            case ResourceType::eTypedBuffer_SRV:
+                            case ResourceType::eStructuredBuffer_SRV:
+                                buffer->CreateSRV(cpu.ptr, binding.mRange, binding.mType, binding.mFormat);
+                                break;
+                            case ResourceType::eRawBuffer_UAV:
+                            case ResourceType::eTypedBuffer_UAV:
+                            case ResourceType::eStructuredBuffer_UAV:
+                                buffer->CreateUAV(cpu.ptr, binding.mRange, binding.mType, binding.mFormat);
+                                break;
+                            case ResourceType::eConstantBuffer:
+                                buffer->CreateCBV(cpu.ptr, binding.mRange, binding.mFormat);
+                                break;
+                            default:;
+                        }
+                    }
+                    else {
+                        Buffer::CreateNullSRV(cpu.ptr, binding.mFormat, device->GetDevice());
+                    }
+                } else if (rhi::IsTexture( binding.mType )) {
+                    Texture* texture{ checked_cast<Texture*>(binding.mResource) };
+                    if ( binding.mResource ) {
+                        switch ( binding.mType ) {
+                            case ResourceType::eTexture_SRV:
+                                texture->CreateSRV( cpu.ptr, binding.mSubResourceSet, binding.mFormat, binding.mDimension );
+                                break;
+                            case ResourceType::eTexture_UAV:
+                                texture->CreateUAV( cpu.ptr, binding.mSubResourceSet, binding.mFormat, binding.mDimension );
+                                break;
+                            default:;
+                        }
+                    }
+                }
+
+                mDeviceResources->mShaderResourceViewHeap->CopyToShaderVisibleHeap(index);
+
+                ++descriptorIndex;
+            }
+        }
+
+        if (totalDescriptorCount != 0) {
+            mSrvRange.mGpuHandle = mDeviceResources->mShaderResourceViewHeap->GetGpuHandle(mSrvRange.mBaseIndex);
+        }
 
         mIsAllocated = true;
     }
@@ -1522,7 +1583,6 @@ namespace mikoto::renderer::d3d12 {
             requiresEmptySignature = computePipeline->HasEmptyRootSignature();
         }
 
-
         // I should probably bind the previous resources only if empty root signature.
         // This is more of a D3D12 limitation
         // In vulkan the resources stay bound for the duration of the command buffer
@@ -1572,7 +1632,7 @@ namespace mikoto::renderer::d3d12 {
         SetScissors( vs.mScissorRects );
     }
 
-    auto CommandList::SetPolygonLineWidth( core::f32 width ) -> void {
+    auto CommandList::SetPolygonLineWidth( MKT_UNUSED_VAR core::f32 width ) -> void {
         // Not supported
     }
 

@@ -249,7 +249,7 @@ namespace mikoto::editor {
             .SetRegisterSpace( 0 )
             .SetShaderVisibility(ShaderFlagsBits::All)
             .AddItem(BindingLayoutItem::Sampler(0))
-            .AddItem(BindingLayoutItem::Texture_SRV(1))
+            .AddItem(BindingLayoutItem::TextureSRV(1))
             .AddItem(BindingLayoutItem::ConstantBuffer(2)) };
         mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
 
@@ -257,7 +257,7 @@ namespace mikoto::editor {
         auto bindlessLayout{ BindlessLayoutDescription{}
             .SetVisibility(ShaderFlagsBits::All)
             .SetRegisterSpace( 1 )
-            .AddBindlessItem(BindlessLayoutItem::Texture_SRV(0, 1024))
+            .AddBindlessItem(BindlessLayoutItem::TextureSRV(0, 1024))
             .AddBindlessItem(BindlessLayoutItem::Samplers(1, 1024)) };
         mBindlessLayout = mDevice->CreateBindlessLayout( bindlessLayout );
 
@@ -290,12 +290,12 @@ namespace mikoto::editor {
 
         auto bindingSetDesc{ BindingTableDescription{}
             .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) )
-            .AddItem( BindingTableItem::Texture_SRV( 1, mSimpleTexture.GetRaw() ) )
+            .AddItem( BindingTableItem::TextureSRV( 1, mSimpleTexture.GetRaw() ) )
             .AddItem( BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetRaw() ) ) };
         mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
 
         (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) );
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Texture_SRV( 0, mSimpleTexture.GetRaw() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 0, mSimpleTexture.GetRaw() ) );
 
         SceneCameraDescription cameraDescription{
             .mFov = 45.0,

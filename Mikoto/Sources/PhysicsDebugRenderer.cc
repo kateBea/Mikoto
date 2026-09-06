@@ -406,7 +406,7 @@ namespace mikoto::renderer {
         auto layoutDesc{ BindingLayoutDescription{}
             .SetRegisterSpace( 0 )
             .SetShaderVisibility(ShaderFlagsBits::All)
-            .AddItem(BindingLayoutItem::StructuredBuffer_SRV(0)) };
+            .AddItem(BindingLayoutItem::StructuredSRV(0)) };
         mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
 
         mPipelineLayoutHandle = mDevice->CreatePipelineLayout( PipelineLayoutCreateDescription{}
@@ -432,11 +432,11 @@ namespace mikoto::renderer {
         mPipelineTriangles->SetDebugName( "PhysicsDebugRendererSimple Triangles Pipeline" );
 
         auto bindingSetLinesDesc{ BindingTableDescription{}
-            .AddItem( BindingTableItem::StructuredBuffer_SRV( 0, mLinesBuffer.GetRaw() ) ) };
+            .AddItem( BindingTableItem::StructuredSRV( 0, mLinesBuffer.GetRaw() ) ) };
         mBindingSetLinesHandle = mDevice->CreateBindingSet( bindingSetLinesDesc, mBindingLayoutHandle );
 
         auto bindingSetTrianglesDesc{ BindingTableDescription{}
-            .AddItem( BindingTableItem::StructuredBuffer_SRV( 0, mTrianglesBuffer.GetRaw() ) ) };
+            .AddItem( BindingTableItem::StructuredSRV( 0, mTrianglesBuffer.GetRaw() ) ) };
         mBindingSetTrianglesHandle = mDevice->CreateBindingSet( bindingSetTrianglesDesc, mBindingLayoutHandle );
     }
 

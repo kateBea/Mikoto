@@ -73,13 +73,13 @@ namespace mikoto::renderer::rhi {
         core::u32 mFirstIndex{ 0 };
         core::i32 mVertexOffset{ 0 };
 
-        constexpr auto SetVertexCount(core::u32 value) -> DrawArguments& { mVertexCount = value; return *this; }
+        constexpr auto SetVertexCount( core::u32 value ) -> DrawArguments& { mVertexCount = value; return *this; }
         constexpr auto SetIndexCount(core::u32 value) -> DrawArguments& { mIndexCount = value; return *this; }
         constexpr auto SetInstanceCount(core::u32 value) -> DrawArguments& { mInstanceCount = value; return *this; }
         constexpr auto SetFirstVertex(core::u32 value) -> DrawArguments& { mFirstVertex = value; return *this; }
         constexpr auto SetFirstInstance(core::u32 value) -> DrawArguments& { mFirstInstance = value; return *this; }
         constexpr auto SetFirstIndex(core::u32 value) -> DrawArguments& { mFirstIndex = value; return *this; }
-        constexpr auto SetVertexOffset(core::i32 value) -> DrawArguments& { mVertexOffset = value; return *this; }
+        constexpr auto SetVertexOffset( core::i32 value ) -> DrawArguments& { mVertexOffset = value; return *this; }
     };
 
     struct DrawIndirectArguments {
@@ -242,8 +242,6 @@ namespace mikoto::renderer::rhi {
     // buffer at a time.
     class ICommandList : public DeviceObject {
     public:
-        explicit ICommandList( QueueType queueType );
-
         virtual auto Begin( const CommandListBeginDescription& desc ) -> void = 0;
         virtual auto End() -> void = 0;
 
@@ -324,7 +322,14 @@ namespace mikoto::renderer::rhi {
         using DeviceObject::Initialize;
 
     protected:
+        // When set to true the command list will allocate a set amount of backend specific
+        // command lists and cycle through them like ring buffer.
+        explicit ICommandList( QueueType queueType, bool selfManagedCommandLists = true, core::u32 selfManagedCommandListCount = 4 );
+
+    protected:
         QueueType mQueueType{ QueueType::eInvalid };
+        core::u32 mSelfManagedCommandListCount{ 4 };
+        bool mSelfManagedCommandLists{ true };
     };
 
     using CommandListHandle = core::Ref<ICommandList>;

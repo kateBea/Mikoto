@@ -23,8 +23,13 @@ namespace mikoto::renderer::rhi {
     using namespace mikoto::core;
     using namespace mikoto::memory;
 
-    ICommandList::ICommandList( QueueType queueType )
-        : mQueueType{ queueType }
+    auto CommandListBeginDescription::SetScopeName( eastl::string_view name ) -> CommandListBeginDescription {
+        mScopeName = name;
+        return *this;
+    }
+
+    ICommandList::ICommandList( QueueType queueType, bool selfManagedCommandLists, core::u32 selfManagedCommandListCount )
+        : mQueueType{ queueType }, mSelfManagedCommandLists{ selfManagedCommandLists }, mSelfManagedCommandListCount{ selfManagedCommandListCount }
     {}
 
     auto ICommandList::GetQueueType() const -> QueueType {

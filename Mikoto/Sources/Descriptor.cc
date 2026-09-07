@@ -488,27 +488,27 @@ namespace mikoto::renderer::rhi {
         };
     }
 
-    auto BindlessLayoutDescription::SetDebugName( eastl::string_view name ) -> BindlessLayoutDescription & {
+    auto DescriptorTableLayoutDescription::SetDebugName( eastl::string_view name ) -> DescriptorTableLayoutDescription & {
         mName = name;
         return *this;
     }
 
-    auto BindlessLayoutDescription::SetRegisterSpace( u32 registerSpace ) -> BindlessLayoutDescription & {
+    auto DescriptorTableLayoutDescription::SetRegisterSpace( u32 registerSpace ) -> DescriptorTableLayoutDescription & {
         mRegisterSpace = registerSpace;
         return *this;
     }
 
-    auto BindlessLayoutDescription::SetVisibility( ShaderFlags visibility ) -> BindlessLayoutDescription & {
+    auto DescriptorTableLayoutDescription::SetVisibility( ShaderFlags visibility ) -> DescriptorTableLayoutDescription & {
         mStageVisibility = visibility;
         return *this;
     }
 
-    auto BindlessLayoutDescription::AddBindlessItem( const BindlessLayoutItem &item ) -> BindlessLayoutDescription & {
+    auto DescriptorTableLayoutDescription::AddBindlessItem( const BindlessLayoutItem &item ) -> DescriptorTableLayoutDescription & {
         mSlots.emplace_back( item );
         return *this;
     }
 
-    auto BindlessLayoutDescription::AddShader( ShaderModuleHandle shader ) -> BindlessLayoutDescription & {
+    auto DescriptorTableLayoutDescription::AddShader( ShaderModuleHandle shader ) -> DescriptorTableLayoutDescription & {
         mShaders.emplace_back( shader );
         return *this;
     }

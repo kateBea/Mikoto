@@ -106,7 +106,7 @@ namespace mikoto::renderer::rhi {
     };
 
     // For Graphics APIs that support natively bindless design
-    struct BindlessLayoutDescription {
+    struct DescriptorTableLayoutDescription {
         eastl::string mName{};
         core::u32 mRegisterSpace{};
         ShaderFlags mStageVisibility{ ShaderFlagsBits::Vertex };
@@ -116,16 +116,17 @@ namespace mikoto::renderer::rhi {
         bool mUseReflection{};
         eastl::fixed_vector<ShaderModuleHandle, kMaxShaders> mShaders{};
 
-        auto SetDebugName( eastl::string_view name ) -> BindlessLayoutDescription&;
-        auto SetRegisterSpace( core::u32 registerSpace ) -> BindlessLayoutDescription&;
-        auto SetVisibility( ShaderFlags visibility ) -> BindlessLayoutDescription&;
-        auto AddBindlessItem( const BindlessLayoutItem& item ) -> BindlessLayoutDescription&;
+        auto SetDebugName( eastl::string_view name ) -> DescriptorTableLayoutDescription&;
+        auto SetRegisterSpace( core::u32 registerSpace ) -> DescriptorTableLayoutDescription&;
+        auto SetVisibility( ShaderFlags visibility ) -> DescriptorTableLayoutDescription&;
+        auto AddBindlessItem( const BindlessLayoutItem& item ) -> DescriptorTableLayoutDescription&;
 
-        auto AddShader( ShaderModuleHandle shader ) -> BindlessLayoutDescription&;
+        auto AddShader( ShaderModuleHandle shader ) -> DescriptorTableLayoutDescription&;
     };
 
     struct BindingTableDescription {
         eastl::vector<BindingTableItem> mBindings{};
+        eastl::fixed_vector<ShaderModuleHandle, kMaxShaders> mShaders{};
 
         // TODO: Move this to a reflection module
         // Vulkan for instance via the spirv_reflect library allows us to
@@ -133,13 +134,13 @@ namespace mikoto::renderer::rhi {
         // information, this could be helpful to generate the appropriate
         // binding layouts from the RHI for our pipeline
         bool mUseReflection{};
-        eastl::fixed_vector<ShaderModuleHandle, kMaxShaders> mShaders{};
 
         auto AddItem(const BindingTableItem& value) -> BindingTableDescription&;
         auto AddShader( ShaderModuleHandle shader ) -> BindingTableDescription&;
     };
 
-    // Upon creation, its contents cannot mutate
+    // Upon creation, its contents can mutate but we can only update
+    // the slots with new resources
     // Treated as a table of bindings where each one has a unique
     // slot index
     class IBindingTable : public DeviceObject {

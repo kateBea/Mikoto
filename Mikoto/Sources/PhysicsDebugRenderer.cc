@@ -433,11 +433,11 @@ namespace mikoto::renderer {
 
         auto bindingSetLinesDesc{ BindingTableDescription{}
             .AddItem( BindingTableItem::StructuredSRV( 0, mLinesBuffer.GetRaw() ) ) };
-        mBindingSetLinesHandle = mDevice->CreateBindingSet( bindingSetLinesDesc, mBindingLayoutHandle );
+        mBindingSetLinesHandle = mDevice->CreateBindingTable( bindingSetLinesDesc, mBindingLayoutHandle );
 
         auto bindingSetTrianglesDesc{ BindingTableDescription{}
             .AddItem( BindingTableItem::StructuredSRV( 0, mTrianglesBuffer.GetRaw() ) ) };
-        mBindingSetTrianglesHandle = mDevice->CreateBindingSet( bindingSetTrianglesDesc, mBindingLayoutHandle );
+        mBindingSetTrianglesHandle = mDevice->CreateBindingTable( bindingSetTrianglesDesc, mBindingLayoutHandle );
     }
 
     auto PhysicsDebugRendererSimple::RenderLines() -> void {

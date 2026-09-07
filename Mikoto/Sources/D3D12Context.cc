@@ -534,11 +534,11 @@ namespace mikoto::renderer::d3d12 {
             .AddItem(BindingLayoutItem::Sampler(0))};
         mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
 
-        auto bindlessLayout{ BindlessLayoutDescription{}
+        auto bindlessLayout{ DescriptorTableLayoutDescription{}
             .SetVisibility(ShaderFlagsBits::All)
             .SetRegisterSpace( 1 )
             .AddBindlessItem(BindlessLayoutItem::TextureSRV(0, 1)) }; // I just need one image slot I can update
-        mBindlessLayout = mDevice->CreateBindlessLayout( bindlessLayout );
+        mBindlessLayout = mDevice->CreateDescriptorTableLayout( bindlessLayout );
 
         mPipelineLayoutHandle = mDevice->CreatePipelineLayout( PipelineLayoutCreateDescription{}
             .AddBindingLayout( mBindingLayoutHandle )
@@ -573,7 +573,7 @@ namespace mikoto::renderer::d3d12 {
         // Non-bindless set
         auto bindingSetDesc{ BindingTableDescription{}
             .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
-        mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
+        mBindingSetHandle = mDevice->CreateBindingTable( bindingSetDesc, mBindingLayoutHandle );
     }
 
     auto Context::InitSynchronization() -> void {

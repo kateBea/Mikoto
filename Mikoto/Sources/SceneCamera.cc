@@ -92,6 +92,38 @@ namespace mikoto::scene {
         mAllowCameraMovementAndRotation = value;
     }
 
+    auto SceneCamera::SetVignetteSize( core::f32 value ) -> void {
+
+    }
+
+    auto SceneCamera::SetVignetteShape( core::f32 value ) -> void {
+
+    }
+
+    auto SceneCamera::SetVignetteShape( VignetteShape value ) -> void {
+
+    }
+
+    auto SceneCamera::SetVignetteIntensity( core::f32 value ) -> void {
+
+    }
+
+    auto SceneCamera::SetAperture( core::f32 fStop ) -> void {
+
+    }
+
+    auto SceneCamera::SetFocalLength( core::f32 millimeters ) -> void {
+
+    }
+
+    auto SceneCamera::SetFocusDistance( core::f32 distance ) -> void {
+
+    }
+
+    auto SceneCamera::SetDepthOfFieldBlur( core::f32 value ) -> void {
+
+    }
+
     auto SceneCamera::UpdateViewMatrix() -> void {
         if (mLockCameraToTarget ) {
         } else {

@@ -76,7 +76,7 @@ namespace mikoto::renderer::d3d11 {
         : mBindingLayoutDesc{ desc }
     {}
 
-    BindingLayout::BindingLayout( const BindlessLayoutDescription &desc )
+    BindingLayout::BindingLayout( const DescriptorTableLayoutDescription &desc )
         : mBindlessLayoutDesc{ desc }
     {}
 
@@ -1010,7 +1010,7 @@ namespace mikoto::renderer::d3d11 {
         return PipelineLayoutHandle::CreateEmpty();
     }
 
-    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingTableHandle {
+    auto Device::CreateBindingTable( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingTableHandle {
         BindingTableHandle set{ Ref<BindingTable>::New( desc, layout ) };
 
         if ( set.IsEmpty() ) {
@@ -1021,6 +1021,14 @@ namespace mikoto::renderer::d3d11 {
         set->Initialize( this );
 
         return set;
+    }
+
+    auto Device::UpdateBindingTable( const rhi::BindingTableDescription &desc, rhi::BindingTableHandle table ) -> void {
+
+    }
+
+    auto Device::CreateSwapChain( const SwapChainDescription &description ) -> rhi::SwapChainHandle {
+        return rhi::SwapChainHandle::CreateEmpty();
     }
 
     auto Device::CreateFence( MKT_UNUSED_VAR u64 fenceInitialValue ) -> FenceHandle {
@@ -1043,7 +1051,7 @@ namespace mikoto::renderer::d3d11 {
         return nullptr;
     }
 
-    auto Device::CreateBindlessLayout( const BindlessLayoutDescription &desc ) -> BindingLayoutHandle {
+    auto Device::CreateDescriptorTableLayout( const DescriptorTableLayoutDescription &desc ) -> BindingLayoutHandle {
         return BindingLayoutHandle::CreateEmpty();
     }
 

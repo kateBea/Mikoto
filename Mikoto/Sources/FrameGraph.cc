@@ -271,7 +271,7 @@ namespace mikoto::renderer {
         : mDevice{ device }
     {
         // Prepare layouts
-        const auto layoutDesc{ BindlessLayoutDescription{}
+        const auto layoutDesc{ DescriptorTableLayoutDescription{}
             .SetVisibility( ShaderFlagsBits::All )
             .SetRegisterSpace( MKT_DEFAULT_REGISTER_SPACE )
             .AddBindlessItem( BindlessLayoutItem::Samplers( MKT_SAMPLER_BINDING, 1024 ) )
@@ -280,7 +280,7 @@ namespace mikoto::renderer {
             .AddBindlessItem( BindlessLayoutItem::StructuredSRV( MKT_STRUCTURED_SRV_BINDING, 4096 ) )
             .AddBindlessItem( BindlessLayoutItem::StructuredUAV( MKT_STRUCTURED_UAV_BINDING, 4096 ) ) };
             //.AddBindlessItem(BindlessLayoutItem::AccelerationStructures(MKT_ACCELERATION_STRUCTURE_BINDING, 4096)) };
-        mBindlessLayout = mDevice->CreateBindlessLayout( layoutDesc );
+        mBindlessLayout = mDevice->CreateDescriptorTableLayout( layoutDesc );
         mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
         mDescriptorTable->SetDebugName( "FrameGraph Resource Table" );
 

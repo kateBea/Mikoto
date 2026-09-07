@@ -276,14 +276,14 @@ namespace mikoto::renderer::d3d12 {
     class BindingLayout final : public IBindingLayout {
     public:
         explicit BindingLayout( const BindingLayoutDescription& desc );
-        explicit BindingLayout( const BindlessLayoutDescription& desc );
+        explicit BindingLayout( const DescriptorTableLayoutDescription& desc );
 
         MKT_NODISCARD auto GetRegisterSpace() const -> core::u32 override;
 
         MKT_NODISCARD auto IsBindless() const -> bool override;
 
         MKT_NODISCARD auto GetBindingLayoutDesc() const -> const BindingLayoutDescription&;
-        MKT_NODISCARD auto GetBindlessLayoutDesc() const -> const BindlessLayoutDescription&;
+        MKT_NODISCARD auto GetBindlessLayoutDesc() const -> const DescriptorTableLayoutDescription&;
 
         MKT_NODISCARD auto GetDescriptorRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
         MKT_NODISCARD auto GetDescriptorSamplerRanges() const -> const eastl::vector<D3D12_DESCRIPTOR_RANGE1>&;
@@ -305,7 +305,7 @@ namespace mikoto::renderer::d3d12 {
         core::u32 mRegisterSpace{};
         bool mIsBindless{ false };
         BindingLayoutDescription mBindingLayoutDesc{};
-        BindlessLayoutDescription mBindlessLayoutDesc{};
+        DescriptorTableLayoutDescription mBindlessLayoutDesc{};
 
         // Because for D3D12 Samplers cannot be mixed
         // with other resource types in a descriptor table
@@ -635,52 +635,55 @@ namespace mikoto::renderer::d3d12 {
     // Works with shader model 6_6 which is required
     // assert if not supported, pending to implement path for
     // shader model 5.1
-    class Device final : public IGpuDevice {
+    class Device final : public rhi::IGpuDevice {
     public:
-        explicit Device( const GpuDeviceCreateInfo& createInfo );
+        explicit Device( const rhi::GpuDeviceCreateInfo& createInfo );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
 
-        MKT_NODISCARD auto CreateTexture( const TextureCreateDescription& description ) -> TextureHandle override;
-        MKT_NODISCARD auto CreateTextureNative( ObjectType type, Object object, const TextureCreateDescription& description ) -> TextureHandle override;
+        MKT_NODISCARD auto CreateTexture( const rhi::TextureCreateDescription& description ) -> rhi::TextureHandle override;
+        MKT_NODISCARD auto CreateTextureNative( rhi::ObjectType type, Object object, const rhi::TextureCreateDescription& description ) -> rhi::TextureHandle override;
 
-        MKT_NODISCARD auto CreateBuffer( const BufferCreateDescription& description ) -> BufferHandle override;
+        MKT_NODISCARD auto CreateBuffer( const rhi::BufferCreateDescription& description ) -> rhi::BufferHandle override;
 
-        MKT_NODISCARD auto CreateSampler( const SamplerCreateDescription& description ) -> SamplerHandle override;
+        MKT_NODISCARD auto CreateSampler( const rhi::SamplerCreateDescription& description ) -> rhi::SamplerHandle override;
 
-        MKT_NODISCARD auto CreatePipeline( const ComputePipelineDescription& description ) -> PipelineHandle override;
-        MKT_NODISCARD auto CreatePipeline( const GraphicsPipelineDescription& description ) -> PipelineHandle override;
+        MKT_NODISCARD auto CreatePipeline( const rhi::ComputePipelineDescription& description ) -> rhi::PipelineHandle override;
+        MKT_NODISCARD auto CreatePipeline( const rhi::GraphicsPipelineDescription& description ) -> rhi::PipelineHandle override;
 
-        MKT_NODISCARD auto CreateAccelStructure( const AccelStructureCreateDescription& description ) -> AccelStructureHandle override;
+        MKT_NODISCARD auto CreateAccelStructure( const rhi::AccelStructureCreateDescription& description ) -> rhi::AccelStructureHandle override;
 
-        MKT_NODISCARD auto CreateCommandList( QueueType queueType ) -> CommandListHandle override;
+        MKT_NODISCARD auto CreateCommandList( rhi::QueueType queueType ) -> rhi::CommandListHandle override;
 
-        MKT_NODISCARD auto CreateShader( const ShaderModuleCreateDescription& desc ) -> ShaderModuleHandle override;
+        MKT_NODISCARD auto CreateShader( const rhi::ShaderModuleCreateDescription& desc ) -> rhi::ShaderModuleHandle override;
 
-        MKT_NODISCARD auto CreateInputLayout(const InputLayoutCreateDescription& desc) -> InputLayoutHandle override;
+        MKT_NODISCARD auto CreateInputLayout(const rhi::InputLayoutCreateDescription& desc) -> rhi::InputLayoutHandle override;
 
-        MKT_NODISCARD auto CreateBindingLayout( const BindingLayoutDescription& desc ) -> BindingLayoutHandle override;
-        MKT_NODISCARD auto CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle override;
-        MKT_NODISCARD auto CreateBindingSet( const BindingTableDescription& desc, BindingLayoutHandle layout ) -> BindingTableHandle override;
+        MKT_NODISCARD auto CreateBindingLayout( const rhi::BindingLayoutDescription& desc ) -> rhi::BindingLayoutHandle override;
+        MKT_NODISCARD auto CreatePipelineLayout( const rhi::PipelineLayoutCreateDescription& desc ) -> rhi::PipelineLayoutHandle override;
+        MKT_NODISCARD auto CreateBindingTable( const rhi::BindingTableDescription& desc, rhi::BindingLayoutHandle layout ) -> rhi::BindingTableHandle override;
+        auto UpdateBindingTable( const rhi::BindingTableDescription& desc, rhi::BindingTableHandle table ) -> void override;
 
-        MKT_NODISCARD auto CreateFence( u64 fenceInitialValue ) -> FenceHandle override;
+        MKT_NODISCARD auto CreateFence( core::u64 fenceInitialValue ) -> rhi::FenceHandle override;
 
-        auto UnMap( IBuffer* buffer ) -> void override;
-        MKT_NODISCARD auto Map(IBuffer* buffer ) -> void* override;
+        auto UnMap( rhi::IBuffer* buffer ) -> void override;
+        MKT_NODISCARD auto Map(rhi::IBuffer* buffer ) -> void* override;
 
         // To support bindless techniques in modern graphics APIs
-        MKT_NODISCARD auto CreateBindlessLayout( const BindlessLayoutDescription& desc ) -> BindingLayoutHandle override;
+        MKT_NODISCARD auto CreateDescriptorTableLayout( const rhi::DescriptorTableLayoutDescription& desc ) -> BindingLayoutHandle override;
 
-        MKT_NODISCARD auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle override;
-        MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
-        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> rhi::BindingItemIndex override;
+        MKT_NODISCARD auto CreateDescriptorTable( rhi::BindingLayoutHandle layout ) -> rhi::DescriptorTableHandle override;
+        MKT_NODISCARD auto ResizeDescriptorTable( rhi::DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool override;
+        MKT_NODISCARD auto WriteDescriptorTable( rhi::DescriptorTableHandle descriptorTable, const rhi::BindingTableItem& item ) -> rhi::BindingItemIndex override;
 
         auto RunGarbageCollection() -> void override;
 
         auto WaitIdle() -> void override;
 
-        MKT_NODISCARD auto GetQueue( QueueType type ) -> IQueue* override;
+        MKT_NODISCARD auto CreateSwapChain( const rhi::SwapChainDescription& description ) -> rhi::SwapChainHandle override;
+
+        MKT_NODISCARD auto GetQueue( rhi::QueueType type ) -> rhi::IQueue* override;
 
         MKT_NODISCARD auto GetMemoryUsage() const -> core::usize override;
         MKT_NODISCARD auto GetMemoryTotal() const -> core::usize override;

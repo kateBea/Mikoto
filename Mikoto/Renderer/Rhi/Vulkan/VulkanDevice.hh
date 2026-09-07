@@ -518,13 +518,13 @@ namespace mikoto::renderer::vulkan {
     class BindingLayout final : public rhi::IBindingLayout {
     public:
         explicit BindingLayout( const rhi::BindingLayoutDescription& desc );
-        explicit BindingLayout( const rhi::BindlessLayoutDescription& desc );
+        explicit BindingLayout( const rhi::DescriptorTableLayoutDescription& desc );
 
         MKT_NODISCARD auto GetRegisterSpace() const -> core::u32 override;
 
         MKT_NODISCARD auto IsBindless() const -> bool override;
 
-        MKT_NODISCARD auto GetBindlessLayoutDesc() const -> const rhi::BindlessLayoutDescription&;
+        MKT_NODISCARD auto GetBindlessLayoutDesc() const -> const rhi::DescriptorTableLayoutDescription&;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
@@ -542,7 +542,7 @@ namespace mikoto::renderer::vulkan {
         core::u32 mSetIndex{};
         bool mIsBindless{ false };
         rhi::BindingLayoutDescription mBindingLayoutDesc{};
-        rhi::BindlessLayoutDescription mBindlessLayoutDesc{};
+        rhi::DescriptorTableLayoutDescription mBindlessLayoutDesc{};
 
         VkDescriptorSetLayout mDescriptorSetLayout{};
         VkDescriptorSetLayoutCreateInfo mCreateInfo{};
@@ -677,7 +677,8 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto CreateBindingLayout( const rhi::BindingLayoutDescription& desc ) -> rhi::BindingLayoutHandle override;
         MKT_NODISCARD auto CreatePipelineLayout( const rhi::PipelineLayoutCreateDescription& desc ) -> rhi::PipelineLayoutHandle override;
-        MKT_NODISCARD auto CreateBindingSet( const rhi::BindingTableDescription& desc, rhi::BindingLayoutHandle layout ) -> rhi::BindingTableHandle override;
+        MKT_NODISCARD auto CreateBindingTable( const rhi::BindingTableDescription& desc, rhi::BindingLayoutHandle layout ) -> rhi::BindingTableHandle override;
+        auto UpdateBindingTable( const rhi::BindingTableDescription& desc, rhi::BindingTableHandle table ) -> void override;
 
         MKT_NODISCARD auto CreateFence( core::u64 fenceInitialValue ) -> rhi::FenceHandle override;
 
@@ -685,13 +686,15 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto Map( rhi::IBuffer* buffer ) -> void* override;
 
         // To support bindless techniques in modern graphics APIs
-        MKT_NODISCARD auto CreateBindlessLayout( const rhi::BindlessLayoutDescription& desc ) -> rhi::BindingLayoutHandle override;
+        MKT_NODISCARD auto CreateDescriptorTableLayout( const rhi::DescriptorTableLayoutDescription& desc ) -> rhi::BindingLayoutHandle override;
 
         MKT_NODISCARD auto CreateDescriptorTable( rhi::BindingLayoutHandle layout ) -> rhi::DescriptorTableHandle override;
         MKT_NODISCARD auto ResizeDescriptorTable( rhi::DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool override;
         MKT_NODISCARD auto WriteDescriptorTable( rhi::DescriptorTableHandle descriptorTable, const rhi::BindingTableItem& item ) -> rhi::BindingItemIndex override;
 
         MKT_NODISCARD auto GetQueue( rhi::QueueType type ) -> IQueue* override;
+
+        MKT_NODISCARD auto CreateSwapChain( const SwapChainDescription& description ) -> rhi::SwapChainHandle override;
 
         MKT_NODISCARD auto GetMemoryUsage() const -> core::usize override;
         MKT_NODISCARD auto GetMemoryTotal() const -> core::usize override;

@@ -252,7 +252,7 @@ namespace mikoto::editor {
             .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) )
             .AddItem( BindingTableItem::TextureSRV( 1, mSimpleTexture.GetRaw() ) )
             .AddItem( BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetRaw() ) ) };
-        mBindingTableHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
+        mBindingTableHandle = mDevice->CreateBindingTable( bindingSetDesc, mBindingLayoutHandle );
 
         SceneCameraDescription cameraDescription{
             .mFov = 45.0,

@@ -236,7 +236,7 @@ namespace mikoto::renderer::vulkan {
         return layout;
     }
 
-    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingTableHandle {
+    auto Device::CreateBindingTable( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingTableHandle {
         BindingTableHandle set{ Ref<BindingTable>::New( desc, layout ) };
 
         if ( set.IsEmpty() ) {
@@ -247,6 +247,14 @@ namespace mikoto::renderer::vulkan {
         set->Initialize( this );
 
         return set;
+    }
+
+    auto Device::UpdateBindingTable( const rhi::BindingTableDescription &desc, rhi::BindingTableHandle table ) -> void {
+
+    }
+
+    auto Device::CreateSwapChain( const SwapChainDescription &description ) -> rhi::SwapChainHandle {
+        return rhi::SwapChainHandle::CreateEmpty();
     }
 
     auto Device::CreateFence( u64 fenceInitialValue ) -> FenceHandle {
@@ -278,7 +286,7 @@ namespace mikoto::renderer::vulkan {
         return b->GetMappedAddress();
     }
 
-    auto Device::CreateBindlessLayout( const BindlessLayoutDescription &desc ) -> BindingLayoutHandle {
+    auto Device::CreateDescriptorTableLayout( const DescriptorTableLayoutDescription &desc ) -> BindingLayoutHandle {
         BindingLayoutHandle layout{ Ref<BindingLayout>::New( desc ) };
 
         if ( layout.IsEmpty() ) {
@@ -2895,7 +2903,7 @@ namespace mikoto::renderer::vulkan {
         : mSetIndex{ desc.mRegisterSpace }, mIsBindless{ false }, mBindingLayoutDesc{ desc } {
     }
 
-    BindingLayout::BindingLayout( const BindlessLayoutDescription &desc )
+    BindingLayout::BindingLayout( const DescriptorTableLayoutDescription &desc )
         : mSetIndex{ desc.mRegisterSpace }, mIsBindless{ true }, mBindlessLayoutDesc{ desc } {
     }
 
@@ -2907,7 +2915,7 @@ namespace mikoto::renderer::vulkan {
         return mIsBindless;
     }
 
-    auto BindingLayout::GetBindlessLayoutDesc() const -> const BindlessLayoutDescription& {
+    auto BindingLayout::GetBindlessLayoutDesc() const -> const DescriptorTableLayoutDescription& {
         return mBindlessLayoutDesc;
     }
 

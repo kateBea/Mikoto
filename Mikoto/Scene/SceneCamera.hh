@@ -25,6 +25,13 @@
 
 namespace mikoto::scene {
 
+    enum class VignetteShape : core::u8 {
+        Circle,
+        Ellipse,
+        Rectangle,
+        RoundedRectangle,
+    };
+
     struct SceneCameraDescription {
         core::f32 mFov{};
         core::f32 mAspectRatio{};
@@ -60,21 +67,28 @@ namespace mikoto::scene {
 
         auto WantRotation( bool xAxis, bool yAxis ) -> void;
 
-        auto SetCameraTarget(const core::float3& position) -> void;
-        auto LockCameraToTarget(bool enable) -> void;
-        auto SetOrbitDistance(core::f32 orbitDistance = 10.0f) -> void;
+        auto SetCameraTarget( const core::float3& position ) -> void;
+        auto LockCameraToTarget( bool enable ) -> void;
+        auto SetOrbitDistance( core::f32 orbitDistance = 10.0f ) -> void;
 
         // Enable camera rotation and movement
         auto EnableCamera( bool value ) -> void;
 
         // Vignette
-        // Size
-        // Shape
+        auto SetVignetteSize( core::f32 value ) -> void;
+
+        // Allows to smoothly interpolate between shapes
+        auto SetVignetteShape( core::f32 value ) -> void;
+        auto SetVignetteShape( VignetteShape value ) -> void;
+        auto SetVignetteIntensity( core::f32 value ) -> void;
 
         // Depth of field
-        // Aperture ( F-Stop )
-        // Focal length
-        // Depht blur
+        auto SetAperture( core::f32 fStop ) -> void;// F-Stop
+
+        // https://photo.stackexchange.com/questions/42767/why-is-focal-length-measured-in-millimeters
+        auto SetFocalLength( core::f32 millimeters ) -> void;
+        auto SetFocusDistance( core::f32 distance ) -> void;
+        auto SetDepthOfFieldBlur( core::f32 value ) -> void;
 
     private:
         // [Internal]

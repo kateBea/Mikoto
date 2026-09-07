@@ -254,12 +254,12 @@ namespace mikoto::editor {
         mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
 
         // Bindless setup
-        auto bindlessLayout{ BindlessLayoutDescription{}
+        auto bindlessLayout{ DescriptorTableLayoutDescription{}
             .SetVisibility(ShaderFlagsBits::All)
             .SetRegisterSpace( 1 )
             .AddBindlessItem(BindlessLayoutItem::TextureSRV(0, 1024))
             .AddBindlessItem(BindlessLayoutItem::Samplers(1, 1024)) };
-        mBindlessLayout = mDevice->CreateBindlessLayout( bindlessLayout );
+        mBindlessLayout = mDevice->CreateDescriptorTableLayout( bindlessLayout );
 
         // A pipeline layout describes what kind of group of resources we can bind
         // To a specific bind point. We can bind resources for Compute pipelines or Graphics pipelines, etc
@@ -292,7 +292,7 @@ namespace mikoto::editor {
             .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) )
             .AddItem( BindingTableItem::TextureSRV( 1, mSimpleTexture.GetRaw() ) )
             .AddItem( BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetRaw() ) ) };
-        mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
+        mBindingSetHandle = mDevice->CreateBindingTable( bindingSetDesc, mBindingLayoutHandle );
 
         (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) );
         (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 1, mSimpleTexture.GetRaw() ) );

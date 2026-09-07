@@ -30,6 +30,7 @@
 #include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Rhi/CommandList.hh>
 #include <Renderer/Rhi/CommandQueue.hh>
+#include <Renderer/Rhi/SwapChain.hh>
 #include <Renderer/Rhi/AccelerationStructure.hh>
 
 namespace mikoto::renderer::rhi {
@@ -51,6 +52,7 @@ namespace mikoto::renderer::rhi {
         static constexpr GpuFeatureSupportFlags EnableRayTracing{ BIT_SET(4) };
         static constexpr GpuFeatureSupportFlags EnableMeshShaders{ BIT_SET(5) };
         static constexpr GpuFeatureSupportFlags BCTextureCompression{ BIT_SET(6) };
+        static constexpr GpuFeatureSupportFlags BindlessDescriptorTables{ BIT_SET(7) };
     };
 
     struct GpuDeviceCreateInfo {
@@ -94,14 +96,15 @@ namespace mikoto::renderer::rhi {
         // For backends that support it this allows us to create the layout from shader reflection
         MKT_NODISCARD virtual auto CreateBindingLayout( const BindingLayoutDescription& desc ) -> BindingLayoutHandle = 0;
         MKT_NODISCARD virtual auto CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle = 0;
-        MKT_NODISCARD virtual auto CreateBindingSet( const BindingTableDescription& desc, BindingLayoutHandle layout ) -> BindingTableHandle = 0;
+        MKT_NODISCARD virtual auto CreateBindingTable( const BindingTableDescription& desc, BindingLayoutHandle layout ) -> BindingTableHandle = 0;
+        virtual auto UpdateBindingTable( const BindingTableDescription& desc, BindingTableHandle table ) -> void = 0;
 
-        // To support bindless techniques in modern graphics APIs
-        MKT_NODISCARD virtual auto CreateBindlessLayout( const BindlessLayoutDescription& desc ) -> BindingLayoutHandle = 0;
-
+        MKT_NODISCARD virtual auto CreateDescriptorTableLayout( const DescriptorTableLayoutDescription& desc ) -> BindingLayoutHandle = 0;
         MKT_NODISCARD virtual auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle = 0;
         MKT_NODISCARD virtual auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool = 0;
         MKT_NODISCARD virtual auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> BindingItemIndex = 0;
+
+        MKT_NODISCARD virtual auto CreateSwapChain( const SwapChainDescription& description ) -> SwapChainHandle = 0;
 
         MKT_NODISCARD virtual auto GetQueue( QueueType type ) -> IQueue* = 0;
 

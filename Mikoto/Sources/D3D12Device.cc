@@ -450,11 +450,11 @@ namespace mikoto::renderer::d3d12 {
         : mRegisterSpace{ desc.mRegisterSpace }, mIsBindless{ false }, mBindingLayoutDesc{ desc } {
     }
 
-    BindingLayout::BindingLayout( const BindlessLayoutDescription &desc )
+    BindingLayout::BindingLayout( const DescriptorTableLayoutDescription &desc )
         : mRegisterSpace{ desc.mRegisterSpace }, mIsBindless{ true }, mBindlessLayoutDesc{ desc } {
     }
 
-    auto BindingLayout::GetBindlessLayoutDesc() const -> const BindlessLayoutDescription & {
+    auto BindingLayout::GetBindlessLayoutDesc() const -> const DescriptorTableLayoutDescription & {
         return mBindlessLayoutDesc;
     }
 
@@ -1016,7 +1016,7 @@ namespace mikoto::renderer::d3d12 {
                     rootParameterSamplers.DescriptorTable.pDescriptorRanges = samplerDescriptorRanges.data();
                 }
             } else {
-                const BindlessLayoutDescription& desc{ bindingLayout->GetBindlessLayoutDesc() };
+                const DescriptorTableLayoutDescription& desc{ bindingLayout->GetBindlessLayoutDesc() };
                 if (desc.mRegisterSpace == 0) {
                     mRootConstantIndex = bindingLayout->GetNextIndexForDescriptor(D3D12_DESCRIPTOR_RANGE_TYPE_CBV);
                 }
@@ -2247,10 +2247,20 @@ namespace mikoto::renderer::d3d12 {
         mDevice->SetName( mDeviceDescription3.Description );
 
         // Shader model 6_6 is required for now, pending to implement 5.1 fallback
+        // https://microsoft.github.io/DirectX-Specs/d3d/HLSL_SM_6_6_DynamicResources.html
         D3D12_FEATURE_DATA_SHADER_MODEL shaderModelData{};
         shaderModelData.HighestShaderModel = D3D_SHADER_MODEL_6_6;
-        ThrowIfFailed( mDevice->CheckFeatureSupport( D3D12_FEATURE_SHADER_MODEL, &shaderModelData, sizeof( shaderModelData ) ) );
-        mDeviceFeaturesSupported[DeviceFeatureSupport::eShaderModel6_6] = true;
+        HRESULT hr{ mDevice->CheckFeatureSupport( D3D12_FEATURE_SHADER_MODEL, &shaderModelData, sizeof( shaderModelData ) ) };
+        if ( SUCCEEDED( hr ) ) {
+            D3D12_FEATURE_DATA_D3D12_OPTIONS featureOptions{};
+            hr = mDevice->CheckFeatureSupport( D3D12_FEATURE_D3D12_OPTIONS, &featureOptions, sizeof( featureOptions ) );
+
+            if ( SUCCEEDED( hr ) ) {
+                mDeviceFeaturesSupported[DeviceFeatureSupport::eShaderModel6_6] = true;
+            }
+        }
+
+        MKT_ASSERT( mDeviceFeaturesSupported[DeviceFeatureSupport::eShaderModel6_6], "Shader model 6.6 is required for now" );
 
         mDeviceName = string::FromWChar( mDeviceDescription3.Description );
         mVendorID = string::Format( "{}", mDeviceDescription3.VendorId );
@@ -2294,7 +2304,6 @@ namespace mikoto::renderer::d3d12 {
         mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_INFO, TRUE );
         mInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_MESSAGE, TRUE );
 #endif
-
 
         // Skip warnings
         // [06:03:38] STDOUT LOG [thread 37372] [D3D12] [WARNING] ID3D12CommandList::ClearRenderTargetView: The clear
@@ -2546,7 +2555,7 @@ namespace mikoto::renderer::d3d12 {
         return layout;
     }
 
-    auto Device::CreateBindingSet( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingTableHandle {
+    auto Device::CreateBindingTable( const BindingTableDescription &desc, BindingLayoutHandle layout ) -> BindingTableHandle {
         BindingTableHandle set{ Ref<BindingTable>::New( desc, layout, mResourceHeaps ) };
 
         if ( set.IsEmpty() ) {
@@ -2588,7 +2597,7 @@ namespace mikoto::renderer::d3d12 {
         return b->GetMappedAddress();
     }
 
-    auto Device::CreateBindlessLayout( const BindlessLayoutDescription &desc ) -> BindingLayoutHandle {
+    auto Device::CreateDescriptorTableLayout( const DescriptorTableLayoutDescription &desc ) -> BindingLayoutHandle {
         BindingLayoutHandle layout{ Ref<BindingLayout>::New( desc ) };
 
         if ( layout.IsEmpty() ) {
@@ -2717,6 +2726,14 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::GetUploadManager() -> GpuUploadManager* {
         return mUploadManager.get();
+    }
+
+    auto Device::UpdateBindingTable( const rhi::BindingTableDescription &desc, rhi::BindingTableHandle table ) -> void {
+
+    }
+
+    auto Device::CreateSwapChain( const SwapChainDescription &description ) -> rhi::SwapChainHandle {
+        return rhi::SwapChainHandle::CreateEmpty();
     }
 
     auto Device::DumpMessages() -> void {

@@ -52,6 +52,11 @@
 
 namespace mikoto::renderer {
 
+    // Ref:
+    // https://stoleckipawel.dev/posts/frame-graph-theory/
+    // https://godotengine.org/article/rendering-acyclic-graph/
+    // https://levelup.gitconnected.com/organizing-gpu-work-with-directed-acyclic-graphs-f3fd5f2c2af3
+
     using namespace mikoto::core;
     using namespace mikoto::memory;
     using namespace mikoto::material;

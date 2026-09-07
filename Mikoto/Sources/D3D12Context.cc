@@ -201,13 +201,13 @@ namespace mikoto::renderer::d3d12 {
             MKT_CORE_LOGGER_ERROR( "DxC compile errors: {}", msg.c_str() );
         }
 
-        MKT_ASSERT( SUCCEEDED( hr ), "Failed to invoke DXC compiler." );
-
         Microsoft::WRL::ComPtr<IDxcBlob> shader{};
-        result->GetOutput(
-            DXC_OUT_OBJECT,
-            IID_PPV_ARGS(&shader),
-            nullptr);
+
+        if (SUCCEEDED( hr )) {
+            result->GetOutput( DXC_OUT_OBJECT, IID_PPV_ARGS( &shader ), nullptr );
+        } else {
+            MKT_CORE_LOGGER_ERROR( "Failed to invoke DXC compiler." );
+        }
 
         return shader;
     }

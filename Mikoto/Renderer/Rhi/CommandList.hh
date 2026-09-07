@@ -248,23 +248,23 @@ namespace mikoto::renderer::rhi {
         virtual auto RecordBarrier( const BufferBarrierDescription& barrier ) -> void = 0;
         virtual auto RecordBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
 
-        virtual auto RecordTransition(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
-        virtual auto RecordTransition(ITexture* buffer, ResourceStates stateBits) -> void = 0;
+        virtual auto RecordTransition( IBuffer* buffer, ResourceStates stateBits ) -> void = 0;
+        virtual auto RecordTransition( ITexture* buffer, ResourceStates stateBits ) -> void = 0;
 
         virtual auto CommitBarriers() -> void = 0;
 
         virtual auto SetBarrier( const BufferBarrierDescription& barrier ) -> void = 0;
         virtual auto SetBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
 
-        virtual auto SetTransition(IBuffer* buffer, ResourceStates stateBits) -> void = 0;
-        virtual auto SetTransition(ITexture* buffer, ResourceStates stateBits) -> void = 0;
+        virtual auto SetTransition( IBuffer* buffer, ResourceStates stateBits ) -> void = 0;
+        virtual auto SetTransition( ITexture* buffer, ResourceStates stateBits ) -> void = 0;
 
-        virtual auto SetEnableAutomaticBarriers(  bool enable  ) -> void = 0;
+        virtual auto SetEnableAutomaticBarriers( bool enable ) -> void = 0;
 
         virtual auto SetClearColor( TextureHandle renderTargets, Color color ) -> void = 0;
 
         // The format for the bytes within the buffer is specified by the texture
-        virtual auto Write( IBuffer* src, ITexture* dest) -> void = 0;
+        virtual auto Write( IBuffer* src, ITexture* dest ) -> void = 0;
         virtual auto Write( ITexture* target, const void* data, core::usize byteSize ) -> void = 0;
 
         virtual auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void = 0;

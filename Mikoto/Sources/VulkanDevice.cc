@@ -1533,10 +1533,18 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::BindIndexBuffer( IBuffer *buffer ) -> void {
+        if (mEnableAutomaticBarriers) {
+            SetTransition( buffer, rhi::ResourceStates::eIndexBuffer );
+        }
+
         vkCmdBindIndexBuffer( mCurrentCommandBuffer, buffer->GetNativeHandle( ObjectType::Vk_Buffer ), 0, GetIndexType(buffer->GetFormat()) );
     }
 
     auto CommandList::BindIndirectBuffer( IBuffer* buffer ) -> void {
+        if (mEnableAutomaticBarriers) {
+            SetTransition( buffer, rhi::ResourceStates::eIndirectArgument );
+        }
+
         mIndirectBuffer = buffer;
     }
 
@@ -1558,6 +1566,10 @@ namespace mikoto::renderer::vulkan {
 
         for (const auto& binding : bindings) {
             offsets.emplace_back( binding.mOffset );
+
+            if (mEnableAutomaticBarriers) {
+                SetTransition( binding.mBuffer, rhi::ResourceStates::eVertexBuffer );
+            }
 
             firstBinding = eastl::min( binding.mSlot, firstBinding );
 

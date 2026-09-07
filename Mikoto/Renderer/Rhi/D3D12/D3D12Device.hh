@@ -48,6 +48,10 @@ namespace mikoto::renderer::d3d12 {
     using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;
 
+    enum class DeviceFeatureSupport {
+        eShaderModel6_6,
+    };
+
     class Fence final : public rhi::IFence {
     public:
         explicit Fence( core::u64 initialValue );
@@ -147,10 +151,11 @@ namespace mikoto::renderer::d3d12 {
         virtual auto ReleaseDescriptor( DescriptorIndex index ) -> void = 0;
 
         MKT_NODISCARD virtual auto GetHeap() const -> ID3D12DescriptorHeap* = 0;
-        MKT_NODISCARD virtual auto GetShaderVisibleHeap() const -> ID3D12DescriptorHeap* = 0;
         MKT_NODISCARD virtual auto GetCpuHandle( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE = 0;
-        MKT_NODISCARD virtual auto GetCpuHandleShaderVisible( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE = 0;
         MKT_NODISCARD virtual auto GetGpuHandle( DescriptorIndex index ) const -> D3D12_GPU_DESCRIPTOR_HANDLE = 0;
+
+        MKT_NODISCARD virtual auto GetShaderVisibleHeap() const -> ID3D12DescriptorHeap* { return nullptr; }
+        MKT_NODISCARD virtual auto GetCpuHandleShaderVisible( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE { return {}; }
 
         virtual ~IDescriptorHeap() = default;
 
@@ -210,12 +215,62 @@ namespace mikoto::renderer::d3d12 {
         eastl::string mDebugName{};
     };
 
+    // For shader model 6_6 global resources and samplers
+    class DynamicDescriptorHeap final : public IDescriptorHeap {
+    public:
+        explicit DynamicDescriptorHeap( IGpuDevice* device, eastl::string_view debugName = "" );
+
+        auto AllocateDescriptor() -> DescriptorIndex override;
+        auto ReleaseDescriptor( DescriptorIndex index ) -> void override;
+
+        auto AllocateDescriptors( core::u32 count ) -> DescriptorIndex override;
+        auto ReleaseDescriptors( DescriptorIndex baseIndex, core::u32 count ) -> void override;
+
+        auto AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE heapType, core::usize capacity ) -> HRESULT;
+
+        MKT_NODISCARD auto GetShaderVisibleHeap() const -> ID3D12DescriptorHeap* override;
+
+        MKT_NODISCARD auto GetHeap() const -> ID3D12DescriptorHeap* override;
+        MKT_NODISCARD auto GetHeapType() const -> D3D12_DESCRIPTOR_HEAP_TYPE;
+        MKT_NODISCARD auto GetCpuHandle( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE override;
+        MKT_NODISCARD auto GetGpuHandle( DescriptorIndex index ) const -> D3D12_GPU_DESCRIPTOR_HANDLE override;
+
+        ~DynamicDescriptorHeap() override = default;
+
+    private:
+        core::usize mCapacity{};
+        core::usize mDescriptorStride{};
+
+        std::mutex mIndicesMutex{};
+        eastl::vector<DescriptorIndex> mFreeIndices{};
+
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mShaderHeap{};
+
+        D3D12_DESCRIPTOR_HEAP_TYPE mHeapType{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };
+
+        D3D12_CPU_DESCRIPTOR_HANDLE mStartCpuHandle{};
+        D3D12_GPU_DESCRIPTOR_HANDLE mStartGpuHandle{};
+
+        ID3D12Device2* mDevice{};
+
+        std::mutex mMutex{};
+
+        // Debug
+        eastl::string mDebugName{};
+    };
+
     class DeviceResources {
     public:
         eastl::unique_ptr<StaticDescriptorHeap> mRenderTargetViewHeap{};
         eastl::unique_ptr<StaticDescriptorHeap> mDepthStencilViewHeap{};
-        eastl::unique_ptr<StaticDescriptorHeap> mShaderResourceViewHeap{};
-        eastl::unique_ptr<StaticDescriptorHeap> mSamplerHeap{};
+
+        // Commented for now until I implement path for shader model pre 6.6
+        //eastl::unique_ptr<StaticDescriptorHeap> mShaderResourceViewHeap{};
+        //eastl::unique_ptr<StaticDescriptorHeap> mSamplerHeap{};
+
+        // For shader model 6.6
+        eastl::unique_ptr<DynamicDescriptorHeap> mSamplerDescriptorHeap{};
+        eastl::unique_ptr<DynamicDescriptorHeap> mResourceDescriptorHeap{};
     };
 
     class BindingLayout final : public IBindingLayout {
@@ -309,6 +364,11 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto GetCapacity( core::u32 ) const -> core::u32 override;
 
+        MKT_NODISCARD auto AllocateIndex( rhi::ResourceType type, core::u32 slot ) -> DescriptorIndex;
+        auto UnRegisterIndex( DescriptorIndex index, rhi::ResourceType type, core::u32 slot ) -> void;
+
+        MKT_NODISCARD auto GetLayout() const -> const BindingLayout*;
+
     private:
         auto Initialize() -> void override;
         auto Release() -> void override;
@@ -318,10 +378,16 @@ namespace mikoto::renderer::d3d12 {
 
         DeviceResources* mDeviceResources{};
 
-        rhi::BindingLayoutHandle mBindingLayout{};
-
         DescriptorRange mSrvRange{};
         DescriptorRange mSamplerRange{};
+        rhi::BindingLayoutHandle mBindingLayout{};
+
+        // Every slot has an index
+        ankerl::unordered_dense::map<core::u32, ankerl::unordered_dense::set<DescriptorIndex>> mSamplerFreeIndices{};
+        ankerl::unordered_dense::map<core::u32, ankerl::unordered_dense::set<DescriptorIndex>> mResourcesFreeIndices{};
+
+        ankerl::unordered_dense::map<core::u32, DescriptorRange> mSamplerIndices{};
+        ankerl::unordered_dense::map<core::u32, DescriptorRange> mResourceIndices{};
 
         eastl::fixed_hash_map<rhi::ResourceType, core::i32, rhi::kMaxSlotsPerTable> mSlotResourceType{};
     };
@@ -440,84 +506,84 @@ namespace mikoto::renderer::d3d12 {
 
     // https://devblogs.microsoft.com/directx/a-look-inside-d3d12-resource-state-barriers/
     // https://learn.microsoft.com/en-us/windows/win32/direct3d12/recording-command-lists-and-bundles
-    class CommandList final : public ICommandList {
+    class CommandList final : public rhi::ICommandList {
     public:
-        explicit CommandList( IQueue* queue );
+        explicit CommandList( rhi::IQueue* queue );
 
-        auto Begin( const CommandListBeginDescription& desc ) -> void override;
+        auto Begin( const rhi::CommandListBeginDescription& desc ) -> void override;
         auto End() -> void override;
 
-        auto SetDebugName( eastl::string_view name) -> void override;
+        auto SetDebugName( eastl::string_view name ) -> void override;
 
         // More relaxed versions of SetResourceState
         // https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12
-        auto RecordBarrier( const BufferBarrierDescription& desc ) -> void override;
-        auto RecordBarrier( const TextureBarrierDescription& desc ) -> void override;
+        auto RecordBarrier( const rhi::BufferBarrierDescription& desc ) -> void override;
+        auto RecordBarrier( const rhi::TextureBarrierDescription& desc ) -> void override;
 
-        auto RecordTransition(IBuffer* buffer, ResourceStates stateBits) -> void override;
-        auto RecordTransition(ITexture* texture, ResourceStates stateBits) -> void override;
+        auto RecordTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
+        auto RecordTransition( rhi::ITexture* texture, rhi::ResourceStates stateBits ) -> void override;
 
         auto CommitBarriers() -> void override;
 
-        auto SetBarrier( const BufferBarrierDescription& desc ) -> void override;
-        auto SetBarrier( const TextureBarrierDescription& desc ) -> void override;
+        auto SetBarrier( const rhi::BufferBarrierDescription& desc ) -> void override;
+        auto SetBarrier( const rhi::TextureBarrierDescription& desc ) -> void override;
 
-        auto SetTransition(IBuffer* buffer, ResourceStates stateBits) -> void override;
-        auto SetTransition(ITexture* texture, ResourceStates stateBits) -> void override;
+        auto SetTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
+        auto SetTransition( rhi::ITexture* texture, rhi::ResourceStates stateBits ) -> void override;
 
-        auto SetEnableAutomaticBarriers(  bool enable  ) -> void override;
+        auto SetEnableAutomaticBarriers( bool enable ) -> void override;
 
-        auto SetClearColor( rhi::TextureHandle renderTarget, Color color ) -> void override;
+        auto SetClearColor( rhi::TextureHandle renderTarget, rhi::Color color ) -> void override;
 
-        auto Write( IBuffer* src, ITexture* dest ) -> void override;
-        auto Write( ITexture* texture, const void* data, core::usize byteSize ) -> void override;
-        auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
+        auto Write( rhi::IBuffer* src, rhi::ITexture* dest ) -> void override;
+        auto Write( rhi::ITexture* texture, const void* data, core::usize byteSize ) -> void override;
+        auto Copy( rhi::ITexture* src, const rhi::TextureSlice& srcSlice, rhi::ITexture* dest, const rhi::TextureSlice& destSlice ) -> void override;
 
-        auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
+        auto Resolve( rhi::ITexture* src, const rhi::TextureSlice& srcSlice, rhi::ITexture* dest, const rhi::TextureSlice& destSlice ) -> void override;
 
-        auto Write( IBuffer* buffer, core::usize destOffset, const void* data, core::usize byteSize ) -> void override;
-        auto Write( IBuffer* buffer, const void* data, core::usize byteSize ) -> void override;
-        auto Copy( IBuffer* src, IBuffer* dest ) -> void override;
-        auto Copy( IBuffer* src, IBuffer* dest, core::usize destOffset ) -> void override;
+        auto Write( rhi::IBuffer* buffer, core::usize destOffset, const void* data, core::usize byteSize ) -> void override;
+        auto Write( rhi::IBuffer* buffer, const void* data, core::usize byteSize ) -> void override;
+        auto Copy( rhi::IBuffer* src, rhi::IBuffer* dest ) -> void override;
+        auto Copy( rhi::IBuffer* src, rhi::IBuffer* dest, core::usize destOffset ) -> void override;
 
-        auto Copy( IBuffer *dest, ITexture *src ) -> void override;
-        auto Copy( IBuffer *dest, ITexture *src, const TextureSlice& srcSlice ) -> void override;
+        auto Copy( rhi::IBuffer* dest, rhi::ITexture* src ) -> void override;
+        auto Copy( rhi::IBuffer* dest, rhi::ITexture* src, const rhi::TextureSlice& srcSlice ) -> void override;
 
-        auto BeginRendering( RenderDescription& state ) -> void override;
+        auto BeginRendering( rhi::RenderDescription& state ) -> void override;
         auto EndRendering() -> void override;
 
-        auto BindPipeline( IPipeline* pipeline ) -> void override;
+        auto BindPipeline( rhi::IPipeline* pipeline ) -> void override;
 
         // I am not sure if I wanna have these because the viewport is set on the images we
         // render to so it makes more sense to tie them to the graphics state when we specify the render targets
-        auto SetViewport( eastl::span<const Viewport> viewports ) -> void override;
-        auto SetScissors( eastl::span<const Rect> scissorRects ) -> void override;
-        auto SetViewportState( const ViewportState& vs ) -> void override;
+        auto SetViewport( eastl::span<const rhi::Viewport> viewports ) -> void override;
+        auto SetScissors( eastl::span<const rhi::Rect> scissorRects ) -> void override;
+        auto SetViewportState( const rhi::ViewportState& vs ) -> void override;
 
         auto SetPolygonLineWidth( core::f32 width ) -> void override;
 
-        auto BindIndexBuffer( IBuffer* buffer ) -> void override;
-        auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void override;
-        auto BindVertexBuffers( eastl::span<const VertexBufferBinding> binding ) -> void override;
+        auto BindIndexBuffer( rhi::IBuffer* buffer ) -> void override;
+        auto BindVertexBuffer( const rhi::VertexBufferBinding& binding ) -> void override;
+        auto BindVertexBuffers( eastl::span<const rhi::VertexBufferBinding> binding ) -> void override;
 
-        auto BindPipelineResources( const BindResourcesDescription& desc ) -> void override;
+        auto BindPipelineResources( const rhi::BindResourcesDescription& desc ) -> void override;
 
-        auto Draw( const DrawArguments& args ) -> void override;
-        auto BindIndirectBuffer( IBuffer* buffer ) -> void override;
-        auto DrawIndexed( const DrawArguments& args ) -> void override;
+        auto Draw( const rhi::DrawArguments& args ) -> void override;
+        auto BindIndirectBuffer( rhi::IBuffer* buffer ) -> void override;
+        auto DrawIndexed( const rhi::DrawArguments& args ) -> void override;
 
         auto DrawIndirect( core::u32 offset, core::u32 drawCount ) -> void override;
         auto DrawIndexedIndirect( u32 offset, core::u32 drawCount ) -> void override;
 
         auto Dispatch( core::u32 groupsX, core::u32 groupsY, core::u32 groupsZ ) -> void override;
 
-        auto SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, ShaderFlags visibility ) -> void override;
+        auto SetPushConstants( rhi::IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, rhi::ShaderFlags visibility ) -> void override;
 
-        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) -> Object override;
-        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> Object override;
 
         // https://renderdoc.org/docs/how/how_annotate_capture.html
-        auto BeginDebugLabel( eastl::string_view name, Color color ) -> void override;
+        auto BeginDebugLabel( eastl::string_view name, rhi::Color color ) -> void override;
         auto EnbDebugLabel() -> void override;
 
         // D3D12 Specifics
@@ -525,7 +591,7 @@ namespace mikoto::renderer::d3d12 {
 
         auto ClearState() -> void;
 
-        auto MarkExecuted( rhi::IQueue* queue, core::u64 submissionID) -> void;
+        auto MarkExecuted( rhi::IQueue* queue, core::u64 submissionID ) -> void;
 
         MKT_NODISCARD operator ID3D12GraphicsCommandList7*() const;
 
@@ -537,7 +603,7 @@ namespace mikoto::renderer::d3d12 {
         auto Release() -> void override;
 
     private:
-        IQueue* mQueue{};
+        rhi::IQueue* mQueue{};
 
         // We picked 5 at most, but can grow if needed
         // there are generally 3 frames in flight at most, more
@@ -566,6 +632,9 @@ namespace mikoto::renderer::d3d12 {
         eastl::string mRenderingScopeName{};
     };
 
+    // Works with shader model 6_6 which is required
+    // assert if not supported, pending to implement path for
+    // shader model 5.1
     class Device final : public IGpuDevice {
     public:
         explicit Device( const GpuDeviceCreateInfo& createInfo );
@@ -605,7 +674,7 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle override;
         MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
-        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> bool override;
+        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> rhi::BindingItemIndex override;
 
         auto RunGarbageCollection() -> void override;
 
@@ -621,6 +690,8 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto CreateTexture( const ExternalTextureDescription& info ) -> rhi::TextureHandle;
 
         MKT_NODISCARD auto GetEmptyRootSignature() const -> ID3D12RootSignature*;
+
+        MKT_NODISCARD auto IsSupported( DeviceFeatureSupport feature ) const -> bool;
 
         auto DumpMessages() -> void;
 
@@ -666,6 +737,8 @@ namespace mikoto::renderer::d3d12 {
 
         // [Command list management]
         ankerl::unordered_dense::map<QueueType, Ref<Queue>> mQueues{};
+
+        ankerl::unordered_dense::map<DeviceFeatureSupport, bool> mDeviceFeaturesSupported{};
 
         // Dummy resources
         Microsoft::WRL::ComPtr<ID3DBlob> mEmptyRootSignatureBlob{};

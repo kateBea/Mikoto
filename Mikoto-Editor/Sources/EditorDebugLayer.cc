@@ -295,7 +295,7 @@ namespace mikoto::editor {
         mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
 
         (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) );
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 0, mSimpleTexture.GetRaw() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 1, mSimpleTexture.GetRaw() ) );
 
         SceneCameraDescription cameraDescription{
             .mFov = 45.0,

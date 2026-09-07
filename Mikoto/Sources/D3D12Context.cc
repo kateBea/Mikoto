@@ -335,6 +335,12 @@ namespace mikoto::renderer::d3d12 {
                 .AddRenderTarget( colorImage, Color{ .0f } ) };
             mCommandList->BeginRendering( graphicsState );
 
+            struct DrawParams {
+                u32 mTextureIndex{};
+            } params{
+                .mTextureIndex = index };
+            mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), &params, MKT_SIZEOF( params ), ShaderFlagsBits::All );
+
             mCommandList->BindPipeline( mPipeline.GetRaw() );
 
             auto bindingDescription{ BindResourcesDescription{}
@@ -497,6 +503,12 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Context::InitSwapchainRender() -> void {
+        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
+        mCommandList->SetDebugName( "Context Swapchain CommandBuffer" );
+
+        // Disabled for now, doing Image copy
+        return;
+
         // Create shaders
         FileHandle vsShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/SwapChainBlit_Vert.slang" ) };
         auto vertexShaderDescription{ ShaderModuleCreateDescription{}
@@ -562,9 +574,6 @@ namespace mikoto::renderer::d3d12 {
         auto bindingSetDesc{ BindingTableDescription{}
             .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
         mBindingSetHandle = mDevice->CreateBindingSet( bindingSetDesc, mBindingLayoutHandle );
-
-        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
-        mCommandList->SetDebugName( "Context Swapchain CommandBuffer" );
     }
 
     auto Context::InitSynchronization() -> void {

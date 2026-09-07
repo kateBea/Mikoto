@@ -101,7 +101,7 @@ namespace mikoto::renderer::rhi {
 
         MKT_NODISCARD virtual auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle = 0;
         MKT_NODISCARD virtual auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool = 0;
-        MKT_NODISCARD virtual auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> bool = 0;
+        MKT_NODISCARD virtual auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> BindingItemIndex = 0;
 
         MKT_NODISCARD virtual auto GetQueue( QueueType type ) -> IQueue* = 0;
 

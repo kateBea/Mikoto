@@ -308,20 +308,20 @@ namespace mikoto::renderer::vulkan {
         return false;
     }
 
-    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> bool {
+    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> BindingItemIndex {
         DescriptorTable* table{ checked_cast<DescriptorTable*>( descriptorTable.GetRaw() ) };
 
-        i32 resourceSlot{ table->GetResourceSlot( item.mType ) };
+        BindingItemIndex resourceIndex{ table->AllocateNextIndex( item.mBindingIndex ) };
 
         DescriptorWriter writer{};
 
         switch ( item.mType ) {
             case ResourceType::eTexture_SRV:
                 writer.WriteImage(
-                        resourceSlot,
+                        item.mBindingIndex,
                         checked_cast<Texture*>( item.mResource )->GetNativeHandle( ObjectType::Vk_ImageView ),
                         GetDescriptorType( item.mType ),
-                        GetImageLayout( checked_cast<Texture*>( item.mResource )->GetResourceState() ), item.mSlot );
+                        GetImageLayout( checked_cast<Texture*>( item.mResource )->GetResourceState() ), resourceIndex );
                 break;
             case ResourceType::eTexture_UAV:
                 break;
@@ -333,11 +333,11 @@ namespace mikoto::renderer::vulkan {
             case ResourceType::eStructuredBuffer_SRV:
             case ResourceType::eStructuredBuffer_UAV:
                 writer.WriteBuffer(
-                    resourceSlot,
+                    item.mBindingIndex,
                     checked_cast<Buffer*>( item.mResource )->GetNativeHandle( ObjectType::Vk_Buffer ),
                     checked_cast<Buffer*>( item.mResource )->GetSizeBytes(),
                     0,
-                    GetDescriptorType( item.mType ), item.mSlot );
+                    GetDescriptorType( item.mType ), resourceIndex );
                 break;
             case ResourceType::eRawBuffer_SRV:
                 break;
@@ -345,8 +345,8 @@ namespace mikoto::renderer::vulkan {
                 break;
             case ResourceType::eSampler:
                 writer.WriteSampler(
-                        resourceSlot,
-                        checked_cast<Sampler*>( item.mResource )->GetNativeHandle( ObjectType::Vk_Sampler ), item.mSlot );
+                        item.mBindingIndex,
+                        checked_cast<Sampler*>( item.mResource )->GetNativeHandle( ObjectType::Vk_Sampler ), resourceIndex );
                 break;
             default:;
         }
@@ -354,7 +354,7 @@ namespace mikoto::renderer::vulkan {
         VkDescriptorSet descriptorSet{ descriptorTable->GetNativeHandle( ObjectType::Vk_DescriptorSet ) };
         writer.UpdateSet( mLogicalDevice, descriptorSet );
 
-        return true;
+        return resourceIndex;
     }
 
     auto Device::CreateTexture( const ExternalTextureDescription &info ) -> TextureHandle {
@@ -3077,7 +3077,7 @@ namespace mikoto::renderer::vulkan {
                 switch (item.mType) {
                     case ResourceType::eTexture_SRV:
                         writer.WriteImage(
-                            item.mSlot,
+                            item.mBindingIndex,
                             checked_cast<Texture*>( item.mResource )->GetNativeHandle(ObjectType::Vk_ImageView),
                             GetDescriptorType(item.mType),
                             GetImageLayout( checked_cast<Texture*>( item.mResource )->GetResourceState() ) );
@@ -3092,7 +3092,7 @@ namespace mikoto::renderer::vulkan {
                     case ResourceType::eRawBuffer_UAV:
                     case ResourceType::eConstantBuffer:
                         writer.WriteBuffer(
-                            item.mSlot,
+                            item.mBindingIndex,
                             checked_cast<Buffer*>( item.mResource )->GetNativeHandle(ObjectType::Vk_Buffer),
                             checked_cast<Buffer*>( item.mResource )->GetSizeBytes(),
                             0,
@@ -3100,14 +3100,13 @@ namespace mikoto::renderer::vulkan {
                         break;
                     case ResourceType::eSampler:
                         writer.WriteSampler(
-                            item.mSlot,
+                            item.mBindingIndex,
                             checked_cast<Sampler*>( item.mResource )->GetNativeHandle(ObjectType::Vk_Sampler) );
                         break;
                     default:;
                 }
             }
 
-            //writer.SetVisibility()
             writer.UpdateSet( checked_cast<Device*>( mDevice )->GetDevice(), mDescriptorSet );
 
             mIsAllocated = true;
@@ -3141,24 +3140,12 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto DescriptorTable::GetCapacity( u32 slot ) const -> u32 {
-        const BindingLayout* layout{ checked_cast<const BindingLayout*>( mBindingLayout.GetRaw() ) };
-        const auto& blDesc{ layout->GetBindlessLayoutDesc() };
-
-        const auto it{ eastl::find_if( blDesc.mSlots.begin(), blDesc.mSlots.end(),
-            [slot](const BindlessLayoutItem& item) {
-                return item.mSlot == slot;
-            }) };
-
-        return it != blDesc.mSlots.end() ? it->mMaxCapacity : 0;
-    }
-
-    auto DescriptorTable::GetResourceSlot( ResourceType type ) const -> i32 {
-        const auto it{ mSlotResourceType.find( type ) };
-        if (it != mSlotResourceType.end() ) {
-            return it->second;
+        const auto it{ mDescriptorTableItemIndices.find( slot ) };
+        if (it != mDescriptorTableItemIndices.end()) {
+            return it->second.size();
         }
 
-        return -1;
+        return 0;
     }
 
     DescriptorTable::~DescriptorTable() {
@@ -3183,6 +3170,20 @@ namespace mikoto::renderer::vulkan {
         return Object( mDescriptorSet );
     }
 
+    auto DescriptorTable::AllocateNextIndex( core::u32 slot ) const -> rhi::BindingItemIndex {
+        auto it{ mDescriptorTableItemIndices.find( slot ) };
+        if (it != mDescriptorTableItemIndices.end()) {
+            MKT_ASSERT( !it->second.empty(), "No free indices" );
+
+            const BindingItemIndex result{ *it->second.begin() };
+            it->second.erase( it->second.begin() );
+
+            return result;
+        }
+
+        return rhi::kInvalidBindingItemIndex;
+    }
+
     auto DescriptorTable::Initialize() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
         auto* layout{ checked_cast<BindingLayout*>( mBindingLayout.GetRaw() ) };
@@ -3190,11 +3191,10 @@ namespace mikoto::renderer::vulkan {
         mDescriptorAllocatorHandle = device->GetDescriptorAllocator();
         if( mDescriptorAllocatorHandle.Allocate(layout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),mDescriptorSet) ) {
             for (const auto& item : layout->GetBindlessLayoutDesc().mSlots) {
-                // This resource type is at binding mSlot
-                // Allows for stuff like the following (same set different bindings)
-                // vk::binding(0, 1) Texture2D textures[];
-                // vk::binding(1, 1) SamplerState samplers[];
-                mSlotResourceType[item.mType] = item.mSlot;
+                mSlotSize[item.mSlot] = item.mMaxCapacity;
+                for (BindingItemIndex index{}; index < item.mMaxCapacity; ++index ) {
+                    mDescriptorTableItemIndices[item.mSlot].emplace( index );
+                }
             }
 
             mIsAllocated = true;

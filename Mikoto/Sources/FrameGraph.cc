@@ -274,7 +274,7 @@ namespace mikoto::renderer {
         const auto layoutDesc{ BindlessLayoutDescription{}
             .SetVisibility( ShaderFlagsBits::All )
             .SetRegisterSpace( MKT_DEFAULT_REGISTER_SPACE )
-            .AddBindlessItem( BindlessLayoutItem::Samplers( MKT_SAMPLER_BINDING, 4096 ) )
+            .AddBindlessItem( BindlessLayoutItem::Samplers( MKT_SAMPLER_BINDING, 1024 ) )
             .AddBindlessItem( BindlessLayoutItem::TextureSRV( MKT_TEXTURE_SRV_BINDING, 4096 ) )
             .AddBindlessItem( BindlessLayoutItem::TextureUAV( MKT_TEXTURE_UAV_BINDING, 4096 ) )
             .AddBindlessItem( BindlessLayoutItem::StructuredSRV( MKT_STRUCTURED_SRV_BINDING, 4096 ) )
@@ -358,16 +358,11 @@ namespace mikoto::renderer {
     auto FGResourceManager::AllocateTextureIndex_SRV( FGResourceHandle handle  ) -> u32 {
         std::lock_guard lock{ mTableWriteMutex };
 
-        // TextureCube and Texture2D are same binding because they are same type of descriptor
-        auto& table{ mResourceTable[ MKT_TEXTURE_SRV_BINDING ] };
-        if (table.contains( handle )) {
-            return table.at( handle );
-        }
-
-        u32 newID{ table[handle] = table.size() };
+        u32 newID{};
         auto& resource{ Get(handle) };
         ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
+        newID = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( MKT_TEXTURE_SRV_BINDING,
+            texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
 
         return newID;
     }
@@ -376,60 +371,43 @@ namespace mikoto::renderer {
         std::lock_guard lock{ mTableWriteMutex };
 
         // TextureCube and Texture2D are same binding because they are same type of descriptor
-        auto& table{ mResourceTable[ MKT_TEXTURE_UAV_BINDING ] };
-        if (table.contains( handle )) {
-            return table.at( handle );
-        }
-
-        u32 newID{ table[handle] = table.size() };
+        u32 newID{};
         auto& resource{ Get(handle) };
         ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureUAV( newID, texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
+        newID = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureUAV( MKT_TEXTURE_UAV_BINDING,
+            texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
 
         return newID;
     }
 
     auto FGResourceManager::AllocateSamplerIndex( FGResourceHandle handle ) -> u32 {
         std::lock_guard lock{ mTableWriteMutex };
-        auto& table{ mResourceTable[MKT_SAMPLER_BINDING] };
-        if (table.contains( handle )) {
-            return table.at( handle );
-        }
 
-        u32 newID{ table[handle] = table.size() };
+        u32 newID{};
         auto& resource{ Get(handle) };
         ISampler* sampler{ checked_cast<ISampler*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Sampler( newID, sampler ) );
+        newID = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Sampler( MKT_SAMPLER_BINDING, sampler ) );
 
         return newID;
     }
 
     auto FGResourceManager::AllocateBufferIndex_SRV( FGResourceHandle handle ) -> u32 {
         std::lock_guard lock{ mTableWriteMutex };
-        auto& table{ mResourceTable[MKT_STRUCTURED_SRV_BINDING] };
-        if (table.contains( handle )) {
-            return table.at( handle );
-        }
 
-        u32 newID{ table[handle] = table.size() };
+        u32 newID{};
         auto& resource{ Get(handle) };
         IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredSRV( newID, buffer ) );
+        newID = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredSRV( MKT_STRUCTURED_SRV_BINDING, buffer ) );
 
         return newID;
     }
 
     auto FGResourceManager::AllocateBufferIndex_UAV( FGResourceHandle handle ) -> u32 {
         std::lock_guard lock{ mTableWriteMutex };
-        auto& table{ mResourceTable[MKT_STRUCTURED_UAV_BINDING] };
-        if (table.contains( handle )) {
-            return table.at( handle );
-        }
-
-        u32 newID{ table[handle] = table.size() };
+        u32 newID{};
         auto& resource{ Get(handle) };
         IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredUAV( newID, buffer ) );
+        newID = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredUAV( MKT_STRUCTURED_UAV_BINDING, buffer ) );
 
         return newID;
     }

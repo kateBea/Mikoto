@@ -57,6 +57,9 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetMappedAddress() -> void*;
         MKT_NODISCARD auto GetMappedAddress() const -> const void*;
 
+        MKT_NODISCARD auto GetResourceIndex() const -> DescriptorIndex;
+
+
         auto CreateCBV(SIZE_T descriptor, rhi::BufferRange range, rhi::Format format = rhi::Format::eUnknown) const -> void;
         auto CreateSRV(SIZE_T descriptor, rhi::BufferRange range, rhi::ResourceType resourceType = rhi::ResourceType::eInvalid, rhi::Format format = rhi::Format::eUnknown) const -> void;
         auto CreateUAV(SIZE_T descriptor, rhi::BufferRange range, rhi::ResourceType resourceType = rhi::ResourceType::eInvalid, rhi::Format format = rhi::Format::eUnknown) const -> void;
@@ -80,6 +83,9 @@ namespace mikoto::renderer::d3d12 {
         DeviceResources* mResources{};
 
         DescriptorIndex mSrvDescriptorIndex{ kInvalidDescriptorIndex };
+
+        // For shader model 6.6
+        DescriptorIndex mShaderResourceIndex{ kInvalidDescriptorIndex };
     };
 }
 

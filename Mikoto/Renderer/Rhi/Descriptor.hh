@@ -51,10 +51,9 @@ namespace mikoto::renderer::rhi {
     };
 
     struct BindingTableItem {
-        core::IResource* mResource{};
-
-        core::u32 mSlot{};
         BufferRange mRange{};
+        core::u32 mBindingIndex{};
+        core::IResource* mResource{};
 
         ResourceType mType{ ResourceType::eInvalid };
         Format mFormat{ Format::eUnknown };

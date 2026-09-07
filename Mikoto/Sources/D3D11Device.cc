@@ -1055,8 +1055,8 @@ namespace mikoto::renderer::d3d11 {
         return false;
     }
 
-    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem &item ) -> bool {
-        return false;
+    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem &item ) -> rhi::BindingItemIndex {
+        return rhi::kInvalidBindingItemIndex;
     }
 
     auto Device::GetQueue( QueueType type ) -> IQueue * {

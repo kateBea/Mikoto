@@ -36,6 +36,8 @@ namespace mikoto::renderer::d3d12 {
     public:
         explicit Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources& resources );
 
+        MKT_NODISCARD auto GetSamplerIndex() const -> DescriptorIndex;
+
         auto AllocateSampler(D3D12_CPU_DESCRIPTOR_HANDLE handle) -> void;
 
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
@@ -51,10 +53,10 @@ namespace mikoto::renderer::d3d12 {
         auto SetDebugName( eastl::string_view name ) -> void override;
 
     private:
-        DeviceResources* mDeviceResources{};
-        DescriptorIndex mSamplerDescriptorIndex{ kInvalidDescriptorIndex };
-
         D3D12_SAMPLER_DESC mSamplerDescription{};
+
+        // For shader model 6.6
+        DescriptorIndex mSamplerResourceIndex{ kInvalidDescriptorIndex };
     };
 
     struct ExternalTextureDescription {
@@ -76,6 +78,8 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
+
+        MKT_NODISCARD auto GetResourceIndex() const -> DescriptorIndex;
 
         auto CreateSRV(SIZE_T descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown, rhi::TextureDimension dimension = rhi::TextureDimension::eInvalid) const -> void;
         auto CreateUAV(SIZE_T descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown, rhi::TextureDimension dimension = rhi::TextureDimension::eInvalid) const -> void;
@@ -109,6 +113,9 @@ namespace mikoto::renderer::d3d12 {
 
         DescriptorIndex mRtvDescriptorIndex{ kInvalidDescriptorIndex };
         DescriptorIndex mDsvDescriptorIndex{ kInvalidDescriptorIndex };
+
+        // For shader model 6.6
+        DescriptorIndex mShaderResourceIndex{ kInvalidDescriptorIndex };
     };
 
 }// namespace mikoto::renderer::d3d12

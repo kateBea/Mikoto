@@ -27,8 +27,8 @@ namespace mikoto::renderer::rhi {
 
     auto BindingTableItem::TextureSRV( u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingTableItem {
         return BindingTableItem{
+            .mBindingIndex = slot,
             .mResource = texture,
-            .mSlot = slot,
             .mType = ResourceType::eTexture_SRV,
             .mFormat = format,
             .mDimension = dimension,
@@ -38,8 +38,8 @@ namespace mikoto::renderer::rhi {
 
     auto BindingTableItem::TextureUAV( core::u32 slot, ITexture *texture, Format format, TextureSubresourceSet subResources, TextureDimension dimension ) -> BindingTableItem {
         return BindingTableItem{
+            .mBindingIndex = slot,
             .mResource = texture,
-            .mSlot = slot,
             .mType = ResourceType::eTexture_UAV,
             .mFormat = format,
             .mDimension = dimension,
@@ -49,26 +49,26 @@ namespace mikoto::renderer::rhi {
 
     auto BindingTableItem::Sampler( u32 slot, ISampler *sampler ) -> BindingTableItem {
         return BindingTableItem{
+            .mBindingIndex = slot,
             .mResource = sampler,
-            .mSlot = slot,
             .mType = ResourceType::eSampler,
         };
     }
 
     auto BindingTableItem::StructuredSRV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingTableItem {
         return BindingTableItem{
-            .mResource = buffer,
-            .mSlot = slot,
             .mRange = range,
+            .mBindingIndex = slot,
+            .mResource = buffer,
             .mType = ResourceType::eStructuredBuffer_SRV,
         };
     }
 
     auto BindingTableItem::StructuredUAV( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingTableItem {
         return BindingTableItem{
-            .mResource = buffer,
-            .mSlot = slot,
             .mRange = range,
+            .mBindingIndex = slot,
+            .mResource = buffer,
             .mType = ResourceType::eStructuredBuffer_UAV,
         };
     }
@@ -134,8 +134,8 @@ namespace mikoto::renderer::rhi {
 
     auto BindingTableItem::ConstantBuffer( u32 slot, IBuffer *buffer, BufferRange range ) -> BindingTableItem {
         BindingTableItem result{
+            .mBindingIndex = slot,
             .mResource = buffer,
-            .mSlot = slot,
             .mType = ResourceType::eConstantBuffer,
         };
 

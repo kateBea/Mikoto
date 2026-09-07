@@ -41,7 +41,7 @@ namespace mikoto::renderer::d3d12 {
     using namespace mikoto::renderer::rhi;
 
     Sampler::Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources& resources )
-        : ISampler{ desc }, mDeviceResources{ MKT_ADDRESSOF( resources ) }
+        : ISampler{ desc }
     {
         mSamplerDescription.Filter = d3d12::GetFilter( desc.mMinFilter, desc.mMagFilter, desc.mMipMapMode, desc.mCompareOp );
         mSamplerDescription.AddressU = d3d12::GetAddressMode( desc.mWrapU );
@@ -53,6 +53,10 @@ namespace mikoto::renderer::d3d12 {
         mSamplerDescription.MaxAnisotropy = 1;
         mSamplerDescription.ComparisonFunc = d3d12::GetCompareOp(desc.mCompareOp);
         mSamplerDescription.BorderColor[0] = mSamplerDescription.BorderColor[1] = mSamplerDescription.BorderColor[2] = mSamplerDescription.BorderColor[3] = 0;
+    }
+
+    auto Sampler::GetSamplerIndex() const -> DescriptorIndex {
+        return mSamplerResourceIndex;
     }
 
     auto Sampler::AllocateSampler( D3D12_CPU_DESCRIPTOR_HANDLE handle ) -> void {
@@ -383,6 +387,10 @@ namespace mikoto::renderer::d3d12 {
         if (mIsAllocated) {
             Release();
         }
+    }
+
+    auto Texture::GetResourceIndex() const -> DescriptorIndex {
+        return mShaderResourceIndex;
     }
 
     auto Texture::Initialize() -> void {

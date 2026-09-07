@@ -375,6 +375,8 @@ namespace mikoto::editor {
             math::constants::kUnitVectorY
         );
 
+        mShaderParameters.mModel = glm::translate( mShaderParameters.mModel, float3{ 20.0f, 0.0f, 0.0f } );
+
         mShaderParameters.mView = glm::lookAt(
             glm::vec3{ 1.0f, 1.0f, 0.0f },// camera position
             glm::vec3{ 0.0f, 0.0f, 0.0f },// target (sphere center)
@@ -414,6 +416,8 @@ namespace mikoto::editor {
 
         mCommandList->SetViewportState( ViewportState{}
             .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
+
+        mCommandList->SetPolygonLineWidth( 3.0f );
 
         const auto drawArguments{ DrawArguments{}
             .SetInstanceCount( 1 )

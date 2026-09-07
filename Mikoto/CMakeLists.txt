@@ -563,7 +563,7 @@ FetchContent_MakeAvailable(D3D12MemoryAllocator)
 # Slang ( Target AMD64 architectures by default, see how to change this later)
 # -------------------------------------------------------
 if (MSVC)
-    set(SLANG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Slang/slang-2026.10-windows-x86_64")
+    set(SLANG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Slang/slang-2026.17-windows-x86_64")
     message(STATUS "Setup slang for MSVC x86_64. SlangRoot is ${SLANG_ROOT}")
 
     set(SLANG_LIB_DIR "${SLANG_ROOT}/lib")
@@ -575,7 +575,7 @@ if (MSVC)
     )
 
 elseif(UNIX)
-    set(SLANG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Slang/slang-2026.10-linux-x86_64-glibc-2.28")
+    set(SLANG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Slang/slang-2026.17-linux-x86_64-glibc-2.28")
     message(STATUS "Setup slang for Unix x86_64. SlangRoot is ${SLANG_ROOT}")
 
     set(SLANG_LIB_DIR "${SLANG_ROOT}/lib")

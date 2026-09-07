@@ -398,10 +398,6 @@ namespace mikoto::renderer {
         // data.mTexture01 is at textures[0]
         using ResourceList = eastl::fixed_hash_map<FGResourceHandle, u32, kMaxResourcePerTable>;
         using ResourceTable = eastl::fixed_hash_map<u32, ResourceList, kMaxTables>;
-
-        // Descriptor type binding index ->
-        // List of table resources and their ID
-        ResourceTable mResourceTable{};
     };
 
     struct FGNodeStatistics {

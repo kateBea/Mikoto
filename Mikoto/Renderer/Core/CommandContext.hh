@@ -140,8 +140,10 @@ namespace mikoto::renderer {
         auto CacheResource( FGBufferHandle handle ) -> IBuffer*;
         auto CacheResource( FGTextureHandle handle ) -> ITexture*;
 
-        auto CacheResourceDescriptorID( FGBufferHandle handle ) -> core::u32;
-        auto CacheResourceDescriptorID( FGTextureHandle handle ) -> core::u32;
+        auto CacheResourceDescriptorID_SRV( FGBufferHandle handle ) -> core::u32;
+        auto CacheResourceDescriptorID_UAV( FGBufferHandle handle ) -> core::u32;
+        auto CacheResourceDescriptorID_SRV( FGTextureHandle handle ) -> core::u32;
+        auto CacheResourceDescriptorID_UAV( FGTextureHandle handle ) -> core::u32;
         auto CacheResourceDescriptorID( FGSamplerHandle handle ) -> core::u32;
 
     private:

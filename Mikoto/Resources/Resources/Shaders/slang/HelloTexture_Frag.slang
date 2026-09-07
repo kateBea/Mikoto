@@ -31,10 +31,16 @@ struct DrawParams {
     int SamplerIndex;
 };
 
-MKT_DECLARE_SAMPLERS Samplers;
+#if defined(MKT_SUPPORT_VULKAN)
+MKT_DECLARE_SAMPLERS samplers;
+MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+#endif
 
-MKT_DECLARE_TEXTURE_SRV(Texture2D) Texture2Ds;
-MKT_DECLARE_TEXTURE_SRV(TextureCube) TextureCubes;
+#if defined(MKT_SUPPORT_D3D12)
+SamplerState samplers[] : register(s0, MKT_TEXTURE_SRV_BINDING);
+Texture2D textures[] : register(t0, MKT_SAMPLER_BINDING);
+TextureCube textureCube[] : register(t1, MKT_TEXTURE_SRV_BINDING);
+#endif
 
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) uParams;
 
@@ -42,11 +48,13 @@ MKT_DECLARE_PUSH_CONSTANT(DrawParams) uParams;
 FSOutput main(FSInput input) {
     FSOutput o;
 
+#if defined(MKT_SUPPORT_VULKAN) || defined(MKT_SUPPORT_D3D12)
     if (uParams.TextureIndex != -1) {
-        o.color = Texture2Ds[uParams.TextureIndex].Sample(Samplers[uParams.SamplerIndex], input.texCoord);
+        o.color = textures[uParams.TextureIndex].Sample(samplers[uParams.SamplerIndex], input.texCoord);
     } else {
         o.color = float4(input.color, 1.0);
     }
+#endif
 
     return o;
 }

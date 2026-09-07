@@ -91,6 +91,10 @@ namespace mikoto::renderer::d3d12 {
         return mMappedAddress;
     }
 
+    auto Buffer::GetResourceIndex() const -> DescriptorIndex {
+        return mShaderResourceIndex;
+    }
+
     auto Buffer::CreateCBV( SIZE_T descriptor, BufferRange range, Format format ) const -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device2* d3d12Device{ device->GetDevice() };

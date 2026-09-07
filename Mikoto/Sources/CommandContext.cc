@@ -188,25 +188,19 @@ namespace mikoto::renderer {
     }
 
     auto CommandContext::PushTexture_SRV( FGTextureHandle handle ) -> u32 {
-        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        FGResource resource{ mResourceManager->Get( handle.mHandle ) };
-        TextureHandle texture{ resource.mResource };
-        return mResourceManager->AllocateTextureIndex_SRV( handle.mHandle );
+        return CacheResourceDescriptorID_SRV( handle );
     }
 
     auto CommandContext::PushSampler( FGSamplerHandle handle ) -> u32 {
-        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        return mResourceManager->AllocateSamplerIndex( handle.mHandle );
+        return CacheResourceDescriptorID( handle );
     }
 
     auto CommandContext::PushBuffer_SRV( FGBufferHandle handle ) -> u32 {
-        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        return mResourceManager->AllocateBufferIndex_SRV( handle.mHandle );
+        return CacheResourceDescriptorID_SRV( handle );
     }
 
     auto CommandContext::PushBuffer_UAV( FGBufferHandle handle ) -> u32 {
-        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        return mResourceManager->AllocateBufferIndex_UAV( handle.mHandle );
+        return CacheResourceDescriptorID_UAV( handle );
     }
 
     auto CommandContext::CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>>& barriers ) -> void {
@@ -360,15 +354,59 @@ namespace mikoto::renderer {
         return itFind->second;
     }
 
-    auto CommandContext::CacheResourceDescriptorID( FGBufferHandle handle ) -> core::u32 {
-        return 0; // TODO
+    auto CommandContext::CacheResourceDescriptorID_SRV( FGBufferHandle handle ) -> core::u32 {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        auto itFind{ mCachedShaderBuffers_SRV.find( handle.mHandle ) };
+        if (itFind == mCachedShaderBuffers_SRV.end()) {
+            u32 index{ mResourceManager->AllocateBufferIndex_SRV( handle.mHandle ) };
+            itFind = mCachedShaderBuffers_SRV.try_emplace( itFind, handle.mHandle, index );
+        }
+
+        return itFind->second;
     }
 
-    auto CommandContext::CacheResourceDescriptorID( FGTextureHandle handle ) -> core::u32 {
-        return 0; // TODO
+    auto CommandContext::CacheResourceDescriptorID_UAV( FGBufferHandle handle ) -> core::u32 {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        auto itFind{ mCachedShaderBuffers_UAV.find( handle.mHandle ) };
+        if (itFind == mCachedShaderBuffers_UAV.end()) {
+            u32 index{ mResourceManager->AllocateBufferIndex_UAV( handle.mHandle ) };
+            itFind = mCachedShaderBuffers_UAV.try_emplace( itFind, handle.mHandle, index );
+        }
+
+        return itFind->second;
+    }
+
+    auto CommandContext::CacheResourceDescriptorID_SRV( FGTextureHandle handle ) -> core::u32 {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        auto itFind{ mCachedShaderTextures_SRV.find( handle.mHandle ) };
+        if (itFind == mCachedShaderTextures_SRV.end()) {
+            u32 index{ mResourceManager->AllocateTextureIndex_SRV( handle.mHandle ) };
+            itFind = mCachedShaderTextures_SRV.try_emplace( itFind, handle.mHandle, index );
+        }
+
+        return itFind->second;
+    }
+
+    auto CommandContext::CacheResourceDescriptorID_UAV( FGTextureHandle handle ) -> core::u32 {
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        auto itFind{ mCachedShaderTextures_UAV.find( handle.mHandle ) };
+        if (itFind == mCachedShaderTextures_UAV.end()) {
+            u32 index{ mResourceManager->AllocateTextureIndex_UAV( handle.mHandle ) };
+            itFind = mCachedShaderTextures_UAV.try_emplace( itFind, handle.mHandle, index );
+        }
+
+        return itFind->second;
+
     }
 
     auto CommandContext::CacheResourceDescriptorID( FGSamplerHandle handle ) -> core::u32 {
-        return 0; // TODO
+        MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
+        auto itFind{ mCachedShaderSamplers.find( handle.mHandle ) };
+        if (itFind == mCachedShaderSamplers.end()) {
+            u32 index{ mResourceManager->AllocateSamplerIndex( handle.mHandle ) };
+            itFind = mCachedShaderSamplers.try_emplace( itFind, handle.mHandle, index );
+        }
+
+        return itFind->second;
     }
 }// namespace mikoto::renderer

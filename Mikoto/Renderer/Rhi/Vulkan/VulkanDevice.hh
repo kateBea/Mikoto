@@ -556,10 +556,10 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto GetCapacity( core::u32 slot ) const -> core::u32 override;
 
-        MKT_NODISCARD auto GetResourceSlot( rhi::ResourceType type ) const -> core::i32;
-
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
+
+        MKT_NODISCARD auto AllocateNextIndex( core::u32 slot ) const -> rhi::BindingItemIndex;
 
         ~DescriptorTable() override;
 
@@ -573,8 +573,11 @@ namespace mikoto::renderer::vulkan {
 
         DescriptorAllocatorHandle mDescriptorAllocatorHandle{};
 
-        // Slot -> Array index
-        eastl::fixed_hash_map<rhi::ResourceType, core::i32, rhi::kMaxSlotsPerTable> mSlotResourceType{};
+        mutable ankerl::unordered_dense::map<core::usize, ankerl::unordered_dense::set<BindingItemIndex>>
+            mDescriptorTableItemIndices{};
+
+        ankerl::unordered_dense::map<core::usize, core::usize>
+            mSlotSize{};
 
         rhi::BindingLayoutHandle mBindingLayout{};
     };
@@ -686,7 +689,7 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto CreateDescriptorTable( rhi::BindingLayoutHandle layout ) -> rhi::DescriptorTableHandle override;
         MKT_NODISCARD auto ResizeDescriptorTable( rhi::DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool override;
-        MKT_NODISCARD auto WriteDescriptorTable( rhi::DescriptorTableHandle descriptorTable, const rhi::BindingTableItem& item ) -> bool override;
+        MKT_NODISCARD auto WriteDescriptorTable( rhi::DescriptorTableHandle descriptorTable, const rhi::BindingTableItem& item ) -> rhi::BindingItemIndex override;
 
         MKT_NODISCARD auto GetQueue( rhi::QueueType type ) -> IQueue* override;
 

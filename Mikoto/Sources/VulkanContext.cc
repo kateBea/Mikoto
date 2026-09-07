@@ -186,8 +186,9 @@ namespace mikoto::renderer::vulkan {
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
             mCommandList->SetTransition( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
 
+            u32 index{};
             if (mTableUpdateRequired) {
-                (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 0, mPresentTarget.GetRaw() ) );
+                index = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 0, mPresentTarget.GetRaw() ) );
                 mTableUpdateRequired = false;
             }
 
@@ -196,6 +197,12 @@ namespace mikoto::renderer::vulkan {
                 .AddRenderTarget( colorImage, Color{ .0f } ) };
 
             mCommandList->BeginRendering( graphicsState );
+
+            struct DrawParams {
+                u32 mTextureIndex{};
+            } params{
+                .mTextureIndex = index };
+            mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), &params, MKT_SIZEOF( params ), ShaderFlagsBits::All );
 
             mCommandList->BindPipeline( mPipeline.GetRaw() );
             mCommandList->BindPipelineResources( BindResourcesDescription{}

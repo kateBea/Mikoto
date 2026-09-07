@@ -48,7 +48,7 @@ namespace mikoto::renderer {
 
         // Temporary, as the Direct3D 11 backend does not offer support for
         // bindless which the frame graph relies on for most of its functionality
-        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 ) ) {
+        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) ) {
             MKT_CORE_LOGGER_WARN( "Scene renderer expects Vulkan" );
             return;
         }
@@ -57,40 +57,43 @@ namespace mikoto::renderer {
 
         // Some debug passes
         mMaterialModule.RegisterPasses( *mFrameGraph );
-        mDebugPasses.RegisterPasses( *mFrameGraph );
 
-        // Scene pre-passes
-        mCameraPass.RegisterPasses( *mFrameGraph );
-        mGeometryManagement.RegisterPasses( *mFrameGraph );
-        mSimulationsModule.RegisterPasses( *mFrameGraph );
-        mRenderPrepass.RegisterPasses( *mFrameGraph );
-        mShadowMapping.RegisterPasses( *mFrameGraph );
-        mParticleRendering.RegisterPasses( *mFrameGraph );
-        mMousePickingModule.RegisterPasses( *mFrameGraph );
+        if ( mDevice->IsGraphicsApi( GraphicsAPI::eVulkan )) {
+            mDebugPasses.RegisterPasses( *mFrameGraph );
 
-        // Shading
-        mGeometryShading.RegisterPasses( *mFrameGraph );
+            // Scene pre-passes
+            mCameraPass.RegisterPasses( *mFrameGraph );
+            mGeometryManagement.RegisterPasses( *mFrameGraph );
+            mSimulationsModule.RegisterPasses( *mFrameGraph );
+            mRenderPrepass.RegisterPasses( *mFrameGraph );
+            mShadowMapping.RegisterPasses( *mFrameGraph );
+            mParticleRendering.RegisterPasses( *mFrameGraph );
+            mMousePickingModule.RegisterPasses( *mFrameGraph );
 
-        // Debug overlay
-        mDebugOverlayModule.RegisterPasses( *mFrameGraph );
+            // Shading
+            mGeometryShading.RegisterPasses( *mFrameGraph );
 
-        // Raytracing
-        mPathTracing.RegisterPasses( *mFrameGraph );
-        mRayTracingPass.RegisterPasses( *mFrameGraph );
+            // Debug overlay
+            mDebugOverlayModule.RegisterPasses( *mFrameGraph );
 
-        // Post process
-        mTextRendering.RegisterPasses( *mFrameGraph );
-        mPostEffectsPasses.RegisterPasses( *mFrameGraph );
-        mTonemapModule.RegisterPasses( *mFrameGraph );
-        mDisplayEffectsModule.RegisterPasses( *mFrameGraph );
+            // Raytracing
+            mPathTracing.RegisterPasses( *mFrameGraph );
+            mRayTracingPass.RegisterPasses( *mFrameGraph );
 
-        // I am not sure about this pass, this one was designed to
-        // ideally serve as helper for passes that required image blit-ting
-        // which could be achieved with compute shaders for instance
-        mHelperModule.RegisterPasses( *mFrameGraph );
+            // Post process
+            mTextRendering.RegisterPasses( *mFrameGraph );
+            mPostEffectsPasses.RegisterPasses( *mFrameGraph );
+            mTonemapModule.RegisterPasses( *mFrameGraph );
+            mDisplayEffectsModule.RegisterPasses( *mFrameGraph );
 
-        // Render final contents into specified images
-        mPresentationModule.RegisterPasses( *mFrameGraph );
+            // I am not sure about this pass, this one was designed to
+            // ideally serve as helper for passes that required image blit-ting
+            // which could be achieved with compute shaders for instance
+            mHelperModule.RegisterPasses( *mFrameGraph );
+
+            // Render final contents into specified images
+            mPresentationModule.RegisterPasses( *mFrameGraph );
+        }
 
         // Build graph
         mFrameGraph->Compile();
@@ -136,7 +139,7 @@ namespace mikoto::renderer {
 
         // Temporary, as the Direct3D 11 backend does not offer support for
         // bindless which the frame graph relies on for most of its functionality
-        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) || mDevice->IsGraphicsApi( GraphicsAPI::eD3D12 ) ) {
+        if ( mDevice->IsGraphicsApi( GraphicsAPI::eD3D11 ) ) {
             return;
         }
 
@@ -159,7 +162,7 @@ namespace mikoto::renderer {
     }
 
     auto SceneRenderer::GetFinalImage( FinalImageType type ) -> TextureHandle {
-        if (!mFrameGraph) {
+        if (!mFrameGraph || !mDevice->IsGraphicsApi( GraphicsAPI::eVulkan )) {
             return TextureHandle::CreateEmpty();
         }
 

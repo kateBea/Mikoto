@@ -337,6 +337,107 @@ namespace mikoto::renderer::d3d12 {
         return S_OK;
     }
 
+    DynamicDescriptorHeap::DynamicDescriptorHeap( IGpuDevice* device, eastl::string_view debugName )
+        : mDebugName{ debugName }
+    {
+        Device* pDev{ checked_cast<Device*>( device ) };
+        mDevice = pDev->GetDevice();
+    }
+
+    auto DynamicDescriptorHeap::AllocateDescriptor() -> DescriptorIndex {
+        MKT_ASSERT( !mFreeIndices.empty(), "No indices left" );
+
+        std::lock_guard lock{ mIndicesMutex };
+        const DescriptorIndex index{ mFreeIndices.back() };
+        mFreeIndices.pop_back();
+
+        return index;
+    }
+
+    auto DynamicDescriptorHeap::ReleaseDescriptor( DescriptorIndex index ) -> void {
+        ReleaseDescriptors( index, 1 );
+    }
+
+    auto DynamicDescriptorHeap::AllocateDescriptors( core::u32 count ) -> DescriptorIndex {
+        MKT_ASSERT( mFreeIndices.size() >= count, "No indices left" );
+
+        std::lock_guard lock{ mIndicesMutex };
+        const DescriptorIndex first{ mFreeIndices.back() };
+        for ( core::u32 i{}; i < count; ++i ) {
+            mFreeIndices.pop_back();
+        }
+
+        return first;
+    }
+
+    auto DynamicDescriptorHeap::ReleaseDescriptors( DescriptorIndex baseIndex, core::u32 count ) -> void {
+        std::lock_guard lock{ mIndicesMutex };
+        for ( core::u32 i{}; i < count; ++i ) {
+            mFreeIndices.push_back( baseIndex + i );
+        }
+    }
+
+    auto DynamicDescriptorHeap::AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE heapType, core::usize capacity ) -> HRESULT {
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+        heapDesc.Type = heapType;
+        heapDesc.NumDescriptors = capacity;
+        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+        mCapacity = capacity;
+
+        HRESULT hr{ mDevice->CreateDescriptorHeap( &heapDesc, IID_PPV_ARGS( &mShaderHeap ) ) };
+        if ( FAILED( hr ) ) {
+            return hr;
+        }
+
+        if (!mDebugName.empty()) {
+            const eastl::string debugName{ string::Format( "{}_ShaderGlobalHeap_Type({})",
+                mDebugName.empty() ? "Unnamed" : mDebugName.c_str(), GetHeapTypeName( heapType ) ) };
+            mShaderHeap->SetName( string::ToWide( debugName ).c_str() );
+        }
+
+        mStartCpuHandle = mShaderHeap->GetCPUDescriptorHandleForHeapStart();
+        mStartGpuHandle = mShaderHeap->GetGPUDescriptorHandleForHeapStart();
+
+        mHeapType = heapDesc.Type;
+
+        mStartCpuHandle = mShaderHeap->GetCPUDescriptorHandleForHeapStart();
+        mDescriptorStride = mDevice->GetDescriptorHandleIncrementSize( heapDesc.Type );
+
+        mFreeIndices.clear();
+        mFreeIndices.reserve(capacity);
+
+        for (DescriptorIndex i{ as<DescriptorIndex>(mCapacity) }; i-- > 0; )
+            mFreeIndices.emplace_back(i);
+
+        return S_OK;
+    }
+
+    auto DynamicDescriptorHeap::GetShaderVisibleHeap() const -> ID3D12DescriptorHeap* {
+        return mShaderHeap.Get();
+    }
+
+    auto DynamicDescriptorHeap::GetHeap() const -> ID3D12DescriptorHeap* {
+        return mShaderHeap.Get();
+    }
+
+    auto DynamicDescriptorHeap::GetHeapType() const -> D3D12_DESCRIPTOR_HEAP_TYPE {
+        return mHeapType;
+    }
+
+    auto DynamicDescriptorHeap::GetCpuHandle( DescriptorIndex index ) const -> D3D12_CPU_DESCRIPTOR_HANDLE {
+        D3D12_CPU_DESCRIPTOR_HANDLE result{ mStartCpuHandle };
+        result.ptr += index * mDescriptorStride;
+        return result;
+    }
+
+    auto DynamicDescriptorHeap::GetGpuHandle( DescriptorIndex index ) const -> D3D12_GPU_DESCRIPTOR_HANDLE {
+        D3D12_GPU_DESCRIPTOR_HANDLE result{ mStartGpuHandle };
+        result.ptr += index * mDescriptorStride;
+        return result;
+    }
+
     auto BindingLayout::IsBindless() const -> bool {
         return mIsBindless;
     }
@@ -392,6 +493,8 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto BindingLayout::Initialize() -> void {
+        Device* device{ checked_cast<Device*>( mDevice ) };
+
         if (!mIsBindless) {
             for (const auto& descriptor : mBindingLayoutDesc.mBindings) {
                 D3D12_DESCRIPTOR_RANGE1 range{};
@@ -419,31 +522,34 @@ namespace mikoto::renderer::d3d12 {
                 }
             }
         } else {
-            // Each bindless array gets its own space starting
-            // from the one we specified as base
-            u32 registerSpaceOffsetIndex{ mRegisterSpace };
+            // TODO: Implement bindless for shader model 5.1
+            if (!device->IsSupported( DeviceFeatureSupport::eShaderModel6_6 )) {
+                // Each bindless array gets its own space starting
+                // from the one we specified as base
+                u32 registerSpaceOffsetIndex{ mRegisterSpace };
 
-            for (const auto& descriptor : mBindlessLayoutDesc.mSlots) {
-                D3D12_DESCRIPTOR_RANGE1 range{};
+                for (const auto& descriptor : mBindlessLayoutDesc.mSlots) {
+                    D3D12_DESCRIPTOR_RANGE1 range{};
 
-                // Convert the RHI type to DX12 range type (SRV, UAV, CBV, or SAMPLER)
-                D3D12_DESCRIPTOR_RANGE_TYPE dx12Type{ d3d12::GetDescriptorRangeType(descriptor.mType) };
+                    // Convert the RHI type to DX12 range type (SRV, UAV, CBV, or SAMPLER)
+                    D3D12_DESCRIPTOR_RANGE_TYPE dx12Type{ d3d12::GetDescriptorRangeType(descriptor.mType) };
 
-                range.RangeType = dx12Type;
-                range.BaseShaderRegister = 0;
-                range.NumDescriptors = UINT_MAX;
-                range.RegisterSpace = registerSpaceOffsetIndex++;
+                    range.RangeType = dx12Type;
+                    range.BaseShaderRegister = 0;
+                    range.NumDescriptors = UINT_MAX;
+                    range.RegisterSpace = registerSpaceOffsetIndex + descriptor.mSlot;
 
-                // Let DX12 calculate the offset automatically
-                range.OffsetInDescriptorsFromTableStart = 0;
+                    // Let DX12 calculate the offset automatically
+                    range.OffsetInDescriptorsFromTableStart = 0;
 
-                range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+                    range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
-                // Separate Samplers because DX12 requires them in a dedicated Sampler Descriptor Heap
-                if (descriptor.mType == ResourceType::eSampler) {
-                    mDescriptorRangesSamplers.emplace_back(range);
-                } else {
-                    mDescriptorRanges.emplace_back(range);
+                    // Separate Samplers because DX12 requires them in a dedicated Sampler Descriptor Heap
+                    if (descriptor.mType == ResourceType::eSampler) {
+                        mDescriptorRangesSamplers.emplace_back(range);
+                    } else {
+                        mDescriptorRanges.emplace_back(range);
+                    }
                 }
             }
         }
@@ -494,7 +600,7 @@ namespace mikoto::renderer::d3d12 {
                 return binding.mType == ResourceType::eSampler;
             }) };
 
-        mSamplerRange.mBaseIndex = mDeviceResources->mSamplerHeap->AllocateDescriptors(totalSamplerCount);
+        mSamplerRange.mBaseIndex = mDeviceResources->mSamplerDescriptorHeap->AllocateDescriptors(totalSamplerCount);
         mSamplerRange.mCount = totalSamplerCount;
 
         for (u32 samplerIndex{}, bindingIndex{}; samplerIndex < totalSamplerCount
@@ -503,25 +609,27 @@ namespace mikoto::renderer::d3d12 {
             const BindingTableItem& binding{ mBindingDescription.mBindings[bindingIndex] };
             if (rhi::IsSampler( binding.mType )) {
                 DescriptorIndex index{ mSamplerRange.mBaseIndex + samplerIndex };
-                D3D12_CPU_DESCRIPTOR_HANDLE cpu{ mDeviceResources->mSamplerHeap->GetCpuHandle(index) };
+                D3D12_CPU_DESCRIPTOR_HANDLE cpu{ mDeviceResources->mSamplerDescriptorHeap->GetCpuHandle(index) };
 
                 Sampler* sampler{ checked_cast<Sampler*>(binding.mResource) };
                 sampler->AllocateSampler( cpu );
 
-                mDeviceResources->mSamplerHeap->CopyToShaderVisibleHeap(index);
+                // This was for pre 6.6. When I implement it again I'll need to look into this
+                // This is line is here because handle comes from heap without D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE
+                //mDeviceResources->mSamplerHeap->CopyToShaderVisibleHeap(index);
                 ++samplerIndex;
             }
         }
 
         if (totalSamplerCount != 0) {
-            mSamplerRange.mGpuHandle = mDeviceResources->mSamplerHeap->GetGpuHandle(mSamplerRange.mBaseIndex);
+            mSamplerRange.mGpuHandle = mDeviceResources->mSamplerDescriptorHeap->GetGpuHandle(mSamplerRange.mBaseIndex);
         }
 
         // Handle rest of descriptor types
         // Allocate one contiguous range for all SRV/etc descriptors
         u32 totalDescriptorCount{ as<u32>(mBindingDescription.mBindings.size()) - totalSamplerCount };
 
-        mSrvRange.mBaseIndex = mDeviceResources->mShaderResourceViewHeap->AllocateDescriptors(totalDescriptorCount);
+        mSrvRange.mBaseIndex = mDeviceResources->mResourceDescriptorHeap->AllocateDescriptors(totalDescriptorCount);
         mSrvRange.mCount = totalDescriptorCount;
 
         for (u32 descriptorIndex{}, bindingIndex{}; descriptorIndex < totalDescriptorCount
@@ -530,7 +638,7 @@ namespace mikoto::renderer::d3d12 {
 
             if (!rhi::IsSampler( binding.mType )) {
                 DescriptorIndex index{ mSrvRange.mBaseIndex + descriptorIndex };
-                D3D12_CPU_DESCRIPTOR_HANDLE cpu{ mDeviceResources->mShaderResourceViewHeap->GetCpuHandle(index) };
+                D3D12_CPU_DESCRIPTOR_HANDLE cpu{ mDeviceResources->mResourceDescriptorHeap->GetCpuHandle(index) };
 
                 if (rhi::IsBuffer( binding.mType )) {
                     Buffer* buffer{ checked_cast<Buffer*>(binding.mResource) };
@@ -570,14 +678,15 @@ namespace mikoto::renderer::d3d12 {
                     }
                 }
 
-                mDeviceResources->mShaderResourceViewHeap->CopyToShaderVisibleHeap(index);
+                // See comment above for samplers
+                // mDeviceResources->mShaderResourceViewHeap->CopyToShaderVisibleHeap(index);
 
                 ++descriptorIndex;
             }
         }
 
         if (totalDescriptorCount != 0) {
-            mSrvRange.mGpuHandle = mDeviceResources->mShaderResourceViewHeap->GetGpuHandle(mSrvRange.mBaseIndex);
+            mSrvRange.mGpuHandle = mDeviceResources->mResourceDescriptorHeap->GetGpuHandle(mSrvRange.mBaseIndex);
         }
 
         mIsAllocated = true;
@@ -585,8 +694,17 @@ namespace mikoto::renderer::d3d12 {
 
     auto BindingTable::Release() -> void {
         // Release descriptor indices
-        u32 descriptorCount{ as<u32>(mBindingDescription.mBindings.size()) };
-        mDeviceResources->mShaderResourceViewHeap->ReleaseDescriptors(mSrvRange.mBaseIndex, descriptorCount);
+        //mDeviceResources->mShaderResourceViewHeap->ReleaseDescriptors(mSrvRange.mBaseIndex, descriptorCount);
+        //mDeviceResources->mResourceDescriptorHeap->ReleaseDescriptors(mSrvRange.mBaseIndex, descriptorCount);
+
+        u32 totalSamplerCount{ (u32)std::ranges::count_if(mBindingDescription.mBindings,
+            [](const BindingTableItem& binding) {
+                return binding.mType == ResourceType::eSampler;
+            }) };
+        mDeviceResources->mSamplerDescriptorHeap->ReleaseDescriptors(mSrvRange.mBaseIndex, totalSamplerCount);
+
+        u32 totalDescriptorCount{ as<u32>(mBindingDescription.mBindings.size()) - totalSamplerCount };
+        mDeviceResources->mResourceDescriptorHeap->ReleaseDescriptors(mSrvRange.mBaseIndex, totalDescriptorCount);
 
         mIsAllocated = false;
     }
@@ -615,7 +733,102 @@ namespace mikoto::renderer::d3d12 {
         return it != blDesc.mSlots.end() ? it->mMaxCapacity : 0;
     }
 
+    auto DescriptorTable::AllocateIndex( rhi::ResourceType type, core::u32 slot ) -> DescriptorIndex {
+        DescriptorIndex result{ kInvalidDescriptorIndex };
+        switch ( type ) {
+            case ResourceType::eTexture_SRV:
+            case ResourceType::eTexture_UAV:
+            case ResourceType::eRawBuffer_UAV:
+            case ResourceType::eTypedBuffer_UAV:
+            case ResourceType::eStructuredBuffer_UAV:
+            case ResourceType::eRawBuffer_SRV:
+            case ResourceType::eTypedBuffer_SRV:
+            case ResourceType::eStructuredBuffer_SRV:
+            case ResourceType::eConstantBuffer: {
+                auto& slotIndices{ mResourcesFreeIndices[slot] };
+                result = *slotIndices.begin();
+                slotIndices.erase( slotIndices.begin() );
+                break;
+            }
+            case ResourceType::eSampler: {
+                auto& slotIndices{ mSamplerFreeIndices[slot] };
+                result = *slotIndices.begin();
+                slotIndices.erase( slotIndices.begin() );
+                break;
+            }
+            default:;
+        }
+
+        return result;
+
+    }
+
+    auto DescriptorTable::UnRegisterIndex( DescriptorIndex index, rhi::ResourceType type, core::u32 slot ) -> void {
+        switch ( type ) {
+            case ResourceType::eTexture_SRV:
+            case ResourceType::eTexture_UAV:
+            case ResourceType::eRawBuffer_UAV:
+            case ResourceType::eTypedBuffer_UAV:
+            case ResourceType::eStructuredBuffer_UAV:
+            case ResourceType::eRawBuffer_SRV:
+            case ResourceType::eTypedBuffer_SRV:
+            case ResourceType::eStructuredBuffer_SRV:
+            case ResourceType::eConstantBuffer: {
+                auto& slotIndices{ mResourcesFreeIndices[slot] };
+                slotIndices.emplace( index );
+                break;
+            }
+            case ResourceType::eSampler:{
+                auto& slotIndices{ mSamplerFreeIndices[slot] };
+                slotIndices.emplace( index );
+                break;
+            }
+            default:;
+        }
+    }
+
+    auto DescriptorTable::GetLayout() const -> const BindingLayout* {
+        return checked_cast<const BindingLayout*>( mBindingLayout.GetRaw() );
+    }
+
     auto DescriptorTable::Initialize() -> void {
+        BindingLayout* layout{ checked_cast<BindingLayout*>( mBindingLayout.GetRaw() ) };
+        for (const auto& item : layout->GetBindlessLayoutDesc().mSlots ) {
+            DescriptorRange range{
+                .mCount = item.mMaxCapacity };
+            switch ( item.mType ) {
+                case ResourceType::eTexture_SRV:
+                case ResourceType::eTexture_UAV:
+                case ResourceType::eRawBuffer_UAV:
+                case ResourceType::eTypedBuffer_UAV:
+                case ResourceType::eStructuredBuffer_UAV:
+                case ResourceType::eRawBuffer_SRV:
+                case ResourceType::eTypedBuffer_SRV:
+                case ResourceType::eStructuredBuffer_SRV:
+                case ResourceType::eConstantBuffer: {
+                    range.mBaseIndex = mDeviceResources->mResourceDescriptorHeap->AllocateDescriptors(item.mMaxCapacity);
+                    range.mGpuHandle = mDeviceResources->mResourceDescriptorHeap->GetGpuHandle( range.mBaseIndex );
+                    mResourceIndices[item.mSlot] = range;
+                    auto& slotIndices{ mResourcesFreeIndices[item.mSlot] };
+                    for (DescriptorIndex i{}; i < item.mMaxCapacity; ++i ) {
+                        slotIndices.emplace( range.mBaseIndex + i );
+                    }
+                    break;
+                }
+                case ResourceType::eSampler: {
+                    range.mBaseIndex = mDeviceResources->mSamplerDescriptorHeap->AllocateDescriptors(item.mMaxCapacity);
+                    range.mGpuHandle = mDeviceResources->mSamplerDescriptorHeap->GetGpuHandle( range.mBaseIndex );
+                    mSamplerIndices[item.mSlot] = range;
+                    auto& slotIndices{ mSamplerFreeIndices[item.mSlot] };
+                    for (DescriptorIndex i{}; i < item.mMaxCapacity; ++i ) {
+                        slotIndices.emplace( range.mBaseIndex + i );
+                    }
+                    break;
+                }
+                default:;
+            }
+        }
+
         mIsAllocated = true;
     }
 
@@ -1682,8 +1895,8 @@ namespace mikoto::renderer::d3d12 {
         const DeviceResources* deviceResources{ device->GetHeapResources() };
         eastl::vector<ID3D12DescriptorHeap*> descriptorHeaps{};
 
-        descriptorHeaps.emplace_back( deviceResources->mSamplerHeap->GetShaderVisibleHeap() );
-        descriptorHeaps.emplace_back( deviceResources->mShaderResourceViewHeap->GetShaderVisibleHeap() );
+        descriptorHeaps.emplace_back( deviceResources->mSamplerDescriptorHeap->GetShaderVisibleHeap() );
+        descriptorHeaps.emplace_back( deviceResources->mResourceDescriptorHeap->GetShaderVisibleHeap() );
 
         // At most one CBV/SRV/UAV combined heap and one Sampler heap can be bound at any one time.
         // These heaps are shared between both the graphics and compute pipelines (described in their PSOs).
@@ -1712,6 +1925,11 @@ namespace mikoto::renderer::d3d12 {
         };
 
         for (const auto& [rootParameterIndex, bindingSet] : desc.mResourceSets) {
+            // FIXME: Descriptor tables use global heap
+            if (dynamic_cast<DescriptorTable*>(bindingSet)) {
+                continue;
+            }
+
             const BindingTable* table{ checked_cast<BindingTable*>(bindingSet) };
             const DescriptorRange& srvRange{ table->GetSrvRange() };
             const DescriptorRange& samplerRange{ table->GetSamplerRange() };
@@ -2028,6 +2246,12 @@ namespace mikoto::renderer::d3d12 {
         ThrowIfFailed( D3D12CreateDevice( mAdapter4.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS( &mDevice ) ) );
         mDevice->SetName( mDeviceDescription3.Description );
 
+        // Shader model 6_6 is required for now, pending to implement 5.1 fallback
+        D3D12_FEATURE_DATA_SHADER_MODEL shaderModelData{};
+        shaderModelData.HighestShaderModel = D3D_SHADER_MODEL_6_6;
+        ThrowIfFailed( mDevice->CheckFeatureSupport( D3D12_FEATURE_SHADER_MODEL, &shaderModelData, sizeof( shaderModelData ) ) );
+        mDeviceFeaturesSupported[DeviceFeatureSupport::eShaderModel6_6] = true;
+
         mDeviceName = string::FromWChar( mDeviceDescription3.Description );
         mVendorID = string::Format( "{}", mDeviceDescription3.VendorId );
 
@@ -2177,16 +2401,26 @@ namespace mikoto::renderer::d3d12 {
         mResourceHeaps.mRenderTargetViewHeap = eastl::make_unique<StaticDescriptorHeap>( this, "RenderTargets" );
         mResourceHeaps.mDepthStencilViewHeap = eastl::make_unique<StaticDescriptorHeap>( this, "DepthStencil" );
 
-        mResourceHeaps.mSamplerHeap = eastl::make_unique<StaticDescriptorHeap>( this, "Samplers" );
-        mResourceHeaps.mShaderResourceViewHeap = eastl::make_unique<StaticDescriptorHeap>( this, "ShaderResources" );
+        //mResourceHeaps.mSamplerHeap = eastl::make_unique<StaticDescriptorHeap>( this, "Samplers" );
+        //mResourceHeaps.mShaderResourceViewHeap = eastl::make_unique<StaticDescriptorHeap>( this, "ShaderResources" );
 
+        mResourceHeaps.mSamplerDescriptorHeap = eastl::make_unique<DynamicDescriptorHeap>( this, "SamplersDescriptors" );
+        mResourceHeaps.mResourceDescriptorHeap = eastl::make_unique<DynamicDescriptorHeap>( this, "ResourcesDescriptors" );
 
         // Pre-allocate
+        // Global heaps (require 6.6 support)
+        // They are shader visible by default
+        // https://learn.microsoft.com/en-gb/%20%20windows/win32/direct3d12/hardware-support?utm_source=chatgpt.com
+        ThrowIfFailed( mResourceHeaps.mSamplerDescriptorHeap->AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 2048 ) );
+        ThrowIfFailed( mResourceHeaps.mResourceDescriptorHeap->AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1'000'000 ) );
+
+
+        // Normal heaps
         ThrowIfFailed( mResourceHeaps.mRenderTargetViewHeap->AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 100, false ) );
         ThrowIfFailed( mResourceHeaps.mDepthStencilViewHeap->AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 100, false ) );
 
-        ThrowIfFailed( mResourceHeaps.mSamplerHeap->AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 100, true ) );
-        ThrowIfFailed( mResourceHeaps.mShaderResourceViewHeap->AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 100, true ) );
+        //ThrowIfFailed( mResourceHeaps.mSamplerHeap->AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 100, true ) );
+        //ThrowIfFailed( mResourceHeaps.mShaderResourceViewHeap->AllocateResources( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 100, true ) );
     }
 
     auto Device::CreateTexture( const TextureCreateDescription &description ) -> TextureHandle {
@@ -2217,6 +2451,15 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::GetEmptyRootSignature() const -> ID3D12RootSignature* {
         return mEmptyRootSignature.Get();
+    }
+
+    auto Device::IsSupported( DeviceFeatureSupport feature ) const -> bool {
+        const auto it{ mDeviceFeaturesSupported.find( feature ) };
+        if (it != mDeviceFeaturesSupported.end()) {
+            return it->second;
+        }
+
+        return false;
     }
 
     auto Device::CreateTextureNative( ObjectType type, Object object, const TextureCreateDescription &description ) -> TextureHandle {
@@ -2375,8 +2618,57 @@ namespace mikoto::renderer::d3d12 {
         return false;
     }
 
-    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem &item ) -> bool {
-        return false;
+    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem &item ) -> rhi::BindingItemIndex {
+        if (descriptorTable.IsEmpty()) {
+            return rhi::kInvalidBindingItemIndex;
+        }
+
+        // This method assumes shader model 6.6 for this to access resources in shaders we'd use
+        // ResourceDescriptorHeap or SamplerDescriptorHeap
+        DescriptorTable* table{ checked_cast<DescriptorTable*>( descriptorTable.GetRaw() ) };
+        DescriptorIndex newIndex{ table->AllocateIndex(item.mType, item.mBindingIndex) };
+        if (IsSampler( item.mType )) {
+            Sampler* sampler{ checked_cast<Sampler*>(item.mResource) };
+            D3D12_CPU_DESCRIPTOR_HANDLE cpu{ mResourceHeaps.mSamplerDescriptorHeap->GetCpuHandle(newIndex) };
+            sampler->AllocateSampler( cpu );
+        } else {
+            D3D12_CPU_DESCRIPTOR_HANDLE cpu{ mResourceHeaps.mResourceDescriptorHeap->GetCpuHandle(newIndex) };
+
+            switch ( item.mType ) {
+                case ResourceType::eTexture_SRV: {
+                    Texture* texture{ checked_cast<Texture*>(item.mResource) };
+                    texture->CreateSRV( cpu.ptr, item.mSubResourceSet, item.mFormat, item.mDimension );
+                    break;
+                }
+                case ResourceType::eTexture_UAV: {
+                    Texture* texture{ checked_cast<Texture*>(item.mResource) };
+                    texture->CreateUAV( cpu.ptr, item.mSubResourceSet, item.mFormat, item.mDimension );
+                    break;
+                }
+                case ResourceType::eRawBuffer_UAV:
+                case ResourceType::eTypedBuffer_UAV:
+                case ResourceType::eStructuredBuffer_UAV: {
+                    Buffer* buffer{ checked_cast<Buffer*>(item.mResource) };
+                    buffer->CreateUAV(cpu.ptr, item.mRange, item.mType, item.mFormat);
+                    break;
+                }
+                case ResourceType::eRawBuffer_SRV:
+                case ResourceType::eTypedBuffer_SRV:
+                case ResourceType::eStructuredBuffer_SRV: {
+                    Buffer* buffer{ checked_cast<Buffer*>(item.mResource) };
+                    buffer->CreateSRV(cpu.ptr, item.mRange, item.mType, item.mFormat);
+                    break;
+                }
+                case ResourceType::eConstantBuffer: {
+                    Buffer* buffer{ checked_cast<Buffer*>(item.mResource) };
+                    buffer->CreateCBV(cpu.ptr, item.mRange, item.mFormat);
+                    break;
+                }
+                default:;
+            }
+        }
+
+        return newIndex;
     }
 
     auto Device::WaitIdle() -> void {

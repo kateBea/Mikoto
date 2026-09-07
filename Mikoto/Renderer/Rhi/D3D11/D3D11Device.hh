@@ -327,7 +327,7 @@ namespace mikoto::renderer::d3d11 {
 
         MKT_NODISCARD auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle override;
         MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
-        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> bool override;
+        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> rhi::BindingItemIndex override;
 
         MKT_NODISCARD auto GetQueue( QueueType type ) -> IQueue* override;
 

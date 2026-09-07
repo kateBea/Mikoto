@@ -26,11 +26,25 @@ struct FSInput {
 DECL_BINDING(0, 0) SamplerState sampler;
 DECL_BINDING(0, 1) Texture2D[] finalImage;
 
+struct DrawParams {
+    uint mSamplerIndex;
+    uint mTextureIndex;
+};
+
+MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+
 [shader("fragment")]
 FSOutput main(FSInput input) {
     FSOutput o;
 
-    o.color = finalImage[0].Sample(sampler, input.uv);
+#if defined(MKT_SUPPORT_VULKAN)
+    o.color = finalImage[parameters.mTextureIndex].Sample(sampler, input.uv);
+#elif defined(MKT_SUPPORT_D3D12)
+    SamplerState sampler = SamplerDescriptorHeap[parameters.mSamplerIndex];
+    Texture2D finalImage = ResourceDescriptorHeap[parameters.mTextureIndex];
+
+    o.color = finalImage.Sample(sampler, input.uv);
+#endif
 
     return o;
 }

@@ -453,6 +453,10 @@ namespace mikoto::scene {
         UpdateAudioListenerAndSources();
     }
 
+    auto Scene::Update( renderer::SceneRenderer* renderer ) -> void {
+
+    }
+
     auto Scene::Serialize( const filesystem::Path& filename ) const -> void {
 
     }

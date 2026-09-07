@@ -1041,6 +1041,8 @@ namespace mikoto::editor {
             mEditorState->mPhysicsDebugRendererSimple->SetCamera( mEditorCamera.get() );
         }
 
+        mEditorState->mActiveScene->Update( mSceneRenderer.get() );
+
         mSceneRenderer->SetMainCamera( mEditorCamera.get() );
         mSceneRenderer->SetEnableInfiniteGrid( mShowInfiniteGrid );
         mSceneRenderer->SetEnablePolygonComplexity( mShowPolygonComplexity );

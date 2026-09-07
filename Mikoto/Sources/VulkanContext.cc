@@ -200,6 +200,7 @@ namespace mikoto::renderer::vulkan {
 
             struct DrawParams {
                 u32 mTextureIndex{};
+                u32 mSamplerIndex{};
             } params{
                 .mTextureIndex = index };
             mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), &params, MKT_SIZEOF( params ), ShaderFlagsBits::All );

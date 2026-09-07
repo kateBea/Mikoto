@@ -690,7 +690,7 @@ namespace mikoto::renderer {
             auto& ctx{ mNodeControl->mContexts.at(passName) };
 
             // Off load this work to workers threads?
-            ctx.BeginPass();
+            pass.mCommandList->BeginDebugLabel( string::Format( "Pass: {}", pass.mName ), kColorTransparent );
 
             // Place pass barriers
             const auto& barriers{ mExecutionPlan.mBarriers[passName] };
@@ -713,7 +713,13 @@ namespace mikoto::renderer {
                 else if (elapsed < stats.mMinExecutionTime) stats.mMinExecutionTime = elapsed;
             }
 
-            ctx.EndPass();
+            // End pass
+            pass.mCommandList->EnbDebugLabel();
+
+            if ( pass.mExecutionPolicy == FGExecutionPolicy::eOnce ||
+                 pass.mExecutionPolicy == FGExecutionPolicy::eOnWake ) {
+                pass.mIsAlive = false;
+            }
         }
 
         mGraphicsCommands->End();
@@ -987,7 +993,8 @@ namespace mikoto::renderer {
                 default:;
             }
 
-            mNodeControl->mContexts.try_emplace( passName, MKT_ADDRESSOF( node ), mResourceManager.get(), mStatisticsManager.get(), commandList );
+            node.mCommandList = commandList;
+            mNodeControl->mContexts.try_emplace( passName, MKT_ADDRESSOF( node ), mResourceManager.get(), mStatisticsManager.get() );
         }
 
         // Create tasks
@@ -1022,20 +1029,7 @@ namespace mikoto::renderer {
 
                 // Off load this work to workers threads
                 // Vulkan could use secondary command buffers here
-                ctx.BeginPass();
 
-                // Place pass barriers
-                const auto it{ mExecutionPlan.mBarriers.find( passName ) };
-                if (it != mExecutionPlan.mBarriers.end()) {
-                    ctx.CommitBarriers( it->second );
-                }
-
-                pass.mExecuteCallback( ctx, mBlackboard );
-                ctx.EndPass();
-
-                if ( pass.mType != FGPassType::eGeneric ) {
-                    cmd->End();
-                }
             });
 
             task.name( passName.c_str() );

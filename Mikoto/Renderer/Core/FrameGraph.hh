@@ -192,6 +192,7 @@ namespace mikoto::renderer {
     struct FGNode {
         eastl::string mName{};
         FGPassType mType{ FGPassType::eGraphics };
+        rhi::CommandListHandle mCommandList{};
 
         bool mIsAlive{ true };
 

@@ -41,6 +41,11 @@ namespace mikoto::physics {
     class PhysicsWorld;
 }
 
+namespace mikoto::renderer {
+    class SceneRenderer;
+}
+
+
 namespace mikoto::scene {
 
     using namespace mikoto::core;
@@ -98,6 +103,8 @@ namespace mikoto::scene {
         explicit Scene( eastl::string_view name = "New Scene" );
 
         auto Update( float timeStep ) -> void;
+
+        auto Update( renderer::SceneRenderer* renderer ) -> void;
 
         auto Serialize( const filesystem::Path& filename ) const -> void override;
         auto Deserialize( const filesystem::Path& filename ) const -> void override;

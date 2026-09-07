@@ -38,7 +38,7 @@ FSOutput main(FSInput input) {
     FSOutput o;
 
 #if defined(MKT_SUPPORT_VULKAN)
-    o.color = finalImage[parameters.mTextureIndex].Sample(sampler, input.uv);
+    o.color = finalImage[0].Sample(sampler, input.uv);
 #elif defined(MKT_SUPPORT_D3D12)
     SamplerState sampler = SamplerDescriptorHeap[parameters.mSamplerIndex];
     Texture2D finalImage = ResourceDescriptorHeap[parameters.mTextureIndex];

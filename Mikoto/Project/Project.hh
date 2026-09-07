@@ -19,14 +19,15 @@
 #include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/String.hh>
-#include <Core/Serializable.hh>
 #include <Core/ReferenceCounted.hh>
-
-#include <Scene/Scene.hh>
-
+#include <Core/Serializable.hh>
+#include <Core/String.hh>
+#include <Core/Types.hh>
 #include <Filesystem/Path.hh>
+#include <Scene/Scene.hh>
+#include <Scene/SceneManager.hh>
+
+#include "Audio/AudioService.hh"
 
 namespace mikoto::project {
 

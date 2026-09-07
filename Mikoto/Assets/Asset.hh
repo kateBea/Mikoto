@@ -19,13 +19,39 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/ResourcePool.hh>
 
 #include <Filesystem/Path.hh>
+#include <Filesystem/File.hh>
 #include <Filesystem/FileSystem.hh>
 
 namespace mikoto::asset {
 
     using AssetID = core::u64;
+
+    enum class AssetType : core::u32 {
+        eUnknown,
+        eFont,
+        eModel,
+        eAudio,
+        eScript,
+        eTexture,
+        eMaterial,
+    };
+
+    class Asset {
+        Asset( core::Ref<core::ReferenceCounted> resource, const filesystem::Path& path, filesystem::FileHandle file);
+
+        MKT_NODISCARD auto GetFile() const -> filesystem::FileHandle;
+        MKT_NODISCARD auto GePath() const -> const filesystem::Path&;
+        MKT_NODISCARD auto GetType() const -> const filesystem::Path&;
+
+    private:
+        AssetID mHashedID{};
+        AssetType mAssetType{ AssetType::eUnknown };
+        core::Ref<core::ReferenceCounted> mResource{};
+    };
+    using AssetHandle = core::Ref<Asset>;
 
     MKT_NODISCARD auto GetHashedAssetID(const filesystem::Path& path) -> AssetID;
 

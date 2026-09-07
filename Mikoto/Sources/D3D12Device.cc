@@ -1853,6 +1853,10 @@ namespace mikoto::renderer::d3d12 {
         Buffer* indexBuffer{ checked_cast<Buffer*>( buffer ) };
         ID3D12Resource* resource{ *indexBuffer };
 
+        if (mEnableAutomaticBarriers) {
+            SetTransition( indexBuffer, rhi::ResourceStates::eIndexBuffer );
+        }
+
         D3D12_INDEX_BUFFER_VIEW indexBufferView{};
 
         indexBufferView.BufferLocation = resource->GetGPUVirtualAddress();
@@ -1872,6 +1876,10 @@ namespace mikoto::renderer::d3d12 {
         for (const auto& vertexBuffer : binding) {
             Buffer* buffer{ checked_cast<Buffer*>( vertexBuffer.mBuffer ) };
             ID3D12Resource* resource{ *buffer };
+
+            if (mEnableAutomaticBarriers) {
+                SetTransition( buffer, rhi::ResourceStates::eVertexBuffer );
+            }
 
             D3D12_VERTEX_BUFFER_VIEW bufferView{};
             bufferView.SizeInBytes = buffer->GetSizeBytes();
@@ -2085,7 +2093,9 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::BindIndirectBuffer( IBuffer *buffer ) -> void {
-        
+        if (mEnableAutomaticBarriers) {
+            SetTransition( buffer, rhi::ResourceStates::eIndirectArgument );
+        }
     }
 
     GpuUploadManager::GpuUploadManager( IGpuDevice *device )

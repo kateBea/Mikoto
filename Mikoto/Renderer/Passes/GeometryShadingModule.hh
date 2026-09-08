@@ -144,18 +144,18 @@ namespace mikoto::renderer {
         // https://docs.vulkan.org/spec/latest/chapters/textures.html#_cube_map_face_selection
         // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
         inline static const eastl::fixed_vector<core::float4x4, kMaxCubeFaces> kMatrices{
-            // POSITIVE_X
-            glm::rotate( glm::rotate( glm::mat4( 1.0f ), glm::radians( 90.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ) ), glm::radians( 180.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ) ),
-            // NEGATIVE_X
-            glm::rotate( glm::rotate( glm::mat4( 1.0f ), glm::radians( -90.0f ), glm::vec3( 0.0f, 1.0f, 0.0f ) ), glm::radians( 180.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ) ),
-            // POSITIVE_Y
-            glm::rotate( glm::mat4( 1.0f ), glm::radians( -90.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ) ),
-            // NEGATIVE_Y
-            glm::rotate( glm::mat4( 1.0f ), glm::radians( 90.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ) ),
-            // POSITIVE_Z
-            glm::rotate( glm::mat4( 1.0f ), glm::radians( 180.0f ), glm::vec3( 1.0f, 0.0f, 0.0f ) ),
-            // NEGATIVE_Z
-            glm::rotate( glm::mat4( 1.0f ), glm::radians( 180.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) ),
+            // +X
+            glm::lookAt( glm::vec3( 0 ), glm::vec3( 1, 0, 0 ), glm::vec3( 0, -1, 0 ) ),
+            // -X
+            glm::lookAt( glm::vec3( 0 ), glm::vec3( -1, 0, 0 ), glm::vec3( 0, -1, 0 ) ),
+            // +Y
+            glm::lookAt( glm::vec3( 0 ), glm::vec3( 0, -1, 0 ), glm::vec3( 0, 0, -1 ) ),
+            // -Y
+            glm::lookAt( glm::vec3( 0 ), glm::vec3( 0, 1, 0 ), glm::vec3( 0, 0, 1 ) ),
+            // +Z
+            glm::lookAt( glm::vec3( 0 ), glm::vec3( 0, 0, 1 ), glm::vec3( 0, -1, 0 ) ),
+            // -Z
+            glm::lookAt( glm::vec3( 0 ), glm::vec3( 0, 0, -1 ), glm::vec3( 0, -1, 0 ) ),
         };
 
         // This is used for debugging mainly so I can distinguish faces if texture sampling fails

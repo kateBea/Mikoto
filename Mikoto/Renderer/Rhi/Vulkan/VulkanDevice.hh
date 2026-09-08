@@ -226,7 +226,7 @@ namespace mikoto::renderer::vulkan {
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
-        // More relaxed versions of SetResourceState
+        // These will be removed and we will receive an eastl:span instead, calling commit barriers
         auto RecordBarrier( const rhi::BufferBarrierDescription& barrier ) -> void override;
         auto RecordBarrier( const rhi::TextureBarrierDescription& barrier ) -> void override;
 

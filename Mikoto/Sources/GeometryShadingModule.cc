@@ -563,10 +563,10 @@ namespace mikoto::renderer {
                 // See kMatrices definition
                 eastl::fixed_hash_map<u32, SkyboxFace, 6> faceIndex{};
 
-                faceIndex[1] = SkyboxFace::eRight; // POSITIVE_X
-                faceIndex[0] = SkyboxFace::eLeft;  // NEGATIVE_X
-                faceIndex[3] = SkyboxFace::eTop;   // POSITIVE_Y
-                faceIndex[2] = SkyboxFace::eBottom;// NEGATIVE_Y
+                faceIndex[0] = SkyboxFace::eRight; // POSITIVE_X
+                faceIndex[1] = SkyboxFace::eLeft;  // NEGATIVE_X
+                faceIndex[2] = SkyboxFace::eTop;   // POSITIVE_Y
+                faceIndex[3] = SkyboxFace::eBottom;// NEGATIVE_Y
                 faceIndex[4] = SkyboxFace::eBack;  // POSITIVE_Z
                 faceIndex[5] = SkyboxFace::eFront; // NEGATIVE_Z
 

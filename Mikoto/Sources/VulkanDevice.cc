@@ -1604,10 +1604,10 @@ namespace mikoto::renderer::vulkan {
             // If I do not do this models appear upside down
             // https://www.saschawillems.de/blog/2019/03/29/flipping-the-vulkan-viewport/
             if (!viewport.mFlip) {
-                value.x = viewport.mMinX;
+                value.x = 0;
                 value.y = viewport.GetHeight();
                 value.width = viewport.GetWidth();
-                value.height = -value.y;
+                value.height = -viewport.GetHeight();
                 value.minDepth = viewport.mMinZ;
                 value.maxDepth = viewport.mMaxZ;
             }

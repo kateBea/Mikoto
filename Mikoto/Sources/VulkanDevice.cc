@@ -897,6 +897,10 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::End() -> void {
+        if (mIsRenderScopeActive) {
+            EndRendering();
+        }
+
         vkCmdEndDebugUtilsLabelEXT( mCurrentCommandBuffer );
         MKT_VK_CHECK( vkEndCommandBuffer( mCurrentCommandBuffer ) );
     }
@@ -980,6 +984,11 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
+        if (mIsRenderScopeActive) {
+            MKT_ASSERT( false, "Pipeline barriers must be committed before beginning dynamic rendering." );
+            return;
+        }
+
         VkDependencyInfo depInfo{};
 
         depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
@@ -997,13 +1006,69 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::SetTransition( IBuffer *buffer, ResourceStates newState ) -> void {
-        RecordTransition(buffer, newState);
-        CommitBarriers();
+        const ResourceStates oldState{ buffer->GetResourceState() };
+        if (mIsRenderScopeActive) {
+            MKT_ASSERT( false, "Buffer transitions must be recorded before beginning dynamic rendering." );
+            return;
+        }
+
+        VkBufferMemoryBarrier2 barrier{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+            .srcStageMask = GetStageMask( oldState ),
+            .srcAccessMask = GetAccessMask( oldState ),
+            .dstStageMask = GetStageMask( newState ),
+            .dstAccessMask = GetAccessMask( newState ),
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .buffer = buffer->GetNativeHandle( ObjectType::Vk_Buffer ),
+            .offset = 0,
+            .size = VK_WHOLE_SIZE };
+
+        VkDependencyInfo dependencyInfo{
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .bufferMemoryBarrierCount = 1,
+            .pBufferMemoryBarriers = MKT_ADDRESSOF( barrier ) };
+        vkCmdPipelineBarrier2( mCurrentCommandBuffer, MKT_ADDRESSOF( dependencyInfo ) );
+
+        if (newState != ResourceStates::eUnknown) {
+            buffer->SetResourceState( newState );
+        }
     }
 
     auto CommandList::SetTransition( ITexture *texture, ResourceStates newState ) -> void {
-        RecordTransition(texture, newState);
-        CommitBarriers();
+        const ResourceStates oldState{ texture->GetResourceState() };
+        if (mIsRenderScopeActive) {
+            MKT_ASSERT( false, "Texture transitions must be recorded before beginning dynamic rendering." );
+            return;
+        }
+
+        VkImageMemoryBarrier2 barrier{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            .srcStageMask = GetStageMask( oldState ),
+            .srcAccessMask = GetAccessMask( oldState ),
+            .dstStageMask = GetStageMask( newState ),
+            .dstAccessMask = GetAccessMask( newState ),
+            .oldLayout = GetImageLayout( oldState ),
+            .newLayout = GetImageLayout( newState ),
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = texture->GetNativeHandle( ObjectType::Vk_Image ),
+            .subresourceRange = {
+                .aspectMask = GetAspectMask( texture->GetFormat() ),
+                .baseMipLevel = 0,
+                .levelCount = texture->GetMipLevelCount(),
+                .baseArrayLayer = 0,
+                .layerCount = texture->GetDimension() == TextureDimension::eTextureCube ? kMaxCubeFaces : 1 } };
+
+        VkDependencyInfo dependencyInfo{
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .imageMemoryBarrierCount = 1,
+            .pImageMemoryBarriers = MKT_ADDRESSOF( barrier ) };
+        vkCmdPipelineBarrier2( mCurrentCommandBuffer, MKT_ADDRESSOF( dependencyInfo ) );
+
+        if (newState != ResourceStates::eUnknown) {
+            texture->SetResourceState( newState );
+        }
     }
 
     auto CommandList::SetEnableAutomaticBarriers(  bool enable  ) -> void {
@@ -1013,6 +1078,10 @@ namespace mikoto::renderer::vulkan {
     auto CommandList::SetClearColor( ITexture* renderTarget, Color color ) -> void {
         if (!renderTarget) {
             return;
+        }
+
+        if (mIsRenderScopeActive) {
+            EndRendering();
         }
 
         // Image needs to be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
@@ -1044,6 +1113,10 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::Write( ITexture *texture, const void *data, core::usize byteSize ) -> void {
+        if (mIsRenderScopeActive) {
+            EndRendering();
+        }
+
         if (mEnableAutomaticBarriers) {
             SetTransition( texture, ResourceStates::eCopyDest );
         }
@@ -1212,16 +1285,18 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( src != nullptr, "Source buffer cannot be null" );
         MKT_ASSERT( dest != nullptr, "Destination buffer cannot be null" );
 
+        if (mIsRenderScopeActive) {
+            EndRendering();
+        }
+
         const core::usize size{ src->GetSizeBytes() };
 
         // The data I’m copying fits inside the destination buffer, starting at dstOffset
         MKT_ASSERT(size <= (dest->GetSizeBytes() - dstOffset), "Destination buffer is too small");
 
         if (mEnableAutomaticBarriers) {
-            RecordTransition(src, ResourceStates::eCopySource);
-            RecordTransition(dest, ResourceStates::eCopyDest);
-
-            CommitBarriers();
+            SetTransition(src, ResourceStates::eCopySource);
+            SetTransition(dest, ResourceStates::eCopyDest);
         }
 
         VkBufferCopy region{};
@@ -1239,10 +1314,13 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::Copy( IBuffer* dest, ITexture* src ) -> void {
+        if (mIsRenderScopeActive) {
+            EndRendering();
+        }
+
         if (mEnableAutomaticBarriers) {
-            RecordTransition( src, ResourceStates::eCopySource  );
-            RecordTransition( dest, ResourceStates::eCopyDest  );
-            CommitBarriers();
+            SetTransition( src, ResourceStates::eCopySource  );
+            SetTransition( dest, ResourceStates::eCopyDest  );
         }
 
         VkBufferImageCopy region{
@@ -1287,10 +1365,13 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::Copy( rhi::IBuffer* dest, rhi::ITexture* src, const TextureSlice& srcSlice ) -> void {
+        if (mIsRenderScopeActive) {
+            EndRendering();
+        }
+
         if (mEnableAutomaticBarriers) {
-            RecordTransition( src, ResourceStates::eCopySource  );
-            RecordTransition( dest, ResourceStates::eCopyDest  );
-            CommitBarriers();
+            SetTransition( src, ResourceStates::eCopySource  );
+            SetTransition( dest, ResourceStates::eCopyDest  );
         }
 
         VkBufferImageCopy region{
@@ -1339,17 +1420,23 @@ namespace mikoto::renderer::vulkan {
 
         MKT_ASSERT( hasColorTarget || hasDepthTarget, "Must provide either depth target or color target(s)" );
 
+        if (mIsRenderScopeActive) {
+            EndRendering();
+        }
+
         if (mEnableAutomaticBarriers) {
             for (auto& rt : state.mCurrentRenderTargets ) {
-                if (rt.mRenderTarget->GetResourceState() != ResourceStates::eRenderTarget) {
-                    RecordTransition( rt.mRenderTarget.GetPtr(), ResourceStates::eRenderTarget );
-                }
+                // Emit a dependency even when the image remains a render target:
+                // the prior scope may have written it and this scope may read or write it.
+                RecordTransition( rt.mRenderTarget.GetPtr(), ResourceStates::eRenderTarget );
             }
 
-            if (!state.mDepthTarget.mRenderTarget.IsEmpty() &&
-                state.mDepthTarget.mLoadOp != LoadOp::eClear &&
-                state.mDepthTarget.mRenderTarget->GetResourceState() != ResourceStates::eDepthWrite) {
-                RecordTransition( state.mDepthTarget.mRenderTarget.GetPtr(), ResourceStates::eDepthWrite );
+            if (!state.mDepthTarget.mRenderTarget.IsEmpty()) {
+                if (state.mDepthTarget.mLoadOp == LoadOp::eClear ) {
+                    RecordTransition( state.mDepthTarget.mRenderTarget.GetPtr(), ResourceStates::eDepthWrite );
+                } else {
+                    RecordTransition( state.mDepthTarget.mRenderTarget.GetPtr(), ResourceStates::eDepthRead );
+                }
             }
 
             CommitBarriers();
@@ -1549,7 +1636,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::BindIndexBuffer( IBuffer *buffer ) -> void {
-        if (mEnableAutomaticBarriers) {
+        if (mEnableAutomaticBarriers && buffer->GetResourceState() != rhi::ResourceStates::eIndexBuffer) {
             SetTransition( buffer, rhi::ResourceStates::eIndexBuffer );
         }
 
@@ -1557,7 +1644,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::BindIndirectBuffer( IBuffer* buffer ) -> void {
-        if (mEnableAutomaticBarriers) {
+        if (mEnableAutomaticBarriers && buffer->GetResourceState() != rhi::ResourceStates::eIndirectArgument) {
             SetTransition( buffer, rhi::ResourceStates::eIndirectArgument );
         }
 
@@ -1567,11 +1654,6 @@ namespace mikoto::renderer::vulkan {
     auto CommandList::BindVertexBuffer( const VertexBufferBinding& binding ) -> void {
         eastl::array bindings{ binding };
         BindVertexBuffers( bindings );
-
-        // const std::array<VkDeviceSize, 1> offsets{ binding.mOffset };
-        // const std::array<VkBuffer, 1> vertexBuffers{ binding.mBuffer->GetNativeHandle( ObjectType::Vk_Buffer ) };
-        //
-        // vkCmdBindVertexBuffers( mCurrentCommandBuffer, binding.mSlot, 1, vertexBuffers.data(), offsets.data() );
     }
 
     auto CommandList::BindVertexBuffers( eastl::span<const VertexBufferBinding> bindings ) -> void {
@@ -1583,7 +1665,7 @@ namespace mikoto::renderer::vulkan {
         for (const auto& binding : bindings) {
             offsets.emplace_back( binding.mOffset );
 
-            if (mEnableAutomaticBarriers) {
+            if (mEnableAutomaticBarriers && binding.mBuffer->GetResourceState() != rhi::ResourceStates::eVertexBuffer) {
                 SetTransition( binding.mBuffer, rhi::ResourceStates::eVertexBuffer );
             }
 
@@ -1661,9 +1743,8 @@ namespace mikoto::renderer::vulkan {
         }
 
         if (mEnableAutomaticBarriers) {
-            RecordTransition(srcTexture, ResourceStates::eCopySource);
-            RecordTransition(dstTexture, ResourceStates::eCopyDest);
-            CommitBarriers();
+            SetTransition(srcTexture, ResourceStates::eCopySource);
+            SetTransition(dstTexture, ResourceStates::eCopyDest);
         }
 
         const bool sameWidth{ srcTexture->GetWidth() == dstTexture->GetWidth() };
@@ -1752,6 +1833,10 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( srcTexture != nullptr, "Source Vulkan texture cannot be null" );
         MKT_ASSERT( dstTexture != nullptr, "Destination Vulkan texture cannot be null" );
 
+        if (mIsRenderScopeActive) {
+            EndRendering();
+        }
+
         VkImage srcImage{ *srcTexture };
         VkImage dstImage{ *dstTexture };
 
@@ -1759,9 +1844,8 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( dstImage != VK_NULL_HANDLE, "Destination Vulkan image is null" );
 
         if (mEnableAutomaticBarriers) {
-            RecordTransition(srcTexture, ResourceStates::eCopySource);
-            RecordTransition(dstTexture, ResourceStates::eCopyDest);
-            CommitBarriers();
+            SetTransition(srcTexture, ResourceStates::eCopySource);
+            SetTransition(dstTexture, ResourceStates::eCopyDest);
         }
 
         VkImageResolve2 imageResolve{};
@@ -1798,6 +1882,10 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::Dispatch( u32 x, u32 y, u32 z ) -> void {
+        if (mIsRenderScopeActive) {
+            EndRendering();
+        }
+
         vkCmdDispatch( mCurrentCommandBuffer, x, y, z );
     }
 

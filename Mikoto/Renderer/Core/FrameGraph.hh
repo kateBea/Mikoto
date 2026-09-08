@@ -627,7 +627,7 @@ namespace mikoto::renderer {
         auto BuildNodeBarriers() -> void;
         auto BuildExecutionContext() -> void;
 
-        auto ProcessReadbackTasks() -> void;
+        auto ProcessReadbackTasks( core::u64 submissionFenceValue ) -> void;
 
     private:
         struct ReadbackTask {

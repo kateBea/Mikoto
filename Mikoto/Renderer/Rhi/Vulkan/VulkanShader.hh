@@ -60,6 +60,7 @@ namespace mikoto::renderer::vulkan {
     private:
         // Slang stuff
         eastl::string mSlangContents{};
+        eastl::string mGlslContents{};
         eastl::string mModulePath{ "" };
         eastl::string mModuleName{ "" };
 

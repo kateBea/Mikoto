@@ -26,14 +26,6 @@ option(MIKOTO_USE_XCB_WINDOW "Use XCB for Linux windowing" OFF)
 option(MIKOTO_USE_WIN32_WINDOW "Use Win32 for Windows windowing" OFF)
 option(MIKOTO_ENABLE_TRACY_PROFILING "Enable tracy profiling" OFF)
 
-# TODO: split cmake setup into individual libraries each with their Cmake
-# ======================================
-# Mikoto MSVC configurations
-# ======================================
-#if(MSVC)
-#    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
-#endif()
-
 # ======================================
 # Language requirements
 # ======================================
@@ -45,231 +37,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # CMake includes
 # ======================================
 include(FetchContent)
-
-# ======================================
-# FreeImage
-# ======================================
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(BUILD_JXR OFF CACHE BOOL "" FORCE)
-set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(BUILD_ZLIB ON CACHE BOOL "" FORCE)
-set(BUILD_LIBPNG ON CACHE BOOL "" FORCE)
-set(BUILD_LIBTIFF ON CACHE BOOL "" FORCE)
-set(BUILD_WEBP ON CACHE BOOL "" FORCE)
-set(BUILD_LIBRAWLITE OFF CACHE BOOL "" FORCE)
-set(BUILD_OPENEXR OFF CACHE BOOL "" FORCE)
-
-# ======================================
-# EASTL
-# ======================================
-set(EASTL_BUILD_BENCHMARK  OFF CACHE BOOL "" FORCE)
-set(EASTL_BUILD_BENCHMARK OFF CACHE BOOL "" FORCE)
-
-# ======================================
-# KTX
-# ======================================
-set(KTX_FEATURE_TESTS OFF CACHE BOOL "" FORCE)
-set(KTX_FEATURE_DOC OFF CACHE BOOL "" FORCE)
-set(KTX_FEATURE_JNI OFF CACHE BOOL "" FORCE)
-set(KTX_FEATURE_PY OFF CACHE BOOL "" FORCE)
-set(KTX_FEATURE_JS OFF CACHE BOOL "" FORCE)
-set(KTX_FEATURE_TOOLS OFF CACHE BOOL "" FORCE)
-set(KTX_FEATURE_TOOLS_CTS OFF CACHE BOOL "" FORCE)
-
-set(KTX_FEATURE_KTX2 ON CACHE BOOL "" FORCE)
-set(KTX_FEATURE_WRITE ON CACHE BOOL "" FORCE)
-set(KTX_FEATURE_TRANSCODE ON CACHE BOOL "" FORCE)
-
-# ======================================
-# MeshOptimizer
-# ======================================
-set(MESHOPT_BUILD_DEMO OFF CACHE BOOL "" FORCE)
-set(MESHOPT_BUILD_GLTFPACK OFF CACHE BOOL "" FORCE)
-set(MESHOPT_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(MESHOPT_STABLE_EXPORTS OFF CACHE BOOL "" FORCE)
-set(MESHOPT_WERROR OFF CACHE BOOL "" FORCE)
-set(MESHOPT_INSTALL OFF CACHE BOOL "" FORCE)
-
-# ======================================
-# Direct3D 12 headers (According to their cmake comments this is technically
-# not needed because they are set if its cmake is top level)
-# ======================================
-set(DXHEADERS_BUILD_TEST OFF CACHE BOOL "")
-set(DXHEADERS_INSTALL OFF CACHE BOOL "")
-set(DXHEADERS_BUILD_GOOGLE_TEST OFF CACHE BOOL "")
-
-# ======================================
-# D3D12MemoryAllocator
-# ======================================
-set(BUILD_DOCUMENTATION OFF CACHE BOOL "")
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
-
-# ======================================
-# tinigltf
-# ======================================
-set(TINYGLTF_BUILD_LOADER_EXAMPLE        OFF  CACHE BOOL "" FORCE)
-set(TINYGLTF_BUILD_GL_EXAMPLES           OFF CACHE BOOL "" FORCE)
-set(TINYGLTF_BUILD_VALIDATOR_EXAMPLE     OFF CACHE BOOL "" FORCE)
-set(TINYGLTF_BUILD_BUILDER_EXAMPLE       OFF CACHE BOOL "" FORCE)
-set(TINYGLTF_BUILD_TESTS                 OFF CACHE BOOL "" FORCE)
-set(TINYGLTF_HEADER_ONLY                 OFF CACHE BOOL "" FORCE)
-set(TINYGLTF_INSTALL                     OFF  CACHE BOOL "" FORCE)
-set(TINYGLTF_INSTALL_VENDOR              OFF  CACHE BOOL "" FORCE)
-
-# ======================================
-# Ozz
-# ======================================
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-
-set(ozz_build_tools ON CACHE BOOL "" FORCE)
-set(ozz_build_gltf  ON CACHE BOOL "" FORCE)
-
-set(ozz_build_fbx ON CACHE BOOL "" FORCE)
-set(ozz_build_samples OFF CACHE BOOL "" FORCE)
-set(ozz_build_howtos OFF CACHE BOOL "" FORCE)
-set(ozz_build_tests OFF CACHE BOOL "" FORCE)
-set(ozz_build_data OFF CACHE BOOL "" FORCE)
-set(ozz_build_simd_ref OFF CACHE BOOL "" FORCE)
-set(ozz_build_msvc_rt_dll OFF CACHE BOOL "" FORCE)
-
-# ======================================
-# Taskflow
-# ======================================
-set(TF_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
-set(TF_BUILD_PROFILER OFF CACHE BOOL "" FORCE)
-set(TF_BUILD_CUDA OFF CACHE BOOL "" FORCE)
-set(TF_BUILD_SYCL OFF CACHE BOOL "" FORCE)
-set(TF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(TF_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-
-# ======================================
-# GLFW options
-# ======================================
-set(GLFW_INSTALL OFF CACHE BOOL "")
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-
-# ======================================
-# SPIR-V-Reflect minimal options
-# ======================================
-set(SPIRV_REFLECT_STATIC_LIB ON CACHE BOOL "Build SPIRV-Reflect as a static library")
-set(SPIRV_REFLECT_BUILD_TESTS OFF CACHE BOOL "Disable SPIRV-Reflect tests")
-set(SPIRV_REFLECT_ENABLE_ASSERTS OFF CACHE BOOL "Disable asserts for SPIRV-Reflect")
-set(SPIRV_REFLECT_ENABLE_ASAN OFF CACHE BOOL "Disable address sanitizer")
-set(SPIRV_REFLECT_INSTALL OFF CACHE BOOL "Disable SPIRV-Reflect install targets")
-set(SPIRV_REFLECT_EXECUTABLE OFF CACHE BOOL "Build spirv-reflect executable")
-
-# ======================================
-# SPIR-V Cross
-# ======================================
-set(SPIRV_CROSS_STATIC ON CACHE BOOL "" FORCE)
-set(SPIRV_CROSS_CLI OFF CACHE BOOL "" FORCE)
-set(SPIRV_CROSS_ENABLE_GLSL ON CACHE BOOL "" FORCE)
-set(SPIRV_CROSS_ENABLE_HLSL OFF CACHE BOOL "" FORCE)
-set(SPIRV_CROSS_ENABLE_MSL OFF CACHE BOOL "" FORCE)
-set(SPIRV_CROSS_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
-
-# ======================================
-# MSDFGEN / MSDF Atlas options
-# ======================================
-set(MSDF_ATLAS_BUILD_STANDALONE OFF)
-set(MSDF_ATLAS_USE_VCPKG OFF)
-set(MSDF_ATLAS_USE_SKIA OFF)
-set(MSDF_ATLAS_DYNAMIC_RUNTIME OFF)
-set(MSDF_ATLAS_MSDFGEN_EXTERNAL ON)
-set(MSDF_ATLAS_INSTALL OFF)
-set(BUILD_SHARED_LIBS OFF)
-
-find_package(Freetype QUIET)
-
-if (NOT Freetype_FOUND)
-    message(WARNING "Freetype was not found! Using bundled Freetype")
-    set(MSDFGEN_CORE_ONLY ON)
-else()
-    message(STATUS "Freetype found: ${Freetype_INCLUDE_DIRS}")
-    set(MSDFGEN_CORE_ONLY OFF)
-endif()
-
-# ======================================
-# Freetype options
-# ======================================
-# FreeType can optionally use HarfBuzz for advanced text shaping (ligatures, kerning, etc.)
-# Mikoto only uses FreeType to rasterize glyphs for MSDF generation — no need for HarfBuzz.
-#
-# Setting FT_REQUIRE_HARFBUZZ and FT_DISABLE_HARFBUZZ disables the dependency entirely,
-# preventing the "Required version higher than found version ()" warning.
-set(FT_REQUIRE_HARFBUZZ OFF CACHE BOOL "Disable HarfBuzz requirement in FreeType" FORCE)
-set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "Disable HarfBuzz support in FreeType" FORCE)
-set(FT_WITH_HARFBUZZ OFF CACHE BOOL "Don't build with HarfBuzz" FORCE)
-
-set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
-set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
-set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
-set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
-set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
-
-# Force CMake-based build (not the legacy Windows one)
-set(FT2_BUILD_LIBRARY ON CACHE BOOL "" FORCE)
-set(FT_WITH_CMAKE ON CACHE BOOL "" FORCE)
-
-set(MSDFGEN_USE_VCPKG OFF)
-set(MSDFGEN_BUILD_STANDALONE OFF)
-set(MSDFGEN_DISABLE_SVG ON)
-set(MSDFGEN_USE_SKIA OFF)
-set(MSDFGEN_DISABLE_PNG ON)
-set(MSDFGEN_DYNAMIC_RUNTIME OFF)
-
-# ======================================
-# File system watcher
-# ======================================
-set(VERBOSE OFF CACHE BOOL "Disable verbose mode" FORCE)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Do not build shared libs" FORCE)
-set(BUILD_STATIC_LIBS ON CACHE BOOL "Build static libs only" FORCE)
-set(BUILD_TEST_APP OFF CACHE BOOL "Disable test app" FORCE)
-set(EFSW_INSTALL OFF CACHE BOOL "Disable install targets" FORCE)
-
-# ======================================
-# OpenCL-SDK
-# ======================================
-set(OPENCL_SDK_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
-set(OPENCL_SDK_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
-set(OPENCL_SDK_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-
-# ======================================
-# yaml-cpp minimal options
-# ======================================
-set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "Disable yaml-cpp contrib")
-set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "Disable yaml-cpp tools")
-set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "Disable yaml-cpp tests")
-set(YAML_CPP_FORMAT_SOURCE OFF CACHE BOOL "Disable source formatting")
-set(YAML_CPP_INSTALL OFF CACHE BOOL "Disable yaml-cpp install targets")
-set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "Build yaml-cpp as static library")
-
-# ======================================
-# Assimp options
-# ======================================
-set(ASSIMP_INSTALL OFF CACHE BOOL "")
-set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "")
-set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
-
-# Only build common importers
-set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "")
-set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "")
-set(ASSIMP_BUILD_FBX_IMPORTER ON CACHE BOOL "")
-set(ASSIMP_BUILD_BLEND_IMPORTER ON CACHE BOOL "")
-set(ASSIMP_BUILD_COLLADA_IMPORTER ON CACHE BOOL "")
-set(ASSIMP_BUILD_GLTF_IMPORTER ON CACHE BOOL "")
-set(ASSIMP_BUILD_3DS_IMPORTER ON CACHE BOOL "")
-set(ASSIMP_BUILD_STL_IMPORTER ON CACHE BOOL "")
-
-# Disable exporters if you don't need them
-set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "")
-
-# Disable tests, docs, examples
-set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "")
-set(ASSIMP_BUILD_DOCS OFF CACHE BOOL "")
-set(ASSIMP_BUILD_SAMPLES OFF CACHE BOOL "")
 
 # ======================================
 # Configuration for Networking
@@ -288,60 +55,86 @@ endif()
 # Third-Party dependencies import
 # ======================================
 
+# These options are intentionally global: upstream projects use these generic
+# cache names, and Mikoto builds its third-party libraries statically.
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+
+# =======================================================
 # fmt
+# =======================================================
 FetchContent_Declare(fmt
         GIT_REPOSITORY https://github.com/fmtlib/fmt.git
         GIT_TAG 11.0.2
 )
 FetchContent_MakeAvailable(fmt)
 
-# glfw
+# =======================================================
+# GLFW
+# =======================================================
+set(GLFW_INSTALL OFF CACHE BOOL "")
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(glfw
         GIT_REPOSITORY https://github.com/glfw/glfw.git
         GIT_TAG 3.3.9
 )
 FetchContent_MakeAvailable(glfw)
 
+# =======================================================
 # ImGui (docking branch)
+# =======================================================
 FetchContent_Declare(imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui.git
         GIT_TAG v1.92.9b-docking
 )
 FetchContent_MakeAvailable(imgui)
 
+# =======================================================
 # ImGuizmo
+# =======================================================
 FetchContent_Declare(ImGuizmo
         GIT_REPOSITORY https://github.com/CedricGuillemet/ImGuizmo.git
         GIT_TAG 1.10
 )
 FetchContent_MakeAvailable(ImGuizmo)
 
+# =======================================================
 # cpptrace
+# =======================================================
 FetchContent_Declare(cpptrace
         GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
         GIT_TAG v0.7.3
 )
 FetchContent_MakeAvailable(cpptrace)
 
+# =======================================================
 # unordered_dense (header-only)
+# =======================================================
 FetchContent_Declare(unordered_dense
         GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
         GIT_TAG v4.4.0
 )
 FetchContent_MakeAvailable(unordered_dense)
 
-# -------------------------------------------------------
+# =======================================================
 # EnTT
-# -------------------------------------------------------
+# =======================================================
 FetchContent_Declare(entt
         GIT_REPOSITORY https://github.com/skypjack/entt.git
         GIT_TAG v4.0.0
 )
 FetchContent_MakeAvailable(entt)
 
-# -------------------------------------------------------
-# Direct3D Headers
-# -------------------------------------------------------
+# =======================================================
+# Direct3D 12 headers (According to their cmake comments this is technically
+# not needed because they are set if its cmake is top level)
+# =======================================================
+set(DXHEADERS_BUILD_TEST OFF CACHE BOOL "")
+set(DXHEADERS_INSTALL OFF CACHE BOOL "")
+set(DXHEADERS_BUILD_GOOGLE_TEST OFF CACHE BOOL "")
+
 FetchContent_Declare(
         DirectX-Headers
         GIT_REPOSITORY https://github.com/microsoft/DirectX-Headers.git
@@ -350,18 +143,18 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(DirectX-Headers)
 
-# -------------------------------------------------------
+# =======================================================
 # nativefiledialog-extended
-# -------------------------------------------------------
+# =======================================================
 FetchContent_Declare(nfd
         GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended.git
         GIT_TAG v1.3.0
 )
 FetchContent_MakeAvailable(nfd)
 
-# -------------------------------------------------------
+# =======================================================
 # PFD
-# -------------------------------------------------------
+# =======================================================
 FetchContent_Declare(
         pfd
         GIT_REPOSITORY https://github.com/samhocevar/portable-file-dialogs.git
@@ -369,28 +162,48 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(pfd)
 
+# =======================================================
 # nlohmann_json
+# =======================================================
 FetchContent_Declare(
         nlohmann_json
         URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+# =======================================================
 # Miniaudio
+# =======================================================
 FetchContent_Declare(miniaudio
         GIT_REPOSITORY https://github.com/mackron/miniaudio.git
         GIT_TAG 0.11.23
 )
 FetchContent_MakeAvailable(miniaudio)
 
-# SpirV-Reflect
+# =======================================================
+# SPIRV-Reflect
+# =======================================================
+set(SPIRV_REFLECT_STATIC_LIB ON CACHE BOOL "Build SPIRV-Reflect as a static library")
+set(SPIRV_REFLECT_BUILD_TESTS OFF CACHE BOOL "Disable SPIRV-Reflect tests")
+set(SPIRV_REFLECT_ENABLE_ASSERTS OFF CACHE BOOL "Disable asserts for SPIRV-Reflect")
+set(SPIRV_REFLECT_ENABLE_ASAN OFF CACHE BOOL "Disable address sanitizer")
+set(SPIRV_REFLECT_INSTALL OFF CACHE BOOL "Disable SPIRV-Reflect install targets")
+set(SPIRV_REFLECT_EXECUTABLE OFF CACHE BOOL "Build spirv-reflect executable")
 FetchContent_Declare(spirv_reflect
         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Reflect.git
         GIT_TAG main
 )
 FetchContent_MakeAvailable(spirv_reflect)
 
-# Spirv Cross
+# =======================================================
+# SPIRV-Cross
+# =======================================================
+set(SPIRV_CROSS_STATIC ON CACHE BOOL "" FORCE)
+set(SPIRV_CROSS_CLI OFF CACHE BOOL "" FORCE)
+set(SPIRV_CROSS_ENABLE_GLSL ON CACHE BOOL "" FORCE)
+set(SPIRV_CROSS_ENABLE_HLSL OFF CACHE BOOL "" FORCE)
+set(SPIRV_CROSS_ENABLE_MSL OFF CACHE BOOL "" FORCE)
+set(SPIRV_CROSS_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
         spirv_cross
         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
@@ -398,35 +211,117 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spirv_cross)
 
+# =======================================================
+# shaderc
+# =======================================================
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(SHADERC_SKIP_TESTS ON CACHE BOOL "" FORCE)
+set(SHADERC_SKIP_EXAMPLES ON CACHE BOOL "" FORCE)
+set(SHADERC_SKIP_EXECUTABLES ON CACHE BOOL "" FORCE)
+set(SHADERC_SKIP_INSTALL ON CACHE BOOL "" FORCE)
+set(SHADERC_SKIP_COPYRIGHT_CHECK ON CACHE BOOL "" FORCE)
+set(SHADERC_ENABLE_WERROR_COMPILE OFF CACHE BOOL "" FORCE)
+# Mikoto uses the static MSVC CRT (/MT and /MTd); shaderc must use the same
+# runtime or the linker rejects the mixed C/C++ runtime libraries.
+set(SHADERC_ENABLE_SHARED_CRT OFF CACHE BOOL "" FORCE)
+
+# shaderc does not vendor glslang and SPIRV-Tools as Git submodules. FetchContent
+# runs PATCH_COMMAND after cloning shaderc but before adding it to this build; the
+# command uses shaderc's DEPS manifest to fetch those required source dependencies.
+FetchContent_Declare(shaderc
+        GIT_REPOSITORY https://github.com/google/shaderc.git
+        # Pinned release rather than the moving main development branch.
+        GIT_TAG v2026.2
+        PATCH_COMMAND ${Python3_EXECUTABLE} utils/git-sync-deps
+)
+
+# shaderc's bundled glslang still declares install exports while it is configured
+# as a build-only dependency, causing an invalid SPIRV-Tools export dependency.
+# Suppress install(...) rules only while shaderc is added, then restore the prior
+# project setting so Mikoto's own install rules below remain unaffected.
+if(DEFINED CMAKE_SKIP_INSTALL_RULES)
+    # Preserve an explicit setting from the parent project before overriding it.
+    set(MIKOTO_PREVIOUS_SKIP_INSTALL_RULES ${CMAKE_SKIP_INSTALL_RULES})
+    set(MIKOTO_HAD_SKIP_INSTALL_RULES TRUE)
+endif()
+set(CMAKE_SKIP_INSTALL_RULES TRUE)
+FetchContent_MakeAvailable(shaderc)
+if(MIKOTO_HAD_SKIP_INSTALL_RULES)
+    # Restore the parent setting exactly when it existed before shaderc.
+    set(CMAKE_SKIP_INSTALL_RULES ${MIKOTO_PREVIOUS_SKIP_INSTALL_RULES})
+else()
+    # Otherwise restore the original undefined state instead of leaving a false value.
+    unset(CMAKE_SKIP_INSTALL_RULES)
+endif()
+unset(MIKOTO_PREVIOUS_SKIP_INSTALL_RULES)
+unset(MIKOTO_HAD_SKIP_INSTALL_RULES)
+
+# =======================================================
 # volk
+# =======================================================
 FetchContent_Declare(volk
         GIT_REPOSITORY https://github.com/zeux/volk.git
         GIT_TAG 1.4.304
 )
 FetchContent_MakeAvailable(volk)
 
+# =======================================================
 # VulkanMemoryAllocator
+# =======================================================
 FetchContent_Declare(VulkanMemoryAllocator
         GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
         GIT_TAG v3.3.0
 )
 FetchContent_MakeAvailable(VulkanMemoryAllocator)
 
+# =======================================================
 # yaml-cpp
+# =======================================================
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "Disable yaml-cpp contrib")
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "Disable yaml-cpp tools")
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "Disable yaml-cpp tests")
+set(YAML_CPP_FORMAT_SOURCE OFF CACHE BOOL "Disable source formatting")
+set(YAML_CPP_INSTALL OFF CACHE BOOL "Disable yaml-cpp install targets")
+set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "Build yaml-cpp as static library")
 FetchContent_Declare(yaml_cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
         GIT_TAG 0.8.0
 )
 FetchContent_MakeAvailable(yaml_cpp)
 
-# freetype
+# =======================================================
+# FreeType
+# =======================================================
+# FreeType can optionally use HarfBuzz for advanced text shaping. Mikoto only
+# rasterizes glyphs for MSDF generation, so avoid that unnecessary dependency.
+set(FT_REQUIRE_HARFBUZZ OFF CACHE BOOL "Disable HarfBuzz requirement in FreeType" FORCE)
+set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "Disable HarfBuzz support in FreeType" FORCE)
+set(FT_WITH_HARFBUZZ OFF CACHE BOOL "Don't build with HarfBuzz" FORCE)
+set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
+set(FT2_BUILD_LIBRARY ON CACHE BOOL "" FORCE)
+set(FT_WITH_CMAKE ON CACHE BOOL "" FORCE)
+
+find_package(Freetype QUIET)
+if (NOT Freetype_FOUND)
+    message(WARNING "Freetype was not found! Using bundled Freetype")
+    set(MSDFGEN_CORE_ONLY ON)
+else()
+    message(STATUS "Freetype found: ${Freetype_INCLUDE_DIRS}")
+    set(MSDFGEN_CORE_ONLY OFF)
+endif()
+
 FetchContent_Declare(freetype
         GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git
         GIT_TAG VER-2-13-2
 )
 FetchContent_MakeAvailable(freetype)
 
+# =======================================================
 # JoltPhysics
+# =======================================================
 FetchContent_Declare(JoltPhysics
         GIT_REPOSITORY https://github.com/jrouwe/JoltPhysics.git
         GIT_TAG v5.3.0
@@ -434,57 +329,90 @@ FetchContent_Declare(JoltPhysics
 )
 FetchContent_MakeAvailable(JoltPhysics)
 
-# assimp
+# =======================================================
+# Assimp
+# =======================================================
+set(ASSIMP_INSTALL OFF CACHE BOOL "")
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "")
+set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL "")
+set(ASSIMP_BUILD_OBJ_IMPORTER ON CACHE BOOL "")
+set(ASSIMP_BUILD_FBX_IMPORTER ON CACHE BOOL "")
+set(ASSIMP_BUILD_BLEND_IMPORTER ON CACHE BOOL "")
+set(ASSIMP_BUILD_COLLADA_IMPORTER ON CACHE BOOL "")
+set(ASSIMP_BUILD_GLTF_IMPORTER ON CACHE BOOL "")
+set(ASSIMP_BUILD_3DS_IMPORTER ON CACHE BOOL "")
+set(ASSIMP_BUILD_STL_IMPORTER ON CACHE BOOL "")
+set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL "")
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "")
+set(ASSIMP_BUILD_DOCS OFF CACHE BOOL "")
+set(ASSIMP_BUILD_SAMPLES OFF CACHE BOOL "")
 FetchContent_Declare(assimp
         GIT_REPOSITORY https://github.com/assimp/assimp.git
         GIT_TAG v5.4.3
 )
 FetchContent_MakeAvailable(assimp)
 
+# =======================================================
 # msdfgen
+# =======================================================
+set(MSDFGEN_USE_VCPKG OFF)
+set(MSDFGEN_BUILD_STANDALONE OFF)
+set(MSDFGEN_DISABLE_SVG ON)
+set(MSDFGEN_USE_SKIA OFF)
+set(MSDFGEN_DISABLE_PNG ON)
+set(MSDFGEN_DYNAMIC_RUNTIME OFF)
 FetchContent_Declare(msdfgen
         GIT_REPOSITORY https://github.com/Chlumsky/msdfgen.git
         GIT_TAG v1.12
 )
 FetchContent_MakeAvailable(msdfgen)
 
+# =======================================================
 # msdf-atlas-gen
+# =======================================================
+set(MSDF_ATLAS_BUILD_STANDALONE OFF)
+set(MSDF_ATLAS_USE_VCPKG OFF)
+set(MSDF_ATLAS_USE_SKIA OFF)
+set(MSDF_ATLAS_DYNAMIC_RUNTIME OFF)
+set(MSDF_ATLAS_MSDFGEN_EXTERNAL ON)
+set(MSDF_ATLAS_INSTALL OFF)
 FetchContent_Declare(msdf_atlas_gen
         GIT_REPOSITORY https://github.com/Chlumsky/msdf-atlas-gen.git
         GIT_TAG v1.3
 )
 FetchContent_MakeAvailable(msdf_atlas_gen)
 
-# -------------------------------------------------------
+# =======================================================
 # spdlog
-# -------------------------------------------------------
+# =======================================================
 FetchContent_Declare(spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
         GIT_TAG v1.12.0  # latest stable release
 )
 FetchContent_MakeAvailable(spdlog)
 
-# -------------------------------------------------------
-# STB_Image
-# -------------------------------------------------------
+# =======================================================
+# stb
+# =======================================================
 FetchContent_Declare(stb
         GIT_REPOSITORY https://github.com/nothings/stb.git
         GIT_TAG master  # stable is usually master for stb
 )
 FetchContent_MakeAvailable(stb)
 
-# -------------------------------------------------------
-# Toml++
-# -------------------------------------------------------
+# =======================================================
+# tomlplusplus
+# =======================================================
 fetchcontent_declare(tomlplusplus
         GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
         GIT_TAG v3.4.0
 )
 FetchContent_MakeAvailable(tomlplusplus)
 
-# -------------------------------------------------------
+# =======================================================
 # GLM
-# -------------------------------------------------------
+# =======================================================
 FetchContent_Declare(
         glm
         GIT_REPOSITORY https://github.com/g-truc/glm.git
@@ -493,9 +421,15 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glm)
 
-# -------------------------------------------------------
+# =======================================================
 # Taskflow
-# -------------------------------------------------------
+# =======================================================
+set(TF_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+set(TF_BUILD_PROFILER OFF CACHE BOOL "" FORCE)
+set(TF_BUILD_CUDA OFF CACHE BOOL "" FORCE)
+set(TF_BUILD_SYCL OFF CACHE BOOL "" FORCE)
+set(TF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(TF_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
         taskflow
         GIT_REPOSITORY https://github.com/taskflow/taskflow.git
@@ -504,9 +438,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(taskflow)
 
-# -------------------------------------------------------
+# =======================================================
 # sol2
-# -------------------------------------------------------
+# =======================================================
 FetchContent_Declare(
         sol2
         GIT_REPOSITORY https://github.com/ThePhD/sol2.git
@@ -515,9 +449,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(sol2)
 
-# -------------------------------------------------------
+# =======================================================
 # Asio
-# -------------------------------------------------------
+# =======================================================
 FetchContent_Declare(
         asio
         GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
@@ -526,9 +460,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(asio)
 
-# -------------------------------------------------------
+# =======================================================
 # Tracy
-# -------------------------------------------------------
+# =======================================================
 FetchContent_Declare(
         tracy
         GIT_REPOSITORY https://github.com/wolfpld/tracy.git
@@ -537,9 +471,18 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(tracy)
 
-# -------------------------------------------------------
-# Ozz
-# -------------------------------------------------------
+# =======================================================
+# Ozz Animation
+# =======================================================
+set(ozz_build_tools ON CACHE BOOL "" FORCE)
+set(ozz_build_gltf ON CACHE BOOL "" FORCE)
+set(ozz_build_fbx ON CACHE BOOL "" FORCE)
+set(ozz_build_samples OFF CACHE BOOL "" FORCE)
+set(ozz_build_howtos OFF CACHE BOOL "" FORCE)
+set(ozz_build_tests OFF CACHE BOOL "" FORCE)
+set(ozz_build_data OFF CACHE BOOL "" FORCE)
+set(ozz_build_simd_ref OFF CACHE BOOL "" FORCE)
+set(ozz_build_msvc_rt_dll OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
         ozz-animation
         GIT_REPOSITORY https://github.com/guillaumeblanc/ozz-animation.git
@@ -548,9 +491,10 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(ozz-animation)
 
-# -------------------------------------------------------
+# =======================================================
 # D3D12MemoryAllocator
-# -------------------------------------------------------
+# =======================================================
+set(BUILD_DOCUMENTATION OFF CACHE BOOL "")
 FetchContent_Declare(
         D3D12MemoryAllocator
         GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator.git
@@ -559,9 +503,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(D3D12MemoryAllocator)
 
-# -------------------------------------------------------
-# Slang ( Target AMD64 architectures by default, see how to change this later)
-# -------------------------------------------------------
+# =======================================================
+# Slang (target AMD64 architectures by default)
+# =======================================================
 if (MSVC)
     set(SLANG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Slang/slang-2026.17-windows-x86_64")
     message(STATUS "Setup slang for MSVC x86_64. SlangRoot is ${SLANG_ROOT}")
@@ -587,19 +531,25 @@ elseif(UNIX)
     )
 endif()
 
-#Filewatch
+# =======================================================
+# Filewatch
+# =======================================================
 # Using https://github.com/ThomasMonkman/filewatch/tree/feature/fix-filesystem (currently working branch)
 # It is single header
 set(FILEWATCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/Filewatch")
 set(FILEWATCH_INCLUDE_DIR "${FILEWATCH_ROOT}")
 
+# =======================================================
 # ImOGuizmo
+# =======================================================
 # Using https://github.com/fknfilewalker/imoguizmo.git
 # It is single header
 set(IMOGUIZMO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/ImOGuizmo")
 set(IMOGUIZMO_INCLUDE_DIR "${IMOGUIZMO_ROOT}")
 
-# ImOGuizmo
+# =======================================================
+# imgui-node-editor
+# =======================================================
 # https://github.com/thedmd/imgui-node-editor.git
 # Slightly modified, in Mikoto we use imgui 1.90+ which has removed some functions this library relied on
 # I modified the library and added some of the missing functions. The verison used for this change was the one from master branch
@@ -607,9 +557,12 @@ set(IMOGUIZMO_INCLUDE_DIR "${IMOGUIZMO_ROOT}")
 set(IMGUI_NO_EDITOR_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Vendor/imgui_node_editor")
 set(IMGUI_NO_EDITOR_INCLUDE_DIR "${IMGUI_NO_EDITOR_ROOT}")
 
-# -------------------------------------------------------
+# =======================================================
 # OpenCL-SDK
-# -------------------------------------------------------
+# =======================================================
+set(OPENCL_SDK_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+set(OPENCL_SDK_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+set(OPENCL_SDK_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
         OpenCL-SDK
         GIT_REPOSITORY https://github.com/KhronosGroup/OpenCL-SDK.git
@@ -618,9 +571,15 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(OpenCL-SDK)
 
-# -------------------------------------------------------
+# =======================================================
 # MeshOptimizer
-# -------------------------------------------------------
+# =======================================================
+set(MESHOPT_BUILD_DEMO OFF CACHE BOOL "" FORCE)
+set(MESHOPT_BUILD_GLTFPACK OFF CACHE BOOL "" FORCE)
+set(MESHOPT_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(MESHOPT_STABLE_EXPORTS OFF CACHE BOOL "" FORCE)
+set(MESHOPT_WERROR OFF CACHE BOOL "" FORCE)
+set(MESHOPT_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
         meshoptimizer
         GIT_REPOSITORY https://github.com/zeux/meshoptimizer.git
@@ -629,9 +588,10 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(meshoptimizer)
 
-# -------------------------------------------------------
+# =======================================================
 # EASTL
-# -------------------------------------------------------
+# =======================================================
+set(EASTL_BUILD_BENCHMARK OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
         EASTL
         GIT_REPOSITORY https://github.com/electronicarts/EASTL.git
@@ -640,9 +600,17 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(EASTL)
 
-# -------------------------------------------------------
+# =======================================================
 # TinyGLTF
-# -------------------------------------------------------
+# =======================================================
+set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_GL_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_VALIDATOR_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_BUILDER_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_HEADER_ONLY OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_INSTALL OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_INSTALL_VENDOR OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
         tinygltf
         GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
@@ -651,9 +619,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(tinygltf)
 
-# -------------------------------------------------------
-# Magic-Enum
-# -------------------------------------------------------
+# =======================================================
+# magic_enum
+# =======================================================
 FetchContent_Declare(
         magic_enum
         GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
@@ -662,9 +630,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(magic_enum)
 
-# -------------------------------------------------------
-# Reflect
-# -------------------------------------------------------
+# =======================================================
+# reflect
+# =======================================================
 FetchContent_Declare(
         reflect
         GIT_REPOSITORY https://github.com/qlibs/reflect.git
@@ -673,9 +641,19 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(reflect)
 
-# -------------------------------------------------------
+# =======================================================
 # KTX-Software
-# -------------------------------------------------------
+# =======================================================
+set(KTX_FEATURE_TESTS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_DOC OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_JNI OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_PY OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_JS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TOOLS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TOOLS_CTS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_KTX2 ON CACHE BOOL "" FORCE)
+set(KTX_FEATURE_WRITE ON CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TRANSCODE ON CACHE BOOL "" FORCE)
 FetchContent_Declare(
         ktx
         GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software.git
@@ -684,9 +662,16 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(ktx)
 
-# -------------------------------------------------------
-# Free Image
-# -------------------------------------------------------
+# =======================================================
+# FreeImage
+# =======================================================
+set(BUILD_JXR OFF CACHE BOOL "" FORCE)
+set(BUILD_ZLIB ON CACHE BOOL "" FORCE)
+set(BUILD_LIBPNG ON CACHE BOOL "" FORCE)
+set(BUILD_LIBTIFF ON CACHE BOOL "" FORCE)
+set(BUILD_WEBP ON CACHE BOOL "" FORCE)
+set(BUILD_LIBRAWLITE OFF CACHE BOOL "" FORCE)
+set(BUILD_OPENEXR OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
         FreeImage
         GIT_REPOSITORY https://github.com/danoli3/FreeImage.git
@@ -794,6 +779,7 @@ set(LIBRARIES
     magic_enum::magic_enum
     spirv-cross-core
     spirv-cross-glsl
+    shaderc
 )
 
 # ======================================

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <EASTL/numeric_limits.h>
+
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Event.hh>
@@ -23,6 +25,8 @@
 #include <Assets/ImageProcessor.hh>
 
 #include <Layers/EditorHelloCubeLayer.hh>
+
+#include <Logging/Logger.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
@@ -261,6 +265,10 @@ namespace mikoto::editor {
             .mFarPlane = 3000.0f,
             .mWindow = mWindow };
         mEditorCamera = eastl::make_unique<SceneCamera>( cameraDescription );
+
+#if MIKOTO_DEBUG
+        DebugCompileGlsl();
+#endif
     }
 
     auto EditorHelloCubeLayer::OnDestroy() -> void {
@@ -290,6 +298,12 @@ namespace mikoto::editor {
 
     auto EditorHelloCubeLayer::OnUpdate( float timeStep ) -> void {
         mCommandList->Begin( { .mScopeName = "EditorHelloCubeLayer Render" } );
+
+        // Resource barriers must be emitted before dynamic rendering begins.
+        // BindVertexBuffer and BindIndexBuffer then see the already-correct
+        // state while each mesh render scope is active.
+        mCommandList->SetTransition( mVertexBuffer.GetPtr(), ResourceStates::eVertexBuffer );
+        mCommandList->SetTransition( mIndexBuffer.GetPtr(), ResourceStates::eIndexBuffer );
 
         DrawWireframeMesh();
 
@@ -426,6 +440,153 @@ namespace mikoto::editor {
         mCommandList->DrawIndexed( drawArguments );
 
         mCommandList->EndRendering();
+    }
+
+    auto EditorHelloCubeLayer::DebugCompileGlsl() -> void {
+        if ( !mDevice->IsGraphicsApi( GraphicsAPI::eVulkan ) ) {
+            MKT_CORE_LOGGER_WARN( "Skipping GLSL debug render because shaderc is currently only wired into the Vulkan backend." );
+            return;
+        }
+
+        constexpr u32 kRenderWidth{ 512 };
+        constexpr u32 kRenderHeight{ 512 };
+        constexpr usize kBytesPerPixel{ 4 };
+
+        // This intentionally has no vertex buffer. gl_VertexIndex selects one
+        // of the three positions and colours, which keeps the shaderc smoke test
+        // focused on the GLSL-to-SPIR-V path.
+        constexpr char kVertexShaderSource[] = R"(
+            #version 460
+
+            layout(location = 0) out vec3 outColor;
+
+            const vec2 kPositions[3] = vec2[](
+                vec2(-0.75, -0.75),
+                vec2( 0.75, -0.75),
+                vec2( 0.00,  0.75)
+            );
+
+            const vec3 kColors[3] = vec3[](
+                vec3(1.0, 0.0, 0.0),
+                vec3(0.0, 1.0, 0.0),
+                vec3(0.0, 0.0, 1.0)
+            );
+
+            void main() {
+                gl_Position = vec4(kPositions[gl_VertexIndex], 0.0, 1.0);
+                outColor = kColors[gl_VertexIndex];
+            }
+            )";
+
+        constexpr char kPixelShaderSource[] = R"(
+            #version 460
+
+            layout(location = 0) in vec3 inColor;
+            layout(location = 0) out vec4 outColor;
+
+            void main() {
+                outColor = vec4(inColor, 1.0);
+            }
+            )";
+
+        auto vertexShader{ mDevice->CreateShader( ShaderModuleCreateDescription{}
+            .SetContents( const_cast<char*>( kVertexShaderSource ), sizeof( kVertexShaderSource ) - 1 )
+            .SetModuleName( "ShadercDebugTriangle.vert" )
+            .SetLanguage( ShaderLanguage::eGLSL )
+            .SetStage( ShaderType::eVertex ) ) };
+        auto pixelShader{ mDevice->CreateShader( ShaderModuleCreateDescription{}
+            .SetContents( const_cast<char*>( kPixelShaderSource ), sizeof( kPixelShaderSource ) - 1 )
+            .SetModuleName( "ShadercDebugTriangle.frag" )
+            .SetLanguage( ShaderLanguage::eGLSL )
+            .SetStage( ShaderType::ePixel ) ) };
+
+        if ( vertexShader.IsEmpty() || pixelShader.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to create shaderc debug shader resources." );
+            return;
+        }
+
+        auto colorTarget{ mDevice->CreateTexture( TextureCreateDescription{}
+            .SetName( "ShadercDebugTriangle_ColorTarget" )
+            .SetWidth( kRenderWidth )
+            .SetHeight( kRenderHeight )
+            .SetDimensions( TextureDimension::eTexture2D )
+            .SetMultisampling( Multisampling::eMsaaX1 )
+            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::CopySource )
+            .SetFormat( Format::eRGBA8_UNORM ) ) };
+
+        auto readbackBuffer{ mDevice->CreateBuffer( BufferCreateDescription{}
+            .SetName( "ShadercDebugTriangle_Readback" )
+            .SetByteSize( kRenderWidth * kRenderHeight * kBytesPerPixel )
+            .SetBufferUsage( BufferUsageFlagsBits::CopyDest )
+            .SetHeapType( HeapType::eReadback ) ) };
+
+        auto pipeline{ mDevice->CreatePipeline( GraphicsPipelineDescription{}
+            .AddShader( pixelShader )
+            .AddShader( vertexShader )
+            .AddColorFormat( Format::eRGBA8_UNORM )
+            .SetUseReflection( false )
+            .SetDepthTest( false )
+            .SetDepthWrite( false )
+            .SetCullMode( CullMode::eNone )
+            .SetPolygonMode( PolygonMode::eFill )
+            .SetWindingOrder( WindingOrder::eCounterClockwise )
+            .SetTopology( PrimitiveTopology::eTriangleList ) ) };
+
+        auto commandList{ mDevice->CreateCommandList( QueueType::eGraphics ) };
+        if ( colorTarget.IsEmpty() || readbackBuffer.IsEmpty() || pipeline.IsEmpty() || commandList.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to create resources for the shaderc debug render." );
+            return;
+        }
+
+        commandList->SetEnableAutomaticBarriers( true );
+        commandList->Begin( { .mScopeName = "Shaderc GLSL Debug Triangle" } );
+        commandList->BeginRendering( RenderDescription{}
+            .SetRenderArea( Rect{ as<i32>( kRenderWidth ), as<i32>( kRenderHeight ) } )
+            .AddRenderTarget( colorTarget, kColorBlack ) );
+        commandList->BindPipeline( pipeline.GetPtr() );
+        commandList->SetViewportState( ViewportState{}
+            .AddViewportAndScissorRect( Viewport( kRenderWidth, kRenderHeight ) ) );
+        commandList->Draw( DrawArguments{}
+            .SetVertexCount( 3 )
+            .SetInstanceCount( 1 ) );
+        commandList->EndRendering();
+        commandList->Copy( readbackBuffer.GetPtr(), colorTarget.GetPtr() );
+        commandList->End();
+
+        IQueue* graphicsQueue{ mDevice->GetQueue( QueueType::eGraphics ) };
+        if ( !graphicsQueue ) {
+            MKT_CORE_LOGGER_ERROR( "The Vulkan device does not expose a graphics queue for the shaderc debug render." );
+            return;
+        }
+
+        constexpr u64 kCompletionValue{ 1 };
+        auto completionFence{ mDevice->CreateFence( 0 ) };
+        if ( completionFence.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to create a completion fence for the shaderc debug render." );
+            return;
+        }
+
+        graphicsQueue->ExecuteCommandLists( SubmitInfo{}
+            .AddCommandList( commandList )
+            .AddSignal( completionFence, kCompletionValue ) );
+
+        // Wait only for this submission before mapping its readback buffer.
+        if ( !completionFence->Wait( kCompletionValue, eastl::numeric_limits<u64>::max() ) ) {
+            MKT_CORE_LOGGER_ERROR( "Timed out waiting for the shaderc debug render to complete." );
+            return;
+        }
+
+        void* mappedImage{ mDevice->Map( readbackBuffer.GetPtr() ) };
+        if ( !mappedImage ) {
+            MKT_CORE_LOGGER_ERROR( "Could not map the shaderc debug render readback buffer." );
+            return;
+        }
+
+        constexpr const char* kOutputPath{ "ShadercGlslTriangle.png" };
+        asset::WriteImage( Path{ kOutputPath }, mappedImage, kRenderWidth, kRenderHeight, ImageFormat::eRGBA8_UINT );
+        mDevice->UnMap( readbackBuffer.GetPtr() );
+
+        MKT_CORE_LOGGER_INFO( "Wrote shaderc GLSL debug triangle to '{}'.", kOutputPath );
     }
 
     auto EditorHelloCubeLayer::OnEvent( core::IEvent &event ) -> void {

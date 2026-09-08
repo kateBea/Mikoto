@@ -21,6 +21,8 @@
 
 #include <spirv_reflect.h>
 
+#include <shaderc/shaderc.hpp>
+
 #include <slang.h>
 #include <slang-com-ptr.h>
 
@@ -44,6 +46,49 @@ namespace mikoto::renderer::vulkan {
     using namespace mikoto::core;
     using namespace mikoto::memory;
     using namespace mikoto::renderer::rhi;
+
+    MKT_NODISCARD auto GetShadercShaderKind( ShaderType stage, shaderc_shader_kind& kind ) -> bool {
+        switch (stage) {
+            case ShaderType::eVertex:
+                kind = shaderc_vertex_shader;
+                return true;
+            case ShaderType::ePixel:
+                kind = shaderc_fragment_shader;
+                return true;
+            case ShaderType::eCompute:
+                kind = shaderc_compute_shader;
+                return true;
+            case ShaderType::eGeometry:
+                kind = shaderc_geometry_shader;
+                return true;
+            case ShaderType::eHull:
+                kind = shaderc_tess_control_shader;
+                return true;
+            case ShaderType::eDomain:
+                kind = shaderc_tess_evaluation_shader;
+                return true;
+            case ShaderType::eRayGeneration:
+                kind = shaderc_raygen_shader;
+                return true;
+            case ShaderType::eIntersection:
+                kind = shaderc_intersection_shader;
+                return true;
+            case ShaderType::eAnyHit:
+                kind = shaderc_anyhit_shader;
+                return true;
+            case ShaderType::eClosestHit:
+                kind = shaderc_closesthit_shader;
+                return true;
+            case ShaderType::eMiss:
+                kind = shaderc_miss_shader;
+                return true;
+            case ShaderType::eInvalid:
+            case ShaderType::eCount:
+                return false;
+        }
+
+        return false;
+    }
 
     MKT_NODISCARD auto GetGlslFromSpirv(const u32* ptr, usize count) -> eastl::string {
         // Create the compiler instance with the SPIR-V data
@@ -79,6 +124,7 @@ namespace mikoto::renderer::vulkan {
                 mSlangContents = eastl::string{ (cstr)desc.mShaderContents, desc.mShaderContentsSize };
                 break;
             case ShaderLanguage::eGLSL:
+                mGlslContents = eastl::string{ static_cast<const char*>( desc.mShaderContents ), desc.mShaderContentsSize };
                 break;
             case ShaderLanguage::eSPIRV: {
                 mSpirvContents = eastl::vector<u32>{
@@ -117,11 +163,19 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Shader::GetContents() const -> const void* {
-        return mSlangSpirv->getBufferPointer();
+        if (mLanguage == ShaderLanguage::eSlang) {
+            return mSlangSpirv ? mSlangSpirv->getBufferPointer() : nullptr;
+        }
+
+        return mSpirvContents.empty() ? nullptr : mSpirvContents.data();
     }
 
     auto Shader::GetContentsByteSize() const -> core::usize {
-        return mSlangSpirv->getBufferSize();
+        if (mLanguage == ShaderLanguage::eSlang) {
+            return mSlangSpirv ? mSlangSpirv->getBufferSize() : 0;
+        }
+
+        return MKT_VECTOR_SIZE_BYTES( mSpirvContents );
     }
 
     auto Shader::Initialize() -> void {
@@ -141,7 +195,7 @@ namespace mikoto::renderer::vulkan {
                 MKT_ASSERT( false, "Only slang supported for vulkan now." );
         }
 
-        mIsAllocated = true;
+        mIsAllocated = mModule != VK_NULL_HANDLE;
     }
 
     auto Shader::CompileForSlang() -> void {
@@ -227,7 +281,92 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Shader::CompileForGlsl() -> void {
+        if (mGlslContents.empty()) {
+            MKT_CORE_LOGGER_ERROR( "Cannot compile GLSL shader '{}': source is empty.", mModulePath.c_str() );
+            return;
+        }
 
+        shaderc_shader_kind shaderKind{};
+        if ( !GetShadercShaderKind( mStage, shaderKind ) ) {
+            MKT_CORE_LOGGER_ERROR( "Cannot compile GLSL shader '{}': unsupported shader stage.", mModulePath.c_str() );
+            return;
+        }
+
+        shaderc::Compiler compiler{};
+        shaderc::CompileOptions options{};
+        options.SetSourceLanguage( shaderc_source_language_glsl );
+        options.SetTargetEnvironment( shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3 );
+        options.SetTargetSpirv( shaderc_spirv_version_1_6 );
+
+#if MIKOTO_DEBUG
+        options.SetGenerateDebugInfo();
+        options.SetOptimizationLevel( shaderc_optimization_level_zero );
+#else
+        options.SetOptimizationLevel( shaderc_optimization_level_performance );
+#endif
+
+        const cstr sourceName{ mModulePath.empty() ? "<memory>" : mModulePath.c_str() };
+        const auto compilationResult{ compiler.CompileGlslToSpv(
+            mGlslContents.data(),
+            mGlslContents.size(),
+            shaderKind,
+            sourceName,
+            mEntryPoint.c_str(),
+            options ) };
+
+        if (compilationResult.GetCompilationStatus() != shaderc_compilation_status_success) {
+            MKT_CORE_LOGGER_ERROR(
+                "GLSL compilation failed for '{}':\n{}",
+                sourceName,
+                compilationResult.GetErrorMessage() );
+            return;
+        }
+
+        mSpirvContents = eastl::vector<u32>{ compilationResult.cbegin(), compilationResult.cend() };
+        if (mSpirvContents.empty()) {
+            MKT_CORE_LOGGER_ERROR( "GLSL compilation produced no SPIR-V for '{}'.", sourceName );
+            return;
+        }
+
+#if MIKOTO_DEBUG
+        // Check client specified correctly the stage.
+        SpvReflectShaderModule reflectionModule{};
+        const SpvReflectResult reflectionResult{
+            spvReflectCreateShaderModule( MKT_VECTOR_SIZE_BYTES( mSpirvContents ), mSpirvContents.data(), &reflectionModule ) };
+        if (reflectionResult == SPV_REFLECT_RESULT_SUCCESS) {
+            const VkShaderStageFlagBits moduleStage{ as<VkShaderStageFlagBits>( reflectionModule.shader_stage ) };
+            if (GetShaderModuleStage( mStage ) != moduleStage) {
+                mStage = GetShaderModuleStage( moduleStage );
+                MKT_CORE_LOGGER_WARN( "Specified wrong stage for shader {}. Changed to right type.", sourceName );
+            }
+            spvReflectDestroyShaderModule( &reflectionModule );
+        }
+#endif
+
+        VkShaderModuleCreateInfo moduleCreateInfo{ initializers::ShaderModuleCreateInfo() };
+        moduleCreateInfo.codeSize = MKT_VECTOR_SIZE_BYTES( mSpirvContents );
+        moduleCreateInfo.pCode = mSpirvContents.data();
+
+        MKT_VK_CHECK( vkCreateShaderModule(
+            checked_cast<Device*>( mDevice )->GetDevice(),
+            MKT_ADDRESSOF( moduleCreateInfo ),
+            nullptr,
+            MKT_ADDRESSOF( mModule ) ) );
+
+        mStageCreateInfo = initializers::PipelineShaderStageCreateInfo();
+        mStageCreateInfo.stage = GetShaderModuleStage( mStage );
+        mStageCreateInfo.module = mModule;
+        mStageCreateInfo.pName = mEntryPoint.c_str();
+        mStageCreateInfo.flags = 0;
+        mStageCreateInfo.pNext = nullptr;
+        mStageCreateInfo.pSpecializationInfo = nullptr;
+
+#if !defined(NDEBUG)
+        mShaderCode = mGlslContents;
+#endif
+
+        mGlslContents.clear();
+        mGlslContents.shrink_to_fit();
     }
 
     auto Shader::CompileForSpirv() -> void {
@@ -267,7 +406,6 @@ namespace mikoto::renderer::vulkan {
         //mShaderCode = GetGlslFromSpirv( mSpirvContents.data(), MKT_VECTOR_SIZE_BYTES( mSpirvContents ) );
 #endif
 
-        mSpirvContents.clear();
     }
 
     auto Shader::Destroy() -> void {

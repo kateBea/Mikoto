@@ -110,8 +110,7 @@ namespace mikoto::asset {
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down AssetsService..." );
 
-        mTextures2D.Clear();
-        mTexturesCubes.Clear();
+        mTextures.Clear();
         mAudios.Clear();
         mFonts.Clear();
         mModels.Clear();
@@ -133,7 +132,7 @@ namespace mikoto::asset {
     }
 
     auto AssetsService::GetDummyTexture() -> TextureHandle {
-        return mTextures2D[kDummyTexturePath];
+        return mTextures.GetIfReady( kDummyTexturePath );
     }
 
     auto AssetsService::SerializeMaterial( material::MaterialHandle material ) const -> bool {
@@ -205,7 +204,7 @@ namespace mikoto::asset {
 
         CreateAssetCacheFolder( path );
 
-        return mModels.LoadOrGet( path, [this, description, path]() -> ModelHandle {
+        return mModels.GetOrLoad( path, [this, description, path]() -> ModelHandle {
             // This lambda runs ONLY once (per asset)
             ModelHandle model{
                 MeshFactory::Get()->ImportModel( ModelLoadDescription{
@@ -247,7 +246,7 @@ namespace mikoto::asset {
         CreateAssetCacheFolder( path );
 
         if ( description.mDimension == TextureDimension::eTexture2D ) {
-            return mTextures2D.LoadOrGet( path, [this, path]() -> TextureHandle {
+            return mTextures.GetOrLoad( path, [this, path]() -> TextureHandle {
                 asset::ImageHandle image{ asset::ProcessImage2D( path ) };
                 if (image.IsEmpty() ) {
                     return TextureHandle::CreateEmpty();
@@ -292,7 +291,7 @@ namespace mikoto::asset {
 
         CreateAssetCacheFolder( path );
 
-        return mAudios.LoadOrGet( path, [this, path, description]() -> AudioHandle {
+        return mAudios.GetOrLoad( path, [this, path, description]() -> AudioHandle {
             AudioHandle audio{ mAudioDevice->LoadAudio( description ) };
 
             if ( !audio.IsEmpty() ) {
@@ -329,7 +328,7 @@ namespace mikoto::asset {
 
         CreateAssetCacheFolder( path );
 
-        return mFonts.LoadOrGet( path, [this, description, path, fontFile = description.mFile] {
+        return mFonts.GetOrLoad( path, [this, description, path, fontFile = description.mFile] {
             auto fontDesc{ FontLoadDescription{}
                 .SetFile( fontFile )
                 .SetSize( description.mSize ) };

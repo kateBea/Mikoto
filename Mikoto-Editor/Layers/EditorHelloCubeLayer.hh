@@ -54,6 +54,8 @@ namespace mikoto::editor {
         auto DrawNormalMesh() -> void;
         auto DrawWireframeMesh() -> void;
 
+        auto DebugCompileGlsl() -> void;
+
     private:
         // Cube definition
         eastl::vector<asset::VertexDescription_Std430Alignment> mVertices{

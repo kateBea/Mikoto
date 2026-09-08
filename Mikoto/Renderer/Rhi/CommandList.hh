@@ -712,7 +712,13 @@ namespace mikoto::renderer::rhi {
         virtual auto SetBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
 
         /**
-         * Queues a whole-buffer transition for automatic batching.
+         * Immediately records a transition for an entire buffer.
+         *
+         * Use @ref RecordTransition followed by @ref CommitBarriers when
+         * batching several transitions into one barrier command.
+         * This operation must occur before @ref BeginRendering.
+         * It also emits a memory dependency when the current and destination
+         * states are identical.
          *
          * @param buffer Buffer to transition.
          * @param stateBits Destination resource state.
@@ -720,7 +726,13 @@ namespace mikoto::renderer::rhi {
         virtual auto SetTransition( IBuffer* buffer, ResourceStates stateBits ) -> void = 0;
 
         /**
-         * Queues a whole-texture transition for automatic batching.
+         * Immediately records a transition for an entire texture.
+         *
+         * Use @ref RecordTransition followed by @ref CommitBarriers when
+         * batching several transitions into one barrier command.
+         * This operation must occur before @ref BeginRendering.
+         * It also emits a memory dependency when the current and destination
+         * states are identical.
          *
          * @param texture Texture to transition.
          * @param stateBits Destination resource state.

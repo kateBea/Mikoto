@@ -674,12 +674,12 @@ namespace mikoto::renderer {
     auto FrameGraph::Execute() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        // The current render context batches all work onto one graphics queue.
+        // Record every pass into this one command list so the topological order
+        // is also the Vulkan execution order.
         mGraphicsCommands->Begin( { .mScopeName = "TaskGraph Graphics Commands" } );
-        mComputeCommands->Begin( { .mScopeName = "TaskGraph Compute Commands" } );
-        mTransferCommands->Begin( { .mScopeName = "TaskGraph Transfer Commands" } );
 
         BindResources( mGraphicsCommands );
-        BindResources( mComputeCommands );
 
         for ( auto& passName: mExecutionPlan.mSortedExecutionPasses ) {
             if ( !mNodeControl->mNodes[passName].mIsAlive ) {
@@ -723,30 +723,17 @@ namespace mikoto::renderer {
         }
 
         mGraphicsCommands->End();
-        mComputeCommands->End();
-        mTransferCommands->End();
 
-        // I think I might end up having each command context own its own command list
-        // because the way I see this code its three queues each running commands in parallel
-        // which is not the case for Vulkan right now (Vulkan is using one queue now), so this assumes
-        // these tasks or commands have no dependency which is not the case necessarily.
-        auto submitInfoTransfer{ SubmitInfo{}
-            .AddSignal( mFence, mFenceValue++ )
-            .AddCommandList( mTransferCommands ) };
-        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfoTransfer), QueueType::eTransfer);
-
-        auto submitInfoCompute{ SubmitInfo{}
-            .AddCommandList( mComputeCommands ) };
-        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfoCompute), QueueType::eCompute);
-
+        const u64 submissionFenceValue{ mFenceValue++ };
         auto submitInfoGraphics{ SubmitInfo{}
+            .AddSignal( mFence, submissionFenceValue )
             .AddCommandList( mGraphicsCommands ) };
         RenderSystem::Get()->BatchSubmission(eastl::move(submitInfoGraphics), QueueType::eGraphics);
 
-        ProcessReadbackTasks();
+        ProcessReadbackTasks( submissionFenceValue );
     }
 
-    auto FrameGraph::ProcessReadbackTasks() -> void {
+    auto FrameGraph::ProcessReadbackTasks( u64 submissionFenceValue ) -> void {
         auto it{ mReadbackTasks.begin() };
         while ( it != mReadbackTasks.end() ) {
             if (!it->mHasBeenRegistered) {
@@ -754,8 +741,9 @@ namespace mikoto::renderer {
                 it->mTaskID = mReadbackManager->RegisterCallback( it->mTask, it->mRunsPerFrame );
             }
 
-            // Update the submission fence value
-            mReadbackManager->UpdateTaskFenceValue( it->mTaskID, mFenceValue );
+            // Wait for the command list containing the copy, not the next
+            // unused timeline value.
+            mReadbackManager->UpdateTaskFenceValue( it->mTaskID, submissionFenceValue );
 
             if (!it->mRunsPerFrame) {
                 // Runs only once, delete to not
@@ -940,20 +928,10 @@ namespace mikoto::renderer {
                 const FGPipelineStage prevState{ mNodeControl->mResources[resourceHandle].mCurrentState };
                 const FGPipelineStage nextState{ mNodeControl->mNodes[passName].mResourceStates[resourceHandle].mState };
 
-                if (prevState == FGPipelineStage::eUnknown) {
-                    // First use -> just set state, no barrier
-                    // I think I wil probably remove this and transition all resources to general layout so that
-                    // I only do the next check for barriers for each pass
-                    mExecutionPlan.mBarriers[passName][resourceHandle] = eastl::make_pair(
-                        mNodeControl->mResources[resourceHandle].mName,
-                        FGBarrier{
-                        resourceHandle,
-                        access,
-                        prevState,
-                        nextState });
-                    mNodeControl->mResources[resourceHandle].mCurrentState = nextState;
-                }
-                else if (prevState != nextState || access == FGResourceAccess::eWrite ) {
+                // A first texture use starts from Vulkan's UNDEFINED layout and
+                // therefore still needs a native transition. The same-state
+                // write case retains the WAW memory dependency.
+                if (prevState != nextState || access == FGResourceAccess::eWrite ) {
                     mExecutionPlan.mBarriers[passName][resourceHandle] = eastl::make_pair(
                         mNodeControl->mResources[resourceHandle].mName, FGBarrier{
                         resourceHandle,
@@ -976,24 +954,11 @@ namespace mikoto::renderer {
     }
 
     auto FrameGraph::BuildExecutionContext() -> void {
-        // TODO: Pending redesign, after parallel command recording is properly implemented
+        // TODO: Replace this single-queue path with queue-aware scheduling and
+        // timeline-semaphore dependencies before recording passes in parallel.
 
         for (auto& [passName, node] : mNodeControl->mNodes ) {
-            CommandListHandle commandList{};
-            switch (node.mType) {
-                case FGPassType::eGraphics:
-                    commandList = mGraphicsCommands;
-                    break;
-                case FGPassType::eCompute:
-                    commandList = mComputeCommands;
-                    break;
-                case FGPassType::eTransfer:
-                    commandList = mTransferCommands;
-                    break;
-                default:;
-            }
-
-            node.mCommandList = commandList;
+            node.mCommandList = mGraphicsCommands;
             mNodeControl->mContexts.try_emplace( passName, MKT_ADDRESSOF( node ), mResourceManager.get(), mStatisticsManager.get() );
         }
 
@@ -1003,34 +968,10 @@ namespace mikoto::renderer {
                 continue;
             }
 
-            auto& pass{ mNodeControl->mNodes[passName] };
-
-            CommandListHandle cmd{};
-            switch (pass.mType) {
-                case FGPassType::eGraphics:
-                    cmd = mGraphicsCommands;
-                    break;
-                case FGPassType::eCompute:
-                    cmd = mComputeCommands;
-                    break;
-                case FGPassType::eTransfer:
-                    cmd = mTransferCommands;
-                    break;
-                default:;
-            }
-
-            auto task = mExecutionPlan.mExecutionTaskGraph.emplace([this, passName, cmd]() mutable {
-                auto& pass{ mNodeControl->mNodes[passName] };
-                auto& ctx{ mNodeControl->mContexts.at(passName) };
-
-                if ( pass.mType != FGPassType::eGeneric ) {
-                    cmd->Begin( {} );
-                }
-
-                // Off load this work to workers threads
-                // Vulkan could use secondary command buffers here
-
-            });
+            // This task graph currently represents dependencies for diagnostics.
+            // Command recording happens serially in Execute() until real
+            // queue-aware, secondary-command-buffer recording is implemented.
+            auto task = mExecutionPlan.mExecutionTaskGraph.emplace( [] {} );
 
             task.name( passName.c_str() );
 

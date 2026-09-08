@@ -15,44 +15,35 @@
 #ifndef MIKOTO_ASSETS_SERVICE_HH
 #define MIKOTO_ASSETS_SERVICE_HH
 
-#include <mutex>
-
-#include <EASTL/tuple.h>
 #include <EASTL/string.h>
-#include <EASTL/vector.h>
-#include <EASTL/utility.h>
-#include <EASTL/unique_ptr.h>
 #include <EASTL/string_view.h>
-
-#include <ankerl/unordered_dense.h>
-
-#include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/String.hh>
-#include <Core/Service.hh>
-#include <Core/Singleton.hh>
-#include <Core/ResourcePool.hh>
+#include <EASTL/tuple.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
 
 #include <Assets/Asset.hh>
+#include <Assets/AssetLoadRegistry.hh>
+#include <Assets/MeshFactory.hh>
 #include <Assets/Model.hh>
 #include <Audio/AudioClip.hh>
 #include <Audio/AudioDevice.hh>
-#include <Assets/MeshFactory.hh>
-
+#include <Core/Core.hh>
+#include <Core/ResourcePool.hh>
+#include <Core/Service.hh>
+#include <Core/Singleton.hh>
+#include <Core/String.hh>
+#include <Core/Types.hh>
 #include <Filesystem/FileSystem.hh>
-
-#include <Material/SkyboxMaterial.hh>
 #include <Material/PhysicalMaterial.hh>
 #include <Material/PostProcessMaterial.hh>
-
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/Texture.hh>
-#include <Renderer/Rhi/GpuDevice.hh>
-
-#include <Renderer/Text/Font.hh>
-
-#include <Threading/TaskService.hh>
+#include <Material/SkyboxMaterial.hh>
 #include <Renderer/Core/FontFactory.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Text/Font.hh>
+#include <Threading/TaskService.hh>
 
 namespace mikoto::asset {
 
@@ -64,135 +55,6 @@ namespace mikoto::asset {
         auto SetDimensions( renderer::rhi::TextureDimension dim ) -> TextureLoadDescription&;
     };
 
-    // TODO: Revisit
-    template<typename AssetType>
-    class AssetCache {
-    public:
-        enum class LoadState {
-            eLoading,
-            eReady
-        };
-
-    public:
-        template<typename LoaderFn>
-        auto RequestLoad(const Path& path, LoaderFn&& loader) -> void {
-            std::unique_lock lock{ mMutex };
-
-            auto it{ mEntries.find(GetHashedAssetID(path)) };
-
-            // Already loading or ready -> do nothing
-            if (it != mEntries.end()) {
-                return;
-            }
-
-            // Create entry in loading state
-            auto entry{ eastl::make_unique<Entry>() };
-            entry->mState = LoadState::eLoading;
-
-            Entry* entryPtr{ entry.get() };
-            mEntries.emplace(GetHashedAssetID(path), eastl::move(entry));
-
-            lock.unlock();
-
-            // Dispatch async task instead of blocking
-            threading::TaskService::Get()->Submit([this, entryPtr, loader = std::forward<LoaderFn>(loader)]() mutable {
-                Ref<AssetType> asset{ loader() };
-
-                std::lock_guard lock{ mMutex };
-
-                entryPtr->mAsset = asset;
-                entryPtr->mState = LoadState::eReady;
-                entryPtr->mCv.notify_all(); // optional
-            });
-        }
-
-        template<typename LoaderFn>
-        MKT_NODISCARD auto LoadOrGet( const Path& path, LoaderFn&& loader ) -> Ref<AssetType> {
-            Entry* entryPtr{ nullptr };
-            {
-                std::unique_lock lock{ mMutex };
-
-                auto it{ mEntries.find( GetHashedAssetID(path) ) };
-                if ( it == mEntries.end() ) {
-                    // Create entry ONLY here
-                    auto newEntry{ eastl::make_unique<Entry>() };
-                    newEntry->mState = LoadState::eLoading;
-
-                    auto [insertIt, _]{ mEntries.emplace( GetHashedAssetID(path), eastl::move( newEntry ) ) };
-                    entryPtr = insertIt->second.get();
-                    // We are the loader -> continue below
-                } else {
-                    entryPtr = it->second.get();
-
-                    if ( entryPtr->mState == LoadState::eReady ) {
-                        return entryPtr->mAsset;
-                    }
-
-                    // Wait until ready
-                    entryPtr->mCv.wait( lock, [entryPtr]() {
-                        return entryPtr->mState == LoadState::eReady;
-                    } );
-
-                    return entryPtr->mAsset;
-                }
-            }
-
-            // Outside lock -> perform heavy load
-            // We avoid locking above for the loading because we
-            // would block the whole cache even for read only purposes
-            Ref<AssetType> asset{ loader() };
-            {
-                std::lock_guard lock{ mMutex };
-
-                entryPtr->mAsset = asset;
-                entryPtr->mState = LoadState::eReady;
-
-                entryPtr->mCv.notify_all();
-
-                return entryPtr->mAsset;
-            }
-        }
-
-        MKT_NODISCARD auto GetIfReady( const Path& path ) const -> Ref<AssetType> {
-            std::lock_guard lock{ mMutex };
-
-            auto it{ mEntries.find( GetHashedAssetID(path) ) };
-            if ( it == mEntries.end() ) {
-                return Ref<AssetType>::CreateEmpty();
-            }
-
-            Entry* entry{ it->second.get() };
-            if ( entry->mState == LoadState::eReady ) {
-                return entry->mAsset;
-            }
-
-            return Ref<AssetType>::CreateEmpty();
-        }
-
-        auto Clear() -> void {
-            std::lock_guard lock{ mMutex };
-            mEntries.clear();
-        }
-
-        MKT_NODISCARD auto operator[]( const Path& path ) -> Ref<AssetType> {
-            return GetIfReady( path );
-        }
-
-        MKT_NODISCARD auto operator[]( const Path& path ) const -> Ref<AssetType> {
-            return GetIfReady( path );
-        }
-
-    private:
-        struct Entry {
-            core::Ref<AssetType> mAsset{};
-            LoadState mState{ LoadState::eLoading };
-            std::condition_variable mCv{};
-        };
-
-    private:
-        mutable std::mutex mMutex{};
-        ankerl::unordered_dense::map<AssetID, eastl::unique_ptr<Entry>> mEntries{};
-    };
 
     struct AssetsServiceDescription {};
 
@@ -215,19 +77,19 @@ namespace mikoto::asset {
             Path fullPath{ Path{ uri }.GetAbsolute() };
 
             if constexpr (std::is_same_v<AssetType, Model>) {
-                return mModels[uri];
+                return mModels.GetIfReady( fullPath );
             }
             else if constexpr (std::is_same_v<AssetType, renderer::rhi::ITexture>) {
-                return mTextures2D[uri];
+                return mTextures.GetIfReady( fullPath );
             }
             else if constexpr (std::is_same_v<AssetType, audio::Audio>) {
-                return mAudios[uri];
+                return mAudios.GetIfReady( fullPath );
             }
             else if constexpr (std::is_same_v<AssetType, renderer::Font>) {
-                return mFonts[uri];
+                return mFonts.GetIfReady( fullPath );
             }
             else if constexpr (std::is_same_v<AssetType, material::Material>) {
-                return mMaterials[uri];
+                return mMaterials.GetIfReady( fullPath );
             }
 
             return Ref<AssetType>::CreateEmpty();
@@ -264,7 +126,6 @@ namespace mikoto::asset {
                 }, eastl::move(argsTuple));
             });
         }
-
 
         // Materials can be serialized or deserialized from a YAML file with mktmtl file extension
         // the type is stored in the YAML file
@@ -318,13 +179,12 @@ namespace mikoto::asset {
         renderer::rhi::IGpuDevice* mGpuDevice{ nullptr };
         audio::AudioDevice* mAudioDevice{ nullptr };
 
-        AssetCache<renderer::Font> mFonts{};
-        AssetCache<Model> mModels{};
-        AssetCache<audio::Audio> mAudios{};
-        AssetCache<material::Material> mMaterials{};
+        AssetLoadRegistry<asset::Model> mModels{};
+        AssetLoadRegistry<audio::Audio> mAudios{};
+        AssetLoadRegistry<material::Material> mMaterials{};
 
-        AssetCache<renderer::rhi::ITexture> mTextures2D{};
-        AssetCache<renderer::rhi::ITexture> mTexturesCubes{};
+        AssetLoadRegistry<renderer::Font> mFonts{};
+        AssetLoadRegistry<renderer::rhi::ITexture> mTextures{};
     };
 }
 

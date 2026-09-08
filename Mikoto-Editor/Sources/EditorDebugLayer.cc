@@ -96,6 +96,13 @@ namespace mikoto::editor {
             .AddDepthTarget( mDepthImage )
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
 
+        // Resource barriers must be recorded before dynamic rendering begins.
+        for (u32 meshIndex{}; meshIndex < mModelHandle->GetMeshNodeCount(); ++meshIndex) {
+            asset::MeshNode* mesh{ MKT_ADDRESSOF( mModelHandle->GetMeshNode( meshIndex ) ) };
+            mCommandList->SetTransition( mesh->GetIndexBuffer().GetPtr(), ResourceStates::eIndexBuffer );
+            mCommandList->SetTransition( mesh->GetVertexBuffer().GetPtr(), ResourceStates::eVertexBuffer );
+        }
+
         mCommandList->BeginRendering( graphicsState );
 
         mCommandList->BindPipeline( mPipeline.GetPtr() );

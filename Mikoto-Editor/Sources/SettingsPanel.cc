@@ -169,8 +169,9 @@ namespace mikoto::editor {
             float3 target{ camera->GetPosition() };
             float targetArr[3]{ target.x, target.y, target.z };
 
-            if ( ImGui::DragFloat3( "Position", targetArr, 0.1f ) )
-                camera->SetCameraTarget( { targetArr[0], targetArr[1], targetArr[2] } );
+            if ( ImGui::DragFloat3( "Position", targetArr, 0.1f ) ) {
+
+            }
         }
     }
 

@@ -1012,14 +1012,7 @@ namespace mikoto::editor {
         } else {
             mEditorCamera->SetViewportSize( mWindow->GetWidth(), mWindow->GetHeight() );
         }
-
-        // Camera target
-        mEditorCamera->LockCameraToTarget( configuration.mLockCameraToTarget );
-        if (configuration.mLockCameraToTarget && mEditorState->mSelectedEntity) {
-            auto& transformComp{ mEditorState->mSelectedEntity->GetComponent<TransformComponent>() };
-            mEditorCamera->SetCameraTarget( transformComp.GetTranslation() );
-        }
-
+        
         mEditorCamera->Update( ts );
 
         float3 camePos{ mEditorCamera->GetPosition() };

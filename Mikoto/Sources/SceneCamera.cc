@@ -209,4 +209,8 @@ namespace mikoto::scene {
         mWantCameraRotationX = xAxis;
         mWantCameraRotationY = yAxis;
     }
+
+    auto SceneCamera::UpdateViewMatrix() -> void {
+        mView = lookAt( mPosition, mPosition + mForward, mUp );
+    }
 }

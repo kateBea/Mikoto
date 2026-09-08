@@ -28,30 +28,6 @@ namespace mikoto::renderer {
 
     using namespace mikoto::renderer::rhi;
 
-    auto IGpuDevice::GetGraphicsApi() const -> GraphicsAPI {
-        return mApi;
-    }
-
-    auto IGpuDevice::IsInitialized() const -> bool {
-        return mIsInitialized;
-    }
-
-    auto IGpuDevice::IsGraphicsApi( GraphicsAPI api ) const -> bool {
-        return mApi == api;
-    }
-
-    auto IGpuDevice::GetDeviceName() const -> eastl::string_view {
-        return mDeviceName;
-    }
-
-    auto IGpuDevice::GetVendorID() const -> eastl::string_view {
-        return mVendorID;
-    }
-
-    auto IGpuDevice::GetDriverVersion() const -> eastl::string_view {
-        return mDriverVersion;
-    }
-
     auto IGpuDevice::Create( const GpuDeviceCreateInfo &createInfo ) -> eastl::unique_ptr<IGpuDevice> {
         switch ( createInfo.mApi ) {
             case GraphicsAPI::eVulkan:
@@ -67,8 +43,4 @@ namespace mikoto::renderer {
 
         return nullptr;
     }
-
-    IGpuDevice::IGpuDevice( GraphicsAPI api, GpuDeviceType deviceType, GpuFeatureSupportFlags featureFlags )
-        : mApi{ api }, mDeviceType{ deviceType }, mFeatureSupportFlags{ featureFlags }
-    {}
 }

@@ -691,6 +691,15 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetMemoryTotal() const -> core::usize override;
         MKT_NODISCARD auto GetMemoryAvailable() const -> core::usize override;
 
+        MKT_NODISCARD auto IsInitialized() const -> bool override;
+
+        MKT_NODISCARD auto GetGraphicsApi() const -> GraphicsAPI override;
+        MKT_NODISCARD auto IsGraphicsApi( GraphicsAPI api ) const -> bool override;
+
+        MKT_NODISCARD auto GetVendorID() const -> eastl::string_view override;
+        MKT_NODISCARD auto GetDeviceName() const -> eastl::string_view override;
+        MKT_NODISCARD auto GetDriverVersion() const -> eastl::string_view override;
+
         // D3D12 Specifics
         MKT_NODISCARD auto CreateTexture( const ExternalTextureDescription& info ) -> rhi::TextureHandle;
 
@@ -729,6 +738,19 @@ namespace mikoto::renderer::d3d12 {
         auto InitDescriptorHeapManager() -> void;
 
     private:
+        eastl::string mVendorID{};
+        eastl::string mDeviceName{};
+        eastl::string mDriverVersion{};
+
+        GraphicsAPI mApi{};
+        bool mIsInitialized{ false };
+
+        // OpenGL convention
+        ViewportConvention mViewportConvention{ ViewportConvention::eRightHanded_OriginBottomLeft };
+
+        GpuDeviceType mDeviceType{ GpuDeviceType::eInvalid };
+        GpuFeatureSupportFlags mFeatureSupportFlags{ GpuFeatureSupportFlagsBits::None };
+
         Microsoft::WRL::ComPtr<ID3D12Device2> mDevice{};
         Microsoft::WRL::ComPtr<IDXGIAdapter1> mAdapter1{};
         Microsoft::WRL::ComPtr<IDXGIAdapter4> mAdapter4{};

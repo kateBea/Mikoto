@@ -2208,8 +2208,32 @@ namespace mikoto::renderer::d3d12 {
     }
 
     Device::Device( const GpuDeviceCreateInfo &createInfo )
-        : IGpuDevice{ createInfo.mApi, createInfo.mDeviceType, createInfo.mFeatureSupportFlags }
+        : mApi{ createInfo.mApi }, mDeviceType{ createInfo.mDeviceType }, mFeatureSupportFlags{ createInfo.mFeatureSupportFlags }
     {}
+
+    auto Device::GetGraphicsApi() const -> GraphicsAPI {
+        return mApi;
+    }
+
+    auto Device::IsInitialized() const -> bool {
+        return mIsInitialized;
+    }
+
+    auto Device::IsGraphicsApi( GraphicsAPI api ) const -> bool {
+        return mApi == api;
+    }
+
+    auto Device::GetDeviceName() const -> eastl::string_view {
+        return mDeviceName;
+    }
+
+    auto Device::GetVendorID() const -> eastl::string_view {
+        return mVendorID;
+    }
+
+    auto Device::GetDriverVersion() const -> eastl::string_view {
+        return mDriverVersion;
+    }
 
     auto Device::Init() -> void {
         IDXGIFactory4* factory4{ checked_cast<Context*>( RenderSystem::Get()->GetContext() )->GetDxGIFactory4() };

@@ -701,6 +701,15 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetMemoryTotal() const -> core::usize override;
         MKT_NODISCARD auto GetMemoryAvailable() const -> core::usize override;
 
+        MKT_NODISCARD auto IsInitialized() const -> bool override;
+
+        MKT_NODISCARD auto GetGraphicsApi() const -> GraphicsAPI override;
+        MKT_NODISCARD auto IsGraphicsApi( GraphicsAPI api ) const -> bool override;
+
+        MKT_NODISCARD auto GetVendorID() const -> eastl::string_view override;
+        MKT_NODISCARD auto GetDeviceName() const -> eastl::string_view override;
+        MKT_NODISCARD auto GetDriverVersion() const -> eastl::string_view override;
+
         auto WaitIdle() -> void override;
 
         auto RunGarbageCollection() -> void override;
@@ -754,6 +763,19 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto IsDeviceSuitable( const PhysicalDevice& device ) -> bool;
 
     private:
+        eastl::string mVendorID{};
+        eastl::string mDeviceName{};
+        eastl::string mDriverVersion{};
+
+        GraphicsAPI mApi{};
+        bool mIsInitialized{ false };
+
+        // OpenGL convention
+        ViewportConvention mViewportConvention{ ViewportConvention::eRightHanded_OriginBottomLeft };
+
+        GpuDeviceType mDeviceType{ GpuDeviceType::eInvalid };
+        GpuFeatureSupportFlags mFeatureSupportFlags{ GpuFeatureSupportFlagsBits::None };
+
 #if defined( MKT_USE_VULKAN_BINDLESS )
         const bool mIsBindlessEnabled{ true };
 #else

@@ -833,8 +833,34 @@ namespace mikoto::renderer::d3d11 {
     }
 
     Device::Device( const GpuDeviceCreateInfo &createInfo )
-        : IGpuDevice{ createInfo.mApi, createInfo.mDeviceType, createInfo.mFeatureSupportFlags }
-    {}
+        : mApi{ createInfo.mApi }, mDeviceType{ createInfo.mDeviceType }, mFeatureSupportFlags{ createInfo.mFeatureSupportFlags }
+    {
+
+    }
+
+    auto Device::GetGraphicsApi() const -> GraphicsAPI {
+        return mApi;
+    }
+
+    auto Device::IsInitialized() const -> bool {
+        return mIsInitialized;
+    }
+
+    auto Device::IsGraphicsApi( GraphicsAPI api ) const -> bool {
+        return mApi == api;
+    }
+
+    auto Device::GetDeviceName() const -> eastl::string_view {
+        return mDeviceName;
+    }
+
+    auto Device::GetVendorID() const -> eastl::string_view {
+        return mVendorID;
+    }
+
+    auto Device::GetDriverVersion() const -> eastl::string_view {
+        return mDriverVersion;
+    }
 
     auto Device::Init() -> void {
         UINT deviceFlags{ D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_BGRA_SUPPORT };

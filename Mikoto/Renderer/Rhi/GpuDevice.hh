@@ -324,7 +324,7 @@ namespace mikoto::renderer::rhi {
          *
          * @returns True when the device has been initialized.
          */
-        MKT_NODISCARD auto IsInitialized() const -> bool;
+        MKT_NODISCARD virtual auto IsInitialized() const -> bool = 0;
 
         /**
          * Returns whether this device uses @p api.
@@ -332,35 +332,35 @@ namespace mikoto::renderer::rhi {
          * @param api API to compare against.
          * @returns True when this device uses @p api.
          */
-        MKT_NODISCARD auto IsGraphicsApi( GraphicsAPI api ) const -> bool;
+        MKT_NODISCARD virtual auto IsGraphicsApi( GraphicsAPI api ) const -> bool = 0;
 
         /**
          * Returns the graphics API selected for this device.
          *
          * @returns The selected graphics API.
          */
-        MKT_NODISCARD auto GetGraphicsApi() const -> GraphicsAPI;
+        MKT_NODISCARD virtual auto GetGraphicsApi() const -> GraphicsAPI = 0;
 
         /**
          * Returns the backend-reported device name.
          *
          * @returns The device name.
          */
-        MKT_NODISCARD auto GetDeviceName() const -> eastl::string_view;
+        MKT_NODISCARD virtual auto GetDeviceName() const -> eastl::string_view = 0;
 
         /**
          * Returns the backend-reported vendor identifier.
          *
          * @returns The vendor identifier.
          */
-        MKT_NODISCARD auto GetVendorID() const -> eastl::string_view;
+        MKT_NODISCARD virtual auto GetVendorID() const -> eastl::string_view = 0;
 
         /**
          * Returns the backend-reported driver version.
          *
          * @returns The driver version.
          */
-        MKT_NODISCARD auto GetDriverVersion() const -> eastl::string_view;
+        MKT_NODISCARD virtual auto GetDriverVersion() const -> eastl::string_view = 0;
 
         /**
          * Destroys the device.
@@ -374,31 +374,6 @@ namespace mikoto::renderer::rhi {
          * @returns The created device, or null when no supported backend is available.
          */
         MKT_NODISCARD static auto Create( const GpuDeviceCreateInfo& createInfo ) -> eastl::unique_ptr<IGpuDevice>;
-
-    protected:
-
-        /**
-         * Constructs a device with its selected capabilities.
-         *
-         * @param api Selected graphics API.
-         * @param deviceType Requested device class.
-         * @param featureFlags Required and preferred capabilities.
-         */
-        explicit IGpuDevice( GraphicsAPI api, GpuDeviceType deviceType, GpuFeatureSupportFlags featureFlags );
-
-    protected:
-        eastl::string mVendorID{};
-        eastl::string mDeviceName{};
-        eastl::string mDriverVersion{};
-
-        GraphicsAPI mApi{};
-        bool mIsInitialized{ false };
-
-        // OpenGL convention
-        ViewportConvention mViewportConvention{ ViewportConvention::eRightHanded_OriginBottomLeft };
-
-        GpuDeviceType mDeviceType{ GpuDeviceType::eInvalid };
-        GpuFeatureSupportFlags mFeatureSupportFlags{ GpuFeatureSupportFlagsBits::None };
     };
 }// namespace mikoto::renderer
 

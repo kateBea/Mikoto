@@ -350,6 +350,15 @@ namespace mikoto::renderer::d3d11 {
         MKT_NODISCARD auto GetDeviceContext() -> ID3D11DeviceContext*;
         MKT_NODISCARD auto GetDeviceContext3() -> ID3D11DeviceContext3*;
 
+        MKT_NODISCARD auto IsInitialized() const -> bool override;
+
+        MKT_NODISCARD auto GetGraphicsApi() const -> GraphicsAPI override;
+        MKT_NODISCARD auto IsGraphicsApi( GraphicsAPI api ) const -> bool override;
+
+        MKT_NODISCARD auto GetVendorID() const -> eastl::string_view override;
+        MKT_NODISCARD auto GetDeviceName() const -> eastl::string_view override;
+        MKT_NODISCARD auto GetDriverVersion() const -> eastl::string_view override;
+
         auto DumpErrorMessages() -> void;
 
         auto CreateSwapChain(Window* window, Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory) -> D3D11SwapChainHandle;
@@ -357,6 +366,19 @@ namespace mikoto::renderer::d3d11 {
         ~Device() override = default;
 
     private:
+        eastl::string mVendorID{};
+        eastl::string mDeviceName{};
+        eastl::string mDriverVersion{};
+
+        GraphicsAPI mApi{};
+        bool mIsInitialized{ false };
+
+        // OpenGL convention
+        ViewportConvention mViewportConvention{ ViewportConvention::eRightHanded_OriginBottomLeft };
+
+        GpuDeviceType mDeviceType{ GpuDeviceType::eInvalid };
+        GpuFeatureSupportFlags mFeatureSupportFlags{ GpuFeatureSupportFlagsBits::None };
+
         eastl::fixed_vector<D3D_FEATURE_LEVEL, 5> mDeviceFeatureLevel{
             D3D_FEATURE_LEVEL_11_1,
             D3D_FEATURE_LEVEL_11_0

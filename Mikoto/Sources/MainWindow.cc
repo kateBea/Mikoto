@@ -12,19 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Vol nees to go after
 #include <GLFW/glfw3.h>
 #include <volk.h>
 
 #include <Core/Core.hh>
-#include <Core/CoreEvents.hh>
-#include <Core/EventSystem.hh>
-#include <Core/Exception.hh>
-#include <Core/InputSystem.hh>
-#include <Core/Profiler.hh>
-#include <Core/String.hh>
 #include <Core/Types.hh>
+#include <Core/String.hh>
+#include <Core/Profiler.hh>
+#include <Core/Exception.hh>
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
+#include <Core/CoreEvents.hh>
+#include <Core/EventSystem.hh>
+#include <Core/InputSystem.hh>
 #include <Platform/MainWindow.hh>
 
 namespace mikoto::platform {
@@ -72,6 +73,8 @@ namespace mikoto::platform {
         if (mScreenMode != ScreenMode::eFullScreen) {
             glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
         }
+
+        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
     }
 
     auto MainWindow::InstallCallbacks() -> void {

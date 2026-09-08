@@ -53,7 +53,14 @@ namespace mikoto::core {
         /**
          * Called when this instance is destroyed.
          * */
-        virtual ~Singleton() = default;
+        virtual ~Singleton() {
+            // A singleton can be owned by a short-lived Engine instance.  Do not
+            // leave a pointer to a destroyed service behind when that instance
+            // is torn down (or when a subsequent engine is created in-process).
+            if (sInstance == static_cast<ValuePtr>(this)) {
+                sInstance = nullptr;
+            }
+        }
 
     public:
         DISABLE_COPY_AND_MOVE_FOR(Singleton);

@@ -301,8 +301,8 @@ namespace mikoto::editor {
 
         auto cameraDesc{ SceneCameraDescription{}
             .SetFieldOfView( 45.0f )
-            .SetFarPlane( 0.1f )
-            .SetNearPlane( 3000.0f )
+            .SetNearPlane( 0.1f )
+            .SetFarPlane( 3000.0f )
             .SetTargetWindow( mWindow )
             .SetAspectRatio( as<f32>( mWindow->GetWidth() ), as<f32>( mWindow->GetHeight() ) ) };
         mEditorCamera = eastl::make_unique<SceneCamera>( cameraDesc );

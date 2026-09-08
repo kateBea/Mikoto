@@ -30,6 +30,9 @@
 
 namespace mikoto::renderer::rhi {
 
+    IGpuAllocator::IGpuAllocator( IGpuDevice* device )
+        : mDevice{ device } {}
+
     auto IGpuAllocator::Create(IGpuDevice* device) -> eastl::unique_ptr<IGpuAllocator> {
         switch ( device->GetGraphicsApi() ) {
             case GraphicsAPI::eVulkan:

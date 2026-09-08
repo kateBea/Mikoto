@@ -59,7 +59,7 @@ namespace mikoto::core {
         */
         template<typename  RegisteredType, typename... Args>
         auto Register( Args&&... args ) -> RegisteredType* {
-            const size_t typeName{ typeid( RegisteredType ).hash_code() };
+            const core::usize typeName{ typeid( RegisteredType ).hash_code() };
 
             MKT_ASSERT( !mRegistry.contains( typeName ), "Registry::Register - Error registering system more than once." );
 
@@ -82,7 +82,7 @@ namespace mikoto::core {
         */
         template<typename SystemType>
         auto Unregister() -> void {
-            const size_t typeName{ typeid( SystemType ).hash_code() };
+            const core::usize typeName{ typeid( SystemType ).hash_code() };
 
             if ( mRegistry.contains( typeName ) ) {
                 mRegistry.erase( typeName );
@@ -135,7 +135,7 @@ namespace mikoto::core {
         }
 
     private:
-        ankerl::unordered_dense::map<size_t, eastl::unique_ptr<BaseType>> mRegistry{};
+        ankerl::unordered_dense::map<core::usize, eastl::unique_ptr<BaseType>> mRegistry{};
     };
 
 }// namespace Mikoto

@@ -61,6 +61,15 @@ namespace mikoto::scene {
         : Camera{ glm::perspective( glm::radians( desc.mFov ), desc.mAspectRatio, desc.mNearPlane, desc.mFarPlane ) },
         mWindow{ desc.mWindow } {
 
+        MKT_ASSERT( desc.mNearPlane > 0.0f && desc.mNearPlane < desc.mFarPlane,
+            "SceneCamera requires 0 < near plane < far plane" );
+        MKT_ASSERT( desc.mAspectRatio > 0.0f, "SceneCamera aspect ratio must be positive" );
+
+        mNearPlane = desc.mNearPlane;
+        mFarPlane = desc.mFarPlane;
+        mFov = desc.mFov;
+        mAspectRatio = desc.mAspectRatio;
+
         mPosition = float3{ 100.0f, 100.5f, 100.0f };
         mForward = float3{ 1.0f, 1.0f, 1.0f };
         mTargetForwardVector = mForward;

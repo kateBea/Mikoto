@@ -30,10 +30,16 @@
 
 namespace mikoto::renderer::rhi {
 
+    /**
+     * Reserved creation parameters for a ray-tracing acceleration structure.
+     */
     struct AccelStructureCreateDescription {
 
     };
 
+    /**
+     * Interface representing a ray-tracing acceleration structure.
+     */
     class AccelStructure : public DeviceObject {
     public:
 

@@ -24,7 +24,7 @@ namespace mikoto::renderer::rhi {
         return nullptr;
     }
 
-    auto IShaderModule::GetContentsByteSize() const -> size_t {
+    auto IShaderModule::GetContentsByteSize() const -> core::usize {
         return 0;
     }
 

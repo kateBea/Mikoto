@@ -40,9 +40,9 @@ namespace mikoto::core {
     };
 
     struct ShortcutKeyHash {
-        auto operator()(const ShortcutKey& sk) const -> size_t {
-            size_t h1{ eastl::hash<int>{}(sk.key) };
-            size_t h2{ eastl::hash<i32>{}(core::as<i32>(sk.modifiers)) };
+        auto operator()(const ShortcutKey& sk) const -> core::usize {
+            core::usize h1{ eastl::hash<int>{}(sk.key) };
+            core::usize h2{ eastl::hash<i32>{}(core::as<i32>(sk.modifiers)) };
             return h1 ^ (h2 << 1); // Displace bits to combine hashes
         }
     };

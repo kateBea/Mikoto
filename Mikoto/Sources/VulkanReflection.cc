@@ -616,7 +616,7 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    MKT_NODISCARD static auto GetAttributeByteSize(SpvReflectFormat format) -> size_t {
+    MKT_NODISCARD static auto GetAttributeByteSize(SpvReflectFormat format) -> core::usize {
         switch (format) {
             // ======================
             // 32-bit float
@@ -679,7 +679,7 @@ namespace mikoto::renderer::vulkan {
         eastl::vector<SpvReflectInterfaceVariable*> inputs( inputCount );
         spvReflectEnumerateInputVariables( &mod, &inputCount, inputs.data() );
 
-        size_t stride{};
+        core::usize stride{};
         u32 binding{};
         for ( auto* v: inputs ) {
             if ( v->decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN ) {

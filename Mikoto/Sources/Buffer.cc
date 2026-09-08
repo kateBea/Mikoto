@@ -16,4 +16,27 @@
 
 namespace mikoto::renderer::rhi {
 
+    auto IBuffer::GetUsage() const -> BufferUsageFlags {
+        return mUsage;
+    }
+
+    auto IBuffer::GetDataType() const -> BufferDataType {
+        return mDataType;
+    }
+
+    auto IBuffer::GetData() const -> memory::BufferSpanHandle {
+        return mUploadContents;
+    }
+
+    auto IBuffer::GetSizeBytes() const -> core::usize {
+        return mElementCount == 0 ? mElementSize : mElementCount * mElementSize;
+    }
+
+    auto IBuffer::GetFormat() const -> Format {
+        return mFormat;
+    }
+
+    auto IBuffer::GetCount() const -> core::usize {
+        return mElementCount == 0 ? InferElementCount( mFormat, mElementSize ) : mElementCount;
+    }
 }

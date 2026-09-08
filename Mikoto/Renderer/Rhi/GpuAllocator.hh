@@ -25,20 +25,61 @@
 
 namespace mikoto::renderer::rhi {
 
+    /**
+     * Backend-independent interface for GPU-memory accounting and allocation.
+     */
     class IGpuAllocator {
     public:
-        explicit IGpuAllocator( IGpuDevice* device )
-            : mDevice{ device } {}
 
+        /**
+         * Creates an allocator associated with @p device.
+         *
+         * @param device Device that owns the allocator.
+         */
+        explicit IGpuAllocator( IGpuDevice* device );
+
+        /**
+         * Initializes backend allocator resources.
+         */
         virtual auto Init() -> void = 0;
+
+        /**
+         * Releases backend allocator resources.
+         */
         virtual auto Shutdown() -> void = 0;
 
+        /**
+         * Returns allocated GPU memory in bytes.
+         *
+         * @returns Allocated GPU memory in bytes.
+         */
         MKT_NODISCARD virtual auto GetMemoryUsage() const -> core::usize = 0;
+
+        /**
+         * Returns total GPU memory in bytes.
+         *
+         * @returns Total GPU memory in bytes.
+         */
         MKT_NODISCARD virtual auto GetMemoryTotal() const -> core::usize = 0;
+
+        /**
+         * Returns available GPU memory in bytes.
+         *
+         * @returns Available GPU memory in bytes.
+         */
         MKT_NODISCARD virtual auto GetMemoryAvailable() const -> core::usize = 0;
 
+        /**
+         * Destroys the allocator.
+         */
         virtual ~IGpuAllocator() = default;
 
+        /**
+         * Creates the allocator appropriate for @p device's graphics API.
+         *
+         * @param device Device that owns the allocator.
+         * @returns The backend-specific allocator.
+         */
         static auto Create( IGpuDevice* device ) -> eastl::unique_ptr<IGpuAllocator>;
 
     protected:

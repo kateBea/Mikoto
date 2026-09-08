@@ -126,11 +126,11 @@ namespace mikoto::renderer::vulkan {
         void* mMappedMemory{};
 
         // Size of this sub-allocation
-        core::size_t mSize{};
+        core::usize mSize{};
 
         // Specifies the offset of this allocation within the large
         // buffer it was allocated from
-        core::size_t mOffset{};
+        core::usize mOffset{};
 
         // Metadata to track usage
         memory::Allocation mAllocation{};
@@ -147,7 +147,7 @@ namespace mikoto::renderer::vulkan {
     public:
         explicit GpuUploadManager( rhi::IGpuDevice* device );
 
-        auto SubAllocate( core::size_t byteSize ) -> GpuUploadAllocation*;
+        auto SubAllocate( core::usize byteSize ) -> GpuUploadAllocation*;
         auto ReclaimMemory() -> void;
 
         ~GpuUploadManager();
@@ -293,7 +293,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
         auto BeginDebugLabel( eastl::string_view name, rhi::Color color ) -> void override;
-        auto EnbDebugLabel() -> void override;
+        auto EndDebugLabel() -> void override;
 
         // Vulkan Specifics
         MKT_NODISCARD auto IsInUse() const -> bool;
@@ -506,7 +506,7 @@ namespace mikoto::renderer::vulkan {
         VkShaderStageFlags mShaderStages{};
 
         auto WriteSampler( core::u32 binding, VkSampler sampler, core::u32 arrayIndex = 0 ) -> DescriptorWriter&;
-        auto WriteBuffer( core::u32 binding, VkBuffer buffer, size_t size, size_t offset, VkDescriptorType type, core::u32 arrayIndex = 0 ) -> DescriptorWriter&;
+        auto WriteBuffer( core::u32 binding, VkBuffer buffer, core::usize size, core::usize offset, VkDescriptorType type, core::u32 arrayIndex = 0 ) -> DescriptorWriter&;
         auto WriteImage( core::u32 binding, VkImageView image, VkDescriptorType type, VkImageLayout layout, core::u32 arrayIndex = 0 ) -> DescriptorWriter&;
 
         auto SetVisibility( VkShaderStageFlags visibility ) -> DescriptorWriter&;

@@ -32,7 +32,11 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto BufferRange::Validate( size_t bufferByteSize ) -> BufferRange & {
+    auto BufferRange::IsEntireBuffer( core::usize bufferByteSize ) const -> bool {
+        return mByteOffset == 0 && (mByteSize == ~0ull || mByteSize == bufferByteSize);
+    }
+
+    auto BufferRange::Validate( core::usize bufferByteSize ) -> BufferRange & {
         // Check specified offset is not out of bounds
         mByteOffset = eastl::min(mByteOffset, bufferByteSize);
 

@@ -159,8 +159,8 @@ namespace mikoto::animation {
 
         const auto& inverseBindMats{ mModel->GetSkeleton()->GetInverseBindMatrices() };
 
-        size_t limit{ math::Min( mFinalMatrices.size(), inverseBindMats.size(), mModelMatrices.size() ) }; // ???
-        for ( size_t i{}; i < limit; ++i ) {
+        core::usize limit{ math::Min( mFinalMatrices.size(), inverseBindMats.size(), mModelMatrices.size() ) }; // ???
+        for ( core::usize i{}; i < limit; ++i ) {
             // because ozz uses colum major mat4x4 of floats
             ozz::math::Float4x4& model{ mModelMatrices[i] };
             mFinalMatrices[i] = *reinterpret_cast<float4x4*>( MKT_ADDRESSOF( model ) ) * inverseBindMats[i];

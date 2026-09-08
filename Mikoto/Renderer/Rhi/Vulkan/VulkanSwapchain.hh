@@ -51,8 +51,8 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetWidth() const -> core::u32;
         MKT_NODISCARD auto GetHeight() const -> core::u32;
 
-        MKT_NODISCARD auto GetImageCount() const -> core::size_t;
-        MKT_NODISCARD auto GetImage( core::size_t index ) -> rhi::TextureHandle;
+        MKT_NODISCARD auto GetImageCount() const -> core::usize;
+        MKT_NODISCARD auto GetImage( core::usize index ) -> rhi::TextureHandle;
         MKT_NODISCARD auto GetFormat() -> rhi::Format;
 
         MKT_NODISCARD auto Present( core::u32 imageIndex, const BinarySemaphore* signalSemaphore ) -> VkResult;

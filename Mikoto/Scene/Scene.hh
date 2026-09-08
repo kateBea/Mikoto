@@ -123,6 +123,7 @@ namespace mikoto::scene {
         MKT_NODISCARD auto GetSceneStats() const -> const SceneStatistics&;
 
         MKT_NODISCARD auto FindByID( core::u64 uniqueID ) -> Entity*;
+        MKT_NODISCARD auto FindByHandle( entt::entity handle ) -> Entity*;
         MKT_NODISCARD auto FindFirstByName( eastl::string_view name ) -> Entity*;
 
         MKT_NODISCARD auto DuplicateEntity( Entity* other ) -> Entity*;

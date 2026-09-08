@@ -37,7 +37,7 @@ namespace mikoto::memory {
         explicit MemoryArena( Ref<BufferT> buffer, auto&&... args )
             : mBuffer{ buffer }, mAllocator{ eastl::make_unique<AllocatorT>( eastl::forward<decltype( args )>( args )... ) } {}
 
-        auto Allocate( size_t size, size_t alignment )
+        auto Allocate( core::usize size, core::usize alignment )
                 -> eastl::optional<Allocation> {
             return mAllocator->Allocate( size, alignment );
         }

@@ -33,7 +33,7 @@ namespace mikoto::memory {
     // General-purpose allocator for reusable memory with varying allocation sizes.
     class FreeListAllocator : public IAllocator {
     public:
-        explicit FreeListAllocator(size_t sizeBytes);
+        explicit FreeListAllocator(core::usize sizeBytes);
         ~FreeListAllocator() override = default;
 
         auto Free(const Allocation& allocation) -> void override;
@@ -41,14 +41,14 @@ namespace mikoto::memory {
 
     protected:
         struct FreeRange {
-            size_t Offset{};
-            size_t Size{};
+            core::usize Offset{};
+            core::usize Size{};
         };
 
-        MKT_NODISCARD auto AllocateFromRange( size_t index, size_t size, size_t alignment) -> Allocation;
+        MKT_NODISCARD auto AllocateFromRange( core::usize index, core::usize size, core::usize alignment) -> Allocation;
 
     protected:
-        size_t mSize{};
+        core::usize mSize{};
         eastl::vector<FreeRange> mFreeRanges{};
     };
 
@@ -60,9 +60,9 @@ namespace mikoto::memory {
     // Good trade-off between performance and simplicity.
     class FreeListFirstFitAllocator final : public FreeListAllocator {
     public:
-        explicit FreeListFirstFitAllocator(size_t sizeBytes);
+        explicit FreeListFirstFitAllocator(core::usize sizeBytes);
 
-        auto Allocate(size_t size, size_t alignment) -> eastl::optional<Allocation> override;
+        auto Allocate(core::usize size, core::usize alignment) -> eastl::optional<Allocation> override;
     };
 
     // Free-list allocator (best-fit):
@@ -73,9 +73,9 @@ namespace mikoto::memory {
     // Reduces fragmentation compared to first-fit but can create many small unusable gaps.
     class FreeListBestFitAllocator final : public FreeListAllocator {
     public:
-        explicit FreeListBestFitAllocator(size_t sizeBytes);
+        explicit FreeListBestFitAllocator(core::usize sizeBytes);
 
-        auto Allocate(size_t size, size_t alignment) -> eastl::optional<Allocation> override;
+        auto Allocate(core::usize size, core::usize alignment) -> eastl::optional<Allocation> override;
     };
 }
 

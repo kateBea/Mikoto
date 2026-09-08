@@ -68,7 +68,7 @@ namespace mikoto::renderer {
         mGlyphs.emplace( characterCode, glyph );
     }
 
-    auto Font::GetGlyphCount() const -> size_t {
+    auto Font::GetGlyphCount() const -> core::usize {
         return mGlyphs.size();
     }
 

@@ -19,7 +19,7 @@
 #include <Memory/FreeListAllocator.hh>
 
 namespace mikoto::memory {
-    FreeListAllocator::FreeListAllocator( size_t sizeBytes )
+    FreeListAllocator::FreeListAllocator( core::usize sizeBytes )
         : mSize{ sizeBytes } {
         mFreeRanges.push_back( { 0, sizeBytes } );
     }
@@ -39,7 +39,7 @@ namespace mikoto::memory {
                      } );
 
         // coalesce
-        for ( size_t i = 0; i + 1 < mFreeRanges.size(); ) {
+        for ( core::usize i = 0; i + 1 < mFreeRanges.size(); ) {
             auto& curr = mFreeRanges[i];
             auto& next = mFreeRanges[i + 1];
 
@@ -53,14 +53,14 @@ namespace mikoto::memory {
     }
 
     auto FreeListAllocator::AllocateFromRange(
-            size_t index,
-            size_t size,
-            size_t alignment ) -> Allocation {
+            core::usize index,
+            core::usize size,
+            core::usize alignment ) -> Allocation {
         auto& range = mFreeRanges[index];
 
-        size_t alignedOffset{ AlignUp( range.Offset, alignment ) };
-        size_t padding{ alignedOffset - range.Offset };
-        size_t totalSize{ padding + size };
+        core::usize alignedOffset{ AlignUp( range.Offset, alignment ) };
+        core::usize padding{ alignedOffset - range.Offset };
+        core::usize totalSize{ padding + size };
 
         Allocation alloc{
             .mOffset = alignedOffset,
@@ -79,15 +79,15 @@ namespace mikoto::memory {
         return alloc;
     }
 
-    FreeListFirstFitAllocator::FreeListFirstFitAllocator( size_t sizeBytes )
+    FreeListFirstFitAllocator::FreeListFirstFitAllocator( core::usize sizeBytes )
         : FreeListAllocator( sizeBytes ) {}
 
-    auto FreeListFirstFitAllocator::Allocate( size_t size, size_t alignment ) -> eastl::optional<Allocation> {
-        for ( size_t i{}; i < mFreeRanges.size(); ++i ) {
+    auto FreeListFirstFitAllocator::Allocate( core::usize size, core::usize alignment ) -> eastl::optional<Allocation> {
+        for ( core::usize i{}; i < mFreeRanges.size(); ++i ) {
             const auto& range{ mFreeRanges[i] };
 
-            size_t alignedOffset{ AlignUp( range.Offset, alignment ) };
-            size_t padding{ alignedOffset - range.Offset };
+            core::usize alignedOffset{ AlignUp( range.Offset, alignment ) };
+            core::usize padding{ alignedOffset - range.Offset };
 
             if ( range.Size >= padding + size ) {
                 return AllocateFromRange( i, size, alignment );
@@ -97,23 +97,23 @@ namespace mikoto::memory {
         return eastl::nullopt;
     }
 
-    FreeListBestFitAllocator::FreeListBestFitAllocator(size_t sizeBytes)
+    FreeListBestFitAllocator::FreeListBestFitAllocator(core::usize sizeBytes)
     : FreeListAllocator(sizeBytes) {}
 
-    auto FreeListBestFitAllocator::Allocate(size_t size, size_t alignment) -> eastl::optional<Allocation> {
-        size_t bestIndex = SIZE_MAX;
-        size_t bestWaste = SIZE_MAX;
+    auto FreeListBestFitAllocator::Allocate(core::usize size, core::usize alignment) -> eastl::optional<Allocation> {
+        core::usize bestIndex = SIZE_MAX;
+        core::usize bestWaste = SIZE_MAX;
 
-        for (size_t i{}; i < mFreeRanges.size(); ++i) {
+        for (core::usize i{}; i < mFreeRanges.size(); ++i) {
             const auto& range = mFreeRanges[i];
 
-            size_t alignedOffset{ AlignUp(range.Offset, alignment) };
-            size_t padding{ alignedOffset - range.Offset };
+            core::usize alignedOffset{ AlignUp(range.Offset, alignment) };
+            core::usize padding{ alignedOffset - range.Offset };
 
             if (range.Size < padding + size)
                 continue;
 
-            size_t waste{ range.Size - (padding + size) };
+            core::usize waste{ range.Size - (padding + size) };
 
             if (waste < bestWaste) {
                 bestWaste = waste;

@@ -95,7 +95,7 @@ namespace mikoto::renderer::d3d12 {
         return mShaderResourceIndex;
     }
 
-    auto Buffer::CreateCBV( SIZE_T descriptor, BufferRange range, Format format ) const -> void {
+    auto Buffer::CreateCBV( core::usize descriptor, BufferRange range, Format format ) const -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device2* d3d12Device{ device->GetDevice() };
 
@@ -107,7 +107,7 @@ namespace mikoto::renderer::d3d12 {
         d3d12Device->CreateConstantBufferView( MKT_ADDRESSOF( viewDesc ), { descriptor } );
     }
 
-    auto Buffer::CreateSRV( SIZE_T descriptor, BufferRange range, ResourceType resourceType, Format format ) const -> void {
+    auto Buffer::CreateSRV( core::usize descriptor, BufferRange range, ResourceType resourceType, Format format ) const -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device2* d3d12Device{ device->GetDevice() };
 
@@ -160,7 +160,7 @@ namespace mikoto::renderer::d3d12 {
         d3d12Device->CreateShaderResourceView(mAllocation.mResource.Get(), &viewDesc, { descriptor });
     }
 
-    auto Buffer::CreateUAV( SIZE_T descriptor, BufferRange range, ResourceType resourceType, Format format ) const -> void {
+    auto Buffer::CreateUAV( core::usize descriptor, BufferRange range, ResourceType resourceType, Format format ) const -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device2* d3d12Device{ device->GetDevice() };
 
@@ -214,7 +214,7 @@ namespace mikoto::renderer::d3d12 {
         d3d12Device->CreateUnorderedAccessView(mAllocation.mResource.Get(), nullptr, &viewDesc, { descriptor });
     }
 
-    auto Buffer::CreateNullSRV( SIZE_T descriptor, Format format, ID3D12Device2* device ) -> void {
+    auto Buffer::CreateNullSRV( core::usize descriptor, Format format, ID3D12Device2* device ) -> void {
         const DXGI_FORMAT d3d12Format{ d3d12::GetFormat( format == Format::eUnknown ? Format::eR32_UINT : format ) };
 
         D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{};
@@ -224,7 +224,7 @@ namespace mikoto::renderer::d3d12 {
         device->CreateShaderResourceView(nullptr, &viewDesc, { descriptor });
     }
 
-    auto Buffer::CreateNullUAV( SIZE_T descriptor, Format format, ID3D12Device2* device ) -> void {
+    auto Buffer::CreateNullUAV( core::usize descriptor, Format format, ID3D12Device2* device ) -> void {
         const DXGI_FORMAT d3d12Format{ d3d12::GetFormat( format == Format::eUnknown ? Format::eR32_UINT : format ) };
 
         D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc{};

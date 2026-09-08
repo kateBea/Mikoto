@@ -15,9 +15,13 @@
 #ifndef MIKOTO_TASK_SERVICE_HH
 #define MIKOTO_TASK_SERVICE_HH
 
+#include <functional>
+#include <mutex>
+
 #include <EASTL/functional.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/utility.h>
+#include <EASTL/vector.h>
 
 #include <ankerl/unordered_dense.h>
 
@@ -67,12 +71,25 @@ namespace mikoto::threading {
             mTaskManager->Submit( flow, wait );
         }
 
+        // Worker jobs must use this to apply results that touch the ECS, UI,
+        // or GPU-facing engine state.  The queue is drained by Engine::Update
+        // on the application thread.
+        template<typename Func>
+        auto SubmitMainThread( Func&& func ) -> void {
+            std::lock_guard lock{ mMainThreadTasksMutex };
+            mMainThreadTasks.emplace_back( std::forward<Func>( func ) );
+        }
+
+        auto ExecuteMainThreadTasks() -> void;
+
         MKT_NODISCARD auto GetWorkersCount() const -> u32;
 
         ~TaskService() override = default;
 
     private:
         eastl::unique_ptr<TaskManager> mTaskManager{};
+        std::mutex mMainThreadTasksMutex{};
+        eastl::vector<std::function<void()>> mMainThreadTasks{};
     };
 }// namespace Mikoto
 

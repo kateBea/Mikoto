@@ -65,7 +65,7 @@ namespace mikoto::renderer {
         // |  7 |  7 |  3 |  9 |
         // +----+----+----+----+
         auto dimensions{ InferDimensions( mResolution ) };
-        if (x > dimensions.first || y > dimensions.second ) {
+        if (x >= dimensions.first || y >= dimensions.second ) {
             return 0;
         }
 
@@ -74,19 +74,26 @@ namespace mikoto::renderer {
     }
 
     auto MousePickingModule::ReadPixel( const ReadPixelViewportInfo& viewport ) const -> core::u32 {
-        u32 x{ (u32)(viewport.mX) };
-        u32 y{ (u32)(viewport.mY) };
+        const f32 localX{ viewport.mX - viewport.mViewportX };
+        const f32 localY{ viewport.mY - viewport.mViewportY };
 
-        auto dimensions{ InferDimensions( mResolution ) };
-        if (x > dimensions.first || y > dimensions.second ) {
+        if (localX < 0.0f || localY < 0.0f ||
+            localX >= viewport.mViewportWidth || localY >= viewport.mViewportHeight) {
             return 0;
         }
 
-        f32 localX{ (viewport.mX - viewport.mViewportX) };
-        f32 localY{ (viewport.mY - viewport.mViewportY) };
+        auto dimensions{ InferDimensions( mResolution ) };
+        if (dimensions.first <= 0 || dimensions.second <= 0 ||
+            viewport.mViewportWidth <= 0.0f || viewport.mViewportHeight <= 0.0f) {
+            return 0;
+        }
 
-        u32 uvX{ (u32)((localX - viewport.mViewportWidth) / dimensions.first) };
-        u32 uvY{ (u32)((localY - viewport.mViewportHeight) / dimensions.second ) };
+        const u32 uvX{ static_cast<u32>( localX / viewport.mViewportWidth * dimensions.first ) };
+        const u32 uvY{ static_cast<u32>( localY / viewport.mViewportHeight * dimensions.second ) };
+
+        if (uvX >= dimensions.first || uvY >= dimensions.second) {
+            return 0;
+        }
 
         u32 width{ as<u32>(dimensions.first) };
         return mData[ uvY * width + uvX];

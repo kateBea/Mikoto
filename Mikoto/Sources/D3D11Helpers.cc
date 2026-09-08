@@ -312,7 +312,7 @@ namespace mikoto::renderer::d3d11 {
         if (value.empty())
             return result;
 
-        size_t splitPos = value.size();
+        core::usize splitPos = value.size();
 
         // Walk backwards to find where digits start
         while (splitPos > 0 && string::IsNumber(value[splitPos - 1])) {
@@ -326,7 +326,7 @@ namespace mikoto::renderer::d3d11 {
         if (splitPos < value.size()) {
             uint32_t index{0};
 
-            for (size_t i = splitPos; i < value.size(); ++i) {
+            for (core::usize i = splitPos; i < value.size(); ++i) {
                 index = index * 10 + (value[i] - '0');
             }
 

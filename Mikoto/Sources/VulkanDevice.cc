@@ -765,7 +765,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::SerializePipelineCache() -> void {
-        size_t dataSize{};
+        core::usize dataSize{};
         vkGetPipelineCacheData(mLogicalDevice, mPipelineCache, MKT_ADDRESSOF( dataSize ), nullptr);
 
         if (dataSize > 0) {
@@ -775,7 +775,7 @@ namespace mikoto::renderer::vulkan {
 
             if (FileService::GetPtr()) {
                 FileHandle file{ FileService::Get()->LoadFile( mPipelineCachePath ) };
-                file->Write( rc_cast<const char*>(data.data()), as<size_t>(data.size()) );
+                file->Write( rc_cast<const char*>(data.data()), as<core::usize>(data.size()) );
             }
         }
 
@@ -1043,7 +1043,7 @@ namespace mikoto::renderer::vulkan {
 
     }
 
-    auto CommandList::Write( ITexture *texture, const void *data, size_t byteSize ) -> void {
+    auto CommandList::Write( ITexture *texture, const void *data, core::usize byteSize ) -> void {
         if (mEnableAutomaticBarriers) {
             SetTransition( texture, ResourceStates::eCopyDest );
         }
@@ -1085,7 +1085,7 @@ namespace mikoto::renderer::vulkan {
         mRecordingContext[mRecordingContextIndex].mInFlightSubAllocations.emplace_back( allocation );
     }
 
-    auto CommandList::Write( IBuffer* buffer, size_t destOffset, const void* data, usize byteSize ) -> void {
+    auto CommandList::Write( IBuffer* buffer, core::usize destOffset, const void* data, usize byteSize ) -> void {
         MKT_ASSERT(buffer, "Buffer is nullptr");
         MKT_ASSERT(data, "Data is nullptr");
         MKT_ASSERT(byteSize > 0, "Size is 0");
@@ -1140,7 +1140,7 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto CommandList::Write( IBuffer *buffer, const void *data, size_t byteSize ) -> void {
+    auto CommandList::Write( IBuffer *buffer, const void *data, core::usize byteSize ) -> void {
         Write( buffer, 0, data, byteSize );
     }
 
@@ -1168,7 +1168,7 @@ namespace mikoto::renderer::vulkan {
         mIndirectBuffer->GetNativeHandle( ObjectType::Vk_Buffer ), offset, drawCount, MKT_SIZEOF( VkDrawIndirectCommand ) );
     }
 
-    auto CommandList::SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, ShaderFlags visibility ) -> void {
+    auto CommandList::SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, ShaderFlags visibility ) -> void {
         if (!data || byteSize == 0 || !pipelineLayout) {
             return;
         }
@@ -1208,11 +1208,11 @@ namespace mikoto::renderer::vulkan {
         Copy(src, dest, 0);
     }
 
-    auto CommandList::Copy( IBuffer *src, IBuffer *dest, size_t dstOffset ) -> void {
+    auto CommandList::Copy( IBuffer *src, IBuffer *dest, core::usize dstOffset ) -> void {
         MKT_ASSERT( src != nullptr, "Source buffer cannot be null" );
         MKT_ASSERT( dest != nullptr, "Destination buffer cannot be null" );
 
-        const size_t size{ src->GetSizeBytes() };
+        const core::usize size{ src->GetSizeBytes() };
 
         // The data I’m copying fits inside the destination buffer, starting at dstOffset
         MKT_ASSERT(size <= (dest->GetSizeBytes() - dstOffset), "Destination buffer is too small");
@@ -1829,7 +1829,7 @@ namespace mikoto::renderer::vulkan {
         vkCmdBeginDebugUtilsLabelEXT(mCurrentCommandBuffer, &labelInfo);
     }
 
-    auto CommandList::EnbDebugLabel() -> void {
+    auto CommandList::EndDebugLabel() -> void {
         vkCmdEndDebugUtilsLabelEXT( mCurrentCommandBuffer );
     }
 
@@ -2647,7 +2647,7 @@ namespace mikoto::renderer::vulkan {
         : mDevice{ device }
     {}
 
-    auto GpuUploadManager::SubAllocate( size_t byteSize ) -> GpuUploadAllocation* {
+    auto GpuUploadManager::SubAllocate( core::usize byteSize ) -> GpuUploadAllocation* {
         std::lock_guard lock{ mMutex };
         auto* device{ checked_cast<Device*>( mDevice ) };
 
@@ -2684,7 +2684,7 @@ namespace mikoto::renderer::vulkan {
         // Fill params
         GpuUploadAllocation* result{ CreateSubAllocation( stagingAlloc->mBuffer.GetPtr() ) };
 
-        result->mMappedMemory = as<byte_t *>( checked_cast<Buffer *>( stagingAlloc->mBuffer.GetPtr() )->GetMappedAddress() ) + subAllocProperties->mOffset;
+        result->mMappedMemory = as<core::ubyte *>( checked_cast<Buffer *>( stagingAlloc->mBuffer.GetPtr() )->GetMappedAddress() ) + subAllocProperties->mOffset;
         result->mSize = subAllocProperties->mSize;
         result->mOffset = subAllocProperties->mOffset;
         result->mBuffer = stagingAlloc->mBuffer.GetPtr();
@@ -2854,7 +2854,7 @@ namespace mikoto::renderer::vulkan {
         return *this;
     }
 
-    auto DescriptorWriter::WriteBuffer( u32 binding, VkBuffer buffer, size_t size, size_t offset, VkDescriptorType type, u32 arrayIndex ) -> DescriptorWriter& {
+    auto DescriptorWriter::WriteBuffer( u32 binding, VkBuffer buffer, core::usize size, core::usize offset, VkDescriptorType type, u32 arrayIndex ) -> DescriptorWriter& {
         // Descriptor types allowed for a buffer
         // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
         // VK_DESCRIPTOR_TYPE_STORAGE_BUFFER

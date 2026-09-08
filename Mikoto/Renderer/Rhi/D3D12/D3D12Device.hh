@@ -93,11 +93,11 @@ namespace mikoto::renderer::d3d12 {
         void* mMappedMemory{};
 
         // Size of this sub-allocation
-        core::size_t mSize{};
+        core::usize mSize{};
 
         // Specifies the offset of this allocation within the large
         // buffer it was allocated from
-        core::size_t mOffset{};
+        core::usize mOffset{};
 
         // Metadata to track usage
         memory::Allocation mAllocation{};
@@ -585,7 +585,7 @@ namespace mikoto::renderer::d3d12 {
 
         // https://renderdoc.org/docs/how/how_annotate_capture.html
         auto BeginDebugLabel( eastl::string_view name, rhi::Color color ) -> void override;
-        auto EnbDebugLabel() -> void override;
+        auto EndDebugLabel() -> void override;
 
         // D3D12 Specifics
         MKT_NODISCARD auto IsInUse() const -> bool;

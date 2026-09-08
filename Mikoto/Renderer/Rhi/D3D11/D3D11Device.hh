@@ -223,14 +223,14 @@ namespace mikoto::renderer::d3d11 {
 
         auto Dispatch( core::u32 groupsX, core::u32 groupsY, core::u32 groupsZ ) -> void override;
 
-        auto SetPushConstants( rhi::IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, ShaderFlags visibility ) -> void override;
+        auto SetPushConstants( rhi::IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, ShaderFlags visibility ) -> void override;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
 
         auto BeginDebugLabel( eastl::string_view name, rhi::Color color ) -> void override;
-        auto EnbDebugLabel() -> void override;
+        auto EndDebugLabel() -> void override;
 
         ~CommandList() override;
 

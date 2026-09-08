@@ -62,7 +62,7 @@
 #ifdef _MSC_VER
 #pragma warning( push )
 #pragma warning( disable : 4702 )// unreachable code
-#pragma warning( disable : 4267 )// conversion from 'size_t' to 'type'
+#pragma warning( disable : 4267 )// conversion from 'core::usize' to 'type'
 #endif                           // _MSC_VER
 
 #ifdef _MSC_VER
@@ -104,7 +104,7 @@ namespace mikoto::asset {
     bool FixupNames( _VectorType& _data, const char* _pretty_name,
                      const char* _prefix_name ) {
         ozz::set<std::string> names;
-        for ( size_t i = 0; i < _data.size(); ++i ) {
+        for ( core::usize i = 0; i < _data.size(); ++i ) {
             bool renamed = false;
             typename _VectorType::const_reference data = _data[i];
 
@@ -174,7 +174,7 @@ namespace mikoto::asset {
                               const tinygltf::Accessor& _output,
                               const ozz::span<const float>& _timestamps,
                               _KeyframesType* _keyframes ) {
-        const size_t gltf_keys_count = _output.count;
+        const core::usize gltf_keys_count = _output.count;
 
         if ( gltf_keys_count == 0 ) {
             _keyframes->clear();
@@ -192,7 +192,7 @@ namespace mikoto::asset {
         }
 
         _keyframes->reserve( _output.count );
-        for ( size_t i = 0; i < _output.count; ++i ) {
+        for ( core::usize i = 0; i < _output.count; ++i ) {
             const typename _KeyframesType::value_type key{ _timestamps[i], values[i] };
             _keyframes->push_back( key );
         }
@@ -207,7 +207,7 @@ namespace mikoto::asset {
                             const tinygltf::Accessor& _output,
                             const ozz::span<const float>& _timestamps,
                             _KeyframesType* _keyframes ) {
-        const size_t gltf_keys_count = _output.count;
+        const core::usize gltf_keys_count = _output.count;
 
         if ( gltf_keys_count == 0 ) {
             _keyframes->clear();
@@ -225,10 +225,10 @@ namespace mikoto::asset {
         }
 
         // A step is created with 2 consecutive keys. Last step is a single key.
-        size_t numKeyframes = gltf_keys_count * 2 - 1;
+        core::usize numKeyframes = gltf_keys_count * 2 - 1;
         _keyframes->resize( numKeyframes );
 
-        for ( size_t i = 0; i < _output.count; i++ ) {
+        for ( core::usize i = 0; i < _output.count; i++ ) {
             typename _KeyframesType::reference key = _keyframes->at( i * 2 );
             key.time = _timestamps[i];
             key.value = values[i];
@@ -285,7 +285,7 @@ namespace mikoto::asset {
         ( void )_duration;
 
         assert( _output.count % 3 == 0 );
-        size_t gltf_keys_count = _output.count / 3;
+        core::usize gltf_keys_count = _output.count / 3;
 
         if ( gltf_keys_count == 0 ) {
             _keyframes->clear();
@@ -307,8 +307,8 @@ namespace mikoto::asset {
         ozz::animation::offline::FixedRateSamplingTime fixed_it(
                 _timestamps[gltf_keys_count - 1] - _timestamps[0], _sampling_rate );
         _keyframes->resize( fixed_it.num_keys() );
-        size_t cubic_key0 = 0;
-        for ( size_t k = 0; k < fixed_it.num_keys(); ++k ) {
+        core::usize cubic_key0 = 0;
+        for ( core::usize k = 0; k < fixed_it.num_keys(); ++k ) {
             const float time = fixed_it.time( k ) + _timestamps[0];
 
             // Creates output key.
@@ -641,7 +641,7 @@ namespace mikoto::asset {
 
             // Traverses the scene graph and record all joints starting from the roots.
             _skeleton->roots.resize( roots.size() );
-            for ( size_t i = 0; i < roots.size(); ++i ) {
+            for ( core::usize i = 0; i < roots.size(); ++i ) {
                 const tinygltf::Node& root_node = m_model.nodes[roots[i]];
                 ozz::animation::offline::RawSkeleton::Joint& root_joint =
                         _skeleton->roots[i];
@@ -675,7 +675,7 @@ namespace mikoto::asset {
             _joint->children.resize( _node.children.size() );
 
             // Fills each child information.
-            for ( size_t i = 0; i < _node.children.size(); ++i ) {
+            for ( core::usize i = 0; i < _node.children.size(); ++i ) {
                 const tinygltf::Node& child_node = m_model.nodes[_node.children[i]];
                 ozz::animation::offline::RawSkeleton::Joint& child_joint =
                         _joint->children[i];
@@ -691,7 +691,7 @@ namespace mikoto::asset {
         // Returns all animations in the gltf document.
         AnimationNames GetAnimationNames() override {
             AnimationNames animNames;
-            for ( size_t i = 0; i < m_model.animations.size(); ++i ) {
+            for ( core::usize i = 0; i < m_model.animations.size(); ++i ) {
                 tinygltf::Animation& animation = m_model.animations[i];
                 assert( animation.name.length() != 0 );
                 animNames.push_back( animation.name.c_str() );
@@ -934,7 +934,7 @@ namespace mikoto::asset {
         tinygltf::Model m_model;
     };
 
-    static auto ComponentSize( i32 componentType ) -> size_t {
+    static auto ComponentSize( i32 componentType ) -> core::usize {
         switch ( componentType ) {
             case TINYGLTF_COMPONENT_TYPE_FLOAT:
                 return sizeof( float );
@@ -949,7 +949,7 @@ namespace mikoto::asset {
         }
     }
 
-    static auto TypeCount( i32 type ) -> size_t {
+    static auto TypeCount( i32 type ) -> core::usize {
         switch ( type ) {
             case TINYGLTF_TYPE_SCALAR:
                 return 1;
@@ -1067,10 +1067,10 @@ namespace mikoto::asset {
         std::vector<float> result{};
         result.resize( accessor.count * elemSize );
 
-        for ( size_t i{}; i < accessor.count; ++i ) {
+        for ( core::usize i{}; i < accessor.count; ++i ) {
             const auto* element = dataPtr + i * ( stride ? stride : compSize * elemSize );
 
-            for ( size_t c{}; c < elemSize; ++c ) {
+            for ( core::usize c{}; c < elemSize; ++c ) {
                 const auto* compPtr = element + c * compSize;
                 float value{};
 
@@ -1110,7 +1110,7 @@ namespace mikoto::asset {
             const std::string& attributeName,
             eastl::vector<VertexDescription_Std430Alignment>& vertices,
             TVec VertexDescription_Std430Alignment::* member,
-            size_t componentCount ) -> void {
+            core::usize componentCount ) -> void {
 
         if ( !primitive.attributes.contains( attributeName ) ) {
             return;
@@ -1119,9 +1119,9 @@ namespace mikoto::asset {
         const auto& accessor{ model.accessors[primitive.attributes.at( attributeName )] };
         auto data{ ReadAccessorAsFloat( model, accessor ) };
 
-        const size_t vertexCount{ vertices.size() };
+        const core::usize vertexCount{ vertices.size() };
 
-        for ( size_t i{}; i < vertexCount; ++i ) {
+        for ( core::usize i{}; i < vertexCount; ++i ) {
             TVec value{};
 
             if constexpr ( std::is_same_v<TVec, float2> ) {
@@ -1187,7 +1187,7 @@ namespace mikoto::asset {
 
                 const auto& posAccessor{ model.accessors[primitive.attributes.at( "POSITION" )] };
 
-                const size_t vertexCount{ posAccessor.count };
+                const core::usize vertexCount{ posAccessor.count };
                 node.mVertices.resize( vertexCount );
 
                 // POSITION (required)
@@ -1283,7 +1283,7 @@ namespace mikoto::asset {
 
                     node.mIndices.resize( accessor.count );
 
-                    for ( size_t i{}; i < accessor.count; ++i ) {
+                    for ( core::usize i{}; i < accessor.count; ++i ) {
                         if ( accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT ) {
                             node.mIndices[i] = reinterpret_cast<const u16*>( dataPtr )[i];
                         } else if ( accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT ) {

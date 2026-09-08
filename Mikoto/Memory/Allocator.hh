@@ -65,23 +65,23 @@ namespace mikoto::memory {
 
     auto MallocFree( void* p ) -> void;
 
-    MKT_NODISCARD auto MallocAlloc( size_t size ) -> void*;
-    MKT_NODISCARD auto MallocCalloc( size_t size ) -> void*;
-    MKT_NODISCARD auto MallocRealloc( void* p, size_t size ) -> void*;
+    MKT_NODISCARD auto MallocAlloc( core::usize size ) -> void*;
+    MKT_NODISCARD auto MallocCalloc( core::usize size ) -> void*;
+    MKT_NODISCARD auto MallocRealloc( void* p, core::usize size ) -> void*;
 
     // Alignment must be >= 1 (power of two). 0 is invalid.
-    MKT_NODISCARD auto AlignUp(size_t value, size_t alignment) -> size_t;
+    MKT_NODISCARD auto AlignUp(core::usize value, core::usize alignment) -> core::usize;
 
     struct Allocation {
-        size_t mOffset{};
-        size_t mSize{};
+        core::usize mOffset{};
+        core::usize mSize{};
     };
 
     class IAllocator {
     public:
         virtual ~IAllocator() = default;
 
-        MKT_NODISCARD virtual auto Allocate(size_t size, size_t alignment) -> eastl::optional<Allocation> = 0;
+        MKT_NODISCARD virtual auto Allocate(core::usize size, core::usize alignment) -> eastl::optional<Allocation> = 0;
         virtual auto Free(const Allocation& allocation) -> void = 0;
 
         virtual auto Reset() -> void {} // optional override

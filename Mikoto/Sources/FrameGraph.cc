@@ -206,12 +206,12 @@ namespace mikoto::renderer {
         return *this;
     }
 
-    auto FGBufferDescription::SetSizeBytes( size_t byteSize ) -> FGBufferDescription & {
+    auto FGBufferDescription::SetSizeBytes( core::usize byteSize ) -> FGBufferDescription & {
         mElementSizeBytes = byteSize;
         return *this;
     }
 
-    auto FGBufferDescription::SetElementsSize( u32 elementCount, size_t elementSizeBytes ) -> FGBufferDescription & {
+    auto FGBufferDescription::SetElementsSize( u32 elementCount, core::usize elementSizeBytes ) -> FGBufferDescription & {
         mElementCount = elementCount;
         mElementSizeBytes = elementSizeBytes;
         return *this;
@@ -714,7 +714,7 @@ namespace mikoto::renderer {
             }
 
             // End pass
-            pass.mCommandList->EnbDebugLabel();
+            pass.mCommandList->EndDebugLabel();
 
             if ( pass.mExecutionPolicy == FGExecutionPolicy::eOnce ||
                  pass.mExecutionPolicy == FGExecutionPolicy::eOnWake ) {

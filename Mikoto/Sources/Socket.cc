@@ -103,7 +103,7 @@ namespace mikoto::network {
         SendSync( data.data(), data.size() );
     }
 
-    auto TcpSocket::SendSync( const void *data, const size_t size ) -> void {
+    auto TcpSocket::SendSync( const void *data, const core::usize size ) -> void {
         try {
             if ( mIsSsl ) {
 #if defined( MIKOTO_OPENSSL_AVAILABLE )
@@ -121,7 +121,7 @@ namespace mikoto::network {
         }
     }
 
-    auto TcpSocket::ReceiveSync( void *buffer, const size_t maxSize ) -> size_t {
+    auto TcpSocket::ReceiveSync( void *buffer, const core::usize maxSize ) -> core::usize {
         try {
             if ( mErrorCode == asio::error::eof ) {
                 return 0;

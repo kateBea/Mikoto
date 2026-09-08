@@ -52,6 +52,22 @@ namespace mikoto::threading {
         // The Log comes after so we know the service was
         // initialized before attempting to shut it down
         MKT_CORE_LOGGER_INFO( "Shutting down TaskService..." );
+
+        std::lock_guard lock{ mMainThreadTasksMutex };
+        mMainThreadTasks.clear();
+        mIsInitialized = false;
+    }
+
+    auto TaskService::ExecuteMainThreadTasks() -> void {
+        eastl::vector<std::function<void()>> tasks{};
+        {
+            std::lock_guard lock{ mMainThreadTasksMutex };
+            tasks.swap( mMainThreadTasks );
+        }
+
+        for (auto& task : tasks) {
+            task();
+        }
     }
 
     auto TaskService::GetWorkersCount() const -> u32 {

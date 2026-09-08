@@ -77,10 +77,10 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto BindResourcesDescription::SetPushConstants( const void *ptr, size_t sizeBytes, ShaderFlags stage ) -> BindResourcesDescription & {
+    auto BindResourcesDescription::SetPushConstants( const void *ptr, core::usize sizeBytes, ShaderFlags stage ) -> BindResourcesDescription & {
         MKT_ASSERT( sizeBytes <= sizeof( mPushConstants ), "Exceeded push constants size" );
         mPushConstantVisibility = stage;
-        eastl::copy_n( as<byte_t *>( ptr ), sizeBytes, mPushConstants.data() );
+        eastl::copy_n( as<core::ubyte *>( ptr ), sizeBytes, mPushConstants.data() );
         return *this;
     }
 

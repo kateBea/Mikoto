@@ -132,15 +132,15 @@ auto operator delete[]( void* ptr, std::size_t, std::align_val_t alignment ) noe
 
 namespace mikoto::memory {
 
-    auto MallocAlloc( size_t size ) -> void* {
+    auto MallocAlloc( core::usize size ) -> void* {
         return nullptr;
     }
 
-    auto MallocCalloc( size_t size ) -> void* {
+    auto MallocCalloc( core::usize size ) -> void* {
         return nullptr;
     }
 
-    auto MallocRealloc( void* p, size_t size ) -> void* {
+    auto MallocRealloc( void* p, core::usize size ) -> void* {
         return nullptr;
     }
 
@@ -148,7 +148,7 @@ namespace mikoto::memory {
 
     }
 
-    auto AlignUp( size_t value, size_t alignment ) -> size_t {
+    auto AlignUp( core::usize value, core::usize alignment ) -> core::usize {
         return (value + alignment - 1) & ~(alignment - 1);
     }
 }// namespace mikoto::memory

@@ -474,6 +474,13 @@ namespace mikoto::scene {
         return it != mEntities.end() ? it->second.get() : nullptr;
     }
 
+    auto Scene::FindByHandle( const entt::entity handle ) -> Entity* {
+        const auto it{ std::ranges::find_if( mEntities, [handle]( const auto& pair ) -> bool {
+            return pair.second->Get() == handle;
+        } ) };
+        return it != mEntities.end() ? it->second.get() : nullptr;
+    }
+
     auto Scene::FindFirstByName( const eastl::string_view name ) -> Entity* {
         const auto it{ std::ranges::find_if( mEntities, [&]( auto& pair ) -> bool {
             const auto& entity{ pair.second };
@@ -744,7 +751,7 @@ namespace mikoto::scene {
         return CreateEntity( info );
     }
 
-    auto Scene::GetEntityCount() const -> size_t {
+    auto Scene::GetEntityCount() const -> core::usize {
         return mEntities.size();
     }
 

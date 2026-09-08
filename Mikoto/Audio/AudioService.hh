@@ -50,7 +50,7 @@ namespace mikoto::audio {
 
         // On Audio Service initialization we create the fixed amount of listeners
         // and send one at a time whenever CreateListener() is called
-        core::size_t mCurrentAllocationCount{};
+        core::usize mCurrentAllocationCount{};
         eastl::vector<AudioListener> mListeners{};
     };
 }

@@ -15,12 +15,12 @@
 #include <Memory/StackAllocator.hh>
 
 namespace mikoto::memory {
-    StackAllocator::StackAllocator( size_t sizeBytes )
+    StackAllocator::StackAllocator( core::usize sizeBytes )
         : mSize{ sizeBytes }, mOffset{ 0 } {}
 
-    auto StackAllocator::Allocate( size_t size, size_t alignment ) -> eastl::optional<Allocation> {
-        const size_t alignedOffset{ AlignUp( mOffset, alignment ) };
-        const size_t newOffset{ alignedOffset + size };
+    auto StackAllocator::Allocate( core::usize size, core::usize alignment ) -> eastl::optional<Allocation> {
+        const core::usize alignedOffset{ AlignUp( mOffset, alignment ) };
+        const core::usize newOffset{ alignedOffset + size };
 
         if ( newOffset > mSize )
             return eastl::nullopt;

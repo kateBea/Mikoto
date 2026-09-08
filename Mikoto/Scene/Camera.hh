@@ -23,6 +23,8 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
+#include <Logging/Assert.hh>
+
 #include <Math/Random.hh>
 #include <Math/Math.hh>
 
@@ -55,7 +57,7 @@ namespace mikoto::scene {
         MKT_NODISCARD auto GetFOV() const -> float { return mFov; }
         MKT_NODISCARD auto GetNearPlane() const -> float { return mNearPlane; }
         MKT_NODISCARD auto GetFarPlane() const -> float { return mFarPlane; }
-        MKT_NODISCARD auto GetAspectRatio() const -> float { return mViewportWidth / mViewportHeight; }
+        MKT_NODISCARD auto GetAspectRatio() const -> float { return mAspectRatio; }
         MKT_NODISCARD auto GetViewPort() const -> decltype(auto) { return std::make_pair(mViewportWidth, mViewportHeight); }
 
 
@@ -84,12 +86,15 @@ namespace mikoto::scene {
         }
 
         auto SetViewportSize( const core::f32 width, const core::f32 height ) -> void {
+            MKT_ASSERT( width > 0.0f && height > 0.0f, "Camera viewport dimensions must be positive" );
+
             if ( mViewportWidth == width && mViewportHeight == height ) {
                 return;
             }
 
             mViewportWidth = width;
             mViewportHeight = height;
+            mAspectRatio = width / height;
         }
 
         MKT_NODISCARD auto GetProjectionType() const -> ProjectionType { return mProjectionType; }
@@ -109,8 +114,6 @@ namespace mikoto::scene {
         }
 
         auto UpdateProjection() -> void {
-            mAspectRatio = mViewportWidth / mViewportHeight;
-
             switch(mProjectionType) {
                 case ProjectionType::eOrthographic:
                     mProjection = glm::ortho(0.0f, mViewportWidth, 0.0f, mViewportHeight);

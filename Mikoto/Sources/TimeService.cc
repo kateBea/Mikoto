@@ -115,7 +115,7 @@ namespace mikoto::core {
     }
 
     auto TimeService::PushTime( const eastl::string& tag, Time time ) -> void {
-        constexpr size_t kMaxSamples{ 120 }; // ~2 seconds at 60fps
+        constexpr core::usize kMaxSamples{ 120 }; // ~2 seconds at 60fps
 
         auto& history { mTimeMap[tag] };
 

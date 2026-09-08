@@ -38,19 +38,19 @@ namespace mikoto::memory {
     // Best for transient allocations (e.g. per-frame data, upload buffers). No fragmentation.
     class LinearAllocator final : public IAllocator {
     public:
-        explicit LinearAllocator(size_t sizeBytes);
+        explicit LinearAllocator(core::usize sizeBytes);
 
-        MKT_NODISCARD auto Allocate(size_t size, size_t alignment) -> eastl::optional<Allocation> override;
+        MKT_NODISCARD auto Allocate(core::usize size, core::usize alignment) -> eastl::optional<Allocation> override;
         auto Free(const Allocation&) -> void override; // no-op
 
         auto Reset() -> void override;
 
-        MKT_NODISCARD auto GetSize() const -> size_t { return mSize; }
-        MKT_NODISCARD auto GetOffset() const -> size_t { return mOffset; }
+        MKT_NODISCARD auto GetSize() const -> core::usize { return mSize; }
+        MKT_NODISCARD auto GetOffset() const -> core::usize { return mOffset; }
 
     private:
-        size_t mSize{};
-        size_t mOffset{};
+        core::usize mSize{};
+        core::usize mOffset{};
     };
 }
 

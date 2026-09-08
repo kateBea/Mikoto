@@ -91,7 +91,7 @@ namespace mikoto::network {
 
         // Receive until EOF
         while (true) {
-            const size_t n{ mSocket->ReceiveSync(buffer.data(), sizeof(buffer)) };
+            const core::usize n{ mSocket->ReceiveSync(buffer.data(), sizeof(buffer)) };
             if (n == 0) {
                 break;
             }

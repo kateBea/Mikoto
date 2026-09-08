@@ -26,7 +26,7 @@ namespace mikoto::text {
 
     auto GetUnicodeFromUtf8( eastl::string_view ut8 ) -> eastl::vector<core::u32> {
         eastl::vector<core::u32> codepoints{};
-        for ( core::size_t i{}; i < ut8.size(); ) {
+        for ( core::usize i{}; i < ut8.size(); ) {
             core::u32 cp{};
 
             unsigned char c{ static_cast<unsigned char>( ut8[i] ) };

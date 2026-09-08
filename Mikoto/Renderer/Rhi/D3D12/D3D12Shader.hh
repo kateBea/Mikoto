@@ -49,7 +49,7 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType object ) const -> rhi::Object override;
 
         MKT_NODISCARD auto GetContents() const -> const void* override;
-        MKT_NODISCARD auto GetContentsByteSize() const -> size_t override;
+        MKT_NODISCARD auto GetContentsByteSize() const -> core::usize override;
 
         ~Shader() override;
 

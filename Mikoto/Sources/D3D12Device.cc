@@ -1649,7 +1649,7 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
-    auto CommandList::Write( IBuffer *buffer, size_t destOffset, const void *data, core::usize byteSize ) -> void {
+    auto CommandList::Write( IBuffer *buffer, core::usize destOffset, const void *data, core::usize byteSize ) -> void {
 
     }
 
@@ -1705,7 +1705,7 @@ namespace mikoto::renderer::d3d12 {
         mCurrentRecordingContext->mCommandList->CopyResource( d3d12BufferDest, d3d12BufferSrc );
     }
 
-    auto CommandList::Copy( IBuffer *src, IBuffer *dest, size_t destOffset ) -> void {
+    auto CommandList::Copy( IBuffer *src, IBuffer *dest, core::usize destOffset ) -> void {
         Buffer* bSrc{ checked_cast<Buffer*>( src ) };
         Buffer* bDest{ checked_cast<Buffer*>( dest ) };
 
@@ -1991,7 +1991,7 @@ namespace mikoto::renderer::d3d12 {
         mCurrentRecordingContext->mCommandList->Dispatch( groupsX, groupsY, groupsZ );
     }
 
-    auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, core::size_t byteSize, ShaderFlags visibility ) -> void {
+    auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, core::usize byteSize, ShaderFlags visibility ) -> void {
         PipelineLayout* d3d12PipelineLayout{ checked_cast<PipelineLayout*>( pipelineLayout ) };
         u32 rootParameterIndex{ d3d12PipelineLayout->GetRootConstantIndex() };
         u32 numValues32Bit{ as<u32>( ( byteSize + 3 ) / 4 ) };
@@ -2025,7 +2025,7 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
-    auto CommandList::EnbDebugLabel() -> void {
+    auto CommandList::EndDebugLabel() -> void {
 
     }
 
@@ -2216,7 +2216,7 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_ASSERT( factory4, "A valid DirectX factory interface is required to create the device." );
 
-        SIZE_T maxDedicatedVideoMemory{};
+        core::usize maxDedicatedVideoMemory{};
         Microsoft::WRL::ComPtr<IDXGIAdapter1> adapterForDescription{};
 
         // Here we basically keep in mAdapter1 an instance of the adapter that matches our look up criteria
@@ -2768,7 +2768,7 @@ namespace mikoto::renderer::d3d12 {
         const UINT64 messageCount{ mInfoQueue->GetNumStoredMessages() };
 
         for (UINT64 i{}; i < messageCount; ++i) {
-            SIZE_T messageSize{};
+            core::usize messageSize{};
             ThrowIfFailed( mInfoQueue->GetMessage( i, nullptr, &messageSize ) );
 
             eastl::vector<std::byte> storage( messageSize );

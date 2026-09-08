@@ -38,6 +38,9 @@ namespace mikoto::renderer::rhi {
     // TODO: See if it is proper to have this here and extend the API to create resources via API native handles
     // like descriptor set layouts, etc...
 
+    /**
+     * Inputs used to build reflection data for a group of shader modules.
+     */
     struct ReflectionDescription {
         ShaderLanguage mLanguage{};
 
@@ -45,10 +48,18 @@ namespace mikoto::renderer::rhi {
     };
 
 
+    /**
+     * Extension point for shader-reflection implementations.
+     */
     class IReflectionModule {
     public:
 
 
+        /**
+         * Performs the operation represented by IReflectionModule.
+         *
+         * @returns The result of IReflectionModule.
+         */
         virtual ~IReflectionModule() = default;
     };
 }

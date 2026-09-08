@@ -15,12 +15,12 @@
 #include <Memory/LinearAllocator.hh>
 
 namespace mikoto::memory {
-    LinearAllocator::LinearAllocator( size_t sizeBytes )
+    LinearAllocator::LinearAllocator( core::usize sizeBytes )
         : mSize{ sizeBytes }, mOffset{ 0 } {}
 
-    auto LinearAllocator::Allocate( size_t size, size_t alignment ) -> eastl::optional<Allocation> {
-        const size_t alignedOffset{ AlignUp( mOffset, alignment ) };
-        const size_t newOffset{ alignedOffset + size };
+    auto LinearAllocator::Allocate( core::usize size, core::usize alignment ) -> eastl::optional<Allocation> {
+        const core::usize alignedOffset{ AlignUp( mOffset, alignment ) };
+        const core::usize newOffset{ alignedOffset + size };
 
         if ( newOffset > mSize )
             return eastl::nullopt;

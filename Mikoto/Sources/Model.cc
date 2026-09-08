@@ -114,15 +114,15 @@ namespace mikoto::asset {
 
     }
 
-    auto Model::GetMeshNodeCount() const -> size_t {
+    auto Model::GetMeshNodeCount() const -> core::usize {
         return mMeshes.size();
     }
 
-    auto Model::GetMeshNode( const size_t index ) -> MeshNode& {
+    auto Model::GetMeshNode( const core::usize index ) -> MeshNode& {
         return mMeshes.at(index);
     }
 
-    auto Model::GetMeshNode( const size_t index ) const -> const MeshNode& {
+    auto Model::GetMeshNode( const core::usize index ) const -> const MeshNode& {
         return mMeshes.at(index);
     }
 

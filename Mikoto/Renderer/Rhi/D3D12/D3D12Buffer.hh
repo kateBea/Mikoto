@@ -60,12 +60,12 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetResourceIndex() const -> DescriptorIndex;
 
 
-        auto CreateCBV(SIZE_T descriptor, rhi::BufferRange range, rhi::Format format = rhi::Format::eUnknown) const -> void;
-        auto CreateSRV(SIZE_T descriptor, rhi::BufferRange range, rhi::ResourceType resourceType = rhi::ResourceType::eInvalid, rhi::Format format = rhi::Format::eUnknown) const -> void;
-        auto CreateUAV(SIZE_T descriptor, rhi::BufferRange range, rhi::ResourceType resourceType = rhi::ResourceType::eInvalid, rhi::Format format = rhi::Format::eUnknown) const -> void;
+        auto CreateCBV(core::usize descriptor, rhi::BufferRange range, rhi::Format format = rhi::Format::eUnknown) const -> void;
+        auto CreateSRV(core::usize descriptor, rhi::BufferRange range, rhi::ResourceType resourceType = rhi::ResourceType::eInvalid, rhi::Format format = rhi::Format::eUnknown) const -> void;
+        auto CreateUAV(core::usize descriptor, rhi::BufferRange range, rhi::ResourceType resourceType = rhi::ResourceType::eInvalid, rhi::Format format = rhi::Format::eUnknown) const -> void;
 
-        static auto CreateNullSRV(SIZE_T descriptor, rhi::Format format, ID3D12Device2* device) -> void;
-        static auto CreateNullUAV(SIZE_T descriptor, rhi::Format format, ID3D12Device2* device) -> void;
+        static auto CreateNullSRV(core::usize descriptor, rhi::Format format, ID3D12Device2* device) -> void;
+        static auto CreateNullUAV(core::usize descriptor, rhi::Format format, ID3D12Device2* device) -> void;
 
         MKT_NODISCARD operator ID3D12Resource*() const;
 

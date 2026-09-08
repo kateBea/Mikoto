@@ -120,7 +120,7 @@ namespace mikoto::renderer::vulkan {
         return mSlangSpirv->getBufferPointer();
     }
 
-    auto Shader::GetContentsByteSize() const -> size_t {
+    auto Shader::GetContentsByteSize() const -> core::usize {
         return mSlangSpirv->getBufferSize();
     }
 

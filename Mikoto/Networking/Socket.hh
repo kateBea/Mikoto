@@ -50,9 +50,9 @@ namespace mikoto::network {
         MKT_NODISCARD virtual auto Connect( eastl::string_view address, u16 port ) -> bool = 0;
 
         virtual auto SendSync( eastl::string_view data ) -> void = 0;
-        virtual auto SendSync( const void* data, size_t size ) -> void = 0;
+        virtual auto SendSync( const void* data, core::usize size ) -> void = 0;
 
-        MKT_NODISCARD virtual auto ReceiveSync( void* buffer, size_t maxSize ) -> size_t = 0;
+        MKT_NODISCARD virtual auto ReceiveSync( void* buffer, core::usize maxSize ) -> core::usize = 0;
 
         using IResource::Initialize;
 
@@ -77,9 +77,9 @@ namespace mikoto::network {
         MKT_NODISCARD auto Connect( eastl::string_view address, u16 port ) -> bool override;
 
         auto SendSync( eastl::string_view data ) -> void override;
-        auto SendSync( const void* data, size_t size ) -> void override;
+        auto SendSync( const void* data, core::usize size ) -> void override;
 
-        MKT_NODISCARD auto ReceiveSync( void* buffer, size_t maxSize ) -> size_t override;
+        MKT_NODISCARD auto ReceiveSync( void* buffer, core::usize maxSize ) -> core::usize override;
 
         MKT_NODISCARD auto GetHost() const -> const eastl::string& override;
 

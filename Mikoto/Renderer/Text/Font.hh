@@ -105,7 +105,7 @@ namespace mikoto::renderer {
 
         MKT_NODISCARD auto HasGlyph( core::u32 unicodePoint ) const -> bool;
 
-        MKT_NODISCARD auto GetGlyphCount() const -> size_t;
+        MKT_NODISCARD auto GetGlyphCount() const -> core::usize;
         MKT_NODISCARD auto GetSize() const -> core::f64;
 
         /**

@@ -417,7 +417,7 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( columnIndex );
 
             AlphaMode currentAlphaMode{ material.GetAlphaMask() };
-            std::array<std::string, as<size_t>(AlphaMode::eCount)> choicesAlpha{
+            std::array<std::string, as<core::usize>(AlphaMode::eCount)> choicesAlpha{
                 "Opaque", "Mask", "Blend",
             };
 
@@ -430,7 +430,7 @@ namespace mikoto::editor {
             ImGui::TableSetColumnIndex( columnIndex );
 
             Workflow currentWorkFlow{ material.GetWorkflow() };
-            std::array<std::string, static_cast<size_t>(Workflow::eCount)> choicesWorkflow{
+            std::array<std::string, static_cast<core::usize>(Workflow::eCount)> choicesWorkflow{
                 "Metallic-Roughness", "Specular-Glossiness",
             };
 
@@ -1557,7 +1557,7 @@ namespace mikoto::editor {
                 const char* end{ preview.data() + preview.size() };
                 while ( start < end ) {
                     const char* lineEnd = std::find( start, end, '\n' );
-                    lines.emplace_back( start, static_cast<size_t>( lineEnd - start ) );
+                    lines.emplace_back( start, static_cast<core::usize>( lineEnd - start ) );
                     start = ( lineEnd == end ) ? end : lineEnd + 1;
                 }
             }
@@ -1629,7 +1629,7 @@ namespace mikoto::editor {
             const i32 selectionIndex{
                 imgui::Combo(
                         animationNames.data(),
-                        static_cast<size_t>( animationNames.size() ),
+                        static_cast<core::usize>( animationNames.size() ),
                         currentAnimationName )
             };
 
@@ -1806,7 +1806,9 @@ namespace mikoto::editor {
         ImGui::SameLine();
 
         if ( ImGui::Button( string::Format( " {} Load ##DrawRenderComponentTab_SearchButton", ICON_MD_SEARCH ).c_str() ) ) {
-            threading::TaskService::Get()->Submit( [rootEntity = std::addressof(entity), this]() -> void {
+            Scene* scene{ mState->mActiveScene };
+            const entt::entity rootHandle{ entity.Get() };
+            threading::TaskService::Get()->Submit( [scene, rootHandle]() -> void {
                 const std::initializer_list<FileDialogPair> filters{
                     { "Model files", "obj,gltf,fbx,glb" },
                     { "OBJ files", "obj" },
@@ -1817,14 +1819,19 @@ namespace mikoto::editor {
 
                 if ( !modelPath.IsEmpty() ) {
                     ModelHandle model{ AssetsService::Get()->LoadAsset<Model>( modelPath ) };
+                    threading::TaskService::Get()->SubmitMainThread( [scene, rootHandle, model]() -> void {
+                        if (!scene || model.IsEmpty()) {
+                            return;
+                        }
 
-                    const EntityCreateInfo entityCreateInfo{
-                        .mRoot = rootEntity,
-                        .mName{ model->GetName() },
-                        .mModel = model };
-                    mState->mActiveScene->PushEntity( entityCreateInfo );
+                        const EntityCreateInfo entityCreateInfo{
+                            .mRoot = scene->FindByHandle( rootHandle ),
+                            .mName{ model->GetName() },
+                            .mModel = model };
+                        scene->PushEntity( entityCreateInfo );
+                    } );
                 }
-            });
+            } );
         }
 
         if ( ImGui::IsItemHovered() ) {
@@ -1852,12 +1859,12 @@ namespace mikoto::editor {
         ImGui::TextUnformatted( "Light type " );
         ImGui::SameLine();
 
-        if ( ImGui::BeginCombo( "##LightType", lightTypes[static_cast<size_t>( lightType )].data() ) ) {
-            size_t lightTypeIndex{};
+        if ( ImGui::BeginCombo( "##LightType", lightTypes[static_cast<core::usize>( lightType )].data() ) ) {
+            core::usize lightTypeIndex{};
             for ( const auto& currentType: lightTypes ) {
                 // Tells whether we want to highlight this light type in the ImGui combo.
                 // This will be the case if the current type of light is the same as the component
-                const bool isSelected{ currentType == lightTypes[static_cast<size_t>( lightType )] };
+                const bool isSelected{ currentType == lightTypes[static_cast<core::usize>( lightType )] };
 
                 // This cast is valid because lightTypeIndex is always in the range [0, 2]
                 // where each index indicates a type of light, see LightType definition.
@@ -1926,7 +1933,9 @@ namespace mikoto::editor {
         ImGui::InputText( "##FontPath", fontPath.data(), fontPath.size() + 1, ImGuiInputTextFlags_ReadOnly );
         ImGui::SameLine();
         if ( ImGui::Button( "Load Font" ) ) {
-            threading::TaskService::Get()->Submit( [&]() -> void {
+            Scene* scene{ mState->mActiveScene };
+            const entt::entity entityHandle{ entity.Get() };
+            threading::TaskService::Get()->Submit( [scene, entityHandle]() -> void {
                 const std::initializer_list<FileDialogPair> filters{
                     { "Font Files", "ttf" }
                 };
@@ -1934,10 +1943,16 @@ namespace mikoto::editor {
                 Path path{ filesystem::OpenFileDialog( filters ) };
                 if ( !path.IsEmpty() ) {
                     FontHandle newFont{ AssetsService::Get()->LoadAsset<Font>( path ) };
+                    threading::TaskService::Get()->SubmitMainThread( [scene, entityHandle, newFont]() -> void {
+                        if (!scene || newFont.IsEmpty()) {
+                            return;
+                        }
 
-                    if ( !newFont.IsEmpty() ) {
-                        textComponent.SetFont( newFont );
-                    }
+                        auto& registry{ scene->GetRegistry() };
+                        if (registry.valid( entityHandle ) && registry.all_of<TextComponent>( entityHandle )) {
+                            registry.get<TextComponent>( entityHandle ).SetFont( newFont );
+                        }
+                    } );
                 }
             } );
         }
@@ -2099,29 +2114,30 @@ namespace mikoto::editor {
         ImGui::InputText( "##AudioClipPath", clipPath.data(), clipPath.size() + 1, ImGuiInputTextFlags_ReadOnly );
         ImGui::SameLine();
         if ( ImGui::Button( "Load Clip" ) ) {
-            static bool loading{ false };
-            if ( !loading ) {
-                loading = true;
+            Scene* scene{ mState->mActiveScene };
+            const entt::entity entityHandle{ entity.Get() };
+            threading::TaskService::Get()->Submit( [scene, entityHandle]() -> void {
+                const std::initializer_list<FileDialogPair> filters{
+                    { "Audio Files", "wav,mp3,ogg" }
+                };
 
-                threading::TaskService::Get()->Submit( [&]() -> void {
-                    const std::initializer_list<FileDialogPair> filters{
-                        { "Audio Files", "wav,mp3,ogg" }
-                    };
-
-                    Path path{ filesystem::OpenFileDialog( filters ) };
-                    if ( !path.IsEmpty() ) {
-                        AudioHandle newClip{ AssetsService::Get()->LoadAsset<Audio>( AudioLoadDescription {
-                            .mFile{ FileService::Get()->LoadFile( path ) }
-                        } ) };
-
-                        if ( !newClip.IsEmpty() ) {
-                            audioComponent.SetClip( newClip );
+                Path path{ filesystem::OpenFileDialog( filters ) };
+                if ( !path.IsEmpty() ) {
+                    AudioHandle newClip{ AssetsService::Get()->LoadAsset<Audio>( AudioLoadDescription {
+                        .mFile{ FileService::Get()->LoadFile( path ) }
+                    } ) };
+                    threading::TaskService::Get()->SubmitMainThread( [scene, entityHandle, newClip]() -> void {
+                        if (!scene || newClip.IsEmpty()) {
+                            return;
                         }
-                    }
 
-                    loading = false;
-                } );
-            }
+                        auto& registry{ scene->GetRegistry() };
+                        if (registry.valid( entityHandle ) && registry.all_of<AudioSourceComponent>( entityHandle )) {
+                            registry.get<AudioSourceComponent>( entityHandle ).SetClip( newClip );
+                        }
+                    } );
+                }
+            } );
         }
 
         // --- Spatialize ---

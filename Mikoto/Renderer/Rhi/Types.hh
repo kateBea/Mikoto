@@ -588,7 +588,9 @@ namespace mikoto::renderer::rhi {
         static constexpr TextureLayoutFlags Present{ BIT_SET(8) };
     };
 
-    // Resource format info
+    /**
+     * Static properties of an RHI pixel or buffer format.
+     */
     struct FormatInfo {
         Format mFormat{ Format::eUnknown };
         const char* mName{};
@@ -605,7 +607,9 @@ namespace mikoto::renderer::rhi {
         bool mIsSRGB{};
     };
 
-    // Describes a piece of a buffer
+    /**
+     * Byte range within a buffer; @ref kEntireBuffer denotes the complete resource.
+     */
     struct BufferRange {
         core::u64 mByteOffset = 0;
         core::u64 mByteSize = 0;
@@ -615,17 +619,50 @@ namespace mikoto::renderer::rhi {
         BufferRange( core::u64 byteOffset, core::u64 byteSize )
             : mByteOffset{ byteOffset }, mByteSize{ byteSize } {}
 
-        MKT_NODISCARD auto IsEntireBuffer( core::size_t bufferByteSize ) const -> bool;
+        /**
+         * Returns the value produced by IsEntireBuffer.
+         *
+         * @param bufferByteSize Input value used by this operation.
+         * @returns The result of IsEntireBuffer.
+         */
+        MKT_NODISCARD auto IsEntireBuffer( core::usize bufferByteSize ) const -> bool;
+
+        /**
+         * Performs the operation represented by operator.
+         *
+         * @param other Input value used by this operation.
+         * @returns The result of operator.
+         */
         MKT_NODISCARD auto operator==(const BufferRange& other) const -> bool;
 
+        /**
+         * Sets the value handled by SetByteOffset.
+         *
+         * @param value Input value used by this operation.
+         * @returns The result of SetByteOffset.
+         */
         auto SetByteOffset( core::u64 value ) -> BufferRange&;
+
+        /**
+         * Sets the value handled by SetByteSize.
+         *
+         * @param value Input value used by this operation.
+         * @returns The result of SetByteSize.
+         */
         auto SetByteSize( core::u64 value ) -> BufferRange&;
 
-        auto Validate( core::size_t bufferByteSize ) -> BufferRange&;
+        /**
+         * Performs the operation represented by Validate.
+         *
+         * @param bufferByteSize Input value used by this operation.
+         * @returns The result of Validate.
+         */
+        auto Validate( core::usize bufferByteSize ) -> BufferRange&;
     };
 
-    // Similar to buffer range but for textures
-    // Used normally by backends to create views to shader resources
+    /**
+     * Mip and array-slice subset used to create a texture view.
+     */
     struct TextureSubresourceSet {
         static constexpr MipLevel kAllMipLevels{ MipLevel(-1) };
         static constexpr ArraySlice kAllArraySlices{ ArraySlice(-1) };
@@ -646,7 +683,9 @@ namespace mikoto::renderer::rhi {
         }
     };
 
-    // Represents a 4-Component color
+    /**
+     * Four-component floating-point color.
+     */
     struct Color {
         core::f32 mR{};
         core::f32 mG{};
@@ -664,30 +703,77 @@ namespace mikoto::renderer::rhi {
         Color( core::f32 r, core::f32 g, core::f32 b, core::f32 a )
             : mR{ r }, mG{ g }, mB{ b }, mA{ a } {}
 
+        /**
+         * Performs the operation represented by operator.
+         *
+         * @param other Input value used by this operation.
+         * @returns The result of operator.
+         */
         auto operator==( const Color& other ) const -> bool {
             return mR == other.mR && mG == other.mG && mB == other.mB && mA == other.mA;
         }
 
+        /**
+         * Performs the operation represented by operator.
+         *
+         * @param other Input value used by this operation.
+         * @returns The result of operator.
+         */
         auto operator!=( const Color& other ) const -> bool {
             return !( *this == other );
         }
 
+        /**
+         * Divides each color component by a scalar.
+         *
+         * @param color Color to scale.
+         * @param value Divisor.
+         * @returns The scaled color.
+         */
         friend auto operator/( const Color& color, float value ) -> Color {
             return { color.mR / value, color.mG / value, color.mB / value, color.mA / value };
         }
 
+        /**
+         * Adds a scalar to each color component.
+         *
+         * @param color Color to offset.
+         * @param value Offset value.
+         * @returns The offset color.
+         */
         friend auto operator+( const Color& color, float value ) -> Color {
             return { color.mR + value, color.mG + value, color.mB + value, color.mA + value };
         }
 
+        /**
+         * Adds a scalar to each color component.
+         *
+         * @param value Offset value.
+         * @param color Color to offset.
+         * @returns The offset color.
+         */
         friend auto operator+( float value, const Color& color ) -> Color {
             return { color.mR + value, color.mG + value, color.mB + value, color.mA + value };
         }
 
+        /**
+         * Divides a scalar by each color component.
+         *
+         * @param value Dividend.
+         * @param color Per-component divisor.
+         * @returns The component-wise quotient.
+         */
         friend auto operator/( float value, const Color& color ) -> Color {
             return { color.mR / value, color.mG / value, color.mB / value, color.mA / value };
         }
 
+        /**
+         * Divides color components pairwise.
+         *
+         * @param lhs Dividend color.
+         * @param rhs Divisor color.
+         * @returns The component-wise quotient.
+         */
         friend auto operator/( const Color& lhs, const Color& rhs ) -> Color {
             return { lhs.mR / rhs.mR, lhs.mG / rhs.mG, lhs.mB / rhs.mB, lhs.mA / rhs.mA };
         }
@@ -695,7 +781,9 @@ namespace mikoto::renderer::rhi {
         operator core::float4() const;
     };
 
-    // Represents a viewport
+    /**
+     * Rectangular viewport and depth range.
+     */
     struct Viewport {
         core::f32 mMinX{};
         core::f32 mMaxX{};
@@ -714,25 +802,48 @@ namespace mikoto::renderer::rhi {
         Viewport( core::f32 minX, core::f32 maxX, core::f32 minY, core::f32 maxY, core::f32 minZ, core::f32 maxZ )
             : mMinX{ minX }, mMaxX{ maxX }, mMinY{ minY }, mMaxY{ maxY }, mMinZ{ minZ }, mMaxZ{ maxZ } {}
 
+        /**
+         * Performs the operation represented by operator.
+         *
+         * @param other Input value used by this operation.
+         * @returns The result of operator.
+         */
         auto operator==( const Viewport& other ) const -> bool {
             return mMinX == other.mMinX && mMinY == other.mMinY && mMinZ == other.mMinZ && mMaxX == other.mMaxX && mMaxY == other.mMaxY && mMaxZ == other.mMaxZ;
         }
 
+        /**
+         * Performs the operation represented by operator.
+         *
+         * @param other Input value used by this operation.
+         * @returns The result of operator.
+         */
         auto operator!=( const Viewport& other ) const -> bool {
             return !( *this == other );
         }
 
+        /**
+         * Returns the value produced by GetWidth.
+         *
+         * @returns The result of GetWidth.
+         */
         MKT_NODISCARD auto GetWidth() const -> float {
             return mMaxX - mMinX;
         }
 
+        /**
+         * Returns the value produced by GetHeight.
+         *
+         * @returns The result of GetHeight.
+         */
         MKT_NODISCARD auto GetHeight() const -> float {
             return mMaxY - mMinY;
         }
     };
 
-    // Represents a render area
-    // Used normally to specify scissor rects
+    /**
+     * Integer render area, normally used as a scissor rectangle.
+     */
     struct Rect {
         core::i32 mMinX{};
         core::i32 mMaxX{};
@@ -747,39 +858,92 @@ namespace mikoto::renderer::rhi {
         Rect( core::i32 minX, core::i32 maxX, core::i32 minY, core::i32 maxY )
             : mMinX{ minX }, mMaxX{ maxX }, mMinY{ minY }, mMaxY{ maxY } {}
 
+        /**
+         * Performs the operation represented by Rect.
+         *
+         * @returns The result of Rect.
+         */
         explicit Rect( const Viewport& viewport )
             : mMinX{ core::as<core::i32>( glm::floor( viewport.mMinX ) ) },
               mMaxX{ core::as<core::i32>( glm::ceil( viewport.mMaxX ) ) },
               mMinY{ core::as<core::i32>( glm::floor( viewport.mMinY ) ) },
               mMaxY{ core::as<core::i32>( glm::ceil( viewport.mMaxY ) ) } {}
 
+        /**
+         * Performs the operation represented by operator.
+         *
+         * @param other Input value used by this operation.
+         * @returns The result of operator.
+         */
         auto operator==( const Rect& other ) const -> bool {
             return mMinX == other.mMinX && mMinY == other.mMinY && mMaxX == other.mMaxX && mMaxY == other.mMaxY;
         }
 
+        /**
+         * Performs the operation represented by operator.
+         *
+         * @param other Input value used by this operation.
+         * @returns The result of operator.
+         */
         auto operator!=( const Rect& other ) const -> bool {
             return !( *this == other );
         }
 
+        /**
+         * Performs the operation represented by ComputeWidth.
+         *
+         * @returns The result of ComputeWidth.
+         */
         MKT_NODISCARD auto ComputeWidth() const -> core::i32 {
             return mMaxX - mMinX;
         }
 
+        /**
+         * Performs the operation represented by ComputeHeight.
+         *
+         * @returns The result of ComputeHeight.
+         */
         MKT_NODISCARD auto ComputeHeight() const -> core::i32 {
             return mMaxY - mMinY;
         }
     };
 
+    /**
+     * Stride and update rate for a vertex-buffer binding.
+     */
     struct VertexBindingDescription {
         core::u32 mBinding{};
         core::u32 mStride{};
         InputRate mRate{}; // ePerVertex / ePerInstance
 
+        /**
+         * Sets the value handled by SetBinding.
+         *
+         * @param binding Input value used by this operation.
+         * @returns The result of SetBinding.
+         */
         auto SetBinding(core::u32 binding) -> VertexBindingDescription&;
+
+        /**
+         * Sets the value handled by SetStride.
+         *
+         * @param stride Input value used by this operation.
+         * @returns The result of SetStride.
+         */
         auto SetStride(core::u32 stride) -> VertexBindingDescription&;
+
+        /**
+         * Sets the value handled by SetInputRate.
+         *
+         * @param rate Input value used by this operation.
+         * @returns The result of SetInputRate.
+         */
         auto SetInputRate(InputRate rate) -> VertexBindingDescription&;
     };
 
+    /**
+     * Location, format and byte offset of one vertex shader input.
+     */
     struct VertexAttributeDescription {
         eastl::string mName{};
         core::u32 mLocation{};
@@ -787,11 +951,45 @@ namespace mikoto::renderer::rhi {
         Format mFormat{};
         core::u32 mOffset{};
 
+        /**
+         * Sets the value handled by SetName.
+         *
+         * @param name Input value used by this operation.
+         * @returns The result of SetName.
+         */
         auto SetName(eastl::string name) -> VertexAttributeDescription&;
-        auto SetLocation(uint32_t loc) -> VertexAttributeDescription&;
-        auto SetBinding(uint32_t binding) -> VertexAttributeDescription&;
+
+        /**
+         * Sets the value handled by SetLocation.
+         *
+         * @param loc Input value used by this operation.
+         * @returns The result of SetLocation.
+         */
+        auto SetLocation(core::u32 loc) -> VertexAttributeDescription&;
+
+        /**
+         * Sets the value handled by SetBinding.
+         *
+         * @param binding Input value used by this operation.
+         * @returns The result of SetBinding.
+         */
+        auto SetBinding(core::u32 binding) -> VertexAttributeDescription&;
+
+        /**
+         * Sets the value handled by SetFormat.
+         *
+         * @param format Input value used by this operation.
+         * @returns The result of SetFormat.
+         */
         auto SetFormat(rhi::Format format) -> VertexAttributeDescription&;
-        auto SetOffset(uint32_t offset) -> VertexAttributeDescription&;
+
+        /**
+         * Sets the value handled by SetOffset.
+         *
+         * @param offset Input value used by this operation.
+         * @returns The result of SetOffset.
+         */
+        auto SetOffset(core::u32 offset) -> VertexAttributeDescription&;
     };
 
     // Constants

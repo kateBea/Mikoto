@@ -135,11 +135,11 @@ namespace mikoto::imgui {
 
     auto DebugShowMaterialIcons() -> void;
 
-    auto DrawMemoryVisualizer( const void *memory, size_t size, std::uintptr_t baseAddress, size_t bytesPerRow = 16 ) -> void;
+    auto DrawMemoryVisualizer( const void *memory, core::usize size, std::uintptr_t baseAddress, core::usize bytesPerRow = 16 ) -> void;
 
     auto SetCursorHandOnLastItemHovered() -> void;
 
-    MKT_NODISCARD auto Combo(eastl::string* choices, size_t count, const eastl::string& currentSelection) -> i32;
+    MKT_NODISCARD auto Combo(eastl::string* choices, core::usize count, const eastl::string& currentSelection) -> i32;
 
     auto InputText(eastl::string_view viewData, bool readOnly = false) -> bool;
 

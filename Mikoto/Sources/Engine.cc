@@ -137,7 +137,7 @@ namespace mikoto::core {
         MKT_CORE_LOGGER_DEBUG( "Shutting down Engine..." );
 
         // Wait for all tasks to finish
-        mExecutor.wait_for_all();
+        WaitForBackgroundTasks();
 
         // Clear rest of modules
         BuildShutdownTasks();
@@ -149,19 +149,38 @@ namespace mikoto::core {
                 node.mService->Shutdown();
             }
         }
+
+        // Task callbacks retain raw IService pointers.  Dispose of task graphs
+        // before releasing the owning service nodes.
+        mInitTaskGraph.clear();
+        mShutdownTaskGraph.clear();
+        mExecTaskGraph.clear();
+        mInitTasks.clear();
+        mShutdownTasks.clear();
+        mExecTasks.clear();
+        mNodes.clear();
+        mMainThreadNodes.clear();
+    }
+
+    auto Engine::WaitForBackgroundTasks() -> void {
+        mExecutor.wait_for_all();
     }
 
     auto Engine::Update() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // Run main thread tasks
+        ExecuteMainThreadTasks();
+
+        // Input/events must remain on the main thread.  Rendering is performed
+        // after worker subsystems so the renderer observes the current frame's
+        // animation, physics, particles, and scripts.
         const double timeStep{ TimeService::Get()->GetTimeStep( TimeUnit::eSeconds ) };
         for (auto& [type, node] : mMainThreadNodes) {
-            if (!node.mIsSubsystem) {
+            if (!node.mIsSubsystem || type == typeid(RenderSystem)) {
                 continue;
             }
 
-            auto system{ checked_cast<ISubsystem*>( node.mService) };
+            auto system{ checked_cast<ISubsystem*>( node.mService.get() ) };
 
             if (system->IsInitialized() && !system->Sleeping()) {
                 system->Update( as<f32>( timeStep ) );
@@ -174,12 +193,29 @@ namespace mikoto::core {
         // the idea would be submitting work to the systems so they are able to start working
         // when I call run()
         mExecutor.run(mExecTaskGraph).wait();
+
+        if (const auto it{ mMainThreadNodes.find(typeid(RenderSystem)) }; it != mMainThreadNodes.end()) {
+            auto* system{ checked_cast<ISubsystem*>( it->second.mService.get() ) };
+            if (system->IsInitialized() && !system->Sleeping()) {
+                system->Update( as<f32>( timeStep ) );
+            }
+        }
+    }
+
+    auto Engine::ExecuteMainThreadTasks() -> void {
+        const auto it{ mNodes.find( typeid(TaskService) ) };
+        if (it == mNodes.end() || !it->second.mService->IsInitialized()) {
+            return;
+        }
+
+        auto* taskService{ checked_cast<TaskService*>( it->second.mService.get() ) };
+        taskService->ExecuteMainThreadTasks();
     }
 
     auto Engine::BuildInitTasks() -> void {
         // Construct tasks
         for (auto& [type, node] : mNodes) {
-            mInitTasks[type] = mInitTaskGraph.emplace([service = node.mService]() {
+            mInitTasks[type] = mInitTaskGraph.emplace([service = node.mService.get()]() {
                 if (!service->IsInitialized()) {
                     service->Initialize();
                 }
@@ -205,7 +241,7 @@ namespace mikoto::core {
     auto Engine::BuildShutdownTasks() -> void {
         // Construct tasks
         for (auto& [type, node] : mNodes) {
-            mShutdownTasks[type] = mShutdownTaskGraph.emplace([service = node.mService]() {
+            mShutdownTasks[type] = mShutdownTaskGraph.emplace([service = node.mService.get()]() {
                 if (service->IsInitialized()) {
                     service->Shutdown();
                 }
@@ -235,8 +271,8 @@ namespace mikoto::core {
                 continue;
             }
 
-            mExecTasks[type] = mExecTaskGraph.emplace([node]() -> void {
-                const auto system{ as<ISubsystem*>( node.mService) };
+            mExecTasks[type] = mExecTaskGraph.emplace([service = node.mService.get()]() -> void {
+                const auto system{ as<ISubsystem*>( service) };
                 const auto deltaTime{ TimeService::Get()->GetTimeStep( TimeUnit::eSeconds ) };
 
                 if (system->IsInitialized() && !system->Sleeping()) {

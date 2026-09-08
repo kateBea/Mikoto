@@ -16,6 +16,12 @@
 
 namespace mikoto::renderer::rhi {
 
+    Object::Object( void* pointer )
+        : mType{ Type::Pointer }, mPointer{ pointer } {}
+
+    Object::Object( core::u64 integer )
+        : mType{ Type::Integer }, mInteger{ integer } {}
+
     DeviceObject::DeviceObject( HeapType heapType, ResourceType resourceType )
        : mResourceType{ resourceType }, mHeapType{ heapType }
     {}
@@ -51,5 +57,9 @@ namespace mikoto::renderer::rhi {
 
     auto DeviceObject::GetNativeHandle( ObjectType type ) const -> Object {
         return const_cast<DeviceObject*>(this)->GetNativeHandle( type );
+    }
+
+    auto DeviceObject::GetHeapType() const -> HeapType {
+        return mHeapType;
     }
 }// namespace mikoto::renderer::rhi

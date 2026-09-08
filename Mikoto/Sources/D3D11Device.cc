@@ -116,7 +116,7 @@ namespace mikoto::renderer::d3d11 {
         mResolvedBindings.clear();
         mResolvedBindings.resize(mBindingDescription.mBindings.size());
 
-        for ( size_t i{}; i < mBindingDescription.mBindings.size(); ++i ) {
+        for ( core::usize i{}; i < mBindingDescription.mBindings.size(); ++i ) {
             const auto &item = mBindingDescription.mBindings[i];
             auto &out = mResolvedBindings[i];
             switch ( item.mType ) {
@@ -147,7 +147,7 @@ namespace mikoto::renderer::d3d11 {
         u32 samplerSlotIndex{ 0 };
         u32 textureSlotIndex{ 0 };
 
-        for ( size_t i{ 0 }; i < mBindingDescription.mBindings.size(); ++i ) {
+        for ( core::usize i{ 0 }; i < mBindingDescription.mBindings.size(); ++i ) {
             const auto &item{ mBindingDescription.mBindings[i] };
             const auto &data{ mResolvedBindings[i] };
 
@@ -417,11 +417,11 @@ namespace mikoto::renderer::d3d11 {
 
     }
 
-    auto CommandList::Write( IBuffer *target, size_t destOffset, const void *data, size_t byteSize ) -> void {
+    auto CommandList::Write( IBuffer *target, core::usize destOffset, const void *data, core::usize byteSize ) -> void {
 
     }
 
-    auto CommandList::Write( IBuffer *target, const void *data, size_t byteSize ) -> void {
+    auto CommandList::Write( IBuffer *target, const void *data, core::usize byteSize ) -> void {
         D3D11_MAPPED_SUBRESOURCE mappedResource{};
         ID3D11Buffer *buffer{ target->GetNativeHandle( ObjectType::D3D11_Buffer ) };
 
@@ -437,7 +437,7 @@ namespace mikoto::renderer::d3d11 {
 
     }
 
-    auto CommandList::Copy( IBuffer *src, IBuffer *dest, size_t destOffset ) -> void {
+    auto CommandList::Copy( IBuffer *src, IBuffer *dest, core::usize destOffset ) -> void {
 
     }
 
@@ -662,7 +662,7 @@ namespace mikoto::renderer::d3d11 {
         mDeviceContextDeferred->Dispatch( groupsX, groupsY, groupsZ );
     }
 
-    auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, size_t byteSize, ShaderFlags visibility ) -> void {
+    auto CommandList::SetPushConstants( IPipelineLayout *pipelineLayout, const void *data, core::usize byteSize, ShaderFlags visibility ) -> void {
 
     }
 
@@ -688,7 +688,7 @@ namespace mikoto::renderer::d3d11 {
 
     }
 
-    auto CommandList::EnbDebugLabel() -> void {
+    auto CommandList::EndDebugLabel() -> void {
 
     }
 
@@ -859,7 +859,7 @@ namespace mikoto::renderer::d3d11 {
         // https://stackoverflow.com/questions/55435230/how-to-ensure-directx-11-app-use-the-discrete-gpu-on-a-dual-gpu-laptop-with-c
 
         // Right now I just pick one with highest memory
-        SIZE_T maxVideoMemory{};
+        core::usize maxVideoMemory{};
         for (IDXGIAdapter* adapter : vAdapters) {
             DXGI_ADAPTER_DESC desc{};
             adapter->GetDesc( MKT_ADDRESSOF( desc ) );
@@ -1189,7 +1189,7 @@ namespace mikoto::renderer::d3d11 {
         const auto messageCount{ infoQueue->GetNumStoredMessages() };
 
         for ( UINT64 i{}; i < messageCount; ++i ) {
-            SIZE_T messageLength{};
+            core::usize messageLength{};
             infoQueue->GetMessage( i, nullptr, &messageLength );
 
             auto bytes{ std::make_unique<std::byte[]>( messageLength ) };

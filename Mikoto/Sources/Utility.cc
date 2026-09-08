@@ -126,7 +126,7 @@ namespace mikoto::renderer::rhi {
     };
 
     auto GetFormatInfo( Format format ) -> const FormatInfo & {
-        static_assert( sizeof( kFormatInfo ) / sizeof( FormatInfo ) == size_t( Format::eCount ),
+        static_assert( sizeof( kFormatInfo ) / sizeof( FormatInfo ) == core::usize( Format::eCount ),
                        "The format info table doesn't have the right number of elements" );
 
         if ( uint32_t( format ) >= uint32_t( Format::eCount ) )
@@ -174,7 +174,7 @@ namespace mikoto::renderer::rhi {
         return { mipWidth, mipHeight };
     }
 
-    auto InferElementCount( Format dataType, size_t sizeBytes ) -> size_t {
+    auto InferElementCount( Format dataType, core::usize sizeBytes ) -> core::usize {
         const FormatInfo &info{ GetFormatInfo( dataType ) };
         return sizeBytes / info.mBytesPerBlock;
     }

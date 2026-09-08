@@ -19,6 +19,7 @@
 #include <typeindex>
 
 #include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
 #include <EASTL/tuple.h>
 #include <EASTL/utility.h>
 
@@ -42,7 +43,7 @@ namespace mikoto::core {
     };
 
     struct ServiceNode {
-        IService* mService{ nullptr };
+        eastl::unique_ptr<IService> mService{};
         bool mIsSubsystem{ false };
 
         eastl::vector<std::type_index> mExecutionDeps{};
@@ -56,6 +57,11 @@ namespace mikoto::core {
         auto Initialize() -> void;
         auto Shutdown() -> void;
 
+        // Drains work submitted through the engine executor.  Call this before
+        // destroying clients (for example editor layers) that may be captured
+        // by outstanding jobs.
+        auto WaitForBackgroundTasks() -> void;
+
         auto Update() -> void;
 
     public:
@@ -65,10 +71,11 @@ namespace mikoto::core {
 
         template<typename ServiceType, typename... Args>
         auto PushService(Args&&... args) -> ServiceType* {
-            auto* instance{ dc_cast<IService*>(new ServiceType{ eastl::forward<Args>(args)... }) };
+            eastl::unique_ptr<IService> service{ new ServiceType{ eastl::forward<Args>(args)... } };
+            auto* instance{ static_cast<ServiceType*>( service.get() ) };
 
             ServiceNode node{
-                .mService = instance,
+                .mService = eastl::move( service ),
                 .mExecutionDeps = ResolveExecDependencies<ServiceType>(),
                 .mConstructDeps = ResolveInitDependencies<ServiceType>(),
             };
@@ -84,10 +91,11 @@ namespace mikoto::core {
 
         template<typename ServiceType, typename... Args>
         auto PushMainThreadService(Args&&... args) -> ServiceType* {
-            auto* instance{ dc_cast<IService*>(new ServiceType{ eastl::forward<Args>(args)... }) };
+            eastl::unique_ptr<IService> service{ new ServiceType{ eastl::forward<Args>(args)... } };
+            auto* instance{ static_cast<ServiceType*>( service.get() ) };
 
             ServiceNode node{
-                .mService = instance,
+                .mService = eastl::move( service ),
                 .mExecutionDeps = ResolveExecDependencies<ServiceType>(),
                 .mConstructDeps = ResolveInitDependencies<ServiceType>(),
             };
@@ -110,6 +118,7 @@ namespace mikoto::core {
         auto BuildInitTasks() -> void;
         auto BuildShutdownTasks() -> void;
         auto BuildExecutionTasks() -> void;
+        auto ExecuteMainThreadTasks() -> void;
 
     private:
 

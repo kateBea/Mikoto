@@ -129,7 +129,7 @@ namespace mikoto::renderer::d3d12 {
         return ITexture::GetNativeHandle( object );
     }
 
-    auto Texture::CreateSRV( SIZE_T descriptor, TextureSubresourceSet subResources, Format format, TextureDimension dimension ) const -> void {
+    auto Texture::CreateSRV( core::usize descriptor, TextureSubresourceSet subResources, Format format, TextureDimension dimension ) const -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device2* d3d12Device{ device->GetDevice() };
 
@@ -204,7 +204,7 @@ namespace mikoto::renderer::d3d12 {
         d3d12Device->CreateShaderResourceView(mImageAllocation.mResource.Get(), &viewDesc, { descriptor });
     }
 
-    auto Texture::CreateUAV( SIZE_T descriptor, TextureSubresourceSet subResources, Format format, TextureDimension dimension ) const -> void {
+    auto Texture::CreateUAV( core::usize descriptor, TextureSubresourceSet subResources, Format format, TextureDimension dimension ) const -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device2* d3d12Device{ device->GetDevice() };
 
@@ -258,7 +258,7 @@ namespace mikoto::renderer::d3d12 {
         d3d12Device->CreateUnorderedAccessView(mImageAllocation.mResource.Get(), nullptr, &viewDesc, { descriptor });
     }
 
-    auto Texture::CreateRTV( SIZE_T descriptor, TextureSubresourceSet subResources, Format format ) const -> void {
+    auto Texture::CreateRTV( core::usize descriptor, TextureSubresourceSet subResources, Format format ) const -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device2* d3d12Device{ device->GetDevice() };
 
@@ -311,7 +311,7 @@ namespace mikoto::renderer::d3d12 {
         d3d12Device->CreateRenderTargetView(mImageAllocation.mResource.Get(), &viewDesc, { descriptor });
     }
 
-    auto Texture::CreateDSV( SIZE_T descriptor, TextureSubresourceSet subResources, bool isReadOnly ) const -> void {
+    auto Texture::CreateDSV( core::usize descriptor, TextureSubresourceSet subResources, bool isReadOnly ) const -> void {
         Device* device{ checked_cast<Device*>( mDevice ) };
         ID3D12Device2* d3d12Device{ device->GetDevice() };
 

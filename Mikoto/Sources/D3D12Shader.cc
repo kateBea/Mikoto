@@ -70,7 +70,7 @@ namespace mikoto::renderer::d3d12 {
         return mBytecode->GetBufferPointer();
     }
 
-    auto Shader::GetContentsByteSize() const -> size_t {
+    auto Shader::GetContentsByteSize() const -> core::usize {
         return mBytecode->GetBufferSize();
     }
 

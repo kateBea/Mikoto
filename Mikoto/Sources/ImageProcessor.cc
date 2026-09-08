@@ -177,8 +177,8 @@ namespace mikoto::asset {
 
                 result->mFormat = ImageFormat::eRGBA8_UINT;
                 result->mBufferSpan = BufferSpanHandle::New(
-                    as<byte_t*>( data ),
-                    size_t{ as<size_t>( width * height * result->mChannels * MKT_SIZEOF( byte_t ) ) } );
+                    as<core::ubyte*>( data ),
+                    core::usize{ as<core::usize>( width * height * result->mChannels * MKT_SIZEOF( core::ubyte ) ) } );
 
                 stbi_image_free( (void*)ucData );
             } break;
@@ -193,8 +193,8 @@ namespace mikoto::asset {
 
                 result->mFormat = ImageFormat::eRGBA32_FLOAT;
                 result->mBufferSpan = BufferSpanHandle::New(
-                    rc_cast<byte_t*>( data ),
-                    size_t{ as<size_t>( width * height * result->mChannels * MKT_SIZEOF( f32 ) ) } );
+                    rc_cast<core::ubyte*>( data ),
+                    core::usize{ as<core::usize>( width * height * result->mChannels * MKT_SIZEOF( f32 ) ) } );
 
                 stbi_image_free( (void*)floatData );
             } break;
@@ -236,8 +236,8 @@ namespace mikoto::asset {
 
             result->mFormat = ImageFormat::eRGBA32_FLOAT;
             result->mBufferSpan = BufferSpanHandle::New(
-                rc_cast<byte_t*>( data ),
-                size_t{ as<size_t>( width * height * result->mChannels * MKT_SIZEOF( f32 ) ) } );
+                rc_cast<core::ubyte*>( data ),
+                core::usize{ as<core::usize>( width * height * result->mChannels * MKT_SIZEOF( f32 ) ) } );
 
             stbi_image_free( data );
         } else {
@@ -252,8 +252,8 @@ namespace mikoto::asset {
 
             result->mFormat = ImageFormat::eRGBA8_UINT;
             result->mBufferSpan = BufferSpanHandle::New(
-                as<byte_t*>( data ),
-                size_t{ as<size_t>( width * height * result->mChannels * MKT_SIZEOF( byte_t ) ) } );
+                as<core::ubyte*>( data ),
+                core::usize{ as<core::usize>( width * height * result->mChannels * MKT_SIZEOF( core::ubyte ) ) } );
 
             stbi_image_free( data );
         }

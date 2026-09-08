@@ -51,11 +51,11 @@ namespace mikoto::renderer::vulkan {
         return mHeight;
     }
 
-    auto SwapChain::GetImageCount() const -> size_t {
+    auto SwapChain::GetImageCount() const -> core::usize {
         return mImages.size();
     }
 
-    auto SwapChain::GetImage( size_t index ) -> TextureHandle {
+    auto SwapChain::GetImage( core::usize index ) -> TextureHandle {
         MKT_ASSERT( index < mImages.size(), "Index out of bounds." );
         return mImages.at(index);
     }

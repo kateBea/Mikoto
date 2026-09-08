@@ -32,18 +32,49 @@
 
 namespace mikoto::renderer::rhi {
 
+    /**
+     * Synchronization primitive shared by the host and GPU queues.
+     *
+     * @ref Signal and @ref Wait operate on monotonically increasing fence values.
+     */
     class IFence : public DeviceObject {
     public:
 
+        /**
+         * Returns the most recently completed fence value.
+         * @returns The result of GetCompletionValue.
+         */
         MKT_NODISCARD virtual auto GetCompletionValue() const -> core::u64 = 0;
 
+        /**
+         * Signals the fence from the host with @p fenceValue.
+         *
+         * @param fenceValue Input value used by this operation.
+         * @returns The result of Signal.
+         */
         MKT_NODISCARD virtual auto Signal( core::u64 fenceValue ) -> bool = 0;
+
+        /**
+         * Blocks the host until @p fenceValue completes or @p timeoutMs expires.
+         *
+         * @param fenceValue Input value used by this operation.
+         * @param timeoutMs Input value used by this operation.
+         * @returns The result of Wait.
+         */
         MKT_NODISCARD virtual auto Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool = 0;
 
         using DeviceObject::Initialize;
 
     protected:
+
+        /**
+         * Creates the native fence or timeline synchronization primitive.
+         */
         auto Initialize() -> void override = 0;
+
+        /**
+         * Releases the native fence or timeline synchronization primitive.
+         */
         auto Destroy() -> void override = 0;
     };
 

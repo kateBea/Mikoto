@@ -97,10 +97,10 @@ namespace mikoto::math::random {
     }
 
 
-    MKT_NODISCARD inline auto GetRandomIntNumberList(size_t length, i32 lowerBound = -1000, i32 upperbound = 1000, std::random_device& seed = GetSeed()) -> std::vector<i32> {
+    MKT_NODISCARD inline auto GetRandomIntNumberList(core::usize length, i32 lowerBound = -1000, i32 upperbound = 1000, std::random_device& seed = GetSeed()) -> std::vector<i32> {
         std::vector<i32> result{};
 
-        size_t count{};
+        core::usize count{};
         result.reserve(length);
         for ( ; count < length; ++count)
             result.emplace_back(GetRandomInt(lowerBound, upperbound, seed));
@@ -109,10 +109,10 @@ namespace mikoto::math::random {
     }
 
 
-    MKT_NODISCARD inline auto GetRandomRealNumberList(size_t length, double lowerBound = -1000.0, double upperbound = 1000.0, std::random_device& seed = GetSeed()) -> std::vector<double> {
+    MKT_NODISCARD inline auto GetRandomRealNumberList(core::usize length, double lowerBound = -1000.0, double upperbound = 1000.0, std::random_device& seed = GetSeed()) -> std::vector<double> {
         std::vector<double> result{};
 
-        size_t count{};
+        core::usize count{};
         result.reserve(length);
         for ( ; count < length; ++count)
             result.emplace_back(GetRandomReal(lowerBound, upperbound, seed));

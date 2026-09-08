@@ -89,7 +89,7 @@ namespace mikoto::asset {
         MKT_NODISCARD auto GetName() -> const eastl::string& { return mName; }
 
         MKT_NODISCARD auto GetTransform() const -> const float4x4& { return mTransform; }
-        MKT_NODISCARD auto GetMeshIndex() const -> size_t { return mMeshIndex; }
+        MKT_NODISCARD auto GetMeshIndex() const -> core::usize { return mMeshIndex; }
         MKT_NODISCARD auto GetVertexBuffer() -> renderer::rhi::BufferHandle { return mVertices; }
         MKT_NODISCARD auto GetIndexBuffer() -> renderer::rhi::BufferHandle { return mIndices; }
 
@@ -102,7 +102,7 @@ namespace mikoto::asset {
 
     private:
         eastl::string mName{};
-        size_t mMeshIndex{};
+        core::usize mMeshIndex{};
 
         renderer::rhi::BufferHandle mIndices{};
         renderer::rhi::BufferHandle mVertices{};
@@ -131,10 +131,10 @@ namespace mikoto::asset {
     public:
         explicit Model( ModelCreateDescription&& desc );
 
-        MKT_NODISCARD auto GetMeshNodeCount() const -> size_t;
+        MKT_NODISCARD auto GetMeshNodeCount() const -> core::usize;
 
-        MKT_NODISCARD auto GetMeshNode( size_t index) -> MeshNode&;
-        MKT_NODISCARD auto GetMeshNode( size_t index) const -> const MeshNode&;
+        MKT_NODISCARD auto GetMeshNode( core::usize index) -> MeshNode&;
+        MKT_NODISCARD auto GetMeshNode( core::usize index) const -> const MeshNode&;
 
         MKT_NODISCARD auto GetPath() const -> const Path&;
         MKT_NODISCARD auto GetName() const -> eastl::string_view;

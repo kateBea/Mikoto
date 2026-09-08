@@ -34,20 +34,20 @@ namespace mikoto::memory {
     // Ideal for frequently created/destroyed objects of uniform size.
     class PoolAllocator final : public IAllocator {
     public:
-        PoolAllocator(size_t elementSize, size_t elementCount, size_t alignment);
+        PoolAllocator(core::usize elementSize, core::usize elementCount, core::usize alignment);
 
-        MKT_NODISCARD auto Allocate(size_t size, size_t alignment) -> eastl::optional<Allocation> override;
+        MKT_NODISCARD auto Allocate(core::usize size, core::usize alignment) -> eastl::optional<Allocation> override;
         auto Free(const Allocation& allocation) -> void override;
 
         auto Reset() -> void override;
 
-        MKT_NODISCARD auto GetElementSize() const -> size_t { return mElementSize; }
-        MKT_NODISCARD auto GetCapacity() const -> size_t { return mElementCount; }
+        MKT_NODISCARD auto GetElementSize() const -> core::usize { return mElementSize; }
+        MKT_NODISCARD auto GetCapacity() const -> core::usize { return mElementCount; }
 
     private:
-        size_t mElementSize{};
-        size_t mElementCount{};
-        size_t mAlignment{};
+        core::usize mElementSize{};
+        core::usize mElementCount{};
+        core::usize mAlignment{};
 
         void* mFreeList{}; // intrusive free list
     };

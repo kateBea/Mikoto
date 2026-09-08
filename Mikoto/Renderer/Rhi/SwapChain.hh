@@ -38,26 +38,69 @@ namespace mikoto::renderer::rhi {
         eVSyncAdaptive
     };
 
+    /**
+     * Describes the presentation images and dimensions of a swap chain.
+     */
     struct SwapChainDescription {
         core::u32 mBackBufferCount{};
-        Format mForma{ Format::eBGRA8_UNORM };
+        Format mFormat{ Format::eBGRA8_UNORM };
         ColorSpace mColorSpace{ ColorSpace::eSrgbNonlinear };
         Extent2D mDimension{};
         eastl::string mName{};
     };
 
+    /**
+     * Backend-independent interface for the presentation back-buffer chain.
+     */
     class ISwapChain : public DeviceObject {
     public:
+
+        /**
+         * Recreates presentation images for @p dimensions.
+         *
+         * @param dimensions Input value used by this operation.
+         */
         virtual auto OnResize( const Extent2D& dimensions ) -> void = 0;
+
+        /**
+         * Selects how presentation is synchronized with the display.
+         *
+         * @param presentMode Requested presentation mode.
+         */
         virtual auto SetPresentMode( PresentMode presentMode ) -> void = 0;
 
+        /**
+         * Returns the format of presentation images.
+         *
+         * @returns The presentation-image format.
+         */
         MKT_NODISCARD virtual auto GetImageFormat() const -> Format = 0;
+
+        /**
+         * Returns the presentation image selected for the next frame.
+         *
+         * @returns The next back buffer.
+         */
         MKT_NODISCARD virtual auto GetNextBackBuffer() const -> TextureHandle = 0;
+
+        /**
+         * Returns the back buffer at @p imageIndex.
+         *
+         * @param imageIndex Back-buffer index.
+         * @returns The requested back buffer.
+         */
         MKT_NODISCARD virtual auto GetBackBuffer( core::usize imageIndex) const -> TextureHandle = 0;
 
-
+        /**
+         * Returns the number of presentation back buffers.
+         *
+         * @returns The number of back buffers.
+         */
         MKT_NODISCARD virtual auto GetBackBufferCount() const -> core::u32 = 0;
 
+        /**
+         * Destroys the swap chain.
+         */
         ~ISwapChain() override = default;
     };
 

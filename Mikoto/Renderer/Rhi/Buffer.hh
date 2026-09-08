@@ -30,8 +30,17 @@
 
 namespace mikoto::renderer::rhi {
 
+    /**
+     * Describes a buffer before it is created by an RHI device.
+     */
     using DeviceAddress = core::u64;
 
+    /**
+     * Creation parameters for an RHI buffer.
+     *
+     * @details A typed buffer uses both @ref mElementCount and @ref mElementSize;
+     * a raw buffer stores its complete byte size in @ref mElementSize.
+     */
     struct BufferCreateDescription {
         eastl::string mName{};
         bool mKeepInitializerResources{ false };
@@ -44,12 +53,12 @@ namespace mikoto::renderer::rhi {
         // this says the buffer is typed and needs to hold mElementCount
         // elements of size mElementSize. If it is going to be treated as raw bytes
         // then mElementSize holds the total size in bytes
-        core::size_t mElementCount{};
-        core::size_t mElementSize{};
+        core::usize mElementCount{};
+        core::usize mElementSize{};
 
         // For Vulkan and D3D12 when we need to manage
         // frequently updating uniform/constant buffers
-        core::size_t mMaxVersions{ 0 };
+        core::usize mMaxVersions{ 0 };
         bool mIsVolatile{};
 
         bool mTrackState{ true };
@@ -63,26 +72,128 @@ namespace mikoto::renderer::rhi {
         BufferDataType mDataType{ BufferDataType::eInvalid };
         BufferUsageFlags mUsageFlags{ BufferUsageFlagsBits::None };
 
+        /**
+         * Sets a backend debug name.
+         *
+         * @param name Input value used by this operation.
+         * @returns The result of SetName.
+         */
         auto SetName( eastl::string_view name ) -> BufferCreateDescription&;
-        auto ForElement( core::size_t byteSize, core::size_t count ) -> BufferCreateDescription&;
-        auto SetByteSize( core::size_t byteSize ) -> BufferCreateDescription&;
+
+        /**
+         * Configures @p count elements of @p byteSize bytes each.
+         *
+         * @param byteSize Input value used by this operation.
+         * @param count Input value used by this operation.
+         * @returns The result of ForElement.
+         */
+        auto ForElement( core::usize byteSize, core::usize count ) -> BufferCreateDescription&;
+
+        /**
+         * Configures this description as a raw buffer of @p byteSize bytes.
+         *
+         * @param byteSize Input value used by this operation.
+         * @returns The result of SetByteSize.
+         */
+        auto SetByteSize( core::usize byteSize ) -> BufferCreateDescription&;
+
+        /**
+         * Sets the value handled by SetFormat.
+         *
+         * @param format Input value used by this operation.
+         * @returns The result of SetFormat.
+         */
         auto SetFormat( Format format ) -> BufferCreateDescription&;
+
+        /**
+         * Sets initial CPU data and enables copy-destination usage.
+         *
+         * @param data Input value used by this operation.
+         * @returns The result of SetInitialData.
+         */
         auto SetInitialData( memory::BufferSpanHandle data ) -> BufferCreateDescription&;
+
+        /**
+         * Sets the value handled by SetBufferUsage.
+         *
+         * @param usage Input value used by this operation.
+         * @returns The result of SetBufferUsage.
+         */
         auto SetBufferUsage( BufferUsageFlags usage ) -> BufferCreateDescription&;
+
+        /**
+         * Sets the value handled by SetBufferDataType.
+         *
+         * @param type Input value used by this operation.
+         * @returns The result of SetBufferDataType.
+         */
         auto SetBufferDataType( BufferDataType type ) -> BufferCreateDescription&;
+
+        /**
+         * Sets the value handled by SetHeapType.
+         *
+         * @param type Input value used by this operation.
+         * @returns The result of SetHeapType.
+         */
         auto SetHeapType( HeapType type ) -> BufferCreateDescription&;
+
+        /**
+         * Sets CPU access, choosing an upload heap for CPU-writeable resources.
+         *
+         * @param type Input value used by this operation.
+         * @returns The result of SetCpuAccessType.
+         */
         auto SetCpuAccessType( AccessType type ) -> BufferCreateDescription&;
+
+        /**
+         * Sets the value handled by SetResourceType.
+         *
+         * @param type Input value used by this operation.
+         * @returns The result of SetResourceType.
+         */
         auto SetResourceType( ResourceType type ) -> BufferCreateDescription&;
 
+        /**
+         * Controls whether upload data is retained after resource creation.
+         *
+         * @param value Input value used by this operation.
+         * @returns The result of SetKeepInitializerResources.
+         */
         auto SetKeepInitializerResources( bool value ) -> BufferCreateDescription&;
 
+        /**
+         * Sets the value handled by SetIsVolatile.
+         *
+         * @param value Input value used by this operation.
+         * @returns The result of SetIsVolatile.
+         */
         auto SetIsVolatile( bool value ) -> BufferCreateDescription&;
+
+        /**
+         * Sets the value handled by SetMaxVersions.
+         *
+         * @param count Input value used by this operation.
+         * @returns The result of SetMaxVersions.
+         */
         auto SetMaxVersions( core::u32 count ) -> BufferCreateDescription&;
 
+        /**
+         * Sets the value handled by SetInitialState.
+         *
+         * @param value Input value used by this operation.
+         * @returns The result of SetInitialState.
+         */
         constexpr auto SetInitialState( ResourceStates value ) -> BufferCreateDescription& {
             mInitialState = value;
             return *this;
         }
+
+        /**
+         * Performs the operation represented by EnableAutomaticStateTracking.
+         *
+         * @param initialState Input value used by this operation.
+         * @returns The result of EnableAutomaticStateTracking.
+         */
         constexpr auto EnableAutomaticStateTracking( ResourceStates initialState ) -> BufferCreateDescription& {
             mInitialState = initialState;
             mTrackState = true;
@@ -90,28 +201,67 @@ namespace mikoto::renderer::rhi {
         }
     };
 
+    /**
+     * Backend-independent interface for a GPU buffer.
+     *
+     * Implementations expose an optional GPU virtual address and retain the
+     * metadata supplied through @ref BufferCreateDescription.
+     */
     class IBuffer : public DeviceObject {
     public:
         static constexpr DeviceAddress kNullDeviceAddress{ 0 };
 
+        /**
+         * Returns the GPU virtual address, or @ref kNullDeviceAddress when unavailable.
+         * @returns The result of GetGpuDeviceAddress.
+         */
         MKT_NODISCARD virtual auto GetGpuDeviceAddress() -> DeviceAddress = 0;
 
-        MKT_NODISCARD auto GetUsage() const -> BufferUsageFlags { return mUsage; }
-        MKT_NODISCARD auto GetDataType() const -> BufferDataType { return mDataType; }
+        /**
+         * Returns the intended uses declared for this buffer.
+         * @returns The result of GetUsage.
+         */
+        MKT_NODISCARD auto GetUsage() const -> BufferUsageFlags;
 
-        MKT_NODISCARD auto GetData() const -> memory::BufferSpanHandle { return mUploadContents; }
-        MKT_NODISCARD auto GetSizeBytes() const -> size_t { return mElementCount == 0 ? mElementSize : mElementCount * mElementSize; }
+        /**
+         * Returns the logical data classification of this buffer.
+         * @returns The result of GetDataType.
+         */
+        MKT_NODISCARD auto GetDataType() const -> BufferDataType;
 
-        MKT_NODISCARD auto GetFormat() const -> Format { return mFormat; }
+        /**
+         * Returns retained CPU upload contents, if initialization data was preserved.
+         * @returns The result of GetData.
+         */
+        MKT_NODISCARD auto GetData() const -> memory::BufferSpanHandle;
 
-        // FIXME: does not produce expected results
-        MKT_NODISCARD auto GetCount() const -> size_t {
-            return mElementCount == 0 ? InferElementCount(mFormat, mElementSize) : mElementCount * mElementSize;
-        }
+        /**
+         * Returns the total logical size of the buffer in bytes.
+         * @returns The result of GetSizeBytes.
+         */
+        MKT_NODISCARD auto GetSizeBytes() const -> core::usize;
+
+        /**
+         * Returns the element format, or @ref Format::eUnknown for unformatted buffers.
+         * @returns The result of GetFormat.
+         */
+        MKT_NODISCARD auto GetFormat() const -> Format;
+
+        /**
+         * Returns the element count, inferring it for raw formatted buffers.
+         * @returns The result of GetCount.
+         */
+        MKT_NODISCARD auto GetCount() const -> core::usize;
 
         using DeviceObject::Initialize;
 
     protected:
+
+        /**
+         * Performs the operation represented by IBuffer.
+         *
+         * @returns The result of IBuffer.
+         */
         explicit IBuffer( const BufferCreateDescription& desc )
             : DeviceObject{ desc.mHeapType, desc.mResourceType },
               mUploadContents{ desc.mSpanHandle },
@@ -132,14 +282,14 @@ namespace mikoto::renderer::rhi {
         // This is useful for the backend API to manage alignment as it considers necessary
         // If it is going to be treated as raw bytes
         // then mElementSize holds the total size in bytes
-        core::size_t mElementCount{};
-        core::size_t mElementSize{};
+        core::usize mElementCount{};
+        core::usize mElementSize{};
 
         BufferDataType mDataType{ BufferDataType::eInvalid };
         BufferUsageFlags mUsage{ BufferUsageFlagsBits::None };
 
         bool mIsVolatile{};
-        core::size_t mMaxVersions{ 0 };
+        core::usize mMaxVersions{ 0 };
 
         Format mFormat{ Format::eUnknown };
     };

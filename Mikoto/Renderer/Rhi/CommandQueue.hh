@@ -34,45 +34,117 @@
 
 namespace mikoto::renderer::rhi {
 
+    /**
+     * A fence value used to synchronize queue submission.
+     */
     struct SignalInfo {
         core::u64 mSignalValue{};
-        FenceHandle mSinalFence{};
+        FenceHandle mSignalFence{};
     };
 
+    /**
+     * Batch of command lists and queue-level fence waits/signals.
+     */
     struct SubmitInfo {
         eastl::fixed_vector<CommandListHandle, 5> mCommands{};
 
         eastl::fixed_vector<SignalInfo, 5> mWaits{};
         eastl::fixed_vector<SignalInfo, 5> mSignals{};
 
+        /**
+         * Adds the supplied value through AddCommandList.
+         *
+         * @param cmd Input value used by this operation.
+         * @returns The result of AddCommandList.
+         */
         auto AddCommandList(CommandListHandle cmd) -> SubmitInfo&;
+
+        /**
+         * Adds the supplied value through AddWait.
+         *
+         * @param fence Input value used by this operation.
+         * @param value Input value used by this operation.
+         * @returns The result of AddWait.
+         */
         auto AddWait(FenceHandle fence, core::u64 value) -> SubmitInfo&;
+
+        /**
+         * Adds the supplied value through AddSignal.
+         *
+         * @param fence Input value used by this operation.
+         * @param value Input value used by this operation.
+         * @returns The result of AddSignal.
+         */
         auto AddSignal(FenceHandle fence, core::u64 value) -> SubmitInfo&;
 
+        /**
+         * Adds the supplied value through AddCommandLists.
+         *
+         * @param commands Input value used by this operation.
+         * @returns The result of AddCommandLists.
+         */
         auto AddCommandLists(eastl::span<CommandListHandle> commands) -> SubmitInfo&;
+
+        /**
+         * Adds the supplied value through AddWaits.
+         *
+         * @param signals Input value used by this operation.
+         * @returns The result of AddWaits.
+         */
         auto AddWaits(eastl::span<SignalInfo> signals) -> SubmitInfo&;
+
+        /**
+         * Adds the supplied value through AddSignals.
+         *
+         * @param signals Input value used by this operation.
+         * @returns The result of AddSignals.
+         */
         auto AddSignals(eastl::span<SignalInfo> signals) -> SubmitInfo&;
     };
 
-    // Queue waits and signals are specified via the SubmitInfo struct
-    // The list of signals specify a list of fences upon which we queue a signal
-    // on the Device side (GPU will change the value to the specified one when done
-    // processing the given batch of commands); on the other hand the list of waits
-    // queue a wait on Device to hold execution of commands until the specified
-    // value has been reached on the provided fences. For Host side wait/signal
-    // use the Fence interface instead.
+    /**
+     * Queue that executes submitted command lists.
+     *
+     * Queue waits and signals are encoded in @ref SubmitInfo. They are GPU-side
+     * dependencies; use @ref IFence directly for host-side synchronization.
+     */
     class IQueue : public DeviceObject {
     public:
+
+        /**
+         * Returns the queue family represented by this queue.
+         * @returns The result of GetType.
+         */
         MKT_NODISCARD auto GetType() const -> QueueType;
+
+        /**
+         * Returns the operations supported by this queue.
+         * @returns The result of GetOpSupportFlags.
+         */
         MKT_NODISCARD auto GetOpSupportFlags() const -> QueueOpSupportFlags;
 
+        /**
+         * Submits command lists and their GPU-side fence dependencies.
+         *
+         * @param submitInfo Input value used by this operation.
+         */
         virtual auto ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void = 0;
 
+        /**
+         * Destroys the queue.
+         */
         ~IQueue() override = default;
 
         using DeviceObject::Initialize;
 
     protected:
+
+        /**
+         * Constructs a queue with its type and supported operations.
+         *
+         * @param type Queue type.
+         * @param flags Supported queue operations.
+         */
         explicit IQueue( QueueType type, QueueOpSupportFlags flags );
 
     protected:

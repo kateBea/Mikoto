@@ -15,29 +15,29 @@
 #include <Memory/PoolAllocator.hh>
 
 namespace mikoto::memory {
-    PoolAllocator::PoolAllocator( size_t elementSize, size_t elementCount, size_t alignment )
+    PoolAllocator::PoolAllocator( core::usize elementSize, core::usize elementCount, core::usize alignment )
         : mElementSize{ AlignUp( elementSize, alignment ) },
           mElementCount{ elementCount },
           mAlignment{ alignment } {
         // Build free list (offset-based)
         mFreeList = nullptr;
 
-        for ( size_t i{}; i < mElementCount; ++i ) {
-            size_t offset{ i * mElementSize };
+        for ( core::usize i{}; i < mElementCount; ++i ) {
+            core::usize offset{ i * mElementSize };
 
             // store next pointer inside block (offset-as-pointer trick avoided here)
-            auto* node{ new size_t( offset ) };
-            *node = reinterpret_cast<size_t>( mFreeList );
+            auto* node{ new core::usize( offset ) };
+            *node = reinterpret_cast<core::usize>( mFreeList );
             mFreeList = node;
         }
     }
 
-    auto PoolAllocator::Allocate( size_t size, size_t alignment ) -> eastl::optional<Allocation> {
+    auto PoolAllocator::Allocate( core::usize size, core::usize alignment ) -> eastl::optional<Allocation> {
         if ( size > mElementSize || alignment > mAlignment || mFreeList == nullptr )
             return eastl::nullopt;
 
-        auto* node{ reinterpret_cast<size_t*>( mFreeList ) };
-        size_t offset{ *node };
+        auto* node{ reinterpret_cast<core::usize*>( mFreeList ) };
+        core::usize offset{ *node };
         mFreeList = reinterpret_cast<void*>( offset );
 
         delete node;
@@ -49,8 +49,8 @@ namespace mikoto::memory {
     }
 
     auto PoolAllocator::Free( const Allocation& alloc ) -> void {
-        auto* node = new size_t( alloc.mOffset );
-        *node = reinterpret_cast<size_t>( mFreeList );
+        auto* node = new core::usize( alloc.mOffset );
+        *node = reinterpret_cast<core::usize>( mFreeList );
         mFreeList = node;
     }
 
@@ -58,11 +58,11 @@ namespace mikoto::memory {
         // rebuild list (simple version)
         mFreeList = nullptr;
 
-        for ( size_t i = 0; i < mElementCount; ++i ) {
-            size_t offset = i * mElementSize;
+        for ( core::usize i = 0; i < mElementCount; ++i ) {
+            core::usize offset = i * mElementSize;
 
-            auto* node = new size_t( offset );
-            *node = reinterpret_cast<size_t>( mFreeList );
+            auto* node = new core::usize( offset );
+            *node = reinterpret_cast<core::usize>( mFreeList );
             mFreeList = node;
         }
     }

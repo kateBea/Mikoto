@@ -32,7 +32,7 @@ namespace mikoto::network {
         HttpResponse result{};
 
         // Step 1: Read status line
-        size_t pos{ response.find( "\r\n" ) };
+        core::usize pos{ response.find( "\r\n" ) };
         if ( pos == eastl::string_view::npos ) {
             MKT_THROW_RUNTIME_ERROR( "Malformed HTTP response: missing status line" );
         }
@@ -42,7 +42,7 @@ namespace mikoto::network {
 
         // Step 2: Read headers
         while ( true ) {
-            size_t headerEnd{ response.find( "\r\n" ) };
+            core::usize headerEnd{ response.find( "\r\n" ) };
             if ( headerEnd == eastl::string_view::npos ) {
                 MKT_THROW_RUNTIME_ERROR( "Malformed HTTP headers" );
             }
@@ -55,7 +55,7 @@ namespace mikoto::network {
             auto line { response.substr( 0, headerEnd ) };
             response.remove_prefix( headerEnd + 2 );
 
-            size_t colon{ line.find( ':' ) };
+            core::usize colon{ line.find( ':' ) };
             if ( colon == eastl::string_view::npos ) {
                 MKT_THROW_RUNTIME_ERROR( "Malformed HTTP header line" );
             }
@@ -74,7 +74,7 @@ namespace mikoto::network {
             eastl::string body{};
             while ( !response.empty() ) {
                 // Read chunk size line
-                size_t lineEnd{ response.find( "\r\n" ) };
+                core::usize lineEnd{ response.find( "\r\n" ) };
                 if ( lineEnd == eastl::string_view::npos ) {
                     MKT_THROW_RUNTIME_ERROR( "Malformed chunked encoding" );
                 }
@@ -82,7 +82,7 @@ namespace mikoto::network {
                 eastl::string line( response.substr( 0, lineEnd ) );
                 response.remove_prefix( lineEnd + 2 );
 
-                size_t chunkSize{ std::stoul( line.c_str(), nullptr, 16 ) };
+                core::usize chunkSize{ std::stoul( line.c_str(), nullptr, 16 ) };
                 if ( chunkSize == 0 )
                     break;// last chunk
 
@@ -97,7 +97,7 @@ namespace mikoto::network {
 
         } else if ( itCL != result.mHeaders.end() ) {
             // Content-Length present
-            size_t contentLength = std::stoul( itCL->second.c_str() );
+            core::usize contentLength = std::stoul( itCL->second.c_str() );
             if ( response.size() < contentLength ) {
                 MKT_THROW_RUNTIME_ERROR( "Content-Length exceeds remaining data" );
             }

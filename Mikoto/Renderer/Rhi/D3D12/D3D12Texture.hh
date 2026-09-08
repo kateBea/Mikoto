@@ -81,11 +81,11 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto GetResourceIndex() const -> DescriptorIndex;
 
-        auto CreateSRV(SIZE_T descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown, rhi::TextureDimension dimension = rhi::TextureDimension::eInvalid) const -> void;
-        auto CreateUAV(SIZE_T descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown, rhi::TextureDimension dimension = rhi::TextureDimension::eInvalid) const -> void;
+        auto CreateSRV(core::usize descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown, rhi::TextureDimension dimension = rhi::TextureDimension::eInvalid) const -> void;
+        auto CreateUAV(core::usize descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown, rhi::TextureDimension dimension = rhi::TextureDimension::eInvalid) const -> void;
 
-        auto CreateRTV(SIZE_T descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown ) const -> void;
-        auto CreateDSV(SIZE_T descriptor, rhi::TextureSubresourceSet subResources, bool isReadOnly = false) const -> void;
+        auto CreateRTV(core::usize descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown ) const -> void;
+        auto CreateDSV(core::usize descriptor, rhi::TextureSubresourceSet subResources, bool isReadOnly = false) const -> void;
 
         MKT_NODISCARD operator ID3D12Resource*() const;
 

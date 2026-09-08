@@ -68,6 +68,13 @@ namespace mikoto::editor {
 
         MKT_CORE_LOGGER_DEBUG( "Shutting down Editor App..." );
 
+        // Editor jobs may reference panel/editor state.  Drain them while that
+        // state is still alive; Engine::Shutdown performs the same wait for
+        // service-owned jobs.
+        if (mEngine) {
+            mEngine->WaitForBackgroundTasks();
+        }
+
         mLayerStack.Shutdown();
 
         if (mThemeManager) {
@@ -107,8 +114,8 @@ namespace mikoto::editor {
 #endif
             }
 
-            mLayerStack.OnUpdate( as<f32>( timeStep ) );
             mEngine->Update();
+            mLayerStack.OnUpdate( as<f32>( timeStep ) );
 
             // Submit frame to be processed and present
             RenderSystem::Get()->SubmitFrame();

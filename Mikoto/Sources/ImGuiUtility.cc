@@ -417,7 +417,7 @@ namespace mikoto::imgui {
         ImGui::End();
     }
 
-    auto DrawMemoryVisualizer( const void *memory, std::size_t size, std::uintptr_t baseAddress, std::size_t bytesPerRow ) -> void {
+    auto DrawMemoryVisualizer( const void *memory, core::usize size, std::uintptr_t baseAddress, core::usize bytesPerRow ) -> void {
         if (memory == nullptr || size == 0) {
             ImGui::TextUnformatted( "No memory to display." );
             return;
@@ -439,7 +439,7 @@ namespace mikoto::imgui {
             ImGui::TableSetupColumn( "Decimal", ImGuiTableColumnFlags_WidthStretch );
             ImGui::TableHeadersRow();
 
-            for (std::size_t row{ 0 }; row < size; row += bytesPerRow) {
+            for (core::usize row{ 0 }; row < size; row += bytesPerRow) {
                 const std::uintptr_t address{ baseAddress + row };
 
                 ImGui::TableNextRow();
@@ -454,16 +454,16 @@ namespace mikoto::imgui {
 
                 // Hex
                 ImGui::TableSetColumnIndex( 2 );
-                for (std::size_t col{ 0 }; col < bytesPerRow; ++col) {
-                    const std::size_t index{ row + col };
+                for (core::usize col{ 0 }; col < bytesPerRow; ++col) {
+                    const core::usize index{ row + col };
                     if (index < size) { ImGui::Text( "%02X", bytes[index] ); } else { ImGui::TextUnformatted( "  " ); }
                     ImGui::SameLine();
                 }
 
                 // Decimal
                 ImGui::TableSetColumnIndex( 3 );
-                for (std::size_t col{ 0 }; col < bytesPerRow; ++col) {
-                    const std::size_t index{ row + col };
+                for (core::usize col{ 0 }; col < bytesPerRow; ++col) {
+                    const core::usize index{ row + col };
                     if (index < size) { ImGui::Text( "%3u", static_cast<unsigned int>( bytes[index] ) ); } else { ImGui::TextUnformatted( "   " ); }
                     ImGui::SameLine();
                 }
@@ -479,7 +479,7 @@ namespace mikoto::imgui {
         }
     }
 
-    auto Combo(eastl::string* choices, size_t count, const eastl::string& currentSelection) -> i32 {
+    auto Combo(eastl::string* choices, core::usize count, const eastl::string& currentSelection) -> i32 {
         i32 selectionIndex{ -1 };
 
         const eastl::string labelName{
@@ -487,7 +487,7 @@ namespace mikoto::imgui {
         };
 
         if ( ImGui::BeginCombo( labelName.data(), currentSelection.c_str() ) ) {
-            for ( size_t index{}; index < count; ++index ) {
+            for ( core::usize index{}; index < count; ++index ) {
                 const eastl::string &selectionStr{ choices[index] };
 
                 const bool isSelected{ selectionStr == currentSelection };

@@ -222,7 +222,7 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto BufferCreateDescription::ForElement( size_t byteSize, size_t count ) -> BufferCreateDescription & {
+    auto BufferCreateDescription::ForElement( core::usize byteSize, core::usize count ) -> BufferCreateDescription & {
         if ( byteSize != 0 && count != 0 ) {
             mElementCount = count;
             mElementSize = byteSize;
@@ -230,7 +230,7 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto BufferCreateDescription::SetByteSize( size_t byteSize ) -> BufferCreateDescription & {
+    auto BufferCreateDescription::SetByteSize( core::usize byteSize ) -> BufferCreateDescription & {
         mElementSize = byteSize;
         return *this;
     }
@@ -386,12 +386,12 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto VertexAttributeDescription::SetLocation( uint32_t loc ) -> VertexAttributeDescription & {
+    auto VertexAttributeDescription::SetLocation( u32 loc ) -> VertexAttributeDescription & {
         mLocation = loc;
         return *this;
     }
 
-    auto VertexAttributeDescription::SetBinding( uint32_t binding ) -> VertexAttributeDescription & {
+    auto VertexAttributeDescription::SetBinding( u32 binding ) -> VertexAttributeDescription & {
         mBinding = binding;
         return *this;
     }

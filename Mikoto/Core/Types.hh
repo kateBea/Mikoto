@@ -78,9 +78,6 @@ namespace mikoto::core {
     using unicode = char32_t;
     using cstr = const char *;
 
-    using size_t = std::size_t;
-    using byte_t = unsigned char;
-
     using c_str = const char *;
 }
 

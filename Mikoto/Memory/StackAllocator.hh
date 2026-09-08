@@ -33,20 +33,20 @@ namespace mikoto::memory {
     // Useful for scoped allocations and temporary data with strict lifetimes.
     class StackAllocator final : public IAllocator {
     public:
-        explicit StackAllocator(size_t sizeBytes);
+        explicit StackAllocator(core::usize sizeBytes);
 
-        MKT_NODISCARD auto Allocate(size_t size, size_t alignment) -> eastl::optional<Allocation> override;
+        MKT_NODISCARD auto Allocate(core::usize size, core::usize alignment) -> eastl::optional<Allocation> override;
         auto Free(const Allocation& allocation) -> void override;
 
         auto Reset() -> void override;
 
     private:
         struct Marker {
-            size_t Offset{};
+            core::usize Offset{};
         };
 
-        size_t mSize{};
-        size_t mOffset{};
+        core::usize mSize{};
+        core::usize mOffset{};
     };
 
 }// namespace mikoto

@@ -57,7 +57,7 @@ namespace mikoto::filesystem {
             return false;
         }
 
-        for ( size_t i{}; i < signature.size(); ++i ) {
+        for ( core::usize i{}; i < signature.size(); ++i ) {
             if ( as<uchar>( fileContent[i] ) != signature[i] ) {
                 return false;
             }
@@ -111,7 +111,7 @@ namespace mikoto::filesystem {
         }
 
         mFileStream.seekg( 0, std::ios::end );
-        const auto size{ as<size_t>( mFileStream.tellg() ) };
+        const auto size{ as<core::usize>( mFileStream.tellg() ) };
         mFileStream.seekg( 0, std::ios::beg );
 
         mContents.resize( size );

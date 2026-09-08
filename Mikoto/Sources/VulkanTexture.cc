@@ -289,7 +289,7 @@ namespace mikoto::renderer::vulkan {
             // vkBindImageMemory(): Trying to bind VkImage 0x3d500000003d5 to a memory block which is fully consumed by the image.
             // The required size of the allocation is 16384, but smaller images like this should be sub-allocated from larger
             // memory blocks. (Current threshold is 1048576 bytes)
-            // const size_t threshHold{ MKT_MIBIBYTES( 1 ) };
+            // const core::usize threshHold{ MKT_MIBIBYTES( 1 ) };
             // const auto& formatInfo{ rhi::GetFormatInfo( mFormat ) };
             // const auto imageSize{ mWidth * mHeight * formatInfo.bytesPerBlock };
             // if ( imageSize >= threshHold) {
@@ -367,7 +367,7 @@ namespace mikoto::renderer::vulkan {
         // face 0 mip n
         // face 1 mip n
         // ...
-        for ( size_t mipLevelIndex{ 0 }; mipLevelIndex < GetMipLevelCount(); ++mipLevelIndex ) {
+        for ( core::usize mipLevelIndex{ 0 }; mipLevelIndex < GetMipLevelCount(); ++mipLevelIndex ) {
             for (u32 faceIndex{}; faceIndex < faceCount; faceIndex++) {
                 mImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
                 mImageViewCreateInfo.subresourceRange.levelCount = 1;

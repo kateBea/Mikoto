@@ -47,7 +47,7 @@ namespace mikoto::renderer::d3d11 {
         const auto messageCount{ mDxgiInfoQueue->GetNumStoredMessages( DXGI_DEBUG_ALL ) };
 
         for ( UINT64 i{}; i < messageCount; ++i ) {
-            SIZE_T messageLength{};
+            core::usize messageLength{};
             mDxgiInfoQueue->GetMessage( DXGI_DEBUG_ALL, i, nullptr, &messageLength );
 
             auto bytes{ eastl::make_unique<std::byte[]>( messageLength ) };

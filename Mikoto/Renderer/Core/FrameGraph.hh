@@ -301,8 +301,8 @@ namespace mikoto::renderer {
         auto SetName( eastl::string_view name ) -> FGBufferDescription&;
         auto SetInitialData( memory::BufferSpanHandle data ) -> FGBufferDescription&;
         auto SetUsage( rhi::BufferUsageFlags flags ) -> FGBufferDescription&;
-        auto SetSizeBytes( core::size_t byteSize ) -> FGBufferDescription&;
-        auto SetElementsSize( core::u32 elementCount, core::size_t elementSizeBytes ) -> FGBufferDescription&;
+        auto SetSizeBytes( core::usize byteSize ) -> FGBufferDescription&;
+        auto SetElementsSize( core::u32 elementCount, core::usize elementSizeBytes ) -> FGBufferDescription&;
         auto SetHeapType( rhi::HeapType heap ) -> FGBufferDescription&;
     };
 

@@ -75,7 +75,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         HANDLE mFenceEvent{};
@@ -300,7 +300,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         core::u32 mRegisterSpace{};
@@ -340,7 +340,7 @@ namespace mikoto::renderer::d3d12 {
 
     protected:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         rhi::BindingLayoutHandle mBindingLayout{};
@@ -372,7 +372,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         core::usize mCapacity{};
@@ -407,7 +407,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         eastl::vector<D3D12_INPUT_ELEMENT_DESC> mInputElems{};
@@ -439,7 +439,7 @@ namespace mikoto::renderer::d3d12 {
 
     protected:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         core::u32 mRootConstantIndex{};
@@ -474,7 +474,7 @@ namespace mikoto::renderer::d3d12 {
         ~Queue() override;
 
     private:
-        auto Release() -> void override;
+        auto Destroy() -> void override;
         auto Initialize() -> void override;
 
     private:
@@ -534,7 +534,7 @@ namespace mikoto::renderer::d3d12 {
 
         auto SetEnableAutomaticBarriers( bool enable ) -> void override;
 
-        auto SetClearColor( rhi::TextureHandle renderTarget, rhi::Color color ) -> void override;
+        auto SetClearColor( rhi::ITexture* renderTarget, rhi::Color color ) -> void override;
 
         auto Write( rhi::IBuffer* src, rhi::ITexture* dest ) -> void override;
         auto Write( rhi::ITexture* texture, const void* data, core::usize byteSize ) -> void override;
@@ -601,7 +601,7 @@ namespace mikoto::renderer::d3d12 {
     private:
         // [Internal usage]
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         rhi::IQueue* mQueue{};
@@ -656,6 +656,7 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto CreateAccelStructure( const rhi::AccelStructureCreateDescription& description ) -> rhi::AccelStructureHandle override;
 
         MKT_NODISCARD auto CreateCommandList( rhi::QueueType queueType ) -> rhi::CommandListHandle override;
+        MKT_NODISCARD auto CreateCommandList( const rhi::CommandListCreateDescription& desc ) -> rhi::CommandListHandle override;
 
         MKT_NODISCARD auto CreateShader( const rhi::ShaderModuleCreateDescription& desc ) -> rhi::ShaderModuleHandle override;
 
@@ -676,7 +677,7 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto CreateDescriptorTable( rhi::BindingLayoutHandle layout ) -> rhi::DescriptorTableHandle override;
         MKT_NODISCARD auto ResizeDescriptorTable( rhi::DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool override;
-        MKT_NODISCARD auto WriteDescriptorTable( rhi::DescriptorTableHandle descriptorTable, const rhi::BindingTableItem& item ) -> rhi::BindingItemIndex override;
+        MKT_NODISCARD auto WriteDescriptorTable( rhi::DescriptorTableHandle descriptorTable, const rhi::BindingTableItem& item ) -> rhi::DescriptorTableIndex override;
 
         auto RunGarbageCollection() -> void override;
 

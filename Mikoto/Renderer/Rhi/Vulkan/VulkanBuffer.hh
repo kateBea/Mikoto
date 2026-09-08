@@ -52,7 +52,7 @@ namespace mikoto::renderer::vulkan {
         ~Buffer() override;
 
     private:
-        auto Release() -> void override;
+        auto Destroy() -> void override;
         auto Initialize() -> void override;
 
     private:

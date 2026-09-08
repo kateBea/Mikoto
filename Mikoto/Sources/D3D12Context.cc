@@ -279,24 +279,24 @@ namespace mikoto::renderer::d3d12 {
         // Do a wait idle
         mDevice->WaitIdle();
 
-        mPipeline.Release();
-        mPipelineLayoutHandle.Release();
-        mBindingLayoutHandle.Release();
+        mPipeline.Reset();
+        mPipelineLayoutHandle.Reset();
+        mBindingLayoutHandle.Reset();
 
-        mBindlessLayout.Release();
-        mDescriptorTable.Release();
+        mBindlessLayout.Reset();
+        mDescriptorTable.Reset();
 
-        mVertexShader.Release();
-        mPixelShader.Release();
+        mVertexShader.Reset();
+        mPixelShader.Reset();
 
-        mSamplerState.Release();
+        mSamplerState.Reset();
 
-        mBindingSetHandle.Release();
+        mBindingSetHandle.Reset();
 
-        mCommandList.Release();
+        mCommandList.Reset();
 
-        mPresentTarget.Release();
-        mSwapChain.Release();
+        mPresentTarget.Reset();
+        mSwapChain.Reset();
 
         mFrameContexts.clear();
 
@@ -323,10 +323,10 @@ namespace mikoto::renderer::d3d12 {
             // Blit via full quad render
             TextureHandle colorImage{ mSwapChain->GetCurrentBackBufferImage() };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
-            mCommandList->SetTransition( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
+            mCommandList->SetTransition( mPresentTarget.GetPtr(), ResourceStates::eShaderResource );
 
             if (mTableUpdateRequired) {
-                (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 0, mPresentTarget.GetRaw() ) );
+                (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 0, mPresentTarget.GetPtr() ) );
                 mTableUpdateRequired = false;
             }
 
@@ -339,15 +339,15 @@ namespace mikoto::renderer::d3d12 {
                 u32 mTextureIndex{};
             } params{
                 .mTextureIndex = index };
-            mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), &params, MKT_SIZEOF( params ), ShaderFlagsBits::All );
+            mCommandList->SetPushConstants( mPipelineLayoutHandle.GetPtr(), &params, MKT_SIZEOF( params ), ShaderFlagsBits::All );
 
-            mCommandList->BindPipeline( mPipeline.GetRaw() );
+            mCommandList->BindPipeline( mPipeline.GetPtr() );
 
             auto bindingDescription{ BindResourcesDescription{}
                 .SetBindPoint( PipelineType::eGraphics )
-                .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-                .AddResourceSet( 0, mBindingSetHandle.GetRaw() )
-                .AddResourceSet( 1, mDescriptorTable.GetRaw() ) };
+                .SetPipelineLayout( mPipelineLayoutHandle.GetPtr() )
+                .AddResourceSet( 0, mBindingSetHandle.GetPtr() )
+                .AddResourceSet( 1, mDescriptorTable.GetPtr() ) };
             mCommandList->BindPipelineResources( bindingDescription );
 
             mCommandList->SetViewportState( ViewportState{}
@@ -359,7 +359,7 @@ namespace mikoto::renderer::d3d12 {
 
             mCommandList->EndRendering();
 
-            mCommandList->SetTransition( colorImage.GetRaw(), ResourceStates::ePresent );
+            mCommandList->SetTransition( colorImage.GetPtr(), ResourceStates::ePresent );
 
             mCommandList->End();
 
@@ -382,10 +382,10 @@ namespace mikoto::renderer::d3d12 {
                 .mHeight = (u32)colorImage->GetHeight() };
 
             mCommandList->Copy(
-                mPresentTarget.GetRaw(), srcSlice,
-                colorImage.GetRaw(), dstSlice );
+                mPresentTarget.GetPtr(), srcSlice,
+                colorImage.GetPtr(), dstSlice );
 
-            mCommandList->SetTransition( colorImage.GetRaw(), ResourceStates::ePresent );
+            mCommandList->SetTransition( colorImage.GetPtr(), ResourceStates::ePresent );
 
             mCommandList->End();
 #endif
@@ -404,7 +404,7 @@ namespace mikoto::renderer::d3d12 {
         // Otherwise mCurrentFrameIndex has advanced and we just wait for this frame to be done
         auto& frame{ mFrameContexts[mCurrentFrameIndex] };
 
-        Fence* pFence{ checked_cast<Fence*>( frame.mFence.GetRaw() ) };
+        Fence* pFence{ checked_cast<Fence*>( frame.mFence.GetPtr() ) };
         ( void )pFence->Wait( frame.mFenceValue, eastl::numeric_limits<u64>::max() ); // Host wait
 
         mDevice->RunGarbageCollection();
@@ -433,7 +433,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Context::SetPresentTarget( TextureHandle texture ) -> void {
-        if (texture.GetRaw() != mPresentTarget.GetRaw()) {
+        if (texture.GetPtr() != mPresentTarget.GetPtr()) {
             mPresentTarget = texture;
             mTableUpdateRequired = true;
         }
@@ -572,7 +572,7 @@ namespace mikoto::renderer::d3d12 {
 
         // Non-bindless set
         auto bindingSetDesc{ BindingTableDescription{}
-            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
+            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetPtr() ) ) };
         mBindingSetHandle = mDevice->CreateBindingTable( bindingSetDesc, mBindingLayoutHandle );
     }
 

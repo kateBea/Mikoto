@@ -42,7 +42,7 @@ namespace mikoto::filesystem {
     // This object is exsposed to the application which does not care about internal
     // it facilitates operations on files such as loading the current contents of a file and exposing it to the engine
     // or persisting engine side current contents to disk
-    class File final : public ReferenceCounted {
+    class File final : public core::ReferenceCounted<File> {
     public:
         // If create == true, the file is created if it does not exists
         explicit File( const Path& path, bool create = false );

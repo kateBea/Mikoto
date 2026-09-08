@@ -28,8 +28,8 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    ICommandList::ICommandList( QueueType queueType, bool selfManagedCommandLists, core::u32 selfManagedCommandListCount )
-        : mQueueType{ queueType }, mSelfManagedCommandLists{ selfManagedCommandLists }, mSelfManagedCommandListCount{ selfManagedCommandListCount }
+    ICommandList::ICommandList( QueueType queueType, core::u32 selfManagedCommandListCount )
+        : mQueueType{ queueType }, mSelfManagedCommandListCount{ selfManagedCommandListCount }
     {}
 
     auto ICommandList::GetQueueType() const -> QueueType {
@@ -93,7 +93,7 @@ namespace mikoto::renderer::rhi {
 
     auto BufferBarrierDescription::SetBuffer( BufferHandle handle ) -> BufferBarrierDescription & {
         MKT_ASSERT( !handle.IsEmpty(), "Cannot pass en empty handle" );
-        mBuffer = handle.GetRaw();
+        mBuffer = handle.GetPtr();
         return *this;
     }
 
@@ -124,7 +124,7 @@ namespace mikoto::renderer::rhi {
 
     auto TextureBarrierDescription::SetTexture( TextureHandle handle ) -> TextureBarrierDescription & {
         MKT_ASSERT( !handle.IsEmpty(), "Cannot pass en empty handle" );
-        mTexture = handle.GetRaw();
+        mTexture = handle.GetPtr();
         return *this;
     }
 

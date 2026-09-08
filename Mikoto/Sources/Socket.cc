@@ -59,7 +59,7 @@ namespace mikoto::network {
         }
 
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -158,7 +158,7 @@ namespace mikoto::network {
         }
     }
 
-    auto TcpSocket::Release() -> void {
+    auto TcpSocket::Destroy() -> void {
         Disconnect();
 
         mIsAllocated = false;

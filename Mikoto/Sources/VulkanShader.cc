@@ -270,14 +270,14 @@ namespace mikoto::renderer::vulkan {
         mSpirvContents.clear();
     }
 
-    auto Shader::Release() -> void {
+    auto Shader::Destroy() -> void {
         vkDestroyShaderModule( checked_cast<Device*>( mDevice )->GetDevice(), mModule, nullptr );
         mIsAllocated = false;
     }
 
     Shader::~Shader() {
         if ( mIsAllocated ) {
-            Release();
+            Destroy();
         }
     }
 }

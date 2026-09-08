@@ -224,7 +224,7 @@ namespace mikoto::audio {
         mIsAllocated = true;
     }
 
-    auto AudioSource::Release() -> void {
+    auto AudioSource::Destroy() -> void {
         if (IsPlaying()) {
             Stop();
         }

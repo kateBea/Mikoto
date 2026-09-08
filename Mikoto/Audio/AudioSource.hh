@@ -86,7 +86,7 @@ namespace mikoto::audio {
     private:
 
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         friend class Audio;

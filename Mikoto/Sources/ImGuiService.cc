@@ -319,7 +319,7 @@ namespace mikoto::imgui {
     }
 
     auto ImGuiService::GetTextureID( TextureHandle texture ) -> ImTextureID {
-        return GetTextureID(texture.GetRaw());
+        return GetTextureID(texture.GetPtr());
     }
 
     auto ImGuiService::GetTextureID( const ITexture *texture ) -> ImTextureID {

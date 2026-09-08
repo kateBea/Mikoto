@@ -57,7 +57,7 @@ namespace mikoto::renderer::vulkan {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         VkPipeline mPipeline{};
@@ -108,7 +108,7 @@ namespace mikoto::renderer::vulkan {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         VkPipeline mPipeline{};

@@ -47,7 +47,7 @@ namespace mikoto::audio {
         return mFileSource->GetName();
     }
 
-    auto Audio::Release() -> void {
+    auto Audio::Destroy() -> void {
         m_Sources.Shutdown();
     }
 

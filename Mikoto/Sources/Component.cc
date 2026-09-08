@@ -152,7 +152,7 @@ namespace mikoto::scene {
 
     auto MaterialComponent::SetMaterial( MaterialHandle mat ) -> void {
         // Needs to be a physical material and not null
-        PhysicalMaterial* pMaterial{ dynamic_cast<PhysicalMaterial*>(mat.GetRaw()) };
+        PhysicalMaterial* pMaterial{ dynamic_cast<PhysicalMaterial*>(mat.GetPtr()) };
         if (!pMaterial) {
             return;
         }

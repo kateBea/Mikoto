@@ -41,7 +41,7 @@ namespace mikoto::renderer::vulkan {
                 if (h.IsEmpty())
                     return;
 
-                const auto* shader{ checked_cast<const Shader*>(h.GetRaw()) };
+                const auto* shader{ checked_cast<const Shader*>(h.GetPtr()) };
                 result.emplace_back(shader->GetPipelineInfo());
             }
         );
@@ -186,7 +186,7 @@ namespace mikoto::renderer::vulkan {
 
     GraphicsPipeline::~GraphicsPipeline() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -230,7 +230,7 @@ namespace mikoto::renderer::vulkan {
         // [Vertex attributes]
         // If the client provided an input layout
         if (!mDesc.mInputLayout.IsEmpty()) {
-            InputLayout* inputLayout{ checked_cast<InputLayout*>( mDesc.mInputLayout.GetRaw() ) };
+            InputLayout* inputLayout{ checked_cast<InputLayout*>( mDesc.mInputLayout.GetPtr() ) };
             mVertexBindingDescriptions = inputLayout->GetVertexBindingDesc();
             mVertexInputDescriptions = inputLayout->GetVertexAttributesDesc();
         }
@@ -277,7 +277,7 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    auto GraphicsPipeline::Release() -> void {
+    auto GraphicsPipeline::Destroy() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
 
         for (const auto& pipelineInfo : mBindingLayoutsMap) {
@@ -334,7 +334,7 @@ namespace mikoto::renderer::vulkan {
 
     ComputePipeline::~ComputePipeline() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -374,7 +374,7 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    auto ComputePipeline::Release() -> void {
+    auto ComputePipeline::Destroy() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
 
         for (const auto& pipelineInfo : mBindingLayoutsMap) {

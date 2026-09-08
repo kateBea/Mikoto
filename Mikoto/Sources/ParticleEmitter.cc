@@ -18,7 +18,7 @@ namespace mikoto::renderer {
 
     ParticleEmitter::~ParticleEmitter() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -26,7 +26,7 @@ namespace mikoto::renderer {
         mIsAllocated = true;
     }
 
-    auto ParticleEmitter::Release() -> void {
+    auto ParticleEmitter::Destroy() -> void {
         mIsAllocated = false;
     }
 }// namespace mikoto::renderer

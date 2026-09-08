@@ -64,7 +64,7 @@ namespace mikoto::renderer::d3d11 {
 
     GraphicsPipeline::~GraphicsPipeline() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -155,7 +155,7 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = true;
     }
 
-    auto GraphicsPipeline::Release() -> void {
+    auto GraphicsPipeline::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -165,7 +165,7 @@ namespace mikoto::renderer::d3d11 {
 
     ComputePipeline::~ComputePipeline() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -173,7 +173,7 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = true;
     }
 
-    auto ComputePipeline::Release() -> void {
+    auto ComputePipeline::Destroy() -> void {
         mIsAllocated = false;
     }
 }// namespace mikoto::renderer::d3d11

@@ -43,7 +43,7 @@ namespace mikoto::core {
         return handle != kInvalidHandle;
     }
 
-    class IResource : public core::ReferenceCounted {
+    class IResource : public core::ReferenceCounted<IResource> {
     public:
 
         MKT_NODISCARD auto IsUsed() const -> bool { return GetRefCount() != 0; }
@@ -55,7 +55,7 @@ namespace mikoto::core {
 
     protected:
         virtual auto Initialize() -> void = 0;
-        virtual auto Release() -> void = 0;
+        virtual auto Destroy() -> void = 0;
 
     protected:
         Handle mHandle{};

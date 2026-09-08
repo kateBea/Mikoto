@@ -156,8 +156,8 @@ namespace mikoto::renderer::rhi {
 
         auto SetScopeName( eastl::string_view name ) -> RenderDescription&;
         auto SetRenderArea( const Rect& rec ) -> RenderDescription&;
-        auto AddDepthTarget(TextureHandle target, LoadOp op = LoadOp::eClear ) -> RenderDescription&;
-        auto AddRenderTarget(TextureHandle target, const Color& c, LoadOp op = LoadOp::eClear, TextureSubresourceSet set = kAllSubResources) -> RenderDescription&;
+        auto AddDepthTarget( TextureHandle target, LoadOp op = LoadOp::eClear ) -> RenderDescription&;
+        auto AddRenderTarget( TextureHandle target, const Color& c, LoadOp op = LoadOp::eClear, TextureSubresourceSet set = kAllSubResources ) -> RenderDescription&;
     };
 
     struct BufferBarrierDescription {
@@ -212,7 +212,7 @@ namespace mikoto::renderer::rhi {
     struct BindResourcesDescription {
         core::usize mPushConstantSize{ 0 };
         ShaderFlags mPushConstantVisibility{};
-        eastl::fixed_vector<core::byte_t, kMaxPushConstantSize> mPushConstants{};
+        eastl::fixed_vector<core::ubyte, kMaxPushConstantSize> mPushConstants{};
 
         static constexpr core::u32 kMaxResourceSets{ 32 };
 
@@ -234,6 +234,17 @@ namespace mikoto::renderer::rhi {
         eastl::string mScopeName{};
 
         auto SetScopeName( eastl::string_view name ) -> CommandListBeginDescription;
+    };
+
+    struct CommandListCreateDescription {
+        eastl::string mName{};
+        QueueType mQueueType{ QueueType::eInvalid };
+        QueueOpSupportFlags mQueueOpSupportFlags{ };
+
+        // If different to 0 the command buffer pre-allocates
+        // this amount of backend specific command buffers
+        // and recycles them on every usage
+        core::u32 mSelfManagedCommandListCount{ 3 };
     };
 
     // Command list we can record commands to and submit to a queue.
@@ -261,7 +272,7 @@ namespace mikoto::renderer::rhi {
 
         virtual auto SetEnableAutomaticBarriers( bool enable ) -> void = 0;
 
-        virtual auto SetClearColor( TextureHandle renderTargets, Color color ) -> void = 0;
+        virtual auto SetClearColor( ITexture* renderTarget, Color color ) -> void = 0;
 
         // The format for the bytes within the buffer is specified by the texture
         virtual auto Write( IBuffer* src, ITexture* dest ) -> void = 0;
@@ -324,12 +335,13 @@ namespace mikoto::renderer::rhi {
     protected:
         // When set to true the command list will allocate a set amount of backend specific
         // command lists and cycle through them like ring buffer.
-        explicit ICommandList( QueueType queueType, bool selfManagedCommandLists = true, core::u32 selfManagedCommandListCount = 4 );
+        // If selfManagedCommandListCount different to 0 the command buffer pre-allocates this
+        // amount of backend specific command buffers and recycles them on every usage
+        explicit ICommandList( QueueType queueType, core::u32 selfManagedCommandListCount = 4 );
 
     protected:
         QueueType mQueueType{ QueueType::eInvalid };
         core::u32 mSelfManagedCommandListCount{ 4 };
-        bool mSelfManagedCommandLists{ true };
     };
 
     using CommandListHandle = core::Ref<ICommandList>;

@@ -140,7 +140,7 @@ namespace mikoto::renderer::rhi {
 
     protected:
         auto Initialize() -> void override = 0;
-        auto Release() -> void override = 0;
+        auto Destroy() -> void override = 0;
 
         explicit ISampler( const SamplerCreateDescription& desc )
             : mMipLevels{ desc.mMipLevels},

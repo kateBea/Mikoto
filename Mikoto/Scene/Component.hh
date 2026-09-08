@@ -644,7 +644,7 @@ namespace mikoto::scene {
         MKT_NODISCARD auto IsWorldText() const ->bool { return mIsWorldText; }
         MKT_NODISCARD auto GetCamera() const -> const Camera* { return mCamera; }
 
-        MKT_NODISCARD auto GetFont() const -> const Font* { return mFont.GetRaw(); }
+        MKT_NODISCARD auto GetFont() const -> const Font* { return mFont.GetPtr(); }
         MKT_NODISCARD auto GetFontHandle() const -> FontHandle { return mFont; }
         MKT_NODISCARD auto GetColor() const -> const glm::vec4& { return mColor; }
 

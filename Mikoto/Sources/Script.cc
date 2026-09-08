@@ -111,7 +111,7 @@ namespace mikoto::scripting {
 
     Script::~Script() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -124,7 +124,7 @@ namespace mikoto::scripting {
         mIsAllocated = true;
     }
 
-    auto Script::Release() -> void {
+    auto Script::Destroy() -> void {
         mIsAllocated = false;
     }
 }// namespace Mikoto

@@ -178,7 +178,7 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = true;
     }
 
-    auto SwapChain::Release() -> void {
+    auto SwapChain::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -201,7 +201,7 @@ namespace mikoto::renderer::d3d11 {
 
     SwapChain::~SwapChain() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 }// namespace mikoto

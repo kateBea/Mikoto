@@ -127,15 +127,9 @@ namespace mikoto::asset {
         auto SetAnimations(AnimationList&& animations) -> ModelCreateDescription&;
     };
 
-    class Model final : public ReferenceCounted {
+    class Model final : public core::ReferenceCounted<Model> {
     public:
-        explicit Model( ModelCreateDescription&& desc )
-            : mPath{ eastl::move( desc.mPath ) },
-              mName{ eastl::move( desc.mName ) },
-              mSkeleton { eastl::move(desc.mSkeleton) },
-              mAnimations{ eastl::move( desc.mAnimations ) },
-              mMeshes{ eastl::move( desc.mMeshes ) }
-        {}
+        explicit Model( ModelCreateDescription&& desc );
 
         MKT_NODISCARD auto GetMeshNodeCount() const -> size_t;
 

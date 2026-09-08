@@ -270,7 +270,7 @@ namespace mikoto::editor {
             diffuseMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( PushImageButton( "##EditDiffuseProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
+        if ( PushImageButton( "##EditDiffuseProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetPtr() ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eDiffuse );
         }
 
@@ -287,7 +287,7 @@ namespace mikoto::editor {
 
         if ( material.HasTexture( MapType::eDiffuse ) ) {
             imgui::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( material.GetTexture( MapType::eDiffuse ).GetRaw() );
+                ShowTextureHoverTooltip( material.GetTexture( MapType::eDiffuse ).GetPtr() );
             },ImGui::IsItemHovered() );
         }
 
@@ -343,7 +343,7 @@ namespace mikoto::editor {
             diffuseMap = AssetsService::Get()->GetDummyTexture();
         }
 
-        if ( imgui::PushImageButton( "##EditBaseColorProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetRaw() ), ImVec2{ 64, 64 } ) ) {
+        if ( imgui::PushImageButton( "##EditBaseColorProperties:TextureID", ImGuiService::Get()->GetTextureID( diffuseMap.GetPtr() ), ImVec2{ 64, 64 } ) ) {
             UpdateMaterialTexture( material, MapType::eBaseColor );
         }
 
@@ -360,7 +360,7 @@ namespace mikoto::editor {
 
         if ( material.HasTexture( MapType::eBaseColor ) ) {
             imgui::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( material.GetTexture( MapType::eBaseColor ).GetRaw() );
+                ShowTextureHoverTooltip( material.GetTexture( MapType::eBaseColor ).GetPtr() );
             }, ImGui::IsItemHovered() );
         }
 
@@ -475,7 +475,7 @@ namespace mikoto::editor {
 
         if ( material.HasTexture( MapType::eMetallicRoughness ) ) {
             imgui::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( metallicMap.GetRaw() );
+                ShowTextureHoverTooltip( metallicMap.GetPtr() );
             },ImGui::IsItemHovered() );
         }
 
@@ -547,7 +547,7 @@ namespace mikoto::editor {
 
         if ( material.HasTexture( MapType::eMetallic ) ) {
             imgui::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( metallicMap.GetRaw() );
+                ShowTextureHoverTooltip( metallicMap.GetPtr() );
             }, ImGui::IsItemHovered() );
         }
 
@@ -622,7 +622,7 @@ namespace mikoto::editor {
 
         if ( material.HasTexture( MapType::eNormal ) ) {
             imgui::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( normalMap.GetRaw() );
+                ShowTextureHoverTooltip( normalMap.GetPtr() );
             }, ImGui::IsItemHovered() );
         }
 
@@ -686,7 +686,7 @@ namespace mikoto::editor {
 
         if ( material.HasTexture( MapType::eEmissive ) ) {
             imgui::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( normalMap.GetRaw() );
+                ShowTextureHoverTooltip( normalMap.GetPtr() );
             }, ImGui::IsItemHovered() );
         }
 
@@ -773,7 +773,7 @@ namespace mikoto::editor {
 
         if ( material.HasTexture( MapType::eRoughness ) ) {
             imgui::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( roughnessMap.GetRaw() );
+                ShowTextureHoverTooltip( roughnessMap.GetPtr() );
             }, ImGui::IsItemHovered() );
         }
 
@@ -849,7 +849,7 @@ namespace mikoto::editor {
 
         if ( material.HasTexture( MapType::eAmbientOcclusion ) ) {
             imgui::ToolTip( [&]() -> void {
-                ShowTextureHoverTooltip( aoMap.GetRaw() );
+                ShowTextureHoverTooltip( aoMap.GetPtr() );
             }, ImGui::IsItemHovered() );
         }
 
@@ -1079,7 +1079,7 @@ namespace mikoto::editor {
 
         ImGui::Spacing();
 
-        ( void )imgui::PushImageButton( ( u64 )texture.GetRaw(), ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 64, 64 } );
+        ( void )imgui::PushImageButton( ( u64 )texture.GetPtr(), ImGuiService::Get()->GetTextureID( texture ), ImVec2{ 64, 64 } );
 
         ImGui::SameLine();
 
@@ -1666,7 +1666,7 @@ namespace mikoto::editor {
 
         MaterialComponent& materialComponent{ entity.GetComponent<MaterialComponent>() };
         if ( materialComponent.HasMaterial() ) {
-            EditMaterial( checked_cast<PhysicalMaterial*>( materialComponent.GetMaterial().GetRaw() ), materialComponent.IsInternal() );
+            EditMaterial( checked_cast<PhysicalMaterial*>( materialComponent.GetMaterial().GetPtr() ), materialComponent.IsInternal() );
         } else {
             ( void )InputText( "Mesh has no material", true );
 
@@ -2001,7 +2001,7 @@ namespace mikoto::editor {
                 }
 
                 imgui::ToolTip( [&]() -> void {
-                    ShowTextureHoverTooltip( atlas.GetRaw() );
+                    ShowTextureHoverTooltip( atlas.GetPtr() );
                 },  ImGui::IsItemHovered() );
 
                 if ( ImGui::IsItemHovered() ) {
@@ -2525,7 +2525,7 @@ namespace mikoto::editor {
         }
 
         SkyboxMaterialComponent& sbComponent{ entity.GetComponent<SkyboxMaterialComponent>() };
-        SkyboxMaterial* material{ checked_cast<SkyboxMaterial*>( sbComponent.GetMaterial().GetRaw() ) };
+        SkyboxMaterial* material{ checked_cast<SkyboxMaterial*>( sbComponent.GetMaterial().GetPtr() ) };
 
         if (!material) {
             return;
@@ -2584,7 +2584,7 @@ namespace mikoto::editor {
                         face = AssetsService::Get()->GetDummyTexture();
                     }
 
-                    if ( PushImageButton( string::Format( "##SetupSkyboxComponentTab:{}", kCubeFaces[i].second ), ImGuiService::Get()->GetTextureID( face.GetRaw() ), ImVec2{ 64, 64 } ) ) {
+                    if ( PushImageButton( string::Format( "##SetupSkyboxComponentTab:{}", kCubeFaces[i].second ), ImGuiService::Get()->GetTextureID( face.GetPtr() ), ImVec2{ 64, 64 } ) ) {
                         if (material) {
                             LoadMaterialTexture( *material, kCubeFaces[i].first );
                         }
@@ -2605,7 +2605,7 @@ namespace mikoto::editor {
                             imgui::ToolTip( "Click me to load a texture." );
                         } else {
                             imgui::ToolTip( [&]() -> void {
-                                ShowTextureHoverTooltip( material->GetFace( kCubeFaces[i].first ).GetRaw() );
+                                ShowTextureHoverTooltip( material->GetFace( kCubeFaces[i].first ).GetPtr() );
                             }, ImGui::IsItemHovered() );
                         }
                         ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -2659,7 +2659,7 @@ namespace mikoto::editor {
                     face = AssetsService::Get()->GetDummyTexture();
                 }
 
-                if ( PushImageButton( "##SetupSkyboxComponentTable_FlatImage01", ImGuiService::Get()->GetTextureID( face.GetRaw() ), ImVec2{ 64, 64 } ) ) {
+                if ( PushImageButton( "##SetupSkyboxComponentTable_FlatImage01", ImGuiService::Get()->GetTextureID( face.GetPtr() ), ImVec2{ 64, 64 } ) ) {
                     if (material) {
                         LoadMaterialTexture( *material );
                         mState->mSceneRenderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
@@ -2682,7 +2682,7 @@ namespace mikoto::editor {
                         imgui::ToolTip( "Click me to load a texture." );
                     } else {
                         imgui::ToolTip( [&]() -> void {
-                            ShowTextureHoverTooltip( material->GetEquirectangular().GetRaw() );
+                            ShowTextureHoverTooltip( material->GetEquirectangular().GetPtr() );
                         }, ImGui::IsItemHovered() );
                     }
                     ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );

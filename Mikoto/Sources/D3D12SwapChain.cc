@@ -140,7 +140,7 @@ namespace mikoto::renderer::d3d12 {
 
     SwapChain::~SwapChain() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -241,10 +241,10 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    auto SwapChain::Release() -> void {
+    auto SwapChain::Destroy() -> void {
 
         for (auto& item : mBackBufferImages) {
-            item.Release();
+            item.Reset();
         }
         mIsAllocated = false;
     }

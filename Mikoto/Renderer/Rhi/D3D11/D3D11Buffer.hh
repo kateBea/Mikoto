@@ -52,7 +52,7 @@ namespace mikoto::renderer::d3d11 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         Microsoft::WRL::ComPtr<ID3D11Buffer> mBuffer{};

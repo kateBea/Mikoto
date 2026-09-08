@@ -80,8 +80,8 @@ namespace mikoto::imgui {
         // Handles need to be disabled as the destruction of the graphics context
         // is deferred to the ImGuiService destruction where we might not have a context ready
         // Services in Mikoto do not do their cleanup in the destructor they do it on the Shutdown method
-        mColorImage.Release();
-        mDepthImage.Release();
+        mColorImage.Reset();
+        mDepthImage.Reset();
 
         // Clear texture IDs
         for (auto& [descriptorSet] : mImGuiSets | std::ranges::views::values ) {
@@ -93,7 +93,7 @@ namespace mikoto::imgui {
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
 
-        mCommandList.Release();
+        mCommandList.Reset();
 
         vkDestroyDescriptorPool( as<Device*>( mDevice )->GetDevice(), mImGuiDescriptorPool, nullptr );
 
@@ -241,7 +241,7 @@ namespace mikoto::imgui {
         ImGui::Render();
 
         mCommandList->Begin( { .mScopeName = "ImGui Render" } );
-        mCommandList->SetTransition( mColorImage.GetRaw(), ResourceStates::eRenderTarget );
+        mCommandList->SetTransition( mColorImage.GetPtr(), ResourceStates::eRenderTarget );
 
         RecordRenderCommands();
 
@@ -298,7 +298,7 @@ namespace mikoto::imgui {
     }
 
     auto ImGuiVulkanBackend::ConstructImGuiTextureID(TextureHandle texture) -> ImTextureID {
-        return ConstructImGuiTextureID( texture.GetRaw() );
+        return ConstructImGuiTextureID( texture.GetPtr() );
     }
 
     auto ImGuiVulkanBackend::RecordRenderCommands() -> void {

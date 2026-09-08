@@ -150,7 +150,7 @@ namespace mikoto::renderer::rhi {
 
     protected:
         auto Initialize() -> void override = 0;
-        auto Release() -> void override = 0;
+        auto Destroy() -> void override = 0;
     };
 
     using BindingTableHandle = core::Ref<IBindingTable>;

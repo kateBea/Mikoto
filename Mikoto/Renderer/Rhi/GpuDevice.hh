@@ -28,9 +28,9 @@
 #include <Renderer/Rhi/Fence.hh>
 #include <Renderer/Rhi/Buffer.hh>
 #include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/SwapChain.hh>
 #include <Renderer/Rhi/CommandList.hh>
 #include <Renderer/Rhi/CommandQueue.hh>
-#include <Renderer/Rhi/SwapChain.hh>
 #include <Renderer/Rhi/AccelerationStructure.hh>
 
 namespace mikoto::renderer::rhi {
@@ -79,6 +79,7 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD virtual auto CreateAccelStructure( const AccelStructureCreateDescription& description ) -> AccelStructureHandle = 0;
 
         MKT_NODISCARD virtual auto CreateCommandList( QueueType queue ) -> CommandListHandle = 0;
+        MKT_NODISCARD virtual auto CreateCommandList( const CommandListCreateDescription& desc ) -> CommandListHandle = 0;
 
         MKT_NODISCARD virtual auto CreateShader( const ShaderModuleCreateDescription& desc ) -> ShaderModuleHandle = 0;
 
@@ -102,7 +103,7 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD virtual auto CreateDescriptorTableLayout( const DescriptorTableLayoutDescription& desc ) -> BindingLayoutHandle = 0;
         MKT_NODISCARD virtual auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle = 0;
         MKT_NODISCARD virtual auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool = 0;
-        MKT_NODISCARD virtual auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> BindingItemIndex = 0;
+        MKT_NODISCARD virtual auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> DescriptorTableIndex = 0;
 
         MKT_NODISCARD virtual auto CreateSwapChain( const SwapChainDescription& description ) -> SwapChainHandle = 0;
 

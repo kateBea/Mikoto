@@ -237,7 +237,7 @@ namespace mikoto::renderer {
             return;
         }
 
-        SkyboxMaterial* pMaterial{ checked_cast<SkyboxMaterial*>( material.GetRaw() ) };
+        SkyboxMaterial* pMaterial{ checked_cast<SkyboxMaterial*>( material.GetPtr() ) };
         if (!pMaterial->HasRequiredTextures()) {
             return;
         }

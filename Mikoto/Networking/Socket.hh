@@ -87,7 +87,7 @@ namespace mikoto::network {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
         auto InitConnection() -> void;
         auto InitConnectionSync() -> void;

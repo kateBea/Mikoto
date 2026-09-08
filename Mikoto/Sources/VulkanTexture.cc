@@ -106,11 +106,11 @@ namespace mikoto::renderer::vulkan {
 
     Sampler::~Sampler() {
         if ( mIsAllocated ) {
-            Release();
+            Destroy();
         }
     }
 
-    auto Sampler::Release() -> void {
+    auto Sampler::Destroy() -> void {
         vkDestroySampler( checked_cast<Device*>( mDevice )->GetDevice(), mSampler, nullptr );
         mIsAllocated = false;
     }
@@ -145,7 +145,7 @@ namespace mikoto::renderer::vulkan {
         mDebugName = string::Format( "Mikoto Swap chain Texture. Id:", GetHandle() );
     }
 
-    auto Texture::Release() -> void {
+    auto Texture::Destroy() -> void {
         if ( !mIsAllocated ) {
             return;
         }
@@ -218,7 +218,7 @@ namespace mikoto::renderer::vulkan {
 
     Texture::~Texture() {
         if ( mIsAllocated ) {
-            Release();
+            Destroy();
         }
     }
 
@@ -320,8 +320,8 @@ namespace mikoto::renderer::vulkan {
             }
 
             if (!mKeepInitializerResources) {
-                mImageData.Release();
-                mBufferSpan.Release();
+                mImageData.Reset();
+                mBufferSpan.Reset();
             }
 
             if ( mTextureUsage & TextureUsageFlagsBits::DepthTarget ) {

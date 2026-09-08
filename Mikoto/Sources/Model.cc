@@ -104,6 +104,16 @@ namespace mikoto::asset {
         return *this;
     }
 
+    Model::Model( ModelCreateDescription &&desc )
+        : mPath{ eastl::move( desc.mPath ) },
+          mName{ eastl::move( desc.mName ) },
+          mAnimations{ eastl::move( desc.mAnimations ) },
+          mSkeleton{ eastl::move( desc.mSkeleton ) },
+          mMeshes{ eastl::move( desc.mMeshes ) }
+    {
+
+    }
+
     auto Model::GetMeshNodeCount() const -> size_t {
         return mMeshes.size();
     }

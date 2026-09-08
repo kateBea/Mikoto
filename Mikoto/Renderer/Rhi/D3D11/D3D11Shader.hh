@@ -54,7 +54,7 @@ namespace mikoto::renderer::d3d11 {
 
     protected:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
 
     private:

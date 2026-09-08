@@ -503,7 +503,7 @@ namespace mikoto::editor {
                                   as<f32>( z ) * spacing } );
 
                         auto &pbr{ e->GetComponent<MaterialComponent>() };
-                        PhysicalMaterial *pbrMat{ pbr.GetMaterial().Dynamic<PhysicalMaterial>() };
+                        PhysicalMaterial *pbrMat{ checked_cast<PhysicalMaterial*>( pbr.GetMaterial().GetPtr() ) };
                         if ( pbrMat ) {
                             // Randomize color
                         }
@@ -535,7 +535,7 @@ namespace mikoto::editor {
                     // ENTT_ASSERT(contains(entt), "Set does not contain entity");
 
                     auto& materialComponent{ e->GetComponent<MaterialComponent>() };
-                    auto* material{ checked_cast<PhysicalMaterial*>( materialComponent.GetMaterial().GetRaw() ) };
+                    auto* material{ checked_cast<PhysicalMaterial*>( materialComponent.GetMaterial().GetPtr() ) };
                     if (material) {
                         material->SetAlphaMaskCutoff( 1.0f );
                         material->SetMetallicFactor( as<f32>( x ) / as<f32>( gridSize - 1 ) );
@@ -1060,7 +1060,7 @@ namespace mikoto::editor {
         std::initializer_list<FileDialogPair> filters{
             FileDialogPair{ "Mikoto Project Files", "mktproj" } };
         const Path path{ filesystem::SaveFileDialog( string::Format("{}.mktproj", projName), filters ) };
-        mProjectSerializer.Serialize( mProject.GetRaw(), path );
+        mProjectSerializer.Serialize( mProject.GetPtr(), path );
     }
 
     auto EditorLayer::CreateProject() -> void {

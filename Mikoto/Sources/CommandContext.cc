@@ -204,10 +204,10 @@ namespace mikoto::renderer {
             // This uses still non enhanced barriers
             switch (resource.mType) {
                 case FGResourceType::eTexture:
-                    mCommands->RecordTransition( checked_cast<ITexture*>( resource.mResource.GetRaw() ), desired );
+                    mCommands->RecordTransition( checked_cast<ITexture*>( resource.mResource.GetPtr() ), desired );
                     break;
                 case FGResourceType::eBuffer:
-                    mCommands->RecordTransition( checked_cast<IBuffer*>( resource.mResource.GetRaw() ), desired );
+                    mCommands->RecordTransition( checked_cast<IBuffer*>( resource.mResource.GetPtr() ), desired );
                     break;
                 default:
                     MKT_ASSERT( false, "Unknown resource type" );
@@ -241,11 +241,11 @@ namespace mikoto::renderer {
     auto CommandContext::BindPipeline( FGPipelineHandle handle ) -> void {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource pipeline{ mResourceManager->Get( handle.mHandle ) };
-        mCommands->BindPipeline( checked_cast<IPipeline*>( pipeline.mResource.GetRaw()) );
+        mCommands->BindPipeline( checked_cast<IPipeline*>( pipeline.mResource.GetPtr()) );
     }
 
     auto CommandContext::Draw( u32 vertexCount, u32 instanceCount ) -> void {
-        IPipelineLayout* layout{ mPipelineLayout.GetRaw() };
+        IPipelineLayout* layout{ mPipelineLayout.GetPtr() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
         mCommands->Draw( DrawArguments{}
             .SetVertexCount( vertexCount )
@@ -260,14 +260,14 @@ namespace mikoto::renderer {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource resource{ mResourceManager->Get( state.mIndirectBuffer.mHandle ) };
 
-        IPipelineLayout* layout{ mPipelineLayout.GetRaw() };
+        IPipelineLayout* layout{ mPipelineLayout.GetPtr() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
-        mCommands->BindIndirectBuffer( checked_cast<IBuffer*>( resource.mResource.GetRaw() ) );
+        mCommands->BindIndirectBuffer( checked_cast<IBuffer*>( resource.mResource.GetPtr() ) );
         mCommands->DrawIndirect( 0, state.mInstanceCount );
     }
 
     auto CommandContext::Dispatch( u32 groupX, u32 groupY, u32 groupZ ) -> void {
-        IPipelineLayout* layout{ mPipelineLayout.GetRaw() };
+        IPipelineLayout* layout{ mPipelineLayout.GetPtr() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
         mCommands->Dispatch( groupX, groupY, groupZ );
     }
@@ -310,7 +310,7 @@ namespace mikoto::renderer {
         auto itFind{ mCachedBda.find( handle.mHandle ) };
         if (itFind == mCachedBda.end()) {
             FGResource resource{ mResourceManager->Get( handle.mHandle ) };
-            IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
+            IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetPtr() ) };
             itFind = mCachedBda.try_emplace( itFind, handle.mHandle, buffer->GetGpuDeviceAddress() );
         }
 
@@ -322,7 +322,7 @@ namespace mikoto::renderer {
         auto itFind{ mCachedBuffers.find( handle.mHandle ) };
         if (itFind == mCachedBuffers.end()) {
             FGResource resource{ mResourceManager->Get( handle.mHandle ) };
-            IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
+            IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetPtr() ) };
             itFind = mCachedBuffers.try_emplace( itFind, handle.mHandle, buffer );
         }
 
@@ -334,7 +334,7 @@ namespace mikoto::renderer {
         auto itFind{ mCachedTextures.find( handle.mHandle ) };
         if (itFind == mCachedTextures.end()) {
             FGResource resource{ mResourceManager->Get( handle.mHandle ) };
-            ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
+            ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetPtr() ) };
             itFind = mCachedTextures.try_emplace( itFind, handle.mHandle, texture );
         }
 

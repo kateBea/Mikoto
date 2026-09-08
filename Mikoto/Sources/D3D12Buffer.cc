@@ -239,11 +239,11 @@ namespace mikoto::renderer::d3d12 {
 
     Buffer::~Buffer() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
-    auto Buffer::Release() -> void {
+    auto Buffer::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -305,7 +305,7 @@ namespace mikoto::renderer::d3d12 {
         }
 
         if (!mKeepInitializerResources) {
-            mUploadContents.Release();
+            mUploadContents.Reset();
         }
 
         mIsAllocated = true;

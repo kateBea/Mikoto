@@ -22,7 +22,7 @@
 
 namespace mikoto::core {
 
-    class ISerializable : public ReferenceCounted {
+    class ISerializable : public ReferenceCounted<ISerializable> {
     public:
         ~ISerializable() override = default;
 

@@ -46,7 +46,7 @@ namespace mikoto::renderer::d3d11 {
         ~Sampler() override;
 
     private:
-        auto Release() -> void override;
+        auto Destroy() -> void override;
         auto Initialize() -> void override;
 
     private:
@@ -65,12 +65,13 @@ namespace mikoto::renderer::d3d11 {
         auto EnableUsage( ResourceStates state ) -> void;
 
         MKT_NODISCARD operator ID3D11Resource*() const;
+        MKT_NODISCARD operator ID3D11RenderTargetView*() const;
 
         ~Texture() override;
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture{};

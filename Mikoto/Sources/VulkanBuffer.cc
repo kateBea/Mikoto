@@ -117,11 +117,11 @@ namespace mikoto::renderer::vulkan {
 
     Buffer::~Buffer() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
-    auto Buffer::Release() -> void {
+    auto Buffer::Destroy() -> void {
         auto* allocator{ checked_cast<Device*>( mDevice  )->GetAllocator() };
 
         if ( mAllocation.mBuffer != VK_NULL_HANDLE ) {
@@ -161,7 +161,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         if (!mKeepInitializerResources) {
-            mUploadContents.Release();
+            mUploadContents.Reset();
         }
 
         mIsAllocated = true;

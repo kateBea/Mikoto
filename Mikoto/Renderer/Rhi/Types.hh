@@ -28,9 +28,9 @@ namespace mikoto::renderer::rhi {
     using MipLevel = core::u32;
     using ArraySlice = core::u32;
 
-    using BindingItemIndex = core::u64;
+    using DescriptorTableIndex = core::u64;
 
-    inline constexpr BindingItemIndex kInvalidBindingItemIndex{ ~0ULL };
+    inline constexpr DescriptorTableIndex kInvalidBindingItemIndex{ ~0ULL };
 
     enum class GpuDeviceType {
         eInvalid = -1,

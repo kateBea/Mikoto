@@ -46,7 +46,7 @@ namespace mikoto::renderer::d3d12 {
         ~Sampler() override;
 
     private:
-        auto Release() -> void override;
+        auto Destroy() -> void override;
         auto Initialize() -> void override;
 
     public:
@@ -96,7 +96,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
         auto InitInitialData2D( memory::BufferSpanHandle buffer ) -> void;
         auto InitInitialDataCube( memory::BufferSpanHandle buffer ) -> void;

@@ -53,7 +53,7 @@ namespace mikoto::asset {
     constexpr inline core::u32 kCubeFaceCount{ 6 };
 
     // Flat textures, equirectangular maps
-    struct Image : public core::ReferenceCounted {
+    struct Image : public core::ReferenceCounted<Image> {
         filesystem::FileHandle mFileHandle{};
         memory::BufferSpanHandle mBufferSpan{};
 

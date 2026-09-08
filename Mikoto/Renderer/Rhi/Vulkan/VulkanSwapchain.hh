@@ -70,7 +70,7 @@ namespace mikoto::renderer::vulkan {
         using DeviceObject::Initialize;
 
     private:
-        auto Release() -> void override;
+        auto Destroy() -> void override;
         auto Initialize() -> void override;
 
         auto AcquireSwapChainImages() -> void;

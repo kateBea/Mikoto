@@ -109,11 +109,11 @@ namespace mikoto::renderer::vulkan {
 
     SwapChain::~SwapChain() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
-    auto SwapChain::Release() -> void {
+    auto SwapChain::Destroy() -> void {
         Device* device{ checked_cast<Device*>(mDevice) };
 
         // Ensure the device is idle before destroying any swapchain-backed resources.

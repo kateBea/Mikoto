@@ -57,7 +57,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState{};
@@ -86,7 +86,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState{};

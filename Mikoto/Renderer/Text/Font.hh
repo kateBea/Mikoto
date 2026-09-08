@@ -84,7 +84,7 @@ namespace mikoto::renderer {
         core::float4 mPlaneBounds{};
     };
 
-    class Font final : public core::ReferenceCounted {
+    class Font final : public core::ReferenceCounted<Font> {
     public:
         explicit Font( rhi::TextureHandle fontAtlas, core::f32 pixelSize, filesystem::Path path );
 

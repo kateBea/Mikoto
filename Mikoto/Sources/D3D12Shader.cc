@@ -76,11 +76,11 @@ namespace mikoto::renderer::d3d12 {
 
     Shader::~Shader() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
-    auto Shader::Release() -> void {
+    auto Shader::Destroy() -> void {
         mIsAllocated = false;
     }
 

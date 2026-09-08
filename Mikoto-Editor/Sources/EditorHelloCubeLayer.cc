@@ -249,9 +249,9 @@ namespace mikoto::editor {
         mPipelineWireframe->SetDebugName( "HelloCubeLayer PipelineWireframe" );
 
         auto bindingSetDesc{ BindingTableDescription{}
-            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) )
-            .AddItem( BindingTableItem::TextureSRV( 1, mSimpleTexture.GetRaw() ) )
-            .AddItem( BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetRaw() ) ) };
+            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetPtr() ) )
+            .AddItem( BindingTableItem::TextureSRV( 1, mSimpleTexture.GetPtr() ) )
+            .AddItem( BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetPtr() ) ) };
         mBindingTableHandle = mDevice->CreateBindingTable( bindingSetDesc, mBindingLayoutHandle );
 
         SceneCameraDescription cameraDescription{
@@ -266,26 +266,26 @@ namespace mikoto::editor {
     auto EditorHelloCubeLayer::OnDestroy() -> void {
         mDevice->WaitIdle();
 
-        mPipeline.Release();
-        mPipelineWireframe.Release();
-        mPipelineLayoutHandle.Release();
-        mBindingLayoutHandle.Release();
-        mVertexInputLayout.Release();
+        mPipeline.Reset();
+        mPipelineWireframe.Reset();
+        mPipelineLayoutHandle.Reset();
+        mBindingLayoutHandle.Reset();
+        mVertexInputLayout.Reset();
 
-        mVertexShader.Release();
-        mPixelShader.Release();
+        mVertexShader.Reset();
+        mPixelShader.Reset();
 
-        mConstantBuffer.Release();
+        mConstantBuffer.Reset();
 
-        mSimpleTexture.Release();
-        mColorImage.Release();
-        mDepthImage.Release();
+        mSimpleTexture.Reset();
+        mColorImage.Reset();
+        mDepthImage.Reset();
 
-        mSamplerState.Release();
+        mSamplerState.Reset();
 
-        mBindingTableHandle.Release();
+        mBindingTableHandle.Reset();
 
-        mCommandList.Release();
+        mCommandList.Reset();
     }
 
     auto EditorHelloCubeLayer::OnUpdate( float timeStep ) -> void {
@@ -295,7 +295,7 @@ namespace mikoto::editor {
 
         DrawNormalMesh();
 
-        mCommandList->SetTransition( mColorImage.GetRaw(), ResourceStates::eShaderResource );
+        mCommandList->SetTransition( mColorImage.GetPtr(), ResourceStates::eShaderResource );
 
         mCommandList->End();
 
@@ -330,7 +330,7 @@ namespace mikoto::editor {
             100.0f                // far plane
         );
 
-        mCommandList->Write( mConstantBuffer.GetRaw(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
+        mCommandList->Write( mConstantBuffer.GetPtr(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
 
         // Set graphics state
         auto graphicsState{ RenderDescription{}
@@ -341,18 +341,18 @@ namespace mikoto::editor {
 
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
-            .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-            .AddResourceSet( 0, mBindingTableHandle.GetRaw() ) };
+            .SetPipelineLayout( mPipelineLayoutHandle.GetPtr() )
+            .AddResourceSet( 0, mBindingTableHandle.GetPtr() ) };
         mCommandList->BindPipelineResources( bindingDescription );
 
-        mCommandList->BindPipeline( mPipeline.GetRaw() );
+        mCommandList->BindPipeline( mPipeline.GetPtr() );
 
         auto vertexBufferDesc{ VertexBufferBinding{}
             .SetBufferBinding( 0 )
-            .SetBuffer( mVertexBuffer.GetRaw() )
+            .SetBuffer( mVertexBuffer.GetPtr() )
             .SetElementStride( MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->BindVertexBuffer( vertexBufferDesc );
-        mCommandList->BindIndexBuffer(mIndexBuffer.GetRaw() );
+        mCommandList->BindIndexBuffer(mIndexBuffer.GetPtr() );
 
         mCommandList->SetViewportState( ViewportState{}
             .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
@@ -391,7 +391,7 @@ namespace mikoto::editor {
             100.0f                // far plane
         );
 
-        mCommandList->Write( mConstantBuffer.GetRaw(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
+        mCommandList->Write( mConstantBuffer.GetPtr(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
 
         // Set graphics state
         auto graphicsState{ RenderDescription{}
@@ -402,17 +402,17 @@ namespace mikoto::editor {
 
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
-            .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-            .AddResourceSet( 0, mBindingTableHandle.GetRaw() ) };
+            .SetPipelineLayout( mPipelineLayoutHandle.GetPtr() )
+            .AddResourceSet( 0, mBindingTableHandle.GetPtr() ) };
         mCommandList->BindPipelineResources( bindingDescription );
-        mCommandList->BindPipeline( mPipelineWireframe.GetRaw() );
+        mCommandList->BindPipeline( mPipelineWireframe.GetPtr() );
 
         auto vertexBufferDesc{ VertexBufferBinding{}
             .SetBufferBinding( 0 )
-            .SetBuffer( mVertexBuffer.GetRaw() )
+            .SetBuffer( mVertexBuffer.GetPtr() )
             .SetElementStride( MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->BindVertexBuffer( vertexBufferDesc );
-        mCommandList->BindIndexBuffer(mIndexBuffer.GetRaw() );
+        mCommandList->BindIndexBuffer(mIndexBuffer.GetPtr() );
 
         mCommandList->SetViewportState( ViewportState{}
             .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );

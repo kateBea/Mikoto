@@ -467,7 +467,7 @@ namespace mikoto::renderer::vulkan {
         BindingSetLayoutsMap& bindingLayoutsMap,
         BindingLayoutHandle bindingLayoutHandle = BindingLayoutHandle::CreateEmpty()  ) -> void {
         BindingLayout* bindingLayout{ bindingLayoutHandle.IsEmpty() ?
-            nullptr : checked_cast<BindingLayout*>( bindingLayoutHandle.GetRaw() )
+            nullptr : checked_cast<BindingLayout*>( bindingLayoutHandle.GetPtr() )
         };
 
         for ( const auto& [setIndex, setBindings]: pipelineReflection.mBindingSetsMap ) {

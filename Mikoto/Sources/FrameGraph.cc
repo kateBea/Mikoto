@@ -301,7 +301,7 @@ namespace mikoto::renderer {
     auto FGResourceManager::GetBufferMappedAddress( FGBufferHandle handle ) const -> const void* {
         auto& resource{ Get(handle.mHandle) };
         BufferHandle buffer{ resource.mResource };
-        return mDevice->Map( buffer.GetRaw() ); // Maps whole buffer, not parts of it
+        return mDevice->Map( buffer.GetPtr() ); // Maps whole buffer, not parts of it
     }
 
     auto FGResourceManager::GetBindlessLayout() const -> BindingLayoutHandle {
@@ -348,7 +348,7 @@ namespace mikoto::renderer {
             return 0;
         }
 
-        IBuffer* buffer{ checked_cast<IBuffer*>( mResources.at( handle.mHandle )->mResource.GetRaw() ) };
+        IBuffer* buffer{ checked_cast<IBuffer*>( mResources.at( handle.mHandle )->mResource.GetPtr() ) };
 
         MKT_ASSERT( buffer, "Invalid cast of resource to Buffer type" );
 
@@ -360,7 +360,7 @@ namespace mikoto::renderer {
 
         u32 newID{};
         auto& resource{ Get(handle) };
-        ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
+        ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetPtr() ) };
         newID = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( MKT_TEXTURE_SRV_BINDING,
             texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
 
@@ -373,7 +373,7 @@ namespace mikoto::renderer {
         // TextureCube and Texture2D are same binding because they are same type of descriptor
         u32 newID{};
         auto& resource{ Get(handle) };
-        ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetRaw() ) };
+        ITexture* texture{ checked_cast<ITexture*>( resource.mResource.GetPtr() ) };
         newID = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureUAV( MKT_TEXTURE_UAV_BINDING,
             texture, texture->GetFormat(), kAllSubResources, texture->GetDimension() ) );
 
@@ -385,7 +385,7 @@ namespace mikoto::renderer {
 
         u32 newID{};
         auto& resource{ Get(handle) };
-        ISampler* sampler{ checked_cast<ISampler*>( resource.mResource.GetRaw() ) };
+        ISampler* sampler{ checked_cast<ISampler*>( resource.mResource.GetPtr() ) };
         newID = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Sampler( MKT_SAMPLER_BINDING, sampler ) );
 
         return newID;
@@ -396,7 +396,7 @@ namespace mikoto::renderer {
 
         u32 newID{};
         auto& resource{ Get(handle) };
-        IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
+        IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetPtr() ) };
         newID = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredSRV( MKT_STRUCTURED_SRV_BINDING, buffer ) );
 
         return newID;
@@ -406,14 +406,14 @@ namespace mikoto::renderer {
         std::lock_guard lock{ mTableWriteMutex };
         u32 newID{};
         auto& resource{ Get(handle) };
-        IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetRaw() ) };
+        IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetPtr() ) };
         newID = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredUAV( MKT_STRUCTURED_UAV_BINDING, buffer ) );
 
         return newID;
     }
 
     auto FGResourceManager::ImportTexture( TextureHandle handle ) -> FGTextureHandle {
-        auto& resource{ Allocate( FGResourceType::eTexture, handle.GetRaw() ) };
+        auto& resource{ Allocate( FGResourceType::eTexture, handle.GetPtr() ) };
 
         resource.mResource = handle;
 
@@ -421,7 +421,7 @@ namespace mikoto::renderer {
     }
 
     auto FGResourceManager::ImportBuffer( BufferHandle handle ) -> FGBufferHandle {
-        auto& resource{ Allocate( FGResourceType::eBuffer, handle.GetRaw() ) };
+        auto& resource{ Allocate( FGResourceType::eBuffer, handle.GetPtr() ) };
 
         resource.mResource = handle;
 
@@ -854,8 +854,8 @@ namespace mikoto::renderer {
         // Resource layout is predefined and fixed for all pipelines
         // see FGResourceManager implementation
         commandList->BindPipelineResources( BindResourcesDescription{}
-            .AddResourceSet( 0, table.GetRaw() )
-            .SetPipelineLayout( layout.GetRaw() )
+            .AddResourceSet( 0, table.GetPtr() )
+            .SetPipelineLayout( layout.GetPtr() )
             .SetBindPoint( bindPoint ) );
     }
 
@@ -1094,7 +1094,7 @@ namespace mikoto::renderer {
             };
 
             resource.mResource = mDevice->CreatePipeline( graphicsPipelineDesc );
-            checked_cast<DeviceObject*>( resource.mResource.GetRaw() )->SetDebugName( desc.mName );
+            checked_cast<DeviceObject*>( resource.mResource.GetPtr() )->SetDebugName( desc.mName );
         } else if ( desc.mPipelineType == PipelineType::eCompute ) {
             MKT_ASSERT( desc.mShaders.contains( FGStageType::eCompute ), "Creating compute pipeline without compute shader." );
             auto computePipelineDesc{ ComputePipelineDescription{}
@@ -1113,7 +1113,7 @@ namespace mikoto::renderer {
             };
 
             resource.mResource = mDevice->CreatePipeline( computePipelineDesc );
-            checked_cast<DeviceObject*>( resource.mResource.GetRaw() )->SetDebugName( desc.mName );
+            checked_cast<DeviceObject*>( resource.mResource.GetPtr() )->SetDebugName( desc.mName );
         }
 
         return FGPipelineHandle{ resource.mResourceID };
@@ -1145,7 +1145,7 @@ namespace mikoto::renderer {
         };
 
         resource.mResource = mDevice->CreateBuffer( bufferDesc );
-        checked_cast<DeviceObject*>( resource.mResource.GetRaw() )->SetDebugName( desc.mName );
+        checked_cast<DeviceObject*>( resource.mResource.GetPtr() )->SetDebugName( desc.mName );
 
         return FGBufferHandle{ .mHandle = resource.mResourceID };
     }
@@ -1165,7 +1165,7 @@ namespace mikoto::renderer {
         TextureHandle texture{ mDevice->CreateTexture( textureDesc ) };
         texture->SetDebugName( string::Format( "FG Loaded Texture {}", path.GetC_Str() ) );
 
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture, texture.GetRaw() ) };
+        auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture, texture.GetPtr() ) };
         resource.mResource = texture;
 
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource {
@@ -1186,7 +1186,7 @@ namespace mikoto::renderer {
             return {};
         }
 
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture, handle.GetRaw() ) };
+        auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture, handle.GetPtr() ) };
         resource.mResource = handle;
 
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource {
@@ -1229,7 +1229,7 @@ namespace mikoto::renderer {
         };
 
         resource.mResource = mDevice->CreateTexture( textureDesc );
-        checked_cast<DeviceObject*>( resource.mResource.GetRaw() )->SetDebugName( desc.mName );
+        checked_cast<DeviceObject*>( resource.mResource.GetPtr() )->SetDebugName( desc.mName );
         return FGTextureHandle{ .mHandle = resource.mResourceID };
     }
 
@@ -1255,7 +1255,7 @@ namespace mikoto::renderer {
         };
 
         resource.mResource = mDevice->CreateSampler( samplerDesc );
-        checked_cast<DeviceObject*>( resource.mResource.GetRaw() )->SetDebugName( desc.mName );
+        checked_cast<DeviceObject*>( resource.mResource.GetPtr() )->SetDebugName( desc.mName );
 
         return FGSamplerHandle{ .mHandle = resource.mResourceID };
     }

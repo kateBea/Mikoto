@@ -56,7 +56,7 @@ namespace mikoto::audio {
         MKT_NODISCARD auto GetTrackName() const -> eastl::string_view;
 
     private:
-        auto Release() -> void override;
+        auto Destroy() -> void override;
         auto Initialize() -> void override;
 
     private:

@@ -126,7 +126,7 @@ namespace mikoto::renderer::vulkan {
         mUploadManager.reset();
 
         for (auto& queue : mQueues | std::ranges::views::values ) {
-            queue.Release();
+            queue.Reset();
         }
 
         mGpuAllocator->Shutdown();
@@ -316,10 +316,10 @@ namespace mikoto::renderer::vulkan {
         return false;
     }
 
-    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> BindingItemIndex {
-        DescriptorTable* table{ checked_cast<DescriptorTable*>( descriptorTable.GetRaw() ) };
+    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> DescriptorTableIndex {
+        DescriptorTable* table{ checked_cast<DescriptorTable*>( descriptorTable.GetPtr() ) };
 
-        BindingItemIndex resourceIndex{ table->AllocateNextIndex( item.mBindingIndex ) };
+        DescriptorTableIndex resourceIndex{ table->AllocateNextIndex( item.mBindingIndex ) };
 
         DescriptorWriter writer{};
 
@@ -446,6 +446,10 @@ namespace mikoto::renderer::vulkan {
         return handle;
     }
 
+    auto Device::CreateCommandList( const rhi::CommandListCreateDescription& desc ) -> rhi::CommandListHandle {
+        return CommandListHandle::CreateEmpty();
+    }
+
     auto Device::RunGarbageCollection() -> void {
         mUploadManager->ReclaimMemory();
         mDescriptorAllocatorPool->Flip();
@@ -460,11 +464,11 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::GetDummySampler() -> Sampler * {
-        return checked_cast<Sampler*>( mDummySampler.GetRaw() );
+        return checked_cast<Sampler*>( mDummySampler.GetPtr() );
     }
 
     auto Device::GetDummyPipelineLayout() -> PipelineLayout* {
-        return checked_cast<PipelineLayout*>( mEmptyPipelineLayout.GetRaw() );
+        return checked_cast<PipelineLayout*>( mEmptyPipelineLayout.GetPtr() );
     }
 
     auto Device::GetLayoutForEmptySet() -> VkDescriptorSetLayout {
@@ -489,7 +493,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::GetQueue( QueueType type ) -> IQueue * {
         const auto it{ mQueues.find(type) };
-        return it != mQueues.end() ? it->second.GetRaw() : nullptr;
+        return it != mQueues.end() ? it->second.GetPtr() : nullptr;
     }
 
     auto Device::GetMemoryUsage() const -> core::usize {
@@ -755,9 +759,9 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::DestroyDummyResources() -> void {
-        mDummySampler.Release();
-        mEmptyBindingLayout.Release();
-        mEmptyPipelineLayout.Release();
+        mDummySampler.Reset();
+        mEmptyBindingLayout.Reset();
+        mEmptyPipelineLayout.Reset();
     }
 
     auto Device::SerializePipelineCache() -> void {
@@ -1006,21 +1010,33 @@ namespace mikoto::renderer::vulkan {
         mEnableAutomaticBarriers = enable;
     }
 
-    auto CommandList::SetClearColor( TextureHandle image, Color color ) -> void {
+    auto CommandList::SetClearColor( ITexture* renderTarget, Color color ) -> void {
+        if (!renderTarget) {
+            return;
+        }
+
         // Image needs to be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
         if (mEnableAutomaticBarriers) {
-            SetTransition( image.GetRaw(), ResourceStates::eCopyDest );
+            SetTransition( renderTarget, ResourceStates::eCopyDest );
         }
 
         VkClearColorValue clearColor{ { color.mR, color.mB, color.mB, color.mA } };
-        VkImageSubresourceRange range{};
-        range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        range.baseMipLevel = 0;
-        range.levelCount = 1;
-        range.baseArrayLayer = 0;
-        range.layerCount = 1;
 
-        vkCmdClearColorImage(mCurrentCommandBuffer, image->GetNativeHandle( ObjectType::Vk_Image ), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range);
+        VkImageSubresourceRange range{};
+        range.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        range.baseMipLevel   = 0;
+
+        // Clear all mip levels starting from baseMipLevel
+        range.levelCount     = VK_REMAINING_MIP_LEVELS;
+        range.baseArrayLayer = 0;
+
+        range.levelCount     = VK_REMAINING_MIP_LEVELS;
+        range.baseArrayLayer = 0;
+
+        // Clear all layers starting from baseArrayLayer
+        range.layerCount     = VK_REMAINING_ARRAY_LAYERS;
+
+        vkCmdClearColorImage(mCurrentCommandBuffer, renderTarget->GetNativeHandle( ObjectType::Vk_Image ), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range);
     }
 
     auto CommandList::Write( IBuffer *src, ITexture *dest ) -> void {
@@ -1326,14 +1342,14 @@ namespace mikoto::renderer::vulkan {
         if (mEnableAutomaticBarriers) {
             for (auto& rt : state.mCurrentRenderTargets ) {
                 if (rt.mRenderTarget->GetResourceState() != ResourceStates::eRenderTarget) {
-                    RecordTransition( rt.mRenderTarget.GetRaw(), ResourceStates::eRenderTarget );
+                    RecordTransition( rt.mRenderTarget.GetPtr(), ResourceStates::eRenderTarget );
                 }
             }
 
             if (!state.mDepthTarget.mRenderTarget.IsEmpty() &&
                 state.mDepthTarget.mLoadOp != LoadOp::eClear &&
                 state.mDepthTarget.mRenderTarget->GetResourceState() != ResourceStates::eDepthWrite) {
-                RecordTransition( state.mDepthTarget.mRenderTarget.GetRaw(), ResourceStates::eDepthWrite );
+                RecordTransition( state.mDepthTarget.mRenderTarget.GetPtr(), ResourceStates::eDepthWrite );
             }
 
             CommitBarriers();
@@ -1360,7 +1376,7 @@ namespace mikoto::renderer::vulkan {
 
         eastl::fixed_vector<VkRenderingAttachmentInfo, kMaxRenderTargets> colorImages{};
         for (const auto& renderTargetProps: state.mCurrentRenderTargets) {
-            const Texture* texture{ checked_cast<const Texture*>(renderTargetProps.mRenderTarget.GetRaw()) };
+            const Texture* texture{ checked_cast<const Texture*>(renderTargetProps.mRenderTarget.GetPtr()) };
 
 #if MIKOTO_DEBUG
             targetWidth = eastl::min(targetWidth, texture->GetWidth());
@@ -1383,7 +1399,7 @@ namespace mikoto::renderer::vulkan {
 
         VkRenderingAttachmentInfo depthAttachment{};
         if (hasDepthTarget) {
-            const Texture* texture{ checked_cast<const Texture*>(state.mDepthTarget.mRenderTarget.GetRaw()) };
+            const Texture* texture{ checked_cast<const Texture*>(state.mDepthTarget.mRenderTarget.GetPtr()) };
             VkAttachmentLoadOp loadOp{ state.mDepthTarget.mLoadOp == LoadOp::eClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
 
             depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -1835,7 +1851,7 @@ namespace mikoto::renderer::vulkan {
 
     CommandList::~CommandList() {
         if (mIsAllocated) {
-            CommandList::Release();
+            CommandList::Destroy();
         }
     }
 
@@ -1850,7 +1866,7 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    auto CommandList::Release() -> void {
+    auto CommandList::Destroy() -> void {
         for (const auto& item : mRecordingContext) {
             mCommandPool->ReleaseCmdList( item.mCommandBuffer );
         }
@@ -1937,7 +1953,7 @@ namespace mikoto::renderer::vulkan {
 
     CommandPool::~CommandPool() {
         if ( mIsAllocated ) {
-            Release();
+            Destroy();
         }
     }
 
@@ -1952,7 +1968,7 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    auto CommandPool::Release() -> void {
+    auto CommandPool::Destroy() -> void {
         vkDestroyCommandPool( checked_cast<Device*>( mDevice )->GetDevice(), mPool, nullptr );
         mIsAllocated = false;
     }
@@ -2038,13 +2054,13 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    auto Queue::Release() -> void {
+    auto Queue::Destroy() -> void {
         WaitIdle();
 
         RunGarbageCollection();
 
         mPools.clear();
-        mTimelineSemaphore.Release();
+        mTimelineSemaphore.Reset();
 
         mIsAllocated = false;
     }
@@ -2063,7 +2079,7 @@ namespace mikoto::renderer::vulkan {
 
         eastl::vector<VkCommandBufferSubmitInfo> submissions{};
         for (const auto& commandHandle : submitInfo.mCommands) {
-            const CommandList* cmd{ checked_cast<const CommandList*>( commandHandle.GetRaw() ) };
+            const CommandList* cmd{ checked_cast<const CommandList*>( commandHandle.GetPtr() ) };
             VkCommandBufferSubmitInfo commandSubmitInfo{
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                 .commandBuffer = cmd->GetNativeHandle( ObjectType::Vk_CmdBuffer ),
@@ -2090,7 +2106,7 @@ namespace mikoto::renderer::vulkan {
         // Caller signals
         if (!submitInfo.mSignals.empty()) {
             for (const auto& [signalValue, signalFence] : submitInfo.mSignals) {
-                const Fence* fence{ checked_cast<const Fence*>( signalFence.GetRaw() ) };
+                const Fence* fence{ checked_cast<const Fence*>( signalFence.GetPtr() ) };
                 signalInfos.emplace_back( VkSemaphoreSubmitInfo{
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                     .pNext = nullptr,
@@ -2107,7 +2123,7 @@ namespace mikoto::renderer::vulkan {
         // Caller waits
         if (!submitInfo.mWaits.empty()) {
             for (const auto& [waitValue, waitFence] : submitInfo.mWaits) {
-                const Fence* fence{ checked_cast<const Fence*>( waitFence.GetRaw() ) };
+                const Fence* fence{ checked_cast<const Fence*>( waitFence.GetPtr() ) };
                 waitInfos.emplace_back( VkSemaphoreSubmitInfo{
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                     .pNext = nullptr,
@@ -2170,11 +2186,11 @@ namespace mikoto::renderer::vulkan {
         std::lock_guard lock{ mSubmissionMutex };
 
         const u64 submissionID{ mTimelineValue };
-        Fence* timeline{ checked_cast<Fence*>( mTimelineSemaphore.GetRaw() ) };
+        Fence* timeline{ checked_cast<Fence*>( mTimelineSemaphore.GetPtr() ) };
 
         eastl::fixed_vector<VkCommandBufferSubmitInfo, kMaxSubmits> cmdInfos{};
         for ( auto& commandHandle: submitInfo.mCommands ) {
-            CommandList* cmd{ checked_cast<CommandList*>( commandHandle.GetRaw() ) };
+            CommandList* cmd{ checked_cast<CommandList*>( commandHandle.GetPtr() ) };
 
             cmdInfos.emplace_back( VkCommandBufferSubmitInfo{
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
@@ -2246,7 +2262,7 @@ namespace mikoto::renderer::vulkan {
 
     Queue::~Queue() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -2609,7 +2625,7 @@ namespace mikoto::renderer::vulkan {
 
     BinarySemaphore::~BinarySemaphore() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -2621,7 +2637,7 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    auto BinarySemaphore::Release() -> void {
+    auto BinarySemaphore::Destroy() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
         vkDestroySemaphore( device->GetDevice(), mSemaphore, nullptr );
         mIsAllocated = false;
@@ -2666,12 +2682,12 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( subAllocProperties.has_value() && subAllocProperties->mSize >= byteSize, "Failed to sub-allocate" );
 
         // Fill params
-        GpuUploadAllocation* result{ CreateSubAllocation( stagingAlloc->mBuffer.GetRaw() ) };
+        GpuUploadAllocation* result{ CreateSubAllocation( stagingAlloc->mBuffer.GetPtr() ) };
 
-        result->mMappedMemory = as<byte_t *>( checked_cast<Buffer *>( stagingAlloc->mBuffer.GetRaw() )->GetMappedAddress() ) + subAllocProperties->mOffset;
+        result->mMappedMemory = as<byte_t *>( checked_cast<Buffer *>( stagingAlloc->mBuffer.GetPtr() )->GetMappedAddress() ) + subAllocProperties->mOffset;
         result->mSize = subAllocProperties->mSize;
         result->mOffset = subAllocProperties->mOffset;
-        result->mBuffer = stagingAlloc->mBuffer.GetRaw();
+        result->mBuffer = stagingAlloc->mBuffer.GetPtr();
         result->mAllocation = *subAllocProperties;
 
         return result;
@@ -2709,7 +2725,7 @@ namespace mikoto::renderer::vulkan {
             .SetBufferUsage( BufferUsageFlagsBits::None ) };
         BufferHandle result{ mDevice->CreateBuffer( bufferDes ) };
 
-        auto& newAllocation{ mBuffers[result.GetRaw()] };
+        auto& newAllocation{ mBuffers[result.GetPtr()] };
         newAllocation = eastl::make_unique<StagingAllocation>();
         newAllocation->mBuffer = result;
         newAllocation->mMemoryArena = eastl::make_unique<memory::MemoryArena<IBuffer, FreeListFirstFitAllocator>>( result, initialSize );
@@ -2792,7 +2808,7 @@ namespace mikoto::renderer::vulkan {
 
     Fence::~Fence() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -2810,7 +2826,7 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    auto Fence::Release() -> void {
+    auto Fence::Destroy() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
         vkDestroySemaphore(  device->GetDevice(), mSemaphore, nullptr );
 
@@ -2961,7 +2977,7 @@ namespace mikoto::renderer::vulkan {
 
     BindingLayout::~BindingLayout() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -3050,7 +3066,7 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    auto BindingLayout::Release() -> void {
+    auto BindingLayout::Destroy() -> void {
         vkDestroyDescriptorSetLayout( checked_cast<Device*>(mDevice)->GetDevice(), mDescriptorSetLayout, nullptr );
         mIsAllocated = false;
     }
@@ -3081,13 +3097,13 @@ namespace mikoto::renderer::vulkan {
 
     BindingTable::~BindingTable() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
     auto BindingTable::Initialize() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
-        auto* layout{ checked_cast<BindingLayout*>( mBindingLayout.GetRaw() ) };
+        auto* layout{ checked_cast<BindingLayout*>( mBindingLayout.GetPtr() ) };
 
         mDescriptorAllocatorHandle = device->GetDescriptorAllocator();
         if( mDescriptorAllocatorHandle.Allocate(layout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),mDescriptorSet) ) {
@@ -3133,7 +3149,7 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto BindingTable::Release() -> void {
+    auto BindingTable::Destroy() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
         MKT_VK_CHECK( vkFreeDescriptorSets(
             device->GetDevice(),
@@ -3170,7 +3186,7 @@ namespace mikoto::renderer::vulkan {
 
     DescriptorTable::~DescriptorTable() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -3190,12 +3206,12 @@ namespace mikoto::renderer::vulkan {
         return Object( mDescriptorSet );
     }
 
-    auto DescriptorTable::AllocateNextIndex( core::u32 slot ) const -> rhi::BindingItemIndex {
+    auto DescriptorTable::AllocateNextIndex( core::u32 slot ) const -> rhi::DescriptorTableIndex {
         auto it{ mDescriptorTableItemIndices.find( slot ) };
         if (it != mDescriptorTableItemIndices.end()) {
             MKT_ASSERT( !it->second.empty(), "No free indices" );
 
-            const BindingItemIndex result{ *it->second.begin() };
+            const DescriptorTableIndex result{ *it->second.begin() };
             it->second.erase( it->second.begin() );
 
             return result;
@@ -3206,13 +3222,13 @@ namespace mikoto::renderer::vulkan {
 
     auto DescriptorTable::Initialize() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
-        auto* layout{ checked_cast<BindingLayout*>( mBindingLayout.GetRaw() ) };
+        auto* layout{ checked_cast<BindingLayout*>( mBindingLayout.GetPtr() ) };
 
         mDescriptorAllocatorHandle = device->GetDescriptorAllocator();
         if( mDescriptorAllocatorHandle.Allocate(layout->GetNativeHandle( ObjectType::Vk_DescriptorSetLayout ),mDescriptorSet) ) {
             for (const auto& item : layout->GetBindlessLayoutDesc().mSlots) {
                 mSlotSize[item.mSlot] = item.mMaxCapacity;
-                for (BindingItemIndex index{}; index < item.mMaxCapacity; ++index ) {
+                for (DescriptorTableIndex index{}; index < item.mMaxCapacity; ++index ) {
                     mDescriptorTableItemIndices[item.mSlot].emplace( index );
                 }
             }
@@ -3221,7 +3237,7 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto DescriptorTable::Release() -> void {
+    auto DescriptorTable::Destroy() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
         MKT_VK_CHECK( vkFreeDescriptorSets(
             device->GetDevice(),
@@ -3279,7 +3295,7 @@ namespace mikoto::renderer::vulkan {
 
     InputLayout::~InputLayout() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -3287,7 +3303,7 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    auto InputLayout::Release() -> void {
+    auto InputLayout::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -3321,7 +3337,7 @@ namespace mikoto::renderer::vulkan {
 
     PipelineLayout::~PipelineLayout() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -3358,7 +3374,7 @@ namespace mikoto::renderer::vulkan {
 
         // Place set layouts at correct set indices
         for ( const auto& bindingLayout: mDescription.mBindingLayouts ) {
-            setLayouts[bindingLayout->GetRegisterSpace()] = *checked_cast<const BindingLayout*>( bindingLayout.GetRaw() );
+            setLayouts[bindingLayout->GetRegisterSpace()] = *checked_cast<const BindingLayout*>( bindingLayout.GetPtr() );
         }
 
         VkPipelineLayoutCreateInfo plInfo{ initializers::PipelineLayoutCreateInfo() };
@@ -3395,7 +3411,7 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    auto PipelineLayout::Release() -> void {
+    auto PipelineLayout::Destroy() -> void {
         auto* device{ checked_cast<Device*>( mDevice ) };
 
         vkDestroyPipelineLayout( device->GetDevice(), mPipelineLayout, nullptr );

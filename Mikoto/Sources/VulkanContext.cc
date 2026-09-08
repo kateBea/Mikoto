@@ -111,24 +111,24 @@ namespace mikoto::renderer::vulkan {
     auto Context::Shutdown() -> void {
         mDevice->WaitIdle();
 
-        mPipeline.Release();
-        mPipelineLayoutHandle.Release();
-        mBindingLayoutHandle.Release();
+        mPipeline.Reset();
+        mPipelineLayoutHandle.Reset();
+        mBindingLayoutHandle.Reset();
 
-        mBindlessLayout.Release();
-        mDescriptorTable.Release();
+        mBindlessLayout.Reset();
+        mDescriptorTable.Reset();
 
-        mVertexShader.Release();
-        mPixelShader.Release();
+        mVertexShader.Reset();
+        mPixelShader.Reset();
 
-        mSamplerState.Release();
+        mSamplerState.Reset();
 
-        mBindingSetHandle.Release();
+        mBindingSetHandle.Reset();
 
-        mCommandList.Release();
+        mCommandList.Reset();
 
-        mPresentTarget.Release();
-        mSwapchain.Release();
+        mPresentTarget.Reset();
+        mSwapchain.Reset();
 
         mFrameContexts.clear();
 
@@ -140,7 +140,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Context::SetPresentTarget( TextureHandle texture ) -> void {
-        if (texture.GetRaw() != mPresentTarget.GetRaw()) {
+        if (texture.GetPtr() != mPresentTarget.GetPtr()) {
             mPresentTarget = texture;
             mTableUpdateRequired = true;
         }
@@ -184,11 +184,11 @@ namespace mikoto::renderer::vulkan {
             // Blit via full quad render
             TextureHandle colorImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
-            mCommandList->SetTransition( mPresentTarget.GetRaw(), ResourceStates::eShaderResource );
+            mCommandList->SetTransition( mPresentTarget.GetPtr(), ResourceStates::eShaderResource );
 
             u32 index{};
             if (mTableUpdateRequired) {
-                index = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 0, mPresentTarget.GetRaw() ) );
+                index = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 0, mPresentTarget.GetPtr() ) );
                 mTableUpdateRequired = false;
             }
 
@@ -203,13 +203,13 @@ namespace mikoto::renderer::vulkan {
                 u32 mSamplerIndex{};
             } params{
                 .mTextureIndex = index };
-            mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), &params, MKT_SIZEOF( params ), ShaderFlagsBits::All );
+            mCommandList->SetPushConstants( mPipelineLayoutHandle.GetPtr(), &params, MKT_SIZEOF( params ), ShaderFlagsBits::All );
 
-            mCommandList->BindPipeline( mPipeline.GetRaw() );
+            mCommandList->BindPipeline( mPipeline.GetPtr() );
             mCommandList->BindPipelineResources( BindResourcesDescription{}
-                .AddResourceSet( 0, mBindingSetHandle.GetRaw() )
-                .AddResourceSet( 1, mDescriptorTable.GetRaw() )
-                .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
+                .AddResourceSet( 0, mBindingSetHandle.GetPtr() )
+                .AddResourceSet( 1, mDescriptorTable.GetPtr() )
+                .SetPipelineLayout( mPipelineLayoutHandle.GetPtr() )
                 .SetBindPoint( PipelineType::eGraphics ));
 
             mCommandList->SetViewportState( ViewportState{}
@@ -221,7 +221,7 @@ namespace mikoto::renderer::vulkan {
 
             mCommandList->EndRendering();
 
-            mCommandList->SetTransition( colorImage.GetRaw(), ResourceStates::ePresent );
+            mCommandList->SetTransition( colorImage.GetPtr(), ResourceStates::ePresent );
 
             mCommandList->End();
 #else
@@ -240,11 +240,11 @@ namespace mikoto::renderer::vulkan {
                 .mDepth = 1 };
 
             mCommandList->Copy(
-                mPresentTarget.GetRaw(), srcSlice,
-                currentSwapchainImage.GetRaw(), dstSlice );
+                mPresentTarget.GetPtr(), srcSlice,
+                currentSwapchainImage.GetPtr(), dstSlice );
 
             mCommandList->SetTransition(
-                currentSwapchainImage.GetRaw(),
+                currentSwapchainImage.GetPtr(),
                 ResourceStates::ePresent );
 
             mCommandList->End();
@@ -282,7 +282,7 @@ namespace mikoto::renderer::vulkan {
         ( void )frame.mFence->Wait( frame.mFenceValue, eastl::numeric_limits<u64>::max() );
         mDevice->RunGarbageCollection();
 
-        const auto ret{ mSwapchain->GetNextImageIndex( mCurrentImageIndex, frame.mImageAvailableSemaphore.GetRaw() ) };
+        const auto ret{ mSwapchain->GetNextImageIndex( mCurrentImageIndex, frame.mImageAvailableSemaphore.GetPtr() ) };
 
         if ( ret == VK_ERROR_OUT_OF_DATE_KHR ) {
             mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
@@ -306,7 +306,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         auto& frame{ mFrameContexts[mCurrentFrameIndex] };
-        const auto result{ mSwapchain->Present( mCurrentImageIndex, frame.mRenderFinishedSemaphore.GetRaw() ) };
+        const auto result{ mSwapchain->Present( mCurrentImageIndex, frame.mRenderFinishedSemaphore.GetPtr() ) };
 
         if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
             mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
@@ -424,7 +424,7 @@ namespace mikoto::renderer::vulkan {
 
         // Non-bindless set
         auto bindingSetDesc{ BindingTableDescription{}
-            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) ) };
+            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetPtr() ) ) };
         mBindingSetHandle = mDevice->CreateBindingTable( bindingSetDesc, mBindingLayoutHandle );
 
         mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );

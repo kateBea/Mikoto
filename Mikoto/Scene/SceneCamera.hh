@@ -49,7 +49,7 @@ namespace mikoto::scene {
         auto SetAspectRatio( core::f32 width, core::f32 height ) -> SceneCameraDescription&;
     };
 
-    class SceneCamera final : public Camera, public core::ReferenceCounted {
+    class SceneCamera final : public Camera, public core::ReferenceCounted<SceneCamera> {
     public:
         explicit SceneCamera() = default;
         explicit SceneCamera( const SceneCameraDescription& desc );

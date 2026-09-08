@@ -78,7 +78,7 @@ namespace mikoto::renderer::rhi {
 
     protected:
         auto Initialize() -> void override = 0;
-        auto Release() -> void override = 0;
+        auto Destroy() -> void override = 0;
     };
 
     using BindingLayoutHandle = core::Ref<IBindingLayout>;
@@ -90,7 +90,7 @@ namespace mikoto::renderer::rhi {
 
     protected:
         auto Initialize() -> void override = 0;
-        auto Release() -> void override = 0;
+        auto Destroy() -> void override = 0;
     };
 
     using PipelineLayoutHandle = core::Ref<IPipelineLayout>;

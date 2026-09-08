@@ -60,7 +60,7 @@ namespace mikoto::renderer::d3d11 {
 
     Fence::~Fence() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -68,7 +68,7 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = true;
     }
 
-    auto Fence::Release() -> void {
+    auto Fence::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -90,7 +90,7 @@ namespace mikoto::renderer::d3d11 {
 
     BindingLayout::~BindingLayout() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -98,7 +98,7 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = true;
     }
 
-    auto BindingLayout::Release() -> void {
+    auto BindingLayout::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -108,7 +108,7 @@ namespace mikoto::renderer::d3d11 {
 
     BindingTable::~BindingTable() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -248,7 +248,7 @@ namespace mikoto::renderer::d3d11 {
         }
     }
 
-    auto BindingTable::Release() -> void {
+    auto BindingTable::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -262,7 +262,7 @@ namespace mikoto::renderer::d3d11 {
 
     PipelineLayout::~PipelineLayout() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -270,7 +270,7 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = true;
     }
 
-    auto PipelineLayout::Release() -> void {
+    auto PipelineLayout::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -292,11 +292,11 @@ namespace mikoto::renderer::d3d11 {
 
     Queue::~Queue() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
-    auto Queue::Release() -> void {
+    auto Queue::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -362,7 +362,15 @@ namespace mikoto::renderer::d3d11 {
         mEnableAutomaticBarriers = enable;
     }
 
-    auto CommandList::SetClearColor( TextureHandle renderTargets, Color color ) -> void {
+    auto CommandList::SetClearColor( ITexture* renderTarget, Color color ) -> void {
+        if (!renderTarget) {
+            return;
+        }
+
+        ID3D11RenderTargetView* rtv{ * checked_cast<Texture*>( renderTarget ) };
+        eastl::array float4Color{ color.mR, color.mG, color.mB, color.mA };
+
+        mDeviceContextDeferred->ClearRenderTargetView( rtv, float4Color.data() );
     }
 
     auto CommandList::ClearState() -> void {
@@ -686,11 +694,11 @@ namespace mikoto::renderer::d3d11 {
 
     CommandList::~CommandList() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
-    auto CommandList::Release() -> void {
+    auto CommandList::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -738,7 +746,7 @@ namespace mikoto::renderer::d3d11 {
 
     InputLayout::~InputLayout() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -820,7 +828,7 @@ namespace mikoto::renderer::d3d11 {
         }
     }
 
-    auto InputLayout::Release() -> void {
+    auto InputLayout::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -904,7 +912,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Device::Shutdown() -> void {
-        mQueue.Release();
+        mQueue.Reset();
     }
 
     auto Device::CreateBuffer( const BufferCreateDescription &description ) -> BufferHandle {
@@ -963,6 +971,20 @@ namespace mikoto::renderer::d3d11 {
         }
 
         cmd->Initialize( this );
+
+        return cmd;
+    }
+
+    auto Device::CreateCommandList( const rhi::CommandListCreateDescription &desc ) -> rhi::CommandListHandle {
+        CommandListHandle cmd{  Ref<CommandList>::New( desc.mQueueType ) };
+
+        if ( cmd.IsEmpty() ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to allocate command list resource." );
+            return CommandListHandle::CreateEmpty();
+        }
+
+        cmd->Initialize( this );
+        cmd->SetDebugName( desc.mName );
 
         return cmd;
     }
@@ -1063,12 +1085,12 @@ namespace mikoto::renderer::d3d11 {
         return false;
     }
 
-    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem &item ) -> rhi::BindingItemIndex {
+    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem &item ) -> rhi::DescriptorTableIndex {
         return rhi::kInvalidBindingItemIndex;
     }
 
     auto Device::GetQueue( QueueType type ) -> IQueue * {
-        return mQueue.GetRaw();
+        return mQueue.GetPtr();
     }
 
     auto Device::GetMemoryUsage() const -> core::usize {

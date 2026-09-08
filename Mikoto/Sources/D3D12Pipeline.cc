@@ -43,7 +43,7 @@ namespace mikoto::renderer::d3d12 {
         : IGraphicsPipeline{ info }
     {
         // Resources
-        PipelineLayout* pipelineLayout{ checked_cast<PipelineLayout*>( mDesc.mPipelineLayout.GetRaw() ) };
+        PipelineLayout* pipelineLayout{ checked_cast<PipelineLayout*>( mDesc.mPipelineLayout.GetPtr() ) };
         if (pipelineLayout) {
             ID3D12RootSignature* rootSignature{ *pipelineLayout };
             mD3D12PipelineDesc.pRootSignature = rootSignature;
@@ -51,7 +51,7 @@ namespace mikoto::renderer::d3d12 {
 
         // Input layout
         if (!mDesc.mInputLayout.IsEmpty()) {
-            InputLayout* inputLayout{ checked_cast<InputLayout*>( mDesc.mInputLayout.GetRaw() ) };
+            InputLayout* inputLayout{ checked_cast<InputLayout*>( mDesc.mInputLayout.GetPtr() ) };
 
             MKT_ASSERT( inputLayout->GetInputElementsCount() != 0, "Cannot pass an empty input layout.");
 
@@ -63,7 +63,7 @@ namespace mikoto::renderer::d3d12 {
         MKT_ASSERT( mDesc.mShaders.contains( ShaderType::eVertex ),
             "Vertex shader stage is required to construct the graphics pipeline.");
 
-        Shader* vertexShader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::eVertex ).GetRaw() ) };
+        Shader* vertexShader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::eVertex ).GetPtr() ) };
         D3D12_SHADER_BYTECODE vsBytecode{};
         vsBytecode.pShaderBytecode = vertexShader->GetContents();
         vsBytecode.BytecodeLength = vertexShader->GetContentsByteSize();
@@ -71,7 +71,7 @@ namespace mikoto::renderer::d3d12 {
 
         // Pixel Shader
         if (mDesc.mShaders.contains( ShaderType::ePixel )) {
-            Shader* shader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::ePixel ).GetRaw() ) };
+            Shader* shader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::ePixel ).GetPtr() ) };
             D3D12_SHADER_BYTECODE psBytecode{};
             psBytecode.pShaderBytecode = shader->GetContents();
             psBytecode.BytecodeLength = shader->GetContentsByteSize();
@@ -80,7 +80,7 @@ namespace mikoto::renderer::d3d12 {
 
         // Domain shader
         if (mDesc.mShaders.contains( ShaderType::eDomain )) {
-            Shader* shader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::eDomain ).GetRaw() ) };
+            Shader* shader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::eDomain ).GetPtr() ) };
 
             D3D12_SHADER_BYTECODE dsBytecode{};
             dsBytecode.pShaderBytecode = shader->GetContents();
@@ -90,7 +90,7 @@ namespace mikoto::renderer::d3d12 {
 
         // Hull shader
         if (mDesc.mShaders.contains( ShaderType::eHull )) {
-            Shader* shader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::eHull ).GetRaw() ) };
+            Shader* shader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::eHull ).GetPtr() ) };
 
             D3D12_SHADER_BYTECODE hsBytecode{};
             hsBytecode.pShaderBytecode = shader->GetContents();
@@ -100,7 +100,7 @@ namespace mikoto::renderer::d3d12 {
 
         // Geometry shader
         if (mDesc.mShaders.contains( ShaderType::eGeometry )) {
-            Shader* shader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::eHull ).GetRaw() ) };
+            Shader* shader{ checked_cast<Shader*>( mDesc.mShaders.at( ShaderType::eHull ).GetPtr() ) };
 
             D3D12_SHADER_BYTECODE gsBytecode{};
             gsBytecode.pShaderBytecode = shader->GetContents();
@@ -195,7 +195,7 @@ namespace mikoto::renderer::d3d12 {
 
     GraphicsPipeline::~GraphicsPipeline() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -218,7 +218,7 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    auto GraphicsPipeline::Release() -> void {
+    auto GraphicsPipeline::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -226,14 +226,14 @@ namespace mikoto::renderer::d3d12 {
         : IComputePipeline{ info }
     {
         // Resources
-        PipelineLayout* pipelineLayout{ checked_cast<PipelineLayout*>( mDesc.mPipelineLayout.GetRaw() ) };
+        PipelineLayout* pipelineLayout{ checked_cast<PipelineLayout*>( mDesc.mPipelineLayout.GetPtr() ) };
         if (pipelineLayout) {
             ID3D12RootSignature* rootSignature{ *pipelineLayout };
             mD3D12PipelineDesc.pRootSignature = rootSignature;
         }
 
         // Compute shader
-        Shader* shader{ checked_cast<Shader*>( mDesc.mStage.GetRaw() ) };
+        Shader* shader{ checked_cast<Shader*>( mDesc.mStage.GetPtr() ) };
 
         D3D12_SHADER_BYTECODE csBytecode{};
         csBytecode.pShaderBytecode = shader->GetContents();
@@ -273,7 +273,7 @@ namespace mikoto::renderer::d3d12 {
 
     ComputePipeline::~ComputePipeline() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -292,7 +292,7 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    auto ComputePipeline::Release() -> void {
+    auto ComputePipeline::Destroy() -> void {
         mIsAllocated = false;
     }
 }// namespace mikoto::renderer::d3d12

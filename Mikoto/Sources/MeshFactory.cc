@@ -104,8 +104,8 @@ namespace mikoto::asset {
 
                     // Always written to mip 0 for simplicity.
                     // These textures are shader read resources
-                    cmd->Write( pbrMapInfo.mTexture.GetRaw(), image->mBufferSpan->GetData(), image->mBufferSpan->GetSize() );
-                    cmd->SetTransition( pbrMapInfo.mTexture.GetRaw(), ResourceStates::eShaderResource );
+                    cmd->Write( pbrMapInfo.mTexture.GetPtr(), image->mBufferSpan->GetData(), image->mBufferSpan->GetSize() );
+                    cmd->SetTransition( pbrMapInfo.mTexture.GetPtr(), ResourceStates::eShaderResource );
                 }
             }
 

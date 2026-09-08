@@ -25,7 +25,7 @@ namespace mikoto::renderer {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         core::f32 mEmissionRate{};

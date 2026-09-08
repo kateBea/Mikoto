@@ -88,7 +88,7 @@ namespace mikoto::editor {
         // mCameraProps.mView = mEditorCamera->GetViewMatrix();
         // mCameraProps.mProjection = mEditorCamera->GetProjection();
 
-        mCommandList->Write( mConstantBuffer.GetRaw(), MKT_ADDRESSOF( mCameraProps ), MKT_SIZEOF( mCameraProps ) );
+        mCommandList->Write( mConstantBuffer.GetPtr(), MKT_ADDRESSOF( mCameraProps ), MKT_SIZEOF( mCameraProps ) );
 
         // Set graphics state
         auto graphicsState{ RenderDescription{}
@@ -98,21 +98,21 @@ namespace mikoto::editor {
 
         mCommandList->BeginRendering( graphicsState );
 
-        mCommandList->BindPipeline( mPipeline.GetRaw() );
+        mCommandList->BindPipeline( mPipeline.GetPtr() );
 
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
-            .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-            .AddResourceSet( 0, mBindingSetHandle.GetRaw() )
-            .AddResourceSet( 1, mDescriptorTable.GetRaw() ) };
+            .SetPipelineLayout( mPipelineLayoutHandle.GetPtr() )
+            .AddResourceSet( 0, mBindingSetHandle.GetPtr() )
+            .AddResourceSet( 1, mDescriptorTable.GetPtr() ) };
         mCommandList->BindPipelineResources( bindingDescription );
 
         for (u32 meshIndex{}; meshIndex < mModelHandle->GetMeshNodeCount(); ++meshIndex) {
             asset::MeshNode* mesh{ MKT_ADDRESSOF( mModelHandle->GetMeshNode( meshIndex ) ) };
-            mCommandList->BindIndexBuffer( mesh->GetIndexBuffer().GetRaw() );
+            mCommandList->BindIndexBuffer( mesh->GetIndexBuffer().GetPtr() );
             mCommandList->BindVertexBuffer( VertexBufferBinding{}
                 .SetBufferBinding( 0 )
-                .SetBuffer( mesh->GetVertexBuffer().GetRaw() )
+                .SetBuffer( mesh->GetVertexBuffer().GetPtr() )
                 .SetElementStride( MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) );
 
             mCommandList->SetViewportState( ViewportState{}
@@ -289,13 +289,13 @@ namespace mikoto::editor {
         mDescriptorTable = mDevice->CreateDescriptorTable( mBindlessLayout );
 
         auto bindingSetDesc{ BindingTableDescription{}
-            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) )
-            .AddItem( BindingTableItem::TextureSRV( 1, mSimpleTexture.GetRaw() ) )
-            .AddItem( BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetRaw() ) ) };
+            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetPtr() ) )
+            .AddItem( BindingTableItem::TextureSRV( 1, mSimpleTexture.GetPtr() ) )
+            .AddItem( BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetPtr() ) ) };
         mBindingSetHandle = mDevice->CreateBindingTable( bindingSetDesc, mBindingLayoutHandle );
 
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Sampler( 0, mSamplerState.GetRaw() ) );
-        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 1, mSimpleTexture.GetRaw() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::Sampler( 0, mSamplerState.GetPtr() ) );
+        (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 1, mSimpleTexture.GetPtr() ) );
 
         SceneCameraDescription cameraDescription{
             .mFov = 45.0,
@@ -344,30 +344,30 @@ namespace mikoto::editor {
         // Ensure GPU is done
         mDevice->WaitIdle();
 
-        mPipeline.Release();
-        mPipelineLayoutHandle.Release();
-        mBindingLayoutHandle.Release();
-        mVertexInputLayout.Release();
+        mPipeline.Reset();
+        mPipelineLayoutHandle.Reset();
+        mBindingLayoutHandle.Reset();
+        mVertexInputLayout.Reset();
 
-        mBindlessLayout.Release();
-        mDescriptorTable.Release();
+        mBindlessLayout.Reset();
+        mDescriptorTable.Reset();
 
-        mVertexShader.Release();
-        mPixelShader.Release();
+        mVertexShader.Reset();
+        mPixelShader.Reset();
 
-        mConstantBuffer.Release();
+        mConstantBuffer.Reset();
 
-        mSimpleTexture.Release();
-        mColorImage.Release();
-        mDepthImage.Release();
+        mSimpleTexture.Reset();
+        mColorImage.Reset();
+        mDepthImage.Reset();
 
-        mSamplerState.Release();
+        mSamplerState.Reset();
 
-        mBindingSetHandle.Release();
+        mBindingSetHandle.Reset();
 
-        mModelHandle.Release();
+        mModelHandle.Reset();
 
-        mCommandList.Release();
+        mCommandList.Reset();
     }
 
     auto EditorDebugLayer::OnEvent(IEvent& event) -> void {

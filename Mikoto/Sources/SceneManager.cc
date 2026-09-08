@@ -81,7 +81,7 @@ namespace mikoto::scene {
     }
 
     auto SceneManager::GetByName( const eastl::string_view name ) -> Scene * {
-        return mScenes.at( name.data() ).GetRaw();
+        return mScenes.at( name.data() ).GetPtr();
     }
 
     auto SceneManager::Register( const eastl::string_view name, SceneHandle scene ) -> Scene * {
@@ -92,7 +92,7 @@ namespace mikoto::scene {
         };
 
         if (success) {
-            return it->second.GetRaw();
+            return it->second.GetPtr();
         }
 
         return nullptr;

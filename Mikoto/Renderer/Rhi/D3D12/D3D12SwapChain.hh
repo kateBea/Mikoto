@@ -65,7 +65,7 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         platform::Window* mWindow{ nullptr };

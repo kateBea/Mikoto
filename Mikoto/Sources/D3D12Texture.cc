@@ -75,10 +75,10 @@ namespace mikoto::renderer::d3d12 {
 
     Sampler::~Sampler() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
-    auto Sampler::Release() -> void {
+    auto Sampler::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -385,7 +385,7 @@ namespace mikoto::renderer::d3d12 {
 
     Texture::~Texture() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -481,14 +481,14 @@ namespace mikoto::renderer::d3d12 {
         }
 
         if (!mKeepInitializerResources) {
-            mImageData.Release();
-            mBufferSpan.Release();
+            mImageData.Reset();
+            mBufferSpan.Reset();
         }
 
         mIsAllocated = true;
     }
 
-    auto Texture::Release() -> void {
+    auto Texture::Destroy() -> void {
         mResources->mDepthStencilViewHeap->ReleaseDescriptor( mDsvDescriptorIndex );
         mResources->mRenderTargetViewHeap->ReleaseDescriptor( mRtvDescriptorIndex );
 

@@ -40,7 +40,7 @@ namespace mikoto::asset {
     };
 
     class Asset {
-        Asset( core::Ref<core::ReferenceCounted> resource, const filesystem::Path& path, filesystem::FileHandle file);
+        Asset( const filesystem::Path& path, filesystem::FileHandle file);
 
         MKT_NODISCARD auto GetFile() const -> filesystem::FileHandle;
         MKT_NODISCARD auto GePath() const -> const filesystem::Path&;
@@ -49,8 +49,8 @@ namespace mikoto::asset {
     private:
         AssetID mHashedID{};
         AssetType mAssetType{ AssetType::eUnknown };
-        core::Ref<core::ReferenceCounted> mResource{};
     };
+
     using AssetHandle = core::Ref<Asset>;
 
     MKT_NODISCARD auto GetHashedAssetID(const filesystem::Path& path) -> AssetID;

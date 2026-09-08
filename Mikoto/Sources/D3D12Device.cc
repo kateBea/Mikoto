@@ -118,7 +118,7 @@ namespace mikoto::renderer::d3d12 {
 
     Fence::~Fence() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -134,7 +134,7 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    auto Fence::Release() -> void {
+    auto Fence::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -488,7 +488,7 @@ namespace mikoto::renderer::d3d12 {
 
     BindingLayout::~BindingLayout() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -557,7 +557,7 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    auto BindingLayout::Release() -> void {
+    auto BindingLayout::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -587,7 +587,7 @@ namespace mikoto::renderer::d3d12 {
 
     BindingTable::~BindingTable() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -692,7 +692,7 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    auto BindingTable::Release() -> void {
+    auto BindingTable::Destroy() -> void {
         // Release descriptor indices
         //mDeviceResources->mShaderResourceViewHeap->ReleaseDescriptors(mSrvRange.mBaseIndex, descriptorCount);
         //mDeviceResources->mResourceDescriptorHeap->ReleaseDescriptors(mSrvRange.mBaseIndex, descriptorCount);
@@ -722,7 +722,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto DescriptorTable::GetCapacity( u32 slot ) const -> u32 {
-        const BindingLayout* layout{ checked_cast<const BindingLayout*>( mBindingLayout.GetRaw() ) };
+        const BindingLayout* layout{ checked_cast<const BindingLayout*>( mBindingLayout.GetPtr() ) };
         const auto& blDesc{ layout->GetBindlessLayoutDesc() };
 
         const auto it{ eastl::find_if( blDesc.mSlots.begin(), blDesc.mSlots.end(),
@@ -788,11 +788,11 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto DescriptorTable::GetLayout() const -> const BindingLayout* {
-        return checked_cast<const BindingLayout*>( mBindingLayout.GetRaw() );
+        return checked_cast<const BindingLayout*>( mBindingLayout.GetPtr() );
     }
 
     auto DescriptorTable::Initialize() -> void {
-        BindingLayout* layout{ checked_cast<BindingLayout*>( mBindingLayout.GetRaw() ) };
+        BindingLayout* layout{ checked_cast<BindingLayout*>( mBindingLayout.GetPtr() ) };
         for (const auto& item : layout->GetBindlessLayoutDesc().mSlots ) {
             DescriptorRange range{
                 .mCount = item.mMaxCapacity };
@@ -832,13 +832,13 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    auto DescriptorTable::Release() -> void {
+    auto DescriptorTable::Destroy() -> void {
         mIsAllocated = false;
     }
 
     DescriptorTable::~DescriptorTable() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -902,7 +902,7 @@ namespace mikoto::renderer::d3d12 {
 
     InputLayout::~InputLayout() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -910,7 +910,7 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    auto InputLayout::Release() -> void {
+    auto InputLayout::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -955,7 +955,7 @@ namespace mikoto::renderer::d3d12 {
 
     PipelineLayout::~PipelineLayout() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -976,15 +976,15 @@ namespace mikoto::renderer::d3d12 {
         // Root parameter index is determined by which position they occupy on the array?
         eastl::sort(mDescription.mBindingLayouts.begin(), mDescription.mBindingLayouts.end(),
             [](BindingLayoutHandle lhs, BindingLayoutHandle rhs) {
-                BindingLayout* pLhs{ checked_cast<BindingLayout*>( lhs.GetRaw() ) };
-                BindingLayout* pRhs{ checked_cast<BindingLayout*>( rhs.GetRaw() ) };
+                BindingLayout* pLhs{ checked_cast<BindingLayout*>( lhs.GetPtr() ) };
+                BindingLayout* pRhs{ checked_cast<BindingLayout*>( rhs.GetPtr() ) };
 
                 return pLhs->GetRegisterSpace() < pRhs->GetRegisterSpace();
             });
 
         eastl::vector<D3D12_ROOT_PARAMETER1> rootParameters{};
         for (auto& item : mDescription.mBindingLayouts) {
-            BindingLayout* bindingLayout{ checked_cast<BindingLayout*>( item.GetRaw() ) };
+            BindingLayout* bindingLayout{ checked_cast<BindingLayout*>( item.GetPtr() ) };
 
             // Root constants always at register space 0, just find
             // the next available cBuffer index
@@ -1084,7 +1084,7 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    auto PipelineLayout::Release() -> void {
+    auto PipelineLayout::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -1099,7 +1099,7 @@ namespace mikoto::renderer::d3d12 {
         d3d12Commands.reserve( submitInfo.mCommands.size() );
 
         for (auto& cmd : submitInfo.mCommands) {
-            const CommandList* pCommandList{ checked_cast<const CommandList*>( cmd.GetRaw() ) };
+            const CommandList* pCommandList{ checked_cast<const CommandList*>( cmd.GetPtr() ) };
             ID3D12GraphicsCommandList7* pCommand{ *pCommandList };
             d3d12Commands.emplace_back( pCommand );
 
@@ -1113,7 +1113,7 @@ namespace mikoto::renderer::d3d12 {
         // My signal timeline to control submission work,
         // later is used to implement a wait idle (wait for all commands to finish.
         {
-            const Fence* pFence{ checked_cast<const Fence*>( mFence.GetRaw() ) };
+            const Fence* pFence{ checked_cast<const Fence*>( mFence.GetPtr() ) };
             UINT64 fenceValue{ (UINT64)mFenceValue++ };
             ID3D12Fence* d3d12Fence{ *pFence };
             HANDLE d3d12FenceEvent{ *pFence };
@@ -1125,7 +1125,7 @@ namespace mikoto::renderer::d3d12 {
         // Caller waits
         if (!submitInfo.mWaits.empty()) {
             for (const auto& [signalValue, signalFence] : submitInfo.mWaits) {
-                const Fence* pFence{ checked_cast<const Fence*>( signalFence.GetRaw() ) };
+                const Fence* pFence{ checked_cast<const Fence*>( signalFence.GetPtr() ) };
 
                 UINT64 value{ (UINT64)signalValue };
                 ID3D12Fence* d3d12Fence{ *pFence };
@@ -1137,7 +1137,7 @@ namespace mikoto::renderer::d3d12 {
         // Caller signals
         if (!submitInfo.mSignals.empty()) {
             for (const auto& [signalValue, signalFence] : submitInfo.mSignals) {
-                const Fence* pFence{ checked_cast<const Fence*>( signalFence.GetRaw() ) };
+                const Fence* pFence{ checked_cast<const Fence*>( signalFence.GetPtr() ) };
 
                 UINT64 value{ (UINT64)signalValue };
                 ID3D12Fence* d3d12Fence{ *pFence };
@@ -1165,13 +1165,13 @@ namespace mikoto::renderer::d3d12 {
         handle->SetDebugName( "QueueWaitIdle CommandList" );
         handle->End();
 
-        CommandList* pCommandList{ checked_cast<CommandList*>( handle.GetRaw() ) };
+        CommandList* pCommandList{ checked_cast<CommandList*>( handle.GetPtr() ) };
         eastl::array<ID3D12CommandList*, 1> d3d12Commands{ *pCommandList };
         mQueue->ExecuteCommandLists( as<UINT>(d3d12Commands.size()), d3d12Commands.data() );
 
         // My signal timeline to control submission work,
         // later is used to implement a wait idle (wait for all commands to finish.
-        const Fence* pFence{ checked_cast<const Fence*>( mFence.GetRaw() ) };
+        const Fence* pFence{ checked_cast<const Fence*>( mFence.GetPtr() ) };
         UINT64 fenceValue{ (UINT64)mFenceValue++ };
         ID3D12Fence* d3d12Fence{ *pFence };
         HANDLE d3d12FenceEvent{ *pFence };
@@ -1197,11 +1197,11 @@ namespace mikoto::renderer::d3d12 {
 
     Queue::~Queue() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
-    auto Queue::Release() -> void {
+    auto Queue::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -1505,9 +1505,17 @@ namespace mikoto::renderer::d3d12 {
         mEnableAutomaticBarriers = enable;
     }
 
-    auto CommandList::SetClearColor( TextureHandle renderTarget, Color color ) -> void {
+    auto CommandList::SetClearColor( ITexture* renderTarget, Color color ) -> void {
+        if (!renderTarget) {
+            return;
+        }
+
+        if (mEnableAutomaticBarriers) {
+            SetTransition( renderTarget, ResourceStates::eRenderTarget );
+        }
+
         Device* device{ checked_cast<Device*>( mDevice ) };
-        Texture* texture{ checked_cast<Texture*>( renderTarget.GetRaw() ) };
+        Texture* texture{ checked_cast<Texture*>( renderTarget ) };
 
         const DeviceResources* deviceResources{ device->GetHeapResources() };
         D3D12_CPU_DESCRIPTOR_HANDLE rtvHandler{
@@ -1726,10 +1734,10 @@ namespace mikoto::renderer::d3d12 {
 
         for (auto& renderTarget : state.mCurrentRenderTargets ) {
             if (mEnableAutomaticBarriers) {
-                SetTransition( renderTarget.mRenderTarget.GetRaw(), ResourceStates::eRenderTarget );
+                SetTransition( renderTarget.mRenderTarget.GetPtr(), ResourceStates::eRenderTarget );
             }
 
-            Texture* texture{ checked_cast<Texture*>( renderTarget.mRenderTarget.GetRaw() ) };
+            Texture* texture{ checked_cast<Texture*>( renderTarget.mRenderTarget.GetPtr() ) };
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandler{
                 deviceResources->mRenderTargetViewHeap->GetCpuHandle( texture->GetRtvDescriptorIndex() ) };
 
@@ -1744,7 +1752,7 @@ namespace mikoto::renderer::d3d12 {
         }
 
         // Depth stencil. Provide it if available
-        Texture* texture{ checked_cast<Texture*>( state.mDepthTarget.mRenderTarget.GetRaw() ) };
+        Texture* texture{ checked_cast<Texture*>( state.mDepthTarget.mRenderTarget.GetPtr() ) };
         D3D12_CPU_DESCRIPTOR_HANDLE dsvHandler{ texture ?
             deviceResources->mDepthStencilViewHeap->GetCpuHandle( texture->GetDsvDescriptorIndex() ) :
             D3D12_CPU_DESCRIPTOR_HANDLE{} };
@@ -2039,7 +2047,7 @@ namespace mikoto::renderer::d3d12 {
 
     CommandList::~CommandList() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -2069,7 +2077,7 @@ namespace mikoto::renderer::d3d12 {
         mIsAllocated = true;
     }
 
-    auto CommandList::Release() -> void {
+    auto CommandList::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -2137,12 +2145,12 @@ namespace mikoto::renderer::d3d12 {
         MKT_ASSERT( subAllocProperties.has_value() && subAllocProperties->mSize >= byteSize, "Failed to sub-allocate" );
 
         // Fill params
-        GpuUploadAllocation* result{ CreateSubAllocation( stagingAlloc->mBuffer.GetRaw() ) };
+        GpuUploadAllocation* result{ CreateSubAllocation( stagingAlloc->mBuffer.GetPtr() ) };
 
-        result->mMappedMemory = as<ubyte*>( checked_cast<Buffer *>( stagingAlloc->mBuffer.GetRaw() )->GetMappedAddress() ) + subAllocProperties->mOffset;
+        result->mMappedMemory = as<ubyte*>( checked_cast<Buffer *>( stagingAlloc->mBuffer.GetPtr() )->GetMappedAddress() ) + subAllocProperties->mOffset;
         result->mSize = subAllocProperties->mSize;
         result->mOffset = subAllocProperties->mOffset;
-        result->mBuffer = stagingAlloc->mBuffer.GetRaw();
+        result->mBuffer = stagingAlloc->mBuffer.GetPtr();
         result->mAllocation = *subAllocProperties;
 
         return result;
@@ -2183,13 +2191,13 @@ namespace mikoto::renderer::d3d12 {
 
         result->SetDebugName( string::Format( "UploadBuffer Size: {}", initialSize ) );
 
-        auto& newAllocation{ mBuffers[result.GetRaw()] };
+        auto& newAllocation{ mBuffers[result.GetPtr()] };
         newAllocation = eastl::make_unique<StagingAllocation>();
         newAllocation->mBuffer = result;
         newAllocation->mMemoryArena = eastl::make_unique<memory::MemoryArena<IBuffer, FreeListFirstFitAllocator>>( result, initialSize );
 
         // Keep it mapped permanently
-        ( void )mDevice->Map( result.GetRaw() );
+        ( void )mDevice->Map( result.GetPtr() );
 
         return newAllocation.get();
     }
@@ -2513,6 +2521,10 @@ namespace mikoto::renderer::d3d12 {
         return handle;
     }
 
+    auto Device::CreateCommandList( const rhi::CommandListCreateDescription& desc ) -> rhi::CommandListHandle {
+        return CommandListHandle::CreateEmpty();
+    }
+
     auto Device::CreateShader( const ShaderModuleCreateDescription &desc ) -> ShaderModuleHandle {
         ShaderModuleHandle result{ Ref<Shader>::New(desc) };
 
@@ -2637,14 +2649,14 @@ namespace mikoto::renderer::d3d12 {
         return false;
     }
 
-    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem &item ) -> rhi::BindingItemIndex {
+    auto Device::WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem &item ) -> rhi::DescriptorTableIndex {
         if (descriptorTable.IsEmpty()) {
             return rhi::kInvalidBindingItemIndex;
         }
 
         // This method assumes shader model 6.6 for this to access resources in shaders we'd use
         // ResourceDescriptorHeap or SamplerDescriptorHeap
-        DescriptorTable* table{ checked_cast<DescriptorTable*>( descriptorTable.GetRaw() ) };
+        DescriptorTable* table{ checked_cast<DescriptorTable*>( descriptorTable.GetPtr() ) };
         DescriptorIndex newIndex{ table->AllocateIndex(item.mType, item.mBindingIndex) };
         if (IsSampler( item.mType )) {
             Sampler* sampler{ checked_cast<Sampler*>(item.mResource) };
@@ -2715,7 +2727,7 @@ namespace mikoto::renderer::d3d12 {
 
     auto Device::GetQueue( QueueType type ) -> IQueue * {
         MKT_ASSERT( mQueues.contains( type ), "Device does not contain requested type of queue" );
-        return mQueues.at(type).GetRaw();
+        return mQueues.at(type).GetPtr();
     }
 
     auto Device::GetMemoryUsage() const -> core::usize {

@@ -63,7 +63,7 @@ namespace mikoto::renderer::d3d11 {
 
     Buffer::~Buffer() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -120,10 +120,10 @@ namespace mikoto::renderer::d3d11 {
         }
 
         // Release initial data
-        mUploadContents.Release();
+        mUploadContents.Reset();
     }
 
-    auto Buffer::Release() -> void {
+    auto Buffer::Destroy() -> void {
 
         mIsAllocated = false;
     }

@@ -112,8 +112,8 @@ namespace mikoto::imgui {
             return;
         }
 
-        mColorImage.Release();
-        mDepthImage.Release();
+        mColorImage.Reset();
+        mDepthImage.Reset();
 
         // TODO:
         // On Shutdown there is a crash if I the windows

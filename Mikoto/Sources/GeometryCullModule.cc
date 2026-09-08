@@ -219,7 +219,7 @@ namespace mikoto::renderer {
             }
 
             const MeshNode* pMeshNode{ meshComponent.GetMesh() };
-            const PhysicalMaterial *pPhysicalMaterial{ checked_cast<const PhysicalMaterial*>( materialComponent.GetMaterial().GetRaw() ) };
+            const PhysicalMaterial *pPhysicalMaterial{ checked_cast<const PhysicalMaterial*>( materialComponent.GetMaterial().GetPtr() ) };
 
             auto& meshBatch{ mBatch.Get( pMeshNode, ctx, b ) };
             auto& meshBatchDrawInfo{ mMeshBatchInfos[pMeshNode] };

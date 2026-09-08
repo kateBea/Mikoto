@@ -216,13 +216,13 @@ namespace mikoto::renderer::d3d11 {
         mIsAllocated = true;
     }
 
-    auto Shader::Release() -> void {
+    auto Shader::Destroy() -> void {
         mIsAllocated = false;
     }
 
     Shader::~Shader() {
         if ( mIsAllocated ) {
-            Release();
+            Destroy();
         }
     }
 }// namespace mikoto::renderer::d3d11

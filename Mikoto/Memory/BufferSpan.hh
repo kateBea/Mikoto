@@ -25,7 +25,7 @@
 
 namespace mikoto::memory {
 
-    class BufferSpan : public ReferenceCounted {
+    class BufferSpan : public core::ReferenceCounted<BufferSpan> {
     public:
 
         explicit BufferSpan( core::usize byteSize );

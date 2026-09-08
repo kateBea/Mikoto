@@ -59,7 +59,7 @@ namespace mikoto::audio {
     protected:
 
         auto Initialize() -> void override = 0;
-        auto Release() -> void override = 0;
+        auto Destroy() -> void override = 0;
 
     protected:
         AudioDevice* m_Device{};

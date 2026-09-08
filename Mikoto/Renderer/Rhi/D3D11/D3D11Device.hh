@@ -62,7 +62,7 @@ namespace mikoto::renderer::d3d11 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
     };
 
     class BindingLayout final : public IBindingLayout {
@@ -77,7 +77,7 @@ namespace mikoto::renderer::d3d11 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         bool mIsBindless{ false };
@@ -103,7 +103,7 @@ namespace mikoto::renderer::d3d11 {
 
     protected:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         BindingLayoutHandle mBindingLayout{};
@@ -122,7 +122,7 @@ namespace mikoto::renderer::d3d11 {
 
     protected:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         PipelineLayoutCreateDescription mDesc{};
@@ -144,7 +144,7 @@ namespace mikoto::renderer::d3d11 {
         ~Queue() override;
 
     private:
-        auto Release() -> void override;
+        auto Destroy() -> void override;
         auto Initialize() -> void override;
 
     private:
@@ -179,7 +179,7 @@ namespace mikoto::renderer::d3d11 {
 
         auto SetEnableAutomaticBarriers( bool enable ) -> void override;
 
-        auto SetClearColor( rhi::TextureHandle renderTargets, rhi::Color color ) -> void override;
+        auto SetClearColor( rhi::ITexture* renderTarget, rhi::Color color ) -> void override;
 
         auto Write( rhi::IBuffer* src, rhi::ITexture* dest ) -> void override;
         auto Write( rhi::ITexture* target, const void* data, core::usize byteSize ) -> void override;
@@ -239,7 +239,7 @@ namespace mikoto::renderer::d3d11 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         Microsoft::WRL::ComPtr<ID3D11CommandList> mCommandList{};
@@ -278,7 +278,7 @@ namespace mikoto::renderer::d3d11 {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         Microsoft::WRL::ComPtr<ID3D11InputLayout> mInputLayout{};
@@ -307,7 +307,8 @@ namespace mikoto::renderer::d3d11 {
 
         MKT_NODISCARD auto CreateAccelStructure( const AccelStructureCreateDescription& description ) -> AccelStructureHandle override;
 
-        MKT_NODISCARD auto CreateCommandList( QueueType queue ) -> CommandListHandle override;
+        MKT_NODISCARD auto CreateCommandList( rhi::QueueType queue ) -> CommandListHandle override;
+        MKT_NODISCARD auto CreateCommandList( const rhi::CommandListCreateDescription& desc ) -> rhi::CommandListHandle override;
 
         MKT_NODISCARD auto CreateShader( const ShaderModuleCreateDescription& desc ) -> ShaderModuleHandle override;
 
@@ -328,7 +329,7 @@ namespace mikoto::renderer::d3d11 {
 
         MKT_NODISCARD auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle override;
         MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
-        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> rhi::BindingItemIndex override;
+        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> rhi::DescriptorTableIndex override;
 
         MKT_NODISCARD auto CreateSwapChain( const SwapChainDescription& description ) -> rhi::SwapChainHandle override;
 

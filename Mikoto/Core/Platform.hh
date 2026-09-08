@@ -65,6 +65,21 @@
     #error "Unsupported compiler"
 #endif
 
+#if defined(__clang__)
+    #if __has_feature(thread_sanitizer)
+        #define MIKOTO_TSAN_ENABLED 1
+    #endif
+#endif
+
+#if !defined(MIKOTO_TSAN_ENABLED) && defined(__SANITIZE_THREAD__)
+    // GCC, and Clang variants that expose the GCC-compatible macro
+    #define MIKOTO_TSAN_ENABLED 1
+#endif
+
+#ifndef MIKOTO_TSAN_ENABLED
+    #define MIKOTO_TSAN_ENABLED 0
+#endif
+
 // =======================
 //  Build Configuration
 // =======================

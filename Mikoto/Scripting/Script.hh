@@ -43,7 +43,7 @@ namespace mikoto::scripting {
 
     protected:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
         auto OnCreate() -> void;
         auto OnUpdate(float dt) -> void;

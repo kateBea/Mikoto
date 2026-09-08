@@ -49,11 +49,11 @@ namespace mikoto::renderer::d3d11 {
 
     Sampler::~Sampler() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
-    auto Sampler::Release() -> void {
+    auto Sampler::Destroy() -> void {
         mIsAllocated = false;
     }
 
@@ -166,9 +166,13 @@ namespace mikoto::renderer::d3d11 {
         return mTexture.Get();
     }
 
+    Texture::operator ID3D11RenderTargetView*() const {
+        return mRenderTargetView.Get();
+    }
+
     Texture::~Texture() {
         if (mIsAllocated) {
-            Release();
+            Destroy();
         }
     }
 
@@ -265,12 +269,12 @@ namespace mikoto::renderer::d3d11 {
         }
 
         if (!mKeepInitializerResources) {
-            mImageData.Release();
-            mBufferSpan.Release();
+            mImageData.Reset();
+            mBufferSpan.Reset();
         }
     }
 
-    auto Texture::Release() -> void {
+    auto Texture::Destroy() -> void {
         mIsAllocated = false;
     }
 }// namespace mikoto::renderer::d3d11

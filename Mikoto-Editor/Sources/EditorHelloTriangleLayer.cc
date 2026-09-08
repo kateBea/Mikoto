@@ -110,15 +110,15 @@ namespace mikoto::editor {
     auto EditorHelloTriangleLayer::OnDestroy() -> void {
         mDevice->WaitIdle();
 
-        mPipeline.Release();
+        mPipeline.Reset();
 
-        mVertexShader.Release();
-        mPixelShader.Release();
+        mVertexShader.Reset();
+        mPixelShader.Reset();
 
-        mColorImage.Release();
-        mDepthImage.Release();
+        mColorImage.Reset();
+        mDepthImage.Reset();
 
-        mCommandList.Release();
+        mCommandList.Reset();
     }
 
     auto EditorHelloTriangleLayer::OnUpdate( float timeStep ) -> void {
@@ -131,7 +131,7 @@ namespace mikoto::editor {
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
         mCommandList->BeginRendering( graphicsState );
 
-        mCommandList->BindPipeline( mPipeline.GetRaw() );
+        mCommandList->BindPipeline( mPipeline.GetPtr() );
 
         mCommandList->SetViewportState( ViewportState{}
             .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
@@ -143,7 +143,7 @@ namespace mikoto::editor {
 
         mCommandList->EndRendering();
 
-        mCommandList->SetTransition( mColorImage.GetRaw(), ResourceStates::eShaderResource );
+        mCommandList->SetTransition( mColorImage.GetPtr(), ResourceStates::eShaderResource );
 
         mCommandList->End();
 

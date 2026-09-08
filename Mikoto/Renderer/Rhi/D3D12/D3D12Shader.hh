@@ -54,7 +54,7 @@ namespace mikoto::renderer::d3d12 {
         ~Shader() override;
 
     private:
-        auto Release() -> void override;
+        auto Destroy() -> void override;
         auto Initialize() -> void override;
 
     private:

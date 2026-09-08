@@ -242,28 +242,28 @@ namespace mikoto::renderer {
 
         mDevice->WaitIdle();
 
-        mPipelineLines.Release();
-        mPipelineTriangles.Release();
+        mPipelineLines.Reset();
+        mPipelineTriangles.Reset();
 
-        mPipelineLayoutHandle.Release();
-        mBindingLayoutHandle.Release();
+        mPipelineLayoutHandle.Reset();
+        mBindingLayoutHandle.Reset();
 
-        mVertexShader.Release();
-        mPixelShader.Release();
+        mVertexShader.Reset();
+        mPixelShader.Reset();
 
-        mColorImageTriangles.Release();
-        mDepthImageTriangles.Release();
+        mColorImageTriangles.Reset();
+        mDepthImageTriangles.Reset();
 
-        mColorImageLines.Release();
-        mDepthImageLines.Release();
+        mColorImageLines.Reset();
+        mDepthImageLines.Reset();
 
-        mBindingSetLinesHandle.Release();
-        mBindingSetTrianglesHandle.Release();
+        mBindingSetLinesHandle.Reset();
+        mBindingSetTrianglesHandle.Reset();
 
-        mCommandList.Release();
+        mCommandList.Reset();
 
-        mLinesBuffer.Release();
-        mTrianglesBuffer.Release();
+        mLinesBuffer.Reset();
+        mTrianglesBuffer.Reset();
     }
 
     auto PhysicsDebugRendererSimple::Render() -> void {
@@ -283,8 +283,8 @@ namespace mikoto::renderer {
             RenderTriangles();
         }
 
-        mCommandList->SetTransition( mColorImageLines.GetRaw(), ResourceStates::eShaderResource );
-        mCommandList->SetTransition( mColorImageTriangles.GetRaw(), ResourceStates::eShaderResource );
+        mCommandList->SetTransition( mColorImageLines.GetPtr(), ResourceStates::eShaderResource );
+        mCommandList->SetTransition( mColorImageTriangles.GetPtr(), ResourceStates::eShaderResource );
         mCommandList->End();
 
         auto submitInfo{ SubmitInfo{}
@@ -432,18 +432,18 @@ namespace mikoto::renderer {
         mPipelineTriangles->SetDebugName( "PhysicsDebugRendererSimple Triangles Pipeline" );
 
         auto bindingSetLinesDesc{ BindingTableDescription{}
-            .AddItem( BindingTableItem::StructuredSRV( 0, mLinesBuffer.GetRaw() ) ) };
+            .AddItem( BindingTableItem::StructuredSRV( 0, mLinesBuffer.GetPtr() ) ) };
         mBindingSetLinesHandle = mDevice->CreateBindingTable( bindingSetLinesDesc, mBindingLayoutHandle );
 
         auto bindingSetTrianglesDesc{ BindingTableDescription{}
-            .AddItem( BindingTableItem::StructuredSRV( 0, mTrianglesBuffer.GetRaw() ) ) };
+            .AddItem( BindingTableItem::StructuredSRV( 0, mTrianglesBuffer.GetPtr() ) ) };
         mBindingSetTrianglesHandle = mDevice->CreateBindingTable( bindingSetTrianglesDesc, mBindingLayoutHandle );
     }
 
     auto PhysicsDebugRendererSimple::RenderLines() -> void {
         MKT_ASSERT( mLines.size() <= kMaxVerticesLines, "Exceeded buffer capacity" );
 
-        mCommandList->Write( mLinesBuffer.GetRaw(), mLines.data(), MKT_VECTOR_SIZE_BYTES( mLines ) );
+        mCommandList->Write( mLinesBuffer.GetPtr(), mLines.data(), MKT_VECTOR_SIZE_BYTES( mLines ) );
 
         eastl::array<ubyte, kMaxPushConstantSize> ps{};
         struct CameraData {
@@ -451,7 +451,7 @@ namespace mikoto::renderer {
         } params {
             .mViewProjection = mCamera->GetProjection() * mCamera->GetViewMatrix() };
         std::memcpy( ps.data(), MKT_ADDRESSOF( params ), MKT_SIZEOF( params ) );
-        mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
+        mCommandList->SetPushConstants( mPipelineLayoutHandle.GetPtr(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
 
         // Set graphics state
         auto graphicsState{ RenderDescription{}
@@ -462,11 +462,11 @@ namespace mikoto::renderer {
 
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
-            .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-            .AddResourceSet( 0, mBindingSetLinesHandle.GetRaw() ) };
+            .SetPipelineLayout( mPipelineLayoutHandle.GetPtr() )
+            .AddResourceSet( 0, mBindingSetLinesHandle.GetPtr() ) };
         mCommandList->BindPipelineResources( bindingDescription );
 
-        mCommandList->BindPipeline( mPipelineLines.GetRaw() );
+        mCommandList->BindPipeline( mPipelineLines.GetPtr() );
 
         mCommandList->SetViewportState( ViewportState{}
             .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
@@ -487,7 +487,7 @@ namespace mikoto::renderer {
 
     auto PhysicsDebugRendererSimple::RenderTriangles() -> void {
         MKT_ASSERT( mLines.size() <= kMaxVerticesTriangles, "Exceeded buffer capacity" );
-        mCommandList->Write( mTrianglesBuffer.GetRaw(), mTriangles.data(), MKT_VECTOR_SIZE_BYTES( mTriangles ) );
+        mCommandList->Write( mTrianglesBuffer.GetPtr(), mTriangles.data(), MKT_VECTOR_SIZE_BYTES( mTriangles ) );
 
         eastl::array<ubyte, kMaxPushConstantSize> ps{};
         struct CameraData {
@@ -495,7 +495,7 @@ namespace mikoto::renderer {
         } params {
             .mViewProjection = mCamera->GetProjection() * mCamera->GetViewMatrix() };
         std::memcpy( ps.data(), MKT_ADDRESSOF( params ), MKT_SIZEOF( params ) );
-        mCommandList->SetPushConstants( mPipelineLayoutHandle.GetRaw(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
+        mCommandList->SetPushConstants( mPipelineLayoutHandle.GetPtr(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
 
         // Set graphics state
         auto graphicsState{ RenderDescription{}
@@ -506,11 +506,11 @@ namespace mikoto::renderer {
 
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
-            .SetPipelineLayout( mPipelineLayoutHandle.GetRaw() )
-            .AddResourceSet( 0, mBindingSetTrianglesHandle.GetRaw() ) };
+            .SetPipelineLayout( mPipelineLayoutHandle.GetPtr() )
+            .AddResourceSet( 0, mBindingSetTrianglesHandle.GetPtr() ) };
         mCommandList->BindPipelineResources( bindingDescription );
 
-        mCommandList->BindPipeline( mPipelineTriangles.GetRaw() );
+        mCommandList->BindPipeline( mPipelineTriangles.GetPtr() );
 
         mCommandList->SetViewportState( ViewportState{}
             .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );

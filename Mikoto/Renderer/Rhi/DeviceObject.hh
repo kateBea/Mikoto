@@ -76,7 +76,7 @@ namespace mikoto::renderer::rhi {
         DeviceObject( HeapType heapType, ResourceType resourceType );
 
         auto Initialize() -> void override = 0;
-        auto Release() -> void override = 0;
+        auto Destroy() -> void override = 0;
 
     protected:
         IGpuDevice* mDevice{};

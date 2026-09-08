@@ -84,7 +84,7 @@ namespace mikoto::renderer::vulkan {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         mutable core::u64 mTimeline{};
@@ -108,7 +108,7 @@ namespace mikoto::renderer::vulkan {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         VkSemaphore mSemaphore{ VK_NULL_HANDLE };
@@ -193,7 +193,7 @@ namespace mikoto::renderer::vulkan {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         rhi::IQueue* mQueue{};
@@ -243,18 +243,18 @@ namespace mikoto::renderer::vulkan {
 
         auto SetEnableAutomaticBarriers( bool enable ) -> void override;
 
-        auto SetClearColor( rhi::TextureHandle image, rhi::Color color ) -> void override;
+        auto SetClearColor( rhi::ITexture* renderTarget, rhi::Color color ) -> void override;
 
         auto Write( rhi::IBuffer* src, rhi::ITexture* dest ) -> void override;
-        auto Write( rhi::ITexture* texture, const void* data, core::size_t byteSize ) -> void override;
+        auto Write( rhi::ITexture* texture, const void* data, core::usize byteSize ) -> void override;
         auto Copy( rhi::ITexture* src, const rhi::TextureSlice& srcSlice, rhi::ITexture* dest, const rhi::TextureSlice& destSlice ) -> void override;
 
         auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
 
-        auto Write( rhi::IBuffer* buffer, core::size_t destOffset, const void* data, core::size_t byteSize ) -> void override;
-        auto Write( rhi::IBuffer* buffer, const void* data, core::size_t byteSize ) -> void override;
+        auto Write( rhi::IBuffer* buffer, core::usize destOffset, const void* data, core::usize byteSize ) -> void override;
+        auto Write( rhi::IBuffer* buffer, const void* data, core::usize byteSize ) -> void override;
         auto Copy( rhi::IBuffer* src, rhi::IBuffer* dest ) -> void override;
-        auto Copy( rhi::IBuffer* src, rhi::IBuffer* dest, core::size_t destOffset ) -> void override;
+        auto Copy( rhi::IBuffer* src, rhi::IBuffer* dest, core::usize destOffset ) -> void override;
 
         auto Copy( rhi::IBuffer* dest, rhi::ITexture* src ) -> void override;
         auto Copy( rhi::IBuffer* dest, rhi::ITexture* src, const TextureSlice& srcSlice ) -> void override;
@@ -287,7 +287,7 @@ namespace mikoto::renderer::vulkan {
 
         auto Dispatch( core::u32 groupsX, core::u32 groupsY, core::u32 groupsZ ) -> void override;
 
-        auto SetPushConstants( rhi::IPipelineLayout* pipelineLayout, const void* data, size_t byteSize, rhi::ShaderFlags visibility ) -> void override;
+        auto SetPushConstants( rhi::IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, rhi::ShaderFlags visibility ) -> void override;
 
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
@@ -304,7 +304,7 @@ namespace mikoto::renderer::vulkan {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
         auto ClearState() -> void;
 
@@ -392,7 +392,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto AcquireThreadCmdPool() -> CommandPoolHandle;
 
     protected:
-        auto Release() -> void override;
+        auto Destroy() -> void override;
         auto Initialize() -> void override;
 
     private:
@@ -536,7 +536,7 @@ namespace mikoto::renderer::vulkan {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         core::u32 mSetIndex{};
@@ -559,13 +559,13 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
-        MKT_NODISCARD auto AllocateNextIndex( core::u32 slot ) const -> rhi::BindingItemIndex;
+        MKT_NODISCARD auto AllocateNextIndex( core::u32 slot ) const -> rhi::DescriptorTableIndex;
 
         ~DescriptorTable() override;
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         VkDescriptorSet mDescriptorSet{};
@@ -573,7 +573,7 @@ namespace mikoto::renderer::vulkan {
 
         DescriptorAllocatorHandle mDescriptorAllocatorHandle{};
 
-        mutable ankerl::unordered_dense::map<core::usize, ankerl::unordered_dense::set<BindingItemIndex>>
+        mutable ankerl::unordered_dense::map<core::usize, ankerl::unordered_dense::set<DescriptorTableIndex>>
             mDescriptorTableItemIndices{};
 
         ankerl::unordered_dense::map<core::usize, core::usize>
@@ -594,7 +594,7 @@ namespace mikoto::renderer::vulkan {
 
     protected:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         VkDescriptorSet mDescriptorSet{};
@@ -620,7 +620,7 @@ namespace mikoto::renderer::vulkan {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         rhi::InputLayoutCreateDescription mDesc{};
@@ -642,7 +642,7 @@ namespace mikoto::renderer::vulkan {
 
     private:
         auto Initialize() -> void override;
-        auto Release() -> void override;
+        auto Destroy() -> void override;
 
     private:
         VkPipelineLayout mPipelineLayout{};
@@ -670,6 +670,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto CreateAccelStructure( const rhi::AccelStructureCreateDescription& description ) -> rhi::AccelStructureHandle override;
 
         MKT_NODISCARD auto CreateCommandList( rhi::QueueType type ) -> rhi::CommandListHandle override;
+        MKT_NODISCARD auto CreateCommandList( const rhi::CommandListCreateDescription& desc ) -> rhi::CommandListHandle override;
 
         MKT_NODISCARD auto CreateShader( const rhi::ShaderModuleCreateDescription& desc ) -> rhi::ShaderModuleHandle override;
 
@@ -690,7 +691,7 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto CreateDescriptorTable( rhi::BindingLayoutHandle layout ) -> rhi::DescriptorTableHandle override;
         MKT_NODISCARD auto ResizeDescriptorTable( rhi::DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool override;
-        MKT_NODISCARD auto WriteDescriptorTable( rhi::DescriptorTableHandle descriptorTable, const rhi::BindingTableItem& item ) -> rhi::BindingItemIndex override;
+        MKT_NODISCARD auto WriteDescriptorTable( rhi::DescriptorTableHandle descriptorTable, const rhi::BindingTableItem& item ) -> rhi::DescriptorTableIndex override;
 
         MKT_NODISCARD auto GetQueue( rhi::QueueType type ) -> IQueue* override;
 

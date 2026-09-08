@@ -436,7 +436,7 @@ namespace mikoto::renderer {
                     return;
                 }
 
-                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
+                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetPtr() ) };
                 if (!material->IsType( SkyboxType::eEquirectangular ) || material->GetEquirectangular().IsEmpty()) {
                     return;
                 }
@@ -496,7 +496,7 @@ namespace mikoto::renderer {
                     return;
                 }
 
-                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
+                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetPtr() ) };
                 if (!material->IsType( SkyboxType::eCubeFaces )) {
                     return;
                 }
@@ -518,7 +518,7 @@ namespace mikoto::renderer {
                     return;
                 }
 
-                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
+                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetPtr() ) };
                 if (!material->IsType( SkyboxType::eCubeFaces )) {
                     return;
                 }
@@ -549,7 +549,7 @@ namespace mikoto::renderer {
                     return;
                 }
 
-                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetRaw() ) };
+                auto* material{ checked_cast<SkyboxMaterial*>( mSkyboxMaterial.GetPtr() ) };
                 if (!material->IsType( SkyboxType::eCubeFaces )) {
                     return;
                 }

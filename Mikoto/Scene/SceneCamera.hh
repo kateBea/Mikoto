@@ -67,10 +67,6 @@ namespace mikoto::scene {
 
         auto WantRotation( bool xAxis, bool yAxis ) -> void;
 
-        auto SetCameraTarget( const core::float3& position ) -> void;
-        auto LockCameraToTarget( bool enable ) -> void;
-        auto SetOrbitDistance( core::f32 orbitDistance = 10.0f ) -> void;
-
         // Enable camera rotation and movement
         auto EnableCamera( bool value ) -> void;
 
@@ -123,10 +119,6 @@ namespace mikoto::scene {
         float mRotationFactor{ 0.03f };
 
         bool mAllowCameraMovementAndRotation{ false };
-
-        core::float3 mCameraTarget{ 0.0f, 0.0f, 0.0f };
-        core::f32 mOrbitDistance{ 10.f };
-        bool mLockCameraToTarget{ false };
     };
 }// namespace Mikoto
 

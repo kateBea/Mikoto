@@ -133,13 +133,6 @@ namespace mikoto::scene {
 
     }
 
-    auto SceneCamera::UpdateViewMatrix() -> void {
-        if (mLockCameraToTarget ) {
-        } else {
-            mView = lookAt( mPosition, mPosition + mForward, mUp );
-        }
-    }
-
     auto SceneCamera::ProcessMouseInput( const double timeStep ) -> void {
         const glm::vec2 mousePos{ mWindow->GetMouseX(), mWindow->GetMouseY() };
         const glm::vec2 delta{ (mousePos - mLastMousePosition) * mRotationFactor };
@@ -215,17 +208,5 @@ namespace mikoto::scene {
     auto SceneCamera::WantRotation( const bool xAxis, const bool yAxis ) -> void {
         mWantCameraRotationX = xAxis;
         mWantCameraRotationY = yAxis;
-    }
-
-    auto SceneCamera::SetCameraTarget( const float3 &position ) -> void {
-        mCameraTarget = position;
-    }
-
-    auto SceneCamera::LockCameraToTarget( bool enable ) -> void {
-        mLockCameraToTarget = enable;
-    }
-
-    auto SceneCamera::SetOrbitDistance( float orbitDistance ) -> void {
-        mOrbitDistance = orbitDistance;
     }
 }

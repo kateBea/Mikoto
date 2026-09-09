@@ -16,8 +16,20 @@
 #define MIKOTO_MESHOPTIMIZER_HH
 
 namespace mikoto::asset {
-    auto OptimizerTest() -> void;
 
+    struct MeshNodeDescription;
+
+    /**
+     * @brief Optimizes an imported indexed triangle mesh for GPU rendering.
+     *
+     * Removes binary-identical vertices, then reorders the index and vertex
+     * buffers for vertex-cache and vertex-fetch locality. The vertex
+     * attributes and triangles themselves are preserved.
+     *
+     * @param mesh Imported mesh data to optimize in place before GPU buffers
+     * are created.
+     */
+    auto OptimizeMesh( MeshNodeDescription& mesh ) -> void;
 }
 
 #endif//MIKOTO_MESHOPTIMIZER_HH

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETWORK_UTILITIES_HH
-#define NETWORK_UTILITIES_HH
+#ifndef MIKOTO_NETWORK_UTILITIES_HH
+#define MIKOTO_NETWORK_UTILITIES_HH
 
 #include <EASTL/hash_map.h>
 #include <EASTL/optional.h>
@@ -22,34 +22,45 @@
 #include <EASTL/utility.h>
 
 #include <Core/Core.hh>
-#include <Core/String.hh>
 #include <Core/Types.hh>
 
 namespace mikoto::network {
 
+    using HttpHeaders = eastl::hash_map<eastl::string, eastl::string>;
+
     struct HttpRequest {
         eastl::string mMethod{};
         eastl::string mPath{};
+        eastl::string mVersion{ "HTTP/1.1" };
         eastl::string mBody{};
-        eastl::hash_map<std::string, std::string> mHeaders{};
+        HttpHeaders mHeaders{};
     };
 
     struct HttpResponse {
         eastl::string mBody{};
-        eastl::string mStatus{ "503" };
-        eastl::hash_map<eastl::string, eastl::string> mHeaders{};
+        eastl::string mStatus{ "0" };
+        eastl::string mReason{};
+        HttpHeaders mHeaders{};
 
         MKT_NODISCARD auto IsStatusOK() const -> bool;
         MKT_NODISCARD auto IsStatus( eastl::string_view status ) const -> bool;
     };
 
+    struct HttpUrl {
+        eastl::string mHost{};
+        eastl::string mTarget{ "/" };
+        core::u16 mPort{};
+        bool mUseTls{};
+        bool mIsValid{};
+    };
 
-    MKT_NODISCARD auto GetHttpBody( eastl::string_view apiResponse ) -> eastl::string;
-    MKT_NODISCARD auto GetHttpResponse( eastl::string_view apiResponse ) -> HttpResponse;
-
-    // Returns the host and the port
+    MKT_NODISCARD auto ParseHttpUrl( eastl::string_view url ) -> HttpUrl;
+    MKT_NODISCARD auto ParseHttpRequest( eastl::string_view raw, HttpRequest& request ) -> bool;
+    MKT_NODISCARD auto GetHttpResponse( eastl::string_view raw ) -> HttpResponse;
+    MKT_NODISCARD auto GetHttpBody( eastl::string_view raw ) -> eastl::string;
+    MKT_NODISCARD auto SerializeHttpResponse( const HttpResponse& response ) -> eastl::string;
+    MKT_NODISCARD auto GetHttpHeader( const HttpHeaders& headers, eastl::string_view name ) -> eastl::optional<eastl::string>;
     MKT_NODISCARD auto GetHost( eastl::string_view uri ) -> eastl::pair<eastl::string, eastl::optional<eastl::string>>;
+}
 
-}// namespace mikoto::network
-
-#endif
+#endif // MIKOTO_NETWORK_UTILITIES_HH

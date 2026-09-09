@@ -114,8 +114,8 @@ namespace mikoto::editor {
 #endif
             }
 
-            mEngine->Update();
             mLayerStack.OnUpdate( as<f32>( timeStep ) );
+            mEngine->Update();
 
             // Submit frame to be processed and present
             RenderSystem::Get()->SubmitFrame();

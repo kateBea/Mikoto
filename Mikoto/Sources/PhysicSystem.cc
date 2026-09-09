@@ -102,22 +102,9 @@ namespace mikoto::physics {
         // of your own job scheduler. JobSystemThreadPool is an example implementation.
         mJobSystem = eastl::make_unique<JPH::JobSystemThreadPool>( JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, threading::GetThreadConcurrency() );
 
-        // Can only create one instance of DebugRenderer
-
-#if false
-        // Physics debug renderer
-        auto physicsRendererDesc{ PhysicsDebugRendererCreateInfo{}
-            .SetName( "PhysicsDebugRenderer" )
-            .SetShaderBasePath( "Resources/Shaders/slang" )
-            .SetDevice( RenderSystem::Get()->GetGpuDevice() ) };
-        mPhysicsDebugRenderer = PhysicsDebugRenderer::Create( physicsRendererDesc );
-
-        if (mPhysicsDebugRenderer) {
-            mPhysicsDebugRenderer->Init();
-        }
-#else
-
-        // Physics debug renderer simple
+        // Jolt's renderer is an optional debug feature. A release Jolt build
+        // intentionally has no renderer types or GPU debug work at all.
+#if defined( JPH_DEBUG_RENDERER )
         auto physicsRendererSimpleDesc{ PhysicsDebugRendererSimpleCreateInfo{}
             .SetName( "PhysicsDebugRendererSimple" )
             .SetShaderBasePath( "Resources/Shaders/slang" )

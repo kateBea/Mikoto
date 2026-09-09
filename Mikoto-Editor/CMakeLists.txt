@@ -12,9 +12,15 @@ set(MIKOTO_USE_XCB_WINDOW OFF CACHE BOOL "Use XCB windowing" FORCE)
 set(MIKOTO_USE_WIN32_WINDOW OFF CACHE BOOL "Disable Win32 windowing" FORCE)
 set(MIKOTO_ENABLE_TRACY_PROFILING OFF CACHE BOOL "Disable Tracy profiling" FORCE)
 
-file(GLOB SOURCE_FILES Sources/*.cc)
+file(GLOB SOURCE_FILES CONFIGURE_DEPENDS Sources/*.cc)
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+# A Windows editor is a GUI application, so select the WinMain subsystem there.
+# Non-Windows platforms retain the ordinary portable main(int, char**) entry.
+if(WIN32)
+    add_executable(${PROJECT_NAME} WIN32 ${SOURCE_FILES})
+else()
+    add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+endif()
 
 # Link the engine
 target_link_libraries(${PROJECT_NAME} PRIVATE Mikoto)

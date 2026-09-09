@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,50 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 #ifndef MIKOTO_CLIENT_HH
 #define MIKOTO_CLIENT_HH
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
-#include <Core/Core.hh>
 #include <Core/Types.hh>
-
-#include <Networking/Socket.hh>
 #include <Networking/NetworkService.hh>
 #include <Networking/NetworkUtilities.hh>
 
 namespace mikoto::network {
-    using namespace mikoto::core;
 
-    class HttpClient {
+    /** @brief Blocking HTTP/1.1 client intended for worker-thread use. */
+    class HttpClient final {
     public:
         explicit HttpClient( eastl::string_view url );
-        HttpClient( eastl::string_view host, u16 port, SecurityProtocol sp = SecurityProtocol::eNone );
+        HttpClient( eastl::string_view host, core::u16 port, SecurityProtocol security = SecurityProtocol::eNone );
 
-        auto Get( eastl::string_view path, eastl::string_view contentType ) -> HttpResponse;
-        auto Post( eastl::string_view path, eastl::string_view body, eastl::string_view contentType ) -> HttpResponse;
-
-        // WIP: Unavailable for now
-        // auto SetTimeout( Int32 milliseconds ) -> void;
-        // auto EnableServerCertificateVerification( bool enable ) -> void;
-
-        ~HttpClient();
+        MKT_NODISCARD auto Get( eastl::string_view path, eastl::string_view contentType = {} ) -> HttpResponse;
+        MKT_NODISCARD auto Post( eastl::string_view path, eastl::string_view body, eastl::string_view contentType = "application/octet-stream" ) -> HttpResponse;
+        MKT_NODISCARD auto IsValid() const -> bool;
 
     private:
-        auto SendRawRequest( eastl::string_view raw ) -> HttpResponse;
-        auto ParseUrl( eastl::string_view url ) -> void;
-
-        auto InitSocket() -> void;
+        MKT_NODISCARD auto SendRawRequest( eastl::string_view request ) -> HttpResponse;
+        MKT_NODISCARD auto EnsureSocket() -> bool;
+        MKT_NODISCARD auto BuildRequest( eastl::string_view method, eastl::string_view path, eastl::string_view body, eastl::string_view contentType ) const -> eastl::string;
 
     private:
-        u16 mPort{};
-
+        core::u16 mPort{};
         eastl::string mHost{};
-        SocketHandle mSocket{};
-
+        eastl::string mDefaultTarget{ "/" };
         SecurityProtocol mSecurity{ SecurityProtocol::eNone };
+        SocketHandle mSocket{};
+        bool mValid{};
     };
 }
 
-#endif//MIKOTO_CLIENT_HH
+#endif // MIKOTO_CLIENT_HH

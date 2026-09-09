@@ -104,6 +104,12 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD auto GetResourceState() const -> ResourceStates;
 
         /**
+         * Returns the revision of the recorded resource state.
+         * @returns A counter advanced by every SetResourceState call, including same-state updates.
+         */
+        MKT_NODISCARD auto GetResourceStateRevision() const -> core::u64;
+
+        /**
          * Sets the human-readable debug label for this resource.
          * @param name Input value used by this operation.
          */
@@ -172,6 +178,7 @@ namespace mikoto::renderer::rhi {
         // State tracking
         ResourceType mResourceType{ ResourceType::eInvalid };
         ResourceStates mResourceState{ ResourceStates::eUnknown };
+        core::u64 mResourceStateRevision{};
 
         // By default, the resource is device local
         // lives in memory "only accessible by device"

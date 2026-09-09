@@ -16,6 +16,7 @@
 #define MIKOTO_ACTION_MANAGER_HH
 
 #include <EASTL/functional.h>
+#include <EASTL/string_view.h>
 
 #include <ankerl/unordered_dense.h>
 
@@ -63,6 +64,15 @@ namespace mikoto::core {
 
         MKT_NODISCARD auto Dispatch(core::KeyCode key, core::ModKey mods) const -> bool;
         auto Bind(core::KeyCode key, core::ModKey mods, ShortcutAction action) -> void;
+
+        /**
+         * @brief Binds a shortcut that toggles a registered boolean CVar.
+         *
+         * @param key Key that activates the action.
+         * @param mods Modifier keys required to activate the action.
+         * @param cvarName Name of the CVar to toggle.
+         */
+        auto BindCVarToggle( core::KeyCode key, core::ModKey mods, eastl::string_view cvarName ) -> void;
 
     private:
         ankerl::unordered_dense::map<ShortcutKey, ShortcutAction, ShortcutKeyHash> mActions{};

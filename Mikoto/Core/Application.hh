@@ -68,14 +68,13 @@ namespace mikoto::core {
          * */
         virtual auto Update() -> void = 0;
 
-
         template<typename LayerType, typename... Args>
         auto PushLayer(Args&&... args) -> void {
             mLayerStack.PushLayer<LayerType>( eastl::forward<Args>(args)... );
         }
 
         template<typename LayerType>
-        auto PushLayer() -> void {
+        auto PopLayer() -> void {
             mLayerStack.PopLayer<LayerType>();
         }
 

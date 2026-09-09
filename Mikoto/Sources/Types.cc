@@ -32,8 +32,18 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    BufferRange::BufferRange( core::u64 byteOffset, core::u64 byteSize )
+        : mByteOffset{ byteOffset }, mByteSize{ byteSize }
+    {
+
+    }
+
     auto BufferRange::IsEntireBuffer( core::usize bufferByteSize ) const -> bool {
         return mByteOffset == 0 && (mByteSize == ~0ull || mByteSize == bufferByteSize);
+    }
+
+    auto BufferRange::operator==( const BufferRange &other ) const -> bool {
+        return mByteOffset == other.mByteOffset && mByteSize == other.mByteSize;
     }
 
     auto BufferRange::Validate( core::usize bufferByteSize ) -> BufferRange & {

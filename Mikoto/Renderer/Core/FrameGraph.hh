@@ -185,8 +185,6 @@ namespace mikoto::renderer {
         eastl::any mDescription{};
         eastl::vector<ResourceVersion> mVersions{};  // version 0, 1, 2...
         bool mIsImported{ false };  // imported = externally owned (e.g. swapchain)
-
-        FGPipelineStage mCurrentState{ FGPipelineStage::eUnknown };
     };
 
     struct FGResourceTrack {
@@ -334,10 +332,40 @@ namespace mikoto::renderer {
         auto SetUsage( rhi::TextureUsageFlags usage ) -> FGTextureDescription&;
     };
 
+    /** Access scopes recorded by the graph, invalidated by external state updates. */
+    struct FGBarrierHistory {
+        rhi::PipelineStageFlags mStages{ rhi::PipelineStageFlagsBits::None };
+        rhi::BarrierAccessFlags mAccess{ rhi::BarrierAccessFlagsBits::None };
+        rhi::ResourceStates mState{ rhi::ResourceStates::eUnknown };
+        core::u64 mResourceRevision{};
+        bool mIsValid{};
+
+        /**
+         * Checks whether this history still describes the recorded resource.
+         * @param state Current resource state.
+         * @param revision Current resource-state revision.
+         * @returns True when no external state update has invalidated the history.
+         */
+        MKT_NODISCARD auto IsCurrent( rhi::ResourceStates state, core::u64 revision ) const -> bool;
+
+        /**
+         * Prepares access history for the next recorded use, retaining compatible readers.
+         * @param stateBefore Current resource state.
+         * @param revisionBefore Current resource-state revision.
+         * @param stateAfter Required state for the next use.
+         * @param stages Pipeline stages of the next use.
+         * @param accesses Memory accesses of the next use.
+         * @returns Pending history; assign its revision after recording the barrier.
+         */
+        MKT_NODISCARD auto Next( rhi::ResourceStates stateBefore, core::u64 revisionBefore,
+            rhi::ResourceStates stateAfter, rhi::PipelineStageFlags stages, rhi::BarrierAccessFlags accesses ) const -> FGBarrierHistory;
+    };
+
     struct FGResource {
         Ref<IResource> mResource{};
         FGResourceHandle mResourceID{};
         FGResourceType mType{ FGResourceType::eInvalid };
+        FGBarrierHistory mBarrierHistory{};
     };
 
     class FGResourceManager final {
@@ -508,9 +536,10 @@ namespace mikoto::renderer {
     struct FGBarrier {
         FGResourceHandle mResourceID{};  // which resource to transition
 
-        FGResourceAccess mAccess{};
-        FGPipelineStage mOldState{};       // state before this pass
-        FGPipelineStage mNewState{};       // state this pass requires
+        // Only the destination is known at compile time. The source depends on
+        // which passes actually execute, previous frames, and external users.
+        FGPipelineStage mNewState{};
+        FGResourceAccess mNewAccess{};
     };
 
     struct FGCompiledPlan {

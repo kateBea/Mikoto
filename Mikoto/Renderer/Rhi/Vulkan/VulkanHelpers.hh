@@ -62,6 +62,20 @@ namespace mikoto::renderer::vulkan {
     MKT_NODISCARD auto GetResourceState( VkImageLayout layout ) -> rhi::ResourceStates;
     MKT_NODISCARD auto GetStageMask( rhi::ResourceStates state ) -> VkPipelineStageFlags2;
 
+    /**
+     * Converts every selected RHI pipeline stage to a Synchronization2 stage.
+     * @param stages Pipeline stages to include; None produces an empty scope.
+     * @returns The combined Vulkan stage mask.
+     */
+    MKT_NODISCARD auto GetStageMask( rhi::PipelineStageFlags stages ) -> VkPipelineStageFlags2;
+
+    /**
+     * Converts explicit RHI memory accesses without widening their scope.
+     * @param accesses Memory accesses to include; None produces an execution-only scope.
+     * @returns The combined Vulkan access mask.
+     */
+    MKT_NODISCARD auto GetAccessMask( rhi::BarrierAccessFlags accesses ) -> VkAccessFlags2;
+
     MKT_NODISCARD auto GetMipmapMode( rhi::SamplerMipmapMode mode ) -> VkSamplerMipmapMode;
 
     MKT_UNUSED_FUNC MKT_NODISCARD auto GetAccessMask( rhi::ResourceStates state ) -> VkAccessFlags2;

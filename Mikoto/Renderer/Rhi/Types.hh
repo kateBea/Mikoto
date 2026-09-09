@@ -529,7 +529,7 @@ namespace mikoto::renderer::rhi {
     using PipelineStageFlags = core::Flags<PipelineStageFlagsProperties>;
 
     struct PipelineStageFlagsBits {
-        static constexpr PipelineStageFlags None{ BIT_SET( 0 ) };
+        static constexpr PipelineStageFlags None{ 0 };
 
         static constexpr PipelineStageFlags Top{ BIT_SET( 0 ) };
         static constexpr PipelineStageFlags DrawIndirect{ BIT_SET( 1 ) };
@@ -559,8 +559,6 @@ namespace mikoto::renderer::rhi {
         static constexpr PipelineStageFlags Clear{ BIT_SET( 35 ) };
         static constexpr PipelineStageFlags IndexInput{ BIT_SET( 36 ) };
 
-        static constexpr PipelineStageFlags PreRasterizationShaders{ BIT_SET( 38 ) };
-
         static constexpr PipelineStageFlags TaskShader{ BIT_SET( 19 ) };
         static constexpr PipelineStageFlags MeshShader{ BIT_SET( 20 ) };
 
@@ -568,6 +566,43 @@ namespace mikoto::renderer::rhi {
         static constexpr PipelineStageFlags RayTracingShader{ BIT_SET( 21 ) };
 
         static constexpr PipelineStageFlags All{ ~0ULL };
+    };
+
+    /** Explicit, combinable memory accesses used by enhanced barriers. */
+    struct BarrierAccessProperties {
+        using Data = core::u64;
+    };
+
+    using BarrierAccessFlags = core::Flags<BarrierAccessProperties>;
+
+    struct BarrierAccessFlagsBits {
+        static constexpr BarrierAccessFlags None{ 0 };
+        static constexpr BarrierAccessFlags IndirectCommandRead{ 1ULL << 0 };
+        static constexpr BarrierAccessFlags IndexRead{ 1ULL << 1 };
+        static constexpr BarrierAccessFlags VertexAttributeRead{ 1ULL << 2 };
+        static constexpr BarrierAccessFlags ConstantBuffer{ 1ULL << 3 };
+        static constexpr BarrierAccessFlags ShaderSampledRead{ 1ULL << 4 };
+        static constexpr BarrierAccessFlags ShaderStorageRead{ 1ULL << 5 };
+        static constexpr BarrierAccessFlags ShaderStorageWrite{ 1ULL << 6 };
+        static constexpr BarrierAccessFlags ColorAttachmentRead{ 1ULL << 7 };
+        static constexpr BarrierAccessFlags ColorAttachmentWrite{ 1ULL << 8 };
+        static constexpr BarrierAccessFlags DepthStencilRead{ 1ULL << 9 };
+        static constexpr BarrierAccessFlags DepthStencilWrite{ 1ULL << 10 };
+        static constexpr BarrierAccessFlags TransferRead{ 1ULL << 11 };
+        static constexpr BarrierAccessFlags TransferWrite{ 1ULL << 12 };
+        static constexpr BarrierAccessFlags ResolveRead{ 1ULL << 13 };
+        static constexpr BarrierAccessFlags ResolveWrite{ 1ULL << 14 };
+        static constexpr BarrierAccessFlags HostRead{ 1ULL << 15 };
+        static constexpr BarrierAccessFlags HostWrite{ 1ULL << 16 };
+        static constexpr BarrierAccessFlags MemoryRead{ 1ULL << 17 };
+        static constexpr BarrierAccessFlags MemoryWrite{ 1ULL << 18 };
+        static constexpr BarrierAccessFlags AccelerationStructureRead{ 1ULL << 19 };
+        static constexpr BarrierAccessFlags AccelerationStructureWrite{ 1ULL << 20 };
+        static constexpr BarrierAccessFlags AccelerationStructureBuildInputRead{ 1ULL << 21 };
+        static constexpr BarrierAccessFlags StructuredBufferRead{ 1ULL << 22 };
+
+        static constexpr BarrierAccessFlags Writes{ ShaderStorageWrite | ColorAttachmentWrite |
+            DepthStencilWrite | TransferWrite | ResolveWrite | HostWrite | MemoryWrite | AccelerationStructureWrite };
     };
 
     // Texture layout flags
@@ -586,6 +621,9 @@ namespace mikoto::renderer::rhi {
         static constexpr TextureLayoutFlags CopySource{ BIT_SET(6) };
         static constexpr TextureLayoutFlags CopyDest{ BIT_SET(7) };
         static constexpr TextureLayoutFlags Present{ BIT_SET(8) };
+        static constexpr TextureLayoutFlags ResolveSource{ BIT_SET(9) };
+        static constexpr TextureLayoutFlags ResolveDest{ BIT_SET(10) };
+        static constexpr TextureLayoutFlags DepthStencilReadOnly{ BIT_SET(11) };
     };
 
     /**
@@ -611,13 +649,12 @@ namespace mikoto::renderer::rhi {
      * Byte range within a buffer; @ref kEntireBuffer denotes the complete resource.
      */
     struct BufferRange {
-        core::u64 mByteOffset = 0;
-        core::u64 mByteSize = 0;
+        core::u64 mByteOffset{ 0 };
+        core::u64 mByteSize{ 0 };
 
         BufferRange() = default;
 
-        BufferRange( core::u64 byteOffset, core::u64 byteSize )
-            : mByteOffset{ byteOffset }, mByteSize{ byteSize } {}
+        BufferRange( core::u64 byteOffset, core::u64 byteSize );
 
         /**
          * Returns the value produced by IsEntireBuffer.

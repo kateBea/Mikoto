@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
+#include <cmath>
+
 #include <EASTL/memory.h>
 #include <EASTL/atomic.h>
 #include <EASTL/unique_ptr.h>
@@ -26,13 +29,14 @@
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Types.hh>
 
 #include <Logging/Assert.hh>
@@ -133,6 +137,7 @@ namespace mikoto::physics {
             mSimulationInfo.mBodyInterface->RemoveBody(val->GetID());
             mSimulationInfo.mBodyInterface->DestroyBody(val->GetID());
         }
+        mBodies.clear();
 
         mSimulationInfo.mTempAllocator.reset();
 
@@ -146,7 +151,9 @@ namespace mikoto::physics {
 
         PreUpdate();
 
-        constexpr i32 collisionSteps{ 1 };
+        // Keep the solver stable during short frame hitches without allowing one bad
+        // frame to monopolise the game thread.
+        const i32 collisionSteps{ std::clamp( static_cast<i32>( std::ceil( dt * 60.0f ) ), 1, 4 ) };
         mSimulationInfo.mPhysicsSystem.Update( dt, collisionSteps, mSimulationInfo.mTempAllocator.get(), PhysicSystem::Get()->GetJoltJobSystem() );
 
         PostUpdate();
@@ -185,35 +192,35 @@ namespace mikoto::physics {
             }
 
             JPH::Body* body{ GetJoltBody( rb.GetBodyID() ) };
-            UpdateBodyProperties( body, tr, rb );
-
-            // Jolt puts bodies to sleep to save resources
-            if (!rb.IsBodyType( RigidBodyComponent::BodyType::eStatic ) && !mSimulationInfo.mBodyInterface->IsActive( body->GetID() ) ) {
-                mSimulationInfo.mBodyInterface->ActivateBody( body->GetID() );
+            if ( !body ) {
+                rb.RemoveBodyID();
+                continue;
             }
+            UpdateBodyProperties( body, tr, rb );
         }
     }
 
     auto PhysicsWorld::UpdateBodyProperties(JPH::Body* body, TransformComponent& tr, RigidBodyComponent& rb ) const -> void {
-        // should only be called by the BodyInterface since it also requires updating the broadphase
-        mSimulationInfo.mBodyInterface->SetPositionAndRotation(
-            body->GetID(), GetFloat3F( tr.GetTranslation() ),
-            GetQuatF( tr.GetRotation() ), JPH::EActivation::Activate );
-
         const auto motionType{ GetJoltMotionType( rb.GetBodyType( ) ) };
 
         // Line up motion types if it has been updated
         if (motionType != body->GetMotionType()) {
-            if (motionType == JPH::EMotionType::Static && body->IsActive()) {
-                mSimulationInfo.mBodyInterface->DeactivateBody( body->GetID() );
-            }
+            mSimulationInfo.mBodyInterface->SetMotionType( body->GetID(), motionType, JPH::EActivation::Activate );
+        }
 
-            body->SetMotionType( motionType );
+        // Static and kinematic transforms are authored by ECS. Dynamic transforms
+        // are authored by Jolt and copied back in PostUpdate; writing them here
+        // would erase every simulated movement once per frame.
+        if ( !rb.IsDynamic() ) {
+            mSimulationInfo.mBodyInterface->SetPositionAndRotation(
+                body->GetID(), GetFloat3F( tr.GetTranslation() ),
+                GetQuatF( tr.GetRotation() ),
+                rb.IsBodyType( RigidBodyComponent::BodyType::eStatic ) ? JPH::EActivation::DontActivate : JPH::EActivation::Activate );
         }
 
         if ( rb.IsBodyType( RigidBodyComponent::BodyType::eKinematic ) ) {
-            body->SetAngularVelocity( GetFloat3F( rb.GetAngularVelocity() ) );
-            body->SetLinearVelocity( GetFloat3F( rb.GetLinearVelocity() ) );
+            mSimulationInfo.mBodyInterface->SetAngularVelocity( body->GetID(), GetFloat3F( rb.GetAngularVelocity() ) );
+            mSimulationInfo.mBodyInterface->SetLinearVelocity( body->GetID(), GetFloat3F( rb.GetLinearVelocity() ) );
         }
 
         // Mass and friction
@@ -226,20 +233,26 @@ namespace mikoto::physics {
         // Degrees of freedom dynamic objects (which axis the object is allowed to rotate, translate
 
 
-        // Restitution
-        body->SetRestitution( rb.GetRestitution() );
+        if ( !rb.IsBodyType( RigidBodyComponent::BodyType::eStatic ) ) {
+            mSimulationInfo.mBodyInterface->SetGravityFactor( body->GetID(), rb.UseGravity() ? 1.0f : 0.0f );
+        }
+        mSimulationInfo.mBodyInterface->SetFriction( body->GetID(), rb.GetFriction() );
+        mSimulationInfo.mBodyInterface->SetRestitution( body->GetID(), rb.GetRestitution() );
     }
 
     auto PhysicsWorld::PostUpdate() -> void {
         auto& registry{ mScene->GetRegistry() };
 
-        const auto& lockInterface{ mSimulationInfo.mPhysicsSystem.GetBodyLockInterface() };
         for ( auto [entity, rb, tr]: registry.view<RigidBodyComponent, TransformComponent>().each() ) {
-            if ( !rb.IsValidBodyID() ) {
+            if ( !rb.IsValidBodyID() || !rb.IsDynamic() ) {
                 continue;
             }
 
             const JPH::Body* body{ GetJoltBody( rb.GetBodyID() ) };
+            if ( !body ) {
+                rb.RemoveBodyID();
+                continue;
+            }
 
             const JPH::RMat44 transform{ body->GetCenterOfMassTransform() };
 
@@ -268,6 +281,10 @@ namespace mikoto::physics {
         RigidBodyComponent& rb{ entity->GetComponent<RigidBodyComponent>() };
 
         const JPH::Body* body{ GetJoltBody( rb.GetBodyID() ) };
+        if ( !body ) {
+            rb.RemoveBodyID();
+            return;
+        }
         mSimulationInfo.mBodyInterface->RemoveBody( body->GetID() );
         mSimulationInfo.mBodyInterface->DestroyBody( body->GetID() );
 
@@ -281,30 +298,74 @@ namespace mikoto::physics {
             return;
         }
 
+        if ( !mSimulationInfo.mBodyInterface || !entity->HasComponent<RigidBodyComponent>() || !entity->HasComponent<TransformComponent>() ) {
+            return;
+        }
+
         TransformComponent& tc{ entity->GetComponent<TransformComponent>() };
         RigidBodyComponent& rb{ entity->GetComponent<RigidBodyComponent>() };
 
-        // The size expect the half extent, dimensions defined from the center outwards
-        float3 halfExtent{ tc.GetScale() / 2.0f };
+        if ( rb.IsValidBodyID() ) {
+            return;
+        }
 
-        JPH::Vec3 size{ GetFloat3F( halfExtent ) };
-        JPH::Vec3 position{ tc.GetTranslation().x, tc.GetTranslation().y, tc.GetTranslation().z };
+        const float3 absoluteScale{ glm::abs( tc.GetScale() ) };
+        JPH::ShapeRefC shape{};
+        float3 colliderOffset{};
+        bool isTrigger{};
 
-        // Simple shape for now (box)
-        const JPH::BoxShapeSettings shapeSettings{ size };
-        auto shape{ shapeSettings.Create().Get() };
+        // Components are mutually exclusive in the intended scene model. The
+        // priority below lets an explicitly added specialised collider supersede
+        // the default box that accompanies a new rigid body.
+        if ( entity->HasComponent<MeshColliderComponent>() ) {
+            const float3 halfExtent{ glm::max( absoluteScale * 0.5f, float3{ 0.001f } ) };
+            shape = JPH::BoxShapeSettings{ GetFloat3F( halfExtent ) }.Create().Get();
+            const auto& collider{ entity->GetComponent<MeshColliderComponent>() };
+            colliderOffset = collider.GetOffset();
+            isTrigger = collider.IsTrigger();
+            MKT_CORE_LOGGER_WARN( "Mesh collider has no cooked collision geometry; using a box fallback." );
+        } else if ( entity->HasComponent<CapsuleColliderComponent>() ) {
+            const auto& collider{ entity->GetComponent<CapsuleColliderComponent>() };
+            const float radius{ glm::max( collider.GetRadius() * glm::max( absoluteScale.x, absoluteScale.z ), 0.001f ) };
+            const float halfHeight{ glm::max( collider.GetHalfHeight() * absoluteScale.y, 0.001f ) };
+            shape = JPH::CapsuleShapeSettings{ halfHeight, radius }.Create().Get();
+            colliderOffset = collider.GetOffset();
+            isTrigger = collider.IsTrigger();
+        } else if ( entity->HasComponent<SphereColliderComponent>() ) {
+            const auto& collider{ entity->GetComponent<SphereColliderComponent>() };
+            const float maxScale{ std::max( { absoluteScale.x, absoluteScale.y, absoluteScale.z } ) };
+            const float radius{ glm::max( collider.GetRadius() * maxScale, 0.001f ) };
+            shape = JPH::SphereShapeSettings{ radius }.Create().Get();
+            colliderOffset = collider.GetOffset();
+            isTrigger = collider.IsTrigger();
+        } else if ( entity->HasComponent<BoxColliderComponent>() ) {
+            const auto& collider{ entity->GetComponent<BoxColliderComponent>() };
+            shape = JPH::BoxShapeSettings{ GetFloat3F( glm::max( collider.GetHalfExtents() * absoluteScale, float3{ 0.001f } ) ) }.Create().Get();
+            colliderOffset = collider.GetOffset();
+            isTrigger = collider.IsTrigger();
+        } else {
+            // Keep malformed rigid bodies physically valid even if their collider
+            // component was removed outside the scene command path.
+            const float3 halfExtent{ glm::max( absoluteScale * 0.5f, float3{ 0.001f } ) };
+            shape = JPH::BoxShapeSettings{ GetFloat3F( halfExtent ) }.Create().Get();
+        }
+
+        shape = JPH::RotatedTranslatedShapeSettings{ GetFloat3F( colliderOffset ), JPH::Quat::sIdentity(), shape.GetPtr() }.Create().Get();
+
+        const JPH::Vec3 position{ GetFloat3F( tc.GetTranslation() ) };
 
         JPH::BodyCreationSettings settings{
             shape,
             position,
-            JPH::Quat::sIdentity(),
+            GetQuatF( tc.GetRotation() ),
             GetJoltMotionType( rb.GetBodyType() ),
-            Layers::MOVING
+            rb.IsBodyType( RigidBodyComponent::BodyType::eStatic ) ? Layers::NON_MOVING : Layers::MOVING
         };
 
         settings.mFriction = rb.GetFriction();
         settings.mMassPropertiesOverride.mMass = rb.GetMass();
         settings.mRestitution = rb.GetRestitution();
+        settings.mIsSensor = isTrigger;
 
         // When this body is created as static, this setting tells the system to create
         // a MotionProperties object so that the object can be switched to kinematic or dynamic
@@ -314,6 +375,10 @@ namespace mikoto::physics {
         settings.mMotionQuality = JPH::EMotionQuality::LinearCast;
 
         JPH::Body *body{ mSimulationInfo.mBodyInterface->CreateBody( settings ) };
+        if ( !body ) {
+            MKT_CORE_LOGGER_ERROR( "Failed to create physics body." );
+            return;
+        }
         mSimulationInfo.mBodyInterface->AddBody( body->GetID(), JPH::EActivation::Activate );
 
         const auto [it, success] {
@@ -328,14 +393,28 @@ namespace mikoto::physics {
             return;
         }
 
-        MeshColliderComponent& colliderComponent{ entity->GetComponent<MeshColliderComponent>() };
-        physics::ColliderType colliderType{ colliderComponent.GetColliderType() };
+        if ( !entity->HasComponent<RigidBodyComponent>() ) {
+            return;
+        }
+
+        if ( !entity->GetComponent<RigidBodyComponent>().IsValidBodyID() ) {
+            // This is the normal ordering when adding a rigid body creates its
+            // default collider. OnRigidBodyAdded will create the Jolt body next.
+            return;
+        }
+
+        // Jolt shapes are immutable. Recreate the body so a newly selected collider
+        // becomes the single authoritative collision shape for this entity.
+        RemoveRigidBody( entity );
+        AddRigidBody( entity );
     }
 
     auto PhysicsWorld::RemoveColliderBody( Entity *entity ) -> void {
-        if (!entity) {
+        if (!entity || !entity->HasComponent<RigidBodyComponent>()) {
             return;
         }
+
+        RemoveRigidBody( entity );
     }
 
     auto PhysicsWorld::SetGravity( const float3 &gravity ) -> void {

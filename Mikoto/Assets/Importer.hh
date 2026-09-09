@@ -33,10 +33,12 @@ namespace mikoto::asset {
     // Aligned to make it easy to use in shaders
     struct alignas( 16 ) VertexDescription_Std430Alignment {
         core::float3 mPosition{};
-        core::f32 mPad0;
+        // meshoptimizer compares complete vertex bytes while reindexing, so
+        // the explicit std430 padding must always have a deterministic value.
+        core::f32 mPad0{};
 
         core::float3 mNormals{};
-        core::f32 mPad1;
+        core::f32 mPad1{};
 
         core::float4 mColors{ 1.0f, 1.0f, 1.0f, 1.0f };
 

@@ -89,12 +89,13 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto GetDeviceBufferAddress( FGBufferHandle handle ) -> core::u64;
 
         MKT_NODISCARD auto PushTexture_SRV( FGTextureHandle handle ) -> core::u32;
+
         MKT_NODISCARD auto PushSampler( FGSamplerHandle handle ) -> core::u32;
 
         MKT_NODISCARD auto PushBuffer_SRV( FGBufferHandle handle ) -> core::u32;
         MKT_NODISCARD auto PushBuffer_UAV( FGBufferHandle handle ) -> core::u32;
 
-        auto CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>>& barriers ) -> void;
+        auto SubmitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>>& barriers ) -> void;
 
         MKT_NODISCARD auto ImportTexture( rhi::TextureHandle handle ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportSampler( rhi::SamplerHandle handle ) -> FGSamplerHandle;
@@ -163,6 +164,7 @@ namespace mikoto::renderer {
         eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderBuffers_UAV{};
 
         eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderTextures_SRV{};
+        eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderTextures_UIntSRV{};
         eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderTextures_UAV{};
 
         eastl::fixed_hash_map<FGResourceHandle, core::u32, 20> mCachedShaderSamplers{};

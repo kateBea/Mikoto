@@ -125,11 +125,11 @@ namespace mikoto::editor {
         mCommandList->Begin( { .mScopeName = "EditorHelloTriangleLayer Render" } );
 
         // Set graphics state
-        auto graphicsState{ RenderDescription{}
+        auto graphicsState{ RenderPassDescription{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
-        mCommandList->BeginRendering( graphicsState );
+        mCommandList->BeginRenderPass( graphicsState );
 
         mCommandList->BindPipeline( mPipeline.GetPtr() );
 
@@ -141,9 +141,10 @@ namespace mikoto::editor {
             .SetVertexCount( 3 ) };
         mCommandList->Draw( drawArguments );
 
-        mCommandList->EndRendering();
+        mCommandList->EndRenderPass();
 
-        mCommandList->SetTransition( mColorImage.GetPtr(), ResourceStates::eShaderResource );
+        mCommandList->SetTransition( TransitionDescription{}
+            .AddTexture( mColorImage.GetPtr(), ResourceStates::eShaderResource ) );
 
         mCommandList->End();
 

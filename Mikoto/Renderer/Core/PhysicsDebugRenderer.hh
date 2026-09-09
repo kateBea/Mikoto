@@ -15,14 +15,12 @@
 #ifndef MIKOTO_PHYSICS_DEBUG_RENDERER_HH
 #define MIKOTO_PHYSICS_DEBUG_RENDERER_HH
 
-#ifndef JPH_DEBUG_RENDERER
-    #error This file should only be included when JPH_DEBUG_RENDERER is defined
-#endif // JPH_DEBUG_RENDERER
-
 // Jolt needs to be included before
 #include <Jolt/Jolt.h>
+#if defined( JPH_DEBUG_RENDERER )
 #include <Jolt/Renderer/DebugRenderer.h>
 #include <Jolt/Renderer/DebugRendererSimple.h>
+#endif
 
 #include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
@@ -37,6 +35,8 @@
 #include <Renderer/Core/FrameGraph.hh>
 
 namespace mikoto::renderer {
+
+#if defined( JPH_DEBUG_RENDERER )
 
     // https://jrouwe.github.io/JoltPhysics/?utm_source=chatgpt.com
 
@@ -200,6 +200,9 @@ namespace mikoto::renderer {
         static constexpr core::usize kMaxVerticesTriangles{ 64'000 };
 
         rhi::IGpuDevice* mDevice{};
+        core::u32 mRenderWidth{ 1920 };
+        core::u32 mRenderHeight{ 1080 };
+        bool mIsSupported{};
 
         const scene::Camera* mCamera{};
 
@@ -235,8 +238,35 @@ namespace mikoto::renderer {
 
     // Debug renderer playback
 
+#else
 
-    // Debug renderer recorder
+    // Physics debug drawing is deliberately compiled out of non-debug Jolt builds.
+    // These no-op interfaces preserve the editor/service ABI without pulling the
+    // optional Jolt renderer implementation into release targets.
+    class PhysicsDebugRenderer final {
+    public:
+        auto Init() -> void {}
+        auto Shutdown() -> void {}
+        auto Render() -> void {}
+
+        template<typename Position>
+        auto SetCameraPos( Position&& ) -> void {}
+    };
+
+    class PhysicsDebugRendererSimple final {
+    public:
+        auto Init() -> void {}
+        auto Shutdown() -> void {}
+        auto Render() -> void {}
+        auto SetCamera( const scene::Camera* ) -> void {}
+        auto DisplayImGuiWindowLines( bool& ) -> void {}
+        auto DisplayImGuiWindowTriangles( bool& ) -> void {}
+
+        template<typename Position>
+        auto SetCameraPos( Position&& ) -> void {}
+    };
+
+#endif // JPH_DEBUG_RENDERER
 }// namespace Mikoto
 
 #endif //MIKOTO_PHYSICS_DEBUG_RENDERER_HH

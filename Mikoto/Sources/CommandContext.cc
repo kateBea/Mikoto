@@ -28,61 +28,170 @@ namespace mikoto::renderer {
     using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;
 
-    MKT_NODISCARD constexpr auto GetResourceState(FGPipelineStage state, FGResourceAccess access ) -> ResourceStates {
+    MKT_NODISCARD constexpr auto GetPipelineStages( const FGPipelineStage state ) -> PipelineStageFlags {
         switch (state) {
-            case FGPipelineStage::eUnknown:                return ResourceStates::eUnknown;
+            case FGPipelineStage::eUnknown:                return PipelineStageFlagsBits::None;
 
-            // Buffers
-            case FGPipelineStage::eConstantBuffer:         return ResourceStates::eConstantBuffer;
-            case FGPipelineStage::eVertexBuffer:           return ResourceStates::eVertexBuffer;
-            case FGPipelineStage::eIndexBuffer:            return ResourceStates::eIndexBuffer;
-            case FGPipelineStage::eIndirectArgument:       return ResourceStates::eIndirectArgument;
+            case FGPipelineStage::eConstantBuffer:         return PipelineStageFlagsBits::AllGraphics | PipelineStageFlagsBits::ComputeShader;
+            case FGPipelineStage::eVertexBuffer:           return PipelineStageFlagsBits::VertexInput;
+            case FGPipelineStage::eIndexBuffer:            return PipelineStageFlagsBits::IndexInput;
+            case FGPipelineStage::eIndirectArgument:       return PipelineStageFlagsBits::DrawIndirect;
 
-            // Shader
+            case FGPipelineStage::eVertexShader:           return PipelineStageFlagsBits::VertexShader;
+            case FGPipelineStage::eHullShader:             return PipelineStageFlagsBits::HullShader;
+            case FGPipelineStage::eDomainShader:           return PipelineStageFlagsBits::DomainShader;
+            case FGPipelineStage::eGeometryShader:         return PipelineStageFlagsBits::GeometryShader;
+            case FGPipelineStage::eComputeShader:          return PipelineStageFlagsBits::ComputeShader;
+            case FGPipelineStage::ePixelShader:            return PipelineStageFlagsBits::PixelShader;
+
+            case FGPipelineStage::eUnorderedAccess:        return PipelineStageFlagsBits::AllGraphics | PipelineStageFlagsBits::ComputeShader;
+
+            case FGPipelineStage::eRenderTarget:           return PipelineStageFlagsBits::RenderTarget;
+            case FGPipelineStage::eDepthTarget:            return PipelineStageFlagsBits::EarlyFragmentTests | PipelineStageFlagsBits::LateFragmentTests;
+
+            // Small CopyBuffer uploads use vkCmdUpdateBuffer (CLEAR stage);
+            // larger uploads use vkCmdCopyBuffer (COPY stage).
+            case FGPipelineStage::eCopy:                   return PipelineStageFlagsBits::Copy | PipelineStageFlagsBits::Clear;
+            case FGPipelineStage::eResolve:                return PipelineStageFlagsBits::Resolve;
+            case FGPipelineStage::ePresent:                return PipelineStageFlagsBits::Bottom;
+
+            case FGPipelineStage::eAccelStructRead:
+            case FGPipelineStage::eAccelStructWrite:
+            case FGPipelineStage::eAccelStructBuildInput:
+            case FGPipelineStage::eAccelStructBuildBlas:   return PipelineStageFlagsBits::AccelerationStructureBuild;
+        }
+
+        return PipelineStageFlagsBits::AllCommands;
+    }
+
+    MKT_NODISCARD constexpr auto GetTextureLayout( const FGPipelineStage state, const FGResourceAccess access ) -> TextureLayoutFlags {
+        switch ( state ) {
+            case FGPipelineStage::eUnknown:         return TextureLayoutBits::Unknown;
             case FGPipelineStage::eVertexShader:
             case FGPipelineStage::eHullShader:
             case FGPipelineStage::eDomainShader:
             case FGPipelineStage::eGeometryShader:
             case FGPipelineStage::eComputeShader:
-            case FGPipelineStage::ePixelShader:         return ResourceStates::eShaderResource;
+            case FGPipelineStage::ePixelShader:     return access == FGResourceAccess::eWrite ? TextureLayoutBits::UnorderedAccess : TextureLayoutBits::ShaderResource;
+            case FGPipelineStage::eUnorderedAccess: return TextureLayoutBits::UnorderedAccess;
+            case FGPipelineStage::eRenderTarget:    return TextureLayoutBits::RenderTarget;
+            case FGPipelineStage::eDepthTarget:     return TextureLayoutBits::DepthStencil;
+            case FGPipelineStage::eCopy:            return access == FGResourceAccess::eWrite ? TextureLayoutBits::CopyDest : TextureLayoutBits::CopySource;
+            case FGPipelineStage::eResolve:         return access == FGResourceAccess::eWrite ? TextureLayoutBits::ResolveDest : TextureLayoutBits::ResolveSource;
+            case FGPipelineStage::ePresent:         return TextureLayoutBits::Present;
+            default:                                return TextureLayoutBits::General;
+        }
+    }
 
-            case FGPipelineStage::eUnorderedAccess:        return ResourceStates::eUnorderedAccess;
-
-            // Images
-            case FGPipelineStage::eRenderTarget:           return ResourceStates::eRenderTarget;
-            case FGPipelineStage::eDepthTarget: {
-                if (access == FGResourceAccess::eWrite) return ResourceStates::eDepthWrite;
-                if (access == FGResourceAccess::eRead) return ResourceStates::eDepthRead;
-
-                MKT_ASSERT( false, "Invalid access type" );
-            }
-
-            // Transfer
-            case FGPipelineStage::eCopy:   {
-                if (access == FGResourceAccess::eWrite) return ResourceStates::eCopyDest;
-                if (access == FGResourceAccess::eRead) return ResourceStates::eCopySource;
-
-                MKT_ASSERT( false, "Invalid access type" );
-            }
-
-            case FGPipelineStage::eResolve:         {
-                if (access == FGResourceAccess::eWrite) return ResourceStates::eResolveDest;
-                if (access == FGResourceAccess::eRead) return ResourceStates::eResolveSource;
-
-                MKT_ASSERT( false, "Invalid access type" );
-            }
-
-            // Present
-            case FGPipelineStage::ePresent:                return ResourceStates::ePresent;
-
-            // Raytracing
-            case FGPipelineStage::eAccelStructRead:        return ResourceStates::eAccelStructRead;
-            case FGPipelineStage::eAccelStructWrite:       return ResourceStates::eAccelStructWrite;
-            case FGPipelineStage::eAccelStructBuildInput:  return ResourceStates::eAccelStructBuildInput;
-            case FGPipelineStage::eAccelStructBuildBlas:   return ResourceStates::eAccelStructBuildBlas;
+    MKT_NODISCARD constexpr auto GetBarrierAccess( FGPipelineStage stage, FGResourceAccess access, FGResourceType type ) -> BarrierAccessFlags {
+        using BAccessFlags = BarrierAccessFlagsBits;
+        if ( access == FGResourceAccess::eNone ) {
+            return BAccessFlags::None;
         }
 
-        return ResourceStates::eUnknown;
+        const bool writes{ access == FGResourceAccess::eWrite };
+        switch ( stage ) {
+            case FGPipelineStage::eConstantBuffer:   return BAccessFlags::ConstantBuffer;
+            case FGPipelineStage::eVertexBuffer:     return BAccessFlags::VertexAttributeRead;
+            case FGPipelineStage::eIndexBuffer:      return BAccessFlags::IndexRead;
+            case FGPipelineStage::eIndirectArgument: return BAccessFlags::IndirectCommandRead;
+            // Load operations, blending, and depth testing can read attachments
+            // even when the graph declaration describes a render-target write.
+            case FGPipelineStage::eRenderTarget:     return BAccessFlags::ColorAttachmentRead | BAccessFlags::ColorAttachmentWrite;
+            case FGPipelineStage::eDepthTarget:      return BAccessFlags::DepthStencilRead | BAccessFlags::DepthStencilWrite;
+            case FGPipelineStage::eCopy:             return writes ? BAccessFlags::TransferWrite : BAccessFlags::TransferRead;
+            case FGPipelineStage::eResolve:          return writes ? BAccessFlags::ResolveWrite : BAccessFlags::ResolveRead;
+            case FGPipelineStage::ePresent:
+            case FGPipelineStage::eUnknown:          return BAccessFlags::None;
+            case FGPipelineStage::eAccelStructRead:  return BAccessFlags::AccelerationStructureRead;
+            case FGPipelineStage::eAccelStructWrite:
+            case FGPipelineStage::eAccelStructBuildBlas:
+                return BAccessFlags::AccelerationStructureRead | BAccessFlags::AccelerationStructureWrite;
+            case FGPipelineStage::eAccelStructBuildInput:
+                return BAccessFlags::AccelerationStructureBuildInputRead;
+            default:
+                if ( writes ) {
+                    // Shader writes can be read-modify-write operations.
+                    return BAccessFlags::ShaderStorageRead | BAccessFlags::ShaderStorageWrite;
+                }
+                if ( stage == FGPipelineStage::eUnorderedAccess ) {
+                    return BAccessFlags::ShaderStorageRead;
+                }
+                return type == FGResourceType::eTexture ? BAccessFlags::ShaderSampledRead : BAccessFlags::StructuredBufferRead;
+        }
+    }
+
+    // External work may have run at a stage that ResourceStates cannot express.
+    // Use a conservative source only at that boundary, never for normal graph uses.
+    MKT_NODISCARD constexpr auto GetExternalAccess( ResourceStates state, FGResourceType type ) -> BarrierAccessFlags {
+        using A = BarrierAccessFlagsBits;
+        switch ( state ) {
+            case ResourceStates::eUnknown:
+            case ResourceStates::ePresent: return A::None;
+            case ResourceStates::eConstantBuffer: return A::ConstantBuffer;
+            case ResourceStates::eVertexBuffer: return A::VertexAttributeRead;
+            case ResourceStates::eIndexBuffer: return A::IndexRead;
+            case ResourceStates::eIndirectArgument: return A::IndirectCommandRead;
+            case ResourceStates::eShaderResource: return type == FGResourceType::eTexture ? A::ShaderSampledRead : A::StructuredBufferRead;
+            case ResourceStates::eRenderTarget: return A::ColorAttachmentRead | A::ColorAttachmentWrite;
+            case ResourceStates::eDepthRead: return A::DepthStencilRead;
+            case ResourceStates::eDepthWrite: return A::DepthStencilRead | A::DepthStencilWrite;
+            case ResourceStates::eCopySource: return A::TransferRead;
+            case ResourceStates::eCopyDest: return A::TransferWrite;
+            case ResourceStates::eResolveSource: return A::ResolveRead;
+            case ResourceStates::eResolveDest: return A::ResolveWrite;
+            case ResourceStates::eUnorderedAccess: return A::ShaderStorageRead | A::ShaderStorageWrite;
+            case ResourceStates::eAccelStructRead: return A::AccelerationStructureRead;
+            case ResourceStates::eAccelStructBuildInput: return A::AccelerationStructureBuildInputRead;
+            case ResourceStates::eAccelStructWrite:
+            case ResourceStates::eAccelStructBuildBlas: return A::AccelerationStructureRead | A::AccelerationStructureWrite;
+            default: return A::MemoryRead | A::MemoryWrite;
+        }
+    }
+
+    MKT_NODISCARD constexpr auto GetTextureLayout( const ResourceStates state ) -> TextureLayoutFlags {
+        switch ( state ) {
+            case ResourceStates::eUnknown:         return TextureLayoutBits::Unknown;
+            case ResourceStates::eShaderResource:  return TextureLayoutBits::ShaderResource;
+            case ResourceStates::eUnorderedAccess: return TextureLayoutBits::UnorderedAccess;
+            case ResourceStates::eRenderTarget:    return TextureLayoutBits::RenderTarget;
+            case ResourceStates::eDepthRead:       return TextureLayoutBits::DepthStencilReadOnly;
+            case ResourceStates::eDepthWrite:      return TextureLayoutBits::DepthStencil;
+            case ResourceStates::eCopyDest:        return TextureLayoutBits::CopyDest;
+            case ResourceStates::eResolveDest:     return TextureLayoutBits::ResolveDest;
+            case ResourceStates::eCopySource:      return TextureLayoutBits::CopySource;
+            case ResourceStates::eResolveSource:   return TextureLayoutBits::ResolveSource;
+            case ResourceStates::ePresent:         return TextureLayoutBits::Present;
+            default:                              return TextureLayoutBits::General;
+        }
+    }
+
+    MKT_NODISCARD constexpr auto GetResourceState( const FGPipelineStage state, const FGResourceAccess access ) -> ResourceStates {
+        switch ( state ) {
+            case FGPipelineStage::eUnknown:               return ResourceStates::eUnknown;
+            case FGPipelineStage::eRenderTarget:          return ResourceStates::eRenderTarget;
+            // BeginRenderPass currently uses writable depth attachment layouts.
+            case FGPipelineStage::eDepthTarget:           return ResourceStates::eDepthWrite;
+            case FGPipelineStage::ePresent:               return ResourceStates::ePresent;
+            case FGPipelineStage::eConstantBuffer:        return ResourceStates::eConstantBuffer;
+            case FGPipelineStage::eVertexBuffer:          return ResourceStates::eVertexBuffer;
+            case FGPipelineStage::eIndexBuffer:           return ResourceStates::eIndexBuffer;
+            case FGPipelineStage::eIndirectArgument:      return ResourceStates::eIndirectArgument;
+            case FGPipelineStage::eVertexShader:
+            case FGPipelineStage::eHullShader:
+            case FGPipelineStage::eDomainShader:
+            case FGPipelineStage::eGeometryShader:
+            case FGPipelineStage::eComputeShader:
+            case FGPipelineStage::ePixelShader:           return access == FGResourceAccess::eWrite ? ResourceStates::eUnorderedAccess : ResourceStates::eShaderResource;
+            case FGPipelineStage::eUnorderedAccess:       return ResourceStates::eUnorderedAccess;
+            case FGPipelineStage::eCopy:                  return access == FGResourceAccess::eWrite ? ResourceStates::eCopyDest : ResourceStates::eCopySource;
+            case FGPipelineStage::eResolve:               return access == FGResourceAccess::eWrite ? ResourceStates::eResolveDest : ResourceStates::eResolveSource;
+            case FGPipelineStage::eAccelStructRead:       return ResourceStates::eAccelStructRead;
+            case FGPipelineStage::eAccelStructWrite:      return ResourceStates::eAccelStructWrite;
+            case FGPipelineStage::eAccelStructBuildInput: return ResourceStates::eAccelStructBuildInput;
+            case FGPipelineStage::eAccelStructBuildBlas:  return ResourceStates::eAccelStructBuildBlas;
+            default:                                    return ResourceStates::eCommon;
+        }
     }
 
     auto DrawIndirectState::SetBuffer( FGBufferHandle handle ) -> DrawIndirectState& {
@@ -140,7 +249,7 @@ namespace mikoto::renderer {
     }
 
     auto CommandContext::BeginRender( const ContextRenderState &gs ) -> void {
-        auto graphicsState{ RenderDescription{}
+        auto graphicsState{ RenderPassDescription{}
             .SetRenderArea( gs.mRenderArea ) };
         if ( gs.mDepthTarget.mRenderTarget.mHandle != FGResourceManager::kInvalidResourceHandle ) {
             graphicsState.AddDepthTarget( mResourceManager->Get( gs.mDepthTarget.mRenderTarget.mHandle ).mResource, gs.mDepthTarget.mLoadOp );
@@ -158,11 +267,11 @@ namespace mikoto::renderer {
             }
         }
 
-        mCommands->BeginRendering( graphicsState );
+        mCommands->BeginRenderPass( graphicsState );
     }
 
     auto CommandContext::EndRender() -> void {
-        mCommands->EndRendering();
+        mCommands->EndRenderPass();
     }
 
     auto CommandContext::SetViewportState( const ViewportState &vs ) -> void {
@@ -190,32 +299,82 @@ namespace mikoto::renderer {
         return CacheResourceDescriptorID_UAV( handle );
     }
 
-    auto CommandContext::CommitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>>& barriers ) -> void {
-        if (barriers.empty()) {
+    auto CommandContext::SubmitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>>& barriers ) -> void {
+        if ( barriers.empty() ) {
             return;
         }
 
-        for (const auto& [resourceID, barrier] : barriers) {
-            FGResource resource{ mResourceManager->Get( barrier.second.mResourceID ) };
-            auto desired{ GetResourceState( barrier.second.mNewState, barrier.second.mAccess ) };
+        struct PendingState {
+            FGResource* mResource{};
+            DeviceObject* mDeviceResource{};
+            FGBarrierHistory mHistory{};
+        };
 
-            // Update the state I need to transition the resource from, some resources start with unknown state
-            // but then they stay and a known state, I need to do the transition from that know state.
-            // This uses still non enhanced barriers
-            switch (resource.mType) {
-                case FGResourceType::eTexture:
-                    mCommands->RecordTransition( checked_cast<ITexture*>( resource.mResource.GetPtr() ), desired );
+        BarrierDescription description{};
+        eastl::vector<PendingState> pendingStates{};
+        pendingStates.reserve( barriers.size() );
+
+        for ( const auto& [resourceID, namedBarrier] : barriers ) {
+            const auto& required{ namedBarrier.second };
+            FGResource& resource{ mResourceManager->Get( resourceID ) };
+            auto* deviceResource{ checked_cast<DeviceObject*>( resource.mResource.GetPtr() ) };
+            const ResourceStates stateBefore{ deviceResource->GetResourceState() };
+            const ResourceStates stateAfter{ GetResourceState( required.mNewState, required.mNewAccess ) };
+            const auto& history{ resource.mBarrierHistory };
+
+            // A state revision catches external transitions even when they
+            // return to the same layout before the graph next sees the resource.
+            const bool historyIsCurrent{ history.IsCurrent( stateBefore, deviceResource->GetResourceStateRevision() ) };
+
+            const PipelineStageFlags stageBefore{ historyIsCurrent ? history.mStages :
+                stateBefore == ResourceStates::eUnknown ? PipelineStageFlagsBits::None : PipelineStageFlagsBits::AllCommands };
+            const BarrierAccessFlags accessBefore{ historyIsCurrent ? history.mAccess : GetExternalAccess( stateBefore, resource.mType ) };
+            const PipelineStageFlags stageAfter{ GetPipelineStages( required.mNewState ) };
+            const BarrierAccessFlags accessAfter{ GetBarrierAccess( required.mNewState, required.mNewAccess, resource.mType ) };
+
+            switch ( resource.mType ) {
+                case FGResourceType::eTexture: {
+                    description.AddTexture( TextureBarrierDescription{}
+                        .SetTexture( checked_cast<ITexture*>( resource.mResource.GetPtr() ) )
+                        .SetBeforeLayout( GetTextureLayout( stateBefore ) )
+                        .SetBeforeStage( stageBefore )
+                        .SetBeforeAccess( accessBefore )
+                        .SetAfterLayout( GetTextureLayout( required.mNewState, required.mNewAccess ) )
+                        .SetAfterStage( stageAfter )
+                        .SetAfterAccess( accessAfter ) );
                     break;
-                case FGResourceType::eBuffer:
-                    mCommands->RecordTransition( checked_cast<IBuffer*>( resource.mResource.GetPtr() ), desired );
+                }
+                case FGResourceType::eBuffer: {
+                    description.AddBuffer( BufferBarrierDescription{}
+                        .SetBuffer( checked_cast<IBuffer*>( resource.mResource.GetPtr() ) )
+                        .SetBeforeStage( stageBefore )
+                        .SetBeforeAccess( accessBefore )
+                        .SetAfterStage( stageAfter )
+                        .SetAfterAccess( accessAfter ) );
                     break;
+                }
                 default:
                     MKT_ASSERT( false, "Unknown resource type" );
-                    break;
+                    continue;
             }
+
+            // Keep all outstanding reader scopes until a write or layout change.
+            // A barrier is still emitted between reads: it carries availability
+            // from the preceding writer to consumers at a different shader stage.
+            const auto nextHistory{ history.Next( stateBefore, deviceResource->GetResourceStateRevision(),
+                stateAfter, stageAfter, accessAfter ) };
+            pendingStates.push_back( PendingState{ &resource, deviceResource, nextHistory } );
         }
 
-        mCommands->CommitBarriers();
+        mCommands->SetBarrier( description );
+
+        // Publish only after recording. Compilation and skipped passes must not
+        // advance either the layout or its access history.
+        for ( auto& pending : pendingStates ) {
+            pending.mDeviceResource->SetResourceState( pending.mHistory.mState );
+            pending.mHistory.mResourceRevision = pending.mDeviceResource->GetResourceStateRevision();
+            pending.mResource->mBarrierHistory = pending.mHistory;
+        }
     }
 
     auto CommandContext::ImportTexture( TextureHandle handle ) -> FGTextureHandle {

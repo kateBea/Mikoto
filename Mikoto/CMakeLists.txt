@@ -70,6 +70,19 @@ FetchContent_Declare(fmt
 FetchContent_MakeAvailable(fmt)
 
 # =======================================================
+# argparse
+# =======================================================
+# Header-only command-line parser used during application bootstrap. Keep its
+# examples and tests out of Mikoto's build; only the interface target is needed.
+set(ARGPARSE_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+set(ARGPARSE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(argparse
+        GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+        GIT_TAG v3.2
+)
+FetchContent_MakeAvailable(argparse)
+
+# =======================================================
 # GLFW
 # =======================================================
 set(GLFW_INSTALL OFF CACHE BOOL "")
@@ -683,7 +696,7 @@ FetchContent_MakeAvailable(FreeImage)
 # ======================================
 # Project sources
 # ======================================
-file(GLOB SOURCE_FILES Sources/*.cc)
+file(GLOB SOURCE_FILES CONFIGURE_DEPENDS Sources/*.cc)
 
 # ======================================
 # ImGui sources (compiled directly into Mikoto)
@@ -749,6 +762,7 @@ set(ALL_SOURCES
 set(LIBRARIES
     glfw
     fmt::fmt
+    argparse
     EnTT::EnTT
     volk
     assimp
@@ -795,7 +809,14 @@ add_library(${PROJECT_NAME} STATIC ${ALL_SOURCES})
 # Lua needs to be installed on Linux
 if(UNIX)
     find_package(Lua REQUIRED)
-    list(APPEND LIBRARIES pthread OpenSSL::SSL OpenSSL::Crypto)
+    list(APPEND LIBRARIES pthread)
+endif()
+
+# Asio's TLS stream is only compiled when OpenSSL was found at configure time.
+# Link the imported targets on every platform that enables it; Windows needs
+# these just as much as Linux does.
+if(MIKOTO_ALLOW_SSL)
+    list(APPEND LIBRARIES OpenSSL::SSL OpenSSL::Crypto)
 endif()
 
 # For MSVC we find lua from Mikoto/Vendors folder

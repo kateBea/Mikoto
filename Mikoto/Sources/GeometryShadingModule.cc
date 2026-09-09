@@ -428,8 +428,8 @@ namespace mikoto::renderer {
             [](FGNodeBuilder& b, GeomShadingModuleInfo& info) {
                 b.UseResource( info.mSkyboxCubeRT, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
 
-                b.UseResource( info.mBoxVertexBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                b.UseResource( info.mBoxIndexBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                b.UseResource( info.mBoxVertexBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                b.UseResource( info.mBoxIndexBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
             },
             [this](CommandContext& ctx, Blackboard& blackboard){
                 if (mSkyboxMaterial.IsEmpty()) {
@@ -733,12 +733,12 @@ namespace mikoto::renderer {
                 const auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
                 const auto& finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
 
-                builder.UseResource( cameraData.mCameraData, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( cameraData.mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
                 builder.UseResource( geometryData.mGeometryAllocBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
                 builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mMaterialsBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mMaterialsBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
                 builder.UseResource( prePassData.mClusterBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );

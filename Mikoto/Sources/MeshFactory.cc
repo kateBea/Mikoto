@@ -105,7 +105,8 @@ namespace mikoto::asset {
                     // Always written to mip 0 for simplicity.
                     // These textures are shader read resources
                     cmd->Write( pbrMapInfo.mTexture.GetPtr(), image->mBufferSpan->GetData(), image->mBufferSpan->GetSize() );
-                    cmd->SetTransition( pbrMapInfo.mTexture.GetPtr(), ResourceStates::eShaderResource );
+                    cmd->SetTransition( TransitionDescription{}
+                        .AddTexture( pbrMapInfo.mTexture.GetPtr(), ResourceStates::eShaderResource ) );
                 }
             }
 
@@ -125,8 +126,8 @@ namespace mikoto::asset {
         }
 
         u32 meshIndex{ 0 };
-        for ( const auto &meshNode: data.mMeshNodes ) {
-            // Optimize vertices and indices
+        for ( auto& meshNode: data.mMeshNodes ) {
+            OptimizeMesh( meshNode );
 
             // Create vertices buffer (WindingOrder counter-clockwise)
             auto verticesDesc{ BufferCreateDescription{}

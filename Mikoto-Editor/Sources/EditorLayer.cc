@@ -474,7 +474,6 @@ namespace mikoto::editor {
             .mLightType = LightType::eDirectional };
         Entity *light{ mEditorState->mActiveScene->CreateEntity( lightCreateDesc ) };
 
-
         InitSphereMaterialsScene();
         //InitInstancingTestScene();
     }

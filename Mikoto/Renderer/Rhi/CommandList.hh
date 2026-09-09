@@ -18,6 +18,7 @@
 #include <EASTL/span.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
+#include <EASTL/vector.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -363,7 +364,7 @@ namespace mikoto::renderer::rhi {
     /**
      * Render-pass-like state, including render targets, clears and render area.
      */
-    struct RenderDescription {
+    struct RenderPassDescription {
         struct RenderTargetState {
             Color mClearColor{ kColorWhite };
             LoadOp mLoadOp{ LoadOp::eLoad };
@@ -383,7 +384,7 @@ namespace mikoto::renderer::rhi {
          * @param name Input value used by this operation.
          * @returns The result of SetScopeName.
          */
-        auto SetScopeName( eastl::string_view name ) -> RenderDescription&;
+        auto SetScopeName( eastl::string_view name ) -> RenderPassDescription&;
 
         /**
          * Sets the value handled by SetRenderArea.
@@ -391,7 +392,7 @@ namespace mikoto::renderer::rhi {
          * @param rec Input value used by this operation.
          * @returns The result of SetRenderArea.
          */
-        auto SetRenderArea( const Rect& rec ) -> RenderDescription&;
+        auto SetRenderArea( const Rect& rec ) -> RenderPassDescription&;
 
         /**
          * Adds the supplied value through AddDepthTarget.
@@ -400,7 +401,7 @@ namespace mikoto::renderer::rhi {
          * @param op Input value used by this operation.
          * @returns The result of AddDepthTarget.
          */
-        auto AddDepthTarget( TextureHandle target, LoadOp op = LoadOp::eClear ) -> RenderDescription&;
+        auto AddDepthTarget( TextureHandle target, LoadOp op = LoadOp::eClear ) -> RenderPassDescription&;
 
         /**
          * Adds the supplied value through AddRenderTarget.
@@ -411,154 +412,108 @@ namespace mikoto::renderer::rhi {
          * @param set Input value used by this operation.
          * @returns The result of AddRenderTarget.
          */
-        auto AddRenderTarget( TextureHandle target, const Color& c, LoadOp op = LoadOp::eClear, TextureSubresourceSet set = kAllSubResources ) -> RenderDescription&;
+        auto AddRenderTarget( TextureHandle target, const Color& c, LoadOp op = LoadOp::eClear, TextureSubresourceSet set = kAllSubResources ) -> RenderPassDescription&;
     };
 
     /**
-     * Describes a synchronization and access transition for a buffer range.
+     * Describes a whole-resource state transition. The command list records the
+     * transition immediately for every supplied buffer and texture.
      */
+    struct TransitionDescription {
+        struct BufferTransition {
+            IBuffer* mBuffer{};
+            ResourceStates mState{ ResourceStates::eUnknown };
+        };
+
+        struct TextureTransition {
+            ITexture* mTexture{};
+            ResourceStates mState{ ResourceStates::eUnknown };
+        };
+
+        eastl::vector<BufferTransition> mBuffers{};
+        eastl::vector<TextureTransition> mTextures{};
+
+        /**
+         * @brief Adds a buffer and its destination state.
+         * @param buffer Buffer to transition.
+         * @param state Destination state. */
+        auto AddBuffer( IBuffer* buffer, ResourceStates state ) -> TransitionDescription&;
+
+        /**
+         * @brief Adds a texture and its destination state.
+         * @param texture Texture to transition.
+         * @param state Destination state. */
+        auto AddTexture( ITexture* texture, ResourceStates state ) -> TransitionDescription&;
+    };
+
+    /** Describes synchronization and access requirements for one buffer. */
     struct BufferBarrierDescription {
-        IBuffer* mBuffer{ nullptr };
+        IBuffer* mBuffer{};
         BufferRange mRange{};
-
-        // Previous State
         PipelineStageFlags mStageBefore{ PipelineStageFlagsBits::None };
-        AccessType mAccessBefore{ AccessType::eNone };
-
-        // New State
+        BarrierAccessFlags mAccessBefore{ BarrierAccessFlagsBits::None };
         PipelineStageFlags mStageAfter{ PipelineStageFlagsBits::None };
-        AccessType mAccessAfter{ AccessType::eNone };
+        BarrierAccessFlags mAccessAfter{ BarrierAccessFlagsBits::None };
 
-        /**
-         * Sets the value handled by SetBuffer.
-         *
-         * @param handle Input value used by this operation.
-         * @returns The result of SetBuffer.
-         */
-        auto SetBuffer( BufferHandle handle ) -> BufferBarrierDescription&;
-
-        /**
-         * Sets the value handled by SetRange.
-         *
-         * @param range Input value used by this operation.
-         * @returns The result of SetRange.
-         */
+        auto SetBuffer( IBuffer* buffer ) -> BufferBarrierDescription&;
         auto SetRange( BufferRange range ) -> BufferBarrierDescription&;
-
-        /**
-         * Sets the value handled by SetBeforeStage.
-         *
-         * @param stage Input value used by this operation.
-         * @returns The result of SetBeforeStage.
-         */
         auto SetBeforeStage( PipelineStageFlags stage ) -> BufferBarrierDescription&;
-
         /**
-         * Sets the value handled by SetBeforeAccess.
-         *
-         * @param access Input value used by this operation.
-         * @returns The result of SetBeforeAccess.
+         * Sets the source memory-access scope.
+         * @param access Combined barrier access flags; None requests no memory availability operation.
+         * @returns This description for chained configuration.
          */
-        auto SetBeforeAccess( AccessType access ) -> BufferBarrierDescription&;
-
-        /**
-         * Sets the value handled by SetAfterStage.
-         *
-         * @param stage Input value used by this operation.
-         * @returns The result of SetAfterStage.
-         */
+        auto SetBeforeAccess( BarrierAccessFlags access ) -> BufferBarrierDescription&;
         auto SetAfterStage( PipelineStageFlags stage ) -> BufferBarrierDescription&;
-
         /**
-         * Sets the value handled by SetAfterAccess.
-         *
-         * @param access Input value used by this operation.
-         * @returns The result of SetAfterAccess.
+         * Sets the destination memory-access scope.
+         * @param access Combined barrier access flags; None requests no memory visibility operation.
+         * @returns This description for chained configuration.
          */
-        auto SetAfterAccess( AccessType access ) -> BufferBarrierDescription&;
+        auto SetAfterAccess( BarrierAccessFlags access ) -> BufferBarrierDescription&;
     };
 
-    /**
-     * Describes a synchronization, access and layout transition for a texture.
-     */
+    /** Describes synchronization, access, and layout requirements for one texture. */
     struct TextureBarrierDescription {
-        ITexture* mTexture{ nullptr };
-
+        ITexture* mTexture{};
         TextureSubresourceSet mSubresourceSet{ kAllSubResources };
-
-        // Previous State
         TextureLayoutFlags mLayoutBefore{ TextureLayoutBits::Unknown };
         PipelineStageFlags mStageBefore{ PipelineStageFlagsBits::None };
-        AccessType mAccessBefore{ AccessType::eNone };
-
-        // New State
+        BarrierAccessFlags mAccessBefore{ BarrierAccessFlagsBits::None };
         TextureLayoutFlags mLayoutAfter{ TextureLayoutBits::Unknown };
         PipelineStageFlags mStageAfter{ PipelineStageFlagsBits::None };
-        AccessType mAccessAfter{ AccessType::eNone };
+        BarrierAccessFlags mAccessAfter{ BarrierAccessFlagsBits::None };
 
-        /**
-         * Sets the value handled by SetTexture.
-         *
-         * @param handle Input value used by this operation.
-         * @returns The result of SetTexture.
-         */
-        auto SetTexture( TextureHandle handle ) -> TextureBarrierDescription&;
-
-        /**
-         * Sets the value handled by SetSubresourceSet.
-         *
-         * @param subResources Input value used by this operation.
-         * @returns The result of SetSubresourceSet.
-         */
-        auto SetSubresourceSet( TextureSubresourceSet subResources ) -> TextureBarrierDescription&;
-
-        /**
-         * Sets the value handled by SetBeforeLayout.
-         *
-         * @param layout Input value used by this operation.
-         * @returns The result of SetBeforeLayout.
-         */
+        auto SetTexture( ITexture* texture ) -> TextureBarrierDescription&;
+        auto SetSubresourceSet( TextureSubresourceSet subresources ) -> TextureBarrierDescription&;
         auto SetBeforeLayout( TextureLayoutFlags layout ) -> TextureBarrierDescription&;
-
-        /**
-         * Sets the value handled by SetBeforeStage.
-         *
-         * @param stage Input value used by this operation.
-         * @returns The result of SetBeforeStage.
-         */
         auto SetBeforeStage( PipelineStageFlags stage ) -> TextureBarrierDescription&;
 
         /**
-         * Sets the value handled by SetBeforeAccess.
-         *
-         * @param access Input value used by this operation.
-         * @returns The result of SetBeforeAccess.
+         * Sets the source memory-access scope independently of the source layout.
+         * @param access Combined barrier access flags.
+         * @returns This description for chained configuration.
          */
-        auto SetBeforeAccess( AccessType access ) -> TextureBarrierDescription&;
-
-        /**
-         * Sets the value handled by SetAfterLayout.
-         *
-         * @param layout Input value used by this operation.
-         * @returns The result of SetAfterLayout.
-         */
+        auto SetBeforeAccess( BarrierAccessFlags access ) -> TextureBarrierDescription&;
         auto SetAfterLayout( TextureLayoutFlags layout ) -> TextureBarrierDescription&;
-
-        /**
-         * Sets the value handled by SetAfterStage.
-         *
-         * @param stage Input value used by this operation.
-         * @returns The result of SetAfterStage.
-         */
         auto SetAfterStage( PipelineStageFlags stage ) -> TextureBarrierDescription&;
-
         /**
-         * Sets the value handled by SetAfterAccess.
-         *
-         * @param access Input value used by this operation.
-         * @returns The result of SetAfterAccess.
+         * Sets the destination memory-access scope independently of the destination layout.
+         * @param access Combined barrier access flags.
+         * @returns This description for chained configuration.
          */
-        auto SetAfterAccess( AccessType access ) -> TextureBarrierDescription&;
+        auto SetAfterAccess( BarrierAccessFlags access ) -> TextureBarrierDescription&;
+    };
+
+    /** Groups all enhanced barriers recorded by one SetBarrier call. */
+    struct BarrierDescription {
+        eastl::vector<BufferBarrierDescription> mBuffers{};
+        eastl::vector<TextureBarrierDescription> mTextures{};
+
+        auto AddBuffer( const BufferBarrierDescription& description ) -> BarrierDescription&;
+        auto AddBuffer( BufferBarrierDescription&& description ) -> BarrierDescription&;
+        auto AddTexture( const TextureBarrierDescription& description ) -> BarrierDescription&;
+        auto AddTexture( TextureBarrierDescription&& description ) -> BarrierDescription&;
     };
 
     /**
@@ -662,82 +617,12 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto End() -> void = 0;
 
-        /**
-         * Records a buffer barrier.
-         *
-         * @param barrier Buffer synchronization and access transition.
-         */
-        virtual auto RecordBarrier( const BufferBarrierDescription& barrier ) -> void = 0;
+        /** Records enhanced synchronization barriers immediately. */
+        virtual auto SetBarrier( const BarrierDescription& description ) -> void = 0;
 
-        /**
-         * Records a texture barrier.
-         *
-         * @param barrier Texture synchronization, access, and layout transition.
-         */
-        virtual auto RecordBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
+        /** Records whole-resource state transitions immediately. */
+        virtual auto SetTransition( const TransitionDescription& description ) -> void = 0;
 
-        /**
-         * Records a transition for an entire buffer.
-         *
-         * @param buffer Buffer to transition.
-         * @param stateBits Destination resource state.
-         */
-        virtual auto RecordTransition( IBuffer* buffer, ResourceStates stateBits ) -> void = 0;
-
-        /**
-         * Records a transition for an entire texture.
-         *
-         * @param texture Texture to transition.
-         * @param stateBits Destination resource state.
-         */
-        virtual auto RecordTransition( ITexture* texture, ResourceStates stateBits ) -> void = 0;
-
-        /**
-         * Commits all barriers recorded since the previous commit.
-         */
-        virtual auto CommitBarriers() -> void = 0;
-
-        /**
-         * Queues a buffer barrier for automatic batching.
-         *
-         * @param barrier Buffer barrier to queue.
-         */
-        virtual auto SetBarrier( const BufferBarrierDescription& barrier ) -> void = 0;
-
-        /**
-         * Queues a texture barrier for automatic batching.
-         *
-         * @param barrier Texture barrier to queue.
-         */
-        virtual auto SetBarrier( const TextureBarrierDescription& barrier ) -> void = 0;
-
-        /**
-         * Immediately records a transition for an entire buffer.
-         *
-         * Use @ref RecordTransition followed by @ref CommitBarriers when
-         * batching several transitions into one barrier command.
-         * This operation must occur before @ref BeginRendering.
-         * It also emits a memory dependency when the current and destination
-         * states are identical.
-         *
-         * @param buffer Buffer to transition.
-         * @param stateBits Destination resource state.
-         */
-        virtual auto SetTransition( IBuffer* buffer, ResourceStates stateBits ) -> void = 0;
-
-        /**
-         * Immediately records a transition for an entire texture.
-         *
-         * Use @ref RecordTransition followed by @ref CommitBarriers when
-         * batching several transitions into one barrier command.
-         * This operation must occur before @ref BeginRendering.
-         * It also emits a memory dependency when the current and destination
-         * states are identical.
-         *
-         * @param texture Texture to transition.
-         * @param stateBits Destination resource state.
-         */
-        virtual auto SetTransition( ITexture* texture, ResourceStates stateBits ) -> void = 0;
 
         /**
          * Enables or disables automatic barrier insertion.
@@ -849,12 +734,12 @@ namespace mikoto::renderer::rhi {
          *
          * @param state Render targets, clears, and render area.
          */
-        virtual auto BeginRendering( RenderDescription& state ) -> void = 0;
+        virtual auto BeginRenderPass( RenderPassDescription& state ) -> void = 0;
 
         /**
          * Ends the current rendering scope.
          */
-        virtual auto EndRendering() -> void = 0;
+        virtual auto EndRenderPass() -> void = 0;
 
         /**
          * Binds a graphics, compute, or ray-tracing pipeline.

@@ -162,20 +162,8 @@ namespace mikoto::renderer::d3d11 {
         auto Begin( const rhi::CommandListBeginDescription& desc ) -> void override;
         auto End() -> void override;
 
-        // More relaxed versions of SetResourceState
-        auto RecordBarrier( const rhi::BufferBarrierDescription& barrier ) -> void override;
-        auto RecordBarrier( const rhi::TextureBarrierDescription& barrier ) -> void override;
-
-        auto RecordTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
-        auto RecordTransition( rhi::ITexture* buffer, rhi::ResourceStates stateBits ) -> void override;
-
-        auto SetTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
-        auto SetTransition( rhi::ITexture* buffer, rhi::ResourceStates stateBits ) -> void override;
-
-        auto SetBarrier( const BufferBarrierDescription& barrier ) -> void override;
-        auto SetBarrier( const TextureBarrierDescription& barrier ) -> void override;
-
-        auto CommitBarriers() -> void override;
+        auto SetTransition( const rhi::TransitionDescription& description ) -> void override;
+        auto SetBarrier( const rhi::BarrierDescription& description ) -> void override;
 
         auto SetEnableAutomaticBarriers( bool enable ) -> void override;
 
@@ -195,8 +183,8 @@ namespace mikoto::renderer::d3d11 {
         auto Copy( rhi::IBuffer* dest, rhi::ITexture* src ) -> void override;
         auto Copy( rhi::IBuffer* dest, rhi::ITexture* src, const TextureSlice& srcSlice ) -> void override;
 
-        auto BeginRendering( rhi::RenderDescription& state ) -> void override;
-        auto EndRendering() -> void override;
+        auto BeginRenderPass( rhi::RenderPassDescription& state ) -> void override;
+        auto EndRenderPass() -> void override;
 
         auto BindPipeline( rhi::IPipeline* pipeline ) -> void override;
 
@@ -235,6 +223,15 @@ namespace mikoto::renderer::d3d11 {
         ~CommandList() override;
 
     private:
+        auto RecordBarrier( const rhi::BufferBarrierDescription& ) -> void;
+        auto RecordBarrier( const rhi::TextureBarrierDescription& ) -> void;
+        auto RecordTransition( rhi::IBuffer*, rhi::ResourceStates ) -> void;
+        auto RecordTransition( rhi::ITexture*, rhi::ResourceStates ) -> void;
+        auto SetTransition( rhi::IBuffer*, rhi::ResourceStates ) -> void;
+        auto SetTransition( rhi::ITexture*, rhi::ResourceStates ) -> void;
+        auto SetBarrier( const rhi::BufferBarrierDescription& ) -> void;
+        auto SetBarrier( const rhi::TextureBarrierDescription& ) -> void;
+        auto CommitBarriers() -> void;
         auto ClearState() -> void;
 
     private:

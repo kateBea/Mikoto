@@ -410,103 +410,167 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto GetBarrierSync( rhi::PipelineStageFlags flags ) -> D3D12_BARRIER_SYNC {
-        D3D12_BARRIER_SYNC result{};
+        using S = rhi::PipelineStageFlagsBits;
+        if ( flags == S::All || ( flags & S::AllCommands ) ) {
+            return D3D12_BARRIER_SYNC_ALL;
+        }
 
-        if (flags & rhi::PipelineStageFlagsBits::Top) result |= D3D12_BARRIER_SYNC_NONE;
-        if (flags & rhi::PipelineStageFlagsBits::DrawIndirect) result |= D3D12_BARRIER_SYNC_EXECUTE_INDIRECT;
-        if (flags & rhi::PipelineStageFlagsBits::VertexInput) result |= D3D12_BARRIER_SYNC_INDEX_INPUT | D3D12_BARRIER_SYNC_VERTEX_SHADING;
-        if (flags & rhi::PipelineStageFlagsBits::VertexShader) result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
-        if (flags & rhi::PipelineStageFlagsBits::HullShader) result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
-        if (flags & rhi::PipelineStageFlagsBits::DomainShader) result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
-        if (flags & rhi::PipelineStageFlagsBits::GeometryShader) result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
-        if (flags & rhi::PipelineStageFlagsBits::PixelShader) result |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
-        if (flags & rhi::PipelineStageFlagsBits::ComputeShader) result |= D3D12_BARRIER_SYNC_COMPUTE_SHADING;
-        if (flags & rhi::PipelineStageFlagsBits::RenderTarget) result |= D3D12_BARRIER_SYNC_RENDER_TARGET;
-        if (flags & rhi::PipelineStageFlagsBits::EarlyFragmentTests) result |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
-        if (flags & rhi::PipelineStageFlagsBits::Copy) result |= D3D12_BARRIER_SYNC_COPY;
-        if (flags & rhi::PipelineStageFlagsBits::Bottom) result |= D3D12_BARRIER_SYNC_ALL;
-        if (flags & rhi::PipelineStageFlagsBits::All) result |= D3D12_BARRIER_SYNC_ALL;
-
+        D3D12_BARRIER_SYNC result{ D3D12_BARRIER_SYNC_NONE };
+        if ( flags & S::DrawIndirect ) {
+            result |= D3D12_BARRIER_SYNC_EXECUTE_INDIRECT;
+        }
+        if ( flags & S::IndexInput ) {
+            result |= D3D12_BARRIER_SYNC_INDEX_INPUT;
+        }
+        if ( flags & S::VertexInput ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+        if ( flags & S::VertexShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+        if ( flags & S::HullShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+        if ( flags & S::DomainShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+        if ( flags & S::GeometryShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+        if ( flags & S::TaskShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+        if ( flags & S::MeshShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+        if ( flags & S::PixelShader ) {
+            result |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
+        }
+        if ( flags & S::ComputeShader ) {
+            result |= D3D12_BARRIER_SYNC_COMPUTE_SHADING;
+        }
+        if ( flags & S::RayTracingShader ) {
+            result |= D3D12_BARRIER_SYNC_RAYTRACING;
+        }
+        if ( flags & S::AccelerationStructureBuild ) {
+            result |= D3D12_BARRIER_SYNC_BUILD_RAYTRACING_ACCELERATION_STRUCTURE;
+        }
+        if ( flags & S::RenderTarget ) {
+            result |= D3D12_BARRIER_SYNC_RENDER_TARGET;
+        }
+        if ( flags & S::EarlyFragmentTests ) {
+            result |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
+        }
+        if ( flags & S::LateFragmentTests ) {
+            result |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
+        }
+        if ( flags & S::AllGraphics ) {
+            result |= D3D12_BARRIER_SYNC_DRAW;
+        }
+        if ( flags & S::Copy ) {
+            result |= D3D12_BARRIER_SYNC_COPY;
+        }
+        if ( flags & S::Resolve ) {
+            result |= D3D12_BARRIER_SYNC_RESOLVE;
+        }
+        if ( flags & S::Blit ) {
+            result |= D3D12_BARRIER_SYNC_DRAW;
+        }
+        if ( flags & S::Clear ) {
+            result |= D3D12_BARRIER_SYNC_COPY;
+        }
+        if ( flags & S::Transfer ) {
+            result |= D3D12_BARRIER_SYNC_COPY | D3D12_BARRIER_SYNC_RESOLVE;
+        }
+        if ( flags & S::Bottom ) {
+            result |= D3D12_BARRIER_SYNC_ALL;
+        }
+        if ( flags & S::Host ) {
+            result |= D3D12_BARRIER_SYNC_ALL;
+        }
         return result;
     }
 
-    auto GetBarrierAccess( rhi::PipelineStageFlags flags, rhi::AccessType accessType ) -> D3D12_BARRIER_ACCESS {
-        if ( accessType == rhi::AccessType::eNone ) {
+    auto GetBarrierAccess( rhi::BarrierAccessFlags accesses ) -> D3D12_BARRIER_ACCESS {
+        using A = rhi::BarrierAccessFlagsBits;
+        if ( accesses == A::None ) {
             return D3D12_BARRIER_ACCESS_NO_ACCESS;
         }
-        if ( flags & rhi::PipelineStageFlagsBits::All ) {
+        if ( accesses & ( A::MemoryRead | A::MemoryWrite | A::HostRead | A::HostWrite ) ) {
             return D3D12_BARRIER_ACCESS_COMMON;
         }
 
-        if ( flags & rhi::PipelineStageFlagsBits::IndexInput ) {
-            return D3D12_BARRIER_ACCESS_INDEX_BUFFER;
+        D3D12_BARRIER_ACCESS result{ D3D12_BARRIER_ACCESS_COMMON };
+        if ( accesses & A::IndirectCommandRead ) {
+            result |= D3D12_BARRIER_ACCESS_INDIRECT_ARGUMENT;
         }
-        if ( flags & rhi::PipelineStageFlagsBits::VertexInput ) {
-            return D3D12_BARRIER_ACCESS_VERTEX_BUFFER;
+        if ( accesses & A::IndexRead ) {
+            result |= D3D12_BARRIER_ACCESS_INDEX_BUFFER;
         }
-        if ( flags & rhi::PipelineStageFlagsBits::DrawIndirect ) {
-            return D3D12_BARRIER_ACCESS_INDIRECT_ARGUMENT;
+        if ( accesses & A::VertexAttributeRead ) {
+            result |= D3D12_BARRIER_ACCESS_VERTEX_BUFFER;
         }
-        if ( flags & rhi::PipelineStageFlagsBits::RenderTarget ) {
-            return D3D12_BARRIER_ACCESS_RENDER_TARGET;
+        if ( accesses & A::ConstantBuffer ) {
+            result |= D3D12_BARRIER_ACCESS_CONSTANT_BUFFER;
         }
-
-        // Read Specific Mappings
-        if ( accessType == rhi::AccessType::eRead ) {
-            if ( flags & ( rhi::PipelineStageFlagsBits::VertexShader | rhi::PipelineStageFlagsBits::PixelShader |
-                           rhi::PipelineStageFlagsBits::ComputeShader | rhi::PipelineStageFlagsBits::MeshShader |
-                           rhi::PipelineStageFlagsBits::TaskShader | rhi::PipelineStageFlagsBits::RayTracingShader ) ) {
-                return D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
-            }
-            if ( flags & ( rhi::PipelineStageFlagsBits::EarlyFragmentTests | rhi::PipelineStageFlagsBits::LateFragmentTests ) ) {
-                return D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ;
-            }
-            if ( flags & ( rhi::PipelineStageFlagsBits::Copy | rhi::PipelineStageFlagsBits::Transfer ) ) {
-                return D3D12_BARRIER_ACCESS_COPY_SOURCE;
-            }
-            if ( flags & rhi::PipelineStageFlagsBits::Resolve ) {
-                return D3D12_BARRIER_ACCESS_RESOLVE_SOURCE;
-            }
-            if ( flags & rhi::PipelineStageFlagsBits::AccelerationStructureBuild ) {
-                return D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_READ;
-            }
+        if ( accesses & A::ShaderSampledRead ) {
+            result |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
         }
-
-        // Write Specific Mappings
-        if ( accessType == rhi::AccessType::eWrite ) {
-            if ( flags & ( rhi::PipelineStageFlagsBits::VertexShader | rhi::PipelineStageFlagsBits::PixelShader |
-                           rhi::PipelineStageFlagsBits::ComputeShader | rhi::PipelineStageFlagsBits::MeshShader |
-                           rhi::PipelineStageFlagsBits::TaskShader | rhi::PipelineStageFlagsBits::RayTracingShader ) ) {
-                return D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;// UAV Writes
-            }
-            if ( flags & ( rhi::PipelineStageFlagsBits::EarlyFragmentTests | rhi::PipelineStageFlagsBits::LateFragmentTests ) ) {
-                return D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE;
-            }
-            if ( flags & ( rhi::PipelineStageFlagsBits::Copy | rhi::PipelineStageFlagsBits::Transfer | rhi::PipelineStageFlagsBits::Clear ) ) {
-                return D3D12_BARRIER_ACCESS_COPY_DEST;
-            }
-            if ( flags & rhi::PipelineStageFlagsBits::Resolve ) {
-                return D3D12_BARRIER_ACCESS_RESOLVE_DEST;
-            }
-            if ( flags & rhi::PipelineStageFlagsBits::AccelerationStructureBuild ) {
-                return D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
-            }
+        if ( accesses & A::StructuredBufferRead ) {
+            result |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
         }
-
-        // Fallback
-        return D3D12_BARRIER_ACCESS_COMMON;
+        if ( accesses & A::ShaderStorageRead ) {
+            result |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+        }
+        if ( accesses & A::ShaderStorageWrite ) {
+            result |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+        }
+        if ( accesses & A::ColorAttachmentRead ) {
+            result |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
+        }
+        if ( accesses & A::ColorAttachmentWrite ) {
+            result |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
+        }
+        if ( ( accesses & A::DepthStencilRead ) && !( accesses & A::DepthStencilWrite ) ) {
+            result |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ;
+        }
+        if ( accesses & A::DepthStencilWrite ) {
+            result |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE;
+        }
+        if ( accesses & A::TransferRead ) {
+            result |= D3D12_BARRIER_ACCESS_COPY_SOURCE;
+        }
+        if ( accesses & A::TransferWrite ) {
+            result |= D3D12_BARRIER_ACCESS_COPY_DEST;
+        }
+        if ( accesses & A::ResolveRead ) {
+            result |= D3D12_BARRIER_ACCESS_RESOLVE_SOURCE;
+        }
+        if ( accesses & A::ResolveWrite ) {
+            result |= D3D12_BARRIER_ACCESS_RESOLVE_DEST;
+        }
+        if ( accesses & A::AccelerationStructureRead ) {
+            result |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_READ;
+        }
+        if ( accesses & A::AccelerationStructureWrite ) {
+            result |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
+        }
+        if ( accesses & A::AccelerationStructureBuildInputRead ) {
+            result |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+        }
+        return result;
     }
 
-    auto GetBarrierLayout( rhi::TextureLayoutFlags layout, rhi::AccessType accessType ) -> D3D12_BARRIER_LAYOUT {
+    auto GetBarrierLayout( rhi::TextureLayoutFlags layout ) -> D3D12_BARRIER_LAYOUT {
         if (layout == rhi::TextureLayoutBits::Unknown) return D3D12_BARRIER_LAYOUT_UNDEFINED;
         if (layout == rhi::TextureLayoutBits::General) return D3D12_BARRIER_LAYOUT_COMMON;
         if (layout == rhi::TextureLayoutBits::RenderTarget) return D3D12_BARRIER_LAYOUT_RENDER_TARGET;
 
         if (layout == rhi::TextureLayoutBits::DepthStencil) {
-            if (accessType == rhi::AccessType::eWrite) return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
-            if (accessType == rhi::AccessType::eRead) return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
-
-            MKT_ASSERT( false, "Unhandled access type for depth-stencil layout" );
+            return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
+        }
+        if (layout == rhi::TextureLayoutBits::DepthStencilReadOnly) {
+            return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
         }
 
         if (layout == rhi::TextureLayoutBits::ShaderResource) return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
@@ -514,6 +578,8 @@ namespace mikoto::renderer::d3d12 {
         if (layout == rhi::TextureLayoutBits::CopySource) return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
         if (layout == rhi::TextureLayoutBits::CopyDest) return D3D12_BARRIER_LAYOUT_COPY_DEST;
         if (layout == rhi::TextureLayoutBits::Present) return D3D12_BARRIER_LAYOUT_PRESENT;
+        if (layout == rhi::TextureLayoutBits::ResolveSource) return D3D12_BARRIER_LAYOUT_RESOLVE_SOURCE;
+        if (layout == rhi::TextureLayoutBits::ResolveDest) return D3D12_BARRIER_LAYOUT_RESOLVE_DEST;
 
         return D3D12_BARRIER_LAYOUT_UNDEFINED;
     }

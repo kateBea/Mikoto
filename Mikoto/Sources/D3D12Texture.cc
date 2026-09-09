@@ -505,7 +505,8 @@ namespace mikoto::renderer::d3d12 {
         cmd->Write( this, buffer->GetData(), buffer->GetSize() );
 
         // These textures are often loaded to be read from shaders
-        cmd->SetTransition( this, ResourceStates::eShaderResource );
+        cmd->SetTransition( TransitionDescription{}
+            .AddTexture( this, ResourceStates::eShaderResource ) );
 
         cmd->End();
 

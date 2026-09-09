@@ -226,20 +226,8 @@ namespace mikoto::renderer::vulkan {
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
-        // These will be removed and we will receive an eastl:span instead, calling commit barriers
-        auto RecordBarrier( const rhi::BufferBarrierDescription& barrier ) -> void override;
-        auto RecordBarrier( const rhi::TextureBarrierDescription& barrier ) -> void override;
-
-        auto RecordTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
-        auto RecordTransition( rhi::ITexture* buffer, rhi::ResourceStates stateBits ) -> void override;
-
-        auto SetTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
-        auto SetTransition( rhi::ITexture* buffer, rhi::ResourceStates stateBits ) -> void override;
-
-        auto SetBarrier( const rhi::BufferBarrierDescription& barrier ) -> void override;
-        auto SetBarrier( const rhi::TextureBarrierDescription& barrier ) -> void override;
-
-        auto CommitBarriers() -> void override;
+        auto SetTransition( const rhi::TransitionDescription& description ) -> void override;
+        auto SetBarrier( const rhi::BarrierDescription& description ) -> void override;
 
         auto SetEnableAutomaticBarriers( bool enable ) -> void override;
 
@@ -259,8 +247,8 @@ namespace mikoto::renderer::vulkan {
         auto Copy( rhi::IBuffer* dest, rhi::ITexture* src ) -> void override;
         auto Copy( rhi::IBuffer* dest, rhi::ITexture* src, const TextureSlice& srcSlice ) -> void override;
 
-        auto BeginRendering( rhi::RenderDescription& state ) -> void override;
-        auto EndRendering() -> void override;
+        auto BeginRenderPass( rhi::RenderPassDescription& state ) -> void override;
+        auto EndRenderPass() -> void override;
 
         auto BindPipeline( rhi::IPipeline* pipeline ) -> void override;
 
@@ -303,6 +291,19 @@ namespace mikoto::renderer::vulkan {
         ~CommandList() override;
 
     private:
+        // Internal helpers implement the immediate public barrier API. They
+        // remain private so backend-specific synchronization details do not
+        // leak through ICommandList.
+        auto RecordBarrier( const rhi::BufferBarrierDescription& ) -> void;
+        auto RecordBarrier( const rhi::TextureBarrierDescription& ) -> void;
+        auto RecordTransition( rhi::IBuffer*, rhi::ResourceStates ) -> void;
+        auto RecordTransition( rhi::ITexture*, rhi::ResourceStates ) -> void;
+        auto SetTransition( rhi::IBuffer*, rhi::ResourceStates ) -> void;
+        auto SetTransition( rhi::ITexture*, rhi::ResourceStates ) -> void;
+        auto SetBarrier( const rhi::BufferBarrierDescription& ) -> void;
+        auto SetBarrier( const rhi::TextureBarrierDescription& ) -> void;
+        auto CommitBarriers() -> void;
+
         auto Initialize() -> void override;
         auto Destroy() -> void override;
 
@@ -329,9 +330,9 @@ namespace mikoto::renderer::vulkan {
 
         bool mIsRenderScopeActive{};
         bool mEnableAutomaticBarriers{ true };
-
         eastl::vector<VkBufferMemoryBarrier2> mBufferBarriers{};
         eastl::vector<VkImageMemoryBarrier2> mImageBarriers{};
+
 
         // For debug
         rhi::Color mLabelColor{};

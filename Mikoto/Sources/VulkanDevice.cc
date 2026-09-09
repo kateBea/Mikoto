@@ -351,11 +351,14 @@ namespace mikoto::renderer::vulkan {
 
         switch ( item.mType ) {
             case ResourceType::eTexture_SRV:
+                // A descriptor declares the layout at shader access, not the
+                // texture's temporary layout when the descriptor is allocated.
+                // Frame-graph barriers transition it to this layout before use.
                 writer.WriteImage(
                         item.mBindingIndex,
                         checked_cast<Texture*>( item.mResource )->GetNativeHandle( ObjectType::Vk_ImageView ),
                         GetDescriptorType( item.mType ),
-                        GetImageLayout( checked_cast<Texture*>( item.mResource )->GetResourceState() ), resourceIndex );
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, resourceIndex );
                 break;
             case ResourceType::eTexture_UAV:
                 break;
@@ -924,7 +927,7 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::End() -> void {
         if (mIsRenderScopeActive) {
-            EndRendering();
+            EndRenderPass();
         }
 
         vkCmdEndDebugUtilsLabelEXT( mCurrentCommandBuffer );
@@ -1101,13 +1104,136 @@ namespace mikoto::renderer::vulkan {
         mEnableAutomaticBarriers = enable;
     }
 
+    auto CommandList::SetTransition( const TransitionDescription& description ) -> void {
+        for ( const auto& transition : description.mBuffers ) {
+            SetTransition( transition.mBuffer, transition.mState );
+        }
+
+        for ( const auto& transition : description.mTextures ) {
+            SetTransition( transition.mTexture, transition.mState );
+        }
+    }
+
+    auto CommandList::SetBarrier( const BarrierDescription& description ) -> void {
+        // Enhanced barriers honor the caller's explicit synchronization scopes.
+        const auto toLayout = []( TextureLayoutFlags layout, VkImageLayout fallback ) -> VkImageLayout {
+            if ( layout == TextureLayoutBits::Unknown ) {
+                return fallback;
+            }
+            if ( layout == TextureLayoutBits::General || layout == TextureLayoutBits::UnorderedAccess ) {
+                return VK_IMAGE_LAYOUT_GENERAL;
+            }
+            if ( layout == TextureLayoutBits::RenderTarget ) {
+                return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            }
+            if ( layout == TextureLayoutBits::DepthStencil ) {
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            }
+            if ( layout == TextureLayoutBits::DepthStencilReadOnly ) {
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            }
+            if ( layout == TextureLayoutBits::ShaderResource ) {
+                return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            }
+            if ( layout == TextureLayoutBits::CopySource || layout == TextureLayoutBits::ResolveSource ) {
+                return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            }
+            if ( layout == TextureLayoutBits::CopyDest || layout == TextureLayoutBits::ResolveDest ) {
+                return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            }
+            if ( layout == TextureLayoutBits::Present ) {
+                return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            }
+            return fallback;
+        };
+        eastl::vector<VkBufferMemoryBarrier2> buffers{};
+        eastl::vector<VkImageMemoryBarrier2> images{};
+        for ( const BufferBarrierDescription& barrierDescription : description.mBuffers ) {
+            IBuffer* buffer{ barrierDescription.mBuffer };
+
+            if ( !buffer ) {
+                continue;
+            }
+            buffers.push_back(
+                VkBufferMemoryBarrier2{
+                    .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                    .pNext = nullptr,
+                    .srcStageMask = GetStageMask( barrierDescription.mStageBefore ),
+                    .srcAccessMask = GetAccessMask( barrierDescription.mAccessBefore ),
+                    .dstStageMask = GetStageMask( barrierDescription.mStageAfter ),
+                    .dstAccessMask = GetAccessMask( barrierDescription.mAccessAfter ),
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .buffer = buffer->GetNativeHandle( ObjectType::Vk_Buffer ),
+                    .offset = barrierDescription.mRange.mByteOffset,
+                    .size = barrierDescription.mRange.mByteSize == 0 ? VK_WHOLE_SIZE : barrierDescription.mRange.mByteSize
+                } );
+            // Explicit barriers may change access without changing a buffer
+            // state. Invalidate cached frame-graph access history in either case.
+            buffer->SetResourceState( buffer->GetResourceState() );
+        }
+
+        for ( const TextureBarrierDescription& barrierDescription : description.mTextures ) {
+            ITexture* texture{ barrierDescription.mTexture };
+
+            if ( !texture ) {
+                continue;
+            }
+
+            VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+
+            barrier.srcStageMask = GetStageMask( barrierDescription.mStageBefore );
+            barrier.srcAccessMask = GetAccessMask( barrierDescription.mAccessBefore );
+
+            barrier.dstStageMask = GetStageMask( barrierDescription.mStageAfter );
+            barrier.dstAccessMask = GetAccessMask( barrierDescription.mAccessAfter );
+
+            const VkImageLayout trackedLayout{ GetImageLayout( texture->GetResourceState() ) };
+
+            barrier.oldLayout = toLayout( barrierDescription.mLayoutBefore, trackedLayout );
+            barrier.newLayout = toLayout( barrierDescription.mLayoutAfter, barrier.oldLayout );
+
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = texture->GetNativeHandle( ObjectType::Vk_Image );
+
+            const auto& subResources{ barrierDescription.mSubresourceSet };
+            barrier.subresourceRange = {
+                .aspectMask = GetAspectMask( texture->GetFormat() ),
+                .baseMipLevel = subResources.mBaseMipLevel,
+                .levelCount = subResources.mNumMipLevels == TextureSubresourceSet::kAllMipLevels
+                    ? VK_REMAINING_MIP_LEVELS
+                    : subResources.mNumMipLevels,
+                .baseArrayLayer = subResources.mBaseArraySlice,
+                .layerCount = subResources.mNumArraySlices == TextureSubresourceSet::kAllArraySlices
+                    ? VK_REMAINING_ARRAY_LAYERS
+                    : subResources.mNumArraySlices };
+
+            images.push_back( barrier );
+
+            texture->SetResourceState( vulkan::GetResourceState( barrier.newLayout ) );
+        }
+
+        VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+
+        dependency.bufferMemoryBarrierCount = as<u32>( buffers.size() );
+        dependency.pBufferMemoryBarriers = buffers.data();
+        dependency.imageMemoryBarrierCount = as<u32>( images.size() );
+        dependency.pImageMemoryBarriers = images.data();
+
+        if ( dependency.bufferMemoryBarrierCount || dependency.imageMemoryBarrierCount ) {
+            vkCmdPipelineBarrier2( mCurrentCommandBuffer, &dependency );
+        }
+    }
+
+
     auto CommandList::SetClearColor( ITexture* renderTarget, Color color ) -> void {
         if (!renderTarget) {
             return;
         }
 
         if (mIsRenderScopeActive) {
-            EndRendering();
+            EndRenderPass();
         }
 
         // Image needs to be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
@@ -1140,7 +1266,7 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::Write( ITexture *texture, const void *data, core::usize byteSize ) -> void {
         if (mIsRenderScopeActive) {
-            EndRendering();
+            EndRenderPass();
         }
 
         if (mEnableAutomaticBarriers) {
@@ -1191,7 +1317,7 @@ namespace mikoto::renderer::vulkan {
 
         // You cannot record transfer ops inside rendering
         if (mIsRenderScopeActive) {
-            EndRendering();
+            EndRenderPass();
         }
 
         if (mEnableAutomaticBarriers) {
@@ -1312,7 +1438,7 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( dest != nullptr, "Destination buffer cannot be null" );
 
         if (mIsRenderScopeActive) {
-            EndRendering();
+            EndRenderPass();
         }
 
         const core::usize size{ src->GetSizeBytes() };
@@ -1341,7 +1467,7 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::Copy( IBuffer* dest, ITexture* src ) -> void {
         if (mIsRenderScopeActive) {
-            EndRendering();
+            EndRenderPass();
         }
 
         if (mEnableAutomaticBarriers) {
@@ -1392,7 +1518,7 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::Copy( rhi::IBuffer* dest, rhi::ITexture* src, const TextureSlice& srcSlice ) -> void {
         if (mIsRenderScopeActive) {
-            EndRendering();
+            EndRenderPass();
         }
 
         if (mEnableAutomaticBarriers) {
@@ -1440,32 +1566,29 @@ namespace mikoto::renderer::vulkan {
         vkCmdCopyImageToBuffer( mCurrentCommandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, as<u32>(regions.size()), regions.data());
     }
 
-    auto CommandList::BeginRendering( RenderDescription& state ) -> void {
+    auto CommandList::BeginRenderPass( RenderPassDescription& state ) -> void {
         bool hasColorTarget{ !state.mCurrentRenderTargets.empty() };
         bool hasDepthTarget{ !state.mDepthTarget.mRenderTarget.IsEmpty() };
 
         MKT_ASSERT( hasColorTarget || hasDepthTarget, "Must provide either depth target or color target(s)" );
 
         if (mIsRenderScopeActive) {
-            EndRendering();
+            EndRenderPass();
         }
 
         if (mEnableAutomaticBarriers) {
             for (auto& rt : state.mCurrentRenderTargets ) {
-                // Emit a dependency even when the image remains a render target:
-                // the prior scope may have written it and this scope may read or write it.
-                RecordTransition( rt.mRenderTarget.GetPtr(), ResourceStates::eRenderTarget );
+                SetTransition( rt.mRenderTarget.GetPtr(), ResourceStates::eRenderTarget );
             }
 
             if (!state.mDepthTarget.mRenderTarget.IsEmpty()) {
                 if (state.mDepthTarget.mLoadOp == LoadOp::eClear ) {
-                    RecordTransition( state.mDepthTarget.mRenderTarget.GetPtr(), ResourceStates::eDepthWrite );
+                    SetTransition( state.mDepthTarget.mRenderTarget.GetPtr(), ResourceStates::eDepthWrite );
                 } else {
-                    RecordTransition( state.mDepthTarget.mRenderTarget.GetPtr(), ResourceStates::eDepthRead );
+                    SetTransition( state.mDepthTarget.mRenderTarget.GetPtr(), ResourceStates::eDepthRead );
                 }
             }
 
-            CommitBarriers();
         }
 
         mRenderingScopeName = state.mName;
@@ -1561,7 +1684,7 @@ namespace mikoto::renderer::vulkan {
         mIsRenderScopeActive = true;
     }
 
-    auto CommandList::EndRendering() -> void {
+    auto CommandList::EndRenderPass() -> void {
         vkCmdEndRendering( mCurrentCommandBuffer );
 
         if (!mRenderingScopeName.empty()) {
@@ -1765,7 +1888,7 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( dstImage != VK_NULL_HANDLE, "Destination Vulkan image is null" );
 
         if (mIsRenderScopeActive) {
-            EndRendering();
+            EndRenderPass();
         }
 
         if (mEnableAutomaticBarriers) {
@@ -1860,7 +1983,7 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( dstTexture != nullptr, "Destination Vulkan texture cannot be null" );
 
         if (mIsRenderScopeActive) {
-            EndRendering();
+            EndRenderPass();
         }
 
         VkImage srcImage{ *srcTexture };
@@ -1909,7 +2032,7 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::Dispatch( u32 x, u32 y, u32 z ) -> void {
         if (mIsRenderScopeActive) {
-            EndRendering();
+            EndRenderPass();
         }
 
         vkCmdDispatch( mCurrentCommandBuffer, x, y, z );
@@ -3226,11 +3349,13 @@ namespace mikoto::renderer::vulkan {
             for (const auto& item : mBindingDescription.mBindings) {
                 switch (item.mType) {
                     case ResourceType::eTexture_SRV:
+                        // Match Device::WriteDescriptorTable: cached sampled
+                        // descriptors always declare the shader-read layout.
                         writer.WriteImage(
                             item.mBindingIndex,
                             checked_cast<Texture*>( item.mResource )->GetNativeHandle(ObjectType::Vk_ImageView),
                             GetDescriptorType(item.mType),
-                            GetImageLayout( checked_cast<Texture*>( item.mResource )->GetResourceState() ) );
+                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
                         break;
                     case ResourceType::eTexture_UAV:
                         break;

@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef JPH_DEBUG_RENDERER
-    #error This file should only be included when JPH_DEBUG_RENDERER is defined
-#endif // JPH_DEBUG_RENDERER
+#if defined( JPH_DEBUG_RENDERER )
 
 // Jolt needs to be included before
 #include <Jolt/Jolt.h>
@@ -28,6 +26,7 @@
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/Rhi/Utility.hh>
 
 #include <Renderer/Core/PhysicsDebugRenderer.hh>
 
@@ -216,6 +215,9 @@ namespace mikoto::renderer {
     PhysicsDebugRendererSimple::PhysicsDebugRendererSimple( const PhysicsDebugRendererSimpleCreateInfo& desc  )
         : mDevice{ desc.mDevice }
     {
+        const auto [width, height]{ InferDimensions( desc.mResolution ) };
+        mRenderWidth = as<u32>( width );
+        mRenderHeight = as<u32>( height );
 
     }
 
@@ -224,19 +226,19 @@ namespace mikoto::renderer {
 
         // For some reason slang is unable to generate spirv shader code
         // it is loaded from spirv files instead for now
-        if (!mDevice->IsGraphicsApi(GraphicsAPI::eVulkan)) {
+        if (!mDevice || !mDevice->IsGraphicsApi(GraphicsAPI::eVulkan)) {
             MKT_CORE_LOGGER_WARN( "PhysicsDebugRendererSimple expects Vulkan" );
             return;
         }
 
         InitSimpleDrawPasses();
+        mIsSupported = true;
     }
 
     auto PhysicsDebugRendererSimple::Shutdown() -> void {
         // For some reason slang is unable to generate spirv shader code
         // it is loaded from spirv files instead for now
-        if (!mDevice->IsGraphicsApi(GraphicsAPI::eVulkan)) {
-            MKT_CORE_LOGGER_WARN( "PhysicsDebugRendererSimple expects Vulkan" );
+        if ( !mIsSupported ) {
             return;
         }
 
@@ -264,12 +266,18 @@ namespace mikoto::renderer {
 
         mLinesBuffer.Reset();
         mTrianglesBuffer.Reset();
+        mIsSupported = false;
     }
 
     auto PhysicsDebugRendererSimple::Render() -> void {
         // For some reason slang is unable to generate spirv shader code
         // it is loaded from spirv files instead for now
-        if (!mDevice->IsGraphicsApi(GraphicsAPI::eVulkan)) {
+        if ( !mIsSupported || !mCamera ) {
+            return;
+        }
+
+        if ( mLines.empty() && mTriangles.empty() ) {
+            RenderTexts();
             return;
         }
 
@@ -283,8 +291,9 @@ namespace mikoto::renderer {
             RenderTriangles();
         }
 
-        mCommandList->SetTransition( mColorImageLines.GetPtr(), ResourceStates::eShaderResource );
-        mCommandList->SetTransition( mColorImageTriangles.GetPtr(), ResourceStates::eShaderResource );
+        mCommandList->SetTransition( TransitionDescription{}
+            .AddTexture( mColorImageLines.GetPtr(), ResourceStates::eShaderResource )
+            .AddTexture( mColorImageTriangles.GetPtr(), ResourceStates::eShaderResource ) );
         mCommandList->End();
 
         auto submitInfo{ SubmitInfo{}
@@ -300,6 +309,9 @@ namespace mikoto::renderer {
             JPH::RVec3Arg inFrom,
             JPH::RVec3Arg inTo,
             JPH::ColorArg inColor ) -> void {
+        if ( mLines.size() == kMaxVerticesLines ) {
+            return;
+        }
         mLines.push_back( {
             .mFrom = ToDebugVertex( inFrom, inColor ),
             .mTo = ToDebugVertex( inTo, inColor ) } );
@@ -311,6 +323,9 @@ namespace mikoto::renderer {
         JPH::RVec3Arg inV3,
         JPH::ColorArg inColor,
         ECastShadow inCastShadow ) -> void {
+        if ( mTriangles.size() == kMaxVerticesTriangles ) {
+            return;
+        }
         mTriangles.push_back( {
             .mV1 = ToDebugVertex( inV1, inColor ),
             .mV2 = ToDebugVertex( inV2, inColor ),
@@ -349,8 +364,8 @@ namespace mikoto::renderer {
 
         // Create color attachment
         auto colorDesc{ TextureCreateDescription{}
-            .SetWidth( as<i32>( 1920 ) )
-            .SetHeight( as<i32>( 1080 ) )
+            .SetWidth( as<i32>( mRenderWidth ) )
+            .SetHeight( as<i32>( mRenderHeight ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
@@ -360,12 +375,12 @@ namespace mikoto::renderer {
         mColorImageTriangles->SetDebugName( "PhysicsDebugRendererSimple Color image Triangles" );
 
         mColorImageLines = mDevice->CreateTexture( colorDesc );
-        mColorImageLines->SetDebugName( "PhysicsDebugRendererSimple Color image Triangles" );
+        mColorImageLines->SetDebugName( "PhysicsDebugRendererSimple Color image Lines" );
 
         // Create depth attachment
         auto depthDesc{ TextureCreateDescription{}
-            .SetWidth( as<i32>( 1920 ) )
-            .SetHeight( as<i32>( 1080 ) )
+            .SetWidth( as<i32>( mRenderWidth ) )
+            .SetHeight( as<i32>( mRenderHeight ) )
             .SetDimensions( TextureDimension::eTexture2D )
             .SetMultisampling( Multisampling::eMsaaX1 )
             .SetUsage( TextureUsageFlagsBits::DepthTarget )
@@ -454,11 +469,11 @@ namespace mikoto::renderer {
         mCommandList->SetPushConstants( mPipelineLayoutHandle.GetPtr(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
 
         // Set graphics state
-        auto graphicsState{ RenderDescription{}
-            .SetRenderArea( Rect{ 1920, 1080 } )
+        auto graphicsState{ RenderPassDescription{}
+            .SetRenderArea( Rect{ (i32)mRenderWidth, (i32)mRenderHeight } )
             .AddDepthTarget( mDepthImageLines )
             .AddRenderTarget( mColorImageLines, rhi::kColorBlack ) };
-        mCommandList->BeginRendering( graphicsState );
+        mCommandList->BeginRenderPass( graphicsState );
 
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
@@ -469,14 +484,14 @@ namespace mikoto::renderer {
         mCommandList->BindPipeline( mPipelineLines.GetPtr() );
 
         mCommandList->SetViewportState( ViewportState{}
-            .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
+            .AddViewportAndScissorRect( Viewport( mRenderWidth, mRenderHeight ) ) );
 
         const auto drawArguments{ DrawArguments{}
             .SetInstanceCount( 1 )
             .SetVertexCount( as<u32>(mLines.size()) * 2 ) };
         mCommandList->Draw( drawArguments );
 
-        mCommandList->EndRendering();
+        mCommandList->EndRenderPass();
 
         mLines.clear();
     }
@@ -486,7 +501,7 @@ namespace mikoto::renderer {
     }
 
     auto PhysicsDebugRendererSimple::RenderTriangles() -> void {
-        MKT_ASSERT( mLines.size() <= kMaxVerticesTriangles, "Exceeded buffer capacity" );
+        MKT_ASSERT( mTriangles.size() <= kMaxVerticesTriangles, "Exceeded buffer capacity" );
         mCommandList->Write( mTrianglesBuffer.GetPtr(), mTriangles.data(), MKT_VECTOR_SIZE_BYTES( mTriangles ) );
 
         eastl::array<ubyte, kMaxPushConstantSize> ps{};
@@ -498,11 +513,11 @@ namespace mikoto::renderer {
         mCommandList->SetPushConstants( mPipelineLayoutHandle.GetPtr(), ps.data(), kMaxPushConstantSize, ShaderFlagsBits::All );
 
         // Set graphics state
-        auto graphicsState{ RenderDescription{}
-            .SetRenderArea( Rect{ 1920, 1080 } )
+        auto graphicsState{ RenderPassDescription{}
+            .SetRenderArea( Rect{ (i32)mRenderWidth, (i32)mRenderHeight } )
             .AddDepthTarget( mDepthImageTriangles )
             .AddRenderTarget( mColorImageTriangles, rhi::kColorBlack ) };
-        mCommandList->BeginRendering( graphicsState );
+        mCommandList->BeginRenderPass( graphicsState );
 
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
@@ -513,14 +528,14 @@ namespace mikoto::renderer {
         mCommandList->BindPipeline( mPipelineTriangles.GetPtr() );
 
         mCommandList->SetViewportState( ViewportState{}
-            .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
+            .AddViewportAndScissorRect( Viewport( mRenderWidth, mRenderHeight ) ) );
 
         const auto drawArguments{ DrawArguments{}
             .SetInstanceCount( 1 )
             .SetVertexCount( as<u32>(mTriangles.size()) * 3 ) };
         mCommandList->Draw( drawArguments );
 
-        mCommandList->EndRendering();
+        mCommandList->EndRenderPass();
 
         mTriangles.clear();
     }
@@ -528,8 +543,7 @@ namespace mikoto::renderer {
     auto PhysicsDebugRendererSimple::DisplayImGuiWindowTriangles(bool &open) -> void {
         // For some reason slang is unable to generate spirv shader code
         // it is loaded from spirv files instead for now
-        if (!mDevice->IsGraphicsApi(GraphicsAPI::eVulkan)) {
-            MKT_CORE_LOGGER_WARN( "PhysicsDebugRendererSimple expects Vulkan" );
+        if ( !mIsSupported ) {
             return;
         }
 
@@ -564,8 +578,7 @@ namespace mikoto::renderer {
     auto PhysicsDebugRendererSimple::DisplayImGuiWindowLines( bool& open  ) -> void {
         // For some reason slang is unable to generate spirv shader code
         // it is loaded from spirv files instead for now
-        if (!mDevice->IsGraphicsApi(GraphicsAPI::eVulkan)) {
-            MKT_CORE_LOGGER_WARN( "PhysicsDebugRendererSimple expects Vulkan" );
+        if ( !mIsSupported ) {
             return;
         }
 
@@ -601,3 +614,5 @@ namespace mikoto::renderer {
         return eastl::make_unique<PhysicsDebugRendererSimple>( spec );
     }
 }// namespace mikoto::renderer
+
+#endif // JPH_DEBUG_RENDERER

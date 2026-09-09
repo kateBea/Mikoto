@@ -60,8 +60,6 @@ namespace mikoto::renderer {
     auto TextRenderModule::RegisterSlugPass( FrameGraph &graph) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        // TODO: Slug implementation
-
         graph.RegisterPass(
             "SlugTextRendering_Upload",
             FGPassType::eTransfer,
@@ -124,7 +122,7 @@ namespace mikoto::renderer {
                 const auto& finalImageData{ blackboard.Get<GeomShadingModuleInfo>() };
                 const auto& textRenderData{ blackboard.Get<TextRenderingPassParameters>() };
 
-                builder.UseResource( textRenderData.mMsdfTextRenderData, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( textRenderData.mMsdfTextRenderData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
                 builder.UseResource( finalImageData.mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 builder.UseResource( prePassData.mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eWrite );

@@ -40,6 +40,10 @@
 
 #include <Scene/Component.hh>
 
+namespace JPH {
+    class DebugRenderer;
+}
+
 namespace mikoto::scene {
     class Scene;
 }

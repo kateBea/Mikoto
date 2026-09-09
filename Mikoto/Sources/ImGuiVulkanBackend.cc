@@ -241,7 +241,8 @@ namespace mikoto::imgui {
         ImGui::Render();
 
         mCommandList->Begin( { .mScopeName = "ImGui Render" } );
-        mCommandList->SetTransition( mColorImage.GetPtr(), ResourceStates::eRenderTarget );
+        mCommandList->SetTransition( TransitionDescription{}
+            .AddTexture( mColorImage.GetPtr(), ResourceStates::eRenderTarget ) );
 
         RecordRenderCommands();
 

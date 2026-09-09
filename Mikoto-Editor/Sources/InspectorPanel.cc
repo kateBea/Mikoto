@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cfloat>
+
 #include <EASTL/array.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
@@ -43,6 +45,8 @@
 #include <Memory/Allocator.hh>
 
 #include <Layers/EditorLayer.hh>
+
+#include <Physics/PhysicsWorld.hh>
 
 #include <Panels/InspectorPanel.hh>
 
@@ -2757,11 +2761,45 @@ namespace mikoto::editor {
         if (!entity.HasComponent<MeshColliderComponent>()) {
             return;
         }
+
+        auto& collider{ entity.GetComponent<MeshColliderComponent>() };
+        float3 offset{ collider.GetOffset() };
+        bool isTrigger{ collider.IsTrigger() };
+        bool changed{};
+
+        ImGui::TextDisabled( "Mesh cooking is not implemented; physics currently uses a box fallback." );
+        changed |= ImGui::DragFloat3( "Offset", &offset.x, 0.01f );
+        changed |= ImGui::Checkbox( "Trigger", &isTrigger );
+        if ( changed ) {
+            collider.SetOffset( offset );
+            collider.SetTrigger( isTrigger );
+            if ( mState->mActiveScene ) {
+                mState->mActiveScene->GetPhysicsWorld()->AddCollider( &entity );
+            }
+        }
     }
 
     auto InspectorPanel::DrawBoxColliderComponentTab( Entity& entity ) -> void {
         if (!entity.HasComponent<BoxColliderComponent>()) {
             return;
+        }
+
+        auto& collider{ entity.GetComponent<BoxColliderComponent>() };
+        float3 halfExtents{ collider.GetHalfExtents() };
+        float3 offset{ collider.GetOffset() };
+        bool isTrigger{ collider.IsTrigger() };
+        bool changed{};
+
+        changed |= ImGui::DragFloat3( "Half Extents", &halfExtents.x, 0.01f, 0.001f, FLT_MAX );
+        changed |= ImGui::DragFloat3( "Offset", &offset.x, 0.01f );
+        changed |= ImGui::Checkbox( "Trigger", &isTrigger );
+        if ( changed ) {
+            collider.SetHalfExtents( halfExtents );
+            collider.SetOffset( offset );
+            collider.SetTrigger( isTrigger );
+            if ( mState->mActiveScene ) {
+                mState->mActiveScene->GetPhysicsWorld()->AddCollider( &entity );
+            }
         }
     }
 
@@ -2769,11 +2807,50 @@ namespace mikoto::editor {
         if (!entity.HasComponent<SphereColliderComponent>()) {
             return;
         }
+
+        auto& collider{ entity.GetComponent<SphereColliderComponent>() };
+        float radius{ collider.GetRadius() };
+        float3 offset{ collider.GetOffset() };
+        bool isTrigger{ collider.IsTrigger() };
+        bool changed{};
+
+        changed |= ImGui::DragFloat( "Radius", &radius, 0.01f, 0.001f, FLT_MAX );
+        changed |= ImGui::DragFloat3( "Offset", &offset.x, 0.01f );
+        changed |= ImGui::Checkbox( "Trigger", &isTrigger );
+        if ( changed ) {
+            collider.SetRadius( radius );
+            collider.SetOffset( offset );
+            collider.SetTrigger( isTrigger );
+            if ( mState->mActiveScene ) {
+                mState->mActiveScene->GetPhysicsWorld()->AddCollider( &entity );
+            }
+        }
     }
 
     auto InspectorPanel::DrawCapsuleColliderComponentTab( Entity& entity ) -> void {
         if (!entity.HasComponent<CapsuleColliderComponent>()) {
             return;
+        }
+
+        auto& collider{ entity.GetComponent<CapsuleColliderComponent>() };
+        float radius{ collider.GetRadius() };
+        float halfHeight{ collider.GetHalfHeight() };
+        float3 offset{ collider.GetOffset() };
+        bool isTrigger{ collider.IsTrigger() };
+        bool changed{};
+
+        changed |= ImGui::DragFloat( "Radius", &radius, 0.01f, 0.001f, FLT_MAX );
+        changed |= ImGui::DragFloat( "Half Height", &halfHeight, 0.01f, 0.001f, FLT_MAX );
+        changed |= ImGui::DragFloat3( "Offset", &offset.x, 0.01f );
+        changed |= ImGui::Checkbox( "Trigger", &isTrigger );
+        if ( changed ) {
+            collider.SetRadius( radius );
+            collider.SetHalfHeight( halfHeight );
+            collider.SetOffset( offset );
+            collider.SetTrigger( isTrigger );
+            if ( mState->mActiveScene ) {
+                mState->mActiveScene->GetPhysicsWorld()->AddCollider( &entity );
+            }
         }
     }
 

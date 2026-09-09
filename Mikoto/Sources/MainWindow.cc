@@ -73,8 +73,6 @@ namespace mikoto::platform {
         if (mScreenMode != ScreenMode::eFullScreen) {
             glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
         }
-
-        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
     }
 
     auto MainWindow::InstallCallbacks() -> void {

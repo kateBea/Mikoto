@@ -302,14 +302,15 @@ namespace mikoto::editor {
         // Resource barriers must be emitted before dynamic rendering begins.
         // BindVertexBuffer and BindIndexBuffer then see the already-correct
         // state while each mesh render scope is active.
-        mCommandList->SetTransition( mVertexBuffer.GetPtr(), ResourceStates::eVertexBuffer );
-        mCommandList->SetTransition( mIndexBuffer.GetPtr(), ResourceStates::eIndexBuffer );
+        mCommandList->SetTransition( TransitionDescription{}.AddBuffer( mVertexBuffer.GetPtr(), ResourceStates::eVertexBuffer ) );
+        mCommandList->SetTransition( TransitionDescription{}.AddBuffer( mIndexBuffer.GetPtr(), ResourceStates::eIndexBuffer ) );
 
         DrawWireframeMesh();
 
         DrawNormalMesh();
 
-        mCommandList->SetTransition( mColorImage.GetPtr(), ResourceStates::eShaderResource );
+        mCommandList->SetTransition( TransitionDescription{}
+            .AddTexture( mColorImage.GetPtr(), ResourceStates::eShaderResource ) );
 
         mCommandList->End();
 
@@ -347,11 +348,11 @@ namespace mikoto::editor {
         mCommandList->Write( mConstantBuffer.GetPtr(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
 
         // Set graphics state
-        auto graphicsState{ RenderDescription{}
+        auto graphicsState{ RenderPassDescription{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
-        mCommandList->BeginRendering( graphicsState );
+        mCommandList->BeginRenderPass( graphicsState );
 
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
@@ -377,7 +378,7 @@ namespace mikoto::editor {
             .SetVertexCount( mVertexBuffer->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->DrawIndexed( drawArguments );
 
-        mCommandList->EndRendering();
+        mCommandList->EndRenderPass();
     }
 
     auto EditorHelloCubeLayer::DrawWireframeMesh() -> void {
@@ -408,11 +409,11 @@ namespace mikoto::editor {
         mCommandList->Write( mConstantBuffer.GetPtr(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
 
         // Set graphics state
-        auto graphicsState{ RenderDescription{}
+        auto graphicsState{ RenderPassDescription{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
-        mCommandList->BeginRendering( graphicsState );
+        mCommandList->BeginRenderPass( graphicsState );
 
         auto bindingDescription{ BindResourcesDescription{}
             .SetBindPoint( PipelineType::eGraphics )
@@ -439,7 +440,7 @@ namespace mikoto::editor {
             .SetVertexCount( mVertexBuffer->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->DrawIndexed( drawArguments );
 
-        mCommandList->EndRendering();
+        mCommandList->EndRenderPass();
     }
 
     auto EditorHelloCubeLayer::DebugCompileGlsl() -> void {
@@ -540,7 +541,7 @@ namespace mikoto::editor {
 
         commandList->SetEnableAutomaticBarriers( true );
         commandList->Begin( { .mScopeName = "Shaderc GLSL Debug Triangle" } );
-        commandList->BeginRendering( RenderDescription{}
+        commandList->BeginRenderPass( RenderPassDescription{}
             .SetRenderArea( Rect{ as<i32>( kRenderWidth ), as<i32>( kRenderHeight ) } )
             .AddRenderTarget( colorTarget, kColorBlack ) );
         commandList->BindPipeline( pipeline.GetPtr() );
@@ -549,7 +550,7 @@ namespace mikoto::editor {
         commandList->Draw( DrawArguments{}
             .SetVertexCount( 3 )
             .SetInstanceCount( 1 ) );
-        commandList->EndRendering();
+        commandList->EndRenderPass();
         commandList->Copy( readbackBuffer.GetPtr(), colorTarget.GetPtr() );
         commandList->End();
 

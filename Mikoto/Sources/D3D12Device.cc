@@ -56,6 +56,28 @@ namespace mikoto::renderer::d3d12 {
     using namespace mikoto::memory;
     using namespace mikoto::renderer::rhi;
 
+    auto CommandList::SetTransition( const TransitionDescription& description ) -> void {
+        for ( const auto& transition : description.mBuffers ) {
+            SetTransition( transition.mBuffer, transition.mState );
+        }
+
+        for ( const auto& transition : description.mTextures ) {
+            SetTransition( transition.mTexture, transition.mState );
+        }
+    }
+
+    auto CommandList::SetBarrier( const BarrierDescription& description ) -> void {
+        for ( const BufferBarrierDescription& barrier : description.mBuffers ) {
+            RecordBarrier( barrier );
+        }
+
+        for ( const TextureBarrierDescription& barrier : description.mTextures ) {
+            RecordBarrier( barrier );
+        }
+
+        CommitBarriers();
+    }
+
     Fence::Fence( u64 initialValue ) {
         mFenceInitialValue = initialValue;
     }
@@ -1272,14 +1294,14 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::RecordBarrier( const BufferBarrierDescription &desc ) -> void {
-        Buffer* buffer{ checked_cast<Buffer*>(desc.mBuffer) };
+        Buffer* buffer{ checked_cast<Buffer*>( desc.mBuffer ) };
 
         D3D12_BUFFER_BARRIER barrier{};
         barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
         barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
 
-        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mStageBefore, desc.mAccessBefore);
-        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mStageAfter, desc.mAccessAfter);
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
 
         barrier.pResource    = *buffer;
         barrier.Offset       = desc.mRange.mByteOffset;
@@ -1289,18 +1311,18 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::RecordBarrier( const TextureBarrierDescription &desc ) -> void {
-        Texture* texture{ checked_cast<Texture*>(desc.mTexture) };
+        Texture* texture{ checked_cast<Texture*>( desc.mTexture ) };
 
         D3D12_TEXTURE_BARRIER barrier{};
 
         barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
         barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
 
-        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mStageBefore, desc.mAccessBefore);
-        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mStageAfter, desc.mAccessAfter);
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
 
-        barrier.LayoutBefore = d3d12::GetBarrierLayout(desc.mLayoutBefore, desc.mAccessBefore);
-        barrier.LayoutAfter  = d3d12::GetBarrierLayout(desc.mLayoutAfter, desc.mAccessAfter);
+        barrier.LayoutBefore = d3d12::GetBarrierLayout(desc.mLayoutBefore);
+        barrier.LayoutAfter  = d3d12::GetBarrierLayout(desc.mLayoutAfter);
 
         barrier.pResource = *texture;
 
@@ -1317,14 +1339,15 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::SetBarrier( const BufferBarrierDescription &desc ) -> void {
+        if ( !desc.mBuffer ) { return; }
         Buffer* buffer{ checked_cast<Buffer*>(desc.mBuffer) };
 
         D3D12_BUFFER_BARRIER barrier{};
         barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
         barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
 
-        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mStageBefore, desc.mAccessBefore);
-        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mStageAfter, desc.mAccessAfter);
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
 
         barrier.pResource    = *buffer;
         barrier.Offset       = desc.mRange.mByteOffset;
@@ -1339,6 +1362,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::SetBarrier( const TextureBarrierDescription &desc ) -> void {
+        if ( !desc.mTexture ) { return; }
         Texture* texture{ checked_cast<Texture*>(desc.mTexture) };
 
         D3D12_TEXTURE_BARRIER barrier{};
@@ -1346,11 +1370,11 @@ namespace mikoto::renderer::d3d12 {
         barrier.SyncBefore   = d3d12::GetBarrierSync(desc.mStageBefore);
         barrier.SyncAfter    = d3d12::GetBarrierSync(desc.mStageAfter);
 
-        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mStageBefore, desc.mAccessBefore);
-        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mStageAfter, desc.mAccessAfter);
+        barrier.AccessBefore = d3d12::GetBarrierAccess(desc.mAccessBefore);
+        barrier.AccessAfter  = d3d12::GetBarrierAccess(desc.mAccessAfter);
 
-        barrier.LayoutBefore = d3d12::GetBarrierLayout(desc.mLayoutBefore, desc.mAccessBefore);
-        barrier.LayoutAfter  = d3d12::GetBarrierLayout(desc.mLayoutAfter, desc.mAccessAfter);
+        barrier.LayoutBefore = d3d12::GetBarrierLayout(desc.mLayoutBefore);
+        barrier.LayoutAfter  = d3d12::GetBarrierLayout(desc.mLayoutAfter);
 
         barrier.pResource = *texture;
 
@@ -1593,7 +1617,7 @@ namespace mikoto::renderer::d3d12 {
         MKT_ASSERT( dstResource != nullptr, "Destination D3D12 resource is null" );
 
         if ( mIsRenderScopeActive ) {
-            EndRendering();
+            EndRenderPass();
         }
 
         if ( mEnableAutomaticBarriers ) {
@@ -1723,7 +1747,7 @@ namespace mikoto::renderer::d3d12 {
 
     }
 
-    auto CommandList::BeginRendering( RenderDescription &state ) -> void {
+    auto CommandList::BeginRenderPass( RenderPassDescription &state ) -> void {
         mIsRenderScopeActive = true;
 
         Device* device{ checked_cast<Device*>( mDevice ) };
@@ -1774,7 +1798,7 @@ namespace mikoto::renderer::d3d12 {
             MKT_ADDRESSOF( dsvHandler ));
     }
 
-    auto CommandList::EndRendering() -> void {
+    auto CommandList::EndRenderPass() -> void {
         mIsRenderScopeActive = false;
     }
 

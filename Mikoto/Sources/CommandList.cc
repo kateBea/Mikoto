@@ -36,17 +36,17 @@ namespace mikoto::renderer::rhi {
         return mQueueType;
     }
 
-    auto RenderDescription::SetScopeName( eastl::string_view name ) -> RenderDescription & {
+    auto RenderPassDescription::SetScopeName( eastl::string_view name ) -> RenderPassDescription & {
         mName = name;
         return *this;
     }
 
-    auto RenderDescription::SetRenderArea( const Rect &rec ) -> RenderDescription & {
+    auto RenderPassDescription::SetRenderArea( const Rect &rec ) -> RenderPassDescription & {
         mRenderArea = rec;
         return *this;
     }
 
-    auto RenderDescription::AddDepthTarget( TextureHandle target, LoadOp op ) -> RenderDescription & {
+    auto RenderPassDescription::AddDepthTarget( TextureHandle target, LoadOp op ) -> RenderPassDescription & {
         mDepthTarget = RenderTargetState{
             .mClearColor = kColorWhite,
             .mLoadOp = op,
@@ -56,7 +56,7 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto RenderDescription::AddRenderTarget( TextureHandle target, const Color &c, LoadOp op, TextureSubresourceSet set ) -> RenderDescription & {
+    auto RenderPassDescription::AddRenderTarget( TextureHandle target, const Color &c, LoadOp op, TextureSubresourceSet set ) -> RenderPassDescription & {
         mCurrentRenderTargets.emplace_back( RenderTargetState{
                 .mClearColor = c,
                 .mLoadOp = op,
@@ -91,76 +91,107 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
-    auto BufferBarrierDescription::SetBuffer( BufferHandle handle ) -> BufferBarrierDescription & {
-        MKT_ASSERT( !handle.IsEmpty(), "Cannot pass en empty handle" );
-        mBuffer = handle.GetPtr();
+    auto BufferBarrierDescription::SetBuffer( IBuffer* buffer ) -> BufferBarrierDescription& {
+        MKT_ASSERT( buffer, "Cannot set a null buffer barrier resource" );
+        mBuffer = buffer;
         return *this;
     }
 
-    auto BufferBarrierDescription::SetRange( BufferRange range ) -> BufferBarrierDescription & {
+    auto BufferBarrierDescription::SetRange( BufferRange range ) -> BufferBarrierDescription& {
         mRange = range;
         return *this;
     }
 
-    auto BufferBarrierDescription::SetBeforeStage( PipelineStageFlags stage ) -> BufferBarrierDescription & {
+    auto BufferBarrierDescription::SetBeforeStage( PipelineStageFlags stage ) -> BufferBarrierDescription& {
         mStageBefore = stage;
         return *this;
     }
 
-    auto BufferBarrierDescription::SetBeforeAccess( AccessType access ) -> BufferBarrierDescription & {
+    auto BufferBarrierDescription::SetBeforeAccess( BarrierAccessFlags access ) -> BufferBarrierDescription& {
         mAccessBefore = access;
         return *this;
     }
 
-    auto BufferBarrierDescription::SetAfterStage( PipelineStageFlags stage ) -> BufferBarrierDescription & {
+    auto BufferBarrierDescription::SetAfterStage( PipelineStageFlags stage ) -> BufferBarrierDescription& {
         mStageAfter = stage;
         return *this;
     }
 
-    auto BufferBarrierDescription::SetAfterAccess( AccessType access ) -> BufferBarrierDescription & {
+    auto BufferBarrierDescription::SetAfterAccess( BarrierAccessFlags access ) -> BufferBarrierDescription& {
         mAccessAfter = access;
         return *this;
     }
 
-    auto TextureBarrierDescription::SetTexture( TextureHandle handle ) -> TextureBarrierDescription & {
-        MKT_ASSERT( !handle.IsEmpty(), "Cannot pass en empty handle" );
-        mTexture = handle.GetPtr();
+    auto TextureBarrierDescription::SetTexture( ITexture* texture ) -> TextureBarrierDescription& {
+        MKT_ASSERT( texture, "Cannot set a null texture barrier resource" );
+        mTexture = texture;
         return *this;
     }
 
-    auto TextureBarrierDescription::SetSubresourceSet( TextureSubresourceSet subResources ) -> TextureBarrierDescription & {
-        mSubresourceSet = subResources;
+    auto TextureBarrierDescription::SetSubresourceSet( TextureSubresourceSet subresources ) -> TextureBarrierDescription& {
+        mSubresourceSet = subresources;
         return *this;
     }
 
-    auto TextureBarrierDescription::SetBeforeLayout( TextureLayoutFlags layout ) -> TextureBarrierDescription & {
+    auto TextureBarrierDescription::SetBeforeLayout( TextureLayoutFlags layout ) -> TextureBarrierDescription& {
         mLayoutBefore = layout;
         return *this;
     }
 
-    auto TextureBarrierDescription::SetBeforeStage( PipelineStageFlags stage ) -> TextureBarrierDescription & {
+    auto TextureBarrierDescription::SetBeforeStage( PipelineStageFlags stage ) -> TextureBarrierDescription& {
         mStageBefore = stage;
         return *this;
     }
 
-    auto TextureBarrierDescription::SetBeforeAccess( AccessType access ) -> TextureBarrierDescription & {
+    auto TextureBarrierDescription::SetBeforeAccess( BarrierAccessFlags access ) -> TextureBarrierDescription& {
         mAccessBefore = access;
         return *this;
     }
 
-
-    auto TextureBarrierDescription::SetAfterLayout( TextureLayoutFlags layout ) -> TextureBarrierDescription & {
+    auto TextureBarrierDescription::SetAfterLayout( TextureLayoutFlags layout ) -> TextureBarrierDescription& {
         mLayoutAfter = layout;
         return *this;
     }
 
-    auto TextureBarrierDescription::SetAfterStage( PipelineStageFlags stage ) -> TextureBarrierDescription & {
+    auto TextureBarrierDescription::SetAfterStage( PipelineStageFlags stage ) -> TextureBarrierDescription& {
         mStageAfter = stage;
         return *this;
     }
 
-    auto TextureBarrierDescription::SetAfterAccess( AccessType access ) -> TextureBarrierDescription & {
+    auto TextureBarrierDescription::SetAfterAccess( BarrierAccessFlags access ) -> TextureBarrierDescription& {
         mAccessAfter = access;
+        return *this;
+    }
+
+    auto BarrierDescription::AddBuffer( const BufferBarrierDescription& description ) -> BarrierDescription& {
+        mBuffers.push_back( description );
+        return *this;
+    }
+
+    auto BarrierDescription::AddBuffer( BufferBarrierDescription&& description ) -> BarrierDescription& {
+        mBuffers.push_back( eastl::move( description ) );
+        return *this;
+    }
+
+    auto BarrierDescription::AddTexture( const TextureBarrierDescription& description ) -> BarrierDescription& {
+        mTextures.push_back( description );
+        return *this;
+    }
+
+    auto BarrierDescription::AddTexture( TextureBarrierDescription&& description ) -> BarrierDescription& {
+        mTextures.push_back( eastl::move( description ) );
+        return *this;
+    }
+
+    auto TransitionDescription::AddBuffer( IBuffer* buffer, ResourceStates state ) -> TransitionDescription& {
+        MKT_ASSERT( buffer, "Cannot add a null transition buffer" );
+        mBuffers.push_back( { .mBuffer = buffer, .mState = state } );
+        return *this;
+    }
+
+    auto TransitionDescription::AddTexture( ITexture* texture, ResourceStates state ) -> TransitionDescription& {
+        MKT_ASSERT( texture, "Cannot add a null transition texture" );
+        mTextures.push_back( { .mTexture = texture, .mState = state } );
         return *this;
     }
 }

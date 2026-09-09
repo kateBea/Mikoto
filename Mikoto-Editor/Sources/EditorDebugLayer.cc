@@ -91,7 +91,7 @@ namespace mikoto::editor {
         mCommandList->Write( mConstantBuffer.GetPtr(), MKT_ADDRESSOF( mCameraProps ), MKT_SIZEOF( mCameraProps ) );
 
         // Set graphics state
-        auto graphicsState{ RenderDescription{}
+        auto graphicsState{ RenderPassDescription{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
             .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
@@ -99,11 +99,12 @@ namespace mikoto::editor {
         // Resource barriers must be recorded before dynamic rendering begins.
         for (u32 meshIndex{}; meshIndex < mModelHandle->GetMeshNodeCount(); ++meshIndex) {
             asset::MeshNode* mesh{ MKT_ADDRESSOF( mModelHandle->GetMeshNode( meshIndex ) ) };
-            mCommandList->SetTransition( mesh->GetIndexBuffer().GetPtr(), ResourceStates::eIndexBuffer );
-            mCommandList->SetTransition( mesh->GetVertexBuffer().GetPtr(), ResourceStates::eVertexBuffer );
+            mCommandList->SetTransition( TransitionDescription{}
+                .AddBuffer( mesh->GetIndexBuffer().GetPtr(), ResourceStates::eIndexBuffer )
+                .AddBuffer( mesh->GetVertexBuffer().GetPtr(), ResourceStates::eVertexBuffer ) );
         }
 
-        mCommandList->BeginRendering( graphicsState );
+        mCommandList->BeginRenderPass( graphicsState );
 
         mCommandList->BindPipeline( mPipeline.GetPtr() );
 
@@ -133,7 +134,7 @@ namespace mikoto::editor {
             mCommandList->DrawIndexed( drawArguments );
         }
 
-        mCommandList->EndRendering();
+        mCommandList->EndRenderPass();
 
         mCommandList->End();
 

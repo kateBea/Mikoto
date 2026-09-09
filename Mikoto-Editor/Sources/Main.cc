@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include <new>
-#include <cstdlib>
 #include <exception>
+#include <limits>
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
@@ -24,6 +24,8 @@
 #include <Core/String.hh>
 #include <Core/Profiler.hh>
 #include <Core/Exception.hh>
+#include <Core/CLAParser.hh>
+#include <Core/CVar.hh>
 
 #include <Logging/Logger.hh>
 
@@ -37,9 +39,14 @@
 #include <Layers/EditorRayTraceLayer.hh>
 #include <Layers/EditorHelloCubeLayer.hh>
 #include <Layers/EditorHelloTriangleLayer.hh>
+#include <Layers/NetworkDebugLayer.hh>
 
 #include <Platform/Window.hh>
 #include <Platform/WindowsService.hh>
+
+#if MIKOTO_PLATFORM_WINDOWS
+    #include <windows.h>
+#endif
 
 using namespace mikoto::core;
 using namespace mikoto::editor;
@@ -53,22 +60,42 @@ WindowsService* gWindowsService{ nullptr };
 constexpr eastl::string_view kConfigPath{ "app-config.toml" };
 const BaseConfiguration gConfiguration{ kConfigPath };
 
+namespace {
+    auto GetWindowDimension( const i32 value, const i32 fallback ) -> i32 {
+        return value > 0 ? value : fallback;
+    }
+}
+
 auto InitWindow() -> bool {
     if (!gConfiguration.IsLoaded()) {
         MKT_CORE_LOGGER_ERROR( "Could not load file at %s·", kConfigPath.data() );
         return false;
     }
 
-    // Initialize the window service
+    // Register configuration defaults only after command-line parsing. Deferred
+    // --set overrides are then applied by CVarRegistry during registration.
+    auto& cVars{ CVarRegistry::Get() };
+
+    const i64 configuredWidth{ gConfiguration.Get<i64>( "application.width" ) };
+    const i64 configuredHeight{ gConfiguration.Get<i64>( "application.height" ) };
+    const i32 defaultWidth{ configuredWidth > 0 && configuredWidth <= std::numeric_limits<i32>::max() ? as<i32>( configuredWidth ) : 1280 };
+    const i32 defaultHeight{ configuredHeight > 0 && configuredHeight <= std::numeric_limits<i32>::max() ? as<i32>( configuredHeight ) : 720 };
+
+    cVars.Register<eastl::string>( "application.title", "Window title.", gConfiguration.Get<eastl::string>( "application.title" ), CVarFlags::eArchive );
+    cVars.Register<i32>( "application.width", "Initial window width in pixels.", defaultWidth, CVarFlags::eArchive | CVarFlags::eStartupOnly );
+    cVars.Register<i32>( "application.height", "Initial window height in pixels.", defaultHeight, CVarFlags::eArchive | CVarFlags::eStartupOnly );
+    cVars.Register<bool>( "application.resizable", "Whether the initial window is resizable.", gConfiguration.Get<bool>( "application.resizable" ), CVarFlags::eArchive | CVarFlags::eStartupOnly );
+    cVars.Register<eastl::string>( "renderer.api", "Renderer backend selected at startup.", gConfiguration.Get<eastl::string>( "renderer.api" ), CVarFlags::eArchive | CVarFlags::eStartupOnly | CVarFlags::eRestartRequired );
+
     gWindowsService = new (std::nothrow) WindowsService{ WindowsServiceCreateInfo{} };
     gWindowsService->Initialize();
 
     const WindowProperties properties{
-        .mTitle = gConfiguration.Get<eastl::string>( "application.title" ),
-        .mWidth = as<i32>( gConfiguration.Get<i64>( "application.width" ) ),
-        .mHeight = as<i32>( gConfiguration.Get<i64>( "application.height" )),
-        .mBackend = InferAPI( gConfiguration.Get<eastl::string>( "renderer.api" ) ),
-        .mResizable = gConfiguration.Get<bool>( "application.resizable" ) };
+        .mTitle = cVars.GetValue<eastl::string>( "application.title" ),
+        .mWidth = GetWindowDimension( cVars.GetValue<i32>( "application.width", defaultWidth ), defaultWidth ),
+        .mHeight = GetWindowDimension( cVars.GetValue<i32>( "application.height", defaultHeight ), defaultHeight ),
+        .mBackend = InferAPI( cVars.GetValue<eastl::string>( "renderer.api" ) ),
+        .mResizable = cVars.GetValue<bool>( "application.resizable" ) };
     gWindow = gWindowsService->Create( properties );
 
     return true;
@@ -92,6 +119,7 @@ auto InitEditor() -> bool {
         gApplication->PushLayer<EditorHelloCubeLayer>( gWindow );
 
         gApplication->PushLayer<EditorLayer>( gWindow );
+        gApplication->PushLayer<NetworkDebugLayer>();
     } catch ( const std::exception& e ) {
         MKT_CORE_LOGGER_ERROR( "Init App exception - e.what(): {}", e.what() );
 
@@ -136,14 +164,25 @@ auto Run() -> void {
     }
 }
 
-// TODO: Add control to for entry point according to platform
-// WinMain for windows graphics apps...
-auto main( const int argc, char** ) -> int {
+auto RunEditor( const int argc, char** argv ) -> int {
     MKT_BEGIN_PROFILER_NAMED();
 
-    if ( argc != 1 ) {
-        MKT_CORE_LOGGER_ERROR( "Application expects no arguments." );
+    if ( argc == 0 || argv == nullptr ) {
+        MKT_CORE_LOGGER_ERROR( "The process command line was unavailable." );
         return EXIT_FAILURE;
+    }
+
+    CLAParser parser{};
+    if ( !parser.Parse( argc, argv ) ) {
+        MKT_CORE_LOGGER_ERROR( "{}", parser.GetMessageOutput() );
+        return parser.IsHelpRequested() ? EXIT_SUCCESS : EXIT_FAILURE;
+    }
+
+    for ( const eastl::string& assignment : parser.GetCVarOverrides() ) {
+        if ( !CVarRegistry::Get().SetFromAssignment( assignment ) ) {
+            MKT_CORE_LOGGER_ERROR( "Invalid CVar override '{}'. Expected --set name=value.", assignment );
+            return EXIT_FAILURE;
+        }
     }
 
     if (!InitWindow()) {
@@ -160,3 +199,14 @@ auto main( const int argc, char** ) -> int {
 
     return EXIT_SUCCESS;
 }
+
+#if defined( _WIN32 )
+// https://stackoverflow.com/questions/13871617/winmain-and-main-in-c-extended
+auto WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR, int ) -> int {
+    return RunEditor( __argc, __argv );
+}
+#else
+auto main( const int argc, char** argv ) -> int {
+    return RunEditor( argc, argv );
+}
+#endif

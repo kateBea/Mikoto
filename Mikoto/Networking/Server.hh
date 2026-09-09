@@ -15,41 +15,54 @@
 #ifndef MIKOTO_SERVER_HH
 #define MIKOTO_SERVER_HH
 
-#include <string_view>
 #include <functional>
+#include <memory>
+#include <string_view>
 
+#include <EASTL/unique_ptr.h>
 #include <ankerl/unordered_dense.h>
+#include <asio.hpp>
 
-#include <Core/Core.hh>
 #include <Core/Types.hh>
-
-#include <Networking/Socket.hh>
+#include <Networking/NetworkService.hh>
 #include <Networking/NetworkUtilities.hh>
 
 namespace mikoto::network {
 
-    class HttpServer {
+    /**
+     * @brief Asynchronous HTTP/1.1 server. One request is served per connection. */
+    class HttpServer final {
     public:
-        using Handler = std::function<void( const HttpRequest &, HttpResponse & )>;
+        using Handler = std::function<void( const HttpRequest&, HttpResponse& )>;
 
-        HttpServer() = default;
+        explicit HttpServer( NetworkSystem& network );
 
         auto Get( std::string_view path, Handler handler ) -> void;
         auto Post( std::string_view path, Handler handler ) -> void;
 
-        auto Listen( std::string_view address, u16 port ) -> void;
+        MKT_NODISCARD auto IsListening() const -> bool;
+        MKT_NODISCARD auto Listen( std::string_view address, core::u16 port ) -> bool;
+
+        auto Stop() -> void;
+
+        ~HttpServer();
 
     private:
-        auto AcceptLoop() -> void;
-        auto HandleClient( SocketHandle clientSocket ) -> void;
+        class Session;
+
+        auto AcceptNext() -> void;
+        auto Dispatch( const HttpRequest& request ) const -> HttpResponse;
 
     private:
-        ankerl::unordered_dense::map<std::string, Handler> mGetRoutes{};
-        ankerl::unordered_dense::map<std::string, Handler> mPostRoutes{};
+        NetworkSystem& mNetwork;
 
-        SocketHandle mServerSocket{};
+        eastl::unique_ptr<asio::ip::tcp::acceptor> mAcceptor{};
+
+        ankerl::unordered_dense::map<eastl::string, Handler> mGetRoutes{};
+        ankerl::unordered_dense::map<eastl::string, Handler> mPostRoutes{};
+
+        bool mStopping{};
     };
 }
 
-
-#endif//MIKOTO_SERVER_HH
+#endif // MIKOTO_SERVER_HH

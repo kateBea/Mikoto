@@ -61,6 +61,26 @@ namespace mikoto::renderer {
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
+    auto FGBarrierHistory::IsCurrent( ResourceStates state, u64 revision ) const -> bool {
+        return mIsValid && mState == state && mResourceRevision == revision;
+    }
+
+    auto FGBarrierHistory::Next( ResourceStates stateBefore, u64 revisionBefore,
+        ResourceStates stateAfter, PipelineStageFlags stages, BarrierAccessFlags accesses ) const -> FGBarrierHistory {
+        FGBarrierHistory next{
+            .mStages = stages,
+            .mAccess = accesses,
+            .mState = stateAfter,
+            .mIsValid = true };
+
+        if ( IsCurrent( stateBefore, revisionBefore ) && stateBefore == stateAfter &&
+             !( mAccess & BarrierAccessFlagsBits::Writes ) && !( accesses & BarrierAccessFlagsBits::Writes ) ) {
+            next.mStages |= mStages;
+            next.mAccess |= mAccess;
+        }
+        return next;
+    }
+
     MKT_NODISCARD constexpr auto GetShaderFlagsFromStage( FGStageType type ) -> ShaderType {
         switch (type) {
             case FGStageType::eVertex: return ShaderType::eVertex;
@@ -509,6 +529,7 @@ namespace mikoto::renderer {
         Read( handle.mHandle );
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
+            .mAccess = FGResourceAccess::eRead,
         };
     }
 
@@ -516,6 +537,7 @@ namespace mikoto::renderer {
         Write( handle.mHandle );
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
+            .mAccess = FGResourceAccess::eWrite,
         };
     }
 
@@ -523,6 +545,7 @@ namespace mikoto::renderer {
         Read( handle.mHandle );
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
+            .mAccess = FGResourceAccess::eRead,
         };
     }
 
@@ -530,6 +553,7 @@ namespace mikoto::renderer {
         Write( handle.mHandle );
         mGraphNode->mResourceStates[handle.mHandle] = FGResourceTrack {
             .mState = state,
+            .mAccess = FGResourceAccess::eWrite,
         };
     }
 
@@ -694,7 +718,7 @@ namespace mikoto::renderer {
 
             // Place pass barriers
             const auto& barriers{ mExecutionPlan.mBarriers[passName] };
-            ctx.CommitBarriers( barriers );
+            ctx.SubmitBarriers( barriers );
 
             Timer timer{ false };
             const double elapsed{ timer.GetCurrentProgress( TimeUnit::eMicroseconds ) };
@@ -912,43 +936,20 @@ namespace mikoto::renderer {
 
     auto FrameGraph::BuildNodeBarriers() -> void {
         for ( const auto& passName : mExecutionPlan.mSortedExecutionPasses ) {
-            const auto& pass{ mNodeControl->mNodes[passName] };
-            if ( !pass.mIsAlive ) {
-                continue;
-            }
+            const auto& pass{ mNodeControl->mNodes.at( passName ) };
+            auto& barriers{ mExecutionPlan.mBarriers[passName] };
 
-            auto recordTransition = [&]( FGResourceHandle resourceHandle, FGResourceAccess access ) -> void {
-                // You cannot set a barrier twice for the same resource in the same pass
-                if (mExecutionPlan.mBarriers[passName].contains( resourceHandle )) {
-                    return;
-                }
-
-                // Barriers are really only needed for dependencies where one of the accesses
-                // is a write (WAW, WAR, RAW) or if a layout transition is required
-                const FGPipelineStage prevState{ mNodeControl->mResources[resourceHandle].mCurrentState };
-                const FGPipelineStage nextState{ mNodeControl->mNodes[passName].mResourceStates[resourceHandle].mState };
-
-                // A first texture use starts from Vulkan's UNDEFINED layout and
-                // therefore still needs a native transition. The same-state
-                // write case retains the WAW memory dependency.
-                if (prevState != nextState || access == FGResourceAccess::eWrite ) {
-                    mExecutionPlan.mBarriers[passName][resourceHandle] = eastl::make_pair(
-                        mNodeControl->mResources[resourceHandle].mName, FGBarrier{
-                        resourceHandle,
-                        access,
-                        prevState,
-                        nextState });
-
-                    mNodeControl->mResources[resourceHandle].mCurrentState = nextState;
-                }
-            };
-
-            for ( auto& h: pass.mReadResources ) {
-                recordTransition( h, FGResourceAccess::eRead );
-            }
-
-            for ( auto& h: pass.mWriteResources ) {
-                recordTransition( h, FGResourceAccess::eWrite );
+            // Keep every declared use, including currently disabled passes.
+            // EnablePass/DisablePass and Once/OnWake policies can change the
+            // actual producer without recompiling this plan. Resolve source
+            // states when recording; compilation must not advance resource state.
+            for ( const auto& [resourceHandle, usage] : pass.mResourceStates ) {
+                const auto& resource{ mNodeControl->mResources.at( resourceHandle ) };
+                barriers.emplace( resourceHandle, eastl::make_pair(
+                    resource.mName, FGBarrier{
+                        .mResourceID = resourceHandle,
+                        .mNewState = usage.mState,
+                        .mNewAccess = usage.mAccess } ) );
             }
         }
     }

@@ -33,10 +33,15 @@ namespace mikoto::renderer::rhi {
 
     auto DeviceObject::SetResourceState( ResourceStates state ) -> void {
         mResourceState = state;
+        ++mResourceStateRevision;
     }
 
     auto DeviceObject::GetResourceState() const -> ResourceStates {
         return mResourceState;
+    }
+
+    auto DeviceObject::GetResourceStateRevision() const -> core::u64 {
+        return mResourceStateRevision;
     }
 
     auto DeviceObject::SetDebugName( eastl::string_view name ) -> void {

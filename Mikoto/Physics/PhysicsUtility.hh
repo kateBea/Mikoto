@@ -28,6 +28,7 @@ namespace mikoto::physics {
         eSphere,
         eCapsule,
         eMesh,
+        eCount,
     };
 
     enum class GravityBody {

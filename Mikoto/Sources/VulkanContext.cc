@@ -184,7 +184,7 @@ namespace mikoto::renderer::vulkan {
             // Blit via full quad render
             TextureHandle colorImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
-            mCommandList->SetTransition( mPresentTarget.GetPtr(), ResourceStates::eShaderResource );
+            mCommandList->SetTransition( TransitionDescription{}.AddTexture( mPresentTarget.GetPtr(), ResourceStates::eShaderResource ) );
 
             u32 index{};
             if (mTableUpdateRequired) {
@@ -192,11 +192,11 @@ namespace mikoto::renderer::vulkan {
                 mTableUpdateRequired = false;
             }
 
-            auto graphicsState{ RenderDescription{}
+            auto graphicsState{ RenderPassDescription{}
                 .SetRenderArea( Rect{ as<i32>(mSwapchain->GetWidth()), as<i32>(mSwapchain->GetHeight()) } )
                 .AddRenderTarget( colorImage, Color{ .0f } ) };
 
-            mCommandList->BeginRendering( graphicsState );
+            mCommandList->BeginRenderPass( graphicsState );
 
             struct DrawParams {
                 u32 mTextureIndex{};
@@ -219,9 +219,9 @@ namespace mikoto::renderer::vulkan {
                 .SetVertexCount( 3 ) };
             mCommandList->Draw( drawArguments );
 
-            mCommandList->EndRendering();
+            mCommandList->EndRenderPass();
 
-            mCommandList->SetTransition( colorImage.GetPtr(), ResourceStates::ePresent );
+            mCommandList->SetTransition( TransitionDescription{}.AddTexture( colorImage.GetPtr(), ResourceStates::ePresent ) );
 
             mCommandList->End();
 #else
@@ -243,9 +243,7 @@ namespace mikoto::renderer::vulkan {
                 mPresentTarget.GetPtr(), srcSlice,
                 currentSwapchainImage.GetPtr(), dstSlice );
 
-            mCommandList->SetTransition(
-                currentSwapchainImage.GetPtr(),
-                ResourceStates::ePresent );
+            mCommandList->SetTransition( TransitionDescription{}.AddTexture( currentSwapchainImage.GetPtr(), ResourceStates::ePresent ) );
 
             mCommandList->End();
 #endif
@@ -282,12 +280,14 @@ namespace mikoto::renderer::vulkan {
         ( void )frame.mFence->Wait( frame.mFenceValue, eastl::numeric_limits<u64>::max() );
         mDevice->RunGarbageCollection();
 
-        const auto ret{ mSwapchain->GetNextImageIndex( mCurrentImageIndex, frame.mImageAvailableSemaphore.GetPtr() ) };
+        auto ret{ mSwapchain->GetNextImageIndex( mCurrentImageIndex, frame.mImageAvailableSemaphore.GetPtr() ) };
 
         if ( ret == VK_ERROR_OUT_OF_DATE_KHR ) {
             mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
+            //ret = mSwapchain->GetNextImageIndex( mCurrentImageIndex, frame.mImageAvailableSemaphore.GetPtr() );
+            //MKT_ASSERT( ret == VK_SUCCESS, "Failed to acquire swap chain image!" );
         } else if ( ret != VK_SUCCESS ) {
-            MKT_ASSERT( false, "VulkanContext Failed to acquire swap chain image!" );
+            MKT_ASSERT( false, "Failed to acquire swap chain image!" );
         }
     }
 

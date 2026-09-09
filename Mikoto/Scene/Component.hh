@@ -427,7 +427,7 @@ namespace mikoto::scene {
         MKT_NODISCARD auto static GetMaxBodyMass() -> float { return 300000.0f; }
 
         MKT_NODISCARD auto GetFriction() const -> float { return m_Friction; }
-        auto SetFriction( const float friction ) -> void { m_Friction = friction; }
+        auto SetFriction( const float friction ) -> void { m_Friction = math::Clamp( friction, 0.0f, 1.0f ); }
 
         MKT_NODISCARD auto UseGravity() const -> bool { return m_UseGravity; }
         auto SetUseGravity( const bool enabled ) -> void { m_UseGravity = enabled; }
@@ -438,7 +438,7 @@ namespace mikoto::scene {
         auto SetBodyType( const BodyType type ) -> void { m_BodyType = type; }
 
         MKT_NODISCARD auto GetBodyID() const -> u64 { return m_BodyID; }
-        MKT_NODISCARD auto IsValidBodyID() const -> u64 { return m_IsValidBody; }
+        MKT_NODISCARD auto IsValidBodyID() const -> bool { return m_IsValidBody; }
 
         auto SetLinearVelocity( float x, float y, float z ) -> void {
             m_LinearVelocity = { x, y, z };
@@ -468,7 +468,7 @@ namespace mikoto::scene {
             m_IsValidBody = false;
         }
 
-        auto SetRestitution(float value ) -> void { m_Restitution = value; }
+        auto SetRestitution(float value ) -> void { m_Restitution = math::Clamp( value, 0.0f, 1.0f ); }
         MKT_NODISCARD auto GetRestitution()const  -> float { return m_Restitution; }
 
     private:
@@ -497,17 +497,33 @@ namespace mikoto::scene {
 
         ~MeshColliderComponent() = default;
 
-        MKT_NODISCARD auto GetRadius() const -> core::f32 { return mRadius; }
-        MKT_NODISCARD auto GetHeight() const -> core::f32 { return mHeight; }
-        MKT_NODISCARD auto IsTrigger() const -> core::f32 { return mIsTrigger; }
-        MKT_NODISCARD auto GetColliderType() const -> physics::ColliderType { return mType; }
+        /**
+         * @brief Returns the local collider offset.
+         * @returns Offset from the entity origin. */
+        MKT_NODISCARD auto GetOffset() const -> const core::float3& { return mOffset; }
+
+        /**
+         * @brief Updates the local collider offset.
+         * @param offset Offset from the entity origin. */
+        auto SetOffset( const core::float3& offset ) -> void { mOffset = offset; }
+
+        /**
+         * @brief Returns whether the shape emits overlap events without physical response.
+         * @returns Trigger state. */
+        MKT_NODISCARD auto IsTrigger() const -> bool { return mIsTrigger; }
+
+        /**
+         * @brief Updates trigger behaviour.
+         * @param value True to make the collider a trigger. */
+        auto SetTrigger( const bool value ) -> void { mIsTrigger = value; }
+
+        /**
+         * @brief Returns the concrete collider kind.
+         * @returns Mesh collider type. */
+        MKT_NODISCARD static constexpr auto GetColliderType() -> physics::ColliderType { return physics::ColliderType::eMesh; }
 
     private:
-        physics::ColliderType mType{ physics::ColliderType::eBox };
-
-        core::f32 mRadius{};
-        core::f32 mHeight{};
-
+        core::float3 mOffset{};
         bool mIsTrigger{false};
     };
 
@@ -523,8 +539,30 @@ namespace mikoto::scene {
 
         ~CapsuleColliderComponent() = default;
 
+        /** @brief Returns the radius of the capsule hemispheres. @returns Non-negative radius. */
+        MKT_NODISCARD auto GetRadius() const -> core::f32 { return mRadius; }
+        /** @brief Sets the radius of the capsule hemispheres. @param radius New non-negative radius. */
+        auto SetRadius( const core::f32 radius ) -> void { mRadius = glm::max( radius, 0.001f ); }
+        /** @brief Returns half the height of the cylindrical capsule section. @returns Half-height. */
+        MKT_NODISCARD auto GetHalfHeight() const -> core::f32 { return mHalfHeight; }
+        /** @brief Sets half the height of the cylindrical capsule section. @param height New non-negative half-height. */
+        auto SetHalfHeight( const core::f32 height ) -> void { mHalfHeight = glm::max( height, 0.0f ); }
+        /** @brief Returns the local collider offset. @returns Offset from the entity origin. */
+        MKT_NODISCARD auto GetOffset() const -> const core::float3& { return mOffset; }
+        /** @brief Updates the local collider offset. @param offset Offset from the entity origin. */
+        auto SetOffset( const core::float3& offset ) -> void { mOffset = offset; }
+        /** @brief Returns whether the shape is a trigger. @returns Trigger state. */
+        MKT_NODISCARD auto IsTrigger() const -> bool { return mIsTrigger; }
+        /** @brief Updates trigger behaviour. @param value True to make the collider a trigger. */
+        auto SetTrigger( const bool value ) -> void { mIsTrigger = value; }
+        /** @brief Returns the concrete collider kind. @returns Capsule collider type. */
+        MKT_NODISCARD static constexpr auto GetColliderType() -> physics::ColliderType { return physics::ColliderType::eCapsule; }
+
     private:
-        physics::ColliderType mType{ physics::ColliderType::eMesh };
+        core::f32 mRadius{ 0.5f };
+        core::f32 mHalfHeight{ 0.5f };
+        core::float3 mOffset{};
+        bool mIsTrigger{};
     };
 
     class SphereColliderComponent {
@@ -539,8 +577,25 @@ namespace mikoto::scene {
 
         ~SphereColliderComponent() = default;
 
+        /** @brief Returns the sphere radius. @returns Non-negative radius. */
+        MKT_NODISCARD auto GetRadius() const -> core::f32 { return mRadius; }
+        /** @brief Sets the sphere radius. @param radius New non-negative radius. */
+        auto SetRadius( const core::f32 radius ) -> void { mRadius = glm::max( radius, 0.001f ); }
+        /** @brief Returns the local collider offset. @returns Offset from the entity origin. */
+        MKT_NODISCARD auto GetOffset() const -> const core::float3& { return mOffset; }
+        /** @brief Updates the local collider offset. @param offset Offset from the entity origin. */
+        auto SetOffset( const core::float3& offset ) -> void { mOffset = offset; }
+        /** @brief Returns whether the shape is a trigger. @returns Trigger state. */
+        MKT_NODISCARD auto IsTrigger() const -> bool { return mIsTrigger; }
+        /** @brief Updates trigger behaviour. @param value True to make the collider a trigger. */
+        auto SetTrigger( const bool value ) -> void { mIsTrigger = value; }
+        /** @brief Returns the concrete collider kind. @returns Sphere collider type. */
+        MKT_NODISCARD static constexpr auto GetColliderType() -> physics::ColliderType { return physics::ColliderType::eSphere; }
+
     private:
-        physics::ColliderType mType{ physics::ColliderType::eCapsule };
+        core::f32 mRadius{ 0.5f };
+        core::float3 mOffset{};
+        bool mIsTrigger{};
     };
 
     class BoxColliderComponent {
@@ -555,8 +610,25 @@ namespace mikoto::scene {
 
         ~BoxColliderComponent() = default;
 
+        /** @brief Returns box half extents in local space. @returns Positive half extents. */
+        MKT_NODISCARD auto GetHalfExtents() const -> const core::float3& { return mHalfExtents; }
+        /** @brief Sets box half extents in local space. @param extents Positive half extents. */
+        auto SetHalfExtents( const core::float3& extents ) -> void { mHalfExtents = glm::max( extents, core::float3{ 0.001f } ); }
+        /** @brief Returns the local collider offset. @returns Offset from the entity origin. */
+        MKT_NODISCARD auto GetOffset() const -> const core::float3& { return mOffset; }
+        /** @brief Updates the local collider offset. @param offset Offset from the entity origin. */
+        auto SetOffset( const core::float3& offset ) -> void { mOffset = offset; }
+        /** @brief Returns whether the shape is a trigger. @returns Trigger state. */
+        MKT_NODISCARD auto IsTrigger() const -> bool { return mIsTrigger; }
+        /** @brief Updates trigger behaviour. @param value True to make the collider a trigger. */
+        auto SetTrigger( const bool value ) -> void { mIsTrigger = value; }
+        /** @brief Returns the concrete collider kind. @returns Box collider type. */
+        MKT_NODISCARD static constexpr auto GetColliderType() -> physics::ColliderType { return physics::ColliderType::eBox; }
+
     private:
-        physics::ColliderType mType{ physics::ColliderType::eSphere };
+        core::float3 mHalfExtents{ 0.5f };
+        core::float3 mOffset{};
+        bool mIsTrigger{};
     };
 
     enum class CameraClearFlags {

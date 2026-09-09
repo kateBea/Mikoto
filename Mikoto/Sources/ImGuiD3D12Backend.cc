@@ -315,11 +315,11 @@ namespace mikoto::imgui {
         d3d12::CommandList* cmd{ checked_cast<d3d12::CommandList*>( mCommandList.GetPtr() ) };
         ID3D12GraphicsCommandList* d3d12CmdList{ *cmd };
 
-        auto graphicsState{ RenderDescription{}
+        auto graphicsState{ RenderPassDescription{}
             .SetRenderArea( Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
             .AddRenderTarget( mColorImage, rhi::kColorMagenta ) };
-        mCommandList->BeginRendering( graphicsState );
+        mCommandList->BeginRenderPass( graphicsState );
         mCommandList->SetClearColor( mColorImage.GetPtr(), mClearColor );
 
         // ComPtr::operator&() is for output parameters and can release the existing pointer.
@@ -329,7 +329,7 @@ namespace mikoto::imgui {
 
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), d3d12CmdList);
 
-        mCommandList->EndRendering();
+        mCommandList->EndRenderPass();
     }
 }// namespace mikoto::gui
 

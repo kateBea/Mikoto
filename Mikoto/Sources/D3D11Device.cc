@@ -46,6 +46,17 @@
 
 namespace mikoto::renderer::d3d11 {
 
+    using namespace mikoto::renderer::rhi;
+
+    auto CommandList::SetTransition( const TransitionDescription& description ) -> void {
+        for ( const auto& transition : description.mBuffers ) { SetTransition( transition.mBuffer, transition.mState ); }
+        for ( const auto& transition : description.mTextures ) { SetTransition( transition.mTexture, transition.mState ); }
+    }
+
+    auto CommandList::SetBarrier( const BarrierDescription& ) -> void {
+        // D3D11 has implicit resource hazards; explicit enhanced barriers are a no-op.
+    }
+
     auto Fence::GetCompletionValue() const -> core::u64 {
         return 0;
     }
@@ -449,7 +460,7 @@ namespace mikoto::renderer::d3d11 {
 
     }
 
-    auto CommandList::BeginRendering( RenderDescription &state ) -> void {
+    auto CommandList::BeginRenderPass( RenderPassDescription &state ) -> void {
         // Render targets
         eastl::fixed_vector<ID3D11RenderTargetView*, kMaxRenderTargets> renderTargetViews{};
         for ( const auto &v: state.mCurrentRenderTargets ) {
@@ -472,7 +483,7 @@ namespace mikoto::renderer::d3d11 {
         );
     }
 
-    auto CommandList::EndRendering() -> void {
+    auto CommandList::EndRenderPass() -> void {
         // Unbind all render targets + depth
         mDeviceContextDeferred->OMSetRenderTargets(0, nullptr, nullptr);
     }

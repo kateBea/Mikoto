@@ -340,12 +340,12 @@ namespace mikoto::renderer {
 
                 builder.UseResource( prepassData.mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
 
-                builder.UseResource( cameraPassData.mCameraData, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( cameraPassData.mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mGeometryBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( geometryData.mMaterialsBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mSkinningBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
-                builder.UseResource( geometryData.mGeometryAllocBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( geometryData.mGeometryAllocBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
                 builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
             },

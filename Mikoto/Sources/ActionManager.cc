@@ -19,6 +19,7 @@
 #include <Core/CoreEvents.hh>
 #include <Core/Profiler.hh>
 #include <Core/ActionManager.hh>
+#include <Core/CVar.hh>
 
 #include <Logging/Logger.hh>
 
@@ -62,5 +63,11 @@ namespace mikoto::core {
     auto ActionManager::Bind( core::KeyCode key, core::ModKey mods, ShortcutAction action ) -> void {
         ShortcutKey keyCombo{ key, static_cast<i32>(mods) };
         mActions[keyCombo] = action;
+    }
+
+    auto ActionManager::BindCVarToggle( const core::KeyCode key, const core::ModKey mods, const eastl::string_view cvarName ) -> void {
+        Bind( key, mods, [name = eastl::string{ cvarName }]() -> void {
+            CVarRegistry::Get().Toggle( name );
+        } );
     }
 }// namespace mikoto::core

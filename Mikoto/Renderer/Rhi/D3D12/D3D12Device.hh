@@ -516,21 +516,8 @@ namespace mikoto::renderer::d3d12 {
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
-        // More relaxed versions of SetResourceState
-        // https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12
-        auto RecordBarrier( const rhi::BufferBarrierDescription& desc ) -> void override;
-        auto RecordBarrier( const rhi::TextureBarrierDescription& desc ) -> void override;
-
-        auto RecordTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
-        auto RecordTransition( rhi::ITexture* texture, rhi::ResourceStates stateBits ) -> void override;
-
-        auto CommitBarriers() -> void override;
-
-        auto SetBarrier( const rhi::BufferBarrierDescription& desc ) -> void override;
-        auto SetBarrier( const rhi::TextureBarrierDescription& desc ) -> void override;
-
-        auto SetTransition( rhi::IBuffer* buffer, rhi::ResourceStates stateBits ) -> void override;
-        auto SetTransition( rhi::ITexture* texture, rhi::ResourceStates stateBits ) -> void override;
+        auto SetTransition( const rhi::TransitionDescription& description ) -> void override;
+        auto SetBarrier( const rhi::BarrierDescription& description ) -> void override;
 
         auto SetEnableAutomaticBarriers( bool enable ) -> void override;
 
@@ -550,8 +537,8 @@ namespace mikoto::renderer::d3d12 {
         auto Copy( rhi::IBuffer* dest, rhi::ITexture* src ) -> void override;
         auto Copy( rhi::IBuffer* dest, rhi::ITexture* src, const rhi::TextureSlice& srcSlice ) -> void override;
 
-        auto BeginRendering( rhi::RenderDescription& state ) -> void override;
-        auto EndRendering() -> void override;
+        auto BeginRenderPass( rhi::RenderPassDescription& state ) -> void override;
+        auto EndRenderPass() -> void override;
 
         auto BindPipeline( rhi::IPipeline* pipeline ) -> void override;
 
@@ -600,6 +587,16 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         // [Internal usage]
+        auto RecordBarrier( const rhi::BufferBarrierDescription& ) -> void;
+        auto RecordBarrier( const rhi::TextureBarrierDescription& ) -> void;
+        auto RecordTransition( rhi::IBuffer*, rhi::ResourceStates ) -> void;
+        auto RecordTransition( rhi::ITexture*, rhi::ResourceStates ) -> void;
+        auto SetTransition( rhi::IBuffer*, rhi::ResourceStates ) -> void;
+        auto SetTransition( rhi::ITexture*, rhi::ResourceStates ) -> void;
+        auto SetBarrier( const rhi::BufferBarrierDescription& ) -> void;
+        auto SetBarrier( const rhi::TextureBarrierDescription& ) -> void;
+        auto CommitBarriers() -> void;
+
         auto Initialize() -> void override;
         auto Destroy() -> void override;
 
@@ -621,11 +618,10 @@ namespace mikoto::renderer::d3d12 {
 
         bool mIsRenderScopeActive{};
         bool mEnableAutomaticBarriers{ true };
-
         eastl::fixed_vector<D3D12_RESOURCE_BARRIER, rhi::kMaxBarriers> mResourceBarriers{};
-
         eastl::fixed_vector<D3D12_BUFFER_BARRIER, rhi::kMaxBarriers> mBufferBarriers{};
         eastl::fixed_vector<D3D12_TEXTURE_BARRIER, rhi::kMaxBarriers> mTextureBarriers{};
+
 
         // For debug
         rhi::Color mLabelColor{};

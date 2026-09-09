@@ -323,17 +323,17 @@ namespace mikoto::renderer::d3d12 {
             // Blit via full quad render
             TextureHandle colorImage{ mSwapChain->GetCurrentBackBufferImage() };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
-            mCommandList->SetTransition( mPresentTarget.GetPtr(), ResourceStates::eShaderResource );
+            mCommandList->SetTransition( TransitionDescription{}.AddTexture( mPresentTarget.GetPtr(), ResourceStates::eShaderResource ) );
 
             if (mTableUpdateRequired) {
                 (void)mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::TextureSRV( 0, mPresentTarget.GetPtr() ) );
                 mTableUpdateRequired = false;
             }
 
-            auto graphicsState{ RenderDescription{}
+            auto graphicsState{ RenderPassDescription{}
                 .SetRenderArea( Rect{ as<i32>(mSwapChain->GetWidth()), as<i32>(mSwapChain->GetHeight()) } )
                 .AddRenderTarget( colorImage, Color{ .0f } ) };
-            mCommandList->BeginRendering( graphicsState );
+            mCommandList->BeginRenderPass( graphicsState );
 
             struct DrawParams {
                 u32 mTextureIndex{};
@@ -357,9 +357,9 @@ namespace mikoto::renderer::d3d12 {
                 .SetVertexCount( 3 ) };
             mCommandList->Draw( drawArguments );
 
-            mCommandList->EndRendering();
+            mCommandList->EndRenderPass();
 
-            mCommandList->SetTransition( colorImage.GetPtr(), ResourceStates::ePresent );
+            mCommandList->SetTransition( TransitionDescription{}.AddTexture( colorImage.GetPtr(), ResourceStates::ePresent ) );
 
             mCommandList->End();
 
@@ -385,7 +385,7 @@ namespace mikoto::renderer::d3d12 {
                 mPresentTarget.GetPtr(), srcSlice,
                 colorImage.GetPtr(), dstSlice );
 
-            mCommandList->SetTransition( colorImage.GetPtr(), ResourceStates::ePresent );
+            mCommandList->SetTransition( TransitionDescription{}.AddTexture( colorImage.GetPtr(), ResourceStates::ePresent ) );
 
             mCommandList->End();
 #endif

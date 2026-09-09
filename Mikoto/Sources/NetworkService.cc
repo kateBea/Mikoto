@@ -12,163 +12,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <EASTL/string.h>
-#include <EASTL/string_view.h>
-
-#include <Platform/PlatformWin32.hh>
-
-#include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
-
 #include <Logging/Logger.hh>
-
-#include <Threading/TaskService.hh>
-
 #include <Networking/NetworkService.hh>
 
 namespace mikoto::network {
 
-    using namespace mikoto::core;
-    using namespace mikoto::threading;
+    NetworkSystem::NetworkSystem( const NetworkServiceCreateInfo& options )
+        : mOptions{ options }
+    {
 
-    NetworkSystem::NetworkSystem( const NetworkServiceCreateInfo & ) {
-        mIoContext = eastl::make_unique<asio::io_context>();
     }
 
-    auto NetworkSystem::CreateSocket( SocketType type, const eastl::string_view hostName, const u16 port, SecurityProtocol sp ) -> SocketHandle {
-        SocketHandle handle{ SocketHandle::CreateEmpty() };
-
-        switch (type) {
-            case SocketType::eTcp:
-                handle = CreateSocketTcp( hostName, port, false, sp );
-                break;
-            case SocketType::eUdp:
-                // Not supported for now
-                MKT_CORE_LOGGER_WARN( "NetworkService::CreateSocket - UDP Socket not yet supported" );
-                break;
-            default:
-                break;
-        }
-
-        if (handle.IsEmpty()) {
-            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateSocket - Failed to create new socket" );
-        } else {
-            handle->Initialize();
-        }
-
-        return handle;
-    }
-
-    auto NetworkSystem::CreateSocketSync( SocketType type, eastl::string_view hostName, u16 port, SecurityProtocol sp ) -> SocketHandle {
-        SocketHandle handle{ SocketHandle::CreateEmpty() };
-
-        switch (type) {
-            case SocketType::eTcp:
-                handle = CreateSocketTcp( hostName, port, true, sp );
-                break;
-            case SocketType::eUdp:
-                // Not supported for now
-                MKT_CORE_LOGGER_WARN( "NetworkService::CreateSocketSync - UDP Socket not yet supported" );
-                break;
-            default:
-                break;
-        }
-
-        if (handle.IsEmpty()) {
-            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateSocketSync - Failed to create new socket" );
-        } else {
-            handle->Initialize();
-        }
-
-        return handle;
-    }
-
-    auto NetworkSystem::CreateSocketHttp( eastl::string_view hostName, bool wait ) -> SocketHandle {
-        SocketHandle handle{};
-
-        constexpr u32 httPort{ 80 };
-        handle = CreateSocketTcp( hostName, httPort, wait, SecurityProtocol::eNone );
-
-        if (handle.IsEmpty()) {
-            MKT_CORE_LOGGER_ERROR( "CreateSocketHttp::CreateSocketHttp - Failed to create new socket" );
-        } else {
-            handle->Initialize();
-        }
-
-        return handle;
-    }
-
-    auto NetworkSystem::CreateSocketHttps( eastl::string_view hostName, bool wait ) -> SocketHandle {
-        SocketHandle handle{};
-
-        constexpr u32 httPort{ 443 };
-        handle = CreateSocketTcp( hostName, httPort, wait, SecurityProtocol::eTLS );
-
-        if (handle.IsEmpty()) {
-            MKT_CORE_LOGGER_ERROR( "NetworkService::CreateSocketHttps - Failed to create new socket" );
-        } else {
-            handle->Initialize();
-        }
-
-        return handle;
-    }
-
-    auto NetworkSystem::CreateSocketTcp( const eastl::string_view hostName, const u16 port, bool wait, SecurityProtocol sp ) -> SocketHandle {
-        SocketHandle handle{ SocketHandle::CreateEmpty() };
-
-        switch (sp) {
-            case SecurityProtocol::eNone:
-                handle = mTcpSockets.Allocate( *mIoContext, hostName, port, wait );
-                break;
-            case SecurityProtocol::eTLS:
-#if defined( MIKOTO_OPENSSL_AVAILABLE )
-                handle = mTcpSockets.Allocate( *mIoContext, mSslContext, hostName, port, wait );
-#else
-                MKT_CORE_LOGGER_WARN("NetworkService::CreateSocketTcp - Attempting to create TLS Socket but OpenSSL not available.");
-#endif
-                break;
-        }
-
-        return handle;
+    NetworkSystem::~NetworkSystem() {
+        Shutdown();
     }
 
     auto NetworkSystem::Initialize() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        MKT_CORE_LOGGER_INFO( "Initializing NetworkService..." );
-
-        mTcpSockets.Init( 10 );
-
+        if ( mIsInitialized ) return;
+        mContext.restart();
+        mWorkGuard = eastl::make_unique<asio::executor_work_guard<asio::io_context::executor_type>>( mContext.get_executor() );
+#if defined( MIKOTO_OPENSSL_AVAILABLE )
+        asio::error_code error{};
+        mTlsContext.set_default_verify_paths( error );
+        if ( error ) MKT_CORE_LOGGER_WARN( "TLS system trust store is unavailable: {}", error.message() );
+#endif
+        mTcpSockets.Init( mOptions.mInitialSocketPoolSize );
+        if ( mOptions.mUseWorkerThread ) mWorker = std::jthread( [this] { mContext.run(); } );
         mIsInitialized = true;
     }
 
     auto NetworkSystem::Shutdown() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        if (!mIsInitialized) {
-            return;
-        }
-
-        MKT_CORE_LOGGER_INFO( "Shutting down NetworkSystem..." );
-
-        for (auto &socket: mTcpSockets | std::views::values) {
-            // Wait for pending connections to finish
-            while ( socket.As<TcpSocket>()->IsConnectionStatus( ConnectionStatus::ePending ))
-                ;
-        }
-
-        // Run pending work if any
-        mIoContext->run();
-
+        if ( !mIsInitialized ) return;
+        mWorkGuard.reset();
+        mContext.stop();
+        if ( mWorker.joinable() ) mWorker.join();
         mTcpSockets.Shutdown();
-
         mIsInitialized = false;
     }
 
     auto NetworkSystem::Update( float ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
-
-        mIoContext->poll();
+        if ( mIsInitialized && !mOptions.mUseWorkerThread ) mContext.poll();
     }
-}
+
+    auto NetworkSystem::CreateSocket( const SocketType type, const eastl::string_view host, const core::u16 port, const SecurityProtocol security ) -> SocketHandle {
+        return type == SocketType::eTcp ? CreateTcpSocket( host, port, false, security ) : SocketHandle::CreateEmpty();
+    }
+
+    auto NetworkSystem::CreateSocketSync( const SocketType type, const eastl::string_view host, const core::u16 port, const SecurityProtocol security ) -> SocketHandle {
+        return type == SocketType::eTcp ? CreateTcpSocket( host, port, true, security ) : SocketHandle::CreateEmpty();
+    }
+
+    auto NetworkSystem::CreateSocketHttp( const eastl::string_view host, const bool wait ) -> SocketHandle {
+        return CreateTcpSocket( host, 80, wait, SecurityProtocol::eNone );
+    }
+
+    auto NetworkSystem::CreateSocketHttps( const eastl::string_view host, const bool wait ) -> SocketHandle {
+        return CreateTcpSocket( host, 443, wait, SecurityProtocol::eTLS );
+    }
+
+    auto NetworkSystem::GetContext() -> asio::io_context& {
+        return mContext;
+    }
+
+    auto NetworkSystem::CreateTcpSocket( const eastl::string_view host, const core::u16 port, const bool synchronous, const SecurityProtocol security ) -> SocketHandle {
+        if ( !mIsInitialized || host.empty() || port == 0 ) return SocketHandle::CreateEmpty();
+        if ( security == SecurityProtocol::eTLS && !HasTlsSupport() ) {
+            MKT_CORE_LOGGER_WARN( "HTTPS requested for '{}' but Mikoto was built without OpenSSL.", host );
+            return SocketHandle::CreateEmpty();
+        }
+#if defined( MIKOTO_OPENSSL_AVAILABLE )
+        auto handle{ security == SecurityProtocol::eTLS ? mTcpSockets.Allocate( mContext, mTlsContext, host, port, synchronous )
+            : mTcpSockets.Allocate( mContext, host, port, synchronous ) };
+#else
+        auto handle{ mTcpSockets.Allocate( mContext, host, port, synchronous ) };
+#endif
+        SocketHandle socket{ handle };
+        socket->Initialize();
+        if ( synchronous && !socket->IsConnected() ) {
+            return SocketHandle::CreateEmpty();
+        }
+
+        return socket;
+    }
+}// namespace mikoto::network

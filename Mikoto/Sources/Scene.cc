@@ -218,6 +218,9 @@ namespace mikoto::scene {
         // Physics
         mRegistry.on_construct<RigidBodyComponent>().connect<&Scene::OnRigidBodyAdded>( this );
         mRegistry.on_construct<MeshColliderComponent>().connect<&Scene::OnColliderAdded>( this );
+        mRegistry.on_construct<BoxColliderComponent>().connect<&Scene::OnColliderAdded>( this );
+        mRegistry.on_construct<SphereColliderComponent>().connect<&Scene::OnColliderAdded>( this );
+        mRegistry.on_construct<CapsuleColliderComponent>().connect<&Scene::OnColliderAdded>( this );
 
         physics::PhysicsWorldCreateInfo spec{
             .mScene = this,
@@ -278,21 +281,15 @@ namespace mikoto::scene {
     }
 
     auto Scene::OnRigidBodyAdded( entt::registry& reg, entt::entity e ) -> void {
-        if ( !reg.any_of<BoxColliderComponent>( e ) ) {
+        if ( !reg.any_of<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>( e ) ) {
             reg.emplace_or_replace<BoxColliderComponent>( e );
-        } else if ( !reg.any_of<SphereColliderComponent>( e ) ) {
-            reg.emplace_or_replace<SphereColliderComponent>( e );
-        }else if ( !reg.any_of<CapsuleColliderComponent>( e ) ) {
-            reg.emplace_or_replace<CapsuleColliderComponent>( e );
-        }else if ( !reg.any_of<MeshColliderComponent>( e ) ) {
-            reg.emplace_or_replace<MeshColliderComponent>( e );
         }
 
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
         Entity* entity{ FindByID( tag.GetGuid() ) };
         mPhysicsWorld->AddRigidBody( entity );
 
-        mStatistics.mRigidBodyCount += 1;
+        ++mStatistics.mRigidBodyCount;
     }
 
     auto Scene::OnColliderAdded( entt::registry& reg, entt::entity e ) -> void {
@@ -301,9 +298,11 @@ namespace mikoto::scene {
         // collision areas can be used to trigger effects upon entering certain areas
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
         Entity* entity{ FindByID( tag.GetGuid() ) };
-        mPhysicsWorld->AddCollider( entity );
+        if ( reg.any_of<RigidBodyComponent>( e ) ) {
+            mPhysicsWorld->AddCollider( entity );
+        }
 
-        mStatistics.mRigidBodyCount += 1;
+        ++mStatistics.mColliderCount;
     }
 
     auto Scene::OnRigidBodyRemoved( entt::registry& reg, entt::entity e ) -> void {
@@ -315,11 +314,13 @@ namespace mikoto::scene {
         Entity* entity{ FindByID( tag.GetGuid() ) };
         mPhysicsWorld->RemoveRigidBody( entity );
 
-        mStatistics.mRigidBodyCount -= 1;
+        if ( mStatistics.mRigidBodyCount > 0 ) {
+            --mStatistics.mRigidBodyCount;
+        }
     }
 
     auto Scene::OnColliderRemoved( entt::registry& reg, entt::entity e ) -> void {
-        if (mRegistry.orphan(e)) {
+        if ( !reg.any_of<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>( e ) ) {
             return;
         }
 
@@ -332,9 +333,13 @@ namespace mikoto::scene {
         // More complex shapes can be created with vertices
         const TagComponent& tag{ reg.get<TagComponent>( e ) };
         Entity* entity{ FindByID( tag.GetGuid() ) };
-        mPhysicsWorld->RemoveColliderBody( entity );
+        if ( reg.any_of<RigidBodyComponent>( e ) ) {
+            mPhysicsWorld->RemoveColliderBody( entity );
+        }
 
-        mStatistics.mRigidBodyCount -= 1;
+        if ( mStatistics.mColliderCount > 0 ) {
+            --mStatistics.mColliderCount;
+        }
     }
 
     auto Scene::OnScriptAdded( entt::registry& reg, entt::entity e ) -> void {
@@ -812,7 +817,8 @@ namespace mikoto::scene {
             ( void )DestroyEntitySingle( childID );
         }
 
-        // Do entity cleanup
+        // Do entity cleanup. Component removal signals are not connected because the
+        // entity is also explicitly cleaned up here before its ECS handle is destroyed.
         OnRigidBodyRemoved( mRegistry, mEntities[entityID]->mHandle );
         OnColliderRemoved( mRegistry, mEntities[entityID]->mHandle );
 
@@ -828,7 +834,7 @@ namespace mikoto::scene {
         }
         mEntities.erase( it );
 
-        return mEntities.erase( entityID ) != 0;
+        return true;
     }
 
     auto Scene::GetRegistry() -> entt::registry& {

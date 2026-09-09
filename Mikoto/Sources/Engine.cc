@@ -107,7 +107,7 @@ namespace mikoto::core {
 
             RenderSystemCreateInfo renderServiceCreateInfo{
                  .mWindow = mWindow,
-                 .mRefreshRate = RefreshRate::eUnlimited,
+                 .mRefreshRate = RefreshRate::eSync,
                  .mApi = mWindow->GetApi(),
                  .mEnableImGui = true };
             PushMainThreadService<RenderSystem>( renderServiceCreateInfo );

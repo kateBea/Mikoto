@@ -262,17 +262,7 @@ namespace mikoto::renderer::rhi {
          *
          * @returns The result of IBuffer.
          */
-        explicit IBuffer( const BufferCreateDescription& desc )
-            : DeviceObject{ desc.mHeapType, desc.mResourceType },
-              mUploadContents{ desc.mSpanHandle },
-              mElementCount{ desc.mElementCount },
-              mElementSize{ desc.mElementSize },
-              mDataType{ desc.mDataType },
-              mUsage{ desc.mUsageFlags },
-              mIsVolatile{ desc.mIsVolatile },
-              mMaxVersions{ desc.mMaxVersions },
-              mFormat{ desc.mFormat }
-        {}
+        explicit IBuffer( const BufferCreateDescription& desc );
 
     protected:
         memory::BufferSpanHandle mUploadContents{};
@@ -287,6 +277,8 @@ namespace mikoto::renderer::rhi {
 
         BufferDataType mDataType{ BufferDataType::eInvalid };
         BufferUsageFlags mUsage{ BufferUsageFlagsBits::None };
+
+        const ResourceStates mInitialState;
 
         bool mIsVolatile{};
         core::usize mMaxVersions{ 0 };

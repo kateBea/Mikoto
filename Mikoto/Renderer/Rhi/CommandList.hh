@@ -433,6 +433,11 @@ namespace mikoto::renderer::rhi {
         eastl::vector<BufferTransition> mBuffers{};
         eastl::vector<TextureTransition> mTextures{};
 
+        TransitionDescription() = default;
+
+        TransitionDescription( IBuffer* buffer, ResourceStates state );
+        TransitionDescription( ITexture* texture, ResourceStates state );
+
         /**
          * @brief Adds a buffer and its destination state.
          * @param buffer Buffer to transition.

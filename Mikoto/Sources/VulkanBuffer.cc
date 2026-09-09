@@ -146,8 +146,33 @@ namespace mikoto::renderer::vulkan {
             u64 fenceValue{ 0 };
             FenceHandle fence{ mDevice->CreateFence( fenceValue++ ) };
             CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
+
             cmd->Begin( { .mScopeName = string::Format( "Buffer upload: {}", mDebugName ) } );
             cmd->Write( this, mUploadContents->GetData(), mUploadContents->GetSize() );
+
+            if ( mInitialState != ResourceStates::eUnknown ) {
+                cmd->SetTransition( { this , mInitialState } );
+            }
+
+            cmd->End();
+
+            // Signal fenceValue on one fence on completion of these
+            // commands, then we wait for that completion this blocks the caller
+            // but client should ideally offload this task to worker threads
+            const auto submitInfo{ SubmitInfo{}
+                .AddSignal( fence, fenceValue )
+                .AddCommandList( cmd ) };
+            mDevice->GetQueue( QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
+            ( void )fence->Wait( fenceValue, eastl::numeric_limits<u64>::max() );
+        } else if ( mInitialState != ResourceStates::eUnknown ) {
+            // Just transition state if needed, otherwise leave in undefined because that is
+            // the state in which resources are created
+            u64 fenceValue{ 0 };
+            FenceHandle fence{ mDevice->CreateFence( fenceValue++ ) };
+            CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
+
+            cmd->Begin( { .mScopeName = string::Format( "Buffer Transition: {}", mDebugName ) } );
+            cmd->SetTransition( { this , mInitialState } );
             cmd->End();
 
             // Signal fenceValue on one fence on completion of these

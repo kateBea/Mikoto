@@ -462,6 +462,8 @@ namespace mikoto::renderer::rhi {
         Format mFormat{ Format::eUnknown };
         TextureDimension mDimension{ TextureDimension::eInvalid };
 
+        const ResourceStates mInitialState;
+
         TextureUsageFlags mTextureUsage{ TextureUsageFlagsBits::ShaderResource };
 
         Multisampling mMultisampling{ Multisampling::eMsaaX1 };

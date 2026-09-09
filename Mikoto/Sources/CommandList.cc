@@ -183,6 +183,20 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    TransitionDescription::TransitionDescription( IBuffer* buffer, ResourceStates state ) {
+        mBuffers.emplace_back( BufferTransition{
+            .mBuffer = buffer,
+            .mState = state,
+        } );
+    }
+
+    TransitionDescription::TransitionDescription( ITexture* texture, ResourceStates state ) {
+        mTextures.emplace_back( TextureTransition{
+            .mTexture = texture,
+            .mState = state,
+        } );
+    }
+
     auto TransitionDescription::AddBuffer( IBuffer* buffer, ResourceStates state ) -> TransitionDescription& {
         MKT_ASSERT( buffer, "Cannot add a null transition buffer" );
         mBuffers.push_back( { .mBuffer = buffer, .mState = state } );

@@ -34,6 +34,7 @@ namespace mikoto::renderer::d3d12 {
     struct BufferAllocation {
         D3D12_RESOURCE_DESC mDesc{};
         Microsoft::WRL::ComPtr<ID3D12Resource> mResource{};
+        D3D12_RESOURCE_STATES mInitialState{ D3D12_RESOURCE_STATE_COMMON };
 
         D3D12MA::Allocation* mAllocation{};
         D3D12MA::ALLOCATION_DESC mAllocDesc{};
@@ -42,6 +43,7 @@ namespace mikoto::renderer::d3d12 {
     struct ImageAllocation {
         D3D12_RESOURCE_DESC mDesc{};
         Microsoft::WRL::ComPtr<ID3D12Resource> mResource{};
+        D3D12_RESOURCE_STATES mInitialState{ D3D12_RESOURCE_STATE_COMMON };
 
         const D3D12_CLEAR_VALUE* mOptimizedClearValue{ nullptr };
 

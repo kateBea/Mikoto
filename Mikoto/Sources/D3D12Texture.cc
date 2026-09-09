@@ -441,13 +441,19 @@ namespace mikoto::renderer::d3d12 {
                 mOptimizedClearValue.DepthStencil.Depth = 1.0f;
                 mOptimizedClearValue.DepthStencil.Stencil = .0f;
 
-                mImageAllocation.mOptimizedClearValue = MKT_ADDRESSOF( mOptimizedClearValue );}
-
-            auto* allocator{ device->GetAllocator() };
-            ThrowIfFailed( allocator->AllocateImage( mImageAllocation ) );
+                mImageAllocation.mOptimizedClearValue = MKT_ADDRESSOF( mOptimizedClearValue );
+            }
 
             // Allocator creates them in common state
             mResourceState = ResourceStates::eCommon;
+
+            if (mInitialState != ResourceStates::eCommon) {
+                mImageAllocation.mInitialState = d3d12::GetResourceState( mInitialState );
+                mResourceState = mInitialState;
+            }
+
+            auto* allocator{ device->GetAllocator() };
+            ThrowIfFailed( allocator->AllocateImage( mImageAllocation ) );
         }
 
         // Create the descriptor when the resource already exists to not create a null view

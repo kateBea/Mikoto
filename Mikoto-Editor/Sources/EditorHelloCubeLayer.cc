@@ -209,11 +209,6 @@ namespace mikoto::editor {
             .SetBorderColor( kColorWhite ) };
         mSamplerState = mDevice->CreateSampler( samplerDes );
 
-        // Create the command list
-        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
-        mCommandList->SetEnableAutomaticBarriers( true );
-        mCommandList->SetDebugName( "HelloCubeLayer CommandList" );
-
         // We will upload a texture and a buffer to do some effects, see Triangle_Frag
         // Ideally we want to automate this process by allowing each backend to be able to use shader reflection
         auto layoutDesc{ BindingLayoutDescription{}
@@ -266,6 +261,37 @@ namespace mikoto::editor {
             .mWindow = mWindow };
         mEditorCamera = eastl::make_unique<SceneCamera>( cameraDescription );
 
+                // Create the command list
+        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
+        mCommandList->SetEnableAutomaticBarriers( true );
+        mCommandList->SetDebugName( "HelloCubeLayer CommandList" );
+
+        mCommandList->Begin( {} );
+
+        // Resource barriers must be emitted before dynamic rendering begins.
+        // BindVertexBuffer and BindIndexBuffer then see the already-correct
+        // state while each mesh render scope is active.
+        mCommandList->SetTransition( {mVertexBuffer.GetPtr(), ResourceStates::eVertexBuffer} );
+        mCommandList->SetTransition( { mIndexBuffer.GetPtr(), ResourceStates::eIndexBuffer } );
+
+        mCommandList->End();
+
+        IQueue* graphicsQueue{ mDevice->GetQueue( QueueType::eGraphics ) };
+
+        u64 kCompletionValue{ 0 };
+        auto completionFence{ mDevice->CreateFence( kCompletionValue++ ) };
+        if ( !completionFence.IsEmpty() ) {
+            graphicsQueue->ExecuteCommandLists( SubmitInfo{}
+            .AddCommandList( mCommandList )
+            .AddSignal( completionFence, kCompletionValue ) );
+        }
+
+        // Wait only for this submission before mapping its readback buffer.
+        if ( !completionFence->Wait( kCompletionValue, eastl::numeric_limits<u64>::max() ) ) {
+            MKT_CORE_LOGGER_ERROR( "Timed out waiting for the shaderc debug render to complete." );
+            return;
+        }
+
 #if MIKOTO_DEBUG
         DebugCompileGlsl();
 #endif
@@ -298,12 +324,6 @@ namespace mikoto::editor {
 
     auto EditorHelloCubeLayer::OnUpdate( float timeStep ) -> void {
         mCommandList->Begin( { .mScopeName = "EditorHelloCubeLayer Render" } );
-
-        // Resource barriers must be emitted before dynamic rendering begins.
-        // BindVertexBuffer and BindIndexBuffer then see the already-correct
-        // state while each mesh render scope is active.
-        mCommandList->SetTransition( TransitionDescription{}.AddBuffer( mVertexBuffer.GetPtr(), ResourceStates::eVertexBuffer ) );
-        mCommandList->SetTransition( TransitionDescription{}.AddBuffer( mIndexBuffer.GetPtr(), ResourceStates::eIndexBuffer ) );
 
         DrawWireframeMesh();
 

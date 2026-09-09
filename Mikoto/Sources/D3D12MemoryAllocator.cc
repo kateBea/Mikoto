@@ -69,7 +69,7 @@ namespace mikoto::renderer::d3d12 {
 
         HRESULT result{ mAllocator->CreateResource(
             &allocation.mAllocDesc, &allocation.mDesc,
-            D3D12_RESOURCE_STATE_COMMON, allocation.mOptimizedClearValue,
+            allocation.mInitialState, allocation.mOptimizedClearValue,
             &allocation.mAllocation, IID_PPV_ARGS(&allocation.mResource)) };
 
         return result;
@@ -82,7 +82,7 @@ namespace mikoto::renderer::d3d12 {
     auto GpuMemoryAllocator::AllocateBuffer( BufferAllocation &allocation ) -> HRESULT {
         HRESULT result{ mAllocator->CreateResource(
             &allocation.mAllocDesc, &allocation.mDesc,
-            D3D12_RESOURCE_STATE_COMMON, nullptr,
+            allocation.mInitialState, nullptr,
             &allocation.mAllocation, IID_PPV_ARGS(&allocation.mResource)) };
 
         return result;

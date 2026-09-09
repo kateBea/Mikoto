@@ -175,9 +175,12 @@ namespace mikoto::renderer::vulkan {
         // Data is always writen at mip zero
         cmd->Write( this, buffer->GetData(), buffer->GetSize() );
 
-        // These textures are often loaded to be read from shaders
-        cmd->SetTransition( TransitionDescription{}
-            .AddTexture( this, ResourceStates::eShaderResource ) );
+        if ( mInitialState != ResourceStates::eUnknown ) {
+            cmd->SetTransition( { this , mInitialState } );
+        } else {
+            // These textures are often loaded to be read from shaders
+            cmd->SetTransition( { this , ResourceStates::eShaderResource } );
+        }
 
         cmd->End();
 
@@ -310,14 +313,31 @@ namespace mikoto::renderer::vulkan {
                 } else if (mDimension == TextureDimension::eTextureCube) {
                     InitInitialDataCube( mImageData->mBufferSpan );
                 }
-            }
-
-            if ( !mBufferSpan.IsEmpty() ) {
+            } else if ( !mBufferSpan.IsEmpty() ) {
                 if (mDimension == TextureDimension::eTexture2D) {
                     InitInitialData2D( mBufferSpan );
                 } else if (mDimension == TextureDimension::eTextureCube) {
                     InitInitialDataCube( mBufferSpan );
                 }
+            } else if ( mInitialState != ResourceStates::eUnknown ) {
+                // Just transition state if needed, otherwise leave in undefined because that is
+                // the state in which resources are created
+                u64 fenceValue{ 0 };
+                FenceHandle fence{ mDevice->CreateFence( fenceValue++ ) };
+                CommandListHandle cmd{ mDevice->CreateCommandList( QueueType::eTransfer ) };
+
+                cmd->Begin( { .mScopeName = string::Format( "Buffer Transition: {}", mDebugName ) } );
+                cmd->SetTransition( { this , mInitialState } );
+                cmd->End();
+
+                // Signal fenceValue on one fence on completion of these
+                // commands, then we wait for that completion this blocks the caller
+                // but client should ideally offload this task to worker threads
+                const auto submitInfo{ SubmitInfo{}
+                    .AddSignal( fence, fenceValue )
+                    .AddCommandList( cmd ) };
+                mDevice->GetQueue( QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
+                ( void )fence->Wait( fenceValue, eastl::numeric_limits<u64>::max() );
             }
 
             if (!mKeepInitializerResources) {

@@ -361,6 +361,7 @@ namespace mikoto::renderer::rhi {
         mDimension{ desc.mDimension },
         mTextureUsage{ desc.mUsage },
         mMultisampling{ desc.mMultisampling },
+        mInitialState{ desc.mInitialState },
         mSubResources{ desc.mSubresourceSet }
     {
 

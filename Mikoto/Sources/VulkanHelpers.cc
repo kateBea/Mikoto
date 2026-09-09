@@ -267,23 +267,24 @@ namespace mikoto::renderer::vulkan {
                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
 
             case ResourceStates::eUnorderedAccess:
-                return VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+                return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 
             case ResourceStates::eIndirectArgument:
                 return VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT;
 
-            case ResourceStates::eCopySource:
-            case ResourceStates::eCopyDest:
-
             // https://github.com/KhronosGroup/Vulkan-Docs/issues/2575
             // VK_PIPELINE_STAGE_2_TRANSFER_BIT is an alias for VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT
             // for backwards compatibility
+
+            case ResourceStates::eCopySource:
             case ResourceStates::eResolveSource:
+
+            case ResourceStates::eCopyDest:
             case ResourceStates::eResolveDest:
                 return VK_PIPELINE_STAGE_2_TRANSFER_BIT;
 
             case ResourceStates::ePresent:
-                return VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+                return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 
             default:
                 return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
@@ -488,6 +489,9 @@ namespace mikoto::renderer::vulkan {
             case ResourceStates::eCopyDest:
             case ResourceStates::eResolveDest:
                 return VK_ACCESS_2_TRANSFER_WRITE_BIT;
+
+            case ResourceStates::ePresent:
+                return VK_ACCESS_2_MEMORY_READ_BIT;
 
             default:
                 return 0;

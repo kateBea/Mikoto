@@ -1036,6 +1036,10 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::SetTransition( IBuffer *buffer, ResourceStates newState ) -> void {
         const ResourceStates oldState{ buffer->GetResourceState() };
+
+        // If the dynamicRenderingLocalRead feature is not enabled, and vkCmdPipelineBarrier2 is called within a
+        // render pass instance started with vkCmdBeginRendering, there must be no buffer or image memory barriers specified by this command
+        // https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdPipelineBarrier2.html
         if (mIsRenderScopeActive) {
             MKT_ASSERT( false, "Buffer transitions must be recorded before beginning dynamic rendering." );
             return;

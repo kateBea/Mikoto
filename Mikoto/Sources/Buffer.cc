@@ -39,4 +39,16 @@ namespace mikoto::renderer::rhi {
     auto IBuffer::GetCount() const -> core::usize {
         return mElementCount == 0 ? InferElementCount( mFormat, mElementSize ) : mElementCount;
     }
-}
+
+    IBuffer::IBuffer( const BufferCreateDescription &desc )
+        : DeviceObject{ desc.mHeapType, desc.mResourceType },
+        mUploadContents{ desc.mSpanHandle },
+        mElementCount{ desc.mElementCount },
+        mElementSize{ desc.mElementSize },
+        mDataType{ desc.mDataType },
+        mUsage{ desc.mUsageFlags },
+        mInitialState{ desc.mInitialState },
+        mIsVolatile{ desc.mIsVolatile },
+        mMaxVersions{ desc.mMaxVersions },
+        mFormat{ desc.mFormat } {}
+}// namespace mikoto::renderer::rhi

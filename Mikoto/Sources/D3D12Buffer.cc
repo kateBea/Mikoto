@@ -283,6 +283,11 @@ namespace mikoto::renderer::d3d12 {
 
         mAllocation.mAllocDesc.HeapType = d3d12::GetHeapType(mHeapType);
 
+        if (mInitialState != ResourceStates::eCommon) {
+            mAllocation.mInitialState = d3d12::GetResourceState( mInitialState );
+            mResourceState = mInitialState;
+        }
+
         auto* allocator{ device->GetAllocator() };
         ThrowIfFailed( allocator->AllocateBuffer( mAllocation ) );
 

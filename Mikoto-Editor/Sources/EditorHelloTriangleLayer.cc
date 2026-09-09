@@ -143,8 +143,7 @@ namespace mikoto::editor {
 
         mCommandList->EndRenderPass();
 
-        mCommandList->SetTransition( TransitionDescription{}
-            .AddTexture( mColorImage.GetPtr(), ResourceStates::eShaderResource ) );
+        mCommandList->SetTransition( { mColorImage.GetPtr(), ResourceStates::eShaderResource } );
 
         mCommandList->End();
 

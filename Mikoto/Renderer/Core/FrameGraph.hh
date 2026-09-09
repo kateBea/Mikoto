@@ -47,8 +47,9 @@
 #include <Memory/MemoryArena.hh>
 #include <Memory/FreeListAllocator.hh>
 
-#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Core/ResourceBindings.hh>
 
 namespace mikoto::renderer {
 
@@ -62,23 +63,6 @@ namespace mikoto::renderer {
     using namespace mikoto::material;
     using namespace mikoto::renderer::rhi;
 
-    // See shaders: slang/Base.slang
-#define MKT_DEFAULT_REGISTER_SPACE 0
-
-#define MKT_STRUCTURED_SRV_BINDING 0
-#define MKT_STRUCTURED_UAV_BINDING 1
-
-#define MKT_SAMPLER_BINDING 2
-
-#define MKT_TEXTURE_SRV_BINDING 3
-#define MKT_TEXTURE_UAV_BINDING 4
-
-#define MKT_BUFFER_DEVICE_ADDRESS_BINDING 5
-
-#define MKT_ACCELERATION_STRUCTURE_BINDING 5
-
-#define MKT_SHADER_TRUE 1U
-#define MKT_SHADER_FALSE 0U
 
     class CommandContext;
 
@@ -395,6 +379,13 @@ namespace mikoto::renderer {
 
         MKT_NODISCARD auto AllocateBufferIndex_SRV( FGResourceHandle name ) -> u32;
         MKT_NODISCARD auto AllocateBufferIndex_UAV( FGResourceHandle name ) -> u32;
+
+        // Since D3D12 uses descriptor heaps now this instead of an address
+        // it returns an index we can use to retrieve the resource via
+        // ResourceDescriptorHeaps or SamplerDescriptorHeaps
+        MKT_NODISCARD auto AllocateBufferBufferAddress( FGBufferHandle handle ) -> core::u64;
+        MKT_NODISCARD auto AllocateBufferBufferAddress( FGTextureHandle handle ) -> core::u64;
+        MKT_NODISCARD auto AllocateBufferBufferAddress( FGSamplerHandle handle ) -> core::u64;
 
         auto ReleaseSamplerIndex( FGResourceHandle name ) -> void;
         auto ReleaseTextureIndex_SRV( FGResourceHandle name ) -> void;

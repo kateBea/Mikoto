@@ -432,6 +432,32 @@ namespace mikoto::renderer {
         return newID;
     }
 
+    auto FGResourceManager::AllocateBufferBufferAddress( FGBufferHandle handle ) -> core::u64 {
+        std::lock_guard lock{ mTableWriteMutex };
+        u32 newID{};
+        // auto& resource{ Get(handle.mHandle) };
+        // IBuffer* buffer{ checked_cast<IBuffer*>( resource.mResource.GetPtr() ) };
+        // newID = mDevice->WriteDescriptorTable( mDescriptorTable, BindingTableItem::StructuredUAV( MKT_BUFFER_DEVICE_ADDRESS_BINDING, buffer ) );
+
+        return newID;
+    }
+
+    auto FGResourceManager::AllocateBufferBufferAddress( FGTextureHandle handle ) -> core::u64 {
+        std::lock_guard lock{ mTableWriteMutex };
+        u32 newID{};
+
+
+        return newID;
+    }
+
+    auto FGResourceManager::AllocateBufferBufferAddress( FGSamplerHandle handle ) -> core::u64 {
+        std::lock_guard lock{ mTableWriteMutex };
+        u32 newID{};
+
+
+        return newID;
+    }
+
     auto FGResourceManager::ImportTexture( TextureHandle handle ) -> FGTextureHandle {
         auto& resource{ Allocate( FGResourceType::eTexture, handle.GetPtr() ) };
 

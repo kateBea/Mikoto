@@ -107,33 +107,3 @@ float3x3 operator*(float3x3 a, float3x3 b) {
 // - For skinning, each BLENDINDICES/BLENDWEIGHT pair typically represents 4 influences
 // - In Vulkan, semantics are ignored at runtime; explicit location bindings must match vertex input layout
 // - Types may vary (e.g. float3 vs float4), but must match pipeline input definitions
-
-
-// D3D11 Stuff
-
-static const uint kArrayMaxSize = 40;
-
-#define X10(n) X(n) X(n+1) X(n+2) X(n+3) X(n+4) X(n+5) X(n+6) X(n+7) X(n+8) X(n+9)
-#define MKT_TEXTURE_LIST \
-    X10(0)  \
-    X10(10) \
-    X10(20) \
-    X10(30)
-
-namespace mikoto {
-    float4 SampleTexture(
-        Texture2D textures[kArrayMaxSize],
-        int texIndex,
-        SamplerState samplers[kArrayMaxSize],
-        int samplerIndex,
-        float2 uv)
-    {
-        switch(texIndex) {
-            #define X(n) case n: return textures[n].Sample(samplers[samplerIndex], uv);
-                MKT_TEXTURE_LIST
-            #undef X
-
-            default: return float4(0, 0, 0, 1); // Color de error
-        }
-    }
-}

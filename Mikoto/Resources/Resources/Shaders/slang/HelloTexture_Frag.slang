@@ -36,12 +36,6 @@ MKT_DECLARE_SAMPLERS samplers;
 MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
 #endif
 
-#if defined(MKT_SUPPORT_D3D12)
-SamplerState samplers[] : register(s0, MKT_TEXTURE_SRV_BINDING);
-Texture2D textures[] : register(t0, MKT_SAMPLER_BINDING);
-TextureCube textureCube[] : register(t1, MKT_TEXTURE_SRV_BINDING);
-#endif
-
 MKT_DECLARE_PUSH_CONSTANT(DrawParams) uParams;
 
 [shader("fragment")]

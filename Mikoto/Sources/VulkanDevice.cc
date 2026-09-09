@@ -1093,6 +1093,12 @@ namespace mikoto::renderer::vulkan {
                 .baseArrayLayer = 0,
                 .layerCount = texture->GetDimension() == TextureDimension::eTextureCube ? kMaxCubeFaces : 1 } };
 
+
+        if (newState == ResourceStates::ePresent) {
+            //barrier.srcAccessMask = VK_ACCESS_2_NONE;
+            barrier.dstAccessMask = VK_ACCESS_2_NONE;
+        }
+
         VkDependencyInfo dependencyInfo{
             .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
             .imageMemoryBarrierCount = 1,
@@ -1172,6 +1178,7 @@ namespace mikoto::renderer::vulkan {
                     .offset = barrierDescription.mRange.mByteOffset,
                     .size = barrierDescription.mRange.mByteSize == 0 ? VK_WHOLE_SIZE : barrierDescription.mRange.mByteSize
                 } );
+
             // Explicit barriers may change access without changing a buffer
             // state. Invalidate cached frame-graph access history in either case.
             buffer->SetResourceState( buffer->GetResourceState() );
@@ -1200,6 +1207,10 @@ namespace mikoto::renderer::vulkan {
             barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barrier.image = texture->GetNativeHandle( ObjectType::Vk_Image );
+
+            if (barrier.newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+                barrier.dstAccessMask = VK_ACCESS_2_NONE;
+            }
 
             const auto& subResources{ barrierDescription.mSubresourceSet };
             barrier.subresourceRange = {

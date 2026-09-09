@@ -73,7 +73,7 @@ namespace mikoto::renderer::vulkan {
 #endif
             .QueryGLFWExtensions( true )
             .QuerySurfaceSupport( mWindow )
-            .SetValidationLevel( InstanceBuilder::ValidationLevel::eCore )
+            .SetValidationLevel( InstanceBuilder::ValidationLevel::eGpuAssisted )
             .Build();
 
         // https://erfan-ahmadi.github.io/blog/Nabla/fif
@@ -180,7 +180,7 @@ namespace mikoto::renderer::vulkan {
 
         // https://community.khronos.org/t/is-it-recommended-to-use-vkcmdcopyimage-to-copy-to-the-swapchain-image-instead-of-a-shader/112122
         if (!mPresentTarget.IsEmpty() && !mSwapchain.IsEmpty()) {
-#if true
+#if false
             // Blit via full quad render
             TextureHandle colorImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
             mCommandList->Begin( { .mScopeName = "Blit Swapchain" } );
@@ -203,7 +203,10 @@ namespace mikoto::renderer::vulkan {
                 u32 mSamplerIndex{};
             } params{
                 .mTextureIndex = index };
-            mCommandList->SetPushConstants( mPipelineLayoutHandle.GetPtr(), &params, MKT_SIZEOF( params ), ShaderFlagsBits::All );
+
+            eastl::array<ubyte, kMaxPushConstantSize> ps{};
+            std::memcpy(ps.data(), &params, sizeof(params) );
+            mCommandList->SetPushConstants( mPipelineLayoutHandle.GetPtr(), ps.data(), MKT_VECTOR_SIZE_BYTES( ps ), ShaderFlagsBits::All );
 
             mCommandList->BindPipeline( mPipeline.GetPtr() );
             mCommandList->BindPipelineResources( BindResourcesDescription{}
@@ -221,7 +224,7 @@ namespace mikoto::renderer::vulkan {
 
             mCommandList->EndRenderPass();
 
-            mCommandList->SetTransition( TransitionDescription{}.AddTexture( colorImage.GetPtr(), ResourceStates::ePresent ) );
+            mCommandList->SetTransition( { colorImage.GetPtr(), ResourceStates::ePresent } );
 
             mCommandList->End();
 #else
@@ -243,7 +246,7 @@ namespace mikoto::renderer::vulkan {
                 mPresentTarget.GetPtr(), srcSlice,
                 currentSwapchainImage.GetPtr(), dstSlice );
 
-            mCommandList->SetTransition( TransitionDescription{}.AddTexture( currentSwapchainImage.GetPtr(), ResourceStates::ePresent ) );
+            mCommandList->SetTransition( { currentSwapchainImage.GetPtr(), ResourceStates::ePresent } );
 
             mCommandList->End();
 #endif
@@ -263,8 +266,8 @@ namespace mikoto::renderer::vulkan {
         // ALL_TRANSFER if I copy instead of full-quad render?
         auto submitInfo{ SubmitSemaphoresInfo{}
             .AddCommandList( mCommandList )
-            .AddSignalFence( frame.mFence, frame.mFenceValue, VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT )
-            .AddSignalSemaphore( frame.mRenderFinishedSemaphore, VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT )
+            .AddSignalFence( frame.mFence, frame.mFenceValue, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT )
+            .AddSignalSemaphore( frame.mRenderFinishedSemaphore, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT )
             .AddWaitSemaphore( frame.mImageAvailableSemaphore, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT ) };
         mGraphicsQueue->ExecuteCommandLists( eastl::move( submitInfo ) );
     }

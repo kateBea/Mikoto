@@ -115,7 +115,7 @@ namespace mikoto::editor {
             .SetStride( sizeof( asset::VertexDescription_Std430Alignment ) )
             .SetInputRate( InputRate::ePerVertex ) };
 
-        eastl::array<rhi::VertexAttributeDescription, 9> attributes{
+        eastl::array<rhi::VertexAttributeDescription, 2> attributes{
     rhi::VertexAttributeDescription{}
             .SetName( "POSITION" )
             .SetLocation( 0 )
@@ -124,60 +124,11 @@ namespace mikoto::editor {
             .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mPosition ) ),
 
             rhi::VertexAttributeDescription{}
-            .SetName( "NORMAL" )
+            .SetName( "TEXCOORD" )
             .SetLocation( 1 )
             .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGB32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mNormals ) ),
-
-    rhi::VertexAttributeDescription{}
-            .SetName( "COLOR" )
-            .SetLocation( 2 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mColors ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "TEXCOORD" )
-            .SetLocation( 3 )
-            .SetBinding( 0 )
             .SetFormat( rhi::Format::eRG32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mUv0 ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "TEXCOORD" )
-            .SetLocation( 4 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRG32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mUv1 ) ),
-
-    rhi::VertexAttributeDescription{}
-            .SetName( "BLENDINDICES" )
-            .SetLocation( 5 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mJoints0 ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "BLENDWEIGHT" )
-            .SetLocation( 6 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mWeights0 ) ),
-
-            rhi::VertexAttributeDescription{}
-            .SetName( "BLENDINDICES" )
-            .SetLocation( 7 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mJoints1 ) ),
-
-    rhi::VertexAttributeDescription{}
-            .SetName( "BLENDWEIGHT" )
-            .SetLocation( 8 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGBA32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mWeights1 ) ), };
+            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mUv0 ) ) };
 
         mVertexInputLayout = mDevice->CreateInputLayout( InputLayoutCreateDescription{}
             .SetBindings( bindings )

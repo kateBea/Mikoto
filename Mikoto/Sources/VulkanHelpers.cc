@@ -491,7 +491,9 @@ namespace mikoto::renderer::vulkan {
                 return VK_ACCESS_2_TRANSFER_WRITE_BIT;
 
             case ResourceStates::ePresent:
-                return VK_ACCESS_2_MEMORY_READ_BIT;
+                // Presentation is synchronized by acquire/present semaphores;
+                // PRESENT_SRC_KHR has no pipeline memory-access scope.
+                return VK_ACCESS_2_NONE;
 
             default:
                 return 0;

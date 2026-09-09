@@ -179,7 +179,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         // https://community.khronos.org/t/is-it-recommended-to-use-vkcmdcopyimage-to-copy-to-the-swapchain-image-instead-of-a-shader/112122
-        if (!mPresentTarget.IsEmpty() && !mSwapchain.IsEmpty()) {
+        if (mHasAcquiredImage && !mPresentTarget.IsEmpty()) {
 #if false
             // Blit via full quad render
             TextureHandle colorImage{ mSwapchain->GetImage( mCurrentImageIndex ) };
@@ -250,25 +250,25 @@ namespace mikoto::renderer::vulkan {
 
             mCommandList->End();
 #endif
+        } else if ( mHasAcquiredImage ) {
+            // An acquired image must still be returned to presentation when no
+            // layer supplies a target; do not resubmit a stale blit command list.
+            mCommandList->Begin( { .mScopeName = "Swapchain Present" } );
+            mCommandList->SetTransition( { mSwapchain->GetImage( mCurrentImageIndex ).GetPtr(), ResourceStates::ePresent } );
+            mCommandList->End();
         }
-
-        // https://stackoverflow.com/questions/73075233/vksemaphoresubmitinfo-stagemask-field-for-vksubmitinfo2
-        // - For a Wait Operation it defines the latest pipeline stages in the
-        // upcoming batch that must wait for the semaphore. Any pipeline stages before the
-        // masked stage can start earlier without waiting.
-
-        // - For a Signal Operation it defines the earliest pipeline stages that
-        // must complete before the semaphore is allowed to transition to the signaled state.
-        // Unrelated work past these stages does not delay the signal.
 
         ++frame.mFenceValue;
 
-        // ALL_TRANSFER if I copy instead of full-quad render?
         auto submitInfo{ SubmitSemaphoresInfo{}
-            .AddCommandList( mCommandList )
-            .AddSignalFence( frame.mFence, frame.mFenceValue, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT )
-            .AddSignalSemaphore( frame.mRenderFinishedSemaphore, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT )
-            .AddWaitSemaphore( frame.mImageAvailableSemaphore, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT ) };
+            .AddSignalFence( frame.mFence, frame.mFenceValue, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT ) };
+        if ( mHasAcquiredImage ) {
+            // The active path blits with transfer commands. Cover the complete
+            // blit and its layout transitions, including a future graphics path.
+            submitInfo.AddCommandList( mCommandList )
+                .AddSignalSemaphore( mSwapchain->GetRenderFinishedSemaphore( mCurrentImageIndex ), VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT )
+                .AddWaitSemaphore( frame.mImageAvailableSemaphore, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT );
+        }
         mGraphicsQueue->ExecuteCommandLists( eastl::move( submitInfo ) );
     }
 
@@ -276,22 +276,33 @@ namespace mikoto::renderer::vulkan {
         //MKT_BEGIN_PROFILER_NAMED();
         //MKT_PROFILE_SCOPE_MARKED( "VulkanContext::PrepareFrame" );
 
-        //https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
+        mHasAcquiredImage = false;
+        mSwapchainSuboptimal = false;
 
         auto& frame{ mFrameContexts[mCurrentFrameIndex] };
 
         ( void )frame.mFence->Wait( frame.mFenceValue, eastl::numeric_limits<u64>::max() );
         mDevice->RunGarbageCollection();
 
+        if ( mSwapchain.IsEmpty() || mWindow->GetWidth() <= 0 || mWindow->GetHeight() <= 0 ) {
+            return;
+        }
+
         auto ret{ mSwapchain->GetNextImageIndex( mCurrentImageIndex, frame.mImageAvailableSemaphore.GetPtr() ) };
 
         if ( ret == VK_ERROR_OUT_OF_DATE_KHR ) {
             mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
-            //ret = mSwapchain->GetNextImageIndex( mCurrentImageIndex, frame.mImageAvailableSemaphore.GetPtr() );
-            //MKT_ASSERT( ret == VK_SUCCESS, "Failed to acquire swap chain image!" );
-        } else if ( ret != VK_SUCCESS ) {
-            MKT_ASSERT( false, "Failed to acquire swap chain image!" );
+            ret = mSwapchain->GetNextImageIndex( mCurrentImageIndex, frame.mImageAvailableSemaphore.GetPtr() );
         }
+
+        // A second resize can race the retry. No image or acquire signal exists
+        // on OUT_OF_DATE, so this frame must not submit/present swapchain work.
+        if ( ret == VK_ERROR_OUT_OF_DATE_KHR ) return;
+        if ( ret != VK_SUCCESS && ret != VK_SUBOPTIMAL_KHR ) {
+            MKT_THROW_RUNTIME_ERROR( "Vulkan Context: Failed to acquire swapchain image." );
+        }
+        mHasAcquiredImage = true;
+        mSwapchainSuboptimal = ret == VK_SUBOPTIMAL_KHR;
     }
 
     auto Context::Update() -> void {
@@ -304,17 +315,17 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Context::Present() -> void {
-        if ( mPresentTarget.IsEmpty() ) {
-            return;
-        }
+        if ( mHasAcquiredImage ) {
+            const auto result{ mSwapchain->Present( mCurrentImageIndex ) };
+            mHasAcquiredImage = false;
 
-        auto& frame{ mFrameContexts[mCurrentFrameIndex] };
-        const auto result{ mSwapchain->Present( mCurrentImageIndex, frame.mRenderFinishedSemaphore.GetPtr() ) };
-
-        if ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ) {
-            mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
-        } else if ( result != VK_SUCCESS ) {
-            MKT_THROW_RUNTIME_ERROR( "Vulkan Context: Error failed present images to swapchain." );
+            if ( result != VK_SUCCESS && result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_SUBOPTIMAL_KHR ) {
+                MKT_THROW_RUNTIME_ERROR( "Vulkan Context: Error failed present images to swapchain." );
+            }
+            if ( ( result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || mSwapchainSuboptimal ) &&
+                 mWindow->GetWidth() > 0 && mWindow->GetHeight() > 0 ) {
+                mSwapchain->OnResize( mWindow->GetWidth(), mWindow->GetHeight() );
+            }
         }
 
         // Frame is advanced if we work with a swap chain
@@ -448,9 +459,6 @@ namespace mikoto::renderer::vulkan {
 
             frame.mImageAvailableSemaphore = device->CreateBinarySemaphore();
             frame.mImageAvailableSemaphore->SetDebugName( string::Format( "SwapChain Img Avail. BinSemaphore frame {}", frameIndex ) );
-
-            frame.mRenderFinishedSemaphore = device->CreateBinarySemaphore();
-            frame.mRenderFinishedSemaphore->SetDebugName( string::Format( "SwapChain Render Done BinSemaphore frame {}", frameIndex ) );
 
             ++frameIndex;
         }

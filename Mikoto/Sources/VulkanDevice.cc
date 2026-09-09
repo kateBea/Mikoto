@@ -1093,12 +1093,6 @@ namespace mikoto::renderer::vulkan {
                 .baseArrayLayer = 0,
                 .layerCount = texture->GetDimension() == TextureDimension::eTextureCube ? kMaxCubeFaces : 1 } };
 
-
-        if (newState == ResourceStates::ePresent) {
-            //barrier.srcAccessMask = VK_ACCESS_2_NONE;
-            barrier.dstAccessMask = VK_ACCESS_2_NONE;
-        }
-
         VkDependencyInfo dependencyInfo{
             .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
             .imageMemoryBarrierCount = 1,
@@ -1208,6 +1202,9 @@ namespace mikoto::renderer::vulkan {
             barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barrier.image = texture->GetNativeHandle( ObjectType::Vk_Image );
 
+            if (barrier.oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+                barrier.srcAccessMask = VK_ACCESS_2_NONE;
+            }
             if (barrier.newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
                 barrier.dstAccessMask = VK_ACCESS_2_NONE;
             }
@@ -2431,7 +2428,8 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Queue::ExecuteCommandLists( SubmitSemaphoresInfo&& submitInfo ) -> u64 {
-        if ( submitInfo.mCommands.empty() ) {
+        // A frame without an acquired image still needs its completion signal.
+        if ( submitInfo.mCommands.empty() && submitInfo.mWaitSemaphores.empty() && submitInfo.mSignalSemaphores.empty() ) {
             return 0;
         }
 

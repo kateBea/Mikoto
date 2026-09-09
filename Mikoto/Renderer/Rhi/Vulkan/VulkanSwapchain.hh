@@ -53,9 +53,11 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto GetImageCount() const -> core::usize;
         MKT_NODISCARD auto GetImage( core::usize index ) -> rhi::TextureHandle;
+        /** The presentation wait semaphore belongs to the acquired image, not a frame slot. */
+        MKT_NODISCARD auto GetRenderFinishedSemaphore( core::usize imageIndex ) const -> core::Ref<BinarySemaphore>;
         MKT_NODISCARD auto GetFormat() -> rhi::Format;
 
-        MKT_NODISCARD auto Present( core::u32 imageIndex, const BinarySemaphore* signalSemaphore ) -> VkResult;
+        MKT_NODISCARD auto Present( core::u32 imageIndex ) -> VkResult;
         MKT_NODISCARD auto GetNextImageIndex( core::u32& imageIndex, const BinarySemaphore* waitSemaphore ) -> VkResult;
 
         // If changed a call to OnResize is required to apply changes
@@ -87,6 +89,7 @@ namespace mikoto::renderer::vulkan {
         VkSurfaceCapabilitiesKHR mSurfaceCapabilities{};
 
         eastl::vector<rhi::TextureHandle> mImages{};
+        eastl::vector<core::Ref<BinarySemaphore>> mRenderFinishedSemaphores{};
 
         VkPresentModeKHR mPresentMode{};
 

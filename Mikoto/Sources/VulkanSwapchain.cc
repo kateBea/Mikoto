@@ -64,10 +64,15 @@ namespace mikoto::renderer::vulkan {
         return mFormat;
     }
 
-    auto SwapChain::Present( u32 imageIndex, const BinarySemaphore* signalSemaphore ) -> VkResult {
+    auto SwapChain::GetRenderFinishedSemaphore( core::usize imageIndex ) const -> BinarySemaphoreHandle {
+        MKT_ASSERT( imageIndex < mRenderFinishedSemaphores.size(), "Swapchain semaphore index out of bounds." );
+        return mRenderFinishedSemaphores.at( imageIndex );
+    }
+
+    auto SwapChain::Present( u32 imageIndex ) -> VkResult {
         const eastl::array swapChains{ mSwapChain };
 
-        VkSemaphore semaphore{ *signalSemaphore };
+        VkSemaphore semaphore{ *GetRenderFinishedSemaphore( imageIndex ) };
         const eastl::array waitSemaphores{ semaphore };
 
         VkPresentInfoKHR presentInfo{ initializers::PresentInfoKHR() };
@@ -103,6 +108,7 @@ namespace mikoto::renderer::vulkan {
         mOldSwapChain = mSwapChain;
 
         mImages.clear();
+        mRenderFinishedSemaphores.clear();
 
         Initialize();
     }
@@ -120,6 +126,7 @@ namespace mikoto::renderer::vulkan {
         device->WaitIdle();
 
         mImages.clear();
+        mRenderFinishedSemaphores.clear();
 
         if (mSwapChain != VK_NULL_HANDLE) {
             vkDestroySwapchainKHR( device->GetDevice(), mSwapChain, nullptr );
@@ -285,5 +292,17 @@ namespace mikoto::renderer::vulkan {
         }
 
         MKT_ASSERT( imageCount == mImages.size(), "Wrong image count" );
+
+        // Waiting for a frame fence does not prove vkQueuePresentKHR has
+        // consumed its wait semaphore. Reacquiring the same image and waiting
+        // on its acquire semaphore makes this image's semaphore safe to reuse.
+        // Rebuild the set on resize, even if the new image count is unchanged.
+        mRenderFinishedSemaphores.reserve( mImages.size() );
+        for ( core::usize index{}; index < mImages.size(); ++index ) {
+            auto semaphore{ device->CreateBinarySemaphore() };
+            MKT_ASSERT( !semaphore.IsEmpty(), "Could not create swapchain presentation semaphore." );
+            semaphore->SetDebugName( string::Format( "SwapChain Render Done BinSemaphore image {}", index ) );
+            mRenderFinishedSemaphores.emplace_back( eastl::move( semaphore ) );
+        }
     }
 }// namespace mikoto

@@ -85,6 +85,8 @@ namespace mikoto::renderer::vulkan {
         core::u32 mCurrentFrameIndex{};
         core::u32 mCurrentImageIndex{};
         core::u32 mMaxFramesInFlight{};
+        bool mHasAcquiredImage{};
+        bool mSwapchainSuboptimal{};
 
         eastl::unique_ptr<Instance> mInstance{};
 
@@ -93,7 +95,6 @@ namespace mikoto::renderer::vulkan {
             rhi::FenceHandle mFence{};
 
             BinarySemaphoreHandle mImageAvailableSemaphore{};
-            BinarySemaphoreHandle mRenderFinishedSemaphore{};
         };
 
         Queue* mGraphicsQueue{};

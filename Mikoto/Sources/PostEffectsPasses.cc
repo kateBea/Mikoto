@@ -322,7 +322,7 @@ namespace Mikoto {
             // rotate around z-axis (in tangent space)
             m_SSONoise.emplace_back( GetRandomReal( 0.0, 1.0 ) * 2.0f - 1.0f, GetRandomReal( 0.0, 1.0 ) * 2.0f - 1.0f, 0.0f, 0.0f );
         }
-
+        
         // Generate samples
         for ( UInt32 i{}; i < m_SSAOParameters.Samples.size(); ++i ) {
             Vec4F sample( GetRandomReal( 0.0, 1.0 ) * 2.0 - 1.0, GetRandomReal( 0.0, 1.0 ) * 2.0 - 1.0, GetRandomReal( 0.0, 1.0 ), 1.0 );

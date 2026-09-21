@@ -54,15 +54,14 @@ namespace Mikoto {
     auto ContentBrowserPanel::LoadIcons() -> void {
         // Load files icon
         Path file{ PathBuilder()
-                             .WithPath( m_AssetsRootDirectory.string() )
-                             .WithPath( "Icons" )
-                             .WithPath( "file4.png" )
-                             .Build() };
+            .WithPath( m_AssetsRootDirectory.string() )
+            .WithPath( "Icons" )
+            .WithPath( "FileIcon.png" )
+            .Build() };
 
         const TextureLoadDescription fileTextureDesc{
             .TextureFile{ FileService::Get()->LoadFile( file ) },
-            .Type{ TextureType::TEXTURE_2D },
-        };
+            .Type{ TextureType::TEXTURE_2D } };
         TextureHandle fileTexture{ AssetsService::Get()->LoadAsset<Texture>( fileTextureDesc ) };
 
         // Load folder icon

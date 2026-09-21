@@ -19,6 +19,7 @@
 #include <Assets/AssetsService.hh>
 #include <Core/Profiler.hh>
 #include <Filesystem/FileService.hh>
+#include <Library/Math/Math.hh>
 #include <Logging/Logger.hh>
 #include <Renderer/Core/RenderService.hh>
 #include <Renderer/Vulkan/VulkanContext.hh>
@@ -29,7 +30,7 @@
 #include <Renderer/Vulkan/VulkanTexture.hh>
 #include <tracy/TracyVulkan.hpp>
 
-#include <Library/Math/Math.hh>
+#include "Core/Timer.hh"
 
 namespace Mikoto {
 
@@ -943,7 +944,9 @@ namespace Mikoto {
     }
 
     auto VulkanDevice::FlushPendingCommands( const FrameSynchronizationPrimitives& syncPrimitives ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+        //MKT_BEGIN_PROFILER_NAMED();
+
+        //MKT_PROFILE_SCOPE_MARKED( "VulkanDevice::FlushPendingCommands" );
 
         // This fence will be used to know the state of the commands submitted in this call
         m_FrameFences[m_CurrentFrameIndex] = syncPrimitives.RenderFence;
@@ -991,9 +994,6 @@ namespace Mikoto {
             .pSignalSemaphoreInfos = &signalSemaphoreInfo
         };
 
-        {
-
-        }
         MKT_VK_CHECK( vkQueueSubmit2( m_Queues.Graphics->Queue, 1, &submitInfo, syncPrimitives.RenderFence ) );
 
         std::ranges::move(

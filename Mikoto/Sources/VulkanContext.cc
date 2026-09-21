@@ -316,7 +316,8 @@ namespace Mikoto {
     }
 
     auto VulkanContext::PrepareFrame() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+        //MKT_BEGIN_PROFILER_NAMED();
+        //MKT_PROFILE_SCOPE_MARKED( "VulkanContext::PrepareFrame" );
 
         // For simplicity, parenthesize std::numeric_limits<std::uint64_t>::max
         // because windows has a macro called max that causes conflicts
@@ -372,7 +373,9 @@ namespace Mikoto {
     }
 
     auto VulkanContext::SubmitFrame() -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+        //MKT_BEGIN_PROFILER_NAMED();
+
+        //MKT_PROFILE_SCOPE_MARKED( "VulkanContext::SubmitFrame A" );
 
         MKT_ASSERT( !m_PresentTarget.IsEmpty(), "VulkanContext::Present - Must specify a present target" );
 

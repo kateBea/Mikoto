@@ -322,6 +322,19 @@ namespace Mikoto {
             CreateFrameBuffer();
         }
 
+#if false
+        ImGui::Begin("Performance");
+
+        const float fps = ImGui::GetIO().Framerate;
+        const float frameTime = 1000.0f / fps;
+
+        ImGui::Text("FPS: %.1f", fps);
+        ImGui::Text("Frame time: %.2f ms", frameTime);
+
+        ImGui::End();
+#endif
+
+
         ImGui::Render();
 
         CommandListHandle commandList{ m_GpuDevice->CreateCommandList( QueueType::GRAPHICS_QUEUE, false ) };
@@ -331,6 +344,10 @@ namespace Mikoto {
 
         commandList->End();
         m_GpuDevice->SubmitCommands( commandList );
+
+#if false
+        RenderService::Get()->SetPresentTarget( ImGuiService::Get()->GetFinalComposition() );
+#endif
 
         if ( const ImGuiIO & io{ ImGui::GetIO() }; io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
             ImGui::UpdatePlatformWindows();

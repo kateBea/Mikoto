@@ -42,28 +42,3 @@ Mikoto uses a number of open-source libraries for the engine, details listed bel
 | **Taskflow**                  | Task-based parallel execution library                                                                 | [taskflow/taskflow](https://github.com/taskflow/taskflow)                                                           |
 | **unordered_dense**           | High-performance dense hash map and hash set                                                          | [martinus/unordered_dense](https://github.com/martinus/unordered_dense)                                             |
 | **cpptrace**                  | Stack trace generation and debugging utilities for C++                                                | [jeremy-rifkin/cpptrace](https://github.com/jeremy-rifkin/cpptrace.git)                                             |
-## ozz armature visualization
-
-The bone mesh, bone coordinate frame, and ambient shading in `DebugModule.cc`
-and `Armature_Frag.slang` adapt the ozz sample renderer:
-https://github.com/guillaumeblanc/ozz-animation/tree/master/samples/framework/internal
-
-Copyright (c) Guillaume Blanc
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.

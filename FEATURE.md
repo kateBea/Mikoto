@@ -10,7 +10,7 @@ between every graphics backend or a guarantee of production readiness.
 Unchecked features are not automatically scheduled. The roadmap below separates
 the next priorities from longer-term candidates; release versions are not assigned yet.
 
-### Rendering
+## Rendering
 
 - [x] Vulkan rendering backend
 - [x] Direct3D 12 rendering backend (feature parity and driver validation ongoing)
@@ -47,7 +47,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] General split-screen/camera compositing workflow
 - [ ] Complete OpenGL and Direct3D 11 backend parity (backend code exists)
 
-### Terrain and landscape
+## Terrain and landscape
 
 - [x] Terrain entities with configurable sections, component counts, vertex spacing, height scale and base elevation (EXPERIMENTAL)
 - [x] Heightmap terrain rendering with compute-generated vertices/indices, bilinear height sampling, device-local geometry buffers and vertex pulling; geometry regenerates when its inputs change
@@ -61,7 +61,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] Terrain LOD, streaming and chunk visibility culling
 - [ ] Terrain integration into object picking, shadow casting and ray-traced geometry
 
-### Lighting and shadows
+## Lighting and shadows
 
 - [x] Point, spot and directional lights
 - [x] Clustered light assignment
@@ -87,7 +87,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] Volumetric clouds and a weather system
 - [ ] Complete physically based camera/lens simulation for path-traced depth of field
 
-### Post processing
+## Post processing
 
 - [x] Tone mapping with selectable operators
 - [x] Exposure and gamma controls
@@ -105,7 +105,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] Temporal upscaling
 - [ ] Lens flare, lens dirt, film grain, vignette and lens distortion (placeholder passes)
 
-### Particles
+## Particles
 
 - [x] Particle authoring preview with playback/step, grouped emitter settings, presets and `.mktpart` load/save; isolated CPU/GPU preview with street HDR, ground and infinite grid
 - [x] Scene-owned particle emitters with CPU simulation
@@ -124,7 +124,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] Particle integration into the bloom/depth-of-field chain
 - [ ] Smoke
 
-### HUD and text
+## HUD and text
 
 - [x] Canvas drawing: rectangles, lines, sprites and text
 - [x] Interactive buttons, toggles and sliders
@@ -148,7 +148,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] FFmpeg multimedia integration for audio/video decoding, encoding and container handling
 - [ ] Video playback and video-backed UI textures using FFmpeg, with synchronized audio
 
-### Scene and editor
+## Scene and editor
 
 - [x] EnTT entity component system
 - [x] Entity hierarchy, parenting and world transforms
@@ -183,7 +183,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] Slang function generation and pipeline integration for authored material graphs
 - [ ] Theme system to select and apply, serialize and load themes
 
-### Animation
+## Animation
 
 - [x] Skeletal animation import and playback through Ozz
 - [x] Multiple glTF skeletons per model, mesh-to-rig skin bindings and independent character poses with synchronized clip playback
@@ -203,7 +203,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] Complete root-motion workflow
 - [ ] Animation retargeting tools
 
-### Scripting and input
+## Scripting and input
 
 - [x] Lua scripting through sol2
 - [x] C# scripting through .NET
@@ -220,7 +220,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] Complete gamepad/controller input API
 - [ ] Input action maps and rebinding UI
 
-### Physics
+## Physics
 
 - [x] Jolt-based 3D physics
 - [x] Scene-owned physics worlds and simulation controls
@@ -271,7 +271,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] Physics snapshots, deterministic replay and state restoration (current stepping uses bounded frame delta and collision substeps, without a fixed-tick accumulator)
 - [ ] End-to-end double-precision large-world physics (scene transforms and physics conversions currently use floats)
 
-### Audio
+## Audio
 
 - [x] Audio playback through miniaudio
 - [x] Scene audio sources and listeners
@@ -283,7 +283,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] Audio bus routing and effects editor
 - [ ] Audio occlusion, reverb zones and acoustic simulation
 
-### Assets
+## Assets
 
 - [x] glTF/GLB import through fastgltf and additional formats through Assimp
 - [x] Shared bounded import/compression workers, unique texture loading, shared mesh geometry and batched model uploads
@@ -308,7 +308,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [x] Initial asynchronous model residency requests, bounded import scheduling, pending scene roots and unused-model cache eviction
 - [ ] Complete asset streaming and residency-budget management (texture mip/mesh LOD streaming, byte-budget admission and reclaimable geometry remain pending)
 
-### Networking
+## Networking
 
 - [x] Asio-based TCP/UDP sockets and client/server building blocks
 - [x] HTTP/HTTPS utilities with OpenSSL support
@@ -320,7 +320,7 @@ the next priorities from longer-term candidates; release versions are not assign
 - [ ] Matchmaking/lobbies and application-provided P2P signaling
 - [ ] Steamworks integration (GameNetworkingSockets alone does not provide this)
 
-### Runtime, platforms and diagnostics
+## Runtime, platforms and diagnostics
 
 - [x] Standalone runtime application with `game.yaml` configuration
 - [x] Command-line game packaging/staging (validates project assets and relocates scene references)
@@ -352,4 +352,5 @@ the next priorities from longer-term candidates; release versions are not assign
 
 
 ## Planned for future Development
-- **Android Support:**: Support for Android. 
+
+- **Android Support:**: Support for Android.

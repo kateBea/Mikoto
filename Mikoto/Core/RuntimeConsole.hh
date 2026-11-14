@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_CONSOLE_MANAGER_HH
-#define MIKOTO_CONSOLE_MANAGER_HH
+#ifndef MIKOTO_CORE_RUNTIME_CONSOLE_HH
+#define MIKOTO_CORE_RUNTIME_CONSOLE_HH
 
 #include <mutex>
 
+#include <EASTL/deque.h>
+#include <EASTL/array.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
-#include <EASTL/string_view.h>
 #include <EASTL/functional.h>
+#include <EASTL/string_view.h>
 
 #include <ankerl/unordered_dense.h>
 
@@ -39,15 +41,27 @@ namespace mikoto::core {
     };
 
     struct ConsoleMessage {
-        ConsoleLogLevel Level{};
+        ConsoleLogLevel mLevel{};
         eastl::string mMessage{};
     };
 
+    struct ConsoleLogEntry {
+        u64 mID{};
+        ConsoleLogLevel mLevel{};
+        eastl::string mText{};
+    };
+
     struct RuntimeConsoleCreateInfo {
+        usize mMaxLogEntries{ 10000 };
     };
 
     class RuntimeConsole final : public IService, public Singleton<RuntimeConsole> {
     public:
+        struct CommandInfo {
+            eastl::string mName{};
+            eastl::string mDescription{};
+        };
+
         struct Command {
             eastl::string mName{};
             eastl::string mDescription{};
@@ -66,6 +80,7 @@ namespace mikoto::core {
         ) -> void;
 
         auto ExecuteCommand(const eastl::string& input) -> void;
+        MKT_NODISCARD auto GetCommands() const -> eastl::vector<CommandInfo>;
 
         auto Info(eastl::string_view message) -> void;
         auto Debug(eastl::string_view message) -> void;
@@ -75,7 +90,19 @@ namespace mikoto::core {
         auto AddLog(ConsoleMessage message) -> void;
         auto AddLog(ConsoleLogLevel level, eastl::string_view message) -> void;
 
-        MKT_NODISCARD auto GetLogs() const -> const eastl::vector<eastl::string>&;
+        // Snapshot for occasional callers. Panels should consume incremental
+        // updates instead of copying the entire history every frame.
+        MKT_NODISCARD auto GetLogs() const -> eastl::vector<eastl::string>;
+
+        // Copies only entries at/after nextID under the producer lock. Returns
+        // the oldest retained ID so consumers can evict expired cached rows.
+        auto ReadLogUpdates( u64& nextID, eastl::vector<ConsoleLogEntry>& entries ) const -> u64;
+
+        /**
+         * @brief Returns the message counts in the retained console history.
+         * @returns Counts indexed by ConsoleLogLevel, independent of panel filters and visibility.
+         */
+        MKT_NODISCARD auto GetLogCounts() const -> eastl::array<usize, 4>;
 
     private:
         auto ClearLogs() -> void;
@@ -83,11 +110,15 @@ namespace mikoto::core {
 
     private:
         eastl::string mName{};
-        eastl::vector<eastl::string> mLogEntries{};
+        eastl::deque<ConsoleLogEntry> mLogEntries{};
+        eastl::array<usize, 4> mLogCounts{};
+        usize mMaxLogEntries{};
+        u64 mNextLogID{ 1 };
 
-        std::mutex mLogRegisterMutex{};
-        std::mutex mCommandRegisterMutex{};
+        mutable std::mutex mLogRegisterMutex{};
+        mutable std::mutex mCommandRegisterMutex{};
         ankerl::unordered_dense::map<eastl::string, Command> mRegisteredCommands{};
     };
 }
-#endif // MIKOTO_CONSOLE_MANAGER_HH
+
+#endif// MIKOTO_CORE_RUNTIME_CONSOLE_HH

@@ -1,0 +1,27 @@
+# Skeletal_Animation demo project.
+# Four hundred Lola characters share the imported model while retaining separate animator instances.
+# Open this manifest in the editor; Scene selects the authored scene below.
+# Assets and Cache paths are relative to this manifest.
+# EditorCamera configures editor navigation; the scene camera controls the Game view.
+
+Version: 1
+Project: "Skeletal Animation"
+Assets: "Assets"
+Cache: "Assets/.cache"
+Scene: "Scene/Skeletal_Animation.mktscn"
+CompressTextures: false
+AutoSave: false
+AutoSaveIntervalMs: 2000
+EditorCamera:
+  NavigationMode: "Fly"
+  Position: [0,38,65]
+  Direction: [0.0,-0.4946983855549952,-0.8690647313803969]
+  Projection: "Perspective"
+  FieldOfView: 45
+  NearPlane: 0.1
+  FarPlane: 250
+  MovementSpeed: 12
+  RotationSpeed: 10
+  SmoothTime: 0.1
+  AllowPitch: true
+  AllowYaw: true

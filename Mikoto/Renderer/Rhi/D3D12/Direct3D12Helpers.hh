@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_DIRECT3D12HELPERS_HH
-#define MIKOTOROOT_DIRECT3D12HELPERS_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D12_DIRECT3_D12_HELPERS_HH
+#define MIKOTO_RENDERER_RHI_D3D12_DIRECT3_D12_HELPERS_HH
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -25,7 +25,10 @@
 #define MKT_D3D12_NO_FLAGS 0
 
 // D3D12 extension library.
+#include <Platform/Windows/Windows.hh>
+
 #include <directx/d3d12.h>
+#include <directx/d3dx12.h>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Utility.hh>
@@ -39,6 +42,15 @@ namespace mikoto::renderer::d3d12 {
 
     // https://gamedev.net/forums/topic/670668-d3d12-updating-constant-buffer-data/
     inline constexpr core::u32 kConstantBufferOffsetSizeAlignment{ 256 };
+
+    /** Converts an RHI source/destination blend factor to the native API value. */
+    MKT_NODISCARD auto GetBlendFactor( rhi::BlendFactor factor ) -> D3D12_BLEND;
+
+    /** Converts an RHI color or alpha blend operation to the native API value. */
+    MKT_NODISCARD auto GetBlendOp( rhi::BlendOperation operation ) -> D3D12_BLEND_OP;
+
+    /** Converts writable R/G/B/A channels to the native color write mask. */
+    MKT_NODISCARD auto GetColorWriteMask( rhi::ColorWriteMask writeMask ) -> UINT8;
 
     auto ThrowIfFailed(HRESULT hr) -> void;
     auto ThrowIfFailed(HRESULT hr, rhi::IGpuDevice* gpuDevice) -> void;
@@ -83,4 +95,5 @@ namespace mikoto::renderer::d3d12 {
 
 #endif
 
-#endif//MIKOTOROOT_DIRECT3D12HELPERS_HH
+#endif// MIKOTO_RENDERER_RHI_D3D12_DIRECT3_D12_HELPERS_HH
+

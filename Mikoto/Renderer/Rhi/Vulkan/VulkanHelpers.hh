@@ -12,15 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_VULKAN_UTILS_HH
-#define MIKOTO_VULKAN_UTILS_HH
+#ifndef MIKOTO_RENDERER_RHI_VULKAN_VULKAN_HELPERS_HH
+#define MIKOTO_RENDERER_RHI_VULKAN_VULKAN_HELPERS_HH
 
 #include <volk.h>
 
-#include <cpptrace/cpptrace.hpp>
-
 #include <Core/Core.hh>
-#include <Core/String.hh>
 #include <Core/Types.hh>
 #include <Core/Exception.hh>
 
@@ -32,6 +29,10 @@
 #define MKT_VK_FLAGS_NONE 0
 
 namespace mikoto::renderer::vulkan {
+
+    MKT_NODISCARD auto GetBlendFactor( rhi::BlendFactor factor ) -> VkBlendFactor;
+    MKT_NODISCARD auto GetBlendOp( rhi::BlendOperation operation ) -> VkBlendOp;
+    MKT_NODISCARD auto GetColorWriteMask( rhi::ColorWriteMask writeMask ) -> VkColorComponentFlags;
 
     MKT_NODISCARD auto GetGpuDeviceType( rhi::GpuDeviceType type ) -> VkPhysicalDeviceType;
     MKT_NODISCARD auto GetResultString( VkResult result ) -> const char*;
@@ -59,26 +60,18 @@ namespace mikoto::renderer::vulkan {
     MKT_NODISCARD auto GetTextureType( rhi::TextureDimension dimensions ) -> VkImageType;
 
     MKT_NODISCARD auto GetImageLayout( rhi::ResourceStates state ) -> VkImageLayout;
+    MKT_NODISCARD auto GetImageLayout( rhi::TextureLayoutFlags layout ) -> VkImageLayout;
+
     MKT_NODISCARD auto GetResourceState( VkImageLayout layout ) -> rhi::ResourceStates;
     MKT_NODISCARD auto GetStageMask( rhi::ResourceStates state ) -> VkPipelineStageFlags2;
 
-    /**
-     * Converts every selected RHI pipeline stage to a Synchronization2 stage.
-     * @param stages Pipeline stages to include; None produces an empty scope.
-     * @returns The combined Vulkan stage mask.
-     */
     MKT_NODISCARD auto GetStageMask( rhi::PipelineStageFlags stages ) -> VkPipelineStageFlags2;
 
-    /**
-     * Converts explicit RHI memory accesses without widening their scope.
-     * @param accesses Memory accesses to include; None produces an execution-only scope.
-     * @returns The combined Vulkan access mask.
-     */
     MKT_NODISCARD auto GetAccessMask( rhi::BarrierAccessFlags accesses ) -> VkAccessFlags2;
 
     MKT_NODISCARD auto GetMipmapMode( rhi::SamplerMipmapMode mode ) -> VkSamplerMipmapMode;
 
-    MKT_UNUSED_FUNC MKT_NODISCARD auto GetAccessMask( rhi::ResourceStates state ) -> VkAccessFlags2;
+    MKT_NODISCARD auto GetAccessMask( rhi::ResourceStates state ) -> VkAccessFlags2;
 
     MKT_NODISCARD auto GetIndexType( rhi::Format format ) -> VkIndexType;
 
@@ -91,20 +84,17 @@ namespace mikoto::renderer::vulkan {
 
     MKT_NODISCARD auto GetImageUsage( rhi::TextureUsageFlags flags ) -> VkImageUsageFlags;
 
-#define MKT_VK_CHECK( expr )                                                          \
-    do {                                                                              \
-        VkResult _vk_result{ ( expr ) };                                              \
-        if ( _vk_result != VK_SUCCESS ) {                                             \
-            MKT_FILE_LOGGER_ERROR(                                                    \
-                    "Vulkan error: {} (code: {}) at {}:{}",                           \
-                    GetResultString( _vk_result ), core::as<core::i32>( _vk_result ), \
-                    __FILE__, __LINE__ );                                             \
-                                                                                      \
-            cpptrace::generate_trace().print();                                       \
-            throw mikoto::core::RuntimeException( string::Format(                     \
-                    "Vulkan call failed: {}\nFile: {}\nLine: {}",                     \
-                    GetResultString( _vk_result ), __FILE__, __LINE__ ) );            \
-        }                                                                             \
+#define MKT_VK_CHECK( expr )                                                                            \
+    do {                                                                                                \
+        VkResult _vk_result{ ( expr ) };                                                                \
+        if ( _vk_result != VK_SUCCESS ) {                                                               \
+            MKT_FILE_LOGGER_ERROR(                                                                      \
+                    "Vulkan error: {} (code: {}) at {}:{}",                                             \
+                    renderer::vulkan::GetResultString( _vk_result ), core::as<core::i32>( _vk_result ), \
+                    __FILE__, __LINE__ );                                                               \
+            MKT_THROW_RUNTIME_ERROR( string::Format(                                                    \
+                    "Vulkan call failed: {}", renderer::vulkan::GetResultString( _vk_result ) ) );      \
+        }                                                                                               \
     } while ( 0 )
 
 }// namespace mikoto::renderer::vulkan
@@ -149,6 +139,43 @@ namespace mikoto::renderer::vulkan::initializers {
     MKT_NODISCARD auto WriteDescriptorSet() -> VkWriteDescriptorSet;
     MKT_NODISCARD auto PipelineCacheCreateInfo() -> VkPipelineCacheCreateInfo;
 
+    // Allocate image memory and describe compatible views.
+    MKT_NODISCARD auto ImageFormatListCreateInfo() -> VkImageFormatListCreateInfo;
+    MKT_NODISCARD auto MemoryDedicatedAllocateInfo() -> VkMemoryDedicatedAllocateInfo;
+    MKT_NODISCARD auto MemoryAllocateInfo() -> VkMemoryAllocateInfo;
+    MKT_NODISCARD auto ImageViewUsageCreateInfo() -> VkImageViewUsageCreateInfo;
+
+    // Describe video profiles and query device support.
+    MKT_NODISCARD auto QueueFamilyProperties2() -> VkQueueFamilyProperties2;
+    MKT_NODISCARD auto QueueFamilyVideoPropertiesKHR() -> VkQueueFamilyVideoPropertiesKHR;
+    MKT_NODISCARD auto VideoProfileListInfoKHR() -> VkVideoProfileListInfoKHR;
+    MKT_NODISCARD auto PhysicalDeviceVideoFormatInfoKHR() -> VkPhysicalDeviceVideoFormatInfoKHR;
+    MKT_NODISCARD auto VideoFormatPropertiesKHR() -> VkVideoFormatPropertiesKHR;
+    MKT_NODISCARD auto VideoDecodeH264ProfileInfoKHR() -> VkVideoDecodeH264ProfileInfoKHR;
+    MKT_NODISCARD auto VideoProfileInfoKHR() -> VkVideoProfileInfoKHR;
+    MKT_NODISCARD auto VideoDecodeH264CapabilitiesKHR() -> VkVideoDecodeH264CapabilitiesKHR;
+    MKT_NODISCARD auto VideoDecodeCapabilitiesKHR() -> VkVideoDecodeCapabilitiesKHR;
+    MKT_NODISCARD auto VideoCapabilitiesKHR() -> VkVideoCapabilitiesKHR;
+
+    // Create video sessions and their parameter bindings.
+    MKT_NODISCARD auto VideoSessionCreateInfoKHR() -> VkVideoSessionCreateInfoKHR;
+    MKT_NODISCARD auto VideoSessionMemoryRequirementsKHR() -> VkVideoSessionMemoryRequirementsKHR;
+    MKT_NODISCARD auto BindVideoSessionMemoryInfoKHR() -> VkBindVideoSessionMemoryInfoKHR;
+    MKT_NODISCARD auto VideoDecodeH264SessionParametersAddInfoKHR() -> VkVideoDecodeH264SessionParametersAddInfoKHR;
+    MKT_NODISCARD auto VideoDecodeH264SessionParametersCreateInfoKHR() -> VkVideoDecodeH264SessionParametersCreateInfoKHR;
+    MKT_NODISCARD auto VideoSessionParametersCreateInfoKHR() -> VkVideoSessionParametersCreateInfoKHR;
+
+    // Record video pictures and coding scopes.
+    MKT_NODISCARD auto VideoPictureResourceInfoKHR() -> VkVideoPictureResourceInfoKHR;
+    MKT_NODISCARD auto VideoDecodeH264DpbSlotInfoKHR() -> VkVideoDecodeH264DpbSlotInfoKHR;
+    MKT_NODISCARD auto VideoReferenceSlotInfoKHR() -> VkVideoReferenceSlotInfoKHR;
+    MKT_NODISCARD auto VideoBeginCodingInfoKHR() -> VkVideoBeginCodingInfoKHR;
+    MKT_NODISCARD auto VideoCodingControlInfoKHR() -> VkVideoCodingControlInfoKHR;
+    MKT_NODISCARD auto VideoDecodeH264PictureInfoKHR() -> VkVideoDecodeH264PictureInfoKHR;
+    MKT_NODISCARD auto VideoDecodeInfoKHR() -> VkVideoDecodeInfoKHR;
+    MKT_NODISCARD auto VideoEndCodingInfoKHR() -> VkVideoEndCodingInfoKHR;
+
 }// namespace mikoto::renderer::vulkan::initializers
 
-#endif// MIKOTO_VULKAN_UTILS_HH
+#endif// MIKOTO_RENDERER_RHI_VULKAN_VULKAN_HELPERS_HH
+

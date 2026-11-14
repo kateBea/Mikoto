@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Floor",
+  "Material": {
+    "BaseColorFactor": [
+      0.22,
+      0.24,
+      0.28,
+      1
+    ],
+    "RoughnessFactor": 0.22,
+    "MetallicFactor": 0.15
+  }
+}

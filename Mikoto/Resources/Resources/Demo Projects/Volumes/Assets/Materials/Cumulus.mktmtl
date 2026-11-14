@@ -1,0 +1,26 @@
+{
+  "Version": 1,
+  "Type": "VolumeMaterial",
+  "Name": "Cumulus",
+  "Material": {
+    "DensityModel": 2,
+    "Absorption": [
+      0,
+      0,
+      0
+    ],
+    "Scattering": [
+      0.03,
+      0.03,
+      0.03
+    ],
+    "Anisotropy": 0.65,
+    "Density": 0.8,
+    "HeightFalloff": 0.1,
+    "NoiseScale": 0.006,
+    "ErosionScale": 0.04,
+    "Erosion": 0.12,
+    "Coverage": 0.6,
+    "Octaves": 5
+  }
+}

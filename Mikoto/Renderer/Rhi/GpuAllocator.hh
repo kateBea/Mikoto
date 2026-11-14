@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_GPU_ALLOCATOR_H
-#define MIKOTO_GPU_ALLOCATOR_H
+#ifndef MIKOTO_RENDERER_RHI_GPU_ALLOCATOR_HH
+#define MIKOTO_RENDERER_RHI_GPU_ALLOCATOR_HH
 
 #include <EASTL/unique_ptr.h>
 
@@ -21,32 +21,30 @@
 #include <Core/Types.hh>
 
 #include <Memory/Allocator.hh>
+
 #include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::renderer::rhi {
-
     /**
      * Backend-independent interface for GPU-memory accounting and allocation.
      */
     class IGpuAllocator {
     public:
-
-        /**
-         * Creates an allocator associated with @p device.
-         *
-         * @param device Device that owns the allocator.
-         */
-        explicit IGpuAllocator( IGpuDevice* device );
-
         /**
          * Initializes backend allocator resources.
          */
         virtual auto Init() -> void = 0;
 
+
         /**
          * Releases backend allocator resources.
          */
         virtual auto Shutdown() -> void = 0;
+
+
+        /** Advances per-frame allocator accounting, including cached OS budgets. */
+        virtual auto BeginFrame() -> void = 0;
+
 
         /**
          * Returns allocated GPU memory in bytes.
@@ -55,12 +53,18 @@ namespace mikoto::renderer::rhi {
          */
         MKT_NODISCARD virtual auto GetMemoryUsage() const -> core::usize = 0;
 
+
+        /** Returns process-local and shared usage estimates, or unavailable when unsupported. */
+        MKT_NODISCARD virtual auto GetProcessMemoryUsage() const -> ProcessGpuMemory = 0;
+
+
         /**
          * Returns total GPU memory in bytes.
          *
          * @returns Total GPU memory in bytes.
          */
         MKT_NODISCARD virtual auto GetMemoryTotal() const -> core::usize = 0;
+
 
         /**
          * Returns available GPU memory in bytes.
@@ -69,10 +73,12 @@ namespace mikoto::renderer::rhi {
          */
         MKT_NODISCARD virtual auto GetMemoryAvailable() const -> core::usize = 0;
 
+
         /**
          * Destroys the allocator.
          */
         virtual ~IGpuAllocator() = default;
+
 
         /**
          * Creates the allocator appropriate for @p device's graphics API.
@@ -81,12 +87,8 @@ namespace mikoto::renderer::rhi {
          * @returns The backend-specific allocator.
          */
         static auto Create( IGpuDevice* device ) -> eastl::unique_ptr<IGpuAllocator>;
-
-    protected:
-        IGpuDevice* mDevice{};
     };
 }
 
+#endif// MIKOTO_RENDERER_RHI_GPU_ALLOCATOR_HH
 
-
-#endif //MIKOTO_GPU_ALLOCATOR_H

@@ -12,12 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 
 using namespace mikoto;
 
 struct FSInput {
+    float4 position : SV_Position;
     float2 texCoord : ATTRIBUTE0;
     float3 color : ATTRIBUTE1;
 };
@@ -31,22 +34,22 @@ struct DrawParams {
     int SamplerIndex;
 };
 
-#if defined(MKT_SUPPORT_VULKAN)
+#if defined( MKT_SUPPORT_VULKAN ) || defined( MKT_SUPPORT_D3D12 )
 MKT_DECLARE_SAMPLERS samplers;
-MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
 #endif
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) uParams;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, uParams );
 
-[shader("fragment")]
-FSOutput main(FSInput input) {
+[shader( "fragment" )]
+FSOutput main( FSInput input ) {
     FSOutput o;
 
-#if defined(MKT_SUPPORT_VULKAN) || defined(MKT_SUPPORT_D3D12)
-    if (uParams.TextureIndex != -1) {
-        o.color = textures[uParams.TextureIndex].Sample(samplers[uParams.SamplerIndex], input.texCoord);
+#if defined( MKT_SUPPORT_VULKAN ) || defined( MKT_SUPPORT_D3D12 )
+    if ( uParams.TextureIndex != -1 ) {
+        o.color = textures[uParams.TextureIndex].Sample( samplers[uParams.SamplerIndex], input.texCoord );
     } else {
-        o.color = float4(input.color, 1.0);
+        o.color = float4( input.color, 1.0 );
     }
 #endif
 

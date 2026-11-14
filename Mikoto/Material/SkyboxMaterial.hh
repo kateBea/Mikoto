@@ -12,15 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SKYBOX_MATERIAL_HH
-#define MIKOTO_SKYBOX_MATERIAL_HH
+#ifndef MIKOTO_MATERIAL_SKYBOX_MATERIAL_HH
+#define MIKOTO_MATERIAL_SKYBOX_MATERIAL_HH
 
+#include <EASTL/string.h>
 #include <EASTL/string_view.h>
+
+#include <ankerl/unordered_dense.h>
+
+#include <yaml-cpp/yaml.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <ankerl/unordered_dense.h>
+#include <Assets/AssetTexture.hh>
 
 #include <Material/Material.hh>
 
@@ -50,30 +55,36 @@ namespace mikoto::material {
         eastl::string_view mName{};
         SkyboxType mSkyboxType{ SkyboxType::eEquirectangular };
 
-        renderer::rhi::TextureHandle mEquirectangularTextureHandle{};
-        ankerl::unordered_dense::map<SkyboxFace, renderer::rhi::TextureHandle> mCubeFaces{};
+        asset::AssetHandle<asset::Texture> mEquirectangularTextureHandle{};
+        ankerl::unordered_dense::map<SkyboxFace, asset::AssetHandle<asset::Texture>> mCubeFaces{};
 
         auto SetName( eastl::string_view name ) -> SkyboxMaterialDescription&;
 
         // Automatically sets type to equirectangular
-        auto SetEquirectangular( renderer::rhi::TextureHandle texture ) -> SkyboxMaterialDescription&;
+        auto SetEquirectangular( asset::AssetHandle<asset::Texture> texture ) -> SkyboxMaterialDescription&;
 
         // Automatically sets type to cubes
-        auto SetCubeFace( SkyboxFace face, renderer::rhi::TextureHandle texture ) -> SkyboxMaterialDescription&;
+        auto SetCubeFace( SkyboxFace face, asset::AssetHandle<asset::Texture> texture ) -> SkyboxMaterialDescription&;
     };
 
-    class SkyboxMaterial final : public Material {
+    class SkyboxMaterial final : public IMaterial {
     public:
         explicit SkyboxMaterial( eastl::string_view name = "SkyboxMaterial" );
         explicit SkyboxMaterial( const SkyboxMaterialDescription& desc );
 
-        auto Serialize( const filesystem::Path &filename ) const -> void override;
-        auto Deserialize( const filesystem::Path &filename ) const -> void override;
-        auto Serialize( filesystem::FileHandle file ) const -> void override;
-        auto Deserialize( filesystem::FileHandle file ) const -> void override;
+        /** @brief Copies authoring state and resource handles without retaining the source file. */
+        SkyboxMaterial( const SkyboxMaterial& other );
 
-        auto SetEquirectangular( renderer::rhi::TextureHandle texture ) -> void;
-        auto SetFace( SkyboxFace face, renderer::rhi::TextureHandle texture ) -> void;
+        MKT_NODISCARD auto GetSourcePath() const -> const filesystem::Path&;
+
+
+        auto Serialize( const filesystem::Path &filename ) const -> void override;
+        auto Deserialize( const filesystem::Path &filename ) -> void override;
+        auto Serialize( filesystem::FileHandle file ) const -> void override;
+        auto Deserialize( filesystem::FileHandle file ) -> void override;
+
+        auto SetEquirectangular( asset::AssetHandle<asset::Texture> texture ) -> void;
+        auto SetFace( SkyboxFace face, asset::AssetHandle<asset::Texture> texture ) -> void;
 
         auto SetType( SkyboxType type ) -> void;
 
@@ -89,19 +100,31 @@ namespace mikoto::material {
 
         MKT_NODISCARD auto GetAmbientScale() const -> core::f32;
 
-        MKT_NODISCARD auto GetFace(SkyboxFace face) -> renderer::rhi::TextureHandle;
-        MKT_NODISCARD auto GetFaceTextures() -> ankerl::unordered_dense::map<SkyboxFace, renderer::rhi::TextureHandle>&;
-        MKT_NODISCARD auto GetEquirectangular() -> renderer::rhi::TextureHandle;
+        MKT_NODISCARD auto GetFace( SkyboxFace face ) const -> renderer::rhi::TextureHandle;
+        MKT_NODISCARD auto GetFaceTextures() const -> const ankerl::unordered_dense::map<SkyboxFace, asset::AssetHandle<asset::Texture>>&;
+        MKT_NODISCARD auto GetEquirectangular() const -> renderer::rhi::TextureHandle;
+        MKT_NODISCARD auto GetEquirectangularAsset() const -> const asset::AssetHandle<asset::Texture>&;
+        MKT_NODISCARD auto GetFaceAsset( SkyboxFace face ) const -> asset::AssetHandle<asset::Texture>;
+
+        auto SetName( eastl::string_view newName ) -> void override;
+        MKT_NODISCARD auto GetName() const -> const eastl::string& override;
 
         ~SkyboxMaterial() override = default;
 
     private:
+        // YAML is an implementation detail of the ISerializable entry points.
+        MKT_NODISCARD auto SerializeProperties() const -> YAML::Node;
+        auto RestoreProperties( const YAML::Node& node ) -> void;
+
+        mutable filesystem::Path mSourcePath{};
+
+        eastl::string mName{};
         core::f32 mAmbientScale{ 1.0f };
 
         SkyboxType mType{ SkyboxType::eCubeFaces };
-        renderer::rhi::TextureHandle mEquirectangular{};
-        ankerl::unordered_dense::map<SkyboxFace, renderer::rhi::TextureHandle> mCubeFaces{};
+        asset::AssetHandle<asset::Texture> mEquirectangular{};
+        ankerl::unordered_dense::map<SkyboxFace, asset::AssetHandle<asset::Texture>> mCubeFaces{};
     };
 } // namespace mikoto
 
-#endif//MIKOTO_SKYBOX_MATERIAL_HH
+#endif// MIKOTO_MATERIAL_SKYBOX_MATERIAL_HH

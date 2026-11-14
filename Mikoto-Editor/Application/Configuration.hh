@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,15 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_EDITOR_CONFIG_LOADER_HH
-#define MIKOTO_EDITOR_CONFIG_LOADER_HH
+#ifndef MIKOTO_APPLICATION_CONFIGURATION_HH
+#define MIKOTO_APPLICATION_CONFIGURATION_HH
 
 #include <string>
 
+#include <EASTL/allocator.h>
+#include <EASTL/utility.h>
 #include <EASTL/any.h>
 #include <EASTL/string.h>
-#include <EASTL/utility.h>
+#include <EASTL/algorithm.h>
 #include <EASTL/string_view.h>
+
+#include <Core/Profiler.hh>
 
 /**
  * Can disable exceptions in
@@ -31,12 +35,12 @@
  *  only necessary if you've left them enabled in your compiler #include <toml++/toml.hpp>
  * */
 #define TOML_EXCEPTIONS 0
-#include <toml++/toml.hpp>
 #include <ankerl/unordered_dense.h>
+
+#include <toml++/toml.hpp>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
 #include <Core/Exception.hh>
 #include <Core/Configuration.hh>
 
@@ -44,59 +48,29 @@
 
 namespace mikoto::editor {
 
-    using namespace mikoto::core;
-
-    class BaseConfiguration final : public Configuration {
+    class BaseConfiguration final : public core::Configuration {
     public:
-        explicit BaseConfiguration( const filesystem::Path& filePath ) {
-            Load( filePath );
-        }
+        BaseConfiguration() = default;
 
-        explicit BaseConfiguration( eastl::string_view path ) {
-            Load( filesystem::Path{ path } );
-        }
+        explicit BaseConfiguration( const filesystem::Path& filePath );
 
-        auto Load( const filesystem::Path& filePath ) -> void override {
-            toml::parse_result result{ toml::parse_file( filePath.GetC_Str() ) };
+        explicit BaseConfiguration( eastl::string_view path );
 
-            if ( result.failed() ) {
-                MKT_THROW_RUNTIME_ERROR( string::Format( "Failed to load configuration file: {}", filePath.GetC_Str() ) );
-            }
-
-            mData.clear();
-
-            const toml::table& tbl{ result.table() };
-            for ( auto&& [sectionName, sectionValue]: tbl ) {
-                if ( auto* section{ sectionValue.as_table() } ) {
-
-                    for ( auto&& [key, value]: *section ) {
-                        eastl::string keyFullName{ string::Format( "{}{}{}", sectionName.str(), kSeparator, key.str() ) };
-
-                        value.visit( [&]( auto&& v ) {
-                            mData[keyFullName] = ToBasicType( v );
-                        } );
-                    }
-                }
-            }
-
-            mIsLoaded = true;
-        }
+        auto Load( const filesystem::Path& filePath ) -> void override;
 
     private:
-        // Separator between section and key
-        static constexpr eastl::string_view kSeparator{ "." };
-
         static auto ToBasicType( const auto& v ) -> eastl::any {
-            using namespace mikoto;
+            MKT_BEGIN_PROFILER();
+            
 
             using VType = eastl::decay_t<decltype( v )>;
 
             if constexpr ( toml::is_boolean<VType> ) {
-                return eastl::make_any<bool>( as<bool>( v ) );
+                return eastl::make_any<bool>( core::as<bool>( v ) );
             } else if constexpr ( toml::is_integer<VType> ) {
-                return eastl::make_any<i64>( as<i64>( v )  );
+                return eastl::make_any<core::i64>( core::as<core::i64>( v )  );
             } else if constexpr ( toml::is_floating_point<VType> ) {
-                return eastl::make_any<f64>( as<f64>( v ) );
+                return eastl::make_any<core::f64>( core::as<core::f64>( v ) );
             } else if constexpr ( toml::is_string<VType> ) {
                 return eastl::make_any<eastl::string>( std::string{ v }.c_str() );
             }
@@ -106,4 +80,5 @@ namespace mikoto::editor {
     };
 }
 
-#endif//MIKOTO_EDITOR_CONFIG_LOADER_HH
+#endif// MIKOTO_APPLICATION_CONFIGURATION_HH
+

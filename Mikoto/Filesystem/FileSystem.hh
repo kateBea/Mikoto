@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_FILESYSTEM_HH
-#define MIKOTO_FILESYSTEM_HH
+#ifndef MIKOTO_FILESYSTEM_FILE_SYSTEM_HH
+#define MIKOTO_FILESYSTEM_FILE_SYSTEM_HH
 
+#include <EASTL/span.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
@@ -28,6 +29,7 @@ namespace mikoto::filesystem {
     inline constexpr eastl::string_view kMikotoSceneExtension{ "mktscn" };
     inline constexpr eastl::string_view kMikotoProjectExtension{ "mktprj" };
     inline constexpr eastl::string_view kMikotoMaterialExtension{ "mktmtl" };
+    inline constexpr eastl::string_view kMikotoParticleExtension{ "mktpart" };
 
     enum class FileType {
         eInvalid = -1,
@@ -136,10 +138,25 @@ namespace mikoto::filesystem {
         // Mikoto formats
         eMikoto_Scene,
         eMikoto_Project,
-        eMikoto_Material
+        eMikoto_Material,
+        eMikoto_Particle,
+
+        eKtx2,
+        eJavaScript,
+        ePdf,
+        ePlainText,
+        eSubtitle,
+        eCSharpProject,
     };
 
     auto OpenInExplorer( const Path& path ) -> void;
+
+    // Asks the desktop to open a UTF-8 URL with its registered handler.
+    auto OpenInBrowser( eastl::string_view url ) -> void;
+
+    // An empty editor path selects VS Code; "Visual Studio" selects the Windows
+    // solution launcher; otherwise use the chosen executable.
+    MKT_NODISCARD auto OpenInTextEditor( const Path& path, const Path& editor = {} ) -> bool;
 
     MKT_NODISCARD auto IsRegularFile(const Path& path) -> bool;
     MKT_NODISCARD auto IsDirectory(const Path& path) -> bool;
@@ -149,10 +166,10 @@ namespace mikoto::filesystem {
 
     MKT_NODISCARD auto StripFileName(eastl::string_view path) -> eastl::string;
 
-    MKT_NODISCARD auto GetGetAbsolutePath(std::string_view path) -> Path;
-    MKT_NODISCARD auto GetGetAbsolutePath(const Path& path) -> Path;
-    MKT_NODISCARD auto GetGetAbsolutePathString(std::string_view path) -> std::string;
-    MKT_NODISCARD auto GetGetAbsolutePathString(const Path& path) -> std::string;
+    MKT_NODISCARD auto GetGetAbsolutePath( std::string_view path ) -> Path;
+    MKT_NODISCARD auto GetGetAbsolutePath( const Path& path ) -> Path;
+    MKT_NODISCARD auto GetGetAbsolutePathString( std::string_view path ) -> std::string;
+    MKT_NODISCARD auto GetGetAbsolutePathString( const Path& path ) -> std::string;
 
     // Creates parent directories if they do not exist
     MKT_NODISCARD auto CreateIfNotExistsDirectory(const Path& path) -> bool;
@@ -163,6 +180,10 @@ namespace mikoto::filesystem {
 
     MKT_NODISCARD auto IsAbsolutePath(const Path& path) -> bool;
     MKT_NODISCARD auto IsRelativePath(const Path& path) -> bool;
+
+    MKT_NODISCARD auto IsAudioFile( const std::filesystem::path& path ) -> bool;
+    MKT_NODISCARD auto IsFontFile( const std::filesystem::path& path ) -> bool;
+    MKT_NODISCARD auto IsVideoFile( const std::filesystem::path& path ) -> bool;
 
     struct FileDialogPair {
         eastl::string mDescription{};
@@ -194,4 +215,4 @@ namespace mikoto::filesystem {
     auto DisplayPopUp( eastl::string_view title, eastl::string_view message, PopUpChoice choice, PopUpIcon icon, core::i32 timeOut = 1000 ) -> void;
 }
 
-#endif //MIKOTO_FILESYSTEM_HH
+#endif// MIKOTO_FILESYSTEM_FILE_SYSTEM_HH

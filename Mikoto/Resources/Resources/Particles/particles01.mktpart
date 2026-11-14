@@ -1,0 +1,6 @@
+ParticleEmitter:
+  Version: 1
+  EmissionRate: 80
+  Lifetime: 3
+  StartColor: [0.15, 0.55, 1, 0.8]
+  EndColor: [0.1, 0.2, 0.8, 0]

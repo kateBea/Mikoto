@@ -1,0 +1,32 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Skin_1",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.22,
+    "AlphaMask": 0,
+    "ShadingModel": 5,
+    "Subsurface": {
+      "Absorption": [
+        0.032,
+        0.17,
+        0.48
+      ],
+      "Scattering": [
+        0.74,
+        0.88,
+        1.01
+      ],
+      "IndexOfRefraction": 1.3,
+      "Anisotropy": 0,
+      "UnitsPerMillimeter": 0.001
+    }
+  }
+}

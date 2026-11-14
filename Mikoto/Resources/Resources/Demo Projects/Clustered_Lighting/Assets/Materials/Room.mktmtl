@@ -1,0 +1,8 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Room"
+Material:
+  BaseColorFactor: [0.55,0.55,0.55,1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.65
+  AlphaMask: 0

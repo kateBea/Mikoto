@@ -12,20 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RENDERER_PANEL_HH
-#define MIKOTO_RENDERER_PANEL_HH
+#ifndef MIKOTO_PANELS_RENDERER_PANEL_HH
+#define MIKOTO_PANELS_RENDERER_PANEL_HH
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <Panels/Panel.hh>
 #include <ImGui/GraphEditor.hh>
+
+#include <Panels/Panel.hh>
 
 namespace mikoto::editor {
     struct EditorState;
 
     struct RendererPanelCreateInfo {
         EditorState* mState{};
+
+        eastl::string mGroup{ "Other" };
+        bool mIsToggleable{ true };
     };
 
     enum class PresentTargetType {
@@ -51,14 +55,11 @@ namespace mikoto::editor {
         ~RendererPanel() override = default;
 
     private:
-
         EditorState* mEditorState{};
-
+        imgui::GraphEditor mGraphEditor{ "Pass Graph" };
         PresentTargetType mPresentTargetType{ PresentTargetType::eFinalImage };
 
-        imgui::GraphEditor mGraphEditor{ "Pass Graph" };
     };
 }
 
-
-#endif//MIKOTO_RENDERER_PANEL_HH
+#endif// MIKOTO_PANELS_RENDERER_PANEL_HH

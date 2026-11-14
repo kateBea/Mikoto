@@ -12,16 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 
 struct VSInput {
-    float3 position   : POSITION;
-    float2 uv0        : TEXCOORD0;
+    float3 position : POSITION;
+    float2 uv0 : TEXCOORD0;
 };
 
 struct VSOutput {
     float4 position : SV_POSITION;
-    float2 uv    : TEXCOORD;
+    float2 uv : TEXCOORD;
 };
 
 struct MyData {
@@ -33,12 +35,12 @@ struct MyData {
     int samplerIndex;
 };
 
-DECL_BINDING(2, 0) ConstantBuffer<MyData> Matrices;
+DECL_BINDING( 2, 0 ) ConstantBuffer<MyData> Matrices;
 
-[shader("vertex")]
-VSOutput main(VSInput input) {
+[shader( "vertex" )]
+VSOutput main( VSInput input ) {
     VSOutput o;
-    o.position = Matrices.projection * Matrices.view * Matrices.model * float4(input.position, 1.0);
+    o.position = Matrices.projection * Matrices.view * Matrices.model * float4( input.position, 1.0 );
     o.uv = input.uv0;
     return o;
 }

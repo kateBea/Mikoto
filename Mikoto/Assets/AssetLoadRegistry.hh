@@ -12,171 +12,263 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_ASSET_CACHE_HH
-#define MIKOTO_ASSET_CACHE_HH
+#ifndef MIKOTO_ASSETS_ASSET_LOAD_REGISTRY_HH
+#define MIKOTO_ASSETS_ASSET_LOAD_REGISTRY_HH
 
 #include <mutex>
+#include <chrono>
+#include <exception>
 
-#include <ankerl/unordered_dense.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
+#include <EASTL/chrono.h>
+#include <EASTL/shared_ptr.h>
+#include <EASTL/unordered_map.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
 #include <Assets/Asset.hh>
 
 namespace mikoto::asset {
 
-    /**
-     * Thread-safe registry that coordinates one load operation per asset path.
-     *
-     * A cache entry is inserted before invoking the loader. Subsequent callers
-     * therefore observe @ref LoadState::eLoading and return immediately instead
-     * of scheduling or waiting for another load. The loader always runs outside
-     * the registry mutex, so unrelated assets can be requested concurrently.
-     *
-     * The registry does not make an asset loader thread-safe. Loaders must still
-     * obey the ownership rules of the systems they call, especially for GPU and
-     * editor state.
-     *
-     * @tparam AssetType Type of asset retained by the registry.
-     */
-    template<typename AssetType>
+    template<typename T>
     class AssetLoadRegistry {
     public:
-        /**
-         * Describes the visible state of an asset request.
-         */
-        enum class LoadState {
-            eNotRequested,
-            eLoading,
-            eReady,
-            eFailed
-        };
+        using LoadState = AssetState;
 
-    public:
-        /**
-         * Returns a ready asset or invokes @p loader exactly once for a new path.
-         *
-         * When another thread is already loading @p path, this method returns an
-         * empty handle immediately. Call @ref GetLoadState or @ref GetIfReady on
-         * a later frame instead of waiting on a worker thread.
-         *
-         * @param path Asset path used as the registry key.
-         * @param loader Function that loads the asset for a new request.
-         * @returns The ready or newly loaded asset; an empty handle when loading
-         *          is already in progress or loading fails.
-         * @tparam LoaderFn Callable returning @c Ref<AssetType>.
-         */
-        template<typename LoaderFn>
-        MKT_NODISCARD auto GetOrLoad( const filesystem::Path& path, LoaderFn&& loader ) -> core::Ref<AssetType> {
-            const AssetID assetId{ GetHashedAssetID( path ) };
-            LoadTicket ticket{};
+        /** Blocking import. Takes over queued dependencies; joins an import already running. */
+        template<typename Loader>
+        MKT_NODISCARD auto GetOrLoad( const filesystem::Path& path, Loader&& loader ) -> core::Ref<T> {
+            return LoadBlocking( GetEntry( path ), eastl::forward<Loader>( loader ) );
+        }
 
+        /** Blocking import with a retained demand token and serializable identity. */
+        template<typename Loader>
+        MKT_NODISCARD auto LoadHandle( const filesystem::Path &path, Loader &&loader ) -> AssetHandle<T> {
+            auto entry{ GetEntry( path ) };
+            AssetHandle<T> handle{};
+            handle.mEntry = entry;
             {
-                std::lock_guard lock{ mMutex };
-
-                auto it{ mEntries.find( assetId ) };
-                if ( it != mEntries.end() ) {
-                    return it->second.mState == LoadState::eReady
-                        ? it->second.mAsset
-                        : core::Ref<AssetType>::CreateEmpty();
+                const std::lock_guard lock{ entry->mMutex };
+                handle.mDemand = entry->mDemand.lock();
+                if ( !handle.mDemand ) {
+                    handle.mDemand = eastl::make_shared<AssetDemand>();
+                    entry->mDemand = handle.mDemand;
                 }
-
-                ticket = { assetId, mNextGeneration++ };
-                mEntries.emplace( assetId, Entry{ .mGeneration = ticket.mGeneration } );
             }
+            LoadBlocking( entry, eastl::forward<Loader>( loader ) );
+            return handle;
+        }
 
-            // The loader may block. Never hold the registry mutex while it runs.
-            core::Ref<AssetType> asset{ loader() };
+        /** Scheduler must execute accepted jobs, or discard them only during shutdown. */
+        template<typename Loader, typename Scheduler>
+        MKT_NODISCARD auto Request( const filesystem::Path &path, Loader &&loader, Scheduler &&schedule ) -> AssetHandle<T> {
+            AssetHandle<T> handle{};
+            handle.mEntry = GetEntry( path );
+            bool start{};
             {
-                std::lock_guard lock{ mMutex };
-
-                auto it{ mEntries.find( ticket.mAssetId ) };
-                if ( it == mEntries.end() || it->second.mGeneration != ticket.mGeneration ) {
-                    // The registry was cleared or this path was invalidated and
-                    // requested again while the loader was running.
-                    return core::Ref<AssetType>::CreateEmpty();
+                const std::lock_guard lock{ handle.mEntry->mMutex };
+                handle.mDemand = handle.mEntry->mDemand.lock();
+                if ( !handle.mDemand ) {
+                    handle.mDemand = eastl::make_shared<AssetDemand>();
+                    handle.mEntry->mDemand = handle.mDemand;
                 }
-
-                it->second.mAsset = asset;
-                it->second.mState = asset.IsEmpty() ? LoadState::eFailed : LoadState::eReady;
-
-                return it->second.mAsset;
+                handle.mEntry->mLastUse = std::chrono::steady_clock::now();
+                start = handle.mEntry->mState == LoadState::eUnloaded && !handle.mEntry->mInvalidated;
+                if ( start ) { handle.mEntry->mState = LoadState::eQueued; }
             }
+            if ( start ) {
+                try {
+                    schedule( [entry = handle.mEntry, load = eastl::forward<Loader>( loader )]() mutable {
+                        Load( entry, load, true );
+                    } );
+                } catch ( ... ) {
+                    const std::lock_guard lock{ handle.mEntry->mMutex };
+                    handle.mEntry->mState = LoadState::eUnloaded;
+                    throw;
+                }
+            }
+            return handle;
         }
 
-        /**
-         * Returns a loaded asset without starting or waiting for a load.
-         *
-         * @param path Asset path to query.
-         * @returns The ready asset, or an empty handle for every other state.
-         */
-        MKT_NODISCARD auto GetIfReady( const filesystem::Path& path ) const -> core::Ref<AssetType> {
-            std::lock_guard lock{ mMutex };
-
-            auto it{ mEntries.find( GetHashedAssetID(path) ) };
-            if ( it == mEntries.end() ) {
-                return core::Ref<AssetType>::CreateEmpty();
-            }
-
-            if ( it->second.mState == LoadState::eReady ) {
-                return it->second.mAsset;
-            }
-
-            return core::Ref<AssetType>::CreateEmpty();
+        MKT_NODISCARD auto GetIfReady( const filesystem::Path &path ) const -> core::Ref<T> {
+            const auto entry{ FindEntry( path ) };
+            if ( !entry ) { return {}; }
+            const std::lock_guard lock{ entry->mMutex };
+            entry->mLastUse = std::chrono::steady_clock::now();
+            return entry->mState == LoadState::eReady && !entry->mInvalidated ? entry->mAsset : core::Ref<T>{};
         }
 
-        /**
-         * Returns the current request state without modifying the registry.
-         *
-         * @param path Asset path to query.
-         * @returns The current load state for @p path.
-         */
-        MKT_NODISCARD auto GetLoadState( const filesystem::Path& path ) const -> LoadState {
-            std::lock_guard lock{ mMutex };
-
-            auto it{ mEntries.find( GetHashedAssetID( path ) ) };
-            return it == mEntries.end() ? LoadState::eNotRequested : it->second.mState;
+        MKT_NODISCARD auto GetLoadState( const filesystem::Path &path ) const -> LoadState {
+            const auto entry{ FindEntry( path ) };
+            if ( !entry ) { return LoadState::eUnloaded; }
+            const std::lock_guard lock{ entry->mMutex };
+            return entry->mInvalidated ? LoadState::eUnloaded : entry->mState;
         }
 
-        /**
-         * Removes one entry so a subsequent request can load the path again.
-         *
-         * An in-flight loader is not cancelled. Its completion ticket will no
-         * longer match and will be discarded safely.
-         *
-         * @param path Asset path to invalidate.
-         */
+        /** Old handles become unloaded. Already borrowed pointers remain alive with their handles. */
         auto Invalidate( const filesystem::Path& path ) -> void {
-            std::lock_guard lock{ mMutex };
-            mEntries.erase( GetHashedAssetID( path ) );
+            EntryPtr retired{};
+            {
+                const std::lock_guard lock{ mMutex };
+                const auto it{ mEntries.find( GetHashedAssetID( path ) ) };
+                if ( it == mEntries.end() ) { return; }
+                retired = it->second;
+                {
+                    const std::lock_guard entryLock{ retired->mMutex };
+                    retired->mInvalidated = true;
+                    retired->BumpRevision();
+                    retired->mCompletion.notify_all();
+                }
+                mEntries.erase( it );
+            }
         }
 
-        /**
-         * Removes all retained entries.
-         *
-         * In-flight loaders are not cancelled; their stale completion tickets are
-         * discarded safely.
-         */
         auto Clear() -> void {
-            std::lock_guard lock{ mMutex };
-            mEntries.clear();
+            decltype( mEntries ) retired{};
+            {
+                const std::lock_guard lock{ mMutex };
+                for ( const auto& [id, entry]: mEntries ) {
+                    const std::lock_guard entryLock{ entry->mMutex };
+                    entry->mInvalidated = true;
+                    entry->BumpRevision();
+                    entry->mCompletion.notify_all();
+                }
+                retired.swap( mEntries );
+            }
+        }
+
+        MKT_NODISCARD auto GetMemoryUsage() const -> AssetMemoryUsage {
+            AssetMemoryUsage result{};
+            const std::lock_guard lock{ mMutex };
+            for ( const auto& [id, entry]: mEntries ) {
+                const std::lock_guard entryLock{ entry->mMutex };
+                if ( entry->mState == LoadState::eReady ) {
+                    result.mCpuBytes += entry->mMemory.mCpuBytes;
+                    result.mGpuBytes += entry->mMemory.mGpuBytes;
+                }
+            }
+            return result;
+        }
+
+        MKT_NODISCARD auto CollectUnused( std::chrono::seconds retention ) -> core::usize {
+            eastl::vector<core::Ref<T>> retired{};
+            const auto now{ std::chrono::steady_clock::now() };
+            {
+                const std::lock_guard lock{ mMutex };
+                for ( const auto& [id, entry]: mEntries ) {
+                    const std::lock_guard entryLock{ entry->mMutex };
+                    if ( !entry->mDemand.expired() || now - entry->mLastUse < retention ) { continue; }
+                    if constexpr ( requires( const T& value ) { value.CanEvict(); } ) {
+                        if ( entry->mAsset && !entry->mAsset->CanEvict() ) { continue; }
+                    }
+                    if ( entry->mState == LoadState::eReady && entry->mAsset && entry->mAsset->GetRefCount() == 1 ) {
+                        retired.push_back( eastl::move( entry->mAsset ) );
+                        entry->mState = LoadState::eUnloaded;
+                        entry->mMemory = {};
+                        entry->BumpRevision();
+                    }
+                }
+            }
+
+            return retired.size();
         }
 
     private:
-        struct LoadTicket {
-            AssetID mAssetId{};
-            core::u64 mGeneration{};
-        };
+        using Entry = AssetLoadEntry<T>;
+        using EntryPtr = eastl::shared_ptr<Entry>;
 
-        struct Entry {
-            core::Ref<AssetType> mAsset{};
-            LoadState mState{ LoadState::eLoading };
-            core::u64 mGeneration{};
-        };
+        template<typename Loader>
+        MKT_NODISCARD static auto LoadBlocking( const EntryPtr &entry, Loader &&loader ) -> core::Ref<T> {
+            {
+                std::unique_lock lock{ entry->mMutex };
+                entry->mCompletion.wait( lock, [&] { return entry->mState != LoadState::eLoading || entry->mInvalidated; } );
+                entry->mLastUse = std::chrono::steady_clock::now();
+                if ( ( entry->mState != LoadState::eUnloaded && entry->mState != LoadState::eQueued ) || entry->mInvalidated ) {
+                    return entry->mState == LoadState::eReady && !entry->mInvalidated ? entry->mAsset : core::Ref<T>{};
+                }
+                entry->mState = LoadState::eLoading;
+            }
+            Load( entry, eastl::forward<Loader>( loader ), false );
+            const std::lock_guard lock{ entry->mMutex };
+            return entry->mInvalidated ? core::Ref<T>{} : entry->mAsset;
+        }
+
+        MKT_NODISCARD auto GetEntry( const filesystem::Path &path ) -> EntryPtr {
+            const std::lock_guard lock{ mMutex };
+            auto& entry{ mEntries[GetHashedAssetID( path )] };
+            if ( !entry ) {
+                entry = eastl::make_shared<Entry>();
+                entry->mReference = AssetRef<T>{ path };
+            }
+            return entry;
+        }
+
+        MKT_NODISCARD auto FindEntry( const filesystem::Path &path ) const -> EntryPtr {
+            const std::lock_guard lock{ mMutex };
+            const auto it{ mEntries.find( GetHashedAssetID( path ) ) };
+            return it == mEntries.end() ? EntryPtr{} : it->second;
+        }
+
+        template<typename Loader>
+        static auto Load( const EntryPtr& entry, Loader&& loader, bool requested ) -> void {
+            {
+                const std::lock_guard lock{ entry->mMutex };
+                // A blocking dependency load may have claimed/completed this queued job.
+                if ( requested && entry->mState != LoadState::eQueued ) { return; }
+                if ( entry->mInvalidated || ( requested && entry->mDemand.expired() ) ) {
+                    entry->mState = LoadState::eUnloaded;
+                    return;
+                }
+                entry->mState = LoadState::eLoading;
+            }
+
+            core::Ref<T> result{};
+            eastl::string error{};
+            std::exception_ptr exception{};
+
+            try {
+                result = loader();
+                if ( !result ) { error = "Asset loader returned no resource."; }
+            } catch ( const std::exception& failure ) {
+                error = failure.what();
+                exception = std::current_exception();
+            } catch ( ... ) {
+                error = "Asset loader failed with an unknown error.";
+                exception = std::current_exception();
+            }
+
+            {
+                const std::lock_guard lock{ entry->mMutex };
+                // Obsolete jobs never republish. The local Ref is destroyed outside this lock.
+                if ( !entry->mInvalidated ) {
+                    entry->mError = eastl::move( error );
+                    entry->mLastUse = std::chrono::steady_clock::now();
+                    if ( requested && entry->mDemand.expired() ) {
+                        entry->mState = LoadState::eUnloaded;
+                    } else {
+                        entry->mAsset = result;
+                        entry->BumpRevision();
+                        if constexpr ( requires( const T& value ) { value.GetResidentMemoryUsage(); } ) {
+                            entry->mMemory = result ? result->GetResidentMemoryUsage() : AssetMemoryUsage{};
+                        } else if constexpr ( requires( const T& value ) { value.GetStorageSizeBytes(); } ) {
+                            entry->mMemory = { result ? result->GetSizeBytes() : 0, result ? result->GetStorageSizeBytes() : 0 };
+                        }
+                        entry->mState = result ? LoadState::eReady : LoadState::eFailed;
+                    }
+                }
+            }
+
+            entry->mCompletion.notify_all();
+            if ( exception && !requested ) { 
+                std::rethrow_exception( exception ); 
+            }
+        }
 
     private:
         mutable std::mutex mMutex{};
-        ankerl::unordered_dense::map<AssetID, Entry> mEntries{};
-        core::u64 mNextGeneration{ 1 };
+        eastl::unordered_map<AssetID, EntryPtr> mEntries{};
     };
-}
-
-#endif//MIKOTO_ASSET_CACHE_HH
+}// namespace mikoto::asset
+#endif// MIKOTO_ASSETS_ASSET_LOAD_REGISTRY_HH

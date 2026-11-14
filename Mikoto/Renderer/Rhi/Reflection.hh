@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_REFLECTION_HH
-#define MIKOTO_RHI_REFLECTION_HH
+#ifndef MIKOTO_RENDERER_RHI_REFLECTION_HH
+#define MIKOTO_RENDERER_RHI_REFLECTION_HH
 
 #include <EASTL/unique_ptr.h>
 
@@ -21,7 +21,6 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Shader.hh>
@@ -47,14 +46,11 @@ namespace mikoto::renderer::rhi {
         ankerl::unordered_dense::map<ShaderType, ShaderModuleHandle> mShadersModules{};
     };
 
-
     /**
      * Extension point for shader-reflection implementations.
      */
     class IReflectionModule {
     public:
-
-
         /**
          * Performs the operation represented by IReflectionModule.
          *
@@ -64,4 +60,5 @@ namespace mikoto::renderer::rhi {
     };
 }
 
-#endif//MIKOTO_RHI_REFLECTION_HH
+#endif// MIKOTO_RENDERER_RHI_REFLECTION_HH
+

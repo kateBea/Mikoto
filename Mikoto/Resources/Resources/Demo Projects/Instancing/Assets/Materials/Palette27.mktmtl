@@ -1,0 +1,8 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Palette27"
+Material:
+  BaseColorFactor: [0.373330367244495,0.6468980916900094,0.9131494510621054,1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.7
+  AlphaMask: 0

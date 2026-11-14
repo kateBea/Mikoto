@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_EDITOR_HELLO_TRIANGLE_LAYER_HH
-#define MIKOTO_EDITOR_HELLO_TRIANGLE_LAYER_HH
+#ifndef MIKOTO_LAYERS_EDITOR_HELLO_TRIANGLE_LAYER_HH
+#define MIKOTO_LAYERS_EDITOR_HELLO_TRIANGLE_LAYER_HH
 
 #include <EASTL/memory.h>
 #include <EASTL/string.h>
@@ -23,26 +23,25 @@
 #include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
+#include <Core/Layer.hh>
 #include <Core/Types.hh>
-#include <Core/Event.hh>
-#include <Core/LayerStack.hh>
 
-#include <Assets/Model.hh>
-
+#include <Platform/Event.hh>
 #include <Platform/Window.hh>
+
+#include <Assets/AssetModel.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
-
 #include <Renderer/Core/SceneRenderer.hh>
 #include <Renderer/Core/ThumbnailRenderer.hh>
 
 #include <Scene/Scene.hh>
 #include <Scene/Entity.hh>
 
-#include <Panels/Panel.hh>
-
 #include <Theme/Theme.hh>
+
+#include <Panels/Panel.hh>
 
 namespace mikoto::editor {
 
@@ -51,19 +50,24 @@ namespace mikoto::editor {
     // No passing resources, everything is handled by the shader
     class EditorHelloTriangleLayer final : public core::ILayer {
     public:
-        explicit EditorHelloTriangleLayer( platform::Window *window );
+        explicit EditorHelloTriangleLayer( platform::IWindow *window );
 
         auto OnCreate() -> void override;
         auto OnDestroy() -> void override;
         auto OnUpdate( float timeStep ) -> void override;
+        auto OnRender( float deltaTime ) -> void override;
 
-        auto OnEvent( core::IEvent &event ) -> void override;
+        auto OnEvent( platform::Event &event ) -> void override;
+
+        MKT_NODISCARD auto GetName() const -> eastl::string_view override;
 
     private:
         auto DisplayImGuiWindow() -> void;
 
     private:
-        renderer::IGpuDevice* mDevice{};
+        eastl::string mName{};
+
+        renderer::rhi::IGpuDevice* mDevice{};
 
         renderer::rhi::TextureHandle mColorImage{};
         renderer::rhi::TextureHandle mDepthImage{};
@@ -77,8 +81,9 @@ namespace mikoto::editor {
 
         bool mIsImguiWindowActive{ false };
 
-        platform::Window* mWindow{};
+        platform::IWindow* mWindow{};
     };
 }// namespace mikoto::editor
 
-#endif//MIKOTO_EDITOR_HELLO_TRIANGLE_LAYER_HH
+#endif// MIKOTO_LAYERS_EDITOR_HELLO_TRIANGLE_LAYER_HH
+

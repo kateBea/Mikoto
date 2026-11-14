@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_PROJECT_PANEL_HH
-#define MIKOTO_PROJECT_PANEL_HH
+#ifndef MIKOTO_PANELS_PROJECT_PANEL_HH
+#define MIKOTO_PANELS_PROJECT_PANEL_HH
 
 #include <Panels/Panel.hh>
 
@@ -22,6 +22,9 @@ namespace mikoto::editor {
 
     struct ProjectPanelCreateInfo {
         EditorState* mState{};
+
+        eastl::string mGroup{ "Other" };
+        bool mIsToggleable{ true };
     };
 
     class ProjectPanel final : public Panel {
@@ -35,4 +38,4 @@ namespace mikoto::editor {
     };
 }// namespace mikoto::editor
 
-#endif//MIKOTO_PROJECT_PANEL_HH
+#endif// MIKOTO_PANELS_PROJECT_PANEL_HH

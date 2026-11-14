@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_CONTENT_BROWSER_HH
-#define MIKOTO_CONTENT_BROWSER_HH
+#ifndef MIKOTO_PANELS_CONTENT_BROWSER_PANEL_HH
+#define MIKOTO_PANELS_CONTENT_BROWSER_PANEL_HH
 
 #include <imgui.h>
 
-#include <EASTL/deque.h>
+#include <EASTL/array.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
 
@@ -25,21 +25,16 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
-#include <Core/Profiler.hh>
-#include <Core/RuntimeConsole.hh>
 
 #include <Filesystem/Path.hh>
-#include <Filesystem/File.hh>
-#include <Filesystem/FileService.hh>
 #include <Filesystem/FileSystem.hh>
-
-#include <Panels/Panel.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 
 #include <Application/ThumbnailCache.hh>
+
+#include <Panels/Panel.hh>
 
 namespace mikoto::editor {
 
@@ -49,10 +44,19 @@ namespace mikoto::editor {
         eInvalid = -1,
         eFolder,
         eAudioFile,
+        eFontFile,
+        eTrueTypeFont,
+        eJsonFile,
+        eConfigFile,
+        eParticles,
         eVideoFile,
-        eImageFile,
+        eSubtitleFile,
+        eCppFile,
+        eJavaScriptFile,
+        ePdfFile,
+        ePngFile,
+        eTextFile,
         eRegularFile,
-        eMaterialFile,
     };
 
     struct ContentBrowserPanelDescription {
@@ -61,55 +65,119 @@ namespace mikoto::editor {
 
         filesystem::Path mProjectBasePath{};
         filesystem::Path mResourcesBasePath{};
+
+        eastl::string mGroup{ "Other" };
+        bool mIsToggleable{ true };
     };
 
     class ContentBrowserPanel final : public Panel {
     public:
-        explicit ContentBrowserPanel(const ContentBrowserPanelDescription& desc);
+        explicit ContentBrowserPanel( const ContentBrowserPanelDescription& desc );
 
-        auto OnRender(float timeStep) -> void override;
+        auto OnRender( float timeStep ) -> void override;
+        auto SetProjectDirectory( const filesystem::Path& root, const filesystem::Path& cache ) -> void;
 
         ~ContentBrowserPanel() override = default;
 
     private:
-        auto DrawHeader() -> void;
-        auto DrawSideHierarchy( const filesystem::Path& root ) -> void;
-        auto DrawMainBody() -> void;
+        struct DirectoryEntry {
+            filesystem::Path mPath{};
+            filesystem::FileType mType{ filesystem::FileType::eInvalid };
+            bool mIsDirectory{};
+        };
 
-        auto DrawBlankSpaceRightClickMenu() -> void;
+        struct DirectoryListing {
+            eastl::vector<DirectoryEntry> mEntries{};
+            eastl::string mError{};
+        };
 
-        auto DrawCurrentDirItems() -> void;
+        enum class FileOperation {
+            eNone,
+            eNewFolder,
+            eNewFile,
+            eRename,
+            eRemove
+        };
+
+        enum class NewFileType {
+            eText,
+            eLua,
+            eCSharp,
+            eNative,
+            eSurfaceMaterial,
+            eParticleMaterial,
+            eTextMaterial,
+            eSkyboxMaterial,
+            ePostProcessMaterial,
+            eVolumeMaterial
+        };
 
     private:
-        renderer::rhi::IGpuDevice* mDevice{ nullptr };
+        auto DrawHeader() -> void;
+        auto DrawBreadcrumbs() -> void;
+        auto DrawSidebarShadow() -> void;
+        auto RefreshDirectories() -> void;
+        auto ApplyFileOperation() -> void;
+        auto DrawCreateMenuItems() -> void;
+        auto DrawFileOperationDialog() -> void;
+        auto GetNewFileExtension() const -> core::cstr;
+        auto DrawSideHierarchy( const filesystem::Path& root ) -> void;
+        auto NavigateTo( const filesystem::Path& path, bool recordHistory = true ) -> void;
+
+        auto BeginFileOperation( FileOperation operation ) -> void;
+        auto DrawEntry( const DirectoryEntry& entry, core::f32 size ) -> void;
+        auto DrawFolderEntry( const filesystem::Path& path, core::f32 size ) -> void;
+        auto GetDirectoryListing( const filesystem::Path& path ) -> const DirectoryListing&;
+
+        auto DrawCurrentDirItems() -> void;
+        auto DrawBlankSpaceRightClickMenu() -> void;
+
+    private:
         EditorState* mEditorState{ nullptr };
+        renderer::rhi::IGpuDevice* mDevice{ nullptr };
 
         ImGuiTextFilter mSearchFilter{};
 
         eastl::unique_ptr<ThumbnailCache> mThumbnailCache{};
-        ankerl::unordered_dense::map<IconType, ImTextureID> mThumbnailHandles{};
+
+        // Retain textures, not backend descriptor IDs: unused ImGui descriptors
+        // can be retired between frames while this panel is hidden.
+        ankerl::unordered_dense::map<IconType, renderer::rhi::TextureHandle> mIconTextures{};
 
         filesystem::Path mProjectBasePath{};
         filesystem::Path mResourcesBasePath{};
-
         filesystem::Path mCurrentDirectory{};
-        filesystem::Path mPreviousDirectory{};
-        filesystem::Path mForwardDirectory{};
 
-        bool mShowFileTypeHint{ false };
-        float mThumbnailSize{ 100.0f };
-
+        bool mShowFileTypeHint{ true };
+        bool mShowItemShadows{ true };
         bool mShowDirectoryOnlyInSideView{ false };
 
-        eastl::deque<filesystem::Path> mDirectoryStack{};
+        core::f32 mItemShadowSize{ 1.0f };
+        core::f32 mThumbnailSize{ 67.0f };
 
-        // NOTE: texture is static because drag and
-        // drop needs this to persis
-        renderer::rhi::TextureHandle mThumbnail{};
+        static constexpr core::f32 kThumbnailPadding{ 8.0f };
 
+        core::usize mHistoryIndex{};
+        eastl::vector<filesystem::Path> mHistory{};
+
+        // Stable allocations let recursive tree drawing insert listings without
+        // invalidating the listing currently being traversed.
+        ankerl::unordered_dense::map<filesystem::Path, eastl::unique_ptr<DirectoryListing>> mDirectoryListings{};
+
+        bool mResetScroll{};
+        core::f32 mDirectoryRefreshElapsed{};
+        eastl::vector<core::usize> mFilteredEntries{};
+
+        FileOperation mFileOperation{ FileOperation::eNone };
+        NewFileType mNewFileType{ NewFileType::eText };
+        
+        bool mOpenOperationDialog{};
+        eastl::string mOperationError{};
         filesystem::Path mSelectedItem{};
+        filesystem::Path mOperationTarget{};
+        eastl::array<char, 256> mNameBuffer{};
     };
-}
+}// namespace mikoto::editor
 
+#endif// MIKOTO_PANELS_CONTENT_BROWSER_PANEL_HH
 
-#endif//MIKOTO_CONTENT_BROWSER_HH

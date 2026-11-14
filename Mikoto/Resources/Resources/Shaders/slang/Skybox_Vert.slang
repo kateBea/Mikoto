@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
+#include "base/Camera_Helpers.slang"
+#include "base/Lighting_Helpers.slang"
+#include "base/Material_Helpers.slang"
 #include "base/Math_Helpers.slang"
 #include "base/Memory_Helpers.slang"
-#include "base/Camera_Helpers.slang"
-#include "base/Material_Helpers.slang"
-#include "base/Lighting_Helpers.slang"
 
 struct VSOutput {
     float3 Direction : TEXCOORD0;
@@ -34,7 +36,7 @@ struct DrawParams {
     uint SkyboxCubeRtID;
     uint PrefilterCubeRtID;
 
-    uint BackGroundType; // Prefilter map, Original skybox, clear color
+    uint BackGroundType;// Prefilter map, Original skybox, clear color
 
     uint MaxMipLevel;
     float Exposure;
@@ -42,28 +44,28 @@ struct DrawParams {
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
-[shader("vertex")]
-VSOutput main(uint vID: SV_VertexID) {
+[shader( "vertex" )]
+VSOutput main( uint vID : SV_VertexID ) {
     VSOutput o;
 
     ByteAddressBuffer vertexBuffer = buffers[parameters.mVertexBufferID];
     ByteAddressBuffer indexBuffer = buffers[parameters.mIndexBufferID];
 
-    uint index = indexBuffer.Read<uint>(0, vID);
-    VertexDescription vertex = vertexBuffer.Read<VertexDescription>(0, index);
+    uint index = indexBuffer.Read<uint>( 0, vID );
+    VertexDescription vertex = vertexBuffer.Read<VertexDescription>( 0, index );
 
-    CameraInfo camera = buffers[parameters.CameraBufferID].Read<CameraInfo>(0, 0);
+    CameraInfo camera = buffers[parameters.CameraBufferID].Read<CameraInfo>( 0, 0 );
 
     // Remove translation from view matrix to expan the cube
-    float4x4 viewNoTrans = RemoveTranslation(camera.mViewMatrix);
+    float4x4 viewNoTrans = RemoveTranslation( camera.mViewMatrix );
 
     // Skybox direction
     o.Direction = vertex.position;
 
     // Project to clip space
-    float4 clip = mul(camera.mProjection, mul(viewNoTrans, float4(vertex.position, 1.0)));
+    float4 clip = mul( camera.mProjection, mul( viewNoTrans, float4( vertex.position, 1.0 ) ) );
     o.PositionH = clip;
 
     return o;

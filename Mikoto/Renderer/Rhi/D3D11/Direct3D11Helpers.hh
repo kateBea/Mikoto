@@ -12,17 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_D3D11_HELPERS_HH
-#define MIKOTO_D3D11_HELPERS_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D11_DIRECT3_D11_HELPERS_HH
+#define MIKOTO_RENDERER_RHI_D3D11_DIRECT3_D11_HELPERS_HH
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
 #include <Core/Platform.hh>
+
 #include <Renderer/Rhi/Types.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
+
+#include <Platform/Windows/Windows.hh>
 
 #include <d3d11.h>
 
@@ -33,8 +36,17 @@ namespace mikoto::renderer::d3d11 {
 
     struct Semantic {
         eastl::string_view mName{};
-        u32 mIndex{ 0 };
+        core::u32 mIndex{ 0 };
     };
+
+    /** Converts an RHI source/destination blend factor to the native API value. */
+    MKT_NODISCARD auto GetBlendFactor( rhi::BlendFactor factor ) -> D3D11_BLEND;
+
+    /** Converts an RHI color or alpha blend operation to the native API value. */
+    MKT_NODISCARD auto GetBlendOp( rhi::BlendOperation operation ) -> D3D11_BLEND_OP;
+
+    /** Converts writable R/G/B/A channels to the native color write mask. */
+    MKT_NODISCARD auto GetColorWriteMask( rhi::ColorWriteMask writeMask ) -> UINT8;
 
     MKT_NODISCARD auto GetUsageFromHeapType( rhi::HeapType type ) -> D3D11_USAGE;
     MKT_NODISCARD auto GetBindFlags( rhi::BufferUsageFlags flags ) -> UINT;
@@ -59,4 +71,5 @@ namespace mikoto::renderer::d3d11 {
 
 #endif
 
-#endif//MIKOTO_D3D11_HELPERS_HH
+#endif// MIKOTO_RENDERER_RHI_D3D11_DIRECT3_D11_HELPERS_HH
+

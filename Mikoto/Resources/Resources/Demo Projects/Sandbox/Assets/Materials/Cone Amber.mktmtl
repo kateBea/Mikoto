@@ -1,0 +1,8 @@
+Version: 2
+Type: SurfaceMaterial
+Name: Cone Amber
+Material:
+  BaseColorFactor: [1, 0.55, 0.08, 1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.45
+  AlphaMask: 0

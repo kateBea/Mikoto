@@ -1,12 +1,14 @@
-# Engine Configuration File for Mikoto
+# Engine Configuration File for Mikoto Editor still need to move to editor
 # This file contains settings and configurations for the engine.
-# All paths MUST BE RELATIVE to the executable path.
+# Paths are relative to the editor's working directory (normally its output folder).
+# Values may use nested TOML tables; the engine reads them as dotted keys.
 
 [engine]
-name = "Mikoto - Engine"           # Name of the engine
+name = "Mikoto Editor"           # Name of the engine
 version_major = 1                  # Engine version major
 version_minor = 1                  # Engine version minor
 version_patch = 0                  # Engine version patch
+language = "en-us"
 
 # Paths are relative to the process current working directory
 
@@ -18,11 +20,22 @@ textures = "Textures"     # Path to the textures folder
 imgui_config = "Imgui" # Path to the ImGui configuration file
 icons = "Icons" # Path to the icons
 fonts = "Fonts" # Path to the fonts
-logs = "Logs" # Path to the fonts
+logs = "Logs" # Log directory
 
 [renderer]
 api = "vulkan"                     # Rendering API (vulkan)
+gpu_validation = true              # Expensive D3D12 GPU validation; Debug CPU validation remains enabled
 vsync = true                       # Enable/disable VSync
+
+device_type = "Discrete" # Discrete, Integrated, SoftwareRasterizer
+
+# Request features, not necesarily supported
+device_feature_hardware_raytracing = true
+device_feature_texture_compression = true
+device_feature_hardware_wireframe = true
+device_feature_presentation_support = true
+device_feature_video_encoding = false
+device_feature_video_decoding = true
 
 [application]
 title = "Mikoto - Engine"         # Window title
@@ -33,6 +46,20 @@ resizable = true                   # Allow resizing the window (true/false)
 [logging]
 logs = "mikoto-trace.log"                    # If it doesn't exist, it will create a new log file
 
+[assets]
+# Shared model/texture import and BC6H/BC7 workers. 0 = hardware threads minus 3 (minimum 1).
+# Positive values are capped at the same budget. Restart to apply changes.
+texture_compression_workers = 0
+
 [debug]
+text_rendering = false             # Unicode/emoji comparison; F10 toggles the window when enabled
+bindless_showcase = false
+simple_raster_triangle = false
+simple_raster_cube = false           # F6 to toggle
+simple_networking = false            # F8 toggles it when enabled
+path_tracing_showcase = false       # Cornell room demonstrating progressive multi-bounce transport.
+ray_tracing_showcase = false       # Hardware RT debug window (Vulkan or D3D12)
+texture_compression_benchmark = false # CPU BC7/BC6H benchmark window; F9 toggles it when enabled
+
 show_fps = true                    # Show FPS counter on the screen
 draw_debug_overlay = false         # Draw debug overlay

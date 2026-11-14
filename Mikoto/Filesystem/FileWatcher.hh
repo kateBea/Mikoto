@@ -12,24 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_FILE_WATCH_HH
-#define MIKOTO_FILE_WATCH_HH
+#ifndef MIKOTO_FILESYSTEM_FILE_WATCHER_HH
+#define MIKOTO_FILESYSTEM_FILE_WATCHER_HH
 
-#include <vector>
-#include <memory>
+#include <mutex>
 
 #include <EASTL/chrono.h>
 #include <EASTL/vector.h>
 #include <EASTL/functional.h>
 #include <EASTL/unique_ptr.h>
 
+#include <Platform/Windows/Windows.hh>
+
 #include <FileWatch.hh>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/Types.hh>
 
-#include <Filesystem/Path.hh>
+#include <FileSystem/Path.hh>
 
 namespace mikoto::filesystem {
 
@@ -45,22 +45,22 @@ namespace mikoto::filesystem {
 
     class FileWatcher final {
     public:
-
         // eventTimeOut is used for debouncing (in ms).
         // Helps to prevent redundant, rapid-fire actions by waiting for an event to
         // stop triggering (e.g., after 100-500ms) before executing a handler
         explicit FileWatcher( const Path& path, core::u32 timeOut = 500 );
 
-        auto RegisterWatchCallback(WatcherCallback&& callback) -> void;
+        auto RegisterWatchCallback( WatcherCallback&& callback ) -> void;
 
     private:
         Path mWatchedPath{};
         eastl::chrono::milliseconds mDebounceTime{};
         eastl::vector<WatcherCallback> mCallbacks{};
+        std::mutex mCallbacksMutex{};
 
-        // filewatch::FileWatch expects std::string
+        // filewatch::FileWatch has specialization for std::string
         eastl::unique_ptr<filewatch::FileWatch<std::string>> mWatcher{};
     };
-}
+}// namespace mikoto::filesystem
 
-#endif
+#endif// MIKOTO_FILESYSTEM_FILE_WATCHER_HH

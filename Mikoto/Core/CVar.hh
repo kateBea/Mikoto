@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_CVAR_HH
-#define MIKOTO_CVAR_HH
+#ifndef MIKOTO_CORE_C_VAR_HH
+#define MIKOTO_CORE_C_VAR_HH
 
 #include <mutex>
 #include <memory>
@@ -22,13 +22,13 @@
 #include <EASTL/string.h>
 #include <EASTL/functional.h>
 #include <EASTL/string_view.h>
+
 #include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
-#include <Core/String.hh>
 #include <Core/Types.hh>
+#include <Core/Profiler.hh>
 #include <Core/Singleton.hh>
-
 namespace mikoto::core {
 
     /** @brief Controls persistence and mutation behaviour of a configuration variable. */
@@ -46,9 +46,7 @@ namespace mikoto::core {
      * @param right Second flag set.
      * @returns The combined flag set.
      */
-    inline auto operator|( const CVarFlags left, const CVarFlags right ) -> CVarFlags {
-        return as<CVarFlags>( as<u32>( left ) | as<u32>( right ) );
-    }
+    auto operator|( const CVarFlags left, const CVarFlags right ) -> CVarFlags;
 
     /**
      * @brief Returns flags that occur in both flag sets.
@@ -56,9 +54,7 @@ namespace mikoto::core {
      * @param right Second flag set.
      * @returns The intersecting flag set.
      */
-    inline auto operator&( const CVarFlags left, const CVarFlags right ) -> CVarFlags {
-        return as<CVarFlags>( as<u32>( left ) & as<u32>( right ) );
-    }
+    auto operator&( const CVarFlags left, const CVarFlags right ) -> CVarFlags;
 
     /** @brief Identifies the concrete value stored by a CVar. */
     enum class CVarType : u8 { eBool, eInt, eFloat, eString };
@@ -154,6 +150,7 @@ namespace mikoto::core {
          * @brief Returns a copy of the current typed value.
          * @returns The current value. */
         MKT_NODISCARD auto GetValue() const -> Type {
+            MKT_BEGIN_PROFILER();
             std::lock_guard lock{ mMutex };
             return mValue;
         }
@@ -161,7 +158,10 @@ namespace mikoto::core {
         /**
          * @brief Returns the value registered before overrides were applied.
          * @returns The typed default value. */
-        MKT_NODISCARD auto GetDefaultValue() const -> Type { return mDefaultValue; }
+        MKT_NODISCARD auto GetDefaultValue() const -> Type {
+            MKT_BEGIN_PROFILER();
+            return mDefaultValue;
+        }
 
         /**
          * @brief Updates the value and invokes its callback after releasing the value lock.
@@ -169,6 +169,7 @@ namespace mikoto::core {
          * @returns False when the CVar cannot be changed at runtime.
          */
         auto SetValue( Type value ) -> bool {
+            MKT_BEGIN_PROFILER();
             ChangedCallback callback{};
             Type callbackValue{};
             {
@@ -177,6 +178,7 @@ namespace mikoto::core {
                 if ( ( flags & ( CVarFlags::eReadOnly | CVarFlags::eStartupOnly ) ) != CVarFlags::eNone ) {
                     return false;
                 }
+
                 if ( mValue == value ) {
                     return true;
                 }
@@ -184,6 +186,7 @@ namespace mikoto::core {
                 callbackValue = mValue;
                 callback = mCallback;
             }
+
             if ( callback ) {
                 callback( callbackValue );
             }
@@ -193,7 +196,10 @@ namespace mikoto::core {
         /**
          * @brief Converts the current value to text.
          * @returns The current formatted value. */
-        MKT_NODISCARD auto ToString() const -> eastl::string override { return CVarTextCodec<Type>::Format( GetValue() ); }
+        MKT_NODISCARD auto ToString() const -> eastl::string override {
+            MKT_BEGIN_PROFILER();
+            return CVarTextCodec<Type>::Format( GetValue() );
+        }
 
         /**
          * @brief Parses text as this CVar's type and applies it.
@@ -201,6 +207,7 @@ namespace mikoto::core {
          * @returns True when parsing and setting succeeded.
          */
         auto SetFromString( const eastl::string_view value ) -> bool override {
+            MKT_BEGIN_PROFILER();
             Type parsedValue{};
             return CVarTextCodec<Type>::Parse( value, parsedValue ) && SetValue( eastl::move( parsedValue ) );
         }
@@ -222,24 +229,36 @@ namespace mikoto::core {
         /**
          * @brief Returns whether this handle refers to a registered typed CVar.
          * @returns True when valid. */
-        MKT_NODISCARD explicit operator bool() const { return mVariable != nullptr; }
+        MKT_NODISCARD explicit operator bool() const {
+            MKT_BEGIN_PROFILER();
+            return mVariable != nullptr;
+        }
 
         /**
          * @brief Retrieves the current typed value.
          * @returns The value, or a value-initialized Type when invalid. */
-        MKT_NODISCARD auto Get() const -> Type { return mVariable != nullptr ? mVariable->GetValue() : Type{}; }
+        MKT_NODISCARD auto Get() const -> Type {
+            MKT_BEGIN_PROFILER();
+            return mVariable != nullptr ? mVariable->GetValue() : Type{};
+        }
 
         /**
          * @brief Attempts to update the referenced CVar.
          * @param value New typed value.
          * @returns True when the handle is valid and the change is allowed.
          */
-        auto Set( Type value ) const -> bool { return mVariable != nullptr && mVariable->SetValue( eastl::move( value ) ); }
+        auto Set( Type value ) const -> bool {
+            MKT_BEGIN_PROFILER();
+            return mVariable != nullptr && mVariable->SetValue( eastl::move( value ) );
+        }
 
         /**
          * @brief Returns the CVar metadata.
          * @returns Metadata, or nullptr when invalid. */
-        MKT_NODISCARD auto GetMetadata() const -> const CVarMetadata* { return mVariable != nullptr ? &mVariable->GetMetadata() : nullptr; }
+        MKT_NODISCARD auto GetMetadata() const -> const CVarMetadata* {
+            MKT_BEGIN_PROFILER();
+            return mVariable != nullptr ? &mVariable->GetMetadata() : nullptr;
+        }
 
     private:
         explicit CVarRef( CVar<Type>* variable ) : mVariable{ variable } { }
@@ -366,15 +385,24 @@ namespace mikoto::core {
 
         /**
          * @brief Retrieves the current value without another registry lookup. @returns The current typed value. */
-        MKT_NODISCARD auto Get() const -> Type { return mReference.Get(); }
+        MKT_NODISCARD auto Get() const -> Type {
+            MKT_BEGIN_PROFILER();
+            return mReference.Get();
+        }
 
         /**
          * @brief Attempts to update the cached variable. @param value New typed value. @returns True when allowed. */
-        auto Set( Type value ) const -> bool { return mReference.Set( eastl::move( value ) ); }
+        auto Set( Type value ) const -> bool {
+            MKT_BEGIN_PROFILER();
+            return mReference.Set( eastl::move( value ) );
+        }
 
         /**
          * @brief Returns the underlying stable typed handle. @returns The cached CVar handle. */
-        MKT_NODISCARD auto GetReference() const -> CVarRef<Type> { return mReference; }
+        MKT_NODISCARD auto GetReference() const -> CVarRef<Type> {
+            MKT_BEGIN_PROFILER();
+            return mReference;
+        }
 
     private:
         CVarRef<Type> mReference{};
@@ -383,6 +411,7 @@ namespace mikoto::core {
     template<CVarValue Type>
     auto CVarRegistry::Register( const eastl::string_view name, const eastl::string_view description, Type defaultValue,
         const CVarFlags flags, typename CVar<Type>::ChangedCallback callback ) -> CVarRef<Type> {
+        MKT_BEGIN_PROFILER();
         std::lock_guard lock{ mMutex };
         const eastl::string key{ name };
         if ( const auto existing{ mVariables.find( key ) }; existing != mVariables.end() ) {
@@ -410,6 +439,7 @@ namespace mikoto::core {
 
     template<CVarValue Type>
     auto CVarRegistry::GetValue( const eastl::string_view name, Type fallback ) const -> Type {
+        MKT_BEGIN_PROFILER();
         const auto* const variable{ Find( name ) };
         if ( variable == nullptr || variable->GetMetadata().mType != CVarTypeTraits<Type>::kType ) {
             return fallback;
@@ -419,10 +449,11 @@ namespace mikoto::core {
 
     template<CVarValue Type>
     auto CVarRegistry::SetValue( const eastl::string_view name, Type value ) -> bool {
+        MKT_BEGIN_PROFILER();
         auto* const variable{ Find( name ) };
         return variable != nullptr && variable->GetMetadata().mType == CVarTypeTraits<Type>::kType &&
             static_cast<CVar<Type>*>( variable )->SetValue( eastl::move( value ) );
     }
 }
 
-#endif // MIKOTO_CVAR_HH
+#endif// MIKOTO_CORE_C_VAR_HH

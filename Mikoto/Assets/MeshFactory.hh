@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_MESH_FACTORY_HH
-#define MIKOTO_MESH_FACTORY_HH
+#ifndef MIKOTO_ASSETS_MESH_FACTORY_HH
+#define MIKOTO_ASSETS_MESH_FACTORY_HH
 
 #include <EASTL/unique_ptr.h>
 
@@ -23,7 +23,7 @@
 #include <Core/Singleton.hh>
 
 #include <Assets/Importer.hh>
-#include <Assets/Model.hh>
+#include <Assets/AssetModel.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
@@ -50,9 +50,9 @@ namespace mikoto::asset {
     private:
         renderer::rhi::IGpuDevice* mDevice{ nullptr };
 
-        eastl::unique_ptr<ModelImporter> mMainImporter{};
+        eastl::unique_ptr<ModelImporter> mAssimpImporter{};
         eastl::unique_ptr<ModelImporter> mGltfImporter{};
     };
 }
 
-#endif // MIKOTO_MESH_FACTORY_HH
+#endif// MIKOTO_ASSETS_MESH_FACTORY_HH

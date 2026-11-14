@@ -12,149 +12,147 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_CAMERA_HH
-#define MIKOTO_CAMERA_HH
+#ifndef MIKOTO_SCENE_CAMERA_HH
+#define MIKOTO_SCENE_CAMERA_HH
 
-#include <utility>
-
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
 #include <Logging/Assert.hh>
 
-#include <Math/Random.hh>
 #include <Math/Math.hh>
+#include <Math/Random.hh>
 
 namespace mikoto::scene {
+    /// Fly rotates at the eye; orbit rotates the eye around a retained look-at point.
+    enum class CameraNavigationMode : core::u8 {
+        eFly,
+        eOrbit
+    };
 
     enum class ProjectionType {
         eOrthographic,
         ePerspective,
     };
 
+    struct DepthOfFieldSettings {
+        bool mEnabled{ false };
+        core::f32 mAperture{ 2.8f };
+        core::f32 mFocalLength{ 50.0f };  // Millimeters.
+        core::f32 mFocusDistance{ 10.0f };// World units (meters).
+        core::f32 mMaxBlur{ 12.0f };      // Maximum blur radius in pixels.
+        core::f32 mMaxAperture{ 1.4f };   // Minimum f-stop (widest opening).
+        core::f32 mSensorWidth{ 36.0f };  // Millimeters; height follows viewport aspect.
+        bool mUsePhysicalLens{};        // Opt-in preserves existing scene framing.
+        core::u32 mBladeCount{ 7 };
+        core::f32 mBladeCurvature{ 0.8f };// 0: polygon, 1: circular aperture.
+        core::f32 mBladeRotation{};      // Degrees.
+    };
+
     class Camera {
     public:
+        Camera( const Camera& other ) = default;
+        Camera( Camera&& other ) = default;
 
-        Camera(const Camera& other) = default;
-        Camera(Camera&& other) = default;
+        auto operator=( const Camera& other ) -> Camera& = default;
+        auto operator=( Camera&& other ) -> Camera& = default;
 
-        auto operator=(const Camera& other) -> Camera& = default;
-        auto operator=(Camera&& other) -> Camera& = default;
+        MKT_NODISCARD auto GetProjection() const -> const core::float4x4&;
+        MKT_NODISCARD auto GetViewMatrix() const -> const core::float4x4&;
 
-        auto SetViwMatrix(const glm::mat4& matrix) -> void { mView = matrix; }
+        MKT_NODISCARD auto GetTransform() const -> const core::float4x4&;
+        MKT_NODISCARD auto GetTransform() -> core::float4x4&;
 
-        MKT_NODISCARD auto GetProjection() const -> const glm::mat4& { return mProjection; }
-        MKT_NODISCARD auto GetViewMatrix() const -> const glm::mat4& { return mView; }
+        MKT_NODISCARD auto GetTargetForward() const -> const core::float3&;
 
-        MKT_NODISCARD auto GetTransform() const -> const glm::mat4& { return mTransform; }
-        MKT_NODISCARD auto GetTransform() -> glm::mat4& { return mTransform; }
-        auto SetTransform(const glm::mat4& transform) -> void { mTransform = transform; }
+        MKT_NODISCARD auto GetFOV() const -> float;
+        MKT_NODISCARD auto GetNearPlane() const -> float;
+        MKT_NODISCARD auto GetFarPlane() const -> float;
+        MKT_NODISCARD auto GetAspectRatio() const -> float;
 
-        MKT_NODISCARD auto GetTargetForward() const -> const glm::vec3& { return mForward; }
-        MKT_NODISCARD auto GetFOV() const -> float { return mFov; }
-        MKT_NODISCARD auto GetNearPlane() const -> float { return mNearPlane; }
-        MKT_NODISCARD auto GetFarPlane() const -> float { return mFarPlane; }
-        MKT_NODISCARD auto GetAspectRatio() const -> float { return mAspectRatio; }
-        MKT_NODISCARD auto GetViewPort() const -> decltype(auto) { return std::make_pair(mViewportWidth, mViewportHeight); }
+        MKT_NODISCARD auto GetViewPort() const -> std::pair<core::f32, core::f32>;
 
+        MKT_NODISCARD auto GetViewProjection() const -> core::float4x4;
 
-        MKT_NODISCARD auto GetViewProjection() const -> glm::mat4 { return GetProjection() * mView; }
+        MKT_NODISCARD auto GetPosition() const -> const core::float3&;
+        MKT_NODISCARD auto GetRotation() const -> const core::float3&;
 
-        MKT_NODISCARD auto GetPosition() const -> const glm::vec3& { return mPosition; }
-        MKT_NODISCARD auto GetRotation() const -> const glm::vec3& { return mRotation; }
+        MKT_NODISCARD auto GetProjectionType() const -> ProjectionType;
+        MKT_NODISCARD auto IsOrthographic() const -> bool;
 
-        auto SetFieldOfView( float value ) -> void { mFov = value; }
+        MKT_NODISCARD auto GetOrthographicHeight() const -> core::f32;
+        MKT_NODISCARD auto GetDepthOfFieldSettings() const -> const DepthOfFieldSettings&;
 
-        auto SetFarPlane( float value ) -> void { mFarPlane = value; }
-        auto SetNearPlane( float value ) -> void { mNearPlane = value; }
+        auto SetFieldOfView( core::f32 value ) -> void;
 
-        auto SetPosition(const core::float3& position) -> void {
-            mTranslation = position;
-            mTransform = glm::translate(mTransform, mTranslation);
-        }
+        auto SetFarPlane( core::f32 value ) -> void;
+        auto SetNearPlane( core::f32 value ) -> void;
+        auto SetClipPlanes( core::f32 nearPlane, core::f32 farPlane ) -> void;
+        auto SetViewportSize( core::f32 width, core::f32 height ) -> void;
 
-        auto SetRotation(const core::float3& angles = glm::vec3(0.0f)) -> void {
-            mRotation = angles;
+        auto SetPosition( const core::float3& position ) -> void;
+        auto SetTransform( const core::float4x4& transform ) -> void;
 
-            // ADL, namespace skipped
-            mTransform = rotate(mTransform, glm::radians( mRotation[0] ), core::float3{ 1.0f, 0.0f, 0.0f });
-            mTransform =  rotate(mTransform, glm::radians( mRotation[1] ), core::float3{ .0f, 1.0f, 0.0f } );
-            mTransform =  rotate(mTransform, glm::radians( mRotation[2] ), core::float3{ 0.0f, 0.0f, 1.0f });
-        }
+        auto SetRotation( const core::float3& angles ) -> void;
 
-        auto SetViewportSize( const core::f32 width, const core::f32 height ) -> void {
-            MKT_ASSERT( width > 0.0f && height > 0.0f, "Camera viewport dimensions must be positive" );
+        auto SetViewMatrix( const core::float4x4& matrix ) -> void;
 
-            if ( mViewportWidth == width && mViewportHeight == height ) {
-                return;
-            }
+        auto SetProjectionType( ProjectionType type ) -> void;
 
-            mViewportWidth = width;
-            mViewportHeight = height;
-            mAspectRatio = width / height;
-        }
+        auto SetOrthographicHeight( core::f32 height ) -> void;
 
-        MKT_NODISCARD auto GetProjectionType() const -> ProjectionType { return mProjectionType; }
-        MKT_NODISCARD auto IsOrthographic() const -> bool { return mProjectionType == ProjectionType::eOrthographic; }
+        /** @brief Extracts a rigid camera pose from an entity world matrix, excluding scale and shear.
+         * @param world Entity world transform. @return Orthonormal pose retaining translation and forward.
+         */
+        static auto ExtractRenderPose( const core::float4x4& world ) -> core::float4x4;
 
-        auto SetProjectionType( const ProjectionType type ) -> void {
-            mProjectionType = type;
-        }
+        auto SetRenderPose( const core::float4x4& pose ) -> void;
 
-        ~Camera() = default;
+        virtual ~Camera() = default;
 
     protected:
-        explicit Camera(const glm::mat4& projection = glm::mat4(1.0f), const glm::mat4& transform = glm::mat4(1.0f), ProjectionType projectionType = ProjectionType::ePerspective )
-            :   mProjection{ projection }, mTransform{ transform }, mProjectionType{ projectionType }
-        {
-            UpdateProjection();
-        }
+        explicit Camera( const core::float4x4& projection = core::float4x4( 1.0f ),
+            const core::float4x4& transform = core::float4x4( 1.0f ),
+            ProjectionType projectionType = ProjectionType::ePerspective );
 
-        auto UpdateProjection() -> void {
-            switch(mProjectionType) {
-                case ProjectionType::eOrthographic:
-                    mProjection = glm::ortho(0.0f, mViewportWidth, 0.0f, mViewportHeight);
-                break;
-                case ProjectionType::ePerspective:
-                    mProjection = glm::perspective(glm::radians(mFov), mAspectRatio, mNearPlane, mFarPlane);
-                break;
-            }
-        }
+        auto UpdateProjection() -> void;
 
     protected:
-        float mViewportWidth{ 1920 };
-        float mViewportHeight{ 1080 };
+        core::f32 mViewportWidth{ 1920 };
+        core::f32 mViewportHeight{ 1080 };
 
         // [Projection Data]
-        float mNearPlane{ 0.1f };
-        float mFarPlane{ 1000.0f };
-        float mFov{ 45.0f };
-        float mAspectRatio{ mViewportWidth / mViewportHeight };
+        DepthOfFieldSettings mDepthOfField{};
+
+        core::f32 mFov{ 45.0f };
+        core::f32 mNearPlane{ 0.1f };
+        core::f32 mFarPlane{ 1000.0f };
+        core::f32 mOrthographicHeight{ 20.0f };
+        core::f32 mAspectRatio{ mViewportWidth / mViewportHeight };
 
         // [Matrices]
         core::float4x4 mView{};
-        core::float4x4 mProjection{};
         core::float4x4 mTransform{};
+        core::float4x4 mProjection{};
 
         // [Vectors]
         core::float3 mPosition{ -15.0f, 5.0f, 30.0f };
         core::float3 mRightVector{ 1.0f, 0.0f, 0.0f };
-        core::float3 mUp{ core::float3{ .0f, 1.0f, 0.0f } };
+        core::float3 mUp{ .0f, 1.0f, 0.0f};
         core::float3 mForward{ 15.0f, -5.0f, -30.0f };
         core::float3 mTranslation{};
         core::float3 mRotation{};
 
         // [Rotations]
-        float mYaw{ 0.0f };
-        float mRoll{ 0.0f };
-        float mPitch{ 0.0f };
+        core::f32 mYaw{ 0.0f };
+        core::f32 mRoll{ 0.0f };
+        core::f32 mPitch{ 0.0f };
 
         ProjectionType mProjectionType{ ProjectionType::ePerspective };
     };
-}
+}// namespace mikoto::scene
 
-
-#endif // MIKOTO_CAMERA_HH
+#endif// MIKOTO_SCENE_CAMERA_HH

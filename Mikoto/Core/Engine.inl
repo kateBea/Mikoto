@@ -12,26 +12,50 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_ENGINE_INL
-#define MIKOTOROOT_ENGINE_INL
+#ifndef MIKOTO_CORE_ENGINE_INL
+#define MIKOTO_CORE_ENGINE_INL
 
-#include <typeindex>
-#include <typeinfo>
+#include <stdexcept>
 
-#include <Core/Engine.hh>
-#include <Core/ServiceDependencies.hh>
+#include <EASTL/utility.h>
+
+#include <Core/Profiler.hh>
+#include <Core/Exception.hh>
 
 namespace mikoto::core {
 
-    template<typename ServiceType>
-    auto Engine::ResolveInitDependencies() -> eastl::vector<std::type_index> {
-        return ServiceDependencies<ServiceType>{}( DependencyType::eInitialization );
-    }
+    template<ServiceType Type, typename... Args>
+        requires std::constructible_from<Type, Args...>
+    auto Engine::PushService( bool mainThread, Args&&... args ) -> Type* {
+        const std::type_index type{ typeid( Type ) };
 
-    template<typename ServiceType>
-    auto Engine::ResolveExecDependencies() -> eastl::vector<std::type_index> {
-        return ServiceDependencies<ServiceType>{}( DependencyType::eExecution );
-    }
-}
+        // Check BEFORE construction: most services register their singleton in
+        // the constructor, so replacing an existing owning pointer is too late.
+        if ( mNodeIndices.contains( type ) ) {
+            MKT_THROW_LOGIC_ERROR( "Cannot register the same service twice" );
+        }
 
-#endif//MIKOTOROOT_ENGINE_INL
+        using Dependencies = ServiceDependencies<Type>;
+        using UpdateAfter = typename Dependencies::UpdateAfter;
+        using Initialization = typename Dependencies::Initialization;
+
+        ServiceNode node{
+            .mType = type,
+            .mUpdateAfter = UpdateAfter::template Resolve<Type, true>(),
+            .mInitialization = Initialization::template Resolve<Type>(),
+            .mRunsOnMainThread = mainThread,
+        };
+
+        node.mService = eastl::make_unique<Type>( eastl::forward<Args>( args )... );
+        auto* instance{ static_cast<Type*>( node.mService.get() ) };
+        if constexpr ( std::derived_from<Type, ISubsystem> ) {
+            node.mSubsystem = instance;
+        }
+
+        mNodeIndices.emplace( type, mNodes.size() );
+        mNodes.push_back( eastl::move( node ) );
+        return instance;
+    }
+}// namespace mikoto::core
+
+#endif// MIKOTO_CORE_ENGINE_INL

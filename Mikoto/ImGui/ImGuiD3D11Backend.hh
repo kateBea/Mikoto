@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_IMGUI_D3D11BACKEND_HH
-#define MIKOTO_IMGUI_D3D11BACKEND_HH
+#ifndef MIKOTO_IMGUI_IMGUI_D3D11_BACKEND_HH
+#define MIKOTO_IMGUI_IMGUI_D3D11_BACKEND_HH
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Platform.hh>
 
 #include <Renderer/Text/Font.hh>
-#include <Renderer/Core/FontFactory.hh>
 
 #include <ImGui/ImGuiService.hh>
 
@@ -28,13 +27,9 @@
 
 namespace mikoto::imgui {
 
-    using namespace mikoto::core;
-    using namespace mikoto::platform;
-
     class ImGuiD3D11Backend final : public ImGuiBackend {
     public:
-        explicit ImGuiD3D11Backend( const ImGuiBackendCreateInfo& createInfo )
-            : ImGuiBackend{ createInfo } {}
+        explicit ImGuiD3D11Backend( const ImGuiBackendCreateInfo& createInfo );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
@@ -42,26 +37,26 @@ namespace mikoto::imgui {
         auto BeginFrame() -> void override;
         auto EndFrame() -> void override;
 
-        MKT_NODISCARD auto GetFinalComposition() -> TextureHandle override;
+        MKT_NODISCARD auto GetFinalComposition() -> renderer::rhi::TextureHandle override;
 
-        MKT_NODISCARD auto ConstructImGuiTextureID( const ITexture* texture ) -> ImTextureID override;
-        MKT_NODISCARD auto ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID override;
+        MKT_NODISCARD auto ConstructImGuiTextureID( const renderer::rhi::ITexture* texture ) -> ImTextureID override;
+        MKT_NODISCARD auto ConstructImGuiTextureID( renderer::rhi::TextureHandle texture ) -> ImTextureID override;
 
     private:
         // [ Internal ]
         auto CreateImages() -> void;
 
     private:
-        u32 mExtentWidth{};
-        u32 mExtentHeight{};
+        core::u32 mExtentWidth{};
+        core::u32 mExtentHeight{};
 
-        TextureHandle mColorImage{};
-        TextureHandle mDepthImage{};
+        renderer::rhi::TextureHandle mColorImage{};
+        renderer::rhi::TextureHandle mDepthImage{};
 
-        float4 mClearColor{ 0.2f, 0.4f, 0.5f, 1.0f };
+        core::float4 mClearColor{ 0.2f, 0.4f, 0.5f, 1.0f };
     };
 }
 
 #endif
 
-#endif //MIKOTO_IMGUI_D3D11BACKEND_HH
+#endif// MIKOTO_IMGUI_IMGUI_D3D11_BACKEND_HH

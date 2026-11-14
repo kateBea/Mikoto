@@ -12,56 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
-#include "base/Memory_Helpers.slang"
-#include "base/Camera_Helpers.slang"
 
 struct VSOutput {
     float2 TexCoord : TEXCOORD0;
 
-    float3 Near : TEXCOORD1;
-    float3 Far : TEXCOORD2;
-
     float4 PositionH : SV_Position;
 };
 
-struct DrawParams {
-    uint mCameraDataID;
-
-    float4 mOuterSquareColor;
-    float4 mInnerSquareColor;
-
-    float4 mXAxisColor;
-    float4 mZAxisColor;
-
-    float mOuterSquareWidth;
-    float mInnerSquareWidth;
-
-    float mXAxisWidth;
-    float mZAxisWidth;
-};
-
-MKT_DECLARE_STRUCTURED_SRV buffers;
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
-
-float3 NDCToWorld(float4 v) {
-    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
-    const float4 P = mul(camera.mInverseViewProjection, v);
-    return P.xyz / P.w;
-}
-
-[shader("vertex")]
-VSOutput main(uint vertexIndex: SV_VertexID) {
+[shader( "vertex" )]
+VSOutput main( uint vertexIndex : SV_VertexID ) {
     VSOutput o;
 
     // https://www.saschawillems.de/blog/2016/08/13/vulkan-tutorial-on-rendering-a-fullscreen-quad-without-buffers/
     // vkCmdDraw(cb, 3, 1, 0, 0);
-    o.TexCoord = float2(float((vertexIndex << 1) & 2), float(vertexIndex & 2));
-    o.PositionH = float4(o.TexCoord * 2.0f - 1.0f, 0.0f, 1.0f);
-
-    const float2 P = o.TexCoord * 2.0 - 1.0;
-    o.Near = NDCToWorld(float4(P, 0.0, 1.0));
-    o.Far = NDCToWorld(float4(P, 1.0, 1.0));
+    o.TexCoord = float2( float( ( vertexIndex << 1 ) & 2 ), float( vertexIndex & 2 ) );
+    o.PositionH = float4( o.TexCoord * 2.0f - 1.0f, 0.0f, 1.0f );
 
     return o;
 }

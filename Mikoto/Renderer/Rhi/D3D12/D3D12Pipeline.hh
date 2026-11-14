@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_D3D12_PIPELINE_HH
-#define MIKOTO_D3D12_PIPELINE_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D12_D3D12_PIPELINE_HH
+#define MIKOTO_RENDERER_RHI_D3D12_D3D12_PIPELINE_HH
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
@@ -28,16 +28,23 @@
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
 // D3D12 extension library.
-#include <directx/d3d12.h>
 
+#include <Platform/Windows/Windows.hh>
+
+#include <directx/d3d12.h>
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
 #include <wrl.h>
 
+#include <EASTL/array.h>
+
+#include <Renderer/Rhi/Pipeline.hh>
+#include <Renderer/Rhi/D3D12/D3D12MemoryAllocator.hh>
+
 namespace mikoto::renderer::d3d12 {
 
     // https://learn.microsoft.com/en-us/windows/win32/direct3d12/pipelines-and-shaders-with-directx-12
-    class GraphicsPipeline final :  public rhi::IGraphicsPipeline {
+    class GraphicsPipeline final :  public rhi::GraphicsPipeline {
     public:
         explicit GraphicsPipeline( const rhi::GraphicsPipelineDescription& info );
 
@@ -66,7 +73,7 @@ namespace mikoto::renderer::d3d12 {
         bool mRequiresEmptySignature{};
     };
 
-    class ComputePipeline final :  public rhi::IComputePipeline {
+    class ComputePipeline final :  public rhi::ComputePipeline {
     public:
         explicit ComputePipeline( const rhi::ComputePipelineDescription& info );
 
@@ -94,8 +101,32 @@ namespace mikoto::renderer::d3d12 {
 
         bool mRequiresEmptySignature{};
     };
+
+    class RayTracingPipeline final : public rhi::RayTracingPipeline {
+    public:
+        explicit RayTracingPipeline( const rhi::RayTracingPipelineDescription& description );
+
+        ~RayTracingPipeline() override;
+
+        DISABLE_COPY_AND_MOVE_FOR( RayTracingPipeline );
+
+    private:
+        auto Initialize() -> void override;
+
+        auto Destroy() -> void override;
+
+        friend class CommandList;
+        friend class ShaderTable;
+
+        Microsoft::WRL::ComPtr<ID3D12StateObject> mPipeline{};
+
+        // Unique state-object exports in ray-generation, miss and closest-hit order.
+        eastl::array<eastl::wstring, 3> mShaderExports{};
+
+    };
+
 }
 
 #endif
 
-#endif//MIKOTO_D3D12_PIPELINE_HH
+#endif// MIKOTO_RENDERER_RHI_D3D12_D3D12_PIPELINE_HH

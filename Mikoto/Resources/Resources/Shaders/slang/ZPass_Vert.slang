@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
+#include "base/Animation_Helpers.slang"
 #include "base/Base.slang"
-#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Material_Helpers.slang"
-#include "base/Animation_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 
 struct VSInput {
     uint VertexID : SV_VertexID;
@@ -25,6 +27,11 @@ struct VSInput {
 };
 
 struct VSOutput {
+    nointerpolation uint MaterialIndex : TEXCOORD0;
+    nointerpolation uint FaceFlags : TEXCOORD4;
+    float2 Uv0 : TEXCOORD1;
+    float2 Uv1 : TEXCOORD2;
+    float VertexAlpha : TEXCOORD3;
     float4 Position : SV_Position;
 };
 
@@ -34,34 +41,38 @@ struct DrawParams {
     Pointer mGeometryDescPtr;
 
     Pointer mCameraBda;
+    Pointer mMaterialsPtr;
+    uint mBasicSamplerID;
 };
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
-[shader("vertex")]
-VSOutput main(VSInput input) {
+[shader( "vertex" )]
+VSOutput main( VSInput input ) {
     VSOutput o;
 
     // Prepare vertex data
     uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
-    VertexDescription vertex = GetVertexDescription(instanceIndex, input.VertexID, parameters.mGeometryPtr, parameters.mGeometryDescPtr);
 
     // Apply skinning
-    MeshGeometryInfo *geometryBuffer = (MeshGeometryInfo *)parameters.mGeometryPtr;
-    MeshGeometryInfo meshInfo = geometryBuffer[instanceIndex];
-    
-    // Compute world position
-    SkinningResult skinningResult = ApplySkinning(vertex, meshInfo, parameters.mSkinningPtr);
-    
-    float4 worldPos = skinningResult.mPosition;
-    float3 worldNormal = skinningResult.mNormal;
+    MeshGeometryInfo meshInfo = LoadMeshGeometry( parameters.mGeometryPtr, instanceIndex );
+    GeometryAllocation allocation = GetGeometryAllocation( meshInfo, parameters.mGeometryDescPtr );
+    uint vertexIndex = PullVertexIndex( allocation, input.VertexID );
+    VertexDescription vertex = PullDepthVertex( meshInfo, allocation, vertexIndex );
 
-    CameraInfo *camera = (CameraInfo*)parameters.mCameraBda;
+    // Compute world position
+    float4 worldPos = ApplySkinningPosition( vertex, meshInfo, parameters.mSkinningPtr );
+
+    BufferReference<CameraInfo> camera = ( BufferReference<CameraInfo> )parameters.mCameraBda;
 
     // Final position
-    o.Position =
-        mul(camera->mProjection,
-            mul(camera->mViewMatrix, worldPos));
+    o.Position = CameraClipPosition( worldPos, camera[0] );
+
+    o.MaterialIndex = meshInfo.MaterialIndex;
+    o.FaceFlags = meshInfo.FaceFlags;
+    o.Uv0 = vertex.uv0;
+    o.Uv1 = vertex.uv1;
+    o.VertexAlpha = vertex.color.a;
 
     return o;
 }

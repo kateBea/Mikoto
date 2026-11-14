@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_APPLICATION_HH
-#define MIKOTO_APPLICATION_HH
+#ifndef MIKOTO_CORE_APPLICATION_HH
+#define MIKOTO_CORE_APPLICATION_HH
 
-#include <Core/LayerStack.hh>
+#include <Core/Profiler.hh>
 #include <Core/Singleton.hh>
+#include <Core/LayerStack.hh>
 
 namespace mikoto::core {
 
@@ -45,16 +46,19 @@ namespace mikoto::core {
          * */
         virtual auto Run() -> void = 0;
 
+
         /**
          * @brief Destructs this application after exiting its scope.
          * */
         ~Application() override = default;
+
 
         /**
          * @brief Initializes this application. Must call once when
          * the application is created. Initializes the app.
          * */
         virtual auto Init() -> void = 0;
+
 
         /**
          * @brief Shuts down this application. Call once
@@ -63,34 +67,38 @@ namespace mikoto::core {
          * */
         virtual auto Shutdown() -> void = 0;
 
+
         /**
          * @brief Updates the application state.
          * */
         virtual auto Update() -> void = 0;
 
+
         template<typename LayerType, typename... Args>
         auto PushLayer(Args&&... args) -> void {
-            mLayerStack.PushLayer<LayerType>( eastl::forward<Args>(args)... );
+            MKT_BEGIN_PROFILER();
+            mLayers.PushLayer<LayerType>( eastl::forward<Args>( args )... );
         }
+
 
         template<typename LayerType>
         auto PopLayer() -> void {
-            mLayerStack.PopLayer<LayerType>();
+            MKT_BEGIN_PROFILER();
+            mLayers.PopLayer<LayerType>();
         }
+
 
         /**
          * @brief Checks if the application is running.
          * @returns True if the application is running, false otherwise.
          * */
-        MKT_NODISCARD auto IsRunning() const -> bool {
-            return mState == ApplicationStatus::eRunning || mState == ApplicationStatus::eIdle;
-        }
+        MKT_NODISCARD auto IsRunning() const -> bool;
 
     protected:
-        LayerStack mLayerStack{};
+        LayerStack mLayers{};
         ApplicationStatus mState{ ApplicationStatus::eRunning };
     };
 
 }// namespace Mikoto
 
-#endif// MIKOTO_APPLICATION_HH
+#endif// MIKOTO_CORE_APPLICATION_HH

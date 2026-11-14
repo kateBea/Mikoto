@@ -1,4 +1,7 @@
-function OnCreate()
+local Player3 = {}
+Player3.Properties = {}
+
+function Player3:OnCreate()
     print("Hello from Player 3 GAROO")
 
     local tag = Entity:GetTag()
@@ -9,7 +12,7 @@ function OnCreate()
     Console.Error(string.format("My name tag is '%s'", name))
 end
 
-function OnUpdate(dt)
+function Player3:OnUpdate(dt)
     local speed = 20.0
     local transform = Entity:GetTransform()
     local position = transform:GetTranslation()
@@ -47,3 +50,4 @@ function OnUpdate(dt)
 
     transform:SetTranslation(position)
 end
+return Player3

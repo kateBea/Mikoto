@@ -1,0 +1,29 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Copper",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 1,
+    "RoughnessFactor": 0.15,
+    "AlphaMask": 0,
+    "ShadingModel": 7,
+    "Conductor": {
+      "Eta": [
+        0.3239992,
+        0.9581618,
+        1.1595675
+      ],
+      "K": [
+        3.0895795,
+        2.5770647,
+        2.4363386
+      ]
+    }
+  }
+}

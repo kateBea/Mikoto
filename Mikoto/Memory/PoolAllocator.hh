@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_POOL_ALLOCATOR_HH
-#define MIKOTO_POOL_ALLOCATOR_HH
+#ifndef MIKOTO_MEMORY_POOL_ALLOCATOR_HH
+#define MIKOTO_MEMORY_POOL_ALLOCATOR_HH
 
 #include <EASTL/optional.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/Profiler.hh>
 
 #include <Memory/Allocator.hh>
 
@@ -41,8 +42,8 @@ namespace mikoto::memory {
 
         auto Reset() -> void override;
 
-        MKT_NODISCARD auto GetElementSize() const -> core::usize { return mElementSize; }
-        MKT_NODISCARD auto GetCapacity() const -> core::usize { return mElementCount; }
+        MKT_NODISCARD auto GetElementSize() const -> core::usize;
+        MKT_NODISCARD auto GetCapacity() const -> core::usize;
 
     private:
         core::usize mElementSize{};
@@ -53,5 +54,4 @@ namespace mikoto::memory {
     };
 }
 
-
-#endif//MIKOTO_POOL_ALLOCATOR_HH
+#endif// MIKOTO_MEMORY_POOL_ALLOCATOR_HH

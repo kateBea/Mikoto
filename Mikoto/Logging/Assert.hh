@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_ASSERT_HH
-#define MIKOTO_ASSERT_HH
+#ifndef MIKOTO_LOGGING_ASSERT_HH
+#define MIKOTO_LOGGING_ASSERT_HH
 
 #include <cstdlib>
 
-#include <fmt/format.h>
 #include <cpptrace/cpptrace.hpp>
 
-#include <Core/String.hh>
+#include <fmt/format.h>
+
+#include <Core/Core.hh>
 
 #if defined( WIN32 ) || defined( WIN64 )
 #define __PRETTY_FUNCTION__ __FUNCTION__
@@ -71,12 +72,12 @@
         }                                                            \
     } while ( false )
 
-#define MKT_STATIC_ASSERT( __EXPR, __MESSAGE ) static_assert( __EXPR, __MESSAGE )
+#define MKT_STATIC_ASSERT( ... ) static_assert( __VA_ARGS__ )
 
 #else
 #define MKT_ASSERT( __EXPR, __MESSAGE )
 #define MKT_ASSERT_EXPR( __EXPR )
-#define MKT_STATIC_ASSERT( __EXPR, __MESSAGE )
+#define MKT_STATIC_ASSERT( ... )
 #endif
 
-#endif// MIKOTO_ASSERT_HH
+#endif// MIKOTO_LOGGING_ASSERT_HH

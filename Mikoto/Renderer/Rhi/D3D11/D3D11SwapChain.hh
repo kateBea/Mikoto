@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_D3D11_SWAPCHAIN_HH
-#define MIKOTO_D3D11_SWAPCHAIN_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D11_D3D11_SWAP_CHAIN_HH
+#define MIKOTO_RENDERER_RHI_D3D11_D3D11_SWAP_CHAIN_HH
 
 #include <Core/Core.hh>
 #include <Core/Platform.hh>
@@ -26,6 +26,8 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
+#include <Platform/Windows/Windows.hh>
+
 #include <d3d11.h>
 #include <dxgi1_3.h>
 #include <wrl.h>
@@ -34,12 +36,12 @@ namespace mikoto::renderer::d3d11 {
 
     class SwapChain final : public rhi::DeviceObject {
     public:
-        explicit SwapChain(platform::Window* window, Microsoft::WRL::ComPtr<IDXGIFactory2> mDxgiFactory);
+        explicit SwapChain(platform::IWindow* window, Microsoft::WRL::ComPtr<IDXGIFactory2> mDxgiFactory);
 
         auto Present() -> void;
 
         auto OnResize( core::u32 width, core::u32 height ) -> void;
-        auto SetRefreshRate( RefreshRate type ) -> void;
+        auto SetRefreshRate( renderer::rhi::RefreshRate type ) -> void;
 
         MKT_NODISCARD auto GetWidth() const -> core::u32;
         MKT_NODISCARD auto GetHeight() const -> core::u32;
@@ -51,7 +53,7 @@ namespace mikoto::renderer::d3d11 {
 
         ~SwapChain() override;
 
-        using DeviceObject::Initialize;
+        using renderer::rhi::DeviceObject::Initialize;
 
     private:
         auto Initialize() -> void override;
@@ -60,13 +62,13 @@ namespace mikoto::renderer::d3d11 {
         auto CreateSwapchainResources() -> void;
 
     private:
-        platform::Window* mWindow{ nullptr };
+        platform::IWindow* mWindow{ nullptr };
 
         core::u32 mWidth{ 0u };
         core::u32 mHeight{ 0u };
 
-        rhi::Format mFormat{ Format::eBGRA8_UNORM };
-        RefreshRate mRefreshRate{ RefreshRate::eUnlimited };
+        rhi::Format mFormat{ renderer::rhi::Format::eBGRA8_UNORM };
+        renderer::rhi::RefreshRate mRefreshRate{ renderer::rhi::RefreshRate::eUnlimited };
 
         Microsoft::WRL::ComPtr<IDXGISwapChain1> mSwapChain{};
         Microsoft::WRL::ComPtr<IDXGIFactory2> mDxgiFactory{};
@@ -74,10 +76,11 @@ namespace mikoto::renderer::d3d11 {
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRenderTarget{};
     };
 
-    using D3D11SwapChainHandle = Ref<SwapChain>;
+    using D3D11SwapChainHandle = core::Ref<SwapChain>;
 
 }// namespace mikoto
 
 #endif//MIKOTO_D3D11_SWAPCHAIN_HH
 
-#endif
+#endif// MIKOTO_RENDERER_RHI_D3D11_D3D11_SWAP_CHAIN_HH
+

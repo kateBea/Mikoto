@@ -12,10 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RENDERER_HH
-#define MIKOTO_RENDERER_HH
-
-#include <Scene/Scene.hh>
+#ifndef MIKOTO_RENDERER_CORE_RENDERER_HH
+#define MIKOTO_RENDERER_CORE_RENDERER_HH
 
 namespace mikoto::renderer {
 
@@ -23,12 +21,10 @@ namespace mikoto::renderer {
     public:
         virtual ~IRenderer() = default;
 
-        virtual auto Init() -> void = 0;
+        virtual auto Initialize() -> void = 0;
         virtual auto Shutdown() -> void = 0;
-
-        virtual auto Render() -> void {}
-        virtual auto Render( const scene::Scene* scene ) -> void {}
     };
 }
 
-#endif // MIKOTO_RENDERER_HH
+#endif// MIKOTO_RENDERER_CORE_RENDERER_HH
+

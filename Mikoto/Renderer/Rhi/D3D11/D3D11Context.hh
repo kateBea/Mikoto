@@ -12,29 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_D3D11CONTEXT_HH
-#define MIKOTO_D3D11CONTEXT_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D11_D3D11_CONTEXT_HH
+#define MIKOTO_RENDERER_RHI_D3D11_D3D11_CONTEXT_HH
+
+#include <mutex>
+
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Platform.hh>
-
+#include <Core/Types.hh>
 #include <Logging/Assert.hh>
-
-#include <Renderer/Rhi/Texture.hh>
-
 #include <Renderer/Core/RenderContext.hh>
 #include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/Rhi/Texture.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-#include <Renderer/RHI/D3D11/D3D11SwapChain.hh>
-#include <Renderer/RHI/D3D11/Direct3D11Libraries.hh>
+#include <Platform/Windows/Windows.hh>
 
 #include <d3d11.h>
 #include <dxgi1_3.h>
-#include <wrl.h>
 #include <dxgidebug.h>
+#include <wrl.h>
+
+#include <Renderer/RHI/D3D11/D3D11SwapChain.hh>
+#include <Renderer/RHI/D3D11/Direct3D11Libraries.hh>
 
 // https://xeechou.net/posts/vulkan-vs-d3d12/
 // https://learn.microsoft.com/en-us/windows/win32/direct3d12/direct3d-12-graphics
@@ -43,9 +47,7 @@ namespace mikoto::renderer::d3d11 {
 
     class Context final : public RenderContext {
     public:
-        explicit Context(const RenderContextCreateInfo& createInfo)
-           :  RenderContext{ createInfo }
-        { }
+        explicit Context(const RenderContextCreateInfo& createInfo);
 
         auto Init() -> bool override;
         auto Shutdown() -> void override;
@@ -57,7 +59,7 @@ namespace mikoto::renderer::d3d11 {
 
         auto Present() -> void override;
         auto SetPresentTarget( rhi::TextureHandle texture ) -> void override;
-        auto SetRefreshRate( RefreshRate rate ) -> void override;
+        auto SetRefreshRate( renderer::rhi::RefreshRate rate ) -> void override;
 
         auto BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void override;
 
@@ -75,11 +77,8 @@ namespace mikoto::renderer::d3d11 {
     private:
         rhi::TextureHandle mPresentTarget{};
 
-        using SubmitInfoMap = ankerl::unordered_dense::map<IQueue*, SubmitInfo>;
-
-        std::mutex mBatchedSubmissionProcessMutex{};
-        std::mutex mBatchedSubmissionEmplaceMutex{};
-        SubmitInfoMap mBatchedSubmissions{};
+        std::mutex mBatchedSubmissionMutex{};
+        eastl::vector<eastl::pair<rhi::IQueue*, rhi::SubmitInfo>> mBatchedSubmissions{};
 
         D3D11SwapChainHandle mSwapChain{};
         Microsoft::WRL::ComPtr<IDXGIFactory2> mDxgiFactory{};
@@ -103,5 +102,5 @@ namespace mikoto::renderer::d3d11 {
 
 #endif
 
+#endif// MIKOTO_RENDERER_RHI_D3D11_D3D11_CONTEXT_HH
 
-#endif//MIKOTO_D3D11CONTEXT_HH

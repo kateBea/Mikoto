@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_UTILITY_HH
-#define MIKOTO_RHI_UTILITY_HH
+#ifndef MIKOTO_RENDERER_RHI_UTILITY_HH
+#define MIKOTO_RENDERER_RHI_UTILITY_HH
 
-#include <EASTL/string.h>
 #include <EASTL/utility.h>
+#include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
+#include <Core/Resource.hh>
+
 #include <Memory/BufferSpan.hh>
-#include <Core/ResourcePool.hh>
 
 #include <Renderer/Rhi/Types.hh>
 
@@ -36,6 +36,9 @@ namespace mikoto::renderer::rhi {
      * @returns The result of InferAPI.
      */
     MKT_NODISCARD auto InferAPI( eastl::string_view apiName ) -> GraphicsAPI;
+
+    /** Returns the API display name, or null for an unknown backend. */
+    MKT_NODISCARD auto GetGraphicsApiName( GraphicsAPI api ) -> core::cstr;
 
     /**
      * Returns the value produced by GetFormatInfo.
@@ -98,6 +101,15 @@ namespace mikoto::renderer::rhi {
     MKT_NODISCARD auto IsTexture( ResourceType type ) noexcept -> bool;
 
     /**
+     * Compares a queue type against a list of queue types.
+     *
+     * @param target Target queue types we are looking for.
+     * @param comp List of queue types to compare against.
+     * @returns True if any of queue types matches the given one.
+     */
+    MKT_NODISCARD auto IsQueueAny( QueueType target, std::initializer_list<QueueType> comp ) noexcept -> bool;
+
+    /**
      * Returns the value produced by IsSampler.
      *
      * @param type Input value used by this operation.
@@ -122,6 +134,35 @@ namespace mikoto::renderer::rhi {
      * @returns The result of NextMultiple.
      */
     MKT_NODISCARD auto NextMultiple( core::usize value, core::usize multiple ) -> core::usize;
+
+    /**
+     * Returns the type of the device based of description
+     *     Discrete -> eDiscrete
+     *     Integrated -> eIntegrated
+     *     SoftwareRasterizer -> eSoftwareRasterizer
+     *
+     * @param type Description of the type od device
+     * @returns The result of NextMultiple.
+     */
+    MKT_NODISCARD auto InferGpuDeviceType( eastl::string_view type ) -> GpuDeviceType;
+
+    enum class QueryType : core::u32;
+    enum class PipelineStatistic : core::u32;
+
+    /**
+     * @brief Retrieves a GPU query kind's diagnostic name.
+     * @param type GPU query kind to name.
+     * @returns Static query-kind name.
+     */
+    auto GetQueryTypeName( QueryType type ) -> core::cstr;
+
+    /**
+     * @brief Retrieves a pipeline statistic's diagnostic name.
+     * @param statistic Pipeline statistic to name.
+     * @returns Static pipeline-statistic name.
+     */
+    auto GetPipelineStatisticName( PipelineStatistic statistic ) -> core::cstr;
+
 }// namespace mikoto::renderer::rhi
 
-#endif//MIKOTO_RHI_UTILITY_HH
+#endif// MIKOTO_RENDERER_RHI_UTILITY_HH

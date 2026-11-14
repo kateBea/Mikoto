@@ -12,44 +12,56 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_ANIMATION_SYSTEM_HH
-#define MIKOTO_ANIMATION_SYSTEM_HH
+#ifndef MIKOTO_ANIMATION_ANIMATION_SYSTEM_HH
+#define MIKOTO_ANIMATION_ANIMATION_SYSTEM_HH
+
+#include <atomic>
 
 #include <ankerl/unordered_dense.h>
 
+#include <taskflow/taskflow.hpp>
+
 #include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
 #include <Core/Singleton.hh>
-#include <Core/Subsystem.hh>
 
 #include <Animation/Animator.hh>
 
 namespace mikoto::animation {
 
-    using namespace mikoto::core;
-    using namespace mikoto::asset;
+    struct AnimationSystemCreateInfo {
 
-    struct AnimationSystemCreateInfo {};
+    };
 
-    class AnimationSystem final : public ISubsystem, public Singleton<AnimationSystem> {
+    class AnimationSystem final : public core::ISubsystem, public core::Singleton<AnimationSystem> {
     public:
-
-        explicit AnimationSystem(const AnimationSystemCreateInfo& createInfo);
+        explicit AnimationSystem( const AnimationSystemCreateInfo& createInfo );
 
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
-        auto Update(float dt) -> void override;
+        auto Update( float dt ) -> void override;
+
+        auto UnregisterAnimation( core::u32 id ) -> void;
 
         // Valid IDs start from 1
-        auto RegisterAnimation( ModelHandle handle ) -> u64;
+        MKT_NODISCARD auto RegisterAnimation( asset::ModelHandle handle ) -> core::u32;
 
-        MKT_NODISCARD auto GetAnimator( u64 id ) -> Animator*;
+        MKT_NODISCARD auto GetAnimator( core::u32 id ) -> Animator*;
 
     private:
-        // Not sure if animators should be wrapped into pointers
-        // In case we add more animator while reading from this map
-        // Reallocations invalidate all references
-        ankerl::unordered_dense::map<u64, Animator> mAnimators{};
-    };
-}
+        eastl::vector<Animator*> mUpdateList{};
+        std::atomic<core::usize> mNextUpdate{};
 
-#endif//MIKOTO_ANIMATION_SYSTEM_HH
+        core::f32 mUpdateDelta{};
+        core::u32 mNextAnimatorID{ 1 };
+        core::usize mUpdateTaskCount{};
+
+        tf::Taskflow mUpdateTasks{};
+
+        // Keep animator addresses stable when the ankerl table grows or compacts.
+        ankerl::unordered_dense::map<core::u64, eastl::unique_ptr<Animator>> mAnimators{};
+    };
+}// namespace mikoto::animation
+
+#endif// MIKOTO_ANIMATION_ANIMATION_SYSTEM_HH

@@ -1,0 +1,33 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Homogeneous_Fog",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0,
+    "AlphaMask": 0,
+    "ShadingModel": 6,
+    "Dielectric": {
+      "IndexOfRefraction": 1,
+      "Transmission": 1,
+      "AttenuationColor": [
+        0.7408182206817179,
+        0.9048374180359595,
+        0.951229424500714
+      ],
+      "AttenuationDistance": 1,
+      "Scattering": [
+        18,
+        12,
+        6
+      ],
+      "PhaseAnisotropy": 0.3
+    }
+  }
+}

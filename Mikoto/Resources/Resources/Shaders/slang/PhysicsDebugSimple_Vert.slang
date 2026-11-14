@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
+#include "base/Base.slang"
+#include "base/Memory_Helpers.slang"
+
 struct DebugVertex {
     float4 mPosition;
     float4 mColor;
@@ -19,28 +24,23 @@ struct DebugVertex {
 
 struct CameraData {
     float4x4 mViewProjection;
+    Pointer mVertices;
 };
-
-[[vk::push_constant]]
-CameraData gPushConstants;
-
-[[vk::binding(0, 0)]]
-StructuredBuffer<DebugVertex> gVertices;
+MKT_DECLARE_PUSH_CONSTANT( CameraData, gPushConstants );
 
 struct VSOutput {
     float4 mPosition : SV_Position;
     float4 mColor : TEXCOORD0;
 };
 
-VSOutput main(uint vertexID: SV_VertexID) {
-    DebugVertex vertex = gVertices[vertexID];
+[shader( "vertex" )]
+VSOutput main( uint vertexID : SV_VertexID ) {
+    BufferReference<DebugVertex> vertices = ( BufferReference<DebugVertex> )gPushConstants.mVertices;
+    DebugVertex vertex = vertices[vertexID];
 
     VSOutput output;
 
-    output.mPosition = mul(
-        gPushConstants.mViewProjection,
-        float4(vertex.mPosition.xyz, 1.0)
-    );
+    output.mPosition = mul( gPushConstants.mViewProjection, float4( vertex.mPosition.xyz, 1.0 ) );
 
     output.mColor = vertex.mColor;
 

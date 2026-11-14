@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_DEVICE_OBJECT_HH
-#define MIKOTO_RHI_DEVICE_OBJECT_HH
+#ifndef MIKOTO_RENDERER_RHI_DEVICE_OBJECT_HH
+#define MIKOTO_RENDERER_RHI_DEVICE_OBJECT_HH
+
+#include <type_traits>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
-#include <Core/ResourcePool.hh>
+#include <Core/Resource.hh>
+#include <Core/Profiler.hh>
 
 #include <Renderer/Rhi/Types.hh>
 
@@ -77,7 +79,7 @@ namespace mikoto::renderer::rhi {
      * It centralizes device ownership, debug names, native-handle access and
      * optional resource-state tracking for backend implementations.
      */
-    class DeviceObject : public core::IResource {
+    class DeviceObject : public core::INonCopyable, public core::INonMoveable, public core::Resource {
     public:
 
         /**
@@ -85,11 +87,13 @@ namespace mikoto::renderer::rhi {
          */
         explicit DeviceObject() = default;
 
+
         /**
          * Associates the object with a device and initializes its backend resource.
          * @param device Input value used by this operation.
          */
         auto Initialize( IGpuDevice* device ) -> void;
+
 
         /**
          * Updates the tracked resource state.
@@ -97,17 +101,13 @@ namespace mikoto::renderer::rhi {
          */
         auto SetResourceState( ResourceStates state ) -> void;
 
+
         /**
          * Returns the last tracked resource state.
          * @returns The result of GetResourceState.
          */
         MKT_NODISCARD auto GetResourceState() const -> ResourceStates;
 
-        /**
-         * Returns the revision of the recorded resource state.
-         * @returns A counter advanced by every SetResourceState call, including same-state updates.
-         */
-        MKT_NODISCARD auto GetResourceStateRevision() const -> core::u64;
 
         /**
          * Sets the human-readable debug label for this resource.
@@ -115,17 +115,20 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto SetDebugName( eastl::string_view name ) -> void;
 
+
         /**
          * Returns the debug label assigned to this resource.
          * @returns The result of GetDebugName.
          */
         MKT_NODISCARD auto GetDebugName() const -> eastl::string_view;
 
+
         /**
          * Returns the fallback debug label for this resource type.
          * @returns The result of GetDefaultDebugName.
          */
         MKT_NODISCARD static auto GetDefaultDebugName() -> eastl::string_view;
+
 
         /**
          * Returns a mutable native backend handle of the requested type.
@@ -134,6 +137,7 @@ namespace mikoto::renderer::rhi {
          */
         MKT_NODISCARD virtual auto GetNativeHandle( ObjectType type ) -> Object;
 
+
         /**
          * Returns a native backend handle without mutating this resource.
          * @param type Input value used by this operation.
@@ -141,15 +145,20 @@ namespace mikoto::renderer::rhi {
          */
         MKT_NODISCARD virtual auto GetNativeHandle( ObjectType type ) const -> Object;
 
+
         /**
          * Returns the memory heap selected for this resource.
          * @returns The result of GetHeapType.
          */
         MKT_NODISCARD auto GetHeapType() const -> HeapType;
 
+
         /**
          * Destroys the device object.
          */
+        MKT_NODISCARD auto GetOwningDevice() const -> IGpuDevice*;
+
+
         ~DeviceObject() override = default;
 
     protected:
@@ -161,10 +170,12 @@ namespace mikoto::renderer::rhi {
          */
         DeviceObject( HeapType heapType, ResourceType resourceType );
 
+
         /**
          * Creates the backend resource after its device has been assigned.
          */
         auto Initialize() -> void override = 0;
+
 
         /**
          * Releases the native backend resource owned by this object.
@@ -178,7 +189,6 @@ namespace mikoto::renderer::rhi {
         // State tracking
         ResourceType mResourceType{ ResourceType::eInvalid };
         ResourceStates mResourceState{ ResourceStates::eUnknown };
-        core::u64 mResourceStateRevision{};
 
         // By default, the resource is device local
         // lives in memory "only accessible by device"
@@ -189,4 +199,5 @@ namespace mikoto::renderer::rhi {
     using DeviceObjectHandle = core::Ref<DeviceObject>;
 }// namespace mikoto::renderer::rhi
 
-#endif //MIKOTO_RHI_DEVICE_OBJECT_HH
+#endif// MIKOTO_RENDERER_RHI_DEVICE_OBJECT_HH
+

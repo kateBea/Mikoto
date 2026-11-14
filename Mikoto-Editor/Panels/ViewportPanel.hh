@@ -1,0 +1,227 @@
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef MIKOTO_PANELS_VIEWPORT_PANEL_HH
+#define MIKOTO_PANELS_VIEWPORT_PANEL_HH
+
+#include <imgui.h>
+
+#include <EASTL/array.h>
+#include <EASTL/vector.h>
+
+#include <ankerl/unordered_dense.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+
+#include <Math/Math.hh>
+
+#include <Assets/AssetModel.hh>
+#include <Assets/AssetTexture.hh>
+#include <Assets/AssetMaterial.hh>
+#include <Assets/AssetLoadRegistry.hh>
+
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/ForwardRenderer/Passes/MousePickingModule.hh>
+
+#include <Scene/Scene.hh>
+
+#include <ImGui/Utility.hh>
+
+#include <Panels/Panel.hh>
+
+namespace mikoto::editor {
+
+    struct EditorState;
+
+    struct ViewportPanelCreateInfo {
+        EditorState* mState{};
+        core::u32 mInstanceId{ 1 };
+        renderer::rhi::TextureHandle mImage{};
+
+        eastl::string mGroup{ "Other" };
+        bool mIsToggleable{ true };
+    };
+
+    class ViewportPanel final : public Panel {
+    public:
+        explicit ViewportPanel(const ViewportPanelCreateInfo& createInfo);
+
+        auto OnRender(float ts) -> void override;
+
+        auto SuspendInput() -> void;
+        MKT_NODISCARD auto IsCameraNavigating() const -> bool;
+        // F11 presents the scene over the main window instead of an ImGui panel.
+        auto UpdateFullscreenPicking() -> void;
+        auto CancelPicking() -> void;
+
+        auto SetGizmoType( imgui::GizmoType type ) -> void;
+        auto SetGizmoMode( imgui::GizmoMode mode ) -> void;
+        auto SetTexture( renderer::rhi::TextureHandle texture ) -> void;
+
+        auto SetEnableUtilityOverlay( bool enable ) -> void;
+        auto SetEnablePerformanceOverlay( bool enable ) -> void;
+
+        ~ViewportPanel() override;
+
+        MKT_NODISCARD auto GetWidth() const -> float;
+        MKT_NODISCARD auto GetHeight() const -> float;
+
+    private:
+        static constexpr core::f32 kToolbarButtonHeight{ 32.0f };
+        static constexpr core::f32 kToolbarButtonWidth{ 34.0f };
+        static constexpr core::f32 kToolbarInset{ 6.0f };
+
+        enum class CursorTool : core::u8 {
+            eSelect,
+            eGrabSoftBody
+        };
+
+        enum class OverlayIcon : core::usize {
+            eCamera, eLight, eSun, eText, eCanvas, eAudio, eCount
+        };
+        auto InitOverlayIcons() -> void;
+
+        struct CachedMeshBounds {
+            asset::ModelHandle mModel;
+            core::usize mMeshIndex{};
+            core::float4x4 mTransform{ 1.0f };
+            math::GizmoBounds mBounds;
+            eastl::vector<core::float4x4> mPose{};
+            bool mPosed{};
+            core::u64 mFrame{};
+        };
+
+    private:
+        auto DrawOrientationAxis() -> void;
+
+        auto AddEntityWithModel( const asset::AssetRef<asset::Model>& model, scene::Entity* root ) -> void;
+
+        auto DrawFinalImage() -> void;
+        auto DrawCameraFrustum() -> void;
+        auto ApplyPickingResult() -> void;
+        auto SetCursorTool( CursorTool tool ) -> void;
+        auto UpdateCursorTool() -> void;
+        auto UpdatePicking( bool fullscreen = false ) -> void;
+        auto UpdateSoftBodyTool() -> void;
+        auto ReleaseSoftBodyGrab() -> void;
+        auto UpdateTextureDrop() -> void;
+        auto UpdateMaterialDrop() -> void;
+        auto UpdateSceneContextMenu() -> void;
+        auto UpdateManipulation() -> void;
+
+        auto DrawUtilitiesOverlay() -> void;
+        auto DrawToolbarBackground( const ImVec2& defaultPosition, const ImVec2& size, ImVec2& offset, bool classic = false ) -> ImVec2;
+        auto DragToolbar( core::cstr id, const ImVec2& minimum, const ImVec2& size, const ImRect& content, ImVec2& offset ) -> void;
+        auto DrawSceneButtonsOverlay() -> void;
+        auto DrawViewSettings() -> void;
+        auto DrawSceneAnnotations() -> void;
+        auto DrawPerformanceOverlay( bool showOnlyFps ) -> void;
+
+        auto BlankSpacePopupMenu() -> void;
+        auto OnEntityRightClickMenu() -> void;
+
+        auto DrawManipulationGizmos() -> void;
+
+        MKT_NODISCARD auto IsDisplayTextureValid() const -> bool;
+
+    private:
+        EditorState* mEditorState{};
+        core::u32 mInstanceId{ 1 };
+        renderer::rhi::TextureHandle mColorImage{};
+        eastl::array<renderer::rhi::TextureHandle, static_cast<core::usize>( OverlayIcon::eCount )> mOverlayIcons{};
+
+        core::f32 mViewportWidth{ 1920 };
+        core::f32 mViewportHeight{ 1080 };
+        core::f32 mAspectRatio{}; // Zero fills the panel; fixed ratios fit inside it.
+        ViewportInfo mContentViewport{};
+
+        ImVec2 mStartWindowPos{ 0.0f, 0.0f };
+        ImVec2 mStartCursorPos{ 0.0f, 0.0f };
+        ImVec2 mStartWindowSize{ 0.0f, 0.0f };
+
+        ImGuiViewport* mPanelViewport{};
+
+        bool mEnablePerformanceOverlay{ false };
+        bool mEnableUtilityOverlay{ true };
+        bool mShowFrameTime{};
+        bool mSceneImageHovered{};
+        bool mPickingBlockedByOverlay{};
+        ImVec2 mTransformToolbarOffset{};
+        ImVec2 mViewToolbarOffset{};
+        ImVec2 mClassicToolbarOffset{};
+
+        bool mDraggingGizmo{};
+        bool mOrientationDragged{};
+        core::float3 mGizmoDragCenter{};
+        core::RevisionTracked::Revision mGizmoDragRevision{};
+
+        ankerl::unordered_dense::map<core::u64, CachedMeshBounds> mGizmoMeshBounds;
+        const scene::Scene* mGizmoBoundsScene{};
+        core::RevisionTracked::Revision mGizmoBoundsRevision{};
+        core::u64 mGizmoBoundsFrame{};
+        const scene::Scene* mPickScene{};
+        core::RevisionTracked::Revision mPickRevision{};
+        ImVec2 mBoxStart{}, mBoxEnd{};
+        renderer::ReadPixelViewportInfo mPendingRectangleFirst{}, mPendingRectangleLast{};
+        float mBoxOpacity{};
+        bool mBoxActive{}, mBoxDragged{}, mPickRectangle{}, mBoxAppend{};
+        const scene::Scene* mBoxScene{};
+
+        filesystem::Path mTextureDropPath{};
+        const scene::Scene* mTextureDropScene{};
+        core::u32 mTextureTargetID{};
+        bool mTexturePickPending{}, mPickForTexture{}, mTextureDelivered{}, mOpenTexturePopup{};
+        bool mTextureImported{}, mTextureUnique{ true };
+        int mTextureUsage{}, mTextureMap{};
+        core::float4 mTextureUv{ 1,1,0,0 };
+        eastl::string mTextureError{};
+        asset::AssetHandle<asset::Texture> mTextureRequest{};
+
+        filesystem::Path mMaterialDropPath{};
+        const scene::Scene* mMaterialDropScene{};
+        asset::AssetHandle<asset::Material> mMaterialRequest{};
+        renderer::ReadPixelViewportInfo mMaterialDropViewport{};
+        core::u32 mMaterialTargetID{};
+        bool mMaterialPickPending{}, mPickForMaterial{}, mMaterialDelivered{}, mOpenMaterialPopup{};
+        bool mMaterialUnique{};
+
+        bool mPickParent{};
+        bool mPickAppend{};
+        bool mPickForContext{};
+        bool mContextReady{};
+        enum class RightMouseGesture : core::u8 { eIdle, ePendingClick, eNavigate };
+        RightMouseGesture mRightMouseGesture{ RightMouseGesture::eIdle };
+        const scene::Scene* mRightClickScene{};
+        const scene::Scene* mContextScene{};
+        core::u64 mContextEntityID{};
+        ImVec2 mContextPopupPosition{};
+
+        CursorTool mCursorTool{ CursorTool::eSelect };
+        struct SoftBodyDrag {
+            scene::SceneHandle mScene{};
+            entt::entity mEntity{ entt::null };
+            core::u32 mParticle{};
+            core::f32 mDepth{};
+            core::float3 mOffset{};
+        } mSoftBodyDrag{};
+
+        imgui::GizmoType mGizmoType{ imgui::GizmoType::eTranslation };
+        imgui::GizmoMode mGizmoMode{ imgui::GizmoMode::eLocal };
+    };
+}
+
+#endif// MIKOTO_PANELS_VIEWPORT_PANEL_HH
+

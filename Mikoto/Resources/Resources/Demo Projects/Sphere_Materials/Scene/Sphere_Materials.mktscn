@@ -1,0 +1,685 @@
+# A five-by-five sphere grid compares surface materials under a common light.
+# Each sphere references its own project material, while all reuse the same sphere model.
+# Select a sphere and open its material to compare roughness, metalness and color.
+# Keep lighting and camera unchanged when comparing two material settings.
+
+Version: 5
+RelativeAssetPaths: true
+Scene: "Sphere Materials"
+EnvironmentLightingSource: 0
+ToneMapping: 0
+Objects:
+  -
+    Type: 0
+    ID: 1
+    TagComponent:
+      Name: "Spheres Grid"
+      Visibility: true
+    TransformComponent:
+      Position: [0,0,0]
+      Rotation: [0,0,0]
+      Scale: [1,1,1]
+      Uniform Scale: false
+    Children:
+      -
+        Type: 5
+        ID: 2
+        TagComponent:
+          Name: "Sphere_0_0"
+          Visibility: true
+        TransformComponent:
+          Position: [0,0,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [0,0,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 0
+      -
+        Type: 5
+        ID: 3
+        TagComponent:
+          Name: "Sphere_0_1"
+          Visibility: true
+        TransformComponent:
+          Position: [0,30,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [0,30,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 1
+      -
+        Type: 5
+        ID: 4
+        TagComponent:
+          Name: "Sphere_0_2"
+          Visibility: true
+        TransformComponent:
+          Position: [0,60,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [0,60,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 2
+      -
+        Type: 5
+        ID: 5
+        TagComponent:
+          Name: "Sphere_0_3"
+          Visibility: true
+        TransformComponent:
+          Position: [0,90,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [0,90,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 3
+      -
+        Type: 5
+        ID: 6
+        TagComponent:
+          Name: "Sphere_0_4"
+          Visibility: true
+        TransformComponent:
+          Position: [0,120,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [0,120,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 4
+      -
+        Type: 5
+        ID: 7
+        TagComponent:
+          Name: "Sphere_1_0"
+          Visibility: true
+        TransformComponent:
+          Position: [30,0,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [30,0,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 5
+      -
+        Type: 5
+        ID: 8
+        TagComponent:
+          Name: "Sphere_1_1"
+          Visibility: true
+        TransformComponent:
+          Position: [30,30,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [30,30,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 6
+      -
+        Type: 5
+        ID: 9
+        TagComponent:
+          Name: "Sphere_1_2"
+          Visibility: true
+        TransformComponent:
+          Position: [30,60,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [30,60,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 7
+      -
+        Type: 5
+        ID: 10
+        TagComponent:
+          Name: "Sphere_1_3"
+          Visibility: true
+        TransformComponent:
+          Position: [30,90,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [30,90,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 8
+      -
+        Type: 5
+        ID: 11
+        TagComponent:
+          Name: "Sphere_1_4"
+          Visibility: true
+        TransformComponent:
+          Position: [30,120,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [30,120,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 9
+      -
+        Type: 5
+        ID: 12
+        TagComponent:
+          Name: "Sphere_2_0"
+          Visibility: true
+        TransformComponent:
+          Position: [60,0,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [60,0,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 10
+      -
+        Type: 5
+        ID: 13
+        TagComponent:
+          Name: "Sphere_2_1"
+          Visibility: true
+        TransformComponent:
+          Position: [60,30,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [60,30,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 11
+      -
+        Type: 5
+        ID: 14
+        TagComponent:
+          Name: "Sphere_2_2"
+          Visibility: true
+        TransformComponent:
+          Position: [60,60,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [60,60,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 12
+      -
+        Type: 5
+        ID: 15
+        TagComponent:
+          Name: "Sphere_2_3"
+          Visibility: true
+        TransformComponent:
+          Position: [60,90,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [60,90,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 13
+      -
+        Type: 5
+        ID: 16
+        TagComponent:
+          Name: "Sphere_2_4"
+          Visibility: true
+        TransformComponent:
+          Position: [60,120,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [60,120,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 14
+      -
+        Type: 5
+        ID: 17
+        TagComponent:
+          Name: "Sphere_3_0"
+          Visibility: true
+        TransformComponent:
+          Position: [90,0,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [90,0,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 15
+      -
+        Type: 5
+        ID: 18
+        TagComponent:
+          Name: "Sphere_3_1"
+          Visibility: true
+        TransformComponent:
+          Position: [90,30,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [90,30,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 16
+      -
+        Type: 5
+        ID: 19
+        TagComponent:
+          Name: "Sphere_3_2"
+          Visibility: true
+        TransformComponent:
+          Position: [90,60,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [90,60,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 17
+      -
+        Type: 5
+        ID: 20
+        TagComponent:
+          Name: "Sphere_3_3"
+          Visibility: true
+        TransformComponent:
+          Position: [90,90,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [90,90,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 18
+      -
+        Type: 5
+        ID: 21
+        TagComponent:
+          Name: "Sphere_3_4"
+          Visibility: true
+        TransformComponent:
+          Position: [90,120,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [90,120,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 19
+      -
+        Type: 5
+        ID: 22
+        TagComponent:
+          Name: "Sphere_4_0"
+          Visibility: true
+        TransformComponent:
+          Position: [120,0,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [120,0,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 20
+      -
+        Type: 5
+        ID: 23
+        TagComponent:
+          Name: "Sphere_4_1"
+          Visibility: true
+        TransformComponent:
+          Position: [120,30,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [120,30,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 21
+      -
+        Type: 5
+        ID: 24
+        TagComponent:
+          Name: "Sphere_4_2"
+          Visibility: true
+        TransformComponent:
+          Position: [120,60,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [120,60,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 22
+      -
+        Type: 5
+        ID: 25
+        TagComponent:
+          Name: "Sphere_4_3"
+          Visibility: true
+        TransformComponent:
+          Position: [120,90,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [120,90,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 23
+      -
+        Type: 5
+        ID: 26
+        TagComponent:
+          Name: "Sphere_4_4"
+          Visibility: true
+        TransformComponent:
+          Position: [120,120,0]
+          Rotation: [0,0,0]
+          Scale: [1,1,1]
+          Uniform Scale: false
+          Local Transform:
+            - [1.0,0.0,0.0,0.0]
+            - [0.0,2.220446049250313e-16,-1.0,0.0]
+            - [0.0,1.0,2.220446049250313e-16,0.0]
+            - [120,120,0,1]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: "../../../Prefabs/sphere/gltf/scene.gltf"
+        MaterialComponent:
+          Reference: 24
+  -
+    Type: 6
+    ID: 27
+    TagComponent:
+      Name: "Camera"
+      Visibility: true
+    TransformComponent:
+      Position: [0,0,0]
+      Rotation: [0,0,0]
+      Scale: [1,1,1]
+      Uniform Scale: false
+      Local Transform:
+        - [1.0,0.0,0.0,0]
+        - [0.0,1.0,0.0,0]
+        - [0.0,0.0,1.0,0]
+        - [60,60,220,1]
+    Children: []
+    CameraComponent:
+      Projection: 1
+      Fov: 45
+      Near: 0.1
+      Far: 1000
+      Main: true
+      FixedAspect: false
+      ClearFlags: 2
+      ClearColor: [0.015,0.02,0.03,1]
+      Gamma: 2.2
+      Exposure: 1
+  -
+    Type: 3
+    ID: 28
+    TagComponent:
+      Name: "Sun"
+      Visibility: true
+    TransformComponent:
+      Position: [0,0,0]
+      Rotation: [0,0,0]
+      Scale: [1,1,1]
+      Uniform Scale: false
+    Children: []
+    LightComponent:
+      Type: 0
+      Directional:
+        Color: [1,0.95,0.85]
+        Intensity: 3
+        Direction: [-0.5,-1,-0.35]
+        CastShadows: true
+  -
+    Type: 0
+    ID: 29
+    TagComponent:
+      Name: "Modern Evening Street Skybox"
+      Visibility: true
+    TransformComponent:
+      Position: [0,0,0]
+      Rotation: [0,0,0]
+      Scale: [1,1,1]
+      Uniform Scale: false
+    Children: []
+    SkyboxMaterialComponent:
+      MaterialPath: "../Assets/Materials/Evening.mktmtl"
+Materials:
+  -
+    MaterialPath: "../Assets/Materials/Metal0_Rough0.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal0_Rough1.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal0_Rough2.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal0_Rough3.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal0_Rough4.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal1_Rough0.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal1_Rough1.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal1_Rough2.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal1_Rough3.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal1_Rough4.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal2_Rough0.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal2_Rough1.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal2_Rough2.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal2_Rough3.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal2_Rough4.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal3_Rough0.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal3_Rough1.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal3_Rough2.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal3_Rough3.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal3_Rough4.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal4_Rough0.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal4_Rough1.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal4_Rough2.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal4_Rough3.mktmtl"
+  -
+    MaterialPath: "../Assets/Materials/Metal4_Rough4.mktmtl"

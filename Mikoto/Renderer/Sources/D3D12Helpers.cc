@@ -1,0 +1,1187 @@
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <exception>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Platform.hh>
+#include <Core/Profiler.hh>
+#include <Core/Exception.hh>
+
+#include <Logging/Assert.hh>
+
+#if defined( MIKOTO_PLATFORM_WINDOWS )
+
+#include <Platform/Windows/Windows.hh>
+
+#include <directx/d3d12.h>
+#include <directx/d3dx12.h>
+#include <directx/d3dx12_core.h>
+
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/D3D12/D3D12Device.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
+
+namespace mikoto::renderer::d3d12 {
+
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
+
+    auto GetBlendFactor( rhi::BlendFactor factor ) -> D3D12_BLEND {
+        MKT_BEGIN_PROFILER();
+
+        switch ( factor ) {
+            case rhi::BlendFactor::eZero:
+                return D3D12_BLEND_ZERO;
+            case rhi::BlendFactor::eOne:
+                return D3D12_BLEND_ONE;
+            case rhi::BlendFactor::eSrcColor:
+                return D3D12_BLEND_SRC_COLOR;
+            case rhi::BlendFactor::eOneMinusSrcColor:
+                return D3D12_BLEND_INV_SRC_COLOR;
+            case rhi::BlendFactor::eDstColor:
+                return D3D12_BLEND_DEST_COLOR;
+            case rhi::BlendFactor::eOneMinusDstColor:
+                return D3D12_BLEND_INV_DEST_COLOR;
+            case rhi::BlendFactor::eSrcAlpha:
+                return D3D12_BLEND_SRC_ALPHA;
+            case rhi::BlendFactor::eOneMinusSrcAlpha:
+                return D3D12_BLEND_INV_SRC_ALPHA;
+            case rhi::BlendFactor::eDstAlpha:
+                return D3D12_BLEND_DEST_ALPHA;
+            case rhi::BlendFactor::eOneMinusDstAlpha:
+                return D3D12_BLEND_INV_DEST_ALPHA;
+            case rhi::BlendFactor::eSrcAlphaSaturate:
+                return D3D12_BLEND_SRC_ALPHA_SAT;
+            default:
+                MKT_THROW_INVALID_ARGUMENT( "Invalid blend factor." );
+        }
+    }
+
+    auto GetBlendOp( rhi::BlendOperation operation ) -> D3D12_BLEND_OP {
+        MKT_BEGIN_PROFILER();
+
+        switch ( operation ) {
+            case rhi::BlendOperation::eAdd:
+                return D3D12_BLEND_OP_ADD;
+            case rhi::BlendOperation::eSubtract:
+                return D3D12_BLEND_OP_SUBTRACT;
+
+                // D3D12 does not support this one
+            case rhi::BlendOperation::eReverseSubtract:
+                return D3D12_BLEND_OP_SUBTRACT;
+
+            case rhi::BlendOperation::eMin:
+                return D3D12_BLEND_OP_MIN;
+            case rhi::BlendOperation::eMax:
+                return D3D12_BLEND_OP_MAX;
+            default:
+                MKT_THROW_INVALID_ARGUMENT( "Invalid blend operation." );
+        }
+    }
+
+    auto GetColorWriteMask( rhi::ColorWriteMask writeMask ) -> UINT8 {
+        MKT_BEGIN_PROFILER();
+        const auto bits{ static_cast<core::u8>( writeMask ) };
+
+        if ( bits > 0x0F ) {
+            MKT_THROW_INVALID_ARGUMENT( "Invalid color write mask." );
+        }
+
+        UINT8 mask{};
+
+        if ( bits & 0x01 ) {
+            mask |= D3D12_COLOR_WRITE_ENABLE_RED;
+        }
+
+        if ( bits & 0x02 ) {
+            mask |= D3D12_COLOR_WRITE_ENABLE_GREEN;
+        }
+
+        if ( bits & 0x04 ) {
+            mask |= D3D12_COLOR_WRITE_ENABLE_BLUE;
+        }
+
+        if ( bits & 0x08 ) {
+            mask |= D3D12_COLOR_WRITE_ENABLE_ALPHA;
+        }
+
+        return mask;
+    }
+
+    auto ThrowIfFailed( HRESULT hr ) -> void {
+        MKT_BEGIN_PROFILER();
+
+        if ( FAILED( hr ) ) {
+            MKT_THROW_RUNTIME_ERROR( string::Format( "D3D12 Error: {}", GetResultLabel( hr ) ) );
+        }
+    }
+
+    auto ThrowIfFailed( HRESULT hr, renderer::rhi::IGpuDevice *gpuDevice ) -> void {
+        MKT_BEGIN_PROFILER();
+
+        if ( FAILED( hr ) ) {
+            Device *d3d12Device{ core::checked_cast<Device *>( gpuDevice ) };
+            d3d12Device->DumpMessages();
+            MKT_THROW_RUNTIME_ERROR( string::Format( "D3D12 Error: {}", GetResultLabel( hr ) ) );
+        }
+    }
+
+    // https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-error
+    auto GetResultLabel( HRESULT value ) -> eastl::string {
+        MKT_BEGIN_PROFILER();
+
+        switch ( value ) {
+            case S_OK:
+                return "S_OK: Operation succeeded";
+            case E_NOTIMPL:
+                return "E_NOTIMPL: Not implemented";
+            case E_NOINTERFACE:
+                return "E_NOINTERFACE: Interface not supported";
+            case E_POINTER:
+                return "E_POINTER: Invalid pointer address";
+            case E_ABORT:
+                return "E_ABORT: Operation aborted";
+            case E_FAIL:
+                return "E_FAIL: Unspecified failure";
+            case E_INVALIDARG:
+                return "E_INVALIDARG: One or more arguments are invalid";
+            case E_OUTOFMEMORY:
+                return "E_OUTOFMEMORY: Failed to allocate necessary memory";
+
+            case D3D12_ERROR_ADAPTER_NOT_FOUND:
+                return "D3D12_ERROR_ADAPTER_NOT_FOUND: The specified data adapter could not be found";
+
+            case DXGI_ERROR_INVALID_CALL:
+                return "DXGI_ERROR_INVALID_CALL: The application made an invalid call sequence";
+            case DXGI_ERROR_WAS_STILL_DRAWING:
+                return "DXGI_ERROR_WAS_STILL_DRAWING: The previous GPU operation is still processing";
+            case DXGI_ERROR_UNSUPPORTED:
+                return "DXGI_ERROR_UNSUPPORTED: The requested feature or format is not supported";
+            case DXGI_ERROR_NOT_CURRENTLY_AVAILABLE:
+                return "DXGI_ERROR_NOT_CURRENTLY_AVAILABLE: The resource or target is temporarily unavailable";
+            case DXGI_ERROR_MORE_DATA:
+                return "DXGI_ERROR_MORE_DATA: The buffer is too small to hold the requested data";
+
+            case DXGI_ERROR_DEVICE_REMOVED:
+                return "DXGI_ERROR_DEVICE_REMOVED: The video card has been physically removed or a driver upgrade occurred";
+            case DXGI_ERROR_DEVICE_HUNG:
+                return "DXGI_ERROR_DEVICE_HUNG: The GPU failed due to badly formed commands (Infinite loop / Timeout)";
+            case DXGI_ERROR_DEVICE_RESET:
+                return "DXGI_ERROR_DEVICE_RESET: The hardware device was reset because of a poor command order";
+            case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
+                return "DXGI_ERROR_DRIVER_INTERNAL_ERROR: The driver encountered an unexpected internal breakdown";
+
+            case DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE:
+                return "DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE: Video present source is currently locked";
+            case DXGI_ERROR_NOT_FOUND:
+                return "DXGI_ERROR_NOT_FOUND: The requested item or output window could not be found";
+            case DXGI_ERROR_REMOTE_OUTOFMEMORY:
+                return "DXGI_ERROR_REMOTE_OUTOFMEMORY: The remote terminal encountered an out of memory state";
+            case DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED:
+                return "DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED: Remote rendering client terminated the connection";
+
+            default:
+                return string::Format( "UNKNOWN_HRESULT: Code 0x{:08X}", core::as<UINT>( value ) );
+        }
+    }
+
+    auto GetQueueType( rhi::QueueType type ) -> D3D12_COMMAND_LIST_TYPE {
+        MKT_BEGIN_PROFILER();
+
+        switch ( type ) {
+            case rhi::QueueType::eGraphics:
+            case rhi::QueueType::ePresent:
+                return D3D12_COMMAND_LIST_TYPE_DIRECT;
+            case rhi::QueueType::eCompute:
+                return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+            case rhi::QueueType::eTransfer:
+                return D3D12_COMMAND_LIST_TYPE_COPY;
+            case rhi::QueueType::eVideoDecode:
+                return D3D12_COMMAND_LIST_TYPE_VIDEO_DECODE;
+            default:
+                return D3D12_COMMAND_LIST_TYPE_NONE;
+        }
+    }
+
+    auto GetShaderVisibility( rhi::ShaderFlags stage ) -> D3D12_SHADER_VISIBILITY {
+        MKT_BEGIN_PROFILER();
+        // 1. If it's visible to everything or multiple overlapping stages, default to ALL
+        if ( stage == rhi::ShaderFlagsBits::All ) {
+            return D3D12_SHADER_VISIBILITY_ALL;
+        }
+
+        // 2. Count the number of active stages using a simple helper or checking combinations.
+        // If more than one bit is set, D3D12 requires using D3D12_SHADER_VISIBILITY_ALL.
+        core::u32 bitCount{ 0 };
+
+        if ( stage & rhi::ShaderFlagsBits::Vertex ) {
+            bitCount++;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Pixel ) {
+            bitCount++;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Compute ) {
+            bitCount++;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Geometry ) {
+            bitCount++;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Hull ) {
+            bitCount++;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Domain ) {
+            bitCount++;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::RayGeneration ) {
+            bitCount++;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Intersection ) {
+            bitCount++;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::AnyHit ) {
+            bitCount++;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::ClosestHit ) {
+            bitCount++;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Miss ) {
+            bitCount++;
+        }
+
+        if ( bitCount > 1 ) {
+            return D3D12_SHADER_VISIBILITY_ALL;
+        }
+
+        // 3. If exactly one bit is set, map it to its dedicated hardware optimization slot
+        if ( stage & rhi::ShaderFlagsBits::Vertex ) {
+            return D3D12_SHADER_VISIBILITY_VERTEX;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Pixel ) {
+            return D3D12_SHADER_VISIBILITY_PIXEL;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Geometry ) {
+            return D3D12_SHADER_VISIBILITY_GEOMETRY;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Hull ) {
+            return D3D12_SHADER_VISIBILITY_HULL;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Domain ) {
+            return D3D12_SHADER_VISIBILITY_DOMAIN;
+        }
+
+        // Note: Compute and Ray Tracing stages don't have separate explicit enum visibility values.
+        // D3D12 mandates using _ALL for Compute PSOs and Ray Tracing state objects.
+        if ( stage & rhi::ShaderFlagsBits::Compute ) {
+            return D3D12_SHADER_VISIBILITY_ALL;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::RayGeneration ) {
+            return D3D12_SHADER_VISIBILITY_ALL;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Intersection ) {
+            return D3D12_SHADER_VISIBILITY_ALL;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::AnyHit ) {
+            return D3D12_SHADER_VISIBILITY_ALL;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::ClosestHit ) {
+            return D3D12_SHADER_VISIBILITY_ALL;
+        }
+
+        if ( stage & rhi::ShaderFlagsBits::Miss ) {
+            return D3D12_SHADER_VISIBILITY_ALL;
+        }
+
+        return D3D12_SHADER_VISIBILITY_ALL;
+    }
+
+    auto GetFormat( rhi::Format format ) -> DXGI_FORMAT {
+        MKT_BEGIN_PROFILER();
+
+        switch ( format ) {
+            case rhi::Format::eUnknown:
+                return DXGI_FORMAT_UNKNOWN;
+            case rhi::Format::eNV12:
+                return DXGI_FORMAT_NV12;
+
+                // 8-bit UNORM
+            case rhi::Format::eR8_UNORM:
+                return DXGI_FORMAT_R8_UNORM;
+            case rhi::Format::eRG8_UNORM:
+                return DXGI_FORMAT_R8G8_UNORM;
+            case rhi::Format::eRGBA8_UNORM:
+                return DXGI_FORMAT_R8G8B8A8_UNORM;
+            case rhi::Format::eBGRA8_UNORM:
+                return DXGI_FORMAT_B8G8R8A8_UNORM;
+
+                // 8-bit SNORM
+            case rhi::Format::eR8_SNORM:
+                return DXGI_FORMAT_R8_SNORM;
+            case rhi::Format::eRG8_SNORM:
+                return DXGI_FORMAT_R8G8_SNORM;
+            case rhi::Format::eRGBA8_SNORM:
+                return DXGI_FORMAT_R8G8B8A8_SNORM;
+
+                // 8-bit UINT / SINT
+            case rhi::Format::eR8_UINT:
+                return DXGI_FORMAT_R8_UINT;
+            case rhi::Format::eR8_SINT:
+                return DXGI_FORMAT_R8_SINT;
+            case rhi::Format::eRG8_UINT:
+                return DXGI_FORMAT_R8G8_UINT;
+            case rhi::Format::eRG8_SINT:
+                return DXGI_FORMAT_R8G8_SINT;
+            case rhi::Format::eRGBA8_UINT:
+                return DXGI_FORMAT_R8G8B8A8_UINT;
+            case rhi::Format::eRGBA8_SINT:
+                return DXGI_FORMAT_R8G8B8A8_SINT;
+
+                // 16-bit UNORM / SNORM
+            case rhi::Format::eR16_UNORM:
+                return DXGI_FORMAT_R16_UNORM;
+            case rhi::Format::eRG16_UNORM:
+                return DXGI_FORMAT_R16G16_UNORM;
+            case rhi::Format::eRGBA16_UNORM:
+                return DXGI_FORMAT_R16G16B16A16_UNORM;
+
+            case rhi::Format::eR16_SNORM:
+                return DXGI_FORMAT_R16_SNORM;
+            case rhi::Format::eRG16_SNORM:
+                return DXGI_FORMAT_R16G16_SNORM;
+            case rhi::Format::eRGBA16_SNORM:
+                return DXGI_FORMAT_R16G16B16A16_SNORM;
+
+                // 16-bit UINT / SINT
+            case rhi::Format::eR16_UINT:
+                return DXGI_FORMAT_R16_UINT;
+            case rhi::Format::eR16_SINT:
+                return DXGI_FORMAT_R16_SINT;
+            case rhi::Format::eRG16_UINT:
+                return DXGI_FORMAT_R16G16_UINT;
+            case rhi::Format::eRG16_SINT:
+                return DXGI_FORMAT_R16G16_SINT;
+            case rhi::Format::eRGBA16_UINT:
+                return DXGI_FORMAT_R16G16B16A16_UINT;
+            case rhi::Format::eRGBA16_SINT:
+                return DXGI_FORMAT_R16G16B16A16_SINT;
+
+                // 16-bit FLOAT
+            case rhi::Format::eR16_FLOAT:
+                return DXGI_FORMAT_R16_FLOAT;
+            case rhi::Format::eRG16_FLOAT:
+                return DXGI_FORMAT_R16G16_FLOAT;
+            case rhi::Format::eRGBA16_FLOAT:
+                return DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+                // 32-bit FLOAT
+            case rhi::Format::eR32_FLOAT:
+                return DXGI_FORMAT_R32_FLOAT;
+            case rhi::Format::eRG32_FLOAT:
+                return DXGI_FORMAT_R32G32_FLOAT;
+            case rhi::Format::eRGB32_FLOAT:
+                return DXGI_FORMAT_R32G32B32_FLOAT;
+            case rhi::Format::eRGBA32_FLOAT:
+                return DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+                // 32-bit UINT / SINT
+            case rhi::Format::eR32_UINT:
+                return DXGI_FORMAT_R32_UINT;
+            case rhi::Format::eR32_SINT:
+                return DXGI_FORMAT_R32_SINT;
+            case rhi::Format::eRG32_UINT:
+                return DXGI_FORMAT_R32G32_UINT;
+            case rhi::Format::eRG32_SINT:
+                return DXGI_FORMAT_R32G32_SINT;
+            case rhi::Format::eRGB32_UINT:
+                return DXGI_FORMAT_R32G32B32_UINT;
+            case rhi::Format::eRGB32_SINT:
+                return DXGI_FORMAT_R32G32B32_SINT;
+            case rhi::Format::eRGBA32_UINT:
+                return DXGI_FORMAT_R32G32B32A32_UINT;
+            case rhi::Format::eRGBA32_SINT:
+                return DXGI_FORMAT_R32G32B32A32_SINT;
+
+                // Packed formats
+            case rhi::Format::eR10G10B10A2_UNORM:
+                return DXGI_FORMAT_R10G10B10A2_UNORM;
+            case rhi::Format::eR11G11B10_FLOAT:
+                return DXGI_FORMAT_R11G11B10_FLOAT;
+
+                // Depth formats
+            case rhi::Format::eD16:
+                return DXGI_FORMAT_D16_UNORM;
+            case rhi::Format::eD24S8:
+                return DXGI_FORMAT_D24_UNORM_S8_UINT;
+            case rhi::Format::eD32:
+                return DXGI_FORMAT_D32_FLOAT;
+            case rhi::Format::eD32S8:
+                return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+
+                // BC compressed
+            case rhi::Format::eBC1_UNORM:
+                return DXGI_FORMAT_BC1_UNORM;
+            case rhi::Format::eBC1_UNORM_SRGB:
+                return DXGI_FORMAT_BC1_UNORM_SRGB;
+            case rhi::Format::eBC2_UNORM:
+                return DXGI_FORMAT_BC2_UNORM;
+            case rhi::Format::eBC2_UNORM_SRGB:
+                return DXGI_FORMAT_BC2_UNORM_SRGB;
+            case rhi::Format::eBC3_UNORM:
+                return DXGI_FORMAT_BC3_UNORM;
+            case rhi::Format::eBC3_UNORM_SRGB:
+                return DXGI_FORMAT_BC3_UNORM_SRGB;
+            case rhi::Format::eBC4_UNORM:
+                return DXGI_FORMAT_BC4_UNORM;
+            case rhi::Format::eBC4_SNORM:
+                return DXGI_FORMAT_BC4_SNORM;
+            case rhi::Format::eBC5_UNORM:
+                return DXGI_FORMAT_BC5_UNORM;
+            case rhi::Format::eBC5_SNORM:
+                return DXGI_FORMAT_BC5_SNORM;
+            case rhi::Format::eBC6H_UFLOAT:
+                return DXGI_FORMAT_BC6H_UF16;
+            case rhi::Format::eBC6H_SFLOAT:
+                return DXGI_FORMAT_BC6H_SF16;
+            case rhi::Format::eBC7_UNORM:
+                return DXGI_FORMAT_BC7_UNORM;
+            case rhi::Format::eBC7_UNORM_SRGB:
+                return DXGI_FORMAT_BC7_UNORM_SRGB;
+
+            case rhi::Format::eCount:
+            default:
+                return DXGI_FORMAT_UNKNOWN;
+        }
+    }
+
+    auto GetFillMode( rhi::PolygonMode type ) -> D3D12_FILL_MODE {
+        MKT_BEGIN_PROFILER();
+
+        switch ( type ) {
+
+            case renderer::rhi::PolygonMode::eLines:
+                return D3D12_FILL_MODE_WIREFRAME;
+
+            case renderer::rhi::PolygonMode::ePoint:
+            case renderer::rhi::PolygonMode::eFill:
+                return D3D12_FILL_MODE_SOLID;
+        }
+
+        return D3D12_FILL_MODE_SOLID;
+    }
+
+    auto GetCullMode( rhi::CullMode type ) -> D3D12_CULL_MODE {
+        MKT_BEGIN_PROFILER();
+
+        switch ( type ) {
+
+            case renderer::rhi::CullMode::eNone:
+                return D3D12_CULL_MODE_NONE;
+            case renderer::rhi::CullMode::eCullFront:
+                return D3D12_CULL_MODE_FRONT;
+            case renderer::rhi::CullMode::eCullBack:
+                return D3D12_CULL_MODE_BACK;
+        }
+
+        return D3D12_CULL_MODE_NONE;
+    }
+
+    auto GetCompareOp( rhi::CompareOp op ) -> D3D12_COMPARISON_FUNC {
+        MKT_BEGIN_PROFILER();
+
+        switch ( op ) {
+            case rhi::CompareOp::eNever:
+                return D3D12_COMPARISON_FUNC_NEVER;
+            case rhi::CompareOp::eLess:
+                return D3D12_COMPARISON_FUNC_LESS;
+            case rhi::CompareOp::eEqual:
+                return D3D12_COMPARISON_FUNC_EQUAL;
+            case rhi::CompareOp::eLessOrEqual:
+                return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+            case rhi::CompareOp::eGreater:
+                return D3D12_COMPARISON_FUNC_GREATER;
+            case rhi::CompareOp::eNotEqual:
+                return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+            case rhi::CompareOp::eGreaterOrEqual:
+                return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+            case rhi::CompareOp::eAlways:
+                return D3D12_COMPARISON_FUNC_ALWAYS;
+            default:
+                return D3D12_COMPARISON_FUNC_NEVER;
+        }
+    }
+
+    auto GetTopologyType( rhi::PrimitiveTopology type ) -> D3D12_PRIMITIVE_TOPOLOGY_TYPE {
+        MKT_BEGIN_PROFILER();
+
+        switch ( type ) {
+            case rhi::PrimitiveTopology::eInvalid:
+                return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+
+            case rhi::PrimitiveTopology::ePointList:
+                return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+
+            case rhi::PrimitiveTopology::eLineList:
+            case rhi::PrimitiveTopology::eLineStrip:
+                return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+
+            case rhi::PrimitiveTopology::eTriangleList:
+            case rhi::PrimitiveTopology::eTriangleStrip:
+            case rhi::PrimitiveTopology::eTriangleFan:
+                return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        }
+
+        return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+    }
+
+    auto GetCmdTopologyType( rhi::PrimitiveTopology type ) -> D3D_PRIMITIVE_TOPOLOGY {
+        MKT_BEGIN_PROFILER();
+
+        switch ( type ) {
+            case rhi::PrimitiveTopology::eInvalid:
+                return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+            case rhi::PrimitiveTopology::ePointList:
+                return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+
+            case rhi::PrimitiveTopology::eLineList:
+                return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+
+            case rhi::PrimitiveTopology::eLineStrip:
+                return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+
+            case rhi::PrimitiveTopology::eTriangleList:
+                return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+            case rhi::PrimitiveTopology::eTriangleStrip:
+                return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+
+            case rhi::PrimitiveTopology::eTriangleFan:
+                return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+        }
+
+        return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+    }
+
+    auto GetResourceState( rhi::ResourceStates state ) -> D3D12_RESOURCE_STATES {
+        MKT_BEGIN_PROFILER();
+
+        switch ( state ) {
+            case rhi::ResourceStates::eCommon:
+                return D3D12_RESOURCE_STATE_COMMON;
+
+            case rhi::ResourceStates::eConstantBuffer:
+            case rhi::ResourceStates::eVertexBuffer:
+                return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+
+            case rhi::ResourceStates::eIndexBuffer:
+                return D3D12_RESOURCE_STATE_INDEX_BUFFER;
+            case rhi::ResourceStates::eIndirectArgument:
+                return D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+            case rhi::ResourceStates::eShaderResource:
+                return D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
+            case rhi::ResourceStates::eUnorderedAccess:
+                return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+            case rhi::ResourceStates::eRenderTarget:
+                return D3D12_RESOURCE_STATE_RENDER_TARGET;
+            case rhi::ResourceStates::eDepthWrite:
+                return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+            case rhi::ResourceStates::eDepthRead:
+                return D3D12_RESOURCE_STATE_DEPTH_READ;
+            case rhi::ResourceStates::eCopyDest:
+                return D3D12_RESOURCE_STATE_COPY_DEST;
+            case rhi::ResourceStates::eCopySource:
+                return D3D12_RESOURCE_STATE_COPY_SOURCE;
+            case rhi::ResourceStates::eResolveDest:
+                return D3D12_RESOURCE_STATE_RESOLVE_DEST;
+            case rhi::ResourceStates::eResolveSource:
+                return D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+            case rhi::ResourceStates::eVideoDecodeOutput:
+                return D3D12_RESOURCE_STATE_VIDEO_DECODE_WRITE;
+            case rhi::ResourceStates::eVideoDecodeReference:
+                return D3D12_RESOURCE_STATE_VIDEO_DECODE_READ;
+            case rhi::ResourceStates::ePresent:
+                return D3D12_RESOURCE_STATE_PRESENT;
+
+            case rhi::ResourceStates::eAccelStructRead:
+                return D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+            case rhi::ResourceStates::eAccelStructWrite:
+                return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+            case rhi::ResourceStates::eAccelStructBuildInput:
+                return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            case rhi::ResourceStates::eAccelStructBuildBlas:
+                return D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+
+            case rhi::ResourceStates::eUnknown:
+            default:
+                return D3D12_RESOURCE_STATE_COMMON;// Resources are created by default in an unknown state which is Common, see the allocator
+        }
+    }
+
+    auto GetBytesPerPixel( rhi::Format type ) -> UINT {
+        MKT_BEGIN_PROFILER();
+
+        switch ( type ) {
+            case renderer::rhi::Format::eRGBA8_SNORM:
+            case renderer::rhi::Format::eRGBA8_UNORM:
+                return 4;
+            case renderer::rhi::Format::eRGBA32_FLOAT:
+            case renderer::rhi::Format::eRGBA32_SINT:
+            case renderer::rhi::Format::eRGBA32_UINT:
+                return 16;
+            default:;
+        }
+
+        MKT_ASSERT( false, "Unsupported format for bytes per pixel" );
+        return 0;
+    }
+
+    auto GetHeapTypeName( D3D12_DESCRIPTOR_HEAP_TYPE type ) -> eastl::string_view {
+        MKT_BEGIN_PROFILER();
+
+        switch ( type ) {
+            case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+                return "CBV_SRV_UAV";
+            case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+                return "SAMPLER";
+            case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+                return "RTV";
+            case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+                return "DSV";
+            default:
+                return "UNKNOWN";
+        }
+    }
+
+    auto GetFilter( rhi::SamplerFilter minFilter, rhi::SamplerFilter magFilter, rhi::SamplerMipmapMode mode, rhi::CompareOp op ) -> D3D12_FILTER {
+        MKT_BEGIN_PROFILER();
+        const bool isCompare{ ( op != rhi::CompareOp::eNever ) };
+
+        if ( !isCompare ) {
+            if ( minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eNearest ) {
+                return D3D12_FILTER_MIN_MAG_MIP_POINT;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eLinear && mode == rhi::SamplerMipmapMode::eNearest ) {
+                return D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eLinear && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eNearest ) {
+                return D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eLinear && magFilter == rhi::SamplerFilter::eLinear && mode == rhi::SamplerMipmapMode::eNearest ) {
+                return D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eLinear ) {
+                return D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eLinear && mode == rhi::SamplerMipmapMode::eLinear ) {
+                return D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eLinear && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eLinear ) {
+                return D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eLinear && magFilter == rhi::SamplerFilter::eLinear && mode == rhi::SamplerMipmapMode::eLinear ) {
+                return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+            }
+        }
+        else {
+            if ( minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eNearest ) {
+                return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eLinear && mode == rhi::SamplerMipmapMode::eNearest ) {
+                return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eLinear && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eNearest ) {
+                return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eLinear && magFilter == rhi::SamplerFilter::eLinear && mode == rhi::SamplerMipmapMode::eNearest ) {
+                return D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eLinear ) {
+                return D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eNearest && magFilter == rhi::SamplerFilter::eLinear && mode == rhi::SamplerMipmapMode::eLinear ) {
+                return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eLinear && magFilter == rhi::SamplerFilter::eNearest && mode == rhi::SamplerMipmapMode::eLinear ) {
+                return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+            }
+
+            if ( minFilter == rhi::SamplerFilter::eLinear && magFilter == rhi::SamplerFilter::eLinear && mode == rhi::SamplerMipmapMode::eLinear ) {
+                return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+            }
+        }
+
+        return D3D12_FILTER_MIN_MAG_MIP_POINT;
+    }
+
+    auto GetAddressMode( rhi::SamplerWrapMode mode ) -> D3D12_TEXTURE_ADDRESS_MODE {
+        MKT_BEGIN_PROFILER();
+
+        if ( mode == rhi::SamplerWrapMode::eRepeat ) {
+            return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        }
+
+        if ( mode == rhi::SamplerWrapMode::eMirroredRepeat ) {
+            return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+        }
+
+        if ( mode == rhi::SamplerWrapMode::eClampToEdge ) {
+            return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        }
+
+        if ( mode == rhi::SamplerWrapMode::eClampToBorder ) {
+            return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+        }
+
+        return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    }
+
+    auto GetBarrierSync( rhi::PipelineStageFlags flags ) -> D3D12_BARRIER_SYNC {
+        MKT_BEGIN_PROFILER();
+        using S = rhi::PipelineStageFlagsBits;
+
+        if ( flags == S::All || ( flags & S::AllCommands ) ) {
+            return D3D12_BARRIER_SYNC_ALL;
+        }
+
+        D3D12_BARRIER_SYNC result{ D3D12_BARRIER_SYNC_NONE };
+
+        if ( flags & S::DrawIndirect ) {
+            result |= D3D12_BARRIER_SYNC_EXECUTE_INDIRECT;
+        }
+
+        if ( flags & S::IndexInput ) {
+            result |= D3D12_BARRIER_SYNC_INDEX_INPUT;
+        }
+
+        if ( flags & S::VertexInput ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+
+        if ( flags & S::VertexShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+
+        if ( flags & S::HullShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+
+        if ( flags & S::DomainShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+
+        if ( flags & S::GeometryShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+
+        if ( flags & S::TaskShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+
+        if ( flags & S::MeshShader ) {
+            result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+        }
+
+        if ( flags & S::PixelShader ) {
+            result |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
+        }
+
+        if ( flags & S::ComputeShader ) {
+            result |= D3D12_BARRIER_SYNC_COMPUTE_SHADING;
+        }
+
+        if ( flags & S::RayTracingShader ) {
+            result |= D3D12_BARRIER_SYNC_RAYTRACING;
+        }
+
+        if ( flags & S::AccelerationStructureBuild ) {
+            result |= D3D12_BARRIER_SYNC_BUILD_RAYTRACING_ACCELERATION_STRUCTURE;
+        }
+
+        if ( flags & S::RenderTarget ) {
+            result |= D3D12_BARRIER_SYNC_RENDER_TARGET;
+        }
+
+        if ( flags & S::EarlyFragmentTests ) {
+            result |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
+        }
+
+        if ( flags & S::LateFragmentTests ) {
+            result |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
+        }
+
+        if ( flags & S::AllGraphics ) {
+            result |= D3D12_BARRIER_SYNC_DRAW;
+        }
+
+        if ( flags & S::Copy ) {
+            result |= D3D12_BARRIER_SYNC_COPY;
+        }
+
+        if ( flags & S::Resolve ) {
+            result |= D3D12_BARRIER_SYNC_RESOLVE;
+        }
+
+        if ( flags & S::Blit ) {
+            result |= D3D12_BARRIER_SYNC_DRAW;
+        }
+
+        if ( flags & S::Clear ) {
+            result |= D3D12_BARRIER_SYNC_COPY;
+        }
+
+        if ( flags & S::Transfer ) {
+            result |= D3D12_BARRIER_SYNC_COPY | D3D12_BARRIER_SYNC_RESOLVE;
+        }
+
+        if ( flags & S::Bottom ) {
+            result |= D3D12_BARRIER_SYNC_ALL;
+        }
+
+        if ( flags & S::Host ) {
+            result |= D3D12_BARRIER_SYNC_ALL;
+        }
+
+        return result;
+    }
+
+    auto GetBarrierAccess( rhi::BarrierAccessFlags accesses ) -> D3D12_BARRIER_ACCESS {
+        MKT_BEGIN_PROFILER();
+        using A = rhi::BarrierAccessFlagsBits;
+
+        if ( accesses == A::None ) {
+            return D3D12_BARRIER_ACCESS_NO_ACCESS;
+        }
+
+        if ( accesses & ( A::MemoryRead | A::MemoryWrite | A::HostRead | A::HostWrite ) ) {
+            return D3D12_BARRIER_ACCESS_COMMON;
+        }
+
+        D3D12_BARRIER_ACCESS result{ D3D12_BARRIER_ACCESS_COMMON };
+
+        if ( accesses & A::IndirectCommandRead ) {
+            result |= D3D12_BARRIER_ACCESS_INDIRECT_ARGUMENT;
+        }
+
+        if ( accesses & A::IndexRead ) {
+            result |= D3D12_BARRIER_ACCESS_INDEX_BUFFER;
+        }
+
+        if ( accesses & A::VertexAttributeRead ) {
+            result |= D3D12_BARRIER_ACCESS_VERTEX_BUFFER;
+        }
+
+        if ( accesses & A::ConstantBuffer ) {
+            result |= D3D12_BARRIER_ACCESS_CONSTANT_BUFFER;
+        }
+
+        if ( accesses & A::ShaderSampledRead ) {
+            result |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+        }
+
+        if ( accesses & A::StructuredBufferRead ) {
+            result |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+        }
+
+        if ( accesses & A::ShaderStorageRead ) {
+            result |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+        }
+
+        if ( accesses & A::ShaderStorageWrite ) {
+            result |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+        }
+
+        if ( accesses & A::ColorAttachmentRead ) {
+            result |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
+        }
+
+        if ( accesses & A::ColorAttachmentWrite ) {
+            result |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
+        }
+
+        if ( ( accesses & A::DepthStencilRead ) && !( accesses & A::DepthStencilWrite ) ) {
+            result |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ;
+        }
+
+        if ( accesses & A::DepthStencilWrite ) {
+            result |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE;
+        }
+
+        if ( accesses & A::TransferRead ) {
+            result |= D3D12_BARRIER_ACCESS_COPY_SOURCE;
+        }
+
+        if ( accesses & A::TransferWrite ) {
+            result |= D3D12_BARRIER_ACCESS_COPY_DEST;
+        }
+
+        if ( accesses & A::ResolveRead ) {
+            result |= D3D12_BARRIER_ACCESS_RESOLVE_SOURCE;
+        }
+
+        if ( accesses & A::ResolveWrite ) {
+            result |= D3D12_BARRIER_ACCESS_RESOLVE_DEST;
+        }
+
+        if ( accesses & A::AccelerationStructureRead ) {
+            result |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_READ;
+        }
+
+        if ( accesses & A::AccelerationStructureWrite ) {
+            result |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
+        }
+
+        if ( accesses & A::AccelerationStructureBuildInputRead ) {
+            result |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+        }
+
+        return result;
+    }
+
+    auto GetBarrierLayout( rhi::TextureLayoutFlags layout ) -> D3D12_BARRIER_LAYOUT {
+        MKT_BEGIN_PROFILER();
+
+        if ( layout == rhi::TextureLayoutBits::Unknown ) {
+            return D3D12_BARRIER_LAYOUT_UNDEFINED;
+        }
+
+        if ( layout == rhi::TextureLayoutBits::General ) {
+            return D3D12_BARRIER_LAYOUT_COMMON;
+        }
+
+        if ( layout == rhi::TextureLayoutBits::RenderTarget ) {
+            return D3D12_BARRIER_LAYOUT_RENDER_TARGET;
+        }
+
+        if ( layout == rhi::TextureLayoutBits::DepthStencil ) {
+            return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
+        }
+
+        if ( layout == rhi::TextureLayoutBits::DepthStencilReadOnly ) {
+            return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
+        }
+
+        if ( layout == rhi::TextureLayoutBits::ShaderResource ) {
+            return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+        }
+
+        if ( layout == rhi::TextureLayoutBits::UnorderedAccess ) {
+            return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
+        }
+
+        if ( layout == rhi::TextureLayoutBits::CopySource ) {
+            return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
+        }
+
+        if ( layout == rhi::TextureLayoutBits::CopyDest ) {
+            return D3D12_BARRIER_LAYOUT_COPY_DEST;
+        }
+
+        if ( layout == rhi::TextureLayoutBits::Present ) {
+            return D3D12_BARRIER_LAYOUT_PRESENT;
+        }
+
+        if ( layout == rhi::TextureLayoutBits::ResolveSource ) {
+            return D3D12_BARRIER_LAYOUT_RESOLVE_SOURCE;
+        }
+
+        if ( layout == rhi::TextureLayoutBits::ResolveDest ) {
+            return D3D12_BARRIER_LAYOUT_RESOLVE_DEST;
+        }
+
+        return D3D12_BARRIER_LAYOUT_UNDEFINED;
+    }
+
+    auto GetHeapType( rhi::HeapType type ) -> D3D12_HEAP_TYPE {
+        MKT_BEGIN_PROFILER();
+
+        switch ( type ) {
+            case renderer::rhi::HeapType::eDeviceLocal:
+                return D3D12_HEAP_TYPE_DEFAULT;
+            case renderer::rhi::HeapType::eUpload:
+                return D3D12_HEAP_TYPE_UPLOAD;
+            case renderer::rhi::HeapType::eReadback:
+                return D3D12_HEAP_TYPE_READBACK;
+        }
+
+        return D3D12_HEAP_TYPE_DEFAULT;
+    }
+
+    auto GetDescriptorHeapType( rhi::ResourceType type ) -> D3D12_DESCRIPTOR_HEAP_TYPE {
+        MKT_BEGIN_PROFILER();
+
+        switch ( type ) {
+            case rhi::ResourceType::eTexture_SRV:
+            case rhi::ResourceType::eTypedBuffer_SRV:
+            case rhi::ResourceType::eStructuredBuffer_SRV:
+            case rhi::ResourceType::eRawBuffer_SRV:
+            case rhi::ResourceType::eRayTracingAccelStruct:
+            case rhi::ResourceType::eTexture_UAV:
+            case rhi::ResourceType::eTypedBuffer_UAV:
+            case rhi::ResourceType::eStructuredBuffer_UAV:
+            case rhi::ResourceType::eRawBuffer_UAV:
+            case rhi::ResourceType::eSamplerFeedbackTexture_UAV:
+            case rhi::ResourceType::eConstantBuffer:
+            case rhi::ResourceType::eVolatileConstantBuffer:
+                return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+            case rhi::ResourceType::eSampler:
+                return D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+
+            case rhi::ResourceType::ePushConstants:
+            case rhi::ResourceType::eInvalid:
+            default:
+                MKT_ASSERT( false, "Invalid heap type requested. Push constants do not utilize descriptor heaps!" );
+                return core::as<D3D12_DESCRIPTOR_HEAP_TYPE>( -1 );
+        }
+    }
+
+    auto GetDescriptorRangeType( rhi::ResourceType type ) -> D3D12_DESCRIPTOR_RANGE_TYPE {
+        MKT_BEGIN_PROFILER();
+
+        switch ( type ) {
+            case rhi::ResourceType::eTexture_SRV:
+            case rhi::ResourceType::eTypedBuffer_SRV:
+            case rhi::ResourceType::eStructuredBuffer_SRV:
+            case rhi::ResourceType::eRawBuffer_SRV:
+            case rhi::ResourceType::eRayTracingAccelStruct:
+                return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+            case rhi::ResourceType::eTexture_UAV:
+            case rhi::ResourceType::eTypedBuffer_UAV:
+            case rhi::ResourceType::eStructuredBuffer_UAV:
+            case rhi::ResourceType::eRawBuffer_UAV:
+            case rhi::ResourceType::eSamplerFeedbackTexture_UAV:
+                return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+
+            case rhi::ResourceType::eConstantBuffer:
+            case rhi::ResourceType::eVolatileConstantBuffer:
+                return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+
+            case rhi::ResourceType::eSampler:
+                return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+
+            case rhi::ResourceType::ePushConstants:
+            case rhi::ResourceType::eInvalid:
+            default:
+                MKT_ASSERT( false, "Invalid range type or provided PS. Push constants belong in Root Constants, not a descriptor range!" );
+        }
+    }
+
+    auto GetDimension( rhi::TextureDimension dimension ) -> D3D12_RESOURCE_DIMENSION {
+        MKT_BEGIN_PROFILER();
+
+        switch ( dimension ) {
+            case rhi::TextureDimension::eTexture1D:
+            case rhi::TextureDimension::eTexture1DArray:
+                return D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+
+            case rhi::TextureDimension::eTexture2D:
+            case rhi::TextureDimension::eTexture2DArray:
+            case rhi::TextureDimension::eTextureCube:
+            case rhi::TextureDimension::eTextureCubeArray:
+            case rhi::TextureDimension::eTexture2DMS:
+            case rhi::TextureDimension::eTexture2DMSArray:
+                return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+            case rhi::TextureDimension::eTexture3D:
+                return D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+
+            default:
+                MKT_ASSERT( false, "Unsupported texture dimension" );
+                return D3D12_RESOURCE_DIMENSION_UNKNOWN;
+        }
+    }
+
+
+    auto GetSampleCount( rhi::Multisampling multisampling ) -> UINT {
+        MKT_BEGIN_PROFILER();
+
+        switch ( multisampling ) {
+            case rhi::Multisampling::eMsaaX1:
+                return 1;
+            case rhi::Multisampling::eMsaaX2:
+                return 2;
+            case rhi::Multisampling::eMsaaX4:
+                return 4;
+            case rhi::Multisampling::eMsaaX8:
+                return 8;
+            case rhi::Multisampling::eMsaaX16:
+                return 16;
+            default:;
+        }
+
+        return 1;
+    }
+
+    auto GetResourceFlags( rhi::TextureUsageFlags flags ) -> D3D12_RESOURCE_FLAGS {
+        MKT_BEGIN_PROFILER();
+        D3D12_RESOURCE_FLAGS result{ D3D12_RESOURCE_FLAG_NONE };
+
+        if ( flags & rhi::TextureUsageFlagsBits::UnorderedAccess ) {
+            result |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+        }
+
+        if ( flags & rhi::TextureUsageFlagsBits::RenderTarget ) {
+            result |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        }
+
+        if ( flags & rhi::TextureUsageFlagsBits::DepthTarget ) {
+            result |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        }
+
+        if ( flags & rhi::TextureUsageFlagsBits::StencilTarget ) {
+            result |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        }
+
+        if ( flags & rhi::TextureUsageFlagsBits::DepthStencilTarget ) {
+            result |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        }
+
+        return result;
+    }
+}// namespace mikoto::renderer::d3d12
+
+#endif

@@ -14,9 +14,14 @@
 
 #pragma once
 
+static const int LIGHT_TYPE_POINT = 1;
+static const int LIGHT_TYPE_SPOT = 2;
+static const int LIGHT_TYPE_DIRECTIONAL = 0;
+static const int LIGHT_TYPE_INACTIVE = -1;
+
 struct LightInfo {
     float4 Position;
-    float4 Direction;
+    float4 Direction; // w marks the directional light used as the atmospheric sun.
     float4 Diffuse;
 
     float CutOff;
@@ -27,5 +32,7 @@ struct LightInfo {
 
     int ActiveLightType;
 
-    float mPadding[3];
+    int ShadowIndex;
+    uint ShadowSlot;
+    float Padding;
 };

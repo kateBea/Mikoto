@@ -1,0 +1,9 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "High Pressure"
+Material:
+  BaseColorFactor: [0.18, 0.61, 0.32, 1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.36
+  DoubleSided: 1
+  AlphaMask: 0

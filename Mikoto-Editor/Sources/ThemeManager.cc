@@ -13,8 +13,10 @@
 // limitations under the License.
 
 #include <EASTL/string.h>
-#include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/string_view.h>
+
+#include <Core/Profiler.hh>
 
 #include <Logging/Logger.hh>
 
@@ -24,12 +26,15 @@
 namespace mikoto::editor {
 
     auto ThemeManager::Initialize() -> void {
+        MKT_BEGIN_PROFILER();
 
         mIsInitialized = true;
     }
 
     auto ThemeManager::Shutdown() -> void {
-        if (!mIsInitialized) {
+        MKT_BEGIN_PROFILER();
+
+        if ( !mIsInitialized ) {
             return;
         }
 
@@ -37,10 +42,10 @@ namespace mikoto::editor {
     }
 
     auto ThemeManager::ApplyTheme( std::string_view name ) -> void {
-
     }
 
     auto ThemeManager::LoadTheme() -> Theme * {
+        MKT_BEGIN_PROFILER();
         // Open file dialog and deserialize the theme
 
         return nullptr;
@@ -51,6 +56,7 @@ namespace mikoto::editor {
     }
 
     auto ThemeManager::GetTheme( eastl::string_view name ) -> Theme * {
+        MKT_BEGIN_PROFILER();
         return nullptr;
     }
 }

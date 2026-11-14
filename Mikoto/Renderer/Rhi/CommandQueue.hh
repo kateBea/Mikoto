@@ -12,17 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_COMMAND_QUEUE_HH
-#define MIKOTO_RHI_COMMAND_QUEUE_HH
+#ifndef MIKOTO_RENDERER_RHI_COMMAND_QUEUE_HH
+#define MIKOTO_RENDERER_RHI_COMMAND_QUEUE_HH
 
 #include <EASTL/span.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
-#include <Core/ResourcePool.hh>
-#include <Core/String.hh>
 #include <Core/Types.hh>
+#include <Core/Resource.hh>
 
 #include <Memory/BufferSpan.hh>
 
@@ -115,13 +114,13 @@ namespace mikoto::renderer::rhi {
          * Returns the queue family represented by this queue.
          * @returns The result of GetType.
          */
-        MKT_NODISCARD auto GetType() const -> QueueType;
+        MKT_NODISCARD virtual auto GetType() const -> QueueType = 0;
 
         /**
          * Returns the operations supported by this queue.
          * @returns The result of GetOpSupportFlags.
          */
-        MKT_NODISCARD auto GetOpSupportFlags() const -> QueueOpSupportFlags;
+        MKT_NODISCARD virtual auto GetOpSupportFlags() const -> QueueOpSupportFlags = 0;
 
         /**
          * Submits command lists and their GPU-side fence dependencies.
@@ -136,23 +135,10 @@ namespace mikoto::renderer::rhi {
         ~IQueue() override = default;
 
         using DeviceObject::Initialize;
-
-    protected:
-
-        /**
-         * Constructs a queue with its type and supported operations.
-         *
-         * @param type Queue type.
-         * @param flags Supported queue operations.
-         */
-        explicit IQueue( QueueType type, QueueOpSupportFlags flags );
-
-    protected:
-        QueueType mType{ QueueType::eInvalid };
-        QueueOpSupportFlags mOpSupportFlags{ QueueOpSupportFlagsBits::Graphics };
     };
 
     using QueueHandle = core::Ref<IQueue>;
 }
 
-#endif//MIKOTO_RHI_COMMAND_QUEUE_HH
+#endif// MIKOTO_RENDERER_RHI_COMMAND_QUEUE_HH
+

@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
+#include "base/Animation_Helpers.slang"
 #include "base/Base.slang"
-#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Material_Helpers.slang"
-#include "base/Animation_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 
 struct VSInput {
     uint VertexID : SV_VertexID;
@@ -25,6 +27,7 @@ struct VSInput {
 };
 
 struct VSOutput {
+    nointerpolation uint FaceFlags : TEXCOORD0;
     float4 Position : SV_Position;
 };
 
@@ -39,31 +42,29 @@ struct DrawParams {
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
-[shader("vertex")]
-VSOutput main(VSInput input) {
+[shader( "vertex" )]
+VSOutput main( VSInput input ) {
     VSOutput o;
 
     // Prepare vertex data
     uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
-    VertexDescription vertex = GetVertexDescription(instanceIndex, input.VertexID, parameters.mGeometryPtr, parameters.mGeometryDescPtr);
 
     // Apply skinning
-    MeshGeometryInfo *geometryBuffer = (MeshGeometryInfo *)parameters.mGeometryPtr;
-    MeshGeometryInfo meshInfo = geometryBuffer[instanceIndex];
+    MeshGeometryInfo meshInfo = LoadMeshGeometry( parameters.mGeometryPtr, instanceIndex );
+    GeometryAllocation allocation = GetGeometryAllocation( meshInfo, parameters.mGeometryDescPtr );
+    uint vertexIndex = PullVertexIndex( allocation, input.VertexID );
+    VertexDescription vertex = PullDepthVertex( meshInfo, allocation, vertexIndex );
 
     // Compute world position
-    SkinningResult skinningResult = ApplySkinning(vertex, meshInfo, parameters.mSkinningPtr);
+    float4 worldPos = ApplySkinningPosition( vertex, meshInfo, parameters.mSkinningPtr );
 
-    float4 worldPos = skinningResult.mPosition;
-    float3 worldNormal = skinningResult.mNormal;
+    BufferReference<CameraInfo> camera = ( BufferReference<CameraInfo> )parameters.mCameraBda;
 
-    CameraInfo *camera = (CameraInfo *)parameters.mCameraBda;
-
-    o.Position =
-        mul(camera->mProjection,
-            mul(camera->mViewMatrix, worldPos));
+    // Final position
+    o.Position = mul( camera[0].mProjection, mul( camera[0].mViewMatrix, worldPos ) );
+    o.FaceFlags = meshInfo.FaceFlags;
 
     return o;
 }

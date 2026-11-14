@@ -1,0 +1,8 @@
+Version: 2
+Type: SurfaceMaterial
+Name: Ramp Wood
+Material:
+  BaseColorFactor: [0.32, 0.14, 0.055, 1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.65
+  AlphaMask: 0

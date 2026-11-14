@@ -1,0 +1,561 @@
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <ranges>
+
+#include <imgui.h>
+#include <imgui_internal.h>
+
+#include <EASTL/array.h>
+#include <EASTL/string.h>
+#include <EASTL/functional.h>
+#include <EASTL/string_view.h>
+#include <EASTL/fixed_string.h>
+
+#include <Vendor/imgui_node_editor/examples/blueprints-example/utilities/widgets.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Profiler.hh>
+
+#include <Memory/Allocator.hh>
+
+#include <ImGui/Utility.hh>
+#include <ImGui/ImGuiWidget.hh>
+#include <ImGui/IconsMaterialDesign.h>
+
+namespace mikoto::imgui {
+
+    using namespace mikoto::core;
+
+    auto BeginWindow( const char* name, bool* open, ImGuiWindowFlags flags ) -> bool {
+        if ( flags & ImGuiWindowFlags_NoTitleBar ) {
+            return ImGui::Begin( name, open, flags );
+        }
+
+        // Begin computes the title height, close-button placement and docked content bounds.
+        // Restore the smaller shared padding before drawing the window's controls.
+        // https://github.com/ocornut/imgui/blob/v1.92.9b-docking/imgui.cpp
+        const ImGuiScopedStyleVar padding{ ImGuiStyleVar_FramePadding, kWindowTabPadding };
+        return ImGui::Begin( name, open, flags );
+    }
+
+
+    auto ComputeWidth() -> float {
+        MKT_BEGIN_PROFILER();
+        const ImGuiContext &globalContext{ *GImGui };
+        const ImGuiWindow *currentWindow{ globalContext.CurrentWindow };
+        float width{};
+
+        if ( globalContext.NextItemData.HasFlags & ImGuiNextItemDataFlags_HasWidth ) {
+            width = globalContext.NextItemData.Width;
+        }
+        else {
+            width = currentWindow->DC.ItemWidth;
+        }
+
+        if ( width < 0.0f ) {
+            float regionAvailableX{ ImGui::GetContentRegionAvail().x };
+            width = ImMax( 1.0f, regionAvailableX + width );
+        }
+
+        width = IM_TRUNC( width );
+
+        return width;
+    }
+
+    auto ToolTip( const eastl::string_view description ) -> void {
+        MKT_BEGIN_PROFILER();
+        ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
+
+        if ( widget::BeginItemTooltip() ) {
+            ImGui::TextUnformatted( description.data(), description.data() + description.size() );
+            widget::EndItemTooltip();
+        }
+
+        ImGui::PopStyleVar();
+    }
+
+    auto ToolTip( const eastl::function<void()> &func, const bool enable ) -> void {
+        MKT_BEGIN_PROFILER();
+        ImGui::PushStyleVar( ImGuiStyleVar_PopupBorderSize, 1.0f );
+
+        if ( enable && widget::BeginItemTooltip() ) {
+            func();
+            widget::EndItemTooltip();
+        }
+
+        ImGui::PopStyleVar();
+    }
+
+    auto CenteredText( const char *label, const float width, float height, bool wrap ) -> void {
+        MKT_BEGIN_PROFILER();
+        // https://github.com/phicore/ImGuiStylingTricks/wiki/Custom-MessageBox#step-5-removed-title-bar-and-homemade-centered-text
+
+        ImGuiContext &g{ *GImGui };
+        const ImGuiStyle &style{ g.Style };
+
+        const ImVec2 textSize{ width, height };
+        const ImGuiWindow *window{ ImGui::GetCurrentWindow() };
+
+        const ImVec2 labelSize{ ImGui::CalcTextSize( label, nullptr, false ) };
+
+        const ImVec2 minCursorPos{ window->DC.CursorPos };
+        const ImVec2 itemSize{ ImGui::CalcItemSize( textSize, labelSize.x + style.FramePadding.x * 2.0f, labelSize.y + style.FramePadding.y * 2.0f ) };
+
+        const ImVec2 maxCursorPos{ ImVec2( minCursorPos.x + itemSize.x, minCursorPos.y + itemSize.y ) };
+        const ImRect alignment{ minCursorPos, maxCursorPos };
+
+        ImGui::ItemSize( itemSize, style.FramePadding.y );
+
+        if ( !ImGui::ItemAdd( alignment, 0 ) ) {
+            return;
+        }
+
+        const ImVec2 posMin{ ImVec2( alignment.Min.x + style.FramePadding.x, alignment.Min.y + style.FramePadding.y ) };
+        const ImVec2 posMax{ ImVec2( alignment.Max.x - style.FramePadding.x, alignment.Max.y - style.FramePadding.y ) };
+
+        if ( wrap ) {
+            const float wrapWidth{ ImMax( posMax.x - posMin.x, 1.0f ) };
+            const auto wrappedSize{ ImGui::CalcTextSize( label, nullptr, false, wrapWidth ) };
+            const ImVec2 position{
+                posMin.x + ImMax( ( posMax.x - posMin.x - wrappedSize.x ) * style.ButtonTextAlign.x, 0.0f ),
+                posMin.y + ImMax( ( posMax.y - posMin.y - wrappedSize.y ) * style.ButtonTextAlign.y, 0.0f )
+            };
+            const ImVec4 clip{ alignment.Min.x, alignment.Min.y, alignment.Max.x, alignment.Max.y };
+            ImGui::GetWindowDrawList()->AddText( ImGui::GetFont(), ImGui::GetFontSize(), position,
+                ImGui::GetColorU32( ImGuiCol_Text ), label, nullptr, wrapWidth, &clip );
+            return;
+        }
+
+        // Labels are display text: preserve literal "##" in filenames, and register
+        // their bounds above so hover/tooltips refer to the label itself.
+        ImGui::RenderTextClippedEx( ImGui::GetWindowDrawList(), posMin, posMax, label, nullptr, &labelSize, style.ButtonTextAlign, &alignment );
+    }
+
+    auto DragDropDemo() -> void {
+        MKT_BEGIN_PROFILER();
+
+        if ( ImGui::TreeNode( "Drag and Drop" ) ) {
+            if ( ImGui::TreeNode( "Drag and drop in standard widgets" ) ) {
+                // ColorEdit widgets automatically act as drag source and drag target.
+                // They are using standardized payload strings IMGUI_PAYLOAD_TYPE_COLOR_3F and IMGUI_PAYLOAD_TYPE_COLOR_4F
+                // to allow your own widgets to use colors in their drag and drop interaction.
+                // Also see 'Demo->Widgets->Color/Picker Widgets->Palette' demo.
+                widget::MakeHelpPopUp( "You can drag from the color squares." );
+                static float col1[3] = { 1.0f, 0.0f, 0.2f };
+                static float col2[4] = { 0.4f, 0.7f, 0.0f, 0.5f };
+                ImGui::ColorEdit3( "color 1", col1 );
+                ImGui::ColorEdit4( "color 2", col2 );
+                ImGui::TreePop();
+            }
+
+            if ( ImGui::TreeNode( "Drag and drop to copy/swap items" ) ) {
+                enum Mode {
+                    Mode_Copy,
+                    Mode_Move,
+                    Mode_Swap
+                };
+                static int mode = 0;
+
+                if ( ImGui::RadioButton( "Copy", mode == Mode_Copy ) ) {
+                    mode = Mode_Copy;
+                }
+
+                ImGui::SameLine();
+
+                if ( ImGui::RadioButton( "Move", mode == Mode_Move ) ) {
+                    mode = Mode_Move;
+                }
+
+                ImGui::SameLine();
+
+                if ( ImGui::RadioButton( "Swap", mode == Mode_Swap ) ) {
+                    mode = Mode_Swap;
+                }
+
+                static const char *names[9] = {
+                    "Bobby", "Beatrice", "Betty",
+                    "Brianna", "Barry", "Bernard",
+                    "Bibi", "Blaine", "Bryn"
+                };
+
+                for ( int n = 0; n < IM_ARRAYSIZE( names ); n++ ) {
+                    ImGui::PushID( n );
+
+                    if ( ( n % 3 ) != 0 ) {
+                        ImGui::SameLine();
+                    }
+
+                    ImGui::Button( names[n], ImVec2( 60, 60 ) );
+
+                    // Our buttons are both drag sources and drag targets here!
+                    if ( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) ) {
+                        // Set payload to carry the index of our item (could be anything)
+                        ImGui::SetDragDropPayload( "DND_DEMO_CELL", &n, sizeof( int ) );
+
+                        // Display preview (could be anything, e.g. when dragging an image we could decide to display
+                        // the filename and a small preview of the image, etc.)
+                        if ( mode == Mode_Copy ) {
+                            ImGui::Text( "Copy %s", names[n] );
+                        }
+
+                        if ( mode == Mode_Move ) {
+                            ImGui::Text( "Move %s", names[n] );
+                        }
+
+                        if ( mode == Mode_Swap ) {
+                            ImGui::Text( "Swap %s", names[n] );
+                        }
+
+                        ImGui::EndDragDropSource();
+                    }
+
+                    if ( ImGui::BeginDragDropTarget() ) {
+                        if ( const ImGuiPayload *payload = ImGui::AcceptDragDropPayload( "DND_DEMO_CELL" ) ) {
+                            IM_ASSERT( payload->DataSize == sizeof( int ) );
+                            int payload_n = *( const int * )payload->Data;
+
+                            if ( mode == Mode_Copy ) {
+                                names[n] = names[payload_n];
+                            }
+
+                            if ( mode == Mode_Move ) {
+                                names[n] = names[payload_n];
+                                names[payload_n] = "";
+                            }
+
+                            if ( mode == Mode_Swap ) {
+                                const char *tmp = names[n];
+                                names[n] = names[payload_n];
+                                names[payload_n] = tmp;
+                            }
+                        }
+
+                        ImGui::EndDragDropTarget();
+                    }
+
+                    ImGui::PopID();
+                }
+
+                ImGui::TreePop();
+            }
+
+            if ( ImGui::TreeNode( "Drag to reorder items (simple)" ) ) {
+                // FIXME: there is temporary (usually single-frame) ID Conflict during reordering as a same item may be submitting twice.
+                // This code was always slightly faulty but in a way which was not easily noticeable.
+                // Until we fix this, enable ImGuiItemFlags_AllowDuplicateId to disable detecting the issue.
+                ImGui::PushItemFlag( ImGuiItemFlags_AllowDuplicateId, true );
+
+                // Simple reordering
+                widget::MakeHelpPopUp(
+                    "We don't use the drag and drop api at all here! "
+                    "Instead we query when the item is held but not hovered, and order items accordingly." );
+                static const char *item_names[] = { "Item One", "Item Two", "Item Three", "Item Four", "Item Five" };
+
+                for ( int n = 0; n < IM_ARRAYSIZE( item_names ); n++ ) {
+                    const char *item = item_names[n];
+                    ImGui::Selectable( item );
+
+                    if ( ImGui::IsItemActive() && !ImGui::IsItemHovered() ) {
+                        int n_next = n + ( ImGui::GetMouseDragDelta( 0 ).y < 0.f ? -1 : 1 );
+
+                        if ( n_next >= 0 && n_next < IM_ARRAYSIZE( item_names ) ) {
+                            item_names[n] = item_names[n_next];
+                            item_names[n_next] = item;
+                            ImGui::ResetMouseDragDelta();
+                        }
+                    }
+                }
+
+                ImGui::PopItemFlag();
+                ImGui::TreePop();
+            }
+
+            if ( ImGui::TreeNode( "Tooltip at target location" ) ) {
+                for ( int n = 0; n < 2; n++ ) {
+                    // Drop targets
+                    ImGui::Button( n ? "drop here##1" : "drop here##0" );
+
+                    if ( ImGui::BeginDragDropTarget() ) {
+                        ImGuiDragDropFlags drop_target_flags = ImGuiDragDropFlags_AcceptBeforeDelivery | ImGuiDragDropFlags_AcceptNoPreviewTooltip;
+
+                        if ( const ImGuiPayload *payload = ImGui::AcceptDragDropPayload( IMGUI_PAYLOAD_TYPE_COLOR_4F, drop_target_flags ) ) {
+                            IM_UNUSED( payload );
+                            ImGui::SetMouseCursor( ImGuiMouseCursor_NotAllowed );
+                            mikoto::imgui::widget::ItemTooltip( "Cannot drop here!" );
+                        }
+
+                        ImGui::EndDragDropTarget();
+                    }
+
+                    // Drop source
+                    static ImVec4 col4 = { 1.0f, 0.0f, 0.2f, 1.0f };
+
+                    if ( n == 0 ) {
+                        ImGui::ColorButton( "drag me", col4 );
+                    }
+                }
+
+                ImGui::TreePop();
+            }
+
+            ImGui::TreePop();
+        }
+    }
+
+    auto GetStringFromUnicode( core::u32 codePoint ) -> eastl::string {
+        MKT_BEGIN_PROFILER();
+        eastl::fixed_string<char, 64> utf8{};
+        ImTextCharToUtf8( utf8.data(), codePoint );
+
+        return eastl::string{ utf8.c_str() };
+    }
+
+    auto DebugShowMaterialIcons() -> void {
+        MKT_BEGIN_PROFILER();
+        ImGui::Begin( "Material Icons Debug" );
+
+        // Scrollable area
+        if ( ImGui::BeginChild( "IconScrollArea", ImVec2( 0, 0 ), true ) ) {
+            const core::u32 ICON_MIN{ ICON_MIN_MD };
+            const core::u32 ICON_MAX{ ICON_MAX_16_MD };
+            const core::u32 ICONS_PER_ROW{ 16 };
+
+            core::i32 count{};
+            char utf8[5]{};
+
+            for ( core::u32 codepoint{ ICON_MIN }; codepoint <= ICON_MAX; ++codepoint ) {
+                ImTextCharToUtf8( utf8, codepoint );
+
+                // Render icon as selectable button
+                ImGui::PushID( codepoint );
+
+                if ( ImGui::Button( utf8, ImVec2( 24, 24 ) ) ) {
+                    // Optional: do something on click
+                }
+
+                if ( ImGui::IsItemHovered() ) {
+                    mikoto::imgui::widget::ItemTooltip( "Codepoint: U+%04X (%d)", codepoint, codepoint );
+                }
+
+                ImGui::PopID();
+
+                count++;
+
+                if ( count % ICONS_PER_ROW != 0 ) {
+                    ImGui::SameLine();
+                }
+            }
+
+            ImGui::EndChild();
+        }
+
+        ImGui::End();
+    }
+
+    auto DrawMemoryVisualizer( const void *memory, core::usize size, std::uintptr_t baseAddress, core::usize bytesPerRow ) -> void {
+        MKT_BEGIN_PROFILER();
+
+        if ( memory == nullptr || size == 0 ) {
+            ImGui::TextUnformatted( "No memory to display." );
+            return;
+        }
+
+        const auto *bytes{ static_cast<const std::uint8_t *>( memory ) };
+
+        constexpr ImGuiTableFlags flags{
+            ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit
+        };
+
+        if ( ImGui::BeginTable( "MemoryTable", 4, flags, ImVec2{ 0.0f, 320.0f } ) ) {
+            ImGui::TableSetupColumn( "Address", ImGuiTableColumnFlags_WidthFixed, 120.0f );
+            ImGui::TableSetupColumn( "Offset", ImGuiTableColumnFlags_WidthFixed, 80.0f );
+            ImGui::TableSetupColumn( "Hex", ImGuiTableColumnFlags_WidthStretch );
+            ImGui::TableSetupColumn( "Decimal", ImGuiTableColumnFlags_WidthStretch );
+            ImGui::TableHeadersRow();
+
+            for ( core::usize row{ 0 }; row < size; row += bytesPerRow ) {
+                const std::uintptr_t address{ baseAddress + row };
+
+                ImGui::TableNextRow();
+
+                // Address
+                ImGui::TableSetColumnIndex( 0 );
+                ImGui::Text( "0x%08llX", static_cast<unsigned long long>( address ) );
+
+                // Offset
+                ImGui::TableSetColumnIndex( 1 );
+                ImGui::Text( "+0x%06llX", static_cast<unsigned long long>( row ) );
+
+                // Hex
+                ImGui::TableSetColumnIndex( 2 );
+
+                for ( core::usize col{ 0 }; col < bytesPerRow; ++col ) {
+                    const core::usize index{ row + col };
+
+                    if ( index < size ) {
+                        ImGui::Text( "%02X", bytes[index] );
+                    }
+                    else {
+                        ImGui::TextUnformatted( "  " );
+                    }
+
+                    ImGui::SameLine();
+                }
+
+                // Decimal
+                ImGui::TableSetColumnIndex( 3 );
+
+                for ( core::usize col{ 0 }; col < bytesPerRow; ++col ) {
+                    const core::usize index{ row + col };
+
+                    if ( index < size ) {
+                        ImGui::Text( "%3u", static_cast<unsigned int>( bytes[index] ) );
+                    }
+                    else {
+                        ImGui::TextUnformatted( "   " );
+                    }
+
+                    ImGui::SameLine();
+                }
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    auto SetCursorHandOnLastItemHovered() -> void {
+        MKT_BEGIN_PROFILER();
+
+        if ( ImGui::IsItemHovered() ) {
+            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        }
+    }
+
+
+    namespace ed = ax::NodeEditor;
+
+    auto ApplyBlueprintStyle() -> void {
+        auto &style{ ed::GetStyle() };
+        style.NodePadding = { 12, 8, 12, 10 };
+        style.NodeRounding = 10.0f;
+        style.NodeBorderWidth = 1.0f;
+        style.HoveredNodeBorderWidth = 2.0f;
+        style.SelectedNodeBorderWidth = 2.5f;
+        style.LinkStrength = 100.0f;
+        style.SourceDirection = { 1, 0 };
+        style.TargetDirection = { -1, 0 };
+        style.HighlightConnectedLinks = 1.0f;
+        style.Colors[ed::StyleColor_Bg] = ImColor{ 35, 35, 38 };
+        style.Colors[ed::StyleColor_Grid] = ImColor{ 65, 65, 69, 90 };
+        style.Colors[ed::StyleColor_NodeBg] = ImColor{ 55, 55, 58 };
+        style.Colors[ed::StyleColor_NodeBorder] = ImColor{ 115, 115, 120 };
+        style.Colors[ed::StyleColor_HovNodeBorder] = ImColor{ 90, 180, 240 };
+        style.Colors[ed::StyleColor_SelNodeBorder] = ImColor{ 245, 180, 60 };
+        style.Colors[ed::StyleColor_HovLinkBorder] = ImColor{ 100, 190, 250 };
+        style.Colors[ed::StyleColor_SelLinkBorder] = ImColor{ 245, 180, 60 };
+    }
+
+    auto DrawBlueprintHeader( ed::NodeId node, const ImVec2 &start, const ImVec4 &color ) -> void {
+        const auto &style{ ed::GetStyle() };
+        const auto inset{ style.NodeBorderWidth * 0.5f };
+        const ImVec2 minimum{ start.x - style.NodePadding.x + inset, start.y - style.NodePadding.y + inset };
+        const ImVec2 maximum{ minimum.x + ed::GetNodeSize( node ).x - inset * 2, start.y + ImGui::GetTextLineHeight() + 5 };
+        auto *draw{ ed::GetNodeBackgroundDrawList( node ) };
+        const auto first{ draw->VtxBuffer.Size };
+
+        draw->AddRectFilled( minimum, maximum, ImGui::GetColorU32( color ), style.NodeRounding, ImDrawFlags_RoundCornersTop );
+
+        // Shade the rounded geometry itself so the gradient cannot spill into corners.
+        const ImVec4 top{ color.x * 0.75f + 0.25f, color.y * 0.75f + 0.25f, color.z * 0.75f + 0.25f, color.w };
+
+        ImGui::ShadeVertsLinearColorGradientKeepAlpha(
+            draw, first, draw->VtxBuffer.Size, minimum,
+            { minimum.x, maximum.y }, ImGui::GetColorU32( top ), ImGui::GetColorU32( color ) );
+
+        draw->AddLine( { minimum.x, maximum.y }, maximum, IM_COL32( 255, 255, 255, 30 ) );
+    }
+
+    auto DrawBlueprintPinIcon( BlueprintPinShape shape, bool connected, const ImVec4 &color ) -> void {
+        using ax::Drawing::IconType;
+
+        const auto type{ shape == BlueprintPinShape::eFlow ? IconType::Flow : shape == BlueprintPinShape::eObject ? IconType::Square
+                                                                                                                  : IconType::Circle };
+
+        const auto size{ ImGui::GetTextLineHeight() + 4.0f };
+        ax::Widgets::Icon( { size, size }, type, connected, color, { .16f, .16f, .17f, 1 } );
+    }
+
+
+    UnindentScoped::UnindentScoped( core::u32 width )
+        : mWidth{ width } {
+        MKT_BEGIN_PROFILER();
+        ImGui::Unindent( mWidth );
+    }
+
+    UnindentScoped::~UnindentScoped() {
+        MKT_BEGIN_PROFILER();
+        ImGui::Indent( mWidth );
+    }
+
+    ImGuiScopedStyleVar::~ImGuiScopedStyleVar() {
+        MKT_BEGIN_PROFILER();
+        ImGui::PopStyleVar();
+    }
+
+    ImGuiScopedColor::~ImGuiScopedColor() {
+        MKT_BEGIN_PROFILER();
+        ImGui::PopStyleColor();
+    }
+
+    ImGuiScopedBorderColor::ImGuiScopedBorderColor( core::float4 color, float thickness ) {
+        MKT_BEGIN_PROFILER();
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, thickness );
+        ImGui::PushStyleColor( ImGuiCol_Border, IM_COL32( color.r, color.g, color.b, color.a ) );
+    }
+
+    ImGuiScopedBorderColor::~ImGuiScopedBorderColor() {
+        MKT_BEGIN_PROFILER();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
+    }
+
+    ImGuiScopedTextFont::ImGuiScopedTextFont( core::i8 index )
+        : ImGuiScopedTextFont{ index == Invalid ? nullptr : ImGui::GetIO().Fonts->Fonts[index] } {}
+
+    ImGuiScopedTextFont::ImGuiScopedTextFont( ImFont* font )
+        : mFont{ font } {
+        MKT_BEGIN_PROFILER();
+
+        if ( mFont ) {
+            ImGui::PushFont( mFont );
+        }
+    }
+
+    ImGuiScopedTextFont::ImGuiScopedTextFont( ImGuiScopedTextFont&& other ) noexcept
+        : mFont{ other.mFont } {
+        // The moved-from temporary must not pop the font owned by this scope.
+        other.mFont = nullptr;
+    }
+
+    ImGuiScopedTextFont::~ImGuiScopedTextFont() {
+        MKT_BEGIN_PROFILER();
+
+        if ( mFont ) {
+            ImGui::PopFont();
+        }
+    }
+
+}// namespace mikoto::imgui

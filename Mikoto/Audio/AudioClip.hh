@@ -12,60 +12,93 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_AUDIO_CLIP_HH
-#define MIKOTO_AUDIO_CLIP_HH
-
-#include <miniaudio.h>
+#ifndef MIKOTO_AUDIO_AUDIO_CLIP_HH
+#define MIKOTO_AUDIO_AUDIO_CLIP_HH
 
 #include <EASTL/string.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/ResourcePool.hh>
+#include <Core/Profiler.hh>
+#include <Core/Resource.hh>
 
 #include <Filesystem/File.hh>
 
+#include <Audio/Utility.hh>
 #include <Audio/AudioSource.hh>
-#include <Audio/AudioUtility.hh>
 #include <Audio/AudioDeviceObject.hh>
 
 namespace mikoto::audio {
 
-    using namespace mikoto::core;
-    using namespace mikoto::filesystem;
-
     /**
-    * @class AudioDeviceObject
-    * @brief Represents a resource associated with an audio device.
-    *
-    * This class serves as a base for audio assets. To reproduce them,
-    * we need to create a source and a listener. Audio assets are loaded
-    * to the main device which is part of the Audio service.
-    */
+     * @brief Retains an audio file and default gain associated with an audio device.
+     *
+     * Create an AudioSource to decode and play the file. Loading the clip itself
+     * does not decode audio. Clips are registered with their owning AudioDevice.
+     */
     class Audio final : public AudioDeviceObject {
     public:
         /**
-         * @brief Constructs an Audio object with a given description.
+         * @brief Stores a source file handle and sanitized default gain.
          *
-         * @param description The audio description containing source file and volume settings.
+         * @param file Encoded audio file to retain; no decoding is performed here.
+         * @param volume Default linear gain, clamped to [0,20].
          */
-        explicit Audio( const AudioLoadDescription& description );
+        explicit Audio( filesystem::FileHandle file, core::f32 volume );
 
-        MKT_NODISCARD auto GetFile() const -> FileHandle;
-        MKT_NODISCARD auto CreateSource() -> AudioSourceHandle;
+
+        /**
+         * @brief Gets the retained source file.
+         *
+         * @return Shared file handle, possibly empty.
+         */
+        MKT_NODISCARD auto GetFile() const -> filesystem::FileHandle;
+
+
+        /**
+         * @brief Creates an independent playback source with this clip's default gain.
+         *
+         * @return Ready source, or empty if the clip/device/file is unavailable or source
+         * initialization fails.
+         */
+        MKT_NODISCARD auto CreateSource() const -> AudioSourceHandle;
+
+
+        /**
+         * @brief Gets the filename used as the track name.
+         *
+         * @return Borrowed filename including extension, or an empty view without a source file.
+         */
         MKT_NODISCARD auto GetTrackName() const -> eastl::string_view;
 
+
+        /**
+         * @brief Unregisters the clip if allocated.
+         */
+        ~Audio() override;
+
     private:
+        /**
+         * @brief Unregisters the clip and clears its device association.
+         */
         auto Destroy() -> void override;
+
+
+        /**
+         * @brief Registers the clip with its initialized device without decoding audio.
+         */
         auto Initialize() -> void override;
 
     private:
-        FileHandle mFileSource{};
-        ResourcePoolTyped<AudioSource> m_Sources{};
+        friend class AudioDevice;
+
+    private:
+        core::f32 mDefaultVolume{ 1.0f };
+        filesystem::FileHandle mFileSource{};
     };
 
-    using AudioHandle = Ref<Audio>;
+    using AudioHandle = core::Ref<Audio>;
 
 }
 
-#endif //MIKOTO_AUDIO_CLIP_HH
+#endif// MIKOTO_AUDIO_AUDIO_CLIP_HH

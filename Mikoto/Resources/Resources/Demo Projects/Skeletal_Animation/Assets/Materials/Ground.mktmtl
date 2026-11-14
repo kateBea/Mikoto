@@ -1,0 +1,8 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Ground"
+Material:
+  BaseColorFactor: [0.3,0.32,0.35,1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.9
+  AlphaMask: 0

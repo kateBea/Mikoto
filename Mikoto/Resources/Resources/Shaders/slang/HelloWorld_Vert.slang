@@ -12,27 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 struct VSOutput {
     float4 mPosition : SV_Position;
     float3 mColor : COLOR0;
 };
 
-[shader("vertex")]
-VSOutput main(uint vertexID: SV_VertexID) {
-    const float2 positions[3] = {
-        float2(0.0, -0.5),
-        float2(0.5, 0.5),
-        float2(-0.5, 0.5)
-    };
+[shader( "vertex" )]
+VSOutput main( uint vertexID : SV_VertexID ) {
+    const float2 positions[3] = { float2( 0.0, -0.5 ), float2( 0.5, 0.5 ), float2( -0.5, 0.5 ) };
 
-    const float3 colors[3] = {
-        float3(1.0, 0.0, 0.0),
-        float3(0.0, 1.0, 0.0),
-        float3(0.0, 0.0, 1.0)
-    };
+    const float3 colors[3] = { float3( 1.0, 0.0, 0.0 ), float3( 0.0, 1.0, 0.0 ), float3( 0.0, 0.0, 1.0 ) };
 
     VSOutput output;
-    output.mPosition = float4(positions[vertexID], 0.0, 1.0);
+    output.mPosition = float4( positions[vertexID], 0.0, 1.0 );
     output.mColor = colors[vertexID];
 
     return output;

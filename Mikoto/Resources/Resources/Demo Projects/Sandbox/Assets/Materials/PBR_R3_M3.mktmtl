@@ -1,0 +1,8 @@
+Version: 2
+Type: SurfaceMaterial
+Name: PBR_R3_M3
+Material:
+  BaseColorFactor: [0.5, 0.22, 0.72, 1]
+  MetallicFactor: 0.75
+  RoughnessFactor: 0.75
+  AlphaMask: 0

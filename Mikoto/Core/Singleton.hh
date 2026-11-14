@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SINGLETON_HH
-#define MIKOTO_SINGLETON_HH
+#ifndef MIKOTO_CORE_SINGLETON_HH
+#define MIKOTO_CORE_SINGLETON_HH
+
+#include <Core/Core.hh>
 
 #include <Logging/Assert.hh>
 
 namespace mikoto::core {
 
     template<typename Derived>
-    class Singleton {
+    class Singleton : public INonCopyable, public INonMoveable {
     public:
         using Value = Derived;
         using ValueRef = Derived&;
@@ -28,27 +30,42 @@ namespace mikoto::core {
 
     public:
         explicit Singleton() {
-            MKT_ASSERT(!sInstance, "Singleton - Instance already exists.");
-            sInstance = static_cast<ValuePtr>(this);
+            MKT_BEGIN_PROFILER();
+            MKT_ASSERT( !sInstance, "Singleton - Instance already exists." );
+            sInstance = static_cast<ValuePtr>( this );
         }
+
 
         /**
          * Returns a reference to the single instance
          * @returns Reference to the single instance
          * */
-        static auto Get() -> ValueRef {
+        MKT_NODISCARD static auto Get() -> ValueRef {
             return *sInstance;
         }
+
 
         /**
          * Returns a pointer to the single instance
          * @returns Pointer to the single instance
          * */
-        static auto GetPtr() -> ValuePtr { if (!sInstance) Get();  return sInstance; }
+        MKT_NODISCARD static auto GetPtr() -> ValuePtr {
+            return sInstance;
+        }
+
+        /**
+         * Returns true if the singleton instance exists
+         * @returns True if the singleton instance exists
+         * */
+        MKT_NODISCARD static auto HasInstance() -> bool {
+            return sInstance != nullptr;
+        }
+
 
         ValuePtr operator->() {
             return sInstance;
         }
+
 
         /**
          * Called when this instance is destroyed.
@@ -57,13 +74,10 @@ namespace mikoto::core {
             // A singleton can be owned by a short-lived Engine instance.  Do not
             // leave a pointer to a destroyed service behind when that instance
             // is torn down (or when a subsequent engine is created in-process).
-            if (sInstance == static_cast<ValuePtr>(this)) {
+            if ( sInstance == static_cast<ValuePtr>( this ) ) {
                 sInstance = nullptr;
             }
         }
-
-    public:
-        DISABLE_COPY_AND_MOVE_FOR(Singleton);
 
     protected:
         /**
@@ -71,7 +85,6 @@ namespace mikoto::core {
          * */
         inline static ValuePtr sInstance;
     };
-
 }
 
-#endif // MIKOTO_SINGLETON_HH
+#endif// MIKOTO_CORE_SINGLETON_HH

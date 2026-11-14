@@ -1,0 +1,29 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Gold",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 1,
+    "RoughnessFactor": 0.15,
+    "AlphaMask": 0,
+    "ShadingModel": 7,
+    "Conductor": {
+      "Eta": [
+        0.2060566,
+        0.3504088,
+        1.4186078
+      ],
+      "K": [
+        3.0304736,
+        2.7140631,
+        1.8431054
+      ]
+    }
+  }
+}

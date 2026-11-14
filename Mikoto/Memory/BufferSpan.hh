@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_BUFFER_SPAN_HH
-#define MIKOTO_BUFFER_SPAN_HH
+#ifndef MIKOTO_MEMORY_BUFFER_SPAN_HH
+#define MIKOTO_MEMORY_BUFFER_SPAN_HH
 
 #include <EASTL/vector.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/ResourcePool.hh>
+#include <Core/Profiler.hh>
+#include <Core/Resource.hh>
 
 #include <Memory/Allocator.hh>
 
@@ -27,12 +28,12 @@ namespace mikoto::memory {
 
     class BufferSpan : public core::ReferenceCounted<BufferSpan> {
     public:
-
         explicit BufferSpan( core::usize byteSize );
         explicit BufferSpan( const void* data, core::usize byteSize );
 
         template<typename T >
         auto Push(const T& data) -> void {
+            MKT_BEGIN_PROFILER();
             Push( MKT_ADDRESSOF( data ), MKT_SIZEOF( data ) );
         }
 
@@ -48,7 +49,7 @@ namespace mikoto::memory {
         eastl::vector<core::ubyte> mBuffer{};
     };
 
-    using BufferSpanHandle = Ref<BufferSpan>;
+    using BufferSpanHandle = core::Ref<BufferSpan>;
 }// namespace mikoto
 
-#endif//MIKOTO_BUFFER_SPAN_HH
+#endif// MIKOTO_MEMORY_BUFFER_SPAN_HH

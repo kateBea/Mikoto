@@ -12,17 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_D3D11PIPELINE_HH
-#define MIKOTO_D3D11PIPELINE_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D11_D3D11_PIPELINE_HH
+#define MIKOTO_RENDERER_RHI_D3D11_D3D11_PIPELINE_HH
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Platform.hh>
-
-#include <Renderer/Rhi/Utility.hh>
+#include <Core/Types.hh>
 #include <Renderer/Rhi/Pipeline.hh>
+#include <Renderer/Rhi/Utility.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
+
+#include <Platform/Windows/Windows.hh>
 
 #include <d3d11.h>
 #include <d3dcommon.h>
@@ -33,7 +34,7 @@
 
 namespace mikoto::renderer::d3d11 {
 
-    class GraphicsPipeline final : public rhi::IGraphicsPipeline {
+    class GraphicsPipeline final : public rhi::GraphicsPipeline {
     public:
 
         explicit GraphicsPipeline( const rhi::GraphicsPipelineDescription& desc );
@@ -53,7 +54,7 @@ namespace mikoto::renderer::d3d11 {
         Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthStencilStace{};
     };
 
-    class ComputePipeline final : public rhi::IComputePipeline {
+    class ComputePipeline final : public rhi::ComputePipeline {
     public:
 
         explicit ComputePipeline( const rhi::ComputePipelineDescription& desc );
@@ -68,4 +69,5 @@ namespace mikoto::renderer::d3d11 {
 
 #endif
 
-#endif//MIKOTO_D3D11PIPELINE_HH
+#endif// MIKOTO_RENDERER_RHI_D3D11_D3D11_PIPELINE_HH
+

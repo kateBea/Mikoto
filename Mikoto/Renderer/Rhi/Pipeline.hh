@@ -12,27 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_PIPELINE_HH
-#define MIKOTO_RHI_PIPELINE_HH
+#ifndef MIKOTO_RENDERER_RHI_PIPELINE_HH
+#define MIKOTO_RENDERER_RHI_PIPELINE_HH
 
 #include <EASTL/span.h>
+#include <EASTL/vector.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 #include <EASTL/fixed_vector.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
+#include <Core/Resource.hh>
+
 #include <Memory/BufferSpan.hh>
-#include <Core/ResourcePool.hh>
 
 #include <Assets/Image.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Shader.hh>
-#include <Renderer/Rhi/Descriptor.hh>
+#include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Rhi/Utility.hh>
+#include <Renderer/Rhi/Descriptor.hh>
 #include <Renderer/Rhi/DeviceObject.hh>
+#include <Renderer/Rhi/AccelerationStructure.hh>
 
 namespace mikoto::renderer::rhi {
 
@@ -57,6 +60,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetShader( ShaderModuleHandle shader ) -> InputLayoutCreateDescription&;
 
+
         /**
          * Sets the value handled by SetBindings.
          *
@@ -64,6 +68,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetBindings.
          */
         auto SetBindings( eastl::span<const VertexBindingDescription> items ) -> InputLayoutCreateDescription&;
+
 
         /**
          * Sets the value handled by SetAttributes.
@@ -73,6 +78,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetAttributes( eastl::span<const VertexAttributeDescription> items ) -> InputLayoutCreateDescription&;
 
+
         /**
          * Adds the supplied value through PushBinding.
          *
@@ -80,6 +86,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of PushBinding.
          */
         auto PushBinding( const VertexBindingDescription& desc ) -> InputLayoutCreateDescription&;
+
 
         /**
          * Adds the supplied value through PushAttribute.
@@ -89,7 +96,6 @@ namespace mikoto::renderer::rhi {
          */
         auto PushAttribute( const VertexAttributeDescription& desc ) -> InputLayoutCreateDescription&;
     };
-
 
     /**
      * Backend-specific representation of a vertex input layout.
@@ -102,6 +108,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of GetNumAttributes.
          */
         MKT_NODISCARD virtual auto GetNumAttributes() const -> core::u32 = 0;
+
 
         /**
          * Returns the vertex attribute at @p index.
@@ -128,6 +135,7 @@ namespace mikoto::renderer::rhi {
          */
         MKT_NODISCARD virtual auto GetRegisterSpace() const -> core::u32 = 0;
 
+
         /**
          * Returns whether this layout represents bindless descriptor arrays.
          * @returns The result of IsBindless.
@@ -142,6 +150,7 @@ namespace mikoto::renderer::rhi {
          * Creates the native binding-layout object.
          */
         auto Initialize() -> void override = 0;
+
 
         /**
          * Releases the native binding-layout object.
@@ -166,6 +175,7 @@ namespace mikoto::renderer::rhi {
          */
         auto Initialize() -> void override = 0;
 
+
         /**
          * Releases the native pipeline-layout object.
          */
@@ -182,6 +192,7 @@ namespace mikoto::renderer::rhi {
         ShaderFlags mPushConstantsVisibility{ ShaderFlagsBits::All };
         eastl::fixed_vector<BindingLayoutHandle, kMaxBindingLayouts> mBindingLayouts{};
 
+
         /**
          * Sets the value handled by SetPushConstantSize.
          *
@@ -190,6 +201,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetPushConstantSize( core::usize size ) -> PipelineLayoutCreateDescription&;
 
+
         /**
          * Sets the value handled by SetPushConstantsVisibility.
          *
@@ -197,6 +209,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetPushConstantsVisibility.
          */
         auto SetPushConstantsVisibility( ShaderFlags stage ) -> PipelineLayoutCreateDescription&;
+
 
         /**
          * Adds the supplied value through AddBindingLayout.
@@ -208,7 +221,7 @@ namespace mikoto::renderer::rhi {
     };
 
     /**
-     * Base interface for immutable graphics and compute pipelines.
+     * Base interface for immutable graphics, compute and ray-tracing pipelines.
      */
     class IPipeline : public DeviceObject {
     public:
@@ -220,29 +233,19 @@ namespace mikoto::renderer::rhi {
          */
         ~IPipeline() override = default;
 
+
         /**
-         * Returns whether this is a graphics or compute pipeline.
+         * Returns the pipeline bind point.
          * @returns The result of GetPipelineType.
          */
-        MKT_NODISCARD auto GetPipelineType() const -> PipelineType;
+        MKT_NODISCARD virtual auto GetPipelineType() const -> PipelineType = 0;
+
 
         /**
          * Returns the layout used to bind resources to this pipeline.
          * @returns The result of GetPipelineLayout.
          */
         MKT_NODISCARD virtual auto GetPipelineLayout() const -> PipelineLayoutHandle = 0;
-
-    protected:
-
-        /**
-         * Constructs a pipeline wrapper.
-         *
-         * @param pipelineType Type of pipeline being created.
-         */
-        explicit IPipeline( PipelineType pipelineType);
-
-    protected:
-        const PipelineType mPipelineType{ PipelineType::eInvalid };
     };
 
     using PipelineHandle = core::Ref<IPipeline>;
@@ -254,32 +257,111 @@ namespace mikoto::renderer::rhi {
         ShaderModuleHandle mStage{};
         PipelineLayoutHandle mPipelineLayout{};
 
+        bool mTrackState{ true };
         bool mUseReflection{ false };
 
         /**
          * Sets the value handled by SetUseReflection.
          *
          * @param value Input value used by this operation.
-         * @returns The result of SetUseReflection.
+         * @returns A reference to the implicit parameter.
          */
         auto SetUseReflection( bool value ) -> ComputePipelineDescription&;
+
 
         /**
          * Sets the value handled by SetComputeStage.
          *
          * @param handle Input value used by this operation.
-         * @returns The result of SetComputeStage.
+         * @returns A reference to the implicit parameter.
          */
         auto SetComputeStage( ShaderModuleHandle handle ) -> ComputePipelineDescription&;
+
 
         /**
          * Sets the value handled by SetPipelineLayout.
          *
          * @param handle Input value used by this operation.
-         * @returns The result of SetPipelineLayout.
+         * @returns A reference to the implicit parameter.
          */
         auto SetPipelineLayout( PipelineLayoutHandle handle ) -> ComputePipelineDescription&;
     };
+
+
+    /**
+     * Controls how fragment output combines with an existing render target.
+     * RGB and alpha have separate factors and operations.
+     */
+    struct BlendState {
+        bool mEnabled{ true };
+
+        BlendFactor mSrcColorFactor{ BlendFactor::eSrcAlpha };
+        BlendFactor mDstColorFactor{ BlendFactor::eOneMinusSrcAlpha };
+        BlendOperation mColorOperation{ BlendOperation::eAdd };
+
+        BlendFactor mSrcAlphaFactor{ BlendFactor::eOne };
+        BlendFactor mDstAlphaFactor{ BlendFactor::eOneMinusSrcAlpha };
+        BlendOperation mAlphaOperation{ BlendOperation::eAdd };
+
+        ColorWriteMask mWriteMask{ ColorWriteMask::eRGBA };
+
+        /**
+         * @brief Enables or disables blending without changing its factors.
+         * @param value Whether fragments blend with the current target.
+         * @returns This blend state for chained configuration.
+         */
+        auto SetEnabled( bool value ) -> BlendState&;
+
+        /**
+         * @brief Sets the factor multiplying the fragment's RGB output.
+         * @param value Source RGB blend factor.
+         * @returns This blend state for chained configuration.
+         */
+        auto SetSrcColorFactor( BlendFactor value ) -> BlendState&;
+
+        /**
+         * @brief Sets the factor multiplying the target's existing RGB.
+         * @param value Destination RGB blend factor.
+         * @returns This blend state for chained configuration.
+         */
+        auto SetDstColorFactor( BlendFactor value ) -> BlendState&;
+
+        /**
+         * @brief Sets how the weighted source and destination RGB are combined.
+         * @param value RGB blend operation.
+         * @returns This blend state for chained configuration.
+         */
+        auto SetColorOperation( BlendOperation value ) -> BlendState&;
+
+        /**
+         * @brief Sets the factor multiplying the fragment's alpha.
+         * @param value Source alpha factor; use Zero, One, or an alpha factor.
+         * @returns This blend state for chained configuration.
+         */
+        auto SetSrcAlphaFactor( BlendFactor value ) -> BlendState&;
+
+        /**
+         * @brief Sets the factor multiplying the target's existing alpha.
+         * @param value Destination alpha factor; use Zero, One, or an alpha factor.
+         * @returns This blend state for chained configuration.
+         */
+        auto SetDstAlphaFactor( BlendFactor value ) -> BlendState&;
+
+        /**
+         * @brief Sets how the weighted source and destination alpha are combined.
+         * @param value Alpha blend operation.
+         * @returns This blend state for chained configuration.
+         */
+        auto SetAlphaOperation( BlendOperation value ) -> BlendState&;
+
+        /**
+         * @brief Selects writable color channels, including when blending is disabled.
+         * @param value Channels that fragment output may update.
+         * @returns This blend state for chained configuration.
+         */
+        auto SetWriteMask( ColorWriteMask value ) -> BlendState&;
+    };
+
 
     /**
      * Immutable graphics pipeline state and attached shader modules.
@@ -289,8 +371,10 @@ namespace mikoto::renderer::rhi {
         bool mEnableDepthWrite{ true };
         bool mEnableStencilTest{ false };
 
-        bool mEnableAlphaBlending{ true };
+        BlendState mAlphaBlendState{};
         bool mEnableSampleRateShading{ false };
+
+        bool mTrackState{ true };
 
         bool mUseReflection{ false };
 
@@ -321,6 +405,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetPipelineLayout( PipelineLayoutHandle handle ) -> GraphicsPipelineDescription&;
 
+
         /**
          * Sets the value handled by SetInputLayout.
          *
@@ -328,6 +413,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetInputLayout.
          */
         auto SetInputLayout( InputLayoutHandle handle ) -> GraphicsPipelineDescription&;
+
 
         /**
          * Sets the value handled by SetPolygonMode.
@@ -337,6 +423,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetPolygonMode( PolygonMode mode ) -> GraphicsPipelineDescription&;
 
+
         /**
          * Sets the value handled by SetTopology.
          *
@@ -344,6 +431,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetTopology.
          */
         auto SetTopology( PrimitiveTopology topology ) -> GraphicsPipelineDescription&;
+
 
         /**
          * Sets the value handled by SetMultisampling.
@@ -353,6 +441,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetMultisampling( Multisampling msaa ) -> GraphicsPipelineDescription&;
 
+
         /**
          * Sets the value handled by SetUseReflection.
          *
@@ -360,6 +449,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetUseReflection.
          */
         auto SetUseReflection( bool value ) -> GraphicsPipelineDescription&;
+
 
         /**
          * Adds the supplied value through AddShader.
@@ -369,6 +459,7 @@ namespace mikoto::renderer::rhi {
          */
         auto AddShader( ShaderModuleHandle handle ) -> GraphicsPipelineDescription&;
 
+
         /**
          * Sets the value handled by SetCullMode.
          *
@@ -377,13 +468,21 @@ namespace mikoto::renderer::rhi {
          */
         auto SetCullMode( CullMode mode ) -> GraphicsPipelineDescription&;
 
+
         /**
-         * Sets the value handled by SetBlendEnable.
-         *
-         * @param value Input value used by this operation.
-         * @returns The result of SetBlendEnable.
+         * @brief Sets the blending factors, operations, and write mask for all color attachments.
+         * @param state Blend configuration, including whether blending is enabled.
+         * @returns This description for chained configuration.
+         */
+        auto SetAlphaBlendState( const BlendState& state ) -> GraphicsPipelineDescription&;
+
+        /**
+         * @brief Enables or disables the current blend state, preserving its other settings.
+         * @param value Whether fragments blend with the current color attachments.
+         * @returns This description for chained configuration.
          */
         auto SetBlendEnable( bool value ) -> GraphicsPipelineDescription&;
+
 
         /**
          * Sets the value handled by SetDepthTest.
@@ -393,6 +492,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetDepthTest( bool value ) -> GraphicsPipelineDescription&;
 
+
         /**
          * Sets the value handled by SetDepthWrite.
          *
@@ -400,6 +500,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetDepthWrite.
          */
         auto SetDepthWrite( bool value ) -> GraphicsPipelineDescription&;
+
 
         /**
          * Sets the value handled by SetDepthFormat.
@@ -409,6 +510,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetDepthFormat( Format format ) -> GraphicsPipelineDescription&;
 
+
         /**
          * Adds the supplied value through AddColorFormat.
          *
@@ -416,6 +518,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of AddColorFormat.
          */
         auto AddColorFormat( Format format ) -> GraphicsPipelineDescription&;
+
 
         /**
          * Sets the value handled by SetWindingOrder.
@@ -429,21 +532,22 @@ namespace mikoto::renderer::rhi {
     /**
      * Immutable graphics pipeline created from @ref GraphicsPipelineDescription.
      */
-    class IGraphicsPipeline : public IPipeline {
+    class GraphicsPipeline : public IPipeline {
     public:
-
         /**
          * Creates a graphics-pipeline wrapper.
          *
          * @param desc Immutable graphics-pipeline description.
          */
-        explicit IGraphicsPipeline(const GraphicsPipelineDescription& desc);
+        explicit GraphicsPipeline(const GraphicsPipelineDescription& desc);
+
 
         /**
          * Returns the immutable description used to create this pipeline.
          * @returns The result of GetDescription.
          */
         MKT_NODISCARD auto GetDescription() const noexcept -> const GraphicsPipelineDescription&;
+
 
         /**
          * Returns the layout used by this graphics pipeline.
@@ -452,6 +556,14 @@ namespace mikoto::renderer::rhi {
          */
         MKT_NODISCARD auto GetPipelineLayout() const -> PipelineLayoutHandle override;
 
+
+        /**
+         * Returns type of pipeline.
+         *
+         * @returns The pipeline type.
+         */
+        MKT_NODISCARD auto GetPipelineType() const -> PipelineType override;
+
     protected:
         GraphicsPipelineDescription mDesc{};
     };
@@ -459,7 +571,7 @@ namespace mikoto::renderer::rhi {
     /**
      * Immutable compute pipeline created from @ref ComputePipelineDescription.
      */
-    class IComputePipeline : public IPipeline {
+    class ComputePipeline : public IPipeline {
     public:
 
         /**
@@ -467,13 +579,15 @@ namespace mikoto::renderer::rhi {
          *
          * @param desc Immutable compute-pipeline description.
          */
-        explicit IComputePipeline(const ComputePipelineDescription& desc);
+        explicit ComputePipeline(const ComputePipelineDescription& desc);
+
 
         /**
          * Returns the immutable description used to create this pipeline.
          * @returns The result of GetDescription.
          */
         MKT_NODISCARD auto GetDescription() const noexcept -> const ComputePipelineDescription&;
+
 
         /**
          * Returns the layout used by this compute pipeline.
@@ -482,9 +596,77 @@ namespace mikoto::renderer::rhi {
          */
         MKT_NODISCARD auto GetPipelineLayout() const -> PipelineLayoutHandle override;
 
+
+        /**
+         * Returns type of pipeline.
+         *
+         * @returns The pipeline type.
+         */
+        MKT_NODISCARD auto GetPipelineType() const -> PipelineType override;
+
     protected:
         ComputePipelineDescription mDesc{};
     };
+
+    struct RayTracingPipelineDescription {
+        ShaderModuleHandle mRayGeneration{};
+        ShaderModuleHandle mMiss{};
+        ShaderModuleHandle mClosestHit{};
+
+        eastl::string mRayGenerationEntry{ "RayGeneration" };
+        eastl::string mMissEntry{ "Miss" };
+        eastl::string mClosestHitEntry{ "ClosestHit" };
+        eastl::string mHitGroupName{ "TriangleHitGroup" };
+
+        core::u32 mPayloadBytes{ 32 };
+        core::u32 mRecursionDepth{ 3 };
+
+        PipelineLayoutHandle mPipelineLayout{};
+    };
+
+    /** @brief Owns the ray-tracing pipeline and its shader-group definitions.
+     *
+     * Uses the same pipeline layout and command-list binding operations as
+     * graphics and compute. Resources and constants belong to the caller.
+     */
+    class RayTracingPipeline : public IPipeline {
+    public:
+        /** @brief Retains the immutable shader and pipeline-layout description.
+         *
+         * @param description Ray-tracing pipeline configuration.
+         */
+        explicit RayTracingPipeline( const RayTracingPipelineDescription& description );
+
+
+        /** @brief Returns the immutable shader entries, hit-group name and layout.
+         *
+         * @return Description retained by this pipeline.
+         */
+        MKT_NODISCARD auto GetDescription() const -> const RayTracingPipelineDescription&;
+
+
+        /** @brief Identifies the ray-tracing bind point.
+         *
+         * @return PipelineType::eRayTracing.
+         */
+        MKT_NODISCARD auto GetPipelineType() const -> PipelineType override;
+
+
+        /** @brief Returns the layout shared by resource and constant binding.
+         *
+         * @return The layout supplied when the pipeline was created.
+         */
+        MKT_NODISCARD auto GetPipelineLayout() const -> PipelineLayoutHandle override;
+
+
+        ~RayTracingPipeline() override = default;
+
+    protected:
+        RayTracingPipelineDescription mDescription{};
+    };
+
+    using RayTracingPipelineHandle = core::Ref<RayTracingPipeline>;
 }// namespace mikoto::renderer::rhi
 
-#endif//MIKOTO_RHI_PIPELINE_HH
+#endif// MIKOTO_RENDERER_RHI_PIPELINE_HH
+

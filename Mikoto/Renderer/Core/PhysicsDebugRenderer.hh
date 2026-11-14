@@ -12,20 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_PHYSICS_DEBUG_RENDERER_HH
-#define MIKOTO_PHYSICS_DEBUG_RENDERER_HH
 
 // Jolt needs to be included before
+
+#ifndef MIKOTO_RENDERER_CORE_PHYSICS_DEBUG_RENDERER_HH
+#define MIKOTO_RENDERER_CORE_PHYSICS_DEBUG_RENDERER_HH
+
 #include <Jolt/Jolt.h>
+
+#include <Core/Profiler.hh>
+
 #if defined( JPH_DEBUG_RENDERER )
 #include <Jolt/Renderer/DebugRenderer.h>
 #include <Jolt/Renderer/DebugRendererSimple.h>
+
 #endif
 
-#include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
-
-#include <Scene/Scene.hh>
+#include <EASTL/string_view.h>
 
 #include <Assets/ShaderLibrary.hh>
 
@@ -33,12 +37,15 @@
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/Renderer.hh>
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/ForwardRenderer/Passes/DebugOverlayModule.hh>
+
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
 #if defined( JPH_DEBUG_RENDERER )
 
-    // https://jrouwe.github.io/JoltPhysics/?utm_source=chatgpt.com
+    // https://jrouwe.github.io/JoltPhysics/index.html
 
     struct PhysicsDebugRendererCreateInfo {
         rhi::IGpuDevice* mDevice{};
@@ -57,10 +64,10 @@ namespace mikoto::renderer {
     public:
         explicit PhysicsDebugRenderer( const PhysicsDebugRendererCreateInfo& spec );
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        auto Render() -> void override;
+        auto Render() -> void;
 
         auto SetCameraPos(JPH::RVec3Arg inCameraPos) -> void;
 
@@ -131,16 +138,6 @@ namespace mikoto::renderer {
         auto SetRenderResolution( rhi::RenderResolution resolution ) -> PhysicsDebugRendererSimpleCreateInfo&;
     };
 
-    struct DebugVertex {
-        core::float4 mPosition{};
-        core::float4 mColor{};
-    };
-
-    struct DebugLine {
-        DebugVertex mFrom{};
-        DebugVertex mTo{};
-    };
-
     struct DebugTriangle {
         DebugVertex mV1{};
         DebugVertex mV2{};
@@ -156,14 +153,20 @@ namespace mikoto::renderer {
 
     class PhysicsDebugRendererSimple final : public IRenderer, public JPH::DebugRendererSimple  {
     public:
+        static constexpr core::usize kMaxLines{ 64'000 };
+
         explicit PhysicsDebugRendererSimple( const PhysicsDebugRendererSimpleCreateInfo& spec );
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        auto Render() -> void override;
+        auto Render() -> void;
 
         auto SetCamera( const scene::Camera* camera ) -> void;
+
+        auto BeginFrame() -> void;
+        auto GetLines() const -> const eastl::vector<DebugLine>&;
+        auto GetDroppedLineCount() const -> core::usize;
 
         auto DrawLine(
             JPH::RVec3Arg inFrom,
@@ -191,12 +194,12 @@ namespace mikoto::renderer {
         // [Internal usage]
         auto InitSimpleDrawPasses() -> void;
 
-        auto RenderLines() -> void;
+        auto RenderLines( CommandContext& context ) -> void;
         auto RenderTexts() -> void;
-        auto RenderTriangles() -> void;
+        auto RenderTriangles( CommandContext& context ) -> void;
 
     private:
-        static constexpr core::usize kMaxVerticesLines{ 64'000 };
+        static constexpr core::usize kMaxVerticesLines{ kMaxLines };
         static constexpr core::usize kMaxVerticesTriangles{ 64'000 };
 
         rhi::IGpuDevice* mDevice{};
@@ -207,32 +210,25 @@ namespace mikoto::renderer {
         const scene::Camera* mCamera{};
 
         eastl::vector<DebugLine> mLines{};
+        core::usize mDroppedLines{};
         eastl::vector<DebugText> mTexts{};
         eastl::vector<DebugTriangle> mTriangles{};
 
         bool mIsImguiWindowActiveLines{};
         bool mIsImguiWindowActiveTriangles{};
 
-        renderer::rhi::BufferHandle mLinesBuffer{};
-        renderer::rhi::BufferHandle mTrianglesBuffer{};
+        eastl::unique_ptr<FrameGraph> mGraph{};
+        FGBufferHandle mLinesBuffer{};
+        FGBufferHandle mTrianglesBuffer{};
+        FGTextureHandle mLinesColorTarget{};
+        FGTextureHandle mTrianglesColorTarget{};
+        FGTextureHandle mLinesDepthTarget{};
+        FGTextureHandle mTrianglesDepthTarget{};
+        FGPipelineHandle mPipelineLines{};
+        FGPipelineHandle mPipelineTriangles{};
 
         renderer::rhi::TextureHandle mColorImageTriangles{};
-        renderer::rhi::TextureHandle mDepthImageTriangles{};
-
         renderer::rhi::TextureHandle mColorImageLines{};
-        renderer::rhi::TextureHandle mDepthImageLines{};
-
-        renderer::rhi::ShaderModuleHandle mVertexShader{};
-        renderer::rhi::ShaderModuleHandle mPixelShader{};
-
-        renderer::rhi::CommandListHandle mCommandList{};
-
-        renderer::rhi::PipelineHandle mPipelineLines{};
-        renderer::rhi::PipelineHandle mPipelineTriangles{};
-        renderer::rhi::BindingTableHandle mBindingSetLinesHandle{};
-        renderer::rhi::BindingTableHandle mBindingSetTrianglesHandle{};
-        renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};
-        renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
     };
 
 
@@ -269,4 +265,5 @@ namespace mikoto::renderer {
 #endif // JPH_DEBUG_RENDERER
 }// namespace Mikoto
 
-#endif //MIKOTO_PHYSICS_DEBUG_RENDERER_HH
+#endif// MIKOTO_RENDERER_CORE_PHYSICS_DEBUG_RENDERER_HH
+

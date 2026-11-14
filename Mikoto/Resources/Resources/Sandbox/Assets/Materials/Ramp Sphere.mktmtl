@@ -1,0 +1,8 @@
+Version: 2
+Type: SurfaceMaterial
+Name: Ramp Sphere
+Material:
+  BaseColorFactor: [0.5, 0.22, 0.72, 1]
+  MetallicFactor: 0.15
+  RoughnessFactor: 0.3
+  AlphaMask: 0

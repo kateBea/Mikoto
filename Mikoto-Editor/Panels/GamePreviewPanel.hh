@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_GAME_PREVIEW_PANEL_HH
-#define MIKOTO_GAME_PREVIEW_PANEL_HH
+#ifndef MIKOTO_PANELS_GAME_PREVIEW_PANEL_HH
+#define MIKOTO_PANELS_GAME_PREVIEW_PANEL_HH
 
 #include <Panels/Panel.hh>
 
@@ -23,6 +23,9 @@ namespace mikoto::editor {
 
     struct GamePreviewPanelCreateInfo {
         EditorState* mState{};
+
+        eastl::string mGroup{ "Other" };
+        bool mIsToggleable{ true };
     };
 
     class GamePreviewPanel final : public Panel {
@@ -38,5 +41,5 @@ namespace mikoto::editor {
     };
 }
 
+#endif// MIKOTO_PANELS_GAME_PREVIEW_PANEL_HH
 
-#endif //MIKOTO_GAME_PREVIEW_PANEL_HH

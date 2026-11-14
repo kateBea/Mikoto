@@ -19,13 +19,13 @@
 
 #define _USE_MATH_DEFINES
 #include <cmath>
-#include <algorithm>
 #include <array>
-#include <iostream>
-#include <fstream>
 #include <string>
 #include <vector>
+#include <fstream>
 #include <numbers>
+#include <iostream>
+#include <algorithm>
 
 template <typename T>
 class HdriToCubemap

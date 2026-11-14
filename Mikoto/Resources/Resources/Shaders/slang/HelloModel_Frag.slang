@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 
 using namespace mikoto;
 
 struct FSInput {
-    float2 uv    : ATTRIBUTE3;
+    float2 uv : ATTRIBUTE3;
 };
 
 struct FSOutput {
@@ -40,18 +42,18 @@ struct DrawParams {
     uint TransformID;
 };
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) uParams;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, uParams );
 
 MKT_DECLARE_SAMPLERS Samplers;
 
-MKT_DECLARE_TEXTURE_SRV(Texture2D) Texture2Ds;
-MKT_DECLARE_TEXTURE_SRV(TextureCube) TextureCubes;
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) Texture2Ds;
+MKT_DECLARE_TEXTURE_SRV( TextureCube ) TextureCubes;
 
-[shader("fragment")]
-FSOutput main(FSInput input) {
+[shader( "fragment" )]
+FSOutput main( FSInput input ) {
     FSOutput o;
 
-    o.color = Texture2Ds[uParams.TextureID].Sample(Samplers[uParams.SamplerID], input.uv);
+    o.color = Texture2Ds[uParams.TextureID].Sample( Samplers[uParams.SamplerID], input.uv );
 
     return o;
 }

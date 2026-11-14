@@ -12,28 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_COMMAND_LIST_HH
-#define MIKOTO_RHI_COMMAND_LIST_HH
+#ifndef MIKOTO_RENDERER_RHI_COMMAND_LIST_HH
+#define MIKOTO_RENDERER_RHI_COMMAND_LIST_HH
+
+#include <source_location>
 
 #include <EASTL/span.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
-#include <EASTL/vector.h>
+#include <EASTL/fixed_vector.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
+#include <Core/Profiler.hh>
+#include <Core/Resource.hh>
+
 #include <Memory/BufferSpan.hh>
-#include <Core/ResourcePool.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Buffer.hh>
 #include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Rhi/Pipeline.hh>
+#include <Renderer/Rhi/ShaderTable.hh>
 #include <Renderer/Rhi/DeviceObject.hh>
 
 namespace mikoto::renderer::rhi {
+    struct VideoDecodeDescription;
+
+    // Forward declaration
+    class IQueue;
 
     /**
      * A three-dimensional subregion of a texture mip level and array layer.
@@ -67,7 +75,7 @@ namespace mikoto::renderer::rhi {
          * @param v Input value used by this operation.
          * @returns The result of AddViewport.
          */
-        auto AddViewport(const Viewport& v) -> ViewportState& { mViewports.push_back(v); return *this; }
+        auto AddViewport( const Viewport& v ) -> ViewportState&;
 
         /**
          * Adds the supplied value through AddScissorRect.
@@ -75,7 +83,7 @@ namespace mikoto::renderer::rhi {
          * @param r Input value used by this operation.
          * @returns The result of AddScissorRect.
          */
-        auto AddScissorRect(const Rect& r) -> ViewportState& { mScissorRects.push_back(r); return *this; }
+        auto AddScissorRect( const Rect& r ) -> ViewportState&;
 
         /**
          * Adds the supplied value through AddViewportAndScissorRect.
@@ -83,7 +91,7 @@ namespace mikoto::renderer::rhi {
          * @param v Input value used by this operation.
          * @returns The result of AddViewportAndScissorRect.
          */
-        auto AddViewportAndScissorRect(const Viewport& v) -> ViewportState& { return AddViewport(v).AddScissorRect(Rect(v)); }
+        auto AddViewportAndScissorRect( const Viewport& v ) -> ViewportState&;
     };
 
     /**
@@ -108,6 +116,7 @@ namespace mikoto::renderer::rhi {
          */
         constexpr auto SetVertexCount( core::u32 value ) -> DrawArguments& { mVertexCount = value; return *this; }
 
+
         /**
          * Sets the value handled by SetIndexCount.
          *
@@ -115,6 +124,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetIndexCount.
          */
         constexpr auto SetIndexCount(core::u32 value) -> DrawArguments& { mIndexCount = value; return *this; }
+
 
         /**
          * Sets the value handled by SetInstanceCount.
@@ -124,6 +134,7 @@ namespace mikoto::renderer::rhi {
          */
         constexpr auto SetInstanceCount(core::u32 value) -> DrawArguments& { mInstanceCount = value; return *this; }
 
+
         /**
          * Sets the value handled by SetFirstVertex.
          *
@@ -131,6 +142,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetFirstVertex.
          */
         constexpr auto SetFirstVertex(core::u32 value) -> DrawArguments& { mFirstVertex = value; return *this; }
+
 
         /**
          * Sets the value handled by SetFirstInstance.
@@ -140,6 +152,7 @@ namespace mikoto::renderer::rhi {
          */
         constexpr auto SetFirstInstance(core::u32 value) -> DrawArguments& { mFirstInstance = value; return *this; }
 
+
         /**
          * Sets the value handled by SetFirstIndex.
          *
@@ -147,6 +160,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetFirstIndex.
          */
         constexpr auto SetFirstIndex(core::u32 value) -> DrawArguments& { mFirstIndex = value; return *this; }
+
 
         /**
          * Sets the value handled by SetVertexOffset.
@@ -174,6 +188,7 @@ namespace mikoto::renderer::rhi {
          */
         constexpr auto SetVertexCount(core::u32 value) -> DrawIndirectArguments& { mVertexCount = value; return *this; }
 
+
         /**
          * Sets the value handled by SetInstanceCount.
          *
@@ -181,6 +196,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetInstanceCount.
          */
         constexpr auto SetInstanceCount(core::u32 value) -> DrawIndirectArguments& { mInstanceCount = value; return *this; }
+
 
         /**
          * Sets the value handled by SetStartVertexLocation.
@@ -190,6 +206,7 @@ namespace mikoto::renderer::rhi {
          */
         constexpr auto SetStartVertexLocation(core::u32 value) -> DrawIndirectArguments& { mStartVertexLocation = value; return *this; }
 
+
         /**
          * Sets the value handled by SetStartInstanceLocation.
          *
@@ -198,6 +215,26 @@ namespace mikoto::renderer::rhi {
          */
         constexpr auto SetStartInstanceLocation(core::u32 value) -> DrawIndirectArguments& { mStartInstanceLocation = value; return *this; }
     };
+
+
+    /** @brief Invocation dimensions for the currently bound ray-tracing pipeline.
+     *
+     * Bind the pipeline, resources and constants explicitly before dispatch.
+     * The caller owns resource transitions and bindless resource lifetimes.
+     */
+    struct RayTracingDispatchDescription {
+        /** @brief The number of ray generation shader invocations in the X dimension. */
+        core::u32 mWidth{};
+
+
+        /** @brief The number of ray generation shader invocations in the Y dimension. */
+        core::u32 mHeight{};
+
+
+        /** @brief The number of ray generation shader invocations in the Z dimension. Defaults to 1. */
+        core::u32 mDepth{ 1 };
+    };
+
 
     /**
      * GPU-written parameter layout for an indexed indirect draw.
@@ -217,6 +254,7 @@ namespace mikoto::renderer::rhi {
          */
         constexpr auto SetIndexCount(core::u32 value) -> DrawIndexedIndirectArguments& { mIndexCount = value; return *this; }
 
+
         /**
          * Sets the value handled by SetInstanceCount.
          *
@@ -224,6 +262,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetInstanceCount.
          */
         constexpr auto SetInstanceCount(core::u32 value) -> DrawIndexedIndirectArguments& { mInstanceCount = value; return *this; }
+
 
         /**
          * Sets the value handled by SetStartIndexLocation.
@@ -233,6 +272,7 @@ namespace mikoto::renderer::rhi {
          */
         constexpr auto SetStartIndexLocation(core::u32 value) -> DrawIndexedIndirectArguments& { mStartIndexLocation = value; return *this; }
 
+
         /**
          * Sets the value handled by SetBaseVertexLocation.
          *
@@ -240,6 +280,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetBaseVertexLocation.
          */
         constexpr auto SetBaseVertexLocation(core::i32 value) -> DrawIndexedIndirectArguments& { mBaseVertexLocation = value; return *this; }
+
 
         /**
          * Sets the value handled by SetStartInstanceLocation.
@@ -265,9 +306,8 @@ namespace mikoto::renderer::rhi {
          * @param b Input value used by this operation.
          * @returns The result of operator.
          */
-        auto operator==( const VertexBufferBinding& b ) const -> bool {
-            return mBuffer == b.mBuffer && mSlot == b.mSlot && mOffset == b.mOffset;
-        }
+        auto operator==( const VertexBufferBinding& b ) const -> bool;
+
 
         /**
          * Performs the operation represented by operator.
@@ -275,7 +315,8 @@ namespace mikoto::renderer::rhi {
          * @param b Input value used by this operation.
          * @returns The result of operator.
          */
-        auto operator!=( const VertexBufferBinding& b ) const -> bool { return !( *this == b ); }
+        auto operator!=( const VertexBufferBinding& b ) const -> bool;
+
 
         /**
          * Sets the value handled by SetBuffer.
@@ -283,7 +324,8 @@ namespace mikoto::renderer::rhi {
          * @param value Input value used by this operation.
          * @returns The result of SetBuffer.
          */
-        auto SetBuffer(IBuffer* value)-> VertexBufferBinding& { mBuffer = value; return *this; }
+        auto SetBuffer( IBuffer* value ) -> VertexBufferBinding&;
+
 
         /**
          * Sets the value handled by SetBufferBinding.
@@ -291,7 +333,8 @@ namespace mikoto::renderer::rhi {
          * @param value Input value used by this operation.
          * @returns The result of SetBufferBinding.
          */
-        auto SetBufferBinding(core::u32 value) -> VertexBufferBinding& { mSlot = value; return *this; }
+        auto SetBufferBinding( core::u32 value ) -> VertexBufferBinding&;
+
 
         /**
          * Sets the value handled by SetOffset.
@@ -299,7 +342,8 @@ namespace mikoto::renderer::rhi {
          * @param value Input value used by this operation.
          * @returns The result of SetOffset.
          */
-        auto SetOffset(core::u64 value) -> VertexBufferBinding& { mOffset = value; return *this; }
+        auto SetOffset( core::u64 value ) -> VertexBufferBinding&;
+
 
         /**
          * Sets the value handled by SetElementStride.
@@ -307,7 +351,7 @@ namespace mikoto::renderer::rhi {
          * @param value Input value used by this operation.
          * @returns The result of SetElementStride.
          */
-        auto SetElementStride(core::u64 value) -> VertexBufferBinding& { mElementStride = value; return *this; }
+        auto SetElementStride( core::u64 value ) -> VertexBufferBinding&;
     };
 
     /**
@@ -324,9 +368,8 @@ namespace mikoto::renderer::rhi {
          * @param b Input value used by this operation.
          * @returns The result of operator.
          */
-        auto operator==( const IndexBufferBinding& b ) const -> bool {
-            return mBuffer == b.mBuffer && mFormat == b.mFormat && mOffset == b.mOffset;
-        }
+        auto operator==( const IndexBufferBinding& b ) const -> bool;
+
 
         /**
          * Performs the operation represented by operator.
@@ -334,7 +377,8 @@ namespace mikoto::renderer::rhi {
          * @param b Input value used by this operation.
          * @returns The result of operator.
          */
-        auto operator!=( const IndexBufferBinding& b ) const -> bool { return !( *this == b ); }
+        auto operator!=( const IndexBufferBinding& b ) const -> bool;
+
 
         /**
          * Sets the value handled by SetBuffer.
@@ -342,7 +386,8 @@ namespace mikoto::renderer::rhi {
          * @param value Input value used by this operation.
          * @returns The result of SetBuffer.
          */
-        auto SetBuffer(IBuffer* value)-> IndexBufferBinding& { mBuffer = value; return *this; }
+        auto SetBuffer( IBuffer* value ) -> IndexBufferBinding&;
+
 
         /**
          * Sets the value handled by SetFormat.
@@ -350,7 +395,8 @@ namespace mikoto::renderer::rhi {
          * @param value Input value used by this operation.
          * @returns The result of SetFormat.
          */
-        auto SetFormat(Format value) -> IndexBufferBinding&{ mFormat = value; return *this; }
+        auto SetFormat( Format value ) -> IndexBufferBinding&;
+
 
         /**
          * Sets the value handled by SetOffset.
@@ -358,7 +404,7 @@ namespace mikoto::renderer::rhi {
          * @param value Input value used by this operation.
          * @returns The result of SetOffset.
          */
-        auto SetOffset(core::u32 value)-> IndexBufferBinding& { mOffset = value; return *this; }
+        auto SetOffset( core::u32 value ) -> IndexBufferBinding&;
     };
 
     /**
@@ -386,6 +432,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetScopeName( eastl::string_view name ) -> RenderPassDescription&;
 
+
         /**
          * Sets the value handled by SetRenderArea.
          *
@@ -393,6 +440,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetRenderArea.
          */
         auto SetRenderArea( const Rect& rec ) -> RenderPassDescription&;
+
 
         /**
          * Adds the supplied value through AddDepthTarget.
@@ -402,6 +450,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of AddDepthTarget.
          */
         auto AddDepthTarget( TextureHandle target, LoadOp op = LoadOp::eClear ) -> RenderPassDescription&;
+
 
         /**
          * Adds the supplied value through AddRenderTarget.
@@ -430,8 +479,8 @@ namespace mikoto::renderer::rhi {
             ResourceStates mState{ ResourceStates::eUnknown };
         };
 
-        eastl::vector<BufferTransition> mBuffers{};
-        eastl::vector<TextureTransition> mTextures{};
+        eastl::fixed_vector<BufferTransition, 20> mBuffers{};
+        eastl::fixed_vector<TextureTransition, 20> mTextures{};
 
         TransitionDescription() = default;
 
@@ -443,6 +492,7 @@ namespace mikoto::renderer::rhi {
          * @param buffer Buffer to transition.
          * @param state Destination state. */
         auto AddBuffer( IBuffer* buffer, ResourceStates state ) -> TransitionDescription&;
+
 
         /**
          * @brief Adds a texture and its destination state.
@@ -463,13 +513,23 @@ namespace mikoto::renderer::rhi {
         auto SetBuffer( IBuffer* buffer ) -> BufferBarrierDescription&;
         auto SetRange( BufferRange range ) -> BufferBarrierDescription&;
         auto SetBeforeStage( PipelineStageFlags stage ) -> BufferBarrierDescription&;
+
         /**
          * Sets the source memory-access scope.
          * @param access Combined barrier access flags; None requests no memory availability operation.
          * @returns This description for chained configuration.
          */
         auto SetBeforeAccess( BarrierAccessFlags access ) -> BufferBarrierDescription&;
+
+
+        /**
+         * Sets the execution stage after which the barrier takes effect.
+         * @param stage Combined pipeline stage flags specifying when subsequent operations can proceed.
+         * @returns This description for chained configuration.
+         */
         auto SetAfterStage( PipelineStageFlags stage ) -> BufferBarrierDescription&;
+
+
         /**
          * Sets the destination memory-access scope.
          * @param access Combined barrier access flags; None requests no memory visibility operation.
@@ -500,8 +560,14 @@ namespace mikoto::renderer::rhi {
          * @returns This description for chained configuration.
          */
         auto SetBeforeAccess( BarrierAccessFlags access ) -> TextureBarrierDescription&;
+
+
         auto SetAfterLayout( TextureLayoutFlags layout ) -> TextureBarrierDescription&;
+
+
         auto SetAfterStage( PipelineStageFlags stage ) -> TextureBarrierDescription&;
+
+
         /**
          * Sets the destination memory-access scope independently of the destination layout.
          * @param access Combined barrier access flags.
@@ -512,8 +578,8 @@ namespace mikoto::renderer::rhi {
 
     /** Groups all enhanced barriers recorded by one SetBarrier call. */
     struct BarrierDescription {
-        eastl::vector<BufferBarrierDescription> mBuffers{};
-        eastl::vector<TextureBarrierDescription> mTextures{};
+        eastl::fixed_vector<BufferBarrierDescription, 10> mBuffers{};
+        eastl::fixed_vector<TextureBarrierDescription, 10> mTextures{};
 
         auto AddBuffer( const BufferBarrierDescription& description ) -> BarrierDescription&;
         auto AddBuffer( BufferBarrierDescription&& description ) -> BarrierDescription&;
@@ -545,6 +611,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetPipelineLayout( IPipelineLayout* layout ) -> BindResourcesDescription&;
 
+
         /**
          * Sets the value handled by SetBindPoint.
          *
@@ -552,6 +619,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetBindPoint.
          */
         auto SetBindPoint( PipelineType bindPoint ) -> BindResourcesDescription&;
+
 
         /**
          * Sets the value handled by SetPushConstants.
@@ -563,6 +631,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetPushConstants( const void* ptr, core::usize sizeBytes, ShaderFlags stage ) -> BindResourcesDescription&;
 
+
         /**
          * Adds the supplied value through AddResourceSet.
          *
@@ -572,6 +641,7 @@ namespace mikoto::renderer::rhi {
          */
         auto AddResourceSet( core::u32 bindingIndex, IBindingTable* set ) -> BindResourcesDescription&;
     };
+
 
     /**
      * Per-recording metadata supplied when a command list begins.
@@ -588,6 +658,7 @@ namespace mikoto::renderer::rhi {
         auto SetScopeName( eastl::string_view name ) -> CommandListBeginDescription;
     };
 
+
     /**
      * Allocation and queue configuration for a command list.
      */
@@ -602,6 +673,9 @@ namespace mikoto::renderer::rhi {
         core::u32 mSelfManagedCommandListCount{ 3 };
     };
 
+    class IQueryPool;
+    class IAccelerationStructure;
+
     /**
      * Records GPU work for later execution by an @ref IQueue.
      *
@@ -609,32 +683,50 @@ namespace mikoto::renderer::rhi {
      */
     class ICommandList : public DeviceObject {
     public:
+        // Records only; submission and ownership transfers belong to the frame graph.
+        virtual auto DecodeVideo( const VideoDecodeDescription& description ) -> void;
+
 
         /**
-         * Begins a new recording scope using @p desc.
+         * Opens a new recording scope using @p desc.
          *
          * @param desc Input value used by this operation.
          */
-        virtual auto Begin( const CommandListBeginDescription& desc ) -> void = 0;
+        virtual auto Open( const CommandListBeginDescription& desc ) -> void = 0;
+
 
         /**
-         * Ends the current recording scope.
+         * Closes the current recording scope.
          */
-        virtual auto End() -> void = 0;
+        virtual auto Close() -> void = 0;
 
-        /** Records enhanced synchronization barriers immediately. */
+
+
+        /**
+         * @brief Records explicit synchronization barriers immediately.
+         * @param description Resource ranges, access masks and synchronization scopes.
+         * @pre This command list is recording.
+         */
         virtual auto SetBarrier( const BarrierDescription& description ) -> void = 0;
 
-        /** Records whole-resource state transitions immediately. */
+
+        /**
+         * @brief Records whole-resource state transitions immediately.
+         * @param description Resources and their required destination states.
+         * @pre This command list is recording.
+         */
         virtual auto SetTransition( const TransitionDescription& description ) -> void = 0;
 
 
         /**
          * Enables or disables automatic barrier insertion.
+         * May be set before Open() and persists across recordings. Changes
+         * affect subsequently recorded commands, not commands already recorded.
          *
          * @param enable True to enable automatic barriers.
          */
         virtual auto SetEnableAutomaticBarriers( bool enable ) -> void = 0;
+
 
         /**
          * Sets the clear color used for a render target.
@@ -644,6 +736,7 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto SetClearColor( ITexture* renderTarget, Color color ) -> void = 0;
 
+
         /**
          * Uploads a buffer's contents to a texture.
          *
@@ -651,6 +744,7 @@ namespace mikoto::renderer::rhi {
          * @param dest Destination texture.
          */
         virtual auto Write( IBuffer* src, ITexture* dest ) -> void = 0;
+
 
         /**
          * Uploads raw data to a texture.
@@ -660,6 +754,7 @@ namespace mikoto::renderer::rhi {
          * @param byteSize Number of source bytes.
          */
         virtual auto Write( ITexture* target, const void* data, core::usize byteSize ) -> void = 0;
+
 
         /**
          * Copies a texture region.
@@ -671,6 +766,7 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto Copy( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void = 0;
 
+
         /**
          * Resolves multisampled texture data into a destination texture.
          *
@@ -681,8 +777,12 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void = 0;
 
+
         /**
          * Uploads raw data to the beginning of a buffer.
+         * Vulkan/D3D12 upload heaps are written immediately and do not require
+         * Open/Close or submission. The caller must avoid in-flight GPU reads
+         * of that range. Device-local uploads require an open command list.
          *
          * @param target Destination buffer.
          * @param data Source data.
@@ -690,8 +790,10 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto Write( IBuffer* target, const void* data, core::usize byteSize ) -> void = 0;
 
+
         /**
          * Uploads raw data to a buffer at an offset.
+         * Has the same upload-heap and recording requirements as the zero-offset overload.
          *
          * @param target Destination buffer.
          * @param destOffset Destination byte offset.
@@ -700,6 +802,7 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto Write( IBuffer* target, core::usize destOffset, const void* data, core::usize byteSize ) -> void = 0;
 
+
         /**
          * Copies an entire buffer.
          *
@@ -707,6 +810,7 @@ namespace mikoto::renderer::rhi {
          * @param dest Destination buffer.
          */
         virtual auto Copy( IBuffer* src, IBuffer* dest ) -> void = 0;
+
 
         /**
          * Copies a buffer to a destination offset.
@@ -717,6 +821,7 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto Copy( IBuffer* src, IBuffer* dest, core::usize destOffset ) -> void = 0;
 
+
         /**
          * Copies a texture into a buffer.
          *
@@ -724,6 +829,7 @@ namespace mikoto::renderer::rhi {
          * @param src Source texture.
          */
         virtual auto Copy( IBuffer* dest, ITexture* src ) -> void = 0;
+
 
         /**
          * Copies a texture region into a buffer.
@@ -734,6 +840,7 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto Copy( IBuffer* dest, ITexture* src, const TextureSlice& srcSlice ) -> void = 0;
 
+
         /**
          * Begins a rendering scope.
          *
@@ -741,10 +848,12 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto BeginRenderPass( RenderPassDescription& state ) -> void = 0;
 
+
         /**
          * Ends the current rendering scope.
          */
         virtual auto EndRenderPass() -> void = 0;
+
 
         /**
          * Binds a graphics, compute, or ray-tracing pipeline.
@@ -753,12 +862,14 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto BindPipeline( IPipeline* pipeline ) -> void = 0;
 
+
         /**
          * Applies viewport and scissor state.
          *
          * @param vs Viewport and scissor state.
          */
         virtual auto SetViewportState( const ViewportState& vs ) -> void = 0;
+
 
         /**
          * Sets active viewports.
@@ -767,12 +878,14 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto SetViewport( eastl::span<const Viewport> viewports ) -> void = 0;
 
+
         /**
          * Sets active scissor rectangles.
          *
          * @param scissorRects Scissor rectangles to set.
          */
         virtual auto SetScissors( eastl::span<const Rect> scissorRects ) -> void = 0;
+
 
         /**
          * Sets rasterized line width.
@@ -781,12 +894,14 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto SetPolygonLineWidth( core::f32 width ) -> void = 0;
 
+
         /**
          * Binds an index buffer.
          *
          * @param buffer Index buffer to bind.
          */
         virtual auto BindIndexBuffer( IBuffer* buffer ) -> void = 0;
+
 
         /**
          * Binds an indirect-argument buffer.
@@ -795,12 +910,14 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto BindIndirectBuffer( IBuffer* buffer ) -> void = 0;
 
+
         /**
          * Binds one vertex buffer.
          *
          * @param binding Vertex-buffer binding.
          */
         virtual auto BindVertexBuffer( const VertexBufferBinding& binding ) -> void = 0;
+
 
         /**
          * Binds multiple vertex buffers.
@@ -809,12 +926,14 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto BindVertexBuffers( eastl::span<const VertexBufferBinding> binding ) -> void = 0;
 
+
         /**
          * Binds descriptor tables and push constants for the active pipeline.
          *
          * @param desc Pipeline-resource binding description.
          */
         virtual auto BindPipelineResources( const BindResourcesDescription& desc ) -> void = 0;
+
 
         /**
          * Records a non-indexed draw.
@@ -823,12 +942,14 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto Draw( const DrawArguments& args ) -> void = 0;
 
+
         /**
          * Records an indexed draw.
          *
          * @param args Draw arguments.
          */
         virtual auto DrawIndexed( const DrawArguments& args ) -> void = 0;
+
 
         /**
          * Records draws from the bound indirect buffer.
@@ -838,6 +959,7 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto DrawIndirect( core::u32 offset, core::u32 drawCount ) -> void = 0;
 
+
         /**
          * Records indexed draws from the bound indirect buffer.
          *
@@ -845,6 +967,7 @@ namespace mikoto::renderer::rhi {
          * @param drawCount Number of draw arguments to execute.
          */
         virtual auto DrawIndexedIndirect( core::u32 offset, core::u32 drawCount ) -> void = 0;
+
 
         /**
          * Records a compute dispatch.
@@ -854,6 +977,28 @@ namespace mikoto::renderer::rhi {
          * @param groupsZ Work-group count along Z.
          */
         virtual auto Dispatch( core::u32 groupsX, core::u32 groupsY, core::u32 groupsZ ) -> void = 0;
+
+
+        /**
+         * @brief Dispatches rays using the currently bound pipeline and resources.
+         *
+         * Requires a recording graphics command list outside a render pass.
+         * Bind pipeline, tables and constants separately and transition resources
+         * before dispatch. Bindless resources must be retained until GPU completion.
+         *
+         * @param desc Ray-generation invocation dimensions.
+         * @throws core::RuntimeException If no ray pipeline is bound or dimensions are invalid.
+         */
+        virtual auto DispatchRays( const RayTracingDispatchDescription& desc ) -> void = 0;
+
+
+        /** @brief Binds a built shader table for subsequent ray dispatches.
+         *
+         * @param table Table from this device, associated with the ray pipeline.
+         * @throws core::RuntimeException If the table is unbuilt or incompatible.
+         */
+        virtual auto BindShaderTable( IShaderTable* table ) -> void = 0;
+
 
         /**
          * Sets pipeline push constants.
@@ -865,12 +1010,14 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto SetPushConstants( IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, ShaderFlags stageVisibility ) -> void = 0;
 
+
         /**
          * Returns the queue type that executes this command list.
          *
          * @returns The queue type.
          */
-        MKT_NODISCARD auto GetQueueType() const -> QueueType;
+        MKT_NODISCARD virtual auto GetQueueType() const -> QueueType = 0;
+
 
         /**
          * Starts a labeled region in GPU debugging tools.
@@ -880,10 +1027,206 @@ namespace mikoto::renderer::rhi {
          */
         virtual auto BeginDebugLabel( eastl::string_view name, Color color ) -> void = 0;
 
+
         /**
          * Ends the current GPU debug-label region.
          */
         virtual auto EndDebugLabel() -> void = 0;
+
+        /** Collects earlier GPU timings before recording a profiled graphics batch. */
+        virtual auto CollectGpuProfile() -> void {}
+
+        /** Starts a named GPU timing zone with the caller's source location. */
+        virtual auto BeginGpuProfileZone( eastl::string_view, std::source_location ) -> void {}
+
+        /** Ends the current GPU timing zone outside a render pass. */
+        virtual auto EndGpuProfileZone() -> void {}
+
+
+        /**
+         * @brief Prepares all slots in a query pool for a new submission batch.
+         *
+         * Resets the pool's recording state and records a native reset where required.
+         * This does not reset the command list or wait for earlier GPU work.
+         *
+         * @param pool Initialized pool owned by the same device and compatible queue.
+         * @pre This command list is recording. No query in the pool is active.
+         * @pre The completion fence for the pool's previous batch has completed.
+         *      Use separate pools for submissions that may overlap in flight.
+         * @note Record outside a render pass for portability across backends.
+         */
+        virtual auto Reset( IQueryPool* pool ) -> void = 0;
+
+
+        /**
+         * @brief Begins a range query at the specified pool slot.
+         *
+         * @param pool Initialized non-timestamp pool for this device and queue.
+         * @param index Zero-based slot index, less than the pool's capacity.
+         * @pre This command list is recording and the slot has been reset.
+         *      The pool must not already contain an active range query.
+         * @note Match with EndQuery() on this same command list and slot.
+         *       Record occlusion queries around draws in the relevant render pass.
+         * @see WriteTimestamp()
+         */
+        virtual auto BeginQuery( IQueryPool* pool, core::u32 index ) -> void = 0;
+
+
+        /**
+         * @brief Ends the active range query at the specified pool slot.
+         *
+         * @param pool Pool passed to the matching BeginQuery().
+         * @param index Slot passed to the matching BeginQuery().
+         * @pre This command list is recording and owns the matching active query.
+         * @note Ending a query does not make its result immediately readable.
+         *       Resolve the slot and wait for the submission's completion fence.
+         */
+        virtual auto EndQuery( IQueryPool* pool, core::u32 index ) -> void = 0;
+
+
+        /**
+         * @brief Records a GPU timestamp into a reset slot.
+         *
+         * @param pool Initialized timestamp pool for this device and queue.
+         * @param index Zero-based slot index, less than the pool's capacity.
+         * @pre This command list is recording and the slot has been reset.
+         * @note Timestamp queries do not use BeginQuery()/EndQuery(). Values use
+         *       backend-specific units; use IQueryPool::GetElapsedMilliseconds()
+         *       to convert a pair of results into a duration.
+         */
+        virtual auto WriteTimestamp( IQueryPool* pool, core::u32 index ) -> void = 0;
+
+
+        /**
+         * @brief Prepares a completed query range for host readback.
+         *
+         * Records a result copy where the backend requires one, or marks the
+         * range for direct host retrieval. This method neither waits nor returns
+         * result values. Unlike the texture overload, it does not resolve MSAA.
+         *
+         * @param pool Initialized pool for this device and queue.
+         * @param first Zero-based index of the first slot to resolve.
+         * @param count Number of consecutive slots; the range must fit the pool.
+         * @pre This command list is recording. Every slot in the range has been
+         *      ended with EndQuery() or written with WriteTimestamp().
+         * @note Record outside a render pass for portability. After submission,
+         *       pass a fence/value covering this resolve to IQueryPool::TryGetResult().
+         */
+        virtual auto Resolve( IQueryPool* pool, core::u32 first, core::u32 count ) -> void = 0;
+
+
+        /**
+         * @brief Records an initial immutable acceleration-structure build.
+         *
+         * A top-level build also builds any previously unbuilt bottom-level
+         * dependencies. Inputs and the structure are retained by the recording.
+         * Build and DispatchRays() may share a submission; do not discard the
+         * recording before submitting it.
+         *
+         * @param structure Initialized acceleration structure owned by this device.
+         * @pre Ray tracing is supported and this graphics command list is recording
+         *      outside a render pass. Input geometry/instance data is valid and ready.
+         * @note This is not an update/refit operation. Create a new acceleration
+         *       structure when its geometry changes.
+         * @see DispatchRays()
+         */
+        virtual auto Build( IAccelerationStructure* structure ) -> void = 0;
+
+
+        /**
+         * @brief Acquires a buffer range from another queue on the receiving command list.
+         *
+         * Pair with ReleaseResource() on sourceQueue using the same description.
+         * Record before the receiving queue's first access to the range. The caller
+         * must order the submissions with a queue signal/wait; this call does not
+         * submit work or wait for the releasing queue.
+         *
+         * @param description Buffer range and producer/consumer stage and access scopes.
+         *       D3D12 legacy barriers transition the whole buffer, regardless of range.
+         *       Upload/readback heaps and acceleration-structure storage keep their
+         *       fixed states; acceleration structures cannot transfer to copy queues.
+         * @param sourceQueue Queue releasing the buffer, belonging to the same device.
+         * @pre This command list is recording outside a render pass.
+         * @note Vulkan emits a barrier only between different queue families. D3D12
+         *       transitions through COMMON only between different queue types.
+         *       D3D11/OpenGL do nothing. Same-family/type calls do not replace ordinary
+         *       barriers or submission dependencies. Disable automatic barriers and
+         *       manage resource states explicitly when using queue handoffs.
+         *       Vulkan resources must use exclusive sharing; submission signal/wait
+         *       scopes must cover the release/acquire barriers (ALL_COMMANDS is safe).
+         */
+        virtual auto AcquireResource( const BufferBarrierDescription& description, IQueue* sourceQueue ) -> void = 0;
+
+
+        /**
+         * @brief Releases a buffer range to another queue on the producing command list.
+         *
+         * Record after the producing queue's last access to the range. Pair with
+         * AcquireResource() on destQueue using the same description. The caller
+         * must order the submissions with a queue signal/wait; this call does not
+         * submit work or signal the receiving queue.
+         *
+         * @param description Buffer range and producer/consumer stage and access scopes.
+         *       D3D12 legacy barriers transition the whole buffer, regardless of range.
+         *       Upload/readback heaps and acceleration-structure storage keep their
+         *       fixed states; acceleration structures cannot transfer to copy queues.
+         * @param destQueue Queue acquiring the buffer, belonging to the same device.
+         * @pre This command list is recording outside a render pass.
+         * @note Vulkan emits a barrier only between different queue families. D3D12
+         *       transitions through COMMON only between different queue types.
+         *       D3D11/OpenGL do nothing. Same-family/type calls do not replace ordinary
+         *       barriers or submission dependencies. Disable automatic barriers and
+         *       manage resource states explicitly when using queue handoffs.
+         *       Vulkan resources must use exclusive sharing; submission signal/wait
+         *       scopes must cover the release/acquire barriers (ALL_COMMANDS is safe).
+         */
+        virtual auto ReleaseResource( const BufferBarrierDescription& description, IQueue* destQueue ) -> void = 0;
+
+
+        /**
+         * @brief Acquires texture subresources from another queue on the receiving command list.
+         *
+         * Pair with ReleaseResource() on sourceQueue using the same description,
+         * including explicit (non-Unknown) before/after layouts. Record before the
+         * receiving queue's first access. The caller must order the submissions
+         * with a queue signal/wait; this call does not submit work or wait.
+         *
+         * @param description Texture subresources, layouts, and producer/consumer access scopes.
+         * @param sourceQueue Queue releasing the texture, belonging to the same device.
+         * @pre This command list is recording outside a render pass.
+         * @note Vulkan emits a barrier only between different queue families. D3D12
+         *       transitions through COMMON only between different queue types.
+         *       D3D11/OpenGL do nothing. Same-family/type calls do not replace ordinary
+         *       barriers or submission dependencies. Disable automatic barriers and
+         *       manage resource states explicitly when using queue handoffs.
+         *       Vulkan resources must use exclusive sharing; submission signal/wait
+         *       scopes must cover the release/acquire barriers (ALL_COMMANDS is safe).
+         */
+        virtual auto AcquireResource( const TextureBarrierDescription& description, IQueue* sourceQueue ) -> void = 0;
+
+
+        /**
+         * @brief Releases texture subresources to another queue on the producing command list.
+         *
+         * Record after the producing queue's last access to these subresources.
+         * Pair with AcquireResource() on destQueue using the same description,
+         * including explicit (non-Unknown) before/after layouts. The caller must
+         * order submissions with a queue signal/wait; this call does not submit
+         * work or signal a queue.
+         *
+         * @param description Texture subresources, layouts, and producer/consumer access scopes.
+         * @param destQueue Queue acquiring the texture, belonging to the same device.
+         * @pre This command list is recording outside a render pass.
+         * @note Vulkan emits a barrier only between different queue families. D3D12
+         *       transitions through COMMON only between different queue types.
+         *       D3D11/OpenGL do nothing. Same-family/type calls do not replace ordinary
+         *       barriers or submission dependencies. Disable automatic barriers and
+         *       manage resource states explicitly when using queue handoffs.
+         *       Vulkan resources must use exclusive sharing; submission signal/wait
+         *       scopes must cover the release/acquire barriers (ALL_COMMANDS is safe).
+         */
+        virtual auto ReleaseResource( const TextureBarrierDescription& description, IQueue* destQueue ) -> void = 0;
+
 
         /**
          * Destroys the command list.
@@ -891,27 +1234,9 @@ namespace mikoto::renderer::rhi {
         ~ICommandList() override = default;
 
         using DeviceObject::Initialize;
-
-    protected:
-        // When set to true the command list will allocate a set amount of backend specific
-        // command lists and cycle through them like ring buffer.
-        // If selfManagedCommandListCount different to 0 the command buffer pre-allocates this
-        // amount of backend specific command buffers and recycles them on every usage
-
-        /**
-         * Constructs a command list.
-         *
-         * @param queueType Queue type that executes the list.
-         * @param selfManagedCommandListCount Number of backend lists to recycle.
-         */
-        explicit ICommandList( QueueType queueType, core::u32 selfManagedCommandListCount = 4 );
-
-    protected:
-        QueueType mQueueType{ QueueType::eInvalid };
-        core::u32 mSelfManagedCommandListCount{ 4 };
     };
 
     using CommandListHandle = core::Ref<ICommandList>;
 }
 
-#endif//MIKOTO_RHI_COMMAND_LIST_HH
+#endif// MIKOTO_RENDERER_RHI_COMMAND_LIST_HH

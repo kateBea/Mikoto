@@ -12,104 +12,88 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// ============================================================================
-// SSAO Fragment Shader (Slang)
-// ============================================================================
+#pragma once
 
 #include "base/Base.slang"
+#include "base/Camera_Helpers.slang"
 #include "base/Memory_Helpers.slang"
-
-static const int SSAO_KERNEL_SIZE = 64;
-static const float SSAO_RADIUS = 0.5f;
 
 struct DrawParams {
     uint mSamplerID;
-
     uint mKernelBufferID;
     uint mNoiseTextureID;
     uint mGBufferNormalsID;
     uint mGBufferPositionsID;
-
-    float4x4 mProjection;
+    uint mCameraBufferID;
 };
 
 MKT_DECLARE_SAMPLERS samplers;
 MKT_DECLARE_STRUCTURED_SRV buffers;
-MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
-struct FSInput {
-    float2 UV : TEXCOORD0;
-};
+[shader( "fragment" )]
+float main( float2 uv : TEXCOORD0 ) : SV_Target0 {
+    CameraInfo camera = buffers[parameters.mCameraBufferID].Read<CameraInfo>( 0, 0 );
 
-struct FSOutput {
-    float Occlusion : SV_Target0;
-};
+    uint width, height;
+    textures[parameters.mGBufferPositionsID].GetDimensions( width, height );
 
-[shader("fragment")]
-FSOutput main(FSInput input) {
-    FSOutput o;
+    int2 pixel = clamp( int2( uv * float2( width, height ) ), int2( 0 ), int2( width, height ) - 1 );
+    float4 position = textures[parameters.mGBufferPositionsID].Load( int3( pixel, 0 ) );
 
-    SamplerState sampler = samplers[parameters.mSamplerID];
-
-    Texture2D normalsTexture = textures[parameters.mGBufferNormalsID];
-    Texture2D positionsTexture = textures[parameters.mGBufferPositionsID];
-    Texture2D noiseTexture = textures[parameters.mNoiseTextureID];
-
-    // Sample G-Buffer values
-    float3 fragPos = positionsTexture.Sample(sampler, input.UV).xyz;
-
-    float3 normalEnc = normalsTexture.Sample(sampler, input.UV).xyz;
-    float3 normal = normalize(normalEnc * 2.0f - 1.0f);
-
-    // Get a random vector using a noise lookup
-    float textureWidth;
-    float textureHeight;
-    float levelCount;
-    positionsTexture.GetDimensions(0, textureWidth, textureHeight, levelCount);
-    uint2 texDim = uint2(uint(textureWidth), uint(textureHeight));
-
-    noiseTexture.GetDimensions(0, textureWidth, textureHeight, levelCount);
-    uint2 noiseDim = uint2(uint(textureWidth), uint(textureHeight));
-
-    float2 noiseUV = (float2(texDim) / float2(noiseDim)) * input.UV;
-    float3 randomVec = noiseTexture.Sample(sampler, noiseUV).xyz * 2.0f - 1.0f;
-
-    // Create TBN matrix
-    float3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
-    float3 bitangent = normalize(cross(tangent, normal));
-    float3x3 TBN = float3x3(tangent, bitangent, normal);
-
-    float occlusion = 0.0f;
-    const float bias = 0.025f;
-
-    // SSAO loop
-    for (int i = 0; i < SSAO_KERNEL_SIZE; i++) {
-        float4 kernelSample = buffers[parameters.mKernelBufferID].Read<float4>(i, 0);
-
-        float3 sampleVec = mul(TBN, kernelSample.xyz);
-        float3 samplePos = fragPos + sampleVec * SSAO_RADIUS;
-
-        // project sample pos to NDC
-        float4 offset = mul(parameters.mProjection, float4(samplePos, 1.0f));
-        offset.xyz /= offset.w;
-        offset.xyz = offset.xyz * 0.5f + 0.5f;
-
-        // depth value stored in .w
-        float sampleDepth = -positionsTexture.SampleLevel(sampler, offset.xy, 0).w;
-
-        float rangeCheck = smoothstep(
-            0.0f,
-            1.0f,
-            SSAO_RADIUS / abs(fragPos.z - sampleDepth)
-        );
-
-        occlusion += (sampleDepth >= samplePos.z + bias ? 1.0f : 0.0f) * rangeCheck;
+    if ( position.z >= -1e-5 ) {
+        return 1.0;
     }
 
-    occlusion = 1.0f - (occlusion / float(SSAO_KERNEL_SIZE));
-    o.Occlusion = occlusion;
+    float3 encodedNormal = textures[parameters.mGBufferNormalsID].Load( int3( pixel, 0 ) ).xyz;
+    float3 normal = normalize( mul( ( float3x3 )camera.mViewMatrix, encodedNormal * 2 - 1 ) );
 
-    return o;
+    uint noiseWidth, noiseHeight;
+    textures[parameters.mNoiseTextureID].GetDimensions( noiseWidth, noiseHeight );
+
+    // Noise is already signed. Wrap only noise, never projected scene samples.
+    float3 randomVector = textures[parameters.mNoiseTextureID]
+        .Load( int3( pixel % int2( noiseWidth, noiseHeight ), 0 ) ).xyz;
+    float3 tangent = randomVector - normal * dot( randomVector, normal );
+
+    if ( dot( tangent, tangent ) < 1e-6 ) {
+        tangent = cross( abs( normal.z ) < 0.99 ? float3( 0, 0, 1 ) : float3( 0, 1, 0 ), normal );
+    }
+
+    tangent = normalize( tangent );
+
+    float occlusion = 0;
+    const float radius = 0.5;
+    const float bias = 0.025;
+    float3 bitangent = cross( normal, tangent );
+
+    for ( uint i = 0; i < 64; ++i ) {
+        float3 kernel = buffers[parameters.mKernelBufferID].Read<float4>( 0, i ).xyz;
+
+        // Explicit basis combination avoids transposing the tangent frame.
+        float3 samplePosition = position.xyz + radius * ( kernel.x * tangent + kernel.y * bitangent + kernel.z * normal );
+        float4 projected = mul( camera.mProjection, float4( samplePosition, 1 ) );
+        if ( projected.w <= 0 ) {
+            continue;
+        }
+
+        float2 sampleUv = projected.xy / projected.w * float2( 0.5, -0.5 ) + 0.5;
+        if ( any( sampleUv < 0 ) || any( sampleUv >= 1 ) ) {
+            continue;
+        }
+
+        float sampleDepth = textures[parameters.mGBufferPositionsID]
+            .Load( int3( int2( sampleUv * float2( width, height ) ), 0 ) )
+                                    .z;
+        if ( sampleDepth >= -1e-5 ) {
+            continue;
+        }
+
+        float rangeWeight = smoothstep( 0, 1, radius / max( abs( position.z - sampleDepth ), 1e-5 ) );
+        occlusion += ( sampleDepth >= samplePosition.z + bias ? 1.0 : 0.0 ) * rangeWeight;
+    }
+
+    return saturate( 1 - occlusion / 64.0 );
 }

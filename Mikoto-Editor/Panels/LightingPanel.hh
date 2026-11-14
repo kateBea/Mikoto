@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_LIGHTING_PANEL_HH
-#define MIKOTO_LIGHTING_PANEL_HH
+#ifndef MIKOTO_PANELS_LIGHTING_PANEL_HH
+#define MIKOTO_PANELS_LIGHTING_PANEL_HH
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
+
+#include <Renderer/Rhi/Types.hh>
 
 #include <Panels/Panel.hh>
-#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::editor {
 
@@ -28,11 +28,13 @@ namespace mikoto::editor {
 
     struct LightingPanelCreateInfo {
         EditorState* mState{};
+
+        eastl::string mGroup{ "Other" };
+        bool mIsToggleable{ true };
     };
 
     class LightingPanel final : public Panel {
     public:
-
         explicit LightingPanel( const LightingPanelCreateInfo& info );
 
         auto OnRender( float timeStep ) -> void override;
@@ -40,8 +42,12 @@ namespace mikoto::editor {
         ~LightingPanel() override = default;
 
     private:
+        auto DrawEnvironment() -> void;
+        auto DrawAtmosphere() -> void;
         EditorState* mEditorState{};
+        eastl::string mEnvironmentError{};
     };
-}
+}// namespace mikoto::editor
 
-#endif // MIKOTO_LIGHTING_PANEL_HH
+#endif// MIKOTO_PANELS_LIGHTING_PANEL_HH
+

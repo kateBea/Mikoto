@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_DESCRIPTOR_HH
-#define MIKOTO_RHI_DESCRIPTOR_HH
+#ifndef MIKOTO_RENDERER_RHI_DESCRIPTOR_HH
+#define MIKOTO_RENDERER_RHI_DESCRIPTOR_HH
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
@@ -21,19 +21,40 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
-#include <Core/ResourcePool.hh>
+#include <Core/Resource.hh>
 
 #include <Memory/BufferSpan.hh>
 
 #include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/Shader.hh>
 #include <Renderer/Rhi/Buffer.hh>
+#include <Renderer/Rhi/Shader.hh>
 #include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Rhi/DeviceObject.hh>
 
+// See shaders: slang/ResourceBindings.slang
+
+#define MKT_DEFAULT_REGISTER_SPACE 0
+
+#define MKT_STRUCTURED_SRV_BINDING 0
+#define MKT_STRUCTURED_UAV_BINDING 1
+
+#define MKT_SAMPLER_BINDING 2
+
+#define MKT_TEXTURE_SRV_BINDING 3
+#define MKT_TEXTURE_UAV_BINDING 4
+
+#define MKT_BUFFER_DEVICE_ADDRESS_BINDING 5
+
+#define MKT_ACCELERATION_STRUCTURE_BINDING 6
+
+#define MKT_SHADER_TRUE 1U
+#define MKT_SHADER_FALSE 0U
+
 namespace mikoto::renderer::rhi {
+
+    class IAccelerationStructure;
+    class IBindingLayout;
 
     /**
      * Declares one slot in a conventional resource-binding layout.
@@ -92,9 +113,9 @@ namespace mikoto::renderer::rhi {
     struct BindingTableItem {
         BufferRange mRange{};
         core::u32 mBindingIndex{};
-        core::IResource* mResource{};
+        core::Resource* mResource{};
 
-        ResourceType mType{ ResourceType::eInvalid };
+        ResourceType mResourceType{ ResourceType::eInvalid };
         Format mFormat{ Format::eUnknown };
         TextureDimension mDimension{ TextureDimension::eInvalid };
         TextureSubresourceSet mSubResourceSet{};
@@ -212,6 +233,16 @@ namespace mikoto::renderer::rhi {
          * @returns The result of RawBufferUAV.
          */
         static auto RawBufferUAV(core::u32 slot, IBuffer* buffer, BufferRange range = kEntireBuffer) -> BindingTableItem;
+
+        /**
+         * Creates a binding table item for a ray-tracing acceleration structure.
+         *
+         * @param slot The shader register or binding slot index.
+         * @param structure Pointer to the acceleration structure to bind.
+         * @returns A configured binding table item for the specified acceleration structure resource.
+         */
+        MKT_NODISCARD static auto AccelerationStructure( core::u32 slot, IAccelerationStructure* structure ) -> BindingTableItem;
+
     };
 
     /**
@@ -256,7 +287,7 @@ namespace mikoto::renderer::rhi {
         core::u32 mSlot{};
         core::u32 mMaxCapacity{};
 
-        ResourceType mType{ ResourceType::eInvalid };
+        ResourceType mResourceType{ ResourceType::eInvalid };
 
         /**
          * Performs the operation represented by Samplers.
@@ -456,6 +487,11 @@ namespace mikoto::renderer::rhi {
     class IDescriptorTable : public IBindingTable {
     public:
 
+        MKT_NODISCARD virtual auto GetBindingLayout() const -> core::Ref<IBindingLayout> = 0;
+        // The caller must retain the descriptor and its resource until all GPU
+        // submissions using this index have completed.
+        virtual auto ReleaseIndex( DescriptorTableIndex index, ResourceType type, core::u32 slot ) -> void = 0;
+
         /**
          * Returns the number of descriptors allocated for @p slot.
          *
@@ -469,4 +505,4 @@ namespace mikoto::renderer::rhi {
 
 }
 
-#endif//MIKOTO_RHI_DESCRIPTOR_HH
+#endif// MIKOTO_RENDERER_RHI_DESCRIPTOR_HH

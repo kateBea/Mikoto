@@ -1,0 +1,24 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Thin_Sheet",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0,
+    "AlphaMask": 0,
+    "ShadingModel": 6,
+    "DoubleSided": 1,
+    "Dielectric": {
+      "IndexOfRefraction": 1.52,
+      "Transmission": 1,
+      "ThinWalled": true,
+      "Thickness": 0.002
+    }
+  }
+}

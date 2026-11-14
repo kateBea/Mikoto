@@ -12,49 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_LAYER_STACK_HH
-#define MIKOTO_LAYER_STACK_HH
-
-#include <EASTL/string.h>
-#include <EASTL/string_view.h>
+#ifndef MIKOTO_CORE_LAYER_STACK_HH
+#define MIKOTO_CORE_LAYER_STACK_HH
 
 #include <Core/Core.hh>
-#include <Core/Event.hh>
+#include <Core/Layer.hh>
+#include <Core/Types.hh>
+#include <Core/Profiler.hh>
 #include <Core/Registry.hh>
 
+#include <Platform/Event.hh>
+
 namespace mikoto::core {
-
-    class ILayer {
-    public:
-        explicit ILayer( const eastl::string_view name )
-            : mName{ name } {}
-        virtual ~ILayer() = default;
-
-        // Add deltaTime parameter
-        virtual auto OnUpdate( float deltaTime ) -> void = 0;
-        virtual auto OnCreate() -> void = 0;
-        virtual auto OnDestroy() -> void = 0;
-
-        // Layers are not subscribers, instead subscribers can propagate
-        // events to them through the layer stack. An event could be
-        // marked as handled if we do not want to further propagate it down the layer stack
-        virtual auto OnEvent( IEvent& event ) -> void = 0;
-
-    private:
-        eastl::string mName{ "BaseLayer" };
-    };
 
     class LayerStack final {
     public:
         template<typename LayerType, typename... Args>
         auto PushLayer(Args&&... args) -> LayerType* {
-            auto* result{ mLayers.Register<LayerType>(std::forward<Args>(args)...) };
+            MKT_BEGIN_PROFILER();
+            auto* result{ mLayers.Register<LayerType>(eastl::forward<Args>(args)...) };
             result->OnCreate();
             return result;
         }
 
         template<typename LayerType>
         auto PopLayer() -> void {
+            MKT_BEGIN_PROFILER();
             if ( auto* result{ mLayers.Get<LayerType>() } ) {
                 result->OnDestroy();
                 mLayers.Unregister<LayerType>();
@@ -63,17 +46,14 @@ namespace mikoto::core {
 
         template<typename LayerType>
         auto GetLayer() -> LayerType* {
+            MKT_BEGIN_PROFILER();
             return mLayers.Get<LayerType>();
         }
 
-        auto Shutdown() -> void;
+        auto OnDestroy() -> void;
+        auto OnUpdate( f32 deltaTime ) -> void;
+        auto OnEvent( platform::Event& event ) -> void;
 
-        // Call OnUpdate on all registered layers
-        auto OnUpdate(float deltaTime) -> void;
-
-        auto OnEvent(IEvent& event) -> void;
-
-        // Iteration over registered layers
         MKT_NODISCARD constexpr auto begin() -> decltype(auto) { return mLayers.begin(); }
         MKT_NODISCARD constexpr auto end() -> decltype(auto) { return mLayers.end(); }
         MKT_NODISCARD constexpr auto begin() const -> decltype(auto) { return mLayers.begin(); }
@@ -84,6 +64,4 @@ namespace mikoto::core {
     };
 }
 
-
-
-#endif //LAYERSTACK_H
+#endif// MIKOTO_CORE_LAYER_STACK_HH

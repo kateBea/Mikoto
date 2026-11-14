@@ -13,43 +13,54 @@
 // limitations under the License.
 
 // =================================================
-// Taken as reference
+// Refs:
 // https://stoleckipawel.dev/posts/frame-graph-theory/
 // https://stoleckipawel.dev/posts/frame-graph-build-it/
 // https://stoleckipawel.dev/posts/frame-graph-advanced/
 // https://stoleckipawel.dev/posts/frame-graph-production/
-//
+// https://traverse.nl/blog/render-graph-101/#dead-stripping
 // =================================================
 
-#ifndef MIKOTO_FRAME_GRAPH_HH
-#define MIKOTO_FRAME_GRAPH_HH
+#ifndef MIKOTO_RENDERER_CORE_FRAME_GRAPH_HH
+#define MIKOTO_RENDERER_CORE_FRAME_GRAPH_HH
+
+#include <source_location>
+
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/functional.h>
+#include <EASTL/string_view.h>
+#include <EASTL/fixed_vector.h>
+#include <EASTL/unordered_map.h>
+#include <EASTL/fixed_hash_map.h>
+
+#include <ankerl/unordered_dense.h>
 
 #include <taskflow/taskflow.hpp>
 
-#include <EASTL/fixed_hash_map.h>
-#include <EASTL/functional.h>
-#include <EASTL/string.h>
-#include <EASTL/string_view.h>
-#include <EASTL/unique_ptr.h>
-#include <EASTL/vector.h>
-#include <ankerl/unordered_dense.h>
-
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
+#include <Core/Profiler.hh>
+#include <Core/Resource.hh>
 #include <Core/Blackboard.hh>
-#include <Core/ResourcePool.hh>
-
-#include <Assets/AssetsService.hh>
-#include <Assets/ShaderLibrary.hh>
 
 #include <Memory/Allocator.hh>
 #include <Memory/MemoryArena.hh>
 #include <Memory/FreeListAllocator.hh>
 
+#include <Assets/AssetRegistryService.hh>
+
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
-#include <Renderer/Core/ResourceBindings.hh>
+#include <Renderer/Rhi/Descriptor.hh>
+#include <Renderer/Core/FrameGraphPass.hh>
+#include <Renderer/Core/FrameGraphTypes.hh>
+#include <Renderer/Core/GpuQueryProfiler.hh>
+#include <Renderer/Core/FrameGraphCompiler.hh>
+#include <Renderer/Core/FrameGraphScheduler.hh>
+#include <Renderer/Core/FrameGraphResourceManager.hh>
+#include <Renderer/Core/FrameGraphDescriptorAllocator.hh>
 
 namespace mikoto::renderer {
 
@@ -58,372 +69,7 @@ namespace mikoto::renderer {
     // https://godotengine.org/article/rendering-acyclic-graph/
     // https://levelup.gitconnected.com/organizing-gpu-work-with-directed-acyclic-graphs-f3fd5f2c2af3
 
-    using namespace mikoto::core;
-    using namespace mikoto::memory;
-    using namespace mikoto::material;
-    using namespace mikoto::renderer::rhi;
-
-
     class CommandContext;
-
-    // Shader define
-    typedef core::u64 SPointer;
-    typedef core::u64 SArraySize;
-
-    // Represents the handle for any resource
-    using FGResourceHandle = core::u32;
-
-    struct FGTextureHandle { FGResourceHandle mHandle{}; };
-    struct FGBufferHandle { FGResourceHandle mHandle{};  };
-    struct FGSamplerHandle { FGResourceHandle mHandle{}; };
-    struct FGPipelineHandle { FGResourceHandle mHandle{}; };
-
-    enum class FGStageType {
-        eVertex,
-        eHull,
-        eDomain,
-        eGeometry,
-        ePixel,
-
-        eTask,
-        eMesh,
-
-        eTransfer,
-
-        eCompute,
-
-        eRayGen,
-        eIntersection,
-        eAnyHit,
-        eClosestHit,
-        eMiss,
-        eCount,
-    };
-
-    // These should represent pipeline stage
-    enum class FGPipelineStage {
-        eUnknown,
-        eConstantBuffer,
-        eVertexBuffer,
-        eIndexBuffer,
-        eIndirectArgument,
-
-        eVertexShader,
-        ePixelShader,
-        eHullShader,
-        eDomainShader,
-        eGeometryShader,
-        eComputeShader,
-
-        eUnorderedAccess,
-        eRenderTarget,
-        eDepthTarget,
-        eCopy,
-        eResolve,
-        ePresent,
-
-
-        eAccelStructRead,
-        eAccelStructWrite,
-        eAccelStructBuildInput,
-        eAccelStructBuildBlas,
-    };
-
-    // This will represent resource access
-    enum class FGResourceAccess {
-        eNone,
-        eRead,
-        eWrite,
-    };
-
-    enum class FGExecutionPolicy {
-        ePerFrame,
-        eOnWake,
-        eOnce,
-    };
-
-    enum class FGResourceType {
-        eInvalid = -1,
-        eTexture,
-        eBuffer,
-        eSampler,
-        ePipeline,
-    };
-
-    enum class FGPassType {
-        eGraphics,
-        eCompute,
-        eTransfer,
-        eGeneric, // For passes that not really need any kind of GPU work
-    };
-
-    struct ResourceVersion {
-        eastl::string mWriterPass{};    // Each Read() links to the current version's writer → automatic dependency edge.
-        eastl::vector<eastl::string> mReaderPasses{};  // Each Write() to a resource creates a new version.
-
-        MKT_NODISCARD auto HasWriter() const { return !mWriterPass.empty(); }
-    };
-
-    struct FGNodeResource {
-        eastl::string mName{};
-        eastl::any mDescription{};
-        eastl::vector<ResourceVersion> mVersions{};  // version 0, 1, 2...
-        bool mIsImported{ false };  // imported = externally owned (e.g. swapchain)
-    };
-
-    struct FGResourceTrack {
-        FGPipelineStage mState{};
-        FGResourceAccess mAccess{};
-    };
-
-    struct FGNode {
-        eastl::string mName{};
-        FGPassType mType{ FGPassType::eGraphics };
-        rhi::CommandListHandle mCommandList{};
-
-        bool mIsAlive{ true };
-
-        FGExecutionPolicy mExecutionPolicy{ FGExecutionPolicy::ePerFrame };
-
-        eastl::function<void()> mBuilderCallback{};
-        eastl::function<void( CommandContext&, Blackboard& )> mExecuteCallback{};
-
-        static constexpr core::u32 kMaxDependencies{ 32 };
-        static constexpr core::u32 kMaxSuccessors{ 32 };
-        static constexpr core::u32 kMaxResources{ 32 };
-
-        eastl::fixed_vector<FGResourceHandle, kMaxResources> mReadResources{};
-        eastl::fixed_vector<FGResourceHandle, kMaxResources> mWriteResources{};
-
-        ankerl::unordered_dense::set<eastl::string> mDependsOn{};
-        eastl::fixed_vector<eastl::string, kMaxSuccessors> mSuccessors{};
-
-        ankerl::unordered_dense::map<FGResourceHandle, FGResourceTrack> mResourceStates{};
-
-        core::u32 mInDegree{};
-    };
-
-    struct FGSamplerDescription {
-        eastl::string mName{};
-
-        float mMipLevels{ 1.0f };
-
-        SamplerFilter mMinFilter{ SamplerFilter::eNearest };
-        SamplerFilter mMagFilter{ SamplerFilter::eNearest };
-        SamplerWrapMode mWrapU{ SamplerWrapMode::eRepeat };
-        SamplerWrapMode mWrapV{ SamplerWrapMode::eRepeat };
-        SamplerWrapMode mWrapW{ SamplerWrapMode::eRepeat };
-
-        Color mBorderColor{ 0.0f, 0.0f, 0.0f, 1.0f };
-
-        auto SetMipLevels( float mipLevels) -> FGSamplerDescription&;
-
-        auto SetBorderColor( const Color& color ) -> FGSamplerDescription&;
-
-        auto SetName( eastl::string_view name ) -> FGSamplerDescription&;
-        auto SetFilter( SamplerFilter filter ) -> FGSamplerDescription&;
-        auto SetMinFilter( SamplerFilter filter ) -> FGSamplerDescription&;
-        auto SetMagFilter( SamplerFilter filter ) -> FGSamplerDescription&;
-
-        auto SetWrap( SamplerWrapMode wrap ) -> FGSamplerDescription&;
-        auto SetWrapU( SamplerWrapMode wrap ) -> FGSamplerDescription&;
-        auto SetWrapV( SamplerWrapMode wrap ) -> FGSamplerDescription&;
-        auto SetWrapW( SamplerWrapMode wrap ) -> FGSamplerDescription&;
-    };
-
-    struct FGPipelineDescription {
-        eastl::string mName{};
-
-        rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
-        PrimitiveTopology mTopology{ PrimitiveTopology::eTriangleList };
-        PipelineType mPipelineType{ PipelineType::eInvalid };
-
-        eastl::fixed_hash_map<FGStageType, filesystem::Path,
-            as<u32>( FGStageType::eCount )> mShaders{};
-
-        PolygonMode mPolygonMode{ PolygonMode::eFill };
-        CullMode mCullMode{ CullMode::eNone };
-
-        Format mDepthFormat{};
-        eastl::fixed_vector<Format, kMaxColorFormats> mColorFormats{};
-
-        bool mEnableDepthTest{ true };
-        bool mEnableDepthWrite{ true };
-        bool mEnableBlend{ true };
-
-        auto SetCullMode( CullMode mode ) -> FGPipelineDescription&;
-        auto SetPolygonMode( PolygonMode mode ) -> FGPipelineDescription&;
-
-        auto SetMultisampling( Multisampling msaa ) -> FGPipelineDescription&;
-
-        auto SetDepthTest( bool value ) -> FGPipelineDescription&;
-        auto SetDepthWrite( bool value ) -> FGPipelineDescription&;
-        auto SetDepthFormat( Format format ) -> FGPipelineDescription&;
-
-        auto SetBlendEnable( bool value ) -> FGPipelineDescription&;
-
-        auto AddColorFormat( Format format ) -> FGPipelineDescription&;
-        auto SetName( eastl::string_view name ) -> FGPipelineDescription&;
-        auto SetPipelineType( PipelineType type ) -> FGPipelineDescription&;
-        auto PushShader( const filesystem::Path& path, FGStageType stage) -> FGPipelineDescription&;
-        auto SetTopology(PrimitiveTopology) -> FGPipelineDescription&;
-    };
-
-    struct FGBufferDescription {
-        eastl::string mName{};
-
-        core::u32 mElementCount{};
-        core::u32 mElementSizeBytes{}; // If we do not know the size of individual elements this is equal to the whole range
-
-        rhi::HeapType mHeapType{ rhi::HeapType::eDeviceLocal };
-        rhi::BufferUsageFlags mBufferUsageFlags{ BufferUsageFlagsBits::Structured };
-
-        memory::BufferSpanHandle mInitialContents{};
-
-        auto SetName( eastl::string_view name ) -> FGBufferDescription&;
-        auto SetInitialData( memory::BufferSpanHandle data ) -> FGBufferDescription&;
-        auto SetUsage( rhi::BufferUsageFlags flags ) -> FGBufferDescription&;
-        auto SetSizeBytes( core::usize byteSize ) -> FGBufferDescription&;
-        auto SetElementsSize( core::u32 elementCount, core::usize elementSizeBytes ) -> FGBufferDescription&;
-        auto SetHeapType( rhi::HeapType heap ) -> FGBufferDescription&;
-    };
-
-    struct FGTextureDescription {
-        eastl::string mName{};
-
-        core::u32 mWidth{};
-        core::u32 mHeight{};
-        core::u32 mMipCount{ 1 };
-
-        rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
-        rhi::TextureDimension mDimension{ rhi::TextureDimension::eTexture2D };
-        rhi::TextureUsageFlags mUsage{ rhi::TextureUsageFlagsBits::ShaderResource };
-
-        rhi::Format mFormat{ rhi::Format::eRGBA8_SNORM };
-        rhi::HeapType mHeapType{ rhi::HeapType::eDeviceLocal };
-
-        auto SetName( eastl::string_view name ) -> FGTextureDescription&;
-        auto SetWidth( core::u32 width ) -> FGTextureDescription&;
-        auto SetHeight( core::u32 height ) -> FGTextureDescription&;
-        auto SetMipCount( core::u32 count ) -> FGTextureDescription&;
-
-        auto SetHeapType( rhi::HeapType heapType) -> FGTextureDescription&;
-        auto SetMultisampling( rhi::Multisampling sampleCount ) -> FGTextureDescription&;
-
-        auto SetDimensions( rhi::TextureDimension dimensions ) -> FGTextureDescription&;
-
-        auto SetFormat( rhi::Format usage ) -> FGTextureDescription&;
-        auto SetUsage( rhi::TextureUsageFlags usage ) -> FGTextureDescription&;
-    };
-
-    /** Access scopes recorded by the graph, invalidated by external state updates. */
-    struct FGBarrierHistory {
-        rhi::PipelineStageFlags mStages{ rhi::PipelineStageFlagsBits::None };
-        rhi::BarrierAccessFlags mAccess{ rhi::BarrierAccessFlagsBits::None };
-        rhi::ResourceStates mState{ rhi::ResourceStates::eUnknown };
-        core::u64 mResourceRevision{};
-        bool mIsValid{};
-
-        /**
-         * Checks whether this history still describes the recorded resource.
-         * @param state Current resource state.
-         * @param revision Current resource-state revision.
-         * @returns True when no external state update has invalidated the history.
-         */
-        MKT_NODISCARD auto IsCurrent( rhi::ResourceStates state, core::u64 revision ) const -> bool;
-
-        /**
-         * Prepares access history for the next recorded use, retaining compatible readers.
-         * @param stateBefore Current resource state.
-         * @param revisionBefore Current resource-state revision.
-         * @param stateAfter Required state for the next use.
-         * @param stages Pipeline stages of the next use.
-         * @param accesses Memory accesses of the next use.
-         * @returns Pending history; assign its revision after recording the barrier.
-         */
-        MKT_NODISCARD auto Next( rhi::ResourceStates stateBefore, core::u64 revisionBefore,
-            rhi::ResourceStates stateAfter, rhi::PipelineStageFlags stages, rhi::BarrierAccessFlags accesses ) const -> FGBarrierHistory;
-    };
-
-    struct FGResource {
-        Ref<IResource> mResource{};
-        FGResourceHandle mResourceID{};
-        FGResourceType mType{ FGResourceType::eInvalid };
-        FGBarrierHistory mBarrierHistory{};
-    };
-
-    class FGResourceManager final {
-    public:
-        static constexpr FGResourceHandle kInvalidResourceHandle{ 0 };
-
-        explicit FGResourceManager( IGpuDevice* device );
-
-        MKT_NODISCARD auto Get( FGResourceHandle handle ) -> FGResource&;
-        MKT_NODISCARD auto Get( FGResourceHandle handle ) const -> const FGResource&;
-
-        MKT_NODISCARD auto GetBufferMappedAddress( FGBufferHandle handle ) const -> const void*;
-
-        MKT_NODISCARD auto GetBindlessLayout() const -> BindingLayoutHandle;
-        MKT_NODISCARD auto GetPipelineLayout() const -> PipelineLayoutHandle;
-
-        MKT_NODISCARD auto GetDescriptorTable() const -> DescriptorTableHandle;
-
-        MKT_NODISCARD auto Allocate( FGResourceType type, IResource* resource = nullptr ) -> FGResource&;
-        MKT_NODISCARD auto Free( FGResourceHandle name ) -> bool;
-
-        MKT_NODISCARD auto GetGpuDeviceAddress( FGBufferHandle handle ) -> core::u64;
-
-        MKT_NODISCARD auto AllocateSamplerIndex( FGResourceHandle name ) -> u32;
-        MKT_NODISCARD auto AllocateTextureIndex_SRV( FGResourceHandle name ) -> u32;
-        MKT_NODISCARD auto AllocateTextureIndex_UAV( FGResourceHandle handle ) -> u32;
-
-        MKT_NODISCARD auto AllocateBufferIndex_SRV( FGResourceHandle name ) -> u32;
-        MKT_NODISCARD auto AllocateBufferIndex_UAV( FGResourceHandle name ) -> u32;
-
-        // Since D3D12 uses descriptor heaps now this instead of an address
-        // it returns an index we can use to retrieve the resource via
-        // ResourceDescriptorHeaps or SamplerDescriptorHeaps
-        MKT_NODISCARD auto AllocateBufferBufferAddress( FGBufferHandle handle ) -> core::u64;
-        MKT_NODISCARD auto AllocateBufferBufferAddress( FGTextureHandle handle ) -> core::u64;
-        MKT_NODISCARD auto AllocateBufferBufferAddress( FGSamplerHandle handle ) -> core::u64;
-
-        auto ReleaseSamplerIndex( FGResourceHandle name ) -> void;
-        auto ReleaseTextureIndex_SRV( FGResourceHandle name ) -> void;
-        auto ReleaseTextureIndex_UAV( FGResourceHandle handle ) -> void;
-
-        auto ReleaseBufferIndex_SRV( FGResourceHandle name ) -> void;
-        auto ReleaseBufferIndex_UAV( FGResourceHandle name ) -> void;
-
-        MKT_NODISCARD auto ImportTexture( TextureHandle handle ) -> FGTextureHandle;
-        MKT_NODISCARD auto ImportBuffer( BufferHandle handle ) -> FGBufferHandle;
-
-    private:
-        IGpuDevice* mDevice{};
-
-        std::mutex mResourceMutex{};
-        eastl::atomic<u32> mResourceCount{};
-
-        ankerl::unordered_dense::map<IResource*, FGResourceHandle> mImportedResources{};
-        ankerl::unordered_dense::map<FGResourceHandle, eastl::unique_ptr<FGResource>> mResources{};
-
-        // Gpu side resources
-        rhi::BindingLayoutHandle mBindlessLayout{};
-        rhi::PipelineLayoutHandle mPipelineLayout{};
-
-        static constexpr u32 kMaxTables{ 5 };
-        static constexpr u32 kMaxResourcePerTable{ 1096 };
-
-        std::mutex mTableWriteMutex{};
-        DescriptorTableHandle mDescriptorTable{};
-
-        // EXPERIMENTAL: Buffer device Addresses. List of uint64_t
-        rhi::BufferHandle mBufferDeviceAddresses{};
-
-        // Example: [binding(0, 0)] Textures[] textures;
-        // data.mTexture01 is at textures[0]
-        using ResourceList = eastl::fixed_hash_map<FGResourceHandle, u32, kMaxResourcePerTable>;
-        using ResourceTable = eastl::fixed_hash_map<u32, ResourceList, kMaxTables>;
-    };
 
     struct FGNodeStatistics {
         // Per call to Execute(...) not the total
@@ -436,7 +82,9 @@ namespace mikoto::renderer {
         core::u32 mBufferSRVCount{};
         core::u32 mBufferUAVCount{};
 
-        // Execution time in ms
+        // CPU time spent in the pass callback, in milliseconds (not GPU time).
+        core::u64 mExecutionCount{};
+        bool mExecutedThisFrame{};
         core::f64 mMaxExecutionTime{};
         core::f64 mMinExecutionTime{};
         core::f64 mLastExecutionTime{};
@@ -460,10 +108,9 @@ namespace mikoto::renderer {
     };
 
     struct FGReadbackTask {
-        using Callback = eastl::function<void(Blackboard&, const FGResourceManager&)>;
+        using Callback = eastl::function<void(core::Blackboard&, const FGResourceManager&)>;
         Callback mCallback{};
-        u64 mFenceValue{};
-
+        core::u64 mFenceValue{};
 
         // It starts as ready so we can update
         // the fence value for the first submission
@@ -475,75 +122,60 @@ namespace mikoto::renderer {
     // Manages GPU to CPU readbacks
     class FGReadbackManager final {
     public:
-        static constexpr u32 kMaxReadbacks{ 15 };
+        static constexpr core::u32 kMaxReadbacks{ 15 };
 
-        explicit FGReadbackManager( Blackboard& blackboard, FGResourceManager& manager );
+        explicit FGReadbackManager( core::Blackboard& blackboard, FGResourceManager& manager );
 
-        auto ExecuteCallbacks(  u64 fenceValue  ) -> void;
+        auto ExecuteCallbacks(  core::u64 fenceValue  ) -> void;
 
-        auto UpdateTaskFenceValue( u32 taskID, u64 fenceValue ) -> void;
-        auto RegisterCallback(const FGReadbackTask::Callback& callback, bool runEveryFrame = false) -> u32;
+        auto UpdateTaskFenceValue( core::u32 taskID, core::u64 fenceValue ) -> void;
+        auto RegisterCallback(const FGReadbackTask::Callback& callback, bool runEveryFrame = false) -> core::u32;
 
     private:
-        Blackboard* mBlackboard{};
+        core::Blackboard* mBlackboard{};
         FGResourceManager* mResourceManager{};
-        ankerl::unordered_dense::map<u32, FGReadbackTask> mReadbackTasks{};
+        ankerl::unordered_dense::map<core::u32, FGReadbackTask> mReadbackTasks{};
+        core::u32 mNextTaskID{ 1 };
     };
 
-    struct FGNodeControl {
-        ankerl::unordered_dense::map<eastl::string, FGNode> mNodes;
-        ankerl::unordered_dense::map<eastl::string, CommandContext> mContexts;
+    struct FGNodeControl final : public core::INonCopyable, core::INonMoveable {
+        ankerl::unordered_dense::map<eastl::string, FrameGraphPass> mNodes;
         ankerl::unordered_dense::map<FGResourceHandle, FGNodeResource> mResources;
 
         FGNodeControl();
+        ~FGNodeControl();
 
         auto Clear() -> void;
+        auto RegisterContext( const eastl::string& name, FrameGraphPass& node,
+            FGResourceManager& resources, FrameGraphDescriptorAllocator& descriptors,
+            rhi::PipelineLayoutHandle pipelineLayout, FGStatisticsManager& statistics ) -> void;
+
+        MKT_NODISCARD auto GetContext( const eastl::string& name ) -> CommandContext&;
+
+    private:
+        // Keep the by-value context map in the implementation, where its value
+        // type is complete. One storage allocation per graph, not per pass.
+        struct ContextStorage;
+        eastl::unique_ptr<ContextStorage> mContexts;
     };
 
     class FGNodeBuilder final {
     public:
-        explicit FGNodeBuilder( FGNode& node, FGNodeControl& control );
-
-        // I am not sure if I wanna keep these two. The second set of
-        // methods offers more relaxed barriers
-        auto Read( FGTextureHandle handle, FGPipelineStage state ) -> void;
-        auto Write( FGTextureHandle handle, FGPipelineStage state ) -> void;
-
-        auto Read( FGBufferHandle handle, FGPipelineStage state )  -> void;
-        auto Write( FGBufferHandle handle, FGPipelineStage state )  -> void;
+        explicit FGNodeBuilder( FrameGraphPass& node, FGNodeControl& control );
 
         auto UseResource( FGTextureHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void;
         auto UseResource( FGBufferHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void;
+        auto UseResource( FGVideoHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void;
+        auto UseResource( FGAccelerationStructureHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void;
 
     private:
-        auto Read( FGResourceHandle handle )  -> void;
-        auto Write( FGResourceHandle handle )  -> void;
+        auto UseResource( FGResourceHandle handle, FGPipelineStage stage, FGResourceAccess access, FGResourceType type ) -> void;
+        auto TrackRead( FGResourceHandle handle ) -> void;
+        auto TrackWrite( FGResourceHandle handle ) -> void;
 
     private:
-        FGNode* mGraphNode{};
+        FrameGraphPass* mGraphNode{};
         FGNodeControl* mNodeControl{};
-    };
-
-    struct FGBarrier {
-        FGResourceHandle mResourceID{};  // which resource to transition
-
-        // Only the destination is known at compile time. The source depends on
-        // which passes actually execute, previous frames, and external users.
-        FGPipelineStage mNewState{};
-        FGResourceAccess mNewAccess{};
-    };
-
-    struct FGCompiledPlan {
-        // topological execution order
-        eastl::vector<eastl::string> mSortedExecutionPasses{};
-
-        // [passName, passBarriers] -> [resourceHandle, barrierType]
-        ankerl::unordered_dense::map<eastl::string,
-            ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>>> mBarriers{};
-
-        // Execution task graph
-        tf::Taskflow mExecutionTaskGraph{};
-        ankerl::unordered_dense::map<FGNode*, tf::Task> mExecutionTaskMap{};
     };
 
     class FrameGraph final {
@@ -560,13 +192,23 @@ namespace mikoto::renderer {
         auto DisablePass( eastl::string_view passName ) -> void;
         auto EnablePass( eastl::string_view passName ) -> void;
 
+        auto DumpHierarchy() -> void;
+
         MKT_NODISCARD auto IsPassPresent( eastl::string_view passName ) const -> bool;
 
         MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl&;
+        MKT_NODISCARD auto GetNodeControl() -> FGNodeControl&;
         MKT_NODISCARD auto GetStatisticsManager() const -> const FGStatisticsManager&;
+        MKT_NODISCARD auto GetGpuProfiler() -> GpuQueryProfiler&;
 
         MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> rhi::TextureHandle;
         MKT_NODISCARD auto GetBuffer( FGBufferHandle handle ) const -> rhi::BufferHandle;
+
+        MKT_NODISCARD auto GetDescriptorTable() const -> rhi::DescriptorTableHandle;
+
+        /** Descriptor releases require completion of every recording using the entry. */
+        MKT_NODISCARD auto GetDescriptorAllocator() -> FrameGraphDescriptorAllocator&;
+        MKT_NODISCARD auto GetDescriptorAllocator() const -> const FrameGraphDescriptorAllocator&;
 
         MKT_NODISCARD auto GetBlackBoard() const -> const core::Blackboard&;
 
@@ -574,17 +216,30 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto ImportTexture( rhi::TextureHandle handle ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportBuffer( rhi::BufferHandle handle ) -> FGBufferHandle;
 
+        // TODO: Explore multilayered textures, this could be interesting for bloom which
+        // due to resource usage limitations it implies multiple passes on same resources but different usages.
+        // For instance within the same pass a resource can be used as render target but another mip maybe as shader read.
+        // https://godotengine.org/article/rendering-acyclic-graph/
+        /** Registers descriptions only; GPU objects are available after Compile(). */
         MKT_NODISCARD auto Create( const FGTextureDescription& desc ) -> FGTextureHandle;
         MKT_NODISCARD auto Create( const FGBufferDescription& desc ) -> FGBufferHandle;
+        MKT_NODISCARD auto Create( const FGVideoDescription& desc ) -> FGVideoHandle;
         MKT_NODISCARD auto Create( const FGPipelineDescription& desc ) -> FGPipelineHandle;
         MKT_NODISCARD auto Create( const FGSamplerDescription& desc ) -> FGSamplerHandle;
+        MKT_NODISCARD auto Create( const FGAccelerationStructureDescription& desc ) -> FGAccelerationStructureHandle;
+
+        MKT_NODISCARD auto CreateShaderTable( FGPipelineHandle pipeline ) -> FGShaderTableHandle;
 
         template<typename PassData, typename SetupFunc, typename ExecuteFunc>
-        auto RegisterPass( eastl::string_view name, FGPassType nodeType, SetupFunc &&setup, ExecuteFunc &&execute ) -> void {
-            FGNode& node{ mNodeControl->mNodes[name.data()] = FGNode{
+        auto RegisterPass( eastl::string_view name, FGPassType nodeType, SetupFunc&& setup, ExecuteFunc&& execute,
+            std::source_location source = std::source_location::current() ) -> void {
+            MKT_BEGIN_PROFILER();
+            FrameGraphPass& node{ mNodeControl->mNodes[name.data()] = FrameGraphPass{
                 .mName{ name },
+                .mDebugLabel{ string::Format( "Pass: {}", name ) },
+                .mSourceLocation = source,
                 .mType = nodeType,
-                .mExecuteCallback = [execute]( CommandContext &ctx, Blackboard &blackboard ) -> void {
+                .mExecuteCallback = [execute]( CommandContext &ctx, core::Blackboard &blackboard ) -> void {
                     execute( ctx, blackboard );
                 },
             } };
@@ -599,11 +254,15 @@ namespace mikoto::renderer {
         }
 
         template<typename SetupFunc, typename ExecuteFunc>
-        auto RegisterPass( eastl::string_view name, FGPassType nodeType, SetupFunc &&setup, ExecuteFunc &&execute ) -> void {
-            FGNode& node{ mNodeControl->mNodes[name.data()] = FGNode{
+        auto RegisterPass( eastl::string_view name, FGPassType nodeType, SetupFunc&& setup, ExecuteFunc&& execute,
+            std::source_location source = std::source_location::current() ) -> void {
+            MKT_BEGIN_PROFILER();
+            FrameGraphPass& node{ mNodeControl->mNodes[name.data()] = FrameGraphPass{
                 .mName{ name },
+                .mDebugLabel{ string::Format( "Pass: {}", name ) },
+                .mSourceLocation = source,
                 .mType = nodeType,
-                .mExecuteCallback = [execute]( CommandContext &ctx, Blackboard &blackboard ) -> void {
+                .mExecuteCallback = [execute]( CommandContext &ctx, core::Blackboard &blackboard ) -> void {
                     execute( ctx, blackboard );
                 },
             } };
@@ -618,6 +277,7 @@ namespace mikoto::renderer {
 
         template<typename T, typename... Args>
         auto GetOrCreate(Args&&... args) -> T& {
+            MKT_BEGIN_PROFILER();
             if (mBlackboard.Contains<T>()) {
                 return mBlackboard.Get<T>();
             }
@@ -627,25 +287,35 @@ namespace mikoto::renderer {
 
         template<typename T>
         auto GetData() const -> const T& {
+            MKT_BEGIN_PROFILER();
             return mBlackboard.Get<T>();
         }
 
         template<typename T>
         MKT_NODISCARD auto Exists() const -> bool {
+            MKT_BEGIN_PROFILER();
             return mBlackboard.Contains<T>();
         }
 
         auto RegisterReadback( FGReadbackTask::Callback &&execute, bool runEveryFrame = false ) -> void;
 
-        MKT_NODISCARD static auto Create( IGpuDevice* device, asset::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph>;
+        MKT_NODISCARD static auto Create( renderer::rhi::IGpuDevice* device, asset::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph>;
 
     private:
-        auto BindResources( rhi::CommandListHandle commandList ) -> void;
+        friend class FGCompiler;
 
-        auto BuildNodeEdges() -> void;
-        auto CullGraphNodes() -> void;
-        auto BuildNodeBarriers() -> void;
-        auto BuildExecutionContext() -> void;
+        // The compiler schedules these factories; creation stays with the graph.
+        MKT_NODISCARD auto CreateResource( FGResourceType type, const FGNodeResource& node,
+                                           rhi::PipelineHandle pipeline = {} ) -> core::Ref<core::Resource>;
+        MKT_NODISCARD auto CreatePipeline( const FGPipelineDescription& description ) -> rhi::PipelineHandle;
+
+        auto BindResources( rhi::CommandListHandle commandList ) -> void;
+        auto RestoreGraphicsResources() -> void;
+
+        auto RecordVideoCommands() -> void;
+        auto RecordGraphicsCommands() -> void;
+
+        auto SubmitRecordedCommands() -> void;
 
         auto ProcessReadbackTasks( core::u64 submissionFenceValue ) -> void;
 
@@ -664,10 +334,21 @@ namespace mikoto::renderer {
 
         core::Blackboard mBlackboard{};
 
-        FGCompiledPlan mExecutionPlan{};
+        // Execution plan
+        core::Ref<FGExecutionPlan> mExecutionPlan{};
         eastl::unique_ptr<FGNodeControl> mNodeControl{};
+
+        // Management
+        eastl::unique_ptr<FGScheduler> mScheduler{};
+        eastl::unique_ptr<FGCompiler> mGraphCompiler{};
         eastl::unique_ptr<FGResourceManager> mResourceManager{};
+        eastl::unique_ptr<FrameGraphDescriptorAllocator> mDescriptorAllocator{};
         eastl::unique_ptr<FGReadbackManager> mReadbackManager{};
+
+        rhi::PipelineLayoutHandle mPipelineLayout{};
+
+        // Statistics
+        eastl::unique_ptr<GpuQueryProfiler> mGpuProfiler{};
         eastl::unique_ptr<FGStatisticsManager> mStatisticsManager{};
 
         eastl::vector<ReadbackTask> mReadbackTasks{};
@@ -678,7 +359,8 @@ namespace mikoto::renderer {
         rhi::CommandListHandle mGraphicsCommands{};
         rhi::CommandListHandle mComputeCommands{};
         rhi::CommandListHandle mTransferCommands{};
+        rhi::CommandListHandle mVideoCommands{};
     };
 }
 
-#endif//MIKOTO_FRAME_GRAPH_HH
+#endif// MIKOTO_RENDERER_CORE_FRAME_GRAPH_HH

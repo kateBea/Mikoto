@@ -12,27 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_THEME_MANAGER_HH
-#define MIKOTO_THEME_MANAGER_HH
+#ifndef MIKOTO_THEME_THEME_MANAGER_HH
+#define MIKOTO_THEME_THEME_MANAGER_HH
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
-
 #include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Service.hh>
 #include <Core/Singleton.hh>
-
+#include <Core/Types.hh>
 #include <Theme/Theme.hh>
 #include <Theme/ThemeSerializer.hh>
 
 namespace mikoto::editor {
-    using namespace mikoto::core;
+    
 
-    class ThemeManager final : public IService, public Singleton<ThemeManager> {
+    class ThemeManager final : public core::IService, public core::Singleton<ThemeManager> {
     public:
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
@@ -52,5 +50,5 @@ namespace mikoto::editor {
     };
 }
 
+#endif// MIKOTO_THEME_THEME_MANAGER_HH
 
-#endif //MIKOTO_THEME_MANAGER_HH

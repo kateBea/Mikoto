@@ -12,18 +12,69 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_ANIMATION_GRAPH_PANEL_HH
-#define MIKOTO_ANIMATION_GRAPH_PANEL_HH
+#ifndef MIKOTO_PANELS_ANIMATION_GRAPH_PANEL_HH
+#define MIKOTO_PANELS_ANIMATION_GRAPH_PANEL_HH
+
+#include <filesystem>
+
+#include <EASTL/string.h>
+
+#include <ankerl/unordered_dense.h>
+
+#include <Animation/Animator.hh>
+#include <Animation/AnimationController.hh>
+
+#include <ImGui/GraphEditor.hh>
 
 #include <Panels/Panel.hh>
 
+
 namespace mikoto::editor {
+    struct EditorState;
+
+    struct AnimationGraphPanelCreateInfo {
+        EditorState* mState{};
+
+        eastl::string mGroup{ "Other" };
+        bool mIsToggleable{ true };
+    };
 
     class AnimationGraphPanel final : public Panel {
     public:
-        auto OnRender( float timeStep ) -> void override;
+        explicit AnimationGraphPanel( const AnimationGraphPanelCreateInfo& info );
+        auto OnRender( core::f32 timeStep ) -> void override;
+
+    private:
+        struct DocumentView {
+            std::filesystem::path mPath{};
+            bool mDirty{};
+        };
+
+    private:
+        auto GetSelectedAnimator( core::u64& id ) const -> animation::Animator*;
+        auto DrawParameters( animation::AnimationController& controller, DocumentView& document ) -> void;
+        auto DrawGraph( animation::AnimationController& controller, DocumentView& document, animation::Animator* animator ) -> void;
+        auto DrawInspector( animation::AnimationController& controller, DocumentView& document, animation::Animator* animator ) -> void;
+        auto DrawToolbar( animation::AnimationController& controller, DocumentView& document, animation::Animator* animator ) -> void;
+        auto Save( animation::AnimationController& controller, DocumentView& document, bool saveAs ) -> void;
+        auto Open( animation::AnimationController& controller, DocumentView& document, animation::Animator* animator ) -> void;
+        auto Changed( DocumentView& document, animation::Animator* animator ) -> void;
+
+    private:
+        EditorState* mEditorState{};
+        imgui::NodeEditorContext mContext{};
+        animation::AnimationController mScratch{};
+        ankerl::unordered_dense::map<core::u64, DocumentView> mDocuments{};
+        core::u64 mLastAnimatorID{ ~core::u64{} };
+        animation::ControllerID mSelectedState{};
+        animation::ControllerID mSelectedTransition{};
+        core::i32 mNewParameterType{};
+        bool mRestorePositions{ true };
+        bool mFitRequested{ true };
+        core::i32 mFitDelay{ 2 };
+        eastl::string mMessage{};
     };
+}// namespace mikoto::editor
 
-}// namespace Mikoto
+#endif// MIKOTO_PANELS_ANIMATION_GRAPH_PANEL_HH
 
-#endif//MIKOTO_ANIMATION_GRAPH_PANEL_HH

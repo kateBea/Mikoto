@@ -2,6 +2,7 @@
 .vscode/
 Third-Party/
 .bootstrap.json
+vcpkg
 
 # Gradle and Maven with auto-import
 # When using Gradle or Maven with auto-import, you should exclude module files,
@@ -484,3 +485,12 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Local CMake and vcpkg outputs
+/out/
+/vcpkg_installed/
+/CMakeUserPresets.json
+
+# CMake package is part of the source, not a NuGet packages directory.
+/CMake/Packages/
+/CMake/Packages/**

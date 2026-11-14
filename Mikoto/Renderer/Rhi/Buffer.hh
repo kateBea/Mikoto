@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_BUFFER_HH
-#define MIKOTO_RHI_BUFFER_HH
+#ifndef MIKOTO_RENDERER_RHI_BUFFER_HH
+#define MIKOTO_RENDERER_RHI_BUFFER_HH
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
+#include <Core/Resource.hh>
+
 #include <Memory/BufferSpan.hh>
-#include <Core/ResourcePool.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Utility.hh>
@@ -218,75 +218,52 @@ namespace mikoto::renderer::rhi {
         MKT_NODISCARD virtual auto GetGpuDeviceAddress() -> DeviceAddress = 0;
 
         /**
+         * Returns the Shader virtual address, or @ref kNullDeviceAddress when unavailable.
+         * @returns The result of GetShaderDeviceAddress, can be used to directly access resources within shaders.
+         */
+        MKT_NODISCARD virtual auto GetShaderDeviceAddress() -> DeviceAddress = 0;
+
+        /**
          * Returns the intended uses declared for this buffer.
          * @returns The result of GetUsage.
          */
-        MKT_NODISCARD auto GetUsage() const -> BufferUsageFlags;
+        MKT_NODISCARD virtual auto GetUsage() const -> BufferUsageFlags = 0;
 
         /**
          * Returns the logical data classification of this buffer.
          * @returns The result of GetDataType.
          */
-        MKT_NODISCARD auto GetDataType() const -> BufferDataType;
+        MKT_NODISCARD virtual auto GetDataType() const -> BufferDataType = 0;
 
         /**
          * Returns retained CPU upload contents, if initialization data was preserved.
          * @returns The result of GetData.
          */
-        MKT_NODISCARD auto GetData() const -> memory::BufferSpanHandle;
+        MKT_NODISCARD virtual auto GetData() const -> memory::BufferSpanHandle = 0;
 
         /**
          * Returns the total logical size of the buffer in bytes.
          * @returns The result of GetSizeBytes.
          */
-        MKT_NODISCARD auto GetSizeBytes() const -> core::usize;
+        MKT_NODISCARD virtual auto GetSizeBytes() const -> core::usize = 0;
 
         /**
          * Returns the element format, or @ref Format::eUnknown for unformatted buffers.
          * @returns The result of GetFormat.
          */
-        MKT_NODISCARD auto GetFormat() const -> Format;
+        MKT_NODISCARD virtual auto GetFormat() const -> Format = 0;
 
         /**
          * Returns the element count, inferring it for raw formatted buffers.
          * @returns The result of GetCount.
          */
-        MKT_NODISCARD auto GetCount() const -> core::usize;
+        MKT_NODISCARD virtual auto GetCount() const -> core::usize = 0;
 
         using DeviceObject::Initialize;
-
-    protected:
-
-        /**
-         * Performs the operation represented by IBuffer.
-         *
-         * @returns The result of IBuffer.
-         */
-        explicit IBuffer( const BufferCreateDescription& desc );
-
-    protected:
-        memory::BufferSpanHandle mUploadContents{};
-
-        // These 2 attributes specify that the buffer is typed
-        // meaning it will hold mElementCount elements of mElementSize size in bytes
-        // This is useful for the backend API to manage alignment as it considers necessary
-        // If it is going to be treated as raw bytes
-        // then mElementSize holds the total size in bytes
-        core::usize mElementCount{};
-        core::usize mElementSize{};
-
-        BufferDataType mDataType{ BufferDataType::eInvalid };
-        BufferUsageFlags mUsage{ BufferUsageFlagsBits::None };
-
-        const ResourceStates mInitialState;
-
-        bool mIsVolatile{};
-        core::usize mMaxVersions{ 0 };
-
-        Format mFormat{ Format::eUnknown };
     };
 
     using BufferHandle = core::Ref<IBuffer>;
 }// namespace mikoto::renderer::rhi
 
-#endif//MIKOTO_RHI_BUFFER_HH
+#endif// MIKOTO_RENDERER_RHI_BUFFER_HH
+

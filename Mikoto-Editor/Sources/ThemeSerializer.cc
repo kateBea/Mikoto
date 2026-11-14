@@ -14,6 +14,8 @@
 
 #include <EASTL/unique_ptr.h>
 
+#include <Core/Profiler.hh>
+
 #include <Filesystem/Path.hh>
 
 #include <Theme/ThemeSerializer.hh>
@@ -22,7 +24,9 @@ namespace mikoto::editor {
 
     auto ThemeSerializer::Serialize( const core::ISerializable *object, const filesystem::Path &savePath ) -> void {
     }
+
     auto ThemeSerializer::Deserialize( const filesystem::Path &loadPath ) -> core::Ref<core::ISerializable> {
+        MKT_BEGIN_PROFILER();
         return core::Ref<core::ISerializable>::CreateEmpty();
     }
 

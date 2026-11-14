@@ -12,19 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 
-DECL_BINDING(0,0) Texture2D<float4> inputImage;
-DECL_BINDING(0,1) RWTexture2D<float4> outputImage;
+DECL_BINDING( 0, 0 ) Texture2D<float4> inputImage;
+DECL_BINDING( 0, 1 ) RWTexture2D<float4> outputImage;
 
-[numthreads(8,8,1)]
-[shader("compute")]
-void main(uint3 tid : SV_DispatchThreadID)
-{
+[numthreads( 8, 8, 1 )]
+[shader( "compute" )]
+void main( uint3 tid : SV_DispatchThreadID ) {
     uint2 pixel = tid.xy;
 
-    float4 color = inputImage.Load(int3(pixel,0));
+    float4 color = inputImage.Load( int3( pixel, 0 ) );
 
     outputImage[pixel] = color;
 }

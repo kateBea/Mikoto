@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 struct FSInput {
     float4 mPosition : SV_Position;
-    float3 mColor    : COLOR0;
+    float3 mColor : COLOR0;
 };
 
-[shader("fragment")]
-float4 main(FSInput input) : SV_Target0 {
-    return float4(input.mColor, 1.0);
+[shader( "fragment" )]
+float4 main( FSInput input ) : SV_Target0 {
+    return float4( input.mColor, 1.0 );
 }

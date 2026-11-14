@@ -1,0 +1,27 @@
+# Physics_Boxes demo project.
+# One thousand dynamic boxes fall onto static collision geometry.
+# Open this manifest in the editor; Scene selects the authored scene below.
+# Assets and Cache paths are relative to this manifest.
+# EditorCamera configures editor navigation; the scene camera controls the Game view.
+
+Version: 1
+Project: "Physics Boxes"
+Assets: "Assets"
+Cache: "Assets/.cache"
+Scene: "Scene/Physics_Boxes.mktscn"
+CompressTextures: false
+AutoSave: false
+AutoSaveIntervalMs: 2000
+EditorCamera:
+  NavigationMode: "Fly"
+  Position: [16,13,20]
+  Direction: [-0.5857034883065025,-0.3477614461819859,-0.7321293603831281]
+  Projection: "Perspective"
+  FieldOfView: 45
+  NearPlane: 0.1
+  FarPlane: 1000
+  MovementSpeed: 12
+  RotationSpeed: 10
+  SmoothTime: 0.1
+  AllowPitch: true
+  AllowYaw: true

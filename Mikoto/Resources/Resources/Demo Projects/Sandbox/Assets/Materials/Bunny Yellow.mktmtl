@@ -1,0 +1,8 @@
+Version: 2
+Type: SurfaceMaterial
+Name: Bunny Yellow
+Material:
+  BaseColorFactor: [0.9, 0.72, 0.055, 1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.48
+  AlphaMask: 0

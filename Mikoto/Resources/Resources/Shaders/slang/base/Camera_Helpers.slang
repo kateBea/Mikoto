@@ -41,4 +41,19 @@ struct CameraInfo {
 
     float mGamma;
     float mExposure;
+    uint mVisualizeCascades;
+    uint64_t mVolumes;
+    uint64_t mFogFrame;
+
+    uint64_t mAtmosphere;
+    uint mAtmosphereTransmittance;
+    uint mAtmosphereSampler;
 };
+
+// Depth prepass and shaded passes must agree down to the last depth bit.
+// Prevent pass-specific contraction/reassociation of the projection arithmetic.
+float4 CameraClipPosition( float4 worldPosition, CameraInfo camera ) {
+    precise float4 viewPosition = mul( camera.mViewMatrix, worldPosition );
+    precise float4 clipPosition = mul( camera.mProjection, viewPosition );
+    return clipPosition;
+}

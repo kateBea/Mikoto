@@ -1,0 +1,11 @@
+Model Information:
+* title:	Glass Bunny
+* source:	https://sketchfab.com/3d-models/glass-bunny-caeb681795a54c6eb0bf120582fe7f45
+* author:	Zachary Ferguson (https://sketchfab.com/zfergus)
+
+Model License:
+* license type:	CC-BY-SA-4.0 (http://creativecommons.org/licenses/by-sa/4.0/)
+* requirements:	Author must be credited. Modified versions must have the same license. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Glass Bunny" (https://sketchfab.com/3d-models/glass-bunny-caeb681795a54c6eb0bf120582fe7f45) by Zachary Ferguson (https://sketchfab.com/zfergus) licensed under CC-BY-SA-4.0 (http://creativecommons.org/licenses/by-sa/4.0/)

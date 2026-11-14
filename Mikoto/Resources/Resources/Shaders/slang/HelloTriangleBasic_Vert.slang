@@ -12,16 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 
 struct VSInput {
-    float3 position   : POSITION;
-    float2 uv0        : TEXCOORD0;
+    float3 position : POSITION;
+    float2 uv0 : TEXCOORD0;
 };
 
 struct VSOutput {
     float4 position : SV_POSITION;
-    float2 uv    : TEXCOORD;
+    float2 uv : TEXCOORD;
 };
 
 struct MyData {
@@ -30,17 +32,17 @@ struct MyData {
     float4x4 projection;
 };
 
-DECL_BINDING(2, 0) ConstantBuffer<MyData> parameters;
+#if defined( MKT_SUPPORT_D3D11 )
+ConstantBuffer<MyData> parameters : register( b2 );
+#else
+DECL_BINDING( 2, 0 ) ConstantBuffer<MyData> parameters;
+#endif
 
-[shader("vertex")]
-VSOutput main(VSInput input) {
+[shader( "vertex" )]
+VSOutput main( VSInput input ) {
     VSOutput o;
 
-    o.position =
-        parameters.projection *
-        parameters.view *
-        parameters.model *
-        float4(input.position, 1.0);
+    o.position = parameters.projection * parameters.view * parameters.model * float4( input.position, 1.0 );
 
     o.uv = input.uv0;
 

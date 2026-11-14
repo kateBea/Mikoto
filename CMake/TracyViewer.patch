@@ -1,0 +1,287 @@
+diff --git a/profiler/src/profiler/TracyView.hpp b/profiler/src/profiler/TracyView.hpp
+index 98a35581..ee5dc655 100644
+--- a/profiler/src/profiler/TracyView.hpp
++++ b/profiler/src/profiler/TracyView.hpp
+@@ -35,7 +35,7 @@
+ #include "../server/TracyVector.hpp"
+ #include "../server/tracy_pdqsort.h"
+ 
+-#ifndef __EMSCRIPTEN__
++#if !defined __EMSCRIPTEN__ && !defined MIKOTO_TRACY_EMBEDDED
+ #  include "TracyLlm.hpp"
+ #endif
+ 
+@@ -1111,7 +1111,7 @@ private:
+     WindowConstraints m_gpuZoneInfoConstraint;
+     WindowConstraints m_sourceViewConstraint;
+ 
+-#ifndef __EMSCRIPTEN__
++#if !defined __EMSCRIPTEN__ && !defined MIKOTO_TRACY_EMBEDDED
+     TracyLlm m_llm;
+ 
+     unordered_flat_map<uint32_t, std::string> m_callstackDesc;
+diff --git a/profiler/src/profiler/TracyView_Callstack.cpp b/profiler/src/profiler/TracyView_Callstack.cpp
+index 11acb802..6d0af6a0 100644
+--- a/profiler/src/profiler/TracyView_Callstack.cpp
++++ b/profiler/src/profiler/TracyView_Callstack.cpp
+@@ -276,7 +276,7 @@ void View::DrawCallstackTable( const CallstackFrameId* data, size_t size, const
+     }
+     ImGui::PopStyleVar();
+ 
+-#ifndef __EMSCRIPTEN__
++#if !defined __EMSCRIPTEN__ && !defined MIKOTO_TRACY_EMBEDDED
+     bool clicked = false;
+     if( s_config.llm && params.callstack >= 0 )
+     {
+@@ -392,7 +392,7 @@ void View::DrawCallstackTable( const CallstackFrameId* data, size_t size, const
+     }
+     if( params.constraints ) params.constraints->MarkMinWidth();
+ 
+-#ifndef __EMSCRIPTEN__
++#if !defined __EMSCRIPTEN__ && !defined MIKOTO_TRACY_EMBEDDED
+     if( s_config.llm && params.callstack >= 0 )
+     {
+         std::lock_guard lock( m_callstackDescLock );
+diff --git a/profiler/src/profiler/TracyView.cpp b/profiler/src/profiler/TracyView.cpp
+index 8d0ad95e..9fb7e485 100644
+--- a/profiler/src/profiler/TracyView.cpp
++++ b/profiler/src/profiler/TracyView.cpp
+@@ -59,8 +59,10 @@ View::View( void(*cbMainThread)(const std::function<void()>&, bool), const char*
+     , m_td( 2, "ViewMt" )
+ #else
+     , m_td( std::thread::hardware_concurrency(), "ViewMt" )
++#ifndef MIKOTO_TRACY_EMBEDDED
+     , m_llm( m_worker, *this, *m_manualData )
+ #endif
++#endif
+ {
+     InitTextEditor();
+     SetupConfig();
+@@ -68,7 +70,11 @@ View::View( void(*cbMainThread)(const std::function<void()>&, bool), const char*
+ }
+ 
+ View::View( void(*cbMainThread)(const std::function<void()>&, bool), FileRead& f, SetTitleCallback stcb, SetScaleCallback sscb, AttentionCallback acb, AchievementsMgr* amgr )
++#ifdef MIKOTO_TRACY_EMBEDDED
++    : m_worker( f, static_cast<EventType::Type>( EventType::All & ~EventType::FrameImages ) )
++#else
+     : m_worker( f )
++#endif
+     , m_filename( f.GetFilename() )
+     , m_staticView( true )
+     , m_viewMode( ViewMode::Paused )
+@@ -91,8 +97,10 @@ View::View( void(*cbMainThread)(const std::function<void()>&, bool), FileRead& f
+     , m_td( 2, "ViewMt" )
+ #else
+     , m_td( std::thread::hardware_concurrency(), "ViewMt" )
++#ifndef MIKOTO_TRACY_EMBEDDED
+     , m_llm( m_worker, *this, *m_manualData )
+ #endif
++#endif
+ {
+     m_notificationTime = 4;
+     m_notificationText = std::string( "Trace loaded in " ) + TimeToString( m_worker.GetLoadTime() );
+@@ -122,10 +130,12 @@ View::~View()
+     if( m_compare.loadThread.joinable() ) m_compare.loadThread.join();
+     if( m_saveThread.joinable() ) m_saveThread.join();
+ 
++#ifndef MIKOTO_TRACY_EMBEDDED
+     if( m_FrameTextureCache.textureId ) FreeTexture( m_FrameTextureCache.textureId, m_cbMainThread );
+     if( m_FrameTextureCacheConnection.textureId ) FreeTexture( m_FrameTextureCacheConnection.textureId, m_cbMainThread );
+ 
+     if( m_playback.texture ) FreeTexture( m_playback.texture, m_cbMainThread );
++#endif
+ }
+ 
+ void View::InitTextEditor()
+@@ -806,7 +816,9 @@ bool View::DrawImpl()
+         keepOpenPtr = &keepOpen;
+     }
+ 
+-#ifndef TRACY_NO_ROOT_WINDOW
++#if defined MIKOTO_TRACY_EMBEDDED
++    ImGuiViewport* viewport = ImGui::GetWindowViewport();
++#elif !defined TRACY_NO_ROOT_WINDOW
+     if( !m_titleSet && m_stcb )
+     {
+         m_titleSet = true;
+@@ -1010,7 +1022,7 @@ bool View::DrawImpl()
+             ImGui::EndPopup();
+         }
+     }
+-#ifndef __EMSCRIPTEN__
++#if !defined __EMSCRIPTEN__ && !defined MIKOTO_TRACY_EMBEDDED
+     if( s_config.llm )
+     {
+         ImGui::SameLine();
+@@ -1158,6 +1170,15 @@ bool View::DrawImpl()
+ 
+     DrawFrames();
+ 
++#ifdef MIKOTO_TRACY_EMBEDDED
++    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 1, 0 ) );
++    if( ImGui::BeginChild( "##TracyTimeline", ImVec2( 0, 0 ), ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_NoNavFocus ) )
++    {
++        DrawTimeline();
++    }
++    ImGui::EndChild();
++    ImGui::PopStyleVar();
++#else
+     const auto dockspaceId = ImGui::GetID( "tracyDockspace" );
+     ImGui::DockSpace( dockspaceId, ImVec2( 0, 0 ), ImGuiDockNodeFlags_NoDockingOverCentralNode );
+     if( ImGuiDockNode* node = ImGui::DockBuilderGetCentralNode( dockspaceId ) )
+@@ -1185,6 +1206,7 @@ bool View::DrawImpl()
+ 
+     ImGui::End();
+     ImGui::End();
++#endif
+ 
+     m_zoneHighlight = nullptr;
+     m_gpuHighlight = nullptr;
+@@ -1213,7 +1235,7 @@ bool View::DrawImpl()
+     if( m_showWaitStacks ) DrawWaitStacks();
+     if( m_showManual ) DrawManual();
+     if( m_showFrameStatistics ) DrawFrameStatistics();
+-#ifndef __EMSCRIPTEN__
++#if !defined __EMSCRIPTEN__ && !defined MIKOTO_TRACY_EMBEDDED
+     if( m_llm.m_show ) m_llm.Draw( m_llmConstraint );
+ #endif
+ 
+@@ -1382,6 +1404,7 @@ bool View::DrawImpl()
+ 
+ void View::DrawFrameImage( FrameImageCache& cache, const FrameImage& fi, float scale )
+ {
++#ifndef MIKOTO_TRACY_EMBEDDED
+     if ( fi.ptr != cache.dataPtr )
+     {
+         if( !cache.textureId ) cache.textureId = MakeTexture();
+@@ -1396,6 +1419,7 @@ void View::DrawFrameImage( FrameImageCache& cache, const FrameImage& fi, float s
+     {
+         ImGui::Image( cache.textureId, ImVec2( fi.w * scale, fi.h * scale ) );
+     }
++#endif
+ }
+ 
+ void View::DrawTextEditor()
+@@ -1551,7 +1575,7 @@ void View::DpiScaleChanged()
+ 
+ void View::AddLlmAttachment( const nlohmann::json& json )
+ {
+-#ifndef __EMSCRIPTEN__
++#if !defined __EMSCRIPTEN__ && !defined MIKOTO_TRACY_EMBEDDED
+     m_llm.AddAttachmentLocking( json.dump(), "user" );
+     m_llm.m_show = true;
+ #endif
+@@ -1559,7 +1583,7 @@ void View::AddLlmAttachment( const nlohmann::json& json )
+ 
+ void View::AddLlmQuery( const char* query )
+ {
+-#ifndef __EMSCRIPTEN__
++#if !defined __EMSCRIPTEN__ && !defined MIKOTO_TRACY_EMBEDDED
+     std::string str( query );
+     m_llm.AddMessageLocking( std::move( str ), "user" );
+     m_llm.m_show = true;
+diff --git a/profiler/src/profiler/TracyView_Playback.cpp b/profiler/src/profiler/TracyView_Playback.cpp
+index 921d6a38..7dff8a0a 100644
+--- a/profiler/src/profiler/TracyView_Playback.cpp
++++ b/profiler/src/profiler/TracyView_Playback.cpp
+@@ -94,6 +94,7 @@ constexpr size_t PlaybackWindowButtonsCount = sizeof( PlaybackWindowButtons ) /
+ 
+ void View::DrawPlayback()
+ {
++#ifndef MIKOTO_TRACY_EMBEDDED
+     ImGui::Begin( "Playback", &m_showPlayback, ImGuiWindowFlags_AlwaysAutoResize );
+     if( !m_showPlayback ) m_playback.pause = true;
+     if( ImGui::GetCurrentWindowRead()->SkipItems ) { ImGui::End(); return; }
+@@ -366,6 +367,7 @@ void View::DrawPlayback()
+         ImGui::EndTooltip();
+     }
+     ImGui::End();
++#endif
+ }
+ 
+ }
+diff --git a/server/TracyFileRead.hpp b/server/TracyFileRead.hpp
+index d325b27b..de0e3b43 100644
+--- a/server/TracyFileRead.hpp
++++ b/server/TracyFileRead.hpp
+@@ -123,6 +123,14 @@ public:
+         return f ? new FileRead( f, fn ) : nullptr;
+     }
+ 
++#ifdef _WIN32
++    static FileRead* Open( const wchar_t* path, const char* fn )
++    {
++        auto f = _wfopen( path, L"rb" );
++        return f ? new FileRead( f, fn ) : nullptr;
++    }
++#endif
++
+     ~FileRead()
+     {
+         for( auto& v : m_streams )
+@@ -459,7 +467,11 @@ private:
+         }
+ 
+         struct stat64 buf;
++#if defined _WIN32
++        if( _fstat64( fileno( f ), &buf ) == 0 )
++#else
+         if( stat64( fn, &buf ) == 0 )
++#endif
+         {
+             m_dataSize = buf.st_size;
+         }
+diff --git a/profiler/src/profiler/TracyConfig.hpp b/profiler/src/profiler/TracyConfig.hpp
+index 138d4af1..3b21c52d 100644
+--- a/profiler/src/profiler/TracyConfig.hpp
++++ b/profiler/src/profiler/TracyConfig.hpp
+@@ -31,7 +31,7 @@ struct Config
+     float userScale = 1.0f;
+ 
+     // LLM assistant settings
+-#ifdef __EMSCRIPTEN__
++#if defined __EMSCRIPTEN__ || defined MIKOTO_TRACY_EMBEDDED
+     bool llm = false;
+ #else
+     bool llm = true;
+diff --git a/profiler/src/profiler/TracyImGui.cpp b/profiler/src/profiler/TracyImGui.cpp
+index da3efdac..e0a59089 100644
+--- a/profiler/src/profiler/TracyImGui.cpp
++++ b/profiler/src/profiler/TracyImGui.cpp
+@@ -26,8 +26,22 @@ bool WasActive()
+ 
+ void DrawZigZag( ImDrawList* draw, const ImVec2& wpos, double start, double end, double h, uint32_t color )
+ {
++#ifdef MIKOTO_TRACY_EMBEDDED
++    if( h <= 0 || end <= start ) return;
++    const auto clipMin = draw->GetClipRectMin().x - wpos.x;
++    const auto clipMax = draw->GetClipRectMax().x - wpos.x;
++    const auto first = std::max( 0.0, floor( ( clipMin - start ) / ( h * 2 ) ) ) * 2;
++    const auto last = std::min( end, clipMax + h );
++    for( double x = start + first * h; x < last; x += h * 2 )
++    {
++        const auto peak = std::min( x + h, end );
++        draw->AddLine( wpos + ImVec2( x, -h ), wpos + ImVec2( peak, h ), color );
++        if( peak < end ) draw->AddLine( wpos + ImVec2( peak, h ), wpos + ImVec2( std::min( x + h * 2, end ), -h ), color );
++    }
++#else
+     const auto v = ( end - start ) / ( h * 2 );
+     draw->AddImage( zigzagTex, wpos + ImVec2( start, -h ), wpos + ImVec2( end, h ), ImVec2( 0, 0 ), ImVec2( v, 1 ), color );
++#endif
+ }
+ 
+ void DrawStripedRect( ImDrawList* draw, const ImVec2& wpos, double x0, double y0, double x1, double y1, double sw, uint32_t color, bool fix_stripes_in_screen_space, bool inverted )
+diff --git a/profiler/src/profiler/TracyView_Manual.cpp b/profiler/src/profiler/TracyView_Manual.cpp
+--- a/profiler/src/profiler/TracyView_Manual.cpp
++++ b/profiler/src/profiler/TracyView_Manual.cpp
+@@ -109,8 +109,10 @@ void View::DrawManual()
+ 
+     if( m_activeManualChunk == 0 )
+     {
++#ifndef MIKOTO_TRACY_EMBEDDED
+         ImageCentered( GetProfilerIconTexture(), ImVec2( 80 * scale, 80 * scale ) );
+         ImGui::Dummy( ImVec2( 0, ImGui::GetTextLineHeight() * 0.5f ) );
++#endif
+         ImGui::PushFont( g_fonts.bold, FontNormal * 2.f );
+         TextCentered( "Tracy Profiler" );
+         ImGui::PopFont();

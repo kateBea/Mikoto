@@ -1,10 +1,13 @@
-function OnCreate()
-    local tag = Entity:GetTag()
-    local name = tag:GetTag()
+local base = {}
+base.Properties = {}
 
-    Console.Debug(string.format("My name is '%s'", name))
+function base:OnCreate()
 end
 
-function OnUpdate(dt)
-    
+function base:OnUpdate(dt)
 end
+
+function base:OnDestroy()
+end
+
+return base

@@ -1,0 +1,29 @@
+# Copy this file beside MikotoRuntime.exe (MikotoRuntime on Linux).
+# Replace the value with your project's filename. The key is case-sensitive.
+# Relative paths are resolved from the executable's directory, not this source folder.
+
+CompressTextures: false
+
+Project: "Game/MyGame.mktprj"
+
+# Expected packaged layout:
+#   MikotoRuntime.exe
+#   game.yaml
+#   Resources/            Engine shaders, scripting runtime, etc.
+#   Game/
+#     MyGame.mktprj
+#     Assets/             Your project's assets and scenes.
+#
+# For development, Project can instead be an absolute path to an existing project:
+#   Project: "C:/Projects/MyGame/MyGame.mktprj"
+#   Project: "/home/you/Projects/MyGame/MyGame.mktprj"
+# Use your actual extension (.mktprj or .mktproj); do not rename the project.
+# Use forward slashes in Windows YAML paths to avoid backslash escape sequences.
+#
+# The startup scene comes from the project's Scene field, not this manifest.
+# API, window size and fullscreen are command-line options, for example:
+#   MikotoRuntime.exe --api vulkan --width 1920 --height 1080 --fullscreen
+# Passing --project FILE bypasses game.yaml entirely.
+
+# Texture import policy is stored in the project YAML, not here:
+#   CompressTextures: false  # Original RGBA8/float HDR; true enables BC7/BC6H caching.

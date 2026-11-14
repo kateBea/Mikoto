@@ -1,0 +1,144 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 30,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "common",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "MIKOTO_DEPENDENCY_PROVIDER": "AUTO",
+        "MIKOTO_BUILD_EDITOR": true
+      }
+    },
+    {
+      "name": "windows",
+      "hidden": true,
+      "inherits": "common",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl"
+      }
+    },
+    {
+      "name": "linux",
+      "hidden": true,
+      "inherits": "common",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "windows-debug",
+      "displayName": "Windows debug (automatic dependencies)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "inherits": "windows"
+    },
+    {
+      "name": "windows-release",
+      "displayName": "Windows release (automatic dependencies)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "inherits": "windows"
+    },
+    {
+      "name": "windows-relwithdebinfo",
+      "inherits": "windows-release",
+      "displayName": "Windows RelWithDebInfo (automatic dependencies)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "windows-source-release",
+      "inherits": "windows-release",
+      "displayName": "Windows Release (FetchContent)",
+      "cacheVariables": {
+        "MIKOTO_DEPENDENCY_PROVIDER": "FETCHCONTENT"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux debug (automatic dependencies)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "inherits": "linux"
+    },
+    {
+      "name": "linux-release",
+      "displayName": "Linux release (automatic dependencies)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "inherits": "linux"
+    },
+    {
+      "name": "linux-source-release",
+      "inherits": "linux-release",
+      "displayName": "Linux Release (FetchContent)",
+      "cacheVariables": {
+        "MIKOTO_DEPENDENCY_PROVIDER": "FETCHCONTENT"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "editor",
+      "hidden": true,
+      "targets": [
+        "MikotoEditor"
+      ]
+    },
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-debug",
+      "inherits": "editor"
+    },
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-release",
+      "inherits": "editor"
+    },
+    {
+      "name": "windows-relwithdebinfo",
+      "configurePreset": "windows-relwithdebinfo",
+      "inherits": "editor"
+    },
+    {
+      "name": "windows-source-release",
+      "configurePreset": "windows-source-release",
+      "inherits": "editor"
+    },
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug",
+      "inherits": "editor"
+    },
+    {
+      "name": "linux-release",
+      "configurePreset": "linux-release",
+      "inherits": "editor"
+    },
+    {
+      "name": "linux-source-release",
+      "configurePreset": "linux-source-release",
+      "inherits": "editor"
+    }
+  ]
+}

@@ -12,21 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_TIME_MANAGER_HH
-#define MIKOTO_TIME_MANAGER_HH
+#ifndef MIKOTO_CORE_TIME_SERVICE_HH
+#define MIKOTO_CORE_TIME_SERVICE_HH
 
-#include <EASTL/chrono.h>
 #include <EASTL/ratio.h>
+#include <EASTL/chrono.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 #include <EASTL/string_view.h>
 
-#include <fmt/chrono.h>
-#include <fmt/format.h>
-
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Service.hh>
+#include <Core/Profiler.hh>
 #include <Core/Singleton.hh>
 
 namespace mikoto::core {
@@ -69,12 +67,6 @@ namespace mikoto::core {
 
         auto Tick() -> void;
 
-        // TODO: Add a system that uses MKT_BEGIN_PROFILER_NAMED() and stores the time every function took
-        // can use that to do some nice visualizations on ImGui
-        auto PushTime( const eastl::string& tag, Time time ) -> void;
-
-        MKT_NODISCARD auto GetProfilingTimes() const -> const auto& { return mTimeMap; }
-
         MKT_NODISCARD auto GetDefaultUnit() const -> TimeUnit;
         MKT_NODISCARD auto GetTimeStep( TimeUnit unit = TimeUnit::eSeconds) const -> double;
         MKT_NODISCARD auto GetTime( TimeUnit unit = TimeUnit::eSeconds ) const -> double;
@@ -105,10 +97,7 @@ namespace mikoto::core {
         TimePoint mInitTimePoint{};
 
         TimeUnit mDefaultUnits{ TimeUnit::eSeconds };
-
-        std::mutex mTimeMutex{};
-        ankerl::unordered_dense::map<eastl::string, eastl::vector<Time>> mTimeMap;
     };
 }
 
-#endif // MIKOTO_TIME_MANAGER_HH
+#endif// MIKOTO_CORE_TIME_SERVICE_HH

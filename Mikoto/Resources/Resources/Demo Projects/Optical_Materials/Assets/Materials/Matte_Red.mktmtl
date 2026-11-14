@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Matte_Red",
+  "Material": {
+    "BaseColorFactor": [
+      0.65,
+      0.025,
+      0.015,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.3,
+    "AlphaMask": 0
+  }
+}

@@ -12,14 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SHADER_LIBRARY_HH
-#define MIKOTO_SHADER_LIBRARY_HH
+#ifndef MIKOTO_ASSETS_SHADER_LIBRARY_HH
+#define MIKOTO_ASSETS_SHADER_LIBRARY_HH
+
+#include <mutex>
+#include <future>
+#include <condition_variable>
 
 #include <EASTL/string.h>
+#include <EASTL/vector.h>
 #include <EASTL/string_view.h>
 
 #include <ankerl/unordered_dense.h>
 
+#include <Core/Types.hh>
 #include <Core/Service.hh>
 #include <Core/Singleton.hh>
 
@@ -31,41 +37,122 @@
 
 namespace mikoto::asset {
 
-    using namespace mikoto::core;
-    using namespace mikoto::renderer;
-    using namespace mikoto::filesystem;
-
+    /** File extension used by Slang shader source assets. */
     inline constexpr eastl::string_view kSlangFileExtension{ ".slang" };
 
+    /**
+     * @brief Configuration used to construct a ShaderLibrary.
+     * @details The device is borrowed; the caller owns it and must keep it alive
+     * until the library has been shut down. The root path is used by LoadShader()
+     * to resolve relative shader URIs.
+     */
     struct ShaderLibraryDescription {
+        /** GPU device used to create shader modules. */
         renderer::rhi::IGpuDevice* mDevice{};
-        Path mRootPath{};
+
+        /** Base directory for relative shader source URIs. */
+        filesystem::Path mRootPath{};
+
+        /** Persist backend bytecode and dependency metadata between runs. */
+        bool mCacheShaders{ true };
+        filesystem::Path mCachePath{ "Assets/.cache/Shaders" };
     };
 
-    // TODO: Move to renderer namespace
-    // Caches shaders loaded from disk files for a given GPU device
-    // It is a singleton for now as Mikoto only manages one GPU device across the entire application
-    class ShaderLibrary final : public IService {
+    /**
+     * @brief Loads and caches shader modules created from Slang source files.
+     * @details ShaderLibrary owns the cached ShaderModuleHandle values, while the
+     * GPU device and source files remain owned by their respective systems. A
+     * shader is compiled on its first LoadShader() call and reused thereafter.
+     */
+    class ShaderLibrary final : public core::IService {
     public:
+        /**
+         * @brief Creates a shader library from its device and root directory.
+         * @param options Device and source-root configuration.
+         * The constructor only stores the supplied device pointer and root path;
+         * shader I/O and compilation occur in LoadShader().
+         */
         explicit ShaderLibrary( const ShaderLibraryDescription &options );
 
+
+        /**
+         * @brief Marks the library ready for use.
+         * @details Initialization does not eagerly scan or compile the root directory.
+         */
         auto Initialize() -> void override;
+
+
+        /**
+         * @brief Releases all cached shader module handles and marks the service stopped.
+         * @details Calling Shutdown() more than once is harmless.
+         */
         auto Shutdown() -> void override;
 
-        // This uri must be relative to the root path otherwise must be a full path
-        auto GetShader( eastl::string_view uri ) -> renderer::rhi::ShaderModuleHandle;
 
-        // TODO: extend to cached the compiled shaders
-        auto LoadShader( eastl::string_view uri, rhi::ShaderType type ) -> renderer::rhi::ShaderModuleHandle;
+        /**
+         * @brief Looks up an already loaded shader module.
+         * @param uri Source path relative to the configured root directory.
+         * @param type Shader stage to look up.
+         * @param entryPoint Entry point that identifies the compiled variant.
+         * @return The cached shader module, or an empty handle when it is not cached.
+         * @note This method does not read from disk or compile a shader. Use
+         * LoadShader() when a cache miss should load and compile the source.
+         */
+        auto GetShader(
+            eastl::string_view uri,
+            renderer::rhi::ShaderType type,
+            eastl::string_view entryPoint = "main" ) -> renderer::rhi::ShaderModuleHandle;
 
-        ~ShaderLibrary() override = default;
+
+        /**
+         * @brief Loads, compiles, and caches a Slang shader module.
+         * @param uri Path relative to the configured root path. The resulting
+         * resolved path groups the cached stage and entry-point variants.
+         * @param type Shader stage to compile, such as vertex or fragment.
+         * @param entryPoint Entry point to compile from the source file.
+         * @return The cached or newly created shader module; an empty handle if
+         * creation fails.
+         * @details Source contents are read through FileService. Compilation is
+         * performed on demand. Concurrent requests for the same path, stage and
+         * entry point share one compilation; unrelated variants may run in parallel.
+         * When enabled, disk hits create modules directly from backend bytecode.
+         * @throws Filesystem and renderer exceptions when the source cannot be
+         * read or the device rejects shader creation.
+         */
+        auto LoadShader(
+            eastl::string_view uri,
+            renderer::rhi::ShaderType type,
+            eastl::string_view entryPoint = "main" ) -> renderer::rhi::ShaderModuleHandle;
+
+
+        /** Destructor; cached modules are released when the library is destroyed. */
+        ~ShaderLibrary() override;
 
     private:
-        Path mRootPath{};
+        struct ShaderVariant {
+            eastl::string mEntryPoint{};
+            renderer::rhi::ShaderType mStage{};
+            std::shared_future<renderer::rhi::ShaderModuleHandle> mResult{};
+        };
+
+    private:
+        /** Base directory used to resolve shader source URIs. */
+        filesystem::Path mRootPath{};
+
+        bool mCacheShaders{};
+        filesystem::Path mCachePath{};
+
+        /** Borrowed GPU device used for shader-module creation. */
         renderer::rhi::IGpuDevice *mDevice{ nullptr };
-        ankerl::unordered_dense::map<Path, rhi::ShaderModuleHandle> mShaders{};
+
+        /** A future covers both an in-flight compilation and its cached result. */
+        ankerl::unordered_dense::map<filesystem::Path, eastl::vector<ShaderVariant>> mShaders{};
+        std::mutex mShaderMutex{};
+        std::condition_variable mCompilationsFinished{};
+        core::usize mPendingCompilations{};
+        bool mStopping{ true };
     };
 
 }// namespace Mikoto
 
-#endif // MIKOTO_SHADER_LIBRARY_HH
+#endif// MIKOTO_ASSETS_SHADER_LIBRARY_HH

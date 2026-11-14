@@ -3,7 +3,8 @@
 // from codepoints https://github.com/google/material-design-icons/raw/master/font/MaterialIcons-Regular.codepoints
 // for use with font https://github.com/google/material-design-icons/blob/master/font/MaterialIcons-Regular.ttf
 
-#pragma once
+#ifndef MIKOTO_IMGUI_ICONS_MATERIAL_DESIGN_HH
+#define MIKOTO_IMGUI_ICONS_MATERIAL_DESIGN_HH
 
 #define FONT_ICON_FILE_NAME_MD "MaterialIcons-Regular.ttf"
 
@@ -2245,3 +2246,5 @@
 #define ICON_MD_ZOOM_IN_MAP "\xee\xac\xad"	// U+eb2d
 #define ICON_MD_ZOOM_OUT "\xee\xa4\x80"	// U+e900
 #define ICON_MD_ZOOM_OUT_MAP "\xee\x95\xab"	// U+e56b
+
+#endif // MIKOTO_IMGUI_ICONS_MATERIAL_DESIGN_HH

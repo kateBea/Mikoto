@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SCENE_INL
-#define MIKOTO_SCENE_INL
+#ifndef MIKOTO_SCENE_SCENE_INL
+#define MIKOTO_SCENE_SCENE_INL
+
+#include <Core/Profiler.hh>
 
 #include <Scene/Scene.hh>
 
@@ -21,6 +23,7 @@ namespace mikoto::scene {
 
     template<typename EntityFunction>
     auto Scene::ApplyToChildren( Entity* parent, const EntityFunction& callable ) -> void {
+        MKT_BEGIN_PROFILER();
         if ( !parent ) {
             return;
         }
@@ -38,11 +41,13 @@ namespace mikoto::scene {
 
     template<typename Callback, typename... ComponentTypes>
     auto Scene::ForAll(const Callback& c) -> void {
+        MKT_BEGIN_PROFILER();
         auto view{ mRegistry.view<ComponentTypes...>() };
         for ( const auto& entity: view ) {
             c(view.template get<ComponentTypes>(entity)...);
         }
     }
+
 }
 
-#endif
+#endif// MIKOTO_SCENE_SCENE_INL

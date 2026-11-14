@@ -12,32 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_IMGUI_SERVICE_HH
-#define MIKOTO_IMGUI_SERVICE_HH
-
-#include <EASTL/array.h>
-#include <EASTL/string.h>
-#include <EASTL/string_view.h>
-#include <EASTL/unique_ptr.h>
+#ifndef MIKOTO_IMGUI_IMGUI_SERVICE_HH
+#define MIKOTO_IMGUI_IMGUI_SERVICE_HH
 
 #include <imgui.h>
 
-#include <Core/Core.hh>
-#include <Core/Service.hh>
-#include <Core/Singleton.hh>
-#include <Core/Types.hh>
+#include <EASTL/array.h>
+#include <EASTL/string.h>
+#include <EASTL/optional.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/string_view.h>
 
-#include <ImGui/ImGuiUtility.hh>
+#include <Core/Core.hh>
+#include <Core/Types.hh>
+#include <Core/Service.hh>
+#include <Core/Profiler.hh>
+#include <Core/Singleton.hh>
 
 #include <Platform/Window.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 
+#include <ImGui/Utility.hh>
+
+struct SDL_Window;
+
 namespace mikoto::imgui {
 
     struct ImGuiBackendCreateInfo {
-        platform::Window* mWindow{ nullptr };
+        platform::IWindow* mWindow{ nullptr };
         renderer::rhi::IGpuDevice* mDevice{ nullptr };
         renderer::rhi::GraphicsAPI mApi{ renderer::rhi::GraphicsAPI::eVulkan };
     };
@@ -50,9 +54,7 @@ namespace mikoto::imgui {
     * */
     class ImGuiBackend {
     public:
-        explicit ImGuiBackend( const ImGuiBackendCreateInfo& createInfo )
-            : mWindow{ createInfo.mWindow }, mDevice{ createInfo.mDevice }, mApi{ createInfo.mApi }
-        {}
+        explicit ImGuiBackend( const ImGuiBackendCreateInfo& createInfo );
 
         virtual auto Init() -> void = 0;
         virtual auto Shutdown() -> void = 0;
@@ -60,39 +62,41 @@ namespace mikoto::imgui {
         virtual auto BeginFrame() -> void = 0;
         virtual auto EndFrame() -> void = 0;
 
+        auto SetClearColor( const core::float4& color ) -> void;
+        auto SetResolution( renderer::rhi::RenderResolution reso ) -> void;
+
         MKT_NODISCARD virtual auto GetFinalComposition() -> renderer::rhi::TextureHandle = 0;
 
-        auto SetClearColor(const float4& color) -> void { mClearColor = color; }
-        auto SetResolution( renderer::rhi::RenderResolution reso ) -> void { mResolution = reso; }
-
-        MKT_NODISCARD virtual auto GetResolution() const -> renderer::rhi::RenderResolution { return mResolution; }
+        MKT_NODISCARD virtual auto GetResolution() const -> renderer::rhi::RenderResolution;
 
         MKT_NODISCARD virtual auto ConstructImGuiTextureID(const renderer::rhi::ITexture* texture) -> ImTextureID = 0;
         MKT_NODISCARD virtual auto ConstructImGuiTextureID(renderer::rhi::TextureHandle texture) -> ImTextureID = 0;
 
-        virtual ~ImGuiBackend() = default;
-
         MKT_NODISCARD static auto Create(const ImGuiBackendCreateInfo& info) -> eastl::unique_ptr<ImGuiBackend>;
 
-    protected:
-        float4 mClearColor{ 0.9f, 0.6f, 0.85f, 1.0f };
-        bool mIsInitialized{ false };
+        virtual ~ImGuiBackend() = default;
 
-        platform::Window* mWindow{};
+    protected:
+        MKT_NODISCARD auto GetSDLWindow() const -> SDL_Window*;
+
+        core::float4 mClearColor{ 0.9f, 0.6f, 0.85f, 1.0f };
+
+        platform::IWindow* mWindow{};
         renderer::rhi::IGpuDevice* mDevice{};
-        renderer::rhi::GraphicsAPI mApi{ renderer::rhi::GraphicsAPI::eVulkan };
         renderer::rhi::RenderResolution mResolution{ renderer::rhi::RenderResolution::e1080P };
+
+        bool mIsInitialized{ false };
     };
 
     struct ImGuiServiceDescription {
         // Will grab the device from the render service
         // which is required to be initialized before this one
-        platform::Window* mWindow{ nullptr };
+        platform::IWindow* mWindow{ nullptr };
         renderer::rhi::IGpuDevice* mDevice{ nullptr };
         renderer::rhi::GraphicsAPI mApi{ renderer::rhi::GraphicsAPI::eVulkan };
     };
 
-    class ImGuiService final : public IService, public Singleton<ImGuiService> {
+    class ImGuiService final : public core::IService, public core::Singleton<ImGuiService> {
     public:
 
         explicit ImGuiService(const ImGuiServiceDescription& options);
@@ -103,14 +107,27 @@ namespace mikoto::imgui {
         auto Shutdown() -> void override;
 
         auto EndFrame() const -> void;
-        auto PrepareFrame() const -> void;
+        auto PrepareFrame() -> void;
+
+        /**
+         * @brief Queues saved ImGui window and docking settings for the next frame.
+         * @param settings Owned INI document to apply before any windows begin rendering.
+         */
+        auto QueueLayoutRestore( eastl::string settings ) -> void;
+
+        /**
+         * @brief Changes the interface font at the next frame boundary.
+         * @param path Local font file, or an empty path to restore the default.
+         * @param faceIndex Index of the face within a font collection.
+         */
+        auto QueueInterfaceFont( const filesystem::Path& path, core::u32 faceIndex = 0 ) -> void;
 
         auto SetThemeDarkModeDefault() -> void;
         auto SetThemeDarkModeAlt() -> void;
 
-        MKT_NODISCARD auto GetFinalComposition() const -> renderer::rhi::TextureHandle;
+        auto SetImGuiBackGroundClearColor(const core::float4& color) -> void;
 
-        auto SetImGuiBackGroundClearColor(const float4& color) -> void;
+        MKT_NODISCARD auto GetFinalComposition() const -> renderer::rhi::TextureHandle;
 
         MKT_NODISCARD auto GetTextureID(renderer::rhi::TextureHandle texture) -> ImTextureID;
         MKT_NODISCARD auto GetTextureID(const renderer::rhi::ITexture* texture) -> ImTextureID;
@@ -121,30 +138,36 @@ namespace mikoto::imgui {
         auto PushFont( eastl::string_view str ) -> ImGuiScopedTextFont;
 
     private:
-
         auto InitImplementation() -> void;
-        auto AddFont(float fontSize, const eastl::string &path, const ImFontConfig* config = nullptr, const ImWchar* glyphRanges = nullptr ) -> void;
-        auto AddIconFont(float fontSize, const eastl::string &path, const eastl::array<ImWchar, 3> &iconRanges) -> void;
+        auto ApplyInterfaceFont() -> void;
+        auto AddInterfaceFont( const filesystem::Path& path, core::u32 faceIndex ) -> ImFont*;
+        auto AddFont( const filesystem::Path& path ) -> void;
+        auto AddIconFont( const filesystem::Path& path, const eastl::array<ImWchar, 3>& iconRanges, ImFont* target ) -> void;
 
     private:
         static constexpr float kFontBaseSize{ 17.0f };
 
     private:
-        platform::Window* mWindow{ nullptr };
+        platform::IWindow* mWindow{ nullptr };
         renderer::rhi::IGpuDevice* mDevice{ nullptr };
 
         eastl::unique_ptr<ImGuiBackend> mImplementation{ nullptr };
 
         filesystem::Path mFontsRootDir{};
         filesystem::Path mImGuiFilesRootDir{};
+        eastl::string mPendingLayout{};
 
-        // index into ImGui internal font structures and
-        // a path to keep track of where it is
-        ankerl::unordered_dense::map<filesystem::Path, i8> mImGuiFonts{};
+        struct InterfaceFontRequest {
+            filesystem::Path mPath{};
+            core::u32 mFaceIndex{};
+        };
+
+        eastl::optional<InterfaceFontRequest> mPendingInterfaceFont{};
+        ImFont* mSelectedInterfaceFont{};
+        ankerl::unordered_dense::map<filesystem::Path, ImFont*> mImGuiFonts{};
 
         renderer::rhi::GraphicsAPI mBackendApi{ renderer::rhi::GraphicsAPI::eInvalid };
     };
-
 }
 
-#endif // MIKOTO_IMGUI_SERVICE_HH
+#endif// MIKOTO_IMGUI_IMGUI_SERVICE_HH

@@ -1,0 +1,8 @@
+Version: 2
+Type: SurfaceMaterial
+Name: Bunny Blue
+Material:
+  BaseColorFactor: [0.07, 0.25, 0.85, 1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.48
+  AlphaMask: 0

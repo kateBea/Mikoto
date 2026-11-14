@@ -20,39 +20,77 @@
 
 #pragma once
 
-#define MKT_SHADER_TRUE 1
-#define MKT_SHADER_FALSE 0
+#include "BufferReference.slang"
+
+#define MKT_SHADER_TRUE            1
+#define MKT_SHADER_FALSE           0
 
 #define MKT_DEFAULT_REGISTER_SPACE 0
 
-#if defined(MKT_SUPPORT_VULKAN)
+#if defined( MKT_SUPPORT_VULKAN )
 
-#define MKT_STRUCTURED_SRV_BINDING 0
-#define MKT_STRUCTURED_UAV_BINDING 1
-#define MKT_SAMPLER_BINDING 2
-#define MKT_TEXTURE_SRV_BINDING 3
-#define MKT_TEXTURE_UAV_BINDING 4
-#define MKT_BUFFER_DEVICE_ADDRESS_BINDING 5
+#define MKT_STRUCTURED_SRV_BINDING         0
+#define MKT_STRUCTURED_UAV_BINDING         1
+#define MKT_SAMPLER_BINDING                2
+#define MKT_TEXTURE_SRV_BINDING            3
+#define MKT_TEXTURE_UAV_BINDING            4
+#define MKT_BUFFER_DEVICE_ADDRESS_BINDING  5
 #define MKT_ACCELERATION_STRUCTURE_BINDING 6
 
-#elif defined(MKT_SUPPORT_D3D12)
+#elif defined( MKT_SUPPORT_D3D12 )
 
-#define MKT_STRUCTURED_SRV_BINDING space0
-#define MKT_STRUCTURED_UAV_BINDING space1
-#define MKT_SAMPLER_BINDING space2
-#define MKT_TEXTURE_SRV_BINDING space3
-#define MKT_TEXTURE_UAV_BINDING space4
-#define MKT_BUFFER_DEVICE_ADDRESS_BINDING space5
+#define MKT_STRUCTURED_SRV_BINDING         space0
+#define MKT_STRUCTURED_UAV_BINDING         space1
+#define MKT_SAMPLER_BINDING                space2
+#define MKT_TEXTURE_SRV_BINDING            space3
+#define MKT_TEXTURE_UAV_BINDING            space4
+#define MKT_BUFFER_DEVICE_ADDRESS_BINDING  space5
 #define MKT_ACCELERATION_STRUCTURE_BINDING space6
 
 #endif
 
-#if !defined(MKT_SUPPORT_D3D11)
-    #define MKT_DECLARE_PUSH_CONSTANT(Type) [[vk::push_constant]] Type
-    #define DECL_BINDING(BINDING, SET) [[vk::binding(BINDING, SET)]]
-#else
-    #define MKT_DECLARE_PUSH_CONSTANT(Type) ConstantBuffer<Type>
-    #define DECL_BINDING(BINDING, SET) [[vk::binding(BINDING, 0)]]
+// GLM uploads matrix columns. Store them explicitly: bit_cast reconstructs a
+// float4x4 in logical row order regardless of the target's buffer matrix layout.
+// This representation stays 64 bytes on both native and decoded push constants.
+struct PushConstantMatrix4x4 {
+    float4 mColumn0;
+    float4 mColumn1;
+    float4 mColumn2;
+    float4 mColumn3;
+
+    float4x4 Load() {
+        return transpose( float4x4( mColumn0, mColumn1, mColumn2, mColumn3 ) );
+    }
+};
+
+#if defined( MKT_SUPPORT_D3D12 ) // D3D12
+// https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-packing-rules
+
+// Root constants carry the CPU bytes verbatim. Decode a flat array so HLSL
+// cbuffer row padding cannot change nested structures or array strides.
+struct PushConstantWords {
+    uint4 words[8];
+};
+
+ConstantBuffer<PushConstantWords> mktPushConstants : register( b0 );
+
+T LoadPushConstants<T>() {
+    uint words[sizeof( T ) / 4];
+    for ( uint i = 0; i < sizeof( T ) / 4; ++i ) {
+        words[i] = mktPushConstants.words[i / 4][i % 4];
+    }
+    return bit_cast<T>( words );
+}
+
+#define MKT_DECLARE_PUSH_CONSTANT( Type, Name ) static Type Name = LoadPushConstants<Type>()
+#define DECL_BINDING( BINDING, SET ) // uses register(...) bindings
+#elif !defined( MKT_SUPPORT_D3D11 ) // D3D11
+#define MKT_DECLARE_PUSH_CONSTANT( Type, Name ) [[vk::push_constant]] Type Name
+#define DECL_BINDING( BINDING, SET )            [[vk::binding( BINDING, SET )]]
+
+#else                               // Vulkan
+#define MKT_DECLARE_PUSH_CONSTANT( Type, Name ) ConstantBuffer<Type> Name
+#define DECL_BINDING( BINDING, SET )            [[vk::binding( BINDING, 0 )]]
 #endif
 
 // TODO: Operators. Follow GLSL convention for unified interface
@@ -65,22 +103,22 @@
 // ============================================================
 
 // Matrix * Vector
-float4 operator*(float4x4 m, float4 v) {
-    return mul(m, v);
+float4 operator*( float4x4 m, float4 v ) {
+    return mul( m, v );
 }
 
 // Matrix * Matrix
-float4x4 operator*(float4x4 a, float4x4 b) {
-    return mul(a, b);
+float4x4 operator*( float4x4 a, float4x4 b ) {
+    return mul( a, b );
 }
 
 // 3x3
-float3 operator*(float3x3 m, float3 v) {
-    return mul(m, v);
+float3 operator*( float3x3 m, float3 v ) {
+    return mul( m, v );
 }
 
-float3x3 operator*(float3x3 a, float3x3 b) {
-    return mul(a, b);
+float3x3 operator*( float3x3 a, float3x3 b ) {
+    return mul( a, b );
 }
 
 // From: https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-semantics

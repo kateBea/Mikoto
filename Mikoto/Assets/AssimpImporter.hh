@@ -1,0 +1,32 @@
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef MIKOTO_ASSETS_ASSIMP_IMPORTER_HH
+#define MIKOTO_ASSETS_ASSIMP_IMPORTER_HH
+
+#include <Assets/Importer.hh>
+
+namespace mikoto::asset {
+
+    // Assimp handles formats other than glTF, producing the same model data.
+    // Each import owns its parser; no shared parser pool or global logger.
+    class AssimpImporter final : public ModelImporter {
+    public:
+        explicit AssimpImporter( renderer::rhi::IGpuDevice* device );
+
+        auto Import( const ModelLoadDescription& description, ModelDataDescription& out ) -> void override;
+    };
+}// namespace mikoto::asset
+
+#endif// MIKOTO_ASSETS_ASSIMP_IMPORTER_HH

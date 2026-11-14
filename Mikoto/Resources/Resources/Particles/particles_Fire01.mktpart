@@ -1,0 +1,12 @@
+ParticleEmitter:
+  Version: 1
+  EmissionRate: 140
+  Lifetime: 1.2
+  Speed: 1.5
+  Radius: 0.18
+  ConeAngle: 12
+  Acceleration: [0, 1, 0]
+  StartSize: 0.3
+  EndSize: 0.65
+  StartColor: [3, 0.7, 0.05, 0.8]
+  EndColor: [0.35, 0.04, 0.01, 0]

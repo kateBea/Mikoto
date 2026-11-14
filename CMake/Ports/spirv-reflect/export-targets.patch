@@ -1,0 +1,33 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -117,15 +117,26 @@ if(SPIRV_REFLECT_STATIC_LIB)
+                                      ${CMAKE_CURRENT_SOURCE_DIR}/spirv_reflect.c)
+ 
+     target_include_directories(spirv-reflect-static
+-                               PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
++        PUBLIC
++            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
++            $<INSTALL_INTERFACE:include/spirv-reflect>)
+ 
+-    set_target_properties(spirv-reflect-static PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/spirv_reflect.h")
++    set_target_properties(spirv-reflect-static PROPERTIES
++        EXPORT_NAME spirv-reflect
++        PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/spirv_reflect.h")
+ 
+     if(SPIRV_REFLECT_INSTALL)
+         install(TARGETS spirv-reflect-static
++                EXPORT unofficial-spirv-reflect-config
+                 LIBRARY DESTINATION lib
+                 ARCHIVE DESTINATION lib
+-                PUBLIC_HEADER DESTINATION include)
++                PUBLIC_HEADER DESTINATION include/spirv-reflect)
++        install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/spirv/unified1/spirv.h
++                DESTINATION include/spirv-reflect/include/spirv/unified1)
++        install(EXPORT unofficial-spirv-reflect-config
++                FILE unofficial-spirv-reflect-config.cmake
++                NAMESPACE unofficial::
++                DESTINATION share/unofficial-spirv-reflect)
+     endif()
+ endif()
+ 

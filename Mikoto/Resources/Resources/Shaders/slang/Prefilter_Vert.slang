@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
-#include "base/Memory_Helpers.slang"
 #include "base/Material_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 
 struct DrawParams {
-    float4x4 MVP;
+    PushConstantMatrix4x4 MVP;
     float Roughness;
     uint NumSamples;
 
@@ -34,17 +36,17 @@ struct VSOutput {
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
-[shader("vertex")]
-VSOutput main(uint vertexID : SV_VertexID) {
+[shader( "vertex" )]
+VSOutput main( uint vertexID : SV_VertexID ) {
     VSOutput o;
 
     ByteAddressBuffer vertexBuffer = buffers[parameters.mVertexBufferID];
     ByteAddressBuffer indexBuffer = buffers[parameters.mIndexBufferID];
 
-    uint index = indexBuffer.Read<uint>(0, vertexID);
-    VertexDescription vertex = vertexBuffer.Read<VertexDescription>(0, index);
+    uint index = indexBuffer.Read<uint>( 0, vertexID );
+    VertexDescription vertex = vertexBuffer.Read<VertexDescription>( 0, index );
 
     o.Pos = vertex.position;
 
@@ -52,11 +54,11 @@ VSOutput main(uint vertexID : SV_VertexID) {
     // Vulkan uses a different coordinate system than OpenGL, Y is flipped
     // https://www.sctheblog.com/blog/vulkan-frame/
     // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
-#if defined(MKT_SUPPORT_VULKAN)
+#if defined( MKT_SUPPORT_VULKAN ) || defined( MKT_SUPPORT_D3D12 )
     o.Pos.y *= -1.0;
 #endif
 
-    o.PositionH = mul(parameters.MVP, float4(vertex.position, 1.0));
+    o.PositionH = mul( parameters.MVP.Load(), float4( vertex.position, 1.0 ) );
 
     return o;
 }

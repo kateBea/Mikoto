@@ -1,0 +1,29 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Silver",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 1,
+    "RoughnessFactor": 0.15,
+    "AlphaMask": 0,
+    "ShadingModel": 7,
+    "Conductor": {
+      "Eta": [
+        0.1273912,
+        0.1247768,
+        0.1433831
+      ],
+      "K": [
+        3.8053639,
+        3.3395997,
+        2.5673807
+      ]
+    }
+  }
+}

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_LOCALIZATION_SERVICE_HH
-#define MIKOTO_LOCALIZATION_SERVICE_HH
+#ifndef MIKOTO_CORE_LOCALIZATION_SERVICE_HH
+#define MIKOTO_CORE_LOCALIZATION_SERVICE_HH
 
 #include <EASTL/array.h>
 #include <EASTL/string.h>
@@ -23,16 +23,12 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
 #include <Core/Service.hh>
 #include <Core/Singleton.hh>
 
 #include <Filesystem/Path.hh>
 
 namespace mikoto::core {
-
-    using namespace mikoto::core;
-    using namespace mikoto::filesystem;
 
     enum class ISOLanguage {
         ES_ES, // Spanish (Spain)
@@ -42,22 +38,22 @@ namespace mikoto::core {
         ZH_CN, // Chinese (Simplified)
     };
 
-    struct LocalizationServiceCreateInfo {
-        Path mLocalizationBasePath{};// Assets/Localization
-        ISOLanguage mDefaultLanguage{ ISOLanguage::EN_US };
-    };
-
     struct LanguageAlias {
         eastl::string_view mAlias{};
         ISOLanguage mValue{ ISOLanguage::EN_US };
     };
 
+    /**
+     * @brief Removes text starting at the first dot in a language filename.
+     * @param sv Borrowed character range.
+     * @returns Borrowed prefix before the first dot, or the original view.
+     */
     MKT_NODISCARD constexpr auto StripExtension( eastl::string_view sv ) -> eastl::string_view {
         const auto dot{ sv.find( '.' ) };
         return dot == eastl::string_view::npos ? sv : sv.substr( 0, dot );
     }
 
-    constexpr eastl::array LanguageAliases{
+    constexpr eastl::array kLanguageAliases{
         // Japanese
         LanguageAlias{ "ja", ISOLanguage::JA_JP },
         LanguageAlias{ "ja-jp", ISOLanguage::JA_JP },
@@ -83,10 +79,15 @@ namespace mikoto::core {
         LanguageAlias{ "chinese_simplified", ISOLanguage::ZH_CN },
     };
 
-    MKT_NODISCARD static constexpr auto InferISO( eastl::string_view language ) -> ISOLanguage {
+    /**
+     * @brief Resolves a language alias or localization filename.
+     * @param language Locale value, alias or localization filename.
+     * @returns Matching language, or EN_US when unknown.
+     */
+    MKT_NODISCARD constexpr auto InferIso( eastl::string_view language ) -> ISOLanguage {
         language = StripExtension( language );
 
-        for (const auto &entry: LanguageAliases) {
+        for (const auto &entry: kLanguageAliases) {
             if (string::Equal( language, entry.mAlias, string::ComparePolicy::eIgnoreCase )) {
                 return entry.mValue;
             }
@@ -95,7 +96,12 @@ namespace mikoto::core {
         return ISOLanguage::EN_US;
     }
 
-    MKT_NODISCARD static constexpr auto GetISOName( ISOLanguage language ) -> eastl::string_view {
+    /**
+     * @brief Retrieves a supported locale's display name.
+     * @param language Locale value, alias or localization filename.
+     * @returns Static display name, or Unknown Language.
+     */
+    MKT_NODISCARD static constexpr auto GetIsoName( ISOLanguage language ) -> eastl::string_view {
         using enum ISOLanguage;
 
         switch (language) {
@@ -108,6 +114,11 @@ namespace mikoto::core {
 
         return "Unknown Language";
     }
+
+    struct LocalizationServiceCreateInfo {
+        filesystem::Path mLocalizationBasePath{};// Assets/Localization
+        ISOLanguage mDefaultLanguage{ ISOLanguage::EN_US };
+    };
 
     class LocalizationService final : public IService, public Singleton<LocalizationService> {
     public:
@@ -128,17 +139,17 @@ namespace mikoto::core {
         MKT_NODISCARD auto HasKey( const eastl::string &key, ISOLanguage language ) const -> bool;
         MKT_NODISCARD auto Translate( const eastl::string &key ) const -> const eastl::string &;
 
-        auto ParseLocalizationEntries(const Path &file) -> void;
+        auto ParseLocalizationEntries(const filesystem::Path &file) -> void;
 
     private:
         auto LoadAllLanguages() -> void;
-        auto LoadDefaultLanguageFile( const Path &path ) -> void;
+        auto LoadDefaultLanguageFile( const filesystem::Path &path ) -> void;
 
     private:
         ISOLanguage m_DefaultLanguage{ ISOLanguage::EN_US };
         ISOLanguage mCurrentLanguage{ ISOLanguage::EN_US };
 
-        Path mLocDefaultPath{};
+        filesystem::Path mLocDefaultPath{};
 
         // Entry -> Translation
         using TranslationMap = ankerl::unordered_dense::map<eastl::string, eastl::string>;
@@ -146,9 +157,9 @@ namespace mikoto::core {
         ankerl::unordered_dense::map<ISOLanguage, TranslationMap> mTranslations{};
     };
 
-    #define MKT_LOC(key) LocalizationService::Get()->Translate(key)
-    #define MKT_IS_CURRENT_ISO(ISO) LocalizationService::Get()->IsCurrentLanguage(ISO)
-    #define MKT_IS_CURRENT_ISO_STR(ISO_STR) LocalizationService::Get()->IsCurrentLanguage(InferISO(ISO_STR))
+    #define MKT_LOC(key) (::mikoto::core::LocalizationService::Get().Translate((key)))
+    #define MKT_IS_CURRENT_ISO(ISO) (::mikoto::core::LocalizationService::Get().IsCurrentLanguage((ISO)))
+    #define MKT_IS_CURRENT_ISO_STR(ISO_STR) MKT_IS_CURRENT_ISO(::mikoto::core::InferIso((ISO_STR)))
 }
 
-#endif //MIKOTO_LOCALIZATION_SERVICE_HH
+#endif// MIKOTO_CORE_LOCALIZATION_SERVICE_HH

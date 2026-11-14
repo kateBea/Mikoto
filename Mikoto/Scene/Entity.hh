@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_ENTITY_HH
-#define MIKOTO_ENTITY_HH
+#ifndef MIKOTO_SCENE_ENTITY_HH
+#define MIKOTO_SCENE_ENTITY_HH
 
 #include <EASTL/utility.h>
 #include <EASTL/string_view.h>
@@ -22,6 +22,7 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/Profiler.hh>
 
 #include <Memory/Allocator.hh>
 
@@ -34,6 +35,13 @@ namespace mikoto::scene {
         eLight,
         eText,
         eMesh,
+        eCamera,
+        eCanvas,
+        eGrouping,
+        eScript,
+        eWater,
+        eTerrain,
+        eCount,
     };
 
     class Entity {
@@ -43,19 +51,19 @@ namespace mikoto::scene {
          * Sets the specific entity classification type
          * @param type the new EntityType enum value to assign to this entity
          * */
-        auto SetType( EntityType type ) -> void { mType = type; }
+        auto SetType( EntityType type ) -> void;
 
         /**
          * Retrieves the current classification type of the entity
          * @returns the active EntityType configuration enum of this entity
          * */
-        MKT_NODISCARD auto GetType() const -> EntityType { return mType; }
+        MKT_NODISCARD auto GetType() const -> EntityType;
 
         /**
          * Provides access to the underlying registry handle managing this entity
          * @returns a reference or copy of the internal registry handle object
          * */
-        MKT_NODISCARD auto Get() const -> decltype( auto ) { return (mHandle); }
+        MKT_NODISCARD auto Get() const -> const entt::entity&;
 
         /**
          * Returns a string view representation of the current entity type
@@ -64,11 +72,17 @@ namespace mikoto::scene {
         MKT_NODISCARD static constexpr auto GetTypeString( EntityType type ) -> eastl::string_view {
             switch ( type ) {
                 case EntityType::eEmpty: return "Empty";
-                case EntityType::eSound: return "Game";
+                case EntityType::eSound: return "Sound";
                 case EntityType::eMaterial: return "Material";
                 case EntityType::eLight: return "Light";
                 case EntityType::eText: return "Text";
                 case EntityType::eMesh: return "Mesh";
+                case EntityType::eCamera: return "Camera";
+                case EntityType::eCanvas: return "Canvas";
+                case EntityType::eGrouping: return "Group";
+                case EntityType::eScript: return "Script";
+                case EntityType::eWater: return "Water";
+                case EntityType::eTerrain: return "Terrain";
                 default: return "Unknown";
             }
         }
@@ -107,9 +121,7 @@ namespace mikoto::scene {
          * Returns true if this entity is valid, false otherwise
          * @returns true if the implicit parameter is a valid entity
          * */
-        MKT_NODISCARD auto IsValid() const -> bool {
-            return mRegistry != nullptr && mRegistry->valid(mHandle);
-        }
+        MKT_NODISCARD auto IsValid() const -> bool;
 
         /**
          * Returns the component with specified type
@@ -149,7 +161,23 @@ namespace mikoto::scene {
          * */
         template<typename ComponentType, typename... Args>
         auto AddComponent(Args&&... args) -> ComponentType& {
-            ComponentType& newComponent{ mRegistry->emplace_or_replace<ComponentType>(mHandle, std::forward<Args>(args)...) };
+            MKT_BEGIN_PROFILER();
+            ComponentType& newComponent{ mRegistry->emplace_or_replace<ComponentType>(mHandle, eastl::forward<Args>(args)...) };
+
+            return newComponent;
+        }
+
+        /**
+         * Adds the specified components to this entity, or returns the instance if any.
+         * @retuns newly added component or existing one
+         * @param args pack containing the arguments to initialize the new component
+         * @tparam ComponentType type of the new component
+         * @tparam Args pack of types for the arguments required to initialize the new component
+         * */
+        template<typename ComponentType, typename... Args>
+        auto GetOrEmplace(Args&&... args) -> ComponentType& {
+            MKT_BEGIN_PROFILER();
+            ComponentType& newComponent{ mRegistry->get_or_emplace<ComponentType>(mHandle, eastl::forward<Args>(args)...) };
 
             return newComponent;
         }
@@ -160,6 +188,7 @@ namespace mikoto::scene {
          * */
         template<typename ComponentType>
         auto RemoveComponent() -> void {
+            MKT_BEGIN_PROFILER();
             if ( !HasComponent<ComponentType>()) {
                 return;
             }
@@ -172,35 +201,19 @@ namespace mikoto::scene {
          * same handle and are part of the same scene
          * @param other entity to compare the implicit parameter to
          * */
-        auto operator==(const Entity& other) const -> bool {
-            return mHandle == other.mHandle && mRegistry == other.mRegistry;
-        }
+        auto operator==(const Entity& other) const -> bool;
 
-        ~Entity() {
-            Invalidate();
-        }
+        ~Entity();
 
     private:
-        explicit Entity(entt::registry& registry, EntityType type )
-            :   mHandle{ registry.create() }, mRegistry{ MKT_ADDRESSOF(registry) }, mType{ type }
-        {
-            /**
-             * See: Observe changes section from https://github.com/skypjack/entt/wiki/Entity-Component-System
-             * for details on listeners.
-             * */
-        }
+        explicit Entity(entt::registry& registry, EntityType type );
 
         /**
          * Puts this entity into an invalid state. Other methods are not recommended to be called
          * on the implicit parameter after a call to this function, otherwise it may result
          * in undefined behavior. This entity can be validated again via move or copy assigment
          * */
-        auto Invalidate() -> void {
-            // This entity does not belong to any scene anymore
-            // it can be safely removed from entt structures
-            mRegistry = nullptr;
-            mHandle = entt::null;
-        }
+        auto Invalidate() -> void;
 
         friend class Scene;
 
@@ -210,15 +223,6 @@ namespace mikoto::scene {
 
         EntityType mType{ EntityType::eEmpty };
     };
-
-    template<typename ComponentType>
-    MKT_NODISCARD static inline auto IsPresent( Entity* entity ) -> bool {
-        if ( entity == nullptr ) {
-            return false;
-        }
-
-        return entity->HasComponent<ComponentType>();
-    }
 }
 
-#endif // MIKOTO_ENTITY_HH
+#endif// MIKOTO_SCENE_ENTITY_HH

@@ -1,0 +1,8 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Bump"
+Material:
+  BaseColorFactor: [0.9,0.65,0.1,1]
+  MetallicFactor: 0.15
+  RoughnessFactor: 0.65
+  AlphaMask: 0

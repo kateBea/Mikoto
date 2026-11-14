@@ -1,0 +1,21 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Video",
+  "Material": {
+    "BaseColorFactor": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "EmissiveFactor": [
+      1,
+      1,
+      1
+    ],
+    "EmissiveStrength": 1,
+    "RoughnessFactor": 0.75,
+    "DoubleSided": 1
+  }
+}

@@ -12,52 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_JOINT_HH
-#define MIKOTO_JOINT_HH
+#ifndef MIKOTO_JOINT_SKELETON_HH
+#define MIKOTO_JOINT_SKELETON_HH
 
-#include <string>
-
-#include <EASTL/vector.h>
 #include <EASTL/string.h>
-#include <EASTL/string_view.h>
-
-#include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
 namespace mikoto::animation {
 
-    using namespace mikoto::core;
-
-    // Maps vertex and the weight contribution of the joint to that vertex
-    using JointVertexMap = 
-        ankerl::unordered_dense::map<std::string, ankerl::unordered_dense::map<u64, float>>;
-
-    inline constexpr i32 kInvalidJointID{ -1 };
+	inline constexpr core::i32 kInvalidJointID{ -1 };
 
     class Joint final {
     public:
-        Joint( const eastl::string& name, i32 ID );
+        Joint( const eastl::string &name, core::i32 ID );
 
-        auto SetParentID( i32 ID ) -> void;
+        auto SetParentID( core::i32 ID ) -> void;
 
-        MKT_NODISCARD auto GetID() const -> i32;
-        MKT_NODISCARD auto GetParentID() const -> i32;
+        MKT_NODISCARD auto GetID() const -> core::i32;
+        MKT_NODISCARD auto GetParentID() const -> core::i32;
         MKT_NODISCARD auto GetBoneName() const -> const eastl::string&;
-
-        // [DEBUG]
-        auto PrintBoneInfo() const -> void;
-        auto SetWeights( eastl::string_view meshName, u64 vertex, float weight ) -> void;
 
     private:
         eastl::string mName{};
 
-        i32 mID{ kInvalidJointID };
-        i32 mParentID{ kInvalidJointID };
-
-        JointVertexMap mVertexWeights{};
+        core::i32 mID{ kInvalidJointID };
+        core::i32 mParentID{ kInvalidJointID };
     };
 }
 
-#endif//MIKOTO_JOINT_HH
+#endif

@@ -11,118 +11,164 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-// #include <ranges>
-//
-// #include <EASTL/algorithm.h>
-//
-// #include <Core/Core.hh>
-// #include <Core/Types.hh>
-//
-// #include <Memory/Allocator.hh>
-//
-// #include <ImGui/ImGuiService.hh>
-// #include <ImGui/ImGuiUtility.hh>
-// #include <ImGui/IconsMaterialDesign.h>
-//
-// #include <Layers/EditorLayer.hh>
-// #include <Panels/PassVisualizerPanel.hh>
-//
-// namespace mikoto::editor {
-//
-//     static auto DrawTexturePreview(TextureHandle composition, float maxWidth, float maxHeight) -> void {
-//         // No flipping, the final image is already in the correct viewport coordinates
-//         // In the case of vulkan this is also taken into account when setting up the viewport
-//         ImTextureID id{ gui::ImGuiService::Get()->GetTextureID( composition) };
-//         if (!id) {
-//             return;
-//         }
-//
-//         // Query texture size
-//         ImVec2 texSize{ static_cast<float>( composition->GetWidth() ), static_cast<float>( composition->GetHeight() ) };
-//         if (texSize.x == 0 || texSize.y == 0) {
-//             return;
-//         }
-//
-//         const float aspect{ texSize.x / texSize.y };
-//         ImVec2 displaySize{};
-//
-//         if (texSize.x > texSize.y) {
-//             displaySize.x = eastl::min(maxWidth, texSize.x);
-//             displaySize.y = displaySize.x / aspect;
-//
-//             if (displaySize.y > maxHeight) {
-//                 displaySize.y = maxHeight;
-//                 displaySize.x = displaySize.y * aspect;
-//             }
-//         } else {
-//             displaySize.y = eastl::min(maxHeight, texSize.y);
-//             displaySize.x = displaySize.y * aspect;
-//
-//             if (displaySize.x > maxWidth) {
-//                 displaySize.x = maxWidth;
-//                 displaySize.y = displaySize.x / aspect;
-//             }
-//         }
-//
-//         ImGui::Image(id, displaySize);
-//     }
-//
-//     PassVisualizerPanel::PassVisualizerPanel( const PassVisualizerDescription &description )
-//         : Panel{ "Preview" }, mEditorState{ description.mState } {
-//         mPanelHeaderName = gui::MakePanelName( string::Format("{}", ICON_MD_WINDOW), mPanelName );
-//
-//         mPassesCompositions.try_emplace( "1. Triangle", mEditorState->mMainRenderer->GetTexture( "HelloTriangle_ColorTarget" ) );
-//         mPassesCompositions.try_emplace( "2. Texture2D", mEditorState->mMainRenderer->GetTexture( "HelloTexture_ColorTarget" ) );
-//         mPassesCompositions.try_emplace( "3. BRDF LUT", mEditorState->mMainRenderer->GetTexture( "BRDFLutPass_ColorTarget" ) );
-//         mPassesCompositions.try_emplace( "5. ShadowMap", mEditorState->mMainRenderer->GetTexture( "DirectionalShadowMapPass_ColorTarget" ) );
-//         mPassesCompositions.try_emplace( "6. Bloom", mEditorState->mMainRenderer->GetTexture( "BloomBlend_ColorTarget" ) );
-//         mPassesCompositions.try_emplace( "7. Gradient", mEditorState->mMainRenderer->GetTexture( "ColorGradient_ColorTarget" ) );
-//         mPassesCompositions.try_emplace( "8. Chroma", mEditorState->mMainRenderer->GetTexture( "ChromaticAberration_ColorTarget" ) );
-//     }
-//
-//     auto PassVisualizerPanel::OnUpdate( float ) -> void {
-//         if ( !mPanelIsVisible ) {
-//             return;
-//         }
-//
-//         constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
-//
-//         // Expand scene view to window bounds (no padding)
-//         gui::ImGuiScopedStyleVar winPad( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
-//
-//         ImGui::Begin( mPanelHeaderName.c_str(), MKT_ADDRESSOF( mPanelIsVisible ), windowFlags );
-//
-//         mPanelIsFocused = ImGui::IsWindowFocused();
-//         mPanelIsHovered = ImGui::IsWindowHovered();
-//
-//         if (mEditorState && !mPassesCompositions.empty()) {
-//             ImGui::BeginChild("PassList", ImVec2(150, 0), true);
-//             for ( auto &name: mPassesCompositions | std::views::keys ) {
-//                 if (ImGui::Selectable(name.c_str(), name == mActivePassName)) {
-//                     mActivePassName = name;
-//                 }
-//             }
-//
-//             ImGui::EndChild();
-//             ImGui::SameLine();
-//
-//             // Main preview
-//             ImGui::BeginGroup();
-//             if (!mActivePassName.empty()) {
-//                 auto it{ mPassesCompositions.find(mActivePassName) };
-//                 if (it != mPassesCompositions.end()) {
-//                     ImVec2 availSize = ImGui::GetContentRegionAvail();
-//                     DrawTexturePreview(it->second, availSize.x, availSize.y);
-//                 }
-//             } else {
-//                 ImGui::TextDisabled("Select a pass to preview...");
-//             }
-//             ImGui::EndGroup();
-//         } else {
-//             ImGui::TextDisabled("No passes available for preview.");
-//         }
-//
-//         ImGui::End();
-//     }
-// }// namespace Mikoto
+
+#include <algorithm>
+
+#include <EASTL/sort.h>
+#include <EASTL/algorithm.h>
+#include <EASTL/fixed_vector.h>
+
+#include <magic_enum/magic_enum.hpp>
+
+#include <Core/Core.hh>
+#include <Core/Profiler.hh>
+#include <Core/LocalizationService.hh>
+
+#include <ImGui/Utility.hh>
+
+#include <Panels/PassVisualizerPanel.hh>
+
+#include <Layers/EditorLayer.hh>
+
+namespace mikoto::editor {
+    using namespace renderer;
+
+    PassVisualizerPanel::PassVisualizerPanel( const PassVisualizerDescription& description )
+        : Panel{ "Pass Visualizer", "Pass Visualizer", description.mGroup, description.mIsToggleable }, mEditorState{ description.mState } {
+        MKT_BEGIN_PROFILER();
+        mPanelIsVisible = false;
+    }
+
+    auto PassVisualizerPanel::Capture() -> void {
+        MKT_BEGIN_PROFILER();
+        imgui::GraphEditorBuilder builder{};
+        const auto* sceneRenderer{ mEditorState ? mEditorState->mEditorRenderer : nullptr };
+
+        if ( sceneRenderer && sceneRenderer->HasFrameGraph() ) {
+            const auto& control{ sceneRenderer->GetNodeControl() };
+            const auto& statistics{ sceneRenderer->GetPassStatistics() };
+
+            for ( const auto& [name, pass]: control.mNodes ) {
+                auto& node{ builder.PushNode( name ) };
+
+                switch ( pass.mType ) {
+                    case FGPassType::eGraphics:
+                        node.mType = MKT_LOC( "pass_visualizer_graphics" ).c_str();
+                        break;
+                    case FGPassType::eCompute:
+                        node.mType = MKT_LOC( "pass_visualizer_compute" ).c_str();
+                        break;
+                    case FGPassType::eTransfer:
+                        node.mType = MKT_LOC( "pass_visualizer_transfer" ).c_str();
+                        break;
+                    default:
+                        node.mType = MKT_LOC( "pass_visualizer_generic" ).c_str();
+                        break;
+                }
+
+                switch ( pass.mExecutionPolicy ) {
+                    case FGExecutionPolicy::ePerFrame:
+                        node.mPolicy = MKT_LOC( "pass_visualizer_per_frame" ).c_str();
+                        break;
+                    case FGExecutionPolicy::eOnWake:
+                        node.mPolicy = MKT_LOC( "pass_visualizer_on_wake" ).c_str();
+                        break;
+                    case FGExecutionPolicy::eOnce:
+                        node.mPolicy = MKT_LOC( "pass_visualizer_once" ).c_str();
+                        break;
+                }
+
+                node.mEnabled = pass.mIsAlive;
+
+                for ( const auto& dependency: pass.mDependsOn ) {
+                    node.mDependencies.push_back( dependency );
+                }
+
+                if ( auto stat = statistics.find( name ); stat != statistics.end() ) {
+                    node.mExecuted = stat->second.mExecutedThisFrame;
+                    node.mSamples = stat->second.mExecutionCount;
+                    node.mLastMs = stat->second.mLastExecutionTime;
+                    node.mMinMs = stat->second.mMinExecutionTime;
+                    node.mMaxMs = stat->second.mMaxExecutionTime;
+                }
+
+                eastl::fixed_vector<FGResourceHandle, 32, true> handles{ pass.mReadResources.begin(), pass.mReadResources.end() };
+                handles.insert( handles.end(), pass.mWriteResources.begin(), pass.mWriteResources.end() );
+
+                for ( const auto& [handle, track]: pass.mResourceStates ) {
+                    handles.push_back( handle );
+                }
+
+                eastl::sort( handles.begin(), handles.end() );
+                handles.erase( eastl::unique( handles.begin(), handles.end() ), handles.end() );
+
+                for ( const auto handle: handles ) {
+                    imgui::GraphResourceUsage usage{};
+                    usage.mHandle = handle;
+                    usage.mRead = eastl::find( pass.mReadResources.begin(), pass.mReadResources.end(), handle ) != pass.mReadResources.end();
+                    usage.mWrite = eastl::find( pass.mWriteResources.begin(), pass.mWriteResources.end(), handle ) != pass.mWriteResources.end();
+
+                    if ( auto track = pass.mResourceStates.find( handle ); track != pass.mResourceStates.end() ) {
+                        for ( const auto pipelineStage: track->second.mStages ) {
+                            if ( !usage.mStage.empty() ) {
+                                usage.mStage.append( " | " );
+                            }
+
+                            const auto stage{ magic_enum::enum_name( pipelineStage ) };
+                            usage.mStage.append( stage.data(), stage.size() );
+                        }
+                    }
+
+                    if ( auto resource = control.mResources.find( handle ); resource != control.mResources.end() ) {
+                        usage.mName = resource->second.mName;
+                        usage.mImported = resource->second.mIsImported;
+
+                        if ( const auto* texture = eastl::any_cast<FGTextureDescription>( &resource->second.mDescription ) ) {
+                            const auto format{ magic_enum::enum_name( texture->mFormat ) };
+                            usage.mDetails = string::Format( fmt::runtime( MKT_LOC( "pass_visualizer_texture_x_mips" ).c_str() ),
+                                texture->mWidth, texture->mHeight, format, texture->mMipCount );
+                        }
+                        else if ( const auto* buffer = eastl::any_cast<FGBufferDescription>( &resource->second.mDescription ) ) {
+                            usage.mDetails = string::Format( fmt::runtime( MKT_LOC( "pass_visualizer_buffer_bytes_elements" ).c_str() ),
+                                static_cast<core::u64>( buffer->mElementCount ) * buffer->mElementSizeBytes, buffer->mElementCount );
+                        }
+                        else {
+                            usage.mDetails = MKT_LOC( "pass_visualizer_external_resource" ).c_str();
+                        }
+                    }
+
+                    if ( usage.mName.empty() ) {
+                        usage.mName = string::Format( fmt::runtime( MKT_LOC( "pass_visualizer_resource" ).c_str() ), handle );
+                    }
+
+                    node.mResources.emplace_back( eastl::move( usage ) );
+                }
+            }
+        }
+
+        mGraph.Build( builder );
+    }
+
+    auto PassVisualizerPanel::OnRender( float ) -> void {
+        MKT_BEGIN_PROFILER();
+
+        if ( !mPanelIsVisible ) {
+            return;
+        }
+
+        ImGui::SetNextWindowSize( { 1280, 740 }, ImGuiCond_FirstUseEver );
+
+        if ( imgui::BeginWindow( GetHeaderName().data(), &mPanelIsVisible, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse ) ) {
+            mPanelIsFocused = ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows );
+            mPanelIsHovered = ImGui::IsWindowHovered( ImGuiHoveredFlags_RootAndChildWindows );
+
+            if ( !mGraph.IsPaused() ) {
+                Capture();
+            }
+
+            mGraph.RenderContents();
+        }
+
+        ImGui::End();
+    }
+}

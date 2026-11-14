@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_FLAG_HH
-#define MIKOTO_FLAG_HH
+#ifndef MIKOTO_CORE_FLAG_HH
+#define MIKOTO_CORE_FLAG_HH
 
 #include <Core/Core.hh>
 
@@ -60,10 +60,11 @@ namespace mikoto::core {
             return mData != 0;
         }
 
+        // Requires that each flag individually only sets one bit
         MKT_NODISCARD constexpr auto Has( Flags const &other ) const -> bool {
-            return mData & other.mData;
+            return ( mData & other.mData ) != 0;
         }
     };
 }// namespace mikoto
 
-#endif//MIKOTO_FLAG_HH
+#endif// MIKOTO_CORE_FLAG_HH

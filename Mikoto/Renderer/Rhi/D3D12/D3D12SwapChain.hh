@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_D3D12_SWAPCHAIN_HH
-#define MIKOTOROOT_D3D12_SWAPCHAIN_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D12_D3D12_SWAP_CHAIN_HH
+#define MIKOTO_RENDERER_RHI_D3D12_D3D12_SWAP_CHAIN_HH
 
 #include <EASTL/vector.h>
 
@@ -28,9 +28,10 @@
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
+#include <Platform/Windows/Windows.hh>
+
 #include <directx/d3d12.h>
 #include <directx/d3dx12.h>
-
 #include <dxgi1_6.h>
 #include <wrl.h>
 
@@ -40,7 +41,7 @@ namespace mikoto::renderer::d3d12 {
 
     class SwapChain final : public rhi::DeviceObject {
     public:
-        explicit SwapChain(platform::Window* window, Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory);
+        explicit SwapChain(platform::IWindow* window, Microsoft::WRL::ComPtr<IDXGIFactory4> mDxgiFactory);
 
         auto Present() -> void;
 
@@ -59,7 +60,7 @@ namespace mikoto::renderer::d3d12 {
 
         ~SwapChain() override;
 
-        using DeviceObject::Initialize;
+        using renderer::rhi::DeviceObject::Initialize;
 
         DISABLE_COPY_AND_MOVE_FOR( SwapChain );
 
@@ -68,7 +69,7 @@ namespace mikoto::renderer::d3d12 {
         auto Destroy() -> void override;
 
     private:
-        platform::Window* mWindow{ nullptr };
+        platform::IWindow* mWindow{ nullptr };
 
         core::u32 mWidth{ 0u };
         core::u32 mHeight{ 0u };
@@ -91,4 +92,5 @@ namespace mikoto::renderer::d3d12 {
 
 #endif
 
-#endif//MIKOTOROOT_D3D12_SWAPCHAIN_HH
+#endif// MIKOTO_RENDERER_RHI_D3D12_D3D12_SWAP_CHAIN_HH
+

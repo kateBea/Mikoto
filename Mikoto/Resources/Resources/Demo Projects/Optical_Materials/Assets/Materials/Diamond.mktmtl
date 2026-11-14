@@ -1,0 +1,28 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Diamond",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0,
+    "AlphaMask": 0,
+    "ShadingModel": 6,
+    "Dielectric": {
+      "IndexOfRefraction": 2.42,
+      "Transmission": 1,
+      "ThinWalled": false,
+      "AttenuationColor": [
+        1,
+        1,
+        1
+      ],
+      "AttenuationDistance": 1
+    }
+  }
+}

@@ -1,0 +1,1716 @@
+Version: 5
+RelativeAssetPaths: true
+Scene: Mikoto Sandbox
+EnvironmentLightingSource: 0
+ToneMapping: 0
+Objects:
+  - Type: 5
+    ID: 1
+    TagComponent:
+      Name: Static Ground
+      Visibility: true
+    TransformComponent:
+      Position: [-16.0, -0.6, -13.0]
+      Rotation: [0, 0, 0]
+      Scale: [3.3567778548750984, 0.06293956588952791, 2.7273820070860175]
+      Uniform Scale: false
+    Children: []
+    MeshComponent:
+      MeshIndex: 0
+      ModelPath: ../Prefabs/cube/gltf/scene.gltf
+    MaterialComponent:
+      Reference: 0
+    BoxColliderComponent:
+      HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+      Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+      Trigger: false
+    RigidBodyComponent:
+      BodyType: 0
+      Mass: 1
+      UseGravity: false
+      Friction: 0.2
+      Restitution: 0.05
+      LinearVelocity: [0, 0, 0]
+      AngularVelocity: [0, 0, 0]
+  - Type: 5
+    ID: 2
+    TagComponent:
+      Name: Dragon Plinth
+      Visibility: true
+    TransformComponent:
+      Position: [-2.5000000000000004, 0.0, -2.5000000000000004]
+      Rotation: [0, 0, 0]
+      Scale: [0.5244965398242342, 0.05244963824127326, 0.5244965398242342]
+      Uniform Scale: false
+    Children: []
+    MeshComponent:
+      MeshIndex: 0
+      ModelPath: ../Prefabs/cube/gltf/scene.gltf
+    MaterialComponent:
+      Reference: 1
+  - Type: 0
+    ID: 3
+    TagComponent:
+      Name: Dragon
+      Visibility: true
+    TransformComponent:
+      Position: [0.10335931515787682, 2.3061661323725495, -0.17715183409458443]
+      Rotation: [0, 0, 0]
+      Scale: [6.3831598059519425, 6.3831598059519425, 6.3831598059519425]
+      Uniform Scale: false
+    Children: []
+    StreamedModelComponent:
+      ModelPath: ../Prefabs/dragon/dragon.obj
+      NextMesh: 0
+  - Type: 0
+    ID: 4
+    TagComponent:
+      Name: Animated Lola
+      Visibility: true
+    TransformComponent:
+      Position: [-4.6650445282431106, 0.004405937386650058, 1.0000000734347998]
+      Rotation: [0, 0, 0]
+      Scale: [0.8764291245635933, 0.8764291245635933, 0.8764291245635933]
+      Uniform Scale: false
+    Children:
+      - Type: 5
+        ID: 5
+        TagComponent:
+          Name: Object_0
+          Visibility: true
+        TransformComponent:
+          Position: [0, 0, 0]
+          Rotation: [0, 0, 0]
+          Scale: [1, 1, 1]
+          Uniform Scale: false
+          Local Transform:
+            - [0.7028700113296509, 0.0, 0.0, 0.0]
+            - [0.0, 0.7028700113296509, 0.0, 0.0]
+            - [0.0, 0.0, 0.7028700113296509, 0.0]
+            - [0.0, 0.0, 0.0, 1.0]
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/lola_bunny_updated__multiversus/scene.gltf
+        SkinnedMeshRenderer:
+          AnimatorID: 4
+      - Type: 5
+        ID: 6
+        TagComponent:
+          Name: Object_1
+          Visibility: true
+        TransformComponent:
+          Position: [0, 0, 0]
+          Rotation: [0, 0, 0]
+          Scale: [1, 1, 1]
+          Uniform Scale: false
+          Local Transform:
+            - [0.7028700113296509, 0.0, 0.0, 0.0]
+            - [0.0, 0.7028700113296509, 0.0, 0.0]
+            - [0.0, 0.0, 0.7028700113296509, 0.0]
+            - [0.0, 0.0, 0.0, 1.0]
+        Children: []
+        MeshComponent:
+          MeshIndex: 1
+          ModelPath: ../Prefabs/lola_bunny_updated__multiversus/scene.gltf
+        SkinnedMeshRenderer:
+          AnimatorID: 4
+      - Type: 5
+        ID: 7
+        TagComponent:
+          Name: Object_2
+          Visibility: true
+        TransformComponent:
+          Position: [0, 0, 0]
+          Rotation: [0, 0, 0]
+          Scale: [1, 1, 1]
+          Uniform Scale: false
+          Local Transform:
+            - [0.7028700113296509, 0.0, 0.0, 0.0]
+            - [0.0, 0.7028700113296509, 0.0, 0.0]
+            - [0.0, 0.0, 0.7028700113296509, 0.0]
+            - [0.0, 0.0, 0.0, 1.0]
+        Children: []
+        MeshComponent:
+          MeshIndex: 2
+          ModelPath: ../Prefabs/lola_bunny_updated__multiversus/scene.gltf
+        SkinnedMeshRenderer:
+          AnimatorID: 4
+      - Type: 5
+        ID: 8
+        TagComponent:
+          Name: Object_3
+          Visibility: true
+        TransformComponent:
+          Position: [0, 0, 0]
+          Rotation: [0, 0, 0]
+          Scale: [1, 1, 1]
+          Uniform Scale: false
+          Local Transform:
+            - [0.7028700113296509, 0.0, 0.0, 0.0]
+            - [0.0, 0.7028700113296509, 0.0, 0.0]
+            - [0.0, 0.0, 0.7028700113296509, 0.0]
+            - [0.0, 0.0, 0.0, 1.0]
+        Children: []
+        MeshComponent:
+          MeshIndex: 3
+          ModelPath: ../Prefabs/lola_bunny_updated__multiversus/scene.gltf
+        SkinnedMeshRenderer:
+          AnimatorID: 4
+    AnimatorComponent:
+      ID: 4
+      ModelPath: ../Prefabs/lola_bunny_updated__multiversus/scene.gltf
+      Clip: C038_Emote_CharacterSelect_Loop
+      Playing: true
+  - Type: 0
+    ID: 14
+    TagComponent:
+      Name: Tree 0
+      Visibility: true
+    TransformComponent:
+      Position: [-10.6888222371194, 2.0987730018253545, -12.603919489637844]
+      Rotation: [0, 0, 0]
+      Scale: [1.3984241440229583, 1.3984241440229583, 1.3984241440229583]
+      Uniform Scale: false
+    Children: []
+    StreamedModelComponent:
+      ModelPath: ../Prefabs/tree/scene.gltf
+      NextMesh: 0
+  - Type: 0
+    ID: 15
+    TagComponent:
+      Name: Tree 1
+      Visibility: true
+    TransformComponent:
+      Position: [9.3111777628806, 2.0987730018253545, -12.603919489637844]
+      Rotation: [0, 0, 0]
+      Scale: [1.3984241440229583, 1.3984241440229583, 1.3984241440229583]
+      Uniform Scale: false
+    Children: []
+    StreamedModelComponent:
+      ModelPath: ../Prefabs/tree/scene.gltf
+      NextMesh: 0
+  - Type: 0
+    ID: 16
+    TagComponent:
+      Name: Tree 2
+      Visibility: true
+    TransformComponent:
+      Position: [-11.6888222371194, 2.0987730018253545, -17.603919489637846]
+      Rotation: [0, 0, 0]
+      Scale: [1.3984241440229583, 1.3984241440229583, 1.3984241440229583]
+      Uniform Scale: false
+    Children: []
+    StreamedModelComponent:
+      ModelPath: ../Prefabs/tree/scene.gltf
+      NextMesh: 0
+  - Type: 0
+    ID: 17
+    TagComponent:
+      Name: Tree 3
+      Visibility: true
+    TransformComponent:
+      Position: [10.3111777628806, 2.0987730018253545, -17.603919489637846]
+      Rotation: [0, 0, 0]
+      Scale: [1.3984241440229583, 1.3984241440229583, 1.3984241440229583]
+      Uniform Scale: false
+    Children: []
+    StreamedModelComponent:
+      ModelPath: ../Prefabs/tree/scene.gltf
+      NextMesh: 0
+  - Type: 0
+    ID: 18
+    TagComponent:
+      Name: Physics - press Play or Simulate
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Uniform Scale: false
+    Children:
+      - Type: 5
+        ID: 19
+        TagComponent:
+          Name: Box 0 0
+          Visibility: true
+        TransformComponent:
+          Position: [4.55, 0.05, 1.55]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - Type: 5
+        ID: 20
+        TagComponent:
+          Name: Box 1 0
+          Visibility: true
+        TransformComponent:
+          Position: [5.65, 0.05, 1.55]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - Type: 5
+        ID: 21
+        TagComponent:
+          Name: Box 2 0
+          Visibility: true
+        TransformComponent:
+          Position: [6.75, 0.05, 1.55]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - Type: 5
+        ID: 22
+        TagComponent:
+          Name: Box 0 1
+          Visibility: true
+        TransformComponent:
+          Position: [4.4100003, 1.15, 1.1899999]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - Type: 5
+        ID: 23
+        TagComponent:
+          Name: Box 1 1
+          Visibility: true
+        TransformComponent:
+          Position: [5.69, 1.15, 1.92]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - Type: 5
+        ID: 24
+        TagComponent:
+          Name: Box 2 1
+          Visibility: true
+        TransformComponent:
+          Position: [6.89, 1.15, 1.2099999]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - Type: 5
+        ID: 25
+        TagComponent:
+          Name: Box 0 2
+          Visibility: true
+        TransformComponent:
+          Position: [4.29, 2.25, 0.80999994]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - Type: 5
+        ID: 26
+        TagComponent:
+          Name: Box 1 2
+          Visibility: true
+        TransformComponent:
+          Position: [5.6, 2.25, 2.3]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - Type: 5
+        ID: 27
+        TagComponent:
+          Name: Box 2 2
+          Visibility: true
+        TransformComponent:
+          Position: [7.03, 2.25, 0.78999996]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - Type: 5
+        ID: 28
+        TagComponent:
+          Name: Box 0 3
+          Visibility: true
+        TransformComponent:
+          Position: [4.1200004, 3.3500001, 0.42999995]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - Type: 5
+        ID: 29
+        TagComponent:
+          Name: Box 1 3
+          Visibility: true
+        TransformComponent:
+          Position: [5.71, 3.3500001, 2.6999998]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - Type: 5
+        ID: 30
+        TagComponent:
+          Name: Box 2 3
+          Visibility: true
+        TransformComponent:
+          Position: [7.17, 3.3500001, 0.44999993]
+          Rotation: [0, 0, 0]
+          Scale: [0.09440937716836215, 0.09440934883429186, 0.09440937716836215]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          HalfExtents: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Offset: [4.766475677490234, 4.766477108001709, 4.766475677490234]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.2
+          Restitution: 0.05
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+  - Type: 3
+    ID: 31
+    TagComponent:
+      Name: Accent Light 0
+      Visibility: true
+    TransformComponent:
+      Position: [-4, 4, 1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Uniform Scale: false
+    Children: []
+    LightComponent:
+      Type: 1
+      Point:
+        Color: [0.25, 0.5, 1]
+        Intensity: 8
+        Radius: 9
+        CastShadows: false
+  - Type: 3
+    ID: 32
+    TagComponent:
+      Name: Accent Light 1
+      Visibility: true
+    TransformComponent:
+      Position: [4, 4, -1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Uniform Scale: false
+    Children: []
+    LightComponent:
+      Type: 1
+      Point:
+        Color: [1, 0.4, 0.15]
+        Intensity: 8
+        Radius: 9
+        CastShadows: false
+  - Type: 6
+    ID: 33
+    TagComponent:
+      Name: Camera
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Uniform Scale: false
+      Local Transform:
+        - [0.8320502943378437, 0.0, -0.5547001962252291, 0]
+        - [-0.17704251606084248, 0.9476981742080391, -0.2655637740912637, 0]
+        - [0.5256883631954906, 0.3191679347972622, 0.788532544793236, 0]
+        - [14, 10, 21, 1]
+    Children: []
+    CameraComponent:
+      Projection: 1
+      Fov: 45
+      Near: 0.1
+      Far: 250
+      Main: true
+      FixedAspect: false
+      ClearFlags: 2
+      ClearColor: [0.015, 0.02, 0.03, 1]
+      Gamma: 2.2
+      Exposure: 1
+      Vignette:
+        Enabled: true
+        Shape: 0
+        Center: [0.5, 0.5]
+        HalfSize: [1.1, 1.1]
+        Feather: 0.5
+        Strength: 0.3
+        Color: [0, 0, 0]
+        AspectCorrect: false
+  - Type: 3
+    ID: 34
+    TagComponent:
+      Name: Sun
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Uniform Scale: false
+    Children: []
+    LightComponent:
+      Type: 0
+      Directional:
+        Color: [1, 0.95, 0.85]
+        Intensity: 2
+        Direction: [-0.5, -1, -0.35]
+        CastShadows: true
+  - Type: 0
+    ID: 35
+    TagComponent:
+      Name: Modern Evening Street Skybox
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Uniform Scale: false
+    Children: []
+    SkyboxMaterialComponent:
+      MaterialPath: Assets/Materials/Evening.mktmtl
+  - Type: 7
+    ID: 36
+    TagComponent:
+      Name: Sandbox Overview
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Uniform Scale: false
+    Children: []
+    CanvasComponent:
+      Version: 2
+      Overlay: true
+      ReferenceSize: [1920, 1080]
+      SortOrder: 0
+      Elements:
+        - Id: 1
+          Parent: 0
+          Name: Overview 0
+          Type: 3
+          Interactable: false
+          Visible: true
+          Enabled: true
+          Layout: 1
+          AnchorMin: [0, 0]
+          AnchorMax: [0, 0]
+          Pivot: [0, 0]
+          Position: [24, 24]
+          Size: [600, 36]
+          Scale: [1, 1]
+          Rotation: 0
+          Color: [1, 0.8, 0.35, 1]
+          Text: MIKOTO | SANDBOX
+          FontSize: 28
+          FontPath: ../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf
+        - Id: 2
+          Parent: 0
+          Name: Overview 1
+          Type: 3
+          Interactable: false
+          Visible: true
+          Enabled: true
+          Layout: 1
+          AnchorMin: [0, 0]
+          AnchorMax: [0, 0]
+          Pivot: [0, 0]
+          Position: [24, 64]
+          Size: [600, 36]
+          Scale: [1, 1]
+          Rotation: 0
+          Color: [1, 1, 1, 1]
+          Text: Prefabs - PBR materials - environment lighting
+          FontSize: 18
+          FontPath: ../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf
+        - Id: 3
+          Parent: 0
+          Name: Overview 2
+          Type: 3
+          Interactable: false
+          Visible: true
+          Enabled: true
+          Layout: 1
+          AnchorMin: [0, 0]
+          AnchorMax: [0, 0]
+          Pivot: [0, 0]
+          Position: [24, 90]
+          Size: [600, 36]
+          Scale: [1, 1]
+          Rotation: 0
+          Color: [1, 1, 1, 1]
+          Text: "Play: skeletal animation + rigid body physics"
+          FontSize: 18
+          FontPath: ../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf
+  - ID: 37
+    Type: 0
+    TagComponent:
+      Name: Sphere Materials - Roughness X / Metalness Y
+      Visibility: true
+    TransformComponent:
+      Position: [-12, 1.2, 6]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Uniform Scale: false
+    Children:
+      - Type: 5
+        ID: 9
+        TagComponent:
+          Name: Sphere R0 M0
+          Visibility: true
+        TransformComponent:
+          Position: [0, 0, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 2
+      - Type: 5
+        ID: 10
+        TagComponent:
+          Name: Sphere R1 M0
+          Visibility: true
+        TransformComponent:
+          Position: [2, 0, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 3
+      - Type: 5
+        ID: 11
+        TagComponent:
+          Name: Sphere R2 M0
+          Visibility: true
+        TransformComponent:
+          Position: [4, 0, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 4
+      - Type: 5
+        ID: 12
+        TagComponent:
+          Name: Sphere R3 M0
+          Visibility: true
+        TransformComponent:
+          Position: [6, 0, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 5
+      - Type: 5
+        ID: 13
+        TagComponent:
+          Name: Sphere R4 M0
+          Visibility: true
+        TransformComponent:
+          Position: [8, 0, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 6
+      - Type: 5
+        ID: 38
+        TagComponent:
+          Name: Sphere R0 M1
+          Visibility: true
+        TransformComponent:
+          Position: [0, 2, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 8
+      - Type: 5
+        ID: 39
+        TagComponent:
+          Name: Sphere R1 M1
+          Visibility: true
+        TransformComponent:
+          Position: [2, 2, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 9
+      - Type: 5
+        ID: 40
+        TagComponent:
+          Name: Sphere R2 M1
+          Visibility: true
+        TransformComponent:
+          Position: [4, 2, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 10
+      - Type: 5
+        ID: 41
+        TagComponent:
+          Name: Sphere R3 M1
+          Visibility: true
+        TransformComponent:
+          Position: [6, 2, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 11
+      - Type: 5
+        ID: 42
+        TagComponent:
+          Name: Sphere R4 M1
+          Visibility: true
+        TransformComponent:
+          Position: [8, 2, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 12
+      - Type: 5
+        ID: 43
+        TagComponent:
+          Name: Sphere R0 M2
+          Visibility: true
+        TransformComponent:
+          Position: [0, 4, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 13
+      - Type: 5
+        ID: 44
+        TagComponent:
+          Name: Sphere R1 M2
+          Visibility: true
+        TransformComponent:
+          Position: [2, 4, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 14
+      - Type: 5
+        ID: 45
+        TagComponent:
+          Name: Sphere R2 M2
+          Visibility: true
+        TransformComponent:
+          Position: [4, 4, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 15
+      - Type: 5
+        ID: 46
+        TagComponent:
+          Name: Sphere R3 M2
+          Visibility: true
+        TransformComponent:
+          Position: [6, 4, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 16
+      - Type: 5
+        ID: 47
+        TagComponent:
+          Name: Sphere R4 M2
+          Visibility: true
+        TransformComponent:
+          Position: [8, 4, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 17
+      - Type: 5
+        ID: 48
+        TagComponent:
+          Name: Sphere R0 M3
+          Visibility: true
+        TransformComponent:
+          Position: [0, 6, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 18
+      - Type: 5
+        ID: 49
+        TagComponent:
+          Name: Sphere R1 M3
+          Visibility: true
+        TransformComponent:
+          Position: [2, 6, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 19
+      - Type: 5
+        ID: 50
+        TagComponent:
+          Name: Sphere R2 M3
+          Visibility: true
+        TransformComponent:
+          Position: [4, 6, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 20
+      - Type: 5
+        ID: 51
+        TagComponent:
+          Name: Sphere R3 M3
+          Visibility: true
+        TransformComponent:
+          Position: [6, 6, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 21
+      - Type: 5
+        ID: 52
+        TagComponent:
+          Name: Sphere R4 M3
+          Visibility: true
+        TransformComponent:
+          Position: [8, 6, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 22
+      - Type: 5
+        ID: 53
+        TagComponent:
+          Name: Sphere R0 M4
+          Visibility: true
+        TransformComponent:
+          Position: [0, 8, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 23
+      - Type: 5
+        ID: 54
+        TagComponent:
+          Name: Sphere R1 M4
+          Visibility: true
+        TransformComponent:
+          Position: [2, 8, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 24
+      - Type: 5
+        ID: 55
+        TagComponent:
+          Name: Sphere R2 M4
+          Visibility: true
+        TransformComponent:
+          Position: [4, 8, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 25
+      - Type: 5
+        ID: 56
+        TagComponent:
+          Name: Sphere R3 M4
+          Visibility: true
+        TransformComponent:
+          Position: [6, 8, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 26
+      - Type: 5
+        ID: 57
+        TagComponent:
+          Name: Sphere R4 M4
+          Visibility: true
+        TransformComponent:
+          Position: [8, 8, -0.7]
+          Rotation: [0, 0, 0]
+          Scale: [0.07, 0.07, 0.07]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 27
+      - ID: 58
+        Type: 4
+        TagComponent:
+          Name: Sphere Materials Title
+          Visibility: true
+        TransformComponent:
+          Position: [4, 9.1, 0.9]
+          Rotation: [0, 0, 0]
+          Scale: [1, 1, 1]
+          Uniform Scale: false
+        Children: []
+        TextComponent:
+          Contents: SPHERE MATERIALS
+          Size: 0.55
+          WorldSize: 0.55
+          Spacing: 0
+          IsWorldText: true
+          Alignment: 1
+          Backend: 1
+          FontPath: ../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf
+          Color: [1, 0.93, 0.75, 1]
+          OutlineWidth: 0.025
+          OutlineColor: [0, 0, 0, 1]
+      - ID: 59
+        Type: 4
+        TagComponent:
+          Name: Roughness increases right
+          Visibility: true
+        TransformComponent:
+          Position: [4, -0.9, 0.9]
+          Rotation: [0, 0, 0]
+          Scale: [1, 1, 1]
+          Uniform Scale: false
+        Children: []
+        TextComponent:
+          Contents: Roughness 0 to 1
+          Size: 0.44
+          WorldSize: 0.44
+          Spacing: 0
+          IsWorldText: true
+          Alignment: 1
+          Backend: 1
+          FontPath: ../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf
+          Color: [1, 0.93, 0.75, 1]
+          OutlineWidth: 0.025
+          OutlineColor: [0, 0, 0, 1]
+      - ID: 60
+        Type: 4
+        TagComponent:
+          Name: Metalness increases up
+          Visibility: true
+        TransformComponent:
+          Position: [-1.2, 4, 0.9]
+          Rotation: [0, 0, 90]
+          Scale: [1, 1, 1]
+          Uniform Scale: false
+        Children: []
+        TextComponent:
+          Contents: Metalness 0 to 1
+          Size: 0.44
+          WorldSize: 0.44
+          Spacing: 0
+          IsWorldText: true
+          Alignment: 1
+          Backend: 1
+          FontPath: ../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf
+          Color: [1, 0.93, 0.75, 1]
+          OutlineWidth: 0.025
+          OutlineColor: [0, 0, 0, 1]
+  - ID: 61
+    Type: 0
+    TagComponent:
+      Name: Ramp and Primitives
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Uniform Scale: false
+    Children:
+      - ID: 62
+        Type: 5
+        TagComponent:
+          Name: Static Ramp
+          Visibility: true
+        TransformComponent:
+          Position: [3.0679784, 1.7586913, 5.1]
+          Rotation: [0, 0, -16]
+          Scale: [0.62939584, 0.036714748, 0.29371807]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 28
+        BoxColliderComponent:
+          Offset: [4.7664757, 4.766477, 4.7664757]
+          Trigger: false
+          HalfExtents: [4.7664757, 4.766477, 4.7664757]
+        RigidBodyComponent:
+          BodyType: 0
+          Mass: 1
+          UseGravity: false
+          Friction: 0.6
+          Restitution: 0.1
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - ID: 63
+        Type: 5
+        TagComponent:
+          Name: Ramp Support
+          Visibility: true
+        TransformComponent:
+          Position: [3.575, 0, 5.3]
+          Rotation: [0, 0, 0]
+          Scale: [0.04720469, 0.15734892, 0.25175834]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 1
+        BoxColliderComponent:
+          Offset: [4.7664757, 4.766477, 4.7664757]
+          Trigger: false
+          HalfExtents: [4.7664757, 4.766477, 4.7664757]
+        RigidBodyComponent:
+          BodyType: 0
+          Mass: 1
+          UseGravity: false
+          Friction: 0.6
+          Restitution: 0.1
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - ID: 64
+        Type: 5
+        TagComponent:
+          Name: Rolling Sphere
+          Visibility: true
+        TransformComponent:
+          Position: [4.3103905, 2.463541, 5.85]
+          Rotation: [0, 0, 0]
+          Scale: [0.065, 0.065, 0.065]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/sphere/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 29
+        SphereColliderComponent:
+          Offset: [0, 0, 10]
+          Trigger: false
+          Radius: 10
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.6
+          Restitution: 0.1
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - ID: 65
+        Type: 5
+        TagComponent:
+          Name: Dynamic Cube
+          Visibility: true
+        TransformComponent:
+          Position: [9.8, 0, 5.8]
+          Rotation: [0, 0, 0]
+          Scale: [0.14685903, 0.14685899, 0.14685903]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 7
+        BoxColliderComponent:
+          Offset: [4.7664757, 4.766477, 4.7664757]
+          Trigger: false
+          HalfExtents: [4.7664757, 4.766477, 4.7664757]
+        RigidBodyComponent:
+          BodyType: 2
+          Mass: 1
+          UseGravity: true
+          Friction: 0.6
+          Restitution: 0.1
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - ID: 66
+        Type: 5
+        TagComponent:
+          Name: Cone
+          Visibility: true
+        TransformComponent:
+          Position: [10.5, 0.9, 8]
+          Rotation: [0, 0, 0]
+          Scale: [0.35, 0.3, 0.35]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cone/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 30
+        MeshColliderComponent:
+          Convex: true
+          Offset: [0, 0, 0]
+          Trigger: false
+        RigidBodyComponent:
+          BodyType: 0
+          Mass: 1
+          UseGravity: false
+          Friction: 0.6
+          Restitution: 0.1
+          LinearVelocity: [0, 0, 0]
+          AngularVelocity: [0, 0, 0]
+      - ID: 67
+        Type: 4
+        TagComponent:
+          Name: Ramp Title
+          Visibility: true
+        TransformComponent:
+          Position: [6, 3.5, 6.8]
+          Rotation: [0, 0, 0]
+          Scale: [1, 1, 1]
+          Uniform Scale: false
+        Children: []
+        TextComponent:
+          Contents: RAMP | SPHERE + CUBE + CONE
+          Size: 0.36
+          WorldSize: 0.36
+          Spacing: 0
+          IsWorldText: true
+          Alignment: 1
+          Backend: 1
+          FontPath: ../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf
+          Color: [1, 0.93, 0.75, 1]
+          OutlineWidth: 0.025
+          OutlineColor: [0, 0, 0, 1]
+  - ID: 68
+    Type: 0
+    TagComponent:
+      Name: Rainbow Bunnies
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Uniform Scale: false
+    Children:
+      - ID: 69
+        Type: 0
+        TagComponent:
+          Name: Bunny Red
+          Visibility: true
+        TransformComponent:
+          Position: [-9.862105, -0.019434849, 9.432209]
+          Rotation: [0, 0, 0]
+          Scale: [0.925469, 0.925469, 0.925469]
+          Uniform Scale: false
+        Children:
+          - ID: 70
+            Type: 5
+            TagComponent:
+              Name: mesh
+              Visibility: true
+            TransformComponent:
+              Position: [0, 0, 0]
+              Rotation: [0, 0, 0]
+              Scale: [1, 1, 1]
+              Uniform Scale: false
+              Local Transform:
+                - [1, 0, 0, 0]
+                - [0, 1, 0, 0]
+                - [0, 0, 1, 0]
+                - [0, 0, 0, 1]
+            Children:
+              []
+            MeshComponent:
+              MeshIndex: 0
+              ModelPath: ../Prefabs/bunny/bunny.obj
+            MaterialComponent:
+              Reference: 31
+      - ID: 71
+        Type: 0
+        TagComponent:
+          Name: Bunny Orange
+          Visibility: true
+        TransformComponent:
+          Position: [-5.862105, -0.019434849, 9.432209]
+          Rotation: [0, 0, 0]
+          Scale: [0.925469, 0.925469, 0.925469]
+          Uniform Scale: false
+        Children:
+          - ID: 72
+            Type: 5
+            TagComponent:
+              Name: mesh
+              Visibility: true
+            TransformComponent:
+              Position: [0, 0, 0]
+              Rotation: [0, 0, 0]
+              Scale: [1, 1, 1]
+              Uniform Scale: false
+              Local Transform:
+                - [1, 0, 0, 0]
+                - [0, 1, 0, 0]
+                - [0, 0, 1, 0]
+                - [0, 0, 0, 1]
+            Children:
+              []
+            MeshComponent:
+              MeshIndex: 0
+              ModelPath: ../Prefabs/bunny/bunny.obj
+            MaterialComponent:
+              Reference: 32
+      - ID: 73
+        Type: 0
+        TagComponent:
+          Name: Bunny Yellow
+          Visibility: true
+        TransformComponent:
+          Position: [-1.8621051, -0.019434849, 9.432209]
+          Rotation: [0, 0, 0]
+          Scale: [0.925469, 0.925469, 0.925469]
+          Uniform Scale: false
+        Children:
+          - ID: 74
+            Type: 5
+            TagComponent:
+              Name: mesh
+              Visibility: true
+            TransformComponent:
+              Position: [0, 0, 0]
+              Rotation: [0, 0, 0]
+              Scale: [1, 1, 1]
+              Uniform Scale: false
+              Local Transform:
+                - [1, 0, 0, 0]
+                - [0, 1, 0, 0]
+                - [0, 0, 1, 0]
+                - [0, 0, 0, 1]
+            Children:
+              []
+            MeshComponent:
+              MeshIndex: 0
+              ModelPath: ../Prefabs/bunny/bunny.obj
+            MaterialComponent:
+              Reference: 33
+      - ID: 75
+        Type: 0
+        TagComponent:
+          Name: Bunny Green
+          Visibility: true
+        TransformComponent:
+          Position: [2.1378949, -0.019434849, 9.432209]
+          Rotation: [0, 0, 0]
+          Scale: [0.925469, 0.925469, 0.925469]
+          Uniform Scale: false
+        Children:
+          - ID: 76
+            Type: 5
+            TagComponent:
+              Name: mesh
+              Visibility: true
+            TransformComponent:
+              Position: [0, 0, 0]
+              Rotation: [0, 0, 0]
+              Scale: [1, 1, 1]
+              Uniform Scale: false
+              Local Transform:
+                - [1, 0, 0, 0]
+                - [0, 1, 0, 0]
+                - [0, 0, 1, 0]
+                - [0, 0, 0, 1]
+            Children:
+              []
+            MeshComponent:
+              MeshIndex: 0
+              ModelPath: ../Prefabs/bunny/bunny.obj
+            MaterialComponent:
+              Reference: 34
+      - ID: 77
+        Type: 0
+        TagComponent:
+          Name: Bunny Blue
+          Visibility: true
+        TransformComponent:
+          Position: [6.137895, -0.019434849, 9.432209]
+          Rotation: [0, 0, 0]
+          Scale: [0.925469, 0.925469, 0.925469]
+          Uniform Scale: false
+        Children:
+          - ID: 78
+            Type: 5
+            TagComponent:
+              Name: mesh
+              Visibility: true
+            TransformComponent:
+              Position: [0, 0, 0]
+              Rotation: [0, 0, 0]
+              Scale: [1, 1, 1]
+              Uniform Scale: false
+              Local Transform:
+                - [1, 0, 0, 0]
+                - [0, 1, 0, 0]
+                - [0, 0, 1, 0]
+                - [0, 0, 0, 1]
+            Children:
+              []
+            MeshComponent:
+              MeshIndex: 0
+              ModelPath: ../Prefabs/bunny/bunny.obj
+            MaterialComponent:
+              Reference: 35
+      - ID: 79
+        Type: 4
+        TagComponent:
+          Name: Rainbow Bunnies Title
+          Visibility: true
+        TransformComponent:
+          Position: [-2, 2.1, 9.7]
+          Rotation: [0, 0, 0]
+          Scale: [1, 1, 1]
+          Uniform Scale: false
+        Children:
+          []
+        TextComponent:
+          Contents: RAINBOW BUNNIES
+          Size: 0.42
+          WorldSize: 0.42
+          Spacing: 0
+          IsWorldText: true
+          Backend: 1
+          Alignment: 1
+          FontPath: ../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf
+          Color: [1, 0.93, 0.75, 1]
+  - ID: 80
+    Type: 0
+    TagComponent:
+      Name: Teapot Display
+      Visibility: true
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Uniform Scale: false
+    Children:
+      - Type: 5
+        ID: 81
+        TagComponent:
+          Name: Teapot Plinth
+          Visibility: true
+        TransformComponent:
+          Position: [-1.25, 0, 3.5]
+          Rotation: [0, 0, 0]
+          Scale: [0.26224828, 0.08391942, 0.20979862]
+          Uniform Scale: false
+        Children: []
+        MeshComponent:
+          MeshIndex: 0
+          ModelPath: ../Prefabs/cube/gltf/scene.gltf
+        MaterialComponent:
+          Reference: 1
+      - ID: 82
+        Type: 0
+        TagComponent:
+          Name: Teapot
+          Visibility: true
+        TransformComponent:
+          Position: [-0.09215724, 0.8, 4.5]
+          Rotation: [0, 0, 0]
+          Scale: [0.017720047, 0.017720047, 0.017720047]
+          Uniform Scale: false
+        Children:
+          - ID: 83
+            Type: 5
+            TagComponent:
+              Name: Base
+              Visibility: true
+            TransformComponent:
+              Position: [0, 0, 0]
+              Rotation: [0, 0, 0]
+              Scale: [1, 1, 1]
+              Uniform Scale: false
+              Local Transform:
+                - [1, 0, 0, 0]
+                - [0, 1, 0, 0]
+                - [0, 0, 1, 0]
+                - [0, 0, 0, 1]
+            Children:
+              []
+            MeshComponent:
+              MeshIndex: 0
+              ModelPath: ../Prefabs/teapot/teapot.obj
+            MaterialComponent:
+              Reference: 36
+          - ID: 84
+            Type: 5
+            TagComponent:
+              Name: Top
+              Visibility: true
+            TransformComponent:
+              Position: [0, 0, 0]
+              Rotation: [0, 0, 0]
+              Scale: [1, 1, 1]
+              Uniform Scale: false
+              Local Transform:
+                - [1, 0, 0, 0]
+                - [0, 1, 0, 0]
+                - [0, 0, 1, 0]
+                - [0, 0, 0, 1]
+            Children:
+              []
+            MeshComponent:
+              MeshIndex: 1
+              ModelPath: ../Prefabs/teapot/teapot.obj
+            MaterialComponent:
+              Reference: 36
+Materials:
+  - MaterialPath: Assets/Materials/Ground.mktmtl
+  - MaterialPath: Assets/Materials/Pedestal.mktmtl
+  - MaterialPath: Assets/Materials/PBR0.mktmtl
+  - MaterialPath: Assets/Materials/PBR1.mktmtl
+  - MaterialPath: Assets/Materials/PBR2.mktmtl
+  - MaterialPath: Assets/Materials/PBR3.mktmtl
+  - MaterialPath: Assets/Materials/PBR4.mktmtl
+  - MaterialPath: Assets/Materials/Physics Blue.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R0_M1.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R1_M1.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R2_M1.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R3_M1.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R4_M1.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R0_M2.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R1_M2.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R2_M2.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R3_M2.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R4_M2.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R0_M3.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R1_M3.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R2_M3.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R3_M3.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R4_M3.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R0_M4.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R1_M4.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R2_M4.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R3_M4.mktmtl
+  - MaterialPath: Assets/Materials/PBR_R4_M4.mktmtl
+  - MaterialPath: Assets/Materials/Ramp Wood.mktmtl
+  - MaterialPath: Assets/Materials/Ramp Sphere.mktmtl
+  - MaterialPath: Assets/Materials/Cone Amber.mktmtl
+  - MaterialPath: Assets/Materials/Bunny Red.mktmtl
+  - MaterialPath: Assets/Materials/Bunny Orange.mktmtl
+  - MaterialPath: Assets/Materials/Bunny Yellow.mktmtl
+  - MaterialPath: Assets/Materials/Bunny Green.mktmtl
+  - MaterialPath: Assets/Materials/Bunny Blue.mktmtl
+  - MaterialPath: Assets/Materials/Teapot Glaze.mktmtl

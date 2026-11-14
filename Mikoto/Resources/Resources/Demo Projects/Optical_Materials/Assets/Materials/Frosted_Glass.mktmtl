@@ -1,0 +1,21 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Frosted_Glass",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.32,
+    "AlphaMask": 0,
+    "ShadingModel": 6,
+    "Dielectric": {
+      "IndexOfRefraction": 1.52,
+      "Transmission": 1
+    }
+  }
+}

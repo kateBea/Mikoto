@@ -1,0 +1,17 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Unlit_Blue",
+  "Material": {
+    "BaseColorFactor": [
+      0.05,
+      0.2,
+      0.6,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.3,
+    "AlphaMask": 0,
+    "ShadingModel": 8
+  }
+}

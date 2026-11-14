@@ -12,42 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_VULKAN_DEVICE_HH
-#define MIKOTO_VULKAN_DEVICE_HH
+#ifndef MIKOTO_RENDERER_RHI_VULKAN_VULKAN_DEVICE_HH
+#define MIKOTO_RENDERER_RHI_VULKAN_VULKAN_DEVICE_HH
 
 #include <mutex>
 
 #include <EASTL/deque.h>
 #include <EASTL/atomic.h>
-#include <EASTL/functional.h>
-#include <EASTL/memory.h>
-#include <EASTL/string.h>
-#include <EASTL/string_view.h>
-#include <EASTL/unique_ptr.h>
 #include <EASTL/vector.h>
+#include <EASTL/string.h>
+#include <EASTL/memory.h>
 #include <EASTL/optional.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/shared_ptr.h>
+#include <EASTL/functional.h>
+#include <EASTL/string_view.h>
 #include <EASTL/fixed_vector.h>
 
 #include <volk.h>
 
-#include <tracy/TracyVulkan.hpp>
-
 #include <Core/Core.hh>
-#include <Core/String.hh>
 #include <Core/Types.hh>
-
-#include <Filesystem/Path.hh>
+#include <Core/Platform.hh>
 
 #include <Memory/Allocator.hh>
 #include <Memory/MemoryArena.hh>
 #include <Memory/LinearAllocator.hh>
 #include <Memory/FreeListAllocator.hh>
 
+#include <Filesystem/Path.hh>
+
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
-
+#include <Renderer/Rhi/ShaderTable.hh>
 #include <Renderer/Core/RenderContext.hh>
-
 #include <Renderer/Rhi/Vulkan/VulkanBuffer.hh>
 #include <Renderer/Rhi/Vulkan/VulkanShader.hh>
 #include <Renderer/Rhi/Vulkan/VulkanTexture.hh>
@@ -55,15 +53,17 @@
 #include <Renderer/Rhi/Vulkan/VulkanInstance.hh>
 #include <Renderer/Rhi/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Rhi/Vulkan/VulkanSwapchain.hh>
+#include <Renderer/Rhi/Vulkan/VulkanQueryPool.hh>
 #include <Renderer/Rhi/Vulkan/VulkanMemoryAllocator.hh>
+
+#if defined( MIKOTO_ENABLE_TRACY )
+namespace tracy {
+    class VkCtx;
+}
+#endif
 
 namespace mikoto::renderer::vulkan {
 
-    using namespace mikoto::core;
-    using namespace mikoto::memory;
-    using namespace mikoto::renderer::rhi;
-
-    // Timeline semaphore
     class Fence final : public rhi::IFence {
     public:
         explicit Fence( core::u64 initialValue );
@@ -91,6 +91,7 @@ namespace mikoto::renderer::vulkan {
         VkSemaphore mSemaphore{ VK_NULL_HANDLE };
     };
 
+
     class BinarySemaphore final : public rhi::DeviceObject {
     public:
         explicit BinarySemaphore() = default;
@@ -104,7 +105,7 @@ namespace mikoto::renderer::vulkan {
 
         ~BinarySemaphore() override;
 
-        using DeviceObject::Initialize;
+        using renderer::rhi::DeviceObject::Initialize;
 
     private:
         auto Initialize() -> void override;
@@ -113,16 +114,16 @@ namespace mikoto::renderer::vulkan {
     private:
         VkSemaphore mSemaphore{ VK_NULL_HANDLE };
     };
-
     using BinarySemaphoreHandle = core::Ref<BinarySemaphore>;
+
 
     struct GpuUploadAllocation {
         rhi::IBuffer* mBuffer{};
 
         // This is the mapped address we should be writing to,
         // it corresponds to the beginning of the slice or
-        // range that is available within this allocation.
-        // You do not need to offset or anything
+        // range that was given to this allocation.
+        // You do not need to offset into it or anything
         void* mMappedMemory{};
 
         // Size of this sub-allocation
@@ -147,7 +148,7 @@ namespace mikoto::renderer::vulkan {
     public:
         explicit GpuUploadManager( rhi::IGpuDevice* device );
 
-        auto SubAllocate( core::usize byteSize ) -> GpuUploadAllocation*;
+        auto SubAllocate( core::usize byteSize, core::usize alignment = 4 ) -> GpuUploadAllocation*;
         auto ReclaimMemory() -> void;
 
         ~GpuUploadManager();
@@ -158,13 +159,14 @@ namespace mikoto::renderer::vulkan {
             eastl::unique_ptr<memory::MemoryArena<rhi::IBuffer, memory::FreeListFirstFitAllocator>> mMemoryArena{};
         };
 
-        static constexpr core::u32 kMaxBuffers{ 32 };
-        static constexpr core::u32 kMaxSubAllocations{ 100 };
-
-        auto CreateBuffer() -> StagingAllocation*;
+    private:
+        auto CreateBuffer( core::usize minimumSize = MKT_MEGABYTES( 512 ) ) -> StagingAllocation*;
         auto CreateSubAllocation( rhi::IBuffer* buffer ) -> GpuUploadAllocation*;
 
     private:
+        static constexpr core::u32 kMaxBuffers{ 32 };
+        static constexpr core::u32 kMaxSubAllocations{ 100 };
+
         std::mutex mMutex{};
 
         rhi::IGpuDevice* mDevice{};
@@ -172,46 +174,19 @@ namespace mikoto::renderer::vulkan {
         ankerl::unordered_dense::map<rhi::IBuffer*, eastl::fixed_vector<eastl::unique_ptr<GpuUploadAllocation>, kMaxSubAllocations>> mSubAllocations{};
     };
 
-    class CommandPool final : public rhi::DeviceObject {
-    public:
-        explicit CommandPool( rhi::IQueue* queue );
-
-        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
-        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
-
-        auto SetDebugName( eastl::string_view name ) -> void override;
-
-        auto AllocateCmdList( bool isSecondary ) -> VkCommandBuffer;
-        auto ReleaseCmdList( VkCommandBuffer cmd ) -> void;
-
-        ~CommandPool() override;
-
-        using DeviceObject::Initialize;
-
-    public:
-        DISABLE_COPY_AND_MOVE_FOR( CommandPool );
-
-    private:
-        auto Initialize() -> void override;
-        auto Destroy() -> void override;
-
-    private:
-        rhi::IQueue* mQueue{};
-        VkCommandPool mPool{};
-
-        core::u32 mQueueFamilyIndex{};
-    };
-
-    using CommandPoolHandle = core::Ref<CommandPool>;
-
     struct RecordingContext {
         core::u64 mSubmissionID{};
+        VkCommandPool mCommandPool{};
         VkCommandBuffer mCommandBuffer{};
+
+#if defined( MIKOTO_ENABLE_TRACY )
+        eastl::shared_ptr<tracy::VkCtx> mGpuProfiler{};
+#endif
 
         // Resources that I'm currently using,
         // I keep a strong reference to them to avoid
         // destroying them while this command buffer is still being executed
-        eastl::fixed_vector<DeviceObjectHandle, 50> mInFlightResources{};
+        ankerl::unordered_dense::map<const renderer::rhi::DeviceObject*, renderer::rhi::DeviceObjectHandle> mInFlightResources{};
 
         // Suballocations that I'm currently using
         eastl::fixed_vector<GpuUploadAllocation*, 10> mInFlightSubAllocations{};
@@ -219,15 +194,21 @@ namespace mikoto::renderer::vulkan {
 
     class CommandList final : public rhi::ICommandList {
     public:
-        explicit CommandList( rhi::QueueType queueType, rhi::IQueue* queue, CommandPoolHandle pool );
+        explicit CommandList( rhi::QueueType queueType, rhi::IQueue* queue, core::u32 familyIndex );
 
-        auto Begin( const rhi::CommandListBeginDescription& desc ) -> void override;
-        auto End() -> void override;
+        auto Open( const rhi::CommandListBeginDescription& desc ) -> void override;
+        auto Close() -> void override;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
         auto SetTransition( const rhi::TransitionDescription& description ) -> void override;
         auto SetBarrier( const rhi::BarrierDescription& description ) -> void override;
+
+        auto AcquireResource( const rhi::BufferBarrierDescription& description, rhi::IQueue* sourceQueue ) -> void override;
+        auto ReleaseResource( const rhi::BufferBarrierDescription& description, rhi::IQueue* destQueue ) -> void override;
+
+        auto AcquireResource( const rhi::TextureBarrierDescription& description, rhi::IQueue* sourceQueue ) -> void override;
+        auto ReleaseResource( const rhi::TextureBarrierDescription& description, rhi::IQueue* destQueue ) -> void override;
 
         auto SetEnableAutomaticBarriers( bool enable ) -> void override;
 
@@ -237,7 +218,7 @@ namespace mikoto::renderer::vulkan {
         auto Write( rhi::ITexture* texture, const void* data, core::usize byteSize ) -> void override;
         auto Copy( rhi::ITexture* src, const rhi::TextureSlice& srcSlice, rhi::ITexture* dest, const rhi::TextureSlice& destSlice ) -> void override;
 
-        auto Resolve( ITexture* src, const TextureSlice& srcSlice, ITexture* dest, const TextureSlice& destSlice ) -> void override;
+        auto Resolve( renderer::rhi::ITexture* src, const renderer::rhi::TextureSlice& srcSlice, renderer::rhi::ITexture* dest, const renderer::rhi::TextureSlice& destSlice ) -> void override;
 
         auto Write( rhi::IBuffer* buffer, core::usize destOffset, const void* data, core::usize byteSize ) -> void override;
         auto Write( rhi::IBuffer* buffer, const void* data, core::usize byteSize ) -> void override;
@@ -245,7 +226,7 @@ namespace mikoto::renderer::vulkan {
         auto Copy( rhi::IBuffer* src, rhi::IBuffer* dest, core::usize destOffset ) -> void override;
 
         auto Copy( rhi::IBuffer* dest, rhi::ITexture* src ) -> void override;
-        auto Copy( rhi::IBuffer* dest, rhi::ITexture* src, const TextureSlice& srcSlice ) -> void override;
+        auto Copy( rhi::IBuffer* dest, rhi::ITexture* src, const renderer::rhi::TextureSlice& srcSlice ) -> void override;
 
         auto BeginRenderPass( rhi::RenderPassDescription& state ) -> void override;
         auto EndRenderPass() -> void override;
@@ -275,45 +256,78 @@ namespace mikoto::renderer::vulkan {
 
         auto Dispatch( core::u32 groupsX, core::u32 groupsY, core::u32 groupsZ ) -> void override;
 
-        auto SetPushConstants( rhi::IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, rhi::ShaderFlags visibility ) -> void override;
+        auto DispatchRays( const rhi::RayTracingDispatchDescription& desc ) -> void override;
 
-        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
-        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
+        auto BindShaderTable( rhi::IShaderTable* table ) -> void override;
+
+        auto SetPushConstants( rhi::IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, rhi::ShaderFlags visibility ) -> void override;
 
         auto BeginDebugLabel( eastl::string_view name, rhi::Color color ) -> void override;
         auto EndDebugLabel() -> void override;
 
-        // Vulkan Specifics
-        MKT_NODISCARD auto IsInUse() const -> bool;
+#if defined( MIKOTO_ENABLE_TRACY )
+        auto CollectGpuProfile() -> void override;
+        auto BeginGpuProfileZone( eastl::string_view name, std::source_location source ) -> void override;
+        auto EndGpuProfileZone() -> void override;
+#endif
 
-        auto MarkExecuted( rhi::IQueue* queue, core::u64 submissionID) -> void;
+        auto Reset( rhi::IQueryPool* pool ) -> void override;
+        auto BeginQuery( rhi::IQueryPool* pool, core::u32 index ) -> void override;
+        auto EndQuery( rhi::IQueryPool* pool, core::u32 index ) -> void override;
+
+        auto WriteTimestamp( rhi::IQueryPool* pool, core::u32 index ) -> void override;
+
+        auto Resolve( rhi::IQueryPool* pool, core::u32 first, core::u32 count ) -> void override;
+
+        auto Build( rhi::IAccelerationStructure* structure ) -> void override;
+        auto DecodeVideo( const rhi::VideoDecodeDescription& description ) -> void override;
+
+        MKT_NODISCARD auto GetQueueType() const -> rhi::QueueType override;
+
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
+
+        // Vulkan Specifics
+        MKT_NODISCARD operator VkCommandBuffer() const;
+
+        auto ValidateSubmission( const rhi::IQueue* queue ) const -> void;
+        auto MarkExecuted( rhi::IQueue* queue, core::u64 submissionID ) -> void;
+        auto ReleaseCompletedResources() -> void;
 
         ~CommandList() override;
 
     private:
-        // Internal helpers implement the immediate public barrier API. They
-        // remain private so backend-specific synchronization details do not
-        // leak through ICommandList.
-        auto RecordBarrier( const rhi::BufferBarrierDescription& ) -> void;
-        auto RecordBarrier( const rhi::TextureBarrierDescription& ) -> void;
-        auto RecordTransition( rhi::IBuffer*, rhi::ResourceStates ) -> void;
-        auto RecordTransition( rhi::ITexture*, rhi::ResourceStates ) -> void;
+        auto RetainResource( const rhi::DeviceObject* resource ) -> void;
+
         auto SetTransition( rhi::IBuffer*, rhi::ResourceStates ) -> void;
         auto SetTransition( rhi::ITexture*, rhi::ResourceStates ) -> void;
+
         auto SetBarrier( const rhi::BufferBarrierDescription& ) -> void;
         auto SetBarrier( const rhi::TextureBarrierDescription& ) -> void;
+
         auto CommitBarriers() -> void;
+
+        auto ValidateQueryPool( rhi::IQueryPool* pool ) const -> QueryPool&;
 
         auto Initialize() -> void override;
         auto Destroy() -> void override;
 
         auto ClearState() -> void;
+        auto ClearState( RecordingContext& context ) -> void;
 
     private:
         rhi::IQueue* mQueue{};
         rhi::IBuffer* mIndirectBuffer{};
 
-        CommandPoolHandle mCommandPool{};
+#if defined( MIKOTO_ENABLE_TRACY )
+        struct GpuProfileZone;
+        eastl::unique_ptr<GpuProfileZone> mGpuProfileZone{};
+#endif
+
+        core::u32 mQueueFamilyIndex{};
+        // Retained by the recording's resource list; cleared on Open and non-ray binds.
+        rhi::RayTracingPipeline* mBoundRayTracingPipeline{};
+        rhi::IShaderTable* mBoundShaderTable{};
 
         VkCommandBuffer mCurrentCommandBuffer{};
 
@@ -328,11 +342,18 @@ namespace mikoto::renderer::vulkan {
         static constexpr core::u32 kMaxRecordingContext{ 5 };
         eastl::vector<RecordingContext> mRecordingContext{};
 
-        bool mIsRenderScopeActive{};
+        mutable std::mutex mRecordingMutex{};
+
+        bool mRecording{ false };
+        bool mReadyForSubmission{ false  };
+        bool mIsRenderScopeActive{ false };
         bool mEnableAutomaticBarriers{ true };
+        
         eastl::vector<VkBufferMemoryBarrier2> mBufferBarriers{};
         eastl::vector<VkImageMemoryBarrier2> mImageBarriers{};
 
+        rhi::QueueType mQueueType{ rhi::QueueType::eInvalid };
+        core::u32 mSelfManagedCommandListCount{ 4 };
 
         // For debug
         rhi::Color mLabelColor{};
@@ -340,11 +361,14 @@ namespace mikoto::renderer::vulkan {
         eastl::string mRenderingScopeName{};
     };
 
+
     struct SubmitSemaphoresInfo {
         eastl::fixed_vector<VkSemaphoreSubmitInfo, 5> mWaitSemaphores{};
         eastl::fixed_vector<VkSemaphoreSubmitInfo, 5> mSignalSemaphores{};
 
         eastl::fixed_vector<rhi::CommandListHandle, 5> mCommands{};
+        // The native submit arrays borrow these semaphores until completion.
+        eastl::vector<rhi::DeviceObjectHandle> mSyncObjects{};
 
         auto AddCommandList( rhi::CommandListHandle cmd ) -> SubmitSemaphoresInfo&;
 
@@ -355,25 +379,28 @@ namespace mikoto::renderer::vulkan {
         auto AddSignalSemaphore( BinarySemaphoreHandle semaphore, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo&;
     };
 
-    // Internally multiple queues might map to the exact same
-    // VkQueue from the same family index
+    // Every Queue is a unique VkQueue this is very important
+    // cause submission to a queue via ExecuteCommands is required to be thread safe
+    // bye the RHI, to guarantee that every instance of Queue musts protect its own VkQueue object
     class Queue final : public rhi::IQueue {
     public:
         explicit Queue( rhi::QueueType type, rhi::QueueOpSupportFlags opFlags, core::u32 queueFamilyIndex, core::u32 queueIndex = 0 );
 
-        auto ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void override;
+        auto ExecuteCommandLists( const renderer::rhi::SubmitInfo& submitInfo ) -> void override;
 
         // Vulkan Specifics
-        auto WaitCompletionValue( u64 value ) -> void;
+        auto WaitCompletionValue( core::u64 value ) -> void;
         auto ExecuteCommandLists( SubmitSemaphoresInfo&& submitInfo ) -> core::u64;
 
         // We still specify queue type because this queue might be a graphics queue
         // but still support transfer operations
-        auto AllocateCmdList( rhi::QueueType type ) -> CommandListHandle;
+        auto AllocateCmdList( rhi::QueueType type ) -> renderer::rhi::CommandListHandle;
 
-        auto RunGarbageCollection() -> void;
+        auto WaitIdle() -> void;
+        auto CollectGarbage() -> void;
 
-        auto WaitIdle() const -> void;
+        MKT_NODISCARD auto GetType() const -> rhi::QueueType override;
+        MKT_NODISCARD auto GetOpSupportFlags() const -> rhi::QueueOpSupportFlags override;
 
         MKT_NODISCARD auto GetCurrentTimeline() -> core::u64;
 
@@ -389,34 +416,40 @@ namespace mikoto::renderer::vulkan {
 
         ~Queue() override;
 
-    private:
-        MKT_NODISCARD auto AcquireThreadCmdPool() -> CommandPoolHandle;
-
     protected:
         auto Destroy() -> void override;
         auto Initialize() -> void override;
 
     private:
-        std::mutex mSubmissionMutex{};
+        friend class CommandList;
+
+#if defined( MIKOTO_ENABLE_TRACY )
+        auto InitializeGpuProfiler( core::u64 connection ) -> void;
+        eastl::shared_ptr<tracy::VkCtx> mGpuProfiler{};
+        eastl::optional<core::u64> mGpuProfilerConnection{};
+#endif
 
         core::u32 mFamilyIndex{ 0 };
         core::u32 mQueueIndex{ 0 };
 
-        float mPriority{ 1.0f };
+        core::f32 mPriority{ 1.0f };
         VkQueue mQueue{ VK_NULL_HANDLE };
 
         static constexpr core::u32 kMaxSubmits{ 115 };
 
+        rhi::QueueType mType{ rhi::QueueType::eInvalid };
+        rhi::QueueOpSupportFlags mOpSupportFlags{ rhi::QueueOpSupportFlagsBits::Graphics };
+
         eastl::atomic<core::u64> mTimelineValue{};
         rhi::FenceHandle mTimelineSemaphore{};
 
-        std::mutex mPoolsMutex{};
-        ankerl::unordered_dense::map<std::thread::id, CommandPoolHandle> mPools{};
+        std::mutex mSubmissionMutex{};
 
         // For debug
         eastl::string mSubmissionLabel{};
         rhi::Color mSubmissionLabelColor{};
     };
+
 
     // -------------------------------------------------
     // Initial implementation taken from https://github.com/vblanco20-1/Vulkan-Descriptor-Allocator.git
@@ -471,6 +504,7 @@ namespace mikoto::renderer::vulkan {
         core::i8 mPoolIndex{};
     };
 
+
     class IDescriptorAllocatorPool {
     public:
         virtual ~IDescriptorAllocatorPool() = default;
@@ -490,6 +524,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD virtual auto GetAllocator() -> DescriptorAllocatorHandle = 0;
     };
 
+
     struct DescriptorLayoutBuilder {
         eastl::vector<VkDescriptorSetLayoutBinding> mBindings{};
 
@@ -498,15 +533,19 @@ namespace mikoto::renderer::vulkan {
         auto WithBinding( core::u32 binding, VkDescriptorType type, core::i32 arraySize, VkShaderStageFlags shaderStages ) -> DescriptorLayoutBuilder&;
     };
 
+
     struct DescriptorWriter final {
-        // std::deque is guaranteed to keep references to elements valid
+        // Keep descriptor payloads stable until UpdateSet consumes the writes.
         eastl::vector<VkWriteDescriptorSet> mWrites{};
         eastl::deque<VkDescriptorImageInfo> mImageInfos{};
         eastl::deque<VkDescriptorBufferInfo> mBufferInfos{};
+        eastl::deque<VkAccelerationStructureKHR> mAccelerationStructures{};
+        eastl::deque<VkWriteDescriptorSetAccelerationStructureKHR> mAccelerationInfos{};
 
         VkShaderStageFlags mShaderStages{};
 
         auto WriteSampler( core::u32 binding, VkSampler sampler, core::u32 arrayIndex = 0 ) -> DescriptorWriter&;
+        auto WriteAccelerationStructure( core::u32 binding, VkAccelerationStructureKHR structure, core::u32 arrayIndex = 0 ) -> DescriptorWriter&;
         auto WriteBuffer( core::u32 binding, VkBuffer buffer, core::usize size, core::usize offset, VkDescriptorType type, core::u32 arrayIndex = 0 ) -> DescriptorWriter&;
         auto WriteImage( core::u32 binding, VkImageView image, VkDescriptorType type, VkImageLayout layout, core::u32 arrayIndex = 0 ) -> DescriptorWriter&;
 
@@ -516,15 +555,14 @@ namespace mikoto::renderer::vulkan {
         auto UpdateSet( VkDevice device, VkDescriptorSet set ) -> void;
     };
 
+
     class BindingLayout final : public rhi::IBindingLayout {
     public:
         explicit BindingLayout( const rhi::BindingLayoutDescription& desc );
         explicit BindingLayout( const rhi::DescriptorTableLayoutDescription& desc );
 
-        MKT_NODISCARD auto GetRegisterSpace() const -> core::u32 override;
-
         MKT_NODISCARD auto IsBindless() const -> bool override;
-
+        MKT_NODISCARD auto GetRegisterSpace() const -> core::u32 override;
         MKT_NODISCARD auto GetBindlessLayoutDesc() const -> const rhi::DescriptorTableLayoutDescription&;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
@@ -542,6 +580,7 @@ namespace mikoto::renderer::vulkan {
     private:
         core::u32 mSetIndex{};
         bool mIsBindless{ false };
+
         rhi::BindingLayoutDescription mBindingLayoutDesc{};
         rhi::DescriptorTableLayoutDescription mBindlessLayoutDesc{};
 
@@ -549,8 +588,11 @@ namespace mikoto::renderer::vulkan {
         VkDescriptorSetLayoutCreateInfo mCreateInfo{};
     };
 
+
     class DescriptorTable : public rhi::IDescriptorTable {
     public:
+        MKT_NODISCARD auto GetBindingLayout() const -> rhi::BindingLayoutHandle override;
+        auto ReleaseIndex( rhi::DescriptorTableIndex index, rhi::ResourceType type, core::u32 slot ) -> void override;
         explicit DescriptorTable( rhi::BindingLayoutHandle setLayout );
 
         auto SetDebugName( eastl::string_view name ) -> void override;
@@ -560,11 +602,15 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
+        auto FreeIndex( core::u32 slot, rhi::DescriptorTableIndex index ) const -> void;
         MKT_NODISCARD auto AllocateNextIndex( core::u32 slot ) const -> rhi::DescriptorTableIndex;
 
         ~DescriptorTable() override;
 
     private:
+        friend class CommandList;
+        friend class Device;
+
         auto Initialize() -> void override;
         auto Destroy() -> void override;
 
@@ -574,14 +620,19 @@ namespace mikoto::renderer::vulkan {
 
         DescriptorAllocatorHandle mDescriptorAllocatorHandle{};
 
-        mutable ankerl::unordered_dense::map<core::usize, ankerl::unordered_dense::set<DescriptorTableIndex>>
+        mutable std::mutex mDescriptorMutex{};
+
+        mutable ankerl::unordered_dense::map<core::usize,
+        ankerl::unordered_dense::set<renderer::rhi::DescriptorTableIndex>>
             mDescriptorTableItemIndices{};
 
-        ankerl::unordered_dense::map<core::usize, core::usize>
-            mSlotSize{};
+        mutable ankerl::unordered_dense::map<core::u64, rhi::DeviceObjectHandle> mResources{};
+
+        ankerl::unordered_dense::map<core::usize, core::usize> mSlotSize{};
 
         rhi::BindingLayoutHandle mBindingLayout{};
     };
+
 
     class BindingTable : public rhi::IBindingTable {
     public:
@@ -605,7 +656,9 @@ namespace mikoto::renderer::vulkan {
 
         rhi::BindingLayoutHandle mBindingLayout{};
         rhi::BindingTableDescription mBindingDescription{};
+        eastl::vector<rhi::DeviceObjectHandle> mResources{};
     };
+
 
     class InputLayout : public rhi::IInputLayout {
     public:
@@ -629,9 +682,12 @@ namespace mikoto::renderer::vulkan {
         eastl::fixed_vector<VkVertexInputAttributeDescription, rhi::kMaxVertexAttributes> mVertexAttributeDescriptions{};
     };
 
+
     class PipelineLayout : public rhi::IPipelineLayout {
     public:
         explicit PipelineLayout( const rhi::PipelineLayoutCreateDescription& desc );
+
+        auto SetDebugName(eastl::string_view name) -> void override;
 
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
@@ -651,11 +707,47 @@ namespace mikoto::renderer::vulkan {
         rhi::PipelineLayoutCreateDescription mDescription{};
     };
 
+    class ShaderTable final : public rhi::IShaderTable {
+    public:
+        enum class AddressRegion {
+            eRayGeneration,
+            eRayMiss,
+            eHitGroup,
+            eCallable,
+        };
+
+    public:
+        explicit ShaderTable( const rhi::ShaderTableDescription& description );
+
+        MKT_NODISCARD auto GetDesc() const -> rhi::ShaderTableDescription const& override;
+        MKT_NODISCARD auto GetNumEntries() const -> core::u32 override;
+        MKT_NODISCARD auto GetPipeline() const -> rhi::IPipeline* override;
+
+        MKT_NODISCARD auto GetBuffer() const -> const rhi::BufferHandle&;
+        MKT_NODISCARD auto GetRegion( AddressRegion region ) const -> const VkStridedDeviceAddressRegionKHR&;
+
+        ~ShaderTable() override;
+
+    private:
+        auto Initialize() -> void override;
+        auto Destroy() -> void override;
+
+    private:
+        rhi::ShaderTableDescription mDescription{};
+        rhi::RayTracingPipelineHandle mPipeline{};
+        rhi::BufferHandle mSbtBuffer{};
+
+        VkStridedDeviceAddressRegionKHR mRayGenRegion{};
+        VkStridedDeviceAddressRegionKHR mMissRegion{};
+        VkStridedDeviceAddressRegionKHR mHitGroupsRegion{};
+        VkStridedDeviceAddressRegionKHR mCallableRegion{};
+    };
+
     class Device final : public rhi::IGpuDevice {
     public:
         explicit Device( const rhi::GpuDeviceCreateInfo& createInfo );
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         MKT_NODISCARD auto CreateTexture( const rhi::TextureCreateDescription& description ) -> rhi::TextureHandle override;
@@ -663,11 +755,17 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto CreateBuffer( const rhi::BufferCreateDescription& description ) -> rhi::BufferHandle override;
 
+        // Creates a video buffer through the shared allocator using the supplied codec profile.
+        MKT_NODISCARD auto CreateBuffer( const rhi::BufferCreateDescription& description, const VkVideoProfileInfoKHR& profile ) -> rhi::BufferHandle;
+
         MKT_NODISCARD auto CreateSampler( const rhi::SamplerCreateDescription& description ) -> rhi::SamplerHandle override;
 
         MKT_NODISCARD auto CreatePipeline( const rhi::ComputePipelineDescription& description ) -> rhi::PipelineHandle override;
         MKT_NODISCARD auto CreatePipeline( const rhi::GraphicsPipelineDescription& description ) -> rhi::PipelineHandle override;
 
+        MKT_NODISCARD auto CreatePipeline( const rhi::RayTracingPipelineDescription& description ) -> rhi::RayTracingPipelineHandle override;
+
+        MKT_NODISCARD auto CreateShaderTable( const rhi::ShaderTableDescription& description ) -> rhi::ShaderTableHandle override;
         MKT_NODISCARD auto CreateAccelStructure( const rhi::AccelStructureCreateDescription& description ) -> rhi::AccelStructureHandle override;
 
         MKT_NODISCARD auto CreateCommandList( rhi::QueueType type ) -> rhi::CommandListHandle override;
@@ -680,6 +778,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto CreateBindingLayout( const rhi::BindingLayoutDescription& desc ) -> rhi::BindingLayoutHandle override;
         MKT_NODISCARD auto CreatePipelineLayout( const rhi::PipelineLayoutCreateDescription& desc ) -> rhi::PipelineLayoutHandle override;
         MKT_NODISCARD auto CreateBindingTable( const rhi::BindingTableDescription& desc, rhi::BindingLayoutHandle layout ) -> rhi::BindingTableHandle override;
+
         auto UpdateBindingTable( const rhi::BindingTableDescription& desc, rhi::BindingTableHandle table ) -> void override;
 
         MKT_NODISCARD auto CreateFence( core::u64 fenceInitialValue ) -> rhi::FenceHandle override;
@@ -692,20 +791,35 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto CreateDescriptorTable( rhi::BindingLayoutHandle layout ) -> rhi::DescriptorTableHandle override;
         MKT_NODISCARD auto ResizeDescriptorTable( rhi::DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool override;
+
+        auto ReleaseDescriptorTableIndex( rhi::DescriptorTableHandle descriptorTable, core::u32 bindingIndex, rhi::DescriptorTableIndex index ) -> void override;
         MKT_NODISCARD auto WriteDescriptorTable( rhi::DescriptorTableHandle descriptorTable, const rhi::BindingTableItem& item ) -> rhi::DescriptorTableIndex override;
 
-        MKT_NODISCARD auto GetQueue( rhi::QueueType type ) -> IQueue* override;
+        MKT_NODISCARD auto CreateQueryPool( const rhi::QueryPoolDescription& description ) -> rhi::QueryPoolHandle override;
+        MKT_NODISCARD auto GetQueryCapabilities( rhi::QueryType type, rhi::QueueType queue ) const -> rhi::QueryCapabilities override;
 
-        MKT_NODISCARD auto CreateSwapChain( const SwapChainDescription& description ) -> rhi::SwapChainHandle override;
+        MKT_NODISCARD auto CreateVideoDecoder( const rhi::VideoDecoderDescription& description ) -> rhi::VideoDecoderHandle override;
+
+        MKT_NODISCARD auto GetQueue( rhi::QueueType type ) -> renderer::rhi::IQueue* override;
+
+        MKT_NODISCARD auto CreateSwapChain( const renderer::rhi::SwapChainDescription& description ) -> rhi::SwapChainHandle override;
+
+        MKT_NODISCARD auto SupportsRayTracing() const -> bool override;
 
         MKT_NODISCARD auto GetMemoryUsage() const -> core::usize override;
         MKT_NODISCARD auto GetMemoryTotal() const -> core::usize override;
         MKT_NODISCARD auto GetMemoryAvailable() const -> core::usize override;
+        MKT_NODISCARD auto GetProcessMemoryUsage() const -> rhi::ProcessGpuMemory override;
+
+        MKT_NODISCARD auto IsFeatureSupported( rhi::GpuFeatureSupportFlags supportFlags ) const -> bool override;
+
+        MKT_NODISCARD auto IsFeatureRequested( rhi::GpuFeatureSupportFlags requestFlags ) const -> bool override;
 
         MKT_NODISCARD auto IsInitialized() const -> bool override;
 
-        MKT_NODISCARD auto GetGraphicsApi() const -> GraphicsAPI override;
-        MKT_NODISCARD auto IsGraphicsApi( GraphicsAPI api ) const -> bool override;
+        MKT_NODISCARD auto GetGraphicsApi() const -> renderer::rhi::GraphicsAPI override;
+        MKT_NODISCARD auto SupportsBCTextureCompression() const -> bool override;
+        MKT_NODISCARD auto IsGraphicsApi( renderer::rhi::GraphicsAPI api ) const -> bool override;
 
         MKT_NODISCARD auto GetVendorID() const -> eastl::string_view override;
         MKT_NODISCARD auto GetDeviceName() const -> eastl::string_view override;
@@ -731,6 +845,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetDevice() -> VkDevice;
         MKT_NODISCARD auto GetAllocator() -> GpuMemoryAllocator*;
         MKT_NODISCARD auto GetPhysicalDevice() const -> const PhysicalDevice*;
+        MKT_NODISCARD auto SupportsSceneMultisampling( rhi::Multisampling samples ) const -> bool override;
 
         // Query the physical device features we have enabled ourselves
         MKT_NODISCARD auto GetActivePhysicalDeviceFeatures() const -> const VkPhysicalDeviceFeatures&;
@@ -753,9 +868,6 @@ namespace mikoto::renderer::vulkan {
         auto InitPipelineCache() -> void;
         auto InitDescriptorAllocator() -> void;
 
-        auto InitTracyContext() -> void;
-        auto ShutdownTracyContext() -> void;
-
         auto InitDummyResources() -> void;
         auto DestroyDummyResources() -> void;
 
@@ -768,20 +880,16 @@ namespace mikoto::renderer::vulkan {
         eastl::string mDeviceName{};
         eastl::string mDriverVersion{};
 
-        GraphicsAPI mApi{};
+        rhi::GraphicsAPI mApi{};
         bool mIsInitialized{ false };
 
         // OpenGL convention
-        ViewportConvention mViewportConvention{ ViewportConvention::eRightHanded_OriginBottomLeft };
+        rhi::ViewportConvention mViewportConvention{ renderer::rhi::ViewportConvention::eRightHanded_OriginBottomLeft };
+        rhi::GpuDeviceType mDeviceType{ renderer::rhi::GpuDeviceType::eInvalid };
 
-        GpuDeviceType mDeviceType{ GpuDeviceType::eInvalid };
-        GpuFeatureSupportFlags mFeatureSupportFlags{ GpuFeatureSupportFlagsBits::None };
-
-#if defined( MKT_USE_VULKAN_BINDLESS )
-        const bool mIsBindlessEnabled{ true };
-#else
-        const bool mIsBindlessEnabled{ false };
-#endif
+        // Requests constrain selection; support describes the selected GPU independently.
+        rhi::GpuFeatureSupportFlags mRequestedFeatures{ rhi::GpuFeatureSupportFlagsBits::None };
+        rhi::GpuFeatureSupportFlags mSupportedFeatures{ rhi::GpuFeatureSupportFlagsBits::None };
 
         // [Command list management]
         // One queue per family index
@@ -801,7 +909,7 @@ namespace mikoto::renderer::vulkan {
         // [Cache]
         VkPipelineCache mPipelineCache{};
         filesystem::Path mPipelineCachePath{};
-        static constexpr eastl::string_view kPipelineCacheDirectory{ "Assets/.vulkan/" };
+        static constexpr eastl::string_view kPipelineCacheDirectory{ ".data/vulkan/" };
 
         rhi::SamplerHandle mDummySampler{};
         rhi::PipelineLayoutHandle mEmptyPipelineLayout{};
@@ -819,12 +927,7 @@ namespace mikoto::renderer::vulkan {
         VkPhysicalDeviceVulkan11Features mEnabled11Features{};
         VkPhysicalDeviceVulkan12Features mEnabled12Features{};
         VkPhysicalDeviceVulkan13Features mEnabled13Features{};
-
-        // [Tracy debug]
-        VkCommandPool mTracyPool{};
-        VkCommandBuffer mTracyCmd{};
-        TracyVkCtx mTracyContext{};
     };
 }// namespace mikoto::renderer::vulkan
 
-#endif//MIKOTO_VULKAN_DEVICE_HH
+#endif// MIKOTO_RENDERER_RHI_VULKAN_VULKAN_DEVICE_HH

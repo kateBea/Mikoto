@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 
@@ -26,13 +28,13 @@ struct Parameters {
 }
 
 MKT_DECLARE_STRUCTURED_UAV buffers;
-MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
 
-MKT_DECLARE_PUSH_CONSTANT(Parameters) parameters;
+MKT_DECLARE_PUSH_CONSTANT( Parameters, parameters );
 
-[numthreads(8,8,1)]
-[shader("compute")]
-void main(uint3 tid: SV_DispatchThreadID) {
+[numthreads( 8, 8, 1 )]
+[shader( "compute" )]
+void main( uint3 tid : SV_DispatchThreadID ) {
     // Assumes 4x4 RGBA32F
 
     uint2 pixel = tid.xy;
@@ -40,13 +42,14 @@ void main(uint3 tid: SV_DispatchThreadID) {
     uint width;
     uint height;
 
-    textures[parameters.inputImageID].GetDimensions(width, height);
+    textures[parameters.inputImageID].GetDimensions( width, height );
 
-    if (pixel.x >= width || pixel.y >= height)
+    if ( pixel.x >= width || pixel.y >= height ) {
         return;
+    }
 
     uint linearIndex = pixel.y * width + pixel.x;
-    float4 color = textures[parameters.outputBufferID].Load(int3(pixel, 0));
+    float4 color = textures[parameters.outputBufferID].Load( int3( pixel, 0 ) );
 
-    buffers[parameters.outputBufferID].Store4(linearIndex * sizeof(float4), asuint(color));
+    buffers[parameters.outputBufferID].Store4( linearIndex * sizeof( float4 ), asuint( color ) );
 }

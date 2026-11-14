@@ -12,30 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_IMGUI_VULKAN_BACKEND_HH
-#define MIKOTO_IMGUI_VULKAN_BACKEND_HH
+#ifndef MIKOTO_IMGUI_IMGUI_VULKAN_BACKEND_HH
+#define MIKOTO_IMGUI_IMGUI_VULKAN_BACKEND_HH
 
 #include <EASTL/memory.h>
 #include <EASTL/vector.h>
 
-#include <volk.h>
 #include <ankerl/unordered_dense.h>
+
+#include <volk.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <ImGui/ImGuiService.hh>
-
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Texture.hh>
-
 #include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+
+#include <ImGui/ImGuiService.hh>
 
 namespace mikoto::imgui {
 
     // Since Mikoto defaults to 1.3
-    // ImGuiVulkanBackend wil be using Dynamic Rendering by default
-    // (already supported by ImGui)
+    // ImGuiVulkanBackend will be using Dynamic Rendering by default
+    // (already supported by ImGui in its latest versions)
 
     class ImGuiVulkanBackend final : public ImGuiBackend {
     public:
@@ -53,6 +53,45 @@ namespace mikoto::imgui {
         MKT_NODISCARD auto ConstructImGuiTextureID( renderer::rhi::TextureHandle texture ) -> ImTextureID override;
 
     private:
+
+        // Descriptors travel with the sampled texture. Owning the pool as well
+        // keeps delayed releases independent of the ImGui context's lifetime.
+        class TexturePool final : public renderer::rhi::DeviceObject {
+        public:
+            using renderer::rhi::DeviceObject::Initialize;
+            ~TexturePool() override;
+            VkDescriptorPool mPool{};
+            std::mutex mMutex{};
+
+        private:
+            auto Initialize() -> void override;
+            auto Destroy() -> void override;
+        };
+
+        class TextureBinding final : public renderer::rhi::DeviceObject {
+        public:
+            using renderer::rhi::DeviceObject::Initialize;
+            TextureBinding( renderer::rhi::TextureHandle texture, core::Ref<TexturePool> pool );
+            ~TextureBinding() override;
+            VkDescriptorSet mDescriptorSet{};
+
+        private:
+            auto Initialize() -> void override;
+            auto Destroy() -> void override;
+
+        private:
+            core::Ref<TexturePool> mPool{};
+            renderer::rhi::TextureHandle mTexture{};
+            renderer::rhi::SamplerHandle mSampler{};
+        };
+
+        struct ImGuiTextIDInfo {
+            core::Ref<TextureBinding> mBinding{};
+            bool mUsedThisFrame{};
+            core::u64 mLastUse{};
+        };
+
+    private:
         auto InitImGuiForVulkan() -> void;
         auto CreateImages() -> void;
 
@@ -66,14 +105,14 @@ namespace mikoto::imgui {
         renderer::rhi::TextureHandle mDepthImage{};
         renderer::rhi::CommandListHandle mCommandList{};
 
-        struct ImGuiTextIDInfo {
-            VkDescriptorSet descriptorSet{};
-        };
+        core::u64 mSubmissionValue{ 0 };
+        renderer::rhi::FenceHandle mSubmissionFence{};
+        eastl::vector<ImGuiTextIDInfo> mRetiredTextureBindings{};
+
         ankerl::unordered_dense::map<const renderer::rhi::ITexture*, ImGuiTextIDInfo> mImGuiSets{};
 
-        VkDescriptorPool mImGuiDescriptorPool{};
+        core::Ref<TexturePool> mTexturePool{};
     };
 }// namespace Mikoto
 
-
-#endif // MIKOTO_IMGUI_VULKAN_BACKEND_HH
+#endif// MIKOTO_IMGUI_IMGUI_VULKAN_BACKEND_HH

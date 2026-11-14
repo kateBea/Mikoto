@@ -1,3 +1,6 @@
+local script_base = {}
+script_base.Properties = {}
+
 local enable = false
 
 function VectorMathTest()
@@ -55,13 +58,13 @@ function VectorMathTest()
     print("=== GLM VECTOR TEST END ===")
 end
 
-function OnCreate()
+function script_base:OnCreate()
     print("Hello")
 
     VectorMathTest()
 end
 
-function OnUpdate(dt)
+function script_base:OnUpdate(dt)
     local speed = 20.0
     local transform = Entity:GetTransform()
     local position = transform:GetTranslation()
@@ -97,3 +100,4 @@ function OnUpdate(dt)
 
     --transform:SetTranslation(position)
 end
+return script_base

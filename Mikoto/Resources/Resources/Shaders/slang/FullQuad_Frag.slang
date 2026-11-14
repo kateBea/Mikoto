@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 
@@ -29,18 +31,22 @@ struct DrawParams {
 };
 
 MKT_DECLARE_SAMPLERS samplers;
-MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
-[shader("fragment")]
-FSOutput main(FSInput input) {
+[shader( "fragment" )]
+FSOutput main( FSInput input ) {
     FSOutput o;
 
     Texture2D texture = textures[parameters.TextureSamplerID];
     SamplerState sampler = samplers[parameters.BasicSamplerID];
 
-    o.color = texture.Sample(sampler, input.uv);
+    o.color = texture.Sample( sampler, input.uv );
+
+    // The editor displays a composed image. Debug attachments may store data in alpha,
+    // which must not make ImGui blend the viewport with the window underneath it.
+    o.color.a = 1.0f;
 
     return o;
 }

@@ -1,0 +1,8 @@
+Version: 2
+Type: SurfaceMaterial
+Name: Bunny Orange
+Material:
+  BaseColorFactor: [0.95, 0.32, 0.035, 1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.48
+  AlphaMask: 0

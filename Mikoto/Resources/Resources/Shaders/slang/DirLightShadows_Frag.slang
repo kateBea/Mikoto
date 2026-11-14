@@ -12,39 +12,50 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
+#include "base/LightInfo.slang"
+#include "base/Material_Helpers.slang"
 #include "base/Memory_Helpers.slang"
-#include "base/Camera_Helpers.slang"
-#include "base/Lighting_Helpers.slang"
+#include "base/ShadowMap_Helpers.slang"
 
-struct FSOutput {
-    float4 Color : SV_Target0;
-};
+MKT_DECLARE_SAMPLERS samplers;
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
+MKT_DECLARE_PUSH_CONSTANT( ShadowDrawParams, parameters );
 
-struct FSInput {
-    float4 ScreenPos : SV_Position;
-};
+[shader( "fragment" )]
+float main( ShadowVertexOutput input, bool frontFacing : SV_IsFrontFace ) : SV_Depth {
+    if ( MaterialBackfaceDiscard( input.FaceFlags, frontFacing ) ) {
+        discard;
+    }
 
-struct DrawParams {
-    uint mGeometryBufferID;
-    uint mSkinningBufferID;
+    // Opaque fragments never fetch material data or sample an alpha texture.
+    // BLEND assets can contain fully opaque cloth as well as transparent texels.
+    // Match the depth prepass: only opaque coverage casts a depth-map shadow.
+    if ( input.AlphaMode != PBR_ALPHA_OPAQUE ) {
+        MaterialParameters material =
+                ( ( BufferReference<MaterialParameters> )parameters.Materials )[input.MaterialIndex];
+        int index = MaterialAlphaTexture( material );
+        float alpha = ( index == INVALID_TEXTURE_INDEX ) ? 1.0 :
+            textures[NonUniformResourceIndex( index )]
+                .Sample( samplers[parameters.Sampler],
+                MaterialAlphaUV( material, input.Uv0, input.Uv1 ) ).a;
 
-    uint mIndicesBufferID;
-    uint mVerticesBufferID;
+        if ( MaterialSurfaceDiscard( material, MaterialAlpha( material, alpha, input.VertexAlpha ), false ) ) {
+            discard;
+        }
+    }
 
-    uint mShadowCasterID;
+    if ( input.LightType == LIGHT_TYPE_DIRECTIONAL ) {
+        return input.Position.z;
+    }
 
-    uint mDirectionalShadowsInfoBufferID;
-};
+    float depth = LocalShadowDepth( input.WorldPosition, input.LightPositionRange );
 
-MKT_DECLARE_STRUCTURED_SRV buffers;
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+    if ( depth >= 1.0 ) {
+        discard;
+    }
 
-[shader("fragment")]
-FSOutput main(FSInput input) {
-    FSOutput o;
-
-    // TODO: implement shadow map sampling and output the shadowed color
-
-    return o;
+    return depth;
 }

@@ -13,18 +13,24 @@
 // limitations under the License.
 
 #include <Core/Core.hh>
+#include <Core/Layer.hh>
 #include <Core/Types.hh>
-#include <Core/Event.hh>
-#include <Core/CoreEvents.hh>
-#include <Core/LayerStack.hh>
+#include <Core/Profiler.hh>
 #include <Core/TimeService.hh>
+#include <Core/LocalizationService.hh>
+
+#include <Platform/Event.hh>
+#include <Platform/CoreEvents.hh>
 
 #include <Assets/Image.hh>
-#include <Assets/ImageProcessor.hh>
+#include <Assets/Utility.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/RenderSystem.hh>
+
+#include <ImGui/Utility.hh>
+#include <ImGui/ImGuiWidget.hh>
 
 #include <Layers/EditorHelloTriangleLayer.hh>
 
@@ -36,78 +42,80 @@ namespace mikoto::editor {
     using namespace mikoto::renderer::rhi;
     using namespace mikoto::filesystem;
 
-    EditorHelloTriangleLayer::EditorHelloTriangleLayer( platform::Window *window )
-        : ILayer{ "EditorHelloTriangleLayer" }, mWindow{ window }
-    {
-        mDevice = RenderSystem::Get()->GetGpuDevice();
+    EditorHelloTriangleLayer::EditorHelloTriangleLayer( platform::IWindow *window )
+        : mName{ "EditorHelloTriangleLayer" }, mWindow{ window } {
+        MKT_BEGIN_PROFILER();
+        mDevice = renderer::RenderSystem::Get()->GetGpuDevice();
     }
 
     auto EditorHelloTriangleLayer::OnCreate() -> void {
+        MKT_BEGIN_PROFILER();
         // Create color attachment
-        auto colorDesc{ TextureCreateDescription{}
-            .SetWidth( as<i32>( 1920 ) )
-            .SetHeight( as<i32>( 1080 ) )
-            .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
-            .SetFormat( Format::eBGRA8_UNORM ) };
+        auto colorDesc{ renderer::rhi::TextureCreateDescription{}
+            .SetWidth( core::as<core::i32>( 1920 ) )
+            .SetHeight( core::as<core::i32>( 1080 ) )
+            .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
+            .SetMultisampling( renderer::rhi::Multisampling::eMsaaX1 )
+            .SetUsage( renderer::rhi::TextureUsageFlagsBits::RenderTarget | renderer::rhi::TextureUsageFlagsBits::ShaderResource )
+            .SetFormat( renderer::rhi::Format::eBGRA8_UNORM ) };
         mColorImage = mDevice->CreateTexture( colorDesc );
         mColorImage->SetDebugName( "HelloTriangleLayer Color image" );
 
         // Create depth attachment
-        auto depthDesc{ TextureCreateDescription{}
-            .SetWidth( as<i32>( 1920 ) )
-            .SetHeight( as<i32>( 1080 ) )
-            .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::DepthTarget )
-            .SetFormat( Format::eD32 ) };
+        auto depthDesc{ renderer::rhi::TextureCreateDescription{}
+            .SetWidth( core::as<core::i32>( 1920 ) )
+            .SetHeight( core::as<core::i32>( 1080 ) )
+            .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
+            .SetMultisampling( renderer::rhi::Multisampling::eMsaaX1 )
+            .SetUsage( renderer::rhi::TextureUsageFlagsBits::DepthTarget )
+            .SetFormat( renderer::rhi::Format::eD32 ) };
         mDepthImage = mDevice->CreateTexture( depthDesc );
         mDepthImage->SetDebugName( "HelloTriangleLayer Depth image" );
 
         // Create shaders
-        FileHandle vsShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloWorld_Vert.slang" ) };
-        auto vertexShaderDescription{ ShaderModuleCreateDescription{}
+        filesystem::FileHandle vsShader{ filesystem::FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloWorld_Vert.slang" ) };
+        auto vertexShaderDescription{ renderer::rhi::ShaderModuleCreateDescription{}
             .SetContents( vsShader )
             .SetModuleName( vsShader->GetName() )
             .SetModulePath( vsShader->GetPath() )
-            .SetLanguage( ShaderLanguage::eSlang )
-            .SetStage( ShaderType::eVertex ) };
+            .SetLanguage( renderer::rhi::ShaderLanguage::eSlang )
+            .SetStage( renderer::rhi::ShaderType::eVertex ) };
         mVertexShader = mDevice->CreateShader( vertexShaderDescription );
 
-        FileHandle pxShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloWorld_Frag.slang" ) };
-        auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
+        filesystem::FileHandle pxShader{ filesystem::FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloWorld_Frag.slang" ) };
+        auto fragmentShaderDescription{ renderer::rhi::ShaderModuleCreateDescription{}
             .SetContents( pxShader )
             .SetModuleName( pxShader->GetName() )
             .SetModulePath( pxShader->GetPath() )
-            .SetLanguage( ShaderLanguage::eSlang )
-            .SetStage( ShaderType::ePixel ) };
+            .SetLanguage( renderer::rhi::ShaderLanguage::eSlang )
+            .SetStage( renderer::rhi::ShaderType::ePixel ) };
         mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
 
         // Create pipeline
 
-        auto graphicsPipelineDescription{ GraphicsPipelineDescription{}
+        auto graphicsPipelineDescription{ renderer::rhi::GraphicsPipelineDescription{}
             .AddShader( mPixelShader )
             .AddShader( mVertexShader )
 
-            .SetDepthFormat( Format::eD32 )
-            .AddColorFormat( Format::eBGRA8_UNORM )
+            .SetDepthFormat( renderer::rhi::Format::eD32 )
+            .AddColorFormat( renderer::rhi::Format::eBGRA8_UNORM )
 
             .SetUseReflection( false )
 
-            .SetPolygonMode( PolygonMode::eFill )
-            .SetWindingOrder( WindingOrder::eCounterClockwise )
-            .SetTopology( PrimitiveTopology::eTriangleList ) };
+            .SetPolygonMode( renderer::rhi::PolygonMode::eFill )
+            .SetWindingOrder( renderer::rhi::WindingOrder::eCounterClockwise )
+            .SetTopology( renderer::rhi::PrimitiveTopology::eTriangleList ) };
         mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
         mPipeline->SetDebugName( "HelloTriangleLayer Pipeline" );
 
         // Create the command list
-        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
+        mCommandList = mDevice->CreateCommandList( renderer::rhi::QueueType::eGraphics );
         mCommandList->SetEnableAutomaticBarriers( true );
         mCommandList->SetDebugName( "HelloTriangleLayer CommandList" );
     }
 
     auto EditorHelloTriangleLayer::OnDestroy() -> void {
+        MKT_BEGIN_PROFILER();
         mDevice->WaitIdle();
 
         mPipeline.Reset();
@@ -122,44 +130,54 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloTriangleLayer::OnUpdate( float timeStep ) -> void {
-        mCommandList->Begin( { .mScopeName = "EditorHelloTriangleLayer Render" } );
+        MKT_BEGIN_PROFILER();
+        mCommandList->Open( { .mScopeName = "EditorHelloTriangleLayer Render" } );
 
         // Set graphics state
-        auto graphicsState{ RenderPassDescription{}
-            .SetRenderArea( Rect{ 1920, 1080 } )
+        auto graphicsState{ renderer::rhi::RenderPassDescription{}
+            .SetRenderArea( renderer::rhi::Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
-            .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
+            .AddRenderTarget( mColorImage, renderer::rhi::Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
         mCommandList->BeginRenderPass( graphicsState );
 
         mCommandList->BindPipeline( mPipeline.GetPtr() );
 
-        mCommandList->SetViewportState( ViewportState{}
+        mCommandList->SetViewportState( renderer::rhi::ViewportState{}
             .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
 
-        constexpr auto drawArguments{ DrawArguments{}
+        constexpr auto drawArguments{ renderer::rhi::DrawArguments{}
             .SetInstanceCount( 1 )
             .SetVertexCount( 3 ) };
         mCommandList->Draw( drawArguments );
 
         mCommandList->EndRenderPass();
 
-        mCommandList->SetTransition( { mColorImage.GetPtr(), ResourceStates::eShaderResource } );
+        mCommandList->SetTransition( { mColorImage.GetPtr(), renderer::rhi::ResourceStates::eShaderResource } );
 
-        mCommandList->End();
+        mCommandList->Close();
 
-        auto submitInfo{ SubmitInfo{}
+        auto submitInfo{ renderer::rhi::SubmitInfo{}
             .AddCommandList( mCommandList ) };
-        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo), QueueType::eGraphics);
+        renderer::RenderSystem::Get()->BatchSubmission( eastl::move( submitInfo ), renderer::rhi::QueueType::eGraphics );
 
-        if (mIsImguiWindowActive) {
+        if ( mIsImguiWindowActive ) {
             DisplayImGuiWindow();
         }
     }
 
-    auto EditorHelloTriangleLayer::OnEvent( core::IEvent &event ) -> void {
-        if (event.IsType( EventType::KEY_PRESSED_EVENT )) {
-            if (const auto *keyPressed{ dynamic_cast<core::KeyPressedEvent *>( MKT_ADDRESSOF( event ) ) }) {
-                if (keyPressed->GetKeyCode() == KeyCode::Key_H) {
+    auto EditorHelloTriangleLayer::OnRender( float ) -> void {
+    }
+
+    auto EditorHelloTriangleLayer::GetName() const -> eastl::string_view {
+        return mName;
+    }
+
+    auto EditorHelloTriangleLayer::OnEvent( platform::Event &event ) -> void {
+        MKT_BEGIN_PROFILER();
+
+        if ( event.IsType( platform::EventType::KEY_PRESSED_EVENT ) ) {
+            if ( const auto *keyPressed{ dynamic_cast<platform::KeyPressedEvent *>( MKT_ADDRESSOF( event ) ) } ) {
+                if ( keyPressed->GetKeyCode() == platform::KeyCode::Key_H ) {
                     mIsImguiWindowActive = !mIsImguiWindowActive;
                 }
             }
@@ -167,31 +185,32 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloTriangleLayer::DisplayImGuiWindow() -> void {
+        MKT_BEGIN_PROFILER();
         ImGui::SetNextWindowSize( ImVec2( 420.0f, 500.0f ), ImGuiCond_FirstUseEver );
 
-        if ( ImGui::Begin( "Hello Triangle Tests", &mIsImguiWindowActive ) ) {
-            auto imageID{ ImGuiService::Get()->GetTextureID( mColorImage ) };
+        if ( imgui::BeginWindow( imgui::widget::LocalizedLabel( "editor_hello_triangle_layer_hello_triangle_tests", "Hello Triangle Tests" ).c_str(), &mIsImguiWindowActive ) ) {
+            auto imageID{ imgui::ImGuiService::Get()->GetTextureID( mColorImage ) };
             ImGui::Image( imageID, ImVec2{ 1280, 720 } );
 
             ImGui::Spacing();
             ImGui::Separator();
 
             ImGui::Text( "FPS: %.1f", ImGui::GetIO().Framerate );
-            ImGui::Text( "Frame Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate );
+            ImGui::Text( MKT_LOC( "editor_hello_triangle_layer_frame_time_ms" ).c_str(), 1000.0f / ImGui::GetIO().Framerate );
 
             ImGui::Spacing();
             ImGui::Separator();
 
-            static f32 rotationSpeed{ 1.0f };
-            static eastl::array<f32, 4> clearColor{ 0.10f, 0.10f, 0.12f, 1.0f };
+            static core::f32 rotationSpeed{ 1.0f };
+            static eastl::array<core::f32, 4> clearColor{ 0.10f, 0.10f, 0.12f, 1.0f };
 
-            ImGui::SliderFloat( "Rotation Speed", &rotationSpeed, 0.0f, 10.0f );
-            ImGui::ColorEdit4( "Clear Color", clearColor.data() );
+            ImGui::SliderFloat( imgui::widget::LocalizedLabel( "editor_hello_triangle_layer_rotation_speed", "Rotation Speed" ).c_str(), &rotationSpeed, 0.0f, 10.0f );
+            ImGui::ColorEdit4( imgui::widget::LocalizedLabel( "editor_hello_triangle_layer_clear_color", "Clear Color" ).c_str(), clearColor.data() );
 
             ImGui::Spacing();
             ImGui::Separator();
 
-            ImGui::TextDisabled( "Press H to hide/show this window." );
+            ImGui::TextDisabled( MKT_LOC( "editor_hello_triangle_layer_press_h_to_hide_show_this_window" ).c_str() );
         }
 
         ImGui::End();

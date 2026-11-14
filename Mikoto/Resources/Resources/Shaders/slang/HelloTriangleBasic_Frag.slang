@@ -12,17 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 
 struct FSInput {
     float4 position : SV_POSITION;
-    float2 uv    : TEXCOORD;
+    float2 uv : TEXCOORD;
 };
 
-DECL_BINDING(0, 0) SamplerState sampler;
-DECL_BINDING(1, 0) Texture2D texture;
+DECL_BINDING( 0, 0 ) SamplerState sampler;
+#if defined( MKT_SUPPORT_D3D11 )
+Texture2D texture : register( t1 );
+#else
+DECL_BINDING( 1, 0 ) Texture2D texture;
+#endif
 
-[shader("fragment")]
-float4 main(FSInput input) : SV_TARGET {
-    return float4(texture.Sample(sampler, input.uv).xyz, 1.0);
+[shader( "fragment" )]
+float4 main( FSInput input ) : SV_TARGET {
+    return float4( texture.Sample( sampler, input.uv ).xyz, 1.0 );
 }

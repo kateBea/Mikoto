@@ -1,0 +1,8 @@
+Version: 2
+Type: SurfaceMaterial
+Name: Bunny Green
+Material:
+  BaseColorFactor: [0.09, 0.6, 0.2, 1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.48
+  AlphaMask: 0

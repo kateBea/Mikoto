@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_PLATFORM_H
-#define MIKOTO_PLATFORM_H
 
 // =======================
 //  Operating System
 // =======================
+
+#ifndef MIKOTO_CORE_PLATFORM_HH
+#define MIKOTO_CORE_PLATFORM_HH
+
 #if defined(_WIN32) || defined(_WIN64)
     #define MIKOTO_PLATFORM_WINDOWS 1
 #elif defined(__APPLE__) && defined(__MACH__)
-    #include <TargetConditionals.h>
+#include <TargetConditionals.h>
+
     #if TARGET_OS_MAC
         #define MIKOTO_PLATFORM_MACOS 1
     #elif TARGET_OS_IPHONE || TARGET_OS_IPHONE_SIMULATOR
@@ -77,7 +80,7 @@
 #endif
 
 #ifndef MIKOTO_TSAN_ENABLED
-    #define MIKOTO_TSAN_ENABLED 0
+#define MIKOTO_TSAN_ENABLED 0
 #endif
 
 // =======================
@@ -121,13 +124,27 @@
 // =======================
 //  Debug
 // =======================
-#if defined(_MSC_VER)
-    #define MKT_DEBUG_BREAK() __debugbreak()
-#elif defined(__clang__) || defined(__GNUC__)
-    #define MKT_DEBUG_BREAK() __builtin_trap()
+// Explicit breakpoints remain enabled in every build configuration. A debugger
+// can resume execution after the break; without one, the OS may terminate it.
+#if defined( MIKOTO_COMPILER_MSVC )
+#include <intrin.h>
+
+#define MIKOTO_DEBUGBREAK() __debugbreak()
+#elif defined( MIKOTO_COMPILER_CLANG )
+#define MIKOTO_DEBUGBREAK() __builtin_debugtrap()
+#elif defined( MIKOTO_ARCH_X86 ) || defined( MIKOTO_ARCH_X64 )
+#define MIKOTO_DEBUGBREAK() __asm__ __volatile__( "int3" ::: "memory" )
+#elif defined( MIKOTO_PLATFORM_WINDOWS )
+#include <intrin.h>
+
+#define MIKOTO_DEBUGBREAK() __debugbreak()
 #else
-    #include <csignal>
-    #define MKT_DEBUG_BREAK() std::raise(SIGTRAP)
+#include <csignal>
+
+#define MIKOTO_DEBUGBREAK() static_cast<void>( std::raise( SIGTRAP ) )
 #endif
 
-#endif//MIKOTO_PLATFORM_H
+// Keep the existing spelling available to clients of this header.
+#define MKT_DEBUG_BREAK() MIKOTO_DEBUGBREAK()
+
+#endif// MIKOTO_CORE_PLATFORM_HH

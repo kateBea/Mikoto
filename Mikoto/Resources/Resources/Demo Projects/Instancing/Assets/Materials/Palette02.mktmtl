@@ -1,0 +1,8 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Palette02"
+Material:
+  BaseColorFactor: [0.9083526325491186,0.22389800773500373,0.5086335467324798,1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.7
+  AlphaMask: 0

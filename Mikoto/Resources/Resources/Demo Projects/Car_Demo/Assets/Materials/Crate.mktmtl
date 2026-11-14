@@ -1,0 +1,8 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Crate"
+Material:
+  BaseColorFactor: [0.55,0.3,0.12,1]
+  MetallicFactor: 0.15
+  RoughnessFactor: 0.65
+  AlphaMask: 0

@@ -12,62 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_GLTF_IMPORTER_HH
-#define MIKOTO_GLTF_IMPORTER_HH
+#ifndef MIKOTO_ASSETS_GLTF_IMPORTER_HH
+#define MIKOTO_ASSETS_GLTF_IMPORTER_HH
 
-#include <EASTL/atomic.h>
-#include <EASTL/string.h>
-#include <EASTL/string_view.h>
-#include <EASTL/unique_ptr.h>
-
-#include <tiny_gltf.h>
-
-#include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/String.hh>
-
-#include <Assets/Model.hh>
 #include <Assets/Importer.hh>
-
-#include <Renderer/Rhi/GpuDevice.hh>
-
-#include <Animation/SkinningBuilder.hh>
 
 namespace mikoto::asset {
 
-    using namespace mikoto::core;
-    using namespace mikoto::renderer::rhi;
-
-    struct LoaderData {
-        i32 mIndex{ -1 };
-
-        eastl::string mError{};
-        eastl::string mWarning{};
-        tinygltf::TinyGLTF mLoader{};
-
-        std::atomic_bool mIsFree{ true };
-    };
-
     class GLTFImporter final : public ModelImporter {
     public:
-        explicit GLTFImporter(IGpuDevice* device);
+        explicit GLTFImporter( renderer::rhi::IGpuDevice* device );
 
-        auto Import(const ModelLoadDescription& description, ModelDataDescription& out) -> void override;
-
-        // Extension names
-        static constexpr eastl::string_view KHR_PBR_Unlit{ "KHR_materials_unlit" };
-        static constexpr eastl::string_view KHR_Emissive_Strength{ "KHR_materials_emissive_strength" };
-        static constexpr eastl::string_view KHR_PBR_SpecularGlossiness{ "KHR_materials_pbrSpecularGlossiness" };
-
-    private:
-
-        MKT_NODISCARD auto TryAcquireImporter() -> eastl::vector<eastl::unique_ptr<LoaderData>>::iterator;
-        auto Import(LoaderData& loaderData,const ModelLoadDescription& description, ModelDataDescription& out) -> void;
-
-    private:
-        u32 mMaxConcurrentImporters{};
-        eastl::vector<eastl::unique_ptr<LoaderData>> mImporters{};
+        auto Import( const ModelLoadDescription& description, ModelDataDescription& out ) -> void override;
     };
-}
+}// namespace mikoto::asset
 
-#endif // MIKOTO_GLTF_IMPORTER_HH
+#endif// MIKOTO_ASSETS_GLTF_IMPORTER_HH

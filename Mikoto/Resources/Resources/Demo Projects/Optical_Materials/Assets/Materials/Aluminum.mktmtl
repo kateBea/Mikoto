@@ -1,0 +1,29 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Aluminum",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 1,
+    "RoughnessFactor": 0.15,
+    "AlphaMask": 0,
+    "ShadingModel": 7,
+    "Conductor": {
+      "Eta": [
+        1.2475087,
+        0.958569,
+        0.6462719
+      ],
+      "K": [
+        7.3684559,
+        6.6869677,
+        5.5901485
+      ]
+    }
+  }
+}

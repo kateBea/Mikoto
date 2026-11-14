@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_PATH_HH
-#define MIKOTO_PATH_HH
+#ifndef MIKOTO_FILESYSTEM_PATH_HH
+#define MIKOTO_FILESYSTEM_PATH_HH
 
-#include <cstdint>
+#include <concepts>
 #include <filesystem>
+#include <string_view>
 
+#include <EASTL/span.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
@@ -25,6 +27,7 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/Profiler.hh>
 
 namespace mikoto::filesystem {
 
@@ -34,16 +37,14 @@ namespace mikoto::filesystem {
         eDirectory,
     };
 
-    // UTF case-sensitive path
     class Path final {
     public:
-
         Path();
         Path( const eastl::string& path );
         Path( const std::filesystem::path& path );
         Path( const std::filesystem::directory_entry& path );
 
-        Path( const char* path );
+        Path( core::cstr path );
         Path( eastl::string_view path );
 
         Path( const Path& ) = default;
@@ -58,19 +59,23 @@ namespace mikoto::filesystem {
 
         MKT_NODISCARD auto Exists() const noexcept -> bool;
         MKT_NODISCARD auto GetPath() const noexcept -> eastl::string_view;
-        MKT_NODISCARD auto GetC_Str() const noexcept -> const char*;
+        MKT_NODISCARD auto GetC_Str() const noexcept -> core::cstr;
         MKT_NODISCARD auto GetStem() const noexcept -> eastl::string_view;
         MKT_NODISCARD auto GetExtension() const noexcept -> const eastl::string&;
-        MKT_NODISCARD auto GetNormalizedExtension() const noexcept ->  const eastl::string&;
-        MKT_NODISCARD auto GetAbsolute() const noexcept -> eastl::string;
+        MKT_NODISCARD auto GetNormalizedExtension() const noexcept -> const eastl::string&;
+        MKT_NODISCARD auto GetAbsolute() const -> eastl::string;
 
         MKT_NODISCARD auto IsDirectoryEmpty() const -> bool;
+        MKT_NODISCARD auto IsExtension( eastl::string_view extension ) const -> bool;
+        MKT_NODISCARD auto IsExtension( std::initializer_list<const eastl::string_view> extensions ) const -> bool;
 
         template<typename StringType>
-        MKT_NODISCARD auto GetPathTyped() const noexcept -> StringType; // view, eastl::string, std::filesystem and const c_str, std::wstring
+        MKT_NODISCARD auto GetPathTyped() const -> StringType;// view, eastl::string, std::filesystem and const c_str, std::wstring
 
         MKT_NODISCARD auto GetFilename() const noexcept -> eastl::string_view;
         MKT_NODISCARD auto GetDirectory() const -> Path;
+
+        // Directory's full name, or the containing directory's name for a file.
         MKT_NODISCARD auto GetDirectoryName() const noexcept -> eastl::string_view;
 
         MKT_NODISCARD auto GetFileType() const noexcept -> PathFileType;
@@ -78,16 +83,16 @@ namespace mikoto::filesystem {
         MKT_NODISCARD auto IsEmpty() const noexcept -> bool;
         MKT_NODISCARD auto IsFile() const noexcept -> bool;
         MKT_NODISCARD auto IsDirectory() const noexcept -> bool;
-        MKT_NODISCARD auto IsType( PathFileType type) const noexcept -> bool;
+        MKT_NODISCARD auto IsType( PathFileType type ) const noexcept -> bool;
 
         MKT_NODISCARD auto StartsWith( eastl::string_view str ) const -> bool;
-        MKT_NODISCARD auto Contains( eastl::string_view str) const -> bool;
+        MKT_NODISCARD auto Contains( eastl::string_view str ) const -> bool;
         MKT_NODISCARD auto EndsWith( eastl::string_view str ) const -> bool;
 
         MKT_NODISCARD auto IsAbsolutePath() const noexcept -> bool;
 
-        MKT_NODISCARD auto ToRelative() const noexcept -> Path;
-        MKT_NODISCARD auto ToAbsolute() const noexcept -> Path;
+        MKT_NODISCARD auto ToRelative() const -> Path;
+        MKT_NODISCARD auto ToAbsolute() const -> Path;
 
         MKT_NODISCARD operator eastl::string_view() const;
         MKT_NODISCARD operator const eastl::string&() const;
@@ -99,8 +104,9 @@ namespace mikoto::filesystem {
         eastl::string mNormalizedExtension{};
 
         eastl::string mFilename{};
+        eastl::string mDirectoryName{};
 
-        PathFileType mPathObjectType{};
+        std::filesystem::path mNativePath{};
 
         bool mIsAbsolutePath{ false };
     };
@@ -109,52 +115,32 @@ namespace mikoto::filesystem {
     public:
         template<std::convertible_to<std::string_view> StringLike>
         auto SetPath( StringLike&& path ) -> PathBuilder& {
-            mPath.append( path );
+            MKT_BEGIN_PROFILER();
+            const std::string_view view{ path };
+            mPath /= Path{ eastl::string_view{ view.data(), view.size() } }.GetPathTyped<std::filesystem::path>();
             return *this;
         }
 
-        auto SetPath( const Path& path ) -> PathBuilder& {
-            mPath.append( path.GetC_Str() );
-            return *this;
-        }
+        auto SetPath( const Path& path ) -> PathBuilder&;
 
-        auto Build() -> Path {
-            return Path{ mPath };
-        }
+        MKT_NODISCARD auto Build() const -> Path;
 
     private:
         std::filesystem::path mPath{};
     };
-}
+}// namespace mikoto::filesystem
 
-namespace ankerl::unordered_dense {
+template<>
+struct ankerl::unordered_dense::hash<mikoto::filesystem::Path> {
+    using is_avalanching = void;
 
-    template <>
-    struct hash<mikoto::filesystem::Path> {
-        using is_avalanching = void;
-
-        auto operator()(mikoto::filesystem::Path const& path) const noexcept -> uint64_t {
-            const eastl::string_view view{ path.GetPath() };
-
-            return detail::wyhash::hash(
-                view.data(),
-                sizeof(char) * view.size()
-            );
-        }
-
-        auto operator==(mikoto::filesystem::Path const& path) const noexcept -> uint64_t {
-            const eastl::string_view view{ path.GetPath() };
-
-            return detail::wyhash::hash(
-                view.data(),
-                sizeof(char) * view.size()
-            );
-        }
-    };
-
-}
+    auto operator()( mikoto::filesystem::Path const& path ) const noexcept -> mikoto::core::u64 {
+        MKT_BEGIN_PROFILER();
+        const eastl::string_view view{ path.GetPath() };
+        return hash<std::string_view>{}( std::string_view{ view.data(), view.size() } );
+    }
+};// namespace ankerl::unordered_dense
 
 #include <Filesystem/Path.inl>
 
-
-#endif//MIKOTO_PATH_HH
+#endif// MIKOTO_FILESYSTEM_PATH_HH

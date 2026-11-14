@@ -1,0 +1,9 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Low Pressure"
+Material:
+  BaseColorFactor: [0.6, 0.24, 0.52, 1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.45
+  DoubleSided: 1
+  AlphaMask: 0

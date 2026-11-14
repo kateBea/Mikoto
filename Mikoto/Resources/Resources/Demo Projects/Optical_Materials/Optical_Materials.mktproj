@@ -1,0 +1,54 @@
+# Optical_Materials demo project.
+# Compare dielectric IOR, rough transmission, absorption, subsurface and conductor presets.
+# Open this manifest in the editor; Scene selects the authored scene below.
+# Assets and Cache paths are relative to this manifest.
+# EditorCamera configures editor navigation; the scene camera controls the Game view.
+
+{
+  "Version": 1,
+  "Project": "Optical Materials",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Optical_Materials.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 0,
+    "Samples": 1,
+    "PathTracing": true,
+    "PathSamplesPerFrame": 2,
+    "PathMaxBounces": 16,
+    "PathMaxSamples": 4096,
+    "RayTracedAmbientOcclusion": true,
+    "AoSamplesPerFrame": 2,
+    "AoCosineSampling": true,
+    "AoMaxDistance": 0.12,
+    "BloomEnabled": true,
+    "BloomThreshold": 2,
+    "BloomIntensity": 0.1,
+    "SsaoEnabled": false
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      0,
+      0.78,
+      1.7
+    ],
+    "Direction": [
+      0.0,
+      -0.4108326352874257,
+      -0.9117107796789446
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 46,
+    "NearPlane": 0.001,
+    "FarPlane": 20,
+    "MovementSpeed": 0.5,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

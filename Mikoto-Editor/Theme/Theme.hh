@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_THEME_HH
-#define MIKOTO_THEME_HH
+#ifndef MIKOTO_THEME_THEME_HH
+#define MIKOTO_THEME_THEME_HH
 
-#include <Core/Serializable.hh>
+#include <Core/Serializer.hh>
+
 
 namespace mikoto::editor {
 
@@ -25,14 +26,14 @@ namespace mikoto::editor {
         auto Apply() -> void;
 
         auto Serialize( const filesystem::Path &filename ) const -> void override;
-        auto Deserialize( const filesystem::Path &filename ) const -> void override;
+        auto Deserialize( const filesystem::Path &filename ) -> void override;
 
         auto Serialize( filesystem::FileHandle file ) const -> void override;
-        auto Deserialize( filesystem::FileHandle file ) const -> void override;
+        auto Deserialize( filesystem::FileHandle file ) -> void override;
 
     private:
     };
 }
 
+#endif// MIKOTO_THEME_THEME_HH
 
-#endif //MIKOTO_THEME_HH

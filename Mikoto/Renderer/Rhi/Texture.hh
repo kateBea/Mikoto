@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_TEXTURE_HH
-#define MIKOTO_RHI_TEXTURE_HH
+#ifndef MIKOTO_RENDERER_RHI_TEXTURE_HH
+#define MIKOTO_RENDERER_RHI_TEXTURE_HH
 
 #include <EASTL/string.h>
+#include <EASTL/optional.h>
 #include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
+
 #include <Memory/BufferSpan.hh>
-#include <Core/ResourcePool.hh>
 
 #include <Assets/Image.hh>
 
@@ -299,37 +299,37 @@ namespace mikoto::renderer::rhi {
          * Returns the minification filter.
          * @returns The result of GetMinFilter.
          */
-        MKT_NODISCARD auto GetMinFilter() const -> SamplerFilter;
+        MKT_NODISCARD virtual auto GetMinFilter() const -> SamplerFilter = 0;
 
         /**
          * Returns the magnification filter.
          * @returns The result of GetMagFilter.
          */
-        MKT_NODISCARD auto GetMagFilter() const -> SamplerFilter;
+        MKT_NODISCARD virtual auto GetMagFilter() const -> SamplerFilter = 0;
 
         /**
          * Returns the U-axis wrapping mode.
          * @returns The result of GetWrapU.
          */
-        MKT_NODISCARD auto GetWrapU() const -> SamplerWrapMode;
+        MKT_NODISCARD virtual auto GetWrapU() const -> SamplerWrapMode = 0;
 
         /**
          * Returns the V-axis wrapping mode.
          * @returns The result of GetWrapV.
          */
-        MKT_NODISCARD auto GetWrapV() const -> SamplerWrapMode;
+        MKT_NODISCARD virtual auto GetWrapV() const -> SamplerWrapMode = 0;
 
         /**
          * Returns the W-axis wrapping mode.
          * @returns The result of GetWrapW.
          */
-        MKT_NODISCARD auto GetWrapW() const -> SamplerWrapMode;
+        MKT_NODISCARD virtual auto GetWrapW() const -> SamplerWrapMode = 0;
 
         /**
          * Returns the maximum mip level sampled by this sampler.
          * @returns The result of GetMipLevels.
          */
-        MKT_NODISCARD auto GetMipLevels() const -> float;
+        MKT_NODISCARD virtual auto GetMipLevels() const -> float = 0;
 
         using DeviceObject::Initialize;
 
@@ -344,32 +344,6 @@ namespace mikoto::renderer::rhi {
          * Releases native sampler state.
          */
         auto Destroy() -> void override = 0;
-
-        /**
-         * Performs the operation represented by ISampler.
-         *
-         * @returns The result of ISampler.
-         */
-        explicit ISampler( const SamplerCreateDescription& desc )
-            : mMipLevels{ desc.mMipLevels},
-            mMinFilter{ desc.mMinFilter},
-            mMagFilter{ desc.mMagFilter},
-            mWrapU{ desc.mWrapU},
-            mWrapV{ desc.mWrapV},
-            mWrapW{ desc.mWrapW},
-            mBorderColor{ desc.mBorderColor }
-        {}
-
-    protected:
-        float mMipLevels{ 1.0f };
-
-        SamplerFilter mMinFilter{ SamplerFilter::eNearest };
-        SamplerFilter mMagFilter{ SamplerFilter::eNearest };
-        SamplerWrapMode mWrapU{ SamplerWrapMode::eRepeat };
-        SamplerWrapMode mWrapV{ SamplerWrapMode::eRepeat };
-        SamplerWrapMode mWrapW{ SamplerWrapMode::eRepeat };
-
-        Color mBorderColor{};
     };
 
     using SamplerHandle = core::Ref<ISampler>;
@@ -387,91 +361,67 @@ namespace mikoto::renderer::rhi {
          * Returns the texture format.
          * @returns The result of GetFormat.
          */
-        MKT_NODISCARD auto GetFormat() const -> Format;
+        MKT_NODISCARD virtual auto GetFormat() const -> Format = 0;
 
         /**
          * Returns the base mip width in texels.
          * @returns The result of GetWidth.
          */
-        MKT_NODISCARD auto GetWidth() const -> core::u32;
+        MKT_NODISCARD virtual auto GetWidth() const -> core::u32 = 0;
 
         /**
          * Returns the base mip height in texels.
          * @returns The result of GetHeight.
          */
-        MKT_NODISCARD auto GetHeight() const -> core::u32;
+        MKT_NODISCARD virtual auto GetHeight() const -> core::u32 = 0;
 
         /**
          * Returns the declared texture usages.
          * @returns The result of GetTextureUsage.
          */
-        MKT_NODISCARD auto GetTextureUsage() const -> TextureUsageFlags;
+        MKT_NODISCARD virtual auto GetTextureUsage() const -> TextureUsageFlags = 0;
 
         /**
          * Returns the retained image initializer, if any.
          * @returns The result of GetImage.
          */
-        MKT_NODISCARD auto GetImage() const -> asset::ImageHandle;
+        MKT_NODISCARD virtual auto GetImage() const -> asset::ImageHandle = 0;
+
 
         /**
          * Returns the retained initializer byte count, or zero when no initializer was retained.
          * @returns The result of GetSizeBytes.
          */
-        MKT_NODISCARD auto GetSizeBytes() const -> core::usize;
+        MKT_NODISCARD virtual auto GetSizeBytes() const -> core::usize = 0;
 
         /**
          * Returns the texture dimensionality.
          * @returns The result of GetDimension.
          */
-        MKT_NODISCARD auto GetDimension() const -> TextureDimension;
+        MKT_NODISCARD virtual auto GetDimension() const -> TextureDimension = 0;
 
         /**
          * Returns the multisampling mode.
          * @returns The result of GetSampleCount.
          */
-        MKT_NODISCARD auto GetSampleCount() const -> Multisampling;
+        MKT_NODISCARD virtual auto GetSampleCount() const -> Multisampling = 0;
 
         /**
          * Returns the number of mip levels.
          * @returns The result of GetMipLevelCount.
          */
-        MKT_NODISCARD auto GetMipLevelCount() const -> core::u32;
+        MKT_NODISCARD virtual auto GetMipLevelCount() const -> core::u32 = 0;
+        /** Logical texel/block storage, excluding driver alignment and allocation overhead. */
+        MKT_NODISCARD virtual auto GetStorageSizeBytes() const -> core::usize = 0;
 
         /**
          * Destroys the texture.
          */
         ~ITexture() override = default;
-
-    protected:
-
-        /**
-         * Constructs a texture from its creation description.
-         *
-         * @param desc Texture creation parameters.
-         */
-        explicit ITexture( const TextureCreateDescription& desc );
-
-    protected:
-        core::u32 mWidth{};
-        core::u32 mHeight{};
-        core::u32 mMipCount{ 1 };
-
-        asset::ImageHandle mImageData{};
-        memory::BufferSpanHandle mBufferSpan{};
-
-        Format mFormat{ Format::eUnknown };
-        TextureDimension mDimension{ TextureDimension::eInvalid };
-
-        const ResourceStates mInitialState;
-
-        TextureUsageFlags mTextureUsage{ TextureUsageFlagsBits::ShaderResource };
-
-        Multisampling mMultisampling{ Multisampling::eMsaaX1 };
-
-        TextureSubresourceSet mSubResources{};
     };
 
     using TextureHandle = core::Ref<ITexture>;
 }
 
-#endif//MIKOTO_RHI_TEXTURE_HH
+#endif// MIKOTO_RENDERER_RHI_TEXTURE_HH
+

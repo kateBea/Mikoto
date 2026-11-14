@@ -28,7 +28,7 @@
       "additive_reference" : "animation",
       "sampling_rate" : 0,
       "iframe_interval" : 10,
-      "optimize" : true,
+      "optimize" : false,
       "optimization_settings" :
       {
         "tolerance" : 0.001,

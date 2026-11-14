@@ -1,0 +1,125 @@
+{
+  "name": "mikoto",
+  "version-string": "1.0.0",
+  "description": "Mikoto engine and editor dependencies",
+  "builtin-baseline": "3cbc1db4d867ec83c89fba4c461321c11f78b5e3",
+  "dependencies": [
+    "argparse",
+    "asio",
+    "assimp",
+    "cpptrace",
+    "eastl",
+    "entt",
+    "fmt",
+    "gamenetworkingsockets",
+    "glm",
+    {
+      "name": "imgui",
+      "features": [
+        "docking-experimental",
+        "wchar32",
+        "sdl3-binding",
+        "opengl3-binding",
+        "vulkan-binding"
+      ]
+    },
+    {
+      "name": "imgui",
+      "features": [
+        "dx11-binding",
+        "dx12-binding",
+        "win32-binding"
+      ],
+      "platform": "windows"
+    },
+    "imguizmo",
+    "implot",
+    {
+      "name": "joltphysics",
+      "features": [
+        "debugrenderer",
+        "rtti"
+      ]
+    },
+    "ktx",
+    "mikoto-compressonator",
+    {
+      "name": "freetype",
+      "default-features": false,
+      "features": [
+        "png"
+      ]
+    },
+    {
+      "name": "msdfgen",
+      "default-features": false,
+      "features": [
+        "extensions"
+      ]
+    },
+    "msdf-atlas-gen",
+    {
+      "name": "harfbuzz",
+      "default-features": false
+    },
+    "mikoto-ozz",
+    "magic-enum",
+    "meshoptimizer",
+    "miniaudio",
+    "nativefiledialog-extended",
+    "nlohmann-json",
+    "openssl",
+    "portable-file-dialogs",
+    {
+      "name": "sdl3",
+      "features": [
+        "vulkan"
+      ]
+    },
+    "shaderc",
+    "sol2",
+    "lua",
+    "spdlog",
+    "spirv-cross",
+    "spirv-reflect",
+    "stb",
+    "taskflow",
+    "fastgltf",
+    "tomlplusplus",
+    "unordered-dense",
+    "volk",
+    {
+      "name": "vulkan-memory-allocator",
+      "version>=": "3.4.0"
+    },
+    "vulkan-headers",
+    "yaml-cpp",
+    {
+      "name": "directx-headers",
+      "platform": "windows"
+    },
+    {
+      "name": "d3d12-memory-allocator",
+      "platform": "windows"
+    }
+  ],
+  "features": {
+    "source-slang": {
+      "description": "Build Slang and its matching optimizer plugin from source",
+      "dependencies": [
+        "shader-slang"
+      ]
+    },
+    "profiling": {
+      "description": "Tracy on-demand profiling",
+      "dependencies": [
+        {
+          "name": "tracy",
+          "features": [
+            "on-demand"
+          ]
+        }
+      ]
+    }
+  }
+}

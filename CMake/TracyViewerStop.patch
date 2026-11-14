@@ -1,0 +1,38 @@
+diff --git a/profiler/src/profiler/TracyView.hpp b/profiler/src/profiler/TracyView.hpp
+--- a/profiler/src/profiler/TracyView.hpp
++++ b/profiler/src/profiler/TracyView.hpp
+@@ -170,6 +170,16 @@ public:
+     bool ReconnectRequested() const { return m_reconnectRequested; }
+     std::string GetAddress() const { return m_worker.GetAddr(); }
+     uint16_t GetPort() const { return m_worker.GetPort(); }
+ 
++    bool CanStopCapture() const { return !m_disconnectIssued && m_worker.IsConnected(); }
++    void StopCapture()
++    {
++        if( CanStopCapture() )
++        {
++            m_worker.Disconnect();
++            m_disconnectIssued = true;
++        }
++    }
++
+     const char* SourceSubstitution( const char* srcFile ) const;
+     bool ValidateSourceAge() const { return m_validateSourceAge; }
+diff --git a/profiler/src/profiler/TracyView_ConnectionState.cpp b/profiler/src/profiler/TracyView_ConnectionState.cpp
+--- a/profiler/src/profiler/TracyView_ConnectionState.cpp
++++ b/profiler/src/profiler/TracyView_ConnectionState.cpp
+@@ -121,12 +121,11 @@ bool View::DrawConnection()
+     ImGui::SameLine( 0, 2 * ty );
+     const char* stopStr = ICON_FA_PLUG " Stop";
+-    if( !m_disconnectIssued && m_worker.IsConnected() )
++    if( CanStopCapture() )
+     {
+         if( ImGui::Button( stopStr ) )
+         {
+-            m_worker.Disconnect();
+-            m_disconnectIssued = true;
++            StopCapture();
+         }
+     }
+     else
+     {

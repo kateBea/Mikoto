@@ -12,36 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 struct VSOutput {
     float4 position : SV_Position;
     float2 texCoord : ATTRIBUTE0;
     float3 color : ATTRIBUTE1;
 };
 
-static const float2 positions[4] = {
-    float2(-0.5, -0.5),
-    float2(0.5, -0.5),
-    float2(-0.5, 0.5),
-    float2(0.5, 0.5)
-};
+static const float2 positions[4] = { float2( -0.5, -0.5 ), float2( 0.5, -0.5 ), float2( -0.5, 0.5 ),
+                                     float2( 0.5, 0.5 ) };
 
-static const float2 texCoords[4] ={
-    float2(0.0, 0.0),
-    float2(1.0, 0.0),
-    float2(0.0, 1.0),
-    float2(1.0, 1.0)
-};
+static const float2 texCoords[4] = { float2( 0.0, 0.0 ), float2( 1.0, 0.0 ), float2( 0.0, 1.0 ), float2( 1.0, 1.0 ) };
 
-static const float3 colors[3] = {
-    float3(1.0, 0.0, 0.0),
-    float3(0.0, 1.0, 0.0),
-    float3(0.0, 0.0, 1.0)
-};
+static const float3 colors[4] = { float3( 1.0, 0.0, 0.0 ), float3( 0.0, 1.0, 0.0 ), float3( 0.0, 0.0, 1.0 ),
+                                  float3( 1.0, 1.0, 1.0 ) };
 
-[shader("vertex")]
-VSOutput main(uint vid: SV_VertexID) {
+[shader( "vertex" )]
+VSOutput main( uint vid : SV_VertexID ) {
     VSOutput o;
-    o.position = float4(positions[vid], 0.0, 1.0);
+    o.position = float4( positions[vid], 0.0, 1.0 );
     o.texCoord = texCoords[vid];
     o.color = colors[vid];
 

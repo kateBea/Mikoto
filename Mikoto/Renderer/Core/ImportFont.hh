@@ -1,7 +1,22 @@
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Taken from MSDFGEN extensions as we include freetype as DEP
 // Because MSDFGEN extensions are disabled I am compiling this as part of Mikoto
 
-#pragma once
+#ifndef MIKOTO_RENDERER_CORE_IMPORT_FONT_HH
+#define MIKOTO_RENDERER_CORE_IMPORT_FONT_HH
 
 #include <vector>
 
@@ -31,11 +46,13 @@ namespace msdfgen {
         /// The size of one EM.
         double emSize;
         /// The vertical position of the ascender and descender relative to the baseline.
-        double ascenderY, descenderY;
+        double ascenderY;
+        double descenderY;
         /// The vertical difference between consecutive baselines.
         double lineHeight;
         /// The vertical position and thickness of the underline.
-        double underlineY, underlineThickness;
+        double underlineY;
+        double underlineThickness;
     };
 
     /// A structure to model a given axis of a variable font.
@@ -104,3 +121,5 @@ namespace msdfgen {
 #endif
 
 }// namespace msdfgen
+
+#endif// MIKOTO_RENDERER_CORE_IMPORT_FONT_HH

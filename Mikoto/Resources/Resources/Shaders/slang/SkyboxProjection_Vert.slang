@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
-#include "base/Memory_Helpers.slang"
 #include "base/Material_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 
 struct SkyboxRenderConstants {
     float4x4 MVP;
@@ -30,7 +32,7 @@ struct VSOutput {
 };
 
 struct DrawParams {
-    float4x4 Mvp;
+    PushConstantMatrix4x4 Mvp;
     uint BasicSamplerID;
     uint EquirectangularID;
 
@@ -39,21 +41,21 @@ struct DrawParams {
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
-[shader("vertex")]
-VSOutput main(VSInput input) {
+[shader( "vertex" )]
+VSOutput main( VSInput input ) {
     VSOutput o;
 
     ByteAddressBuffer vertexBuffer = buffers[parameters.mVertexBufferID];
     ByteAddressBuffer indexBuffer = buffers[parameters.mIndexBufferID];
 
-    uint index = indexBuffer.Read<uint>(0, input.vID);
-    VertexDescription vertex = vertexBuffer.Read<VertexDescription>(0, index);
+    uint index = indexBuffer.Read<uint>( 0, input.vID );
+    VertexDescription vertex = vertexBuffer.Read<VertexDescription>( 0, index );
 
     o.Pos = vertex.position;
 
-    o.PositionH = mul(parameters.Mvp, float4(vertex.position, 1.0));
+    o.PositionH = mul( parameters.Mvp.Load(), float4( vertex.position, 1.0 ) );
 
     return o;
 }

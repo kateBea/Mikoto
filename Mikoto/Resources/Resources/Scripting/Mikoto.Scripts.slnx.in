@@ -1,0 +1,3 @@
+<Solution>
+  <Project Path="@SCRIPT_PROJECT_PATH@" />
+</Solution>

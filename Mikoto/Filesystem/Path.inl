@@ -12,42 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_PATH_INL
-#define MIKOTO_PATH_INL
+#ifndef MIKOTO_FILESYSTEM_PATH_INL
+#define MIKOTO_FILESYSTEM_PATH_INL
 
 #include <string>
-#include <string_view>
 #include <filesystem>
+#include <string_view>
+#include <type_traits>
 
 #include <EASTL/string.h>
+#include <EASTL/type_traits.h>
 #include <EASTL/string_view.h>
 
-#include <Filesystem/Path.hh>
+#include <Core/Core.hh>
 
 #include <Logging/Assert.hh>
+
+#include <Filesystem/Path.hh>
 
 namespace mikoto::filesystem {
 
     template<typename StringType>
-    auto Path::GetPathTyped() const noexcept -> StringType {
-        if constexpr ( std::is_same_v<StringType, eastl::string_view> ) {
+    auto Path::GetPathTyped() const -> StringType {
+        if constexpr ( eastl::is_same_v<StringType, eastl::string_view> ) {
             return mPathUtf8;
-        }else if constexpr ( std::is_same_v<StringType, std::string_view> ) {
-            return mPathUtf8.c_str();
-        } else if constexpr ( std::is_same_v<StringType, eastl::string> ) {
+        } else if constexpr ( eastl::is_same_v<StringType, std::string_view> ) {
+            return std::string_view{ mPathUtf8.data(), mPathUtf8.size() };
+        } else if constexpr ( eastl::is_same_v<StringType, eastl::string> ) {
             return mPathUtf8;
-        } else if constexpr ( std::is_same_v<StringType, std::string> ) {
-            return string::ToStd( mPathUtf8 );
-        } else if constexpr ( std::is_same_v<StringType, const char*> ) {
+        } else if constexpr ( eastl::is_same_v<StringType, std::string> ) {
+            return std::string{ mPathUtf8.data(), mPathUtf8.size() };
+        } else if constexpr ( eastl::is_same_v<StringType, core::cstr> ) {
             return mPathUtf8.c_str();
-        } else if constexpr ( std::is_same_v<StringType, std::filesystem::path> ) {
-            return std::filesystem::path{ mPathUtf8.c_str() };
-        } else if constexpr ( std::is_same_v<StringType, std::wstring> ) {
-            return std::filesystem::path{ mPathUtf8.c_str() }.wstring();
+        } else if constexpr ( eastl::is_same_v<StringType, std::filesystem::path> ) {
+            return mNativePath;
+        } else if constexpr ( eastl::is_same_v<StringType, std::wstring> ) {
+            return mNativePath.wstring();
         } else if constexpr ( std::is_same_v<StringType, eastl::wstring> ) {
-            return eastl::wstring{ string::ToWide( mPathUtf8 ) };
+            const auto wide{ mNativePath.wstring() };
+            return eastl::wstring{ wide.data(), wide.size() };
         } else {
-            MKT_STATIC_ASSERT( false, "Not valid string type" );
+            MKT_STATIC_ASSERT( eastl::is_same_v<StringType, void>, "Unsupported Path string type" );
         }
 
         // Make compiler happy
@@ -55,4 +60,4 @@ namespace mikoto::filesystem {
     }
 }// namespace mikoto::filesystem
 
-#endif
+#endif// MIKOTO_FILESYSTEM_PATH_INL

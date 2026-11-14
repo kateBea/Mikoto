@@ -12,25 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_ENGINE_HH
-#define MIKOTO_ENGINE_HH
+#ifndef MIKOTO_CORE_ENGINE_HH
+#define MIKOTO_CORE_ENGINE_HH
 
-#include <typeinfo>
-#include <typeindex>
+#include <thread>
+#include <exception>
 
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/tuple.h>
-#include <EASTL/utility.h>
 
-#include <taskflow/taskflow.hpp>
+#include <ankerl/unordered_dense.h>
 
-#include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/Service.hh>
-#include <Core/Registry.hh>
 #include <Core/Singleton.hh>
-#include <Core/Subsystem.hh>
+#include <Core/ServiceSchedule.hh>
+#include <Core/LocalizationService.hh>
+#include <Core/ServiceDependencies.hh>
 
 #include <Platform/Window.hh>
 
@@ -39,110 +36,101 @@ namespace mikoto::core {
     struct EngineDescription {
         bool mEnableAllServices{ false };
         bool mEnableAllSubsystems{ false };
-        platform::Window* mWindow{ nullptr };
+        platform::IWindow* mWindow{ nullptr };
+
+        bool mEnableImGui{ true };
+        bool mCompressTextures{ false };
+
+        ISOLanguage mIsoLanguage{ ISOLanguage::EN_US };
     };
 
-    struct ServiceNode {
-        eastl::unique_ptr<IService> mService{};
-        bool mIsSubsystem{ false };
-
-        eastl::vector<std::type_index> mExecutionDeps{};
-        eastl::vector<std::type_index> mConstructDeps{};
-    };
-
-    class Engine final : public core::Singleton<Engine> {
+    class Engine final : public Singleton<Engine> {
     public:
-        explicit Engine(const EngineDescription& config);
+        explicit Engine( const EngineDescription& config );
 
         auto Initialize() -> void;
+
+        /** @brief Stops asynchronous producers and waits for outstanding jobs.
+         *
+         * Call on the owning thread before destroying application layers. Disables
+         * engine updates, but retains service objects for dependent cleanup. Repeated
+         * calls do not shut services down again; they still join outstanding jobs.
+         * Service shutdown failures are retained and reported by Shutdown after cleanup.
+         */
+        auto StopBackgroundWork() -> void;
+
+        /** @brief Stops background work and destroys services in dependency order.
+         *
+         * Call on the owning thread after releasing application resources. Calls
+         * StopBackgroundWork internally, so engine-only shutdown is also supported.
+         * Reports service shutdown failures after releasing all service objects.
+         */
         auto Shutdown() -> void;
 
-        // Drains work submitted through the engine executor.  Call this before
-        // destroying clients (for example editor layers) that may be captured
-        // by outstanding jobs.
+        auto Update( float timeStep ) -> void;
+
+        // Join jobs before destroying layers/clients captured by background work.
         auto WaitForBackgroundTasks() -> void;
 
-        auto Update() -> void;
-
-    public:
-        DISABLE_COPY_AND_MOVE_FOR(Engine);
-
     private:
+        struct ServiceNode {
+            std::type_index mType{ typeid( void ) };
 
-        template<typename ServiceType, typename... Args>
-        auto PushService(Args&&... args) -> ServiceType* {
-            eastl::unique_ptr<IService> service{ new ServiceType{ eastl::forward<Args>(args)... } };
-            auto* instance{ static_cast<ServiceType*>( service.get() ) };
+            ISubsystem* mSubsystem{};
+            eastl::unique_ptr<IService> mService{};
 
-            ServiceNode node{
-                .mService = eastl::move( service ),
-                .mExecutionDeps = ResolveExecDependencies<ServiceType>(),
-                .mConstructDeps = ResolveInitDependencies<ServiceType>(),
-            };
+            // Service dependencies
+            eastl::vector<std::type_index> mUpdateAfter{};
+            eastl::vector<std::type_index> mInitialization{};
 
-            if constexpr (std::derived_from<ServiceType, ISubsystem>) {
-                node.mIsSubsystem = true;
-            }
+            // Cleared when Shutdown is attempted; ownership lasts until the
+            // dependency-ordered destruction pass, including on shutdown failure.
+            bool mStarted{ false };
+            bool mRunsOnMainThread{ false };
+        };
 
-            mNodes[typeid(ServiceType)] = eastl::move(node);
+        template<ServiceType Type, typename... Args>
+            requires std::constructible_from<Type, Args...>
+        auto PushService( bool mainThread, Args&&... args ) -> Type*;
 
-            return as<ServiceType*>( instance );
-        }
+        auto BuildSchedules() -> void;
 
-        template<typename ServiceType, typename... Args>
-        auto PushMainThreadService(Args&&... args) -> ServiceType* {
-            eastl::unique_ptr<IService> service{ new ServiceType{ eastl::forward<Args>(args)... } };
-            auto* instance{ static_cast<ServiceType*>( service.get() ) };
+        auto InitializeService( core::usize index ) -> void;
+        auto ShutdownService( core::usize index ) -> void;
 
-            ServiceNode node{
-                .mService = eastl::move( service ),
-                .mExecutionDeps = ResolveExecDependencies<ServiceType>(),
-                .mConstructDeps = ResolveInitDependencies<ServiceType>(),
-            };
+        auto CheckOwnerThread() const -> void;
 
-            if constexpr (std::derived_from<ServiceType, ISubsystem>) {
-                node.mIsSubsystem = true;
-            }
+        auto ClearServices() -> void;
 
-            mMainThreadNodes[typeid(ServiceType)] = eastl::move(node);
+        // Stable registration indices keep task callbacks independent of map
+        // iteration/rehashing. Type lookup is only needed while building graphs.
+        eastl::vector<ServiceNode> mNodes{};
+        ankerl::unordered_dense::map<std::type_index, usize> mNodeIndices{};
 
-            return as<ServiceType*>( instance );
-        }
+        eastl::vector<std::exception_ptr> mShutdownErrors{};
 
-        template<typename ServiceType>
-        MKT_NODISCARD auto ResolveInitDependencies() -> eastl::vector<std::type_index>;
+        ServiceSchedule mInitialization{};
+        ServiceSchedule mExecution{};
+        ServiceSchedule mShutdown{};
 
-        template<typename ServiceType>
-        MKT_NODISCARD auto ResolveExecDependencies() -> eastl::vector<std::type_index>;
-
-        auto BuildInitTasks() -> void;
-        auto BuildShutdownTasks() -> void;
-        auto BuildExecutionTasks() -> void;
-        auto ExecuteMainThreadTasks() -> void;
-
-    private:
-
-        tf::Taskflow mInitTaskGraph{};
-        tf::Taskflow mShutdownTaskGraph{};
-
-        tf::Taskflow mExecTaskGraph{};
-
+        // Destroy the executor before the services captured by background work.
         tf::Executor mExecutor{};
-        ankerl::unordered_dense::map<std::type_index, tf::Task> mInitTasks{};
-        ankerl::unordered_dense::map<std::type_index, tf::Task> mShutdownTasks{};
+        std::thread::id mOwnerThread{};
 
-        ankerl::unordered_dense::map<std::type_index, tf::Task> mExecTasks{};
+        f32 mTimeStep{};
 
-        ankerl::unordered_dense::map<std::type_index, ServiceNode> mNodes{};
-        ankerl::unordered_dense::map<std::type_index, ServiceNode> mMainThreadNodes{};
+        ISOLanguage mIsoLanguage{ ISOLanguage::EN_US };
 
+        bool mInitialized{ false };
         bool mEnableAllServices{ false };
         bool mEnableAllSubsystems{ false };
-        platform::Window* mWindow{ nullptr };
+
+        bool mEnableImGui{ true };
+        bool mCompressTextures{ false };
+
+        platform::IWindow* mWindow{};
     };
-
-}
-
+}// namespace mikoto::core
 #include <Core/Engine.inl>
 
-#endif //MIKOTO_ENGINE_HH
+#endif// MIKOTO_CORE_ENGINE_HH

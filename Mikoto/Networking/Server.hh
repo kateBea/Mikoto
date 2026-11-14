@@ -12,20 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SERVER_HH
-#define MIKOTO_SERVER_HH
+#ifndef MIKOTO_NETWORKING_SERVER_HH
+#define MIKOTO_NETWORKING_SERVER_HH
 
-#include <functional>
 #include <memory>
+#include <functional>
 #include <string_view>
 
 #include <EASTL/unique_ptr.h>
+
 #include <ankerl/unordered_dense.h>
+
 #include <asio.hpp>
 
 #include <Core/Types.hh>
+
+#include <Networking/HttpRequest.hh>
+#include <Networking/HttpResponse.hh>
 #include <Networking/NetworkService.hh>
-#include <Networking/NetworkUtilities.hh>
 
 namespace mikoto::network {
 
@@ -35,7 +39,7 @@ namespace mikoto::network {
     public:
         using Handler = std::function<void( const HttpRequest&, HttpResponse& )>;
 
-        explicit HttpServer( NetworkSystem& network );
+        explicit HttpServer( NetworkService& network );
 
         auto Get( std::string_view path, Handler handler ) -> void;
         auto Post( std::string_view path, Handler handler ) -> void;
@@ -54,7 +58,7 @@ namespace mikoto::network {
         auto Dispatch( const HttpRequest& request ) const -> HttpResponse;
 
     private:
-        NetworkSystem& mNetwork;
+        NetworkService& mNetwork;
 
         eastl::unique_ptr<asio::ip::tcp::acceptor> mAcceptor{};
 
@@ -65,4 +69,4 @@ namespace mikoto::network {
     };
 }
 
-#endif // MIKOTO_SERVER_HH
+#endif// MIKOTO_NETWORKING_SERVER_HH

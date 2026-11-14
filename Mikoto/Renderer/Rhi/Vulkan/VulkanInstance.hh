@@ -12,24 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_INSTANCE_HH
-#define MIKOTO_INSTANCE_HH
+#ifndef MIKOTO_RENDERER_RHI_VULKAN_VULKAN_INSTANCE_HH
+#define MIKOTO_RENDERER_RHI_VULKAN_VULKAN_INSTANCE_HH
 
-#include <volk.h>
-#include <vk_mem_alloc.h>
-
-#include <EASTL/memory.h>
 #include <EASTL/span.h>
+#include <EASTL/memory.h>
 #include <EASTL/string.h>
-#include <EASTL/string_view.h>
-#include <EASTL/unique_ptr.h>
 #include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/string_view.h>
 
 #include <ankerl/unordered_dense.h>
 
+#include <vk_mem_alloc.h>
+#include <volk.h>
+
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
 
 #include <Platform/MainWindow.hh>
 
@@ -46,7 +45,7 @@ namespace mikoto::renderer::vulkan {
 
         VkPhysicalDevice mPhysicalDevice{};
 
-        // Swapchain capabilities
+        // SwapChain capabilities
         VkSurfaceCapabilitiesKHR mCapabilities{};
         eastl::vector<VkSurfaceFormatKHR> mFormats{};
         eastl::vector<VkPresentModeKHR> mPresentModes{};
@@ -57,14 +56,24 @@ namespace mikoto::renderer::vulkan {
         VkPhysicalDeviceMemoryProperties mMemoryProperties{};
         VkPhysicalDeviceFeatures2 mFeatures2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 
+        // Cached support, queried independently of logical-device requests.
+        VkPhysicalDeviceVulkan11Features mFeatures11{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+        VkPhysicalDeviceVulkan12Features mFeatures12{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+        VkPhysicalDeviceVulkan13Features mFeatures13{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
+
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR mAccelerationFeatures{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR mRayTracingFeatures{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
+        VkPhysicalDeviceMeshShaderFeaturesEXT mMeshFeatures{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT };
+
         ankerl::unordered_dense::set<eastl::string> mAvailableExtensions{};
         ankerl::unordered_dense::map<core::u32, VulkanQueueData> mQueueInfos{};
 
-        MKT_NODISCARD auto GetFamilyIndexWithSupport( rhi::QueueOpSupportFlags ops ) const -> core::i32;
-        MKT_NODISCARD auto GetQueueWithSupport( rhi::QueueOpSupportFlags ops ) const -> const VulkanQueueData*;
         MKT_NODISCARD auto HasQueueSupport( rhi::QueueOpSupportFlags ops ) const -> bool;
+        MKT_NODISCARD auto GetSupportedFeatures() const -> rhi::GpuFeatureSupportFlags;
         MKT_NODISCARD auto IsExtensionAvailable( eastl::string_view name ) const -> bool;
+        MKT_NODISCARD auto GetFamilyIndexWithSupport( rhi::QueueOpSupportFlags ops ) const -> core::i32;
         MKT_NODISCARD auto IsExtensionListAvailable( eastl::span<eastl::string> extensions ) const -> bool;
+        MKT_NODISCARD auto GetQueueWithSupport( rhi::QueueOpSupportFlags ops ) const -> const VulkanQueueData*;
     };
 
     struct InstanceBuilder;
@@ -78,11 +87,7 @@ namespace mikoto::renderer::vulkan {
         VkDebugUtilsMessengerEXT mDebugMessenger{};
         VmaVulkanFunctions mVMAFunctions{};
 
-#if defined( NDEBUG )
         bool mEnableValidationLayers{ false };
-#else
-        bool mEnableValidationLayers{ true };
-#endif
 
         eastl::string mName{};
         eastl::string mAppName{};
@@ -92,8 +97,8 @@ namespace mikoto::renderer::vulkan {
 
         eastl::vector<const char*> mValidationLayers{
             "VK_LAYER_KHRONOS_validation",
-            //"VK_LAYER_LUNARG_crash_diagnostic"
         };
+
         eastl::vector<const char*> mInstanceExtensions{
             VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
             VK_EXT_DEBUG_UTILS_EXTENSION_NAME
@@ -109,7 +114,7 @@ namespace mikoto::renderer::vulkan {
     };
 
     struct InstanceBuilder {
-        platform::Window* mWindow{};
+        platform::IWindow* mWindow{};
 
         enum class ValidationLevel {
             eCore,
@@ -125,7 +130,7 @@ namespace mikoto::renderer::vulkan {
 
         bool mEnableValidationLayers{ false };
 
-        bool mQueryGlfwExtensions{ false };
+        bool mQueryWindowExtensions{ false };
 
         auto SetAppName( eastl::string_view name ) -> InstanceBuilder&;
         auto SetEngineName( eastl::string_view name ) -> InstanceBuilder&;
@@ -137,12 +142,13 @@ namespace mikoto::renderer::vulkan {
         auto SetValidationLevel( ValidationLevel level ) -> InstanceBuilder&;
 
         auto EnableValidationLayers( bool value ) -> InstanceBuilder&;
-        auto QueryGLFWExtensions( bool value ) -> InstanceBuilder&;
-        auto QuerySurfaceSupport( platform::Window* window ) -> InstanceBuilder&;
+        auto QueryWindowExtensions( bool value ) -> InstanceBuilder&;
+        auto QuerySurfaceSupport( platform::IWindow* window ) -> InstanceBuilder&;
 
         auto Build() -> eastl::unique_ptr<Instance>;
     };
 
 }// namespace mikoto
 
-#endif//MIKOTO_INSTANCE_HH
+#endif// MIKOTO_RENDERER_RHI_VULKAN_VULKAN_INSTANCE_HH
+

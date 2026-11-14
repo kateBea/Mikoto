@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_TIMER_HH
-#define MIKOTO_TIMER_HH
+#ifndef MIKOTO_CORE_TIMER_HH
+#define MIKOTO_CORE_TIMER_HH
 
 #include <chrono>
 
@@ -23,7 +23,6 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
 #include <Core/TimeService.hh>
 
 namespace mikoto::core {
@@ -63,4 +62,4 @@ namespace mikoto::core {
     #define MKT_PROFILE_SCOPE_MARKED(MARK)
 #endif
 
-#endif // MIKOTO_TIMER_HH
+#endif// MIKOTO_CORE_TIMER_HH

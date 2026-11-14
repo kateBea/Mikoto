@@ -12,72 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
-#include "base/Memory_Helpers.slang"
 #include "base/FontRender_Helpers.slang"
-
-// NOTE (Migration from GLSL): https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/a2-01-spirv-target-specific.html
-
-/*
-    Note that SV_DrawIndex, SV_FragInvocationCount, SV_FragSize, SV_PointSize, SV_PointCoord and SV_VulkanSamplePosition are
-    Slang-specific semantics that are not defined in HLSL. Also Note that SV_InstanceID/SV_VertexID counts all
-    instances/vertices in a draw call, unlike how InstanceIndex/VertexIndex is relative to BaseInstance/BaseVertex.
-    See Using SV_InstanceID/SV_VertexID with SPIR-V target
-
-    Using SV_InstanceID and SV_VertexID with SPIR-V target
-    When using SV_InstanceID and SV_VertexID with SPIR-V target, it is 
-    equivalent to the difference between the index and base builtins. This matches 
-    the behavior of D3D where SV_InstanceID and SV_VertexID starts from zero for each 
-    draw call, while in SPIR-V, InstanceIndex and VertexIndex includes the base instance.
-
-    If you need direct access to InstanceIndex and VertexIndex values, use SV_VulkanInstanceID 
-    and SV_VulkanVertexID semantic names. These are supported for all targets except HLSL.
-     Alternatively you can use parameters with SV_InstanceID(or SV_VertexID) and 
-     SV_StartInstanceLocation(or SV_StartVertexLocation) semantics:
-*/
-
-// At the moment it is valid to access glyph data via instance ID
-// because we submit one draw call that has all the instances IDs
-
-struct VSInput {
-    uint VertexID : SV_VertexID;
-    uint InstanceIndex : SV_InstanceID;
-};
-
-struct VSOutput {
-    float2 TexCoord : TEXCOORD0;
-    uint InstanceIndex : TEXCOORD1;
-
-    float4 PositionH : SV_Position;
-};
-
-struct DrawParams {
-    uint mTextSamplerID;
-    uint mTextParametersID;
-};
+#include "base/Memory_Helpers.slang"
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+MKT_DECLARE_PUSH_CONSTANT( TextDrawParams, parameters );
 
-[shader("vertex")]
-VSOutput main(VSInput input) {
-    VSOutput o;
+[shader( "vertex" )]
+TextVertexOutput main( uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID ) {
+    TextVertexOutput o;
+    uint vertex = kTextIndices[vertexID];
 
-    uint vertexIndex = kTextIndices[input.VertexID];
-    TextVertexDescription vertex = kTextVertices[vertexIndex];
+    FontRenderParams p = buffers[parameters.TextParametersID]
+        .Read<FontRenderParams>( 0, parameters.GlyphOffset + instanceID );
 
-    FontRenderParams p = buffers[parameters.mTextParametersID]
-        .Read<FontRenderParams>(0, input.InstanceIndex);
+    o.TexCoord = p.TextureCoords[vertex];
+    o.Color = p.Color;
+    o.TextureIndex = p.TextureIndex;
+    o.DistanceRange = p.DistanceRange;
+    o.ImageType = p.ImageType;
+    o.OutlineWidth = p.OutlineWidth;
+    o.OutlineColor = p.OutlineColor;
 
-    o.TexCoord = p.TextureCoords[vertex.mTextureIndex];
-    o.InstanceIndex = input.InstanceIndex;
+    float3 local = float3( kTextVertices[vertex] * p.Size.xy + p.Position.xy, p.Position.z );
 
-    float3 pos = vertex.mPosition * p.Size.xyz + p.Position.xyz;
-
-    o.PositionH =
-        mul(p.Projection,
-        mul(p.View,
-        mul(p.Model, float4(pos, 1.0))));
+    o.PositionH = mul( p.Projection, mul( p.View, mul( p.Model, float4( local, 1 ) ) ) );
 
     return o;
 }

@@ -12,214 +12,425 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include <EASTL/array.h>
-#include <EASTL/string.h>
-#include <EASTL/string_view.h>
 
 #include <imgui.h>
 
+#include <EASTL/array.h>
+#include <EASTL/algorithm.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtx/common.hpp>
+#include <glm/gtx/compatibility.hpp>
+
+#include <implot.h>
+
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/String.hh>
+#include <Core/Profiler.hh>
 #include <Core/SystemStats.hh>
 #include <Core/TimeService.hh>
+#include <Core/LocalizationService.hh>
 
-#include <Memory/Allocator.hh>
+#include <Renderer/Rhi/Utility.hh>
+#include <Renderer/Core/RenderSystem.hh>
 
+#include <ImGui/Utility.hh>
 #include <ImGui/ImGuiWidget.hh>
-#include <ImGui/ImGuiUtility.hh>
 #include <ImGui/IconsMaterialDesign.h>
-
-#include <Layers/EditorLayer.hh>
 
 #include <Panels/StatsPanel.hh>
 
-#include <Renderer/Core/RenderSystem.hh>
+#include <Layers/EditorLayer.hh>
 
 namespace mikoto::editor {
 
-    using namespace mikoto::imgui;
     using namespace mikoto::core;
+    using namespace mikoto::scene;
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
-    template<typename FuncType>
-    static auto DrawStatsSection( const eastl::string_view title, FuncType&& func ) -> void {
-        ImGui::PushStyleColor( ImGuiCol_Header, ImVec4( 0.20f, 0.22f, 0.28f, 1.0f ) );
-        ImGui::PushStyleColor( ImGuiCol_HeaderHovered, ImVec4( 0.25f, 0.28f, 0.35f, 1.0f ) );
-        ImGui::PushStyleColor( ImGuiCol_HeaderActive, ImVec4( 0.30f, 0.33f, 0.40f, 1.0f ) );
-
-        ImGuiTreeNodeFlags flags{ ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth |
-                                   ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_DefaultOpen };
-        if ( ImGui::TreeNodeEx( reinterpret_cast<void*>( typeid( func ).hash_code() ), flags, "%s", title.data() ) ) {
-            SetCursorHandOnLastItemHovered();
-            ImGui::Spacing();
-
-            func();
-
-            ImGui::Spacing();
-            ImGui::TreePop();
+    static auto Metrics( const char* id ) -> bool {
+        if ( !ImGui::BeginTable( id, 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_NoSavedSettings ) ) {
+            return false;
         }
 
-        SetCursorHandOnLastItemHovered();
-
-        ImGui::PopStyleColor( 3 );
+        ImGui::TableSetupColumn( "##Label", ImGuiTableColumnFlags_WidthStretch, 3.0f );
+        ImGui::TableSetupColumn( "##Value", ImGuiTableColumnFlags_WidthStretch, 2.0f );
+        return true;
     }
 
-    StatsPanel::StatsPanel(const StatsPanelCreateInfo& info)
-        : Panel{ "Engine Dashboard" }, mState{ info.mState }
-    {
-        mPanelHeaderName = widget::MakeIconTitle( ICON_MD_TABLE_CHART, mPanelName );
+    static auto MetricValue( const char* value ) -> void {
+        const float width{ ImGui::CalcTextSize( value ).x };
+        const float available{ ImGui::GetContentRegionAvail().x };
+        if ( width <= available ) {
+            ImGui::SetCursorPosX( ImGui::GetCursorPosX() + available - width );
+            ImGui::TextUnformatted( value );
+        }
+        else {
+            ImGui::TextWrapped( "%s", value );
+        }
+    }
+
+    static auto Row( const char* label, const char* value, const char* tooltip = nullptr ) -> void {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::TextWrapped( "%s", label );
+        ImGui::TableNextColumn();
+        MetricValue( value );
+
+        if ( tooltip ) {
+            imgui::widget::ItemTooltip( "%s", tooltip );
+        }
+    }
+
+    static auto StreamingMemoryRow( const char* label, const char* cpu, const char* gpu, const char* tooltip ) -> void {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::TextWrapped( "%s", label );
+        imgui::widget::ItemTooltip( "%s", tooltip );
+
+        ImGui::TableNextColumn();
+        MetricValue( cpu );
+        ImGui::TableNextColumn();
+        MetricValue( gpu );
+    }
+
+    MKT_NODISCARD static auto Memory( core::f64 bytes ) -> eastl::string {
+        constexpr core::f64 bytesPerMiB{ 1024.0 * 1024.0 };
+        constexpr core::f64 bytesPerGiB{ bytesPerMiB * 1024.0 };
+        return bytes >= bytesPerGiB ? string::Format( "{:.2f} GiB", bytes / bytesPerGiB ) :
+            string::Format( "{:.1f} MiB", bytes / bytesPerMiB );
+    }
+
+    StatsPanel::StatsPanel( const StatsPanelCreateInfo& info )
+        : Panel{ "Stats", "Panel", info.mGroup, info.mIsToggleable }, mState{ info.mState } {
+        MKT_BEGIN_PROFILER();
+        mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_TABLE_CHART, mPanelName );
+    }
+
+    auto StatsPanel::Capture() -> void {
+        MKT_BEGIN_PROFILER();
+        mFrames = mHistory.Summarize();
+        mSnapshot = {};
+
+        if ( auto* assets{ asset::AssetRegistryService::GetPtr() }; assets && assets->IsInitialized() ) {
+            const auto streaming{ assets->GetStreamingStatistics() };
+            mSnapshot.streamingReservedCpu = double( streaming.mReserved.mCpuBytes );
+            mSnapshot.streamingReservedGpu = double( streaming.mReserved.mGpuBytes );
+            mSnapshot.streamingCpu = double( streaming.mResidentPayload.mCpuBytes );
+            mSnapshot.streamingGpu = double( streaming.mResidentPayload.mGpuBytes );
+            mSnapshot.streamingQueued = streaming.mQueued;
+            mSnapshot.streamingLoading = streaming.mLoading;
+            mSnapshot.streamingEvicted = streaming.mEvictedAssets;
+            mSnapshot.streamingOverBudget = streaming.mOverBudget;
+        }
+
+        mSnapshot.cpu = SystemStats::Get()->GetCpuName();
+        mSnapshot.cpuPercent = SystemStats::Get()->GetCpuUsage();
+        mSnapshot.totalRam = SystemStats::Get()->GetTotalRam();
+        mSnapshot.availableRam = SystemStats::Get()->GetFreeRam();
+        mSnapshot.processRam = SystemStats::Get()->GetProcessRamUsage();
+        mSnapshot.uptime = core::TimeService::Get()->GetTime();
+
+        const auto* apiName{ GetGraphicsApiName( RenderSystem::Get()->GetActiveGraphicsApi() ) };
+        mSnapshot.api = apiName ? apiName : MKT_LOC( "stats_unknown" ).c_str();
+
+        if ( auto* device{ RenderSystem::Get()->GetGpuDevice() } ) {
+            mSnapshot.gpu = device->GetDeviceName();
+            mSnapshot.gpuHeapUsage = static_cast<double>( device->GetMemoryUsage() );
+
+            const auto process{ device->GetProcessMemoryUsage() };
+            mSnapshot.processGpuMemoryAvailable = process.mAvailable;
+            mSnapshot.processVram = static_cast<double>( process.mLocalBytes );
+            mSnapshot.processSharedGpuRam = static_cast<double>( process.mSharedBytes );
+        }
+
+        if ( mState && mState->mActiveScene ) {
+            const auto& scene = *mState->mActiveScene;
+            mSnapshot.scene = scene.GetName();
+            mSnapshot.sceneState = scene.IsPlaying() ? MKT_LOC( "stats_playing" ).c_str() : scene.IsSimulating() ? MKT_LOC( "stats_simulating" ).c_str()
+                                                                                                                 : MKT_LOC( "stats_editing" ).c_str();
+            const auto& registry = scene.GetRegistry();
+            mSnapshot.entities = scene.GetEntities().size();
+            mSnapshot.meshes = registry.view<scene::MeshComponent>().size();
+            mSnapshot.lights = registry.view<scene::LightComponent>().size();
+            mSnapshot.texts = registry.view<scene::TextComponent>().size();
+            mSnapshot.rigidBodies = registry.view<scene::RigidBodyComponent>().size();
+            mSnapshot.colliders =
+                registry.view<scene::BoxColliderComponent>().size() +
+                registry.view<scene::SphereColliderComponent>().size() +
+                registry.view<scene::CapsuleColliderComponent>().size() +
+                registry.view<scene::MeshColliderComponent>().size();
+
+            const auto sources = registry.view<scene::AudioSourceComponent>();
+            mSnapshot.audioSources = sources.size();
+
+            for ( const auto entity: sources ) {
+                const auto source{ sources.get<scene::AudioSourceComponent>( entity ).GetSource() };
+
+                if ( source && source->IsPlaying() ) {
+                    ++mSnapshot.playingAudio;
+                }
+            }
+        }
+
+        if ( mState && mState->mEditorRenderer ) {
+            auto& renderer = *mState->mEditorRenderer;
+            const auto [width, height]{ InferDimensions( renderer.GetRenderResolution() ) };
+            mSnapshot.renderWidth = as<core::u32>( width );
+            mSnapshot.renderHeight = as<core::u32>( height );
+        }
+
+        mCaptured = true;
     }
 
     auto StatsPanel::OnRender( float timeStep ) -> void {
+        MKT_BEGIN_PROFILER();
+
         if ( !mPanelIsVisible ) {
             return;
         }
 
-        ImGuiScopedStyleVar windowPadding{ ImGuiStyleVar_WindowPadding, ImVec2( 12, 12 ) };
+        if ( !mPaused && mHistory.Push( timeStep ) ) {
+            mElapsed += timeStep;
 
-        ImGui::Begin( mPanelHeaderName.c_str(), MKT_ADDRESSOF( mPanelIsVisible ),
-            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize );
-
-        // Update frame times
-        mCurrentTime = TimeService::Get()->GetTime();
-        if ( mCurrentTime - mLastTime >= mIntervalUpdate ) {
-            mLastTime = mCurrentTime;
-
-            mFrameRate = 1.0f / timeStep;
-            mFrameTime = timeStep;
+            if ( !mCaptured || mElapsed >= mIntervalUpdate ) {
+                Capture();
+                mElapsed = glm::fmod( mElapsed, mIntervalUpdate );
+            }
         }
 
-        DrawUpdateInfo();
+        ImGui::SetNextWindowSize( { 570, 700 }, ImGuiCond_FirstUseEver );
 
-        DrawSystemInfo();
-        DrawPerformance( timeStep );
+        if ( imgui::BeginWindow( GetHeaderName().data(), &mPanelIsVisible ) ) {
+            mPanelIsFocused = ImGui::IsWindowFocused();
+            mPanelIsHovered = ImGui::IsWindowHovered();
+
+            if ( ImGui::Button( mPaused ? MKT_LOC( "stats_resume_capture" ).c_str() : MKT_LOC( "stats_pause_capture" ).c_str() ) ) {
+                mPaused = !mPaused;
+            }
+
+            ImGui::SameLine();
+
+            if ( ImGui::Button( imgui::widget::LocalizedLabel( "stats_reset_history", "Reset history" ).c_str() ) ) {
+                mHistory.Clear();
+                mFrames = {};
+                mElapsed = 0;
+            }
+
+            ImGui::SameLine();
+
+            if ( ImGui::Button( imgui::widget::LocalizedLabel( "stats_copy_summary", "Copy summary" ).c_str() ) ) {
+                const auto summary = string::Format( fmt::runtime( MKT_LOC( "stats_clipboard_summary" ).c_str() ),
+                    mFrames.mFps, mFrames.mAverageMs, mFrames.mP95Ms, mFrames.mWorstMs, mSnapshot.cpuPercent, Memory( mSnapshot.processRam ),
+                    mSnapshot.processGpuMemoryAvailable ? Memory( mSnapshot.processVram ) : eastl::string{ MKT_LOC( "stats_unavailable" ).c_str() }, mSnapshot.scene, mSnapshot.sceneState );
+
+                ImGui::SetClipboardText( summary.c_str() );
+            }
+
+            ImGui::SetNextItemWidth( 160 );
+
+            if ( ImGui::SliderFloat( imgui::widget::LocalizedLabel( "stats_system_refresh", "System refresh" ).c_str(), &mIntervalUpdate, 0.1f, 2.0f, "%.1f s" ) ) {
+                core::SystemStats::Get()->SetUpdateFrequency( mIntervalUpdate );
+            }
+
+            if ( mPaused ) {
+                ImGui::TextDisabled( "%s", MKT_LOC( "stats_capture_paused_values_and_history_are_frozen" ).c_str() );
+            }
+
+            if ( !mCaptured ) {
+                ImGui::TextDisabled( "%s", MKT_LOC( "stats_waiting_for_a_valid_frame_sample" ).c_str() );
+            }
+
+            DrawPerformance();
+            DrawSystemInfo();
+            DrawSceneInfo();
+        }
 
         ImGui::End();
     }
 
-    auto StatsPanel::DrawUpdateInfo() -> void {
-        ImGui::TextUnformatted( "Statistics refresh interval (seconds)" );
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth( 120.0f );
-        ImGui::SliderFloat( "##StatisticsRefreshInterval", &mIntervalUpdate, 0.0f, 1.0f, "%.2f" );
+    auto StatsPanel::DrawPerformance() -> void {
+        MKT_BEGIN_PROFILER();
 
-        ImGui::SameLine();
-        widget::MakeHelpPopUp( "How often system stats update (in seconds). Higher = less overhead." );
-
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
-    }
-
-    auto StatsPanel::DrawPerformance( float timeStep ) -> void {
-        static usize index{};
-        static float maxFps{ 0.0f };
-        static eastl::array<float, 120> frameHistory{};
-
-        if ( mCurrentTime - mLastTime >= mIntervalUpdate ) {
-            frameHistory[index] = mFrameRate;
-            if ( mFrameRate > maxFps ) maxFps = mFrameRate;
-            index = ( index + 1 ) % frameHistory.size();
+        if ( !ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "stats_frame_timing", "Frame timing" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            return;
         }
 
-        DrawStatsSection( "Performance", [&]() {
-            if ( ImGui::BeginTable( "PerformanceTable", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp ) ) {
-                auto Row = [&]( const char* label, const eastl::string& value, ImVec4 color = ImVec4{ 1, 1, 1, 1 } ) {
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::TextUnformatted( label );
-                    ImGui::TableNextColumn();
-                    ImGui::TextColored( color, "%s", value.c_str() );
-                };
+        if ( mFrames.mCount ) {
+            ImGui::Text( "%.1f FPS", mFrames.mFps );
+            ImGui::SameLine();
+            ImGui::TextDisabled( MKT_LOC( "stats_ms_average_samples" ).c_str(), mFrames.mAverageMs, mFrames.mCount );
+        }
 
-                Row( "Frame Rate", string::Format( "{:.2f} FPS", mFrameRate ), ImVec4( 0.6f, 0.9f, 0.6f, 1.0f ) );
-                Row( "Frame Time", string::Format( "{:.2f} ms", mFrameTime * 1000.0f ), ImVec4( 0.7f, 0.7f, 1.0f, 1.0f ) );
+        if ( Metrics( "FrameMetrics" ) ) {
+            Row( MKT_LOC( "stats_median" ).c_str(), string::Format( "{:.2f} ms", mFrames.mMedianMs ).c_str() );
+            Row( MKT_LOC( "stats_95th_percentile" ).c_str(), string::Format( "{:.2f} ms", mFrames.mP95Ms ).c_str() );
+            Row( MKT_LOC( "stats_worst_frame" ).c_str(), string::Format( "{:.2f} ms", mFrames.mWorstMs ).c_str() );
+            ImGui::EndTable();
+        }
 
-                ImGui::EndTable();
+        constexpr eastl::array rates{ 30, 60, 120, 144, 165, 180, 210, 240, 260 };
+        constexpr core::f32 millisecondsPerSecond{ 1000.0f };
+        constexpr core::f32 budgetPickerWidth{ 140.0f };
+        const auto currentBudget{ string::Format( "{} FPS", rates[mTargetIndex] ) };
+
+        ImGui::SetNextItemWidth( budgetPickerWidth );
+        if ( ImGui::BeginCombo( imgui::widget::LocalizedLabel( "stats_frame_budget", "Frame budget" ).c_str(), currentBudget.c_str() ) ) {
+            for ( core::i32 index{}; index < core::as<core::i32>( rates.size() ); ++index ) {
+                const auto label{ string::Format( "{} FPS", rates[index] ) };
+                const bool selected{ mTargetIndex == index };
+
+                if ( ImGui::Selectable( label.c_str(), selected ) ) {
+                    mTargetIndex = index;
+                }
+
+                if ( selected ) {
+                    ImGui::SetItemDefaultFocus();
+                }
             }
 
-            ImGui::Spacing();
-            ImGui::PushStyleColor( ImGuiCol_PlotLines, ImVec4( 0.3f, 0.7f, 1.0f, 1.0f ) );
-            ImGui::PlotLines( "##FrameGraph", frameHistory.data(), frameHistory.size(), 0,
-                              string::Format( "{:.2f} FPS", mFrameRate ).c_str(),
-                              0.0f, maxFps, ImVec2( -1, 80.0f ) );
-            ImGui::PopStyleColor();
-        } );
+            ImGui::EndCombo();
+        }
+
+        const core::f32 budget{ millisecondsPerSecond / core::as<core::f32>( rates[mTargetIndex] ) };
+        float plotMaximum{ budget * 2 };
+
+        for ( usize i{}; i < mHistory.Count(); ++i ) {
+            plotMaximum = eastl::max( plotMaximum, mHistory.At( i ) );
+        }
+
+        if ( ImPlot::BeginPlot( "##FrameHistory", { -1, 180 }, ImPlotFlags_Crosshairs ) ) {
+            ImPlot::SetupAxes( MKT_LOC( "stats_frame_oldest_to_newest" ).c_str(), MKT_LOC( "stats_time_ms" ).c_str() );
+            const auto limits{ mPaused ? ImPlotCond_Once : ImPlotCond_Always };
+            ImPlot::SetupAxesLimits( 0, eastl::max( 1.0, double( mHistory.Count() ) - 1.0 ),
+                0, plotMaximum * 1.1, limits );
+            ImPlot::SetupAxisFormat( ImAxis_Y1, "%.1f" );
+            ImPlotSpec line{};
+            line.LineWeight = 1.5f;
+            line.FillAlpha = 0.15f;
+            line.Flags = ImPlotLineFlags_Shaded;
+            ImPlot::PlotLineG( MKT_LOC( "stats_frame_time" ).c_str(), []( int index, void* data ) {
+                return ImPlotPoint{ double( index ), static_cast<FrameHistory*>( data )->At( size_t( index ) ) };
+            }, &mHistory, static_cast<int>( mHistory.Count() ), line );
+            ImPlotSpec reference{};
+            reference.LineColor = ImGui::GetStyleColorVec4( ImGuiCol_PlotHistogram );
+            reference.Flags = ImPlotInfLinesFlags_Horizontal;
+            const auto label{ string::Format( "Budget ({:.2f} ms)", budget ) };
+            ImPlot::PlotInfLines( label.c_str(), &budget, 1, reference );
+            ImPlot::EndPlot();
+        }
+
+        ImGui::TextDisabled( "%s", MKT_LOC( "stats_pause_capture_to_zoom_and_pan_the_history" ).c_str() );
+        ImGui::TextDisabled( MKT_LOC( "stats_rolling_window_up_to_frames_fps_frames_elapsed_time" ).c_str(), FrameHistory::kCapacity );
     }
 
     auto StatsPanel::DrawSystemInfo() -> void {
-        DrawStatsSection( "System Overview", [&]() {
-            static double totalMB = SystemStats::Get()->GetTotalRam() / 1'000'000.0;
-            static double freeMB = SystemStats::Get()->GetFreeRam() / 1'000'000.0;
-            static double sharedMB = SystemStats::Get()->GetSharedRam() / 1'000'000.0;
-            static double appMB = SystemStats::Get()->GetProcessRamUsage() / 1'000'000.0;
-            static double ramPercent = ( appMB / totalMB ) * 100.0;
+        MKT_BEGIN_PROFILER();
 
-            if ( mCurrentTime - mLastTime >= mIntervalUpdate ) {
-                totalMB = SystemStats::Get()->GetTotalRam() / 1'000'000.0;
-                freeMB = SystemStats::Get()->GetFreeRam() / 1'000'000.0;
-                sharedMB = SystemStats::Get()->GetSharedRam() / 1'000'000.0;
-                appMB = SystemStats::Get()->GetProcessRamUsage() / 1'000'000.0;
-                ramPercent = ( appMB / totalMB ) * 100.0;
-            }
+        if ( !ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "stats_system_and_memory", "System and memory" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            return;
+        }
 
-            eastl::string apiStr{};
-            switch ( RenderSystem::Get()->GetActiveGraphicsApi() ) {
-                case GraphicsAPI::eVulkan:
-                    apiStr = "Vulkan";
-                    break;
-                case GraphicsAPI::eD3D12:
-                    apiStr = "DirectX 12";
-                    break;
-                case GraphicsAPI::eD3D11:
-                    apiStr = "DirectX 11";
-                    break;
-                default:
-                    apiStr = "Unknown";
-                    break;
-            }
+        const auto unavailable{ MKT_LOC( "stats_unavailable" ) };
+        const auto cpuLabel{ MKT_LOC( "stats_cpu" ) };
+        const auto gpuLabel{ MKT_LOC( "stats_gpu" ) };
 
-            // Make CPU usage formatting width stable
-            const eastl::string cpuStr{ string::Format( "{}", SystemStats::Get()->GetCpuName() ) };
+        if ( ImGui::BeginTable( "SystemHardware", 2, ImGuiTableFlags_NoSavedSettings ) ) {
+            const float labelWidth{ eastl::max( ImGui::CalcTextSize( cpuLabel.c_str() ).x, ImGui::CalcTextSize( gpuLabel.c_str() ).x ) };
+            ImGui::TableSetupColumn( "##Hardware", ImGuiTableColumnFlags_WidthFixed, labelWidth );
+            ImGui::TableSetupColumn( "##Model", ImGuiTableColumnFlags_WidthStretch );
 
-            if ( ImGui::BeginTable( "SystemTable", 2,
-                                    ImGuiTableFlags_BordersInner |
-                                            ImGuiTableFlags_SizingFixedFit |
-                                            ImGuiTableFlags_NoHostExtendX ) ) {
-                auto Row = [&]( const char* label, const eastl::string& value, ImVec4 color = ImVec4( 1, 1, 1, 1 ) ) {
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    ImGui::TextUnformatted( label );
-                    ImGui::TableNextColumn();
-                    ImGui::TextColored( color, "%s", value.c_str() );
-                };
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::TextDisabled( "%s", cpuLabel.c_str() );
+            ImGui::TableNextColumn();
+            ImGui::TextWrapped( "%s", mSnapshot.cpu.empty() ? unavailable.c_str() : mSnapshot.cpu.c_str() );
 
-                Row( "Graphics API", apiStr );
-                Row( "CPU", cpuStr, ImVec4( 0.9f, 0.9f, 0.6f, 1.0f ) );
-                Row( "RAM (Total)", string::Format( "{:.2f} MB", totalMB ) );
-                Row( "App RAM", string::Format( "{:.2f} MB ({:4.1f}%)", appMB, ramPercent ),
-                     ImVec4( 0.8f, 0.8f, 0.5f, 1.0f ) );
-                Row( "RAM (Available)", string::Format( "{:.2f} MB", freeMB ) );
-                Row( "RAM (Shared)", string::Format( "{:.2f} MB", sharedMB ) );
-                Row( "GPU Device", string::Format( "{}", RenderSystem::Get()->GetGpuDevice()->GetDeviceName() ));
-                Row( "GPU V-RAM Usage", string::Format( "{:.2f} MB", RenderSystem::Get()->GetGpuDevice()->GetMemoryUsage() / 1'000'000.0 ),
-                     ImVec4( 0.7f, 0.5f, 1.0f, 1.0f ) );
-                Row( "Elapsed Time", TimeService::Get()->ToString( TimeService::Get()->GetTime() ) );
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::TextDisabled( "%s", gpuLabel.c_str() );
+            ImGui::TableNextColumn();
+            ImGui::TextWrapped( "%s", mSnapshot.gpu.empty() ? unavailable.c_str() : mSnapshot.gpu.c_str() );
+            ImGui::EndTable();
+        }
 
-                ImGui::EndTable();
-            }
+        if ( Metrics( "SystemActivity" ) ) {
+            Row( MKT_LOC( "stats_cpu_usage_whole_system" ).c_str(), string::Format( "{:.1f}%", mSnapshot.cpuPercent ).c_str() );
+            Row( MKT_LOC( "stats_graphics_api" ).c_str(), mSnapshot.api.c_str() );
+            Row( MKT_LOC( "stats_uptime" ).c_str(), core::TimeService::Get()->ToString( mSnapshot.uptime ).c_str() );
+            ImGui::EndTable();
+        }
 
-            ImGui::Spacing();
-            ImGui::TextColored( ImVec4( 0.6f, 0.7f, 1.0f, 1.0f ), "Memory Usage" );
+        ImGui::SeparatorText( MKT_LOC( "stats_memory_heading" ).c_str() );
+        if ( mSnapshot.totalRam > 0 ) {
+            const float used{ core::as<core::f32>( eastl::clamp( 1.0 - mSnapshot.availableRam / mSnapshot.totalRam, 0.0, 1.0 ) ) };
+            const auto percentage{ string::Format( "{:.1f}%", used * 100.0f ) };
+            ImGui::TextUnformatted( MKT_LOC( "stats_system_ram_usage" ).c_str() );
+            ImGui::ProgressBar( used, { -1.0f, ImGui::GetTextLineHeightWithSpacing() }, percentage.c_str() );
+        }
 
-            ImGui::PushStyleColor( ImGuiCol_PlotHistogram, ImVec4( 0.6f, 0.7f, 1.0f, 1.0f ) );
+        if ( Metrics( "SystemMemory" ) ) {
+            Row( MKT_LOC( "stats_process_ram_resident" ).c_str(), Memory( mSnapshot.processRam ).c_str() );
+            Row( MKT_LOC( "stats_available_system_ram" ).c_str(), mSnapshot.totalRam > 0 ? Memory( mSnapshot.availableRam ).c_str() : unavailable.c_str() );
+            Row( MKT_LOC( "stats_total_system_ram" ).c_str(), mSnapshot.totalRam > 0 ? Memory( mSnapshot.totalRam ).c_str() : unavailable.c_str() );
+            Row( MKT_LOC( "stats_process_vram_local" ).c_str(), mSnapshot.processGpuMemoryAvailable ? Memory( mSnapshot.processVram ).c_str() : unavailable.c_str() );
+            Row( MKT_LOC( "stats_process_gpu_shared_ram" ).c_str(), mSnapshot.processGpuMemoryAvailable ? Memory( mSnapshot.processSharedGpuRam ).c_str() : unavailable.c_str() );
+            Row( MKT_LOC( "stats_gpu_usage_backend_estimate" ).c_str(), mSnapshot.gpu.empty() ? unavailable.c_str() : Memory( mSnapshot.gpuHeapUsage ).c_str(),
+                MKT_LOC( "stats_backend_dependent_heap_accounting_this_is_not_the_process_vram" ).c_str() );
+            ImGui::EndTable();
+        }
 
-            f64 systemUsedRamPercent{ ( ( totalMB - freeMB ) / totalMB ) * 100.0 };
-            ImGui::ProgressBar( systemUsedRamPercent / 100.0f, ImVec2( -1, 0 ),
-                                string::Format( "{:4.1f}%% of {:.0f} GB used", systemUsedRamPercent, totalMB / 1000 ).c_str() );
-            ImGui::PopStyleColor();
-        } );
+        ImGui::SeparatorText( MKT_LOC( "stats_asset_streaming_heading" ).c_str() );
+        if ( Metrics( "StreamingActivity" ) ) {
+            Row( MKT_LOC( "stats_streaming_jobs_queued_loading" ).c_str(), string::Format( "{} / {}", mSnapshot.streamingQueued, mSnapshot.streamingLoading ).c_str() );
+            Row( MKT_LOC( "stats_streaming_payload_budget" ).c_str(),
+                MKT_LOC( mSnapshot.streamingOverBudget ? "stats_streaming_over_budget" : "stats_within_budget" ).c_str(),
+                mSnapshot.streamingOverBudget ? MKT_LOC( "stats_exceeded_referenced_assets_remain_resident" ).c_str() : nullptr );
+            Row( MKT_LOC( "stats_assets_evicted_from_cache" ).c_str(), string::Format( "{}", mSnapshot.streamingEvicted ).c_str() );
+            ImGui::EndTable();
+        }
+
+        if ( ImGui::BeginTable( "StreamingMemory", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_NoSavedSettings ) ) {
+            ImGui::TableSetupColumn( "##Label", ImGuiTableColumnFlags_WidthStretch, 2.0f );
+            ImGui::TableSetupColumn( "##Cpu", ImGuiTableColumnFlags_WidthStretch );
+            ImGui::TableSetupColumn( "##Gpu", ImGuiTableColumnFlags_WidthStretch );
+            ImGui::TableNextRow( ImGuiTableRowFlags_Headers );
+            ImGui::TableSetColumnIndex( 1 );
+            MetricValue( cpuLabel.c_str() );
+            ImGui::TableNextColumn();
+            MetricValue( gpuLabel.c_str() );
+
+            StreamingMemoryRow( MKT_LOC( "stats_streaming_resident_payload" ).c_str(), Memory( mSnapshot.streamingCpu ).c_str(),
+                Memory( mSnapshot.streamingGpu ).c_str(), MKT_LOC( "stats_logical_cached_model_and_texture_payloads_not_process_residency_excludes" ).c_str() );
+            StreamingMemoryRow( MKT_LOC( "stats_streaming_import_reservations" ).c_str(), Memory( mSnapshot.streamingReservedCpu ).c_str(),
+                Memory( mSnapshot.streamingReservedGpu ).c_str(), MKT_LOC( "stats_estimated_admission_reservations_not_measured_staging_or_driver_allocation_an" ).c_str() );
+            ImGui::EndTable();
+        }
     }
-}
+
+    auto StatsPanel::DrawSceneInfo() -> void {
+        MKT_BEGIN_PROFILER();
+
+        if ( !ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "stats_scene", "Scene" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            return;
+        }
+
+        if ( mSnapshot.scene.empty() ) {
+            ImGui::TextDisabled( "%s", MKT_LOC( "stats_no_active_scene" ).c_str() );
+            return;
+        }
+
+        ImGui::Text( "%s | %s", mSnapshot.scene.c_str(), mSnapshot.sceneState.c_str() );
+
+        if ( Metrics( "SceneMetrics" ) ) {
+            Row( MKT_LOC( "stats_render_resolution" ).c_str(), string::Format( "{} x {}", mSnapshot.renderWidth, mSnapshot.renderHeight ).c_str() );
+            Row( MKT_LOC( "stats_entities_meshes" ).c_str(), string::Format( "{} / {}", mSnapshot.entities, mSnapshot.meshes ).c_str() );
+            Row( MKT_LOC( "stats_lights_text_components" ).c_str(), string::Format( "{} / {}", mSnapshot.lights, mSnapshot.texts ).c_str() );
+            Row( MKT_LOC( "stats_rigid_bodies_colliders" ).c_str(), string::Format( "{} / {}", mSnapshot.rigidBodies, mSnapshot.colliders ).c_str() );
+            Row( MKT_LOC( "stats_audio_sources_playing" ).c_str(), string::Format( "{} / {}", mSnapshot.audioSources, mSnapshot.playingAudio ).c_str() );
+            ImGui::EndTable();
+        }
+
+        ImGui::TextDisabled( "%s", MKT_LOC( "stats_component_counts_include_inactive_entities" ).c_str() );
+    }
+}// namespace mikoto::editor

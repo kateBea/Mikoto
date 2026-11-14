@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_DIRECT3D11LIBRARIES_HH
-#define MIKOTO_DIRECT3D11LIBRARIES_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D11_DIRECT3_D11_LIBRARIES_HH
+#define MIKOTO_RENDERER_RHI_D3D11_DIRECT3_D11_LIBRARIES_HH
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -21,4 +21,5 @@
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "dxguid.lib")
 
-#endif //MIKOTO_DIRECT3D11LIBRARIES_HH
+#endif// MIKOTO_RENDERER_RHI_D3D11_DIRECT3_D11_LIBRARIES_HH
+

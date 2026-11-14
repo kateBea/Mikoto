@@ -12,26 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_CONFIG_LOADER_HH
-#define MIKOTO_CONFIG_LOADER_HH
+#ifndef MIKOTO_CORE_CONFIGURATION_HH
+#define MIKOTO_CORE_CONFIGURATION_HH
 
+#include <EASTL/allocator.h>
+#include <EASTL/utility.h>
 #include <EASTL/any.h>
 #include <EASTL/string.h>
+#include <EASTL/algorithm.h>
 
 #include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
+#include <Core/Profiler.hh>
+
 #include <Filesystem/Path.hh>
 
 namespace mikoto::core {
 
     class Configuration {
     public:
-
-        MKT_NODISCARD auto IsLoaded() const  -> bool { return mIsLoaded; }
+        MKT_NODISCARD auto IsLoaded() const -> bool;
 
         template<typename T>
         MKT_NODISCARD auto Get( const eastl::string& key, const T& defaultValue = {} ) const -> T {
+            MKT_BEGIN_PROFILER();
             const auto it{ mData.find( key ) };
             if ( it != mData.end() ) {
                 if ( auto* val{ eastl::any_cast<T>( &it->second ) } ) {
@@ -53,4 +58,4 @@ namespace mikoto::core {
 
 }// namespace Mikoto
 
-#endif //MIKOTO_CONFIG_LOADER_HH
+#endif// MIKOTO_CORE_CONFIGURATION_HH

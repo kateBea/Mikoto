@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_ALLOCATOR_HH
-#define MIKOTO_ALLOCATOR_HH
+#ifndef MIKOTO_MEMORY_ALLOCATOR_HH
+#define MIKOTO_MEMORY_ALLOCATOR_HH
 
 #include <new>
-#include <cstdint>
 
 #include <EASTL/vector.h>
 #include <EASTL/optional.h>
@@ -26,6 +25,7 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/Profiler.hh>
 
 #define MKT_BYTES( X ) ( X )
 
@@ -45,29 +45,16 @@
 #define MKT_NOTHROW_PLACEMENT_NEW_COUNT( SIZE, COUNT ) ::operator new( COUNT * SIZE, std::nothrow )
 #define MKT_NOTHROW_PLACEMENT_DELETE( PTR ) ::operator delete(PTR)
 
-namespace ankerl::unordered_dense {
+template <class T>
+    struct ankerl::unordered_dense::hash<eastl::unique_ptr<T>> {
+    using is_avalanching = void;
 
-    // Taken as reference: unordered_dense line 314
-    template <class T>
-    struct hash<eastl::unique_ptr<T>> {
-        using is_avalanching = void;
-
-        auto operator()(eastl::unique_ptr<T> const& ptr) const noexcept -> std::uint64_t {
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-            return detail::wyhash::hash(reinterpret_cast<std::uintptr_t>(ptr.get()));
-        }
-    };
-}
+    auto operator()(eastl::unique_ptr<T> const& ptr) const noexcept -> std::uint64_t {
+        return hash<T*>{}( ptr.get() );
+    }
+};
 
 namespace mikoto::memory {
-
-    using namespace mikoto::core;
-
-    auto MallocFree( void* p ) -> void;
-
-    MKT_NODISCARD auto MallocAlloc( core::usize size ) -> void*;
-    MKT_NODISCARD auto MallocCalloc( core::usize size ) -> void*;
-    MKT_NODISCARD auto MallocRealloc( void* p, core::usize size ) -> void*;
 
     // Alignment must be >= 1 (power of two). 0 is invalid.
     MKT_NODISCARD auto AlignUp(core::usize value, core::usize alignment) -> core::usize;
@@ -81,11 +68,11 @@ namespace mikoto::memory {
     public:
         virtual ~IAllocator() = default;
 
-        MKT_NODISCARD virtual auto Allocate(core::usize size, core::usize alignment) -> eastl::optional<Allocation> = 0;
         virtual auto Free(const Allocation& allocation) -> void = 0;
+        MKT_NODISCARD virtual auto Allocate(core::usize size, core::usize alignment) -> eastl::optional<Allocation> = 0;
 
-        virtual auto Reset() -> void {} // optional override
+        virtual auto Reset() -> void; // optional override
     };
 }
 
-#endif//MIKOTO_ALLOCATOR_HH
+#endif// MIKOTO_MEMORY_ALLOCATOR_HH

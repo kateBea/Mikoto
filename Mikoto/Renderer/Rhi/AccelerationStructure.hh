@@ -12,42 +12,60 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_ACCELERATION_STRUCTURE_HH
-#define MIKOTO_RHI_ACCELERATION_STRUCTURE_HH
+#ifndef MIKOTO_RENDERER_RHI_ACCELERATION_STRUCTURE_HH
+#define MIKOTO_RENDERER_RHI_ACCELERATION_STRUCTURE_HH
 
-#include <EASTL/string.h>
-#include <EASTL/string_view.h>
+#include <EASTL/array.h>
+#include <EASTL/vector.h>
 
-#include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/String.hh>
-#include <Memory/BufferSpan.hh>
-#include <Core/ResourcePool.hh>
-
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/Utility.hh>
-#include <Renderer/Rhi/DeviceObject.hh>
+#include <Renderer/Rhi/Buffer.hh>
 
 namespace mikoto::renderer::rhi {
 
-    /**
-     * Reserved creation parameters for a ray-tracing acceleration structure.
-     */
-    struct AccelStructureCreateDescription {
-
+    enum class AccelStructureType {
+        eBottomLevel,
+        eTopLevel
     };
 
-    /**
-     * Interface representing a ray-tracing acceleration structure.
-     */
-    class AccelStructure : public DeviceObject {
+    class IAccelerationStructure : public DeviceObject {
     public:
-
         using DeviceObject::Initialize;
 
+        // Record initial immutable builds on the graphics queue before any trace.
+        // Build and trace may share a submission. Do not discard that recording.
+        // Input data must be valid and ready; modifying geometry requires a new AS.
+        // TLAS builds its previously unbuilt BLAS dependencies automatically.
+        virtual auto GetAddress() const -> DeviceAddress = 0;
+
+        virtual auto GetType() const -> AccelStructureType = 0;
+
+        ~IAccelerationStructure() override = default;
     };
 
-    using AccelStructureHandle = core::Ref<AccelStructure>;
+    using AccelStructureHandle = core::Ref<IAccelerationStructure>;
+
+    struct RayTracingInstance {
+        AccelStructureHandle mBottomLevel{};
+        // Row-major 3x4 object-to-world transform, identical on both APIs.
+        eastl::array<float, 12> mTransform{ 1, 0, 0, 0,
+            0, 1, 0, 0, 0, 0, 1, 0 };
+        core::u32 mInstanceID{};
+        core::u8 mMask{ 0xFF };
+    };
+
+    struct AccelStructureCreateDescription {
+        AccelStructureType mType{ AccelStructureType::eBottomLevel };
+        // One opaque triangle geometry. Position is float3 at vertex offset 0;
+        // indices are uint32. Input buffers must declare AccelStructureBuildInput usage.
+        BufferHandle mVertices{};
+        BufferHandle mIndices{};
+        core::u32 mVertexCount{};
+        core::u32 mVertexStride{ 12 };
+        core::u32 mIndexCount{};
+        core::usize mIndexOffset{}; // Byte offset of this mesh in the index buffer.
+        eastl::vector<RayTracingInstance> mInstances{};
+    };
 }
 
-#endif//MIKOTO_RHI_ACCELERATION_STRUCTURE_HH
+#endif// MIKOTO_RENDERER_RHI_ACCELERATION_STRUCTURE_HH
+

@@ -1,0 +1,122 @@
+diff --git a/profiler/src/profiler/TracyView.cpp b/profiler/src/profiler/TracyView.cpp
+index 4ab2838..fe71ef8 100644
+--- a/profiler/src/profiler/TracyView.cpp
++++ b/profiler/src/profiler/TracyView.cpp
+@@ -170,6 +170,7 @@ void View::ViewSource( const char* fileName, int line )
+     assert( fileName );
+     m_sourceViewFile = fileName;
+     m_sourceView->OpenSource( fileName, line, *this, m_worker );
++    m_focusSourceView = true;
+ }
+ 
+ void View::ViewSource( const char* fileName, int line, const char* functionName )
+@@ -240,6 +241,7 @@ void View::ViewSymbolSource( const char* fileName, int line )
+     if( m_sourceView->SwitchTo( fileName, line, m_worker, *this ) )
+     {
+         m_sourceViewFile = fileName;
++        m_focusSourceView = true;
+     }
+     else
+     {
+@@ -252,6 +254,7 @@ void View::ViewSymbol( const char* fileName, int line, uint64_t baseAddr, uint64
+     assert( fileName || symAddr );
+     m_sourceViewFile = fileName ? fileName : (const char*)~uint64_t( 0 );
+     m_sourceView->OpenSymbol( fileName, line, baseAddr, symAddr, m_worker, *this );
++    m_focusSourceView = true;
+ }
+ 
+ void View::UpdateThreadOrder()
+@@ -1416,6 +1419,11 @@ void View::DrawTextEditor()
+     ImGui::SetNextWindowSize( ImVec2( 1800 * scale, 800 * scale ), ImGuiCond_FirstUseEver );
+     m_sourceViewConstraint.Constrain();
+     bool show = true;
++    if( m_focusSourceView )
++    {
++        ImGui::SetNextWindowFocus();
++        m_focusSourceView = false;
++    }
+     ImGui::Begin( "Source view", &show, ImGuiWindowFlags_NoScrollbar );
+     if( !ImGui::GetCurrentWindowRead()->SkipItems ) m_sourceView->Render( m_worker, *this, m_sourceViewConstraint );
+     ImGui::End();
+diff --git a/profiler/src/profiler/TracyView.hpp b/profiler/src/profiler/TracyView.hpp
+index 9df4b84..c6590fa 100644
+--- a/profiler/src/profiler/TracyView.hpp
++++ b/profiler/src/profiler/TracyView.hpp
+@@ -707,6 +707,7 @@ private:
+     SourceContents m_srcHintCache;
+     std::unique_ptr<SourceView> m_sourceView;
+     const char* m_sourceViewFile;
++    bool m_focusSourceView = false;
+     bool m_uarchSet = false;
+ 
+     float m_rootWidth = 0, m_rootHeight = 0;
+diff --git a/profiler/src/profiler/TracyView_ZoneInfo.cpp b/profiler/src/profiler/TracyView_ZoneInfo.cpp
+index 633dd33..7562098 100644
+--- a/profiler/src/profiler/TracyView_ZoneInfo.cpp
++++ b/profiler/src/profiler/TracyView_ZoneInfo.cpp
+@@ -1,3 +1,4 @@
++#include <algorithm>
+ #include <inttypes.h>
+ 
+ #include "TracyFilesystem.hpp"
+@@ -13,6 +14,26 @@ namespace tracy
+ 
+ extern double s_time;
+ 
++struct ZoneTooltipScope
++{
++    ZoneTooltipScope()
++    {
++        const auto& style = ImGui::GetStyle();
++        constexpr float paddingX = 10.f;
++        constexpr float paddingY = 8.f;
++        constexpr float extraRowSpacing = 2.f;
++        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( std::max( style.WindowPadding.x, paddingX ), std::max( style.WindowPadding.y, paddingY ) ) );
++        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( style.ItemSpacing.x, style.ItemSpacing.y + extraRowSpacing ) );
++        ImGui::BeginTooltip();
++    }
++
++    ~ZoneTooltipScope()
++    {
++        ImGui::EndTooltip();
++        ImGui::PopStyleVar( 2 );
++    }
++};
++
+ template<typename T>
+ static inline uint32_t GetZoneCallstack( const T& ev, const Worker& worker );
+ 
+@@ -1998,7 +2019,7 @@ void View::ZoneTooltip( const ZoneEvent& ev )
+     const auto ztime = end - ev.Start();
+     const auto selftime = GetZoneSelfTime( ev );
+ 
+-    ImGui::BeginTooltip();
++    const ZoneTooltipScope tooltip;
+     if( m_worker.HasZoneExtra( ev ) && m_worker.GetZoneExtra( ev ).name.Active() )
+     {
+         ImGui::TextUnformatted( m_worker.GetString( m_worker.GetZoneExtra( ev ).name ) );
+@@ -2096,7 +2117,6 @@ void View::ZoneTooltip( const ZoneEvent& ev )
+             TextColoredUnformatted( ImVec4( 0xCC / 255.f, 0xCC / 255.f, 0x22 / 255.f, 1.f ), m_worker.GetString( extra.text ) );
+         }
+     }
+-    ImGui::EndTooltip();
+ }
+ 
+ void View::ZoneTooltip( const GpuEvent& ev )
+@@ -2107,7 +2127,7 @@ void View::ZoneTooltip( const GpuEvent& ev )
+     const auto ztime = end - ev.GpuStart();
+     const auto selftime = GetZoneSelfTime( ev );
+ 
+-    ImGui::BeginTooltip();
++    const ZoneTooltipScope tooltip;
+     ImGui::TextUnformatted( m_worker.GetString( srcloc.name ) );
+     ImGui::TextUnformatted( m_worker.GetString( srcloc.function ) );
+     ImGui::Separator();
+@@ -2179,7 +2199,6 @@ void View::ZoneTooltip( const GpuEvent& ev )
+         }
+     }
+ 
+-    ImGui::EndTooltip();
+ }
+ 
+ }

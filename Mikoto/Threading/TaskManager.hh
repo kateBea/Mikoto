@@ -12,24 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_TASK_MANAGER_HH
-#define MIKOTO_TASK_MANAGER_HH
+#ifndef MIKOTO_THREADING_TASK_MANAGER_HH
+#define MIKOTO_THREADING_TASK_MANAGER_HH
+
+#include <functional>
 
 #include <taskflow/taskflow.hpp>
-#include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Service.hh>
-#include <Core/Singleton.hh>
-
-#include <Logging/Logger.hh>
-
-#include <Threading/TaskGraph.hh>
 
 namespace mikoto::threading {
 
-    class TaskManager final : public core::IService, public core::Singleton<TaskManager> {
+    class TaskManager final : public core::IService {
     public:
         explicit TaskManager( tf::Executor* executor );
 
@@ -45,7 +41,6 @@ namespace mikoto::threading {
     private:
         tf::Executor* mExecutor{};
     };
-}// namespace Mikoto
+}// namespace mikoto::threading
 
-
-#endif//MIKOTO_TASK_MANAGER_HH
+#endif// MIKOTO_THREADING_TASK_MANAGER_HH

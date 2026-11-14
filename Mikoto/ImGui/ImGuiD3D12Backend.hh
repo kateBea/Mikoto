@@ -12,34 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_IMGUI_D3D12BACKEND_HH
-#define MIKOTO_IMGUI_D3D12BACKEND_HH
+#ifndef MIKOTO_IMGUI_IMGUI_D3D12_BACKEND_HH
+#define MIKOTO_IMGUI_IMGUI_D3D12_BACKEND_HH
 
 #include <mutex>
 
 #include <EASTL/functional.h>
 
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Platform.hh>
-
-#include <ImGui/ImGuiService.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Rhi/CommandList.hh>
 
+#include <ImGui/ImGuiService.hh>
+
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
-#include <wrl.h>
+#include <Platform/Windows/Windows.hh>
+
 #include <directx/d3d12.h>
+#include <wrl.h>
 
 #include <imgui_impl_dx12.h>
 
 #include <Renderer/Rhi/D3D12/D3D12Device.hh>
 
 namespace mikoto::imgui {
-
-    using namespace mikoto::core;
-    using namespace mikoto::renderer::rhi;
 
     // Simple free list based allocator
     // Taken from imgui examples
@@ -70,10 +71,10 @@ namespace mikoto::imgui {
         auto BeginFrame() -> void override;
         auto EndFrame() -> void override;
 
-        MKT_NODISCARD auto GetFinalComposition() -> TextureHandle override;
+        MKT_NODISCARD auto GetFinalComposition() -> renderer::rhi::TextureHandle override;
 
-        MKT_NODISCARD auto ConstructImGuiTextureID( const ITexture* texture ) -> ImTextureID override;
-        MKT_NODISCARD auto ConstructImGuiTextureID( TextureHandle texture ) -> ImTextureID override;
+        MKT_NODISCARD auto ConstructImGuiTextureID( const renderer::rhi::ITexture* texture ) -> ImTextureID override;
+        MKT_NODISCARD auto ConstructImGuiTextureID( renderer::rhi::TextureHandle texture ) -> ImTextureID override;
 
     private:
         // [Internal usage]
@@ -85,10 +86,10 @@ namespace mikoto::imgui {
     private:
         D3D12_RESOURCE_DESC mDimensions{};
 
-        CommandListHandle mCommandList{};
+        renderer::rhi::CommandListHandle mCommandList{};
 
-        TextureHandle mColorImage{};
-        TextureHandle mDepthImage{};
+        renderer::rhi::TextureHandle mColorImage{};
+        renderer::rhi::TextureHandle mDepthImage{};
 
         // Made inline static so the lambda does not require explicit capture
         // Lambdas deduce to function pointer only if capture list is empty
@@ -112,4 +113,4 @@ namespace mikoto::imgui {
 
 #endif
 
-#endif //MIKOTO_IMGUI_D3D12BACKEND_HH
+#endif// MIKOTO_IMGUI_IMGUI_D3D12_BACKEND_HH

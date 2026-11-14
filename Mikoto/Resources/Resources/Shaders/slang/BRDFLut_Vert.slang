@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 
 struct VSOutput {
@@ -19,13 +21,13 @@ struct VSOutput {
     float4 PositionH : SV_Position;
 };
 
-[shader("vertex")]
-VSOutput main(uint vertexIndex: SV_VertexID) {
+[shader( "vertex" )]
+VSOutput main( uint vertexIndex : SV_VertexID ) {
     VSOutput o;
 
-    o.UV = float2(float((vertexIndex << 1) & 2), float(vertexIndex & 2) );
+    o.UV = float2( float( ( vertexIndex << 1 ) & 2 ), float( vertexIndex & 2 ) );
 
-    o.PositionH = float4(o.UV * 2.0f - 1.0f, 0.0f, 1.0f);
+    o.PositionH = float4( o.UV * 2.0f - 1.0f, 0.0f, 1.0f );
 
     return o;
 }

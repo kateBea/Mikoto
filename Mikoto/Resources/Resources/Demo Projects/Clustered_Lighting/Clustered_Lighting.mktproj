@@ -1,0 +1,27 @@
+# Clustered_Lighting demo project.
+# Sponza with 15,000 animated local lights: 13,500 point lights and 1,500 spotlights.
+# Open this manifest in the editor; Scene selects the authored scene below.
+# Assets and Cache paths are relative to this manifest.
+# EditorCamera configures editor navigation; the scene camera controls the Game view.
+
+Version: 1
+Project: "Sponza - 15,000 Animated Lights"
+Assets: "Assets"
+Cache: "Assets/.cache"
+Scene: "Scene/Clustered_Lighting.mktscn"
+CompressTextures: false
+AutoSave: false
+AutoSaveIntervalMs: 2000
+EditorCamera:
+  NavigationMode: "Fly"
+  Position: [8,1.6,0]
+  Direction: [-0.999390827,-0.034899497,0]
+  Projection: "Perspective"
+  FieldOfView: 65
+  NearPlane: 0.05
+  FarPlane: 100
+  MovementSpeed: 3
+  RotationSpeed: 10
+  SmoothTime: 0.1
+  AllowPitch: true
+  AllowYaw: true

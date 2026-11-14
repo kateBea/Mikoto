@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_TYPES_HH
-#define MIKOTO_RHI_TYPES_HH
+#ifndef MIKOTO_RENDERER_RHI_TYPES_HH
+#define MIKOTO_RENDERER_RHI_TYPES_HH
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
@@ -22,6 +22,7 @@
 #include <Core/Core.hh>
 #include <Core/Flag.hh>
 #include <Core/Types.hh>
+#include <Core/Profiler.hh>
 
 namespace mikoto::renderer::rhi {
 
@@ -31,13 +32,6 @@ namespace mikoto::renderer::rhi {
     using DescriptorTableIndex = core::u64;
 
     inline constexpr DescriptorTableIndex kInvalidBindingItemIndex{ ~0ULL };
-
-    enum class GpuDeviceType {
-        eInvalid = -1,
-        eDiscrete,
-        eIntegrated,
-        eSoftwareRasterizer
-    };
 
     enum class ShaderType {
         eInvalid = -1,
@@ -80,6 +74,42 @@ namespace mikoto::renderer::rhi {
         eSlang,
     };
 
+    enum class BlendFactor : core::u8 {
+        eZero,
+        eOne,
+
+        eSrcColor,
+        eOneMinusSrcColor,
+        eDstColor,
+        eOneMinusDstColor,
+
+        eSrcAlpha,
+        eOneMinusSrcAlpha,
+        eDstAlpha,
+        eOneMinusDstAlpha,
+
+        eSrcAlphaSaturate,
+    };
+
+    enum class BlendOperation : core::u8 {
+        eAdd,
+        eSubtract,
+        eReverseSubtract,
+        eMin,
+        eMax,
+    };
+
+    enum class ColorWriteMask : core::u8 {
+        eNone  = 0x00,
+        eRed   = 0x01,
+        eGreen = 0x02,
+        eBlue  = 0x04,
+        eAlpha = 0x08,
+
+        eRGB   = 0x07,
+        eRGBA  = 0x0F,
+    };
+
     enum class ViewportConvention {
         eNone,
         eLeftHanded_OriginTopLeft,
@@ -109,6 +139,7 @@ namespace mikoto::renderer::rhi {
         // D3D12
         D3D12_Fence,
         D3D12_Device,
+        D3D12_CommandList,
 
         // D3D11
         D3D11_Device,
@@ -128,6 +159,9 @@ namespace mikoto::renderer::rhi {
         D3D11_BlendState,
         D3D11_RasterizerState,
         D3D11_DepthStencilState,
+        GL_Buffer,
+        GL_Texture,
+        GL_Sampler,
     };
 
     enum class LoadOp {
@@ -196,13 +230,13 @@ namespace mikoto::renderer::rhi {
         eVulkan,
         eD3D12,
         eD3D11,
+        eOpenGL,
     };
 
     enum class RefreshRate {
         eSync,
         eUnlimited
     };
-
 
     enum class RenderResolution {
         e720P,
@@ -233,6 +267,7 @@ namespace mikoto::renderer::rhi {
         eInvalid = -1,
         eGraphics,
         eCompute,
+        eRayTracing,
     };
 
     enum class WindingOrder {
@@ -339,6 +374,8 @@ namespace mikoto::renderer::rhi {
         eBC7_UNORM,
         eBC7_UNORM_SRGB,
 
+        eNV12,
+
         eCount,
     };
 
@@ -396,6 +433,8 @@ namespace mikoto::renderer::rhi {
         eAccelStructWrite,
         eAccelStructBuildInput,
         eAccelStructBuildBlas,
+        eVideoDecodeOutput,
+        eVideoDecodeReference,
     };
 
     // Describes how a resource is used by shaders
@@ -432,6 +471,37 @@ namespace mikoto::renderer::rhi {
         DepthStencil
     };
 
+    /**
+     * Bit storage for optional device capabilities.
+     */
+    struct GpuFeatureSupportProperties {
+        using Data = core::u64;
+    };
+
+    using GpuFeatureSupportFlags = core::Flags<GpuFeatureSupportProperties>;
+
+    struct GpuFeatureSupportFlagsBits {
+        // Device with bare minimum support
+        static constexpr GpuFeatureSupportFlags None{ 0 };
+
+        static constexpr GpuFeatureSupportFlags AnisotropicFiltering{ BIT_SET(0) };
+        static constexpr GpuFeatureSupportFlags HardwareWireframe{ BIT_SET(1) };
+        static constexpr GpuFeatureSupportFlags WindowPresentation{ BIT_SET(2) };
+        static constexpr GpuFeatureSupportFlags HardwareRayTracing{ BIT_SET(3) };
+        static constexpr GpuFeatureSupportFlags MeshShaders{ BIT_SET(4) };
+        static constexpr GpuFeatureSupportFlags BCTextureCompression{ BIT_SET(5) };
+        static constexpr GpuFeatureSupportFlags BindlessDescriptorTables{ BIT_SET(6) };
+        static constexpr GpuFeatureSupportFlags VideoEncoding{ BIT_SET(7) };
+        static constexpr GpuFeatureSupportFlags VideoDecoding{ BIT_SET(8) };
+    };
+
+    enum class GpuDeviceType : core::i32 {
+        eInvalid = -1,
+        eDiscrete,
+        eIntegrated,
+        eSoftwareRasterizer
+    };
+
     struct Extent2D {
         core::u32 mWidth{};
         core::u32 mHeight{};
@@ -459,6 +529,11 @@ namespace mikoto::renderer::rhi {
         static constexpr BufferUsageFlags IndirectDraw{ BIT_SET(5) };
         static constexpr BufferUsageFlags CopySource{ BIT_SET(6) };
         static constexpr BufferUsageFlags CopyDest{ BIT_SET(7) };
+        static constexpr BufferUsageFlags AccelStructureBuildInput{ BIT_SET(8) };
+        static constexpr BufferUsageFlags AccelStructureStorage{ BIT_SET(9) };
+        static constexpr BufferUsageFlags AccelStructureScratch{ BIT_SET(10) };
+        static constexpr BufferUsageFlags ShaderBindingTable{ BIT_SET(11) };
+        static constexpr BufferUsageFlags VideoDecodeSource{ BIT_SET(12) };
     };
 
     // Texture usage flags
@@ -478,6 +553,7 @@ namespace mikoto::renderer::rhi {
         static constexpr TextureUsageFlags ShaderResource{ BIT_SET( 4 ) };
         static constexpr TextureUsageFlags CopySource{ BIT_SET( 5 ) };
         static constexpr TextureUsageFlags CopyDest{ BIT_SET( 6 ) };
+        static constexpr TextureUsageFlags UnorderedAccess{ BIT_SET( 7 ) };
     };
 
     // Shader usage flags
@@ -564,6 +640,7 @@ namespace mikoto::renderer::rhi {
 
         static constexpr PipelineStageFlags AccelerationStructureBuild{ BIT_SET( 25 ) };
         static constexpr PipelineStageFlags RayTracingShader{ BIT_SET( 21 ) };
+        static constexpr PipelineStageFlags VideoDecode{ BIT_SET( 26 ) };
 
         static constexpr PipelineStageFlags All{ ~0ULL };
     };
@@ -600,9 +677,11 @@ namespace mikoto::renderer::rhi {
         static constexpr BarrierAccessFlags AccelerationStructureWrite{ 1ULL << 20 };
         static constexpr BarrierAccessFlags AccelerationStructureBuildInputRead{ 1ULL << 21 };
         static constexpr BarrierAccessFlags StructuredBufferRead{ 1ULL << 22 };
+        static constexpr BarrierAccessFlags VideoDecodeRead{ 1ULL << 23 };
+        static constexpr BarrierAccessFlags VideoDecodeWrite{ 1ULL << 24 };
 
         static constexpr BarrierAccessFlags Writes{ ShaderStorageWrite | ColorAttachmentWrite |
-            DepthStencilWrite | TransferWrite | ResolveWrite | HostWrite | MemoryWrite | AccelerationStructureWrite };
+            DepthStencilWrite | TransferWrite | ResolveWrite | HostWrite | MemoryWrite | AccelerationStructureWrite | VideoDecodeWrite };
     };
 
     // Texture layout flags
@@ -624,6 +703,8 @@ namespace mikoto::renderer::rhi {
         static constexpr TextureLayoutFlags ResolveSource{ BIT_SET(9) };
         static constexpr TextureLayoutFlags ResolveDest{ BIT_SET(10) };
         static constexpr TextureLayoutFlags DepthStencilReadOnly{ BIT_SET(11) };
+        static constexpr TextureLayoutFlags VideoDecodeOutput{ BIT_SET(12) };
+        static constexpr TextureLayoutFlags VideoDecodeReference{ BIT_SET(13) };
     };
 
     /**
@@ -711,13 +792,7 @@ namespace mikoto::renderer::rhi {
 
         TextureSubresourceSet() = default;
 
-        TextureSubresourceSet(MipLevel baseMipLevel, MipLevel numMipLevels, ArraySlice baseArraySlice, ArraySlice numArraySlices)
-            : mBaseMipLevel(baseMipLevel)
-            , mNumMipLevels(numMipLevels)
-            , mBaseArraySlice(baseArraySlice)
-            , mNumArraySlices(numArraySlices)
-        {
-        }
+        TextureSubresourceSet(MipLevel baseMipLevel, MipLevel numMipLevels, ArraySlice baseArraySlice, ArraySlice numArraySlices);
     };
 
     /**
@@ -731,14 +806,11 @@ namespace mikoto::renderer::rhi {
 
         Color() = default;
 
-        Color( core::f32 c )
-            : mR{ c }, mG{ c }, mB{ c }, mA{ c } {}
+        Color( core::f32 c );
 
-        Color( const core::float4& c )
-            : mR{ c.r }, mG{ c.g }, mB{ c.b }, mA{ c.a } {}
+        Color( const core::float4& c );
 
-        Color( core::f32 r, core::f32 g, core::f32 b, core::f32 a )
-            : mR{ r }, mG{ g }, mB{ b }, mA{ a } {}
+        Color( core::f32 r, core::f32 g, core::f32 b, core::f32 a );
 
         /**
          * Performs the operation represented by operator.
@@ -746,9 +818,7 @@ namespace mikoto::renderer::rhi {
          * @param other Input value used by this operation.
          * @returns The result of operator.
          */
-        auto operator==( const Color& other ) const -> bool {
-            return mR == other.mR && mG == other.mG && mB == other.mB && mA == other.mA;
-        }
+        auto operator==( const Color& other ) const -> bool;
 
         /**
          * Performs the operation represented by operator.
@@ -756,9 +826,7 @@ namespace mikoto::renderer::rhi {
          * @param other Input value used by this operation.
          * @returns The result of operator.
          */
-        auto operator!=( const Color& other ) const -> bool {
-            return !( *this == other );
-        }
+        auto operator!=( const Color& other ) const -> bool;
 
         /**
          * Divides each color component by a scalar.
@@ -768,6 +836,7 @@ namespace mikoto::renderer::rhi {
          * @returns The scaled color.
          */
         friend auto operator/( const Color& color, float value ) -> Color {
+            MKT_BEGIN_PROFILER();
             return { color.mR / value, color.mG / value, color.mB / value, color.mA / value };
         }
 
@@ -779,6 +848,7 @@ namespace mikoto::renderer::rhi {
          * @returns The offset color.
          */
         friend auto operator+( const Color& color, float value ) -> Color {
+            MKT_BEGIN_PROFILER();
             return { color.mR + value, color.mG + value, color.mB + value, color.mA + value };
         }
 
@@ -790,6 +860,7 @@ namespace mikoto::renderer::rhi {
          * @returns The offset color.
          */
         friend auto operator+( float value, const Color& color ) -> Color {
+            MKT_BEGIN_PROFILER();
             return { color.mR + value, color.mG + value, color.mB + value, color.mA + value };
         }
 
@@ -801,6 +872,7 @@ namespace mikoto::renderer::rhi {
          * @returns The component-wise quotient.
          */
         friend auto operator/( float value, const Color& color ) -> Color {
+            MKT_BEGIN_PROFILER();
             return { color.mR / value, color.mG / value, color.mB / value, color.mA / value };
         }
 
@@ -812,6 +884,7 @@ namespace mikoto::renderer::rhi {
          * @returns The component-wise quotient.
          */
         friend auto operator/( const Color& lhs, const Color& rhs ) -> Color {
+            MKT_BEGIN_PROFILER();
             return { lhs.mR / rhs.mR, lhs.mG / rhs.mG, lhs.mB / rhs.mB, lhs.mA / rhs.mA };
         }
 
@@ -833,11 +906,9 @@ namespace mikoto::renderer::rhi {
 
         Viewport() = default;
 
-        Viewport( core::f32 width, core::f32 height )
-            : mMinX{ 0.f }, mMaxX{ width }, mMinY{ 0.f }, mMaxY{ height }, mMinZ{ 0.f }, mMaxZ{ 1.f } {}
+        Viewport( core::f32 width, core::f32 height );
 
-        Viewport( core::f32 minX, core::f32 maxX, core::f32 minY, core::f32 maxY, core::f32 minZ, core::f32 maxZ )
-            : mMinX{ minX }, mMaxX{ maxX }, mMinY{ minY }, mMaxY{ maxY }, mMinZ{ minZ }, mMaxZ{ maxZ } {}
+        Viewport( core::f32 minX, core::f32 maxX, core::f32 minY, core::f32 maxY, core::f32 minZ, core::f32 maxZ );
 
         /**
          * Performs the operation represented by operator.
@@ -845,9 +916,7 @@ namespace mikoto::renderer::rhi {
          * @param other Input value used by this operation.
          * @returns The result of operator.
          */
-        auto operator==( const Viewport& other ) const -> bool {
-            return mMinX == other.mMinX && mMinY == other.mMinY && mMinZ == other.mMinZ && mMaxX == other.mMaxX && mMaxY == other.mMaxY && mMaxZ == other.mMaxZ;
-        }
+        auto operator==( const Viewport& other ) const -> bool;
 
         /**
          * Performs the operation represented by operator.
@@ -855,27 +924,21 @@ namespace mikoto::renderer::rhi {
          * @param other Input value used by this operation.
          * @returns The result of operator.
          */
-        auto operator!=( const Viewport& other ) const -> bool {
-            return !( *this == other );
-        }
+        auto operator!=( const Viewport& other ) const -> bool;
 
         /**
          * Returns the value produced by GetWidth.
          *
          * @returns The result of GetWidth.
          */
-        MKT_NODISCARD auto GetWidth() const -> float {
-            return mMaxX - mMinX;
-        }
+        MKT_NODISCARD auto GetWidth() const -> float;
 
         /**
          * Returns the value produced by GetHeight.
          *
          * @returns The result of GetHeight.
          */
-        MKT_NODISCARD auto GetHeight() const -> float {
-            return mMaxY - mMinY;
-        }
+        MKT_NODISCARD auto GetHeight() const -> float;
     };
 
     /**
@@ -889,22 +952,16 @@ namespace mikoto::renderer::rhi {
 
         Rect() = default;
 
-        Rect( core::i32 width, core::i32 height )
-            : mMinX{ 0 }, mMaxX{ width }, mMinY{ 0 }, mMaxY{ height } {}
+        Rect( core::i32 width, core::i32 height );
 
-        Rect( core::i32 minX, core::i32 maxX, core::i32 minY, core::i32 maxY )
-            : mMinX{ minX }, mMaxX{ maxX }, mMinY{ minY }, mMaxY{ maxY } {}
+        Rect( core::i32 minX, core::i32 maxX, core::i32 minY, core::i32 maxY );
 
         /**
          * Performs the operation represented by Rect.
          *
          * @returns The result of Rect.
          */
-        explicit Rect( const Viewport& viewport )
-            : mMinX{ core::as<core::i32>( glm::floor( viewport.mMinX ) ) },
-              mMaxX{ core::as<core::i32>( glm::ceil( viewport.mMaxX ) ) },
-              mMinY{ core::as<core::i32>( glm::floor( viewport.mMinY ) ) },
-              mMaxY{ core::as<core::i32>( glm::ceil( viewport.mMaxY ) ) } {}
+        explicit Rect( const Viewport& viewport );
 
         /**
          * Performs the operation represented by operator.
@@ -912,9 +969,7 @@ namespace mikoto::renderer::rhi {
          * @param other Input value used by this operation.
          * @returns The result of operator.
          */
-        auto operator==( const Rect& other ) const -> bool {
-            return mMinX == other.mMinX && mMinY == other.mMinY && mMaxX == other.mMaxX && mMaxY == other.mMaxY;
-        }
+        auto operator==( const Rect& other ) const -> bool;
 
         /**
          * Performs the operation represented by operator.
@@ -922,27 +977,21 @@ namespace mikoto::renderer::rhi {
          * @param other Input value used by this operation.
          * @returns The result of operator.
          */
-        auto operator!=( const Rect& other ) const -> bool {
-            return !( *this == other );
-        }
+        auto operator!=( const Rect& other ) const -> bool;
 
         /**
          * Performs the operation represented by ComputeWidth.
          *
          * @returns The result of ComputeWidth.
          */
-        MKT_NODISCARD auto ComputeWidth() const -> core::i32 {
-            return mMaxX - mMinX;
-        }
+        MKT_NODISCARD auto ComputeWidth() const -> core::i32;
 
         /**
          * Performs the operation represented by ComputeHeight.
          *
          * @returns The result of ComputeHeight.
          */
-        MKT_NODISCARD auto ComputeHeight() const -> core::i32 {
-            return mMaxY - mMinY;
-        }
+        MKT_NODISCARD auto ComputeHeight() const -> core::i32;
     };
 
     /**
@@ -1071,4 +1120,4 @@ namespace mikoto::renderer::rhi {
 
 }
 
-#endif//MIKOTO_RHI_TYPES_HH
+#endif// MIKOTO_RENDERER_RHI_TYPES_HH

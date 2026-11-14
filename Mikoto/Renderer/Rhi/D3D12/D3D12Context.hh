@@ -12,35 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_D3D12CONTEXT_HH
-#define MIKOTO_D3D12CONTEXT_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D12_D3D12_CONTEXT_HH
+#define MIKOTO_RENDERER_RHI_D3D12_D3D12_CONTEXT_HH
 
 #include <EASTL/string.h>
-#include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/Platform.hh>
 #include <Core/Service.hh>
+#include <Core/Platform.hh>
 #include <Core/Singleton.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Rhi/CommandQueue.hh>
-
 #include <Renderer/Core/RenderContext.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
 
 // D3D12 extension library.
+#include <Platform/Windows/Windows.hh>
+
 #include <directx/d3d12.h>
 #include <directx/d3dx12.h>
-
+#include <dxcapi.h>
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
 #include <wrl.h>
-#include <dxcapi.h>
 
 #include <Renderer/Rhi/D3D12/D3D12SwapChain.hh>
 #include <Renderer/Rhi/D3D12/Direct3D12Libraries.hh>
@@ -50,6 +50,9 @@ namespace mikoto::renderer::d3d12 {
     struct ShaderCompileDescription {
         eastl::string_view mSource{};
         eastl::string_view mSourceName{};
+
+        // External PDBs keep source debugging available without embedding ILDB in runtime DXIL.
+        eastl::string_view mDebugSymbolsDirectory{ "Assets/.cache/Shaders" };
 
         eastl::string_view mEntryPoint{ "main" };
         rhi::ShaderType mShaderType{};
@@ -66,6 +69,7 @@ namespace mikoto::renderer::d3d12 {
 
         auto SetSource( eastl::string_view value ) -> ShaderCompileDescription&;
         auto SetSourceName( eastl::string_view value ) -> ShaderCompileDescription&;
+        auto SetDebugSymbolsDirectory( eastl::string_view value ) -> ShaderCompileDescription&;
 
         auto SetEntryPoint( eastl::string_view value ) -> ShaderCompileDescription&;
         auto SetProfile( rhi::ShaderType value ) -> ShaderCompileDescription&;
@@ -143,6 +147,10 @@ namespace mikoto::renderer::d3d12 {
         struct FrameContext {
             rhi::FenceHandle mFence{};
             core::u64 mFenceValue{};
+
+            // Reuse this descriptor only after the frame fence has completed.
+            rhi::TextureHandle mBlitTarget{};
+            rhi::DescriptorTableIndex mTextureDescriptorIndex{ rhi::kInvalidBindingItemIndex };
         };
 
     private:
@@ -172,15 +180,9 @@ namespace mikoto::renderer::d3d12 {
         using SubmitInfoMap = ankerl::unordered_dense::map<rhi::IQueue*, rhi::SubmitInfo>;
 
         std::mutex mBatchedSubmissionProcessMutex{};
-        std::mutex mBatchedSubmissionEmplaceMutex{};
-        SubmitInfoMap mBatchedSubmissions{};
+        eastl::vector<eastl::pair<rhi::IQueue*, rhi::SubmitInfo>> mBatchedSubmissions{};
 
         // Swapchain blit objects
-
-        // A descriptor table is used instead of a BindingSet because descriptor tables can be updated
-        // a BindingSet once created it cannot be updated, so whatever resources specified during creation
-        // stay for how long the BindingSet stays alive
-        bool mTableUpdateRequired{};
 
         rhi::SamplerHandle mSamplerState{};
         rhi::ShaderModuleHandle mVertexShader{};
@@ -201,5 +203,5 @@ namespace mikoto::renderer::d3d12 {
 
 #endif
 
+#endif// MIKOTO_RENDERER_RHI_D3D12_D3D12_CONTEXT_HH
 
-#endif//MIKOTO_D3D12CONTEXT_HH

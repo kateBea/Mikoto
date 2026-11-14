@@ -1,0 +1,8 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Palette53"
+Material:
+  BaseColorFactor: [0.3371847767838255,0.21034412310767764,0.686437513679584,1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.7
+  AlphaMask: 0

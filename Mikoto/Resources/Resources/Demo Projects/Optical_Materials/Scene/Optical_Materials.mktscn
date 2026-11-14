@@ -1,0 +1,3552 @@
+# Compare dielectric IOR, rough transmission, absorption, subsurface and conductor presets.
+# Path tracing is enabled by the project renderer settings; allow accumulation to converge.
+# The labeled rows and checker background reveal refraction and transmission differences.
+# Edit each sphere or slab material to compare roughness, thickness and scattering.
+# Closed dielectric boundaries and a local fog volume also exercise medium transitions.
+
+{
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "Scene": "Optical Materials",
+  "EnvironmentLightingSource": 0,
+  "ToneMapping": 0,
+  "Objects": [
+    {
+      "Type": 5,
+      "ID": 1,
+      "TagComponent": {
+        "Name": "Display floor",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          -0.012,
+          0.08
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.65,
+          0.012,
+          0.55
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.65,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.012,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.55,
+            0
+          ],
+          [
+            0,
+            -0.012,
+            0.08,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 2,
+      "TagComponent": {
+        "Name": "Rear wall",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.12,
+          -0.4
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.65,
+          0.14,
+          0.012
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.65,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.14,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.012,
+            0
+          ],
+          [
+            0,
+            0.12,
+            -0.4,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 3,
+      "TagComponent": {
+        "Name": "Refraction checker 1",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.55,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            -0.55,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 4,
+      "TagComponent": {
+        "Name": "Refraction checker 2",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.45000000000000007,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            -0.45000000000000007,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 5,
+      "TagComponent": {
+        "Name": "Refraction checker 3",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.35000000000000003,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            -0.35000000000000003,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 6,
+      "TagComponent": {
+        "Name": "Refraction checker 4",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.25,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            -0.25,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 7,
+      "TagComponent": {
+        "Name": "Refraction checker 5",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.15000000000000002,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            -0.15000000000000002,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 8,
+      "TagComponent": {
+        "Name": "Refraction checker 6",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.050000000000000044,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            -0.050000000000000044,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 9,
+      "TagComponent": {
+        "Name": "Refraction checker 7",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.050000000000000044,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            0.050000000000000044,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 10,
+      "TagComponent": {
+        "Name": "Refraction checker 8",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.15000000000000002,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            0.15000000000000002,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 11,
+      "TagComponent": {
+        "Name": "Refraction checker 9",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.25,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            0.25,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 12,
+      "TagComponent": {
+        "Name": "Refraction checker 10",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.35,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            0.35,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 13,
+      "TagComponent": {
+        "Name": "Refraction checker 11",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.44999999999999996,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            0.44999999999999996,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 14,
+      "TagComponent": {
+        "Name": "Refraction checker 12",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.55,
+          0.085,
+          -0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.04,
+          0.085,
+          0.015
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.04,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.085,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.015,
+            0
+          ],
+          [
+            0.55,
+            0.085,
+            -0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 15,
+      "TagComponent": {
+        "Name": "Air / IOR 1.0003",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.48,
+          0.065,
+          -0.1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.055,
+          0.055,
+          0.055
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.055,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.055,
+            0
+          ],
+          [
+            -0.48,
+            0.065,
+            -0.1,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 16,
+      "TagComponent": {
+        "Name": "Water / IOR 1.333",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.31999999999999995,
+          0.065,
+          -0.1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.055,
+          0.055,
+          0.055
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.055,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.055,
+            0
+          ],
+          [
+            -0.31999999999999995,
+            0.065,
+            -0.1,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 4
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 17,
+      "TagComponent": {
+        "Name": "Ice / IOR 1.31",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.15999999999999998,
+          0.065,
+          -0.1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.055,
+          0.055,
+          0.055
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.055,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.055,
+            0
+          ],
+          [
+            -0.15999999999999998,
+            0.065,
+            -0.1,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 5
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 18,
+      "TagComponent": {
+        "Name": "Quartz / IOR 1.46",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.0,
+          0.065,
+          -0.1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.055,
+          0.055,
+          0.055
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.055,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.055,
+            0
+          ],
+          [
+            0.0,
+            0.065,
+            -0.1,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 6
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 19,
+      "TagComponent": {
+        "Name": "Glass / IOR 1.52",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.16000000000000003,
+          0.065,
+          -0.1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.055,
+          0.055,
+          0.055
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.055,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.055,
+            0
+          ],
+          [
+            0.16000000000000003,
+            0.065,
+            -0.1,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 7
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 20,
+      "TagComponent": {
+        "Name": "Sapphire / IOR 1.77",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.32000000000000006,
+          0.065,
+          -0.1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.055,
+          0.055,
+          0.055
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.055,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.055,
+            0
+          ],
+          [
+            0.32000000000000006,
+            0.065,
+            -0.1,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 8
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 21,
+      "TagComponent": {
+        "Name": "Diamond / IOR 2.42",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.48,
+          0.065,
+          -0.1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.055,
+          0.055,
+          0.055
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.055,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.055,
+            0
+          ],
+          [
+            0.48,
+            0.065,
+            -0.1,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 9
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 22,
+      "TagComponent": {
+        "Name": "Skin_1 / PBRT BSSRDF",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.36,
+          0.048,
+          0.11
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.045,
+          0.045
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.045,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.045,
+            0
+          ],
+          [
+            -0.36,
+            0.048,
+            0.11,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 10
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 23,
+      "TagComponent": {
+        "Name": "Skin_1 / 2 mm backlit slab",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.36,
+          0.035,
+          0.2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.035,
+          0.001
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.035,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.001,
+            0
+          ],
+          [
+            -0.36,
+            0.035,
+            0.2,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 10
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 24,
+      "TagComponent": {
+        "Name": "Skin_2 / PBRT BSSRDF",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.12,
+          0.048,
+          0.11
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.045,
+          0.045
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.045,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.045,
+            0
+          ],
+          [
+            -0.12,
+            0.048,
+            0.11,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 11
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 25,
+      "TagComponent": {
+        "Name": "Skin_2 / 2 mm backlit slab",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.12,
+          0.035,
+          0.2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.035,
+          0.001
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.035,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.001,
+            0
+          ],
+          [
+            -0.12,
+            0.035,
+            0.2,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 11
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 26,
+      "TagComponent": {
+        "Name": "Marble / PBRT BSSRDF",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.12,
+          0.048,
+          0.11
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.045,
+          0.045
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.045,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.045,
+            0
+          ],
+          [
+            0.12,
+            0.048,
+            0.11,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 12
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 27,
+      "TagComponent": {
+        "Name": "Marble / 2 mm backlit slab",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.12,
+          0.035,
+          0.2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.035,
+          0.001
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.035,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.001,
+            0
+          ],
+          [
+            0.12,
+            0.035,
+            0.2,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 12
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 28,
+      "TagComponent": {
+        "Name": "Milk / PBRT BSSRDF",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.36,
+          0.048,
+          0.11
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.045,
+          0.045
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.045,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.045,
+            0
+          ],
+          [
+            0.36,
+            0.048,
+            0.11,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 13
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 29,
+      "TagComponent": {
+        "Name": "Milk / 2 mm backlit slab",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.36,
+          0.035,
+          0.2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.035,
+          0.001
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.035,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.001,
+            0
+          ],
+          [
+            0.36,
+            0.035,
+            0.2,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 13
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 30,
+      "TagComponent": {
+        "Name": "Rough refraction",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.3,
+          0.055,
+          0.32
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.05,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.05,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.05,
+            0
+          ],
+          [
+            -0.3,
+            0.055,
+            0.32,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 14
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 31,
+      "TagComponent": {
+        "Name": "Beer-Lambert absorption",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.055,
+          0.32
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.05,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.05,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.05,
+            0
+          ],
+          [
+            0,
+            0.055,
+            0.32,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 15
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 32,
+      "TagComponent": {
+        "Name": "Thin-walled glass",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.3,
+          0.065,
+          0.32
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.055,
+          0.055,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.055,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0.3,
+            0.065,
+            0.32,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sheet.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 16
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 33,
+      "TagComponent": {
+        "Name": "AO contact block",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.56,
+          0.03,
+          0.29
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.025,
+          0.03,
+          0.025
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.025,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.03,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.025,
+            0
+          ],
+          [
+            -0.56,
+            0.03,
+            0.29,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 34,
+      "TagComponent": {
+        "Name": "AO corner wall",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.61,
+          0.08,
+          0.29
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.01,
+          0.08,
+          0.1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.01,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.08,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.1,
+            0
+          ],
+          [
+            -0.61,
+            0.08,
+            0.29,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 35,
+      "TagComponent": {
+        "Name": "Gold / PBRT complex IOR",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.36,
+          0.05,
+          0.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.045,
+          0.045
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.045,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.045,
+            0
+          ],
+          [
+            -0.36,
+            0.05,
+            0.5,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 17
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 36,
+      "TagComponent": {
+        "Name": "Copper / PBRT complex IOR",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.12,
+          0.05,
+          0.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.045,
+          0.045
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.045,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.045,
+            0
+          ],
+          [
+            -0.12,
+            0.05,
+            0.5,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 18
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 37,
+      "TagComponent": {
+        "Name": "Silver / PBRT complex IOR",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.12,
+          0.05,
+          0.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.045,
+          0.045
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.045,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.045,
+            0
+          ],
+          [
+            0.12,
+            0.05,
+            0.5,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 19
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 38,
+      "TagComponent": {
+        "Name": "Aluminum / PBRT complex IOR",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.36,
+          0.05,
+          0.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.045,
+          0.045,
+          0.045
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.045,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.045,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.045,
+            0
+          ],
+          [
+            0.36,
+            0.05,
+            0.5,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 20
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 39,
+      "TagComponent": {
+        "Name": "Unlit / no lighting response",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.55,
+          0.03,
+          0.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.025,
+          0.025,
+          0.025
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.025,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.025,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.025,
+            0
+          ],
+          [
+            0.55,
+            0.03,
+            0.5,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 21
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 40,
+      "TagComponent": {
+        "Name": "Homogeneous fog / invisible IOR-one boundary",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.58,
+          0.12,
+          0.02
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.035,
+          0.12,
+          0.07
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.035,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.12,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.07,
+            0
+          ],
+          [
+            -0.58,
+            0.12,
+            0.02,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 22
+      }
+    },
+    {
+      "Type": 0,
+      "ID": 41,
+      "TagComponent": {
+        "Name": "Fog test light / inside volume",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.58,
+          0.16,
+          0.02
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            -0.58,
+            0.16,
+            0.02,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 1,
+        "Point": {
+          "Color": [
+            1,
+            0.9,
+            0.7
+          ],
+          "Intensity": 0.003,
+          "Radius": 0.5,
+          "SourceRadius": 0.005,
+          "CastShadows": true
+        }
+      }
+    },
+    {
+      "Type": 0,
+      "ID": 42,
+      "TagComponent": {
+        "Name": "Large soft key / area light",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            -1,
+            0,
+            0
+          ],
+          [
+            0,
+            0.6,
+            0.05,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 0,
+          "Color": [
+            1,
+            0.9,
+            0.78
+          ],
+          "Intensity": 3,
+          "Size": [
+            0.8,
+            0.55
+          ],
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "Type": 0,
+      "ID": 43,
+      "TagComponent": {
+        "Name": "Skin_1 slab backlight / area light",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.36,
+          0.035,
+          0.195
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            -0.36,
+            0.035,
+            0.195,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 0,
+          "Color": [
+            0.8,
+            0.9,
+            1
+          ],
+          "Intensity": 2,
+          "Size": [
+            0.08,
+            0.06
+          ],
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "Type": 0,
+      "ID": 44,
+      "TagComponent": {
+        "Name": "Skin_2 slab backlight / area light",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.12,
+          0.035,
+          0.195
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            -0.12,
+            0.035,
+            0.195,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 0,
+          "Color": [
+            0.8,
+            0.9,
+            1
+          ],
+          "Intensity": 2,
+          "Size": [
+            0.08,
+            0.06
+          ],
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "Type": 0,
+      "ID": 45,
+      "TagComponent": {
+        "Name": "Marble slab backlight / area light",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.12,
+          0.035,
+          0.195
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0.12,
+            0.035,
+            0.195,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 0,
+          "Color": [
+            0.8,
+            0.9,
+            1
+          ],
+          "Intensity": 2,
+          "Size": [
+            0.08,
+            0.06
+          ],
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "Type": 0,
+      "ID": 46,
+      "TagComponent": {
+        "Name": "Milk slab backlight / area light",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.36,
+          0.035,
+          0.195
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0.36,
+            0.035,
+            0.195,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 0,
+          "Color": [
+            0.8,
+            0.9,
+            1
+          ],
+          "Intensity": 2,
+          "Size": [
+            0.08,
+            0.06
+          ],
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "Type": 0,
+      "ID": 47,
+      "TagComponent": {
+        "Name": "Finite sun / adjust angular radius",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 0,
+        "Directional": {
+          "Color": [
+            1,
+            0.95,
+            0.85
+          ],
+          "Intensity": 0.4,
+          "Direction": [
+            -0.5,
+            -1,
+            -0.35
+          ],
+          "AngularRadius": 0.266,
+          "CastShadows": true
+        }
+      }
+    },
+    {
+      "Type": 0,
+      "ID": 48,
+      "TagComponent": {
+        "Name": "Finite point / adjust source radius",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0.5,
+          0.25,
+          0.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0.5,
+            0.25,
+            0.25,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 1,
+        "Point": {
+          "Color": [
+            0.45,
+            0.65,
+            1
+          ],
+          "Intensity": 0.03,
+          "Radius": 2,
+          "SourceRadius": 0.03,
+          "CastShadows": true
+        }
+      }
+    },
+    {
+      "Type": 6,
+      "ID": 49,
+      "TagComponent": {
+        "Name": "Gallery camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0.0,
+            0.9117107796789446,
+            -0.4108326352874257,
+            0
+          ],
+          [
+            -0.0,
+            0.4108326352874257,
+            0.9117107796789446,
+            0
+          ],
+          [
+            0,
+            0.78,
+            1.7,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 46,
+        "Near": 0.001,
+        "Far": 20,
+        "Main": true,
+        "FixedAspect": false,
+        "ClearFlags": 2,
+        "ClearColor": [
+          0.015,
+          0.02,
+          0.03,
+          1
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1
+      }
+    },
+    {
+      "Type": 7,
+      "ID": 50,
+      "TagComponent": {
+        "Name": "Feature guide",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "CanvasComponent": {
+        "Version": 2,
+        "Overlay": true,
+        "ReferenceSize": [
+          1920,
+          1080
+        ],
+        "WorldScale": 0.001,
+        "SortOrder": 10,
+        "Elements": [
+          {
+            "Id": 1,
+            "Parent": 0,
+            "Name": "Guide 1",
+            "Type": 3,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              22,
+              18
+            ],
+            "Size": [
+              1250,
+              27
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.9,
+              0.94,
+              1,
+              1
+            ],
+            "Text": "OPTICAL MATERIALS / PBRT",
+            "FontSize": 23,
+            "FontPath": "../Assets/Fonts/OpenSans-Regular.ttf",
+            "Thickness": 1,
+            "Rounding": 0,
+            "Value": 0
+          },
+          {
+            "Id": 2,
+            "Parent": 0,
+            "Name": "Guide 2",
+            "Type": 3,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              22,
+              45
+            ],
+            "Size": [
+              1250,
+              27
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.9,
+              0.94,
+              1,
+              1
+            ],
+            "Text": "Back: Air | Water | Ice | Quartz | Glass | Sapphire | Diamond",
+            "FontSize": 19,
+            "FontPath": "../Assets/Fonts/OpenSans-Regular.ttf",
+            "Thickness": 1,
+            "Rounding": 0,
+            "Value": 0
+          },
+          {
+            "Id": 3,
+            "Parent": 0,
+            "Name": "Guide 3",
+            "Type": 3,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              22,
+              72
+            ],
+            "Size": [
+              1250,
+              27
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.9,
+              0.94,
+              1,
+              1
+            ],
+            "Text": "Middle: Skin 1 | Skin 2 | Marble | Milk (spheres + 2 mm slabs)",
+            "FontSize": 19,
+            "FontPath": "../Assets/Fonts/OpenSans-Regular.ttf",
+            "Thickness": 1,
+            "Rounding": 0,
+            "Value": 0
+          },
+          {
+            "Id": 4,
+            "Parent": 0,
+            "Name": "Guide 4",
+            "Type": 3,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              22,
+              99
+            ],
+            "Size": [
+              1250,
+              27
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.9,
+              0.94,
+              1,
+              1
+            ],
+            "Text": "Front: Rough glass | Absorption | Thin-walled sheet",
+            "FontSize": 19,
+            "FontPath": "../Assets/Fonts/OpenSans-Regular.ttf",
+            "Thickness": 1,
+            "Rounding": 0,
+            "Value": 0
+          },
+          {
+            "Id": 5,
+            "Parent": 0,
+            "Name": "Guide 5",
+            "Type": 3,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              22,
+              126
+            ],
+            "Size": [
+              1250,
+              27
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.9,
+              0.94,
+              1,
+              1
+            ],
+            "Text": "Frontmost: Gold | Copper | Silver | Aluminum | Unlit",
+            "FontSize": 19,
+            "FontPath": "../Assets/Fonts/OpenSans-Regular.ttf",
+            "Thickness": 1,
+            "Rounding": 0,
+            "Value": 0
+          },
+          {
+            "Id": 6,
+            "Parent": 0,
+            "Name": "Guide 6",
+            "Type": 3,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              22,
+              153
+            ],
+            "Size": [
+              1250,
+              27
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.9,
+              0.94,
+              1,
+              1
+            ],
+            "Text": "Left: Homogeneous fog volume with a finite point light inside",
+            "FontSize": 19,
+            "FontPath": "../Assets/Fonts/OpenSans-Regular.ttf",
+            "Thickness": 1,
+            "Rounding": 0,
+            "Value": 0
+          },
+          {
+            "Id": 7,
+            "Parent": 0,
+            "Name": "Guide 7",
+            "Type": 3,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              22,
+              180
+            ],
+            "Size": [
+              1250,
+              27
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.9,
+              0.94,
+              1,
+              1
+            ],
+            "Text": "Output > Ray-traced AO tests visibility. Renderer > AO enables raster IBL occlusion.",
+            "FontSize": 19,
+            "FontPath": "../Assets/Fonts/OpenSans-Regular.ttf",
+            "Thickness": 1,
+            "Rounding": 0,
+            "Value": 0
+          },
+          {
+            "Id": 8,
+            "Parent": 0,
+            "Name": "Guide 8",
+            "Type": 3,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              22,
+              207
+            ],
+            "Size": [
+              1250,
+              27
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.9,
+              0.94,
+              1,
+              1
+            ],
+            "Text": "Select a material to edit optics. Area lights, sun and point lights have finite size.",
+            "FontSize": 19,
+            "FontPath": "../Assets/Fonts/OpenSans-Regular.ttf",
+            "Thickness": 1,
+            "Rounding": 0,
+            "Value": 0
+          }
+        ]
+      }
+    }
+  ],
+  "Materials": [
+    {
+      "MaterialPath": "../Assets/Materials/Matte_White.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Matte_Dark.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Matte_Red.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Air.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Water.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Ice.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Quartz.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Glass.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Sapphire.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Diamond.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Skin_1.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Skin_2.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Marble.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Milk.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Frosted_Glass.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Absorbing_Glass.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Thin_Sheet.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Gold.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Copper.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Silver.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Aluminum.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Unlit_Blue.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Homogeneous_Fog.mktmtl"
+    }
+  ]
+}

@@ -12,20 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_COMMAND_LINE_PARSER_HH
-#define MIKOTO_COMMAND_LINE_PARSER_HH
+#ifndef MIKOTO_CORE_CLA_PARSER_HH
+#define MIKOTO_CORE_CLA_PARSER_HH
 
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 
-#include <Core/Core.hh>
-
 #include <argparse/argparse.hpp>
+
+#include <Core/Core.hh>
 
 namespace mikoto::core {
 
     /**
-     * @brief Parses Mikoto's startup command line into deferred CVar overrides.
+     * @brief Parses startup command line into deferred CVar overrides.
      *
      * The parser deliberately records overrides instead of applying them directly.
      * This lets the executable parse arguments before engine services, the renderer,
@@ -33,6 +33,14 @@ namespace mikoto::core {
      */
     class CLAParser final {
     public:
+
+        /**
+         * @brief Constructs the parser with a default or custom program name.
+         *
+         * @param programName Name of the application used in help and error messages.
+         */
+        explicit CLAParser( eastl::string_view programName = "Mikoto" );
+
         /**
          * @brief Parses command-line arguments.
          *
@@ -42,6 +50,7 @@ namespace mikoto::core {
          */
         auto Parse( int argc, char** argv ) -> bool;
 
+
         /**
          * @brief Returns CVar assignments supplied through repeated @c --set name=value arguments.
          *
@@ -49,12 +58,14 @@ namespace mikoto::core {
          */
         MKT_NODISCARD auto GetCVarOverrides() const -> const eastl::vector<eastl::string>&;
 
+
         /**
          * @brief Returns parser help text or the most recent parsing error.
          *
          * @returns Human-readable parser output.
          */
         MKT_NODISCARD auto GetMessageOutput() const -> const eastl::string&;
+
 
         /**
          * @brief Returns whether the parser stopped because help was requested.
@@ -64,10 +75,12 @@ namespace mikoto::core {
         MKT_NODISCARD auto IsHelpRequested() const -> bool;
 
     private:
-        eastl::vector<eastl::string> mCVarOverrides{};
         eastl::string mMessage{};
+        eastl::string mProgramName{};
+        eastl::vector<eastl::string> mCVarOverrides{};
+
         bool mHelpRequested{ false };
     };
 }
 
-#endif //MIKOTO_COMMAND_LINE_PARSER_HH
+#endif// MIKOTO_CORE_CLA_PARSER_HH

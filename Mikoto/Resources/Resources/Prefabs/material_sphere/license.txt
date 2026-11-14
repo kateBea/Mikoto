@@ -1,0 +1,11 @@
+Model Information:
+* title:	Mosaic Tiles 1 - PBS Material
+* source:	https://sketchfab.com/3d-models/mosaic-tiles-1-pbs-material-61537fc4a58f41fc915b50703be3177b
+* author:	FilipZelinka (https://sketchfab.com/FilipZelinka)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Mosaic Tiles 1 - PBS Material" (https://sketchfab.com/3d-models/mosaic-tiles-1-pbs-material-61537fc4a58f41fc915b50703be3177b) by FilipZelinka (https://sketchfab.com/FilipZelinka) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

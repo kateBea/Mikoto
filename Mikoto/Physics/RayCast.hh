@@ -12,29 +12,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RAY_CAST_HH
-#define MIKOTO_RAY_CAST_HH
+#ifndef MIKOTO_PHYSICS_RAY_CAST_HH
+#define MIKOTO_PHYSICS_RAY_CAST_HH
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
 namespace mikoto::physics {
-    using namespace mikoto::core;
 
+    /** @brief Stores a ray origin and direction for physics queries. */
     class RayCast {
     public:
 
-        RayCast(const float3& point, const float3& direction);
+        /**
+         * @brief Stores a ray without normalizing its direction.
+         * @param point Ray origin in world coordinates.
+         * @param direction Ray direction, including its supplied magnitude.
+         */
+        RayCast( const core::float3& point, const core::float3& direction );
 
-        auto GetOrigin() const -> float3;
-        auto GetDirection() const -> float3;
+        /**
+         * @brief Retrieves the ray's origin.
+         * @returns Origin in world coordinates.
+         */
+        MKT_NODISCARD auto GetOrigin() const -> core::float3;
 
-        DISABLE_COPY_AND_MOVE_FOR( RayCast );
+        /**
+         * @brief Retrieves the stored direction.
+         * @returns Direction with its original magnitude.
+         */
+        MKT_NODISCARD auto GetDirection() const -> core::float3;
 
     private:
-        float3 mOrigin{};
-        float3 mDirection{};
+        core::f32 mTime{};
+        core::float3 mOrigin{};
+        core::float3 mDirection{};
     };
-}
 
-#endif //MIKOTO_RAY_CAST_HH
+}// namespace mikoto::physics
+
+#endif// MIKOTO_PHYSICS_RAY_CAST_HH

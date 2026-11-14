@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 struct VSOutput {
     float4 mPosition : SV_Position;
     float4 mColor : TEXCOORD0;
 };
 
-float4 main(VSOutput input) : SV_Target0
-{
+[shader( "fragment" )]
+float4 main( VSOutput input ) : SV_Target0 {
     return input.mColor;
 }

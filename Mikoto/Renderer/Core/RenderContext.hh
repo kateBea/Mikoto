@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RENDER_CONTEXT_HH
-#define MIKOTO_RENDER_CONTEXT_HH
-
-#include <slang.h>
-#include <slang-com-ptr.h>
+#ifndef MIKOTO_RENDERER_CORE_RENDER_CONTEXT_HH
+#define MIKOTO_RENDERER_CORE_RENDER_CONTEXT_HH
 
 #include <EASTL/unique_ptr.h>
 
@@ -32,12 +29,12 @@
 namespace mikoto::renderer {
 
     struct RenderContextCreateInfo {
-        platform::Window* mWindow{ nullptr };
+        platform::IWindow* mWindow{ nullptr };
 
         rhi::RefreshRate mRefreshRate{ rhi::RefreshRate::eSync };
         rhi::GraphicsAPI mApi{ rhi::GraphicsAPI::eInvalid };
 
-        auto SetWindow(platform::Window* window) noexcept -> RenderContextCreateInfo&;
+        auto SetWindow(platform::IWindow* window) noexcept -> RenderContextCreateInfo&;
         auto SetRefreshRate(rhi::RefreshRate refreshRate) noexcept -> RenderContextCreateInfo&;
         auto SetGraphicsAPI(rhi::GraphicsAPI api) noexcept -> RenderContextCreateInfo&;
     };
@@ -71,12 +68,19 @@ namespace mikoto::renderer {
     protected:
         explicit RenderContext( const RenderContextCreateInfo& createInfo );
 
+        /** @brief Reads configured device feature requests and includes presentation for windowed contexts.
+         *
+         * @return Requested feature flags; missing or disabled configuration keys contribute no flags.
+         */
+        MKT_NODISCARD auto GetRequestedDeviceFeatures() const -> rhi::GpuFeatureSupportFlags;
+
     protected:
-        platform::Window* mWindow{ nullptr };
+        platform::IWindow* mWindow{ nullptr };
         eastl::unique_ptr<rhi::IGpuDevice> mDevice{ nullptr };
 
         rhi::RefreshRate mRefreshRate{ rhi::RefreshRate::eSync };
     };
 }// namespace mikoto::renderer
 
-#endif//MIKOTO_RENDER_CONTEXT_HH
+#endif// MIKOTO_RENDERER_CORE_RENDER_CONTEXT_HH
+

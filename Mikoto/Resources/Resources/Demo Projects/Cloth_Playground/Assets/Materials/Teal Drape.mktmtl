@@ -1,0 +1,9 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Teal Drape"
+Material:
+  BaseColorFactor: [0.09, 0.5, 0.41, 1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.85
+  DoubleSided: 1
+  AlphaMask: 0

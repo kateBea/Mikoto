@@ -1,0 +1,8 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Surface_7_1"
+Material:
+  BaseColorFactor: [0.7,0.7,0.7,1]
+  MetallicFactor: 0.65
+  RoughnessFactor: 0.47666666666666657
+  AlphaMask: 0

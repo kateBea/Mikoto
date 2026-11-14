@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_LINEAR_ALLOCATOR_HH
-#define MIKOTO_LINEAR_ALLOCATOR_HH
+#ifndef MIKOTO_MEMORY_LINEAR_ALLOCATOR_HH
+#define MIKOTO_MEMORY_LINEAR_ALLOCATOR_HH
 
 #include <EASTL/optional.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/Profiler.hh>
 
 #include <Memory/Allocator.hh>
 
@@ -45,8 +46,8 @@ namespace mikoto::memory {
 
         auto Reset() -> void override;
 
-        MKT_NODISCARD auto GetSize() const -> core::usize { return mSize; }
-        MKT_NODISCARD auto GetOffset() const -> core::usize { return mOffset; }
+        MKT_NODISCARD auto GetSize() const -> core::usize;
+        MKT_NODISCARD auto GetOffset() const -> core::usize;
 
     private:
         core::usize mSize{};
@@ -54,4 +55,4 @@ namespace mikoto::memory {
     };
 }
 
-#endif//MIKOTO_LINEAR_ALLOCATOR_HH
+#endif// MIKOTO_MEMORY_LINEAR_ALLOCATOR_HH

@@ -1,0 +1,215 @@
+#include <EASTL/algorithm.h>
+
+#include <Renderer/Core/Light.hh>
+
+namespace mikoto::renderer {
+    auto LightObject::SetColor( const core::float3& color ) -> void {
+        MKT_BEGIN_PROFILER();
+        mColor = color;
+    }
+
+
+    auto LightObject::GetColor() const -> const core::float3& {
+        MKT_BEGIN_PROFILER();
+        return mColor;
+    }
+
+
+    auto LightObject::SetIntensity( float intensity ) -> void {
+        MKT_BEGIN_PROFILER();
+        mIntensity = eastl::max( intensity, 0.0f );
+    }
+
+
+    auto LightObject::GetIntensity() const -> float {
+        MKT_BEGIN_PROFILER();
+        return mIntensity;
+    }
+
+
+    auto LightObject::SetIsShadowCaster( bool value ) -> void {
+        MKT_BEGIN_PROFILER();
+        mIsShadowCaster = value;
+    }
+
+
+    auto LightObject::IsShadowCaster() const -> bool {
+        MKT_BEGIN_PROFILER();
+        return mIsShadowCaster;
+    }
+
+
+    auto PointLight::SetRadius( float radius ) -> void {
+        MKT_BEGIN_PROFILER();
+        mRadius = eastl::max( radius, .02f );
+    }
+
+
+    auto PointLight::GetRadius() const -> float {
+        MKT_BEGIN_PROFILER();
+        return mRadius;
+    }
+
+    auto PointLight::SetSourceRadius( float radius ) -> void {
+        mSourceRadius = glm::max( radius, 0.0f );
+    }
+
+    auto PointLight::GetSourceRadius() const -> float {
+        return mSourceRadius;
+    }
+
+    auto DirectionalLight::SetAngularRadius( float degrees ) -> void {
+        mAngularRadius = glm::clamp( degrees, 0.0f, 10.0f );
+    }
+
+    auto DirectionalLight::GetAngularRadius() const -> float {
+        return mAngularRadius;
+    }
+
+
+    auto DirectionalLight::GetDirection() const -> const core::float3& {
+        MKT_BEGIN_PROFILER();
+        return mDirection;
+    }
+
+
+    SpotLight::SpotLight() {
+        MKT_BEGIN_PROFILER();
+        UpdateCutoffs();
+    }
+
+
+    auto SpotLight::SetAngle( float angleDeg ) -> void {
+        MKT_BEGIN_PROFILER();
+        mAngle = glm::clamp( angleDeg, 0.1f, GetMaxAngle() );
+        UpdateCutoffs();
+    }
+
+
+    auto SpotLight::SetSoftness( float softness ) -> void {
+        MKT_BEGIN_PROFILER();
+        mSoftness = glm::clamp( softness, 0.0f, GetMaxSoftness() );
+        UpdateCutoffs();
+    }
+
+
+    auto SpotLight::SetRadius( float radius ) -> void {
+        MKT_BEGIN_PROFILER();
+        mRadius = eastl::max( radius, .02f );
+    }
+
+
+    auto SpotLight::GetMaxSoftness() -> float {
+        MKT_BEGIN_PROFILER();
+        return 30.0f;
+    }
+
+
+    auto SpotLight::GetMaxAngle() -> float {
+        MKT_BEGIN_PROFILER();
+        return 89.0f;
+    }
+
+
+    auto SpotLight::GetDirection() const -> const core::float3& {
+        MKT_BEGIN_PROFILER();
+        return mDirection;
+    }
+
+
+    auto SpotLight::GetAngle() const -> float {
+        MKT_BEGIN_PROFILER();
+        return mAngle;
+    }
+
+
+    auto SpotLight::GetSoftness() const -> float {
+        MKT_BEGIN_PROFILER();
+        return mSoftness;
+    }
+
+
+    auto SpotLight::GetCutOff() const -> float {
+        MKT_BEGIN_PROFILER();
+        return mCutOff;
+    }
+
+
+    auto SpotLight::GetOuterCutOff() const -> float {
+        MKT_BEGIN_PROFILER();
+        return mOuterCutOff;
+    }
+
+
+    auto SpotLight::GetRadius() const -> float {
+        MKT_BEGIN_PROFILER();
+        return mRadius;
+    }
+
+
+    auto SpotLight::UpdateCutoffs() -> void {
+        MKT_BEGIN_PROFILER();
+        const float outer{ glm::radians( mAngle ) };
+        const float inner{ glm::radians( eastl::max( 0.0f, mAngle - mSoftness ) ) };
+
+        mCutOff = glm::cos( inner );
+        mOuterCutOff = glm::cos( outer );
+    }
+
+    auto DirectionalLight::SetNormalizedDirection( core::float3 direction ) -> void {
+        MKT_BEGIN_PROFILER();
+        mDirection = NormalizeDirection( direction );
+    }
+
+    auto SpotLight::SetNormalizedDirection( core::float3 direction ) -> void {
+        MKT_BEGIN_PROFILER();
+        mDirection = NormalizeDirection( direction );
+    }
+
+    auto LightObject::NormalizeDirection( core::float3 direction ) -> core::float3 {
+        const core::f32 length2{ glm::dot( direction, direction ) };
+        return length2 > 1e-12f ? direction / glm::sqrt( length2 ) : core::float3{ 0, -1, 0 };
+    }
+
+    auto DirectionalLight::GetWorldDirection( const core::float4x4& world ) const -> core::float3 {
+        return NormalizeDirection( core::float3{ world * core::float4{ mDirection, 0.0f } } );
+    }
+
+    auto SpotLight::GetWorldDirection( const core::float4x4& world ) const -> core::float3 {
+        return NormalizeDirection( core::float3{ world * core::float4{ mDirection, 0.0f } } );
+    }
+
+    auto AreaLight::SetSize( const core::float2& size ) -> void {
+        for ( int axis{}; axis < 2; ++axis ) {
+            mSize[axis] = eastl::max( size[axis], 0.0f );
+        }
+    }
+
+    auto AreaLight::GetSize() const -> const core::float2& {
+        return mSize;
+    }
+
+    auto AreaLight::SetRadius( float radius ) -> void {
+        mRadius = eastl::max( radius, 0.0f );
+    }
+
+    auto AreaLight::GetRadius() const -> float {
+        return mRadius;
+    }
+
+    auto AreaLight::SetTwoSided( bool twoSided ) -> void {
+        mIsTwoSided = twoSided;
+    }
+
+    auto AreaLight::IsTwoSided() const -> bool {
+        return mIsTwoSided;
+    }
+
+    auto AreaLight::SetShape( AreaLightShape shape ) -> void {
+        mShape = shape <= AreaLightShape::eMesh ? shape : AreaLightShape::eRectangle;
+    }
+
+    auto AreaLight::GetShape() const -> AreaLightShape {
+        return mShape;
+    }
+}// namespace mikoto::renderer

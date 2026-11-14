@@ -12,54 +12,61 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_EDITOR_RAYTRACE_LAYER_HH
-#define MIKOTOROOT_EDITOR_RAYTRACE_LAYER_HH
+#ifndef MIKOTO_LAYERS_EDITOR_RAY_TRACE_LAYER_HH
+#define MIKOTO_LAYERS_EDITOR_RAY_TRACE_LAYER_HH
 
-#include <EASTL/memory.h>
 #include <EASTL/string.h>
-#include <EASTL/unique_ptr.h>
-#include <EASTL/string_view.h>
 
-#include <ankerl/unordered_dense.h>
-
-#include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Event.hh>
-#include <Core/LayerStack.hh>
-
-#include <Assets/Model.hh>
+#include <Core/Layer.hh>
 
 #include <Platform/Window.hh>
 
-#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 
-#include <Renderer/Core/SceneRenderer.hh>
-#include <Renderer/Core/ThumbnailRenderer.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Entity.hh>
-
-#include <Panels/Panel.hh>
-
-#include <Theme/Theme.hh>
-
 namespace mikoto::editor {
-
-    // Basic raytracing rainbow dorito (color interpolated triangle)
     class EditorRayTraceLayer final : public core::ILayer {
     public:
-        explicit EditorRayTraceLayer( platform::Window *window );
-
+        explicit EditorRayTraceLayer( platform::IWindow* window );
         auto OnCreate() -> void override;
         auto OnDestroy() -> void override;
         auto OnUpdate( float timeStep ) -> void override;
+        auto OnRender( float deltaTime ) -> void override;
+        auto OnEvent( platform::Event& event ) -> void override;
 
-        auto OnEvent( core::IEvent &event ) -> void override;
+        MKT_NODISCARD auto GetName() const -> eastl::string_view override;
 
     private:
-        platform::Window* mWindow{};
-    };
-}// namespace mikoto::editor
+        auto CreateScene() -> void;
+        auto Resize( core::u32 width, core::u32 height ) -> void;
 
-#endif//MIKOTOROOT_EDITOR_RAYTRACE_LAYER_HH
+        eastl::string mName{};
+
+        platform::IWindow* mWindow{};
+        renderer::rhi::IGpuDevice* mDevice{};
+        renderer::rhi::BufferHandle mVertices{};
+        renderer::rhi::BufferHandle mIndices{};
+        renderer::rhi::AccelStructureHandle mBottomLevel{};
+        renderer::rhi::AccelStructureHandle mTopLevel{};
+        renderer::rhi::RayTracingPipelineHandle mPipeline{};
+        renderer::rhi::ShaderTableHandle mShaderTable{};
+        renderer::rhi::BindingLayoutHandle mGeometryLayout{};
+        renderer::rhi::BindingTableHandle mGeometryBindings{};
+        renderer::rhi::DescriptorTableHandle mSceneTable{};
+        renderer::rhi::DescriptorTableIndex mSceneIndex{ renderer::rhi::kInvalidBindingItemIndex };
+
+        renderer::rhi::CommandListHandle mCommands{};
+        renderer::rhi::TextureHandle mOutput{};
+        eastl::string mError{};
+        bool mBuildPending{ true };
+        bool mOrbit{ true };
+        bool mShadows{ true };
+        bool mReflections{ true };
+        float mAngle{ 0.6f };
+        float mDistance{ 8.0f };
+        float mExposure{ 1.0f };
+        float mFieldOfView{ 50.0f };
+    };
+}
+
+#endif// MIKOTO_LAYERS_EDITOR_RAY_TRACE_LAYER_HH
+

@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Frame",
+  "Material": {
+    "BaseColorFactor": [
+      0.015,
+      0.02,
+      0.025,
+      1
+    ],
+    "RoughnessFactor": 0.4,
+    "MetallicFactor": 0.5
+  }
+}

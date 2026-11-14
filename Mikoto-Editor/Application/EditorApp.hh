@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_EDITOR_APP_HH
-#define MIKOTO_EDITOR_APP_HH
+#ifndef MIKOTO_APPLICATION_EDITOR_APP_HH
+#define MIKOTO_APPLICATION_EDITOR_APP_HH
 
 #include <EASTL/unique_ptr.h>
 
@@ -21,14 +21,15 @@
 #include <Core/Application.hh>
 
 #include <Platform/Window.hh>
+#include <Platform/EventSystem.hh>
 
 #include <Theme/ThemeManager.hh>
 
 namespace mikoto::editor {
 
-    class EditorApp final : public core::Application, public core::Subscriber {
+    class EditorApp final : public core::Application, public platform::Subscriber {
     public:
-        explicit EditorApp( platform::Window* window );
+        explicit EditorApp( platform::IWindow* window );
 
         auto Init() -> void override;
         auto Run() -> void override;
@@ -36,19 +37,25 @@ namespace mikoto::editor {
         auto Update() -> void override;
 
     private:
+        // [Internal usage]
         auto InitEventCallbacks() -> void;
+        auto UpdateWindowTitleBar() -> void;
+
+        auto ShutdownEditorResources() -> void;
 
     private:
-        platform::Window* mWindow{};
+        platform::IWindow* mWindow{};
 
-        eastl::unique_ptr<Engine> mEngine{};
+        eastl::string mOriginalTitle{};
+        eastl::unique_ptr<core::Engine> mEngine{};
         eastl::unique_ptr<ThemeManager> mThemeManager{};
 
         // Time in ms since last time
         // frame-time was updated
         core::f64 mLastUpdateTime{ 0 };
-        static constexpr u32 kUpdateInterval{ 1000 }; // 1s
+        static constexpr core::u32 kUpdateInterval{ 1000 }; // 1s
     };
 }// namespace mikoto::editor
 
-#endif// MIKOTO_EDITOR_APP_HH
+#endif// MIKOTO_APPLICATION_EDITOR_APP_HH
+

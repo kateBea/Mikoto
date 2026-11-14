@@ -12,22 +12,58 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_TEXT_MATERIAL_HH
-#define MIKOTO_TEXT_MATERIAL_HH
+#ifndef MIKOTO_MATERIAL_TEXT_MATERIAL_HH
+#define MIKOTO_MATERIAL_TEXT_MATERIAL_HH
 
-#include <string_view>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
+#include <yaml-cpp/yaml.h>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 
 #include <Material/Material.hh>
 
 namespace mikoto::material {
 
-    class TextMaterial final : public Material {
+    class TextMaterial final : public IMaterial {
     public:
+        explicit TextMaterial( eastl::string_view name = "TextMaterial" );
 
-        explicit TextMaterial( std::string_view name = "TextMaterial" );
+        TextMaterial( const TextMaterial& other );
+
+        auto Deserialize( const filesystem::Path& filename ) -> void override;
+        auto Serialize( const filesystem::Path& filename ) const -> void override;
+
+        auto Deserialize( filesystem::FileHandle file ) -> void override;
+        auto Serialize( filesystem::FileHandle file ) const -> void override;
+
+        auto SetOpacity( core::f32 opacity ) -> void;
+        auto SetColor( const core::float4& color ) -> void;
+        auto SetName( eastl::string_view newName ) -> void override;
+
+        MKT_NODISCARD auto GetOpacity() const -> core::f32;
+        MKT_NODISCARD auto GetColor() const -> const core::float4&;
+        MKT_NODISCARD auto GetSourcePath() const -> const filesystem::Path&;
+        MKT_NODISCARD auto Evaluate( const core::float4& tint ) const -> core::float4;
+
+        MKT_NODISCARD auto GetName() const -> const eastl::string& override;
 
         ~TextMaterial() override;
+
+    private:
+        // [Internal usage]
+        MKT_NODISCARD auto SerializeProperties() const -> YAML::Node;
+        auto RestoreProperties( const YAML::Node& node ) -> void;
+
+    private:
+        eastl::string mName{};
+        core::float4 mColor{ 1.0f };
+        core::f32 mOpacity{ 1.0f };
+
+        mutable filesystem::Path mSourcePath{};
     };
 }
 
-#endif//MIKOTO_TEXT_MATERIAL_HH
+#endif// MIKOTO_MATERIAL_TEXT_MATERIAL_HH

@@ -1,0 +1,425 @@
+diff --git a/profiler/src/profiler/TracyView.cpp b/profiler/src/profiler/TracyView.cpp
+index 9fb7e48..4ab2838 100644
+--- a/profiler/src/profiler/TracyView.cpp
++++ b/profiler/src/profiler/TracyView.cpp
+@@ -70,11 +70,7 @@ View::View( void(*cbMainThread)(const std::function<void()>&, bool), const char*
+ }
+ 
+ View::View( void(*cbMainThread)(const std::function<void()>&, bool), FileRead& f, SetTitleCallback stcb, SetScaleCallback sscb, AttentionCallback acb, AchievementsMgr* amgr )
+-#ifdef MIKOTO_TRACY_EMBEDDED
+-    : m_worker( f, static_cast<EventType::Type>( EventType::All & ~EventType::FrameImages ) )
+-#else
+     : m_worker( f )
+-#endif
+     , m_filename( f.GetFilename() )
+     , m_staticView( true )
+     , m_viewMode( ViewMode::Paused )
+@@ -130,12 +126,9 @@ View::~View()
+     if( m_compare.loadThread.joinable() ) m_compare.loadThread.join();
+     if( m_saveThread.joinable() ) m_saveThread.join();
+ 
+-#ifndef MIKOTO_TRACY_EMBEDDED
+-    if( m_FrameTextureCache.textureId ) FreeTexture( m_FrameTextureCache.textureId, m_cbMainThread );
+-    if( m_FrameTextureCacheConnection.textureId ) FreeTexture( m_FrameTextureCacheConnection.textureId, m_cbMainThread );
+-
+-    if( m_playback.texture ) FreeTexture( m_playback.texture, m_cbMainThread );
+-#endif
++    FreeTexture( m_FrameTextureCache.textureId );
++    FreeTexture( m_FrameTextureCacheConnection.textureId );
++    FreeTexture( m_playback.texture );
+ }
+ 
+ void View::InitTextEditor()
+@@ -740,10 +733,6 @@ bool View::DrawImpl()
+ {
+     if( !m_worker.HasData() )
+     {
+-        bool keepOpen = true;
+-        char tmp[2048];
+-        sprintf( tmp, "%s###Connection", m_worker.GetAddr().c_str() );
+-        ImGui::Begin( tmp, &keepOpen, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse );
+         ImGui::PushFont( g_fonts.normal, FontNormal * 2.f );
+         ImGui::Spacing();
+         TextCentered( ICON_FA_WIFI );
+@@ -751,8 +740,7 @@ bool View::DrawImpl()
+         ImGui::PopFont();
+         ImGui::TextUnformatted( "Waiting for connection…" );
+         DrawWaitingDotsCentered( s_time );
+-        ImGui::End();
+-        return keepOpen;
++        return true;
+     }
+ 
+     if( m_achievements )
+@@ -1404,22 +1392,22 @@ bool View::DrawImpl()
+ 
+ void View::DrawFrameImage( FrameImageCache& cache, const FrameImage& fi, float scale )
+ {
+-#ifndef MIKOTO_TRACY_EMBEDDED
+-    if ( fi.ptr != cache.dataPtr )
++    if( fi.ptr != cache.dataPtr )
+     {
+-        if( !cache.textureId ) cache.textureId = MakeTexture();
+         UpdateTexture( cache.textureId, m_worker.UnpackFrameImage( fi ), fi.w, fi.h );
+         cache.dataPtr = fi.ptr;
+     }
++    if( !cache.textureId ) return;
++
++    const auto texture = cache.textureId->GetTexRef();
+     if( fi.flip )
+     {
+-        ImGui::Image( cache.textureId, ImVec2( fi.w * scale, fi.h * scale ), ImVec2( 0, 1 ), ImVec2( 1, 0 ) );
++        ImGui::Image( texture, ImVec2( fi.w * scale, fi.h * scale ), ImVec2( 0, 1 ), ImVec2( 1, 0 ) );
+     }
+     else
+     {
+-        ImGui::Image( cache.textureId, ImVec2( fi.w * scale, fi.h * scale ) );
++        ImGui::Image( texture, ImVec2( fi.w * scale, fi.h * scale ) );
+     }
+-#endif
+ }
+ 
+ void View::DrawTextEditor()
+diff --git a/profiler/src/profiler/TracyView.hpp b/profiler/src/profiler/TracyView.hpp
+index ee5dc65..adb2e40 100644
+--- a/profiler/src/profiler/TracyView.hpp
++++ b/profiler/src/profiler/TracyView.hpp
+@@ -133,7 +133,7 @@ class View
+     
+     struct FrameImageCache
+     {
+-        ImTextureID textureId = 0;
++        ImTextureData* textureId = nullptr;
+         const void* dataPtr = nullptr;
+     };
+ 
+@@ -1014,7 +1014,7 @@ private:
+     } m_cache;
+ 
+     struct {
+-        ImTextureID texture = 0;
++        ImTextureData* texture = nullptr;
+         float timeLeft = 0;
+         float speed = 1;
+         uint32_t frame = 0;
+diff --git a/profiler/src/profiler/TracyView_Playback.cpp b/profiler/src/profiler/TracyView_Playback.cpp
+index 7dff8a0..2218983 100644
+--- a/profiler/src/profiler/TracyView_Playback.cpp
++++ b/profiler/src/profiler/TracyView_Playback.cpp
+@@ -94,7 +94,6 @@ constexpr size_t PlaybackWindowButtonsCount = sizeof( PlaybackWindowButtons ) /
+ 
+ void View::DrawPlayback()
+ {
+-#ifndef MIKOTO_TRACY_EMBEDDED
+     ImGui::Begin( "Playback", &m_showPlayback, ImGuiWindowFlags_AlwaysAutoResize );
+     if( !m_showPlayback ) m_playback.pause = true;
+     if( ImGui::GetCurrentWindowRead()->SkipItems ) { ImGui::End(); return; }
+@@ -108,10 +107,6 @@ void View::DrawPlayback()
+ 
+     const auto tstart = m_worker.GetFrameBegin( *frameSet, fi->frameRef );
+ 
+-    if( !m_playback.texture )
+-    {
+-        m_playback.texture = MakeTexture();
+-    }
+     if( m_playback.currFrame != m_playback.frame )
+     {
+         m_playback.currFrame = m_playback.frame;
+@@ -153,26 +148,32 @@ void View::DrawPlayback()
+         }
+     }
+ 
++    if( !m_playback.texture )
++    {
++        ImGui::End();
++        return;
++    }
++
+     if( m_playback.zoom )
+     {
+         if( fi->flip )
+         {
+-            ImGui::Image( m_playback.texture, ImVec2( fi->w * 2 * scale, fi->h * 2 * scale ), ImVec2( 0, 1 ), ImVec2( 1, 0 ) );
++            ImGui::Image( m_playback.texture->GetTexRef(), ImVec2( fi->w * 2 * scale, fi->h * 2 * scale ), ImVec2( 0, 1 ), ImVec2( 1, 0 ) );
+         }
+         else
+         {
+-            ImGui::Image( m_playback.texture, ImVec2( fi->w * 2 * scale, fi->h * 2 * scale ) );
++            ImGui::Image( m_playback.texture->GetTexRef(), ImVec2( fi->w * 2 * scale, fi->h * 2 * scale ) );
+         }
+     }
+     else
+     {
+         if( fi->flip )
+         {
+-            ImGui::Image( m_playback.texture, ImVec2( fi->w * scale, fi->h * scale ), ImVec2( 0, 1 ), ImVec2( 1, 0 ) );
++            ImGui::Image( m_playback.texture->GetTexRef(), ImVec2( fi->w * scale, fi->h * scale ), ImVec2( 0, 1 ), ImVec2( 1, 0 ) );
+         }
+         else
+         {
+-            ImGui::Image( m_playback.texture, ImVec2( fi->w * scale, fi->h * scale ) );
++            ImGui::Image( m_playback.texture->GetTexRef(), ImVec2( fi->w * scale, fi->h * scale ) );
+         }
+     }
+     const auto wheel = ImGui::GetIO().MouseWheel;
+@@ -367,7 +368,6 @@ void View::DrawPlayback()
+         ImGui::EndTooltip();
+     }
+     ImGui::End();
+-#endif
+ }
+ 
+ }
+diff --git a/profiler/src/profiler/TracyView_ConnectionState.cpp b/profiler/src/profiler/TracyView_ConnectionState.cpp
+index 812ee81..89b8020 100644
+--- a/profiler/src/profiler/TracyView_ConnectionState.cpp
++++ b/profiler/src/profiler/TracyView_ConnectionState.cpp
+@@ -107,17 +107,8 @@ bool View::DrawConnection()
+     if( ImGui::Button( ICON_FA_FLOPPY_DISK " Save trace…" ) && m_saveThreadState.load( std::memory_order_relaxed ) == SaveThreadState::Inert )
+     {
+         auto cb = [this]( const char* fn ) {
+-            const auto sz = strlen( fn );
+-            if( sz < 7 || memcmp( fn + sz - 6, ".tracy", 6 ) != 0 )
+-            {
+-                char tmp[1024];
+-                sprintf( tmp, "%s.tracy", fn );
+-                m_filenameStaging = tmp;
+-            }
+-            else
+-            {
+-                m_filenameStaging = fn;
+-            }
++            m_filenameStaging = fn;
++            if( !m_filenameStaging.ends_with( ".tracy" ) ) m_filenameStaging += ".tracy";
+         };
+ 
+ #ifndef TRACY_NO_FILESELECTOR
+diff --git a/profiler/src/profiler/TracyTexture.hpp b/profiler/src/profiler/TracyTexture.hpp
+index 2e6e9ac..b61bc73 100644
+--- a/profiler/src/profiler/TracyTexture.hpp
++++ b/profiler/src/profiler/TracyTexture.hpp
+@@ -1,18 +1,14 @@
+ #ifndef __TRACYTEXTURE_HPP__
+ #define __TRACYTEXTURE_HPP__
+ 
+-#include <functional>
+ #include <imgui.h>
+ 
+ namespace tracy
+ {
+ 
+-void InitTexture();
+-ImTextureID MakeTexture( bool zigzag = false );
+-void FreeTexture( ImTextureID tex, void(*runOnMainThread)(const std::function<void()>&, bool) );
+-void UpdateTexture( ImTextureID tex, const char* data, int w, int h );
+-void UpdateTextureRGBA( ImTextureID tex, void* data, int w, int h );
+-void UpdateTextureRGBAMips( ImTextureID tex, void** data, int* w, int* h, size_t mips );
++void CollectTextures();
++void FreeTexture( ImTextureData*& texture );
++void UpdateTexture( ImTextureData*& texture, const char* data, int width, int height );
+ 
+ }
+ 
+diff --git a/profiler/src/profiler/TracyTexture.cpp b/profiler/src/profiler/TracyTexture.cpp
+index de8efce..b699bcb 100644
+--- a/profiler/src/profiler/TracyTexture.cpp
++++ b/profiler/src/profiler/TracyTexture.cpp
+@@ -1,60 +1,37 @@
++#include <algorithm>
+ #include <inttypes.h>
++#include <memory>
+ #include <string.h>
++#include <vector>
+ 
+-#ifdef __EMSCRIPTEN__
+-#  include <emscripten/html5.h>
+-#  include <GLES2/gl2.h>
+-#else
+-#  include <backends/imgui_impl_opengl3_loader.h>
+-#endif
++#include <imgui_internal.h>
+ #include "TracyTexture.hpp"
+ #include "../public/common/TracyForceInline.hpp"
+ 
+-#ifndef COMPRESSED_RGB_S3TC_DXT1_EXT
+-#  define COMPRESSED_RGB_S3TC_DXT1_EXT 0x83F0
+-#endif
+-
+ namespace tracy
+ {
+ 
+-static bool s_hardwareS3tc;
++// The editor's renderer owns the GPU upload and deferred destruction.
++// https://github.com/ocornut/imgui/blob/v1.92.9b-docking/imgui.cpp
++static std::vector<std::unique_ptr<ImTextureData>> s_textures;
+ 
+-void InitTexture()
++void CollectTextures()
+ {
+-#ifdef __EMSCRIPTEN__
+-    s_hardwareS3tc = emscripten_webgl_enable_extension( emscripten_webgl_get_current_context(), "WEBGL_compressed_texture_s3tc" );
+-#else
+-    s_hardwareS3tc = false;
+-    GLint num;
+-    glGetIntegerv( GL_NUM_EXTENSIONS, &num );
+-    for( GLint i=0; i<num; i++ )
+-    {
+-        auto ext = (const char*)glGetStringi( GL_EXTENSIONS, GLuint( i ) );
+-        if( strcmp( ext, "GL_EXT_texture_compression_s3tc" ) == 0 )
+-        {
+-            s_hardwareS3tc = true;
+-            break;
+-        }
+-    }
+-#endif
++    auto& platformTextures = ImGui::GetPlatformIO().Textures;
++    std::erase_if( s_textures, [&]( const auto& texture ) {
++        if( !texture->WantDestroyNextFrame || texture->Status != ImTextureStatus_Destroyed ) return false;
++
++        ImGui::UnregisterUserTexture( texture.get() );
++        platformTextures.find_erase( texture.get() );
++        return true;
++    } );
+ }
+ 
+-ImTextureID MakeTexture( bool zigzag )
++void FreeTexture( ImTextureData*& texture )
+ {
+-    GLuint tex;
+-    glGenTextures( 1, &tex );
+-    glBindTexture( GL_TEXTURE_2D, tex );
+-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, zigzag ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR );
+-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, zigzag ? GL_REPEAT : GL_CLAMP_TO_EDGE );
+-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+-    return tex;
+-}
+-
+-void FreeTexture( ImTextureID _tex, void(*runOnMainThread)(const std::function<void()>&, bool) )
+-{
+-    auto tex = (GLuint)_tex;
+-    runOnMainThread( [tex] { glDeleteTextures( 1, &tex ); }, false );
++    if( !texture ) return;
++    texture->WantDestroyNextFrame = true;
++    texture = nullptr;
+ }
+ 
+ static tracy_force_inline void DecodeDxt1Part( uint64_t d, uint32_t* dst, uint32_t w )
+@@ -139,49 +116,33 @@ static tracy_force_inline void DecodeDxt1Part( uint64_t d, uint32_t* dst, uint32
+     memcpy( dst+3, dict + (idx & 0x3), 4 );
+ }
+ 
+-void UpdateTexture( ImTextureID _tex, const char* data, int w, int h )
++void UpdateTexture( ImTextureData*& texture, const char* data, int width, int height )
+ {
+-    auto tex = (GLuint)_tex;
+-    glBindTexture( GL_TEXTURE_2D, tex );
+-    if( s_hardwareS3tc )
++    if( !data || width <= 0 || height <= 0 || width % 4 != 0 || height % 4 != 0 ||
++        !( ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasTextures ) ) return;
++
++    if( texture && ( texture->Width != width || texture->Height != height ) ) FreeTexture( texture );
++    if( !texture )
+     {
+-        glCompressedTexImage2D( GL_TEXTURE_2D, 0, COMPRESSED_RGB_S3TC_DXT1_EXT, w, h, 0, w * h / 2, data );
++        auto& storage = s_textures.emplace_back( std::make_unique<ImTextureData>() );
++        storage->Create( ImTextureFormat_RGBA32, width, height );
++        texture = storage.get();
++        ImGui::RegisterUserTexture( texture );
+     }
+-    else
++
++    auto dst = reinterpret_cast<uint32_t*>( texture->GetPixels() );
++    for( int y=0; y<height; y+=4 )
+     {
+-        auto tmp = new uint32_t[w*h];
+-        auto src = (const uint64_t*)data;
+-        auto dst = tmp;
+-        for( int y=0; y<h/4; y++ )
++        for( int x=0; x<width; x+=4 )
+         {
+-            for( int x=0; x<w/4; x++ )
+-            {
+-                uint64_t d = *src++;
+-                DecodeDxt1Part( d, dst, w );
+-                dst += 4;
+-            }
+-            dst += w*3;
++            uint64_t block;
++            memcpy( &block, data, sizeof( block ) );
++            data += sizeof( block );
++            DecodeDxt1Part( block, dst + y * width + x, width );
+         }
+-        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tmp );
+-        delete[] tmp;
+     }
+-}
+ 
+-void UpdateTextureRGBA( ImTextureID _tex, void* data, int w, int h )
+-{
+-    auto tex = (GLuint)_tex;
+-    glBindTexture( GL_TEXTURE_2D, tex );
+-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
+-}
+-
+-void UpdateTextureRGBAMips( ImTextureID _tex, void** data, int* w, int* h, size_t mips )
+-{
+-    auto tex = (GLuint)_tex;
+-    glBindTexture( GL_TEXTURE_2D, tex );
+-    for( size_t i=0; i<mips; i++ )
+-    {
+-        glTexImage2D( GL_TEXTURE_2D, i, GL_RGBA, w[i], h[i], 0, GL_RGBA, GL_UNSIGNED_BYTE, data[i] );
+-    }
++    ImTextureDataQueueUpload( texture, 0, 0, width, height );
+ }
+ 
+ }
+diff --git a/server/TracyFileRead.hpp b/server/TracyFileRead.hpp
+index de0e3b4..4e46277 100644
+--- a/server/TracyFileRead.hpp
++++ b/server/TracyFileRead.hpp
+@@ -5,6 +5,7 @@
+ #include <atomic>
+ #include <algorithm>
+ #include <condition_variable>
++#include <filesystem>
+ #include <stdexcept>
+ #include <stdio.h>
+ #include <string.h>
+@@ -119,8 +120,12 @@ class FileRead
+ public:
+     static FileRead* Open( const char* fn )
+     {
++#ifdef _WIN32
++        return Open( std::filesystem::path( reinterpret_cast<const char8_t*>( fn ) ).c_str(), fn );
++#else
+         auto f = fopen( fn, "rb" );
+         return f ? new FileRead( f, fn ) : nullptr;
++#endif
+     }
+ 
+ #ifdef _WIN32
+diff --git a/server/TracyFileWrite.hpp b/server/TracyFileWrite.hpp
+index 1ea1304..eece0f5 100644
+--- a/server/TracyFileWrite.hpp
++++ b/server/TracyFileWrite.hpp
+@@ -8,6 +8,7 @@
+ #include <algorithm>
+ #include <assert.h>
+ #include <condition_variable>
++#include <filesystem>
+ #include <mutex>
+ #include <stdio.h>
+ #include <string.h>
+@@ -137,7 +138,11 @@ class FileWrite
+ public:
+     static FileWrite* Open( const char* fn, FileCompression comp = FileCompression::Fast, int level = 1, int streams = -1 )
+     {
++#ifdef _WIN32
++        auto f = _wfopen( std::filesystem::path( reinterpret_cast<const char8_t*>( fn ) ).c_str(), L"wb" );
++#else
+         auto f = fopen( fn, "wb" );
++#endif
+         if( !f ) return nullptr;
+         if( streams <= 0 ) streams = std::max<int>( 1, std::thread::hardware_concurrency() );
+         if( streams > 255 ) streams = 255;

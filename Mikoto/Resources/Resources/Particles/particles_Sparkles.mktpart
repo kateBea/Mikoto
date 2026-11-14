@@ -1,0 +1,12 @@
+ParticleEmitter:
+  Version: 1
+  EmissionRate: 60
+  Lifetime: 2
+  Speed: 4
+  SpeedVariation: 0.5
+  ConeAngle: 45
+  Acceleration: [0, -5, 0]
+  StartSize: 0.06
+  EndSize: 0
+  StartColor: [3, 1.8, 0.3, 1]
+  EndColor: [0.8, 0.05, 0.01, 0]

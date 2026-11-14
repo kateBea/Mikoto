@@ -1,0 +1,1002 @@
+# Two video screens combine texture playback, spatial audio and emissive mesh lighting.
+# Press Play and focus the Game panel; P switches between bunny orbit and free flight.
+# WASD moves, RMB looks or orbits, Shift boosts speed, and the wheel adjusts orbit distance.
+# Assets/Scripts/CSharp/VideoGallery.cs controls the bunny, camera and canvas labels.
+# Each screen owns a VideoComponent and audio settings; the bunny carries the listener.
+# The bundled MP4 clips are shared resources referenced from Resources/Video/Demos.
+
+{
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "Scene": "Video Gallery",
+  "EnvironmentLightingSource": 1,
+  "ToneMapping": 0,
+  "Objects": [
+    {
+      "Type": 5,
+      "ID": 1,
+      "TagComponent": {
+        "Name": "Large gallery floor",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          -0.2,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          30,
+          0.2,
+          22
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 2,
+      "TagComponent": {
+        "Name": "Dark rear wall",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          4,
+          -7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          20,
+          4,
+          0.15
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 3,
+      "TagComponent": {
+        "Name": "mikoto screen frame",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          3,
+          -6.15
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.16,
+          2.41,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 4,
+      "TagComponent": {
+        "Name": "mikoto video and spatial audio",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          3,
+          -6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          2.25,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Screen.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      },
+      "VideoComponent": {
+        "ClipPath": "../../../Video/Demos/mikoto.mp4",
+        "PlayOnStart": true,
+        "Looping": true,
+        "AudioEnabled": true,
+        "OutputMap": 1,
+        "Audio": {
+          "Spatialized": true,
+          "Volume": 0.8,
+          "MinDistance": 2,
+          "MaxDistance": 30,
+          "Rolloff": 1,
+          "Attenuation": 1
+        }
+      },
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 1,
+          "Color": [
+            1,
+            1,
+            1
+          ],
+          "Intensity": 12,
+          "Size": [
+            8,
+            4.5
+          ],
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 5,
+      "TagComponent": {
+        "Name": "wuwa screen frame",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          6,
+          3,
+          -6.15
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.16,
+          2.41,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 6,
+      "TagComponent": {
+        "Name": "wuwa video and spatial audio",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          6,
+          3,
+          -6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          2.25,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Screen.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      },
+      "VideoComponent": {
+        "ClipPath": "../../../Video/Demos/wuwa.mp4",
+        "PlayOnStart": true,
+        "Looping": true,
+        "AudioEnabled": true,
+        "OutputMap": 1,
+        "Audio": {
+          "Spatialized": true,
+          "Volume": 0.8,
+          "MinDistance": 2,
+          "MaxDistance": 30,
+          "Rolloff": 1,
+          "Attenuation": 1
+        }
+      },
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 1,
+          "Color": [
+            1,
+            1,
+            1
+          ],
+          "Intensity": 12,
+          "Size": [
+            8,
+            4.5
+          ],
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 7,
+      "TagComponent": {
+        "Name": "Glass crystal ball",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -4.5,
+          1,
+          -0.8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 8,
+      "TagComponent": {
+        "Name": "Quartz crystal ball",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -1.5,
+          1,
+          -0.8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 4
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 9,
+      "TagComponent": {
+        "Name": "Diamond crystal ball",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          1.5,
+          1,
+          -0.8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 5
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 10,
+      "TagComponent": {
+        "Name": "Frosted_Glass crystal ball",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          4.5,
+          1,
+          -0.8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 6
+      }
+    },
+    {
+      "AnimatorComponent": {
+        "Clip": "C038_Run",
+        "ID": 11,
+        "ModelPath": "../../../Prefabs/lola_bunny_updated__multiversus/scene.gltf",
+        "Playing": true
+      },
+      "Children": [
+        {
+          "Children": [],
+          "ID": 12,
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/lola_bunny_updated__multiversus/scene.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 11
+          },
+          "TagComponent": {
+            "Name": "Object_0",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.7028700113296509,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.7028700113296509,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.7028700113296509,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "Position": [
+              0,
+              0,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Type": 5
+        },
+        {
+          "Children": [],
+          "ID": 13,
+          "MeshComponent": {
+            "MeshIndex": 1,
+            "ModelPath": "../../../Prefabs/lola_bunny_updated__multiversus/scene.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 11
+          },
+          "TagComponent": {
+            "Name": "Object_1",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.7028700113296509,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.7028700113296509,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.7028700113296509,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "Position": [
+              0,
+              0,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Type": 5
+        },
+        {
+          "Children": [],
+          "ID": 14,
+          "MeshComponent": {
+            "MeshIndex": 2,
+            "ModelPath": "../../../Prefabs/lola_bunny_updated__multiversus/scene.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 11
+          },
+          "TagComponent": {
+            "Name": "Object_2",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.7028700113296509,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.7028700113296509,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.7028700113296509,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "Position": [
+              0,
+              0,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Type": 5
+        },
+        {
+          "Children": [],
+          "ID": 15,
+          "MeshComponent": {
+            "MeshIndex": 3,
+            "ModelPath": "../../../Prefabs/lola_bunny_updated__multiversus/scene.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 11
+          },
+          "TagComponent": {
+            "Name": "Object_3",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.7028700113296509,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.7028700113296509,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.7028700113296509,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "Position": [
+              0,
+              0,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Type": 5
+        }
+      ],
+      "ID": 11,
+      "TagComponent": {
+        "Name": "Lola",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.003,
+          4
+        ],
+        "Rotation": [
+          0,
+          180,
+          0
+        ],
+        "Scale": [
+          0.584286083,
+          0.584286083,
+          0.584286083
+        ],
+        "Uniform Scale": true
+      },
+      "Type": 0,
+      "AudioListenerComponent": {
+        "Enabled": true
+      },
+      "ScriptComponent": {
+        "Language": "CSharp",
+        "ScriptPath": "../Assets/Scripts/CSharp/VideoGallery.cs",
+        "ClassName": "VideoGallery",
+        "Properties": "{}"
+      }
+    },
+    {
+      "Type": 6,
+      "ID": 16,
+      "TagComponent": {
+        "Name": "Orbit Camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          3.1,
+          11
+        ],
+        "Rotation": [
+          -12,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 52,
+        "Near": 0.05,
+        "Far": 150,
+        "Main": true,
+        "FixedAspect": false,
+        "Viewport": [
+          1280,
+          720,
+          0
+        ],
+        "ClearFlags": 0,
+        "ClearColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1,
+        "SkyboxBlur": 0
+      }
+    },
+    {
+      "Type": 7,
+      "ID": 17,
+      "TagComponent": {
+        "Name": "Video gallery controls",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CanvasComponent": {
+        "Version": 2,
+        "Overlay": true,
+        "ReferenceSize": [
+          1920,
+          1080
+        ],
+        "WorldScale": 0.001,
+        "SortOrder": 10,
+        "Elements": [
+          {
+            "Id": 1,
+            "Parent": 0,
+            "Name": "Camera controls panel",
+            "Type": 0,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              24,
+              24
+            ],
+            "Size": [
+              740,
+              126
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.02,
+              0.035,
+              0.05,
+              0.86
+            ],
+            "Text": "",
+            "FontSize": 20,
+            "Thickness": 1,
+            "Rounding": 6,
+            "Value": 0
+          },
+          {
+            "Id": 2,
+            "Parent": 1,
+            "Name": "Camera mode",
+            "Type": 3,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              18,
+              12
+            ],
+            "Size": [
+              704,
+              30
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.5,
+              0.86,
+              1,
+              1
+            ],
+            "Text": "BUNNY ORBIT CAMERA  |  P: free fly",
+            "FontSize": 24,
+            "Thickness": 1,
+            "Rounding": 6,
+            "Value": 0,
+            "FontPath": "../../../Fonts/Open_Sans/static/OpenSans-Regular.ttf"
+          },
+          {
+            "Id": 3,
+            "Parent": 1,
+            "Name": "Camera controls",
+            "Type": 3,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              18,
+              49
+            ],
+            "Size": [
+              704,
+              28
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.92,
+              0.95,
+              1,
+              1
+            ],
+            "Text": "WASD: move bunny  |  RMB: orbit  |  Wheel: distance  |  Shift: run",
+            "FontSize": 20,
+            "Thickness": 1,
+            "Rounding": 6,
+            "Value": 0,
+            "FontPath": "../../../Fonts/Open_Sans/static/OpenSans-Regular.ttf"
+          },
+          {
+            "Id": 4,
+            "Parent": 1,
+            "Name": "Game input hint",
+            "Type": 3,
+            "Interactable": false,
+            "Visible": true,
+            "Enabled": true,
+            "Layout": 1,
+            "AnchorMin": [
+              0,
+              0
+            ],
+            "AnchorMax": [
+              0,
+              0
+            ],
+            "Pivot": [
+              0,
+              0
+            ],
+            "Position": [
+              18,
+              87
+            ],
+            "Size": [
+              704,
+              23
+            ],
+            "Scale": [
+              1,
+              1
+            ],
+            "Rotation": 0,
+            "Color": [
+              0.65,
+              0.74,
+              0.82,
+              1
+            ],
+            "Text": "Click the Game view to enable controls.",
+            "FontSize": 18,
+            "Thickness": 1,
+            "Rounding": 6,
+            "Value": 0,
+            "FontPath": "../../../Fonts/Open_Sans/static/OpenSans-Regular.ttf"
+          }
+        ]
+      }
+    }
+  ],
+  "Materials": [
+    {
+      "MaterialPath": "../Assets/Materials/Floor.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Frame.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Video.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Glass.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Quartz.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Diamond.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Frosted_Glass.mktmtl"
+    }
+  ]
+}

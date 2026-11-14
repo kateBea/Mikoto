@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 
@@ -19,15 +21,23 @@ using namespace mikoto;
 
 MKT_DECLARE_STRUCTURED_UAV sBuffers;
 
-bool IsPrime(uint n) {
-    if (n < 2) return false;
-    if (n == 2) return true;
-    if ((n & 1) == 0) return false;
+bool IsPrime( uint n ) {
+    if ( n < 2 ) {
+        return false;
+    }
+    if ( n == 2 ) {
+        return true;
+    }
+    if ( ( n & 1 ) == 0 ) {
+        return false;
+    }
 
-    uint limit = uint(floor(sqrt(float(n))));
+    uint limit = uint( floor( sqrt( float( n ) ) ) );
 
-    for (uint d = 3; d <= limit; d += 2) {
-        if (n % d == 0) return false;
+    for ( uint d = 3; d <= limit; d += 2 ) {
+        if ( n % d == 0 ) {
+            return false;
+        }
     }
     return true;
 }
@@ -44,26 +54,27 @@ struct ShaderParameters {
     ArraySize mBufferSize;
 };
 
-MKT_DECLARE_PUSH_CONSTANT(ShaderParameters) uParams;
+MKT_DECLARE_PUSH_CONSTANT( ShaderParameters, uParams );
 
-[numthreads(64, 1, 1)]
-[shader("compute")]
-void main(uint3 gid: SV_DispatchThreadID) {
-    MyStruct s;
+[numthreads( 64, 1, 1 )]
+[shader( "compute" )]
+void main( uint3 gid : SV_DispatchThreadID ) {
+    MyStruct s = ( MyStruct )0;
     s.x = gid.x;
     s.y = gid.y;
 
     uint idx = gid.x;
-    if (idx >= uParams.mBufferSize) {
+    if ( idx >= uParams.mBufferSize ) {
         return;
     }
-    
+
     uint value = 0;
-    if (IsPrime(idx))
+    if ( IsPrime( idx ) ) {
         value = idx;
+    }
 
     s.prime = value;
 
-    MyStruct *buf = (MyStruct *)uParams.mBufferID;
+    RWBufferReference<MyStruct> buf = ( RWBufferReference<MyStruct> )uParams.mBufferID;
     buf[idx] = s;
 }

@@ -12,36 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_EDITOR_HELLO_CUBE_LAYER_HH
-#define MIKOTO_EDITOR_HELLO_CUBE_LAYER_HH
+#ifndef MIKOTO_LAYERS_EDITOR_HELLO_CUBE_LAYER_HH
+#define MIKOTO_LAYERS_EDITOR_HELLO_CUBE_LAYER_HH
 
+#include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
 
 #include <Core/Core.hh>
+#include <Core/Layer.hh>
 #include <Core/Types.hh>
-#include <Core/Event.hh>
-#include <Core/LayerStack.hh>
 
-#include <Assets/Model.hh>
-
+#include <Platform/Event.hh>
 #include <Platform/Window.hh>
+
+#include <Assets/AssetModel.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
-
 #include <Renderer/Core/SceneRenderer.hh>
 
 namespace mikoto::editor {
 
     class EditorHelloCubeLayer final : public core::ILayer {
     public:
-        explicit EditorHelloCubeLayer( platform::Window *window );
+        explicit EditorHelloCubeLayer( platform::IWindow *window );
 
         auto OnCreate() -> void override;
         auto OnDestroy() -> void override;
         auto OnUpdate( float timeStep ) -> void override;
+        auto OnRender( float deltaTime ) -> void override;
 
-        auto OnEvent( core::IEvent &event ) -> void override;
+        auto OnEvent( platform::Event &event ) -> void override;
+
+        MKT_NODISCARD auto GetName() const -> eastl::string_view override;
     private:
         struct MyData {
             core::float4x4 mModel{};
@@ -57,6 +60,8 @@ namespace mikoto::editor {
         auto DebugCompileGlsl() -> void;
 
     private:
+        eastl::string mName{};
+
         // Cube definition
         eastl::vector<asset::VertexDescription_Std430Alignment> mVertices{
             // Front (+Z)
@@ -106,7 +111,7 @@ namespace mikoto::editor {
             20, 21, 22, 22, 23, 20 // Bottom
         };
 
-        renderer::IGpuDevice* mDevice{};
+        renderer::rhi::IGpuDevice* mDevice{};
 
         core::f32 mRotationSpeed{ 1.0f };
 
@@ -139,8 +144,9 @@ namespace mikoto::editor {
 
         bool mIsImguiWindowActive{ false };
 
-        platform::Window* mWindow{};
+        platform::IWindow* mWindow{};
     };
 }// namespace mikoto::editor
 
-#endif //MIKOTO_EDITOR_HELLO_CUBE_LAYER_HH
+#endif// MIKOTO_LAYERS_EDITOR_HELLO_CUBE_LAYER_HH
+

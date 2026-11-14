@@ -69,7 +69,13 @@ void ax::Drawing::DrawIcon(ImDrawList* drawList, const ImVec2& a, const ImVec2& 
             if (innerColor & 0xFF000000)
                 drawList->AddConvexPolyFilled(drawList->_Path.Data, drawList->_Path.Size, innerColor);
 
+#if IMGUI_VERSION_NUM >= 19280
+            drawList->PathStroke(color, 2.0f * outline_scale, ImDrawFlags_Closed);
+#elif IMGUI_VERSION_NUM >= 18200
+            drawList->PathStroke(color, ImDrawFlags_Closed, 2.0f * outline_scale);
+#else
             drawList->PathStroke(color, true, 2.0f * outline_scale);
+#endif
         }
         else
             drawList->PathFillConvex(color);
@@ -235,7 +241,13 @@ void ax::Drawing::DrawIcon(ImDrawList* drawList, const ImVec2& a, const ImVec2& 
                 if (innerColor & 0xFF000000)
                     drawList->AddConvexPolyFilled(drawList->_Path.Data, drawList->_Path.Size, innerColor);
 
-                drawList->PathStroke(color, true, 2.0f * outline_scale);
+    #if IMGUI_VERSION_NUM >= 19280
+            drawList->PathStroke(color, 2.0f * outline_scale, ImDrawFlags_Closed);
+#elif IMGUI_VERSION_NUM >= 18200
+            drawList->PathStroke(color, ImDrawFlags_Closed, 2.0f * outline_scale);
+#else
+            drawList->PathStroke(color, true, 2.0f * outline_scale);
+#endif
             }
         }
         else

@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_D3D11_DEVICE_HH
-#define MIKOTO_D3D11_DEVICE_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D11_D3D11_DEVICE_HH
+#define MIKOTO_RENDERER_RHI_D3D11_D3D11_DEVICE_HH
 
 #include <mutex>
 
 #include <EASTL/fixed_vector.h>
+
+#include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -30,10 +32,11 @@
 #include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Rhi/Pipeline.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
-
 #include <Renderer/Core/RenderSystem.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
+
+#include <Platform/Windows/Windows.hh>
 
 #include <d3d11.h>
 #include <d3d11_3.h>
@@ -65,13 +68,13 @@ namespace mikoto::renderer::d3d11 {
         auto Destroy() -> void override;
     };
 
-    class BindingLayout final : public IBindingLayout {
+    class BindingLayout final : public renderer::rhi::IBindingLayout {
     public:
-        explicit BindingLayout( const BindingLayoutDescription& desc );
-        explicit BindingLayout( const DescriptorTableLayoutDescription& desc );
+        explicit BindingLayout( const renderer::rhi::BindingLayoutDescription& desc );
+        explicit BindingLayout( const renderer::rhi::DescriptorTableLayoutDescription& desc );
 
         MKT_NODISCARD auto IsBindless() const -> bool override;
-        MKT_NODISCARD auto GetRegisterSpace() const -> u32 override;
+        MKT_NODISCARD auto GetRegisterSpace() const -> core::u32 override;
 
         ~BindingLayout() override;
 
@@ -81,8 +84,8 @@ namespace mikoto::renderer::d3d11 {
 
     private:
         bool mIsBindless{ false };
-        BindingLayoutDescription mBindingLayoutDesc{};
-        DescriptorTableLayoutDescription mBindlessLayoutDesc{};
+        renderer::rhi::BindingLayoutDescription mBindingLayoutDesc{};
+        renderer::rhi::DescriptorTableLayoutDescription mBindlessLayoutDesc{};
     };
 
     // Variants?
@@ -92,10 +95,10 @@ namespace mikoto::renderer::d3d11 {
         ID3D11Buffer* mConstantBuffer{ nullptr };
     };
 
-    class BindingTable : public IBindingTable {
+    class BindingTable : public renderer::rhi::IBindingTable {
     public:
 
-        explicit BindingTable( const BindingTableDescription& desc, BindingLayoutHandle layout );
+        explicit BindingTable( const renderer::rhi::BindingTableDescription& desc, renderer::rhi::BindingLayoutHandle layout );
 
         auto Bind(ID3D11DeviceContext* ctx, rhi::ShaderFlags stage ) const -> void;
 
@@ -106,17 +109,17 @@ namespace mikoto::renderer::d3d11 {
         auto Destroy() -> void override;
 
     private:
-        BindingLayoutHandle mBindingLayout{};
-        BindingTableDescription mBindingDescription{};
+        renderer::rhi::BindingLayoutHandle mBindingLayout{};
+        renderer::rhi::BindingTableDescription mBindingDescription{};
 
         eastl::vector<D3D11BindingData> mResolvedBindings{};
     };
 
-    class PipelineLayout : public IPipelineLayout {
+    class PipelineLayout : public renderer::rhi::IPipelineLayout {
     public:
-        explicit PipelineLayout( const PipelineLayoutCreateDescription& desc );
+        explicit PipelineLayout( const renderer::rhi::PipelineLayoutCreateDescription& desc );
 
-        MKT_NODISCARD auto GetDescription() const -> const PipelineLayoutCreateDescription&;
+        MKT_NODISCARD auto GetDescription() const -> const renderer::rhi::PipelineLayoutCreateDescription&;
 
         ~PipelineLayout() override;
 
@@ -125,22 +128,31 @@ namespace mikoto::renderer::d3d11 {
         auto Destroy() -> void override;
 
     private:
-        PipelineLayoutCreateDescription mDesc{};
+        renderer::rhi::PipelineLayoutCreateDescription mDesc{};
     };
 
-    class DescriptorTable : public IDescriptorTable {
+    class DescriptorTable : public renderer::rhi::IDescriptorTable {
     public:
-        MKT_NODISCARD auto GetCapacity( u32 slot ) const -> u32 override;
+        MKT_NODISCARD auto GetCapacity( core::u32 slot ) const -> core::u32 override;
     };
 
     // D3D11 does not really expose queues
     // for the sake of the RHI I run commands through it
-    class Queue final : public IQueue {
+    class Queue final : public renderer::rhi::IQueue {
     public:
-        explicit Queue( QueueType type, QueueOpSupportFlags flags );
+        auto GetType() const -> rhi::QueueType override;
+        auto GetOpSupportFlags() const -> rhi::QueueOpSupportFlags override;
 
-        auto ExecuteCommandLists( const SubmitInfo& submitInfo ) -> void override;
+    private:
+        rhi::QueueType mType{ rhi::QueueType::eInvalid };
+        rhi::QueueOpSupportFlags mOpSupportFlags{ rhi::QueueOpSupportFlagsBits::Graphics };
 
+    public:
+        explicit Queue( renderer::rhi::QueueType type, renderer::rhi::QueueOpSupportFlags flags );
+
+        auto ExecuteCommandLists( const renderer::rhi::SubmitInfo& submitInfo ) -> void override;
+
+        auto CollectGarbage( bool wait = false ) -> void;
         ~Queue() override;
 
     private:
@@ -149,6 +161,10 @@ namespace mikoto::renderer::d3d11 {
 
     private:
         std::mutex mSubmitMutex{};
+        struct PendingResources {
+            Microsoft::WRL::ComPtr<ID3D11Query> mCompletion{};
+        };
+        eastl::vector<PendingResources> mPendingResources{};
 
         ID3D11DeviceContext* mDeviceContext{};
         ID3D11DeviceContext3* mDeviceContext3{};
@@ -157,13 +173,39 @@ namespace mikoto::renderer::d3d11 {
     // https://gamedev.stackexchange.com/questions/204429/difference-between-command-lists-and-deferred-context
     class CommandList final : public rhi::ICommandList {
     public:
+        // A query pool is one submission batch. Reset only after its completion
+        // fence. Begin/End must use this same recording; Resolve precedes host reads.
+        auto Reset( rhi::IQueryPool* pool ) -> void override;
+        auto BeginQuery( rhi::IQueryPool* pool, core::u32 index ) -> void override;
+        auto EndQuery( rhi::IQueryPool* pool, core::u32 index ) -> void override;
+        auto WriteTimestamp( rhi::IQueryPool* pool, core::u32 index ) -> void override;
+        auto Resolve( rhi::IQueryPool* pool, core::u32 first, core::u32 count ) -> void override;
+        // Initial immutable build, including any unbuilt BLAS dependencies.
+        auto Build( rhi::IAccelerationStructure* structure ) -> void override;
+
+        auto GetQueueType() const -> rhi::QueueType override;
+
+    private:
+
+        rhi::QueueType mQueueType{ rhi::QueueType::eInvalid };
+        core::u32 mSelfManagedCommandListCount{ 4 };
+
+    public:
         explicit CommandList( rhi::QueueType type );
 
-        auto Begin( const rhi::CommandListBeginDescription& desc ) -> void override;
-        auto End() -> void override;
+        auto Open( const rhi::CommandListBeginDescription& desc ) -> void override;
+        auto Close() -> void override;
+        auto ValidateSubmission() const -> void;
+        auto MarkSubmitted() -> void;
 
         auto SetTransition( const rhi::TransitionDescription& description ) -> void override;
         auto SetBarrier( const rhi::BarrierDescription& description ) -> void override;
+
+        auto AcquireResource( const rhi::BufferBarrierDescription& description, rhi::IQueue* sourceQueue ) -> void override;
+        auto ReleaseResource( const rhi::BufferBarrierDescription& description, rhi::IQueue* destQueue ) -> void override;
+
+        auto AcquireResource( const rhi::TextureBarrierDescription& description, rhi::IQueue* sourceQueue ) -> void override;
+        auto ReleaseResource( const rhi::TextureBarrierDescription& description, rhi::IQueue* destQueue ) -> void override;
 
         auto SetEnableAutomaticBarriers( bool enable ) -> void override;
 
@@ -181,7 +223,7 @@ namespace mikoto::renderer::d3d11 {
         auto Copy( rhi::IBuffer* src, rhi::IBuffer* dest, core::usize destOffset ) -> void override;
 
         auto Copy( rhi::IBuffer* dest, rhi::ITexture* src ) -> void override;
-        auto Copy( rhi::IBuffer* dest, rhi::ITexture* src, const TextureSlice& srcSlice ) -> void override;
+        auto Copy( rhi::IBuffer* dest, rhi::ITexture* src, const renderer::rhi::TextureSlice& srcSlice ) -> void override;
 
         auto BeginRenderPass( rhi::RenderPassDescription& state ) -> void override;
         auto EndRenderPass() -> void override;
@@ -211,7 +253,11 @@ namespace mikoto::renderer::d3d11 {
 
         auto Dispatch( core::u32 groupsX, core::u32 groupsY, core::u32 groupsZ ) -> void override;
 
-        auto SetPushConstants( rhi::IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, ShaderFlags visibility ) -> void override;
+        auto DispatchRays( const rhi::RayTracingDispatchDescription& desc ) -> void override;
+
+        auto BindShaderTable( rhi::IShaderTable* table ) -> void override;
+
+        auto SetPushConstants( rhi::IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, renderer::rhi::ShaderFlags visibility ) -> void override;
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
@@ -221,6 +267,8 @@ namespace mikoto::renderer::d3d11 {
         auto EndDebugLabel() -> void override;
 
         ~CommandList() override;
+
+    private:
 
     private:
         auto RecordBarrier( const rhi::BufferBarrierDescription& ) -> void;
@@ -244,6 +292,8 @@ namespace mikoto::renderer::d3d11 {
         // Each command list must be recorded by a deferred context
         Microsoft::WRL::ComPtr<ID3D11DeviceContext> mDeviceContextDeferred{};
 
+        bool mRecording{};
+        bool mExecutable{};
         bool mEnableAutomaticBarriers{ true };
 
         // State
@@ -253,7 +303,7 @@ namespace mikoto::renderer::d3d11 {
         rhi::IBuffer* mCurrentIndirectBuffer{};
         rhi::IBuffer* mCurrentIndexBuffer{};
         rhi::IndexBufferBinding mCurrentIndexBufferBinding{};
-        eastl::fixed_vector<IBuffer*, kMaxVertexAttributes> mCurrentVertexBuffers{};
+        eastl::fixed_vector<renderer::rhi::IBuffer*, renderer::rhi::kMaxVertexAttributes> mCurrentVertexBuffers{};
 
         rhi::Color mCurrentClearColor{};
 
@@ -261,15 +311,15 @@ namespace mikoto::renderer::d3d11 {
         bool mCurrentComputeStateValid{ false };
     };
 
-    class InputLayout : public IInputLayout {
+    class InputLayout : public renderer::rhi::IInputLayout {
     public:
-        explicit InputLayout( const InputLayoutCreateDescription& desc );
+        explicit InputLayout( const renderer::rhi::InputLayoutCreateDescription& desc );
 
-        MKT_NODISCARD auto GetNativeHandle( ObjectType ) -> Object override;
-        MKT_NODISCARD auto GetNativeHandle( ObjectType type ) const -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( renderer::rhi::ObjectType ) -> renderer::rhi::Object override;
+        MKT_NODISCARD auto GetNativeHandle( renderer::rhi::ObjectType type ) const -> renderer::rhi::Object override;
 
-        MKT_NODISCARD auto GetNumAttributes() const -> u32 override;
-        MKT_NODISCARD auto GetAttributeDescription(u32 index) const -> const VertexAttributeDescription& override;
+        MKT_NODISCARD auto GetNumAttributes() const -> core::u32 override;
+        MKT_NODISCARD auto GetAttributeDescription(core::u32 index) const -> const renderer::rhi::VertexAttributeDescription& override;
 
         ~InputLayout() override;
 
@@ -280,61 +330,77 @@ namespace mikoto::renderer::d3d11 {
     private:
         Microsoft::WRL::ComPtr<ID3D11InputLayout> mInputLayout{};
 
-        InputLayoutCreateDescription mDesc{};
+        renderer::rhi::InputLayoutCreateDescription mDesc{};
 
-        eastl::fixed_vector<D3D11_INPUT_ELEMENT_DESC, kMaxVertexAttributes> mInputDescriptions{};
+        eastl::fixed_vector<D3D11_INPUT_ELEMENT_DESC, renderer::rhi::kMaxVertexAttributes> mInputDescriptions{};
     };
 
-    class Device final : public IGpuDevice {
+    class Device final : public renderer::rhi::IGpuDevice {
     public:
-        explicit Device( const GpuDeviceCreateInfo& createInfo );
+        explicit Device( const renderer::rhi::GpuDeviceCreateInfo& createInfo );
 
-        auto Init() -> void override;
+        auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        MKT_NODISCARD auto CreateTexture( const TextureCreateDescription& description ) -> TextureHandle override;
-        MKT_NODISCARD auto CreateTextureNative( ObjectType type, Object object, const TextureCreateDescription& description ) -> TextureHandle override;
+        MKT_NODISCARD auto CreateTexture( const renderer::rhi::TextureCreateDescription& description ) -> renderer::rhi::TextureHandle override;
+        MKT_NODISCARD auto CreateTextureNative( renderer::rhi::ObjectType type, renderer::rhi::Object object, const renderer::rhi::TextureCreateDescription& description ) -> renderer::rhi::TextureHandle override;
 
-        MKT_NODISCARD auto CreateBuffer( const BufferCreateDescription& description ) -> BufferHandle override;
+        MKT_NODISCARD auto CreateBuffer( const renderer::rhi::BufferCreateDescription& description ) -> renderer::rhi::BufferHandle override;
 
-        MKT_NODISCARD auto CreateSampler( const SamplerCreateDescription& description ) -> SamplerHandle override;
+        MKT_NODISCARD auto CreateSampler( const renderer::rhi::SamplerCreateDescription& description ) -> renderer::rhi::SamplerHandle override;
 
-        MKT_NODISCARD auto CreatePipeline( const ComputePipelineDescription& description ) -> PipelineHandle override;
-        MKT_NODISCARD auto CreatePipeline( const GraphicsPipelineDescription& description ) -> PipelineHandle override;
+        MKT_NODISCARD auto CreatePipeline( const renderer::rhi::ComputePipelineDescription& description ) -> renderer::rhi::PipelineHandle override;
+        MKT_NODISCARD auto CreatePipeline( const renderer::rhi::GraphicsPipelineDescription& description ) -> renderer::rhi::PipelineHandle override;
 
-        MKT_NODISCARD auto CreateAccelStructure( const AccelStructureCreateDescription& description ) -> AccelStructureHandle override;
+        MKT_NODISCARD auto SupportsRayTracing() const -> bool override;
+        MKT_NODISCARD auto CreatePipeline( const rhi::RayTracingPipelineDescription& ) -> rhi::RayTracingPipelineHandle override;
 
-        MKT_NODISCARD auto CreateCommandList( rhi::QueueType queue ) -> CommandListHandle override;
+        MKT_NODISCARD auto CreateShaderTable( const rhi::ShaderTableDescription& description ) -> rhi::ShaderTableHandle override;
+        MKT_NODISCARD auto CreateAccelStructure( const renderer::rhi::AccelStructureCreateDescription& description ) -> renderer::rhi::AccelStructureHandle override;
+
+        MKT_NODISCARD auto CreateCommandList( rhi::QueueType queue ) -> renderer::rhi::CommandListHandle override;
         MKT_NODISCARD auto CreateCommandList( const rhi::CommandListCreateDescription& desc ) -> rhi::CommandListHandle override;
 
-        MKT_NODISCARD auto CreateShader( const ShaderModuleCreateDescription& desc ) -> ShaderModuleHandle override;
+        MKT_NODISCARD auto CreateShader( const renderer::rhi::ShaderModuleCreateDescription& desc ) -> renderer::rhi::ShaderModuleHandle override;
 
-        MKT_NODISCARD auto CreateInputLayout(const InputLayoutCreateDescription& desc) -> InputLayoutHandle override;
+        MKT_NODISCARD auto CreateInputLayout(const renderer::rhi::InputLayoutCreateDescription& desc) -> renderer::rhi::InputLayoutHandle override;
 
-        MKT_NODISCARD auto CreateBindingLayout( const BindingLayoutDescription& desc ) -> BindingLayoutHandle override;
-        MKT_NODISCARD auto CreatePipelineLayout( const PipelineLayoutCreateDescription& desc ) -> PipelineLayoutHandle override;
-        MKT_NODISCARD auto CreateBindingTable( const BindingTableDescription& desc, BindingLayoutHandle layout ) -> BindingTableHandle override;
+        MKT_NODISCARD auto CreateBindingLayout( const renderer::rhi::BindingLayoutDescription& desc ) -> renderer::rhi::BindingLayoutHandle override;
+        MKT_NODISCARD auto CreatePipelineLayout( const renderer::rhi::PipelineLayoutCreateDescription& desc ) -> renderer::rhi::PipelineLayoutHandle override;
+        MKT_NODISCARD auto CreateBindingTable( const renderer::rhi::BindingTableDescription& desc, renderer::rhi::BindingLayoutHandle layout ) -> renderer::rhi::BindingTableHandle override;
         auto UpdateBindingTable( const rhi::BindingTableDescription& desc, rhi::BindingTableHandle table ) -> void override;
 
-        MKT_NODISCARD auto CreateFence( u64 fenceInitialValue ) -> FenceHandle override;
+        MKT_NODISCARD auto CreateFence( core::u64 fenceInitialValue ) -> renderer::rhi::FenceHandle override;
 
-        auto UnMap( IBuffer* buffer ) -> void override;
-        MKT_NODISCARD auto Map(IBuffer* buffer ) -> void* override;
+        auto UnMap( renderer::rhi::IBuffer* buffer ) -> void override;
+        MKT_NODISCARD auto Map(renderer::rhi::IBuffer* buffer ) -> void* override;
 
         // To support bindless techniques in modern graphics APIs
-        MKT_NODISCARD auto CreateDescriptorTableLayout( const DescriptorTableLayoutDescription& desc ) -> BindingLayoutHandle override;
+        MKT_NODISCARD auto CreateDescriptorTableLayout( const renderer::rhi::DescriptorTableLayoutDescription& desc ) -> renderer::rhi::BindingLayoutHandle override;
 
-        MKT_NODISCARD auto CreateDescriptorTable( BindingLayoutHandle layout ) -> DescriptorTableHandle override;
-        MKT_NODISCARD auto ResizeDescriptorTable( DescriptorTableHandle descriptorTable, u32 newSize, bool keepContents ) -> bool override;
-        MKT_NODISCARD auto WriteDescriptorTable( DescriptorTableHandle descriptorTable, const BindingTableItem& item ) -> rhi::DescriptorTableIndex override;
+        MKT_NODISCARD auto CreateDescriptorTable( renderer::rhi::BindingLayoutHandle layout ) -> renderer::rhi::DescriptorTableHandle override;
+        MKT_NODISCARD auto ResizeDescriptorTable( renderer::rhi::DescriptorTableHandle descriptorTable, core::u32 newSize, bool keepContents ) -> bool override;
+        MKT_NODISCARD auto WriteDescriptorTable( renderer::rhi::DescriptorTableHandle descriptorTable, const renderer::rhi::BindingTableItem& item ) -> rhi::DescriptorTableIndex override;
+        auto ReleaseDescriptorTableIndex( rhi::DescriptorTableHandle descriptorTable, core::u32 bindingIndex, rhi::DescriptorTableIndex index ) -> void override;
 
-        MKT_NODISCARD auto CreateSwapChain( const SwapChainDescription& description ) -> rhi::SwapChainHandle override;
+        MKT_NODISCARD auto CreateSwapChain( const renderer::rhi::SwapChainDescription& description ) -> rhi::SwapChainHandle override;
 
-        MKT_NODISCARD auto GetQueue( QueueType type ) -> IQueue* override;
+        MKT_NODISCARD auto CreateQueryPool( const renderer::rhi::QueryPoolDescription& description ) -> renderer::rhi::QueryPoolHandle override;
+        MKT_NODISCARD auto GetQueryCapabilities( renderer::rhi::QueryType type, renderer::rhi::QueueType queue ) const -> renderer::rhi::QueryCapabilities override;
 
+        MKT_NODISCARD auto GetQueue( renderer::rhi::QueueType type ) -> renderer::rhi::IQueue* override;
+
+        MKT_NODISCARD auto GetProcessMemoryUsage() const -> rhi::ProcessGpuMemory override;
         MKT_NODISCARD auto GetMemoryUsage() const -> core::usize override;
         MKT_NODISCARD auto GetMemoryTotal() const -> core::usize override;
         MKT_NODISCARD auto GetMemoryAvailable() const -> core::usize override;
+
+        MKT_NODISCARD auto IsFeatureSupported( rhi::GpuFeatureSupportFlags supportFlags ) const -> bool override;
+
+        MKT_NODISCARD auto IsFeatureRequested( rhi::GpuFeatureSupportFlags requestFlags ) const -> bool override;
+
+        MKT_NODISCARD auto SupportsSceneMultisampling( renderer::rhi::Multisampling samples ) const -> bool override;
+        MKT_NODISCARD auto SupportsBCTextureCompression() const -> bool override;
 
         auto RunGarbageCollection() -> void override;
 
@@ -349,8 +415,8 @@ namespace mikoto::renderer::d3d11 {
 
         MKT_NODISCARD auto IsInitialized() const -> bool override;
 
-        MKT_NODISCARD auto GetGraphicsApi() const -> GraphicsAPI override;
-        MKT_NODISCARD auto IsGraphicsApi( GraphicsAPI api ) const -> bool override;
+        MKT_NODISCARD auto GetGraphicsApi() const -> renderer::rhi::GraphicsAPI override;
+        MKT_NODISCARD auto IsGraphicsApi( renderer::rhi::GraphicsAPI api ) const -> bool override;
 
         MKT_NODISCARD auto GetVendorID() const -> eastl::string_view override;
         MKT_NODISCARD auto GetDeviceName() const -> eastl::string_view override;
@@ -358,7 +424,7 @@ namespace mikoto::renderer::d3d11 {
 
         auto DumpErrorMessages() -> void;
 
-        auto CreateSwapChain(Window* window, Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory) -> D3D11SwapChainHandle;
+        auto CreateSwapChain(platform::IWindow* window, Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory) -> D3D11SwapChainHandle;
 
         ~Device() override = default;
 
@@ -367,14 +433,14 @@ namespace mikoto::renderer::d3d11 {
         eastl::string mDeviceName{};
         eastl::string mDriverVersion{};
 
-        GraphicsAPI mApi{};
+        renderer::rhi::GraphicsAPI mApi{};
         bool mIsInitialized{ false };
 
         // OpenGL convention
-        ViewportConvention mViewportConvention{ ViewportConvention::eRightHanded_OriginBottomLeft };
+        renderer::rhi::ViewportConvention mViewportConvention{ renderer::rhi::ViewportConvention::eRightHanded_OriginBottomLeft };
 
-        GpuDeviceType mDeviceType{ GpuDeviceType::eInvalid };
-        GpuFeatureSupportFlags mFeatureSupportFlags{ GpuFeatureSupportFlagsBits::None };
+        renderer::rhi::GpuDeviceType mDeviceType{ renderer::rhi::GpuDeviceType::eInvalid };
+        renderer::rhi::GpuFeatureSupportFlags mFeatureSupportFlags{ renderer::rhi::GpuFeatureSupportFlagsBits::None };
 
         eastl::fixed_vector<D3D_FEATURE_LEVEL, 5> mDeviceFeatureLevel{
             D3D_FEATURE_LEVEL_11_1,
@@ -398,7 +464,7 @@ namespace mikoto::renderer::d3d11 {
 #define MKT_D3D11_DEVICE_CHECK( expr, message )                                            \
     do {                                                                                   \
         HRESULT hr__{ ( expr ) };                                                          \
-        checked_cast<Device*>( RenderSystem::Get()->GetGpuDevice() )                       \
+        core::checked_cast<Device*>( RenderSystem::Get()->GetGpuDevice() )                       \
                 ->DumpErrorMessages();                                                     \
                                                                                            \
         if ( FAILED( hr__ ) ) {                                                            \
@@ -409,4 +475,7 @@ namespace mikoto::renderer::d3d11 {
 
 #endif
 
-#endif//MIKOTO_D3D11_DEVICE_HH
+#endif// MIKOTO_RENDERER_RHI_D3D11_D3D11_DEVICE_HH
+
+
+

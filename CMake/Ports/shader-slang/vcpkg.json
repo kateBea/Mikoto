@@ -1,0 +1,21 @@
+{
+  "name": "shader-slang",
+  "version": "2026.17.1",
+  "port-version": 1,
+  "description": "Source-built static Slang compiler with matching glslang runtime helper",
+  "license": "Apache-2.0 WITH LLVM-exception",
+  "supports": "!uwp & (windows | linux)",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    "glslang",
+    "spirv-tools",
+    "vulkan-headers"
+  ]
+}

@@ -12,21 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_VULKAN_SWAP_CHAIN_HH
-#define MIKOTO_VULKAN_SWAP_CHAIN_HH
+#ifndef MIKOTO_RENDERER_RHI_VULKAN_VULKAN_SWAPCHAIN_HH
+#define MIKOTO_RENDERER_RHI_VULKAN_VULKAN_SWAPCHAIN_HH
 
 #include <EASTL/vector.h>
+
 #include <volk.h>
 
 #include <Core/Core.hh>
-#include <Core/ResourcePool.hh>
 #include <Core/Types.hh>
-#include <Renderer/Core/RenderContext.hh>
-#include <Renderer/Rhi/SwapChain.hh>
-#include <Renderer/Rhi/Texture.hh>
+#include <Core/Resource.hh>
+
 #include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/Vulkan/VulkanInstance.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/SwapChain.hh>
+#include <Renderer/Core/RenderContext.hh>
 #include <Renderer/Rhi/Vulkan/VulkanTexture.hh>
+#include <Renderer/Rhi/Vulkan/VulkanInstance.hh>
 
 namespace mikoto::renderer::vulkan {
 
@@ -63,19 +65,19 @@ namespace mikoto::renderer::vulkan {
         // If changed a call to OnResize is required to apply changes
         auto SetRefreshType( rhi::RefreshRate type ) -> void;
 
-        auto OnResize( core::u32 width, core::u32 height ) -> void;
+        auto OnResize( core::u32 width, core::u32 height ) -> bool;
 
         ~SwapChain() override;
 
-        DISABLE_COPY_AND_MOVE_FOR( SwapChain );
-
-        using DeviceObject::Initialize;
+        using renderer::rhi::DeviceObject::Initialize;
 
     private:
         auto Destroy() -> void override;
         auto Initialize() -> void override;
 
         auto AcquireSwapChainImages() -> void;
+        auto Recreate() -> bool;
+        auto ReleaseRetiredSwapchains( core::u64 completedPresent ) -> void;
 
     private:
         core::u32 mWidth{};
@@ -94,7 +96,15 @@ namespace mikoto::renderer::vulkan {
         VkPresentModeKHR mPresentMode{};
 
         VkSwapchainKHR mSwapChain{ VK_NULL_HANDLE };
-        VkSwapchainKHR mOldSwapChain{ VK_NULL_HANDLE };
+        struct RetiredSwapchain {
+            VkSwapchainKHR mSwapchain{ VK_NULL_HANDLE };
+            eastl::vector<rhi::TextureHandle> mImages;
+            eastl::vector<core::Ref<BinarySemaphore>> mSemaphores;
+            core::u64 mAfterPresent{};
+        };
+        eastl::vector<RetiredSwapchain> mRetiredSwapChains{};
+        eastl::vector<core::u64> mImagePresentSerials;
+        core::u64 mPresentSerial{};
 
         rhi::IQueue* mPresentQueue{};
         rhi::Format mFormat{ rhi::Format::eBGRA8_UNORM };
@@ -105,4 +115,5 @@ namespace mikoto::renderer::vulkan {
 
 }// namespace mikoto::renderer::vulkan
 
-#endif//MIKOTO_VULKAN_SWAP_CHAIN_HH
+#endif// MIKOTO_RENDERER_RHI_VULKAN_VULKAN_SWAPCHAIN_HH
+

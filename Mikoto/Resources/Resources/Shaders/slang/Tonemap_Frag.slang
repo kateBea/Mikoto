@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
-#include "base/Memory_Helpers.slang"
+#include "base/Bloom_Helpers.slang"
 #include "base/Camera_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Tonemap_Helpers.slang"
 
 struct FSOutput {
@@ -40,42 +43,38 @@ struct DrawParams {
     float Gamma;
 
     int ToneMapType;
+    uint BloomImageID;
+    uint BloomSamplerID;
+    float BloomIntensity;
+    uint BloomEnabled;
+    uint VisualizeDepthOfField;
 };
 
 MKT_DECLARE_SAMPLERS samplers;
-MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
-[shader("fragment")]
-FSOutput main(FSInput input) {
+[shader( "fragment" )]
+FSOutput main( FSInput input ) {
     FSOutput output;
 
     Texture2D texture = textures[parameters.TextureSamplerID];
     SamplerState sampler = samplers[parameters.BasicSamplerID];
 
-    float4 color = texture.Sample(sampler, input.UV);
-
-    switch (parameters.ToneMapType) {
-    case c_ToneMapLinear:
-        output.Color = Tonemap_Linear(color, parameters.Exposure, parameters.Gamma);
-        break;
-    case c_ToneMapReinhard:
-        output.Color = float4(Tonemap_Reinhard(color.xyz), color.a);
-        break;
-    case c_ToneMapUncharted2:
-        output.Color = Tonemap_Uncharted2(color, parameters.Exposure, parameters.Gamma);
-        break;
-    case c_ToneMapACES:
-        output.Color = Tonemap_Aces(color, parameters.Exposure, parameters.Gamma);
-        break;
-    case c_ToneMapKhronosNeutral:
-        output.Color = Tonemap_KhronosNeutral(color, parameters.Exposure, parameters.Gamma);
-        break;
-    default:
-        output.Color = Tonemap_Aces(color, parameters.Exposure, parameters.Gamma);
-        break;
+    float4 color = texture.Sample( sampler, input.UV );
+    if ( parameters.VisualizeDepthOfField != 0 ) {
+        output.Color = color;
+        return output;
     }
+
+    if ( parameters.BloomEnabled != 0 ) {
+        float3 bloom =
+                textures[parameters.BloomImageID].SampleLevel( samplers[parameters.BloomSamplerID], input.UV, 0 ).rgb;
+        color = BloomComposite( color, bloom, parameters.BloomIntensity );
+    }
+
+    output.Color = ApplyToneMapping( color, parameters.ToneMapType, parameters.Exposure, parameters.Gamma );
 
     return output;
 }

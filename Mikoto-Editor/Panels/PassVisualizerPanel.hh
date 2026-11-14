@@ -12,34 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_PASS_VISUALIZER_PANEL_HH
-#define MIKOTO_PASS_VISUALIZER_PANEL_HH
+#ifndef MIKOTO_PANELS_PASS_VISUALIZER_PANEL_HH
+#define MIKOTO_PANELS_PASS_VISUALIZER_PANEL_HH
 
-#include <EASTL/string.h>
+#include <ImGui/GraphEditor.hh>
 
 #include <Panels/Panel.hh>
 
 namespace mikoto::editor {
-
     struct EditorState;
 
     struct PassVisualizerDescription {
         EditorState* mState{};
+
+        eastl::string mGroup{ "Other" };
+        bool mIsToggleable{ true };
     };
 
     class PassVisualizerPanel final : public Panel {
     public:
-
         explicit PassVisualizerPanel( const PassVisualizerDescription& description );
 
-        auto OnUpdate( float timeStep ) -> void override;
+        auto OnRender( float timeStep ) -> void override;
+    private:
+        auto Capture() -> void;
 
     private:
         EditorState* mEditorState{};
-        eastl::string mActivePassName{};
-        ankerl::unordered_dense::map<eastl::string, TextureHandle> mPassesCompositions{};
+        imgui::GraphEditor mGraph{ "Pass Visualizer" };
     };
-
 }
 
-#endif//MIKOTO_PASS_VISUALIZER_PANEL_HH
+#endif// MIKOTO_PANELS_PASS_VISUALIZER_PANEL_HH
+

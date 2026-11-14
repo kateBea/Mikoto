@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
-#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 #include "base/Tonemap_Helpers.slang"
 
 static const uint kBGTypeSkybox = 0;
@@ -39,7 +41,7 @@ struct DrawParams {
     uint SkyboxCubeRtID;
     uint PrefilterCubeRtID;
 
-    uint BackGroundType; // Prefilter map, Original skybox, clear color
+    uint BackGroundType;// Prefilter map, Original skybox, clear color
 
     uint MaxMipLevel;
     float Exposure;
@@ -47,21 +49,21 @@ struct DrawParams {
     float mSkyboxBlur;
 };
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, Parameters );
 
 MKT_DECLARE_SAMPLERS Samplers;
-MKT_DECLARE_TEXTURE_SRV(TextureCube) Textures;
+MKT_DECLARE_TEXTURE_SRV( TextureCube ) Textures;
 
-[shader("fragment")]
-FSOutput main(FSInput input) {
+[shader( "fragment" )]
+FSOutput main( FSInput input ) {
     FSOutput o;
 
     SamplerState sampler = Samplers[Parameters.BasicSamplerID];
 
     uint index = 0;
-    if (Parameters.BackGroundType == kBGTypeSkybox) {
+    if ( Parameters.BackGroundType == kBGTypeSkybox ) {
         index = Parameters.SkyboxCubeRtID;
-    } else if (Parameters.BackGroundType == kBGTypePrefilter) {
+    } else if ( Parameters.BackGroundType == kBGTypePrefilter ) {
         index = Parameters.PrefilterCubeRtID;
     }
 
@@ -69,16 +71,15 @@ FSOutput main(FSInput input) {
 
     // This is just the LOD
     // https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-to-samplelevel
-    const float blur = Parameters.mSkyboxBlur;
-    float3 color;
+    uint width, height, levels;
+    texture.GetDimensions( 0u, width, height, levels );
 
-    if (Parameters.MaxMipLevel > blur) {
-        color = texture.SampleLevel(sampler, input.Direction, blur).rgb;
-    }
-    else {
-        color = texture.Sample(sampler, input.Direction).rgb;
-    }
+    // Clamp to the selected image's actual chain. Falling back to implicit
+    // derivatives at the end of the slider suddenly made the sky sharp again.
+    const float blur = clamp( Parameters.mSkyboxBlur, 0.0,
+                              float( max( levels, 1u ) - 1u ) );
+    float3 color = texture.SampleLevel( sampler, input.Direction, blur ).rgb;
 
-    o.Color = float4(color, 1.0);
+    o.Color = float4( color, 1.0 );
     return o;
 }

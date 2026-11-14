@@ -12,17 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_FENCE_HH
-#define MIKOTO_RHI_FENCE_HH
-
-#include <EASTL/string.h>
-#include <EASTL/numeric.h>
-#include <EASTL/string_view.h>
+#ifndef MIKOTO_RENDERER_RHI_FENCE_HH
+#define MIKOTO_RENDERER_RHI_FENCE_HH
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
-#include <Core/ResourcePool.hh>
+#include <Core/Resource.hh>
 
 #include <Memory/BufferSpan.hh>
 
@@ -57,8 +52,8 @@ namespace mikoto::renderer::rhi {
         /**
          * Blocks the host until @p fenceValue completes or @p timeoutMs expires.
          *
-         * @param fenceValue Input value used by this operation.
-         * @param timeoutMs Input value used by this operation.
+         * @param fenceValue The fence value to wait on.
+         * @param timeoutMs The amount of time to be waited in milliseconds.
          * @returns The result of Wait.
          */
         MKT_NODISCARD virtual auto Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool = 0;
@@ -81,5 +76,5 @@ namespace mikoto::renderer::rhi {
     using FenceHandle = core::Ref<IFence>;
 }
 
+#endif// MIKOTO_RENDERER_RHI_FENCE_HH
 
-#endif//MIKOTO_RHI_FENCE_HH

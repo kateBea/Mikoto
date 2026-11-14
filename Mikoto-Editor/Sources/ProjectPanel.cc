@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Layers/EditorLayer.hh>
 #include <Panels/ProjectPanel.hh>
+
+#include <Layers/EditorLayer.hh>
 
 namespace mikoto::editor {
 
     ProjectPanel::ProjectPanel( const ProjectPanelCreateInfo &info )
-        :   mEditorState{ info.mState }
-    {}
+        : Panel{ "Panel", "Panel", info.mGroup, info.mIsToggleable }, mEditorState{ info.mState } {
+    }
 
     auto ProjectPanel::OnRender( float timeStep ) -> void {
-
     }
 
 }// namespace mikoto::editor

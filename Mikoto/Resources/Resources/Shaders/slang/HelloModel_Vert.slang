@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 
@@ -24,23 +26,23 @@ struct VSInput {
 };
 
 struct VertexDescription {
-    float3 position   : POSITION;
-    float3 normal     : NORMAL;
-    float4 color      : COLOR;
+    float3 position : POSITION;
+    float3 normal : NORMAL;
+    float4 color : COLOR;
 
-    float2 uv0        : TEXCOORD0;
-    float2 uv1        : TEXCOORD1;
+    float2 uv0 : TEXCOORD0;
+    float2 uv1 : TEXCOORD1;
 
-    float4 joints0    : BLENDINDICES0;
-    float4 weights0   : BLENDWEIGHT0;
+    float4 joints0 : BLENDINDICES0;
+    float4 weights0 : BLENDWEIGHT0;
 
-    float4 joints1    : BLENDINDICES1;
-    float4 weights1   : BLENDWEIGHT1;
+    float4 joints1 : BLENDINDICES1;
+    float4 weights1 : BLENDWEIGHT1;
 };
 
 struct VSOutput {
     float4 position : SV_POSITION;
-    float2 uv    : ATTRIBUTE3;
+    float2 uv : ATTRIBUTE3;
 };
 
 struct DrawParams {
@@ -66,26 +68,26 @@ struct GeometryTransformation {
 
 MKT_DECLARE_STRUCTURED_SRV Buffers;
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, Parameters );
 
-[shader("vertex")]
-VSOutput main(VSInput input) {
+[shader( "vertex" )]
+VSOutput main( VSInput input ) {
     VSOutput o;
 
     ByteAddressBuffer Vertices = Buffers[Parameters.VertexID];
     ByteAddressBuffer Indices = Buffers[Parameters.IndexID];
     ByteAddressBuffer Offsets = Buffers[Parameters.OffsetsID];
 
-    uint indexOffset = Offsets.Read<uint>(Parameters.IndexOffsetID, 0);
-    uint vertexOffset = Offsets.Read<uint>(Parameters.VertexOffsetID, 0);
+    uint indexOffset = Offsets.Read<uint>( Parameters.IndexOffsetID, 0 );
+    uint vertexOffset = Offsets.Read<uint>( Parameters.VertexOffsetID, 0 );
 
-    uint index = Indices.Read<uint>(indexOffset, input.VertexID);
-    VertexDescription vertex = Vertices.Read<VertexDescription>(vertexOffset, index);
+    uint index = Indices.Read<uint>( indexOffset, input.VertexID );
+    VertexDescription vertex = Vertices.Read<VertexDescription>( vertexOffset, index );
 
     ByteAddressBuffer cBuff = Buffers[Parameters.TransformID];
-    GeometryTransformation tg = cBuff.Read<GeometryTransformation>(0, 0);
+    GeometryTransformation tg = cBuff.Read<GeometryTransformation>( 0, 0 );
 
-    o.position = tg.Projection * tg.View * tg.Model * float4(vertex.position, 1.0);
+    o.position = tg.Projection * tg.View * tg.Model * float4( vertex.position, 1.0 );
     o.uv = vertex.uv0;
 
     return o;

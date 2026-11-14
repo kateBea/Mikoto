@@ -12,21 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_FRAME_GRAPH_BLACKBOARD_HH
-#define MIKOTO_FRAME_GRAPH_BLACKBOARD_HH
+#ifndef MIKOTO_CORE_BLACKBOARD_HH
+#define MIKOTO_CORE_BLACKBOARD_HH
 
 #include <utility>
 #include <typeinfo>
 #include <typeindex>
 
+#include <Core/Profiler.hh>
+
 // eastl::any requires utility to be included before
-#include <EASTL/utility.h>
 #include <EASTL/any.h>
+#include <EASTL/utility.h>
 
 #include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+
 #include <Logging/Assert.hh>
 
 namespace mikoto::core {
@@ -43,6 +46,7 @@ namespace mikoto::core {
 
         template <typename T, typename... Args>
         auto Add(Args &&...args) -> T&{
+            MKT_BEGIN_PROFILER();
             MKT_ASSERT(!Contains<T>(), "Cannot register already existing type.");
             return mStorage[typeid(T)].emplace<T>(eastl::forward<Args>(args)...);
         }
@@ -83,4 +87,4 @@ namespace mikoto::core {
     };
 }
 
-#endif //MIKOTO_FRAME_GRAPH_BLACKBOARD_HH
+#endif// MIKOTO_CORE_BLACKBOARD_HH

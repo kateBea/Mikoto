@@ -15,22 +15,31 @@
 #include <EASTL/numeric_limits.h>
 
 #include <Core/Core.hh>
+#include <Core/Layer.hh>
 #include <Core/Types.hh>
-#include <Core/Event.hh>
-#include <Core/CoreEvents.hh>
-#include <Core/LayerStack.hh>
+#include <Core/Profiler.hh>
 #include <Core/TimeService.hh>
-
-#include <Assets/Image.hh>
-#include <Assets/ImageProcessor.hh>
-
-#include <Layers/EditorHelloCubeLayer.hh>
+#include <Core/LocalizationService.hh>
 
 #include <Logging/Logger.hh>
+
+#include <Math/Math.hh>
+
+#include <Platform/Event.hh>
+#include <Platform/CoreEvents.hh>
+
+#include <Assets/Image.hh>
+#include <Assets/Utility.hh>
+#include <Assets/ImageProcessing.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/RenderSystem.hh>
+
+#include <ImGui/Utility.hh>
+#include <ImGui/ImGuiWidget.hh>
+
+#include <Layers/EditorHelloCubeLayer.hh>
 
 namespace mikoto::editor {
 
@@ -41,204 +50,210 @@ namespace mikoto::editor {
     using namespace mikoto::renderer::rhi;
     using namespace mikoto::filesystem;
 
-    EditorHelloCubeLayer::EditorHelloCubeLayer( platform::Window *window )
-        : ILayer{ "EditorHelloCubeLayer" }, mWindow{ window }
-    {
-        mDevice = RenderSystem::Get()->GetGpuDevice();
+    EditorHelloCubeLayer::EditorHelloCubeLayer( platform::IWindow *window )
+        : mName{ "EditorHelloCubeLayer" }, mWindow{ window } {
+        MKT_BEGIN_PROFILER();
+        mDevice = renderer::RenderSystem::Get()->GetGpuDevice();
     }
 
     auto EditorHelloCubeLayer::OnCreate() -> void {
+        MKT_BEGIN_PROFILER();
         // Construct geometry: Index and vertex buffer for the cube
-        auto verticesDesc{ BufferCreateDescription{}
-            .SetBufferUsage( BufferUsageFlagsBits::Vertex | BufferUsageFlagsBits::CopyDest )
-            .SetHeapType( HeapType::eDeviceLocal )
-            .SetCpuAccessType( AccessType::eRead )
-            .SetInitialData( BufferSpanHandle::New( mVertices.data(), MKT_VECTOR_SIZE_BYTES(mVertices) ) ) };
+        auto verticesDesc{ renderer::rhi::BufferCreateDescription{}
+            .SetBufferUsage( renderer::rhi::BufferUsageFlagsBits::Vertex | renderer::rhi::BufferUsageFlagsBits::CopyDest )
+            .SetHeapType( renderer::rhi::HeapType::eDeviceLocal )
+            .SetCpuAccessType( renderer::rhi::AccessType::eRead )
+            .SetInitialData( memory::BufferSpanHandle::New( mVertices.data(), MKT_VECTOR_SIZE_BYTES( mVertices ) ) ) };
         mVertexBuffer = mDevice->CreateBuffer( verticesDesc );
 
         // Create indices buffer
-        auto indicesDesc{ BufferCreateDescription{}
-            .SetBufferUsage( BufferUsageFlagsBits::Index | BufferUsageFlagsBits::CopyDest )
-            .SetHeapType( HeapType::eDeviceLocal )
-            .SetCpuAccessType( AccessType::eRead )
-            .SetFormat( Format::eR32_UINT )
-            .SetInitialData( BufferSpanHandle::New( mIndices.data(), MKT_VECTOR_SIZE_BYTES(mIndices) ) ) };
+        auto indicesDesc{ renderer::rhi::BufferCreateDescription{}
+            .SetBufferUsage( renderer::rhi::BufferUsageFlagsBits::Index | renderer::rhi::BufferUsageFlagsBits::CopyDest )
+            .SetHeapType( renderer::rhi::HeapType::eDeviceLocal )
+            .SetCpuAccessType( renderer::rhi::AccessType::eRead )
+            .SetFormat( renderer::rhi::Format::eR32_UINT )
+            .SetInitialData( memory::BufferSpanHandle::New( mIndices.data(), MKT_VECTOR_SIZE_BYTES( mIndices ) ) ) };
         mIndexBuffer = mDevice->CreateBuffer( indicesDesc );
 
         // Create color attachment
-        auto colorDesc{ TextureCreateDescription{}
-            .SetWidth( as<i32>( 1920 ) )
-            .SetHeight( as<i32>( 1080 ) )
-            .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::ShaderResource )
-            .SetFormat( Format::eBGRA8_UNORM ) };
+        auto colorDesc{ renderer::rhi::TextureCreateDescription{}
+            .SetWidth( core::as<core::i32>( 1920 ) )
+            .SetHeight( core::as<core::i32>( 1080 ) )
+            .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
+            .SetMultisampling( renderer::rhi::Multisampling::eMsaaX1 )
+            .SetUsage( renderer::rhi::TextureUsageFlagsBits::RenderTarget | renderer::rhi::TextureUsageFlagsBits::ShaderResource )
+            .SetFormat( renderer::rhi::Format::eBGRA8_UNORM ) };
 
         mColorImage = mDevice->CreateTexture( colorDesc );
         mColorImage->SetDebugName( "HelloCubeLayer Color image" );
 
         // Create depth attachment
-        auto depthDesc{ TextureCreateDescription{}
-            .SetWidth( as<i32>( 1920 ) )
-            .SetHeight( as<i32>( 1080 ) )
-            .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::DepthTarget )
-            .SetFormat( Format::eD32 ) };
+        auto depthDesc{ renderer::rhi::TextureCreateDescription{}
+            .SetWidth( core::as<core::i32>( 1920 ) )
+            .SetHeight( core::as<core::i32>( 1080 ) )
+            .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
+            .SetMultisampling( renderer::rhi::Multisampling::eMsaaX1 )
+            .SetUsage( renderer::rhi::TextureUsageFlagsBits::DepthTarget )
+            .SetFormat( renderer::rhi::Format::eD32 ) };
 
         mDepthImage = mDevice->CreateTexture( depthDesc );
         mDepthImage->SetDebugName( "HelloCubeLayer Depth image" );
 
         // Create shaders
-        FileHandle vsShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangleBasic_Vert.slang" ) };
-        auto vertexShaderDescription{ ShaderModuleCreateDescription{}
+        filesystem::FileHandle vsShader{ filesystem::FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangleBasic_Vert.slang" ) };
+        auto vertexShaderDescription{ renderer::rhi::ShaderModuleCreateDescription{}
             .SetContents( vsShader )
             .SetModuleName( vsShader->GetName() )
             .SetModulePath( vsShader->GetPath() )
-            .SetLanguage( ShaderLanguage::eSlang )
-            .SetStage( ShaderType::eVertex ) };
+            .SetLanguage( renderer::rhi::ShaderLanguage::eSlang )
+            .SetStage( renderer::rhi::ShaderType::eVertex ) };
         mVertexShader = mDevice->CreateShader( vertexShaderDescription );
 
-        FileHandle pxShader{ FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangleBasic_Frag.slang" ) };
-        auto fragmentShaderDescription{ ShaderModuleCreateDescription{}
+        filesystem::FileHandle pxShader{ filesystem::FileService::Get()->LoadFile( "Resources/Shaders/slang/HelloTriangleBasic_Frag.slang" ) };
+        auto fragmentShaderDescription{ renderer::rhi::ShaderModuleCreateDescription{}
             .SetContents( pxShader )
             .SetModuleName( pxShader->GetName() )
             .SetModulePath( pxShader->GetPath() )
-            .SetLanguage( ShaderLanguage::eSlang )
-            .SetStage( ShaderType::ePixel ) };
+            .SetLanguage( renderer::rhi::ShaderLanguage::eSlang )
+            .SetStage( renderer::rhi::ShaderType::ePixel ) };
         mPixelShader = mDevice->CreateShader( fragmentShaderDescription );
 
         // Create pipeline
-        eastl::array<rhi::VertexBindingDescription, 1> bindings{
-    rhi::VertexBindingDescription{}
-            .SetBinding( 0 )
-            .SetStride( sizeof( asset::VertexDescription_Std430Alignment ) )
-            .SetInputRate( InputRate::ePerVertex ) };
+        eastl::array<renderer::rhi::VertexBindingDescription, 1> bindings{
+            rhi::VertexBindingDescription{}
+                .SetBinding( 0 )
+                .SetStride( sizeof( asset::VertexDescription_Std430Alignment ) )
+                .SetInputRate( renderer::rhi::InputRate::ePerVertex )
+        };
 
-        eastl::array<rhi::VertexAttributeDescription, 2> attributes{
-    rhi::VertexAttributeDescription{}
-            .SetName( "POSITION" )
-            .SetLocation( 0 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRGB32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mPosition ) ),
+        eastl::array<renderer::rhi::VertexAttributeDescription, 2> attributes{
+            rhi::VertexAttributeDescription{}
+                .SetName( "POSITION" )
+                .SetLocation( 0 )
+                .SetBinding( 0 )
+                .SetFormat( rhi::Format::eRGB32_FLOAT )
+                .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mPosition ) ),
 
             rhi::VertexAttributeDescription{}
-            .SetName( "TEXCOORD" )
-            .SetLocation( 1 )
-            .SetBinding( 0 )
-            .SetFormat( rhi::Format::eRG32_FLOAT )
-            .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mUv0 ) ) };
+                .SetName( "TEXCOORD" )
+                .SetLocation( 1 )
+                .SetBinding( 0 )
+                .SetFormat( rhi::Format::eRG32_FLOAT )
+                .SetOffset( offsetof( asset::VertexDescription_Std430Alignment, mUv0 ) )
+        };
 
-        mVertexInputLayout = mDevice->CreateInputLayout( InputLayoutCreateDescription{}
+        mVertexInputLayout = mDevice->CreateInputLayout( renderer::rhi::InputLayoutCreateDescription{}
             .SetBindings( bindings )
             .SetAttributes( attributes )
             .SetShader( mVertexShader ) );
 
         // Optional. Get the bindings ready to pass in the resources to the GPU
         asset::ImageHandle image{ asset::ProcessImage2D( "Resources/Textures/diffuse.jpg" ) };
-        auto textureDbug{ TextureCreateDescription{}
+        auto textureDbug{ renderer::rhi::TextureCreateDescription{}
             .SetImageData( image )
-            .SetWidth( as<i32>( image->mWidth ) )
-            .SetHeight( as<i32>( image->mHeight ) )
-            .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::ShaderResource )
-            .SetFormat( Format::eRGBA8_UNORM ) };
+            .SetWidth( core::as<core::i32>( image->mWidth ) )
+            .SetHeight( core::as<core::i32>( image->mHeight ) )
+            .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
+            .SetMultisampling( renderer::rhi::Multisampling::eMsaaX1 )
+            .SetUsage( renderer::rhi::TextureUsageFlagsBits::ShaderResource )
+            .SetFormat( renderer::rhi::Format::eRGBA8_UNORM ) };
         mSimpleTexture = mDevice->CreateTexture( textureDbug );
 
-        auto constantBufferDesc{ BufferCreateDescription{}
-            .SetCpuAccessType( AccessType::eWrite )
-            .SetBufferUsage( BufferUsageFlagsBits::Constant | BufferUsageFlagsBits::CopyDest )
-            .SetResourceType( ResourceType::eConstantBuffer )
-            .SetByteSize(MKT_SIZEOF( MyData )) };
-        mConstantBuffer = mDevice->CreateBuffer(constantBufferDesc);
+        auto constantBufferDesc{ renderer::rhi::BufferCreateDescription{}
+            .SetCpuAccessType( renderer::rhi::AccessType::eWrite )
+            .SetBufferUsage( renderer::rhi::BufferUsageFlagsBits::Constant | renderer::rhi::BufferUsageFlagsBits::CopyDest )
+            .SetResourceType( renderer::rhi::ResourceType::eConstantBuffer )
+            .SetByteSize( MKT_SIZEOF( MyData ) ) };
+        mConstantBuffer = mDevice->CreateBuffer( constantBufferDesc );
 
-        auto samplerDes{ SamplerCreateDescription{}
-            .SetFilter( rhi::SamplerFilter::eNearest )
-            .SetWrap( SamplerWrapMode::eRepeat )
-            .SetBorderColor( kColorWhite ) };
+        auto samplerDes{ renderer::rhi::SamplerCreateDescription{}
+            .SetFilter( renderer::rhi::SamplerFilter::eNearest )
+            .SetWrap( renderer::rhi::SamplerWrapMode::eRepeat )
+            .SetBorderColor( renderer::rhi::kColorWhite ) };
         mSamplerState = mDevice->CreateSampler( samplerDes );
 
         // We will upload a texture and a buffer to do some effects, see Triangle_Frag
         // Ideally we want to automate this process by allowing each backend to be able to use shader reflection
-        auto layoutDesc{ BindingLayoutDescription{}
+        auto layoutDesc{ renderer::rhi::BindingLayoutDescription{}
             .SetRegisterSpace( 0 )
-            .SetShaderVisibility(ShaderFlagsBits::All)
-            .AddItem(BindingLayoutItem::Sampler(0))
-            .AddItem(BindingLayoutItem::TextureSRV(1))
-            .AddItem(BindingLayoutItem::ConstantBuffer(2)) };
-        mBindingLayoutHandle = mDevice->CreateBindingLayout(layoutDesc);
+            .SetShaderVisibility( renderer::rhi::ShaderFlagsBits::All )
+            .AddItem( renderer::rhi::BindingLayoutItem::Sampler( 0 ) )
+            .AddItem( renderer::rhi::BindingLayoutItem::TextureSRV( 1 ) )
+            .AddItem( renderer::rhi::BindingLayoutItem::ConstantBuffer( 2 ) ) };
+        mBindingLayoutHandle = mDevice->CreateBindingLayout( layoutDesc );
 
         // A pipeline layout describes what kind of group of resources we can bind
         // To a specific bind point. We can bind resources for Compute pipelines or Graphics pipelines, etc
         // This is handy if we have too many pipelines that share same layout for group of resources
         // we can just bind the resources once for all subsequent draws as long as the pipelines use same layout.
-        mPipelineLayoutHandle = mDevice->CreatePipelineLayout( PipelineLayoutCreateDescription{}
+        mPipelineLayoutHandle = mDevice->CreatePipelineLayout( renderer::rhi::PipelineLayoutCreateDescription{}
             .AddBindingLayout( mBindingLayoutHandle ) );
 
-        auto graphicsPipelineDescription{ GraphicsPipelineDescription{}
+        auto graphicsPipelineDescription{ renderer::rhi::GraphicsPipelineDescription{}
             .AddShader( mPixelShader )
             .AddShader( mVertexShader )
             .SetInputLayout( mVertexInputLayout )
 
-            .SetDepthFormat( Format::eD32 )
-            .AddColorFormat( Format::eBGRA8_UNORM )
+            .SetDepthFormat( renderer::rhi::Format::eD32 )
+            .AddColorFormat( renderer::rhi::Format::eBGRA8_UNORM )
 
-            .SetPolygonMode( PolygonMode::eFill )
-            .SetWindingOrder( WindingOrder::eCounterClockwise )
-            .SetTopology( PrimitiveTopology::eTriangleList )
+            .SetPolygonMode( renderer::rhi::PolygonMode::eFill )
+            .SetWindingOrder( renderer::rhi::WindingOrder::eCounterClockwise )
+            .SetTopology( renderer::rhi::PrimitiveTopology::eTriangleList )
             .SetPipelineLayout( mPipelineLayoutHandle ) };
         mPipeline = mDevice->CreatePipeline( graphicsPipelineDescription );
         mPipeline->SetDebugName( "HelloCubeLayer Pipeline" );
 
         auto wireframePipelineDescription{
-            GraphicsPipelineDescription{ graphicsPipelineDescription }
-            .SetPolygonMode( PolygonMode::eLines ) };
+            renderer::rhi::GraphicsPipelineDescription{ graphicsPipelineDescription }
+                .SetPolygonMode( renderer::rhi::PolygonMode::eLines )
+        };
         mPipelineWireframe = mDevice->CreatePipeline( wireframePipelineDescription );
         mPipelineWireframe->SetDebugName( "HelloCubeLayer PipelineWireframe" );
 
-        auto bindingSetDesc{ BindingTableDescription{}
-            .AddItem( BindingTableItem::Sampler( 0, mSamplerState.GetPtr() ) )
-            .AddItem( BindingTableItem::TextureSRV( 1, mSimpleTexture.GetPtr() ) )
-            .AddItem( BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetPtr() ) ) };
+        auto bindingSetDesc{ renderer::rhi::BindingTableDescription{}
+            .AddItem( renderer::rhi::BindingTableItem::Sampler( 0, mSamplerState.GetPtr() ) )
+            .AddItem( renderer::rhi::BindingTableItem::TextureSRV( 1, mSimpleTexture.GetPtr() ) )
+            .AddItem( renderer::rhi::BindingTableItem::ConstantBuffer( 2, mConstantBuffer.GetPtr() ) ) };
         mBindingTableHandle = mDevice->CreateBindingTable( bindingSetDesc, mBindingLayoutHandle );
 
-        SceneCameraDescription cameraDescription{
+        scene::SceneCameraDescription cameraDescription{
             .mFov = 45.0,
-            .mAspectRatio = as<float>( mWindow->GetWidth() ) / as<float>( mWindow->GetHeight() ),
+            .mAspectRatio = core::as<float>( mWindow->GetWidth() ) / core::as<float>( mWindow->GetHeight() ),
             .mNearPlane = 0.1f,
             .mFarPlane = 3000.0f,
-            .mWindow = mWindow };
-        mEditorCamera = eastl::make_unique<SceneCamera>( cameraDescription );
+            .mWindow = mWindow
+        };
+        mEditorCamera = eastl::make_unique<scene::SceneCamera>( cameraDescription );
 
-                // Create the command list
-        mCommandList = mDevice->CreateCommandList( QueueType::eGraphics );
+        // Create the command list
+        mCommandList = mDevice->CreateCommandList( renderer::rhi::QueueType::eGraphics );
         mCommandList->SetEnableAutomaticBarriers( true );
         mCommandList->SetDebugName( "HelloCubeLayer CommandList" );
 
-        mCommandList->Begin( {} );
+        mCommandList->Open( {} );
 
         // Resource barriers must be emitted before dynamic rendering begins.
         // BindVertexBuffer and BindIndexBuffer then see the already-correct
         // state while each mesh render scope is active.
-        mCommandList->SetTransition( {mVertexBuffer.GetPtr(), ResourceStates::eVertexBuffer} );
-        mCommandList->SetTransition( { mIndexBuffer.GetPtr(), ResourceStates::eIndexBuffer } );
+        mCommandList->SetTransition( { mVertexBuffer.GetPtr(), renderer::rhi::ResourceStates::eVertexBuffer } );
+        mCommandList->SetTransition( { mIndexBuffer.GetPtr(), renderer::rhi::ResourceStates::eIndexBuffer } );
 
-        mCommandList->End();
+        mCommandList->Close();
 
-        IQueue* graphicsQueue{ mDevice->GetQueue( QueueType::eGraphics ) };
+        renderer::rhi::IQueue *graphicsQueue{ mDevice->GetQueue( renderer::rhi::QueueType::eGraphics ) };
 
-        u64 kCompletionValue{ 0 };
+        core::u64 kCompletionValue{ 0 };
         auto completionFence{ mDevice->CreateFence( kCompletionValue++ ) };
+
         if ( !completionFence.IsEmpty() ) {
-            graphicsQueue->ExecuteCommandLists( SubmitInfo{}
-            .AddCommandList( mCommandList )
-            .AddSignal( completionFence, kCompletionValue ) );
+            graphicsQueue->ExecuteCommandLists( renderer::rhi::SubmitInfo{}
+                .AddCommandList( mCommandList )
+                .AddSignal( completionFence, kCompletionValue ) );
         }
 
         // Wait only for this submission before mapping its readback buffer.
-        if ( !completionFence->Wait( kCompletionValue, eastl::numeric_limits<u64>::max() ) ) {
+        if ( !completionFence->Wait( kCompletionValue, eastl::numeric_limits<core::u64>::max() ) ) {
             MKT_CORE_LOGGER_ERROR( "Timed out waiting for the shaderc debug render to complete." );
             return;
         }
@@ -249,6 +264,7 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloCubeLayer::OnDestroy() -> void {
+        MKT_BEGIN_PROFILER();
         mDevice->WaitIdle();
 
         mPipeline.Reset();
@@ -274,33 +290,34 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloCubeLayer::OnUpdate( float timeStep ) -> void {
-        mCommandList->Begin( { .mScopeName = "EditorHelloCubeLayer Render" } );
+        MKT_BEGIN_PROFILER();
+        mCommandList->Open( { .mScopeName = "EditorHelloCubeLayer Render" } );
 
-        DrawWireframeMesh();
+        //DrawWireframeMesh();
 
         DrawNormalMesh();
 
-        mCommandList->SetTransition( TransitionDescription{}
-            .AddTexture( mColorImage.GetPtr(), ResourceStates::eShaderResource ) );
+        mCommandList->SetTransition( renderer::rhi::TransitionDescription{}
+            .AddTexture( mColorImage.GetPtr(), renderer::rhi::ResourceStates::eShaderResource ) );
 
-        mCommandList->End();
+        mCommandList->Close();
 
-        auto submitInfo{ SubmitInfo{}
+        auto submitInfo{ renderer::rhi::SubmitInfo{}
             .AddCommandList( mCommandList ) };
-        RenderSystem::Get()->BatchSubmission(eastl::move(submitInfo), QueueType::eGraphics);
+        renderer::RenderSystem::Get()->BatchSubmission( eastl::move( submitInfo ), renderer::rhi::QueueType::eGraphics );
 
-        if (mIsImguiWindowActive) {
+        if ( mIsImguiWindowActive ) {
             DisplayImGuiWindow();
         }
     }
 
     auto EditorHelloCubeLayer::DrawNormalMesh() -> void {
-        float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) * mRotationSpeed }; // seconds
+        MKT_BEGIN_PROFILER();
+        float angle{ core::as<core::f32>( core::TimeService::Get()->GetTime( core::TimeUnit::eSeconds ) ) * mRotationSpeed };// seconds
         mShaderParameters.mModel = glm::rotate(
             math::constants::Identity<core::float4x4>(),
             angle,
-            math::constants::kUnitVectorY
-        );
+            math::constants::kUnitVectorY );
 
         mShaderParameters.mView = glm::lookAt(
             glm::vec3{ 1.0f, 1.0f, 0.0f },// camera position
@@ -308,7 +325,7 @@ namespace mikoto::editor {
             glm::vec3{ 0.0f, 1.0f, 0.0f } // up direction
         );
 
-        const f32 aspectRatio{ 1920.0f / 1080.0f };
+        const core::f32 aspectRatio{ 1920.0f / 1080.0f };
         mShaderParameters.mProjection = glm::perspective(
             glm::radians( 60.0f ),// FOV
             aspectRatio,          // width / height
@@ -319,33 +336,33 @@ namespace mikoto::editor {
         mCommandList->Write( mConstantBuffer.GetPtr(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
 
         // Set graphics state
-        auto graphicsState{ RenderPassDescription{}
-            .SetRenderArea( Rect{ 1920, 1080 } )
+        auto graphicsState{ renderer::rhi::RenderPassDescription{}
+            .SetRenderArea( renderer::rhi::Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
-            .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
+            .AddRenderTarget( mColorImage, renderer::rhi::Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
         mCommandList->BeginRenderPass( graphicsState );
 
-        auto bindingDescription{ BindResourcesDescription{}
-            .SetBindPoint( PipelineType::eGraphics )
+        auto bindingDescription{ renderer::rhi::BindResourcesDescription{}
+            .SetBindPoint( renderer::rhi::PipelineType::eGraphics )
             .SetPipelineLayout( mPipelineLayoutHandle.GetPtr() )
             .AddResourceSet( 0, mBindingTableHandle.GetPtr() ) };
         mCommandList->BindPipelineResources( bindingDescription );
 
         mCommandList->BindPipeline( mPipeline.GetPtr() );
 
-        auto vertexBufferDesc{ VertexBufferBinding{}
+        auto vertexBufferDesc{ renderer::rhi::VertexBufferBinding{}
             .SetBufferBinding( 0 )
             .SetBuffer( mVertexBuffer.GetPtr() )
             .SetElementStride( MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->BindVertexBuffer( vertexBufferDesc );
-        mCommandList->BindIndexBuffer(mIndexBuffer.GetPtr() );
+        mCommandList->BindIndexBuffer( mIndexBuffer.GetPtr() );
 
-        mCommandList->SetViewportState( ViewportState{}
+        mCommandList->SetViewportState( renderer::rhi::ViewportState{}
             .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
 
-        const auto drawArguments{ DrawArguments{}
+        const auto drawArguments{ renderer::rhi::DrawArguments{}
             .SetInstanceCount( 1 )
-            .SetIndexCount( mIndexBuffer->GetSizeBytes() / MKT_SIZEOF( u32 ) )
+            .SetIndexCount( mIndexBuffer->GetSizeBytes() / MKT_SIZEOF( core::u32 ) )
             .SetVertexCount( mVertexBuffer->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->DrawIndexed( drawArguments );
 
@@ -353,15 +370,15 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloCubeLayer::DrawWireframeMesh() -> void {
-        float angle{ as<f32>(core::TimeService::Get()->GetTime(TimeUnit::eSeconds)) * mRotationSpeed }; // seconds
+        MKT_BEGIN_PROFILER();
+        float angle{ core::as<core::f32>( core::TimeService::Get()->GetTime( core::TimeUnit::eSeconds ) ) * mRotationSpeed };// seconds
 
         mShaderParameters.mModel = glm::rotate(
             mShaderParameters.mModel,
             angle,
-            math::constants::kUnitVectorY
-        );
+            math::constants::kUnitVectorY );
 
-        mShaderParameters.mModel = glm::translate( mShaderParameters.mModel, float3{ 20.0f, 0.0f, 0.0f } );
+        mShaderParameters.mModel = glm::translate( mShaderParameters.mModel, core::float3{ 20.0f, 0.0f, 0.0f } );
 
         mShaderParameters.mView = glm::lookAt(
             glm::vec3{ 1.0f, 1.0f, 0.0f },// camera position
@@ -369,7 +386,7 @@ namespace mikoto::editor {
             glm::vec3{ 0.0f, 1.0f, 0.0f } // up direction
         );
 
-        const f32 aspectRatio{ 1920.0f / 1080.0f };
+        const core::f32 aspectRatio{ 1920.0f / 1080.0f };
         mShaderParameters.mProjection = glm::perspective(
             glm::radians( 60.0f ),// FOV
             aspectRatio,          // width / height
@@ -380,34 +397,34 @@ namespace mikoto::editor {
         mCommandList->Write( mConstantBuffer.GetPtr(), MKT_ADDRESSOF( mShaderParameters ), MKT_SIZEOF( mShaderParameters ) );
 
         // Set graphics state
-        auto graphicsState{ RenderPassDescription{}
-            .SetRenderArea( Rect{ 1920, 1080 } )
+        auto graphicsState{ renderer::rhi::RenderPassDescription{}
+            .SetRenderArea( renderer::rhi::Rect{ 1920, 1080 } )
             .AddDepthTarget( mDepthImage )
-            .AddRenderTarget( mColorImage, Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
+            .AddRenderTarget( mColorImage, renderer::rhi::Color{ 1.0f, 0.2f, 0.4f, 1.0f } ) };
         mCommandList->BeginRenderPass( graphicsState );
 
-        auto bindingDescription{ BindResourcesDescription{}
-            .SetBindPoint( PipelineType::eGraphics )
+        auto bindingDescription{ renderer::rhi::BindResourcesDescription{}
+            .SetBindPoint( renderer::rhi::PipelineType::eGraphics )
             .SetPipelineLayout( mPipelineLayoutHandle.GetPtr() )
             .AddResourceSet( 0, mBindingTableHandle.GetPtr() ) };
         mCommandList->BindPipelineResources( bindingDescription );
         mCommandList->BindPipeline( mPipelineWireframe.GetPtr() );
 
-        auto vertexBufferDesc{ VertexBufferBinding{}
+        auto vertexBufferDesc{ renderer::rhi::VertexBufferBinding{}
             .SetBufferBinding( 0 )
             .SetBuffer( mVertexBuffer.GetPtr() )
             .SetElementStride( MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->BindVertexBuffer( vertexBufferDesc );
-        mCommandList->BindIndexBuffer(mIndexBuffer.GetPtr() );
+        mCommandList->BindIndexBuffer( mIndexBuffer.GetPtr() );
 
-        mCommandList->SetViewportState( ViewportState{}
+        mCommandList->SetViewportState( renderer::rhi::ViewportState{}
             .AddViewportAndScissorRect( Viewport( 1920, 1080 ) ) );
 
         mCommandList->SetPolygonLineWidth( 3.0f );
 
-        const auto drawArguments{ DrawArguments{}
+        const auto drawArguments{ renderer::rhi::DrawArguments{}
             .SetInstanceCount( 1 )
-            .SetIndexCount( mIndexBuffer->GetSizeBytes() / MKT_SIZEOF( u32 ) )
+            .SetIndexCount( mIndexBuffer->GetSizeBytes() / MKT_SIZEOF( core::u32 ) )
             .SetVertexCount( mVertexBuffer->GetSizeBytes() / MKT_SIZEOF( asset::VertexDescription_Std430Alignment ) ) };
         mCommandList->DrawIndexed( drawArguments );
 
@@ -415,14 +432,16 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloCubeLayer::DebugCompileGlsl() -> void {
-        if ( !mDevice->IsGraphicsApi( GraphicsAPI::eVulkan ) ) {
+        MKT_BEGIN_PROFILER();
+
+        if ( !mDevice->IsGraphicsApi( renderer::rhi::GraphicsAPI::eVulkan ) ) {
             MKT_CORE_LOGGER_WARN( "Skipping GLSL debug render because shaderc is currently only wired into the Vulkan backend." );
             return;
         }
 
-        constexpr u32 kRenderWidth{ 512 };
-        constexpr u32 kRenderHeight{ 512 };
-        constexpr usize kBytesPerPixel{ 4 };
+        constexpr core::u32 kRenderWidth{ 512 };
+        constexpr core::u32 kRenderHeight{ 512 };
+        constexpr core::usize kBytesPerPixel{ 4 };
 
         // This intentionally has no vertex buffer. gl_VertexIndex selects one
         // of the three positions and colours, which keeps the shaderc smoke test
@@ -461,110 +480,132 @@ namespace mikoto::editor {
             }
             )";
 
-        auto vertexShader{ mDevice->CreateShader( ShaderModuleCreateDescription{}
-            .SetContents( const_cast<char*>( kVertexShaderSource ), sizeof( kVertexShaderSource ) - 1 )
+        auto vertexShader{ mDevice->CreateShader( renderer::rhi::ShaderModuleCreateDescription{}
+            .SetContents( const_cast<char *>( kVertexShaderSource ), sizeof( kVertexShaderSource ) - 1 )
             .SetModuleName( "ShadercDebugTriangle.vert" )
-            .SetLanguage( ShaderLanguage::eGLSL )
-            .SetStage( ShaderType::eVertex ) ) };
-        auto pixelShader{ mDevice->CreateShader( ShaderModuleCreateDescription{}
-            .SetContents( const_cast<char*>( kPixelShaderSource ), sizeof( kPixelShaderSource ) - 1 )
+            .SetLanguage( renderer::rhi::ShaderLanguage::eGLSL )
+            .SetStage( renderer::rhi::ShaderType::eVertex ) ) };
+        auto pixelShader{ mDevice->CreateShader( renderer::rhi::ShaderModuleCreateDescription{}
+            .SetContents( const_cast<char *>( kPixelShaderSource ), sizeof( kPixelShaderSource ) - 1 )
             .SetModuleName( "ShadercDebugTriangle.frag" )
-            .SetLanguage( ShaderLanguage::eGLSL )
-            .SetStage( ShaderType::ePixel ) ) };
+            .SetLanguage( renderer::rhi::ShaderLanguage::eGLSL )
+            .SetStage( renderer::rhi::ShaderType::ePixel ) ) };
 
         if ( vertexShader.IsEmpty() || pixelShader.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to create shaderc debug shader resources." );
             return;
         }
 
-        auto colorTarget{ mDevice->CreateTexture( TextureCreateDescription{}
+        auto colorTarget{ mDevice->CreateTexture( renderer::rhi::TextureCreateDescription{}
             .SetName( "ShadercDebugTriangle_ColorTarget" )
             .SetWidth( kRenderWidth )
             .SetHeight( kRenderHeight )
-            .SetDimensions( TextureDimension::eTexture2D )
-            .SetMultisampling( Multisampling::eMsaaX1 )
-            .SetUsage( TextureUsageFlagsBits::RenderTarget | TextureUsageFlagsBits::CopySource )
-            .SetFormat( Format::eRGBA8_UNORM ) ) };
+            .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
+            .SetMultisampling( renderer::rhi::Multisampling::eMsaaX1 )
+            .SetUsage( renderer::rhi::TextureUsageFlagsBits::RenderTarget | renderer::rhi::TextureUsageFlagsBits::CopySource )
+            .SetFormat( renderer::rhi::Format::eRGBA8_UNORM ) ) };
 
-        auto readbackBuffer{ mDevice->CreateBuffer( BufferCreateDescription{}
+        auto readbackBuffer{ mDevice->CreateBuffer( renderer::rhi::BufferCreateDescription{}
             .SetName( "ShadercDebugTriangle_Readback" )
             .SetByteSize( kRenderWidth * kRenderHeight * kBytesPerPixel )
-            .SetBufferUsage( BufferUsageFlagsBits::CopyDest )
-            .SetHeapType( HeapType::eReadback ) ) };
+            .SetBufferUsage( renderer::rhi::BufferUsageFlagsBits::CopyDest )
+            .SetHeapType( renderer::rhi::HeapType::eReadback ) ) };
 
-        auto pipeline{ mDevice->CreatePipeline( GraphicsPipelineDescription{}
+        auto pipeline{ mDevice->CreatePipeline( renderer::rhi::GraphicsPipelineDescription{}
             .AddShader( pixelShader )
             .AddShader( vertexShader )
-            .AddColorFormat( Format::eRGBA8_UNORM )
+            .AddColorFormat( renderer::rhi::Format::eRGBA8_UNORM )
             .SetUseReflection( false )
             .SetDepthTest( false )
             .SetDepthWrite( false )
-            .SetCullMode( CullMode::eNone )
-            .SetPolygonMode( PolygonMode::eFill )
-            .SetWindingOrder( WindingOrder::eCounterClockwise )
-            .SetTopology( PrimitiveTopology::eTriangleList ) ) };
+            .SetCullMode( renderer::rhi::CullMode::eNone )
+            .SetPolygonMode( renderer::rhi::PolygonMode::eFill )
+            .SetWindingOrder( renderer::rhi::WindingOrder::eCounterClockwise )
+            .SetTopology( renderer::rhi::PrimitiveTopology::eTriangleList ) ) };
 
-        auto commandList{ mDevice->CreateCommandList( QueueType::eGraphics ) };
+        auto commandList{ mDevice->CreateCommandList( renderer::rhi::QueueType::eGraphics ) };
+
         if ( colorTarget.IsEmpty() || readbackBuffer.IsEmpty() || pipeline.IsEmpty() || commandList.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to create resources for the shaderc debug render." );
             return;
         }
 
         commandList->SetEnableAutomaticBarriers( true );
-        commandList->Begin( { .mScopeName = "Shaderc GLSL Debug Triangle" } );
-        commandList->BeginRenderPass( RenderPassDescription{}
-            .SetRenderArea( Rect{ as<i32>( kRenderWidth ), as<i32>( kRenderHeight ) } )
-            .AddRenderTarget( colorTarget, kColorBlack ) );
+
+        commandList->Open( { .mScopeName = "Shaderc GLSL Debug Triangle" } );
+
+        commandList->BeginRenderPass( renderer::rhi::RenderPassDescription{}
+            .SetRenderArea( renderer::rhi::Rect{ core::as<core::i32>( kRenderWidth ),
+                    core::as<core::i32>( kRenderHeight ) } )
+            .AddRenderTarget( colorTarget, renderer::rhi::kColorBlack ) );
+
         commandList->BindPipeline( pipeline.GetPtr() );
-        commandList->SetViewportState( ViewportState{}
-            .AddViewportAndScissorRect( Viewport( kRenderWidth, kRenderHeight ) ) );
-        commandList->Draw( DrawArguments{}
+
+        commandList->SetViewportState( renderer::rhi::ViewportState{}
+            .AddViewportAndScissorRect( renderer::rhi::Viewport( kRenderWidth, kRenderHeight ) ) );
+
+        commandList->Draw( renderer::rhi::DrawArguments{}
             .SetVertexCount( 3 )
             .SetInstanceCount( 1 ) );
-        commandList->EndRenderPass();
-        commandList->Copy( readbackBuffer.GetPtr(), colorTarget.GetPtr() );
-        commandList->End();
 
-        IQueue* graphicsQueue{ mDevice->GetQueue( QueueType::eGraphics ) };
+        commandList->EndRenderPass();
+
+        commandList->Copy( readbackBuffer.GetPtr(), colorTarget.GetPtr() );
+
+        commandList->Close();
+
+        renderer::rhi::IQueue *graphicsQueue{ mDevice->GetQueue( renderer::rhi::QueueType::eGraphics ) };
+
         if ( !graphicsQueue ) {
             MKT_CORE_LOGGER_ERROR( "The Vulkan device does not expose a graphics queue for the shaderc debug render." );
             return;
         }
 
-        constexpr u64 kCompletionValue{ 1 };
+        constexpr core::u64 kCompletionValue{ 1 };
         auto completionFence{ mDevice->CreateFence( 0 ) };
+
         if ( completionFence.IsEmpty() ) {
             MKT_CORE_LOGGER_ERROR( "Failed to create a completion fence for the shaderc debug render." );
             return;
         }
 
-        graphicsQueue->ExecuteCommandLists( SubmitInfo{}
+        graphicsQueue->ExecuteCommandLists( renderer::rhi::SubmitInfo{}
             .AddCommandList( commandList )
             .AddSignal( completionFence, kCompletionValue ) );
 
         // Wait only for this submission before mapping its readback buffer.
-        if ( !completionFence->Wait( kCompletionValue, eastl::numeric_limits<u64>::max() ) ) {
+        if ( !completionFence->Wait( kCompletionValue, eastl::numeric_limits<core::u64>::max() ) ) {
             MKT_CORE_LOGGER_ERROR( "Timed out waiting for the shaderc debug render to complete." );
             return;
         }
 
-        void* mappedImage{ mDevice->Map( readbackBuffer.GetPtr() ) };
+        void *mappedImage{ mDevice->Map( readbackBuffer.GetPtr() ) };
+
         if ( !mappedImage ) {
             MKT_CORE_LOGGER_ERROR( "Could not map the shaderc debug render readback buffer." );
             return;
         }
 
-        constexpr const char* kOutputPath{ "ShadercGlslTriangle.png" };
-        asset::WriteImage( Path{ kOutputPath }, mappedImage, kRenderWidth, kRenderHeight, ImageFormat::eRGBA8_UINT );
+        constexpr const char *kOutputPath{ "ShadercGlslTriangle.png" };
+        asset::WriteImage( filesystem::Path{ kOutputPath }, mappedImage, kRenderWidth, kRenderHeight, asset::ImageFormat::eRGBA8_UINT );
         mDevice->UnMap( readbackBuffer.GetPtr() );
 
         MKT_CORE_LOGGER_INFO( "Wrote shaderc GLSL debug triangle to '{}'.", kOutputPath );
     }
 
-    auto EditorHelloCubeLayer::OnEvent( core::IEvent &event ) -> void {
-        if (event.IsType( EventType::KEY_PRESSED_EVENT )) {
-            if (const auto *keyPressed{ dynamic_cast<core::KeyPressedEvent *>( MKT_ADDRESSOF( event ) ) }) {
-                if (keyPressed->GetKeyCode() == KeyCode::Key_Y) {
+    auto EditorHelloCubeLayer::OnRender( float ) -> void {
+    }
+
+    auto EditorHelloCubeLayer::GetName() const -> eastl::string_view {
+        return mName;
+    }
+
+    auto EditorHelloCubeLayer::OnEvent( platform::Event &event ) -> void {
+        MKT_BEGIN_PROFILER();
+
+        if ( event.IsType( platform::EventType::KEY_PRESSED_EVENT ) ) {
+            if ( const auto *keyPressed{ dynamic_cast<platform::KeyPressedEvent *>( MKT_ADDRESSOF( event ) ) } ) {
+                if ( keyPressed->GetKeyCode() == platform::KeyCode::Key_F6 ) {
                     mIsImguiWindowActive = !mIsImguiWindowActive;
                 }
             }
@@ -572,30 +613,31 @@ namespace mikoto::editor {
     }
 
     auto EditorHelloCubeLayer::DisplayImGuiWindow() -> void {
+        MKT_BEGIN_PROFILER();
         ImGui::SetNextWindowSize( ImVec2( 420.0f, 500.0f ), ImGuiCond_FirstUseEver );
 
-        if ( ImGui::Begin( "Hello Cube Tests", &mIsImguiWindowActive ) ) {
-            auto imageID{ ImGuiService::Get()->GetTextureID( mColorImage ) };
+        if ( imgui::BeginWindow( imgui::widget::LocalizedLabel( "editor_hello_cube_layer_hello_cube_tests", "Hello Cube Tests" ).c_str(), &mIsImguiWindowActive ) ) {
+            auto imageID{ imgui::ImGuiService::Get()->GetTextureID( mColorImage ) };
             ImGui::Image( imageID, ImVec2{ 1280, 720 } );
 
             ImGui::Spacing();
             ImGui::Separator();
 
             ImGui::Text( "FPS: %.1f", ImGui::GetIO().Framerate );
-            ImGui::Text( "Frame Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate );
+            ImGui::Text( MKT_LOC( "editor_hello_cube_layer_frame_time_ms" ).c_str(), 1000.0f / ImGui::GetIO().Framerate );
 
             ImGui::Spacing();
             ImGui::Separator();
 
-            static eastl::array<f32, 4> clearColor{ 0.10f, 0.10f, 0.12f, 1.0f };
+            static eastl::array<core::f32, 4> clearColor{ 0.10f, 0.10f, 0.12f, 1.0f };
 
-            ImGui::SliderFloat( "Rotation Speed", &mRotationSpeed, 1.0f, 50.0f );
-            ImGui::ColorEdit4( "Clear Color", clearColor.data() );
+            ImGui::SliderFloat( imgui::widget::LocalizedLabel( "editor_hello_cube_layer_rotation_speed", "Rotation Speed" ).c_str(), &mRotationSpeed, 1.0f, 50.0f );
+            ImGui::ColorEdit4( imgui::widget::LocalizedLabel( "editor_hello_cube_layer_clear_color", "Clear Color" ).c_str(), clearColor.data() );
 
             ImGui::Spacing();
             ImGui::Separator();
 
-            ImGui::TextDisabled( "Press Y to hide/show this window." );
+            ImGui::TextDisabled( MKT_LOC( "editor_hello_cube_layer_press_y_to_hide_show_this_window" ).c_str() );
         }
 
         ImGui::End();

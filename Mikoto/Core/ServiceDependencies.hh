@@ -12,581 +12,191 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SERVICE_DEPENDENCIES_HH
-#define MIKOTO_SERVICE_DEPENDENCIES_HH
+#ifndef MIKOTO_CORE_SERVICE_DEPENDENCIES_HH
+#define MIKOTO_CORE_SERVICE_DEPENDENCIES_HH
 
+#include <concepts>
 #include <typeindex>
+#include <type_traits>
 
 #include <EASTL/vector.h>
 
-// FIXME: This shit is messed up something like the following seems to be necessary if you flip the order you get error: fatal error C1189: #error :  WinSock.h has already been included
-// https://stackoverflow.com/questions/9750344/boostasio-winsock-and-winsock-2-compatibility-issue
-// https://youtu.be/D-PC-huX-l8?list=PLqCJpWy5Fohd3S7ICFXwUomYW0Wv67pDD
-// #include <boost/asio.hpp>
-// #include <windows.h>
+#include <Core/Service.hh>
 
+// Dependency declarations only need names. Resolve() checks complete types at
+// registration, avoiding inclusion of every backend through the Engine header.
+namespace mikoto::animation {
+    class AnimationSystem;
+}
+namespace mikoto::asset {
+    class AssetRegistryService;
+}
+namespace mikoto::audio {
+    class AudioService;
+}
+namespace mikoto::video { class VideoService; }
+namespace mikoto::filesystem {
+    class FileService;
+    class FileWatcherService;
+}// namespace mikoto::filesystem
+namespace mikoto::network {
+    class NetworkService;
+}
+namespace mikoto::physics {
+    class PhysicSystem;
+}
+namespace mikoto::renderer {
+    class RenderSystem;
+    class ParticleSystem;
+}// namespace mikoto::renderer
+namespace mikoto::scene {
+    class SceneManager;
+}
+namespace mikoto::scripting {
+    class ScriptingService;
+}
+namespace mikoto::threading {
+    class TaskService;
+}
 
-#include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/EventSystem.hh>
-#include <Core/InputSystem.hh>
-#include <Core/LocalizationService.hh>
-#include <Core/RuntimeConsole.hh>
-#include <Core/SystemStats.hh>
-#include <Core/TimeService.hh>
-#include <Animation/AnimationSystem.hh>
-#include <Assets/AssetsService.hh>
-#include <Audio/AudioService.hh>
-#include <Filesystem/FileService.hh>
-#include <Filesystem/FileWatcherService.hh>
-#include <ImGui/ImGuiService.hh>
-#include <Networking/NetworkService.hh>
-#include <Physics/PhysicSystem.hh>
-#include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/Core/Renderer.hh>
-#include <Renderer/Particle/ParticleSystem.hh>
-#include <Scene/SceneManager.hh>
-#include <Scripting/ScriptingService.hh>
-#include <Threading/TaskService.hh>
+namespace mikoto::platform {
+    class InputSystem;
+    class EventSystem;
+}
 
 namespace mikoto::core {
 
-    enum class DependencyType {
-        eExecution,
-        eInitialization
-    };
+    // TODO: This should not be here, I mean the service dependencies, every services in their own module need to specify who they depend on
+    class LocalizationService;
+    class SystemStats;
+    class TimeService;
 
-    template <typename ServiceType>
-    struct ServiceDependencies {
+    template<typename Type>
+    concept ServiceType = std::derived_from<Type, IService> && !std::is_abstract_v<Type>;
 
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            return as<ServiceType*>(this)->operator()(type);
-        };
-    };
+    // Types, not instances: constructing this list never constructs a service.
+    // Resolution happens once when registering services, never per frame.
+    template<typename... Dependencies>
+    struct ServiceList {
+        template<ServiceType Owner, bool Execution = false>
+        static auto Resolve() -> eastl::vector<std::type_index> {
+            MKT_STATIC_ASSERT( ( ServiceType<Dependencies> && ... ), "Dependencies must be concrete services" );
+            MKT_STATIC_ASSERT( ( !std::same_as<Owner, Dependencies> && ... ), "A service cannot depend on itself" );
 
-    // I think I will move these specializations to each service file?
-    // I think I will move these specializations to each service file?
-    // Not entirely sure for the time being they will stay here
-
-    template <>
-    struct ServiceDependencies<animation::AnimationSystem> {
-
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
+            if constexpr ( Execution ) {
+                MKT_STATIC_ASSERT( ( std::derived_from<Dependencies, ISubsystem> && ... ), "UpdateAfter must name subsystems with Update()" );
             }
 
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
+            return { std::type_index{ typeid( Dependencies ) }... };
         }
     };
 
-    template <>
-    struct ServiceDependencies<TimeService> {
+    // Headless builds have no window input pump to wait for. Networking and
+    // CPU statistics still update normally through the same scheduler.
+#if MIKOTO_MODULE_RENDERER
+    using InputUpdateDependencies = ServiceList<platform::InputSystem>;
+#else
+    using InputUpdateDependencies = ServiceList<>;
+#endif
 
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    // Initialization describes lifetime: prerequisites initialize first and
+    // remain alive until this service shuts down. UpdateAfter only orders ticks;
+    // it does not implicitly add a lifetime edge or make shared data thread-safe.
+    template<typename InitializationDependencies = ServiceList<>, typename UpdateDependencies = ServiceList<>>
+    struct ServiceDependencySet {
+        using Initialization = InitializationDependencies;
+        using UpdateAfter = UpdateDependencies;
     };
 
-    template <>
-    struct ServiceDependencies<filesystem::FileService> {
-
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    template<typename Type>
+    struct ServiceDependencies : ServiceDependencySet<> {
     };
 
-    template <>
-    struct ServiceDependencies<audio::AudioService> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    template<>
+    struct ServiceDependencies<LocalizationService>
+        : ServiceDependencySet<ServiceList<filesystem::FileService>> {
     };
 
-    template <>
-    struct ServiceDependencies<core::RuntimeConsole> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    template<>
+    struct ServiceDependencies<platform::InputSystem>
+        : ServiceDependencySet<ServiceList<platform::EventSystem>> {
     };
 
-    template <>
-    struct ServiceDependencies<FileWatcherService> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    template<>
+    struct ServiceDependencies<renderer::RenderSystem>
+        : ServiceDependencySet<
+                  ServiceList<filesystem::FileService, platform::EventSystem, platform::InputSystem>,
+                  ServiceList<platform::InputSystem, animation::AnimationSystem, physics::PhysicSystem,
+                              renderer::ParticleSystem, scripting::ScriptingService, SystemStats
+                              >> {
     };
 
-
-    template <>
-    struct ServiceDependencies<threading::TaskService> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    // Physics debug passes need the rendering device and shader library during
+    // initialization and destruction; physics UPDATE still runs before rendering.
+    template<>
+    struct ServiceDependencies<physics::PhysicSystem>
+#if MIKOTO_MODULE_ANIMATION
+        // Ragdolls consume sampled poses and release animator bindings during physics shutdown.
+        : ServiceDependencySet<ServiceList<renderer::RenderSystem, asset::AssetRegistryService, animation::AnimationSystem>,
+                               ServiceList<animation::AnimationSystem>> {
+#else
+        : ServiceDependencySet<ServiceList<renderer::RenderSystem, asset::AssetRegistryService>,
+                               InputUpdateDependencies> {
+#endif
     };
 
-    template <>
-    struct ServiceDependencies<core::LocalizationService> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    template<>
+    struct ServiceDependencies<animation::AnimationSystem>
+        : ServiceDependencySet<ServiceList<threading::TaskService>, InputUpdateDependencies> {
     };
 
-    template <>
-    struct ServiceDependencies<EventSystem> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    // Particle spawning reads the transforms and emitter state published by these services.
+    template<>
+    struct ServiceDependencies<renderer::ParticleSystem>
+        : ServiceDependencySet<ServiceList<>,
+                               ServiceList<physics::PhysicSystem, scripting::ScriptingService, animation::AnimationSystem>> {
     };
 
-    template <>
-    struct ServiceDependencies<InputSystem> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    template<>
+    struct ServiceDependencies<scripting::ScriptingService>
+        : ServiceDependencySet<ServiceList<filesystem::FileService, filesystem::FileWatcherService>,
+                               InputUpdateDependencies> {
     };
 
-    template <>
-    struct ServiceDependencies<network::NetworkSystem> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    template<>
+    struct ServiceDependencies<SystemStats>
+        : ServiceDependencySet<ServiceList<>, InputUpdateDependencies> {
     };
 
-    template <>
-    struct ServiceDependencies<renderer::ParticleSystem> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    template<>
+    struct ServiceDependencies<network::NetworkService>
+        : ServiceDependencySet<ServiceList<>> {
     };
 
-    template <>
-    struct ServiceDependencies<scripting::ScriptingService> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    template<>
+    struct ServiceDependencies<asset::AssetRegistryService>
+        : ServiceDependencySet<ServiceList<renderer::RenderSystem, filesystem::FileService,
+                                           filesystem::FileWatcherService, threading::TaskService, audio::AudioService>> {
     };
 
-    template <>
-    struct ServiceDependencies<renderer::RenderSystem> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-                typeid(animation::AnimationSystem),
-                typeid(physics::PhysicSystem),
-                typeid(renderer::ParticleSystem),
-                typeid(scripting::ScriptingService),
-            };
-        }
+    template<>
+    struct ServiceDependencies<video::VideoService>
+        : ServiceDependencySet<ServiceList<renderer::RenderSystem, asset::AssetRegistryService,
+                                           audio::AudioService, threading::TaskService>> {
     };
 
-    template <>
-    struct ServiceDependencies<scene::SceneManager> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-                //typeid(renderer::RenderSystem)
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
+    // Destroy scenes while their assets, physics worlds, particles, animators, audio and
+    // script handles still have live owners to unregister from.
+    template<>
+    struct ServiceDependencies<scene::SceneManager>
+        : ServiceDependencySet<ServiceList<asset::AssetRegistryService, audio::AudioService,
+                                           physics::PhysicSystem, renderer::ParticleSystem,
+                                           animation::AnimationSystem, scripting::ScriptingService
+#if MIKOTO_MODULE_VIDEO
+                                           , video::VideoService
+#endif
+                                           >> {
     };
+}// namespace mikoto::core
 
-    template <>
-    struct ServiceDependencies<asset::AssetsService> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-                //typeid(renderer::RenderSystem),
-                typeid(audio::AudioService)
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-    };
-
-    template <>
-    struct ServiceDependencies<imgui::ImGuiService> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-                //typeid(renderer::RenderSystem)
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-    };
-
-    template <>
-    struct ServiceDependencies<SystemStats> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-    };
-
-    template <>
-    struct ServiceDependencies<physics::PhysicSystem> {
-        MKT_NODISCARD auto operator()( DependencyType type ) -> eastl::vector<std::type_index> {
-            switch (type) {
-
-                case DependencyType::eExecution:
-                    return GetExecDependenciesImpl();
-                case DependencyType::eInitialization:
-                    return GetInitDependenciesImpl();
-            }
-
-            return {};
-        };
-
-        MKT_NODISCARD auto GetInitDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-            };
-        }
-
-        MKT_NODISCARD auto GetExecDependenciesImpl() -> eastl::vector<std::type_index> {
-            return eastl::vector<std::type_index>{
-
-            };
-        }
-    };
-
-}// namespace mikoto
-
-#endif//MIKOTO_SERVICE_DEPENDENCIES_HH
+#endif// MIKOTO_CORE_SERVICE_DEPENDENCIES_HH

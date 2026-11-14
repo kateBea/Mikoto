@@ -1,0 +1,8 @@
+Version: 2
+Type: SurfaceMaterial
+Name: Teapot Glaze
+Material:
+  BaseColorFactor: [0.8, 0.88, 0.95, 1]
+  MetallicFactor: 0.12
+  RoughnessFactor: 0.18
+  AlphaMask: 0

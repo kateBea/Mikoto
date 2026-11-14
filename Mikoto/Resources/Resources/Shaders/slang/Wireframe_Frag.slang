@@ -12,16 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
-#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
+#include "base/Material_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 
 struct FSOutput {
     float4 Color : SV_Target0;
 };
 
 struct FSInput {
+    nointerpolation uint FaceFlags : TEXCOORD0;
     float4 ScreenPos : SV_Position;
 };
 
@@ -35,10 +39,13 @@ struct DrawParams {
     float4 mLineColor;
 };
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, Parameters );
 
-[shader("fragment")]
-FSOutput main(FSInput input) {
+[shader( "fragment" )]
+FSOutput main( FSInput input, bool frontFacing : SV_IsFrontFace ) {
+    if ( MaterialBackfaceDiscard( input.FaceFlags, frontFacing ) ) {
+        discard;
+    }
     FSOutput o;
 
     o.Color = Parameters.mLineColor;

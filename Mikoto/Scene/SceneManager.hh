@@ -12,59 +12,63 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SCENE_MANAGER_HH
-#define MIKOTO_SCENE_MANAGER_HH
+#ifndef MIKOTO_SCENE_SCENE_MANAGER_HH
+#define MIKOTO_SCENE_SCENE_MANAGER_HH
 
 #include <mutex>
 
+#include <EASTL/vector.h>
 #include <EASTL/string_view.h>
 
 #include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
 #include <Core/Service.hh>
 #include <Core/ReferenceCounted.hh>
 
 #include <Scene/Scene.hh>
-#include <Scene/SceneSerializer.hh>
 
 namespace mikoto::scene {
 
     class Scene;
 
-    using namespace mikoto::core;
+    
 
     // Manages scenes currently active. Scenes are identified uniquely by their name for now.
-    class SceneManager final : public IService, public Singleton<SceneManager> {
+    class SceneManager final : public core::IService, public core::Singleton<SceneManager> {
     public:
-
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
         // Opens a file dialog
-        auto SaveToDisk( const Scene* scene) -> void;
-        auto Save( const Scene* scene, const Path& path ) -> void;
+        auto SaveToDisk( const Scene* scene ) -> void;
+        auto Save( const Scene* scene, const filesystem::Path& path ) -> void;
 
         // Opens a file dialog
         MKT_NODISCARD auto LoadFromDisk() -> Scene*;
-        MKT_NODISCARD auto Load(const Path& path) -> Scene*;
+        MKT_NODISCARD auto Load( const filesystem::Path& path ) -> Scene*;
 
         MKT_NODISCARD auto CreateScene( eastl::string_view name ) -> Scene*;
 
         MKT_NODISCARD auto GetByName( eastl::string_view name ) -> Scene*;
 
+        auto Unload( Scene* scene ) -> void;
+        // Call on the editor thread, after pending imports have dropped their
+        // scene handles. Scene destruction touches physics and animation state.
+        auto CollectRetiredScenes() -> void;
+
     private:
         // [Internal usage]
-        auto Register(eastl::string_view name, SceneHandle scene ) -> Scene*;
+        auto Register( eastl::string_view name, SceneHandle scene ) -> Scene*;
 
     private:
         SceneSerializer mSerializer{};
         ankerl::unordered_dense::map<eastl::string, SceneHandle> mScenes{};
+        eastl::vector<SceneHandle> mRetiredScenes{};
 
         std::mutex mSceneRegisterMutex{};
     };
-}
+}// namespace mikoto::scene
 
-#endif // MIKOTO_SCENE_MANAGER_HH
+#endif// MIKOTO_SCENE_SCENE_MANAGER_HH

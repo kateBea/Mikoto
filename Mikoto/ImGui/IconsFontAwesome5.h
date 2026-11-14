@@ -3,7 +3,8 @@
 // from codepoints https://github.com/FortAwesome/Font-Awesome/raw/5.x/metadata/icons.yml
 // for use with font https://github.com/FortAwesome/Font-Awesome/blob/5.x/webfonts/fa-regular-400.ttf, https://github.com/FortAwesome/Font-Awesome/blob/5.x/webfonts/fa-solid-900.ttf
 
-#pragma once
+#ifndef MIKOTO_IMGUI_ICONS_FONT_AWESOME5_HH
+#define MIKOTO_IMGUI_ICONS_FONT_AWESOME5_HH
 
 #define FONT_ICON_FILE_NAME_FAR "fa-regular-400.ttf"
 #define FONT_ICON_FILE_NAME_FAS "fa-solid-900.ttf"
@@ -1014,3 +1015,5 @@
 #define ICON_FA_X_RAY "\xef\x92\x97"	// U+f497
 #define ICON_FA_YEN_SIGN "\xef\x85\x97"	// U+f157
 #define ICON_FA_YIN_YANG "\xef\x9a\xad"	// U+f6ad
+
+#endif // MIKOTO_IMGUI_ICONS_FONT_AWESOME5_HH

@@ -1,0 +1,8 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Metal4_Rough2"
+Material:
+  BaseColorFactor: [0.7,0.7,0.7,1]
+  MetallicFactor: 1.0
+  RoughnessFactor: 0.5
+  AlphaMask: 0

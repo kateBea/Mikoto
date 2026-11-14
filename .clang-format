@@ -1,21 +1,23 @@
 BasedOnStyle: Google
 AccessModifierOffset: -4
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: DontAlign
 AlignConsecutiveAssignments: None
 AlignOperands: Align
 AlignConsecutiveMacros:
   Enabled: true
   AcrossEmptyLines: true
   AcrossComments: false
+LambdaBodyIndentation: Signature
 AllowAllArgumentsOnNextLine: false
 AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
-AllowShortBlocksOnASingleLine: Always
+AllowShortBlocksOnASingleLine: Never
 AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: All
-AllowShortIfStatementsOnASingleLine: Always
-AllowShortLambdasOnASingleLine: All
-AllowShortLoopsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: None
+AllowShortLoopsOnASingleLine: false
+InsertBraces: true
 AlwaysBreakAfterReturnType: None
 AlwaysBreakTemplateDeclarations: Yes
 BreakBeforeBraces: Custom
@@ -28,7 +30,7 @@ BraceWrapping:
   AfterNamespace: false
   AfterUnion: false
   BeforeCatch: false
-  BeforeElse: false
+  BeforeElse: true
   IndentBraces: false
   SplitEmptyFunction: false
   SplitEmptyRecord: true
@@ -38,7 +40,7 @@ BreakConstructorInitializers: BeforeColon
 BreakInheritanceList: BeforeColon
 ColumnLimit: 0
 CompactNamespaces: false
-ContinuationIndentWidth: 8
+ContinuationIndentWidth: 4
 Cpp11BracedListStyle: false
 IndentCaseLabels: true
 IndentPPDirectives: None
@@ -70,4 +72,9 @@ SpacesInSquareBrackets: false
 TabWidth: 4
 UseTab: Never
 AlignTrailingComments: true
-LambdaBodyIndentation: Signature
+
+# Keep the explicit standard/library/module groups and alphabetize within each.
+IncludeBlocks: Preserve
+SortIncludes: CaseInsensitive
+# Do not promote the source file's matching header ahead of the standard group.
+IncludeIsMainRegex: 'a^'

@@ -12,21 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SERIALIZER_HH
-#define MIKOTO_SERIALIZER_HH
+#ifndef MIKOTO_CORE_SERIALIZER_HH
+#define MIKOTO_CORE_SERIALIZER_HH
 
-#include <Core/Serializable.hh>
+#include <Core/ReferenceCounted.hh>
 
+#include <Filesystem/File.hh>
 #include <Filesystem/Path.hh>
 
 namespace mikoto::core {
+
+    class ISerializable : public ReferenceCounted<ISerializable> {
+    public:
+        ~ISerializable() override = default;
+
+        virtual auto Serialize( const filesystem::Path& filename ) const -> void = 0;
+        virtual auto Deserialize( const filesystem::Path& filename ) -> void = 0;
+
+        virtual auto Serialize( filesystem::FileHandle file ) const -> void = 0;
+        virtual auto Deserialize( filesystem::FileHandle file ) -> void = 0;
+    };
 
     class ISerializer {
     public:
         virtual ~ISerializer() = default;
 
         virtual auto Serialize(const ISerializable* object, const filesystem::Path& savePath) -> void = 0;
-        virtual auto Deserialize(const filesystem::Path& loadPath) -> core::Ref<ISerializable> = 0;
+        MKT_NODISCARD virtual auto Deserialize(const filesystem::Path& loadPath) -> core::Ref<ISerializable> = 0;
     };
 }
-#endif //MIKOTO_SERIALIZER_HH
+
+#endif// MIKOTO_CORE_SERIALIZER_HH

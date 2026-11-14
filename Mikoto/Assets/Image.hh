@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_IMAGE_HH
-#define MIKOTO_IMAGE_HH
+#ifndef MIKOTO_ASSETS_IMAGE_HH
+#define MIKOTO_ASSETS_IMAGE_HH
 
-#include <EASTL/fixed_hash_map.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/fixed_hash_map.h>
 
 #include <Core/Core.hh>
-#include <Core/String.hh>
 #include <Core/Types.hh>
 #include <Core/ReferenceCounted.hh>
 
@@ -30,15 +29,19 @@
 
 namespace mikoto::asset {
 
-    using namespace mikoto::core;
-    using namespace mikoto::memory;
-    using namespace mikoto::filesystem;
-
     enum class ImageFormat {
         eInvalid = -1,
 
-        eRGBA8_UINT,    // 8 bits per channel
-        eRGBA32_FLOAT,  // 32 bit signet float
+        eCompressed_BC1,    //
+        eCompressed_BC2,    //
+        eCompressed_BC3,    //
+        eCompressed_BC4,    //
+        eCompressed_BC5,    //
+        eCompressed_BC6,    //
+        eCompressed_BC7,    // Compressed formats that will get loaded with ktx2
+
+        eRGBA8_UINT,        // 8 bits per channel
+        eRGBA32_FLOAT,      // 32-bit floating point
     };
 
     enum class ImageCubeFace {
@@ -76,9 +79,9 @@ namespace mikoto::asset {
 
         // When cube is list of 2D images in disk
         // this contains the base path of folder that contains all 6 images
-        Path mBasePath{};
+        filesystem::Path mBasePath{};
 
-        BufferSpanHandle mBufferSpan{};
+        memory::BufferSpanHandle mBufferSpan{};
         eastl::fixed_hash_map<ImageCubeFace, FaceSlice, kCubeFaceCount> mFaces{};
     };
 
@@ -86,4 +89,4 @@ namespace mikoto::asset {
 
 }// namespace Mikoto
 
-#endif//MIKOTO_IMAGE_HH
+#endif// MIKOTO_ASSETS_IMAGE_HH

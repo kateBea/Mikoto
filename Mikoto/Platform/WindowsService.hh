@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_WINDOWS_SYSTEM_HH
-#define MIKOTO_WINDOWS_SYSTEM_HH
+#ifndef MIKOTO_PLATFORM_WINDOWS_SERVICE_HH
+#define MIKOTO_PLATFORM_WINDOWS_SERVICE_HH
 
 #include <EASTL/memory.h>
 #include <EASTL/vector.h>
@@ -23,30 +23,29 @@
 #include <Core/Types.hh>
 #include <Core/Service.hh>
 #include <Core/Singleton.hh>
+
 #include <Platform/Window.hh>
 
 namespace mikoto::platform {
 
-    using namespace mikoto::core;
-
     struct WindowsServiceCreateInfo {};
 
-    class WindowsService final : public IService, public Singleton<WindowsService> {
+    class WindowsService final : public core::IService, public core::Singleton<WindowsService> {
     public:
-        explicit WindowsService(WindowsServiceCreateInfo const &serviceCreateInfo);
+        explicit WindowsService( WindowsServiceCreateInfo const& serviceCreateInfo );
 
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        MKT_NODISCARD auto Create(const WindowProperties& properties) -> Window*;
+        MKT_NODISCARD auto Create( const WindowProperties& properties ) -> IWindow*;
 
     private:
         auto InitWindowHandling() -> void;
         auto ShutdownWindowHandling() -> void;
 
     private:
-        eastl::vector<eastl::unique_ptr<Window>> mWindows{};
+        eastl::vector<eastl::unique_ptr<IWindow>> mWindows{};
     };
-}
+}// namespace mikoto::platform
 
-#endif // MIKOTO_WINDOWS_SYSTEM_HH
+#endif// MIKOTO_PLATFORM_WINDOWS_SERVICE_HH

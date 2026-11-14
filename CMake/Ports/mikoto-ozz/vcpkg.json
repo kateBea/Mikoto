@@ -1,0 +1,16 @@
+{
+  "name": "mikoto-ozz",
+  "version-string": "0.17.0",
+  "description": "Ozz animation runtime, offline builders and importer support",
+  "license": "MIT",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}

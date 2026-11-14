@@ -1,0 +1,51 @@
+# Video_Gallery demo project.
+# Two video screens combine texture playback, spatial audio and emissive mesh lighting.
+# Open this manifest in the editor; Scene selects the authored scene below.
+# Assets and Cache paths are relative to this manifest.
+# EditorCamera configures editor navigation; the scene camera controls the Game view.
+
+{
+  "Version": 1,
+  "Project": "Video Gallery",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Video_Gallery.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 0,
+    "Samples": 1,
+    "PathTracing": true,
+    "PathSamplesPerFrame": 2,
+    "PathMaxBounces": 12,
+    "PathMaxSamples": 4096,
+    "BloomEnabled": true,
+    "BloomThreshold": 1,
+    "BloomIntensity": 0.12,
+    "SsaoEnabled": false,
+    "RayTracedAmbientOcclusion": false
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      0,
+      5,
+      12
+    ],
+    "Direction": [
+      0,
+      -0.25,
+      -0.9682458
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 52,
+    "NearPlane": 0.05,
+    "FarPlane": 150,
+    "MovementSpeed": 6,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

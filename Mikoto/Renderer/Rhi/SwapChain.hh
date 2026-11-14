@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_SWAP_CHAIN_HH
-#define MIKOTO_RHI_SWAP_CHAIN_HH
+#ifndef MIKOTO_RENDERER_RHI_SWAP_CHAIN_HH
+#define MIKOTO_RENDERER_RHI_SWAP_CHAIN_HH
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
+#include <Core/Resource.hh>
+
 #include <Memory/BufferSpan.hh>
-#include <Core/ResourcePool.hh>
 
 #include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Rhi/DeviceObject.hh>
 
 namespace mikoto::renderer::rhi {
@@ -107,5 +107,5 @@ namespace mikoto::renderer::rhi {
     using SwapChainHandle = core::Ref<ISwapChain>;
 }
 
+#endif// MIKOTO_RENDERER_RHI_SWAP_CHAIN_HH
 
-#endif//MIKOTO_RHI_SWAP_CHAIN_HH

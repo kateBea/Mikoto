@@ -1,0 +1,10 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Light4"
+Material:
+  BaseColorFactor: [0.7,0.15,1,1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.7
+  AlphaMask: 0
+  EmissiveFactor: [0.7,0.15,1]
+  EmissiveStrength: 1

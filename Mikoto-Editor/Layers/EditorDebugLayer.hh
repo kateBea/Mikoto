@@ -12,24 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_EDITOR_DEBUG_LAYER_HH
-#define MIKOTO_EDITOR_DEBUG_LAYER_HH
+#ifndef MIKOTO_LAYERS_EDITOR_DEBUG_LAYER_HH
+#define MIKOTO_LAYERS_EDITOR_DEBUG_LAYER_HH
 
 #include <EASTL/array.h>
+#include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
 
 #include <Core/Core.hh>
-#include <Core/Event.hh>
-#include <Core/LayerStack.hh>
+#include <Core/Layer.hh>
+
+#include <Math/Math.hh>
+
+#include <Platform/Event.hh>
 #include <Platform/Window.hh>
 
-#include <Assets/Model.hh>
-
-#include <Scene/Camera.hh>
-#include <Scene/SceneCamera.hh>
+#include <Assets/AssetModel.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
+
+#include <Scene/Camera.hh>
+#include <Scene/SceneCamera.hh>
 
 namespace mikoto::editor {
 
@@ -39,12 +43,15 @@ namespace mikoto::editor {
     class EditorDebugLayer final : public core::ILayer {
     public:
 
-        explicit EditorDebugLayer( platform::Window* window );
+        explicit EditorDebugLayer( platform::IWindow* window );
 
         auto OnUpdate( float deltaTime ) -> void override;
+        auto OnRender( float deltaTime ) -> void override;
         auto OnCreate() -> void override;
         auto OnDestroy() -> void override;
-        auto OnEvent( core::IEvent &event ) -> void override;
+        auto OnEvent( platform::Event &event ) -> void override;
+
+        MKT_NODISCARD auto GetName() const -> eastl::string_view override;
 
     private:
         struct ConstantBuffer {
@@ -59,7 +66,9 @@ namespace mikoto::editor {
         auto UpdateCameraState( float ts ) -> void;
 
     private:
-        renderer::IGpuDevice* mDevice{};
+        eastl::string mName{};
+
+        renderer::rhi::IGpuDevice* mDevice{};
 
         asset::ModelHandle mModelHandle{};
 
@@ -91,9 +100,10 @@ namespace mikoto::editor {
         renderer::rhi::BindingLayoutHandle mBindingLayoutHandle{};
         renderer::rhi::PipelineLayoutHandle mPipelineLayoutHandle{};
 
-        platform::Window* mWindow{};
+        platform::IWindow* mWindow{};
     };
 
 }
 
-#endif//MIKOTO_EDITOR_DEBUG_LAYER_HH
+#endif// MIKOTO_LAYERS_EDITOR_DEBUG_LAYER_HH
+

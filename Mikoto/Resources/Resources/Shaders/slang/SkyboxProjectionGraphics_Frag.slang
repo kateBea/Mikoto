@@ -12,40 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
-#include "base/BoxModel.slang"
 #include "base/Memory_Helpers.slang"
-#include "base/Lighting_Helpers.slang"
-
-struct FSOutput {
-    float4 Color : SV_Target0;
-};
-
-struct FSInput {
-    float2 UV : TEXCOORD0;
-};
 
 struct DrawParams {
-    float4x4 Mvp;
-    uint mBasicSamplerID;
-    uint mEquirectangularID;
+    uint mSamplerID;
+    uint mTextureID;
+    uint mDimension;
 };
 
-MKT_DECLARE_SAMPLERS Samplers;
-MKT_DECLARE_TEXTURE_SRV(Texture2D) Textures;
+MKT_DECLARE_SAMPLERS samplers;
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
-
-[shader("fragment")]
-FSOutput main(FSInput input) {
-    FSOutput o;
-
-    SamplerState sampler = Samplers[Parameters.mBasicSamplerID];
-    Texture2D texture = Textures[Parameters.mEquirectangularID];
-
-    float2 uv = input.UV;
-    float3 color = texture.Sample(sampler, uv).rgb;
-
-    o.Color = float4(color, 1.0);
-    return o;
+[shader( "fragment" )]
+float4 main( float2 unusedUV : TEXCOORD0, float4 position : SV_Position ) : SV_Target0 {
+    // Framebuffer coordinates give top-left UVs regardless of the backend's
+    // clip-space Y convention. The input is already a cube face, not a panorama.
+    float2 uv = position.xy / float( parameters.mDimension );
+    return float4( textures[parameters.mTextureID].SampleLevel( samplers[parameters.mSamplerID], uv, 0.0 ).rgb, 1.0 );
 }

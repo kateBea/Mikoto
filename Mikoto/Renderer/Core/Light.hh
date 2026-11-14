@@ -12,17 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_LIGHT_HH
-#define MIKOTO_LIGHT_HH
+#ifndef MIKOTO_RENDERER_CORE_LIGHT_HH
+#define MIKOTO_RENDERER_CORE_LIGHT_HH
+
+#include <cmath>
+
+#include <EASTL/utility.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/compatibility.hpp>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
+#include <Core/Profiler.hh>
 
 namespace mikoto::renderer {
-
-    using namespace mikoto::core;
 
     enum class LightType {
         eDirectional,
@@ -37,22 +41,22 @@ namespace mikoto::renderer {
     public:
         template<typename... Args>
         auto SetColor( Args&&... args ) -> void {
-            mColor = core::float3( std::forward<Args>( args )... );
+            mColor = core::float3( eastl::forward<Args>( args )... );
         }
 
-        auto SetColor( const core::float3& color ) -> void { mColor = color; }
-        MKT_NODISCARD auto GetColor() const -> const core::float3& { return mColor; }
+        auto SetColor( const core::float3& color ) -> void;
+        auto SetIntensity( float intensity ) -> void;
+        auto SetIsShadowCaster( bool value ) -> void;
 
-        auto SetIntensity( float intensity ) -> void { mIntensity = intensity; }
-        MKT_NODISCARD auto GetIntensity() const -> float { return mIntensity; }
-
-        auto SetIsShadowCaster( bool value ) -> void {
-            mIsShadowCaster = value;
-        }
-
-        MKT_NODISCARD auto IsShadowCaster() const -> bool { return mIsShadowCaster; }
+        MKT_NODISCARD auto GetColor() const -> const core::float3&;
+        MKT_NODISCARD auto GetIntensity() const -> float;
+        MKT_NODISCARD auto IsShadowCaster() const -> bool;
 
     protected:
+        // Invalid and zero-length directions consistently fall back to world down.
+        MKT_NODISCARD static auto NormalizeDirection( core::float3 direction ) -> core::float3;
+
+    private:
         core::float3 mColor{ 1.0f, 1.0f, 1.0f };
         float mIntensity{ 1.0f };
 
@@ -64,11 +68,14 @@ namespace mikoto::renderer {
         explicit PointLight() = default;
         ~PointLight() = default;
 
-        auto SetRadius( float radius ) -> void { mRadius = radius; }
-        MKT_NODISCARD auto GetRadius() const -> float { return mRadius; }
+        auto SetRadius( float radius ) -> void;
+        auto SetSourceRadius( float radius ) -> void;
+        MKT_NODISCARD auto GetRadius() const -> float;
+        MKT_NODISCARD auto GetSourceRadius() const -> float;
 
     private:
         float mRadius{ 1.0f };// falloff radius
+        float mSourceRadius{ 0.1f }; // Path-traced emitting sphere radius, in world units.
     };
 
     class DirectionalLight : public LightObject {
@@ -78,59 +85,66 @@ namespace mikoto::renderer {
 
         template<typename... Args>
         auto SetDirection( Args&&... args ) -> void {
-            mDirection = core::float3( std::forward<Args>( args )... );
+            SetNormalizedDirection( core::float3( eastl::forward<Args>( args )... ) );
         }
 
-        MKT_NODISCARD auto GetDirection() const -> const core::float3& { return mDirection; }
+        MKT_NODISCARD auto GetDirection() const -> const core::float3&;
+        auto SetAngularRadius( float degrees ) -> void;
+        MKT_NODISCARD auto GetAngularRadius() const -> float;
+
+        /** @brief Returns a normalized direction after applying the entity's world transform.
+         * @param world Entity-to-world transform, including its parents; translation is ignored.
+         * @return Unit world direction, or world down if the transformed direction is invalid.
+         */
+        MKT_NODISCARD auto GetWorldDirection( const core::float4x4& world ) const -> core::float3;
 
     private:
+        auto SetNormalizedDirection( core::float3 direction ) -> void;
+
         core::float3 mDirection{ -1.0f, -1.0f, -1.0f };// default pointing diagonally down
+        float mAngularRadius{ 0.266f }; // Path-traced solar half-angle; zero retains an ideal distant light.
     };
 
     class SpotLight : public LightObject {
     public:
-        explicit SpotLight() { UpdateCutoffs(); }
+        explicit SpotLight();
 
         template<typename... Args>
         auto SetDirection( Args&&... args ) -> void {
-            mDirection = glm::normalize( core::float3( std::forward<Args>( args )... ) );
+            SetNormalizedDirection( core::float3( eastl::forward<Args>( args )... ) );
         }
 
-        auto SetAngle( float angleDeg ) -> void {
-            mAngle = angleDeg;
-            UpdateCutoffs();
-        }
+        auto SetAngle( float angleDeg ) -> void;
 
-        auto SetSoftness( float softness ) -> void {
-            mSoftness = glm::clamp( softness, 0.0f, GetMaxSoftness() );
-            UpdateCutoffs();
-        }
+        auto SetSoftness( float softness ) -> void;
 
-        auto SetRadius( float radius ) -> void { mRadius = radius; }
+        auto SetRadius( float radius ) -> void;
 
-        MKT_NODISCARD static auto GetMaxSoftness() -> float { return 30.0f; }
-        MKT_NODISCARD static auto GetMaxAngle() -> float { return 180.0f; } // In degrees
+        MKT_NODISCARD static auto GetMaxSoftness() -> float;
+        MKT_NODISCARD static auto GetMaxAngle() -> float;// Outer half-angle in degrees
 
-        MKT_NODISCARD auto GetDirection() const -> const core::float3& { return mDirection; }
+        MKT_NODISCARD auto GetDirection() const -> const core::float3&;
 
-        MKT_NODISCARD auto GetAngle() const -> float { return mAngle; }
-        MKT_NODISCARD auto GetSoftness() const -> float { return mSoftness; }
+        /** @brief Returns a normalized direction after applying the entity's world transform.
+         * @param world Entity-to-world transform, including its parents; translation is ignored.
+         * @return Unit world direction, or world down if the transformed direction is invalid.
+         */
+        MKT_NODISCARD auto GetWorldDirection( const core::float4x4& world ) const -> core::float3;
 
-        MKT_NODISCARD auto GetCutOff() const -> float { return mCutOff; }
-        MKT_NODISCARD auto GetOuterCutOff() const -> float { return mOuterCutOff; }
+        MKT_NODISCARD auto GetAngle() const -> float;
+        MKT_NODISCARD auto GetSoftness() const -> float;
 
-        MKT_NODISCARD auto GetRadius() const -> float { return mRadius; }
+        MKT_NODISCARD auto GetCutOff() const -> float;
+        MKT_NODISCARD auto GetOuterCutOff() const -> float;
+
+        MKT_NODISCARD auto GetRadius() const -> float;
 
     private:
-        auto UpdateCutoffs() -> void {
-            const float outer{ glm::radians( mAngle ) };
-            const float inner{ outer * ( GetMaxSoftness() - mSoftness ) };
-
-            mCutOff = glm::cos( inner );
-            mOuterCutOff = glm::cos( outer );
-        }
+        auto UpdateCutoffs() -> void;
 
     private:
+        auto SetNormalizedDirection( core::float3 direction ) -> void;
+
         core::float3 mDirection{ 0.0f, -1.0f, 0.0f }; // Pointing downwards by default
 
         core::f32 mAngle{ 30.0f };  // degrees
@@ -141,7 +155,38 @@ namespace mikoto::renderer {
 
         core::f32 mRadius{ 10.0f };
     };
+
+    enum class AreaLightShape : core::u8 {
+        eRectangle,
+        eMesh
+    };
+
+    // Path tracing only: radiance attached to a rectangle or the entity's mesh hierarchy.
+    // Mesh emitters retain their surface material and emissive texture.
+    class AreaLight : public LightObject {
+    public:
+        explicit AreaLight() = default;
+
+        auto SetRadius( float radius ) -> void;
+        auto SetTwoSided( bool twoSided ) -> void;
+        auto SetSize( const core::float2& size ) -> void;
+        auto SetShape( AreaLightShape shape ) -> void;
+
+        MKT_NODISCARD auto GetRadius() const -> float;
+        MKT_NODISCARD auto IsTwoSided() const -> bool;
+        MKT_NODISCARD auto GetSize() const -> const core::float2&;
+        MKT_NODISCARD auto GetShape() const -> AreaLightShape;
+
+        ~AreaLight() = default;
+
+    private:
+        core::float2 mSize{ 1.0f, 1.0f };
+        float mRadius{ 0.5f };
+
+        bool mIsTwoSided{ false };
+        AreaLightShape mShape{ AreaLightShape::eRectangle };
+    };
 }// namespace Mikoto
 
+#endif// MIKOTO_RENDERER_CORE_LIGHT_HH
 
-#endif//MIKOTO_LIGHT_HH

@@ -12,57 +12,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// ============================================================================
-// SSAO Blur Fragment Shader (Slang)
-// ============================================================================
+#pragma once
 
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
-
 struct DrawParams {
     uint mSamplerID;
     uint mSsaoColorTargetID;
+    uint mPositionID;
 };
 
-MKT_DECLARE_SAMPLERS samplers;
-MKT_DECLARE_TEXTURE_SRV(Texture2D) textures;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
-
-struct FSInput {
-    float2 UV : TEXCOORD0;
-};
-
-struct FSOutput {
-    float AO : SV_Target0;
-};
-
-[shader("fragment")]
-FSOutput main(FSInput input) {
-    FSOutput o;
-
-    SamplerState sampler = samplers[parameters.mSamplerID];
-
-    Texture2D colorTexture = textures[parameters.mSsaoColorTargetID];
-
-    int n = 0;
-    const int blurRange = 2;
-
-    // Texture size lookup
+[shader( "fragment" )]
+float main( float2 uv : TEXCOORD0 ) : SV_Target0 {
     uint width, height;
-    colorTexture.GetDimensions(width, height);
+    textures[parameters.mSsaoColorTargetID].GetDimensions( width, height );
 
-    float2 texelSize = 1.0 / float2(width, height);
+    int2 pixel = clamp( int2( uv * float2( width, height ) ), int2( 0 ), int2( width, height ) - 1 );
+    float center = textures[parameters.mPositionID].Load( int3( pixel, 0 ) ).z;
+    if ( center >= -1e-5 ) {
+        return 1;
+    }
 
-    float result = 0.0;
-    for (int x = -blurRange; x <= blurRange; x++) {
-        for (int y = -blurRange; y <= blurRange; y++) {
-            float2 offset = float2(x, y) * texelSize;
-            result += colorTexture.Sample(sampler, input.UV + offset).r;
-            n++;
+    // Bilateral filtering removes noise without darkening unrelated depths
+    // across silhouettes. Background pixels are excluded from the blur.
+    float result = 0;
+    float weights = 0;
+    for ( int y = -2; y <= 2; ++y ) {
+        for ( int x = -2; x <= 2; ++x ) {
+            int2 samplePixel = clamp( pixel + int2( x, y ), int2( 0 ), int2( width, height ) - 1 );
+            float depth = textures[parameters.mPositionID].Load( int3( samplePixel, 0 ) ).z;
+
+            if ( depth >= -1e-5 ) {
+                continue;
+            }
+
+            float weight = exp( -0.5 * ( x * x + y * y ) ) * exp( -abs( depth - center ) / 0.1 );
+            result += weight * textures[parameters.mSsaoColorTargetID].Load( int3( samplePixel, 0 ) ).r;
+            weights += weight;
         }
     }
 
-    o.AO = result / float(n);
-    return o;
+    return result / max( weights, 1e-5 );
 }

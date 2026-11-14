@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_D3D12_MEMORY_ALLOCATOR_HH
-#define MIKOTOROOT_D3D12_MEMORY_ALLOCATOR_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D12_D3D12_MEMORY_ALLOCATOR_HH
+#define MIKOTO_RENDERER_RHI_D3D12_D3D12_MEMORY_ALLOCATOR_HH
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -21,13 +21,19 @@
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
-#include <Renderer/Rhi//GpuAllocator.hh>
+#include <Renderer/Rhi/DeviceObject.hh>
+#include <Renderer/Rhi/GpuAllocator.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
 
-#include <wrl.h>
-#include <directx/d3d12.h>
+#include <mutex>
+
+#include <Platform/Windows/Windows.hh>
+
 #include <D3D12MemAlloc.h>
+#include <directx/d3d12.h>
+#include <directx/d3dx12.h>
+#include <wrl.h>
 
 namespace mikoto::renderer::d3d12 {
 
@@ -53,10 +59,15 @@ namespace mikoto::renderer::d3d12 {
 
     class GpuMemoryAllocator final : public rhi::IGpuAllocator {
     public:
+    private:
+        rhi::IGpuDevice* mDevice{};
+
+    public:
         explicit GpuMemoryAllocator( rhi::IGpuDevice* device );
 
         auto Init() -> void override;
         auto Shutdown() -> void override;
+        auto BeginFrame() -> void override;
 
         auto FreeImage( ImageAllocation& allocation ) -> void;
         auto AllocateImage( ImageAllocation& allocation ) -> HRESULT ;
@@ -66,6 +77,12 @@ namespace mikoto::renderer::d3d12 {
 
         auto MapBuffer( BufferAllocation& allocation ) -> void*;
         auto UnmapBuffer( BufferAllocation& allocation ) -> void;
+        MKT_NODISCARD auto GetVideoBitstreamPool() -> D3D12MA::Pool*;
+
+        /** Uses D3D12MA's process budget accounting, including allocations outside the allocator.
+         * D3D12MA uses DXGI when available and otherwise supplies an estimate.
+         */
+        MKT_NODISCARD auto GetProcessMemoryUsage() const -> rhi::ProcessGpuMemory override;
 
         // These are slow use for debug only
         MKT_NODISCARD auto GetMemoryUsage() const -> core::usize override;
@@ -74,10 +91,15 @@ namespace mikoto::renderer::d3d12 {
 
     private:
         D3D12MA::Allocator* mAllocator{};
+        std::mutex mVideoPoolMutex{};
+        Microsoft::WRL::ComPtr<D3D12MA::Pool> mVideoBitstreamPool{};
+        core::u32 mFrameIndex{};
         D3D12MA::TotalStatistics mStatistics{};
     };
+
 }
 
 #endif
 
-#endif//MIKOTOROOT_D3D12_MEMORY_ALLOCATOR_HH
+#endif// MIKOTO_RENDERER_RHI_D3D12_D3D12_MEMORY_ALLOCATOR_HH
+

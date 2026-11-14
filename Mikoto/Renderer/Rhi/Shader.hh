@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RHI_SHADER_HH
-#define MIKOTO_RHI_SHADER_HH
+#ifndef MIKOTO_RENDERER_RHI_SHADER_HH
+#define MIKOTO_RENDERER_RHI_SHADER_HH
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
-#include <Core/ResourcePool.hh>
+#include <Core/Resource.hh>
 
 #include <Filesystem/File.hh>
 
@@ -45,6 +44,8 @@ namespace mikoto::renderer::rhi {
         eastl::string mModulePath{ "" };
         eastl::string mModuleName{ "" };
 
+        bool mTrackState{ true };
+
         /**
          * Sets the value handled by SetModulePath.
          *
@@ -52,6 +53,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetModulePath.
          */
         auto SetModulePath( eastl::string_view path ) -> ShaderModuleCreateDescription&;
+
 
         /**
          * Sets the value handled by SetModuleName.
@@ -61,6 +63,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetModuleName( eastl::string_view name ) -> ShaderModuleCreateDescription&;
 
+
         /**
          * Sets the value handled by SetStage.
          *
@@ -68,6 +71,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetStage.
          */
         auto SetStage( ShaderType stage ) -> ShaderModuleCreateDescription&;
+
 
         /**
          * Sets the value handled by SetLanguage.
@@ -77,6 +81,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetLanguage( ShaderLanguage language ) -> ShaderModuleCreateDescription&;
 
+
         /**
          * Sets the value handled by SetEntryPoint.
          *
@@ -85,6 +90,7 @@ namespace mikoto::renderer::rhi {
          */
         auto SetEntryPoint( eastl::string_view name ) -> ShaderModuleCreateDescription&;
 
+
         /**
          * Sets the value handled by SetContents.
          *
@@ -92,6 +98,7 @@ namespace mikoto::renderer::rhi {
          * @returns The result of SetContents.
          */
         auto SetContents( filesystem::FileHandle file ) -> ShaderModuleCreateDescription&;
+
 
         /**
          * Sets the value handled by SetContents.
@@ -113,48 +120,36 @@ namespace mikoto::renderer::rhi {
          * Returns the shader stage represented by this module.
          * @returns The result of GetType.
          */
-        MKT_NODISCARD auto GetType() const -> ShaderType;
+        MKT_NODISCARD virtual auto GetType() const -> ShaderType = 0;
+
 
         /**
          * Returns module bytes when the implementation retains them.
          * @returns The result of GetContents.
          */
-        MKT_NODISCARD virtual auto GetContents() const -> const void*;
+        MKT_NODISCARD virtual auto GetContents() const -> const void* = 0;
 
         /**
          * Returns the retained module byte count.
          * @returns The result of GetContentsByteSize.
          */
-        MKT_NODISCARD virtual auto GetContentsByteSize() const -> core::usize;
+        MKT_NODISCARD virtual auto GetContentsByteSize() const -> core::usize = 0;
+
 
         /**
          * Emits a human-readable representation of the shader, when supported.
          */
-        virtual auto DumpShaderCode() -> void;
+        virtual auto DumpShaderCode() -> void = 0;
+
 
         /**
          * Destroys the shader module.
          */
         ~IShaderModule() override = default;
-
-    protected:
-
-        /**
-         * Constructs a shader module.
-         *
-         * @param stage Shader stage implemented by the module.
-         * @param entryPoint Entry-point function name.
-         * @param language Source or bytecode language.
-         */
-        explicit IShaderModule( ShaderType stage, eastl::string_view entryPoint, ShaderLanguage language );
-
-    protected:
-        eastl::string mEntryPoint{};
-        ShaderType mStage{ ShaderType::eInvalid };
-        ShaderLanguage mLanguage{ ShaderLanguage::eInvalid };
     };
 
     using ShaderModuleHandle = core::Ref<IShaderModule>;
 }
 
-#endif//MIKOTO_RHI_SHADER_HH
+#endif// MIKOTO_RENDERER_RHI_SHADER_HH
+

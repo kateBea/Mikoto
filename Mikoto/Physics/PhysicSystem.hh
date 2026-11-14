@@ -12,22 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_PHYSICS_SERVICE_HH
-#define MIKOTO_PHYSICS_SERVICE_HH
+#ifndef MIKOTO_PHYSICS_PHYSIC_SYSTEM_HH
+#define MIKOTO_PHYSICS_PHYSIC_SYSTEM_HH
 
 #include <EASTL/unique_ptr.h>
+
 #include <ankerl/unordered_dense.h>
 
 // The Jolt headers don't include Jolt.h. Always include Jolt.h before including any other Jolt header.
 // You can use Jolt.h in your precompiled header to speed up compilation.
-#include <Jolt/Jolt.h>
-
 // Jolt includes
+#include <Jolt/Jolt.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/Subsystem.hh>
+#include <Core/Service.hh>
 #include <Core/Singleton.hh>
 
 #include <Physics/PhysicsWorld.hh>
@@ -53,6 +53,7 @@ namespace mikoto::physics {
         auto Update(float dt) -> void override;
 
         auto SetSimulationTarget( scene::Scene* scene ) -> void;
+        auto RemovePhysicsWorld( scene::Scene* scene ) -> void;
 
         MKT_NODISCARD auto GetDebugRenderer() const -> renderer::PhysicsDebugRenderer*;
         MKT_NODISCARD auto GetDebugRendererSimple() const -> renderer::PhysicsDebugRendererSimple*;
@@ -63,6 +64,8 @@ namespace mikoto::physics {
         ~PhysicSystem() override = default;
 
     private:
+        auto InitializeRuntime() -> void;
+        auto InitializeDebugRenderer() -> void;
 
         PhysicsWorld* mActiveWorld{};
 
@@ -74,4 +77,4 @@ namespace mikoto::physics {
     };
 }
 
-#endif //MIKOTO_PHYSICS_SERVICE_HH
+#endif// MIKOTO_PHYSICS_PHYSIC_SYSTEM_HH

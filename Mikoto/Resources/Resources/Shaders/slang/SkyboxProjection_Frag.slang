@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 #include "base/Base.slang"
 #include "base/BoxModel.slang"
-#include "base/Memory_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 
 struct FSInput {
     float3 Pos : TEXCOORD0;
@@ -26,7 +28,7 @@ struct FSOutput {
 };
 
 struct DrawParams {
-    float4x4 Mvp;
+    PushConstantMatrix4x4 Mvp;
     uint BasicSamplerID;
     uint EquirectangularID;
 
@@ -35,22 +37,22 @@ struct DrawParams {
 };
 
 MKT_DECLARE_SAMPLERS Samplers;
-MKT_DECLARE_TEXTURE_SRV(Texture2D) Textures;
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) Textures;
 
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) Parameters;
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, Parameters );
 
-[shader("fragment")]
-FSOutput main(FSInput input) {
+[shader( "fragment" )]
+FSOutput main( FSInput input ) {
     FSOutput o;
 
     SamplerState sampler = Samplers[Parameters.BasicSamplerID];
     Texture2D texture = Textures[Parameters.EquirectangularID];
 
-    float3 dir = normalize(input.Pos);
+    float3 dir = normalize( input.Pos );
 
-    float2 uv = SampleSphericalMap(dir);
-    float3 color = texture.Sample(sampler, uv).rgb;
+    float2 uv = SampleSphericalMap( dir );
+    float3 color = texture.Sample( sampler, uv ).rgb;
 
-    o.Color = float4(color, 1.0);
+    o.Color = float4( color, 1.0 );
     return o;
 }

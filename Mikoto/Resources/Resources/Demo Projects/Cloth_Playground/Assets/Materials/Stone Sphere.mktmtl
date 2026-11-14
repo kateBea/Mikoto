@@ -1,0 +1,9 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Stone Sphere"
+Material:
+  BaseColorFactor: [0.31, 0.34, 0.38, 1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.65
+  DoubleSided: 0
+  AlphaMask: 0

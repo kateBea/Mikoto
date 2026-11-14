@@ -12,19 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SYSTEM_STATS_HH
-#define MIKOTO_SYSTEM_STATS_HH
+#ifndef MIKOTO_CORE_SYSTEM_STATS_HH
+#define MIKOTO_CORE_SYSTEM_STATS_HH
 
 #include <EASTL/string.h>
-#if defined( _WIN32 )
-#include <windows.h>
-#endif
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
+#include <Core/Service.hh>
 #include <Core/Singleton.hh>
-#include <Core/Subsystem.hh>
+
+#include <Platform/Windows/Windows.hh>
 
 namespace mikoto::core {
 
@@ -38,7 +36,7 @@ namespace mikoto::core {
         auto Update( f32 ts ) -> void override;
 
         // Tells how often we fetch system stats (in seconds)
-        auto SetUpdateFrequency( core::i32 frequency ) -> void;
+        auto SetUpdateFrequency( core::f32 seconds ) -> void;
 
         // CPU
         MKT_NODISCARD auto GetCpuUsage() const -> f64;
@@ -68,8 +66,9 @@ namespace mikoto::core {
         ULARGE_INTEGER mLastUserTime{};
 #endif
 
-        i32 mUpdateFrequency{ 1 };
+        f32 mUpdateFrequency{ 0.5f };
+        f32 mElapsedSinceUpdate{};
     };
 }// namespace mikoto::core
 
-#endif // MIKOTO_SYSTEM_STATS_HH
+#endif// MIKOTO_CORE_SYSTEM_STATS_HH

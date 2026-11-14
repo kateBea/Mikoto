@@ -1,0 +1,10 @@
+Version: 2
+Type: "SkyboxMaterial"
+Name: "Modern Evening Street"
+Material:
+  SkyboxType: 1
+  AmbientScale: 1
+  Images:
+    -
+      Face: -1
+      TexturePath: "../../../../Cubemaps/modern_evening_street_4k.hdr"

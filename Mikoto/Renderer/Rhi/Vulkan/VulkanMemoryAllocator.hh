@@ -1,4 +1,4 @@
-//    Copyright 2025 ケイト
+//    Copyright 2026 ケイト
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_VULKAN_MEMORY_ALLOCATOR_H
-#define MIKOTO_VULKAN_MEMORY_ALLOCATOR_H
+#ifndef MIKOTO_RENDERER_RHI_VULKAN_VULKAN_MEMORY_ALLOCATOR_HH
+#define MIKOTO_RENDERER_RHI_VULKAN_VULKAN_MEMORY_ALLOCATOR_HH
 
-// Volk must be included before VMA
 #include <vk_mem_alloc.h>
 #include <volk.h>
 
@@ -63,10 +62,26 @@ namespace mikoto::renderer::vulkan {
         auto FreeBuffer( BufferAllocation& allocation ) -> void;
         auto AllocateBuffer( BufferAllocation& allocation ) -> VkResult;
 
+        auto BeginFrame() -> void override;
+        auto GetProcessMemoryUsage() const -> rhi::ProcessGpuMemory override;
+
+        // Allocates memory for objects such as video sessions that have no buffer or image.
+        auto FreeMemory( VmaAllocation allocation ) -> void;
+        auto AllocateMemory( const VkMemoryRequirements& requirements, const VmaAllocationCreateInfo& description, VmaAllocation& allocation, VmaAllocationInfo& info ) -> VkResult;
+
         auto MapBuffer( BufferAllocation& allocation ) const -> void;
         auto UnmapBuffer( BufferAllocation& allocation ) const -> void;
 
-        // These are slow use for debug only
+        auto InvalidateBuffer( const BufferAllocation& allocation ) const -> void;
+        auto FlushBuffer( const BufferAllocation& allocation, VkDeviceSize offset, VkDeviceSize size ) const -> void;
+
+        auto SetAllocationName( VmaAllocation allocation, eastl::string_view name) -> void;
+
+        MKT_NODISCARD auto GetStatsString() -> eastl::string;
+
+        // Byte counts for device-local heaps only. Available is remaining VMA
+        // budget, not physical capacity minus usage. Without VK_EXT_memory_budget
+        // enabled in VMA, usage and budget are allocator estimates.
         MKT_NODISCARD auto GetMemoryUsage() const -> core::usize override;
         MKT_NODISCARD auto GetMemoryTotal() const -> core::usize override;
         MKT_NODISCARD auto GetMemoryAvailable() const -> core::usize override;
@@ -76,9 +91,10 @@ namespace mikoto::renderer::vulkan {
         auto MapBuffer( BufferAllocation& allocation, bool map ) const -> void;
 
     private:
+        rhi::IGpuDevice* mDevice{};
         VmaAllocator mAllocator{};
-        mutable VmaTotalStatistics mStats{};
     };
-}// namespace Mikoto
+}// namespace mikoto::renderer::vulkan
 
-#endif//MIKOTO_VULKAN_MEMORY_ALLOCATOR_H
+#endif// MIKOTO_RENDERER_RHI_VULKAN_VULKAN_MEMORY_ALLOCATOR_HH
+

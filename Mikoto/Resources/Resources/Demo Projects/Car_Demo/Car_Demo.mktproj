@@ -1,0 +1,27 @@
+# Car_Demo demo project.
+# Vehicle controls, a follow camera and an interactive retained canvas.
+# Open this manifest in the editor; Scene selects the authored scene below.
+# Assets and Cache paths are relative to this manifest.
+# EditorCamera configures editor navigation; the scene camera controls the Game view.
+
+Version: 1
+Project: "Car Demo"
+Assets: "Assets"
+Cache: "Assets/.cache"
+Scene: "Scene/Car_Demo.mktscn"
+CompressTextures: false
+AutoSave: false
+AutoSaveIntervalMs: 2000
+EditorCamera:
+  NavigationMode: "Fly"
+  Position: [8,5,10]
+  Direction: [-0.5935868077985094,-0.3116330740942174,-0.7419835097481368]
+  Projection: "Perspective"
+  FieldOfView: 45
+  NearPlane: 0.1
+  FarPlane: 250
+  MovementSpeed: 12
+  RotationSpeed: 10
+  SmoothTime: 0.1
+  AllowPitch: true
+  AllowYaw: true

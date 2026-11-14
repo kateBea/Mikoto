@@ -1,0 +1,8 @@
+Version: 2
+Type: "SurfaceMaterial"
+Name: "Palette47"
+Material:
+  BaseColorFactor: [0.6173330544707023,0.37529813459905026,0.8915680849224689,1]
+  MetallicFactor: 0
+  RoughnessFactor: 0.7
+  AlphaMask: 0

@@ -12,85 +12,91 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_TASK_SERVICE_HH
-#define MIKOTO_TASK_SERVICE_HH
+#ifndef MIKOTO_THREADING_TASK_SERVICE_HH
+#define MIKOTO_THREADING_TASK_SERVICE_HH
 
-#include <functional>
 #include <mutex>
 
-#include <EASTL/functional.h>
-#include <EASTL/unique_ptr.h>
 #include <EASTL/utility.h>
 #include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/functional.h>
 
 #include <ankerl/unordered_dense.h>
 
+#include <taskflow/taskflow.hpp>
+
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Service.hh>
-#include <Threading/TaskGraph.hh>
+#include <Core/Profiler.hh>
+#include <Core/Singleton.hh>
+
 #include <Threading/TaskManager.hh>
 
 namespace mikoto::threading {
-
-    using namespace mikoto::core;
 
     struct TaskServiceCreateInfo {
         tf::Executor* mExecutor{};
     };
 
-    class TaskService final : public IService, public Singleton<TaskService> {
+    class TaskService final : public core::IService, public core::Singleton<TaskService> {
     public:
         explicit TaskService( const TaskServiceCreateInfo& options );
 
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        template<typename KeyType, typename ValueType, typename Func>
-        auto ParallelFor(const ankerl::unordered_dense::map<KeyType, ValueType>& map, Func&& func) -> void {
-            tf::Taskflow flow{};
-            for (const auto& [key, value]: map) {
-                flow.emplace([key, value, f = std::forward<Func>(func)]() mutable {
-                    f(key, value);
-                });
-            }
-            mTaskManager->Execute( flow ).wait();
-        }
+        auto ExecuteTaskGraph( tf::Taskflow& flow, bool wait ) -> void;
 
-        template<typename Func, typename... Args>
-        auto Submit( Func&& func, Args&&... args ) -> void {
-            auto newTask{
-                std::function<void()>{
-                    std::bind( std::forward<Func>( func ),
-                    std::forward<Args>( args )... )
-                }
-            };
-
-            mTaskManager->SubmitTask( std::move( newTask ) );
-        }
-
-        auto Submit( tf::Taskflow& flow, bool wait ) -> void {
-            mTaskManager->Submit( flow, wait );
-        }
-
-        // Worker jobs must use this to apply results that touch the ECS, UI,
-        // or GPU-facing engine state.  The queue is drained by Engine::Update
-        // on the application thread.
         template<typename Func>
-        auto SubmitMainThread( Func&& func ) -> void {
-            std::lock_guard lock{ mMainThreadTasksMutex };
-            mMainThreadTasks.emplace_back( std::forward<Func>( func ) );
+        auto PushMainThreadTask( Func&& func ) -> void {
+            const std::lock_guard lock{ mMainThreadTasksMutex };
+
+            if ( !mAcceptingMainThreadTasks ) {
+                return;
+            }
+
+            mMainThreadTasks.emplace_back( eastl::forward<Func>( func ) );
         }
 
         auto ExecuteMainThreadTasks() -> void;
 
-        MKT_NODISCARD auto GetWorkersCount() const -> u32;
+        template<typename Func, typename... Args>
+        auto ExecuteWorkerTask( Func&& func, Args&&... args ) -> void {
+            auto newTask{
+                eastl::function<void()>{
+                    std::bind( eastl::forward<Func>( func ),
+                    eastl::forward<Args>( args )... )
+                }
+            };
 
-        ~TaskService() override = default;
+            mTaskManager->SubmitTask( eastl::move( newTask ) );
+        }
+
+        template<typename KeyType, typename ValueType, typename Func>
+        auto ExecuteParallelFor(const ankerl::unordered_dense::map<KeyType, ValueType>& map, Func&& func) -> void {
+            tf::Taskflow flow{};
+            for (const auto& [key, value]: map) {
+                flow.emplace([key, value, f = eastl::forward<Func>(func)]() mutable {
+                    f(key, value);
+                });
+            }
+
+            mTaskManager->Execute( flow ).wait();
+        }
+
+        MKT_NODISCARD auto GetWorkersCount() const -> core::u32;
 
     private:
-        eastl::unique_ptr<TaskManager> mTaskManager{};
+        // Publication and shutdown share one lock; callback execution never holds it.
         std::mutex mMainThreadTasksMutex{};
-        eastl::vector<std::function<void()>> mMainThreadTasks{};
-    };
-}// namespace Mikoto
 
-#endif // MIKOTO_TASK_SERVICE_HH
+        eastl::unique_ptr<TaskManager> mTaskManager{};
+        eastl::vector<eastl::function<void()>> mMainThreadTasks{};
+
+        bool mAcceptingMainThreadTasks{};
+    };
+}// namespace mikoto::threading
+
+#endif// MIKOTO_THREADING_TASK_SERVICE_HH

@@ -12,21 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 struct VSOutput {
     float2 UV : TEXCOORD0;
     float4 Position : SV_Position;
 };
 
-[shader("vertex")]
-VSOutput main(uint vertexID: SV_VertexID) {
+[shader( "vertex" )]
+VSOutput main( uint vertexID : SV_VertexID ) {
     VSOutput o;
 
-    float2 uv = float2((vertexID << 1) & 2, (vertexID) & 2);
+    float2 uv = float2( ( vertexID << 1 ) & 2, ( vertexID ) & 2 );
 
     o.UV = uv;
-    o.Position = float4(uv * 2.0f - 1.0f, 0.0f, 1.0f);
+    o.Position = float4( uv * 2.0f - 1.0f, 0.0f, 1.0f );
 
-#ifdef MKT_SUPPORT_VULKAN
+#if defined( MKT_SUPPORT_VULKAN ) || defined( MKT_SUPPORT_D3D12 )
     o.Position.y *= -1.0f;
 #endif
     return o;

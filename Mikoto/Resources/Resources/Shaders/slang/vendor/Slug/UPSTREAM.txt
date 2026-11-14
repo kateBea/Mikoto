@@ -1,0 +1,3 @@
+https://github.com/EricLengyel/Slug
+Commit: be3c13eb7d63f9e8aa5c583e42d92c374cb91d98
+Imported reference files without modifications.

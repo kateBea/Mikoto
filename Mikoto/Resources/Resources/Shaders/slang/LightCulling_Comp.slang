@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+
 static const uint kLocalSize = 128;
 
 #include "base/Base.slang"
-#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 
 MKT_DECLARE_STRUCTURED_SRV srvBuffers;
 MKT_DECLARE_STRUCTURED_UAV uavBuffers;
@@ -25,69 +27,72 @@ MKT_DECLARE_STRUCTURED_UAV uavBuffers;
 struct ClusteredParams {
     float4 mGridSize;
 
-    LightInfo* mLightsPtr;
-    Cluster* mClustersPtr;
-    CameraInfo* mCameraPtr;
+    BufferReference<LightInfo> mLightsPtr;
+    RWBufferReference<Cluster> mClustersPtr;
+    BufferReference<CameraInfo> mCameraPtr;
 
     uint mClusterCount;
     uint mActiveLightCount;
 };
 
-MKT_DECLARE_PUSH_CONSTANT(ClusteredParams) parameters;
+MKT_DECLARE_PUSH_CONSTANT( ClusteredParams, parameters );
 
-[shader("compute")]
-[numthreads(kLocalSize, 1, 1)]
-void main(uint3 groupID: SV_GroupID,
-          uint3 groupThreadID: SV_GroupThreadID,
-          uint3 dispatchID: SV_DispatchThreadID)
-{
+[shader( "compute" )]
+[numthreads( kLocalSize, 1, 1 )]
+void main( uint3 groupID : SV_GroupID,
+    uint3 groupThreadID : SV_GroupThreadID,
+    uint3 dispatchID : SV_DispatchThreadID ) {
     // Get the buffers
-    CameraInfo camera = *parameters.mCameraPtr;
-    LightInfo* lights = parameters.mLightsPtr;
-    Cluster* clusters = parameters.mClustersPtr;
+    CameraInfo camera = parameters.mCameraPtr[0];
+    BufferReference<LightInfo> lights = parameters.mLightsPtr;
+    RWBufferReference<Cluster> clusters = parameters.mClustersPtr;
 
     uint index = groupID.x * kLocalSize + groupThreadID.x;
-    if (index >= parameters.mClusterCount) {
+    if ( index >= parameters.mClusterCount ) {
         return;
     }
 
     // we need to reset count because culling runs every frame,
     // otherwise it would accumulate.
-    clusters[index].mCount = 0;
+    ClusterHeader cluster = LoadRWBufferValue<ClusterHeader>( clusters.address, index * sizeof( Cluster ) );
+    cluster.mCount = 0;
+    cluster.mPadding[0] = 0;
 
     uint lightCount = parameters.mActiveLightCount;
 
-    // I go up until lightCount because I want to find accross all
-    // lights in the scene which ones affect this cluster
-    for (uint i = 0; i < lightCount; ++i) {
+    // Each cluster tests the complete active light list.
+    for ( uint i = 0; i < lightCount; ++i ) {
         bool visible = false;
 
-        switch (lights[index].ActiveLightType) {
-        case LIGHT_TYPE_POINT:
-            visible = TestSphereAABBPointLight(lights, index, clusters[index], camera.mViewMatrix);
-            //visible = true;
-            break;
+        switch ( lights[i].ActiveLightType ) {
+            case LIGHT_TYPE_POINT:
+                visible = TestSphereAABBPointLight( lights, i, cluster, camera.mViewMatrix );
+                break;
 
-        case LIGHT_TYPE_SPOT:
-            // TODO: real spotlight culling
-            // improve. https://simoncoenen.com/blog/programming/graphics/SpotlightCulling
-            visible = TestSphereAABBPointLight(lights, index, clusters[index], camera.mViewMatrix);
-            //visible = true;
-            break;
+            case LIGHT_TYPE_SPOT:
+                visible = TestSpotAABB( lights[i], cluster, camera.mViewMatrix );
+                break;
 
-        case LIGHT_TYPE_DIRECTIONAL:
-            // All clusters are affected by directional light
-            // Reconsider for clusters where there is no geometry
-            visible = true;
-            break;
+            case LIGHT_TYPE_DIRECTIONAL:
+                // All clusters are affected by directional light
+                // Reconsider for clusters where there is no geometry
+                visible = true;
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
 
-        if (visible && clusters[index].mCount <= MAX_LIGHT_CLUSTERS) {
-            clusters[index].mLightIndices[clusters[index].mCount] = i;
-            clusters[index].mCount++;
+        if ( visible && lights[i].Intensity > 0 ) {
+            if ( cluster.mCount < MAX_LIGHT_CLUSTERS ) {
+                StoreBufferValue<uint>(
+                        clusters.address,
+                        index * sizeof( Cluster ) + sizeof( ClusterHeader ) + cluster.mCount * sizeof( uint ), i );
+                cluster.mCount++;
+            } else {
+                cluster.mPadding[0] = 1;
+            }
         }
     }
+    StoreBufferValue<ClusterHeader>( clusters.address, index * sizeof( Cluster ), cluster );
 }

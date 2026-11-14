@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_REFLECTION_HH
-#define MIKOTO_REFLECTION_HH
+#ifndef MIKOTO_RENDERER_RHI_VULKAN_VULKAN_REFLECTION_HH
+#define MIKOTO_RENDERER_RHI_VULKAN_VULKAN_REFLECTION_HH
 
+#include <EASTL/utility.h>
 #include <EASTL/span.h>
 #include <EASTL/string.h>
-#include <EASTL/utility.h>
 #include <EASTL/vector.h>
 #include <EASTL/fixed_hash_map.h>
 
@@ -27,7 +27,6 @@
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
-#include <Core/String.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
@@ -61,4 +60,5 @@ namespace mikoto::renderer::vulkan {
     };
 }
 
-#endif//MIKOTO_REFLECTION_HH
+#endif// MIKOTO_RENDERER_RHI_VULKAN_VULKAN_REFLECTION_HH
+

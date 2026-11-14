@@ -541,7 +541,13 @@ static void ImDrawList_AddBezierWithArrows(ImDrawList* drawList, const ImCubicBe
 
         ImDrawList_PathBezierOffset(drawList, half_thickness, curve.P3, curve.P2, curve.P1, curve.P0);
 
+#if IMGUI_VERSION_NUM >= 19280
+        drawList->PathStroke(color, strokeThickness, ImDrawFlags_Closed);
+#elif IMGUI_VERSION_NUM >= 18200
+        drawList->PathStroke(color, ImDrawFlags_Closed, strokeThickness);
+#else
         drawList->PathStroke(color, true, strokeThickness);
+#endif
     }
 }
 

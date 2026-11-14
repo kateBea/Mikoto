@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_REGISTRY_HH
-#define MIKOTO_REGISTRY_HH
+#ifndef MIKOTO_CORE_REGISTRY_HH
+#define MIKOTO_CORE_REGISTRY_HH
 
 #include <EASTL/memory.h>
+#include <EASTL/type_traits.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/utility.h>
-#include <EASTL/type_traits.h>
-
 #include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
+#include <Core/Profiler.hh>
 #include <Core/Types.hh>
 #include <Logging/Assert.hh>
 
@@ -59,6 +59,7 @@ namespace mikoto::core {
         */
         template<typename  RegisteredType, typename... Args>
         auto Register( Args&&... args ) -> RegisteredType* {
+            MKT_BEGIN_PROFILER();
             const core::usize typeName{ typeid( RegisteredType ).hash_code() };
 
             MKT_ASSERT( !mRegistry.contains( typeName ), "Registry::Register - Error registering system more than once." );
@@ -82,6 +83,7 @@ namespace mikoto::core {
         */
         template<typename SystemType>
         auto Unregister() -> void {
+            MKT_BEGIN_PROFILER();
             const core::usize typeName{ typeid( SystemType ).hash_code() };
 
             if ( mRegistry.contains( typeName ) ) {
@@ -101,6 +103,7 @@ namespace mikoto::core {
         */
         template<typename SystemType>
         auto Get() -> SystemType* {
+            MKT_BEGIN_PROFILER();
             const auto typeName{ typeid( SystemType ).hash_code() };
 
             if ( mRegistry.contains( typeName ) ) {
@@ -112,6 +115,7 @@ namespace mikoto::core {
 
         template<typename SystemType>
         auto Get() const -> const SystemType* {
+            MKT_BEGIN_PROFILER();
             const auto typeName{ typeid( SystemType ).hash_code() };
 
             if ( mRegistry.contains( typeName ) ) {
@@ -131,6 +135,7 @@ namespace mikoto::core {
         * @brief Clears all registered systems/services from the registry.
         */
         auto Clear() -> void {
+            MKT_BEGIN_PROFILER();
             mRegistry.clear();
         }
 
@@ -140,4 +145,4 @@ namespace mikoto::core {
 
 }// namespace Mikoto
 
-#endif//MIKOTO_REGISTRY_HH
+#endif// MIKOTO_CORE_REGISTRY_HH

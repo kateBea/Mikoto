@@ -1,0 +1,28 @@
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "base/CompatibilitySurface.slang"
+
+[shader( "fragment" )]
+float main( SurfaceInput input, bool rasterFrontFace : SV_IsFrontFace ) : SV_Target0 {
+    float alpha = baseColor.Sample( materialSampler, SurfaceUV( input, draw.UVSets.x ) ).a * draw.BaseColor.a * input.Color.a;
+    SurfaceFrontFacing( rasterFrontFace );
+    float coverage = SurfaceAlpha( alpha );
+
+    // The depth map stores binary coverage, including cutouts on blend materials.
+    static const float kBlendShadowCutoff = 0.5;
+    clip( coverage - kBlendShadowCutoff );
+
+    return input.Position.z;
+}

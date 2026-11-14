@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_MESHOPTIMIZER_HH
-#define MIKOTO_MESHOPTIMIZER_HH
+#ifndef MIKOTO_ASSETS_MESH_OPTIMIZER_HH
+#define MIKOTO_ASSETS_MESH_OPTIMIZER_HH
 
 namespace mikoto::asset {
 
@@ -30,6 +30,7 @@ namespace mikoto::asset {
      * are created.
      */
     auto OptimizeMesh( MeshNodeDescription& mesh ) -> void;
-}
 
-#endif//MIKOTO_MESHOPTIMIZER_HH
+}// namespace mikoto::asset
+
+#endif// MIKOTO_ASSETS_MESH_OPTIMIZER_HH

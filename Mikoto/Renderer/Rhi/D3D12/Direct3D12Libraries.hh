@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTOROOT_DIRECT3D12_LIBRARIES_HH
-#define MIKOTOROOT_DIRECT3D12_LIBRARIES_HH
+#ifndef MIKOTO_RENDERER_RHI_D3D12_DIRECT3_D12_LIBRARIES_HH
+#define MIKOTO_RENDERER_RHI_D3D12_DIRECT3_D12_LIBRARIES_HH
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxcompiler.lib")
 
-#endif//MIKOTOROOT_DIRECT3D12LIBRARIES_HH
+#endif// MIKOTO_RENDERER_RHI_D3D12_DIRECT3_D12_LIBRARIES_HH
+

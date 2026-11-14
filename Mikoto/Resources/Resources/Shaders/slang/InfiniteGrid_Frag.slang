@@ -13,20 +13,20 @@
 // limitations under the License.
 
 // =========================================================================
-// ref: https://github.com/skaarj1989/SupernovaEngine
+// Original implementation references:
+// https://github.com/skaarj1989/SupernovaEngine
 // http://asliceofrendering.com/scene%20helper/2020/01/05/InfiniteGrid/
 // =========================================================================
 
+#pragma once
+
 #include "base/Base.slang"
-#include "base/Math_Helpers.slang"
-#include "base/Memory_Helpers.slang"
 #include "base/Camera_Helpers.slang"
+#include "base/InfiniteGrid_Helpers.slang"
+#include "base/Memory_Helpers.slang"
 
 struct FSInput {
     float2 TexCoord : TEXCOORD0;
-
-    float3 Near : TEXCOORD1;
-    float3 Far : TEXCOORD2;
 
     float4 FragPos : SV_Position;
 };
@@ -36,82 +36,58 @@ struct FSOutput {
     float FragDepth : SV_Depth;
 };
 
-struct DrawParams {
-    uint mCameraDataID;
-
-    float4 mOuterSquareColor;
-    float4 mInnerSquareColor;
-
-    float4 mXAxisColor;
-    float4 mZAxisColor;
-
-    float mOuterSquareWidth;
-    float mInnerSquareWidth;
-
-    float mXAxisWidth;
-    float mZAxisWidth;
-};
-
 MKT_DECLARE_STRUCTURED_SRV buffers;
-MKT_DECLARE_PUSH_CONSTANT(DrawParams) parameters;
+MKT_DECLARE_PUSH_CONSTANT( GridDrawParams, parameters );
 
-float4 Grid(float3 fragPos, float scale, float thickness, float3 lineColor) {
-    const float2 coords = fragPos.xz * scale;
-    const float2 fd = fwidth(coords);
-    const float2 lattice = abs(fract(coords - 0.5) - 0.5) / (fd * thickness);
-    const float line = min(lattice.x, lattice.y);
+[shader( "fragment" )]
+FSOutput main( FSInput input ) {
+    CameraInfo camera = buffers[parameters.Camera.x].Read<CameraInfo>( 0, 0 );
 
-    float4 color = float4(lineColor, 1.0 - min(line, 1.0));
+    // Intersect this pixel's view ray with y = 0 instead of drawing a finite
+    // ground mesh. The helper supports perspective and orthographic cameras.
+    float3 world, ray;
+    bool hit = GridPlaneIntersection( camera.mInverseViewProjection, input.TexCoord * 2.0 - 1.0, world, ray );
 
-    const float axisWidthX = parameters.mXAxisWidth;
-    const float axisWidthZ = parameters.mZAxisWidth;
+    // Estimate how much ground one pixel covers to keep lines antialiased as
+    // the camera moves. Evaluate derivatives before any neighboring lanes discard.
+    float2 footprint = max( fwidth( world.xz ), float2( 1e-6 ) );
 
-    // X axis
-    const float minX = min(fd.x, 1.0);
-    if (fragPos.x > -axisWidthX * minX && fragPos.x < axisWidthX * minX) {
-        color = float4(parameters.mXAxisColor);
+    // Use the ground intersection's depth, not the fullscreen triangle's depth,
+    // so scene geometry can hide the grid. Reject hits outside the visible ray.
+    float4 view = mul( camera.mViewMatrix, float4( world, 1.0 ) );
+    float4 clip = mul( camera.mProjection, view );
+
+    if ( !hit || clip.w <= 0.0 ) {
+        discard;
     }
 
-    // Z axis
-    const float minZ = min(fd.y, 1.0);
-    if (fragPos.z > -axisWidthZ * minZ && fragPos.z < axisWidthZ * minZ) {
-        color = float4(parameters.mZAxisColor);
+    float depth = clip.z / clip.w;
+
+    if ( depth < 0.0 || depth >= 1.0 ) {
+        discard;
     }
-    return color;
-}
 
-float4 WorldToClip(float4x4 viewProj, float4 v) {
-    return mul(viewProj, v); 
-}
+    // The shared helper combines the grid scales and colored axes using
+    // premultiplied alpha, avoiding bright overlaps where their lines meet.
+    float4 color = InfiniteGridColor( world.xz, footprint, parameters );
 
-float LinearizeDepth(float n, float f, float sampledDepth) {
-    const float z = sampledDepth;
-    return n * f / (f + z * (n - f));
-}
+    // Fade grazing rays and distant lines before they crowd together at the
+    // horizon or abruptly reach the camera's far clipping plane.
+    float horizonFade = smoothstep( 0.005, 0.05, abs( ray.y ) / max( length( ray ), 1e-6 ) );
+    float distanceFade = 1.0 - smoothstep( camera.mPlanes.y * 0.25, camera.mPlanes.y * 0.9, -view.z );
 
-float3 WorldToNDC(float4 v, float4x4 camViewProj) {
-    const float4 P = WorldToClip(camViewProj, v);
-    return P.xyz / P.w;
-}
+    if ( color.a <= 1e-5 ) {
+        discard;
+    }
 
-[shader("fragment")]
-FSOutput main(FSInput input) {
-    FSOutput o;
+    // The render target uses straight-alpha blending. Unpremultiply only after
+    // rejecting empty coverage, then apply the fades to opacity alone.
+    FSOutput output;
+    output.Color = float4( color.rgb / color.a, saturate( color.a * horizonFade * distanceFade ) );
 
-    CameraInfo camera = buffers[parameters.mCameraDataID].Read<CameraInfo>(0, 0);
+    // Bias away from the camera prevents fighting with coplanar floors.
+    // The pipeline tests scene depth but never writes into it.
+    output.FragDepth = min( depth + 1e-6, 1.0 );
 
-    const float t = -input.Near.y / (input.Far.y - input.Near.y);
-    const float3 fragPos = input.Near + t * (input.Far - input.Near);
-
-    const float3 ndc = float3(WorldToNDC(float4(fragPos, 1.0), mul(camera.mProjection, camera.mViewMatrix)));
-    if (ndc.z >= 1.0) discard;
-
-    o.FragDepth = ndc.z - EPSILON;
-
-    o.Color = (Grid(fragPos, 0.01, 0.5, parameters.mInnerSquareColor.xyz) + Grid(fragPos, 0.5, 1, parameters.mOuterSquareColor.xyz)) * float(t > 0.0);
-
-    const float linearDepth = LinearizeDepth(camera.mPlanes.x, camera.mPlanes.y, ndc.z) / camera.mPlanes.y;
-    o.Color.a *= max(0.0, (0.5 - linearDepth));
-
-    return o;
+    return output;
 }

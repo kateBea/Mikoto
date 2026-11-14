@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_AUDIO_DEVICE_OBJECT_HH
-#define MIKOTO_AUDIO_DEVICE_OBJECT_HH
+#ifndef MIKOTO_AUDIO_AUDIO_DEVICE_OBJECT_HH
+#define MIKOTO_AUDIO_AUDIO_DEVICE_OBJECT_HH
 
-#include <Core/ResourcePool.hh>
+#include <Core/Profiler.hh>
+#include <Core/Resource.hh>
 
 namespace mikoto::audio {
 
@@ -29,7 +30,7 @@ namespace mikoto::audio {
      * such as buffers, textures, and shaders. It manages the association with the device and handles
      * resource allocation and release. The actual allocation and release are implemented by derived classes.
      */
-    class AudioDeviceObject : public core::IResource {
+    class AudioDeviceObject : public core::Resource {
     public:
         /**
          * @brief Default constructor for the DeviceObject class.
@@ -38,6 +39,7 @@ namespace mikoto::audio {
          */
         explicit AudioDeviceObject() = default;
 
+
         /**
          * @brief Initializes the device object with the given GPU device.
          * This method sets the device for the object and calls `Allocate` to perform any necessary
@@ -45,10 +47,8 @@ namespace mikoto::audio {
          *
          * @param device A pointer to the GPU device associated with this object.
          */
-        auto Init( AudioDevice* device ) -> void {
-            m_Device = device;
-            Initialize();
-        }
+        auto Init( AudioDevice* device ) -> void;
+
 
         /**
          * @brief Destructor for the DeviceObject class.
@@ -56,14 +56,15 @@ namespace mikoto::audio {
          */
         ~AudioDeviceObject() override = default;
 
+
     protected:
 
         auto Initialize() -> void override = 0;
         auto Destroy() -> void override = 0;
 
     protected:
-        AudioDevice* m_Device{};
+        AudioDevice* mDevice{};
     };
 }
 
-#endif // MIKOTO_AUDIO_DEVICE_OBJECT_HH
+#endif// MIKOTO_AUDIO_AUDIO_DEVICE_OBJECT_HH

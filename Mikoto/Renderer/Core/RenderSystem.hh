@@ -12,39 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RENDER_SERVICE_HH
-#define MIKOTO_RENDER_SERVICE_HH
+#ifndef MIKOTO_RENDERER_CORE_RENDER_SYSTEM_HH
+#define MIKOTO_RENDERER_CORE_RENDER_SYSTEM_HH
 
+#include <mutex>
+#include <condition_variable>
+
+#include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
-#include <slang-com-ptr.h>
+
 #include <slang.h>
 
-#include <../../Assets/ShaderLibrary.hh>
 #include <Core/Core.hh>
-#include <Core/Subsystem.hh>
 #include <Core/Types.hh>
-#include <ImGui/ImGuiService.hh>
+#include <Core/Service.hh>
+
 #include <Platform/Window.hh>
-#include <Renderer/Core/RenderContext.hh>
-#include <Renderer/Rhi/GpuDevice.hh>
+
+#include <Assets/ShaderLibrary.hh>
+
 #include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Core/RenderContext.hh>
+
+#include <ImGui/ImGuiService.hh>
 
 namespace mikoto::renderer {
 
-    using namespace mikoto::imgui;
-    using namespace mikoto::core;
-    using namespace mikoto::platform;
-    using namespace mikoto::renderer::rhi;
+    class SlangSessionLease;
 
     struct RenderSystemCreateInfo {
-        Window* mWindow{ nullptr };
-        RefreshRate mRefreshRate{ RefreshRate::eSync };
-        GraphicsAPI mApi{ GraphicsAPI::eVulkan };
+        platform::IWindow* mWindow{ nullptr };
+        renderer::rhi::RefreshRate mRefreshRate{ renderer::rhi::RefreshRate::eSync };
+        renderer::rhi::GraphicsAPI mApi{ renderer::rhi::GraphicsAPI::eVulkan };
 
         bool mEnableImGui{ false };
     };
 
-    class RenderSystem final : public ISubsystem, public Singleton<RenderSystem> {
+    class RenderSystem final : public core::ISubsystem, public core::Singleton<RenderSystem> {
+        friend class SlangSessionLease;
+        struct SlangCompilerContext;
+
     public:
         explicit RenderSystem(const RenderSystemCreateInfo& options);
 
@@ -58,56 +66,88 @@ namespace mikoto::renderer {
         // Commands are all submitted after a call to SubmitFrame()
         auto BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void;
 
-        ~RenderSystem() override = default;
-
-        auto PrepareFrame() const -> void;
+        auto PrepareFrame() -> void;
         auto SubmitFrame() -> void;
 
-        // Request presentation toi the submitted window if any
+        // Request presentation to the submitted window if any
         auto PresentFrame() -> void;
 
         // Must be called once per frame for now
-        auto SetPresentTarget(TextureHandle texture) -> void;
+        auto SetPresentTarget( renderer::rhi::TextureHandle texture ) -> void;
 
         MKT_NODISCARD auto GetContext() -> RenderContext*;
         MKT_NODISCARD auto GetContext() const -> const RenderContext*;
 
-        MKT_NODISCARD auto GetGpuDevice() -> IGpuDevice*;
-        MKT_NODISCARD auto GetGpuDevice() const -> const IGpuDevice*;
+        MKT_NODISCARD auto GetGpuDevice() -> renderer::rhi::IGpuDevice*;
+        MKT_NODISCARD auto GetGpuDevice() const -> const renderer::rhi::IGpuDevice*;
 
-        MKT_NODISCARD auto IsApiActive( GraphicsAPI api ) const -> bool;
-        MKT_NODISCARD auto GetActiveGraphicsApi() const -> GraphicsAPI;
+        MKT_NODISCARD auto IsApiActive( renderer::rhi::GraphicsAPI api ) const -> bool;
+        MKT_NODISCARD auto GetActiveGraphicsApi() const -> renderer::rhi::GraphicsAPI;
 
-        MKT_NODISCARD auto GetSlangCurrentSession() const -> Slang::ComPtr<slang::ISession>;
+        /** Waits for an available slot. Compilation runs without the pool lock. */
+        MKT_NODISCARD auto AcquireSlangSession() -> SlangSessionLease;
+
+        ~RenderSystem() override;
 
     private:
         auto InitContext() -> void;
-
         auto InitializeSlang() -> void; 
-
         auto InitGuiService() -> void;
 
-        auto PrepareSlangForD3D11() -> void;
-        auto PrepareSlangForD3D12() -> void;
-        auto PrepareSlangForVulkan() -> void;
+        auto PrepareSlangSession( SlangCompilerContext& context ) -> void;
+        auto ReleaseSlangSession( SlangCompilerContext& context ) -> void;
 
     private:
-        Window* mWindow{ nullptr };
-        GraphicsAPI mApi{ GraphicsAPI::eVulkan };
-        RefreshRate mRefreshRate{ RefreshRate::eSync };
+        platform::IWindow* mWindow{ nullptr };
+        renderer::rhi::GraphicsAPI mApi{ renderer::rhi::GraphicsAPI::eVulkan };
+        renderer::rhi::RefreshRate mRefreshRate{ renderer::rhi::RefreshRate::eSync };
 
         eastl::unique_ptr<RenderContext> mContext{};
-        eastl::unique_ptr<ImGuiService> mImguiService{};
+        eastl::unique_ptr<imgui::ImGuiService> mImguiService{};
 
-        // Stores specific configuration, like target
-        // configuration (SPIR-V, DXIL, CPU, etc.)
-        // Currently, the global session type is not thread-safe. Applications that wish to compile on
-        // multiple threads will need to ensure that each concurrent thread compiles with a distinct global session.
-        //https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/08-compiling.html
-        Slang::ComPtr<slang::ISession> mSlangCurrentSession{};
-        Slang::ComPtr<slang::IGlobalSession> mSlangGlobalSession{};
+        // Shared Slang object graphs are non-reentrant. Every leased slot owns
+        // its own global session, including the normal and precise vertex sessions.
+        // https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/08-compiling.html#multithreading
+        eastl::vector<eastl::unique_ptr<SlangCompilerContext>> mSlangCompilers{};
 
+        std::mutex mSlangMutex{};
+        core::usize mSlangSessionLimit{ 1 };
+        std::condition_variable mSlangAvailable{};
+
+        bool mSlangStopping{ true };
         bool mEnableImGui{ false };
     };
+
+    /** Temporarily borrows one compiler context from RenderSystem's pool.
+     * Other threads cannot borrow that context while this lease holds it.
+     * Destruction automatically returns it, including when compilation throws.
+     * The pool owns the sessions. Release Slang-derived objects before the lease
+     * ends; retain only copied output.
+     */
+    class SlangSessionLease final : public core::INonCopyable {
+    public:
+        SlangSessionLease( SlangSessionLease&& other ) noexcept;
+        auto operator=( SlangSessionLease&& other ) noexcept -> SlangSessionLease&;
+
+        MKT_NODISCARD auto GetSession( rhi::ShaderType stage = rhi::ShaderType::eInvalid ) const -> slang::ISession*;
+
+        MKT_NODISCARD auto GetCacheKey( rhi::ShaderType stage ) const -> eastl::string_view;
+
+        ~SlangSessionLease();
+
+    private:
+        friend class RenderSystem;
+
+    private:
+        SlangSessionLease( RenderSystem& owner, RenderSystem::SlangCompilerContext& context );
+
+    private:
+        RenderSystem* mOwner{};
+        RenderSystem::SlangCompilerContext* mContext{};
+
+        core::i32 mUncaughtExceptions{};
+    };
 }
-#endif //MIKOTO_RENDER_SERVICE_HH
+
+#endif// MIKOTO_RENDERER_CORE_RENDER_SYSTEM_HH
+

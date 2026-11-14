@@ -12,29 +12,71 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_TYPES_HH
-#define MIKOTO_TYPES_HH
+#ifndef MIKOTO_CORE_TYPES_HH
+#define MIKOTO_CORE_TYPES_HH
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
+#include <string_view>
 
 #include <EASTL/utility.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+
+#include <ankerl/unordered_dense.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include <ankerl/unordered_dense.h>
+#include <Core/Profiler.hh>
+
+// TODO: for this I need to make a workaround for mixing with string views
+// Motivation: This right now does not work, I need to convert the view to a string first
+// auto do_something(eastl::string_view view) -> void {
+//     ankerl::unordered_dense::map<eastl::string, u64> map{};
+//     map[view] = 77;
+// }
 
 namespace ankerl::unordered_dense {
-    template <typename A, typename B>
-    struct hash<eastl::pair<A, B>> : tuple_hash_helper<A, B> {
+
+    template <>
+    struct hash<eastl::string> {
         using is_avalanching = void;
 
-        auto operator()(eastl::pair<A, B> const& t) const noexcept -> std::uint64_t {
-            return tuple_hash_helper<A, B>::calc_hash(t, eastl::index_sequence_for<A, B>{});
+        /**
+         * @brief Hashes an EASTL string's exact byte range.
+         * @param str Source character data.
+         * @returns 64-bit hash compatible with std::string_view hashing.
+         */
+        auto operator()(eastl::string const& str) const noexcept -> std::uint64_t {
+            return hash<std::string_view>{}( std::string_view{ str.data(), str.size() } );
         }
     };
-}
+
+    template <>
+    struct hash<eastl::string_view> {
+        using is_avalanching = void;
+
+        /**
+         * @brief Hashes an EASTL string's exact byte range.
+         * @param sv Borrowed character range.
+         * @returns 64-bit hash compatible with std::string_view hashing.
+         */
+        auto operator()(eastl::string_view const& sv) const noexcept -> std::uint64_t {
+            return hash<std::string_view>{}( std::string_view{ sv.data(), sv.size() } );
+        }
+    };
+
+}// namespace ankerl::unordered_dense
+
+template<typename A, typename B>
+struct ankerl::unordered_dense::hash<eastl::pair<A, B>> : tuple_hash_helper<A, B> {
+    using is_avalanching = void;
+
+    auto operator()( eastl::pair<A, B> const &t ) const noexcept -> std::uint64_t {
+        return tuple_hash_helper<A, B>::calc_hash( t, eastl::index_sequence_for<A, B>{} );
+    }
+};
 
 namespace mikoto::core {
 
@@ -45,9 +87,9 @@ namespace mikoto::core {
     using float4x4 = glm::mat4;
     using float3x3 = glm::mat3;
 
-    using uvec2 = glm::uvec2;
-    using uvec3 = glm::uvec3;
-    using uvec4 = glm::uvec4;
+    using uint2 = glm::uvec2;
+    using uint3 = glm::uvec3;
+    using uint4 = glm::uvec4;
 
     using quat = glm::quat;
 
@@ -78,7 +120,9 @@ namespace mikoto::core {
     using unicode = char32_t;
     using cstr = const char *;
 
+    using ptr = std::uintptr_t;
+
     using c_str = const char *;
 }
 
-#endif // MIKOTO_TYPES_HH
+#endif// MIKOTO_CORE_TYPES_HH

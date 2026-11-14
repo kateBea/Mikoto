@@ -12,21 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_VULKAN_CONTEXT_HH
-#define MIKOTO_VULKAN_CONTEXT_HH
+#ifndef MIKOTO_RENDERER_RHI_VULKAN_VULKAN_CONTEXT_HH
+#define MIKOTO_RENDERER_RHI_VULKAN_VULKAN_CONTEXT_HH
 
-#include <volk.h>
-#include <vk_mem_alloc.h>
+#include <mutex>
 
+#include <EASTL/utility.h>
 #include <EASTL/vector.h>
+
+#include <vk_mem_alloc.h>
+#include <volk.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
 #include <Renderer/Rhi/Types.hh>
-
 #include <Renderer/Core/RenderContext.hh>
-
 #include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
 #include <Renderer/Rhi/Vulkan/VulkanInstance.hh>
 #include <Renderer/Rhi/Vulkan/VulkanSwapchain.hh>
@@ -65,9 +66,9 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetApiVersion() const -> core::u32;
 
     private:
-        auto CreateSwapchain() -> void;
+        auto InitPresentation() -> void;
 
-        auto InitSwapchainRender() -> void;
+        auto InitRenderingObjects() -> void;
         auto InitSynchronization() -> void;
 
     private:
@@ -85,8 +86,6 @@ namespace mikoto::renderer::vulkan {
         core::u32 mCurrentFrameIndex{};
         core::u32 mCurrentImageIndex{};
         core::u32 mMaxFramesInFlight{};
-        bool mHasAcquiredImage{};
-        bool mSwapchainSuboptimal{};
 
         eastl::unique_ptr<Instance> mInstance{};
 
@@ -95,26 +94,25 @@ namespace mikoto::renderer::vulkan {
             rhi::FenceHandle mFence{};
 
             BinarySemaphoreHandle mImageAvailableSemaphore{};
+
+            // Reuse this descriptor only after the frame fence has completed.
+            rhi::TextureHandle mBlitTarget{};
+            rhi::DescriptorTableIndex mTextureDescriptorIndex{ rhi::kInvalidBindingItemIndex };
         };
 
         Queue* mGraphicsQueue{};
+        Queue* mVideoDecodeQueue{};
+        Queue* mVideoEnCodeQueue{};
 
-        CommandListHandle mCommandList{};
+        renderer::rhi::CommandListHandle mCommandList{};
 
         eastl::fixed_vector<FrameContext, kMaxFramesInFlight> mFrameContexts{};
 
-        using SubmitInfoMap = ankerl::unordered_dense::map<IQueue*, SubmitInfo>;
+        std::mutex mBatchedSubmissionMutex{};
+        // Keep dependency boundaries and push order when logical queues alias.
+        eastl::vector<eastl::pair<rhi::QueueType, rhi::SubmitInfo>> mBatchedSubmissions{};
 
-        std::mutex mBatchedSubmissionProcessMutex{};
-        std::mutex mBatchedSubmissionEmplaceMutex{};
-        SubmitInfoMap mBatchedSubmissions{};
-
-        // Swapchain blit objects
-        // A descriptor table is used instead of a BindingSet because descriptor tables can be updated
-        // a BindingSet once created it cannot be updated, so whatever resources specified during creation
-        // stay for how long the BindingSet stays alive
-        bool mTableUpdateRequired{ false };
-
+        // SwapChain blit objects
         rhi::SamplerHandle mSamplerState{};
 
         rhi::ShaderModuleHandle mVertexShader{};
@@ -128,4 +126,5 @@ namespace mikoto::renderer::vulkan {
     };
 }// namespace mikoto::renderer::vulkan
 
-#endif// MIKOTO_VULKAN_CONTEXT_HH
+#endif// MIKOTO_RENDERER_RHI_VULKAN_VULKAN_CONTEXT_HH
+

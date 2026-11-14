@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_SETTINGS_PANEL_HH
-#define MIKOTO_SETTINGS_PANEL_HH
+#ifndef MIKOTO_PANELS_SETTINGS_PANEL_HH
+#define MIKOTO_PANELS_SETTINGS_PANEL_HH
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -24,49 +24,31 @@ namespace mikoto::editor {
 
     struct EditorState;
 
-    struct SettingsPanelData {
-        // Camera
-        core::f32 mEditorCameraMovementSpeed{ 70 };
-        core::f32 mEditorCameraRotationSpeed{ 30 };
-        core::f32 mNearPlane{ 0.1f };
-        core::f32 mFarPlane{ 5000.0f };
-        core::f32 mFieldOfView{ 45.0f };
-        core::f32 mDampingFactor{ 6.0f };
-        bool mWantXAxisRotation{ true };
-        bool mWantYAxisRotation{ true };
-
-        // Selected entity
-        bool mLockCameraToTarget{ false };
-
-        // Infinite grid
-        core::f32 mGridSize{};
-        core::f32 mGridCellSize{ 0.5f };
-        core::f32 mGridMinPixelsBetweenCells{ 2.0f };
-        core::float4 mGridColorThin{ 0.5f, 0.5f, 0.5f, 1.0f };
-        core::float4 mGridColorThick{ 0.0f, 0.0f, 0.0f, 1.0f };
-    };
-
     struct SettingsPanelCreateInfo {
         EditorState* mState{};
+
+        eastl::string mGroup{ "Other" };
+        bool mIsToggleable{ true };
     };
 
     class SettingsPanel final : public Panel {
     public:
-        explicit SettingsPanel(const SettingsPanelCreateInfo& data);
+        explicit SettingsPanel( const SettingsPanelCreateInfo& data );
 
-        auto OnRender(float timeStep) -> void override;
-
-        MKT_NODISCARD auto GetData() -> SettingsPanelData&;
-        MKT_NODISCARD auto GetData() const -> const SettingsPanelData&;
+        auto OnRender( float timeStep ) -> void override;
 
     private:
-        auto DrawCameraConfig() -> void;
-        auto DrawCameraProperties() -> void;
+        static auto BeginProperties( core::cstr id ) -> bool;
+        static auto Property( core::cstr label ) -> void;
+        auto DrawNavigation() -> void;
+        auto DrawLens() -> void;
+        auto DrawView() -> void;
+        auto DrawDisplay() -> void;
 
     private:
         EditorState* mEditorState{};
-        SettingsPanelData mData{};
     };
-}
+}// namespace mikoto::editor
 
-#endif // MIKOTO_SETTINGS_PANEL_HH
+#endif// MIKOTO_PANELS_SETTINGS_PANEL_HH
+

@@ -1,0 +1,21 @@
+{
+  "name": "fastgltf",
+  "version": "1.0.0",
+  "description": "A modern C++20 glTF library focused on speed, correctness, and usability",
+  "homepage": "https://github.com/spnda/fastgltf",
+  "license": "MIT",
+  "dependencies": [
+    {
+      "name": "simdjson"
+    },
+    "simdutf",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}

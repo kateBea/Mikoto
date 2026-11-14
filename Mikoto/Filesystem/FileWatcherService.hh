@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_FILE_WATCHER_HH
-#define MIKOTO_FILE_WATCHER_HH
+#ifndef MIKOTO_FILESYSTEM_FILE_WATCHER_SERVICE_HH
+#define MIKOTO_FILESYSTEM_FILE_WATCHER_SERVICE_HH
+
+#include <mutex>
 
 #include <EASTL/utility.h>
 #include <EASTL/unique_ptr.h>
@@ -34,20 +36,20 @@ namespace mikoto::filesystem {
 
     class FileWatcherService final : public core::IService, public core::Singleton<FileWatcherService> {
     public:
-
-        explicit FileWatcherService( const FileWatcherServiceCreateInfo& info);
+        explicit FileWatcherService( const FileWatcherServiceCreateInfo& info );
 
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        auto Watch(const Path& path, WatcherCallback&& callback) -> void;
+        auto Watch( const Path& path, WatcherCallback&& callback ) -> void;
 
     private:
+        bool mAcceptingWatches{};
         std::mutex mWatcherInsertMutex{};
 
         // Unique pointers for stable references
         ankerl::unordered_dense::map<Path, eastl::unique_ptr<FileWatcher>> mWatchedPaths{};
     };
-}
+}// namespace mikoto::filesystem
 
-#endif// MIKOTO_FILE_WATCHER_HH
+#endif// MIKOTO_FILESYSTEM_FILE_WATCHER_SERVICE_HH

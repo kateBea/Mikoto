@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_VULKAN_SHADER_HH
-#define MIKOTO_VULKAN_SHADER_HH
+#ifndef MIKOTO_RENDERER_RHI_VULKAN_VULKAN_SHADER_HH
+#define MIKOTO_RENDERER_RHI_VULKAN_VULKAN_SHADER_HH
 
 #include <EASTL/string.h>
 
 #include <volk.h>
-#include <slang.h>
-#include <slang-com-ptr.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -29,17 +27,25 @@
 
 namespace mikoto::renderer::vulkan {
 
-    using namespace mikoto::core;
-    using namespace mikoto::renderer::rhi;
+    
+    
 
     class Shader final : public rhi::IShaderModule {
     public:
-        explicit Shader(const ShaderModuleCreateDescription& desc);
+        auto GetType() const -> rhi::ShaderType override;
+
+    private:
+        eastl::string mEntryPoint{};
+        rhi::ShaderType mStage{ rhi::ShaderType::eInvalid };
+        rhi::ShaderLanguage mLanguage{ rhi::ShaderLanguage::eInvalid };
+
+    public:
+        explicit Shader(const renderer::rhi::ShaderModuleCreateDescription& desc);
 
         auto DumpShaderCode() -> void override;
 
-        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType object ) -> Object override;
-        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType object ) const -> Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType object ) -> renderer::rhi::Object override;
+        MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType object ) const -> renderer::rhi::Object override;
 
         MKT_NODISCARD auto GetPipelineInfo() const -> const VkPipelineShaderStageCreateInfo&;
 
@@ -64,8 +70,6 @@ namespace mikoto::renderer::vulkan {
         eastl::string mModulePath{ "" };
         eastl::string mModuleName{ "" };
 
-        Slang::ComPtr<ISlangBlob> mSlangSpirv{};
-        Slang::ComPtr<slang::IModule> mSlangModule{};
 
         VkShaderModule mModule{};
         VkPipelineShaderStageCreateInfo mStageCreateInfo{};
@@ -79,4 +83,5 @@ namespace mikoto::renderer::vulkan {
     };
 }
 
-#endif // MIKOTO_VULKAN_SHADER_HH
+#endif// MIKOTO_RENDERER_RHI_VULKAN_VULKAN_SHADER_HH
+

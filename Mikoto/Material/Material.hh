@@ -12,35 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_MATERIAL_HH
-#define MIKOTO_MATERIAL_HH
+#ifndef MIKOTO_MATERIAL_MATERIAL_HH
+#define MIKOTO_MATERIAL_MATERIAL_HH
 
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
 #include <Core/Core.hh>
-#include <Core/Serializable.hh>
+#include <Core/Serializer.hh>
 #include <Core/ReferenceCounted.hh>
 
 namespace mikoto::material {
 
-    class Material : public core::ISerializable {
+    /**
+     * @brief Base interface for material resource management.
+     *
+     * This interface defines the core contract for any material within the engine.
+     * Materials are can't be moved, copying allows a material to be cloned.
+     */
+    class IMaterial : core::INonCopyable, public core::ISerializable {
     public:
-        explicit Material(const eastl::string_view name = "Base Material")
-            :  mName{ name }
-        {}
+        /**
+         * @brief Sets a new name for the material.
+         * @param newName A string view representing the new name.
+         */
+        virtual auto SetName( eastl::string_view newName ) -> void = 0;
 
-        MKT_NODISCARD auto GetName() const -> const eastl::string& { return mName; }
-        auto SetName(const eastl::string_view newName) -> void { mName = newName; }
 
-        ~Material() override = default;
-
-    protected:
-        eastl::string mName{};
+        /**
+         * @brief Retrieves the current name of the material.
+         * @return A non-mutable reference to the containing the material's name.
+         */
+        MKT_NODISCARD virtual auto GetName() const -> const eastl::string& = 0;
     };
 
-    using MaterialHandle = core::Ref<Material>;
-}
+    using MaterialHandle = core::Ref<IMaterial>;
+}// namespace mikoto::material
 
-
-#endif // MIKOTO_MATERIAL_HH
+#endif// MIKOTO_MATERIAL_MATERIAL_HH

@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_THEME_SERIALIZER_HH
-#define MIKOTO_THEME_SERIALIZER_HH
+#ifndef MIKOTO_THEME_THEME_SERIALIZER_HH
+#define MIKOTO_THEME_THEME_SERIALIZER_HH
 
 #include <Core/Serializer.hh>
-
 #include <Theme/Theme.hh>
 
 namespace mikoto::editor {
 
-    using namespace mikoto::core;
+    
 
     class ThemeSerializer final : public core::ISerializer {
     public:
@@ -30,4 +29,5 @@ namespace mikoto::editor {
     };
 }
 
-#endif //MIKOTO_THEME_SERIALIZER_HH
+#endif// MIKOTO_THEME_THEME_SERIALIZER_HH
+

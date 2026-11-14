@@ -12,23 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_IMPORTER_HH
-#define MIKOTO_IMPORTER_HH
+#ifndef MIKOTO_ASSETS_IMPORTER_HH
+#define MIKOTO_ASSETS_IMPORTER_HH
 
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
+#include <EASTL/string_view.h>
 
-#include <Assets/Model.hh>
+#include <Memory/BufferSpan.hh>
+
+#include <Animation/SkinningPalette.hh>
+#include <Animation/SkinnedAnimation.hh>
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 
-#include <Memory/BufferSpan.hh>
-
-#include <Animation/Animator.hh>
-#include <Animation/SkinnedAnimation.hh>
-
 namespace mikoto::asset {
+
+    struct ModelLoadDescription;
+    struct ModelDataDescription;
 
     // Aligned to make it easy to use in shaders
     struct alignas( 16 ) VertexDescription_Std430Alignment {
@@ -71,6 +73,10 @@ namespace mikoto::asset {
 
     struct MeshNodeDescription {
         eastl::string mName{};
+        core::i32 mSourceNodeIndex{ -1 };
+        // Aliases keep their own transform/skin; only this canonical entry owns vertex/index data.
+        core::i32 mGeometrySourceIndex{ -1 };
+        animation::MeshSkinBinding mSkinBinding{};
 
         core::float4x4 mTransform{ 1.0f };// Identity by default
 
@@ -81,23 +87,9 @@ namespace mikoto::asset {
         core::u32 MaterialIndex{};
     };
 
-    struct ModelDataDescription {
-        eastl::string mName{};
-
-        eastl::vector<MeshNodeDescription> mMeshNodes{};
-        eastl::vector<material::PhysicMaterialDescription> mMaterials{};
-
-        AnimationList mAnimations{};
-        eastl::unique_ptr<animation::Skeleton> mSkeleton{};
-
-        // Texture URI the same way is stored in the materials
-        ankerl::unordered_dense::map<filesystem::Path, renderer::rhi::TextureHandle> mTextures{};
-    };
-
     class ModelImporter {
     public:
-        explicit ModelImporter( renderer::rhi::IGpuDevice* device )
-            : mDevice{ device } {}
+        explicit ModelImporter( renderer::rhi::IGpuDevice* device );
 
         virtual auto Import( const ModelLoadDescription& description, ModelDataDescription& out ) -> void = 0;
 
@@ -109,4 +101,4 @@ namespace mikoto::asset {
 
 }// namespace mikoto::asset
 
-#endif//MIKOTO_IMPORTER_HH
+#endif// MIKOTO_ASSETS_IMPORTER_HH

@@ -785,11 +785,9 @@ namespace mikoto::editor {
             { PrefabModelType::eCone, "Resources/Prefabs/cone/gltf/scene.gltf" },
             { PrefabModelType::eSphere, "Resources/Prefabs/sphere/gltf/scene.gltf" },
             { PrefabModelType::eCylinder, "Resources/Prefabs/cylinder/gltf/scene.gltf" },
-            { PrefabModelType::eDragon, "Resources/Prefabs/dragon/dragon.obj" },
             { PrefabModelType::eBunny, "Resources/Prefabs/bunny/bunny.obj" },
             { PrefabModelType::eMitsuba, "Resources/Prefabs/mitsuba/mitsuba.obj" },
             { PrefabModelType::eTeapot, "Resources/Prefabs/teapot/teapot.obj" },
-            { PrefabModelType::eVokseliaSpawn, "Resources/Prefabs/vokselia_spawn/vokselia_spawn.obj" },
             { PrefabModelType::eMissGalaxy, "Resources/Prefabs/miss_galaxy/scene.gltf" },
             { PrefabModelType::eTree01, "Resources/Prefabs/jungle_tree/scene.gltf" },
             { PrefabModelType::eTree02, "Resources/Prefabs/low_poly_tree_scene_free/scene.gltf" },
@@ -797,7 +795,6 @@ namespace mikoto::editor {
             { PrefabModelType::eTree04, "Resources/Prefabs/tree_animate/scene.gltf" },
             { PrefabModelType::eMedievalDoor, "Resources/Prefabs/medieval_door/scene.gltf" },
             { PrefabModelType::eSponza, "Resources/Prefabs/sponza/sponza-atrium-3/source/glTF/glTF/Sponza.gltf" },
-            { PrefabModelType::eLolaBunny, "Resources/Prefabs/lola_bunny_updated__multiversus/scene.gltf" },
         } };
 
         for ( const auto& [type, path]: modelPaths ) {

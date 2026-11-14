@@ -68,11 +68,9 @@ namespace mikoto::editor {
         eSphere,
         eCone,
         eCylinder,
-        eDragon,
         eBunny,
         eMitsuba,
         eTeapot,
-        eVokseliaSpawn,
         eMissGalaxy,
         eTree01,
         eTree02,
@@ -80,7 +78,6 @@ namespace mikoto::editor {
         eTree04,
         eMedievalDoor,
         eSponza,
-        eLolaBunny,
     };
 
     enum class ScreenPresentTarget {

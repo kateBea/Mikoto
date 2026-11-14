@@ -819,10 +819,13 @@ namespace mikoto::editor {
 
     auto ViewportPanel::UpdateFullscreenPicking() -> void {
         if ( !mEditorState->HasWorkspace() || ImGui::GetIO().AppFocusLost ) {
+            ReleaseSoftBodyGrab();
             CancelPicking();
             return;
         }
 
+        // Fullscreen presentation omits the toolbar and particle overlay.
+        SetCursorTool( CursorTool::eSelect );
         ApplyPickingResult();
 
         // ImGui mouse/viewport coordinates share the same logical space. The
@@ -862,10 +865,15 @@ namespace mikoto::editor {
     }
 
     auto ViewportPanel::ReleaseSoftBodyGrab() -> void {
-        if ( mSoftBodyDrag.mScene ) {
-            mSoftBodyDrag.mScene->GetPhysicsWorld()->EndSoftBodyGrab();
-            mSoftBodyDrag = {};
+        if ( !mSoftBodyDrag.mScene ) {
+            return;
         }
+
+        if ( auto* world{ mSoftBodyDrag.mScene->GetPhysicsWorld() } ) {
+            world->EndSoftBodyGrab();
+        }
+
+        mSoftBodyDrag = {};
     }
 
     auto ViewportPanel::UpdateSoftBodyTool() -> void {
@@ -945,7 +953,7 @@ namespace mikoto::editor {
         }
 
         eastl::vector<physics::SoftBodyParticle> particles{};
-        world.GetSoftBodyParticles( entity, particles );
+        world.ReadSoftBodyParticles( entity, particles );
 
         constexpr ImU32 particleColor{ IM_COL32( 220, 232, 240, 220 ) };
         constexpr ImU32 pinnedColor{ IM_COL32( 89, 177, 255, 255 ) };

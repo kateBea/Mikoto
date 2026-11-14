@@ -54,13 +54,13 @@ void main( inout Hit payload, BuiltInTriangleIntersectionAttributes attributes )
     payload.Distance = RayTCurrent();
 
     // Each BLAS has local primitive IDs; the TLAS instance selects its index-buffer range.
-    payload.Triangle = InstanceID() + PrimitiveIndex();
-    payload.Barycentrics = attributes.barycentrics;
+    uint triangle = InstanceID() + PrimitiveIndex();
+    float2 barycentrics = attributes.barycentrics;
+    uint3 indices = LoadTriangleIndices( triangle );
 
-    uint3 indices = LoadBufferValue<uint3>( Parameters.Indices, payload.Triangle * 12 );
-    float3 a = asfloat( LoadBufferValue<uint3>( Parameters.BuildPositions, indices.x * 12 ) );
-    float3 b = asfloat( LoadBufferValue<uint3>( Parameters.BuildPositions, indices.y * 12 ) );
-    float3 c = asfloat( LoadBufferValue<uint3>( Parameters.BuildPositions, indices.z * 12 ) );
+    float3 a = LoadBuildPosition( indices.x );
+    float3 b = LoadBuildPosition( indices.y );
+    float3 c = LoadBuildPosition( indices.z );
 
     // Slang lowers these out arguments through inout temporaries. Reconstruct
     // locally so DXC never reads payload fields that closest hit only writes.
@@ -69,9 +69,11 @@ void main( inout Hit payload, BuiltInTriangleIntersectionAttributes attributes )
     float3 positionError = 0.0;
     float3 geometricNormal = 0.0;
 
-    ReconstructHit( a, b, c, payload.Barycentrics, ObjectToWorld3x4(), WorldToObject3x4(),
+    ReconstructHit( a, b, c, barycentrics, ObjectToWorld3x4(), WorldToObject3x4(),
         position, positionError, geometricNormal );
 
+    payload.Triangle = triangle;
+    payload.Barycentrics = barycentrics;
     payload.Position = position;
     payload.PositionError = positionError;
     payload.GeometricNormal = geometricNormal;

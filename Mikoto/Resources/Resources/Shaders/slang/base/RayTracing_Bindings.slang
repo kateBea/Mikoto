@@ -14,23 +14,25 @@
 
 #pragma once
 
-// Matches MKT_ACCELERATION_STRUCTURE_BINDING in ResourceBindings.hh.
-// The production renderer uses the frame graph's table at set zero. The
-// standalone showcase overrides this because its geometry occupies set zero.
-#if !defined( MKT_RAY_SCENE_SET )
-#define MKT_RAY_SCENE_SET 0
-#endif
+#include "Memory_Helpers.slang"
+
+// The frame graph binds the shared table at the default set. The standalone
+// showcase moves the table to set 1 because its private resources occupy set 0.
 // https://docs.vulkan.org/spec/latest/chapters/descriptorsets.html
 // https://microsoft.github.io/DirectX-Specs/d3d/HLSL_SM_6_6_DynamicResources.html
+#if !defined( MKT_RAY_SCENE_SET )
+#define MKT_RAY_SCENE_SET MKT_DEFAULT_REGISTER_SPACE
+#endif
+
 #if !defined( MKT_SUPPORT_D3D12 )
-[[vk::binding( 6, MKT_RAY_SCENE_SET )]] RaytracingAccelerationStructure RayScenes[];
+MKT_DECLARE_ACCEL_STRUCTURES_IN_SET( MKT_RAY_SCENE_SET ) RayScenes;
 #endif
 
 RaytracingAccelerationStructure LoadRayScene( uint index ) {
 #if defined( MKT_SUPPORT_D3D12 )
+    // A uniform heap index keeps TraceRay's scene selection uniform.
     return getDescriptorFromHandle( DescriptorHandle<RaytracingAccelerationStructure>( uint2( index, 0 ) ) );
 #else
-    // The push-constant index is uniform for the entire dispatch.
     return RayScenes[index];
 #endif
 }

@@ -26,7 +26,7 @@ typedef uint64_t ArraySize;
 #define MKT_DECLARE_SAMPLERS                 SamplerArray
 #define MKT_DECLARE_TEXTURE_SRV( DIMENSION ) ResourceArray<DIMENSION>
 #define MKT_DECLARE_TEXTURE_UAV( DIMENSION ) ResourceArray<DIMENSION>
-#define MKT_DECLARE_ACCEL_STRUCTURES         ResourceArray<RaytracingAccelerationStructure>
+#define MKT_DECLARE_ACCEL_STRUCTURES_IN_SET( SET ) ResourceArray<RaytracingAccelerationStructure>
 #elif defined( MKT_SUPPORT_D3D11 )
 #define MKT_DECLARE_CONSTANT_BUFFERS      ByteAddressBuffer ConstantBuffers[kArrayMaxSize] : register( t32 )
 
@@ -62,8 +62,12 @@ typedef uint64_t ArraySize;
     DECL_BINDING( MKT_TEXTURE_UAV_BINDING, MKT_DEFAULT_REGISTER_SPACE ) DIMENSION[]
 
 
-#define MKT_DECLARE_ACCEL_STRUCTURES \
-    DECL_BINDING( MKT_ACCELERATION_STRUCTURE_BINDING, MKT_DEFAULT_REGISTER_SPACE ) RaytracingAccelerationStructure[]
+#define MKT_DECLARE_ACCEL_STRUCTURES_IN_SET( SET ) \
+    DECL_BINDING( MKT_ACCELERATION_STRUCTURE_BINDING, SET ) RaytracingAccelerationStructure[]
+#endif
+
+#if !defined( MKT_SUPPORT_D3D11 )
+#define MKT_DECLARE_ACCEL_STRUCTURES MKT_DECLARE_ACCEL_STRUCTURES_IN_SET( MKT_DEFAULT_REGISTER_SPACE )
 #endif
 
 // Extensions

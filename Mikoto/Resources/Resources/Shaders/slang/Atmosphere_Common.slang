@@ -46,11 +46,11 @@ AtmosphereData Atmosphere() {
 }
 
 float4 AtmosRead( uint textureID, float2 uv ) {
-    return AtmosphereMap( textureID ).SampleLevel( AtmosphereSampler, uv, 0 );
+    return AtmosphereMap( textureID ).SampleLevel( GetAtmosphereSampler(), uv, 0 );
 }
 
 float3 AtmosSunTransmittance( AtmosphereData a, float3 position, float3 sun ) {
-    return AtmosSunTransmittance( a, position, sun, AtmosphereMap( 0 ), AtmosphereSampler );
+    return AtmosSunTransmittance( a, position, sun, AtmosphereMap( 0 ), GetAtmosphereSampler() );
 }
 float3 AtmosReadMultiple( float2 uv ) {
     return AtmosRead( 1, uv ).rgb;

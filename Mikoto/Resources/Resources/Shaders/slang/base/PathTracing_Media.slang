@@ -1,6 +1,27 @@
 // Copyright 2026 ケイト. Licensed under the Apache License, Version 2.0.
-// PBRT-derived portions: Copyright (c) 1998-2016 Matt Pharr, Greg Humphreys,
-// and Wenzel Jakob. The PBRT v3 redistribution notice is in Renderer/PBRT-NOTICE.md.
+// PBRT v3 homogeneous-medium code:
+// Copyright (c) 1998-2016 Matt Pharr, Greg Humphreys, and Wenzel Jakob.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// - Redistributions of source code must retain the above copyright notice,
+//   this list of conditions and the following disclaimer.
+// - Redistributions in binary form must reproduce the above copyright notice,
+//   this list of conditions and the following disclaimer in the documentation
+//   and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "Volume_Helpers.slang"
@@ -13,10 +34,11 @@
 // https://github.com/mmp/pbrt-v4/blob/master/src/pbrt/util/sampling.cpp
 
 MediumState ReadMedium( MediumStack media, uint depth ) {
+    // An empty stack represents the exterior, which has an index of refraction of one.
     MediumState result = ( MediumState )0;
     result.IOR = 1.0;
     if ( depth > 0 ) {
-        MaterialRecord material = LoadBufferValue<MaterialRecord>( Parameters.Data, 32 + media.Materials[depth - 1] * sizeof(MaterialRecord) );
+        MaterialRecord material = LoadMaterialRecord( media.Materials[depth - 1] );
         result.Absorption = material.Absorption.xyz;
         result.Scattering = material.Scattering.xyz;
         result.Anisotropy = material.Absorption.w;
@@ -67,7 +89,7 @@ bool SampleMedium( MediumState medium, float maximum, float2 sample, out float d
     }
     float3 extinction = medium.Absorption + medium.Scattering;
     uint channel = min( uint( sample.x * 3.0 ), 2u );
-    float freeFlight = extinction[channel] > 0.0 ? -log( 1.0 - sample.y ) / extinction[channel] : 1e30;
+    float freeFlight = extinction[channel] > 0.0 ? -log( 1.0 - sample.y ) / extinction[channel] : RAY_MAX_DISTANCE;
     bool scatter = freeFlight < maximum;
     distance = min( freeFlight, maximum );
     float3 transmittance = exp( -extinction * distance );

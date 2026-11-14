@@ -4,13 +4,9 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 Mikoto is an open-source C++20 game engine for exploring graphics programming techniques and software architecture. It supports Vulkan and Direct3D 12 rendering backends
-through an abstraction layer called RHI (Render Hardware Interface), OpenGL and D3D11 implementations are experimental and not any close to what Vulkan and D3D12 have to offer.
+through an RHI (Render Hardware Interface), OpenGL and D3D11 implementations are experimental and not any close to what Vulkan and D3D12 have to offer.
 
-This project is under active development. Rendering features, editor workflows, and engine APIs continue to evolve.
-
-[Features](#features) · [Building](#building) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Dependencies](#dependencies) · [License](#license)
-
-![Mikoto editor](Resources/Screenshots/img28.png)
+![Mikoto editor](Resources/Screenshots/img31.png)
 
 <details>
 <summary>More screenshots</summary>
@@ -29,7 +25,7 @@ This project is under active development. Rendering features, editor workflows, 
 
 ## Features
 
-Mikoto is built around Vulkan and Direct3D 12 renderers and a collection of focused, open-source libraries. The currently supported features include:
+Some of the features availables include:
 
 **Core**
 
@@ -181,22 +177,6 @@ Run the editor with `build/PRESET/Mikoto-Editor` as its **working directory**. T
 For a persistent local configuration change, edit [Mikoto/Resources/app-config.toml](Mikoto/Resources/app-config.toml). With every build
 this file gets copied and replaced to the build directory.
 
-## Troubleshooting
-
-Some problems that might arise during build process or when running the application. 
-
-| Symptom                                            | What to check                                                                                                                        |
-|----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| CMake cannot find `cl` or selects MinGW            | Use an x64 Visual Studio developer shell, or select CLion's Visual Studio toolchain. Start with a fresh cache after switching compilers. |
-| Configuration fails during `vcpkg install`         | Read the first failing package's log, whose path vcpkg prints. A later Ninja error may be a consequence of the earlier failure.      |
-| `CMAKE_MAKE_PROGRAM` is missing                    | Ensure Ninja is available. In CLion, select Bundled Ninja in the toolchain settings.                                                 |
-| .NET hosting files cannot be found                 | Install the .NET 10 SDK and native hosting pack. For a custom location, configure with `-DMIKOTO_DOTNET_ROOT=/path/to/dotnet`.       |
-| Missing resources or configuration at startup      | Set the working directory to `build/<preset>/Mikoto-Editor`.                                                                         |
-| Windows linker cannot overwrite `MikotoEditor.exe` | Close the running editor and retry the build.                                                                                        |
-| Build runs out of memory or is resource intensive  | Lower `--parallel`; set `VCPKG_MAX_CONCURRENCY` separately to limit dependency builds.                                               |
-
-Avoid configuring or building the same output directory simultaneously from an IDE and a terminal. More details are in [Useful options and troubleshooting](BUILDING.md#useful-options-and-troubleshooting).
-
 ## Dependencies
 
 Third-party libraries and their roles are listed in [THIRD_PARTY.md](THIRD_PARTY.md). Dependency declarations are split between two supported build paths:
@@ -205,7 +185,7 @@ Third-party libraries and their roles are listed in [THIRD_PARTY.md](THIRD_PARTY
 |-----------------------------------------------------------------|-----------------------------------------------------|
 | [vcpkg.json](vcpkg.json)                                        | Manifest packages, features, and pinned versions    |
 | [CMake/Ports](CMake/Ports) and [CMake/Triplets](CMake/Triplets) | Package customizations and platform build settings  |
-| `Mikoto/<Module>/Dependencies.cmake`                            | Package lookup, FetchContent fallback, and module linkage |
+| `Mikoto/Module_Name/Dependencies.cmake`                            | Package lookup, FetchContent fallback, and module linkage |
 
 When adding a library, update both dependency paths and link it to the module that uses it. See [Dependency layout and adding a library](BUILDING.md#dependency-layout-and-adding-a-library) for a worked example.
 
@@ -219,26 +199,6 @@ When adding a library, update both dependency paths and link it to the module th
 | [Mikoto/Vendor](Mikoto/Vendor)       | Vendored and locally maintained third-party code                                 |
 | [CMake](CMake)                       | Dependency provider, package integration, ports, and triplets                    |
 | [Resources](Resources)               | Screenshots and additional repository assets                                     |
-
-Applications declare their engine module requirements through `mikoto_use_modules()`. See [the module definitions](Mikoto/Modules.cmake) and [the editor's CMake configuration](Mikoto-Editor/CMakeLists.txt) for examples. Engine-only builds can disable the editor with `MIKOTO_BUILD_EDITOR=OFF` and request modules through `MIKOTO_MODULES`.
-
-## Future Development
-
-Mikoto Engine is still in its early stages, and additional features and optimizations will be added over time.
-
-## Acknowledgments
-
-The development of Mikoto has been inspired by the work of the following:
-
-* Joey de Vries  for the incredible [LearnOpenGL](https://learnopengl.com/) tutorials.
-* Yan Chernikov for his insightful [YouTube videos](https://www.youtube.com/@TheCherno).
-* Cem Yuksel for his educational [graphics programming lectures](https://www.youtube.com/@cem_yuksel/videos).
-* Jason Gregory for his [Game Engine Architecture](https://www.gameenginebook.com/) book.
-* Matt Pharr, Wenzel Jakob, and Greg Humphreys for the [Physically Based Rendering](https://www.pbr-book.org/) book.
-* Sascha Willems for his amazing [Vulkan examples](https://github.com/SaschaWillems/Vulkan).
-* Marco Castorina and Gabriel Sassone for the **Mastering Graphics Programming with Vulkan** book.
-
-Some demonstration models come from [Morgan McGuire's Computer Graphics Archive](https://casual-effects.com/data/). Thanks also to the authors and maintainers of the engine's third-party libraries; their licenses and asset terms remain applicable.
 
 ## License
 

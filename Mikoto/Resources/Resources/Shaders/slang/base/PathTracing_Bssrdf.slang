@@ -10,7 +10,7 @@
 static const uint BSSRDF_SAMPLES = 64;
 
 float4 BssrdfTable( Surface s, uint index, bool cdf = false ) {
-    return LoadBufferValue<float4>( Parameters.Data, s.Profile + ( index + ( cdf ? BSSRDF_SAMPLES : 0 ) ) * 16 );
+    return LoadBufferValue<float4>( Parameters.Data, s.Profile + ( index + ( cdf ? BSSRDF_SAMPLES : 0 ) ) * sizeof( float4 ) );
 }
 
 float BssrdfRadius( Surface s, uint channel, float sample ) {
@@ -89,7 +89,7 @@ bool SampleBssrdf( Surface entry, inout uint random, out Surface exit, out float
     for ( uint crossing = 0; crossing < 256; ++crossing ) {
         Hit hit = ( Hit )0;
         hit.Distance = -1.0;
-        TraceRay( LoadRayScene( Parameters.SceneIndex ), RAY_FLAG_NONE, 0xff, 0, 1, 0, ray, hit );
+        TraceRay( LoadRayScene( Parameters.SceneIndex ), RAY_FLAG_NONE, RAY_ALL_INSTANCES, 0, 1, 0, ray, hit );
         if ( hit.Distance < 0.0 ) {
             break;
         }

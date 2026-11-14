@@ -66,11 +66,13 @@ float3 EvaluateDielectric( Surface s, float3 view, float3 light, out float pdf )
     }
 
     float nv = dot( s.Normal, view ), nl = dot( s.Normal, light );
+    // Reject paths that go through the wrong side of the geometric surface.
     bool reflection = nl > 0.0;
     if ( nv <= 0.0 || nl == 0.0 || ( dot( s.GeometricNormal, light ) > 0.0 ) != reflection ) {
         return float3( 0 );
     }
     float eta = s.FrontFace ? s.IOR : 1.0 / s.IOR;
+    // Reflection and transmission use different microfacet half-vectors.
     float3 halfVector = view + light * ( reflection ? 1.0 : eta );
     if ( dot( halfVector, halfVector ) < 1e-20 ) {
         return float3( 0 );

@@ -26,12 +26,19 @@
 #pragma once
 #include "../base/Memory_Helpers.slang"
 
-// GPU Accelerated Software Pathtracer
+// Trace the demo sphere list in compute using the original CPU transport model.
 namespace swrt {
     struct Ray {
         float3 origin;
         float3 direction;
     };
+
+    // Matches the upload in CpuPathTraceModule.
+    static const uint MATERIAL_DIFFUSE = 0u;
+    static const uint MATERIAL_METAL = 1u;
+    static const uint MAX_BOUNCES = 50u;
+    static const float MIN_HIT_DISTANCE = 0.001;
+    static const float MAX_HIT_DISTANCE = 3.402823466e+38;
 
     struct Sphere {
         float4 centerRadius;
@@ -87,7 +94,7 @@ namespace swrt {
 
     bool HitWorld( Ray ray, Pointer address, uint sphereCount, out Hit hit ) {
         BufferReference<Sphere> spheres = ( BufferReference<Sphere> )address;
-        float closest = 3.402823466e+38;
+        float closest = MAX_HIT_DISTANCE;
         uint closestSphere = sphereCount;
         hit = ( Hit )0;
         for ( uint i = 0; i < sphereCount; ++i ) {
@@ -100,10 +107,12 @@ namespace swrt {
             if ( discriminant < 0 ) {
                 continue;
             }
+
+            // Try the exit root as well when a ray starts inside the sphere.
             float root = ( h - sqrt( discriminant ) ) / a;
-            if ( root <= 0.001 || root >= closest ) {
+            if ( root <= MIN_HIT_DISTANCE || root >= closest ) {
                 root = ( h + sqrt( discriminant ) ) / a;
-                if ( root <= 0.001 || root >= closest ) {
+                if ( root <= MIN_HIT_DISTANCE || root >= closest ) {
                     continue;
                 }
             }
@@ -140,14 +149,14 @@ namespace swrt {
     bool Scatter( Ray incoming, Hit hit, inout uint state, out Ray scattered, out float3 attenuation ) {
         scattered.origin = hit.position;
         attenuation = hit.albedo;
-        if ( hit.material == 0 ) {
+        if ( hit.material == MATERIAL_DIFFUSE ) {
             scattered.direction = hit.normal + RandomUnitVector( state );
             if ( all( abs( scattered.direction ) < 1e-8 ) ) {
                 scattered.direction = hit.normal;
             }
             return true;
         }
-        if ( hit.material == 1 ) {
+        if ( hit.material == MATERIAL_METAL ) {
             scattered.direction = normalize( reflect( incoming.direction, hit.normal ) ) +
                                   min( hit.parameter, 1.0 ) * RandomUnitVector( state );
             return dot( scattered.direction, hit.normal ) > 0;
@@ -172,7 +181,7 @@ namespace swrt {
 
     float3 RayColor( Ray ray, Pointer spheres, uint sphereCount, inout uint state ) {
         float3 throughput = float3( 1 );
-        for ( uint depth = 0; depth < 50; ++depth ) {
+        for ( uint depth = 0; depth < MAX_BOUNCES; ++depth ) {
             Hit hit;
             if ( !HitWorld( ray, spheres, sphereCount, hit ) ) {
                 float blend = 0.5 * ( normalize( ray.direction ).y + 1 );

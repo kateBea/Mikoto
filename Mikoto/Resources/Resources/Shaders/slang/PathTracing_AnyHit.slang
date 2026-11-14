@@ -14,10 +14,14 @@
 
 #include "PathTracing_Common.slang"
 
-[shader("anyhit")]
-void main(inout Hit payload, BuiltInTriangleIntersectionAttributes attributes) {
-    // Cut away part of the triangle to make hit rejection visible.
-    if (attributes.barycentrics.x < 0.5) {
+// Standalone any-hit example. The production pipeline evaluates material
+// coverage in raygen so the same acceptance rules serve transport and shadows.
+// https://microsoft.github.io/DirectX-Specs/d3d/Raytracing.html#any-hit-shaders
+[shader( "anyhit" )]
+void main( inout Hit payload, BuiltInTriangleIntersectionAttributes attributes ) {
+    static const float splitBarycentric = 0.5;
+
+    if ( attributes.barycentrics.x < splitBarycentric ) {
         IgnoreHit();
     }
 }

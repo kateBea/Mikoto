@@ -38,7 +38,8 @@ struct FrameParameters {
     uint AtmosphereTextures[3];
     uint LightDistribution;
     uint64_t BuildPositions;
-    uint OcclusionOutput, OcclusionHistory;
+    uint OcclusionOutput;
+    uint OcclusionHistory;
     uint4 Occlusion; // Enabled, samples, accumulated samples, cosine sampling.
     float OcclusionMaxDistance;
     uint VolumePadding;
@@ -54,6 +55,11 @@ MKT_DECLARE_PUSH_CONSTANT_BUFFER( PushParameters, Push );
 
 // Hardware stages provide intersections; raygen implements PBRT's Li() loop.
 // https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/A_Better_Path_Tracer
+static const float RAY_MISS_DISTANCE = -1.0;
+static const float RAY_MAX_DISTANCE = 1e30;
+static const uint RAY_ALL_INSTANCES = 0xffu;
+static const uint MAX_OCCLUSION_HISTORY_SAMPLES = 4096u;
+
 [raypayload]
 struct Hit {
     float Distance : read( caller ) : write( caller, closesthit, miss );
@@ -66,14 +72,21 @@ struct Hit {
 
 // These records mirror RayTracingModule's packed scene upload.
 struct SceneRecord {
-    uint MaterialCount, LightCount, EmitterCount, LightOffset;
+    uint MaterialCount;
+    uint LightCount;
+    uint EmitterCount;
+    uint LightOffset;
     uint EmitterOffset;
     int Environment;
-    uint FaceOffset, HasFaces;
+    uint FaceOffset;
+    uint HasFaces;
 };
 
 struct VertexRecord {
-    float4 Position, Normal, UV, Color;
+    float4 Position;
+    float4 Normal;
+    float4 UV;
+    float4 Color;
 };
 
 struct MaterialRecord {
@@ -97,6 +110,20 @@ struct EmitterRecord {
     uint Triangle;
     float CDF, Area, Probability;
 };
+
+// Triangle indices and BLAS build positions are packed as three 32-bit values.
+// Derive byte offsets from their types so raygen and closest hit agree.
+uint3 LoadTriangleIndices( uint triangle ) {
+    return LoadBufferValue<uint3>( Parameters.Indices, triangle * sizeof( uint3 ) );
+}
+
+float3 LoadBuildPosition( uint vertex ) {
+    return asfloat( LoadBufferValue<uint3>( Parameters.BuildPositions, vertex * sizeof( uint3 ) ) );
+}
+
+MaterialRecord LoadMaterialRecord( uint index ) {
+    return LoadBufferValue<MaterialRecord>( Parameters.Data, sizeof( SceneRecord ) + index * sizeof( MaterialRecord ) );
+}
 
 // PBRT offsets outside the position's uncertainty interval, then rounds outward.
 // https://pbr-book.org/4ed/Shapes/Managing_Rounding_Error

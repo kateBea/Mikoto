@@ -18,5 +18,5 @@
 void main( inout Hit payload ) {
     // Li() handles escaped-ray emission and its MIS weight using the previous vertex.
     // https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/A_Better_Path_Tracer
-    payload.Distance = -1.0;
+    payload.Distance = RAY_MISS_DISTANCE;
 }

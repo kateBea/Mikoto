@@ -38,8 +38,11 @@ namespace swrt {
         camera.center = float3( 13, 2, 3 );
         float3 lookAt = float3( 0 );
         float3 up = float3( 0, 1, 0 );
-        float focusDistance = 10;
-        float viewportHeight = 2 * tan( radians( 20.0 ) * 0.5 ) * focusDistance;
+        static const float focusDistance = 10.0;
+        static const float verticalFov = 20.0;
+        static const float defocusAngle = 0.6;
+
+        float viewportHeight = 2 * tan( radians( verticalFov ) * 0.5 ) * focusDistance;
         float viewportWidth = viewportHeight * float( width ) / float( height );
         float3 w = normalize( camera.center - lookAt );
         float3 u = normalize( cross( up, w ) );
@@ -50,7 +53,7 @@ namespace swrt {
         camera.pixelDeltaV = viewportV / float( height );
         camera.pixel00 = camera.center - focusDistance * w - 0.5 * ( viewportU + viewportV ) +
                          0.5 * ( camera.pixelDeltaU + camera.pixelDeltaV );
-        float defocusRadius = focusDistance * tan( radians( 0.6 ) * 0.5 );
+        float defocusRadius = focusDistance * tan( radians( defocusAngle ) * 0.5 );
         camera.defocusDiskU = defocusRadius * u;
         camera.defocusDiskV = defocusRadius * v;
         return camera;
@@ -62,6 +65,8 @@ namespace swrt {
         jitter.y = Random( state ) - 0.5;
         float3 sample = camera.pixel00 + ( float( pixel.x ) + jitter.x ) * camera.pixelDeltaU +
                         ( float( pixel.y ) + jitter.y ) * camera.pixelDeltaV;
+
+        // Jitter the image sample and the lens independently for depth of field.
         float2 disk = RandomInUnitDisk( state );
         Ray ray;
         ray.origin = camera.center + disk.x * camera.defocusDiskU + disk.y * camera.defocusDiskV;

@@ -17,11 +17,10 @@
 #define MIKOTO_RENDERER_COMPATIBILITY_RENDERER_FRAME_MODULE_HH
 
 #include <Renderer/Rhi/Buffer.hh>
-#include <Renderer/CompatibilityRenderer/Passes/CompatibilityLightingModule.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
 
-namespace mikoto::renderer::rhi {
-    class ICommandList;
-}
+#include <Renderer/CompatibilityRenderer/Passes/CompatibilityLightingModule.hh>
 
 namespace mikoto::scene {
     class Camera;
@@ -31,9 +30,12 @@ namespace mikoto::renderer {
     /** Uploads the camera and lights consumed by the compatibility scene passes. */
     class CompatibilityFrameModule {
     public:
-        auto Initialize( rhi::IGpuDevice& device ) -> void;
-        MKT_NODISCARD auto Prepare( rhi::ICommandList& commands, const scene::Scene* scene, const scene::Camera* camera,
-            const core::float4& environment, const core::float4x4& shadowMatrix, core::u32 shadowLight ) -> rhi::BufferHandle;
+        auto Initialize( rhi::IGpuDevice* device ) -> void;
+        MKT_NODISCARD auto Prepare(
+            rhi::ICommandList* commands,
+            const scene::Scene* scene, const scene::Camera* camera,
+            const core::float4& environment,
+            const core::float4x4& shadowMatrix, core::u32 shadowLight ) -> rhi::BufferHandle;
 
     private:
         rhi::IGpuDevice* mDevice{};

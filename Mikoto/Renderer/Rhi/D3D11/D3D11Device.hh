@@ -374,6 +374,9 @@ namespace mikoto::renderer::d3d11 {
 
         auto UnMap( renderer::rhi::IBuffer* buffer ) -> void override;
         MKT_NODISCARD auto Map(renderer::rhi::IBuffer* buffer ) -> void* override;
+        MKT_NODISCARD auto ReadTextureRegion(
+            const rhi::ITexture* texture, const rhi::Rect& region,
+            eastl::span<core::u8> destination ) -> bool override;
 
         // To support bindless techniques in modern graphics APIs
         MKT_NODISCARD auto CreateDescriptorTableLayout( const renderer::rhi::DescriptorTableLayoutDescription& desc ) -> renderer::rhi::BindingLayoutHandle override;

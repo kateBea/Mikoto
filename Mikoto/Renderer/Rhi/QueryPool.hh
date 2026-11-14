@@ -19,10 +19,9 @@
 
 #include <Renderer/Rhi/Fence.hh>
 #include <Renderer/Rhi/DeviceObject.hh>
+#include <Renderer/Rhi/CommandList.hh>
 
 namespace mikoto::renderer::rhi {
-    class ICommandList;
-
     enum class QueryType : core::u32 {
         eTimestamp,
         eOcclusion,

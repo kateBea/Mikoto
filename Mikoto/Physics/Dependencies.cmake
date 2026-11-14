@@ -66,7 +66,7 @@ if(MIKOTO_ENABLE_PHYSX)
         set_property(TARGET Mikoto PROPERTY MIKOTO_PHYSX_LICENSE "${physx_SOURCE_DIR}/LICENSE.md")
     endblock()
 
-    # PhysXBackend.hh includes SDK headers, so consumers need the same settings.
+    # PhysicsBackend.hh includes SDK headers, so consumers need the same settings.
     target_compile_definitions(Mikoto PUBLIC MIKOTO_ENABLE_PHYSX=1 PX_PHYSX_STATIC_LIB)
     target_link_libraries(Mikoto PUBLIC physx_lib)
 endif()

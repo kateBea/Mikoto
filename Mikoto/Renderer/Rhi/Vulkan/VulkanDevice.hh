@@ -785,6 +785,9 @@ namespace mikoto::renderer::vulkan {
 
         auto UnMap( rhi::IBuffer* buffer ) -> void override;
         MKT_NODISCARD auto Map( rhi::IBuffer* buffer ) -> void* override;
+        MKT_NODISCARD auto ReadTextureRegion(
+            const rhi::ITexture* texture, const rhi::Rect& region,
+            eastl::span<core::u8> destination ) -> bool override;
 
         // To support bindless techniques in modern graphics APIs
         MKT_NODISCARD auto CreateDescriptorTableLayout( const rhi::DescriptorTableLayoutDescription& desc ) -> rhi::BindingLayoutHandle override;

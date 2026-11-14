@@ -39,7 +39,6 @@ namespace mikoto::renderer {
         CompatibilityGeometryModule mGeometry{};
         CompatibilityShadowModule mShadows{};
         CompatibilitySelectionModule mSelection{};
-        bool mDrawOutline{};
         CompatibilityPostProcessModule mPostProcess{};
         CompatibilityDisplayEffectsModule mDisplayEffects{};
     };
@@ -60,11 +59,11 @@ namespace mikoto::renderer {
         }
 
         auto passes{ eastl::make_unique<Passes>() };
-        passes->mFrame.Initialize( *mDevice );
-        passes->mEnvironment.Initialize( *mDevice );
-        passes->mGeometry.Initialize( *mDevice );
-        passes->mPostProcess.Initialize( *mDevice );
-        passes->mSelection.Initialize( *mDevice );
+        passes->mFrame.Initialize( mDevice );
+        passes->mEnvironment.Initialize( mDevice );
+        passes->mGeometry.Initialize( mDevice );
+        passes->mPostProcess.Initialize( mDevice );
+        passes->mSelection.Initialize( mDevice );
 
         UpdateTargets();
         mPasses = eastl::move( passes );
@@ -89,24 +88,25 @@ namespace mikoto::renderer {
         const rhi::Extent2D size{ .mWidth = width, .mHeight = height };
         auto color{ mSceneColor };
         auto depth{ mDepth };
-        ResizeCompatibilityTarget( *mDevice, color, size, kCompatibilitySceneFormat,
+        ResizeCompatibilityTarget( mDevice, color, size, kCompatibilitySceneFormat,
             rhi::TextureUsageFlagsBits::RenderTarget | rhi::TextureUsageFlagsBits::ShaderResource, "Compatibility HDR scene color" );
-        ResizeCompatibilityTarget( *mDevice, depth, size, kCompatibilityDepthFormat,
+        ResizeCompatibilityTarget( mDevice, depth, size, kCompatibilityDepthFormat,
             rhi::TextureUsageFlagsBits::DepthTarget, "Compatibility scene depth" );
 
         mSceneColor = eastl::move( color );
         mDepth = eastl::move( depth );
     }
 
-    auto CompatibilityRenderer::RecordScenePass( rhi::ICommandList& commands, const scene::Scene* scene ) -> void {
+    auto CompatibilityRenderer::RecordScenePass( rhi::ICommandList* commands, const scene::Scene* scene ) -> bool {
         const auto environment{ mPasses->mEnvironment.Prepare( commands, dynamic_cast<const material::SkyboxMaterial*>( mSkybox.GetPtr() ),
             mEnvironmentEnabled ? mEnvironmentScale : 0.0f, mBackground == SceneBackgroundType::ePrefilterMap ? mSkyboxBlur : 0.0f ) };
-        mPasses->mDrawOutline = false;
+
+        bool drawOutline{};
         if ( mCamera && scene ) {
             scene->UpdateStreamingView( this, *mCamera, false );
             mPasses->mGeometry.Prepare( *scene, *mCamera, mTextureDropHover );
-            mPasses->mShadows.Record( *mDevice, commands, *scene, *mCamera, mPasses->mGeometry, environment, mSettings );
-            mPasses->mDrawOutline = mEditorOverlaysEnabled && mPasses->mGeometry.HasHighlights();
+            mPasses->mShadows.Record( mDevice, commands, *scene, *mCamera, mPasses->mGeometry, environment, mSettings );
+            drawOutline = mEditorOverlaysEnabled && mPasses->mGeometry.HasHighlights();
         }
 
         const auto shadowMap{ mCamera && scene ? mPasses->mShadows.GetMap() : rhi::TextureHandle{} };
@@ -119,10 +119,10 @@ namespace mikoto::renderer {
             .SetRenderArea( rhi::Rect{ core::as<core::i32>( size.mWidth ), core::as<core::i32>( size.mHeight ) } )
             .AddDepthTarget( mDepth )
             .AddRenderTarget( mSceneColor, {} ) };
-        commands.SetTransition( rhi::TransitionDescription{}
+        commands->SetTransition( rhi::TransitionDescription{}
             .AddTexture( mSceneColor.GetPtr(), rhi::ResourceStates::eRenderTarget )
             .AddTexture( mDepth.GetPtr(), rhi::ResourceStates::eDepthWrite ) );
-        commands.BeginRenderPass( scenePass );
+        commands->BeginRenderPass( scenePass );
         SetCompatibilityViewport( commands, size );
 
         // Skybox and geometry share the HDR attachments and clear them once.
@@ -134,11 +134,32 @@ namespace mikoto::renderer {
             mPasses->mGeometry.Record( commands, environment, *frameUniform.GetPtr(), shadowMap );
         }
 
-        commands.EndRenderPass();
+        commands->EndRenderPass();
 
-        if ( mCamera && scene && ( mPasses->mDrawOutline || mPasses->mSelection.NeedsPass() ) ) {
+        if ( mCamera && scene && ( drawOutline || mPasses->mSelection.NeedsPass() ) ) {
             mPasses->mSelection.Record( commands, size, mPasses->mGeometry, environment, *frameUniform.GetPtr() );
         }
+
+        return drawOutline;
+    }
+
+    auto CompatibilityRenderer::RecordOutputPasses( rhi::ICommandList* commands, bool drawOutline ) -> rhi::TextureHandle {
+        auto toneMapped{ mPasses->mPostProcess.RecordToneMap( commands, mSceneColor, {
+            .mClearColor = mClearColor,
+            .mExposure = mExposure,
+            .mGamma = mGamma,
+            .mToneMapper = core::as<core::i32>( mToneMapper ),
+            .mOutputForPreview = mOutputForPreview
+        } ) };
+        const auto& aberration{ mSettings.mChromaticAberration };
+        auto finalImage{ mPasses->mDisplayEffects.RecordChromaticAberration( mDevice, commands, toneMapped,
+            aberration.mEnabled ? aberration.mIntensity : 0.0f, aberration.mDirection ) };
+        if ( drawOutline ) {
+            finalImage = mPasses->mSelection.RecordOutline( commands, finalImage,
+                mSettings.mSelectionOutlineColor, mSettings.mSelectionOutlineWidth, mOutputForPreview );
+        }
+
+        return finalImage;
     }
 
     auto CompatibilityRenderer::Render( const scene::Scene* scene ) -> void {
@@ -156,22 +177,8 @@ namespace mikoto::renderer {
         auto commands{ mDevice->CreateCommandList( rhi::QueueType::eGraphics ) };
         commands->SetEnableAutomaticBarriers( true );
         commands->Open( {} );
-        RecordScenePass( *commands.GetPtr(), scene );
-
-        auto toneMapped{ mPasses->mPostProcess.RecordToneMap( *commands.GetPtr(), mSceneColor, {
-            .mClearColor = mClearColor,
-            .mExposure = mExposure,
-            .mGamma = mGamma,
-            .mToneMapper = core::as<core::i32>( mToneMapper ),
-            .mOutputForPreview = mOutputForPreview
-        } ) };
-        const auto& aberration{ mSettings.mChromaticAberration };
-        auto finalImage{ mPasses->mDisplayEffects.RecordChromaticAberration( *mDevice, *commands.GetPtr(), toneMapped,
-            aberration.mEnabled ? aberration.mIntensity : 0.0f, aberration.mDirection ) };
-        if ( mPasses->mDrawOutline ) {
-            finalImage = mPasses->mSelection.RecordOutline( *commands.GetPtr(), finalImage,
-                mSettings.mSelectionOutlineColor, mSettings.mSelectionOutlineWidth, mOutputForPreview );
-        }
+        const bool drawOutline{ RecordScenePass( commands.GetPtr(), scene ) };
+        auto finalImage{ RecordOutputPasses( commands.GetPtr(), drawOutline ) };
 
         mPasses->mGeometry.ClearDraws();
         commands->Close();
@@ -296,8 +303,7 @@ namespace mikoto::renderer {
     }
 
     auto CompatibilityRenderer::RequestPick( const ReadPixelViewportInfo& viewport ) -> bool {
-        if ( !mPasses || !mSceneColor ||
-             !( mDevice->IsGraphicsApi( rhi::GraphicsAPI::eD3D11 ) || mDevice->IsGraphicsApi( rhi::GraphicsAPI::eOpenGL ) ) ) {
+        if ( !mPasses || !mSceneColor ) {
             return false;
         }
 

@@ -19,21 +19,13 @@
 
 #include <ankerl/unordered_dense.h>
 
-// The Jolt headers don't include Jolt.h. Always include Jolt.h before including any other Jolt header.
-// You can use Jolt.h in your precompiled header to speed up compilation.
-// Jolt includes
-#include <Jolt/Jolt.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
-
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Service.hh>
 #include <Core/Singleton.hh>
 
 #include <Physics/PhysicsWorld.hh>
-#if defined( MIKOTO_ENABLE_PHYSX )
-#include <Physics/PhysXBackend.hh>
-#endif
+#include <Physics/PhysicsBackend.hh>
 
 #include <Renderer/Core/PhysicsDebugRenderer.hh>
 
@@ -61,28 +53,20 @@ namespace mikoto::physics {
         MKT_NODISCARD auto GetDebugRenderer() const -> renderer::PhysicsDebugRenderer*;
         MKT_NODISCARD auto GetDebugRendererSimple() const -> renderer::PhysicsDebugRendererSimple*;
 
-        MKT_NODISCARD auto GetJoltJobSystem() -> JPH::JobSystemThreadPool*;
         MKT_NODISCARD auto CreatePhysicsWorld(const PhysicsWorldCreateInfo& spec) -> PhysicsWorld*;
-
-#if defined( MIKOTO_ENABLE_PHYSX )
-        MKT_NODISCARD auto GetPhysXBackend() -> PhysXBackend&;
-#endif
+        MKT_NODISCARD auto GetPhysicsBackend() const -> const PhysicsBackend&;
 
         ~PhysicSystem() override = default;
 
     private:
-        auto InitializeRuntime() -> void;
         auto InitializeDebugRenderer() -> void;
 
         PhysicsWorld* mActiveWorld{};
 
-        eastl::unique_ptr<JPH::JobSystemThreadPool> mJobSystem{};
+        PhysicsBackend mPhysicsBackend{};
+
         eastl::unique_ptr<renderer::PhysicsDebugRenderer> mPhysicsDebugRenderer{};
         eastl::unique_ptr<renderer::PhysicsDebugRendererSimple> mPhysicsDebugRendererSimple{};
-
-#if defined( MIKOTO_ENABLE_PHYSX )
-        PhysXBackend mPhysXBackend{};
-#endif
 
         ankerl::unordered_dense::map<scene::Scene*, eastl::unique_ptr<PhysicsWorld>> mWorlds{};
     };

@@ -46,7 +46,7 @@ namespace mikoto::editor {
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
-    static auto BeginRendererRows( const char* id, ImGuiTableFlags flags = ImGuiTableFlags_None ) -> bool {
+    MKT_NODISCARD static auto BeginRendererRows( const char* id, ImGuiTableFlags flags = ImGuiTableFlags_None ) -> bool {
         if ( !ImGui::BeginTable( id, 2, flags | ImGuiTableFlags_NoSavedSettings ) ) {
             return false;
         }
@@ -179,8 +179,8 @@ namespace mikoto::editor {
 
         auto& sceneRenderer{ *mEditorState->mEditorRenderer };
         if ( !sceneRenderer.HasFrameGraph() ) {
+            auto changed{ false };
             auto settings{ sceneRenderer.GetSettings() };
-            bool changed{};
 
             if ( ImGui::CollapsingHeader( MKT_LOC( "renderer_shadows" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
                 if ( BeginRendererRows( "CompatibilityShadows" ) ) {

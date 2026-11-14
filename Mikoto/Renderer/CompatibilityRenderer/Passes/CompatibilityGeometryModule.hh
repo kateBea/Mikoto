@@ -19,6 +19,9 @@
 #include <EASTL/vector.h>
 
 #include <Renderer/Rhi/Pipeline.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
+
 #include <Renderer/CompatibilityRenderer/Passes/CompatibilityMaterialModule.hh>
 
 namespace mikoto::scene {
@@ -32,12 +35,21 @@ namespace mikoto::renderer {
     /** Gathers visible meshes and records their compatibility raster passes. */
     class CompatibilityGeometryModule {
     public:
-        auto Initialize( rhi::IGpuDevice& device ) -> void;
+        auto Initialize( rhi::IGpuDevice* device ) -> void;
         auto Prepare( const scene::Scene& scene, const scene::Camera& camera, core::u32 hoverID ) -> void;
-        auto Record( rhi::ICommandList& commands, const CompatibilityEnvironment& environment, rhi::IBuffer& frameUniform,
+        auto Record(
+            rhi::ICommandList* commands,
+            const CompatibilityEnvironment& environment,
+            rhi::IBuffer& frameUniform,
             const rhi::TextureHandle& shadowMap ) -> void;
-        auto RecordSelection( rhi::ICommandList& commands, const CompatibilityEnvironment& environment, rhi::IBuffer& frameUniform ) -> void;
-        auto RecordShadows( rhi::ICommandList& commands, const CompatibilityEnvironment& environment, rhi::IBuffer& frameUniform ) -> void;
+        auto RecordSelection(
+            rhi::ICommandList* commands,
+            const CompatibilityEnvironment& environment,
+            rhi::IBuffer& frameUniform ) -> void;
+        auto RecordShadows(
+            rhi::ICommandList* commands,
+            const CompatibilityEnvironment& environment,
+            rhi::IBuffer& frameUniform ) -> void;
         auto ClearDraws() -> void;
         MKT_NODISCARD auto GetDrawCount() const -> core::usize { return mOpaque.size() + mTransparent.size(); }
         MKT_NODISCARD auto HasHighlights() const -> bool { return mHasHighlights; }
@@ -54,8 +66,12 @@ namespace mikoto::renderer {
             core::f32 mDepth{};
         };
 
-        auto RecordDraw( rhi::ICommandList& commands, const Draw& draw, const CompatibilityEnvironment& environment,
-            rhi::IBuffer& frameUniform, const rhi::TextureHandle& shadowMap, bool transparentPass = false ) -> void;
+        auto RecordDraw(
+            rhi::ICommandList* commands,
+            const Draw& draw,
+            const CompatibilityEnvironment& environment,
+            rhi::IBuffer& frameUniform, const rhi::TextureHandle& shadowMap,
+            bool transparentPass = false ) -> void;
 
         CompatibilityMaterialModule mMaterials{};
         rhi::PipelineHandle mPipeline{};

@@ -49,7 +49,7 @@ namespace mikoto::renderer {
             -center.z - shadowDistance, -center.z + shadowDistance ) * lightView;
     }
 
-    auto CompatibilityShadowModule::Record( rhi::IGpuDevice& device, rhi::ICommandList& commands, const scene::Scene& scene,
+    auto CompatibilityShadowModule::Record( rhi::IGpuDevice* device, rhi::ICommandList* commands, const scene::Scene& scene,
         const scene::Camera& camera, CompatibilityGeometryModule& geometry, const CompatibilityEnvironment& environment,
         const SceneRenderSettings& settings ) -> void {
         MKT_BEGIN_PROFILER();
@@ -119,14 +119,14 @@ namespace mikoto::renderer {
             .SetRenderArea( rhi::Rect{ core::as<core::i32>( resolution ), core::as<core::i32>( resolution ) } )
             .AddDepthTarget( mDepth )
             .AddRenderTarget( mColor, rhi::kColorWhite ) };
-        commands.SetTransition( rhi::TransitionDescription{}
+        commands->SetTransition( rhi::TransitionDescription{}
             .AddTexture( mColor.GetPtr(), rhi::ResourceStates::eRenderTarget )
             .AddTexture( mDepth.GetPtr(), rhi::ResourceStates::eDepthWrite ) );
-        commands.BeginRenderPass( pass );
+        commands->BeginRenderPass( pass );
         SetCompatibilityViewport( commands, size );
         geometry.RecordShadows( commands, environment, *uniform.GetPtr() );
-        commands.EndRenderPass();
-        commands.SetTransition( rhi::TransitionDescription{}.AddTexture( mColor.GetPtr(), rhi::ResourceStates::eShaderResource ) );
+        commands->EndRenderPass();
+        commands->SetTransition( rhi::TransitionDescription{}.AddTexture( mColor.GetPtr(), rhi::ResourceStates::eShaderResource ) );
 
         mDiagnostics.mMappedLights[core::as<core::usize>( LightType::eDirectional )] = 1;
         mDiagnostics.mSubmittedMaps = 1;

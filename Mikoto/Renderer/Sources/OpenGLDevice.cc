@@ -28,6 +28,7 @@
 
 #include <Platform/Window.hh>
 
+#include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Core/RenderSystem.hh>
 #include <Renderer/Rhi/OpenGL/OpenGLDevice.hh>
 #include <Renderer/Rhi/OpenGL/OpenGLBuffer.hh>
@@ -452,6 +453,74 @@ namespace mikoto::renderer::opengl {
         dynamic_cast<Buffer &>( *buffer ).UnMap();
     }
 
+    auto Device::ReadTextureRegion( const rhi::ITexture* texture, const rhi::Rect& region, eastl::span<core::u8> destination ) -> bool {
+        MKT_BEGIN_PROFILER();
+
+        if ( !mInitialized || !texture || texture->GetOwningDevice() != this ) {
+            return false;
+        }
+        mState->RequireOwner();
+
+        const auto rowSize{ rhi::GetTextureReadbackRowSize( *texture, region, destination.size() ) };
+        if ( !rowSize ) {
+            return false;
+        }
+
+        const auto width{ region.mMaxX - region.mMinX };
+        const auto height{ region.mMaxY - region.mMinY };
+        const auto byteSize{ rowSize * core::as<core::usize>( height ) };
+        if ( byteSize > eastl::numeric_limits<GLsizei>::max() ) {
+            return false;
+        }
+
+        const auto format{ opengl::GetFormat( texture->GetFormat() ) };
+        const auto name{ texture->GetNativeHandle( rhi::ObjectType::GL_Texture ) };
+        const auto bottom{ texture->GetHeight() - core::as<core::u32>( region.mMaxY ) };
+
+        // Read into CPU memory with tightly packed rows, regardless of the current pack state.
+        // https://registry.khronos.org/OpenGL/extensions/ARB/ARB_get_texture_sub_image.txt
+        GLint packBuffer{};
+        glGetIntegerv( GL_PIXEL_PACK_BUFFER_BINDING, &packBuffer );
+        glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
+
+        struct PackSetting {
+            GLenum mName{};
+            GLint mValue{};
+            GLint mPrevious{};
+        };
+        PackSetting settings[]{
+            { .mName = GL_PACK_ALIGNMENT, .mValue = 1 },
+            { .mName = GL_PACK_ROW_LENGTH },
+            { .mName = GL_PACK_SKIP_ROWS },
+            { .mName = GL_PACK_SKIP_PIXELS },
+            { .mName = GL_PACK_SWAP_BYTES }
+        };
+        for ( auto& setting: settings ) {
+            glGetIntegerv( setting.mName, &setting.mPrevious );
+            glPixelStorei( setting.mName, setting.mValue );
+        }
+
+        glGetTextureSubImage( core::as<GLuint>( name.mInteger ), 0, region.mMinX, core::as<GLint>( bottom ), 0,
+            width, height, 1, format.mExternal, format.mType, core::as<GLsizei>( byteSize ), destination.data() );
+        const bool read{ glGetError() == GL_NO_ERROR };
+
+        for ( const auto& setting: settings ) {
+            glPixelStorei( setting.mName, setting.mPrevious );
+        }
+        glBindBuffer( GL_PIXEL_PACK_BUFFER, core::as<GLuint>( packBuffer ) );
+        if ( !read ) {
+            return false;
+        }
+
+        // The RHI returns the top row first; GL gives us the bottom row first.
+        for ( core::usize row{}; row < core::as<core::usize>( height / 2 ); ++row ) {
+            auto* first{ destination.data() + row * rowSize };
+            auto* last{ destination.data() + byteSize - ( row + 1 ) * rowSize };
+            eastl::swap_ranges( first, first + rowSize, last );
+        }
+        return true;
+    }
+
     auto Device::CreateAccelStructure( const renderer::rhi::AccelStructureCreateDescription & ) -> renderer::rhi::AccelStructureHandle {
         Unsupported( "ray tracing acceleration structures" );
 
@@ -539,7 +608,9 @@ namespace mikoto::renderer::opengl {
         // Report the initialized OpenGL backend's implemented paths, not the request mask.
         if ( mInitialized ) {
             supported = rhi::GpuFeatureSupportFlagsBits::HardwareWireframe |
-                        rhi::GpuFeatureSupportFlagsBits::WindowPresentation;
+                        rhi::GpuFeatureSupportFlagsBits::WindowPresentation |
+                        rhi::GpuFeatureSupportFlagsBits::TextureRegionReadback |
+                        rhi::GpuFeatureSupportFlagsBits::OrderedUniformBufferWrites;
         }
 
         return ( supported & supportFlags ) == supportFlags;

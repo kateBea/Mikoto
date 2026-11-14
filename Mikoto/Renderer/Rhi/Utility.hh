@@ -48,6 +48,11 @@ namespace mikoto::renderer::rhi {
      */
     MKT_NODISCARD auto GetFormatInfo( Format format ) -> const FormatInfo&;
 
+    class ITexture;
+
+    /** Returns the packed row size for a valid color readback, or zero if the region does not fit. */
+    MKT_NODISCARD auto GetTextureReadbackRowSize( const ITexture& texture, const Rect& region, core::usize capacity ) -> core::usize;
+
     /**
      * Returns the value produced by InferDimensions.
      *

@@ -812,8 +812,9 @@ namespace mikoto::physics {
         UpdateCharacters( simulationTime );
         ApplyBuoyancy( simulationTime );
         UpdateSoftBodyGrab( simulationTime );
+        const auto& backend{ PhysicSystem::Get()->GetPhysicsBackend() };
         const auto errors{ mSimulationInfo->mPhysicsSystem.Update( simulationTime, collisionSteps,
-            mSimulationInfo->mTempAllocator.get(), PhysicSystem::Get()->GetJoltJobSystem() ) };
+            mSimulationInfo->mTempAllocator.get(), backend.GetJoltJobSystem() ) };
         ReportUpdateErrors( errors );
 
         PostUpdate();

@@ -363,6 +363,9 @@ namespace mikoto::renderer::opengl {
 
         auto UnMap( renderer::rhi::IBuffer *buffer ) -> void override;
         MKT_NODISCARD auto Map( renderer::rhi::IBuffer *buffer ) -> void * override;
+        MKT_NODISCARD auto ReadTextureRegion(
+            const rhi::ITexture* texture, const rhi::Rect& region,
+            eastl::span<core::u8> destination ) -> bool override;
 
         MKT_NODISCARD auto CreateBindingLayout( const renderer::rhi::BindingLayoutDescription &desc ) -> renderer::rhi::BindingLayoutHandle override;
         MKT_NODISCARD auto CreatePipelineLayout( const renderer::rhi::PipelineLayoutCreateDescription &desc ) -> renderer::rhi::PipelineLayoutHandle override;

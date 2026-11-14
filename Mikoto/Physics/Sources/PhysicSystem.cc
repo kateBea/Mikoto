@@ -12,19 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <utility>
 #include <ranges>
-#include <cstdarg>
 
-#include <EASTL/fixed_string.h>
-
-// The Jolt headers don't include Jolt.h. Always include Jolt.h before including any other Jolt header.
-// You can use Jolt.h in your precompiled header to speed up compilation.
 #include <Jolt/Jolt.h>
-
-// Jolt includes
-#include <Jolt/Core/Factory.h>
-#include <Jolt/RegisterTypes.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -33,9 +23,6 @@
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
 
-#include <Threading/Utility.hh>
-
-#include <Physics/Utility.hh>
 #include <Physics/PhysicsWorld.hh>
 #include <Physics/PhysicSystem.hh>
 
@@ -48,32 +35,7 @@ namespace mikoto::physics {
 
     using namespace mikoto::scene;
 
-    // Route Jolt diagnostics through the engine logger.
-    static auto TraceImpl( const char *inFMT, ... ) -> void {
-        MKT_BEGIN_PROFILER();
-        // Format the message
-        std::va_list list{};
-        va_start( list, inFMT );
-
-        char buffer[1024]{};
-        vsnprintf( buffer, sizeof( buffer ), inFMT, list );
-        va_end( list );
-
-        MKT_CORE_LOGGER_DEBUG( "Jolt Trace {}", buffer );
-    }
-
     PhysicSystem::PhysicSystem( const PhysicServiceCreateInfo & ) {
-    }
-
-    auto PhysicSystem::InitializeRuntime() -> void {
-        // Jolt's allocator and type registry are process-wide; worlds are created afterwards.
-        JPH::RegisterDefaultAllocator();
-        JPH::Trace = TraceImpl;
-        JPH_IF_ENABLE_ASSERTS( JPH::AssertFailed = AssertFailedImpl; )
-        JPH::Factory::sInstance = new JPH::Factory();
-        JPH::RegisterTypes();
-        mJobSystem = eastl::make_unique<JPH::JobSystemThreadPool>( JPH::cMaxPhysicsJobs,
-            JPH::cMaxPhysicsBarriers, threading::GetThreadConcurrency() );
     }
 
     auto PhysicSystem::InitializeDebugRenderer() -> void {
@@ -104,22 +66,12 @@ namespace mikoto::physics {
         MKT_CORE_LOGGER_INFO( "Initializing PhysicSystem..." );
 
         try {
-            InitializeRuntime();
+            mPhysicsBackend.Initialize();
             InitializeDebugRenderer();
-#if defined( MIKOTO_ENABLE_PHYSX )
-            mPhysXBackend.Initialize();
-#endif
             mIsInitialized = true;
         } catch ( ... ) {
             mPhysicsDebugRendererSimple.reset();
-            mJobSystem.reset();
-
-            if ( JPH::Factory::sInstance ) {
-                JPH::UnregisterTypes();
-                delete JPH::Factory::sInstance;
-                JPH::Factory::sInstance = nullptr;
-            }
-
+            mPhysicsBackend.Shutdown();
             throw;
         }
     }
@@ -153,16 +105,7 @@ namespace mikoto::physics {
         }
 
         mWorlds.clear();
-
-#if defined( MIKOTO_ENABLE_PHYSX )
-        mPhysXBackend.Shutdown();
-#endif
-
-        mJobSystem.reset();
-
-        JPH::UnregisterTypes();
-        delete JPH::Factory::sInstance;
-        JPH::Factory::sInstance = nullptr;
+        mPhysicsBackend.Shutdown();
 
         mIsInitialized = false;
     }
@@ -227,16 +170,9 @@ namespace mikoto::physics {
         return mPhysicsDebugRendererSimple.get();
     }
 
-    auto PhysicSystem::GetJoltJobSystem() -> JPH::JobSystemThreadPool * {
-        MKT_BEGIN_PROFILER();
-        return mJobSystem.get();
+    auto PhysicSystem::GetPhysicsBackend() const -> const PhysicsBackend& {
+        return mPhysicsBackend;
     }
-
-#if defined( MIKOTO_ENABLE_PHYSX )
-    auto PhysicSystem::GetPhysXBackend() -> PhysXBackend& {
-        return mPhysXBackend;
-    }
-#endif
 
     auto PhysicSystem::CreatePhysicsWorld( const PhysicsWorldCreateInfo &spec ) -> PhysicsWorld * {
         MKT_BEGIN_PROFILER();

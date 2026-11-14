@@ -4081,6 +4081,10 @@ namespace mikoto::renderer::d3d12 {
         return b->GetMappedAddress();
     }
 
+    auto Device::ReadTextureRegion( const rhi::ITexture*, const rhi::Rect&, eastl::span<core::u8> ) -> bool {
+        return false;
+    }
+
     auto Device::CreateDescriptorTableLayout( const renderer::rhi::DescriptorTableLayoutDescription& desc ) -> renderer::rhi::BindingLayoutHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::BindingLayoutHandle layout{ core::Ref<BindingLayout>::New( desc ) };

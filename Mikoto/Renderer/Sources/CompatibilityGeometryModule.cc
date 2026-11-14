@@ -40,7 +40,7 @@
 namespace mikoto::renderer {
     static constexpr core::u32 kVertexStreamSlot{};
 
-    auto CompatibilityGeometryModule::Initialize( rhi::IGpuDevice& device ) -> void {
+    auto CompatibilityGeometryModule::Initialize( rhi::IGpuDevice* device ) -> void {
         MKT_BEGIN_PROFILER();
 
         mMaterials.Initialize( device );
@@ -74,7 +74,7 @@ namespace mikoto::renderer {
                 .SetFormat( rhi::Format::eRG32_FLOAT ).SetOffset( offsetof( Vertex, mUv1 ) )
         };
 
-        auto input{ device.CreateInputLayout( rhi::InputLayoutCreateDescription{}
+        auto input{ device->CreateInputLayout( rhi::InputLayoutCreateDescription{}
             .SetBindings( streams )
             .SetAttributes( attributes )
             .SetShader( vertex ) ) };
@@ -92,23 +92,23 @@ namespace mikoto::renderer {
             .SetBlendEnable( false )
             .SetDepthTest( true )
             .SetDepthWrite( true ) };
-        mPipeline = device.CreatePipeline( description );
+        mPipeline = device->CreatePipeline( description );
 
         // glTF BLEND uses source-over composition with opaque depth still active.
         // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#alpha-coverage
         auto transparent{ description };
-        mTransparentPipeline = device.CreatePipeline( transparent
+        mTransparentPipeline = device->CreatePipeline( transparent
             .SetBlendEnable( true )
             .SetDepthWrite( false ) );
 
         auto selection{ description };
         selection.mColorFormats.clear();
-        mSelectionPipeline = device.CreatePipeline( selection.AddColorFormat( rhi::Format::eRG32_UINT )
+        mSelectionPipeline = device->CreatePipeline( selection.AddColorFormat( rhi::Format::eRG32_UINT )
             .AddShader( library->LoadShader( "../compatibility/slang/CompatibilitySelection_Frag.slang", rhi::ShaderType::ePixel ) ) );
 
         auto shadow{ description };
         shadow.mColorFormats.clear();
-        mShadowPipeline = device.CreatePipeline( shadow.AddColorFormat( rhi::Format::eR32_FLOAT )
+        mShadowPipeline = device->CreatePipeline( shadow.AddColorFormat( rhi::Format::eR32_FLOAT )
             .AddShader( library->LoadShader( "../compatibility/slang/CompatibilityShadow_Frag.slang", rhi::ShaderType::ePixel ) ) );
 
         if ( !input || !mPipeline || !mTransparentPipeline || !mSelectionPipeline || !mShadowPipeline ) {
@@ -167,10 +167,10 @@ namespace mikoto::renderer {
         }
     }
 
-    auto CompatibilityGeometryModule::Record( rhi::ICommandList& commands,
+    auto CompatibilityGeometryModule::Record( rhi::ICommandList* commands,
         const CompatibilityEnvironment& environment, rhi::IBuffer& frameUniform, const rhi::TextureHandle& shadowMap ) -> void {
         mMaterials.BeginFrame();
-        commands.BindPipeline( mPipeline.GetPtr() );
+        commands->BindPipeline( mPipeline.GetPtr() );
         for ( const auto& draw: mOpaque ) {
             RecordDraw( commands, draw, environment, frameUniform, shadowMap );
         }
@@ -189,16 +189,16 @@ namespace mikoto::renderer {
             return first.mDepth == second.mDepth ? first.mID < second.mID : first.mDepth < second.mDepth;
         } );
 
-        commands.BindPipeline( mTransparentPipeline.GetPtr() );
+        commands->BindPipeline( mTransparentPipeline.GetPtr() );
         for ( const auto& draw: mTransparent ) {
             RecordDraw( commands, draw, environment, frameUniform, shadowMap, true );
         }
     }
 
-    auto CompatibilityGeometryModule::RecordSelection( rhi::ICommandList& commands,
+    auto CompatibilityGeometryModule::RecordSelection( rhi::ICommandList* commands,
         const CompatibilityEnvironment& environment, rhi::IBuffer& frameUniform ) -> void {
         mMaterials.BeginFrame();
-        commands.BindPipeline( mSelectionPipeline.GetPtr() );
+        commands->BindPipeline( mSelectionPipeline.GetPtr() );
 
         for ( const auto& draw: mOpaque ) {
             RecordDraw( commands, draw, environment, frameUniform, {} );
@@ -208,10 +208,10 @@ namespace mikoto::renderer {
         }
     }
 
-    auto CompatibilityGeometryModule::RecordShadows( rhi::ICommandList& commands,
+    auto CompatibilityGeometryModule::RecordShadows( rhi::ICommandList* commands,
         const CompatibilityEnvironment& environment, rhi::IBuffer& frameUniform ) -> void {
         mMaterials.BeginFrame();
-        commands.BindPipeline( mShadowPipeline.GetPtr() );
+        commands->BindPipeline( mShadowPipeline.GetPtr() );
 
         for ( const auto& draw: mOpaque ) {
             RecordDraw( commands, draw, environment, frameUniform, {} );
@@ -227,7 +227,7 @@ namespace mikoto::renderer {
         mTransparent.clear();
     }
 
-    auto CompatibilityGeometryModule::RecordDraw( rhi::ICommandList& commands, const Draw& draw,
+    auto CompatibilityGeometryModule::RecordDraw( rhi::ICommandList* commands, const Draw& draw,
         const CompatibilityEnvironment& environment, rhi::IBuffer& frameUniform, const rhi::TextureHandle& shadowMap,
         bool transparentPass ) -> void {
         mMaterials.Bind( commands, draw.mSurface, draw.mWorld, draw.mNormalMatrix, environment, frameUniform,
@@ -235,12 +235,12 @@ namespace mikoto::renderer {
 
         auto indices{ draw.mIndices };
         auto vertices{ draw.mVertices };
-        commands.BindIndexBuffer( indices.GetPtr() );
-        commands.BindVertexBuffer( rhi::VertexBufferBinding{}
+        commands->BindIndexBuffer( indices.GetPtr() );
+        commands->BindVertexBuffer( rhi::VertexBufferBinding{}
             .SetBufferBinding( kVertexStreamSlot )
             .SetBuffer( vertices.GetPtr() )
             .SetElementStride( sizeof( asset::VertexDescription_Std430Alignment ) ) );
-        commands.DrawIndexed( rhi::DrawArguments{}
+        commands->DrawIndexed( rhi::DrawArguments{}
             .SetInstanceCount( 1 )
             .SetIndexCount( core::as<core::u32>( draw.mIndices->GetSizeBytes() / sizeof( core::u32 ) ) ) );
     }

@@ -60,7 +60,7 @@ namespace mikoto::renderer {
         core::f32 mLastSourceMip{};
     };
 
-    static auto RecordEnvironmentBake( rhi::ICommandList& commands, rhi::TextureHandle texture, rhi::IPipeline& pipeline,
+    static auto RecordEnvironmentBake( rhi::ICommandList* commands, rhi::TextureHandle texture, rhi::IPipeline& pipeline,
         const rhi::BindResourcesDescription& bindings, eastl::string_view name ) -> void {
         const rhi::Extent2D size{ .mWidth = texture->GetWidth(), .mHeight = texture->GetHeight() };
         auto pass{ rhi::RenderPassDescription{}
@@ -68,18 +68,18 @@ namespace mikoto::renderer {
             .SetRenderArea( rhi::Rect{ core::as<core::i32>( size.mWidth ), core::as<core::i32>( size.mHeight ) } )
             .AddRenderTarget( texture, rhi::kColorTransparent ) };
 
-        commands.SetTransition( rhi::TransitionDescription{}.AddTexture( texture.GetPtr(), rhi::ResourceStates::eRenderTarget ) );
-        commands.BeginRenderPass( pass );
+        commands->SetTransition( rhi::TransitionDescription{}.AddTexture( texture.GetPtr(), rhi::ResourceStates::eRenderTarget ) );
+        commands->BeginRenderPass( pass );
         SetCompatibilityViewport( commands, size );
-        commands.BindPipeline( &pipeline );
+        commands->BindPipeline( &pipeline );
 
         if ( !bindings.mResourceSets.empty() ) {
-            commands.BindPipelineResources( bindings );
+            commands->BindPipelineResources( bindings );
         }
 
-        commands.Draw( rhi::DrawArguments{}.SetVertexCount( kFullscreenTriangleVertexCount ).SetInstanceCount( 1 ) );
-        commands.EndRenderPass();
-        commands.SetTransition( rhi::TransitionDescription{}.AddTexture( texture.GetPtr(), rhi::ResourceStates::eShaderResource ) );
+        commands->Draw( rhi::DrawArguments{}.SetVertexCount( kFullscreenTriangleVertexCount ).SetInstanceCount( 1 ) );
+        commands->EndRenderPass();
+        commands->SetTransition( rhi::TransitionDescription{}.AddTexture( texture.GetPtr(), rhi::ResourceStates::eShaderResource ) );
     }
 
     auto CompatibilityEnvironment::DeclareBindings( rhi::BindingLayoutDescription& layout ) -> void {
@@ -112,16 +112,16 @@ namespace mikoto::renderer {
         bindings.AddItem( rhi::BindingTableItem::TextureSRV( kEnvironmentBrdfSlot, brdf.GetPtr() ) );
     }
 
-    auto CompatibilityEnvironmentModule::Initialize( rhi::IGpuDevice& device ) -> void {
-        mDevice = &device;
-        mFallback = device.CreateTexture( rhi::TextureCreateDescription{}
+    auto CompatibilityEnvironmentModule::Initialize( rhi::IGpuDevice* device ) -> void {
+        mDevice = device;
+        mFallback = device->CreateTexture( rhi::TextureCreateDescription{}
             .SetName( "Compatibility texture fallback" )
             .SetWidth( 1 )
             .SetHeight( 1 )
             .SetDimensions( rhi::TextureDimension::eTexture2D )
             .SetFormat( rhi::Format::eRGBA8_UNORM )
             .SetUsage( rhi::TextureUsageFlagsBits::ShaderResource | rhi::TextureUsageFlagsBits::CopyDest ) );
-        mSampler = device.CreateSampler( rhi::SamplerCreateDescription{}
+        mSampler = device->CreateSampler( rhi::SamplerCreateDescription{}
             .SetFilter( rhi::SamplerFilter::eLinear )
             .SetWrap( rhi::SamplerWrapMode::eClampToEdge ) );
 
@@ -130,11 +130,11 @@ namespace mikoto::renderer {
             .SetShaderVisibility( rhi::ShaderFlagsBits::Pixel )
             .AddItem( rhi::BindingLayoutItem::ConstantBuffer( kCompatibilityFrameSlot ) ) };
         CompatibilityEnvironment::DeclareBindings( layout );
-        mBindings = device.CreateBindingLayout( layout );
-        mLayout = device.CreatePipelineLayout( rhi::PipelineLayoutCreateDescription{}.AddBindingLayout( mBindings ) );
+        mBindings = device->CreateBindingLayout( layout );
+        mLayout = device->CreatePipelineLayout( rhi::PipelineLayoutCreateDescription{}.AddBindingLayout( mBindings ) );
 
         auto* library{ asset::AssetRegistryService::Get()->GetShaderLibrary() };
-        mPipeline = device.CreatePipeline( rhi::GraphicsPipelineDescription{}
+        mPipeline = device->CreatePipeline( rhi::GraphicsPipelineDescription{}
             .AddColorFormat( kCompatibilitySceneFormat )
             .SetDepthFormat( kCompatibilityDepthFormat )
             .SetTopology( rhi::PrimitiveTopology::eTriangleList )
@@ -155,15 +155,15 @@ namespace mikoto::renderer {
             .SetDepthWrite( false )
             .SetUseReflection( false ) };
         auto prefilter{ bakePipeline };
-        mBakePipeline = device.CreatePipeline( prefilter
+        mBakePipeline = device->CreatePipeline( prefilter
             .AddColorFormat( kCompatibilitySceneFormat )
             .SetPipelineLayout( mLayout )
             .AddShader( library->LoadShader( "../compatibility/slang/CompatibilityFullscreen_Vert.slang", rhi::ShaderType::eVertex ) )
             .AddShader( library->LoadShader( "../compatibility/slang/CompatibilityEnvironmentBake_Frag.slang", rhi::ShaderType::ePixel ) ) );
 
-        mBrdfLayout = device.CreatePipelineLayout( rhi::PipelineLayoutCreateDescription{} );
+        mBrdfLayout = device->CreatePipelineLayout( rhi::PipelineLayoutCreateDescription{} );
         auto lut{ bakePipeline };
-        mBrdfPipeline = device.CreatePipeline( lut
+        mBrdfPipeline = device->CreatePipeline( lut
             .AddColorFormat( rhi::Format::eRG16_FLOAT )
             .SetPipelineLayout( mBrdfLayout )
             .AddShader( library->LoadShader( "BRDFLut_Vert.slang", rhi::ShaderType::eVertex ) )
@@ -174,15 +174,15 @@ namespace mikoto::renderer {
         }
     }
 
-    auto CompatibilityEnvironmentModule::Prepare( rhi::ICommandList& commands, const material::SkyboxMaterial* skybox,
+    auto CompatibilityEnvironmentModule::Prepare( rhi::ICommandList* commands, const material::SkyboxMaterial* skybox,
         core::f32 strength, core::f32 blur ) -> CompatibilityEnvironment {
         MKT_BEGIN_PROFILER();
 
         if ( !mFallbackUploaded ) {
             constexpr eastl::array<core::u8, 4> white{ 255, 255, 255, 255 };
-            commands.SetTransition( rhi::TransitionDescription{}.AddTexture( mFallback.GetPtr(), rhi::ResourceStates::eCopyDest ) );
-            commands.Write( mFallback.GetPtr(), white.data(), white.size() );
-            commands.SetTransition( rhi::TransitionDescription{}.AddTexture( mFallback.GetPtr(), rhi::ResourceStates::eShaderResource ) );
+            commands->SetTransition( rhi::TransitionDescription{}.AddTexture( mFallback.GetPtr(), rhi::ResourceStates::eCopyDest ) );
+            commands->Write( mFallback.GetPtr(), white.data(), white.size() );
+            commands->SetTransition( rhi::TransitionDescription{}.AddTexture( mFallback.GetPtr(), rhi::ResourceStates::eShaderResource ) );
             mFallbackUploaded = true;
         }
 
@@ -230,12 +230,12 @@ namespace mikoto::renderer {
         return environment;
     }
 
-    auto CompatibilityEnvironmentModule::BakeLighting( rhi::ICommandList& commands, const CompatibilityEnvironment& environment ) -> void {
+    auto CompatibilityEnvironmentModule::BakeLighting( rhi::ICommandList* commands, const CompatibilityEnvironment& environment ) -> void {
         MKT_BEGIN_PROFILER();
 
         const auto usage{ rhi::TextureUsageFlagsBits::RenderTarget | rhi::TextureUsageFlagsBits::ShaderResource };
         if ( !mBrdfLut ) {
-            ResizeCompatibilityTarget( *mDevice, mBrdfLut, kBrdfLutSize, rhi::Format::eRG16_FLOAT, usage, "Compatibility BRDF LUT" );
+            ResizeCompatibilityTarget( mDevice, mBrdfLut, kBrdfLutSize, rhi::Format::eRG16_FLOAT, usage, "Compatibility BRDF LUT" );
             RecordEnvironmentBake( commands, mBrdfLut, *mBrdfPipeline.GetPtr(), {}, "Compatibility BRDF LUT" );
         }
 
@@ -244,14 +244,14 @@ namespace mikoto::renderer {
             .mWidth = kEnvironmentTileSize.mWidth + 2 * kEnvironmentGutter,
             .mHeight = ( kEnvironmentTileSize.mHeight + 2 * kEnvironmentGutter ) * ( kSpecularLevels + 1 )
         };
-        ResizeCompatibilityTarget( *mDevice, mFilteredLighting, atlasSize, kCompatibilitySceneFormat, usage, "Compatibility environment lighting" );
+        ResizeCompatibilityTarget( mDevice, mFilteredLighting, atlasSize, kCompatibilitySceneFormat, usage, "Compatibility environment lighting" );
 
         const EnvironmentBakeParameters parameters{
             .mTileSize = { kEnvironmentTileSize.mWidth, kEnvironmentTileSize.mHeight },
             .mSource = environment.mParameters.w,
             .mLastSourceMip = environment.mParameters.z
         };
-        auto uniform{ WriteCompatibilityUniform( *mDevice, commands, mBakeUniform, &parameters, sizeof( parameters ) ) };
+        auto uniform{ WriteCompatibilityUniform( mDevice, commands, mBakeUniform, &parameters, sizeof( parameters ) ) };
         auto description{ rhi::BindingTableDescription{}
             .AddItem( rhi::BindingTableItem::ConstantBuffer( kCompatibilityFrameSlot, uniform.GetPtr() ) ) };
         environment.AddBindings( description );
@@ -265,7 +265,7 @@ namespace mikoto::renderer {
         mBakedSources = environment.mTextures;
     }
 
-    auto CompatibilityEnvironmentModule::RecordSkybox( rhi::ICommandList& commands, const CompatibilityEnvironment& environment,
+    auto CompatibilityEnvironmentModule::RecordSkybox( rhi::ICommandList* commands, const CompatibilityEnvironment& environment,
         rhi::IBuffer& frameUniform ) -> void {
         MKT_BEGIN_PROFILER();
 
@@ -274,11 +274,11 @@ namespace mikoto::renderer {
         environment.AddBindings( description );
         auto table{ mDevice->CreateBindingTable( description, mBindings ) };
 
-        commands.BindPipeline( mPipeline.GetPtr() );
-        commands.BindPipelineResources( rhi::BindResourcesDescription{}
+        commands->BindPipeline( mPipeline.GetPtr() );
+        commands->BindPipelineResources( rhi::BindResourcesDescription{}
             .SetBindPoint( rhi::PipelineType::eGraphics )
             .SetPipelineLayout( mLayout.GetPtr() )
             .AddResourceSet( 0, table.GetPtr() ) );
-        commands.Draw( rhi::DrawArguments{}.SetVertexCount( kFullscreenTriangleVertexCount ).SetInstanceCount( 1 ) );
+        commands->Draw( rhi::DrawArguments{}.SetVertexCount( kFullscreenTriangleVertexCount ).SetInstanceCount( 1 ) );
     }
 }// namespace mikoto::renderer

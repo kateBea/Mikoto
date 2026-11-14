@@ -15,6 +15,9 @@
 #ifndef MIKOTO_RENDERER_COMPATIBILITY_RENDERER_HH
 #define MIKOTO_RENDERER_COMPATIBILITY_RENDERER_HH
 
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
+
 #include <Renderer/Core/SceneRenderer.hh>
 
 namespace mikoto::renderer {
@@ -66,7 +69,8 @@ namespace mikoto::renderer {
         auto SetTextureDropHover( core::u32 id ) -> void override;
         MKT_NODISCARD auto RequestPick( const ReadPixelViewportInfo& viewport ) -> bool override;
         MKT_NODISCARD auto GetPickResult() -> eastl::optional<core::u32> override;
-        MKT_NODISCARD auto ReadSelectionRectangle( const ReadPixelViewportInfo& first,
+        MKT_NODISCARD auto ReadSelectionRectangle(
+            const ReadPixelViewportInfo& first,
             const ReadPixelViewportInfo& last ) const -> eastl::vector<core::u32> override;
 
         auto SetArmatureDebugMode( ArmatureDebugMode mode ) -> void override;
@@ -91,9 +95,8 @@ namespace mikoto::renderer {
         struct Passes;
 
         auto UpdateTargets() -> void;
-        auto RecordScenePass( rhi::ICommandList& commands, const scene::Scene* scene ) -> void;
-
-    private:
+        MKT_NODISCARD auto RecordScenePass( rhi::ICommandList* commands, const scene::Scene* scene ) -> bool;
+        MKT_NODISCARD auto RecordOutputPasses( rhi::ICommandList* commands, bool drawOutline ) -> rhi::TextureHandle;
 
         rhi::IGpuDevice* mDevice{};
         const scene::SceneCamera* mCamera{};

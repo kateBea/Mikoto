@@ -28,8 +28,8 @@ namespace mikoto::renderer {
     static constexpr core::u32 kFullscreenSamplerSlot{ 2 };
     static constexpr core::u32 kFullscreenExtraSourceSlot{ 3 };
 
-    MKT_NODISCARD static auto CreateUniform( rhi::IGpuDevice& device, core::usize size ) -> rhi::BufferHandle {
-        auto buffer{ device.CreateBuffer( rhi::BufferCreateDescription{}
+    MKT_NODISCARD static auto CreateUniform( rhi::IGpuDevice* device, core::usize size ) -> rhi::BufferHandle {
+        auto buffer{ device->CreateBuffer( rhi::BufferCreateDescription{}
             .SetHeapType( rhi::HeapType::eUpload )
             .SetCpuAccessType( rhi::AccessType::eWrite )
             .SetInitialState( rhi::ResourceStates::eConstantBuffer )
@@ -44,30 +44,33 @@ namespace mikoto::renderer {
         return buffer;
     }
 
-    auto CreateReusableCompatibilityUniform( rhi::IGpuDevice& device, core::usize size ) -> rhi::BufferHandle {
-        // D3D11 DISCARD and OpenGL's recorded writes preserve each draw's data.
-        if ( device.IsGraphicsApi( rhi::GraphicsAPI::eD3D11 ) || device.IsGraphicsApi( rhi::GraphicsAPI::eOpenGL ) ) {
+    auto CreateReusableCompatibilityUniform( rhi::IGpuDevice* device, core::usize size ) -> rhi::BufferHandle {
+        // Reuse the allocation only when earlier draws keep seeing their own uniform data.
+        if ( device->IsFeatureSupported( rhi::GpuFeatureSupportFlagsBits::OrderedUniformBufferWrites ) ) {
             return CreateUniform( device, size );
         }
 
         return {};
     }
 
-    auto WriteCompatibilityUniform( rhi::IGpuDevice& device, rhi::ICommandList& commands,
+    auto WriteCompatibilityUniform( rhi::IGpuDevice* device, rhi::ICommandList* commands,
         rhi::BufferHandle reusable, const void* data, core::usize size ) -> rhi::BufferHandle {
         // A fresh upload buffer preserves the bytes until the recorded binding retires.
         auto uniform{ reusable ? eastl::move( reusable ) : CreateUniform( device, size ) };
-        commands.Write( uniform.GetPtr(), data, size );
+        commands->Write( uniform.GetPtr(), data, size );
         return uniform;
     }
 
-    auto ResizeCompatibilityTarget( rhi::IGpuDevice& device, rhi::TextureHandle& target,
-        rhi::Extent2D size, rhi::Format format, rhi::TextureUsageFlags usage, eastl::string_view name ) -> void {
+    auto ResizeCompatibilityTarget(
+        rhi::IGpuDevice* device,
+        rhi::TextureHandle& target,
+        rhi::Extent2D size, rhi::Format format,
+        rhi::TextureUsageFlags usage, eastl::string_view name ) -> void {
         if ( target && target->GetWidth() == size.mWidth && target->GetHeight() == size.mHeight ) {
             return;
         }
 
-        auto replacement{ device.CreateTexture( rhi::TextureCreateDescription{}
+        auto replacement{ device->CreateTexture( rhi::TextureCreateDescription{}
             .SetName( name )
             .SetWidth( size.mWidth )
             .SetHeight( size.mHeight )
@@ -82,16 +85,16 @@ namespace mikoto::renderer {
         target = eastl::move( replacement );
     }
 
-    auto SetCompatibilityViewport( rhi::ICommandList& commands, rhi::Extent2D size ) -> void {
-        commands.SetViewportState( rhi::ViewportState{}
+    auto SetCompatibilityViewport( rhi::ICommandList* commands, rhi::Extent2D size ) -> void {
+        commands->SetViewportState( rhi::ViewportState{}
             .AddViewportAndScissorRect( rhi::Viewport{ core::as<core::f32>( size.mWidth ), core::as<core::f32>( size.mHeight ) } ) );
     }
 
-    auto CompatibilityFullscreenPass::Initialize( rhi::IGpuDevice& device, eastl::string_view fragmentShader,
+    auto CompatibilityFullscreenPass::Initialize( rhi::IGpuDevice* device, eastl::string_view fragmentShader,
         core::usize uniformSize, bool extraSource ) -> void {
-        mDevice = &device;
+        mDevice = device;
         mUniform = CreateReusableCompatibilityUniform( device, uniformSize );
-        mSampler = device.CreateSampler( rhi::SamplerCreateDescription{}
+        mSampler = device->CreateSampler( rhi::SamplerCreateDescription{}
             .SetFilter( rhi::SamplerFilter::eLinear )
             .SetWrap( rhi::SamplerWrapMode::eClampToEdge ) );
 
@@ -105,11 +108,11 @@ namespace mikoto::renderer {
             bindings.AddItem( rhi::BindingLayoutItem::TextureSRV( kFullscreenExtraSourceSlot ) );
         }
 
-        mBindings = device.CreateBindingLayout( bindings );
-        mLayout = device.CreatePipelineLayout( rhi::PipelineLayoutCreateDescription{}.AddBindingLayout( mBindings ) );
+        mBindings = device->CreateBindingLayout( bindings );
+        mLayout = device->CreatePipelineLayout( rhi::PipelineLayoutCreateDescription{}.AddBindingLayout( mBindings ) );
 
         auto* library{ asset::AssetRegistryService::Get()->GetShaderLibrary() };
-        mPipeline = device.CreatePipeline( rhi::GraphicsPipelineDescription{}
+        mPipeline = device->CreatePipeline( rhi::GraphicsPipelineDescription{}
             .AddColorFormat( kCompatibilityOutputFormat )
             .SetTopology( rhi::PrimitiveTopology::eTriangleList )
             .SetCullMode( rhi::CullMode::eNone )
@@ -125,9 +128,9 @@ namespace mikoto::renderer {
         }
     }
 
-    auto CompatibilityFullscreenPass::Record( rhi::ICommandList& commands, eastl::string_view name, rhi::TextureHandle source,
+    auto CompatibilityFullscreenPass::Record( rhi::ICommandList* commands, eastl::string_view name, rhi::TextureHandle source,
         rhi::TextureHandle output, const void* parameters, core::usize parameterSize, const rhi::TextureHandle& extraSource ) -> void {
-        auto uniform{ WriteCompatibilityUniform( *mDevice, commands, mUniform, parameters, parameterSize ) };
+        auto uniform{ WriteCompatibilityUniform( mDevice, commands, mUniform, parameters, parameterSize ) };
         auto description{ rhi::BindingTableDescription{}
             .AddItem( rhi::BindingTableItem::ConstantBuffer( kFullscreenUniformSlot, uniform.GetPtr() ) )
             .AddItem( rhi::BindingTableItem::TextureSRV( kFullscreenSourceSlot, source.GetPtr() ) )
@@ -144,20 +147,20 @@ namespace mikoto::renderer {
             .SetRenderArea( rhi::Rect{ core::as<core::i32>( size.mWidth ), core::as<core::i32>( size.mHeight ) } )
             .AddRenderTarget( output, {} ) };
 
-        commands.SetTransition( rhi::TransitionDescription{}
+        commands->SetTransition( rhi::TransitionDescription{}
             .AddTexture( source.GetPtr(), rhi::ResourceStates::eShaderResource )
             .AddTexture( output.GetPtr(), rhi::ResourceStates::eRenderTarget ) );
-        commands.BeginRenderPass( pass );
+        commands->BeginRenderPass( pass );
         SetCompatibilityViewport( commands, size );
 
-        commands.BindPipeline( mPipeline.GetPtr() );
-        commands.BindPipelineResources( rhi::BindResourcesDescription{}
+        commands->BindPipeline( mPipeline.GetPtr() );
+        commands->BindPipelineResources( rhi::BindResourcesDescription{}
             .SetBindPoint( rhi::PipelineType::eGraphics )
             .SetPipelineLayout( mLayout.GetPtr() )
             .AddResourceSet( 0, bindings.GetPtr() ) );
-        commands.Draw( rhi::DrawArguments{}.SetVertexCount( kFullscreenTriangleVertexCount ).SetInstanceCount( 1 ) );
+        commands->Draw( rhi::DrawArguments{}.SetVertexCount( kFullscreenTriangleVertexCount ).SetInstanceCount( 1 ) );
 
-        commands.EndRenderPass();
-        commands.SetTransition( rhi::TransitionDescription{}.AddTexture( output.GetPtr(), rhi::ResourceStates::eShaderResource ) );
+        commands->EndRenderPass();
+        commands->SetTransition( rhi::TransitionDescription{}.AddTexture( output.GetPtr(), rhi::ResourceStates::eShaderResource ) );
     }
 }// namespace mikoto::renderer

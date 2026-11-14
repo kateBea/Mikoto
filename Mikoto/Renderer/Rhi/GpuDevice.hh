@@ -279,6 +279,20 @@ namespace mikoto::renderer::rhi {
 
 
         /**
+         * Synchronously reads a rectangle from mip zero of an uncompressed, single-sample 2D color texture.
+         * Submit its producing commands first and call from the submission thread. The texture needs CopySource usage.
+         *
+         * @param texture Source texture owned by this device.
+         * @param region Rectangle in texels, with its origin at the upper left and exclusive maxima.
+         * @param destination Tightly packed output rows in the texture format, top row first.
+         * @returns True on success; false for unsupported or invalid reads.
+         */
+        MKT_NODISCARD virtual auto ReadTextureRegion(
+            const ITexture* texture, const Rect& region,
+            eastl::span<core::u8> destination ) -> bool = 0;
+
+
+        /**
          * Creates a binding layout.
          *
          * @param desc Binding-layout creation parameters.

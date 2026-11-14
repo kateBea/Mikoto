@@ -12,18 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstring>
-
 #include <EASTL/hash_set.h>
 
-#include <Core/Platform.hh>
 #include <Core/Profiler.hh>
 
 #include <Renderer/Rhi/GpuDevice.hh>
-#include <Renderer/Rhi/OpenGL/OpenGLDevice.hh>
-#if defined( MIKOTO_PLATFORM_WINDOWS )
-#include <Renderer/Rhi/D3D11/D3D11Device.hh>
-#endif
 
 #include <Renderer/CompatibilityRenderer/Passes/CompatibilityGeometryModule.hh>
 #include <Renderer/CompatibilityRenderer/Passes/CompatibilitySelectionModule.hh>
@@ -53,8 +46,8 @@ namespace mikoto::renderer {
             core::uint2{ size.mWidth - 1, size.mHeight - 1 } );
     }
 
-    auto CompatibilitySelectionModule::Initialize( rhi::IGpuDevice& device ) -> void {
-        mDevice = &device;
+    auto CompatibilitySelectionModule::Initialize( rhi::IGpuDevice* device ) -> void {
+        mDevice = device;
         mOutline.Initialize( device, "../compatibility/slang/CompatibilityOutline_Frag.slang", sizeof( CompatibilityOutlineParameters ), true );
     }
 
@@ -64,7 +57,8 @@ namespace mikoto::renderer {
     }
 
     auto CompatibilitySelectionModule::Request( const ReadPixelViewportInfo& viewport, rhi::Extent2D size ) -> bool {
-        if ( !MapSelectionPixel( viewport, size ) ) {
+        if ( !mDevice->IsFeatureSupported( rhi::GpuFeatureSupportFlagsBits::TextureRegionReadback ) ||
+             !MapSelectionPixel( viewport, size ) ) {
             return false;
         }
 
@@ -122,70 +116,21 @@ namespace mikoto::renderer {
     auto CompatibilitySelectionModule::ReadRegion( core::uint2 offset, rhi::Extent2D size, eastl::span<core::uint2> pixels ) const -> bool {
         MKT_BEGIN_PROFILER();
 
-        // Picking is requested by the viewport and consumed after that frame submits.
-        // Copy only the requested pixel or rectangle back to the CPU.
-        if ( mDevice->IsGraphicsApi( rhi::GraphicsAPI::eOpenGL ) ) {
-            // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glGetTexImage.xhtml
-            const auto texture{ mImage->GetNativeHandle( rhi::ObjectType::GL_Texture ) };
-            const auto row{ mImage->GetHeight() - offset.y - size.mHeight };
-            GLint packBuffer{};
-            glGetIntegerv( GL_PIXEL_PACK_BUFFER_BINDING, &packBuffer );
-            glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
-            glGetTextureSubImage( core::as<GLuint>( texture.mInteger ), 0, offset.x, row, 0, size.mWidth, size.mHeight,
-                1, GL_RG_INTEGER, GL_UNSIGNED_INT, core::as<GLsizei>( pixels.size() * sizeof( core::uint2 ) ), pixels.data() );
-            glBindBuffer( GL_PIXEL_PACK_BUFFER, core::as<GLuint>( packBuffer ) );
-            return true;
-        }
-
-#if defined( MIKOTO_PLATFORM_WINDOWS )
-        if ( mDevice->IsGraphicsApi( rhi::GraphicsAPI::eD3D11 ) ) {
-            // https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-id3d11devicecontext-copysubresourceregion
-            auto* device{ core::checked_cast<d3d11::Device*>( mDevice ) };
-            auto* context{ device->GetDeviceContext() };
-            const D3D11_TEXTURE2D_DESC description{
-                .Width = size.mWidth,
-                .Height = size.mHeight,
-                .MipLevels = 1,
-                .ArraySize = 1,
-                .Format = DXGI_FORMAT_R32G32_UINT,
-                .SampleDesc = { .Count = 1 },
-                .Usage = D3D11_USAGE_STAGING,
-                .CPUAccessFlags = D3D11_CPU_ACCESS_READ
-            };
-            Microsoft::WRL::ComPtr<ID3D11Texture2D> staging{};
-            if ( FAILED( device->GetDevice()->CreateTexture2D( &description, nullptr, &staging ) ) ) {
-                return false;
-            }
-
-            ID3D11Texture2D* source{ mImage->GetNativeHandle( rhi::ObjectType::D3D11_Texture2D ) };
-            const D3D11_BOX region{
-                .left = offset.x, .top = offset.y, .front = 0,
-                .right = offset.x + size.mWidth, .bottom = offset.y + size.mHeight, .back = 1
-            };
-            context->CopySubresourceRegion( staging.Get(), 0, 0, 0, 0, source, 0, &region );
-
-            D3D11_MAPPED_SUBRESOURCE mapped{};
-            if ( FAILED( context->Map( staging.Get(), 0, D3D11_MAP_READ, 0, &mapped ) ) ) {
-                return false;
-            }
-
-            const auto* bytes{ static_cast<const core::u8*>( mapped.pData ) };
-            for ( core::usize row{}; row < size.mHeight; ++row ) {
-                std::memcpy( pixels.data() + row * size.mWidth, bytes + row * mapped.RowPitch, core::usize{ size.mWidth } * sizeof( core::uint2 ) );
-            }
-            context->Unmap( staging.Get(), 0 );
-            return true;
-        }
-#endif
-        return false;
+        // Picking runs after the viewport submits its selection pass.
+        const rhi::Rect region{
+            core::as<core::i32>( offset.x ), core::as<core::i32>( offset.x + size.mWidth ),
+            core::as<core::i32>( offset.y ), core::as<core::i32>( offset.y + size.mHeight )
+        };
+        return mDevice->ReadTextureRegion( mImage.GetPtr(), region,
+            { reinterpret_cast<core::u8*>( pixels.data() ), pixels.size() * sizeof( core::uint2 ) } );
     }
 
-    auto CompatibilitySelectionModule::Record( rhi::ICommandList& commands, rhi::Extent2D size, CompatibilityGeometryModule& geometry,
+    auto CompatibilitySelectionModule::Record( rhi::ICommandList* commands, rhi::Extent2D size, CompatibilityGeometryModule& geometry,
         const CompatibilityEnvironment& environment, rhi::IBuffer& frameUniform ) -> void {
-        ResizeCompatibilityTarget( *mDevice, mImage, size, rhi::Format::eRG32_UINT,
+        ResizeCompatibilityTarget( mDevice, mImage, size, rhi::Format::eRG32_UINT,
             rhi::TextureUsageFlagsBits::RenderTarget | rhi::TextureUsageFlagsBits::ShaderResource | rhi::TextureUsageFlagsBits::CopySource,
             "Compatibility selection IDs" );
-        ResizeCompatibilityTarget( *mDevice, mDepth, size, kCompatibilityDepthFormat, rhi::TextureUsageFlagsBits::DepthTarget,
+        ResizeCompatibilityTarget( mDevice, mDepth, size, kCompatibilityDepthFormat, rhi::TextureUsageFlagsBits::DepthTarget,
             "Compatibility selection depth" );
 
         auto pass{ rhi::RenderPassDescription{}
@@ -193,21 +138,21 @@ namespace mikoto::renderer {
             .SetRenderArea( rhi::Rect{ core::as<core::i32>( size.mWidth ), core::as<core::i32>( size.mHeight ) } )
             .AddDepthTarget( mDepth )
             .AddRenderTarget( mImage, {} ) };
-        commands.SetTransition( rhi::TransitionDescription{}
+        commands->SetTransition( rhi::TransitionDescription{}
             .AddTexture( mImage.GetPtr(), rhi::ResourceStates::eRenderTarget )
             .AddTexture( mDepth.GetPtr(), rhi::ResourceStates::eDepthWrite ) );
-        commands.BeginRenderPass( pass );
+        commands->BeginRenderPass( pass );
         SetCompatibilityViewport( commands, size );
         geometry.RecordSelection( commands, environment, frameUniform );
-        commands.EndRenderPass();
-        commands.SetTransition( rhi::TransitionDescription{}.AddTexture( mImage.GetPtr(), rhi::ResourceStates::eShaderResource ) );
+        commands->EndRenderPass();
+        commands->SetTransition( rhi::TransitionDescription{}.AddTexture( mImage.GetPtr(), rhi::ResourceStates::eShaderResource ) );
         mRecorded = true;
     }
 
-    auto CompatibilitySelectionModule::RecordOutline( rhi::ICommandList& commands, rhi::TextureHandle sceneImage, const core::float4& color,
+    auto CompatibilitySelectionModule::RecordOutline( rhi::ICommandList* commands, rhi::TextureHandle sceneImage, const core::float4& color,
         core::f32 width, bool outputForPreview ) -> rhi::TextureHandle {
         const rhi::Extent2D size{ .mWidth = sceneImage->GetWidth(), .mHeight = sceneImage->GetHeight() };
-        ResizeCompatibilityTarget( *mDevice, mOutlineImage, size, kCompatibilityOutputFormat,
+        ResizeCompatibilityTarget( mDevice, mOutlineImage, size, kCompatibilityOutputFormat,
             rhi::TextureUsageFlagsBits::RenderTarget | rhi::TextureUsageFlagsBits::ShaderResource | rhi::TextureUsageFlagsBits::CopySource,
             "Compatibility outline color" );
 

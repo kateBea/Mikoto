@@ -27,7 +27,7 @@ namespace mikoto::renderer {
         core::f32 mDirection{};
     };
 
-    auto CompatibilityDisplayEffectsModule::RecordChromaticAberration( rhi::IGpuDevice& device, rhi::ICommandList& commands,
+    auto CompatibilityDisplayEffectsModule::RecordChromaticAberration( rhi::IGpuDevice* device, rhi::ICommandList* commands,
         rhi::TextureHandle toneMapped, core::f32 intensity, core::f32 directionDegrees ) -> rhi::TextureHandle {
         MKT_BEGIN_PROFILER();
 

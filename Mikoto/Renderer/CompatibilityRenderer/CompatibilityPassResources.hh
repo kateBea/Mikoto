@@ -21,10 +21,8 @@
 #include <Renderer/Rhi/Buffer.hh>
 #include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Rhi/Pipeline.hh>
-
-namespace mikoto::renderer::rhi {
-    class ICommandList;
-}
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
 
 namespace mikoto::renderer {
     inline constexpr rhi::Format kCompatibilitySceneFormat{ rhi::Format::eRGBA16_FLOAT };
@@ -33,20 +31,34 @@ namespace mikoto::renderer {
     inline constexpr core::u32 kCompatibilityFrameSlot{};
     inline constexpr core::u32 kFullscreenTriangleVertexCount{ 3 };
 
-    MKT_NODISCARD auto CreateReusableCompatibilityUniform( rhi::IGpuDevice& device, core::usize size ) -> rhi::BufferHandle;
-    MKT_NODISCARD auto WriteCompatibilityUniform( rhi::IGpuDevice& device, rhi::ICommandList& commands,
-        rhi::BufferHandle reusable, const void* data, core::usize size ) -> rhi::BufferHandle;
+    MKT_NODISCARD auto CreateReusableCompatibilityUniform( rhi::IGpuDevice* device, core::usize size ) -> rhi::BufferHandle;
+    MKT_NODISCARD auto WriteCompatibilityUniform(
+        rhi::IGpuDevice* device,
+        rhi::ICommandList* commands,
+        rhi::BufferHandle reusable,
+        const void* data, core::usize size ) -> rhi::BufferHandle;
 
-    auto ResizeCompatibilityTarget( rhi::IGpuDevice& device, rhi::TextureHandle& target,
-        rhi::Extent2D size, rhi::Format format, rhi::TextureUsageFlags usage, eastl::string_view name ) -> void;
-    auto SetCompatibilityViewport( rhi::ICommandList& commands, rhi::Extent2D size ) -> void;
+    auto ResizeCompatibilityTarget(
+        rhi::IGpuDevice* device,
+        rhi::TextureHandle& target,
+        rhi::Extent2D size, rhi::Format format,
+        rhi::TextureUsageFlags usage, eastl::string_view name ) -> void;
+
+    auto SetCompatibilityViewport( rhi::ICommandList* commands, rhi::Extent2D size ) -> void;
 
     /** Records a fullscreen pass with a sampled input and fixed uniforms. */
     class CompatibilityFullscreenPass {
     public:
-        auto Initialize( rhi::IGpuDevice& device, eastl::string_view fragmentShader, core::usize uniformSize, bool extraSource = false ) -> void;
-        auto Record( rhi::ICommandList& commands, eastl::string_view name, rhi::TextureHandle source, rhi::TextureHandle output,
-            const void* parameters, core::usize parameterSize, const rhi::TextureHandle& extraSource = {} ) -> void;
+        auto Initialize(
+            rhi::IGpuDevice* device,
+            eastl::string_view fragmentShader,
+            core::usize uniformSize, bool extraSource = false ) -> void;
+        auto Record(
+            rhi::ICommandList* commands,
+            eastl::string_view name,
+            rhi::TextureHandle source, rhi::TextureHandle output,
+            const void* parameters, core::usize parameterSize,
+            const rhi::TextureHandle& extraSource = {} ) -> void;
 
     private:
         rhi::IGpuDevice* mDevice{};

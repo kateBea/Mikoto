@@ -20,11 +20,9 @@
 
 #include <Renderer/Rhi/Buffer.hh>
 #include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Rhi/Descriptor.hh>
-
-namespace mikoto::renderer::rhi {
-    class ICommandList;
-}
+#include <Renderer/Rhi/CommandList.hh>
 
 namespace mikoto::material {
     class SkyboxMaterial;
@@ -53,14 +51,18 @@ namespace mikoto::renderer {
     /** Resolves environment textures shared by the skybox and PBR passes. */
     class CompatibilityEnvironmentModule {
     public:
-        auto Initialize( rhi::IGpuDevice& device ) -> void;
-        MKT_NODISCARD auto Prepare( rhi::ICommandList& commands, const material::SkyboxMaterial* skybox,
+        auto Initialize( rhi::IGpuDevice* device ) -> void;
+        MKT_NODISCARD auto Prepare(
+            rhi::ICommandList* commands,
+            const material::SkyboxMaterial* skybox,
             core::f32 strength, core::f32 blur ) -> CompatibilityEnvironment;
-        auto RecordSkybox( rhi::ICommandList& commands, const CompatibilityEnvironment& environment,
+        auto RecordSkybox(
+            rhi::ICommandList* commands,
+            const CompatibilityEnvironment& environment,
             rhi::IBuffer& frameUniform ) -> void;
 
     private:
-        auto BakeLighting( rhi::ICommandList& commands, const CompatibilityEnvironment& environment ) -> void;
+        auto BakeLighting( rhi::ICommandList* commands, const CompatibilityEnvironment& environment ) -> void;
 
         rhi::IGpuDevice* mDevice{};
         rhi::TextureHandle mFallback{};

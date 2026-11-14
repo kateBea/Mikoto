@@ -35,12 +35,12 @@ namespace mikoto::renderer {
         core::float4x4 mShadowViewProjection{ 1.0f };
     };
 
-    auto CompatibilityFrameModule::Initialize( rhi::IGpuDevice& device ) -> void {
-        mDevice = &device;
+    auto CompatibilityFrameModule::Initialize( rhi::IGpuDevice* device ) -> void {
+        mDevice = device;
         mUniform = CreateReusableCompatibilityUniform( device, sizeof( CompatibilityFrameParameters ) );
     }
 
-    auto CompatibilityFrameModule::Prepare( rhi::ICommandList& commands, const scene::Scene* scene, const scene::Camera* camera,
+    auto CompatibilityFrameModule::Prepare( rhi::ICommandList* commands, const scene::Scene* scene, const scene::Camera* camera,
         const core::float4& environment, const core::float4x4& shadowMatrix, core::u32 shadowLight ) -> rhi::BufferHandle {
         MKT_BEGIN_PROFILER();
 
@@ -56,6 +56,6 @@ namespace mikoto::renderer {
         frame.mLighting.x = core::as<core::u32>( mLighting.Gather( scene, frame.mLights ) );
         frame.mLighting.y = shadowLight;
 
-        return WriteCompatibilityUniform( *mDevice, commands, mUniform, &frame, sizeof( frame ) );
+        return WriteCompatibilityUniform( mDevice, commands, mUniform, &frame, sizeof( frame ) );
     }
 }// namespace mikoto::renderer

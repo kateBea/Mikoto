@@ -20,11 +20,9 @@
 
 #include <Renderer/Rhi/Buffer.hh>
 #include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Rhi/Descriptor.hh>
-
-namespace mikoto::renderer::rhi {
-    class ICommandList;
-}
+#include <Renderer/Rhi/CommandList.hh>
 
 namespace mikoto::material {
     class SurfaceMaterial;
@@ -36,16 +34,23 @@ namespace mikoto::renderer {
     /** Builds fixed material bindings and uploads per-draw surface parameters. */
     class CompatibilityMaterialModule {
     public:
-        auto Initialize( rhi::IGpuDevice& device ) -> void;
+        auto Initialize( rhi::IGpuDevice* device ) -> void;
         auto BeginFrame() -> void;
-        auto Bind( rhi::ICommandList& commands, const material::SurfaceMaterial* material, const core::float4x4& world,
-            const core::float4x4& normalMatrix, const CompatibilityEnvironment& environment, rhi::IBuffer& frameUniform,
-            core::u32 id, bool highlighted, const rhi::TextureHandle& shadowMap, bool transparentPass ) -> void;
+        auto Bind(
+            rhi::ICommandList* commands,
+            const material::SurfaceMaterial* material,
+            const core::float4x4& world, const core::float4x4& normalMatrix,
+            const CompatibilityEnvironment& environment, rhi::IBuffer& frameUniform,
+            core::u32 id, bool highlighted,
+            const rhi::TextureHandle& shadowMap, bool transparentPass ) -> void;
         MKT_NODISCARD auto GetLayout() const -> const rhi::PipelineLayoutHandle&;
 
     private:
-        MKT_NODISCARD auto CreateBindings( const material::SurfaceMaterial* material, const CompatibilityEnvironment& environment,
-            rhi::IBuffer& frameUniform, rhi::IBuffer& drawUniform, const rhi::TextureHandle& shadowMap ) -> rhi::BindingTableHandle;
+        MKT_NODISCARD auto CreateBindings(
+            const material::SurfaceMaterial* material,
+            const CompatibilityEnvironment& environment,
+            rhi::IBuffer& frameUniform, rhi::IBuffer& drawUniform,
+            const rhi::TextureHandle& shadowMap ) -> rhi::BindingTableHandle;
 
         rhi::IGpuDevice* mDevice{};
         rhi::SamplerHandle mSampler{};

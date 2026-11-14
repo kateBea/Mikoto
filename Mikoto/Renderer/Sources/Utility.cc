@@ -22,6 +22,7 @@
 
 #include <Platform/Windows/Windows.hh>
 
+#include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Rhi/Pipeline.hh>
 #include <Renderer/Rhi/QueryPool.hh>
@@ -166,6 +167,28 @@ namespace mikoto::renderer::rhi {
         const FormatInfo &info = kFormatInfo[core::u32( format )];
         assert( info.mFormat == format );
         return info;
+    }
+
+    auto GetTextureReadbackRowSize( const ITexture& texture, const Rect& region, core::usize capacity ) -> core::usize {
+        const auto& format{ GetFormatInfo( texture.GetFormat() ) };
+        if ( texture.GetDimension() != TextureDimension::eTexture2D || texture.GetSampleCount() != Multisampling::eMsaaX1 ||
+             !( texture.GetTextureUsage() & TextureUsageFlagsBits::CopySource ) || !format.mBytesPerBlock ||
+             format.mBlockSize != 1 || format.mHasDepth || format.mHasStencil ) {
+            return {};
+        }
+
+        if ( region.mMinX < 0 || region.mMinY < 0 || region.mMaxX <= region.mMinX || region.mMaxY <= region.mMinY ||
+             core::as<core::u32>( region.mMaxX ) > texture.GetWidth() || core::as<core::u32>( region.mMaxY ) > texture.GetHeight() ) {
+            return {};
+        }
+
+        const auto width{ core::as<core::usize>( region.mMaxX - region.mMinX ) };
+        const auto height{ core::as<core::usize>( region.mMaxY - region.mMinY ) };
+        if ( width > capacity / height / format.mBytesPerBlock ) {
+            return {};
+        }
+
+        return width * format.mBytesPerBlock;
     }
 
     auto InferDimensions( RenderResolution resolution ) -> eastl::pair<float, float> {

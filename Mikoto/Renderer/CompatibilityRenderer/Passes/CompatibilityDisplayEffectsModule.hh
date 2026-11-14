@@ -16,14 +16,20 @@
 #ifndef MIKOTO_RENDERER_COMPATIBILITY_RENDERER_DISPLAY_EFFECTS_MODULE_HH
 #define MIKOTO_RENDERER_COMPATIBILITY_RENDERER_DISPLAY_EFFECTS_MODULE_HH
 
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
+
 #include <Renderer/CompatibilityRenderer/CompatibilityPassResources.hh>
 
 namespace mikoto::renderer {
     /** Records optional display-space effects after tone mapping. */
     class CompatibilityDisplayEffectsModule {
     public:
-        MKT_NODISCARD auto RecordChromaticAberration( rhi::IGpuDevice& device, rhi::ICommandList& commands,
-            rhi::TextureHandle toneMapped, core::f32 intensity, core::f32 directionDegrees ) -> rhi::TextureHandle;
+        MKT_NODISCARD auto RecordChromaticAberration(
+            rhi::IGpuDevice* device,
+            rhi::ICommandList* commands,
+            rhi::TextureHandle toneMapped,
+            core::f32 intensity, core::f32 directionDegrees ) -> rhi::TextureHandle;
 
     private:
         CompatibilityFullscreenPass mChromaticAberration{};

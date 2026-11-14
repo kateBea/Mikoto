@@ -493,6 +493,12 @@ namespace mikoto::renderer::rhi {
         static constexpr GpuFeatureSupportFlags BindlessDescriptorTables{ BIT_SET(6) };
         static constexpr GpuFeatureSupportFlags VideoEncoding{ BIT_SET(7) };
         static constexpr GpuFeatureSupportFlags VideoDecoding{ BIT_SET(8) };
+
+        // Read a 2D color texture region to CPU memory after submission.
+        static constexpr GpuFeatureSupportFlags TextureRegionReadback{ BIT_SET(9) };
+
+        // Repeated command-list writes to an upload uniform preserve the bytes seen by earlier draws.
+        static constexpr GpuFeatureSupportFlags OrderedUniformBufferWrites{ BIT_SET(10) };
     };
 
     enum class GpuDeviceType : core::i32 {

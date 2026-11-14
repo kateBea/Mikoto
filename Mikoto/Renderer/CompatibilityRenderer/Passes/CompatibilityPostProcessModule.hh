@@ -16,6 +16,9 @@
 #ifndef MIKOTO_RENDERER_COMPATIBILITY_RENDERER_POST_PROCESS_MODULE_HH
 #define MIKOTO_RENDERER_COMPATIBILITY_RENDERER_POST_PROCESS_MODULE_HH
 
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
+
 #include <Renderer/CompatibilityRenderer/CompatibilityPassResources.hh>
 
 namespace mikoto::renderer {
@@ -30,8 +33,10 @@ namespace mikoto::renderer {
             bool mOutputForPreview{};
         };
 
-        auto Initialize( rhi::IGpuDevice& device ) -> void;
-        MKT_NODISCARD auto RecordToneMap( rhi::ICommandList& commands, rhi::TextureHandle sceneColor,
+        auto Initialize( rhi::IGpuDevice* device ) -> void;
+        MKT_NODISCARD auto RecordToneMap(
+            rhi::ICommandList* commands,
+            rhi::TextureHandle sceneColor,
             const Settings& settings ) -> rhi::TextureHandle;
         MKT_NODISCARD auto GetOutput() const -> rhi::TextureHandle;
 

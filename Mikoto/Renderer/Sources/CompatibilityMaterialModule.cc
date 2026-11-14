@@ -53,10 +53,10 @@ namespace mikoto::renderer {
         core::uint4 mMaterial{};
     };
 
-    auto CompatibilityMaterialModule::Initialize( rhi::IGpuDevice& device ) -> void {
-        mDevice = &device;
+    auto CompatibilityMaterialModule::Initialize( rhi::IGpuDevice* device ) -> void {
+        mDevice = device;
         mUniform = CreateReusableCompatibilityUniform( device, sizeof( CompatibilityDrawParameters ) );
-        mSampler = device.CreateSampler( rhi::SamplerCreateDescription{}
+        mSampler = device->CreateSampler( rhi::SamplerCreateDescription{}
             .SetFilter( rhi::SamplerFilter::eLinear )
             .SetWrap( rhi::SamplerWrapMode::eRepeat ) );
 
@@ -74,8 +74,8 @@ namespace mikoto::renderer {
         CompatibilityEnvironment::DeclareBindings( layout );
         CompatibilityEnvironment::DeclareLightingBindings( layout );
         layout.AddItem( rhi::BindingLayoutItem::TextureSRV( kShadowMapSlot ) );
-        mBindings = device.CreateBindingLayout( layout );
-        mLayout = device.CreatePipelineLayout( rhi::PipelineLayoutCreateDescription{}.AddBindingLayout( mBindings ) );
+        mBindings = device->CreateBindingLayout( layout );
+        mLayout = device->CreatePipelineLayout( rhi::PipelineLayoutCreateDescription{}.AddBindingLayout( mBindings ) );
 
         if ( !mSampler || !mLayout ) {
             MKT_THROW_RUNTIME_ERROR( "Could not initialize compatibility material bindings." );
@@ -114,7 +114,7 @@ namespace mikoto::renderer {
         return mDevice->CreateBindingTable( description, mBindings );
     }
 
-    auto CompatibilityMaterialModule::Bind( rhi::ICommandList& commands, const material::SurfaceMaterial* surface, const core::float4x4& world,
+    auto CompatibilityMaterialModule::Bind( rhi::ICommandList* commands, const material::SurfaceMaterial* surface, const core::float4x4& world,
         const core::float4x4& normalMatrix, const CompatibilityEnvironment& environment, rhi::IBuffer& frameUniform,
         core::u32 id, bool highlighted, const rhi::TextureHandle& shadowMap, bool transparentPass ) -> void {
         CompatibilityDrawParameters parameters{
@@ -156,7 +156,7 @@ namespace mikoto::renderer {
             };
         }
 
-        auto uniform{ WriteCompatibilityUniform( *mDevice, commands, mUniform, &parameters, sizeof( parameters ) ) };
+        auto uniform{ WriteCompatibilityUniform( mDevice, commands, mUniform, &parameters, sizeof( parameters ) ) };
         rhi::BindingTableHandle table{};
         if ( const auto cached{ mFrameTables.find( surface ) }; cached != mFrameTables.end() ) {
             table = cached->second;
@@ -168,7 +168,7 @@ namespace mikoto::renderer {
             }
         }
 
-        commands.BindPipelineResources( rhi::BindResourcesDescription{}
+        commands->BindPipelineResources( rhi::BindResourcesDescription{}
             .SetBindPoint( rhi::PipelineType::eGraphics )
             .SetPipelineLayout( mLayout.GetPtr() )
             .AddResourceSet( 0, table.GetPtr() ) );

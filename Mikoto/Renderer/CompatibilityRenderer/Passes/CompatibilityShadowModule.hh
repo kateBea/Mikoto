@@ -15,6 +15,9 @@
 #ifndef MIKOTO_RENDERER_COMPATIBILITY_RENDERER_SHADOW_MODULE_HH
 #define MIKOTO_RENDERER_COMPATIBILITY_RENDERER_SHADOW_MODULE_HH
 
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
+
 #include <Renderer/CompatibilityRenderer/CompatibilityPassResources.hh>
 #include <Renderer/ForwardRenderer/Passes/ShadowMappingModule.hh>
 
@@ -31,8 +34,12 @@ namespace mikoto::renderer {
     /** Records a fixed-binding directional shadow map for the compatibility renderer. */
     class CompatibilityShadowModule {
     public:
-        auto Record( rhi::IGpuDevice& device, rhi::ICommandList& commands, const scene::Scene& scene, const scene::Camera& camera,
-            CompatibilityGeometryModule& geometry, const CompatibilityEnvironment& environment, const SceneRenderSettings& settings ) -> void;
+        auto Record(
+            rhi::IGpuDevice* device,
+            rhi::ICommandList* commands,
+            const scene::Scene& scene, const scene::Camera& camera,
+            CompatibilityGeometryModule& geometry, const CompatibilityEnvironment& environment,
+            const SceneRenderSettings& settings ) -> void;
 
         MKT_NODISCARD auto GetMap() const -> rhi::TextureHandle;
         MKT_NODISCARD auto GetMatrix() const -> const core::float4x4& { return mMatrix; }

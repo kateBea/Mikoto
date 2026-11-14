@@ -27,17 +27,17 @@ namespace mikoto::renderer {
         core::u32 mOutputForPreview{};
     };
 
-    auto CompatibilityPostProcessModule::Initialize( rhi::IGpuDevice& device ) -> void {
-        mDevice = &device;
+    auto CompatibilityPostProcessModule::Initialize( rhi::IGpuDevice* device ) -> void {
+        mDevice = device;
         mToneMap.Initialize( device, "../compatibility/slang/CompatibilityTonemap_Frag.slang",
             sizeof( CompatibilityToneMapParameters ) );
     }
 
-    auto CompatibilityPostProcessModule::RecordToneMap( rhi::ICommandList& commands, rhi::TextureHandle sceneColor,
+    auto CompatibilityPostProcessModule::RecordToneMap( rhi::ICommandList* commands, rhi::TextureHandle sceneColor,
         const Settings& settings ) -> rhi::TextureHandle {
         MKT_BEGIN_PROFILER();
 
-        ResizeCompatibilityTarget( *mDevice, mOutput, { .mWidth = sceneColor->GetWidth(), .mHeight = sceneColor->GetHeight() },
+        ResizeCompatibilityTarget( mDevice, mOutput, { .mWidth = sceneColor->GetWidth(), .mHeight = sceneColor->GetHeight() },
             kCompatibilityOutputFormat, rhi::TextureUsageFlagsBits::RenderTarget | rhi::TextureUsageFlagsBits::ShaderResource |
                 rhi::TextureUsageFlagsBits::CopySource, "Compatibility tone mapped color" );
 

@@ -3,8 +3,10 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/katebea/mikoto/badge)](https://www.codefactor.io/repository/github/katebea/mikoto)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-Mikoto is an open-source C++20 game engine for exploring graphics programming techniques and software architecture. It supports Vulkan and Direct3D 12 rendering backends
-through an RHI (Render Hardware Interface), OpenGL and D3D11 implementations are experimental and not any close to what Vulkan and D3D12 have to offer.
+Mikoto is open-source engine I have been working on since 2023. I started the project after I finished my first renderer following the [LearnOpenGL](https://learnopengl.com/) set of articles.
+
+It is written in C++20 and serves as foundation for me to keep exploring graphics programming techniques and software architecture and development. It supports Vulkan and Direct3D 12 as part of the rendering backend
+through an RHI layer (Render Hardware Interface). Support for OpenGL and D3D11 implementations are experimental through the same interfaceand but not any close to what Vulkan and D3D12 have to offer.
 
 ![Mikoto editor](Resources/Screenshots/img31.png)
 

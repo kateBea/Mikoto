@@ -17,6 +17,19 @@
 #include "base/RayTracing_Bindings.slang"
 #include "PathTracing_Common.slang"
 
+// Keep transport helpers eligible for inlining. Large out-parameter records
+// made the forced-noinline path measurably slower on the GPU.
+// https://developer.nvidia.com/blog/best-practices-for-using-nvidia-rtx-ray-tracing-updated/
+#include "base/PathTracing_Sampling.slang"
+#include "base/PathTracing_Camera.slang"
+#include "base/PathTracing_Surface.slang"
+#include "base/PathTracing_Environment.slang"
+#include "base/PathTracing_Media.slang"
+#include "base/PathTracing_Bsdf.slang"
+#include "base/PathTracing_Lights.slang"
+#include "base/PathTracing_Integrator.slang"
+#include "base/PathTracing_AmbientOcclusion.slang"
+
 // Transport and sampling are adapted from PBRT v4, in RGB for Mikoto's glTF materials.
 // PBRT-derived portions: Copyright (c) 1998-2020 Matt Pharr, Wenzel Jakob, Greg Humphreys.
 // https://github.com/mmp/pbrt-v4/blob/master/src/pbrt/cpu/integrators.cpp
@@ -58,19 +71,6 @@ struct ViewEffectsRecord {
 ViewEffectsRecord Effects() {
     return LoadBufferValue<ViewEffectsRecord>( Parameters.ViewEffects, 0 );
 }
-
-// Keep transport helpers eligible for inlining. Large out-parameter records
-// made the forced-noinline path measurably slower on the GPU.
-// https://developer.nvidia.com/blog/best-practices-for-using-nvidia-rtx-ray-tracing-updated/
-#include "base/PathTracing_Sampling.slang"
-#include "base/PathTracing_Camera.slang"
-#include "base/PathTracing_Surface.slang"
-#include "base/PathTracing_Environment.slang"
-#include "base/PathTracing_Media.slang"
-#include "base/PathTracing_Bsdf.slang"
-#include "base/PathTracing_Lights.slang"
-#include "base/PathTracing_Integrator.slang"
-#include "base/PathTracing_AmbientOcclusion.slang"
 
 uint PixelSampleSeed( uint2 pixel, uint sample ) {
     // Reserve disjoint sample blocks even when samples per frame changes.

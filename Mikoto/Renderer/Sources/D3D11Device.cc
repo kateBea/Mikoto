@@ -32,6 +32,7 @@
 #include <Filesystem/Path.hh>
 
 #include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Rhi/GpuAllocator.hh>
 #include <Renderer/Core/RenderSystem.hh>
 
@@ -1443,6 +1444,63 @@ namespace mikoto::renderer::d3d11 {
         return nullptr;
     }
 
+    auto Device::ReadTextureRegion( const rhi::ITexture* texture, const rhi::Rect& region, eastl::span<core::u8> destination ) -> bool {
+        MKT_BEGIN_PROFILER();
+
+        if ( !mDevice || !texture || texture->GetOwningDevice() != this ) {
+            return false;
+        }
+
+        const auto rowSize{ rhi::GetTextureReadbackRowSize( *texture, region, destination.size() ) };
+        ID3D11Texture2D* source{ texture->GetNativeHandle( rhi::ObjectType::D3D11_Texture2D ) };
+        if ( !rowSize || !source ) {
+            return false;
+        }
+
+        D3D11_TEXTURE2D_DESC sourceDesc{};
+        source->GetDesc( &sourceDesc );
+        const D3D11_TEXTURE2D_DESC description{
+            .Width = core::as<UINT>( region.mMaxX - region.mMinX ),
+            .Height = core::as<UINT>( region.mMaxY - region.mMinY ),
+            .MipLevels = 1,
+            .ArraySize = 1,
+            .Format = sourceDesc.Format,
+            .SampleDesc = { .Count = 1 },
+            .Usage = D3D11_USAGE_STAGING,
+            .CPUAccessFlags = D3D11_CPU_ACCESS_READ
+        };
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> staging{};
+        if ( FAILED( mDevice->CreateTexture2D( &description, nullptr, &staging ) ) ) {
+            return false;
+        }
+
+        // Copy only the requested texels. Mapping on the immediate context waits for the copy.
+        // https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-id3d11devicecontext-copysubresourceregion
+        const D3D11_BOX box{
+            .left = core::as<UINT>( region.mMinX ),
+            .top = core::as<UINT>( region.mMinY ),
+            .front = 0,
+            .right = core::as<UINT>( region.mMaxX ),
+            .bottom = core::as<UINT>( region.mMaxY ),
+            .back = 1
+        };
+        mDeviceContext->CopySubresourceRegion( staging.Get(), 0, 0, 0, 0, source, 0, &box );
+
+        // The staging row pitch can include padding.
+        // https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ns-d3d11-d3d11_mapped_subresource
+        D3D11_MAPPED_SUBRESOURCE mapped{};
+        if ( FAILED( mDeviceContext->Map( staging.Get(), 0, D3D11_MAP_READ, 0, &mapped ) ) ) {
+            return false;
+        }
+
+        const auto* bytes{ static_cast<const core::u8*>( mapped.pData ) };
+        for ( core::usize row{}; row < description.Height; ++row ) {
+            std::memcpy( destination.data() + row * rowSize, bytes + row * mapped.RowPitch, rowSize );
+        }
+        mDeviceContext->Unmap( staging.Get(), 0 );
+        return true;
+    }
+
     auto Device::CreateDescriptorTableLayout( const renderer::rhi::DescriptorTableLayoutDescription &desc ) -> renderer::rhi::BindingLayoutHandle {
         MKT_BEGIN_PROFILER();
         return renderer::rhi::BindingLayoutHandle::CreateEmpty();
@@ -1541,7 +1599,9 @@ namespace mikoto::renderer::d3d11 {
         if ( mDevice ) {
             supported = rhi::GpuFeatureSupportFlagsBits::AnisotropicFiltering |
                         rhi::GpuFeatureSupportFlagsBits::HardwareWireframe |
-                        rhi::GpuFeatureSupportFlagsBits::WindowPresentation;
+                        rhi::GpuFeatureSupportFlagsBits::WindowPresentation |
+                        rhi::GpuFeatureSupportFlagsBits::TextureRegionReadback |
+                        rhi::GpuFeatureSupportFlagsBits::OrderedUniformBufferWrites;
         }
 
         return ( supported & supportFlags ) == supportFlags;

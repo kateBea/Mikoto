@@ -14,6 +14,9 @@
 
 # Physics implementation files. Public headers retain their existing include paths.
 file(GLOB SOURCE_FILES CONFIGURE_DEPENDS Sources/*.cc)
+if(NOT MIKOTO_ENABLE_PHYSX)
+    list(REMOVE_ITEM SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/Sources/PhysXBackend.cc")
+endif()
 
 target_sources(Mikoto PRIVATE ${SOURCE_FILES})
 

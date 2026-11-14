@@ -186,6 +186,8 @@ namespace mikoto::renderer::rhi {
         IGpuDevice* mDevice{};
         eastl::string mDebugName{};
 
+        // TODO: Move this to the command buffer class
+        // Same goes for the methods that use it. This is a temporary solution to track resource states for now.
         // State tracking
         ResourceType mResourceType{ ResourceType::eInvalid };
         ResourceStates mResourceState{ ResourceStates::eUnknown };

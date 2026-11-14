@@ -17,6 +17,7 @@ cmake_minimum_required(VERSION 3.30)
 # Resolve profiling before vcpkg selects the manifest features in project().
 option(MIKOTO_BUILD_EDITOR "Build the Mikoto editor" ON)
 option(MIKOTO_ENABLE_TRACY_PROFILING "Enable Tracy profiling" ${MIKOTO_BUILD_EDITOR})
+option(MIKOTO_ENABLE_PHYSX "Enable the experimental CPU PhysX backend" ON)
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/CMake/Slang.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/CMake/DependencyProvider.cmake")

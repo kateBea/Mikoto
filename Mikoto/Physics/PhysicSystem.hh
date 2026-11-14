@@ -31,6 +31,9 @@
 #include <Core/Singleton.hh>
 
 #include <Physics/PhysicsWorld.hh>
+#if defined( MIKOTO_ENABLE_PHYSX )
+#include <Physics/PhysXBackend.hh>
+#endif
 
 #include <Renderer/Core/PhysicsDebugRenderer.hh>
 
@@ -61,6 +64,10 @@ namespace mikoto::physics {
         MKT_NODISCARD auto GetJoltJobSystem() -> JPH::JobSystemThreadPool*;
         MKT_NODISCARD auto CreatePhysicsWorld(const PhysicsWorldCreateInfo& spec) -> PhysicsWorld*;
 
+#if defined( MIKOTO_ENABLE_PHYSX )
+        MKT_NODISCARD auto GetPhysXBackend() -> PhysXBackend&;
+#endif
+
         ~PhysicSystem() override = default;
 
     private:
@@ -72,6 +79,10 @@ namespace mikoto::physics {
         eastl::unique_ptr<JPH::JobSystemThreadPool> mJobSystem{};
         eastl::unique_ptr<renderer::PhysicsDebugRenderer> mPhysicsDebugRenderer{};
         eastl::unique_ptr<renderer::PhysicsDebugRendererSimple> mPhysicsDebugRendererSimple{};
+
+#if defined( MIKOTO_ENABLE_PHYSX )
+        PhysXBackend mPhysXBackend{};
+#endif
 
         ankerl::unordered_dense::map<scene::Scene*, eastl::unique_ptr<PhysicsWorld>> mWorlds{};
     };

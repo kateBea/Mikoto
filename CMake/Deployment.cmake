@@ -67,6 +67,16 @@ function(mikoto_deploy_application target)
             "$<TARGET_FILE_DIR:${target}>/Licenses/SteamAudio"
         VERBATIM)
 
+    if(MIKOTO_ENABLE_PHYSX)
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E make_directory
+                "$<TARGET_FILE_DIR:${target}>/Licenses/PhysX"
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                "$<TARGET_PROPERTY:Mikoto,MIKOTO_PHYSX_LICENSE>"
+                "$<TARGET_FILE_DIR:${target}>/Licenses/PhysX/LICENSE.md"
+            VERBATIM)
+    endif()
+
     if(APPLE)
         set_property(TARGET ${target} APPEND PROPERTY BUILD_RPATH "@loader_path")
     elseif(UNIX)

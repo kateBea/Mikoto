@@ -37,3 +37,36 @@ else()
         target_compile_options(Jolt PRIVATE /wd4865 /WX- /Zc:enumTypes-)
     endif()
 endif()
+
+if(MIKOTO_ENABLE_PHYSX)
+    # 5.10.0 supplies its own FetchContent entry point. Use it with either
+    # dependency provider so the SDK version matches across builds.
+    # https://github.com/NVIDIA-Omniverse/PhysX/blob/ovphysx-0.5.11/physx/CMakeLists.txt
+    block()
+        set(PX_GENERATE_GPU_PROJECTS OFF)
+        set(PX_GENERATE_GPU_PROJECTS_ONLY OFF)
+        set(PX_GENERATE_GPU_STATIC_LIBRARIES OFF)
+        set(PX_GENERATE_STATIC_LIBRARIES ON)
+
+        # Match the SDK's own language standard and Mikoto's MSVC runtime.
+        set(CMAKE_CXX_STANDARD 14)
+        if(MSVC)
+            set(NV_USE_STATIC_WINCRT ON)
+        endif()
+
+        FetchContent_Declare(PhysX
+            GIT_REPOSITORY https://github.com/NVIDIA-Omniverse/PhysX.git
+            GIT_TAG ovphysx-0.5.11
+            GIT_SHALLOW TRUE
+            SOURCE_SUBDIR physx
+            EXCLUDE_FROM_ALL
+        )
+        FetchContent_MakeAvailable(PhysX)
+
+        set_property(TARGET Mikoto PROPERTY MIKOTO_PHYSX_LICENSE "${physx_SOURCE_DIR}/LICENSE.md")
+    endblock()
+
+    # PhysXBackend.hh includes SDK headers, so consumers need the same settings.
+    target_compile_definitions(Mikoto PUBLIC MIKOTO_ENABLE_PHYSX=1 PX_PHYSX_STATIC_LIB)
+    target_link_libraries(Mikoto PUBLIC physx_lib)
+endif()

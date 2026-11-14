@@ -106,6 +106,9 @@ namespace mikoto::physics {
         try {
             InitializeRuntime();
             InitializeDebugRenderer();
+#if defined( MIKOTO_ENABLE_PHYSX )
+            mPhysXBackend.Initialize();
+#endif
             mIsInitialized = true;
         } catch ( ... ) {
             mPhysicsDebugRendererSimple.reset();
@@ -150,6 +153,10 @@ namespace mikoto::physics {
         }
 
         mWorlds.clear();
+
+#if defined( MIKOTO_ENABLE_PHYSX )
+        mPhysXBackend.Shutdown();
+#endif
 
         mJobSystem.reset();
 
@@ -224,6 +231,12 @@ namespace mikoto::physics {
         MKT_BEGIN_PROFILER();
         return mJobSystem.get();
     }
+
+#if defined( MIKOTO_ENABLE_PHYSX )
+    auto PhysicSystem::GetPhysXBackend() -> PhysXBackend& {
+        return mPhysXBackend;
+    }
+#endif
 
     auto PhysicSystem::CreatePhysicsWorld( const PhysicsWorldCreateInfo &spec ) -> PhysicsWorld * {
         MKT_BEGIN_PROFILER();

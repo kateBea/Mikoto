@@ -17,7 +17,7 @@
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Interface/Canvas.hh>
+#include <Renderer/Gui/Canvas.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryCullModule.hh>
 
 namespace mikoto::renderer {

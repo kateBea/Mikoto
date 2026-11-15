@@ -33,10 +33,13 @@
 #include <Scene/Component.hh>
 
 namespace mikoto::renderer {
+
     using namespace mikoto::core;
     using namespace mikoto::scene;
     using namespace mikoto::material;
     using namespace mikoto::renderer::rhi;
+
+    // https://alextardif.com/ParticipatingMedia.html
 
     struct FogParameters {
         SPointer mVolumes{};

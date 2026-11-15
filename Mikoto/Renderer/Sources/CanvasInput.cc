@@ -18,8 +18,8 @@
 #include <glm/gtx/compatibility.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <Renderer/Interface/Canvas.hh>
-#include <Renderer/Interface/CanvasInput.hh>
+#include <Renderer/Gui/Canvas.hh>
+#include <Renderer/Gui/CanvasInput.hh>
 
 #include <Scene/Scene.hh>
 

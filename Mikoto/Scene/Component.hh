@@ -67,7 +67,7 @@
 
 #include <Renderer/Text/Font.hh>
 #include <Renderer/Core/Light.hh>
-#include <Renderer/Interface/Canvas.hh>
+#include <Renderer/Gui/Canvas.hh>
 #include <Renderer/Core/TerrainGeneration.hh>
 #include <Renderer/Particle/ParticleEmitter.hh>
 

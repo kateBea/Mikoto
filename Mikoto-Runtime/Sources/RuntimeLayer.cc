@@ -22,7 +22,7 @@
 #include <Physics/PhysicSystem.hh>
 
 #include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/Interface/CanvasInput.hh>
+#include <Renderer/Gui/CanvasInput.hh>
 
 #include <Scene/SceneManager.hh>
 

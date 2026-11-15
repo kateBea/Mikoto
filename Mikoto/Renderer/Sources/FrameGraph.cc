@@ -80,7 +80,6 @@ namespace mikoto::renderer {
         ankerl::unordered_dense::map<eastl::string, CommandContext> mValues{};
     };
 
-
     auto FGStatisticsManager::GetNode( eastl::string_view name ) -> FGNodeStatistics* {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( mGraphNodes.contains( name.data() ), "Node does not exists" );
@@ -793,7 +792,8 @@ namespace mikoto::renderer {
             .SetName( desc.mName )
             .ForElement( desc.mElementSizeBytes, desc.mElementCount )
             .SetHeapType( desc.mHeapType )
-            .SetCpuAccessType( desc.mHeapType == renderer::rhi::HeapType::eUpload ? renderer::rhi::AccessType::eWrite : renderer::rhi::AccessType::eRead )
+            .SetCpuAccessType( desc.mHeapType == renderer::rhi::HeapType::eUpload ? 
+                renderer::rhi::AccessType::eWrite : renderer::rhi::AccessType::eRead )
             .SetByteSize( desc.mElementSizeBytes ) };
 
         if ( !desc.mInitialContents.IsEmpty() ) {
@@ -802,12 +802,12 @@ namespace mikoto::renderer {
 
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
             .mName{ desc.mName },
-                .mDescription = bufferDesc,
-                    .mVersions{ ResourceVersion{
-                        .mWriterPass{},  // No writers
-                            .mReaderPasses{},// No readers
+            .mDescription = bufferDesc,
+            .mVersions{ ResourceVersion{
+                .mWriterPass{},  // No writers
+                .mReaderPasses{},// No readers
             } },
-                .mIsImported = false
+            .mIsImported = false
         };
 
         return FGBufferHandle{ .mHandle = resource.mResourceID };
@@ -829,13 +829,13 @@ namespace mikoto::renderer {
 
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
             .mName{ string::Format( "FG Loaded Texture {}", path.GetC_Str() ) },
-                .mDescription = textureDesc,// Retains the image until deferred GPU creation.
-                    .mVersions{ ResourceVersion{
-                        .mWriterPass{},  // No writers
-                            .mReaderPasses{},// No readers
+            .mDescription = textureDesc,// Retains the image until deferred GPU creation.
+            .mVersions{ ResourceVersion{
+                .mWriterPass{},  // No writers
+                .mReaderPasses{},// No readers
             } },
-                .mIsImported = false,
-                .mSourcePath = path
+            .mIsImported = false,
+            .mSourcePath = path
         };
 
         return FGTextureHandle{ .mHandle = resource.mResourceID };
@@ -853,11 +853,11 @@ namespace mikoto::renderer {
 
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
             .mName{ string::Format( "FG External Texture {}", handle->GetDebugName() ) },
-                .mVersions{ ResourceVersion{
-                    .mWriterPass{},  // No writers
-                        .mReaderPasses{},// No readers
+            .mVersions{ ResourceVersion{
+                .mWriterPass{},  // No writers
+                .mReaderPasses{},// No readers
             } },
-                .mIsImported = true
+            .mIsImported = true
         };
 
         return FGTextureHandle{ .mHandle = resource.mResourceID };
@@ -897,12 +897,12 @@ namespace mikoto::renderer {
 
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
             .mName{ desc.mName },
-                .mDescription = textureDesc,
-                    .mVersions{ ResourceVersion{
-                        .mWriterPass{},  // No writers
-                            .mReaderPasses{},// No readers
+            .mDescription = textureDesc,
+            .mVersions{ ResourceVersion{
+                .mWriterPass{},  // No writers
+                .mReaderPasses{},// No readers
             } },
-                .mIsImported = false
+            .mIsImported = false
         };
 
         return FGTextureHandle{ .mHandle = resource.mResourceID };
@@ -922,12 +922,12 @@ namespace mikoto::renderer {
 
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
             .mName{ desc.mName },
-                .mDescription = samplerDesc,
-                    .mVersions{ ResourceVersion{
-                        .mWriterPass{},  // No writers
-                            .mReaderPasses{},// No readers
+            .mDescription = samplerDesc,
+            .mVersions{ ResourceVersion{
+                .mWriterPass{},  // No writers
+                .mReaderPasses{},// No readers
             } },
-                .mIsImported = false
+            .mIsImported = false
         };
 
         return FGSamplerHandle{ .mHandle = resource.mResourceID };
@@ -1011,12 +1011,13 @@ namespace mikoto::renderer {
         const auto loadShader{ [this]( const filesystem::Path& path, rhi::ShaderType stage, eastl::string_view entry ) {
             return mShaderLibrary->LoadShader( path.GetPath(), stage, entry );
         } };
+
         const auto entryPoint{ [&]( FGStageType stage ) -> eastl::string_view {
             const auto found{ desc.mEntryPoints.find( stage ) };
             return found != desc.mEntryPoints.end() ? eastl::string_view{ found->second } : eastl::string_view{ "main" };
         } };
+        
         rhi::PipelineHandle pipeline{};
-
         if ( desc.mPipelineType == renderer::rhi::PipelineType::eGraphics ) {
             MKT_ASSERT( !desc.mShaders.empty(), "Creating graphics pipeline without shaders." );
             auto graphicsPipelineDesc{ renderer::rhi::GraphicsPipelineDescription{}
@@ -1046,7 +1047,8 @@ namespace mikoto::renderer {
             MKT_ASSERT( desc.mShaders.contains( FGStageType::eCompute ), "Creating compute pipeline without compute shader." );
             auto computePipelineDesc{ renderer::rhi::ComputePipelineDescription{}
                 .SetPipelineLayout( mPipelineLayout )
-                .SetComputeStage( loadShader( desc.mShaders.at( FGStageType::eCompute ), renderer::rhi::ShaderType::eCompute, entryPoint( FGStageType::eCompute ) ) ) };
+                .SetComputeStage( loadShader( desc.mShaders.at( FGStageType::eCompute ), 
+                    renderer::rhi::ShaderType::eCompute, entryPoint( FGStageType::eCompute ) ) ) };
 
             pipeline = mDevice->CreatePipeline( computePipelineDesc );
         }
@@ -1063,9 +1065,12 @@ namespace mikoto::renderer {
             rayDescription.mRayGenerationEntry = entryPoint( FGStageType::eRayGen );
             rayDescription.mMissEntry = entryPoint( FGStageType::eMiss );
             rayDescription.mClosestHitEntry = entryPoint( FGStageType::eClosestHit );
-            rayDescription.mRayGeneration = loadShader( desc.mShaders.at( FGStageType::eRayGen ), rhi::ShaderType::eRayGeneration, rayDescription.mRayGenerationEntry );
-            rayDescription.mMiss = loadShader( desc.mShaders.at( FGStageType::eMiss ), rhi::ShaderType::eMiss, rayDescription.mMissEntry );
-            rayDescription.mClosestHit = loadShader( desc.mShaders.at( FGStageType::eClosestHit ), rhi::ShaderType::eClosestHit, rayDescription.mClosestHitEntry );
+            rayDescription.mRayGeneration = loadShader( desc.mShaders.at( FGStageType::eRayGen ), 
+                rhi::ShaderType::eRayGeneration, rayDescription.mRayGenerationEntry );
+            rayDescription.mMiss = loadShader( desc.mShaders.at( FGStageType::eMiss ), 
+                rhi::ShaderType::eMiss, rayDescription.mMissEntry );
+            rayDescription.mClosestHit = loadShader( desc.mShaders.at( FGStageType::eClosestHit ), 
+                rhi::ShaderType::eClosestHit, rayDescription.mClosestHitEntry );
             pipeline = mDevice->CreatePipeline( rayDescription );
         }
 

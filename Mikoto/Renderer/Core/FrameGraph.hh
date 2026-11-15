@@ -82,12 +82,14 @@ namespace mikoto::renderer {
         core::u32 mBufferSRVCount{};
         core::u32 mBufferUAVCount{};
 
-        // CPU time spent in the pass callback, in milliseconds (not GPU time).
+        // CPU time spent in the pass callback, 
+        // in milliseconds (not GPU time).
         core::u64 mExecutionCount{};
-        bool mExecutedThisFrame{};
         core::f64 mMaxExecutionTime{};
         core::f64 mMinExecutionTime{};
         core::f64 mLastExecutionTime{};
+
+        bool mExecutedThisFrame{};
     };
 
     class FGStatisticsManager {

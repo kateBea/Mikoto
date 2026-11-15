@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RENDERER_CANVAS_HH
-#define MIKOTO_RENDERER_CANVAS_HH
+#ifndef MIKOTO_RENDERER_GUI_CANVAS_HH
+#define MIKOTO_RENDERER_GUI_CANVAS_HH
 
 // This guy needs to go first to
 // avoid Windows sneaking in stuff
@@ -333,5 +333,5 @@ namespace mikoto::renderer {
 
 }// namespace mikoto::renderer
 
-#endif//MIKOTO_RENDERER_CANVAS_HH
+#endif//MIKOTO_RENDERER_GUI_CANVAS_HH
 

@@ -72,11 +72,7 @@ namespace mikoto::material {
         explicit SkyboxMaterial( eastl::string_view name = "SkyboxMaterial" );
         explicit SkyboxMaterial( const SkyboxMaterialDescription& desc );
 
-        /** @brief Copies authoring state and resource handles without retaining the source file. */
         SkyboxMaterial( const SkyboxMaterial& other );
-
-        MKT_NODISCARD auto GetSourcePath() const -> const filesystem::Path&;
-
 
         auto Serialize( const filesystem::Path &filename ) const -> void override;
         auto Deserialize( const filesystem::Path &filename ) -> void override;
@@ -86,9 +82,12 @@ namespace mikoto::material {
         auto SetEquirectangular( asset::AssetHandle<asset::Texture> texture ) -> void;
         auto SetFace( SkyboxFace face, asset::AssetHandle<asset::Texture> texture ) -> void;
 
-        auto SetType( SkyboxType type ) -> void;
-
         auto SetAmbientScale( core::f32 scale ) -> void;
+        
+        auto SetType( SkyboxType type ) -> void;
+        auto SetName( eastl::string_view newName ) -> void override;
+
+        MKT_NODISCARD auto GetSourcePath() const -> const filesystem::Path&;
 
         // For the given type of skybox textures, it specifies if all of them are present
         // if equirectangular a flat image must be present (an HDR) otherwise for faces type
@@ -106,7 +105,6 @@ namespace mikoto::material {
         MKT_NODISCARD auto GetEquirectangularAsset() const -> const asset::AssetHandle<asset::Texture>&;
         MKT_NODISCARD auto GetFaceAsset( SkyboxFace face ) const -> asset::AssetHandle<asset::Texture>;
 
-        auto SetName( eastl::string_view newName ) -> void override;
         MKT_NODISCARD auto GetName() const -> const eastl::string& override;
 
         ~SkyboxMaterial() override = default;

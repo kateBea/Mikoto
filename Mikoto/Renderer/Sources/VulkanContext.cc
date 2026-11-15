@@ -88,7 +88,8 @@ namespace mikoto::renderer::vulkan {
 
         // Initialize the device
         // Init the device when the context is ready
-        mDevice = renderer::rhi::IGpuDevice::Create( { .mApi = renderer::rhi::GraphicsAPI::eVulkan,
+        mDevice = renderer::rhi::IGpuDevice::Create( { 
+            .mApi = renderer::rhi::GraphicsAPI::eVulkan,
             .mDeviceType = deviceType,
             .mFeatureSupportFlags = GetRequestedDeviceFeatures()
         } );

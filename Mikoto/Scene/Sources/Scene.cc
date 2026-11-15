@@ -75,7 +75,7 @@
 #include <Text/Utility.hh>
 
 #include <Renderer/Rhi/Types.hh>
-#include <Renderer/Interface/Canvas.hh>
+#include <Renderer/Gui/Canvas.hh>
 #include <Renderer/Core/SceneRenderer.hh>
 #include <Renderer/Particle/ParticleSystem.hh>
 #include <Renderer/Particle/ParticleEmitter.hh>

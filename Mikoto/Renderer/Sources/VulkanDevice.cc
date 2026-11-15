@@ -1135,6 +1135,17 @@ namespace mikoto::renderer::vulkan {
         mEnabled13Features.pNext = nullptr;
         MKT_VK_CHECK( result );
 
+#if defined(MIKOTO_DEBUG)
+        if ( IsFeatureRequested( GpuFeatureSupportFlagsBits::MeshShaders ) &&
+            !IsFeatureSupported( GpuFeatureSupportFlagsBits::MeshShaders ) ) {
+            MKT_CORE_LOGGER_WARN( "Mesh shader support was requested but is not available on this device." );
+        }
+
+        if ( IsFeatureRequested( GpuFeatureSupportFlagsBits::HardwareRayTracing ) &&
+            !IsFeatureSupported( GpuFeatureSupportFlagsBits::HardwareRayTracing ) ) {
+            MKT_CORE_LOGGER_WARN( "Hardware ray tracing support was requested but is not available on this device." );
+        }
+#endif
         /**
           * [...] all device-related function calls, such as vkCmdDraw, will go through Vulkan loader dispatch code.
           * This allows you to transparently support multiple VkDevice objects in the same application, but comes at

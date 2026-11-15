@@ -22,7 +22,7 @@
 
 #include <Core/Exception.hh>
 
-#include <Renderer/Interface/Canvas.hh>
+#include <Renderer/Gui/Canvas.hh>
 
 namespace mikoto::renderer {
     using namespace core;

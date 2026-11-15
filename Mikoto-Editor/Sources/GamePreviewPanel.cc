@@ -16,7 +16,7 @@
 
 #include <Core/LocalizationService.hh>
 
-#include <Renderer/Interface/CanvasInput.hh>
+#include <Renderer/Gui/CanvasInput.hh>
 
 #include <Scripting/ScriptingService.hh>
 

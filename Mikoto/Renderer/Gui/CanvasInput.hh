@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MIKOTO_RENDERER_INTERFACE_CANVAS_INPUT_HH
-#define MIKOTO_RENDERER_INTERFACE_CANVAS_INPUT_HH
+#ifndef MIKOTO_RENDERER_GUI_CANVAS_INPUT_HH
+#define MIKOTO_RENDERER_GUI_CANVAS_INPUT_HH
 
 #include <Core/Types.hh>
 
@@ -56,4 +56,4 @@ namespace mikoto::renderer {
 
 }// namespace mikoto::renderer
 
-#endif// MIKOTO_RENDERER_INTERFACE_CANVAS_INPUT_HH
+#endif// MIKOTO_RENDERER_GUI_CANVAS_INPUT_HH

@@ -1,5 +1,5 @@
 # Skeletal_Animation demo project.
-# Four hundred Lola characters share the imported model while retaining separate animator instances.
+# Four hundred Deadpool instances share the imported model while retaining separate animators.
 # Open this manifest in the editor; Scene selects the authored scene below.
 # Assets and Cache paths are relative to this manifest.
 # EditorCamera configures editor navigation; the scene camera controls the Game view.

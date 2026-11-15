@@ -63,106 +63,6 @@ Objects:
       ModelPath: ../Prefabs/dragon/dragon.obj
       NextMesh: 0
   - Type: 0
-    ID: 4
-    TagComponent:
-      Name: Animated Lola
-      Visibility: true
-    TransformComponent:
-      Position: [-4.6650445282431106, 0.004405937386650058, 1.0000000734347998]
-      Rotation: [0, 0, 0]
-      Scale: [0.8764291245635933, 0.8764291245635933, 0.8764291245635933]
-      Uniform Scale: false
-    Children:
-      - Type: 5
-        ID: 5
-        TagComponent:
-          Name: Object_0
-          Visibility: true
-        TransformComponent:
-          Position: [0, 0, 0]
-          Rotation: [0, 0, 0]
-          Scale: [1, 1, 1]
-          Uniform Scale: false
-          Local Transform:
-            - [0.7028700113296509, 0.0, 0.0, 0.0]
-            - [0.0, 0.7028700113296509, 0.0, 0.0]
-            - [0.0, 0.0, 0.7028700113296509, 0.0]
-            - [0.0, 0.0, 0.0, 1.0]
-        Children: []
-        MeshComponent:
-          MeshIndex: 0
-          ModelPath: ../Prefabs/lola_bunny_updated__multiversus/scene.gltf
-        SkinnedMeshRenderer:
-          AnimatorID: 4
-      - Type: 5
-        ID: 6
-        TagComponent:
-          Name: Object_1
-          Visibility: true
-        TransformComponent:
-          Position: [0, 0, 0]
-          Rotation: [0, 0, 0]
-          Scale: [1, 1, 1]
-          Uniform Scale: false
-          Local Transform:
-            - [0.7028700113296509, 0.0, 0.0, 0.0]
-            - [0.0, 0.7028700113296509, 0.0, 0.0]
-            - [0.0, 0.0, 0.7028700113296509, 0.0]
-            - [0.0, 0.0, 0.0, 1.0]
-        Children: []
-        MeshComponent:
-          MeshIndex: 1
-          ModelPath: ../Prefabs/lola_bunny_updated__multiversus/scene.gltf
-        SkinnedMeshRenderer:
-          AnimatorID: 4
-      - Type: 5
-        ID: 7
-        TagComponent:
-          Name: Object_2
-          Visibility: true
-        TransformComponent:
-          Position: [0, 0, 0]
-          Rotation: [0, 0, 0]
-          Scale: [1, 1, 1]
-          Uniform Scale: false
-          Local Transform:
-            - [0.7028700113296509, 0.0, 0.0, 0.0]
-            - [0.0, 0.7028700113296509, 0.0, 0.0]
-            - [0.0, 0.0, 0.7028700113296509, 0.0]
-            - [0.0, 0.0, 0.0, 1.0]
-        Children: []
-        MeshComponent:
-          MeshIndex: 2
-          ModelPath: ../Prefabs/lola_bunny_updated__multiversus/scene.gltf
-        SkinnedMeshRenderer:
-          AnimatorID: 4
-      - Type: 5
-        ID: 8
-        TagComponent:
-          Name: Object_3
-          Visibility: true
-        TransformComponent:
-          Position: [0, 0, 0]
-          Rotation: [0, 0, 0]
-          Scale: [1, 1, 1]
-          Uniform Scale: false
-          Local Transform:
-            - [0.7028700113296509, 0.0, 0.0, 0.0]
-            - [0.0, 0.7028700113296509, 0.0, 0.0]
-            - [0.0, 0.0, 0.7028700113296509, 0.0]
-            - [0.0, 0.0, 0.0, 1.0]
-        Children: []
-        MeshComponent:
-          MeshIndex: 3
-          ModelPath: ../Prefabs/lola_bunny_updated__multiversus/scene.gltf
-        SkinnedMeshRenderer:
-          AnimatorID: 4
-    AnimatorComponent:
-      ID: 4
-      ModelPath: ../Prefabs/lola_bunny_updated__multiversus/scene.gltf
-      Clip: C038_Emote_CharacterSelect_Loop
-      Playing: true
-  - Type: 0
     ID: 14
     TagComponent:
       Name: Tree 0
@@ -739,7 +639,7 @@ Objects:
           Scale: [1, 1]
           Rotation: 0
           Color: [1, 1, 1, 1]
-          Text: "Play: skeletal animation + rigid body physics"
+          Text: "Play: rigid body physics"
           FontSize: 18
           FontPath: ../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf
   - ID: 37

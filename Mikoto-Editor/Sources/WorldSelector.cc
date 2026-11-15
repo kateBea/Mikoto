@@ -62,7 +62,8 @@ namespace mikoto::editor {
             .SetWidth( image->mWidth )
             .SetHeight( image->mHeight )
             .SetDimensions( TextureDimension::eTexture2D )
-            .SetUsage( TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::CopyDest )
+            .SetUsage( TextureUsageFlagsBits::ShaderResource |
+                TextureUsageFlagsBits::CopyDest )
             .SetFormat( Format::eRGBA8_UNORM ) );
     }
 
@@ -169,7 +170,7 @@ namespace mikoto::editor {
             return {};
         }
 
-        constexpr ImVec2 preferredSize{ 1320.0f, 820.0f };
+        constexpr ImVec2 preferredSize{ 1440.0f, 880.0f };
         constexpr core::f32 workspaceMargin{ 32.0f };
         const ImVec2 size{
             eastl::min( preferredSize.x, eastl::max( 1.0f, workspaceSize.x - workspaceMargin ) ),
@@ -220,11 +221,12 @@ namespace mikoto::editor {
     }
 
     auto WorldSelector::DrawSearch() -> void {
+        const auto& style{ ImGui::GetStyle() };
         const auto& refresh{ MKT_LOC( "world_selector_refresh" ) };
         const auto count{ string::Format( "{}: {}", MKT_LOC( "world_selector_count" ).c_str(), mWorlds.size() ) };
-        const auto& style{ ImGui::GetStyle() };
-        const core::f32 refreshWidth{ ImGui::CalcTextSize( refresh.c_str() ).x + style.FramePadding.x * 2.0f };
+
         const core::f32 countWidth{ ImGui::CalcTextSize( count.c_str() ).x };
+        const core::f32 refreshWidth{ ImGui::CalcTextSize( refresh.c_str() ).x + style.FramePadding.x * 2.0f };
         const core::f32 searchWidth{ ImGui::GetContentRegionAvail().x - refreshWidth - countWidth - style.ItemSpacing.x * 2.0f };
 
         ImGui::SetNextItemWidth( eastl::max( ImGui::GetFrameHeight(), searchWidth ) );
@@ -238,9 +240,11 @@ namespace mikoto::editor {
         }
 
         ImGui::SameLine();
+        
         if ( ImGui::Button( refresh.c_str() ) ) {
             Refresh();
         }
+
         imgui::SetCursorHandOnLastItemHovered();
 
         ImGui::SameLine();
@@ -271,6 +275,7 @@ namespace mikoto::editor {
                 if ( DrawCard( world, device, cardWidth ) ) {
                     openProject = world.mProject;
                 }
+
                 ++visible;
             }
 
@@ -367,12 +372,14 @@ namespace mikoto::editor {
                     ImGui::TextWrapped( "%s", MKT_LOC( "world_selector_select_hint" ).c_str() );
                 }
             }
+
             ImGui::EndChild();
 
             ImGui::BeginDisabled( world == nullptr );
             if ( imgui::widget::AccentButton( MKT_LOC( "world_selector_open" ).c_str(), { ImGui::GetContentRegionAvail().x, 0.0f } ) && world ) {
                 openProject = world->mProject;
             }
+
             imgui::SetCursorHandOnLastItemHovered();
             ImGui::EndDisabled();
 

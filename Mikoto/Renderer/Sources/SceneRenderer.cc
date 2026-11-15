@@ -108,7 +108,6 @@ namespace mikoto::renderer {
         mSsaoIntensity = glm::clamp( mSsaoIntensity, 0.0f, 4.0f );
 
         mShadowDistance = glm::clamp( mShadowDistance, 200.0f, 1000.0f );
-        mBloom.Sanitize();
         mChromaticAberration.mIntensity = glm::clamp( mChromaticAberration.mIntensity, 0.0f, 32.0f );
         mChromaticAberration.mDirection = glm::clamp( mChromaticAberration.mDirection, -180.0f, 180.0f );
         mSelectionOutlineWidth = glm::clamp( mSelectionOutlineWidth, 1.0f, OutlineModule::kMaxOutlineWidth );

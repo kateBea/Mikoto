@@ -14,10 +14,13 @@
 
 #pragma once
 
+#include <Material/PostProcessMaterial.hh>
+
 namespace mikoto::material { class SurfaceMaterial; class VolumeMaterial; }
 
 namespace mikoto::editor {
     /** Shared optical controls for the material editor and entity inspector. */
     auto DrawMaterialOptics( material::SurfaceMaterial& material ) -> bool;
     auto DrawVolumeMaterial( material::VolumeMaterial& material ) -> bool;
+    auto DrawPostProcessBloom( material::PostProcessMaterial& material ) -> bool;
 }

@@ -1570,11 +1570,11 @@ namespace mikoto::editor {
     auto ViewportPanel::DrawUtilitiesOverlay() -> void {
         MKT_BEGIN_PROFILER();
 
-        // ScenePanel::DrawTransformGizmos at 4c7333bd used a 23 px frame scaled by 1.3.
-        constexpr core::f32 kClassicButtonSide{ 29.9f };
-        constexpr core::f32 kClassicInset{ 4.0f };
-        constexpr core::f32 kClassicRowSpacing{ 3.0f };
-        constexpr core::f32 kClassicButtonCount{ 9.0f };
+        constexpr core::f32 kClassicButtonSide{ 25.0f };
+        constexpr core::f32 kClassicInset{ 3.5f };
+        constexpr core::f32 kClassicRowSpacing{ 2.0f };
+        constexpr core::f32 kClassicMinimumHeight{ 288.0f };
+        constexpr core::f32 kClassicButtonCount{ 8.0f };
         constexpr core::f32 kToolbarIconButtonCount{ 5.0f };
         constexpr core::f32 kToolbarItemSpacing{ 2.0f };
 
@@ -1588,7 +1588,12 @@ namespace mikoto::editor {
 
         const imgui::ImGuiScopedStyleVar toolPadding{ ImGuiStyleVar_FramePadding, ImVec2{ 6.0f * scale, ( buttonSize.y - fontSize ) * 0.5f } };
         const imgui::ImGuiScopedStyleVar spacing{ ImGuiStyleVar_ItemSpacing, itemSpacing };
-        const imgui::ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, 4.0f * scale };
+        const imgui::ImGuiScopedStyleVar rounding{ ImGuiStyleVar_FrameRounding, ( classic ? 2.0f : 4.0f ) * scale };
+
+        const bool grabActive{ mCursorTool == CursorTool::eGrabSoftBody };
+        const auto* scene{ mEditorState->mActiveScene };
+        const bool showClassicGrab{ classic && ( grabActive || ( scene &&
+            ( !scene->GetRegistry().view<scene::SoftBodyComponent>().empty() || !scene->GetRegistry().view<scene::ClothComponent>().empty() ) ) ) };
 
         const bool compact{ classic || mContentViewport.mWidth < 600.0f * scale };
         const auto modeLabel{ MKT_LOC( mGizmoMode == imgui::GizmoMode::eWorld ? "viewport_toolbar_world" : "viewport_toolbar_local" ) };
@@ -1597,9 +1602,10 @@ namespace mikoto::editor {
         const float pivotWidth{ compact ? buttonSize.x : ImGui::CalcTextSize( pivotLabel.c_str() ).x + 12.0f * scale };
         const float width{ kToolbarIconButtonCount * buttonSize.x + modeWidth + pivotWidth + 36.0f * scale };
         const float top{ 8.0f * scale + ( mEditorState->mViewSettings.mShowViewportControls ? ( kToolbarButtonHeight + 2.0f * kToolbarInset ) * scale : 0.0f ) };
+        const float classicRows{ kClassicButtonCount + ( showClassicGrab ? 1.0f : 0.0f ) };
+        const float classicContentHeight{ fontSize + classicRows * ( buttonSize.y + itemSpacing.y ) + 2.0f * inset };
         const ImVec2 size{ classic ? buttonSize.x + 2.0f * inset : width,
-            classic ? fontSize + kClassicButtonCount * ( buttonSize.y + itemSpacing.y ) + 2.0f * inset
-                    : buttonSize.y + 2.0f * inset };
+            classic ? glm::max( kClassicMinimumHeight * scale, classicContentHeight ) : buttonSize.y + 2.0f * inset };
 
         auto& offset{ classic ? mClassicToolbarOffset : mTransformToolbarOffset };
         const auto minimum{ DrawToolbarBackground( { mContentViewport.mX + 8.0f * scale, mContentViewport.mY + top }, size, offset, classic ) };
@@ -1607,8 +1613,20 @@ namespace mikoto::editor {
         ImGui::SetCursorScreenPos( { minimum.x + inset, minimum.y + inset } );
         ImGui::BeginGroup();
         {
-            ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 0.0f );
-            ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0, 0, 0, 0 } );
+            const imgui::ImGuiScopedStyleVar border{ ImGuiStyleVar_FrameBorderSize, 0.0f };
+            auto buttonColor{ ImGui::GetStyleColorVec4( ImGuiCol_Button ) };
+            auto hoverColor{ ImGui::GetStyleColorVec4( ImGuiCol_ButtonHovered ) };
+            auto activeColor{ ImGui::GetStyleColorVec4( ImGuiCol_ButtonActive ) };
+
+            buttonColor.w = classic ? 0.42f : 0.0f;
+            if ( classic ) {
+                hoverColor.w = 0.55f;
+                activeColor.w = 0.65f;
+            }
+
+            const imgui::ImGuiScopedColor buttonStyle{ ImGuiCol_Button, buttonColor };
+            const imgui::ImGuiScopedColor hoverStyle{ ImGuiCol_ButtonHovered, hoverColor };
+            const imgui::ImGuiScopedColor activeStyle{ ImGuiCol_ButtonActive, activeColor };
 
             // Restore the vertical tools and drag handle from ScenePanel's
             // DrawTransformGizmos (e0887059), using the current widget/input API.
@@ -1634,16 +1652,17 @@ namespace mikoto::editor {
                 }
             }
 
-            const bool grabActive{ mCursorTool == CursorTool::eGrabSoftBody };
+            const auto drawGrabTool = [&] {
+                if ( imgui::widget::ToggleIconButton( "SceneGrabSoftBody", ICON_MD_FRONT_HAND, grabActive, buttonSize ) ) {
+                    SetCursorTool( grabActive ? CursorTool::eSelect : CursorTool::eGrabSoftBody );
+                }
 
-            if ( imgui::widget::ToggleIconButton( "SceneGrabSoftBody", ICON_MD_FRONT_HAND, grabActive, buttonSize ) ) {
-                SetCursorTool( grabActive ? CursorTool::eSelect : CursorTool::eGrabSoftBody );
-            }
-
-            imgui::widget::ItemTooltip( "%s", MKT_LOC( "viewport_tool_grab_soft_body" ).c_str() );
-            imgui::SetCursorHandOnLastItemHovered();
+                imgui::widget::ItemTooltip( "%s", MKT_LOC( "viewport_tool_grab_soft_body" ).c_str() );
+                imgui::SetCursorHandOnLastItemHovered();
+            };
 
             if ( !classic ) {
+                drawGrabTool();
                 ImGui::SameLine();
             }
 
@@ -1755,10 +1774,11 @@ namespace mikoto::editor {
                 }
 
                 imgui::widget::ItemTooltip( "%s", MKT_LOC( "viewport_show_grid" ).c_str() );
-            }
 
-            ImGui::PopStyleColor();
-            ImGui::PopStyleVar();
+                if ( showClassicGrab ) {
+                    drawGrabTool();
+                }
+            }
         }
 
         ImGui::EndGroup();

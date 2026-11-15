@@ -34,7 +34,50 @@ namespace mikoto::editor {
     using namespace mikoto::core;
     using namespace mikoto::material;
 
-    static auto PresetCombo( const char* preview, const char* const* keys, u32 count ) -> i32 {
+    auto DrawPostProcessBloom( material::PostProcessMaterial& material ) -> bool {
+        if ( material.GetCategory() != PostProcessMaterialCategory::eBuiltIn ) {
+            return false;
+        }
+
+        ImGui::SeparatorText( MKT_LOC( "renderer_bloom" ).c_str() );
+
+        auto settings{ material.GetBloomSettings() };
+        bool changed{ imgui::CheckBox(
+            imgui::widget::LocalizedLabel( "post_process_bloom_enabled", "PostProcessBloom" ).c_str(), settings.mEnabled ) };
+
+        ImGui::BeginDisabled( !settings.mEnabled );
+        if ( ImGui::BeginTable( "##PostProcessBloomParameters", 2, ImGuiTableFlags_SizingStretchSame ) ) {
+            const auto slider{ []( core::cstr key, core::f32& value, core::float2 range ) -> bool {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextUnformatted( MKT_LOC( key ).c_str() );
+
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth( -1.0f );
+                ImGui::PushID( key );
+                const bool changed{ imgui::Slider( "##Value", value, range, "%.2f" ) };
+                ImGui::PopID();
+
+                return changed;
+            } };
+
+            changed |= slider( "renderer_threshold", settings.mThreshold, { 0.0f, 100.0f } );
+            changed |= slider( "renderer_intensity", settings.mIntensity, { 0.0f, 10.0f } );
+            changed |= slider( "renderer_scatter", settings.mScatter, { 0.0f, 1.0f } );
+            changed |= slider( "renderer_radius", settings.mRadius, { 0.5f, 3.0f } );
+            ImGui::EndTable();
+        }
+        ImGui::EndDisabled();
+
+        if ( changed ) {
+            material.SetBloomSettings( settings );
+        }
+
+        return changed;
+    }
+
+    MKT_NODISCARD static auto PresetCombo( const char* preview, const char* const* keys, u32 count ) -> i32 {
         i32 result{ -1 };
         if ( ImGui::BeginCombo( MKT_LOC( "material_preset" ).c_str(), preview ) ) {
             for ( u32 i{}; i < count; ++i ) {

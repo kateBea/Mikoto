@@ -54,6 +54,7 @@ namespace mikoto::renderer {
 
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
+        ~ThumbnailRenderer() override;
 
         // Render-thread API. One job is retained until its submission completes;
         // CPU model preparation is asynchronous; Poll never waits. The callback receives owned RGBA pixels for caching.
@@ -64,6 +65,10 @@ namespace mikoto::renderer {
             material::MaterialHandle material = {},
             PreviewCallback callback = {},
             core::u32 width = 512, core::u32 height = 512, asset::ImageHandle image = {} ) -> bool;
+
+        // Apply the scene post-process passes to a scene-linear HDR reference image.
+        auto BeginPostProcessPreview( const rhi::TextureHandle& source,
+            const material::PostProcessMaterial& material ) -> bool;
 
         auto Poll() -> void;
         MKT_NODISCARD auto IsBusy() const -> bool;
@@ -97,6 +102,7 @@ namespace mikoto::renderer {
 
     private:
         struct Preparation;
+        struct PostProcessPreview;
         auto SubmitPreview( const ThumbnailPreviewSettings& settings, material::MaterialHandle material ) -> void;
 
         eastl::shared_ptr<Preparation> mPreparation{};
@@ -105,6 +111,7 @@ namespace mikoto::renderer {
         asset::ShaderLibrary* mShaderLibrary{};
         eastl::unique_ptr<ThumbnailPasses> mPasses{};
         eastl::unique_ptr<FrameGraph> mGraph{};
+        eastl::unique_ptr<PostProcessPreview> mPostProcessPreview{};
         asset::ModelHandle mPreviewModel{};
         asset::ImageHandle mCompletedImage{};
         rhi::TextureHandle mFlatPreview{};
@@ -113,6 +120,7 @@ namespace mikoto::renderer {
         core::u32 mHeight{};
         bool mBusy{};
         bool mCompleted{};
+        bool mShowPostProcessPreview{};
         eastl::string mError{};
         filesystem::Path mAssetCacheThumbnails{ "Assets/.cache/Thumbnails" };
     };

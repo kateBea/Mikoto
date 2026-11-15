@@ -42,6 +42,7 @@
 #include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Component.hh>
+#include <Scene/SceneCamera.hh>
 
 namespace mikoto::renderer {
 
@@ -74,6 +75,33 @@ namespace mikoto::renderer {
 
         const auto& camera{ entity->GetComponent<CameraComponent>() };
         return camera.HasCamera() ? camera.GetCamera().GetFilmGrainSettings().mAmount : 0.0f;
+    }
+
+    static auto FindMaterialBloom( const Scene* scene ) -> const BloomSettings* {
+        if ( !scene ) {
+            return nullptr;
+        }
+
+        const BloomSettings* selected{};
+        core::u64 selectedOwner{};
+
+        for ( const auto [entity, tag, component]:
+            scene->GetRegistry().view<TagComponent, PostProcessMaterialComponent>().each() ) {
+            if ( !tag.IsActive() || ( selected && selectedOwner <= tag.GetGuid() ) ) {
+                continue;
+            }
+
+            const auto handle{ component.GetMaterial() };
+            const auto* material{ dynamic_cast<const material::PostProcessMaterial*>( handle.GetPtr() ) };
+
+            // One HDR bloom chain serves the scene. Use the same entity order as grading.
+            if ( material && material->IsBloomEnabled() ) {
+                selected = &material->GetBloomSettings();
+                selectedOwner = tag.GetGuid();
+            }
+        }
+
+        return selected;
     }
 
     static auto CollectPostProcessMaterials( 
@@ -136,6 +164,19 @@ namespace mikoto::renderer {
     auto PostEffectsPass::SetCamera( const scene::Camera* camera ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
         mCamera = camera;
+    }
+
+    auto PostEffectsPass::SetPreviewMaterial( const material::PostProcessMaterial& material ) -> void {
+        mPreviewMaterial = PostProcessMaterialData{
+            .mTintColor = material.GetTintColor(),
+            .mContrast = material.GetContrast(),
+            .mSaturation = material.GetSaturation(),
+            .mStage = core::as<core::u32>( material.GetStage() ),
+            .mFilmGrainAmount = material.IsFilmGrainEnabled() ? scene::FilmGrainSettings{}.mAmount : 0.0f
+        };
+
+        mBloomSettings = material.GetBloomSettings();
+        mBloomSettings.mEnabled = material.IsBloomEnabled();
     }
 
     auto PostEffectsPass::SetEnableBloom( bool value ) -> void {
@@ -448,12 +489,10 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto PostEffectsPass::RegisterBloom( FrameGraph& graph, FGTextureHandle source ) -> void {
+    auto PostEffectsPass::RegisterBloom( FrameGraph& graph, FGTextureHandle source,
+        FGTextureHandle materialSource ) -> void {
         // https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare/
         MKT_BEGIN_PROFILER_NAMED();
-        if ( !source.mHandle ) {
-            source = graph.GetData<PrepassModuleInfo>().mGBufferEmissiveTarget;
-        }
 
         auto& info{ graph.GetOrCreate<PostProcessModuleInfo>() };
         info.mBloomSampler = graph.Create( FGSamplerDescription{}
@@ -520,19 +559,28 @@ namespace mikoto::renderer {
             graph.RegisterPass(
                 string::Format( "BloomDownSample Mip {}", mip ),
                 FGPassType::eGraphics,
-                [mip, source]( FGNodeBuilder& builder, core::Blackboard& blackboard ) {
+                [mip, source, materialSource]( FGNodeBuilder& builder, core::Blackboard& blackboard ) {
                     const auto& post{ blackboard.Get<PostProcessModuleInfo>() };
                     const auto input{ mip == 0 ? source : post.mBloomChainImages[mip - 1].mImage };
                     builder.UseResource( input, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    if ( mip == 0 && materialSource.mHandle ) {
+                        builder.UseResource( materialSource, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    }
+
                     builder.UseResource( post.mBloomChainImages[mip].mImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 },
-                [this, mip, source]( CommandContext& ctx, core::Blackboard& blackboard ) {
+                [this, mip, source, materialSource]( CommandContext& ctx, core::Blackboard& blackboard ) {
                     auto& post{ blackboard.Get<PostProcessModuleInfo>() };
-                    // Snapshot once per frame so the whole chain and tonemap
-                    // see the same settings, including the disabled case.
+                    auto input{ mip == 0 ? source : post.mBloomChainImages[mip - 1].mImage };
+
+                    // Snapshot the settings and source together before running the filter chain.
                     if ( mip == 0 ) {
-                        post.mBloomSettings = mBloomSettings;
-                        post.mBloomSettings.Sanitize();
+                        const auto* materialBloom{ FindMaterialBloom( mScene ) };
+                        post.mBloomSettings = materialBloom ? *materialBloom : mBloomSettings;
+
+                        if ( materialBloom && materialSource.mHandle ) {
+                            input = materialSource;
+                        }
                     }
 
                     if ( !post.mBloomSettings.mEnabled || post.mBloomSettings.mIntensity == 0.0f ) {
@@ -540,7 +588,6 @@ namespace mikoto::renderer {
                     }
 
                     const auto& target{ post.mBloomChainImages[mip] };
-                    const auto input{ mip == 0 ? source : post.mBloomChainImages[mip - 1].mImage };
                     struct DrawParams {
                         core::u32 mSamplerID;
                         core::u32 mTargetImageID;
@@ -747,7 +794,17 @@ namespace mikoto::renderer {
 
         auto& info{ GetMaterialStage( b.Get<PostProcessModuleInfo>(), stage ) };
 
-        CollectPostProcessMaterials( mScene, stage, mPostProcessMaterials );
+        if ( mPreviewMaterial ) {
+            mPostProcessMaterials.clear();
+
+            if ( mPreviewMaterial->mStage == core::as<core::u32>( stage ) ) {
+                mPostProcessMaterials.push_back( *mPreviewMaterial );
+            }
+        }
+        else {
+            CollectPostProcessMaterials( mScene, stage, mPostProcessMaterials );
+        }
+
         info.mMaterialCount = core::as<core::u32>( mPostProcessMaterials.size() );
 
         if ( !mPostProcessMaterials.empty() ) {
@@ -783,14 +840,6 @@ namespace mikoto::renderer {
     auto PostEffectsPass::GetBloomSettings() -> BloomSettings& {
         MKT_BEGIN_PROFILER();
         return mBloomSettings;
-    }
-
-    auto BloomSettings::Sanitize() -> void {
-        MKT_BEGIN_PROFILER();
-        mThreshold = glm::clamp( mThreshold, 0.0f, 65504.0f );
-        mIntensity = glm::clamp( mIntensity, 0.0f, 10.0f );
-        mScatter = glm::clamp( mScatter, 0.0f, 1.0f );
-        mRadius = glm::clamp( mRadius, 0.5f, 3.0f );
     }
 
 }// namespace mikoto::renderer

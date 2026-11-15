@@ -63,7 +63,8 @@ float4 main( float2 uv : TEXCOORD0, float4 position : SV_Position ) : SV_Target0
         // PostProcessMaterial::Evaluate; identity properties preserve the input.
         float luminance = dot( color.rgb, float3( 0.2126f, 0.7152f, 0.0722f ) );
         float3 saturated = lerp( luminance.xxx, color.rgb, material.Saturation );
-        color.rgb = max( ( saturated - 0.5f ) * material.Contrast + 0.5f, 0.0f ) * material.TintColor.rgb;
+        float3 graded = max( ( saturated - 0.5f ) * material.Contrast + 0.5f, 0.0f ) * material.TintColor.rgb;
+        color.rgb = lerp( color.rgb, graded, material.TintColor.a );
 
         if ( material.FilmGrainAmount > 0.0f ) {
             color = ApplyFilmGrain( color, position.xy, parameters.mElapsedSeconds, material.FilmGrainAmount );

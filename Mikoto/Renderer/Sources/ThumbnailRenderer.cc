@@ -40,6 +40,9 @@
 #include <Renderer/Core/Renderer.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/ThumbnailRenderer.hh>
+#include <Renderer/ForwardRenderer/Passes/TonemapModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PostProcessModule.hh>
+#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
 
 #if MIKOTO_MODULE_AUDIO
 #include <miniaudio.h>
@@ -66,6 +69,17 @@ namespace mikoto::renderer {
         core::u32 mHeight{};
         eastl::string mError{};
         bool mReady{};
+    };
+
+    struct ThumbnailRenderer::PostProcessPreview {
+        static constexpr auto kResolution{ rhi::RenderResolution::e720P };
+
+        PostEffectsPass mEffects{ kResolution };
+        TonemapModule mTonemap{ kResolution };
+
+        eastl::unique_ptr<FrameGraph> mGraph{};
+        rhi::TextureHandle mSource{};
+        FGTextureHandle mOutput{};
     };
 
     auto ThumbnailRendererCreateInfo::SetName( eastl::string_view name ) -> ThumbnailRendererCreateInfo & {
@@ -102,6 +116,8 @@ namespace mikoto::renderer {
         : mDevice{ desc.mDevice }, mShaderPath{ desc.mShaderBasePath.empty() ? "Resources/Shaders/slang" : desc.mShaderBasePath }, mAssetCacheThumbnails{ desc.mAssetCacheThumbnails } {
     }
 
+    ThumbnailRenderer::~ThumbnailRenderer() = default;
+
     auto ThumbnailRenderer::Initialize() -> void {
         // Compile shaders lazily when the first visible model requests a preview.
     }
@@ -113,6 +129,8 @@ namespace mikoto::renderer {
         mCallback = {};
         mGraph.reset();
         mPasses.reset();
+        mPostProcessPreview.reset();
+        mShowPostProcessPreview = false;
         mPreviewModel.Reset();
         mCompletedImage.Reset();
         mFlatPreview.Reset();
@@ -152,6 +170,7 @@ namespace mikoto::renderer {
         }
 
         mError.clear();
+        mShowPostProcessPreview = false;
         mCompletedImage.Reset();
         mCallback = eastl::move( callback );
 
@@ -206,6 +225,62 @@ namespace mikoto::renderer {
             SubmitPreview( settings, eastl::move( material ) );
         }
 
+        return true;
+    }
+
+    auto ThumbnailRenderer::BeginPostProcessPreview( const rhi::TextureHandle& source,
+        const material::PostProcessMaterial& material ) -> bool {
+        Poll();
+
+        if ( mBusy || !source ) {
+            return false;
+        }
+
+        if ( !mDevice || ( !mDevice->IsGraphicsApi( rhi::GraphicsAPI::eVulkan ) && !mDevice->IsGraphicsApi( rhi::GraphicsAPI::eD3D12 ) ) ) {
+            MKT_THROW_RUNTIME_ERROR( "GPU previews require the Vulkan or D3D12 frame graph backend." );
+        }
+
+        if ( !mPostProcessPreview || mPostProcessPreview->mSource != source ) {
+            auto preview{ eastl::make_unique<PostProcessPreview>() };
+            preview->mSource = source;
+            auto* shaders{ asset::AssetRegistryService::Get()->GetShaderLibrary() };
+            preview->mGraph = FrameGraph::Create( mDevice, shaders );
+
+            // Use the scene's stage order, with the HDR image in place of scene geometry.
+            auto& graph{ *preview->mGraph };
+            const auto input{ graph.ImportTexture( source ) };
+            preview->mEffects.RegisterPostProcess( graph, material::PostProcessStage::eBeforeToneMapping, input );
+            preview->mEffects.RegisterBloom( graph, graph.GetData<PostProcessModuleInfo>().mBeforeToneMapping.mColorImage );
+            preview->mTonemap.RegisterTonemapPass( graph );
+            preview->mEffects.RegisterPostProcess( graph, material::PostProcessStage::eAfterToneMapping,
+                graph.GetData<GeomShadingModuleInfo>().mTonemapColor );
+
+            preview->mOutput = graph.GetData<PostProcessModuleInfo>().mAfterToneMapping.mColorImage;
+            graph.RegisterPass(
+                "PostProcessPreview.SampledOutput",
+                FGPassType::eGraphics,
+                [output = preview->mOutput]( FGNodeBuilder& builder, core::Blackboard& ) {
+                    // Leave the image ready for ImGui to sample outside the graph.
+                    builder.UseResource( output, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                },
+                []( CommandContext&, core::Blackboard& ) {
+                } );
+            graph.Compile();
+
+            mPostProcessPreview = eastl::move( preview );
+        }
+
+        mError.clear();
+        mPostProcessPreview->mEffects.SetPreviewMaterial( material );
+
+        auto& graph{ *mPostProcessPreview->mGraph };
+        graph.RegisterReadback( [this]( core::Blackboard&, const FGResourceManager& ) {
+            mBusy = false;
+        } );
+        graph.Execute();
+
+        mBusy = true;
+        mShowPostProcessPreview = true;
         return true;
     }
 
@@ -276,6 +351,10 @@ namespace mikoto::renderer {
             mGraph->ExecuteReadbacks();
         }
 
+        if ( mPostProcessPreview ) {
+            mPostProcessPreview->mGraph->ExecuteReadbacks();
+        }
+
         if ( mCompleted ) {
             mCompleted = false;
             // Invoke clients after callback iteration, allowing them to enqueue
@@ -293,6 +372,10 @@ namespace mikoto::renderer {
     }
 
     auto ThumbnailRenderer::GetPreviewTexture() const -> renderer::rhi::TextureHandle {
+        if ( mShowPostProcessPreview ) {
+            return mPostProcessPreview->mGraph->GetTexture( mPostProcessPreview->mOutput );
+        }
+
         if ( mFlatPreview ) {
             return mFlatPreview;
         }

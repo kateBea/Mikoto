@@ -206,10 +206,11 @@ namespace mikoto::editor {
 
         mPanelIsHovered = ImGui::IsWindowHovered( ImGuiHoveredFlags_ChildWindows );
         mPanelIsFocused = ImGui::IsWindowFocused( ImGuiFocusedFlags_ChildWindows );
-        const bool textPreview{ dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) != nullptr };
+        const bool flatPreview{ dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) ||
+            dynamic_cast<const material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) };
 
         try {
-            if ( !textPreview ) {
+            if ( !flatPreview ) {
                 if ( !mEnvironment.IsRequested() ) {
                     mEnvironment.Request( PreviewEnvironment::StreetPath() );
                 }
@@ -217,11 +218,11 @@ namespace mikoto::editor {
                 mPreviewDirty |= mEnvironment.Poll( mPreview.mEnvironment );
             }
 
-            if ( !textPreview && !mModelLoad ) {
+            if ( !flatPreview && !mModelLoad ) {
                 RequestPreviewModel();
             }
 
-            if ( !textPreview && mModelLoad && !mModel ) {
+            if ( !flatPreview && mModelLoad && !mModel ) {
                 std::lock_guard lock{ mModelLoad->mMutex };
 
                 if ( mModelLoad->mComplete ) {
@@ -237,7 +238,7 @@ namespace mikoto::editor {
             mError = error.what();
         }
 
-        if ( !textPreview && !mModel ) {
+        if ( !flatPreview && !mModel ) {
             ImGui::TextWrapped( "%s", mError.empty() ? MKT_LOC( "material_editor_loading_material_sphere" ).c_str() : mError.c_str() );
 
             if ( !mError.empty() && ImGui::Button( imgui::widget::LocalizedLabel( "material_editor_retry", "Retry" ).c_str() ) ) {
@@ -565,12 +566,14 @@ namespace mikoto::editor {
             return;
         }
 
-        const bool textPreview{ dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) != nullptr };
+        const auto* text{ dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) };
+        const auto* post{ dynamic_cast<const material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) };
+        const bool meshPreview{ !text && !post };
 
-        if ( textPreview ) {
+        if ( text ) {
             ImGui::TextWrapped( MKT_LOC( "material_editor_text_material_sample_font_with_color_and_opacity_the_font" ).c_str() );
         }
-        else {
+        else if ( meshPreview ) {
             if ( ImGui::Button( imgui::widget::LocalizedLabel( "material_editor_reset_view", "Reset view" ).c_str() ) ) {
                 mPreview.mYaw = 35.0f;
                 mPreview.mPitch = 18.0f;
@@ -594,8 +597,7 @@ namespace mikoto::editor {
             return;
         }
 
-        // Render with the viewport's aspect instead of fitting a square image
-        // inside it. Cap resolution, but retain the full-width camera framing.
+        // Model and text previews match the canvas. Post-process previews keep a fixed resolution.
         const core::f32 scale{ eastl::min( 1.0f, 1536.0f / eastl::max( available.x, available.y ) ) };
         const core::u32 width{ eastl::max( 1u, core::as<core::u32>( available.x * scale ) ) };
         const core::u32 height{ eastl::max( 1u, core::as<core::u32>( available.y * scale ) ) };
@@ -604,17 +606,42 @@ namespace mikoto::editor {
         try {
             MKT_ASSERT( mRenderer, "Thumbnail renderer for Material Preview is null" );
 
-            if ( ( mPreviewDirty || ( resized && !ImGui::IsMouseDown( ImGuiMouseButton_Left ) ) ) && !mRenderer->IsBusy() && mError.empty() ) {
-                // Coalesce mesh edits while the graph is in flight. Flat text
-                // samples also rebuild only after an edit, never for camera motion.
-                // Text previews are editor-generated images; surface materials use the model graph.
-                asset::ImageHandle previewImage{};
-
-                if ( const auto* text{ dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) } ) {
-                    previewImage = RenderTextMaterialPreview( *text, width, height );
+            if ( post && !mPostProcessImage ) {
+                if ( !mPostProcessImageLoad.IsRequested() ) {
+                    mPostProcessImageLoad.Request( PreviewEnvironment::StreetPath() );
                 }
 
-                if ( mRenderer->BeginModelPreview( mModel, mPreview, mMaterialResource, {}, width, height, previewImage ) ) {
+                mPreviewDirty |= mPostProcessImageLoad.Poll( mPostProcessImage );
+                if ( !mPostProcessImage ) {
+                    const auto& error{ mPostProcessImageLoad.GetError() };
+
+                    if ( error.empty() ) {
+                        ImGui::TextDisabled( "%s", MKT_LOC( "material_editor_loading_post_process_image" ).c_str() );
+                    }
+                    else {
+                        ImGui::TextWrapped( "%s", error.c_str() );
+                        if ( ImGui::Button( imgui::widget::LocalizedLabel( "material_editor_retry", "Retry" ).c_str() ) ) {
+                            mPostProcessImageLoad.Request( PreviewEnvironment::StreetPath() );
+                        }
+                    }
+
+                    return;
+                }
+            }
+
+            const bool resizePreview{ !post && resized && !ImGui::IsMouseDown( ImGuiMouseButton_Left ) };
+            if ( ( mPreviewDirty || resizePreview ) && !mRenderer->IsBusy() && mError.empty() ) {
+                bool submitted{};
+
+                if ( post ) {
+                    submitted = mRenderer->BeginPostProcessPreview( mPostProcessImage, *post );
+                }
+                else {
+                    const auto image{ text ? RenderTextMaterialPreview( *text, width, height ) : asset::ImageHandle{} };
+                    submitted = mRenderer->BeginModelPreview( mModel, mPreview, mMaterialResource, {}, width, height, image );
+                }
+
+                if ( submitted ) {
                     mPreviewWidth = width;
                     mPreviewPixelHeight = height;
                     mPreviewDirty = false;
@@ -628,10 +655,21 @@ namespace mikoto::editor {
         if ( mPreviewTexture ) {
             const auto& texture{ mPreviewTexture };
 
-            // While a resize is pending, crop the old frame instead of stretching
-            // the sphere. The completed render replaces it with the correct aspect.
             const core::f32 sourceAspect{ core::as<core::f32>( texture->GetWidth() ) / texture->GetHeight() };
             const core::f32 targetAspect{ available.x / available.y };
+
+            if ( post ) {
+                // Fit the complete post-processed image in the canvas.
+                const ImVec2 size{ sourceAspect > targetAspect ? available.x : available.y * sourceAspect,
+                    sourceAspect > targetAspect ? available.x / sourceAspect : available.y };
+                const auto origin{ ImGui::GetCursorScreenPos() };
+                ImGui::SetCursorScreenPos( { origin.x + ( available.x - size.x ) * 0.5f,
+                    origin.y + ( available.y - size.y ) * 0.5f } );
+                ImGui::Image( imgui::ImGuiService::Get()->GetTextureID( texture ), size );
+                return;
+            }
+
+            // Crop the previous frame to the canvas while a resize is in progress.
 
             ImVec2 uv0{ 0, 0 };
             ImVec2 uv1{ 1, 1 };
@@ -655,13 +693,13 @@ namespace mikoto::editor {
                 ImGui::SetWindowFocus();
             }
 
-            if ( !textPreview && ImGui::IsItemActive() && ImGui::IsMouseDragging( ImGuiMouseButton_Left ) ) {
+            if ( meshPreview && ImGui::IsItemActive() && ImGui::IsMouseDragging( ImGuiMouseButton_Left ) ) {
                 mPreview.mYaw -= ImGui::GetIO().MouseDelta.x * 0.35f;
                 mPreview.mPitch = glm::clamp( mPreview.mPitch + ImGui::GetIO().MouseDelta.y * 0.35f, -80.0f, 80.0f );
                 mPreviewDirty = true;
             }
 
-            if ( !textPreview && hovered && ImGui::GetIO().MouseWheel != 0.0f ) {
+            if ( meshPreview && hovered && ImGui::GetIO().MouseWheel != 0.0f ) {
                 mPreview.mDistance = glm::clamp( mPreview.mDistance - ImGui::GetIO().MouseWheel * 0.3f, 2.0f, 20.0f );
                 mPreviewDirty = true;
             }
@@ -1033,7 +1071,8 @@ namespace mikoto::editor {
     }
 
     auto MaterialEditorPanel::DrawLighting() -> void {
-        if ( dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) ) {
+        if ( dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) ||
+             dynamic_cast<const material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) ) {
             return;
         }
 
@@ -1200,7 +1239,7 @@ namespace mikoto::editor {
                 changed = true;
             }
 
-            ImGui::TextWrapped( "%s", MKT_LOC( "material_editor_preview_applies_grading_to_the_lit_sphere_scene_post_processing" ).c_str() );
+            changed |= DrawPostProcessBloom( *post );
         }
         else if ( auto* sky{ dynamic_cast<material::SkyboxMaterial*>( mMaterialResource.GetPtr() ) } ) {
             core::i32 type{ static_cast<core::i32>( sky->GetType() ) };

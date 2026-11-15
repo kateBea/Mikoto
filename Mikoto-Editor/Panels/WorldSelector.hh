@@ -49,7 +49,6 @@ namespace mikoto::editor {
         };
 
         auto Refresh() -> void;
-        auto ApplyPreviewChoice( renderer::rhi::IGpuDevice* device ) -> void;
 
         auto DrawSearch() -> void;
         auto DrawGrid( renderer::rhi::IGpuDevice* device, core::f32 width ) -> filesystem::Path;
@@ -66,11 +65,8 @@ namespace mikoto::editor {
         eastl::vector<World> mWorlds{};
         ImGuiTextFilter mSearch{};
         filesystem::Path mSelectedProject{};
-        filesystem::Path mPreviewProject{};
-        filesystem::Path mPreviewSource{};
 
         bool mVisible{};
-        bool mPreviewFailed{};
     };
 }// namespace mikoto::editor
 

@@ -76,6 +76,7 @@ namespace mikoto::material {
           mSaturation{ other.mSaturation },
           mTintColor{ other.mTintColor },
           mFilmGrainEnabled{ other.mFilmGrainEnabled },
+          mBloom{ other.mBloom },
           mStage{ other.mStage },
           mCategory{ other.mCategory },
           mGraph{ other.mGraph },
@@ -218,6 +219,7 @@ namespace mikoto::material {
         mStage = value->mStage;
         mCategory = value->mCategory;
         mFilmGrainEnabled = value->mFilmGrainEnabled;
+        mBloom = value->mBloom;
     }
 
     auto PostProcessMaterial::SetStage( PostProcessStage stage ) -> void {
@@ -285,10 +287,24 @@ namespace mikoto::material {
         return mFilmGrainEnabled;
     }
 
+    auto PostProcessMaterial::SetBloomSettings( renderer::BloomSettings settings ) -> void {
+        mBloom = settings;
+    }
+
+    auto PostProcessMaterial::IsBloomEnabled() const -> bool {
+        return mCategory == PostProcessMaterialCategory::eBuiltIn && mBloom.mEnabled;
+    }
+
+    auto PostProcessMaterial::GetBloomSettings() const -> const renderer::BloomSettings& {
+        return mBloom;
+    }
+
     auto PostProcessMaterial::Evaluate( const core::float3& color ) const -> core::float3 {
         const auto luminance{ glm::dot( color, core::float3{ 0.2126f, 0.7152f, 0.0722f } ) };
         const auto saturated{ glm::mix( core::float3{ luminance }, color, mSaturation ) };
-        return glm::max( ( saturated - 0.5f ) * mContrast + 0.5f, core::float3{ 0.0f } ) * core::float3{ mTintColor };
+        const auto graded{ glm::max( ( saturated - 0.5f ) * mContrast + 0.5f, core::float3{ 0.0f } ) * core::float3{ mTintColor } };
+
+        return glm::mix( color, graded, mTintColor.a );
     }
 
     auto PostProcessMaterial::GetGraph() -> MaterialGraph* {
@@ -320,6 +336,14 @@ namespace mikoto::material {
         data["Category"] = core::as<core::u32>( GetCategory() );
         data["FilmGrain"]["Enabled"] = IsFilmGrainEnabled();
 
+        YAML::Node bloom{ YAML::NodeType::Map };
+        bloom["Enabled"] = mBloom.mEnabled;
+        bloom["Threshold"] = mBloom.mThreshold;
+        bloom["Intensity"] = mBloom.mIntensity;
+        bloom["Scatter"] = mBloom.mScatter;
+        bloom["Radius"] = mBloom.mRadius;
+        data["Bloom"] = bloom;
+
         if ( !GetGraph()->GetNodes().empty() ) {
             data["Graph"] = GetGraph()->Serialize();
         }
@@ -333,7 +357,17 @@ namespace mikoto::material {
         SetContrast( node["Contrast"].as<core::f32>( 1.0f ) );
         SetSaturation( node["Saturation"].as<core::f32>( 1.0f ) );
 
-        // Older material assets keep their original appearance until grain is enabled.
+        // Older assets keep both effects off unless they were explicitly enabled.
+        if ( const auto bloom{ node["Bloom"] } ) {
+            SetBloomSettings( renderer::BloomSettings{
+                .mThreshold = bloom["Threshold"].as<core::f32>( mBloom.mThreshold ),
+                .mIntensity = bloom["Intensity"].as<core::f32>( mBloom.mIntensity ),
+                .mScatter = bloom["Scatter"].as<core::f32>( mBloom.mScatter ),
+                .mRadius = bloom["Radius"].as<core::f32>( mBloom.mRadius ),
+                .mEnabled = bloom["Enabled"].as<bool>( mBloom.mEnabled )
+            } );
+        }
+
         if ( const auto grain{ node["FilmGrain"] } ) {
             SetFilmGrainEnabled( grain["Enabled"].as<bool>( false ) );
         }

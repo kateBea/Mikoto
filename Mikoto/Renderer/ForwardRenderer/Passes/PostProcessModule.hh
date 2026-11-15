@@ -17,6 +17,7 @@
 
 #include <EASTL/array.h>
 #include <EASTL/vector.h>
+#include <EASTL/optional.h>
 #include <EASTL/fixed_vector.h>
 
 #include <glm/glm.hpp>
@@ -30,6 +31,7 @@
 #include <Material/PostProcessMaterial.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Postprocess/Bloom.hh>
 #include <Renderer/Core/CommandContext.hh>
 
 #include <Scene/Scene.hh>
@@ -57,18 +59,6 @@ namespace mikoto::renderer {
         FGSamplerHandle mSampler{};
         FGPipelineHandle mPipeline{};
         core::u32 mMaterialCount{};
-    };
-
-    struct BloomSettings {
-        core::f32 mThreshold{ 1.0f };
-        core::f32 mIntensity{ 0.25f };
-        core::f32 mScatter{ 0.85f };
-        core::f32 mRadius{ 1.0f };
-
-        bool mEnabled{ true };
-
-        /** @brief Clamps bloom controls to supported ranges. */
-        auto Sanitize() -> void;
     };
 
     struct PostProcessModuleInfo {
@@ -116,9 +106,11 @@ namespace mikoto::renderer {
 
         auto SetScene( const scene::Scene* scene ) -> void;
         auto SetCamera( const scene::Camera* camera ) -> void;
+        auto SetPreviewMaterial( const material::PostProcessMaterial& material ) -> void;
 
-        // An explicit HDR input lets the path tracer reuse the raster bloom filter chain.
-        auto RegisterBloom( FrameGraph& graph, FGTextureHandle source = {} ) -> void;
+        // Raster scenes can keep their emissive source unless a material supplies full-image bloom.
+        auto RegisterBloom( FrameGraph& graph, FGTextureHandle source,
+            FGTextureHandle materialSource = {} ) -> void;
         auto RegisterEyeAdaptationPass( FrameGraph& graph ) -> void;
 
         /** @brief Registers a material filter/upload pass and a full-screen draw pass.
@@ -155,6 +147,7 @@ namespace mikoto::renderer {
 
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
         eastl::vector<PostProcessMaterialData> mPostProcessMaterials{};
+        eastl::optional<PostProcessMaterialData> mPreviewMaterial{};
 
         // Bloom
         BloomSettings mBloomSettings{};

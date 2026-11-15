@@ -21,6 +21,7 @@
 #include <EASTL/array.h>
 #include <EASTL/memory.h>
 #include <EASTL/string.h>
+#include <EASTL/iterator.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/string_view.h>
 
@@ -86,6 +87,143 @@ namespace mikoto::editor {
 
         const auto index{ core::as<core::usize>( type ) };
         return MKT_LOC( index < labels.size() ? labels[index] : "stats_unknown" );
+    }
+
+    static auto DrawHierarchyComponentIcons( const scene::Entity& entity, const ImVec4& tooltipTextColor ) -> void {
+        struct ComponentIcon {
+            core::cstr mGlyph;
+            core::cstr mLabel;
+            bool mPresent;
+        };
+
+        // The hierarchy already shows the entity name, nesting and visibility.
+        // Use this cell for authored components beyond the common transform and bookkeeping.
+        const ComponentIcon icons[]{
+            { ICON_MD_VIEW_IN_AR, "component_menu_mesh", entity.HasComponent<scene::MeshComponent>() },
+            { ICON_MD_LIGHT_MODE, "editor_layer_light", entity.HasComponent<scene::LightComponent>() },
+            { ICON_MD_CAMERA_ALT, "hierarchy_camera", entity.HasComponent<scene::CameraComponent>() },
+            { ICON_MD_PALETTE, "content_browser_material", entity.HasComponent<scene::MaterialComponent>() },
+            { ICON_MD_FILTER_HDR, "component_menu_skybox", entity.HasComponent<scene::SkyboxMaterialComponent>() },
+            { ICON_MD_AUTO_AWESOME, "component_menu_post_process_material", entity.HasComponent<scene::PostProcessMaterialComponent>() },
+            { ICON_MD_IMAGE, "component_menu_texture_render", entity.HasComponent<scene::TextureRenderComponent>() },
+            { ICON_MD_LANDSCAPE, "hierarchy_terrain", entity.HasComponent<scene::LandscapeComponent>() },
+            { ICON_MD_WATER, "hierarchy_type_water", entity.HasComponent<scene::WaterRenderComponent>() },
+            { ICON_MD_WAVES, "water_simulation", entity.HasComponent<scene::WaterSimulationComponent>() },
+            { ICON_MD_AIR, "WindSimulation", entity.HasComponent<scene::WindSimulationComponent>() },
+            { ICON_MD_CLOUD, "volume_cloud", entity.HasComponent<scene::CloudComponent>() },
+            { ICON_MD_BLUR_ON, "volume_fog", entity.HasComponent<scene::FogComponent>() },
+            { ICON_MD_GRAIN, "inspector_particle_emitter", entity.HasComponent<scene::ParticleEmitterComponent>() },
+            { ICON_MD_TEXT_FIELDS, "hierarchy_text", entity.HasComponent<scene::TextComponent>() },
+            { ICON_MD_DASHBOARD, "hierarchy_canvas", entity.HasComponent<scene::CanvasComponent>() },
+            { ICON_MD_MOVIE, "hierarchy_video", entity.HasComponent<scene::VideoComponent>() },
+            { ICON_MD_AUDIOTRACK, "hierarchy_type_sound", entity.HasComponent<scene::AudioSourceComponent>() },
+            { ICON_MD_HEARING, "hierarchy_audio_listener", entity.HasComponent<scene::AudioListenerComponent>() },
+            { ICON_MD_EQUALIZER, "audio_mixer_title", entity.HasComponent<scene::AudioMixerComponent>() },
+            { ICON_MD_TUNE, "audio_group_component", entity.HasComponent<scene::AudioMixerGroupComponent>() },
+            { ICON_MD_CODE, "component_menu_script", entity.HasComponent<scene::ScriptComponent>() },
+            { ICON_MD_ANIMATION, "component_menu_animator", entity.HasComponent<scene::AnimatorComponent>() },
+            { ICON_MD_KEY, "KeyframeAnimation", entity.HasComponent<scene::KeyframeAnimationComponent>() },
+            { ICON_MD_ACCESSIBILITY_NEW, "SkinnedMeshRenderer", entity.HasComponent<scene::SkinnedMeshRenderer>() },
+            { ICON_MD_FITNESS_CENTER, "RigidBody", entity.HasComponent<scene::RigidBodyComponent>() },
+            { ICON_MD_POLYLINE, "MeshCollider", entity.HasComponent<scene::MeshColliderComponent>() },
+            { ICON_MD_CROP_SQUARE, "BoxCollider", entity.HasComponent<scene::BoxColliderComponent>() },
+            { ICON_MD_CIRCLE, "SphereCollider", entity.HasComponent<scene::SphereColliderComponent>() },
+            { ICON_MD_BUNGALOW, "CapsuleCollider", entity.HasComponent<scene::CapsuleColliderComponent>() },
+            { ICON_MD_TERRAIN, "HeightFieldCollider", entity.HasComponent<scene::HeightFieldColliderComponent>() },
+            { ICON_MD_WIDGETS, "CompoundCollider", entity.HasComponent<scene::CompoundColliderComponent>() },
+            { ICON_MD_STORAGE, "CylinderCollider", entity.HasComponent<scene::CylinderColliderComponent>() },
+            { ICON_MD_VACCINES, "TaperedCapsuleCollider", entity.HasComponent<scene::TaperedCapsuleColliderComponent>() },
+            { ICON_MD_FILTER_ALT, "TaperedCylinderCollider", entity.HasComponent<scene::TaperedCylinderColliderComponent>() },
+            { ICON_MD_HORIZONTAL_RULE, "PlaneCollider", entity.HasComponent<scene::PlaneColliderComponent>() },
+            { ICON_MD_STRAIGHTEN, "DistanceJoint", entity.HasComponent<scene::DistanceJointComponent>() },
+            { ICON_MD_LINK, "FixedJoint", entity.HasComponent<scene::FixedJointComponent>() },
+            { ICON_MD_ADJUST, "PointJoint", entity.HasComponent<scene::PointJointComponent>() },
+            { ICON_MD_TURN_RIGHT, "HingeJoint", entity.HasComponent<scene::HingeJointComponent>() },
+            { ICON_MD_SWAP_HORIZ, "SliderJoint", entity.HasComponent<scene::SliderJointComponent>() },
+            { ICON_MD_CHANGE_HISTORY, "ConeJoint", entity.HasComponent<scene::ConeJointComponent>() },
+            { ICON_MD_SYNC_ALT, "SwingTwistJoint", entity.HasComponent<scene::SwingTwistJointComponent>() },
+            { ICON_MD_OPEN_WITH, "SixDofJoint", entity.HasComponent<scene::SixDofJointComponent>() },
+            { ICON_MD_ALT_ROUTE, "PathJoint", entity.HasComponent<scene::PathJointComponent>() },
+            { ICON_MD_SETTINGS, "GearJoint", entity.HasComponent<scene::GearJointComponent>() },
+            { ICON_MD_SETTINGS_INPUT_COMPONENT, "RackAndPinionJoint", entity.HasComponent<scene::RackAndPinionJointComponent>() },
+            { ICON_MD_SWAP_VERT, "PulleyJoint", entity.HasComponent<scene::PulleyJointComponent>() },
+            { ICON_MD_DIRECTIONS_CAR, "inspector_vehicle", entity.HasComponent<scene::VehicleComponent>() },
+            { ICON_MD_TRIP_ORIGIN, "inspector_vehicle_wheel", entity.HasComponent<scene::VehicleWheelComponent>() },
+            { ICON_MD_LINEAR_SCALE, "BridgeSegment", entity.HasComponent<scene::BridgeSegmentComponent>() },
+            { ICON_MD_DIRECTIONS_WALK, "CharacterController", entity.HasComponent<scene::CharacterControllerComponent>() },
+            { ICON_MD_ACCESSIBILITY, "Ragdoll", entity.HasComponent<scene::RagdollComponent>() },
+            { ICON_MD_BUBBLE_CHART, "SoftBody", entity.HasComponent<scene::SoftBodyComponent>() },
+            { ICON_MD_TEXTURE, "Cloth", entity.HasComponent<scene::ClothComponent>() },
+            { ICON_MD_VERTICAL_ALIGN_TOP, "Buoyancy", entity.HasComponent<scene::BuoyancyComponent>() },
+            { ICON_MD_WATER_DROP, "WaterVolume", entity.HasComponent<scene::WaterVolumeComponent>() },
+        };
+
+        const core::f32 spacing{ ImGui::GetStyle().ItemInnerSpacing.x };
+        core::f32 totalWidth{};
+        for ( const auto& icon: icons ) {
+            if ( icon.mPresent ) {
+                totalWidth += ImGui::CalcTextSize( icon.mGlyph ).x + spacing;
+            }
+        }
+
+        if ( totalWidth == 0.0f ) {
+            return;
+        }
+
+        const core::f32 available{ ImGui::GetContentRegionAvail().x };
+        const bool useOverflow{ totalWidth - spacing > available };
+        const core::f32 overflowWidth{ ImGui::CalcTextSize( ICON_MD_MORE_HORIZ ).x };
+        core::f32 usedWidth{};
+        core::usize next{};
+
+        // Keep one line per entity. The overflow tooltip lists the icons clipped by the column width.
+        for ( ; next < eastl::size( icons ); ++next ) {
+            const auto& icon{ icons[next] };
+            if ( !icon.mPresent ) {
+                continue;
+            }
+
+            const core::f32 width{ ImGui::CalcTextSize( icon.mGlyph ).x };
+            if ( useOverflow && usedWidth + width + spacing + overflowWidth > available ) {
+                break;
+            }
+
+            if ( usedWidth > 0.0f ) {
+                ImGui::SameLine( 0.0f, spacing );
+            }
+
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted( icon.mGlyph );
+            if ( ImGui::BeginItemTooltip() ) {
+                ImGui::PushStyleColor( ImGuiCol_Text, tooltipTextColor );
+                ImGui::TextUnformatted( MKT_LOC( icon.mLabel ).c_str() );
+                ImGui::PopStyleColor();
+                ImGui::EndTooltip();
+            }
+
+            usedWidth += width + spacing;
+        }
+
+        if ( useOverflow ) {
+            if ( usedWidth > 0.0f ) {
+                ImGui::SameLine( 0.0f, spacing );
+            }
+
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted( ICON_MD_MORE_HORIZ );
+            if ( ImGui::BeginItemTooltip() ) {
+                ImGui::PushStyleColor( ImGuiCol_Text, tooltipTextColor );
+                ImGui::SeparatorText( MKT_LOC( "hierarchy_more_components" ).c_str() );
+                for ( ; next < eastl::size( icons ); ++next ) {
+                    const auto& icon{ icons[next] };
+                    if ( icon.mPresent ) {
+                        ImGui::Text( "%s %s", icon.mGlyph, MKT_LOC( icon.mLabel ).c_str() );
+                    }
+                }
+                ImGui::PopStyleColor();
+                ImGui::EndTooltip();
+            }
+        }
     }
 
     auto HierarchyPanel::DrawPrefabMenu( scene::Entity* root ) -> void {
@@ -545,8 +683,9 @@ namespace mikoto::editor {
 
         ImGui::Unindent( indentation );
 
-        ImGui::TableNextColumn();
-        ImGui::TextUnformatted( GetHierarchyTypeLabel( entity->GetType() ).c_str() );
+        if ( ImGui::TableNextColumn() ) {
+            DrawHierarchyComponentIcons( *entity, normalText );
+        }
 
         ImGui::TableNextColumn();
         const ImVec2 visibilitySize{ eastl::max( ImGui::GetContentRegionAvail().x, 1.0f ), ImGui::GetFrameHeight() };
@@ -1430,7 +1569,9 @@ namespace mikoto::editor {
         } };
 
         ImGui::TableSetupColumn( MKT_LOC( "hierarchy_name" ).c_str(), ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_NoHide );
-        ImGui::TableSetupColumn( MKT_LOC( "hierarchy_type" ).c_str(), ImGuiTableColumnFlags_WidthFixed, lineHeight * 3.0f );
+        const auto& componentsLabel{ MKT_LOC( "hierarchy_components" ) };
+        const core::f32 componentsWidth{ ImGui::CalcTextSize( componentsLabel.c_str() ).x + ImGui::GetStyle().CellPadding.x };
+        ImGui::TableSetupColumn( componentsLabel.c_str(), ImGuiTableColumnFlags_WidthFixed, componentsWidth );
         ImGui::TableSetupColumn( ICON_MD_VISIBILITY, ImGuiTableColumnFlags_WidthFixed, lineHeight * 2.0f );
         {
             const imgui::ImGuiScopedStyleVar headerPadding{ ImGuiStyleVar_CellPadding, ImVec2{ 6.0f * scale, 7.0f * scale } };

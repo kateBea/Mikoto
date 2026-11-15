@@ -85,6 +85,8 @@ namespace mikoto::editor {
         renderer::ThumbnailPreviewSettings mPreview{};
 
         PreviewEnvironment mEnvironment{};
+        PreviewEnvironment mPostProcessImageLoad{};
+        renderer::rhi::TextureHandle mPostProcessImage{};
         eastl::array<char, 256> mName{};
 
         eastl::string mError{};

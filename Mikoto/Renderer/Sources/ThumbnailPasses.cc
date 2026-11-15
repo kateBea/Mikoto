@@ -580,8 +580,7 @@ namespace mikoto::renderer {
         mSceneData.mLightDirection = core::float4{ light, settings.mShadows ? 1.0f : 0.0f };
         mSceneData.mLightColor = core::float4{ 1.0f, 0.96f, 0.90f, settings.mLightIntensity };
         mSceneData.mSettings = { static_cast<core::f32>( mWidth ), static_cast<core::f32>( mHeight ), settings.mEnvironmentIntensity, settings.mBackgroundBlur };
-        auto bloom{ settings.mBloom };
-        bloom.Sanitize();
+        const auto& bloom{ settings.mBloom };
         mSceneData.mBloom = { bloom.mThreshold, bloom.mEnabled ? bloom.mIntensity : 0.0f, bloom.mScatter, bloom.mRadius };
     }
 

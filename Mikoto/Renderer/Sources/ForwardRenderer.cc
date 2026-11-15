@@ -281,7 +281,6 @@ namespace mikoto::renderer {
 
         mState->mTextRendering.RegisterTextRender( *mState->mFrameGraph );
         mState->mWaterSimulation.RegisterWaterSimulation( *mState->mFrameGraph, true );
-        mState->mPostEffectsPasses.RegisterBloom( *mState->mFrameGraph );
         mState->mPostEffectsPasses.RegisterEyeAdaptationPass( *mState->mFrameGraph );
 
         // Glass composites over opaque geometry and world text before tone mapping.
@@ -295,6 +294,9 @@ namespace mikoto::renderer {
         mState->mTonemapModule.RegisterColorGradientPass( *mState->mFrameGraph );
 
         mState->mPostEffectsPasses.RegisterPostProcess( *mState->mFrameGraph, material::PostProcessStage::eBeforeToneMapping );
+        mState->mPostEffectsPasses.RegisterBloom( *mState->mFrameGraph,
+            mState->mFrameGraph->GetData<PrepassModuleInfo>().mGBufferEmissiveTarget,
+            mState->mFrameGraph->GetData<PostProcessModuleInfo>().mBeforeToneMapping.mColorImage );
         mState->mTonemapModule.RegisterTonemapPass( *mState->mFrameGraph );
 
         mState->mPostEffectsPasses.RegisterInfiniteGrid( *mState->mFrameGraph );

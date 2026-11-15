@@ -5014,6 +5014,8 @@ namespace mikoto::editor {
             material->SetStage( core::as<material::PostProcessStage>( stage ) );
         }
 
+        DrawPostProcessBloom( *material );
+
         ImGui::SeparatorText( MKT_LOC( "post_process_film_grain" ).c_str() );
         bool grainEnabled{ material->IsFilmGrainEnabled() };
 

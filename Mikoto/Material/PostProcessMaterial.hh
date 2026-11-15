@@ -26,6 +26,7 @@
 #include <Material/MaterialGraph.hh>
 
 #include <Renderer/Rhi/Types.hh>
+#include <Renderer/Postprocess/Bloom.hh>
 
 namespace mikoto::material {
 
@@ -68,6 +69,7 @@ namespace mikoto::material {
 
         auto SetStage( PostProcessStage stage ) -> void;
         auto SetFilmGrainEnabled( bool enabled ) -> void;
+        auto SetBloomSettings( renderer::BloomSettings settings ) -> void;
 
         auto SetName( eastl::string_view newName ) -> void override;
         auto SetCategory( PostProcessMaterialCategory category ) -> void;
@@ -75,6 +77,8 @@ namespace mikoto::material {
         MKT_NODISCARD auto GetName() const -> const eastl::string& override;
 
         MKT_NODISCARD auto IsFilmGrainEnabled() const -> bool;
+        MKT_NODISCARD auto IsBloomEnabled() const -> bool;
+        MKT_NODISCARD auto GetBloomSettings() const -> const renderer::BloomSettings&;
         MKT_NODISCARD auto GetStage() const -> PostProcessStage;
 
         MKT_NODISCARD auto GetCategory() const -> PostProcessMaterialCategory;
@@ -103,6 +107,7 @@ namespace mikoto::material {
         core::float4 mTintColor{ 1.0f };
 
         bool mFilmGrainEnabled{};
+        renderer::BloomSettings mBloom{ .mEnabled = false };
         PostProcessStage mStage{ PostProcessStage::eBeforeToneMapping };
         PostProcessMaterialCategory mCategory{ PostProcessMaterialCategory::eBuiltIn };
 

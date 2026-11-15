@@ -641,7 +641,6 @@ namespace mikoto::editor {
                 ImGui::EndTable();
             }
 
-            bloom.Sanitize();
             ImGui::TextWrapped( "%s", MKT_LOC( "renderer_bloom_uses_emissive_materials_with_enable_bloom_checked_intensity_sets" ).c_str() );
         } );
 

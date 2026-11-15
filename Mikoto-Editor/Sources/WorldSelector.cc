@@ -91,8 +91,6 @@ namespace mikoto::editor {
     auto WorldSelector::Open() -> void {
         mSearch.Clear();
         mSelectedProject = {};
-        mPreviewProject = {};
-        mPreviewSource = {};
         Refresh();
         mVisible = true;
     }
@@ -140,7 +138,6 @@ namespace mikoto::editor {
         auto projects{ FindDemoProjects() };
         mWorlds.clear();
         mWorlds.reserve( projects.size() );
-        mPreviewFailed = false;
 
         for ( auto& project: projects ) {
             const eastl::string stem{ project.GetStem() };
@@ -198,7 +195,6 @@ namespace mikoto::editor {
 
         ImGui::TextWrapped( "%s", MKT_LOC( "world_selector_hint" ).c_str() );
         DrawSearch();
-        ApplyPreviewChoice( device );
         ImGui::Spacing();
 
         const auto& style{ ImGui::GetStyle() };
@@ -238,7 +234,6 @@ namespace mikoto::editor {
 
             if ( !FindSelection() ) {
                 mSelectedProject = {};
-                mPreviewFailed = false;
             }
         }
 
@@ -310,7 +305,6 @@ namespace mikoto::editor {
 
         if ( pressed && !selected ) {
             mSelectedProject = world.mProject;
-            mPreviewFailed = false;
         }
         imgui::SetCursorHandOnLastItemHovered();
 
@@ -369,20 +363,6 @@ namespace mikoto::editor {
                     ImGui::Spacing();
                     ImGui::TextDisabled( "%s", MKT_LOC( "world_selector_location" ).c_str() );
                     ImGui::TextWrapped( "%s", world->mProject.GetC_Str() );
-
-                    if ( mPreviewFailed ) {
-                        ImGui::Spacing();
-                        ImGui::TextWrapped( "%s", MKT_LOC( "world_selector_preview_failed" ).c_str() );
-                    }
-
-                    ImGui::Spacing();
-                    const auto& label{ MKT_LOC( "world_selector_choose_preview" ) };
-                    if ( ImGui::Button( label.c_str() ) ) {
-                        const auto& imageFilter{ MKT_LOC( "world_selector_image_filter" ) };
-                        mPreviewSource = filesystem::OpenFileDialog( { { imageFilter.c_str(), "png,jpg,jpeg" } } );
-                        mPreviewProject = world->mProject;
-                    }
-                    imgui::SetCursorHandOnLastItemHovered();
                 } else {
                     ImGui::TextWrapped( "%s", MKT_LOC( "world_selector_select_hint" ).c_str() );
                 }
@@ -404,39 +384,6 @@ namespace mikoto::editor {
 
         ImGui::EndChild();
         return openProject;
-    }
-
-    auto WorldSelector::ApplyPreviewChoice( IGpuDevice* device ) -> void {
-        if ( mPreviewSource.IsEmpty() ) {
-            return;
-        }
-
-        // Replacement happens before submitting any cards this frame, so the previous image can be released safely.
-        for ( auto& world: mWorlds ) {
-            if ( world.mProject != mPreviewProject ) {
-                continue;
-            }
-
-            mPreviewFailed = true;
-            try {
-                const auto image{ asset::ProcessImage2D( filesystem::FileHandle::New( mPreviewSource ) ) };
-                auto preview{ CreatePreviewTexture( device, image ) };
-
-                if ( preview ) {
-                    asset::WriteImage( world.mPreviewPath, image->mBufferSpan->GetData(),
-                        image->mWidth, image->mHeight, image->mFormat );
-                    world.mPreview = eastl::move( preview );
-                    world.mPreviewChecked = true;
-                    mPreviewFailed = false;
-                }
-            } catch ( const std::exception& error ) {
-                MKT_CORE_LOGGER_WARN( "Cannot set demo preview for {}: {}", world.mProject.GetC_Str(), error.what() );
-            }
-            break;
-        }
-
-        mPreviewProject = {};
-        mPreviewSource = {};
     }
 
     auto WorldSelector::FindSelection() -> World* {

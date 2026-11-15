@@ -63,15 +63,19 @@ namespace mikoto::editor {
     private:
         EditorState* mEditorState{};
         imgui::NodeEditorContext mContext{};
+
         animation::AnimationController mScratch{};
         ankerl::unordered_dense::map<core::u64, DocumentView> mDocuments{};
         core::u64 mLastAnimatorID{ ~core::u64{} };
+
         animation::ControllerID mSelectedState{};
         animation::ControllerID mSelectedTransition{};
         core::i32 mNewParameterType{};
+
         bool mRestorePositions{ true };
         bool mFitRequested{ true };
         core::i32 mFitDelay{ 2 };
+
         eastl::string mMessage{};
     };
 }// namespace mikoto::editor

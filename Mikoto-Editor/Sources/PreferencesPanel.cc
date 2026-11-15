@@ -84,7 +84,12 @@ namespace mikoto::editor {
 
 
     PreferencesPanel::PreferencesPanel( const PreferencesPanelCreateInfo& info )
-        : Panel{ "Preferences", "Preferences", info.mGroup, info.mIsToggleable }, mState{ info.mState }, mViewportPanel{ info.mViewportPanel }, mCameraPanel{ info.mCameraPanel }, mActionManager{ info.mActions }, mOriginalStyle{ ImGui::GetStyle() } {
+        : Panel{ "Preferences", "Preferences", info.mGroup, info.mIsToggleable },
+          mState{ info.mState },
+          mViewportPanel{ info.mViewportPanel },
+          mCameraPanel{ info.mCameraPanel },
+          mActionManager{ info.mActions },
+          mOriginalStyle{ ImGui::GetStyle() } {
         std::filesystem::path directory;
 #if defined( _WIN32 )
         if ( const char* path{ std::getenv( "APPDATA" ) } ) {
@@ -317,7 +322,10 @@ namespace mikoto::editor {
         eastl::vector<ShortcutRow> rows{};
         rows.reserve( mActionManager->GetBindings().size() );
 
-        for ( const auto& [shortcut, binding]: mActionManager->GetBindings() ) {
+        for ( const auto& entry: mActionManager->GetBindings() ) {
+            const auto& shortcut{ entry.first };
+            const auto& binding{ entry.second };
+
             if ( !binding.mDescription.empty() ) {
                 rows.push_back( { shortcut.GetName(), MKT_LOC( binding.mDescription ) } );
             }

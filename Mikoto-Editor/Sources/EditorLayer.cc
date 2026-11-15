@@ -1050,7 +1050,7 @@ namespace mikoto::editor {
 
         mPanelRegistry.Register<ViewportPanel>( ViewportPanelCreateInfo{
             .mState = mEditorState.get(),
-            .mImage = renderer::rhi::TextureHandle::CreateEmpty(),
+            .mGpuDevice = mDevice,
             .mGroup = "Scene",
             .mIsToggleable = true } );
 

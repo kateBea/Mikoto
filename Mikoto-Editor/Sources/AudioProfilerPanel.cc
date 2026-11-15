@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <tuple>
+
 #include <imgui.h>
 
 #include <Core/LocalizationService.hh>
@@ -29,7 +31,8 @@
 
 namespace mikoto::editor {
     AudioProfilerPanel::AudioProfilerPanel( const AudioProfilerPanelCreateInfo& info )
-        : Panel{ "Audio Profiler", "Audio Profiler", info.mGroup, info.mIsToggleable }, mState{ info.mState } {
+        : Panel{ "Audio Profiler", "Audio Profiler", info.mGroup, info.mIsToggleable },
+          mState{ info.mState } {
         mPanelIsVisible = false;
     }
 
@@ -66,7 +69,10 @@ namespace mikoto::editor {
             ImGui::TableSetupColumn( MKT_LOC( "audio_profiler_output" ).c_str() );
             ImGui::TableHeadersRow();
 
-            for ( auto [entity, component, tag]: mState->mActiveScene->GetRegistry().view<scene::AudioSourceComponent, scene::TagComponent>().each() ) {
+            for ( auto&& entry: mState->mActiveScene->GetRegistry().view<scene::AudioSourceComponent, scene::TagComponent>().each() ) {
+                auto& component{ std::get<1>( entry ) };
+                auto& tag{ std::get<2>( entry ) };
+
                 const auto source{ component.GetSource() };
 
                 if ( !source || !source->IsReady() ) {

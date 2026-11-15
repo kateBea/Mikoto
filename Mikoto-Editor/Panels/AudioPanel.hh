@@ -77,8 +77,10 @@ namespace mikoto::editor {
 
         EditorState* mState{};
         renderer::rhi::IGpuDevice* mDevice{};
+
         filesystem::Path mPath{};
         eastl::string mError{};
+
         renderer::rhi::TextureHandle mWaveform{};
         eastl::shared_ptr<WaveformLoad> mWaveformLoad{};
 
@@ -90,8 +92,10 @@ namespace mikoto::editor {
         eastl::unique_ptr<audio::AudioListener> mListener{};
         audio::AudioSourceHandle mSource{};
         audio::SourceSettings mSettings{};
+
         core::float3 mSourcePosition{ 0.0f, 0.0f, -3.0f };
         core::float3 mSourceVelocity{};
+
         core::float3 mListenerPosition{};
         core::float3 mListenerVelocity{};
         core::float2 mListenerAngles{};

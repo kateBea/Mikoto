@@ -35,7 +35,8 @@ namespace mikoto::editor {
     using namespace renderer::rhi;
 
     GamePreviewPanel::GamePreviewPanel( const GamePreviewPanelCreateInfo& description )
-        : Panel{ "Game", "Game", description.mGroup, description.mIsToggleable }, mState{ description.mState } {
+        : Panel{ "Game", "Game", description.mGroup, description.mIsToggleable },
+          mState{ description.mState } {
         mPanelIsVisible = false;
     }
 

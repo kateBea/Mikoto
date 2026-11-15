@@ -57,30 +57,39 @@ namespace mikoto::editor {
         auto DrawGraph() -> void;
 
         EditorState* mEditorState{};
+
         eastl::unique_ptr<scene::Scene> mScene{};
         eastl::unique_ptr<renderer::ISceneRenderer> mRenderer{};
         scene::SceneCamera mCamera{};
         entt::entity mEmitter{ entt::null };
         entt::entity mGround{ entt::null };
+
         renderer::ParticleEmitterSettings mSettings{};
         renderer::ParticleSimulationMode mMode{ renderer::ParticleSimulationMode::eCpu };
+
         PreviewEnvironment mEnvironment{};
         asset::AssetHandle<asset::Texture> mEnvironmentTexture{};
+
         filesystem::Path mPath{};
         eastl::string mError{};
+
         core::f32 mPreviewHeight{ 340.0f };
         core::f32 mYaw{ 35 };
         core::f32 mPitch{ 18 };
         core::f32 mDistance{ 8 };
         core::f32 mTargetHeight{ 1.5f };
+
         core::f32 mSpeed{ 1 };
         core::f32 mElapsed{};
+
         core::f32 mBlur{ 1.5f };
         core::f32 mExposure{ 1 };
+
         bool mShowGround{ true };
         bool mShowGrid{ true };
         bool mStep{};
         bool mUnsaved{};
+
         renderer::ParticleGraph mGraph{};
         imgui::NodeEditorContext mGraphContext{};
         eastl::string mGraphMessage{};

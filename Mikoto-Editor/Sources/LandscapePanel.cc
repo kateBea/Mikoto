@@ -87,7 +87,8 @@ namespace mikoto::editor {
     }
 
     LandscapePanel::LandscapePanel( const LandscapePanelCreateInfo& info )
-        : Panel{ "Landscape", "Panel", info.mGroup, info.mIsToggleable }, mEditorState{ info.mState } {
+        : Panel{ "Landscape", "Panel", info.mGroup, info.mIsToggleable },
+          mEditorState{ info.mState } {
         MKT_BEGIN_PROFILER();
 
         const eastl::string icon{ imgui::GetStringFromUnicode( 58359 ) };
@@ -425,7 +426,10 @@ namespace mikoto::editor {
             }
 
             auto& transform{ entity->GetComponent<scene::TransformComponent>() };
-            auto location{ transform.GetTranslation() }, rotation{ transform.GetRotation() }, scale{ transform.GetScale() };
+            auto location{ transform.GetTranslation() };
+            auto rotation{ transform.GetRotation() };
+            auto scale{ transform.GetScale() };
+
             TerrainRow( "Location" );
 
             if ( ImGui::DragFloat3( "##TerrainLocation", &location.x, 0.1f ) ) {

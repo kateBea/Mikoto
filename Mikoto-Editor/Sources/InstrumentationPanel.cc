@@ -77,7 +77,8 @@ namespace mikoto::editor {
     }
 
     InstrumentationPanel::InstrumentationPanel()
-        : Panel{ "Instrumentation", "Instrumentation", "Diagnostics", true }, mState{ eastl::make_unique<State>() } {
+        : Panel{ "Instrumentation", "Instrumentation", "Diagnostics", true },
+          mState{ eastl::make_unique<State>() } {
         mPanelIsVisible = false;
 
         tracy_viewer::Initialize( []( bool save, const char* extension ) -> std::string {

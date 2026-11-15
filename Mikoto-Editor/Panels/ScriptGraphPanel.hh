@@ -43,20 +43,24 @@ namespace mikoto::editor {
         auto GenerateScript( eastl::string_view name ) -> bool;
         auto ExportScript() -> void;
         auto DrawScriptPreview() -> void;
+
         imgui::TextEditor mScriptPreview{};
         asset::AssetHandle<asset::ScriptSource> mPreviewRequest{};
         filesystem::Path mPreviewPath{};
         eastl::string mPreviewError{};
         bool mShowScriptPreview{};
         bool mPreviewLoaded{};
+
         scripting::ScriptGraph mGraph{};
         scripting::ScriptGraphCompiler mCompiler{};
         scripting::ScriptCompileResult mResult{};
         core::i32 mLanguageIndex{};
+
         imgui::NodeEditorContext mContext{};
         eastl::string mMessage{};
         bool mRestore{ true };
         bool mFit{ true };
+
         bool mDirty{};
     };
 }// namespace mikoto::editor

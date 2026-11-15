@@ -143,9 +143,8 @@ namespace mikoto::renderer::d3d12 {
         }
 
         eastl::array<core::u64, static_cast<core::usize>( renderer::rhi::PipelineStatistic::eCount )> values{};
-        static_assert( sizeof( D3D12_QUERY_DATA_PIPELINE_STATISTICS1 ) <= sizeof( values ) );
-
-        std::memcpy( values.data(), static_cast<const core::ubyte*>( mapped ) + offset, mStride );
+        const auto bytes{ eastl::min<core::usize>( mStride, sizeof( values ) ) };
+        std::memcpy( values.data(), static_cast<const core::ubyte*>( mapped ) + offset, bytes );
         const D3D12_RANGE noWrites{ 0, 0 };
         mReadback->Unmap( 0, &noWrites );
 

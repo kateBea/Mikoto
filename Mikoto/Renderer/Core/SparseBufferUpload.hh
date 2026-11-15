@@ -39,7 +39,7 @@ namespace mikoto::renderer {
     // updates after previous readers, including readers from earlier frames.
     template<typename T>
     class SparseBufferUpload {
-        static_assert( std::is_trivially_copyable_v<T> && sizeof( T ) % 4 == 0 );
+        static_assert( std::is_trivially_copyable_v<T> );
 
     public:
         static constexpr core::u32 kMaxScatterRecords{ 65536 };
@@ -75,9 +75,9 @@ namespace mikoto::renderer {
                 runs += mDirty[i] != mDirty[i - 1] + 1;
             }
 
-            // Dense changes favor sequential transfer. A few contiguous ranges
-            // need no compute dispatch; scattered edits use a compact payload.
-            if ( mDirty.size() * 2 >= values.size() || mDirty.size() > kMaxScatterRecords ) {
+            // The scatter shader copies whole words. Use a sequential transfer for partial words or dense edits.
+            if ( sizeof( T ) % sizeof( core::u32 ) != 0 ||
+                 mDirty.size() * 2 >= values.size() || mDirty.size() > kMaxScatterRecords ) {
                 ctx.CopyBuffer( target, 0, values.data(), values.size() * sizeof( T ) );
                 mStatistics.mBytes = values.size() * sizeof( T );
                 mStatistics.mCopyCalls = 1;

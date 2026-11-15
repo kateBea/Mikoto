@@ -154,7 +154,9 @@ namespace mikoto::editor {
         ImGui::InvisibleButton( "##DistanceGraph", size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight );
         const bool hovered{ ImGui::IsItemHovered() };
         const bool active{ ImGui::IsItemActive() };
-        const ImVec2 start{ origin.x + 28, origin.y + 12 }, extent{ size.x - 40, size.y - 38 };
+
+        const ImVec2 start{ origin.x + 28, origin.y + 12 };
+        const ImVec2 extent{ size.x - 40, size.y - 38 };
         const auto pixel = [&]( core::float2 p ) {
             return ImVec2{ start.x + p.x * extent.x, start.y + ( 1 - p.y ) * extent.y };
         };

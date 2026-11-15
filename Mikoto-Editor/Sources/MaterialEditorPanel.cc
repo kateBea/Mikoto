@@ -68,7 +68,9 @@ namespace mikoto::editor {
     };
 
     MaterialEditorPanel::MaterialEditorPanel( const MaterialEditorPanelDescription& description )
-        : Panel{ "Material Editor", "Panel", description.mGroup, description.mIsToggleable }, mEditorState{ description.mState }, mDevice{ description.mDevice } {
+        : Panel{ "Material Editor", "Panel", description.mGroup, description.mIsToggleable },
+          mEditorState{ description.mState },
+          mDevice{ description.mDevice } {
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_PALETTE, mPanelName );
         mPanelIsVisible = false;
         mPreview.mInfiniteGrid = true;
@@ -630,7 +632,9 @@ namespace mikoto::editor {
             // the sphere. The completed render replaces it with the correct aspect.
             const core::f32 sourceAspect{ core::as<core::f32>( texture->GetWidth() ) / texture->GetHeight() };
             const core::f32 targetAspect{ available.x / available.y };
-            ImVec2 uv0{ 0, 0 }, uv1{ 1, 1 };
+
+            ImVec2 uv0{ 0, 0 };
+            ImVec2 uv1{ 1, 1 };
 
             if ( sourceAspect > targetAspect ) {
                 uv0.x = ( 1.0f - targetAspect / sourceAspect ) * 0.5f;

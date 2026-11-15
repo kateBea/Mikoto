@@ -139,7 +139,8 @@ namespace mikoto::editor {
     }
 
     RendererPanel::RendererPanel( const RendererPanelCreateInfo& createInfo )
-        : Panel{ "Renderer", "Panel", createInfo.mGroup, createInfo.mIsToggleable }, mEditorState{ createInfo.mState } {
+        : Panel{ "Renderer", "Panel", createInfo.mGroup, createInfo.mIsToggleable },
+          mEditorState{ createInfo.mState } {
         MKT_BEGIN_PROFILER();
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_POWER_SETTINGS_NEW, mPanelName );
 
@@ -151,7 +152,10 @@ namespace mikoto::editor {
         imgui::GraphEditorBuilder builder{};
         auto& nodeControl{ mEditorState->mEditorRenderer->GetNodeControl() };
 
-        for ( const auto& [passName, pass]: nodeControl.mNodes ) {
+        for ( const auto& entry: nodeControl.mNodes ) {
+            const auto& passName{ entry.first };
+            const auto& pass{ entry.second };
+
             builder.PushNode( passName );
         }
 

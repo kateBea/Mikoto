@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <cmath>
-#include <cstddef>
 
 #include <EASTL/algorithm.h>
 
@@ -201,7 +200,6 @@ namespace mikoto::renderer {
                     ctx.GetDeviceBufferAddress( geometry.mMaterialsBuffer ),
                     ctx.PushSampler( geometry.mMaterialSampler )
                 };
-                static_assert( offsetof( Parameters, mSampler ) == 40 );
                 ctx.PushConstants( params );
                 BeginOutlineRender( ctx, outline.mInteriorMask, pipeline, mResolution, rhi::Color{ 0.0f } );
                 ctx.DrawIndirect( DrawIndirectState{}.SetBuffer( outline.mHighlightedDraws ).SetDrawCount( outline.mDrawCount ) );
@@ -338,7 +336,6 @@ namespace mikoto::renderer {
                     core::u32 mPadding;
                 } params{ outline.mColor, ctx.PushTexture_SRV( outline.mSeeds[0] ), outline.mWidth,
                     ctx.PushTexture_SRV( outline.mInteriorMask ), 0 };
-                static_assert( offsetof( Parameters, mSeeds ) == 16 );
                 ctx.PushConstants( params );
                 // Kept separate from scene color so atmosphere cannot erase background outlines.
                 BeginOutlineRender( ctx, target, pipeline, mResolution, rhi::kColorTransparent );

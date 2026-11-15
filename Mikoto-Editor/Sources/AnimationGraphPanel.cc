@@ -404,7 +404,9 @@ namespace mikoto::editor {
 
         if ( hasClips && controller.mStates.empty() ) {
             if ( ImGui::Button( imgui::widget::LocalizedLabel( "animation_graph_create_states_from_animation_clips", "Create states from animation clips" ).c_str() ) ) {
-                for ( const auto& [name, clip]: animator->GetAnimationList() ) {
+                for ( const auto& clipEntry: animator->GetAnimationList() ) {
+                    const auto& name{ clipEntry.first };
+
                     const eastl::string clipName{ name.c_str() };
                     controller.AddState( clipName ).mClip = clipName;
                 }
@@ -595,7 +597,8 @@ namespace mikoto::editor {
         }
 
         if ( ed::BeginCreate() ) {
-            ed::PinId start{}, end{};
+            ed::PinId start{};
+            ed::PinId end{};
 
             if ( ed::QueryNewLink( &start, &end ) && start && end ) {
                 auto fromPin{ start.Get() };
@@ -607,7 +610,8 @@ namespace mikoto::editor {
                     }
                 }
 
-                animation::ControllerID from{}, to{};
+                animation::ControllerID from{};
+                animation::ControllerID to{};
 
                 for ( const auto& state: controller.mStates ) {
                     if ( fromPin == NodeID( state.mID ) + 2 ) {
@@ -756,7 +760,9 @@ namespace mikoto::editor {
 
             if ( animator ) {
                 if ( ImGui::BeginCombo( "##Clip", state->mClip.empty() ? MKT_LOC( "animation_graph_choose_a_clip" ).c_str() : state->mClip.c_str() ) ) {
-                    for ( const auto& [name, clip]: animator->GetAnimationList() ) {
+                    for ( const auto& clipEntry: animator->GetAnimationList() ) {
+                        const auto& name{ clipEntry.first };
+
                         core::cstr clipName{ name.c_str() };
 
                         if ( ImGui::Selectable( clipName, state->mClip == clipName ) ) {

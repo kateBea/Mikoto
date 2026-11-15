@@ -619,7 +619,8 @@ namespace mikoto::editor {
         }
 
         if ( ed::BeginCreate() ) {
-            ed::PinId a{}, b{};
+            ed::PinId a{};
+            ed::PinId b{};
 
             if ( ed::QueryNewLink( &a, &b ) && a && b ) {
                 core::u64 source{ a.Get() };

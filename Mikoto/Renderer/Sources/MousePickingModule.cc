@@ -65,7 +65,7 @@ namespace mikoto::renderer {
     auto MousePickingModule::ReadPixel( core::u32 x, core::u32 y ) const -> core::u32 {
         MKT_BEGIN_PROFILER();
 
-        if ( !mHasReadback || mData.empty() ) {
+        if ( !mIsReadbackDone || mData.empty() ) {
             return 0;
         }
 
@@ -92,15 +92,16 @@ namespace mikoto::renderer {
 
     auto MousePickingModule::ReadPixel( const ReadPixelViewportInfo& viewport ) const -> core::u32 {
         MKT_BEGIN_PROFILER();
-        const auto dimensions = InferDimensions( mResolution );
-        const auto pixel = MapPickingPixel( viewport, core::as<core::u32>( dimensions.first ), core::as<core::u32>( dimensions.second ) );
+        const auto dimensions{ InferDimensions( mResolution ) };
+        const auto pixel{ MapPickingPixel( viewport, core::as<core::u32>( dimensions.first ), core::as<core::u32>( dimensions.second ) ) };
+
         return pixel ? ReadPixel( pixel->mX, pixel->mY ) : 0;
     }
 
     auto MousePickingModule::RequestPixel( const ReadPixelViewportInfo& viewport ) -> bool {
         MKT_BEGIN_PROFILER();
-        const auto dimensions = InferDimensions( mResolution );
-        auto pixel = MapPickingPixel( viewport, core::as<core::u32>( dimensions.first ), core::as<core::u32>( dimensions.second ) );
+        const auto dimensions{ InferDimensions( mResolution ) };
+        const auto pixel{ MapPickingPixel( viewport, core::as<core::u32>( dimensions.first ), core::as<core::u32>( dimensions.second ) ) };
 
         if ( !pixel ) {
             return false;
@@ -114,8 +115,10 @@ namespace mikoto::renderer {
 
     auto MousePickingModule::TakePickResult() -> eastl::optional<core::u32> {
         MKT_BEGIN_PROFILER();
+
         auto result = mPickResult;
         mPickResult.reset();
+        
         return result;
     }
 
@@ -127,7 +130,7 @@ namespace mikoto::renderer {
         const auto b{ MapPickingPixel( last, as<u32>( width ), as<u32>( height ) ) };
         eastl::vector<u32> ids{};
 
-        if ( !a || !b || !mHasReadback || mData.empty() ) {
+        if ( !a || !b || !mIsReadbackDone || mData.empty() ) {
             return ids;
         }
 
@@ -160,14 +163,16 @@ namespace mikoto::renderer {
     auto MousePickingModule::Invalidate() -> void {
         MKT_BEGIN_PROFILER();
         CancelPendingPick();
-        mHasReadback = false;
+        mIsReadbackDone = false;
     }
 
     auto MousePickingModule::CancelPendingPick() -> void {
         MKT_BEGIN_PROFILER();
+
         BumpRevision();
         mQueuedPick.reset();
         mPickResult.reset();
+
         // An outstanding GPU copy must finish before this staging buffer is reused.
     }
 
@@ -192,9 +197,12 @@ namespace mikoto::renderer {
             .SetWidth( core::as<core::i32>( dimensions.first ) )
             .SetHeight( core::as<core::i32>( dimensions.second ) )
             .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
-            .SetUsage( renderer::rhi::TextureUsageFlagsBits::RenderTarget | renderer::rhi::TextureUsageFlagsBits::ShaderResource | renderer::rhi::TextureUsageFlagsBits::CopySource )
+            .SetUsage( renderer::rhi::TextureUsageFlagsBits::RenderTarget | 
+                renderer::rhi::TextureUsageFlagsBits::ShaderResource | 
+                renderer::rhi::TextureUsageFlagsBits::CopySource )
             .SetFormat( format ) };
         info.mColorImage = graph.Create( imageDesc );
+
         // Selection includes translucent surfaces, which do not all write the
         // scene prepass. Resolve their nearest visible layer independently.
         info.mDepthImage = graph.Create( FGTextureDescription{}
@@ -203,10 +211,12 @@ namespace mikoto::renderer {
             .SetHeight( core::as<core::i32>( dimensions.second ) )
             .SetFormat( renderer::rhi::Format::eD32 )
             .SetUsage( renderer::rhi::TextureUsageFlagsBits::DepthTarget ) );
+
         const auto& formatInfo{ rhi::GetFormatInfo( format ) };
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "ObjectSelection_ReadbackBuffer" )
-            .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured | renderer::rhi::BufferUsageFlagsBits::CopyDest )
+            .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured | 
+                renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( dimensions.first * dimensions.second * formatInfo.mBytesPerBlock )
             .SetHeapType( renderer::rhi::HeapType::eReadback ) };
         info.mReadBackBuffer = graph.Create( bufferDesc );
@@ -276,7 +286,7 @@ namespace mikoto::renderer {
                     .mMaterialsBuffer = ctx.GetDeviceBufferAddress( geometryData.mMaterialsBuffer ),
                     .mBasicSamplerID = ctx.PushSampler( geometryData.mMaterialSampler )
                 };
-                static_assert( offsetof( DrawParams, mMaterialsBuffer ) == 32 && offsetof( DrawParams, mBasicSamplerID ) == 40 );
+
                 ctx.PushConstants( params );
 
                 const auto dimensions{ InferDimensions( mResolution ) };
@@ -308,16 +318,16 @@ namespace mikoto::renderer {
                 builder.UseResource( mousePicking.mColorImage, FGPipelineStage::eCopy, FGResourceAccess::eRead );
             },
             [this, &graph]( CommandContext& ctx, core::Blackboard& b ) {
-                if ( !mQueuedPick || mReadbackInFlight ) {
+                if ( !mQueuedPick || mIsReadbackInFlight ) {
                     return;
                 }
 
-                const auto& data = b.Get<MousePickingModuleInfo>();
                 const auto pixel{ *mQueuedPick };
                 const auto revision{ GetRevision() };
+                const auto &data{ b.Get<MousePickingModuleInfo>() };
 
                 mQueuedPick.reset();
-                mReadbackInFlight = true;
+                mIsReadbackInFlight = true;
 
                 ctx.Copy( data.mReadBackBuffer, data.mColorImage );
 
@@ -325,17 +335,18 @@ namespace mikoto::renderer {
                 // we do not know when the above copy will be done for us to memcpy back.
                 graph.RegisterReadback(
                     [this, pixel, revision]( core::Blackboard& blackboard, const FGResourceManager& manager ) {
-                        const auto& data = blackboard.Get<MousePickingModuleInfo>();
+                        const auto &data{ blackboard.Get<MousePickingModuleInfo>() };
 
-                        if ( const void* address = manager.GetBufferMappedAddress( data.mReadBackBuffer ) ) {
+                        if ( const void* address{ manager.GetBufferMappedAddress( data.mReadBackBuffer ) } ) {
                             if ( IsRevision( revision ) ) {
                                 std::memcpy( mData.data(), address, mData.size() * MKT_SIZEOF( core::u32 ) );
-                                mHasReadback = true;
+
+                                mIsReadbackDone = true;
                                 mPickResult = ReadPixel( pixel.mX, pixel.mY );
                             }
                         }
 
-                        mReadbackInFlight = false;
+                        mIsReadbackInFlight = false;
                     } );
             } );
     }

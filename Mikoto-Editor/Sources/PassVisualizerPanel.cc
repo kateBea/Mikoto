@@ -34,7 +34,8 @@ namespace mikoto::editor {
     using namespace renderer;
 
     PassVisualizerPanel::PassVisualizerPanel( const PassVisualizerDescription& description )
-        : Panel{ "Pass Visualizer", "Pass Visualizer", description.mGroup, description.mIsToggleable }, mEditorState{ description.mState } {
+        : Panel{ "Pass Visualizer", "Pass Visualizer", description.mGroup, description.mIsToggleable },
+          mEditorState{ description.mState } {
         MKT_BEGIN_PROFILER();
         mPanelIsVisible = false;
     }
@@ -48,7 +49,10 @@ namespace mikoto::editor {
             const auto& control{ sceneRenderer->GetNodeControl() };
             const auto& statistics{ sceneRenderer->GetPassStatistics() };
 
-            for ( const auto& [name, pass]: control.mNodes ) {
+            for ( const auto& entry: control.mNodes ) {
+                const auto& name{ entry.first };
+                const auto& pass{ entry.second };
+
                 auto& node{ builder.PushNode( name ) };
 
                 switch ( pass.mType ) {
@@ -95,7 +99,9 @@ namespace mikoto::editor {
                 eastl::fixed_vector<FGResourceHandle, 32, true> handles{ pass.mReadResources.begin(), pass.mReadResources.end() };
                 handles.insert( handles.end(), pass.mWriteResources.begin(), pass.mWriteResources.end() );
 
-                for ( const auto& [handle, track]: pass.mResourceStates ) {
+                for ( const auto& resource: pass.mResourceStates ) {
+                    const auto& handle{ resource.first };
+
                     handles.push_back( handle );
                 }
 

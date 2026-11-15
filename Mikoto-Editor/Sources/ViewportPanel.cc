@@ -136,9 +136,10 @@ namespace mikoto::editor {
 
 
     ViewportPanel::ViewportPanel( const ViewportPanelCreateInfo& createInfo )
-        : Panel{ "Scene", "Panel", createInfo.mGroup, createInfo.mIsToggleable }, mEditorState{ createInfo.mState }, mInstanceId{ createInfo.mInstanceId }, mColorImage{ createInfo.mImage } {
-        MKT_BEGIN_PROFILER();
-
+        : Panel{ "Scene", "Panel", createInfo.mGroup, createInfo.mIsToggleable },
+          mEditorState{ createInfo.mState },
+          mInstanceId{ createInfo.mInstanceId },
+          mGpuDevice{ createInfo.mGpuDevice } {
         const eastl::string icon{ imgui::GetStringFromUnicode( 58359 ) };
         mPanelHeaderName = imgui::widget::MakeIconTitle( icon.c_str(), mPanelName );
         InitOverlayIcons();
@@ -146,55 +147,8 @@ namespace mikoto::editor {
 
     auto ViewportPanel::OnRender( float ts ) -> void {
         MKT_BEGIN_PROFILER();
-        
+
         mContextReady = false;
-        // GPU picking is asynchronous, so the result can arrive after the user changes
-        // scenes or selects something else. Apply it only if the scene and selection
-        // revision still match the original request.
-        // An available result with ID 0 means empty space was clicked: clear selection.
-
-        // Cache mesh bounds to avoid repeatedly calculating the gizmo center,
-        // especially when selecting a parent containing many objects.
-        // Invalidate the cache when Center Gizmo is disabled, the scene changes,
-        // or the selection revision changes. Record the current scene and revision
-        // so subsequent frames can determine whether the cached bounds are still valid.
-
-        /*
-         * Apply a GPU picking result only if it is still relevant.
-         *
-         * Picking is asynchronous: the user clicks an object, the GPU determines its
-         * ID, and the CPU receives the result later. Before applying it, verify:
-         *
-         * - result: a picking result is available.
-         * - mActiveScene: there is still an active scene.
-         * - mPickScene == mActiveScene: the scene has not changed since the request.
-         * - mPickRevision == current selection revision: the selection has not changed since
-         *   the request, for example through a click in the hierarchy.
-         *
-         * These checks prevent a delayed GPU result from overwriting a newer selection.
-         *
-         * A nonzero ID selects the corresponding entity through FindByID().
-         * ID 0 means empty space was clicked, so the selection is cleared.
-         * An unavailable result is different from an available result containing ID 0.
-         */
-
-        /*
-         * Invalidate cached mesh bounds used to center the gizmo.
-         *
-         * Computing mesh bounds repeatedly can be expensive, especially for a parent
-         * containing many objects. mGizmoMeshBounds stores previously computed bounds
-         * so they can be reused across frames.
-         *
-         * Clear the cache when:
-         *
-         * - Center Gizmo is disabled.
-         * - The active scene changes.
-         * - The selection revision changes.
-         *
-         * Record the current scene and selection revision so subsequent frames can
-         * identify which scene and selection the cache belongs to. The bounds can
-         * then be rebuilt when needed.
-         */
 
         // Invalidate cached mesh bounds used to center the gizmo.
         if ( !mEditorState->mCenterPivot || mGizmoBoundsScene != mEditorState->mActiveScene || mGizmoBoundsRevision != mEditorState->GetRevision() ) {
@@ -245,9 +199,12 @@ namespace mikoto::editor {
                     // Scene ownership begins immediately. The streaming request belongs
                     // to the root entity, so deleting it cancels its demand naturally.
                     const auto reference{ asset::AssetRef<asset::Model>{ path } };
+
                     scene::EntityCreateInfo info{};
+
                     info.mName = path.GetPathTyped<std::filesystem::path>().filename().string().c_str();
                     info.mModelAsset = reference;
+
                     mEditorState->mActiveScene->PushEntity( info );
                 }
 
@@ -256,10 +213,8 @@ namespace mikoto::editor {
 
             // Scene/project payloads carry owned UTF-8 paths. Route opening
             // through EditorLayer so Save/Discard/Cancel retains the destination.
-            const ImGuiPayload* scenePayload{ ImGui::AcceptDragDropPayload(
-                "CONTENT_BROWSER_TEXT_SCENE", ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) };
-            const ImGuiPayload* projectPayload{ ImGui::AcceptDragDropPayload(
-                "CONTENT_BROWSER_TEXT_PROJECT", ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) };
+            const ImGuiPayload* scenePayload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_SCENE", ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) };
+            const ImGuiPayload* projectPayload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_PROJECT", ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) };
             const ImGuiPayload* workspacePayload{ scenePayload ? scenePayload : projectPayload };
 
             if ( workspacePayload && workspacePayload->Data && workspacePayload->DataSize > 1 &&
@@ -294,6 +249,7 @@ namespace mikoto::editor {
             .mWidth = viewportSize.x,
             .mHeight = viewportSize.y
         };
+
         mContentViewport = mViewport;
 
         DrawFinalImage();
@@ -527,6 +483,7 @@ namespace mikoto::editor {
             ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
             ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove
         };
+
         ImVec2 windowPos{};
         ImVec2 windowPosPivot{};
         windowPos.x = mViewport.mX + mViewport.mWidth - 12.0f;
@@ -606,7 +563,9 @@ namespace mikoto::editor {
 
         const ImVec2 origin{ ImGui::GetCursorScreenPos() };
         const ImVec2 imageOrigin{ origin.x + ( available.x - dim.x ) * 0.5f, origin.y + ( available.y - dim.y ) * 0.5f };
+
         ImGui::SetCursorScreenPos( imageOrigin );
+        
         mViewport = ViewportInfo{ .mX = imageOrigin.x, .mY = imageOrigin.y, .mWidth = dim.x, .mHeight = dim.y };
         const bool hasImageArea{ dim.x > 0.0f && dim.y > 0.0f };
 
@@ -663,6 +622,7 @@ namespace mikoto::editor {
 
         constexpr core::u32 edges[12][2]{ { 0, 1 }, { 1, 3 }, { 3, 2 }, { 2, 0 }, { 4, 5 }, { 5, 7 }, { 7, 6 }, { 6, 4 }, { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 } };
         constexpr core::float4 planes[6]{ { 1, 0, 0, 1 }, { -1, 0, 0, 1 }, { 0, 1, 0, 1 }, { 0, -1, 0, 1 }, { 0, 0, 1, 0 }, { 0, 0, -1, 1 } };
+
         auto* draw{ ImGui::GetWindowDrawList() };
         draw->PushClipRect( { mViewport.mX, mViewport.mY },
             { mViewport.mX + mViewport.mWidth, mViewport.mY + mViewport.mHeight }, true );
@@ -709,13 +669,16 @@ namespace mikoto::editor {
 
     auto ViewportPanel::CancelPicking() -> void {
         mBoxActive = false;
-        mBoxDragged = mPickRectangle = mPickAppend = false;
         mBoxScene = nullptr;
+        mBoxDragged = mPickRectangle = mPickAppend = false;
+    
         mTexturePickPending = mPickForTexture = false;
         mMaterialPickPending = mPickForMaterial = mMaterialDelivered = false;
+        
         if ( mEditorState->mEditorRenderer ) {
             mEditorState->mEditorRenderer->SetTextureDropHover( 0 );
         }
+        
         mPickScene = nullptr;
         mPickForContext = false;
         mContextReady = false;
@@ -733,7 +696,8 @@ namespace mikoto::editor {
                 result &&
                 mEditorState->mActiveScene &&
                 mPickScene == mEditorState->mActiveScene &&
-                mPickRevision == mEditorState->GetRevision() ) {
+                mPickRevision == mEditorState->GetRevision() ) 
+            {
                 auto* selected{ *result ? mEditorState->mActiveScene->FindByID( *result ) : nullptr };
                 if ( mPickForMaterial ) {
                     mMaterialPickPending = mPickForMaterial = false;
@@ -747,6 +711,7 @@ namespace mikoto::editor {
                     }
                     return;
                 }
+
                 if ( mPickForTexture ) {
                     mTexturePickPending = false;
                     mPickForTexture = false;
@@ -757,8 +722,10 @@ namespace mikoto::editor {
                     }
                     return;
                 }
+
                 if ( mPickRectangle ) {
                     mPickRectangle = false;
+
                     // Only visible ID pixels contribute; projected origins bypass depth testing.
                     const auto ids{ mEditorState->mEditorRenderer->ReadSelectionRectangle( mPendingRectangleFirst, mPendingRectangleLast ) };
                     eastl::vector<core::u64> selection{};
@@ -769,10 +736,12 @@ namespace mikoto::editor {
                                 entity = mEditorState->mActiveScene->FindByID( *entity->GetComponent<scene::RelationComponent>().GetParent() );
                             }
                         }
+
                         if ( entity ) {
                             selection.push_back( entity->GetComponent<scene::TagComponent>().GetGuid() );
                         }
                     }
+
                     mEditorState->SelectEntities( selection, mPickAppend );
                     return;
                 }
@@ -802,7 +771,8 @@ namespace mikoto::editor {
                 }
 
                 if ( mPickAppend && !mPickForContext ) {
-                    mEditorState->SelectEntities( selected ? eastl::vector<core::u64>{ selected->GetComponent<scene::TagComponent>().GetGuid() } : eastl::vector<core::u64>{}, true );
+                    mEditorState->SelectEntities( selected ? eastl::vector<core::u64>{ selected->GetComponent<scene::TagComponent>().GetGuid() } :
+                        eastl::vector<core::u64>{}, true );
                 }
                 else {
                     mEditorState->SelectEntity( selected );
@@ -835,6 +805,7 @@ namespace mikoto::editor {
         const auto mouse{ ImGui::GetMousePos() };
         mSceneImageHovered = mouse.x >= mViewport.mX && mouse.y >= mViewport.mY &&
                              mouse.x < mViewport.mX + mViewport.mWidth && mouse.y < mViewport.mY + mViewport.mHeight;
+
         // Hidden dock windows can retain hover state from the last panel frame.
         // Fullscreen has no panel image to occlude; popups and active controls still block input.
         mPickingBlockedByOverlay = ImGui::IsPopupOpen( nullptr, ImGuiPopupFlags_AnyPopup );
@@ -959,6 +930,7 @@ namespace mikoto::editor {
         constexpr ImU32 pinnedColor{ IM_COL32( 89, 177, 255, 255 ) };
         constexpr ImU32 activeColor{ IM_COL32( 246, 194, 96, 255 ) };
         constexpr ImU32 markerOutline{ IM_COL32( 18, 22, 27, 230 ) };
+
         constexpr core::f32 particleRadius{ 2.5f };
         constexpr core::f32 pinnedRadius{ 3.5f };
         constexpr core::f32 activeRadius{ 5.0f };
@@ -1017,6 +989,7 @@ namespace mikoto::editor {
                 mBoxActive = false;
                 const renderer::ReadPixelViewportInfo info{ mBoxEnd.x, mBoxEnd.y,
                     mViewport.mX, mViewport.mY, mViewport.mWidth, mViewport.mHeight };
+
                 if ( mEditorState->mEditorRenderer->RequestPick( info ) ) {
                     mPickRectangle = mBoxDragged;
                     mPickAppend = mBoxAppend;
@@ -1058,12 +1031,14 @@ namespace mikoto::editor {
                 if ( payload->Data && payload->DataSize > 1 && static_cast<const char*>( payload->Data )[payload->DataSize - 1] == 0 ) {
                     mTextureDropPath = filesystem::Path{ static_cast<const char*>( payload->Data ) };
                     mTextureDropScene = mEditorState->mActiveScene;
+
                     if ( payload->IsDelivery() || !mTexturePickPending ) {
                         const auto mouse{ ImGui::GetMousePos() };
                         const renderer::ReadPixelViewportInfo info{ mouse.x, mouse.y, mViewport.mX, mViewport.mY, mViewport.mWidth, mViewport.mHeight };
                         if ( payload->IsDelivery() ) {
                             mEditorState->mEditorRenderer->CancelPick();
                         }
+
                         if ( mEditorState->mEditorRenderer->RequestPick( info ) ) {
                             mTexturePickPending = mPickForTexture = true;
                             mTextureDelivered = payload->IsDelivery();
@@ -1076,9 +1051,11 @@ namespace mikoto::editor {
             }
             ImGui::EndDragDropTarget();
         }
+        
         if ( !ImGui::GetDragDropPayload() ) {
             mEditorState->mEditorRenderer->SetTextureDropHover( 0 );
         }
+
         if ( mOpenTexturePopup ) {
             mOpenTexturePopup = false;
             const auto metadata{ asset::AssetRegistryService::Get()->FindMetadata( asset::AssetRef<asset::Texture>{ mTextureDropPath }.GetID() ) };
@@ -1103,7 +1080,8 @@ namespace mikoto::editor {
 
         if ( ImGui::BeginPopupModal( "Apply texture to scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize ) ) {
             ImGui::PushTextWrapPos( 0.0f );
-            ImGui::TextDisabled( mTextureImported ? "Registered texture: choose application properties." : "New texture: import and apply using the project's texture policy." );
+            ImGui::TextDisabled( mTextureImported ? "Registered texture: choose application properties." : 
+                "New texture: import and apply using the project's texture policy." );
             ImGui::PopTextWrapPos();
             ImGui::Spacing();
 
@@ -1155,11 +1133,13 @@ namespace mikoto::editor {
                 ImGui::GetFrameHeight() + 6.0f * scale };
             const bool applicable{ mTextureDropScene == mEditorState->mActiveScene && ( mTextureUsage == 1 || mTextureTargetID != 0 ) };
             ImGui::BeginDisabled( !applicable );
+            
             if ( ImGui::Button( mTextureImported ? "Apply" : "Import and apply", buttonSize ) ) {
                 mTextureError.clear();
                 mTextureRequest = asset::AssetRegistryService::Get()->Request<asset::Texture>( asset::AssetRef<asset::Texture>{ mTextureDropPath },
                     asset::TextureLoadDescription{ .mPath = mTextureDropPath, .mDimension = renderer::rhi::TextureDimension::eTexture2D } );
             }
+            
             ImGui::EndDisabled();
             ImGui::EndDisabled();
             ImGui::SameLine();
@@ -1187,7 +1167,9 @@ namespace mikoto::editor {
                     auto material{ core::Ref<material::SkyboxMaterial>::New( "Dropped environment" ) };
                     material->SetEquirectangular( mTextureRequest );
                     scene::Entity* environment{};
-                    for ( const auto& [id, entity]: scene->GetEntities() ) {
+                    for ( const auto& entry: scene->GetEntities() ) {
+                        const auto& entity{ entry.second };
+
                         if ( entity->HasComponent<scene::SkyboxMaterialComponent>() ) {
                             environment = entity.get();
                             break;
@@ -1208,6 +1190,7 @@ namespace mikoto::editor {
                 } else if ( target && target->HasComponent<scene::MaterialComponent>() ) {
                     auto& component{ target->GetComponent<scene::MaterialComponent>() };
                     auto* surface{ dynamic_cast<material::SurfaceMaterial*>( component.GetMaterial().GetPtr() ) };
+
                     if ( surface ) {
                         auto material{ mTextureUnique ? material::SurfaceMaterialHandle::New( *surface ) : core::Ref<material::SurfaceMaterial>{ surface } };
                         constexpr material::MapType types[]{ material::MapType::eBaseColor, material::MapType::eNormal,
@@ -1364,13 +1347,15 @@ namespace mikoto::editor {
                     component.SetIsInternal( false );
                 } else {
                     scene::Entity* environment{};
-                    for ( const auto& [id, entity]: scene->GetEntities() ) {
+                    for ( const auto& entry: scene->GetEntities() ) {
+                        const auto& entity{ entry.second };
+
                         if ( entity->HasComponent<scene::SkyboxMaterialComponent>() ) {
                             environment = entity.get();
                             break;
                         }
-                    } 
-                    
+                    }
+
                     if ( !environment ) {
                         environment = scene->CreateEntity( "Environment" );
                         environment->AddComponent<scene::SkyboxMaterialComponent>();
@@ -1385,7 +1370,7 @@ namespace mikoto::editor {
 
             ImGui::EndDisabled();
             ImGui::SameLine();
-            
+
             if ( ImGui::Button( "Cancel", size ) ) {
                 ImGui::CloseCurrentPopup();
             }
@@ -1454,7 +1439,6 @@ namespace mikoto::editor {
 
         // ImGui accumulates drag distance while held. Check the release position too
         // when the last motion and release arrive in the same frame.
-        // https://github.com/ocornut/imgui/blob/master/imgui.cpp
         const auto mouse{ ImGui::GetMousePos() };
         const auto origin{ io.MouseClickedPos[button] };
         const core::float2 delta{ mouse.x - origin.x, mouse.y - origin.y };
@@ -1808,7 +1792,10 @@ namespace mikoto::editor {
 
             if ( !text.IsWorldText() && mEditorState->mEditorRenderer ) {
                 screenText = &currentSelection->GetComponent<scene::TextComponent>();
-                const auto [width, height] = InferDimensions( mEditorState->mEditorRenderer->GetRenderResolution() );
+                const auto dimensions{ InferDimensions( mEditorState->mEditorRenderer->GetRenderResolution() ) };
+                const auto width{ dimensions.first };
+                const auto height{ dimensions.second };
+
                 cameraView = core::float4x4{ 1.0f };
                 cameraProjection = glm::ortho( 0.0f, width, height, 0.0f, -1.0f, 1.0f );
                 ImGuizmo::SetOrthographic( true );
@@ -1858,9 +1845,9 @@ namespace mikoto::editor {
                         auto linear{ relative };
                         linear[3] = core::float4{ 0, 0, 0, 1 };
                         const auto id{ entity.GetComponent<scene::TagComponent>().GetGuid() };
-                        auto [entry, inserted] = mGizmoMeshBounds.try_emplace( id );
-                        auto& cached{ entry->second };
-                        const bool changed{ inserted || cached.mModel != mesh.GetModel() ||
+                        const auto entry{ mGizmoMeshBounds.try_emplace( id ) };
+                        auto& cached{ entry.first->second };
+                        const bool changed{ entry.second || cached.mModel != mesh.GetModel() ||
                                             cached.mMeshIndex != node->GetMeshIndex() || cached.mTransform != linear };
                         bool posed{};
 
@@ -2044,11 +2031,16 @@ namespace mikoto::editor {
         if ( !camera ) {
             return;
         }
+
         // Screen-space size follows the UI font, not the camera's FOV, lens or distance.
         // Upper anchors leave room for both toolbar rows.
-        const core::f32 scale{ glm::clamp( ImGui::GetFontSize() / 14.0f, 0.85f, 2.5f ) };
+        constexpr core::f32 kOrientationSizeScale{ 0.88f };
+        constexpr core::f32 kOrientationEdgePadding{ 6.0f };
+
+        const core::f32 scale{ glm::clamp( ImGui::GetFontSize() / 14.0f, 0.85f, 2.5f ) * kOrientationSizeScale };
         const core::f32 size{ 84.0f * scale };
-        const core::f32 padding{ 12.0f * scale };
+        const core::f32 padding{ kOrientationEdgePadding * scale };
+
         const float toolbarScale{ ImGui::GetFontSize() / 17.0f };
         const float toolbarHeight{ kToolbarButtonHeight + 2.0f * kToolbarInset };
         const float toolbarBottom{ ( toolbarHeight + 16.0f +
@@ -2071,6 +2063,7 @@ namespace mikoto::editor {
         };
         const ImVec2 center{ minimum.x + size * 0.5f, minimum.y + size * 0.5f };
         const core::f32 armLength{ 26.0f * scale };
+
         constexpr ImU32 colors[]{ IM_COL32( 239, 91, 105, 255 ), IM_COL32( 132, 206, 92, 255 ), IM_COL32( 85, 164, 245, 255 ) };
         constexpr core::cstr labels[]{ "X", "Y", "Z", "-X", "-Y", "-Z" };
         constexpr core::cstr views[]{ "Right (+X)", "Top (+Y)", "Front (+Z)", "Left (-X)", "Bottom (-Y)", "Back (-Z)" };
@@ -2081,6 +2074,7 @@ namespace mikoto::editor {
             marker.mOrder = index;
             marker.mPositive = index < 3;
             marker.mAxis[index % 3] = marker.mPositive ? 1.0f : -1.0f;
+
             // Transform directions (w=0), never positions. A perspective
             // projection would distort this orientation-only indicator.
             const core::float3 direction{ camera->GetViewMatrix() * core::float4{ marker.mAxis, 0.0f } };
@@ -2091,6 +2085,7 @@ namespace mikoto::editor {
             marker.mLabel = labels[index];
             marker.mViewName = views[index];
         }
+
         // RH view space looks down -Z: draw distant markers first. Hit testing
         // walks the reverse order so overlapping axis ends select the visible one.
         eastl::sort( markers.begin(), markers.end(), []( const auto& a, const auto& b ) {
@@ -2100,6 +2095,7 @@ namespace mikoto::editor {
         const bool interactive{ camera == mEditorState->mEditorCamera && !ImGuizmo::IsUsing() &&
                                 !ImGui::IsMouseDown( ImGuiMouseButton_Right ) && !ImGui::IsMouseDown( ImGuiMouseButton_Middle ) &&
                                 !ImGui::GetDragDropPayload() };
+
         const ImVec2 cursor{ ImGui::GetCursorScreenPos() };
         ImGui::SetCursorScreenPos( minimum );
         ImGui::BeginDisabled( !interactive );
@@ -2128,6 +2124,7 @@ namespace mikoto::editor {
         mPickingBlockedByOverlay |= ImGui::IsItemHovered( ImGuiHoveredFlags_AllowWhenDisabled ) || ImGui::IsItemActive();
         ImGui::EndDisabled();
         ImGui::SetCursorScreenPos( cursor );
+
         // Restoring an overlay cursor can cross the current content bounds in
         // a small viewport. Submit an item so ImGui accounts for that position.
         ImGui::Dummy( { 0, 0 } );
@@ -2149,6 +2146,7 @@ namespace mikoto::editor {
         auto* drawList{ ImGui::GetWindowDrawList() };
         drawList->PushClipRect( { mContentViewport.mX, mContentViewport.mY },
             { mContentViewport.mX + mContentViewport.mWidth, mContentViewport.mY + mContentViewport.mHeight }, true );
+
         // Keep the original unobtrusive axes: no disc, labelled positive ends
         // and small negative dots. The invisible hit area also supports dragging.
         for ( const auto& marker: markers ) {
@@ -2199,14 +2197,13 @@ namespace mikoto::editor {
             "camera-4-512.png", "idea-512.png", "sun-2-512.png",
             "text-512.png", "text-bg-color-512.png", "volume-up-4-512.png"
         };
-        auto* device{ renderer::RenderSystem::Get()->GetGpuDevice() };
 
         for ( core::usize index{}; index < mOverlayIcons.size(); ++index ) {
             try {
                 const filesystem::Path path{ string::Format( "Resources/Overlay Icon/{}", filenames[index] ) };
 
                 if ( auto image{ asset::ProcessImage2D( path ) } ) {
-                    mOverlayIcons[index] = device->CreateTexture( renderer::rhi::TextureCreateDescription{}
+                    mOverlayIcons[index] = mGpuDevice->CreateTexture( renderer::rhi::TextureCreateDescription{}
                         .SetName( filenames[index] )
                         .SetImageData( image )
                         .SetWidth( image->mWidth )
@@ -2228,10 +2225,12 @@ namespace mikoto::editor {
         const ImVec2 buttonSize{ kToolbarButtonWidth * scale, kToolbarButtonHeight * scale };
         const bool compact{ mContentViewport.mWidth < 600.0f * scale };
         const bool showFps{ mContentViewport.mWidth >= 600.0f * scale };
+
         struct AspectPreset {
             core::cstr mName;
             float mRatio;
         };
+
         static constexpr eastl::array<AspectPreset, 6> aspectPresets{ { { "", 0.0f }, { "16:9", 16.0f / 9.0f }, { "16:10", 16.0f / 10.0f }, { "4:3", 4.0f / 3.0f }, { "1:1", 1.0f }, { "9:16", 9.0f / 16.0f } } };
         const auto freeAspect{ MKT_LOC( "viewport_toolbar_free_aspect" ) };
         core::cstr aspectLabel{ freeAspect.c_str() };
@@ -2243,10 +2242,12 @@ namespace mikoto::editor {
         }
 
         const float aspectWidth{ compact ? 82.0f * scale : ImGui::CalcTextSize( freeAspect.c_str() ).x + 42.0f * scale };
+
         const bool orthographic{ mEditorState->mActiveCamera && mEditorState->mActiveCamera->IsOrthographic() };
         const auto projectionLabel{ MKT_LOC( orthographic ? "viewport_toolbar_orthographic" : "viewport_toolbar_perspective" ) };
         const auto projectionButtonLabel{ string::Format( "{}###SceneProjection", compact ? ICON_MD_VIDEOCAM : projectionLabel.c_str() ) };
         const float projectionWidth{ compact ? buttonSize.x : ImGui::CalcTextSize( projectionLabel.c_str() ).x + 12.0f * scale };
+
         // Reserve both formats so switching units does not move the toolbar.
         const float counterWidth{ glm::max( ImGui::CalcTextSize( "9999 FPS" ).x, ImGui::CalcTextSize( "999.99 ms" ).x ) };
 
@@ -2471,9 +2472,9 @@ namespace mikoto::editor {
             imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_statistics", "Show statistics" ).c_str(), mEnablePerformanceOverlay );
 
             if ( mEditorState->mEditorRenderer ) {
-                auto& physics = mEditorState->mEditorRenderer->GetPhysicsDebugSettings();
+                auto& physics{ mEditorState->mEditorRenderer->GetPhysicsDebugSettings() };
                 imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_physics_colliders", "Show physics colliders" ).c_str(), physics.mEnabled );
-                int filter = physics.mSelectedOnly ? 1 : 0;
+                int filter{ physics.mSelectedOnly ? 1 : 0 };
 
                 if ( ImGui::Combo( imgui::widget::LocalizedLabel( "viewport_physics_collider_mode", "Physics collider mode" ).c_str(), &filter, MKT_LOC( "viewport_all_entities_selected_entity" ).c_str() ) ) {
                     physics.mSelectedOnly = filter == 1;
@@ -2524,17 +2525,27 @@ namespace mikoto::editor {
         auto* draw = ImGui::GetWindowDrawList();
         draw->PushClipRect( { mViewport.mX, mViewport.mY }, { mViewport.mX + mViewport.mWidth, mViewport.mY + mViewport.mHeight }, true );
         const auto vp = mEditorState->mActiveCamera->GetViewProjection();
+
         const auto project = [&]( core::float4 p ) -> ImVec2 {
             p /= p.w;
             return { mViewport.mX + ( p.x * 0.5f + 0.5f ) * mViewport.mWidth,
                 mViewport.mY + ( 0.5f - p.y * 0.5f ) * mViewport.mHeight };
         };
+
         const auto line = [&]( core::float3 a, core::float3 b, ImU32 color, float width = 0.0f ) {
             core::float4 p = vp * float4( a, 1 );
             core::float4 q = vp * float4( b, 1 );
+
             // Clip all six planes before dividing: large light ranges and far
             // frustums must not generate enormous screen-space line coordinates.
-            constexpr core::float4 planes[]{ { 1, 0, 0, 1 }, { -1, 0, 0, 1 }, { 0, 1, 0, 1 }, { 0, -1, 0, 1 }, { 0, 0, 1, 0 }, { 0, 0, -1, 1 } };
+            constexpr core::float4 planes[]{
+                { 1, 0, 0, 1 },
+                { -1, 0, 0, 1 },
+                { 0, 1, 0, 1 },
+                { 0, -1, 0, 1 },
+                { 0, 0, 1, 0 },
+                { 0, 0, -1, 1 }
+            };
 
             for ( const auto& plane: planes ) {
                 const float da{ glm::dot( p, plane ) };
@@ -2562,18 +2573,20 @@ namespace mikoto::editor {
 
             draw->AddLine( project( p ), project( q ), color, width > 0.0f ? width : settings.mLineWidth );
         };
+
         // BuildSkinningPalette initializes every entry before a successful palette is read.
         // Reuse the storage; static meshes and icon-only overlays never need it filled.
         eastl::array<core::float4x4, asset::kMaxBonesPerMesh> palette;
 
-        for ( const auto& [id, owned]: scene->GetEntities() ) {
-            const auto& entity = *owned;
+        for ( const auto& entry: scene->GetEntities() ) {
+            const auto id{ entry.first };
+            const auto& entity{ *entry.second };
 
             if ( !entity.GetComponent<scene::TagComponent>().IsActive() ) {
                 continue;
             }
 
-            const auto world = entity.GetComponent<scene::TransformComponent>().GetWorldTransform();
+            const auto world{ entity.GetComponent<scene::TransformComponent>().GetWorldTransform() };
 
             if ( settings.mShowIcons ) {
                 std::optional<OverlayIcon> icon;
@@ -2655,7 +2668,8 @@ namespace mikoto::editor {
                 const auto& vertices = mesh->GetCollisionVertices();
                 const auto& indices = mesh->GetCollisionIndices();
                 const auto& skin = mesh->GetSkinningVertices();
-                eastl::vector<core::float3> positions;
+
+                eastl::vector<core::float3> positions{};
                 positions.reserve( vertices.size() );
 
                 for ( core::usize i = 0; i < vertices.size(); ++i ) {

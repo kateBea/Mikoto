@@ -66,6 +66,8 @@ namespace mikoto::editor {
     using namespace mikoto::scene;
     using namespace mikoto::renderer;
 
+    static constexpr core::cstr kEntityDragPayload{ "MIKOTO_ENTITY" };
+
     static auto GetHierarchyTypeLabel( scene::EntityType type ) -> const eastl::string& {
         constexpr eastl::array<core::cstr, core::as<core::usize>( scene::EntityType::eCount )> labels{
             "hierarchy_type_empty",
@@ -155,6 +157,14 @@ namespace mikoto::editor {
         const auto signal{ scene ? scene->GetHierarchySignal() : nullptr };
         // Comparing the signal also detects replacement at the same scene address.
         if ( mHierarchySignal != signal ) {
+            // Entity payloads contain IDs scoped to the scene they came from.
+            if ( const auto* payload{ ImGui::GetDragDropPayload() }; payload && payload->IsDataType( kEntityDragPayload ) ) {
+                ImGui::ClearDragDrop();
+            }
+
+            mReparentEntity = 0;
+            mReparentTarget = 0;
+
             mHierarchyConnection.release();
             mHierarchySignal = signal;
             mExpandedEntities.clear();
@@ -269,7 +279,9 @@ namespace mikoto::editor {
         } };
 
         // Rebuild the display order only when the hierarchy view changes.
-        for ( const auto& [id, entity]: scene->GetEntities() ) {
+        for ( const auto& entry: scene->GetEntities() ) {
+            const auto& id{ entry.first };
+
             if ( const auto parent{ scene->GetHierarchyParent( id ) } ) {
                 mDisplayChildren[parent].push_back( id );
             }
@@ -338,6 +350,15 @@ namespace mikoto::editor {
         }
     }
 
+    auto HierarchyPanel::AcceptEntityDrop( core::u64 targetID ) -> void {
+        const auto* payload{ ImGui::AcceptDragDropPayload( kEntityDragPayload, ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) };
+
+        if ( payload && payload->IsDelivery() && payload->Data && payload->DataSize == sizeof( core::u64 ) ) {
+            mReparentEntity = *static_cast<const core::u64*>( payload->Data );
+            mReparentTarget = targetID;
+        }
+    }
+
     auto HierarchyPanel::DrawNodeTree( const VisibleRow& row, float rowHeight ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -354,7 +375,7 @@ namespace mikoto::editor {
         ImGui::PushID( static_cast<core::i32>( entityID >> 32 ) );
         ImGui::PushID( static_cast<core::i32>( entityID ) );
         ImGui::TableNextRow( ImGuiTableRowFlags_None, rowHeight );
-        ImGui::TableNextColumn();
+        const bool rowSubmitted{ ImGui::TableNextColumn() };
 
         scene::Entity* currentSelection{ mEditorState->mSelectedEntity };
         const bool isGroup{ entity->HasComponent<scene::GroupComponent>() };
@@ -460,25 +481,29 @@ namespace mikoto::editor {
             }
         }
 
-        imgui::SetCursorHandOnLastItemHovered();
+        // A skipped table cell leaves the previous widget as ImGui's last item.
+        if ( rowSubmitted ) {
+            imgui::SetCursorHandOnLastItemHovered();
+        }
 
-        if ( !renaming && ImGui::BeginDragDropSource() ) {
-            const imgui::ImGuiScopedColor textColor{ ImGuiCol_Text, normalText };
-            ImGui::SetDragDropPayload( "MIKOTO_ENTITY", &entityID, sizeof( entityID ) );
-            ImGui::TextUnformatted( tagComponent.GetTag().c_str() );
+        if ( rowSubmitted && !renaming && ImGui::BeginDragDropSource() ) {
+            ImGui::SetDragDropPayload( kEntityDragPayload, &entityID, sizeof( entityID ) );
+
+            // Restore the text color while the drag tooltip is still open.
+            {
+                const imgui::ImGuiScopedColor textColor{ ImGuiCol_Text, normalText };
+                ImGui::TextUnformatted( tagComponent.GetTag().c_str() );
+            }
+
             ImGui::EndDragDropSource();
         }
 
-        if ( !renaming && ImGui::BeginDragDropTarget() ) {
-            if ( const auto* payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) }; payload && payload->DataSize == sizeof( core::u64 ) ) {
-                mReparentEntity = *static_cast<const core::u64*>( payload->Data );
-                mReparentTarget = entityID;
-            }
-
+        if ( rowSubmitted && !renaming && ImGui::BeginDragDropTarget() ) {
+            AcceptEntityDrop( entityID );
             ImGui::EndDragDropTarget();
         }
 
-        if ( !renaming && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) ) {
+        if ( rowSubmitted && !renaming && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) ) {
             // Match viewport selection: a double-click selects the immediate parent.
             auto* selected{ entity };
             const auto parentID{ mEditorState->mActiveScene->GetHierarchyParent( entityID ) };
@@ -491,11 +516,11 @@ namespace mikoto::editor {
 
             mEditorState->SelectEntity( selected );
         }
-        else if ( !renaming && ImGui::IsItemClicked( ImGuiMouseButton_Left ) && !ImGui::IsItemToggledOpen() ) {
+        else if ( rowSubmitted && !renaming && ImGui::IsItemClicked( ImGuiMouseButton_Left ) && !ImGui::IsItemToggledOpen() ) {
             mEditorState->SelectEntity( entity );
         }
 
-        if ( !HasActiveFilter() && ImGui::IsItemToggledOpen() ) {
+        if ( rowSubmitted && !HasActiveFilter() && ImGui::IsItemToggledOpen() ) {
             mRowsDirty = true;
 
             if ( expanded ) {
@@ -506,12 +531,12 @@ namespace mikoto::editor {
             }
         }
 
-        if ( !renaming && ImGui::IsItemHovered() && ImGui::IsMouseReleased( ImGuiMouseButton_Right ) ) {
+        if ( rowSubmitted && !renaming && ImGui::IsItemHovered() && ImGui::IsMouseReleased( ImGuiMouseButton_Right ) ) {
             mContextEntityID = entityID;
             mOpenEntityPopup = true;
         }
 
-        if ( renaming ) {
+        if ( rowSubmitted && renaming ) {
             const imgui::ImGuiScopedColor textColor{ ImGuiCol_Text, normalText };
             const auto nameIcon{ isGroup ? ( expanded ? ICON_FA_FOLDER_OPEN : ICON_FA_FOLDER ) : icon };
             const float gap{ isGroup ? 6.0f : ImGui::CalcTextSize( " " ).x };
@@ -649,7 +674,10 @@ namespace mikoto::editor {
         const auto scene{ mEditorState->mActiveScene };
         const bool filteringByType{ mTypeFilter != scene::EntityType::eCount };
 
-        for ( const auto& [id, candidate]: scene->GetEntities() ) {
+        for ( const auto& entry: scene->GetEntities() ) {
+            const auto& id{ entry.first };
+            const auto& candidate{ entry.second };
+
             if ( ( filteringByType && candidate->GetType() != mTypeFilter ) ||
                  !mSearchFilter.PassFilter( candidate->GetComponent<scene::TagComponent>().GetTag().c_str() ) ) {
                 continue;
@@ -1461,7 +1489,7 @@ namespace mikoto::editor {
         }
 
         ImGui::TableNextRow();
-        ImGui::TableSetColumnIndex( 0 );
+        const bool rootSubmitted{ ImGui::TableSetColumnIndex( 0 ) };
 
         if ( HasActiveFilter() || mRenameEntityID ) {
             ImGui::SetNextItemOpen( true, ImGuiCond_Always );
@@ -1483,16 +1511,13 @@ namespace mikoto::editor {
             "%s %.*s", icon.c_str(), core::as<int>( name.size() ), name.data() ) };
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
-        imgui::SetCursorHandOnLastItemHovered();
+        if ( rootSubmitted ) {
+            imgui::SetCursorHandOnLastItemHovered();
 
-        if ( ImGui::BeginDragDropTarget() ) {
-            if ( const auto* payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) };
-                payload && payload->DataSize == sizeof( core::u64 ) ) {
-                mReparentEntity = *static_cast<const core::u64*>( payload->Data );
-                mReparentTarget = 0;
+            if ( ImGui::BeginDragDropTarget() ) {
+                AcceptEntityDrop( 0 );
+                ImGui::EndDragDropTarget();
             }
-
-            ImGui::EndDragDropTarget();
         }
 
         if ( expanded ) {
@@ -1533,6 +1558,8 @@ namespace mikoto::editor {
     auto HierarchyPanel::OnRender( float ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        ObserveScene();
+
         // The source window remains usable when Hierarchy is hidden or collapsed.
         if ( mScriptEditorOpen && !mPendingScriptOpen.IsEmpty() ) {
             const auto pending{ mPendingScriptOpen };
@@ -1561,7 +1588,6 @@ namespace mikoto::editor {
         ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 6.0f * scale, ImGui::GetStyle().FramePadding.y } );
         ImGui::PushStyleVar( ImGuiStyleVar_CellPadding, ImVec2{ 6.0f * scale, 3.0f * scale } );
 
-        ObserveScene();
         DrawSearchBar();
         BuildSearchResults();
 
@@ -1597,33 +1623,31 @@ namespace mikoto::editor {
                 mEditorState->SelectEntity( nullptr );
             }
 
-            // Empty space accepts root drops without adding a row or consuming clicks.
+            // Keep the drop ID stable as rows expand or the panel resizes.
             const ImVec2 dropSize{ ImGui::GetContentRegionAvail() };
+            const ImVec2 dropStart{ ImGui::GetCursorScreenPos() };
+            const ImRect dropArea{ dropStart, { dropStart.x + dropSize.x, dropStart.y + dropSize.y } };
 
-            if ( dropSize.x > 0 && dropSize.y > 0 ) {
-                ImGui::Dummy( dropSize );
-
-                if ( ImGui::BeginDragDropTarget() ) {
-                    if ( const auto* payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY", ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) }; payload && payload->DataSize == sizeof( core::u64 ) ) {
-                        mReparentEntity = *static_cast<const core::u64*>( payload->Data );
-                        mReparentTarget = 0;
-                    }
-
-                    ImGui::EndDragDropTarget();
-                }
+            if ( dropSize.x > 0.0f && dropSize.y > 0.0f &&
+                 ImGui::BeginDragDropTargetCustom( dropArea, ImGui::GetID( "##HierarchyRootDrop" ) ) ) {
+                AcceptEntityDrop( 0 );
+                ImGui::EndDragDropTarget();
             }
 
             if ( mReparentEntity ) {
                 auto* scene{ mEditorState->mActiveScene };
 
                 if ( scene->MoveEntityInHierarchy( mReparentEntity, mReparentTarget ) ) {
-                    mExpandedEntities.insert( mReparentTarget );
+                    if ( mReparentTarget ) {
+                        mExpandedEntities.insert( mReparentTarget );
+                    }
                 }
                 else {
                     core::RuntimeConsole::Get()->Warning( MKT_LOC( "hierarchy_move_rejected" ) );
                 }
 
                 mReparentEntity = 0;
+                mReparentTarget = 0;
             }
 
             BlankSpacePopupMenu();

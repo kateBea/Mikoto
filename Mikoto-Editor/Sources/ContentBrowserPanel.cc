@@ -167,7 +167,12 @@ namespace mikoto::editor {
     }
 
     ContentBrowserPanel::ContentBrowserPanel( const ContentBrowserPanelDescription& desc )
-        : Panel{ "Explorer", "Panel", desc.mGroup, desc.mIsToggleable }, mDevice{ desc.mDevice }, mEditorState{ desc.mState }, mProjectBasePath{ desc.mProjectBasePath.ToAbsolute() }, mResourcesBasePath{ desc.mResourcesBasePath }, mCurrentDirectory{ mProjectBasePath } {
+        : Panel{ "Explorer", "Panel", desc.mGroup, desc.mIsToggleable },
+          mDevice{ desc.mDevice },
+          mEditorState{ desc.mState },
+          mProjectBasePath{ desc.mProjectBasePath.ToAbsolute() },
+          mResourcesBasePath{ desc.mResourcesBasePath },
+          mCurrentDirectory{ mProjectBasePath } {
         MKT_BEGIN_PROFILER();
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_DNS, mPanelName );
         mThumbnailCache = eastl::make_unique<ThumbnailCache>( mEditorState->mThumbnailRenderer, mDevice );
@@ -299,8 +304,8 @@ namespace mikoto::editor {
             return left.mPath.GetFilename() < right.mPath.GetFilename();
         } );
 
-        const auto [inserted, success]{ mDirectoryListings.try_emplace( path, eastl::move( listing ) ) };
-        return *inserted->second;
+        const auto entry{ mDirectoryListings.try_emplace( path, eastl::move( listing ) ).first };
+        return *entry->second;
     }
 
     auto ContentBrowserPanel::DrawHeader() -> void {

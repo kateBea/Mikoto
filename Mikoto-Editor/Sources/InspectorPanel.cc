@@ -15,6 +15,7 @@
 #include <array>
 #include <cstring>
 #include <exception>
+#include <tuple>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -1193,7 +1194,9 @@ namespace mikoto::editor {
 
         eastl::vector<const scripting::ScriptFieldMetadata*> fields{};
 
-        for ( const auto& [id, field]: script->GetMetaData().mFieldLookup ) {
+        for ( const auto& entry: script->GetMetaData().mFieldLookup ) {
+            const auto& field{ entry.second };
+
             fields.push_back( &field );
         }
 
@@ -1456,7 +1459,10 @@ namespace mikoto::editor {
         if ( ImGui::BeginCombo( imgui::widget::LocalizedLabel( "animator_inspector_animation", "Animation" ).c_str(), current ? current->GetName().c_str() : ( hasClips ? MKT_LOC( "animator_inspector_choose_clip" ).c_str() : MKT_LOC( "animator_inspector_no_animation_clips" ).c_str() ) ) ) {
             // Read names directly from the model: no temporary strings or vector
             // allocations every frame just to display the animation dropdown.
-            for ( const auto& [name, clip]: animator.GetAnimationList() ) {
+            for ( const auto& entry: animator.GetAnimationList() ) {
+                const auto& name{ entry.first };
+                const auto& clip{ entry.second };
+
                 if ( ImGui::Selectable( name.c_str(), current == clip.get() ) ) {
                     if ( animator.IsPlaying() ) {
                         animator.PlayAnimation( name );
@@ -1671,7 +1677,10 @@ namespace mikoto::editor {
             }
 
             if ( scene ) {
-                for ( auto [entity, tag]: scene->GetRegistry().view<scene::TagComponent>().each() ) {
+                for ( auto&& entry: scene->GetRegistry().view<scene::TagComponent>().each() ) {
+                    const auto entity{ std::get<0>( entry ) };
+                    auto& tag{ std::get<1>( entry ) };
+
                     ImGui::PushID( static_cast<int>( entity ) );
 
                     if ( ImGui::Selectable( tag.GetTag().c_str(), id == tag.GetGuid() ) ) {
@@ -2246,7 +2255,9 @@ namespace mikoto::editor {
         auto* assets{ asset::AssetRegistryService::GetPtr() };
 
         for ( core::usize index{}; index < bindings.size(); ++index ) {
-            const auto& [path, binding]{ bindings[index] };
+            const auto& path{ bindings[index].first };
+            const auto& binding{ bindings[index].second };
+
             auto& preview{ mMeshTexturePreviews[index] };
             auto texture{ binding.mTexture };
 
@@ -3058,7 +3069,9 @@ namespace mikoto::editor {
         }
 
         const auto resolution{ water.GetPlaneResolution() };
-        core::i32 cellsX{ static_cast<core::i32>( resolution.x ) }, cellsZ{ static_cast<core::i32>( resolution.y ) };
+        core::i32 cellsX{ static_cast<core::i32>( resolution.x ) };
+        core::i32 cellsZ{ static_cast<core::i32>( resolution.y ) };
+
         bool subdivide{ imgui::widget::CircleInt( MKT_LOC( "water_cells_x" ), &cellsX, 1, 1024 ) };
         subdivide |= imgui::widget::CircleInt( MKT_LOC( "water_cells_z" ), &cellsZ, 1, 1024 );
 
@@ -3920,8 +3933,12 @@ namespace mikoto::editor {
 
         const auto id{ entity.GetComponent<scene::TagComponent>().GetGuid() };
 
-        for ( auto [handle, group, tag]:
+        for ( auto&& entry:
             mState->mActiveScene->GetRegistry().view<scene::AudioMixerGroupComponent, scene::TagComponent>().each() ) {
+            const auto handle{ std::get<0>( entry ) };
+            auto& group{ std::get<1>( entry ) };
+            auto& tag{ std::get<2>( entry ) };
+
             if ( group.mMixerID != id ) {
                 continue;
             }
@@ -4213,7 +4230,10 @@ namespace mikoto::editor {
         const scene::Camera* selectedCamera{};
 
         if ( scene ) {
-            for ( const auto [handle, tag, camera]: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
+            for ( auto&& entry: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
+                auto& tag{ std::get<1>( entry ) };
+                auto& camera{ std::get<2>( entry ) };
+
                 if ( camera.HasCamera() && ( component.GetCameraEntityID() ? tag.GetGuid() == component.GetCameraEntityID() :
                     &camera.GetCamera() == component.GetCamera() ) ) {
                     selectedCamera = &camera.GetCamera();
@@ -4235,7 +4255,11 @@ namespace mikoto::editor {
             }
 
             if ( scene ) {
-                for ( const auto [handle, tag, camera]: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
+                for ( auto&& entry: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
+                    const auto handle{ std::get<0>( entry ) };
+                    auto& tag{ std::get<1>( entry ) };
+                    auto& camera{ std::get<2>( entry ) };
+
                     if ( !camera.HasCamera() ) {
                         continue;
                     }
@@ -5011,7 +5035,11 @@ namespace mikoto::editor {
                     postProcessComponent.SetCameraEntityID( 0 );
                 }
 
-                for ( const auto [handle, tag, camera]: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
+                for ( auto&& entry: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
+                    const auto handle{ std::get<0>( entry ) };
+                    auto& tag{ std::get<1>( entry ) };
+                    auto& camera{ std::get<2>( entry ) };
+
                     if ( !camera.HasCamera() ) {
                         continue;
                     }
@@ -5244,7 +5272,8 @@ namespace mikoto::editor {
     }
 
     InspectorPanel::InspectorPanel( const InspectorPanelCreateInfo& createInfo )
-        : Panel{ "Inspector", "Panel", createInfo.mGroup, createInfo.mIsToggleable }, mState( createInfo.mState ) {
+        : Panel{ "Inspector", "Panel", createInfo.mGroup, createInfo.mIsToggleable },
+          mState( createInfo.mState ) {
         MKT_BEGIN_PROFILER();
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_ERROR_OUTLINE, mPanelName );
 
@@ -5774,8 +5803,8 @@ namespace mikoto::editor {
 
         if ( image ) {
             if ( mState->mActiveCamera ) {
-                const auto [width, height]{ mState->mActiveCamera->GetViewPort() };
-                parentSize = canvas.GetLayoutSize( { width, height } );
+                const auto viewport{ mState->mActiveCamera->GetViewPort() };
+                parentSize = canvas.GetLayoutSize( { viewport.first, viewport.second } );
             }
 
             if ( c.mParentId ) {

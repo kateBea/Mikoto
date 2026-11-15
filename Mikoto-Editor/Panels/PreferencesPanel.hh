@@ -71,23 +71,29 @@ namespace mikoto::editor {
         ViewportPanel* mViewportPanel{};
         SettingsPanel* mCameraPanel{};
         const platform::ActionManager* mActionManager{};
+
         ImGuiStyle mOriginalStyle{};
         filesystem::Path mPath{};
+
         eastl::vector<platform::InstalledFontFamily> mFontChoices{};
         core::usize mBundledFontCount{};
         bool mSystemFontsLoaded{};
         core::usize mFontIndex{};
         eastl::optional<core::usize> mAppliedFontIndex{};
         ImGuiTextFilter mFontFilter{};
+
         core::i32 mTheme{};
         core::f32 mTextScale{ kDefaultTextScale };
         core::f32 mTooltipDelay{ 0.4f };
         bool mCompact{ kDefaultCompactSpacing };
+
         bool mVsync{ true };
         bool mPerformanceOverlay{};
         bool mUtilityOverlay{ true };
+
         bool mPending{ true };
         bool mDirty{};
+
         core::i32 mCategory{};
         core::i32 mPlatformPreview{};
         eastl::string mStatus{};

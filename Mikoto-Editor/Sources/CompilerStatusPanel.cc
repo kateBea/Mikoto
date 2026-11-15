@@ -37,7 +37,8 @@
 
 namespace mikoto::editor {
     CompilerStatusPanel::CompilerStatusPanel( const CompilerStatusPanelCreateInfo& info )
-        : Panel{ "Compiler Status", "Compiler Status", info.mGroup, info.mIsToggleable }, mState{ info.mState } {
+        : Panel{ "Compiler Status", "Compiler Status", info.mGroup, info.mIsToggleable },
+          mState{ info.mState } {
         mPanelIsVisible = false;
     }
 

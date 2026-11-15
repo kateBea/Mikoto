@@ -65,7 +65,8 @@ namespace mikoto::editor {
     }
 
     SettingsPanel::SettingsPanel( const SettingsPanelCreateInfo& data )
-        : Panel{ "Settings", "Panel", data.mGroup, data.mIsToggleable }, mEditorState{ data.mState } {
+        : Panel{ "Settings", "Panel", data.mGroup, data.mIsToggleable },
+          mEditorState{ data.mState } {
         MKT_BEGIN_PROFILER();
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_CONSTRUCTION, mPanelName );
     }

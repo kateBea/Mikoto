@@ -102,7 +102,8 @@ namespace mikoto::editor {
     }
 
     StatsPanel::StatsPanel( const StatsPanelCreateInfo& info )
-        : Panel{ "Stats", "Panel", info.mGroup, info.mIsToggleable }, mState{ info.mState } {
+        : Panel{ "Stats", "Panel", info.mGroup, info.mIsToggleable },
+          mState{ info.mState } {
         MKT_BEGIN_PROFILER();
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_TABLE_CHART, mPanelName );
     }
@@ -175,7 +176,9 @@ namespace mikoto::editor {
 
         if ( mState && mState->mEditorRenderer ) {
             auto& renderer = *mState->mEditorRenderer;
-            const auto [width, height]{ InferDimensions( renderer.GetRenderResolution() ) };
+            const auto dimensions{ InferDimensions( renderer.GetRenderResolution() ) };
+            const auto width{ dimensions.first };
+            const auto height{ dimensions.second };
             mSnapshot.renderWidth = as<core::u32>( width );
             mSnapshot.renderHeight = as<core::u32>( height );
         }

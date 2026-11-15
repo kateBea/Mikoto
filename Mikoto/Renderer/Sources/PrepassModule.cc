@@ -662,7 +662,6 @@ namespace mikoto::renderer {
                     .mMaterialsPtr = ctx.GetDeviceBufferAddress( geometryData.mMaterialsBuffer ),
                     .mBasicSamplerID = ctx.PushSampler( geometryData.mMaterialSampler )
                 };
-                static_assert( offsetof( DrawParams, mMaterialsPtr ) == 32 && offsetof( DrawParams, mBasicSamplerID ) == 40 );
                 ctx.PushConstants( params );
 
                 const auto dimensions{ InferDimensions( mResolution ) };

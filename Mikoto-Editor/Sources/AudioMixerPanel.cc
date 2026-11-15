@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <tuple>
+
 #include <Core/LocalizationService.hh>
 
 #include <Audio/AudioSource.hh>
@@ -29,7 +31,8 @@
 
 namespace mikoto::editor {
     AudioMixerPanel::AudioMixerPanel( const AudioMixerPanelCreateInfo& info )
-        : Panel{ "Audio Mixer", "Audio Mixer", info.mGroup, info.mIsToggleable }, mState{ info.mState } {
+        : Panel{ "Audio Mixer", "Audio Mixer", info.mGroup, info.mIsToggleable },
+          mState{ info.mState } {
         mPanelIsVisible = false;
     }
 
@@ -83,7 +86,11 @@ namespace mikoto::editor {
             ImGui::TableSetupColumn( MKT_LOC( "audio_mixer_playback" ).c_str(), ImGuiTableColumnFlags_WidthFixed, 160 );
             ImGui::TableHeadersRow();
 
-            for ( auto [entity, component, tag]: mState->mActiveScene->GetRegistry().view<scene::AudioSourceComponent, scene::TagComponent>().each() ) {
+            for ( auto&& entry: mState->mActiveScene->GetRegistry().view<scene::AudioSourceComponent, scene::TagComponent>().each() ) {
+                const auto entity{ std::get<0>( entry ) };
+                auto& component{ std::get<1>( entry ) };
+                auto& tag{ std::get<2>( entry ) };
+
                 auto source{ component.GetSource() };
                 ++count;
                 // Registry handles include the generation; truncated asset GUIDs

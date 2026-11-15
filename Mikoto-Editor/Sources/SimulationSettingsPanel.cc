@@ -29,7 +29,8 @@ namespace mikoto::editor {
     using namespace mikoto::physics;
 
     SimulationSettingsPanel::SimulationSettingsPanel( const SimulationSettingsPanelCreateInfo& info )
-        : Panel{ "Simulation Settings", "Simulation Settings", info.mGroup, info.mIsToggleable }, mState{ info.mState } {
+        : Panel{ "Simulation Settings", "Simulation Settings", info.mGroup, info.mIsToggleable },
+          mState{ info.mState } {
         mPanelIsVisible = false;
     }
 

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstddef>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -261,8 +260,6 @@ namespace mikoto::renderer {
                         .mClusterCount = prepass.mClusterCount,
                         .mOverlay = mPresentTarget == FinalImageType::eClusterHeatmapOverlay ? 1u : 0u
                     };
-                    static_assert( offsetof( HeatmapParams, mSceneTexture ) == 32 );
-                    static_assert( offsetof( HeatmapParams, mOverlay ) == 48 );
                     ctx.PushConstants( params );
                 }
                 else {

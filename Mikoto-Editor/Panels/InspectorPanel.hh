@@ -123,12 +123,15 @@ namespace mikoto::editor {
             void ( *mDraw )( InspectorPanel&, scene::Entity&, eastl::string_view, ComponentUIFunc ){};
         };
         eastl::fixed_vector<ComponentUiInfo, 20> mComponentUis{};
+
         eastl::vector<char> mNameBuffer{};
         eastl::string mNameSource{};
         core::u64 mNameEntity{};
+
         core::float3 mRotationCenter{};
         core::u64 mRotationEntity{};
         bool mRotating{};
+
         bool mScriptEditorLaunchFailed{};
         const void* mNameScene{};
         // Selection belongs to the canvas, never to a vector position or an ECS widget.

@@ -50,7 +50,8 @@ namespace mikoto::editor {
     using namespace mikoto::renderer::rhi;
 
     LightingPanel::LightingPanel( const LightingPanelCreateInfo& info )
-        : Panel{ "Lighting", "Panel", info.mGroup, info.mIsToggleable }, mEditorState{ info.mState } {
+        : Panel{ "Lighting", "Panel", info.mGroup, info.mIsToggleable },
+          mEditorState{ info.mState } {
         MKT_BEGIN_PROFILER();
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_LIGHTBULB, mPanelName );
     }

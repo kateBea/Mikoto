@@ -18,7 +18,11 @@
 
 namespace mikoto::editor {
     Panel::Panel( eastl::string_view name, eastl::string_view headerName, eastl::string_view group, bool isToggleable )
-        : mPanelName{ name }, mPanelHeaderName{ headerName }, mGroup{ group }, mPanelIsVisible{ true }, mIsToggleable{ isToggleable } {
+        : mPanelName{ name },
+          mPanelHeaderName{ headerName },
+          mGroup{ group },
+          mPanelIsVisible{ true },
+          mIsToggleable{ isToggleable } {
     }
 
 

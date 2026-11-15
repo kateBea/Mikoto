@@ -45,13 +45,17 @@ namespace mikoto::editor {
     private:
         auto UpdateHeightmapPreview( const eastl::shared_ptr<const renderer::TerrainHeightmap>& heightmap ) -> void;
         EditorState *mEditorState{};
+
         const scene::Scene* mEditedScene{};
         core::u64 mEditedEntity{};
+
         filesystem::Path mImportPath{};
         eastl::string mEditError{};
+
         eastl::shared_ptr<const renderer::TerrainHeightmap> mPreviewSource{};
         renderer::rhi::TextureHandle mHeightmapPreview{};
         eastl::string mPreviewError{};
+
         eastl::string mMapSaveMessage{};
         bool mPreviewSelected{};
     };

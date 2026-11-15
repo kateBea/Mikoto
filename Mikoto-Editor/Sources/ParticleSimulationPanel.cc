@@ -49,7 +49,8 @@ namespace mikoto::editor {
     using namespace filesystem;
 
     ParticleSimulationPanel::ParticleSimulationPanel( const ParticleSimulationPanelCreateInfo& info )
-        : Panel{ "Particle Simulation", "Panel", info.mGroup, info.mIsToggleable }, mEditorState{ info.mState } {
+        : Panel{ "Particle Simulation", "Panel", info.mGroup, info.mIsToggleable },
+          mEditorState{ info.mState } {
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_BLUR_ON, mPanelName );
         mPanelIsVisible = false;
         mGraph.Initialize( mSettings );
@@ -636,7 +637,8 @@ namespace mikoto::editor {
         }
 
         if ( ed::BeginCreate() ) {
-            ed::PinId a{}, b{};
+            ed::PinId a{};
+            ed::PinId b{};
 
             if ( ed::QueryNewLink( &a, &b ) && a && b ) {
                 if ( a.Get() % 16 == 1 ) {

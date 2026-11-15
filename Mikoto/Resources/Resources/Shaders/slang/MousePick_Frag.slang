@@ -29,9 +29,10 @@ struct DrawParams {
     uint mBasicSamplerID;
 };
 
-MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
-MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
 MKT_DECLARE_SAMPLERS samplers;
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
+
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
 struct FSInput {
     nointerpolation uint ObjectID : ATTRIBUTE0;
@@ -49,8 +50,7 @@ uint main( FSInput input, bool frontFacing : SV_IsFrontFace ) : SV_Target0 {
         discard;
     }
 
-    MaterialParameters material =
-            ( ( BufferReference<MaterialParameters> )parameters.mMaterialsPtr )[input.MaterialIndex];
+    MaterialParameters material = ( ( BufferReference<MaterialParameters> )parameters.mMaterialsPtr )[input.MaterialIndex];
     if ( material.AlphaMask != PBR_ALPHA_OPAQUE ) {
         int textureIndex = MaterialAlphaTexture( material );
         float alpha = textureIndex == INVALID_TEXTURE_INDEX

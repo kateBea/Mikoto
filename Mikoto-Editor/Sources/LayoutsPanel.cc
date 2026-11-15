@@ -36,7 +36,8 @@
 
 namespace mikoto::editor {
     LayoutsPanel::LayoutsPanel( const LayoutsPanelCreateInfo& info )
-        : Panel{ "Layouts", "Layouts", info.mGroup, info.mIsToggleable }, mCallbacks{ info } {
+        : Panel{ "Layouts", "Layouts", info.mGroup, info.mIsToggleable },
+          mCallbacks{ info } {
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_DASHBOARD, mPanelName );
         mPanelIsVisible = true;
         const auto* ini{ ImGui::GetIO().IniFilename };
@@ -94,7 +95,10 @@ namespace mikoto::editor {
         document["Name"] = name.c_str();
         document["ImGui"] = std::string{ settings, size };
 
-        for ( const auto& [panel, visible]: mCallbacks.mCaptureVisibility() ) {
+        for ( const auto& entry: mCallbacks.mCaptureVisibility() ) {
+            const auto& panel{ entry.first };
+            const auto& visible{ entry.second };
+
             document["Panels"][panel.c_str()] = visible;
         }
 

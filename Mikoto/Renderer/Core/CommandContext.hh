@@ -29,6 +29,7 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Exception.hh>
 #include <Core/ReferenceCounted.hh>
 
 #include <Memory/Allocator.hh>
@@ -174,7 +175,10 @@ namespace mikoto::renderer {
             const void* ptr{ MKT_ADDRESSOF( data ) };
             const core::usize size{ MKT_SIZEOF( data ) };
 
-            static_assert( sizeof( data ) <= rhi::kMaxPushConstantSize, "Graph push constants exceed the shared layout." );
+            if ( size > mPushConstantsData.size() ) {
+                MKT_THROW_OUT_OF_RANGE( "Graph push constant write exceeds the buffer." );
+            }
+
             mPushConstantsData.fill( 0 );
             std::memcpy( mPushConstantsData.data(), ptr, size );
         }

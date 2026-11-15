@@ -80,6 +80,7 @@ namespace mikoto::editor {
         auto BeginRename( scene::Entity& entity ) -> void;
         auto DrawRenameInput( scene::TagComponent& tag, const ImVec2& position ) -> void;
         auto DrawNodeTree( const VisibleRow& row, float rowHeight ) -> void;
+        auto AcceptEntityDrop( core::u64 targetID ) -> void;
         /** @brief Draws column headings, the active scene root and its visible entity rows. */
         auto DrawSceneHierarchy() -> void;
 
@@ -107,6 +108,7 @@ namespace mikoto::editor {
 
     private:
         EditorState* mEditorState{};
+
         imgui::TextEditor mScriptEditor{};
         filesystem::FileHandle mScriptFile{};
         eastl::string mScriptDiskText{};
@@ -115,6 +117,7 @@ namespace mikoto::editor {
         bool mFocusScriptEditor{};
         eastl::unordered_map<eastl::string, asset::AssetHandle<asset::ScriptSource>> mScriptRequests{};
         filesystem::Path mPendingScriptOpen{};
+
         filesystem::Path mScriptDirectory{};
         eastl::vector<eastl::string> mProjectScripts{};
         eastl::string mScriptListError{};
@@ -123,7 +126,9 @@ namespace mikoto::editor {
         ImGuiTextFilter mSearchFilter{};
         scene::EntityType mTypeFilter{ scene::EntityType::eCount };
         SortOrder mSortOrder{ SortOrder::eIgnore };
+
         ankerl::unordered_dense::set<core::u64> mSearchResults{};
+
         ankerl::unordered_dense::set<core::u64> mExpandedEntities{};
         ankerl::unordered_dense::set<core::u64> mVisitedEntities{};
         eastl::vector<VisibleRow> mVisibleRows{};
@@ -135,10 +140,12 @@ namespace mikoto::editor {
         entt::scoped_connection mHierarchyConnection{};
         bool mRowsDirty{ true };
         bool mSearchDirty{ true };
+
         core::u64 mContextEntityID{};
         core::u64 mReparentEntity{};
         core::u64 mReparentTarget{};
         bool mOpenEntityPopup{};
+
         core::u64 mRenameEntityID{};
         eastl::vector<char> mRenameBuffer{};
         bool mFocusRename{};

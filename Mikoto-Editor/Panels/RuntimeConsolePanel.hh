@@ -71,26 +71,33 @@ namespace mikoto::editor {
         auto CommandInputCallback( ImGuiInputTextCallbackData& data ) -> int;
 
         EditorState *mState{};
+
         bool mScrollToBottom{ false };
         bool mAutoScroll{ true };
         bool mWasAtBottom{ true };
         bool mPaused{};
+
         bool mFocusCommandInput{};
+
         ImGuiTextFilter mTextFilter{};
         bool mShowInfo{ true };
         bool mShowWarning{ true };
         bool mShowError{ true };
         bool mShowDebug{ true };
+
         core::u64 mNextLogID{};
         eastl::vector<core::ConsoleLogEntry> mIncomingLogs{};
         eastl::deque<CachedLog> mLogs{};
         eastl::deque<DisplayLine> mDisplayLines{};
         eastl::deque<WidthCandidate> mWidthCandidates{};
+
         eastl::array<char, 256> mCommandInput{};
         eastl::vector<eastl::string> mCommandHistory{};
         eastl::string mCommandDraft{};
         core::i32 mHistoryPosition{ -1 };
+
         eastl::array<core::usize, 4> mLevelCounts{};
+
         ImFont* mLogFont{};
         core::f32 mLogFontSize{};
         core::f32 mContentWidth{};

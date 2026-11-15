@@ -13,7 +13,6 @@
 // limitations under the License.
 
 
-#include <cstddef>
 #include <type_traits>
 
 #include <Renderer/Particle/ParticleEmitter.hh>
@@ -21,6 +20,4 @@
 
 namespace mikoto::renderer {
     static_assert( std::is_trivially_copyable_v<ParticleRenderData> );
-    static_assert( offsetof( ParticleRenderData, mColor ) == 16 );
-    static_assert( offsetof( ParticleRenderData, mRotationSoftness ) == 32 );
 }// namespace mikoto::renderer

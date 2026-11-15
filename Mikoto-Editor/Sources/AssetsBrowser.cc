@@ -56,7 +56,8 @@ namespace mikoto::editor {
 
 
     MaterialsBrowserPanel::MaterialsBrowserPanel( const MaterialsBrowserPanelCreateInfo& info )
-        : Panel{ "Materials Browser", "Panel", info.mGroup, info.mIsToggleable }, mEditorState{ info.mState } {
+        : Panel{ "Materials Browser", "Panel", info.mGroup, info.mIsToggleable },
+          mEditorState{ info.mState } {
         MKT_BEGIN_PROFILER();
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_PALETTE, mPanelName );
         mPanelIsVisible = false;
@@ -79,7 +80,8 @@ namespace mikoto::editor {
     }
 
     AnimationsBrowserPanel::AnimationsBrowserPanel( const AnimationsBrowserPanelCreateInfo& info )
-        : Panel{ "Animations Browser", "Panel", info.mGroup, info.mIsToggleable }, mEditorState{ info.mState } {
+        : Panel{ "Animations Browser", "Panel", info.mGroup, info.mIsToggleable },
+          mEditorState{ info.mState } {
         MKT_BEGIN_PROFILER();
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_MOVIE, mPanelName );
         mPanelIsVisible = false;
@@ -102,7 +104,8 @@ namespace mikoto::editor {
     }
 
     PrefabsBrowserPanel::PrefabsBrowserPanel( const PrefabsBrowserPanelCreateInfo& info )
-        : Panel{ "Prefabs Browser", "Panel", info.mGroup, info.mIsToggleable }, mEditorState{ info.mState } {
+        : Panel{ "Prefabs Browser", "Panel", info.mGroup, info.mIsToggleable },
+          mEditorState{ info.mState } {
         MKT_BEGIN_PROFILER();
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_VIEW_IN_AR, mPanelName );
         mPanelIsVisible = false;
@@ -171,7 +174,9 @@ namespace mikoto::editor {
         eastl::vector<PrefabModelType> filtered{};
         filtered.reserve( prefabs.size() );
 
-        for ( const auto& [type, prefab]: prefabs ) {
+        for ( const auto& prefabEntry: prefabs ) {
+            const auto& type{ prefabEntry.first };
+
             if ( mFilter.PassFilter( PrefabName( type ) ) ) {
                 filtered.push_back( type );
             }

@@ -173,6 +173,7 @@ namespace mikoto::editor {
         
         bool mOpenOperationDialog{};
         eastl::string mOperationError{};
+
         filesystem::Path mSelectedItem{};
         filesystem::Path mOperationTarget{};
         eastl::array<char, 256> mNameBuffer{};

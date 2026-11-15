@@ -19,7 +19,8 @@
 namespace mikoto::editor {
 
     ProjectPanel::ProjectPanel( const ProjectPanelCreateInfo &info )
-        : Panel{ "Panel", "Panel", info.mGroup, info.mIsToggleable }, mEditorState{ info.mState } {
+        : Panel{ "Panel", "Panel", info.mGroup, info.mIsToggleable },
+          mEditorState{ info.mState } {
     }
 
     auto ProjectPanel::OnRender( float timeStep ) -> void {

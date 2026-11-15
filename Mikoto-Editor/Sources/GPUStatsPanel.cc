@@ -38,7 +38,9 @@ namespace mikoto::editor {
     using namespace renderer::rhi;
 
     GPUStatsPanel::GPUStatsPanel( const GPUStatsPanelCreateInfo& info )
-        : Panel{ "GPU Stats", "Panel", info.mGroup, info.mIsToggleable }, mState{ info.mState }, mGpuDevice{ info.mGpuDevice } {
+        : Panel{ "GPU Stats", "Panel", info.mGroup, info.mIsToggleable },
+          mState{ info.mState },
+          mGpuDevice{ info.mGpuDevice } {
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_TABLE_CHART, mPanelName );
         mPanelIsVisible = false;
     }

@@ -52,7 +52,8 @@ namespace mikoto::editor {
     using namespace mikoto::animation;
 
     AnimatorPanel::AnimatorPanel( const AnimatorPanelCreateInfo& data )
-        : Panel{ "Animator", "Panel", data.mGroup, data.mIsToggleable }, mEditorState{ data.mState } {
+        : Panel{ "Animator", "Panel", data.mGroup, data.mIsToggleable },
+          mEditorState{ data.mState } {
         MKT_BEGIN_PROFILER();
         const eastl::string icon{ imgui::GetStringFromUnicode( 59677 ) };
         mPanelHeaderName = imgui::widget::MakeIconTitle( icon.c_str(), mPanelName );

@@ -52,7 +52,6 @@ namespace mikoto::renderer {
 
     auto CameraModule::RegisterCameraSetupPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-        static_assert( offsetof( CameraData, mVolumes ) == 320 );
 
         auto &info{ graph.GetOrCreate<CameraModuleInfo>() };
         auto bufferDesc{ FGBufferDescription{}

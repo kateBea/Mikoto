@@ -79,7 +79,8 @@ namespace mikoto::editor {
 
 
     RuntimeConsolePanel::RuntimeConsolePanel( const RuntimeConsolePanelCreateInfo& info )
-        : Panel{ "Console", "Panel", info.mGroup, info.mIsToggleable }, mState{ info.mState } {
+        : Panel{ "Console", "Panel", info.mGroup, info.mIsToggleable },
+          mState{ info.mState } {
         MKT_BEGIN_PROFILER();
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_TERMINAL, mPanelName );
     }

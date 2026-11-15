@@ -14,11 +14,11 @@
 
 #pragma once
 
-#include "base/Animation_Helpers.slang"
 #include "base/Base.slang"
 #include "base/Camera_Helpers.slang"
-#include "base/Material_Helpers.slang"
 #include "base/Memory_Helpers.slang"
+#include "base/Material_Helpers.slang"
+#include "base/Animation_Helpers.slang"
 
 struct VSInput {
     uint VertexID : SV_VertexID;

@@ -110,7 +110,7 @@ Set-Location Mikoto
 cmake --preset windows-release
 cmake --build --preset windows-release --parallel 4
 
-Set-Location out/build/windows-release/Mikoto-Editor
+Set-Location build/windows-release/Mikoto-Editor
 .\MikotoEditor.exe
 ```
 

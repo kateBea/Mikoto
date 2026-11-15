@@ -1353,6 +1353,10 @@ namespace mikoto::editor {
 
         DrawUtilityBar();
 
+        // Keep startup windows within the area between the utility bar and status bar.
+        mWorkspacePosition = { viewport->WorkPos.x, ImGui::GetCursorScreenPos().y };
+        mWorkspaceSize = { viewport->WorkSize.x, viewport->WorkPos.y + viewport->WorkSize.y - statusHeight - mWorkspacePosition.y };
+
         // Panels share this minimum width, including those opened by a menu.
         ImGui::GetStyle().WindowMinSize.x = 300.0f;
 
@@ -1955,28 +1959,7 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER();
 
         if ( EditorBeginMenu( imgui::widget::LocalizedLabel( "editor_layer_default_projects", "Default Projects" ).c_str() ) ) {
-            // Each bundled project owns its manifest, scene and editable assets.
-            std::error_code error{};
-            const std::filesystem::path directory{ "Resources/Demo Projects" };
-            eastl::vector<filesystem::Path> projects{};
-
-            for ( std::filesystem::directory_iterator entry{ directory, error }, end; !error && entry != end; entry.increment( error ) ) {
-                if ( !entry->is_directory( error ) ) {
-                    continue;
-                }
-
-                for ( std::filesystem::directory_iterator file{ entry->path(), error }, last; !error && file != last; file.increment( error ) ) {
-                    if ( file->is_regular_file( error ) && file->path().extension() == ".mktproj" ) {
-                        projects.emplace_back( file->path() );
-                    }
-                }
-            }
-
-            eastl::sort( projects.begin(), projects.end(), []( const auto& left, const auto& right ) {
-                return left.GetStem() < right.GetStem();
-            } );
-
-            for ( const auto& path: projects ) {
+            for ( const auto& path: WorldSelector::FindDemoProjects() ) {
                 const eastl::string name{ path.GetStem() };
 
                 if ( EditorMenuItem( name.c_str() ) ) {
@@ -3520,8 +3503,15 @@ namespace mikoto::editor {
         const PopupStyle popupStyle{};
         DrawWorkspaceConfirmation();
 
-        if ( !mEditorState->HasWorkspace() ) {
+        if ( mEditorState->HasWorkspace() ) {
+            mWorldSelector.Close();
+        }
+        else if ( !mWorldSelector.IsOpen() ) {
             DrawWelcomeWindow();
+        }
+
+        if ( auto project{ mWorldSelector.Draw( mDevice, mWorkspacePosition, mWorkspaceSize ) }; !project.IsEmpty() ) {
+            OpenProject( eastl::move( project ) );
         }
 
         DrawSandboxNotice();
@@ -3637,28 +3627,30 @@ namespace mikoto::editor {
     auto EditorLayer::DrawWelcomeWindow() -> void {
         MKT_BEGIN_PROFILER();
         const auto* viewport{ ImGui::GetMainViewport() };
-        const ImVec2 windowSize{
-            eastl::min( 440.0f, eastl::max( 1.0f, viewport->WorkSize.x - 32.0f ) ),
-            eastl::min( 240.0f, eastl::max( 1.0f, viewport->WorkSize.y - 32.0f ) )
-        };
+        constexpr core::f32 preferredWidth{ 440.0f };
+        constexpr core::f32 viewportMargin{ 32.0f };
+        const core::f32 width{ eastl::min( preferredWidth, eastl::max( 1.0f, mWorkspaceSize.x - viewportMargin ) ) };
+        const core::f32 maxHeight{ eastl::max( 1.0f, mWorkspaceSize.y - viewportMargin ) };
+        const ImVec2 center{ mWorkspacePosition.x + mWorkspaceSize.x * 0.5f, mWorkspacePosition.y + mWorkspaceSize.y * 0.5f };
 
-        // Anchor the box's center to the usable viewport every frame. Appearing
-        // alone leaves it behind when the editor is resized or moved to a monitor.
-        // Keep its preferred size, shrinking only when the viewport cannot fit it.
+        // Recenter as the workspace or the height of the wrapped text changes.
         ImGui::SetNextWindowViewport( viewport->ID );
-        ImGui::SetNextWindowPos( viewport->GetWorkCenter(), ImGuiCond_Always, { 0.5f, 0.5f } );
-        ImGui::SetNextWindowSize( windowSize, ImGuiCond_Always );
+        ImGui::SetNextWindowPos( center, ImGuiCond_Always, { 0.5f, 0.5f } );
+        ImGui::SetNextWindowSizeConstraints( { width, 0.0f }, { width, maxHeight } );
         constexpr ImGuiWindowFlags windowFlags{
-            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking |
+            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings
         };
 
         if ( imgui::BeginWindow( imgui::widget::LocalizedLabel( "editor_layer_welcome_to_mikoto", "Welcome to Mikoto" ).c_str(), nullptr, windowFlags ) ) {
-            ImGui::TextWrapped( MKT_LOC( "editor_layer_open_a_project_create_one_or_enter_sandbox_to_test" ).c_str() );
+            ImGui::TextWrapped( "%s", MKT_LOC( "editor_layer_open_a_project_create_one_or_enter_sandbox_to_test" ).c_str() );
+
+            constexpr core::f32 buttonHeight{ 36.0f };
             const core::f32 availableWidth{ ImGui::GetContentRegionAvail().x };
             const core::f32 buttonWidth{ eastl::max( 1.0f, ( availableWidth - ImGui::GetStyle().ItemSpacing.x ) * 0.5f ) };
+            const ImVec2 fullButtonSize{ eastl::max( 1.0f, availableWidth ), buttonHeight };
 
-            if ( imgui::widget::AccentButton( MKT_LOC( "editor_layer_new_project" ).c_str(), { buttonWidth, 36.0f } ) ) {
+            if ( imgui::widget::AccentButton( MKT_LOC( "editor_layer_new_project" ).c_str(), { buttonWidth, buttonHeight } ) ) {
                 CreateProject();
             }
 
@@ -3666,20 +3658,25 @@ namespace mikoto::editor {
 
             ImGui::SameLine();
 
-            if ( imgui::widget::AccentButton( MKT_LOC( "editor_layer_open_project" ).c_str(), { buttonWidth, 36.0f } ) ) {
+            if ( imgui::widget::AccentButton( MKT_LOC( "editor_layer_open_project" ).c_str(), { buttonWidth, buttonHeight } ) ) {
                 OpenProject();
             }
 
             imgui::SetCursorHandOnLastItemHovered();
 
             if ( !mEditorState->HasWorkspace() &&
-                 imgui::widget::AccentButton( MKT_LOC( "editor_layer_sandbox" ).c_str(), { eastl::max( 1.0f, availableWidth ), 36.0f } ) ) {
+                 imgui::widget::AccentButton( MKT_LOC( "editor_layer_sandbox" ).c_str(), fullButtonSize ) ) {
                 EnterSandbox();
             }
 
             imgui::SetCursorHandOnLastItemHovered();
+            imgui::widget::ItemTooltip( "%s", MKT_LOC( "editor_layer_sandbox_description" ).c_str() );
 
-            ImGui::TextWrapped( MKT_LOC( "editor_layer_sandbox_description" ).c_str() );
+            if ( imgui::widget::AccentButton( MKT_LOC( "world_selector_button" ).c_str(), fullButtonSize ) ) {
+                mWorldSelector.Open();
+            }
+
+            imgui::SetCursorHandOnLastItemHovered();
         }
 
         ImGui::End();

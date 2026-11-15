@@ -55,6 +55,7 @@
 #include <Application/WorkspaceOperation.hh>
 
 #include <Panels/Panel.hh>
+#include <Panels/WorldSelector.hh>
 
 namespace mikoto::platform {
     class KeyPressedEvent;
@@ -442,7 +443,7 @@ namespace mikoto::editor {
         auto ExecuteWorkspaceAction( WorkspaceAction action, const filesystem::Path& path ) -> void;
 
         /**
-         * @brief Draws project creation, project opening and Sandbox entry on the empty workspace.
+         * @brief Draws project creation, project opening, Sandbox and World selector on the empty workspace.
          */
         auto DrawWelcomeWindow() -> void;
 
@@ -520,6 +521,9 @@ namespace mikoto::editor {
         scene::SceneHandle mRuntimeScene{};
         eastl::string mWorkflowError{};
         WorkspaceOperation mWorkspaceOperation{};
+        WorldSelector mWorldSelector{};
+        ImVec2 mWorkspacePosition{};
+        ImVec2 mWorkspaceSize{};
         WorkspaceAction mDeferredWorkspaceAction{ WorkspaceAction::eNone };
         filesystem::Path mDeferredWorkspacePath{};
         ankerl::unordered_dense::map<core::u64, bool> mEditorAnimatorSuspensions{};

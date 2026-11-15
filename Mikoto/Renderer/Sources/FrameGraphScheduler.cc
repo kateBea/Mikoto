@@ -271,7 +271,7 @@ namespace mikoto::renderer {
             core::u64 mCompleted{};
             eastl::vector<Signal> mSignals{};
         };
-
+        
         ankerl::unordered_dense::map<const rhi::IFence*, Fence> fences{};
         const auto fenceState = [&]( const rhi::FenceHandle& fence ) -> Fence& {
             auto [entry, inserted]{ fences.try_emplace( fence.GetPtr() ) };

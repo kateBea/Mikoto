@@ -13,6 +13,7 @@ through an RHI layer (Render Hardware Interface). Support for OpenGL and D3D11 i
 <details>
 <summary>More screenshots</summary>
 
+![Mikoto example](Resources/Screenshots/img31.png)
 ![Mikoto example](Resources/Screenshots/img30.png)
 ![Mikoto example](Resources/Screenshots/img27.png)
 ![Mikoto example](Resources/Screenshots/img26.png)

@@ -1,0 +1,47 @@
+# Path-traced comparison at 1920 x 1080. The left head is Standard Lit and the right head uses Skin 2 subsurface scattering.
+# Both use the same Lee Perry-Smith Infinite head scan and albedo under the same lights.
+# The scan is CC BY 3.0. See Prefabs/lpshead/Infinite-Scan_License.txt and https://casual-effects.com/data/.
+
+{
+  "Version": 1,
+  "Project": "Skin Subsurface Scattering",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Skin_Subsurface.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "RayTracedAmbientOcclusion": false,
+    "PathTracing": true,
+    "PathSamplesPerFrame": 2,
+    "PathMaxBounces": 16,
+    "PathMaxSamples": 4096,
+    "SsaoEnabled": false,
+    "BloomEnabled": false
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      0,
+      0.205,
+      0.72
+    ],
+    "Direction": [
+      0,
+      -0.02683597,
+      -0.99963985
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 42,
+    "NearPlane": 0.005,
+    "FarPlane": 8,
+    "MovementSpeed": 0.22,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

@@ -2343,6 +2343,12 @@
   "world_demo_Sphere_Materials_description": "同じ照明の下で 5 × 5 個の球のマテリアルを比較できます。",
   "world_demo_Video_Gallery": "ビデオギャラリー",
   "world_demo_Video_Gallery_description": "3D ギャラリーを自由に飛び回り、二つの発光スクリーンで動画再生と空間オーディオを確認できます。",
+  "world_demo_Terrain_Coast": "海岸の風景",
+  "world_demo_Terrain_Coast_description": "ラスターレンダラーでハイトマップ地形、FFT による海面、大気による照明を確認できます。",
+  "world_demo_Skin_Subsurface": "皮膚の表面下散乱",
+  "world_demo_Skin_Subsurface_description": "同じ頭部スキャンを使い、左の標準ライティングと右の皮膚の表面下散乱を比較できます。",
+  "world_demo_Dragon_Transmission": "ドラゴンの光透過",
+  "world_demo_Dragon_Transmission_description": "同じ逆光で照らした 4 体のガラス製ドラゴンを通して、吸収と粗さによる透過光の違いを比較できます。",
   "world_demo_Volumes": "雲と霧",
   "world_demo_Volumes_description": "空の雲、局所的な嵐雲、箱型の霧、全体に広がる霞、密度グリッドを使った球状の霧を比較できます。"
 }

@@ -1,0 +1,17 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Translucent black sign",
+  "Material": {
+    "BaseColorFactor": [
+      0.008,
+      0.009,
+      0.011,
+      0.67
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.9,
+    "AlphaMask": 2,
+    "ShadingModel": 8
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Studio slate",
+  "Material": {
+    "BaseColorFactor": [
+      0.055,
+      0.065,
+      0.08,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.85,
+    "AlphaMask": 0
+  }
+}

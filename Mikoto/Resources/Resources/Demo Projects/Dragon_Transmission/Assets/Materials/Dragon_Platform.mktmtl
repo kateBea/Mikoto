@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Dark slate platform",
+  "Material": {
+    "BaseColorFactor": [
+      0.082,
+      0.092,
+      0.114,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.52,
+    "AlphaMask": 0
+  }
+}

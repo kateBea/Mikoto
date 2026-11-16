@@ -67,6 +67,30 @@ namespace mikoto::editor {
             .SetFormat( Format::eRGBA8_UNORM ) );
     }
 
+    static auto DrawWorkspaceBackdrop( ImVec2 workspaceMin, ImVec2 workspaceSize ) -> void {
+        const ImVec2 workspaceMax{ workspaceMin.x + workspaceSize.x, workspaceMin.y + workspaceSize.y };
+        const ImVec2 windowPosition{ ImGui::GetWindowPos() };
+        const ImVec2 windowSize{ ImGui::GetWindowSize() };
+        const ImVec2 windowMin{
+            eastl::clamp( windowPosition.x, workspaceMin.x, workspaceMax.x ),
+            eastl::clamp( windowPosition.y, workspaceMin.y, workspaceMax.y )
+        };
+        const ImVec2 windowMax{
+            eastl::clamp( windowPosition.x + windowSize.x, workspaceMin.x, workspaceMax.x ),
+            eastl::clamp( windowPosition.y + windowSize.y, workspaceMin.y, workspaceMax.y )
+        };
+
+        // Draw with the selector so menus and popups retain their normal stacking order.
+        auto* drawList{ ImGui::GetWindowDrawList() };
+        const ImU32 tint{ ImGui::GetColorU32( ImGuiCol_ModalWindowDimBg ) };
+        drawList->PushClipRect( workspaceMin, workspaceMax, false );
+        drawList->AddRectFilled( workspaceMin, { workspaceMax.x, windowMin.y }, tint );
+        drawList->AddRectFilled( { workspaceMin.x, windowMax.y }, workspaceMax, tint );
+        drawList->AddRectFilled( { workspaceMin.x, windowMin.y }, { windowMin.x, windowMax.y }, tint );
+        drawList->AddRectFilled( { windowMax.x, windowMin.y }, { workspaceMax.x, windowMax.y }, tint );
+        drawList->PopClipRect();
+    }
+
     static auto DrawPreview( ImDrawList* drawList, ImVec2 min, ImVec2 max, ImTextureID image,
         const TextureHandle& texture, core::f32 rounding ) -> void {
         if ( image ) {
@@ -161,7 +185,8 @@ namespace mikoto::editor {
         }
     }
 
-    auto WorldSelector::Draw( IGpuDevice* device, ImVec2 workspacePosition, ImVec2 workspaceSize ) -> filesystem::Path {
+    auto WorldSelector::Draw( IGpuDevice* device, ImVec2 workspacePosition, ImVec2 workspaceSize,
+        bool dimWorkspace ) -> filesystem::Path {
         MKT_BEGIN_PROFILER();
 
         if ( !mVisible ) {
@@ -192,6 +217,10 @@ namespace mikoto::editor {
         if ( !imgui::BeginWindow( title.c_str(), &mVisible, flags ) || !mVisible ) {
             ImGui::End();
             return {};
+        }
+
+        if ( dimWorkspace && workspaceSize.x > 0.0f && workspaceSize.y > 0.0f ) {
+            DrawWorkspaceBackdrop( workspacePosition, workspaceSize );
         }
 
         ImGui::TextWrapped( "%s", MKT_LOC( "world_selector_hint" ).c_str() );

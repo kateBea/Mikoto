@@ -30,11 +30,11 @@
 #include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Core/Renderer.hh>
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/RayTracing/RayTracing.hh>
 #include <Renderer/ForwardRenderer/Passes/DebugModule.hh>
 #include <Renderer/ForwardRenderer/Passes/TonemapModule.hh>
 #include <Renderer/Core/SparseBufferUpload.hh>
 #include <Renderer/Particle/ParticleSystem.hh>
-#include <Renderer/ForwardRenderer/Passes/RayTracingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/PostProcessModule.hh>
 #include <Renderer/ForwardRenderer/Passes/DebugOverlayModule.hh>
 #include <Renderer/ForwardRenderer/Passes/PresentationModule.hh>
@@ -75,7 +75,7 @@ namespace mikoto::renderer {
     };
 
     struct SceneRenderSettings {
-        RayTracingModule::Settings mRayTracing{};
+        RayTracingConfiguration mRayTracing{};
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
         rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
         ShadowMapQuality mShadowQuality{ ShadowMapQuality::eMedium };

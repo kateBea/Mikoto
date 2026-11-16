@@ -21,6 +21,7 @@
 #include <Core/Types.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/RayTracing/RayTracing.hh>
 #include <Renderer/ForwardRenderer/Passes/RayTracingModule.hh>
 
 // https://microsoft.github.io/DirectX-Specs/d3d/Raytracing.html
@@ -51,7 +52,7 @@ namespace mikoto::renderer {
             FrameGraph& graph,
             const scene::Scene* scene,
             const scene::Camera* camera,
-            const RayTracingModule::Settings& settings,
+            const RayTracingConfiguration& settings,
             rhi::TextureHandle environment,
             float environmentScale, float exposure, float gamma ) -> void;
 

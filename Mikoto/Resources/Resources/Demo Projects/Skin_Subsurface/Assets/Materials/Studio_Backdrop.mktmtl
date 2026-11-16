@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Charcoal studio",
+  "Material": {
+    "BaseColorFactor": [
+      0.022,
+      0.025,
+      0.031,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.85,
+    "AlphaMask": 0
+  }
+}

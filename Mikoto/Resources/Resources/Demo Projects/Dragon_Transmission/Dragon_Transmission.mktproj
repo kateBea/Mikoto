@@ -1,0 +1,50 @@
+# Four Stanford dragons under the same lights. Path tracing is enabled at 1920 x 1080.
+# Compare clear glass, RGB absorption in amber and teal glass, and rough transmission.
+# The assets are reused from Prefabs/dragon. Source: https://graphics.stanford.edu/data/3Dscanrep/.
+# Dielectric reference: https://pbr-book.org/4ed/Reflection_Models/Specular_Reflection_and_Transmission.
+
+{
+  "Version": 1,
+  "Project": "Dragon Transmission",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Dragon_Transmission.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "RayTracedAmbientOcclusion": false,
+    "PathTracing": true,
+    "PathSamplesPerFrame": 2,
+    "PathMaxBounces": 24,
+    "PathMaxSamples": 4096,
+    "SsaoEnabled": false,
+    "BloomEnabled": true,
+    "BloomThreshold": 3.4,
+    "BloomIntensity": 0.07
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      0,
+      0.98,
+      4.2
+    ],
+    "Direction": [
+      0,
+      -0.12287137,
+      -0.9924226
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 38,
+    "NearPlane": 0.025,
+    "FarPlane": 22,
+    "MovementSpeed": 1.15,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

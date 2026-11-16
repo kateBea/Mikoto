@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Gallery floor",
+  "Material": {
+    "BaseColorFactor": [
+      0.035,
+      0.044,
+      0.057,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.64,
+    "AlphaMask": 0
+  }
+}

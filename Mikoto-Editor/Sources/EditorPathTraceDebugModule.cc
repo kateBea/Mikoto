@@ -117,7 +117,7 @@ namespace mikoto::editor {
                 .SetRenderResolution( renderer::rhi::RenderResolution::e720P )
                 .Build();
             auto settings{ mRenderer->GetSettings() };
-            settings.mRayTracing.mPathTracing = true;
+            settings.mRayTracing.mPathTracingEnabled = true;
             settings.mRayTracing.mPathMaxBounces = 8;
             mRenderer->ApplySettings( settings );
 

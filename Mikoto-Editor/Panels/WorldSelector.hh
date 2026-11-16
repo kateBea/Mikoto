@@ -34,7 +34,8 @@ namespace mikoto::editor {
         auto Close() -> void;
 
         MKT_NODISCARD auto IsOpen() const -> bool;
-        MKT_NODISCARD auto Draw( renderer::rhi::IGpuDevice* device, ImVec2 workspacePosition, ImVec2 workspaceSize ) -> filesystem::Path;
+        MKT_NODISCARD auto Draw( renderer::rhi::IGpuDevice* device, ImVec2 workspacePosition, ImVec2 workspaceSize,
+            bool dimWorkspace ) -> filesystem::Path;
         MKT_NODISCARD static auto FindDemoProjects() -> eastl::vector<filesystem::Path>;
 
     private:

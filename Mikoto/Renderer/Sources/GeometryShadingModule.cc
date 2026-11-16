@@ -1241,20 +1241,20 @@ namespace mikoto::renderer {
                 if ( !transparent && blackboard.Contains<RayTracingInfo>() ) {
                     const auto& ray{ blackboard.Get<RayTracingInfo>() };
 
-                    if ( ray.mReady && ray.mAmbientOcclusionEnabled ) {
+                    if ( ray.mTraceOutputsReady && ray.mAmbientOcclusionEnabled ) {
                         // PBRT's visibility estimate replaces SSAO for IBL; transport GI stays untouched.
                         params.mSsaoTextureID = ctx.PushTexture_SRV( ray.mAmbientOcclusion );
                         params.mSsaoIntensity = 1.0f;
                     }
 
-                    if ( ray.mReady && ray.mShadows ) {
+                    if ( ray.mTraceOutputsReady && ray.mShadowsEnabled ) {
                         params.mRayDirect = ctx.PushTexture_SRV( ray.mDirect );
                     }
 
-                    if ( ray.mReady && ( ray.mReflect || ray.mGlobalIllumination ) ) {
+                    if ( ray.mTraceOutputsReady && ( ray.mReflectionsEnabled || ray.mGlobalIlluminationEnabled ) ) {
                         params.mRayIndirect = ctx.PushTexture_SRV( ray.mIndirect );
-                        params.mPrefilterMipLevelsAndSkybox |= ( ray.mReflect ? 0x20000000u : 0u ) |
-                                                               ( ray.mGlobalIllumination ? 0x40000000u : 0u );
+                        params.mPrefilterMipLevelsAndSkybox |= ( ray.mReflectionsEnabled ? 0x20000000u : 0u ) |
+                                                               ( ray.mGlobalIlluminationEnabled ? 0x40000000u : 0u );
                     }
                 }
 

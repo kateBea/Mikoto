@@ -1,0 +1,450 @@
+# The terrain spans 768 x 576 world units. Its 16-bit heightmap places ridges above sea level and shoals below it.
+# The atmosphere generates the visible sky and the environment lighting used by the water.
+# The world text sits just in front of a thin, alpha-blended box prefab.
+
+{
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "Scene": "Coastal Landscape",
+  "EnvironmentLightingSource": 2,
+  "ToneMapping": 0,
+  "Objects": [
+    {
+      "ID": 1,
+      "Type": 6,
+      "TagComponent": {
+        "Name": "Game camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            0.97499181,
+            0,
+            -0.22224078,
+            0
+          ],
+          [
+            -0.01272514,
+            0.99835939,
+            -0.05582644,
+            0
+          ],
+          [
+            0.22187617,
+            0.05725837,
+            0.97339224,
+            0
+          ],
+          [
+            30,
+            34,
+            82,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 56,
+        "Near": 0.1,
+        "Far": 3600,
+        "Main": true,
+        "FixedAspect": false,
+        "ClearFlags": 2,
+        "ClearColor": [
+          0.012,
+          0.019,
+          0.03,
+          1
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1,
+        "Vignette": {
+          "Enabled": false
+        }
+      }
+    },
+    {
+      "ID": 2,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Coastal sun",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 0,
+        "Directional": {
+          "Color": [
+            1,
+            0.94,
+            0.8
+          ],
+          "Intensity": 3,
+          "Direction": [
+            0.63,
+            -0.65,
+            -0.43
+          ],
+          "AngularRadius": 0.266,
+          "CastShadows": true
+        }
+      }
+    },
+    {
+      "ID": 3,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Coastal landscape",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "LandscapeComponent": {
+        "Origin": [
+          -384,
+          -384
+        ],
+        "QuadsPerSection": 64,
+        "SectionsPerComponent": 1,
+        "ComponentsX": 8,
+        "ComponentsY": 6,
+        "VertexSpacing": 1.5,
+        "HeightScale": 110,
+        "BaseElevation": -18,
+        "LowColor": [
+          0.58,
+          0.46,
+          0.29
+        ],
+        "MiddleColor": [
+          0.17,
+          0.31,
+          0.13
+        ],
+        "HighColor": [
+          0.49,
+          0.5,
+          0.47
+        ],
+        "EnableEditLayers": true,
+        "ShowGrid": false,
+        "ShowVertices": false,
+        "TexturePath": "../Assets/Textures/Coast_Height.png"
+      }
+    },
+    {
+      "ID": 4,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "FFT ocean",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            -3072,
+            0,
+            -3584,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "WaterRenderComponent": {
+        "Shape": 0,
+        "Dimensions": [
+          6144,
+          4096
+        ],
+        "Resolution": [
+          768,
+          640
+        ],
+        "ShowGrid": false,
+        "ShowVertices": false,
+        "DebugPreviewColor": [
+          1,
+          1,
+          1
+        ],
+        "FoamAmount": 0.48,
+        "MaterialPath": "../Assets/Materials/Open_Water.mktmtl"
+      },
+      "WaterSimulationComponent": {
+        "Type": 2,
+        "TimeScale": 1,
+        "Steepness": 0.5,
+        "FFT": {
+          "PatchLength": 128,
+          "WindSpeed": 13,
+          "WindDirection": 32,
+          "Amplitude": 1.08,
+          "Choppiness": 1.16,
+          "Seed": 5381
+        },
+        "Waves": []
+      }
+    },
+    {
+      "ID": 5,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Translucent sign backing",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            14.71298798,
+            0,
+            -3.39676092,
+            0
+          ],
+          [
+            0,
+            4.05,
+            0,
+            0
+          ],
+          [
+            0.0101228,
+            0,
+            0.04384665,
+            0
+          ],
+          [
+            10,
+            31.2,
+            53,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 6,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Coastline title",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            0.97437006,
+            0,
+            -0.22495105,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0.22495105,
+            0,
+            0.97437006,
+            0
+          ],
+          [
+            10.01687133,
+            31.76,
+            53.07307775,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "COASTLINE",
+        "Color": [
+          0.96,
+          0.98,
+          1,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 1.26,
+        "WorldSize": 1.26,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 7,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Terrain and water labels",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            0.97437006,
+            0,
+            -0.22495105,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0.22495105,
+            0,
+            0.97437006,
+            0
+          ],
+          [
+            10.01687133,
+            30.34,
+            53.07307775,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "HEIGHTMAP TERRAIN  /  FFT OCEAN",
+        "Color": [
+          0.66,
+          0.84,
+          0.93,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.48,
+        "WorldSize": 0.48,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    }
+  ],
+  "Materials": [
+    {
+      "MaterialPath": "../Assets/Materials/Sign_Background.mktmtl"
+    }
+  ],
+  "Atmosphere": {
+    "UseDirectionalLight": true,
+    "GroundHeight": 0,
+    "WorldUnitsPerKilometer": 1000,
+    "MieScale": 1.05,
+    "GroundAlbedo": 0.17
+  }
+}

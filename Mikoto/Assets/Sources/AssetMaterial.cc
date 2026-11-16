@@ -20,7 +20,6 @@
 
 namespace mikoto::asset {
 
-
     Material::Material( core::Ref<material::IMaterial> resource )
         : mResource{ eastl::move( resource ) } {
         if ( !mResource ) {

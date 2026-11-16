@@ -37,7 +37,7 @@ namespace mikoto::renderer {
         mRayTracing.SetEnvironmentFaces( textures );
     }
 
-    auto PathTracingModule::Prepare( FrameGraph& graph, const scene::Scene* scene, const scene::Camera* camera, const RayTracingModule::Settings& settings,
+    auto PathTracingModule::Prepare( FrameGraph& graph, const scene::Scene* scene, const scene::Camera* camera, const RayTracingConfiguration& settings,
         renderer::rhi::TextureHandle environment, float environmentScale, float exposure, float gamma ) -> void {
         mRayTracing.Prepare( graph, scene, camera, settings, environment, environmentScale, exposure, gamma );
     }

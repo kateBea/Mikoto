@@ -1128,7 +1128,7 @@ namespace mikoto::scene {
         auto& renderer{ *runtime.mRenderer };
         auto settings{ renderer.GetSettings() };
         settings.mResolution = mResolution;
-        settings.mRayTracing.mPathTracing = mRenderPath == TextureRenderPath::ePathTracing;
+        settings.mRayTracing.mPathTracingEnabled = mRenderPath == TextureRenderPath::ePathTracing;
         renderer.ApplySettings( settings );
 
         if ( !renderer.HasFrameGraph() ) {

@@ -28,6 +28,7 @@
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/RayTracing/RayTracing.hh>
 #include <Renderer/ForwardRenderer/Passes/OutlineModule.hh>
 #include <Renderer/Particle/ParticleSystem.hh>
 
@@ -277,15 +278,15 @@ namespace mikoto::editor {
                 if ( BeginRendererRows( "RayTracingSettings" ) ) {
                     ImGui::BeginDisabled( !supported );
                     RendererControlRow( MKT_LOC( "renderer_path_tracing" ).c_str() );
-                    changed |= imgui::CheckBox( "##renderer_path_tracing", settings.mRayTracing.mPathTracing );
+                    changed |= imgui::CheckBox( "##renderer_path_tracing", settings.mRayTracing.mPathTracingEnabled );
 
-                    if ( settings.mRayTracing.mPathTracing ) {
+                    if ( settings.mRayTracing.mPathTracingEnabled ) {
                         int samples{ static_cast<int>( settings.mRayTracing.mPathSamplesPerFrame ) };
                         int bounces{ static_cast<int>( settings.mRayTracing.mPathMaxBounces ) };
                         int limit{ static_cast<int>( settings.mRayTracing.mPathMaxSamples ) };
                         RendererControlRow( MKT_LOC( "renderer_samples_per_pixel" ).c_str() );
                         changed |= ImGui::SliderInt( "##renderer_samples_per_pixel",
-                            &samples, 1, static_cast<int>( renderer::RayTracingModule::Settings::kMaxPathSamplesPerFrame ) );
+                            &samples, 1, static_cast<int>( renderer::RayTracingConfiguration::kMaxPathSamplesPerFrame ) );
                         RendererControlRow( MKT_LOC( "renderer_maximum_bounces" ).c_str() );
                         changed |= ImGui::SliderInt( "##renderer_maximum_bounces", &bounces, 1, 32 );
                         RendererControlRow( MKT_LOC( "renderer_sample_limit" ).c_str() );
@@ -306,13 +307,13 @@ namespace mikoto::editor {
                         const bool rasterSupported{ device->IsGraphicsApi( renderer::rhi::GraphicsAPI::eVulkan ) || device->IsGraphicsApi( renderer::rhi::GraphicsAPI::eD3D12 ) };
                         ImGui::BeginDisabled( !rasterSupported );
                         RendererControlRow( MKT_LOC( "renderer_ray_traced_shadows" ).c_str() );
-                        changed |= imgui::CheckBox( "##renderer_ray_traced_shadows", settings.mRayTracing.mRayTracedShadows );
+                        changed |= imgui::CheckBox( "##renderer_ray_traced_shadows", settings.mRayTracing.mShadowsEnabled );
                         RendererControlRow( MKT_LOC( "renderer_ray_traced_reflections" ).c_str() );
-                        changed |= imgui::CheckBox( "##renderer_ray_traced_reflections", settings.mRayTracing.mRayTracedReflections );
+                        changed |= imgui::CheckBox( "##renderer_ray_traced_reflections", settings.mRayTracing.mReflectionsEnabled );
                         RendererControlRow( MKT_LOC( "renderer_ray_traced_global_illumination" ).c_str() );
-                        changed |= imgui::CheckBox( "##renderer_ray_traced_global_illumination", settings.mRayTracing.mRayTracedGlobalIllumination );
+                        changed |= imgui::CheckBox( "##renderer_ray_traced_global_illumination", settings.mRayTracing.mGlobalIlluminationEnabled );
 
-                        if ( settings.mRayTracing.mRayTracedGlobalIllumination ) {
+                        if ( settings.mRayTracing.mGlobalIlluminationEnabled ) {
                             int samples{ static_cast<int>( settings.mRayTracing.mRayGiSamplesPerFrame ) };
                             int bounces{ static_cast<int>( settings.mRayTracing.mRayGiMaxBounces ) };
                             RendererControlRow( MKT_LOC( "renderer_gi_samples_per_frame" ).c_str() );
@@ -417,7 +418,7 @@ namespace mikoto::editor {
 
             if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "renderer_cinematic_depth_of_field", "Cinematic depth of field" ).c_str() ) ) {
                 ImGui::PushID( "CinematicDoF" );
-                ImGui::BeginDisabled( settings.mRayTracing.mPathTracing );
+                ImGui::BeginDisabled( settings.mRayTracing.mPathTracingEnabled );
 
                 if ( BeginRendererRows( "DepthOfFieldSettings" ) ) {
                     int quality{ static_cast<int>( settings.mDepthOfFieldQuality ) };
@@ -458,7 +459,7 @@ namespace mikoto::editor {
                 ImGui::Spacing();
                 ImGui::TextWrapped( "%s", MKT_LOC( "renderer_enable_dof_and_edit_the_lens_in_the_camera_inspector" ).c_str() );
 
-                if ( settings.mRayTracing.mPathTracing ) {
+                if ( settings.mRayTracing.mPathTracingEnabled ) {
                     ImGui::TextDisabled( "%s", MKT_LOC( "renderer_available_in_raster_rendering" ).c_str() );
                 }
 
@@ -467,7 +468,7 @@ namespace mikoto::editor {
 
             if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "renderer_chromatic_aberration", "Chromatic aberration" ).c_str() ) ) {
                 auto& chromatic{ settings.mChromaticAberration };
-                ImGui::BeginDisabled( settings.mRayTracing.mPathTracing );
+                ImGui::BeginDisabled( settings.mRayTracing.mPathTracingEnabled );
                 if ( BeginRendererRows( "ChromaticAberrationSettings" ) ) {
                     RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
                     changed |= imgui::CheckBox( "##renderer_enabled_chromaticaberration", chromatic.mEnabled );
@@ -549,7 +550,7 @@ namespace mikoto::editor {
 
             if ( BeginRendererRows( "AmbientOcclusionSettings" ) ) {
                 ImGui::PushID( "SSAO" );
-                ImGui::BeginDisabled( settings.mRayTracing.mPathTracing );
+                ImGui::BeginDisabled( settings.mRayTracing.mPathTracingEnabled );
                 RendererControlRow( MKT_LOC( "renderer_ssao" ).c_str() );
                 changed |= imgui::CheckBox( "##SSAO", settings.mSsaoEnabled );
 
@@ -562,10 +563,10 @@ namespace mikoto::editor {
 
                 const bool supported{ renderer::RenderSystem::Get()->GetGpuDevice()->SupportsRayTracing() };
                 ImGui::BeginDisabled( !supported );
-                ImGui::BeginDisabled( settings.mRayTracing.mPathTracing );
+                ImGui::BeginDisabled( settings.mRayTracing.mPathTracingEnabled );
                 RendererControlRow( MKT_LOC( "renderer_ray_traced_ao" ).c_str() );
                 changed |= imgui::CheckBox( "##renderer_ray_traced_ao",
-                    settings.mRayTracing.mRayTracedAmbientOcclusion );
+                    settings.mRayTracing.mAmbientOcclusionEnabled );
                 ImGui::EndDisabled();
 
                 int samples{ core::as<int>( settings.mRayTracing.mAoSamplesPerFrame ) };
@@ -577,7 +578,7 @@ namespace mikoto::editor {
                     &settings.mRayTracing.mAoMaxDistance, 0.01f, 0.0f, 10000.0f );
                 RendererControlRow( MKT_LOC( "renderer_ao_cosine" ).c_str() );
                 changed |= imgui::CheckBox( "##renderer_ao_cosine",
-                    settings.mRayTracing.mAoCosineSampling );
+                    settings.mRayTracing.mUseCosineWeightedAoSampling );
                 ImGui::TextWrapped( "%s", MKT_LOC( "renderer_ao_help" ).c_str() );
                 if ( ImGui::Button( imgui::widget::LocalizedLabel( "renderer_ao_debug", "View ray-traced AO" ).c_str() ) ) {
                     mEditorState->mFinalComposition = renderer.GetFinalImage( renderer::FinalImageType::eRayTracedAmbientOcclusion );

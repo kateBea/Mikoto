@@ -2350,6 +2350,12 @@
   "world_demo_Sphere_Materials_description": "Compara los materiales de una matriz de cinco por cinco esferas con la misma iluminación.",
   "world_demo_Video_Gallery": "Galería de vídeos",
   "world_demo_Video_Gallery_description": "Recorre en vuelo una galería 3D con reproducción de vídeo y audio espacial en dos pantallas emisivas.",
+  "world_demo_Terrain_Coast": "Paisaje costero",
+  "world_demo_Terrain_Coast_description": "Explora un terreno generado con un mapa de alturas, un océano FFT y la iluminación atmosférica con el renderizador rasterizado.",
+  "world_demo_Skin_Subsurface": "Dispersión subsuperficial en la piel",
+  "world_demo_Skin_Subsurface_description": "Compara el mismo escaneo con iluminación estándar a la izquierda y dispersión subsuperficial en la piel a la derecha.",
+  "world_demo_Dragon_Transmission": "Transmisión en dragones",
+  "world_demo_Dragon_Transmission_description": "Compara cuatro dragones de vidrio a contraluz y observa cómo la absorción y la rugosidad cambian la luz transmitida.",
   "world_demo_Volumes": "Nubes y niebla",
   "world_demo_Volumes_description": "Compara nubes en una capa del cielo, una nube de tormenta local, niebla en un volumen de caja, bruma global y un volumen de niebla esférico con cuadrícula de densidad."
 }

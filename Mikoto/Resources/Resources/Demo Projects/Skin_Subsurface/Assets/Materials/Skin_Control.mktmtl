@@ -1,0 +1,25 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Skin control (Standard Lit)",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.38,
+    "AlphaMask": 0,
+    "BaseColorTextureSet": 0,
+    "Textures": [
+      {
+        "Map": 1,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../../../../Prefabs/lpshead/lambertian.jpg"
+      }
+    ]
+  }
+}

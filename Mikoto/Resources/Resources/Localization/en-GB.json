@@ -2374,6 +2374,12 @@
   "world_demo_Sphere_Materials_description": "Compare a five-by-five grid of sphere materials under the same lighting.",
   "world_demo_Video_Gallery": "Video Gallery",
   "world_demo_Video_Gallery_description": "Fly through a 3D gallery with video playback and spatial audio on two emissive screens.",
+  "world_demo_Terrain_Coast": "Coastal Landscape",
+  "world_demo_Terrain_Coast_description": "Explore a large heightmap landscape, an FFT ocean, and atmospheric lighting in the raster renderer.",
+  "world_demo_Skin_Subsurface": "Skin Subsurface Scattering",
+  "world_demo_Skin_Subsurface_description": "Compare the same head scan with standard lighting on the left and skin subsurface scattering on the right.",
+  "world_demo_Dragon_Transmission": "Dragon Transmission",
+  "world_demo_Dragon_Transmission_description": "Compare four glass dragons under a shared backlight. See how absorption and roughness change transmitted light.",
   "world_demo_Volumes": "Clouds and Fog",
   "world_demo_Volumes_description": "Compare sky-layer clouds, a local storm cloud, box mist, global haze, and a spherical fog volume backed by a density grid."
 }

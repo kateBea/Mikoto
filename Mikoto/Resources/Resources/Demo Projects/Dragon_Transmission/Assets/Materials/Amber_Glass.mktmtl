@@ -1,0 +1,28 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "02 - Amber absorption",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.065,
+    "AlphaMask": 0,
+    "ShadingModel": 6,
+    "Dielectric": {
+      "IndexOfRefraction": 1.52,
+      "Transmission": 1,
+      "ThinWalled": false,
+      "AttenuationColor": [
+        0.99,
+        0.54,
+        0.17
+      ],
+      "AttenuationDistance": 0.19
+    }
+  }
+}

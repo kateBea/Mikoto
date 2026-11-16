@@ -1920,6 +1920,11 @@ namespace mikoto::editor {
                 OpenProject();
             }
 
+            if ( EditorMenuItem( MKT_LOC( "world_selector_button" ).c_str(), nullptr, false,
+                 !mEditorState->mRuntimeActive && !IsWorkspaceBusy() ) ) {
+                mWorldSelector.Open();
+            }
+
             DrawDefaultProjectsMenu();
 
             if ( EditorMenuItem( MKT_LOC( "editor_layer_save_project" ).c_str(), "Ctrl + G", false, mEditorState->mHasProject && !mEditorState->mSandboxMode ) ) {
@@ -3064,6 +3069,7 @@ namespace mikoto::editor {
         mPanelRegistry.Get<ContentBrowserPanel>()->SetProjectDirectory( project->GetAssetsDirectory(), project->GetCacheDirectory() );
 
         ActivateScene( scene, project->GetScenePath() );
+        mWorldSelector.Close();
 
         mProject = eastl::move( project );
         scripting::ScriptingService::Get()->SetScriptBasePath(
@@ -3503,14 +3509,15 @@ namespace mikoto::editor {
         const PopupStyle popupStyle{};
         DrawWorkspaceConfirmation();
 
-        if ( mEditorState->HasWorkspace() ) {
+        if ( mEditorState->mRuntimeActive ) {
             mWorldSelector.Close();
         }
-        else if ( !mWorldSelector.IsOpen() ) {
+        else if ( !mEditorState->HasWorkspace() && !mWorldSelector.IsOpen() ) {
             DrawWelcomeWindow();
         }
 
-        if ( auto project{ mWorldSelector.Draw( mDevice, mWorkspacePosition, mWorkspaceSize ) }; !project.IsEmpty() ) {
+        auto project{ mWorldSelector.Draw( mDevice, mWorkspacePosition, mWorkspaceSize, mEditorState->HasWorkspace() ) };
+        if ( !project.IsEmpty() ) {
             OpenProject( eastl::move( project ) );
         }
 

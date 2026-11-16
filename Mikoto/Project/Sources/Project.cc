@@ -132,12 +132,12 @@ namespace mikoto::project {
         out << YAML::Key << "CascadedShadows" << YAML::Value << settings.mCascadedShadowsEnabled;
         out << YAML::Key << "SoftShadows" << YAML::Value << settings.mSoftShadowsEnabled;
         // Persist tracing modes beside the sampling budgets they control.
-        out << YAML::Key << "PathTracing" << YAML::Value << settings.mRayTracing.mPathTracing;
-        out << YAML::Key << "RayTracedShadows" << YAML::Value << settings.mRayTracing.mRayTracedShadows;
-        out << YAML::Key << "RayTracedReflections" << YAML::Value << settings.mRayTracing.mRayTracedReflections;
-        out << YAML::Key << "RayTracedGlobalIllumination" << YAML::Value << settings.mRayTracing.mRayTracedGlobalIllumination;
-        out << YAML::Key << "RayTracedAmbientOcclusion" << YAML::Value << settings.mRayTracing.mRayTracedAmbientOcclusion;
-        out << YAML::Key << "AoCosineSampling" << YAML::Value << settings.mRayTracing.mAoCosineSampling;
+        out << YAML::Key << "PathTracing" << YAML::Value << settings.mRayTracing.mPathTracingEnabled;
+        out << YAML::Key << "RayTracedShadows" << YAML::Value << settings.mRayTracing.mShadowsEnabled;
+        out << YAML::Key << "RayTracedReflections" << YAML::Value << settings.mRayTracing.mReflectionsEnabled;
+        out << YAML::Key << "RayTracedGlobalIllumination" << YAML::Value << settings.mRayTracing.mGlobalIlluminationEnabled;
+        out << YAML::Key << "RayTracedAmbientOcclusion" << YAML::Value << settings.mRayTracing.mAmbientOcclusionEnabled;
+        out << YAML::Key << "AoCosineSampling" << YAML::Value << settings.mRayTracing.mUseCosineWeightedAoSampling;
         out << YAML::Key << "AoSamplesPerFrame" << YAML::Value << settings.mRayTracing.mAoSamplesPerFrame;
         out << YAML::Key << "AoMaxDistance" << YAML::Value << settings.mRayTracing.mAoMaxDistance;
         out << YAML::Key << "RayGiSamplesPerFrame" << YAML::Value << settings.mRayTracing.mRayGiSamplesPerFrame;
@@ -190,12 +190,12 @@ namespace mikoto::project {
         }
 
         // Missing keys retain current defaults so older projects keep valid tracing budgets.
-        settings.mRayTracing.mPathTracing = node["PathTracing"].as<bool>( settings.mRayTracing.mPathTracing );
-        settings.mRayTracing.mRayTracedShadows = node["RayTracedShadows"].as<bool>( settings.mRayTracing.mRayTracedShadows );
-        settings.mRayTracing.mRayTracedReflections = node["RayTracedReflections"].as<bool>( settings.mRayTracing.mRayTracedReflections );
-        settings.mRayTracing.mRayTracedGlobalIllumination = node["RayTracedGlobalIllumination"].as<bool>( settings.mRayTracing.mRayTracedGlobalIllumination );
-        settings.mRayTracing.mRayTracedAmbientOcclusion = node["RayTracedAmbientOcclusion"].as<bool>( settings.mRayTracing.mRayTracedAmbientOcclusion );
-        settings.mRayTracing.mAoCosineSampling = node["AoCosineSampling"].as<bool>( settings.mRayTracing.mAoCosineSampling );
+        settings.mRayTracing.mPathTracingEnabled = node["PathTracing"].as<bool>( settings.mRayTracing.mPathTracingEnabled );
+        settings.mRayTracing.mShadowsEnabled = node["RayTracedShadows"].as<bool>( settings.mRayTracing.mShadowsEnabled );
+        settings.mRayTracing.mReflectionsEnabled = node["RayTracedReflections"].as<bool>( settings.mRayTracing.mReflectionsEnabled );
+        settings.mRayTracing.mGlobalIlluminationEnabled = node["RayTracedGlobalIllumination"].as<bool>( settings.mRayTracing.mGlobalIlluminationEnabled );
+        settings.mRayTracing.mAmbientOcclusionEnabled = node["RayTracedAmbientOcclusion"].as<bool>( settings.mRayTracing.mAmbientOcclusionEnabled );
+        settings.mRayTracing.mUseCosineWeightedAoSampling = node["AoCosineSampling"].as<bool>( settings.mRayTracing.mUseCosineWeightedAoSampling );
         settings.mRayTracing.mAoSamplesPerFrame = node["AoSamplesPerFrame"].as<unsigned>( settings.mRayTracing.mAoSamplesPerFrame );
         settings.mRayTracing.mAoMaxDistance = node["AoMaxDistance"].as<float>( settings.mRayTracing.mAoMaxDistance );
         settings.mRayTracing.mRayGiSamplesPerFrame = node["RayGiSamplesPerFrame"].as<unsigned>( settings.mRayTracing.mRayGiSamplesPerFrame );
@@ -628,10 +628,10 @@ namespace mikoto::project {
         // renderer diagnostics. Reapplying unchanged settings must not dirty a project.
         const auto persistentFields{ []( const renderer::SceneRenderSettings& value ) {
             return std::tie( value.mResolution, value.mMultisampling, value.mShadowQuality,
-                value.mShadowDistance, value.mCascadedShadowsEnabled, value.mSoftShadowsEnabled, value.mRayTracing.mPathTracing,
-                value.mRayTracing.mRayTracedShadows, value.mRayTracing.mRayTracedReflections,
-                value.mRayTracing.mRayTracedGlobalIllumination, value.mRayTracing.mRayTracedAmbientOcclusion,
-                value.mRayTracing.mAoCosineSampling, value.mRayTracing.mAoSamplesPerFrame, value.mRayTracing.mAoMaxDistance,
+                value.mShadowDistance, value.mCascadedShadowsEnabled, value.mSoftShadowsEnabled, value.mRayTracing.mPathTracingEnabled,
+                value.mRayTracing.mShadowsEnabled, value.mRayTracing.mReflectionsEnabled,
+                value.mRayTracing.mGlobalIlluminationEnabled, value.mRayTracing.mAmbientOcclusionEnabled,
+                value.mRayTracing.mUseCosineWeightedAoSampling, value.mRayTracing.mAoSamplesPerFrame, value.mRayTracing.mAoMaxDistance,
                 value.mRayTracing.mRayGiSamplesPerFrame,
                 value.mRayTracing.mRayGiMaxBounces, value.mRayTracing.mPathSamplesPerFrame,
                 value.mRayTracing.mPathMaxBounces, value.mRayTracing.mPathMaxSamples,

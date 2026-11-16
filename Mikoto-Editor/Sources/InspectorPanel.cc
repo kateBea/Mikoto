@@ -67,6 +67,7 @@
 #include <Text/TextLayout.hh>
 
 #include <Renderer/Core/MeshRenderData.hh>
+#include <Renderer/RayTracing/RayTracing.hh>
 #include <Renderer/Particle/ParticleEmitter.hh>
 
 #include <Scene/Scene.hh>
@@ -4377,7 +4378,7 @@ namespace mikoto::editor {
                 i32 bounces{ as<i32>( settings.mRayTracing.mPathMaxBounces ) };
 
                 if ( ImGui::SliderInt( MKT_LOC( "renderer_samples_per_pixel" ).c_str(), &samples,
-                         1, as<i32>( RayTracingModule::Settings::kMaxPathSamplesPerFrame ) ) ) {
+                         1, as<i32>( RayTracingConfiguration::kMaxPathSamplesPerFrame ) ) ) {
                     settings.mRayTracing.mPathSamplesPerFrame = as<u32>( samples );
                 }
 

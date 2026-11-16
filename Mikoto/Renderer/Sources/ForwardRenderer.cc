@@ -86,7 +86,7 @@ namespace mikoto::renderer {
         mState->mMultisampling = mSettings.mMultisampling;
         mState->mShadowQuality = mSettings.mShadowQuality;
         mState->mCascadedShadowsEnabled = mSettings.mCascadedShadowsEnabled;
-        mState->mPathMode = mSettings.mRayTracing.mPathTracing && mDevice->SupportsRayTracing();
+        mState->mPathMode = mSettings.mRayTracing.mPathTracingEnabled && mDevice->SupportsRayTracing();
         mState->mSkyboxStateInitialized = false;
 
         // Shadow resources and editor selection appearance.
@@ -252,7 +252,7 @@ namespace mikoto::renderer {
             mState->mSubsurfaceScattering.RegisterStorePass( *mState->mFrameGraph, mTargetResolution, mSettings.mMultisampling );
         }
 
-        if ( !mSettings.mRayTracing.mPathTracing ) {
+        if ( !mSettings.mRayTracing.mPathTracingEnabled ) {
             mState->mGeometryShading.RegisterContours( *mState->mFrameGraph );
         }
 
@@ -417,7 +417,7 @@ namespace mikoto::renderer {
         // Distance/strength edits stay in the material buffer and need no rebuild.
         bool needsSubsurface{};
 
-        if ( scene && !mSettings.mRayTracing.mPathTracing ) {
+        if ( scene && !mSettings.mRayTracing.mPathTracingEnabled ) {
             for ( const auto [entity, component]: scene->GetRegistry().view<scene::MaterialComponent>().each() ) {
                 const auto source{ component.GetMaterial() };
                 const auto* surface{ dynamic_cast<const material::SurfaceMaterial*>( source.GetPtr() ) };
@@ -435,7 +435,7 @@ namespace mikoto::renderer {
             mRebuildPending = true;
         }
 
-        const bool needsFog{ scene && !mSettings.mRayTracing.mPathTracing &&
+        const bool needsFog{ scene && !mSettings.mRayTracing.mPathTracingEnabled &&
             ( !scene->GetRegistry().view<scene::FogComponent>().empty() || !scene->GetRegistry().view<scene::CloudComponent>().empty() ) };
         if ( mFogAllocated != needsFog ) {
             mFogAllocated = needsFog;
@@ -506,7 +506,7 @@ namespace mikoto::renderer {
             mSettings.mShadowQuality = previous->mShadowQuality;
             mSettings.mCascadedShadowsEnabled = previous->mCascadedShadowsEnabled;
             mSettings.mResolution = mTargetResolution;
-            mSettings.mRayTracing.mPathTracing = previous->mPathMode;
+            mSettings.mRayTracing.mPathTracingEnabled = previous->mPathMode;
 
             if ( mParticleModeOverride ) {
                 mParticleModeOverride = previous->mParticleSimulation.GetSimulationMode();
@@ -964,13 +964,13 @@ namespace mikoto::renderer {
     auto ForwardRenderer::ApplySettings( SceneRenderSettings settings ) -> void {
         settings.Sanitize();
 
-        settings.mRayTracing.mPathTracing &= mDevice->SupportsRayTracing();
-        settings.mRayTracing.mRayTracedShadows &= mDevice->SupportsRayTracing();
-        settings.mRayTracing.mRayTracedReflections &= mDevice->SupportsRayTracing();
-        settings.mRayTracing.mRayTracedGlobalIllumination &= mDevice->SupportsRayTracing();
-        settings.mRayTracing.mRayTracedAmbientOcclusion &= mDevice->SupportsRayTracing();
+        settings.mRayTracing.mPathTracingEnabled &= mDevice->SupportsRayTracing();
+        settings.mRayTracing.mShadowsEnabled &= mDevice->SupportsRayTracing();
+        settings.mRayTracing.mReflectionsEnabled &= mDevice->SupportsRayTracing();
+        settings.mRayTracing.mGlobalIlluminationEnabled &= mDevice->SupportsRayTracing();
+        settings.mRayTracing.mAmbientOcclusionEnabled &= mDevice->SupportsRayTracing();
 
-        mRebuildPending |= settings.mRayTracing.mPathTracing != mSettings.mRayTracing.mPathTracing;
+        mRebuildPending |= settings.mRayTracing.mPathTracingEnabled != mSettings.mRayTracing.mPathTracingEnabled;
         mRebuildPending |= settings.mShadowQuality != mSettings.mShadowQuality;
         mRebuildPending |= settings.mCascadedShadowsEnabled != mSettings.mCascadedShadowsEnabled;
 

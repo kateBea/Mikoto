@@ -1,0 +1,10 @@
+# Material for the merged Lee Perry-Smith head. Maps come from the shared prefab.
+# File created by ZBrush
+# ToolType: PolyMesh3D
+# www.zbrush.com
+newmtl defaultMat
+map_Kd ../../../../Prefabs/lpshead/lambertian.jpg
+map_bump -bm 0.001 ../../../../Prefabs/lpshead/bump-lowRes.png
+#map_bump -bm 0.02 ../../../../Prefabs/lpshead/bump.png
+Ks .0001 .0001 .0001
+Ns 5

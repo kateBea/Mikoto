@@ -8,7 +8,7 @@ Mikoto is open-source engine I have been working on since 2023. I started the pr
 It is written in C++20 and serves as foundation for me to keep exploring graphics programming techniques and software architecture and development. It supports Vulkan and Direct3D 12 as part of the rendering backend
 through an RHI layer (Render Hardware Interface). Support for OpenGL and D3D11 is experimental and not any close to what Vulkan and D3D12 have to offer.
 
-![Mikoto editor](Resources/Screenshots/img31.png)
+![Mikoto editor](Resources/Screenshots/img32.png)
 
 <details>
 <summary>More screenshots</summary>

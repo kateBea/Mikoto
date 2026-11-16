@@ -1,0 +1,46 @@
+# Coastal landscape demo for the forward raster renderer at 1920 x 1080.
+# Fly along the shore to compare terrain elevation, ocean displacement and sky reflections.
+# FFT ocean reference: Jerry Tessendorf, Simulating Ocean Water.
+# https://jerrytessendorf.blogspot.com/2011/10/simulating-ocean-surface-jerry.html
+
+{
+  "Version": 1,
+  "Project": "Coastal Landscape",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Terrain_Coast.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "RayTracedAmbientOcclusion": false,
+    "PathTracing": false,
+    "SsaoEnabled": true,
+    "ShadowDistance": 650,
+    "BloomEnabled": false
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      30,
+      34,
+      82
+    ],
+    "Direction": [
+      -0.22187617,
+      -0.05725837,
+      -0.97339224
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 56,
+    "NearPlane": 0.1,
+    "FarPlane": 3600,
+    "MovementSpeed": 35,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

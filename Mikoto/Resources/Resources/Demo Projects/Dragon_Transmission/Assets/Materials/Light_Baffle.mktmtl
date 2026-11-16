@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Black light baffle",
+  "Material": {
+    "BaseColorFactor": [
+      0.015,
+      0.017,
+      0.022,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.85,
+    "AlphaMask": 0
+  }
+}

@@ -2343,6 +2343,12 @@
   "world_demo_Sphere_Materials_description": "在相同的光照条件下比较 5 × 5 个球体的材质。",
   "world_demo_Video_Gallery": "视频展厅",
   "world_demo_Video_Gallery_description": "在 3D 展厅中自由飞行，通过两块自发光屏幕体验视频播放和空间音频。",
+  "world_demo_Terrain_Coast": "海岸景观",
+  "world_demo_Terrain_Coast_description": "在光栅渲染器中探索大型高度图地形、FFT 海洋和大气光照。",
+  "world_demo_Skin_Subsurface": "皮肤次表面散射",
+  "world_demo_Skin_Subsurface_description": "使用同一个头部扫描模型，对比左侧的标准光照和右侧的皮肤次表面散射。",
+  "world_demo_Dragon_Transmission": "玻璃龙的光线透射",
+  "world_demo_Dragon_Transmission_description": "在同一背光下比较四条玻璃龙，观察吸收和粗糙度如何改变透射光。",
   "world_demo_Volumes": "云与雾",
   "world_demo_Volumes_description": "对比天空云层、局部风暴云、盒形薄雾、全局雾霭以及由密度网格生成的球形雾体积。"
 }

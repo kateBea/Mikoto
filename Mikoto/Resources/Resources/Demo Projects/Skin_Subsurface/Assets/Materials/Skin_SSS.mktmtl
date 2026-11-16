@@ -1,0 +1,47 @@
+# Skin 2 uses the same measured coefficients as Mikoto's preset. Values are inverse millimeters.
+# https://pbr-book.org/4ed/Volume_Scattering/Media
+
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Skin 2 (Subsurface Scattering)",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.38,
+    "AlphaMask": 0,
+    "BaseColorTextureSet": 0,
+    "Textures": [
+      {
+        "Map": 1,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../../../../Prefabs/lpshead/lambertian.jpg"
+      }
+    ],
+    "ShadingModel": 5,
+    "Subsurface": {
+      "ModelVersion": 2,
+      "ScatterScale": 1,
+      "Strength": 1,
+      "Absorption": [
+        0.013,
+        0.07,
+        0.145
+      ],
+      "Scattering": [
+        1.09,
+        1.59,
+        1.79
+      ],
+      "IndexOfRefraction": 1.3,
+      "Anisotropy": 0,
+      "UnitsPerMillimeter": 0.001
+    }
+  }
+}

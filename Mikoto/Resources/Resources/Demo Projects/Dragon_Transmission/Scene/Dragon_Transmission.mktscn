@@ -1,0 +1,743 @@
+# The shared rectangle light sits behind the entire row. Its dark bars reveal bends and blur in the transmitted image.
+# The scene instances mesh zero directly, so each transform includes the source glTF node's 90 degree X rotation.
+
+{
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "Scene": "Dragon Transmission",
+  "EnvironmentLightingSource": 1,
+  "ToneMapping": 0,
+  "Objects": [
+    {
+      "ID": 1,
+      "Type": 6,
+      "TagComponent": {
+        "Name": "Game camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.9924226,
+            -0.12287137,
+            0
+          ],
+          [
+            0,
+            0.12287137,
+            0.9924226,
+            0
+          ],
+          [
+            0,
+            0.98,
+            4.2,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 38,
+        "Near": 0.025,
+        "Far": 22,
+        "Main": true,
+        "FixedAspect": false,
+        "ClearFlags": 0,
+        "ClearColor": [
+          0.015,
+          0.02,
+          0.032,
+          1
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1,
+        "Vignette": {
+          "Enabled": false
+        }
+      }
+    },
+    {
+      "ID": 2,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Gallery floor",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            8.4,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.064,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            6.8,
+            0
+          ],
+          [
+            0,
+            -0.032,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 3,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Gallery backdrop",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            8.4,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            3,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.075,
+            0
+          ],
+          [
+            0,
+            1.5,
+            -1.65,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 4,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Plinth 1",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            1.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.78,
+            0
+          ],
+          [
+            -1.755,
+            0.05,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "ID": 5,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "01 - Clear glass",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            0.34202014,
+            0,
+            -0.93969262,
+            0
+          ],
+          [
+            0.93969262,
+            0,
+            0.34202014,
+            0
+          ],
+          [
+            0,
+            -1,
+            0,
+            0
+          ],
+          [
+            -1.755,
+            0.384,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/dragon/dragon.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 6,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Plinth 2",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            1.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.78,
+            0
+          ],
+          [
+            -0.585,
+            0.05,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "ID": 7,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "02 - Amber absorption",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            0.34202014,
+            0,
+            -0.93969262,
+            0
+          ],
+          [
+            0.93969262,
+            0,
+            0.34202014,
+            0
+          ],
+          [
+            0,
+            -1,
+            0,
+            0
+          ],
+          [
+            -0.585,
+            0.384,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/dragon/dragon.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 4
+      }
+    },
+    {
+      "ID": 8,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Plinth 3",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            1.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.78,
+            0
+          ],
+          [
+            0.585,
+            0.05,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "ID": 9,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "03 - Teal absorption",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            0.34202014,
+            0,
+            -0.93969262,
+            0
+          ],
+          [
+            0.93969262,
+            0,
+            0.34202014,
+            0
+          ],
+          [
+            0,
+            -1,
+            0,
+            0
+          ],
+          [
+            0.585,
+            0.384,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/dragon/dragon.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 5
+      }
+    },
+    {
+      "ID": 10,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Plinth 4",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            1.055,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.78,
+            0
+          ],
+          [
+            1.755,
+            0.05,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "ID": 11,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "04 - Frosted glass",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            0.34202014,
+            0,
+            -0.93969262,
+            0
+          ],
+          [
+            0.93969262,
+            0,
+            0.34202014,
+            0
+          ],
+          [
+            0,
+            -1,
+            0,
+            0
+          ],
+          [
+            1.755,
+            0.384,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/dragon/dragon.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 6
+      }
+    },
+    {
+      "ID": 12,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Shared backlight",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0.55,
+            -1.17,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 0,
+          "Color": [
+            1,
+            0.96,
+            0.87
+          ],
+          "Intensity": 4.8,
+          "Size": [
+            5.25,
+            0.88
+          ],
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "ID": 13,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Lower contrast bar",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            5.25,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.065,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.025,
+            0
+          ],
+          [
+            0,
+            0.4,
+            -1.15,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 14,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Upper contrast bar",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            5.25,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.065,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.025,
+            0
+          ],
+          [
+            0,
+            0.69,
+            -1.15,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 15,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Soft overhead fill",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            -1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.63146623,
+            -0.77540338,
+            0
+          ],
+          [
+            0,
+            -0.77540338,
+            -0.63146623,
+            0
+          ],
+          [
+            0,
+            2.12,
+            1.36,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 0,
+          "Color": [
+            0.77,
+            0.86,
+            1
+          ],
+          "Intensity": 0.8,
+          "Size": [
+            4.4,
+            1.05
+          ],
+          "TwoSided": false
+        }
+      }
+    }
+  ],
+  "Materials": [
+    {
+      "MaterialPath": "../Assets/Materials/Gallery_Floor.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Dragon_Platform.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Light_Baffle.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Clear_Glass.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Amber_Glass.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Teal_Glass.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Frosted_Glass.mktmtl"
+    }
+  ]
+}

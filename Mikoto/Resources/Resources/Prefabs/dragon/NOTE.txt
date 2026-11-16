@@ -1,0 +1,3 @@
+Source:
+https://casual-effects.com/data/
+https://graphics.stanford.edu/data/3Dscanrep/

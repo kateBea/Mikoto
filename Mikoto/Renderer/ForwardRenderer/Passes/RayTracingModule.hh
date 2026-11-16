@@ -122,7 +122,7 @@ namespace mikoto::renderer {
             core::u32 mEmitterCount{};
             core::u32 mLightOffset{};
             core::u32 mEmitterOffset{};
-            core::i32 mEnvironmentIndex{ raytracing::kInvalidTextureIndex };
+            core::i32 mEnvironmentIndex{ kInvalidTextureIndex };
             core::u32 mFaceOffset{};
             core::u32 mHasFaces{};
         };
@@ -163,32 +163,32 @@ namespace mikoto::renderer {
 
         static auto HashBytes( core::u64& hash, const void* data, core::usize bytes ) -> void;
 
-        static auto PackMeshVertices( GeometryData& next, const raytracing::MeshInstance& instance,
+        static auto PackMeshVertices( GeometryData& next, const MeshInstance& instance,
             core::u32 base, core::u32 materialIndex ) -> void;
-        static auto AppendRectangleEmitters( GeometryData& next, const raytracing::SceneInputs& inputs,
-            eastl::vector<raytracing::Material>& materials ) -> void;
+        static auto AppendRectangleEmitters( GeometryData& next, const SceneInputs& inputs,
+            eastl::vector<Material>& materials ) -> void;
 
         static auto CollectTriangleEmitters( const GeometryData& next,
-            eastl::span<const raytracing::Material> materials,
+            eastl::span<const Material> materials,
             core::u32 triangleCount ) -> eastl::vector<Emitter>;
 
         static auto PackSceneData( GeometryData& next,
-            const raytracing::SceneInputs& inputs,
-            eastl::span<raytracing::Material> materials,
+            const SceneInputs& inputs,
+            eastl::span<Material> materials,
             eastl::span<const Emitter> emitters ) -> void;
 
         auto AppendLightDistribution( GeometryData& next,
-            eastl::span<const raytracing::Light> lights,
-            eastl::span<const raytracing::Material> materials,
+            eastl::span<const Light> lights,
+            eastl::span<const Material> materials,
             eastl::span<const Emitter> emitters ) const -> void;
 
         template<typename T>
         static auto Hash( core::u64& hash, const T& value ) -> void;
 
-        auto CollectMeshes( const scene::Scene& scene, raytracing::SceneInputs& inputs ) const -> void;
-        auto CollectLights( const scene::Scene& scene, raytracing::SceneInputs& inputs ) const -> void;
+        auto CollectMeshes( const scene::Scene& scene, SceneInputs& inputs ) const -> void;
+        auto CollectLights( const scene::Scene& scene, SceneInputs& inputs ) const -> void;
         auto PrepareScene( const scene::Scene* scene, const rhi::TextureHandle& environment ) -> void;
-        auto CollectEnvironment( const rhi::TextureHandle& environment, raytracing::SceneInputs& inputs ) const -> void;
+        auto CollectEnvironment( const rhi::TextureHandle& environment, SceneInputs& inputs ) const -> void;
         auto PrepareView( const scene::Camera& camera, core::f32 environmentScale, core::f32 exposure, core::f32 gamma ) -> void;
 
         auto CreateTracePipeline( FrameGraph& graph ) -> void;
@@ -207,14 +207,14 @@ namespace mikoto::renderer {
 
         auto RecordTraceError( const char* message ) -> void;
 
-        auto PackSceneMeshes( GeometryData& next, eastl::span<const raytracing::MeshInstance> instances,
-            eastl::vector<raytracing::Material>& materials ) -> void;
+        auto PackSceneMeshes( GeometryData& next, eastl::span<const MeshInstance> instances,
+            eastl::vector<Material>& materials ) -> void;
 
         MKT_NODISCARD auto IsOcclusionActive() const -> bool;
-        MKT_NODISCARD auto PackScene( raytracing::SceneInputs& inputs ) -> GeometryData;
+        MKT_NODISCARD auto PackScene( SceneInputs& inputs ) -> GeometryData;
         MKT_NODISCARD auto ResolveSceneTextures( CommandContext& context ) const -> eastl::vector<core::ubyte>;
         MKT_NODISCARD auto PackMaterial( material::SurfaceMaterial& source,
-            raytracing::SceneInputs& inputs ) const -> raytracing::Material;
+            SceneInputs& inputs ) const -> Material;
 
     private:
 

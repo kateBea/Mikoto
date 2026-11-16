@@ -56,10 +56,6 @@ namespace mikoto::renderer {
         auto Sanitize() -> void;
     };
 
-}// namespace mikoto::renderer
-
-namespace mikoto::renderer::raytracing {
-
     inline constexpr core::u64 kRevisionHashSeed{ 1469598103934665603ull };
     inline constexpr core::u64 kRevisionHashPrime{ 1099511628211ull };
 
@@ -146,6 +142,6 @@ namespace mikoto::renderer::raytracing {
         }
     };
 
-}// namespace mikoto::renderer::raytracing
+}// namespace mikoto::renderer
 
 #endif// MIKOTO_RENDERER_RAY_TRACING_RAY_TRACING_HH

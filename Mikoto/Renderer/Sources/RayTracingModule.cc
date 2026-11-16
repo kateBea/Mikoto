@@ -48,7 +48,6 @@ namespace mikoto::renderer {
     using namespace core;
     using namespace rhi;
     using namespace scene;
-    using namespace raytracing;
 
     static auto CreateUploadBuffer( FrameGraph& graph, cstr name, usize size, BufferUsageFlags extraUsage = {} ) -> FGBufferHandle {
         return graph.Create( FGBufferDescription{}

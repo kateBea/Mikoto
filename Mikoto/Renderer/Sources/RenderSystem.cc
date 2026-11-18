@@ -31,101 +31,31 @@
 #include <Threading/TaskService.hh>
 
 #include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/Core/SlangCompiler.hh>
 
 #include <ImGui/ImGuiService.hh>
 
 namespace mikoto::renderer {
 
+    using namespace mikoto::core;
+
     // Hash the actual session configuration, including target, defines and options.
     // https://docs.shader-slang.org/en/latest/compilation-api.html
-    static auto ShaderSessionKey( slang::IGlobalSession& global, slang::SessionDesc& description ) -> eastl::string {
+    static auto ShaderSessionKey( slang::IGlobalSession &global, slang::SessionDesc &description ) -> eastl::string {
         Slang::ComPtr<slang::IBlob> digest{};
         if ( !SLANG_SUCCEEDED( global.getSessionDescDigest( &description, digest.writeRef() ) ) || !digest ) {
             MKT_THROW_RUNTIME_ERROR( "Cannot fingerprint the shader compiler configuration." );
         }
         eastl::string key{ global.getBuildTagString() };
         constexpr char digits[]{ "0123456789abcdef" };
-        const auto* bytes{ static_cast<const unsigned char*>( digest->getBufferPointer() ) };
-        for ( size_t i{}; i < digest->getBufferSize(); ++i ) {
+        const auto *bytes{ static_cast<const unsigned char *>( digest->getBufferPointer() ) };
+        for ( usize i{}; i < digest->getBufferSize(); ++i ) {
             key += digits[bytes[i] >> 4];
             key += digits[bytes[i] & 15];
         }
         return key;
     }
 
-    struct RenderSystem::SlangCompilerContext {
-        // Configuration storage outlives the sessions, and the global session
-        // is destroyed after all compiler objects derived from it.
-        std::array<slang::TargetDesc, 1> mTargets{};
-        std::array<slang::TargetDesc, 1> mVertexTargets{};
-        std::array<slang::CompilerOptionEntry, 4> mOptions{};
-        std::array<slang::CompilerOptionEntry, 4> mRayOptions{};
-        std::array<slang::PreprocessorMacroDesc, 2> mMacros{};
-        Slang::ComPtr<slang::IGlobalSession> mGlobal{};
-        Slang::ComPtr<slang::ISession> mSession{};
-        Slang::ComPtr<slang::ISession> mVertexSession{};
-        Slang::ComPtr<slang::ISession> mRaySession{};
-        std::array<eastl::string, 3> mCacheKeys{};
-        bool mInUse{};
-    };
-
-    SlangSessionLease::SlangSessionLease( RenderSystem& owner, RenderSystem::SlangCompilerContext& context )
-        : mOwner{ &owner }, mContext{ &context }, mUncaughtExceptions{ std::uncaught_exceptions() } {
-    }
-
-    SlangSessionLease::SlangSessionLease( SlangSessionLease&& other ) noexcept
-        : mOwner{ std::exchange( other.mOwner, nullptr ) }, mContext{ std::exchange( other.mContext, nullptr ) }, mUncaughtExceptions{ other.mUncaughtExceptions } {
-    }
-
-    auto SlangSessionLease::operator=( SlangSessionLease&& other ) noexcept -> SlangSessionLease& {
-        if ( this != &other ) {
-            if ( mOwner ) {
-                mOwner->ReleaseSlangSession( *mContext );
-            }
-
-            mOwner = eastl::exchange( other.mOwner, nullptr );
-            mContext = eastl::exchange( other.mContext, nullptr );
-            mUncaughtExceptions = other.mUncaughtExceptions;
-        }
-
-        return *this;
-    }
-
-    SlangSessionLease::~SlangSessionLease() {
-        if ( mOwner ) {
-            // Slang can cache a failed module. Retry with a fresh context after
-            // the caller has released its temporary compiler objects.
-            if ( std::uncaught_exceptions() > mUncaughtExceptions ) {
-                mContext->mVertexSession = nullptr;
-                mContext->mRaySession = nullptr;
-                mContext->mSession = nullptr;
-                mContext->mGlobal = nullptr;
-            }
-
-            mOwner->ReleaseSlangSession( *mContext );
-        }
-    }
-
-    auto SlangSessionLease::GetSession( rhi::ShaderType stage ) const -> slang::ISession* {
-        if ( !mContext ) {
-            return nullptr;
-        }
-        if ( stage == rhi::ShaderType::eRayGeneration && mContext->mRaySession ) {
-            return mContext->mRaySession.get();
-        }
-
-        return stage == rhi::ShaderType::eVertex && mContext->mVertexSession
-                   ? mContext->mVertexSession.get()
-                   : mContext->mSession.get();
-    }
-
-    auto SlangSessionLease::GetCacheKey( rhi::ShaderType stage ) const -> eastl::string_view {
-        const auto index{ stage == rhi::ShaderType::eRayGeneration && mContext->mRaySession ? 2 :
-            stage == rhi::ShaderType::eVertex && mContext->mVertexSession ? 1 : 0 };
-        return mContext->mCacheKeys[index];
-    }
-
-    RenderSystem::~RenderSystem() = default;
 
     RenderSystem::RenderSystem( const RenderSystemCreateInfo& options )
         : mWindow{ options.mWindow }, mApi{ options.mApi }, mRefreshRate{ options.mRefreshRate }, mEnableImGui{ options.mEnableImGui } {

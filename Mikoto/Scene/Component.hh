@@ -2502,15 +2502,19 @@ namespace mikoto::scene {
 
         auto SetOrigin( core::float2 origin ) -> void;
         auto SetHeightScale( core::f32 scale ) -> void;
+        
         auto SetLowColor( core::float3 color ) -> void;
         auto SetHighColor( core::float3 color ) -> void;
-        auto SetEnableEditLayers( bool enabled ) -> void;
         auto SetMiddleColor( core::float3 color ) -> void;
+        
+        auto SetEnableEditLayers( bool enabled ) -> void;
         auto SetTerrainSection( core::u32 quads ) -> void;
+
         auto SetVertexSpacing( core::f32 spacing ) -> void;
         auto SetBaseElevation( core::f32 elevation ) -> void;
         auto SetSectionsPerComponent( core::u32 sections ) -> void;
         auto SetComponentCount( core::u32 x, core::u32 y ) -> void;
+        
         auto SetGeneratedNoise( const renderer::TerrainNoiseSettings &settings ) -> void;
 
         auto SetShowGrid( bool show ) -> void;
@@ -2567,7 +2571,7 @@ namespace mikoto::scene {
 
     private:
 
-    };
+    }; 
 
 }// namespace mikoto::scene
 

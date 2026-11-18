@@ -34,6 +34,7 @@
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/RenderContext.hh>
+#include <Renderer/Core/SlangCompiler.hh>
 
 #include <ImGui/ImGuiService.hh>
 
@@ -50,9 +51,6 @@ namespace mikoto::renderer {
     };
 
     class RenderSystem final : public core::ISubsystem, public core::Singleton<RenderSystem> {
-        friend class SlangSessionLease;
-        struct SlangCompilerContext;
-
     public:
         explicit RenderSystem(const RenderSystemCreateInfo& options);
 
@@ -87,15 +85,13 @@ namespace mikoto::renderer {
         /** Waits for an available slot. Compilation runs without the pool lock. */
         MKT_NODISCARD auto AcquireSlangSession() -> SlangSessionLease;
 
-        ~RenderSystem() override;
+        auto PrepareSlangSession( SlangCompilerContext &context ) -> void;
+        auto ReleaseSlangSession( SlangCompilerContext &context ) -> void;
 
     private:
         auto InitContext() -> void;
         auto InitializeSlang() -> void; 
         auto InitGuiService() -> void;
-
-        auto PrepareSlangSession( SlangCompilerContext& context ) -> void;
-        auto ReleaseSlangSession( SlangCompilerContext& context ) -> void;
 
     private:
         platform::IWindow* mWindow{ nullptr };
@@ -118,35 +114,6 @@ namespace mikoto::renderer {
         bool mEnableImGui{ false };
     };
 
-    /** Temporarily borrows one compiler context from RenderSystem's pool.
-     * Other threads cannot borrow that context while this lease holds it.
-     * Destruction automatically returns it, including when compilation throws.
-     * The pool owns the sessions. Release Slang-derived objects before the lease
-     * ends; retain only copied output.
-     */
-    class SlangSessionLease final : public core::INonCopyable {
-    public:
-        SlangSessionLease( SlangSessionLease&& other ) noexcept;
-        auto operator=( SlangSessionLease&& other ) noexcept -> SlangSessionLease&;
-
-        MKT_NODISCARD auto GetSession( rhi::ShaderType stage = rhi::ShaderType::eInvalid ) const -> slang::ISession*;
-
-        MKT_NODISCARD auto GetCacheKey( rhi::ShaderType stage ) const -> eastl::string_view;
-
-        ~SlangSessionLease();
-
-    private:
-        friend class RenderSystem;
-
-    private:
-        SlangSessionLease( RenderSystem& owner, RenderSystem::SlangCompilerContext& context );
-
-    private:
-        RenderSystem* mOwner{};
-        RenderSystem::SlangCompilerContext* mContext{};
-
-        core::i32 mUncaughtExceptions{};
-    };
 }
 
 #endif// MIKOTO_RENDERER_CORE_RENDER_SYSTEM_HH

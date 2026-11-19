@@ -12,15 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+#include <Core/Core.hh>
+#include <Core/Types.hh>
 #include <Core/Profiler.hh>
-
-#include <Renderer/Particle/ParticleSystem.hh>
 
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
 
+#include <Renderer/Particle/ParticleSystem.hh>
+
 namespace mikoto::renderer {
+
+    using namespace mikoto::core;
+    using namespace mikoto::scene;
+
     ParticleSystem::ParticleSystem( const ParticleSystemCreateInfo& ) {
     }
 

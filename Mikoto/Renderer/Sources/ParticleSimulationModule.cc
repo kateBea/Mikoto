@@ -20,21 +20,22 @@
 
 #include <Core/Profiler.hh>
 
-#include <Renderer/Core/CommandContext.hh>
-#include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
-#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
-#include <Renderer/Particle/ParticleSystem.hh>
-#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
-#include <Renderer/ForwardRenderer/Passes/ParticleSimulationModule.hh>
-
 #include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Component.hh>
 
+#include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Particle/ParticleSystem.hh>
+
+#include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
+#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/ParticleSimulationModule.hh>
+
 namespace mikoto::renderer {
 
-    using namespace core;
-    using namespace rhi;
+    using namespace mikoto::core;
+    using namespace mikoto::rhi;
 
     ParticleSimulationModule::ParticleSimulationModule( renderer::rhi::RenderResolution resolution )
         : mResolution{ resolution } {

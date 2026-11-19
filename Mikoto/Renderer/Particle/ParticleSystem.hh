@@ -21,14 +21,12 @@
 #include <Core/Service.hh>
 #include <Core/Singleton.hh>
 
+#include <Scene/Scene.hh>
+
 #include <Renderer/Particle/ParticleEmitter.hh>
 
-
-
-namespace mikoto::scene {
-    class Scene;
-}
 namespace mikoto::renderer {
+
     struct ParticleSystemCreateInfo {};
 
     // Scenes own their emitter instances. The service keeps non-owning scene
@@ -46,8 +44,6 @@ namespace mikoto::renderer {
          * Instances restart on their next scene update. */
         auto SetSimulationMode( ParticleSimulationMode mode ) -> void;
 
-        MKT_NODISCARD auto GetSimulationMode() const -> ParticleSimulationMode;
-
         /** @brief Registers a scene without taking ownership; repeated registration is harmless.
          * @param scene Scene to tick during Play or Simulate. Register outside the particle update.
          */
@@ -57,6 +53,8 @@ namespace mikoto::renderer {
          * @param scene Previously registered scene. Removing an absent scene is harmless.
          */
         auto UnRegisterScene( scene::Scene& scene ) -> void;
+
+        MKT_NODISCARD auto GetSimulationMode() const -> ParticleSimulationMode;
 
     private:
         ParticleSimulationMode mSimulationMode{ ParticleSimulationMode::eCpu };

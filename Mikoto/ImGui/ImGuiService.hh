@@ -138,10 +138,17 @@ namespace mikoto::imgui {
         auto PushFont( eastl::string_view str ) -> ImGuiScopedTextFont;
 
     private:
+        struct InterfaceFontRequest {
+            filesystem::Path mPath{};
+            core::u32 mFaceIndex{};
+        };
+
+    private:
         auto InitImplementation() -> void;
         auto ApplyInterfaceFont() -> void;
-        auto AddInterfaceFont( const filesystem::Path& path, core::u32 faceIndex ) -> ImFont*;
+
         auto AddFont( const filesystem::Path& path ) -> void;
+        auto AddInterfaceFont( const filesystem::Path& path, core::u32 faceIndex ) -> ImFont*;
         auto AddIconFont( const filesystem::Path& path, const eastl::array<ImWchar, 3>& iconRanges, ImFont* target ) -> void;
 
     private:
@@ -156,11 +163,6 @@ namespace mikoto::imgui {
         filesystem::Path mFontsRootDir{};
         filesystem::Path mImGuiFilesRootDir{};
         eastl::string mPendingLayout{};
-
-        struct InterfaceFontRequest {
-            filesystem::Path mPath{};
-            core::u32 mFaceIndex{};
-        };
 
         eastl::optional<InterfaceFontRequest> mPendingInterfaceFont{};
         ImFont* mSelectedInterfaceFont{};

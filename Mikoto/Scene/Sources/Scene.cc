@@ -3549,6 +3549,8 @@ namespace mikoto::scene {
         if ( auto* particles{ renderer::ParticleSystem::GetPtr() } ) {
             particles->RegisterScene( *this );
         }
+
+        
     }
 
     auto Scene::OnRigidBodyAdded( entt::registry& reg, entt::entity e ) -> void {

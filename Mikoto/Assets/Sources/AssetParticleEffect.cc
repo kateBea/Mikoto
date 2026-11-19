@@ -20,7 +20,6 @@
 
 namespace mikoto::asset {
 
-
     ParticleEffect::ParticleEffect( core::Ref<renderer::ParticleEmitter> resource )
         : mResource{ eastl::move( resource ) } {
         if ( !mResource ) {
@@ -28,7 +27,6 @@ namespace mikoto::asset {
         }
     }
 
-    ParticleEffect::~ParticleEffect() = default;
     auto ParticleEffect::GetResource() const -> core::Ref<renderer::ParticleEmitter> {
         return mResource;
     }

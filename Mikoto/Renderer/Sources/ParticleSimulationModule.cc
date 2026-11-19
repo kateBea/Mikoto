@@ -158,7 +158,7 @@ namespace mikoto::renderer {
                 Gather();
 
                 if ( !mRenderData.empty() ) {
-                    ctx.CopyBuffer( b.Get<ParticleSimulationInfo>().mParticlesBuffer, 0, mRenderData.data(), mRenderData.size() * sizeof( ParticleRenderData ) );
+                    ctx.CopyBuffer( b.Get<ParticleSimulationInfo>().mParticlesBuffer, 0, mRenderData.data(), mRenderData.size() * MKT_SIZEOF( ParticleRenderData ) );
                 }
             } );
     }
@@ -200,8 +200,8 @@ namespace mikoto::renderer {
                     SPointer mParticles{};
                     SPointer mCamera{};
                 } params{
-                    ctx.GetDeviceBufferAddress( info.mParticlesBuffer ),
-                    ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData )
+                    .mParticles = ctx.GetDeviceBufferAddress( info.mParticlesBuffer ),
+                    .mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData )
                 };
 
                 ctx.PushConstants( params );

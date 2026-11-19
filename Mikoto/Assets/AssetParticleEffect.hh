@@ -20,20 +20,21 @@
 #include <Renderer/Particle/ParticleEmitter.hh>
 
 namespace mikoto::asset {
+
     struct ParticleEffectLoadDescription {
         filesystem::Path mPath{};
         LoadPriority mPriority{ LoadPriority::eNormal };
     };
 
-    /** Owns the runtime resource; scenes keep AssetRef/AssetHandle instead of backend objects. */
     class ParticleEffect final : public core::ReferenceCounted<ParticleEffect> {
     public:
         explicit ParticleEffect( core::Ref<renderer::ParticleEmitter> resource );
-        ~ParticleEffect() override;
-        MKT_NODISCARD auto GetResource() const -> core::Ref<renderer::ParticleEmitter>;
-        MKT_NODISCARD auto GetSettings() const -> const renderer::ParticleEmitterSettings&;
+
         MKT_NODISCARD auto CanEvict() const -> bool;
         MKT_NODISCARD auto GetResidentMemoryUsage() const -> AssetMemoryUsage;
+        MKT_NODISCARD auto GetResource() const -> core::Ref<renderer::ParticleEmitter>;
+        MKT_NODISCARD auto GetSettings() const -> const renderer::ParticleEmitterSettings&;
+
     private:
         core::Ref<renderer::ParticleEmitter> mResource{};
     };

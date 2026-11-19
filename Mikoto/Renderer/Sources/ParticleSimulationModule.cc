@@ -35,7 +35,6 @@
 namespace mikoto::renderer {
 
     using namespace mikoto::core;
-    using namespace mikoto::rhi;
 
     ParticleSimulationModule::ParticleSimulationModule( renderer::rhi::RenderResolution resolution )
         : mResolution{ resolution } {

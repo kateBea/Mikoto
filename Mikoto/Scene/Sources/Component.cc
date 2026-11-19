@@ -464,6 +464,18 @@ namespace mikoto::scene {
         }
     }
 
+    auto ParticleEmitterComponent::SetMaterial( material::MaterialHandle particleMaterial ) -> void {
+        if ( !dynamic_cast<material::ParticleMaterial*>( particleMaterial.GetPtr() ) ) {
+            return;
+        }
+
+        mParticleMaterial = particleMaterial;
+    }
+
+    auto ParticleEmitterComponent::GetMaterial() const -> material::MaterialHandle {
+        return mParticleMaterial;
+    }
+
     auto ParticleEmitterComponent::GetInstance() -> renderer::ParticleEmitterInstance& {
         return mInstance;
     }

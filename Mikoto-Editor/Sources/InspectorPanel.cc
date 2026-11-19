@@ -5526,7 +5526,7 @@ namespace mikoto::editor {
         }
 
         ImGui::EndDisabled();
-        ImGui::TextWrapped( MKT_LOC( "inspector_runs_in_simulate_or_play_particles_stay_in_world_space" ).c_str() );
+        //ImGui::TextWrapped( MKT_LOC( "inspector_runs_in_simulate_or_play_particles_stay_in_world_space" ).c_str() );
 
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_restart", "Restart" ).c_str() ) ) {
             instance.Restart();

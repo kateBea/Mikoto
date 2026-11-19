@@ -2318,12 +2318,15 @@ namespace mikoto::scene {
         auto operator=( const ParticleEmitterComponent& other ) -> ParticleEmitterComponent& = default;
         auto operator=( ParticleEmitterComponent&& other ) -> ParticleEmitterComponent& = default;
 
+        auto SetMaterial( material::MaterialHandle particleMaterial ) -> void;
+
+        MKT_NODISCARD auto GetMaterial() const -> material::MaterialHandle;
+        MKT_NODISCARD auto GetInstance() -> renderer::ParticleEmitterInstance&;
+        MKT_NODISCARD auto GetInstance() const -> const renderer::ParticleEmitterInstance&;
+
         ~ParticleEmitterComponent() = default;
-
-        auto GetInstance() -> renderer::ParticleEmitterInstance&;
-        auto GetInstance() const -> const renderer::ParticleEmitterInstance&;
-
     private:
+        material::MaterialHandle mParticleMaterial{};
         renderer::ParticleEmitterInstance mInstance{};
     };
 

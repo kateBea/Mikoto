@@ -180,7 +180,6 @@ internal sealed class PlaygroundFeet
     private readonly float[] _contacts = new float[2];
     private readonly float[] _terrainOffsets = new float[2];
     private readonly Vector3[] _feet = new Vector3[2];
-    private readonly Vector3[] _toeDirections = new Vector3[2];
     private readonly Vector3[] _normals = new Vector3[2];
     private readonly float[] _idleHeights = [0.05574059f, 0.05318388f];
     private float _pelvisOffset;
@@ -246,7 +245,6 @@ internal sealed class PlaygroundFeet
             forward = forward.Length() > 0.001f ? forward.Normalized() : heading;
             foot -= up * (_pelvisOffset + _clearanceOffset);
             _feet[i] = foot;
-            _toeDirections[i] = toeDirection;
             _normals[i] = up;
             _contacts[i] = 0;
             _terrainOffsets[i] = 0;
@@ -282,7 +280,7 @@ internal sealed class PlaygroundFeet
         // animation instead of being re-solved against an assumed flat-foot pose.
         float influence = enabled ? Math.Clamp((MathF.Max(amount, MathF.Abs(_pelvisOffset)) - 0.004f) / 0.025f, 0, 1) : 0;
         float blend = 1.0f - MathF.Exp(-18.0f * dt);
-        Vector3 toeAxis = new Vector3(0, -0.086839f, 0.10655624f).Normalized();
+        Vector3 soleForward = new(0, 0, 1);
 
         for (int i = 0; i < 2; ++i)
         {
@@ -299,12 +297,12 @@ internal sealed class PlaygroundFeet
             _animator.SetTwoBoneIK(i, _hips[i], _knees[i], _ankles[i], target, heading, weight,
                 middleAxis: new Vector3(-1, 0, 0));
 
-            // Preserve the sampled toe direction, including heel/toe roll. Only
-            // add the support plane's tilt; do not aim the foot horizontally.
-            Vector3 direction = _toeDirections[i].Normalized();
-            Vector3 axis = Vector3.Cross(up, normal);
-            direction += Vector3.Cross(axis, direction) + Vector3.Cross(axis, Vector3.Cross(axis, direction)) / (1.0f + normal.Y);
-            _animator.SetAimIK(i, _ankles[i], solvedFoot + direction * 0.3f, normal, toeAxis, up, weight);
+            // Xbot's sole faces local +Z. During contact, align it with the
+            // tread, using the same forward heading as the knee.
+            Vector3 tangent = (heading - normal * Vector3.Dot(heading, normal)).Normalized();
+            // Aim IK takes a point. A distant target keeps small differences
+            // between the requested and reachable ankle height from pitching the foot.
+            _animator.SetAimIK(i, _ankles[i], solvedFoot + tangent * 10.0f, normal, soleForward, up, weight);
         }
     }
 

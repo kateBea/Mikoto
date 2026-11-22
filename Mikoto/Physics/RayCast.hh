@@ -20,6 +20,13 @@
 
 namespace mikoto::physics {
 
+    struct RayCastHit {
+        core::float3 mPosition{};
+        core::float3 mNormal{};
+        core::f32 mFraction{ 1.0f };
+        bool mHit{};
+    };
+
     /** @brief Stores a ray origin and direction for physics queries. */
     class RayCast {
     public:

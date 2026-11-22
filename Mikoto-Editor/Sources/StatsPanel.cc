@@ -285,6 +285,7 @@ namespace mikoto::editor {
 
                 if ( ImGui::Selectable( label.c_str(), selected ) ) {
                     mTargetIndex = index;
+                    core::TimeService::Get()->SetFrameBudget( 1000.0 / rates[index] );
                 }
 
                 if ( selected ) {

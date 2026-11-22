@@ -20,9 +20,27 @@
 
 namespace mikoto::physics {
 
-    struct RayCastHit {
+    /** @brief Stores a physics ray query result in world coordinates. */
+    class RayCastHit {
+    public:
+        RayCastHit() = default;
+
+        auto SetPosition( const core::float3& position ) -> void;
+        auto SetNormal( const core::float3& normal ) -> void;
+        auto SetFraction( core::f32 fraction ) -> void;
+        auto SetHit( bool hit ) -> void;
+
+        MKT_NODISCARD auto GetPosition() const -> core::float3;
+        MKT_NODISCARD auto GetNormal() const -> core::float3;
+
+        /** @brief Returns the hit's position along the ray segment, from zero to one. */
+        MKT_NODISCARD auto GetFraction() const -> core::f32;
+        MKT_NODISCARD auto HasHit() const -> bool;
+
+    private:
         core::float3 mPosition{};
         core::float3 mNormal{};
+
         core::f32 mFraction{ 1.0f };
         bool mHit{};
     };

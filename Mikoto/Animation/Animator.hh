@@ -90,6 +90,7 @@ namespace mikoto::animation {
 
         MKT_NODISCARD auto GetModel() const -> asset::ModelHandle;
         MKT_NODISCARD auto IsSuspended() const -> bool;
+        MKT_NODISCARD auto GetUnconstrainedJointModelMatrices( core::u32 rig = 0 ) const -> const eastl::vector<core::float4x4>&;
         MKT_NODISCARD auto GetJointModelMatrices( core::u32 rig = 0 ) const -> const eastl::vector<core::float4x4>&;
 
         MKT_NODISCARD auto GetPoseRevision( core::u32 rig = 0 ) const -> core::u64;
@@ -144,6 +145,7 @@ namespace mikoto::animation {
         // belong to each rig and each character instance, never to the asset.
         struct RigPose {
             eastl::vector<core::float4x4> mFinalMatrices{};
+            eastl::vector<core::float4x4> mUnconstrainedMatrices{};
             ozz::vector<ozz::math::Float4x4> mModelMatrices{};
             ozz::vector<ozz::math::SoaTransform> mLocalMatrices{};
             ozz::vector<ozz::math::SoaTransform> mSampledLocals{};

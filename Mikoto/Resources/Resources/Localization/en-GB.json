@@ -2402,5 +2402,15 @@
   "particle_animation": "Animation",
   "particle_fade_enabled": "Fade",
   "particle_fade_in": "Fade in (% lifetime)",
-  "particle_fade_out": "Fade out (% lifetime)"
+  "particle_fade_out": "Fade out (% lifetime)",
+  "viewport_renderer_info": "Renderer info",
+  "renderer_info_overlay": "Renderer\nGPU: {}\nCPU: {}\n{:.1f} FPS | {:.2f} ms\nBudget: {:.2f} ms ({:.0f} FPS)\nPasses: {} / {}\nPipelines: {} | binds: {}\nDraw calls: {} | indirect: {}\nDispatches: {} | ray: {}\nImage barriers: {}\nBuffer barriers: {}\nMemory barriers: {}\nBarrier submissions (batches): {}",
+  "material_checkerboard": "Procedural checkerboard",
+  "material_checkerboard_enabled": "Enabled",
+  "material_checkerboard_cell_size": "Cell size (world units)",
+  "material_checkerboard_color_a": "Colour A",
+  "material_checkerboard_color_b": "Colour B",
+  "material_checkerboard_offset": "World offset",
+  "world_demo_Animation_Playground": "Animation Playground",
+  "world_demo_Animation_Playground_description": "Explore stairs and uneven ground with an orbit camera, idle/walk/run crossfades, foot IK, aim and reach exhibits, and imported characters."
 }

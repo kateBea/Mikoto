@@ -16,6 +16,11 @@
 #include <glm/gtx/compatibility.hpp>
 
 #include <Core/Profiler.hh>
+#include <Core/Exception.hh>
+#include <Animation/AnimationSystem.hh>
+#include <Animation/Animator.hh>
+#include <Physics/PhysicsWorld.hh>
+#include <Physics/RayCast.hh>
 
 #include <Logging/Logger.hh>
 
@@ -41,6 +46,25 @@ namespace mikoto::scripting {
 
     static auto GetCallbackEntity( u64 session, u64 id ) -> scene::Entity* {
         return sCallbackScene && session == sCallbackSession ? sCallbackScene->FindByID( id ) : nullptr;
+    }
+
+    MKT_NODISCARD static auto GetCallbackWorldTransform( const scene::Entity& entity ) -> float4x4 {
+        auto world{ entity.GetComponent<scene::TransformComponent>().GetTransform() };
+        const auto* current{ &entity };
+
+        // Script edits are published to the scene's world cache after callbacks.
+        // IK needs this callback's current actor/visual transforms immediately.
+        while ( const auto& parent{ current->GetComponent<scene::RelationComponent>().GetParent() } ) {
+            current = sCallbackScene->FindByID( *parent );
+
+            if ( !current ) {
+                MKT_THROW_RUNTIME_ERROR( "Managed animator has a missing transform parent." );
+            }
+
+            world = current->GetComponent<scene::TransformComponent>().GetTransform() * world;
+        }
+
+        return world;
     }
 
     static auto GetActiveLight( scene::LightComponent& component ) -> renderer::LightObject* {
@@ -95,6 +119,8 @@ namespace mikoto::scripting {
         api.mSetCanvasText = &SetCanvasText;
         api.mSetCharacterInputs = &SetCharacterInputs;
         api.mGetCharacterGrounded = &GetCharacterGrounded;
+        api.mAnimatorCommand = &AnimatorCommand;
+        api.mRaycastStatic = &RaycastStatic;
     }
 
     auto DotnetInputBinding::Init( ManagedNativeApi& api ) -> void {
@@ -114,6 +140,137 @@ namespace mikoto::scripting {
     }
 
 
+    auto DotnetSceneBinding::AnimatorCommand( u64 session, u64 id, ManagedAnimatorOperation operation,
+        cstr name, ManagedAnimatorRequest* request ) -> i32 {
+        try {
+            auto* entity{ GetCallbackEntity( session, id ) };
+
+            if ( !entity || !request || !entity->HasComponent<scene::AnimatorComponent>() ) {
+                return 0;
+            }
+
+            auto* animator{ animation::AnimationSystem::Get()->GetAnimator(
+                entity->GetComponent<scene::AnimatorComponent>().GetAnimatorID() ) };
+
+            if ( !animator ) {
+                return 0;
+            }
+
+            if ( operation == ManagedAnimatorOperation::eCrossFade ) {
+                return name && std::isfinite( request->mDuration ) && animator->CrossFadeAnimation( name, request->mDuration );
+            }
+
+            if ( operation == ManagedAnimatorOperation::eFindJoint ) {
+                request->mEnd = name ? animator->FindJoint( name, request->mRig ) : -1;
+                return 1;
+            }
+
+            const auto& pose{ animator->GetUnconstrainedJointModelMatrices( request->mRig ) };
+            const auto validJoint{ [&]( i32 joint ) { return joint >= 0 && core::as<usize>( joint ) < pose.size(); } };
+            const auto unpack{ []( ManagedVector3 value ) { return float3{ value.mX, value.mY, value.mZ }; } };
+            const auto finite{ []( float3 value ) { return std::isfinite( value.x ) && std::isfinite( value.y ) && std::isfinite( value.z ); } };
+            const auto world{ GetCallbackWorldTransform( *entity ) };
+
+            if ( operation == ManagedAnimatorOperation::eJointPosition ) {
+                if ( !validJoint( request->mEnd ) ) {
+                    return 0;
+                }
+
+                const float3 position{ world * pose[request->mEnd][3] };
+                request->mTarget = { position.x, position.y, position.z };
+                return 1;
+            }
+
+            if ( request->mIndex < 0 || request->mIndex >= 32 || !validJoint( request->mEnd ) ||
+                 !finite( unpack( request->mTarget ) ) || !finite( unpack( request->mPole ) ) || !std::isfinite( request->mWeight ) ) {
+                return 0;
+            }
+
+            const auto inverseWorld{ glm::inverse( world ) };
+            const float3 target{ inverseWorld * float4{ unpack( request->mTarget ), 1 } };
+            const float3 pole{ inverseWorld * float4{ unpack( request->mPole ), 0 } };
+            const auto weight{ glm::clamp( request->mWeight, 0.0f, 1.0f ) };
+
+            if ( operation == ManagedAnimatorOperation::eTwoBoneIK ) {
+                if ( !validJoint( request->mStart ) || !validJoint( request->mMiddle ) || !finite( unpack( request->mAxis ) ) ) {
+                    return 0;
+                }
+
+                auto axis{ unpack( request->mAxis ) };
+
+                if ( glm::dot( axis, axis ) < 1e-6f ) {
+                    const float3 upper{ pose[request->mMiddle][3] - pose[request->mStart][3] };
+                    const float3 lower{ pose[request->mEnd][3] - pose[request->mMiddle][3] };
+                    axis = glm::inverse( glm::mat3{ pose[request->mMiddle] } ) * glm::cross( upper, lower );
+                }
+
+                axis = glm::dot( axis, axis ) > 1e-8f ? glm::normalize( axis ) : float3{ 1, 0, 0 };
+                auto& constraints{ animator->GetTwoBoneConstraints( request->mRig ) };
+                constraints.resize( eastl::max( constraints.size(), core::as<usize>( request->mIndex + 1 ) ) );
+                auto& constraint{ constraints[request->mIndex] };
+                constraint.mStart = request->mStart;
+                constraint.mMiddle = request->mMiddle;
+                constraint.mEnd = request->mEnd;
+                constraint.mTarget = target;
+                constraint.mPole = pole;
+                constraint.mMiddleAxis = axis;
+                constraint.mWeight = weight;
+                constraint.mSoften = 0.95f;
+                constraint.mEnabled = weight > 0.0f;
+                return 1;
+            }
+
+            if ( operation == ManagedAnimatorOperation::eAimIK && finite( unpack( request->mForward ) ) && finite( unpack( request->mUp ) ) ) {
+                auto& constraints{ animator->GetAimConstraints( request->mRig ) };
+                constraints.resize( eastl::max( constraints.size(), core::as<usize>( request->mIndex + 1 ) ) );
+                auto& constraint{ constraints[request->mIndex] };
+                constraint.mJoint = request->mEnd;
+                constraint.mTarget = target;
+                constraint.mPole = pole;
+                constraint.mForward = unpack( request->mForward );
+                constraint.mUp = unpack( request->mUp );
+                constraint.mWeight = weight;
+                constraint.mEnabled = weight > 0.0f;
+                return 1;
+            }
+        } catch ( ... ) {
+            return 0;
+        }
+
+        return 0;
+    }
+
+    auto DotnetSceneBinding::RaycastStatic( u64 session, u64 id, const ManagedVector3* origin,
+        const ManagedVector3* direction, ManagedVector3* position, ManagedVector3* normal ) -> i32 {
+        try {
+            if ( !GetCallbackEntity( session, id ) || !origin || !direction || !position || !normal ) {
+                return -1;
+            }
+
+            const float3 start{ origin->mX, origin->mY, origin->mZ };
+            const float3 delta{ direction->mX, direction->mY, direction->mZ };
+
+            for ( i32 axis{}; axis < 3; ++axis ) {
+                if ( !std::isfinite( start[axis] ) || !std::isfinite( delta[axis] ) ) {
+                    return -1;
+                }
+            }
+
+            if ( glm::dot( delta, delta ) < 1e-10f ) {
+                return 0;
+            }
+
+            const auto hit{ sCallbackScene->GetPhysicsWorld()->CastRay( physics::RayCast{ start, delta }, true ) };
+            const auto hitPosition{ hit.GetPosition() };
+            const auto hitNormal{ hit.GetNormal() };
+            *position = { hitPosition.x, hitPosition.y, hitPosition.z };
+            *normal = { hitNormal.x, hitNormal.y, hitNormal.z };
+            return hit.HasHit() ? 1 : 0;
+        } catch ( ... ) {
+            return -1;
+        }
+    }
+
     auto DotnetSceneBinding::HasComponent( u64 session, u64 id, ManagedComponentType type ) -> i32 {
         try {
             auto* entity{ GetCallbackEntity( session, id ) };
@@ -131,6 +288,8 @@ namespace mikoto::scripting {
                     return entity->HasComponent<scene::CanvasComponent>() ? 1 : 0;
                 case ManagedComponentType::eVehicle:
                     return entity->HasComponent<scene::VehicleComponent>() ? 1 : 0;
+                case ManagedComponentType::eAnimator:
+                    return entity->HasComponent<scene::AnimatorComponent>() ? 1 : 0;
                 case ManagedComponentType::eCharacter:
                     return entity->HasComponent<scene::CharacterControllerComponent>() ? 1 : 0;
                 default:

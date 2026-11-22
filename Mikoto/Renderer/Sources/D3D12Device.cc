@@ -1577,6 +1577,11 @@ namespace mikoto::renderer::d3d12 {
             0.1f );
     }
 
+    auto CommandList::GetStatistics() const -> const rhi::CommandListStatistics& {
+        static const rhi::CommandListStatistics empty{};
+        return mCurrentRecordingContext ? mCurrentRecordingContext->mStatistics : empty;
+    }
+
     auto CommandList::Open( const renderer::rhi::CommandListBeginDescription& desc ) -> void {
         MKT_BEGIN_PROFILER();
 
@@ -1906,10 +1911,14 @@ namespace mikoto::renderer::d3d12 {
 
         D3D12_RESOURCE_BARRIER barrier{};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+        ++mCurrentRecordingContext->mStatistics.mBarriers.mCallCount;
+        ++mCurrentRecordingContext->mStatistics.mBarriers.mMemoryCount;
         command->ResourceBarrier( 1, &barrier );
         command->BuildRaytracingAccelerationStructure( &pAccelStructure->mBuild, 0, nullptr );
         barrier.UAV.pResource = *core::checked_cast<Buffer *>( pAccelStructure->mResult.GetPtr() );
 
+        ++mCurrentRecordingContext->mStatistics.mBarriers.mCallCount;
+        ++mCurrentRecordingContext->mStatistics.mBarriers.mBufferCount;
         command->ResourceBarrier( 1, &barrier );
         pAccelStructure->mBuilt = true;
     }
@@ -2246,10 +2255,28 @@ namespace mikoto::renderer::d3d12 {
         }
 
         if ( numGroups > 0 ) {
+            ++mCurrentRecordingContext->mStatistics.mBarriers.mCallCount;
+            mCurrentRecordingContext->mStatistics.mBarriers.mImageCount += mTextureBarriers.size();
+            mCurrentRecordingContext->mStatistics.mBarriers.mBufferCount += mBufferBarriers.size();
             mCurrentRecordingContext->mCommandList->Barrier( numGroups, groups.data() );
         }
 
         if ( !mResourceBarriers.empty() ) {
+            ++mCurrentRecordingContext->mStatistics.mBarriers.mCallCount;
+
+            for ( const auto& barrier: mResourceBarriers ) {
+                auto* resource{ barrier.Type == D3D12_RESOURCE_BARRIER_TYPE_TRANSITION ? barrier.Transition.pResource : barrier.UAV.pResource };
+
+                if ( !resource ) {
+                    ++mCurrentRecordingContext->mStatistics.mBarriers.mMemoryCount;
+                }
+                else if ( resource->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER ) {
+                    ++mCurrentRecordingContext->mStatistics.mBarriers.mBufferCount;
+                }
+                else {
+                    ++mCurrentRecordingContext->mStatistics.mBarriers.mImageCount;
+                }
+            }
             if ( mQueueType == QueueType::eVideoDecode ) {
                 mCurrentRecordingContext->mVideoCommandList->ResourceBarrier( core::as<UINT>( mResourceBarriers.size() ), mResourceBarriers.data() );
             }
@@ -2481,6 +2508,8 @@ namespace mikoto::renderer::d3d12 {
             barrier.Transition.Subresource = destSubresource;
             barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RESOLVE_DEST;
             barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+            ++mCurrentRecordingContext->mStatistics.mBarriers.mCallCount;
+            ++mCurrentRecordingContext->mStatistics.mBarriers.mImageCount;
             mCurrentRecordingContext->mCommandList->ResourceBarrier( 1, &barrier );
 
             const D3D12_DISCARD_REGION region{ 0, nullptr, destSubresource, 1 };
@@ -2488,6 +2517,8 @@ namespace mikoto::renderer::d3d12 {
 
             barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
             barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_DEST;
+            ++mCurrentRecordingContext->mStatistics.mBarriers.mCallCount;
+            ++mCurrentRecordingContext->mStatistics.mBarriers.mImageCount;
             mCurrentRecordingContext->mCommandList->ResourceBarrier( 1, &barrier );
         }
 
@@ -2771,6 +2802,7 @@ namespace mikoto::renderer::d3d12 {
             ID3D12PipelineState* gfxPipelineState{ *gfxPipeline };
             D3D_PRIMITIVE_TOPOLOGY gfxPipelineTopology{ d3d12::GetCmdTopologyType( desc.mPrimitiveTopology ) };
 
+            ++mCurrentRecordingContext->mStatistics.mPipelineBindCount;
             mCurrentRecordingContext->mCommandList->SetPipelineState( gfxPipelineState );
             mCurrentRecordingContext->mCommandList->IASetPrimitiveTopology( gfxPipelineTopology );
 
@@ -2780,12 +2812,14 @@ namespace mikoto::renderer::d3d12 {
             auto* computePipeline{ core::checked_cast<ComputePipeline*>( pipeline ) };
             ID3D12PipelineState* computePipelineState{ *computePipeline };
 
+            ++mCurrentRecordingContext->mStatistics.mPipelineBindCount;
             mCurrentRecordingContext->mCommandList->SetPipelineState( computePipelineState );
             requiresEmptySignature = computePipeline->HasEmptyRootSignature();
         }
         else if ( pipelineType == rhi::PipelineType::eRayTracing ) {
             auto* rayPipeline{ core::checked_cast<RayTracingPipeline*>( pipeline ) };
             auto command{ PrepareRayTracing( *rayPipeline ) };
+            ++mCurrentRecordingContext->mStatistics.mPipelineBindCount;
             command->SetPipelineState1( rayPipeline->mPipeline.Get() );
             mBoundRayTracingPipeline = rayPipeline;
         }
@@ -2985,6 +3019,7 @@ namespace mikoto::renderer::d3d12 {
 
     auto CommandList::Draw( const renderer::rhi::DrawArguments& args ) -> void {
         MKT_BEGIN_PROFILER();
+        ++mCurrentRecordingContext->mStatistics.mDrawCallCount;
         mCurrentRecordingContext->mCommandList->DrawInstanced(
             args.mVertexCount,
             args.mInstanceCount,
@@ -2994,6 +3029,7 @@ namespace mikoto::renderer::d3d12 {
 
     auto CommandList::DrawIndexed( const renderer::rhi::DrawArguments& args ) -> void {
         MKT_BEGIN_PROFILER();
+        ++mCurrentRecordingContext->mStatistics.mDrawCallCount;
         mCurrentRecordingContext->mCommandList->DrawIndexedInstanced(
             args.mIndexCount,
             args.mInstanceCount,
@@ -3015,6 +3051,7 @@ namespace mikoto::renderer::d3d12 {
         }
 
         ID3D12Resource* arguments{ *core::checked_cast<Buffer*>( mIndirectBuffer ) };
+        ++mCurrentRecordingContext->mStatistics.mDrawCallCount;
         mCurrentRecordingContext->mCommandList->ExecuteIndirect(
             mDrawSignature.Get(), drawCount, arguments, offset, nullptr, 0 );
     }
@@ -3032,12 +3069,14 @@ namespace mikoto::renderer::d3d12 {
         }
 
         ID3D12Resource* arguments{ *core::checked_cast<Buffer*>( mIndirectBuffer ) };
+        ++mCurrentRecordingContext->mStatistics.mDrawCallCount;
         mCurrentRecordingContext->mCommandList->ExecuteIndirect(
             mDrawIndexedSignature.Get(), drawCount, arguments, offset, nullptr, 0 );
     }
 
     auto CommandList::Dispatch( core::u32 groupsX, core::u32 groupsY, core::u32 groupsZ ) -> void {
         MKT_BEGIN_PROFILER();
+        ++mCurrentRecordingContext->mStatistics.mDispatchCallCount;
         mCurrentRecordingContext->mCommandList->Dispatch( groupsX, groupsY, groupsZ );
     }
 
@@ -3352,6 +3391,7 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto CommandList::ClearState() -> void {
+        mCurrentRecordingContext->mStatistics = {};
         for ( auto* allocation: mCurrentRecordingContext->mInFlightSubAllocations ) {
             allocation->mInUse.clear();
         }
@@ -4730,6 +4770,7 @@ namespace mikoto::renderer::d3d12 {
         dispatch.Height = desc.mHeight;
         dispatch.Depth = desc.mDepth;
 
+        ++mCurrentRecordingContext->mStatistics.mDispatchCallCount;
         mCurrentRecordingContext->mCommandList.Get()->DispatchRays( &dispatch );
     }
 

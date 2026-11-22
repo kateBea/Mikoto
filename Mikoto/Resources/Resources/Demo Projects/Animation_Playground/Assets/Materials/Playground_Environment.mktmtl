@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SkyboxMaterial",
+  "Name": "Playground daylight environment",
+  "Material": {
+    "SkyboxType": 1,
+    "AmbientScale": 1,
+    "Images": [
+      {
+        "Face": -1,
+        "TexturePath": "../../../../Cubemaps/farm_field_puresky_4k.hdr"
+      }
+    ]
+  }
+}

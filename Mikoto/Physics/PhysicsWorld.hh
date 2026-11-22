@@ -42,6 +42,7 @@
 #include <Core/Service.hh>
 
 #include <Physics/Shape.hh>
+#include <Physics/RayCast.hh>
 
 #include <Scene/Component.hh>
 
@@ -58,7 +59,6 @@ namespace mikoto::scene {
 
 namespace mikoto::physics {
 
-    class RayCast;
 
     struct SoftBodyHit {
         entt::entity mEntity{ entt::null };
@@ -166,6 +166,7 @@ namespace mikoto::physics {
 
         // Read positions from the current simulation surface on the main thread.
         MKT_NODISCARD auto IsSoftBodyGrabActive() const -> bool;
+        MKT_NODISCARD auto CastRay( const RayCast& ray, bool staticOnly = false ) const -> RayCastHit;
         MKT_NODISCARD auto PickSoftBody( const RayCast& ray ) const -> SoftBodyHit;
         auto ReadSoftBodyParticles( entt::entity entity, eastl::vector<SoftBodyParticle>& particles ) const -> void;
 

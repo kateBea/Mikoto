@@ -53,6 +53,7 @@
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
 #include <Renderer/Rhi/Descriptor.hh>
 #include <Renderer/Core/FrameGraphPass.hh>
 #include <Renderer/Core/FrameGraphTypes.hh>
@@ -71,7 +72,21 @@ namespace mikoto::renderer {
 
     class CommandContext;
 
+    struct FrameGraphStatistics {
+        eastl::string_view mGraphicsDeviceName{};
+
+        rhi::CommandListStatistics mCommands{};
+
+        core::u32 mPassCount{};
+        core::u32 mExecutedPassCount{};
+        core::u32 mPipelineCount{};
+        core::u32 mImageCount{};
+        core::u32 mBufferCount{};
+    };
+
     struct FGNodeStatistics {
+        rhi::CommandListStatistics mCommands{};
+
         // Per call to Execute(...) not the total
         core::u32 mDrawCallCount{};
         core::u32 mDispatchCallCount{};
@@ -201,6 +216,7 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl&;
         MKT_NODISCARD auto GetNodeControl() -> FGNodeControl&;
         MKT_NODISCARD auto GetStatisticsManager() const -> const FGStatisticsManager&;
+        MKT_NODISCARD auto GetStatistics() const -> FrameGraphStatistics;
         MKT_NODISCARD auto GetGpuProfiler() -> GpuQueryProfiler&;
 
         MKT_NODISCARD auto GetTexture( FGTextureHandle handle ) const -> rhi::TextureHandle;
@@ -350,6 +366,10 @@ namespace mikoto::renderer {
         rhi::PipelineLayoutHandle mPipelineLayout{};
 
         // Statistics
+        core::u32 mExecutedPassCount{};
+        bool mGraphicsRecordedThisFrame{};
+        bool mVideoRecordedThisFrame{};
+
         eastl::unique_ptr<GpuQueryProfiler> mGpuProfiler{};
         eastl::unique_ptr<FGStatisticsManager> mStatisticsManager{};
 

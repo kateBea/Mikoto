@@ -32,6 +32,7 @@
 #include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Rhi/Pipeline.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
 #include <Renderer/Core/RenderSystem.hh>
 
 #if defined(MIKOTO_PLATFORM_WINDOWS)
@@ -193,6 +194,10 @@ namespace mikoto::renderer::d3d11 {
     public:
         explicit CommandList( rhi::QueueType type );
 
+        MKT_NODISCARD auto GetStatistics() const -> const rhi::CommandListStatistics& override;
+
+        auto DecodeVideo( const rhi::VideoDecodeDescription& description ) -> void override;
+
         auto Open( const rhi::CommandListBeginDescription& desc ) -> void override;
         auto Close() -> void override;
         auto ValidateSubmission() const -> void;
@@ -291,6 +296,8 @@ namespace mikoto::renderer::d3d11 {
 
         // Each command list must be recorded by a deferred context
         Microsoft::WRL::ComPtr<ID3D11DeviceContext> mDeviceContextDeferred{};
+
+        rhi::CommandListStatistics mStatistics{};
 
         bool mRecording{};
         bool mExecutable{};

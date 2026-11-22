@@ -634,6 +634,11 @@ FSOutput main( FSInput input ) {
                             diffuse.a * material.DiffuseFactor.a );
     }
 
+    if ( material.CheckerboardColorA.w != 0.0 ) {
+        baseColor.rgb *= CheckerboardColor( input.FragmentWorldPos, fwidth( input.FragmentWorldPos ), flatNormal,
+            material.CheckerboardColorA.rgb, material.CheckerboardColorB, material.CheckerboardOffset.xyz );
+    }
+
     baseColor *= float4( input.VertexColor );
     baseColor.a = saturate( baseColor.a );
     // Opaque BLEND pixels were depth-tested with the opaque scene. Shade them

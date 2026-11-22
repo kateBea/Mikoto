@@ -84,6 +84,9 @@ namespace mikoto::renderer {
         core::float4 mScattering{}; // Inverse world units, reserved.
         core::float4 mHeightMapping{};
         glm::ivec4 mHeightInfo{ kInvalidTextureIndex, 0, 0, 0 };
+        core::float4 mCheckerboardColorA{}; // RGB tint, enabled in W.
+        core::float4 mCheckerboardColorB{}; // RGB tint, world-space cell size in W.
+        core::float4 mCheckerboardOffset{};
     };
 
     struct Light {

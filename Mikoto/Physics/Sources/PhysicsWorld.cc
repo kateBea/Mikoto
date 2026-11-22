@@ -2766,6 +2766,48 @@ namespace mikoto::physics {
         return !mSoftBodyGrab.mBody.IsInvalid();
     }
 
+    auto PhysicsWorld::CastRay( const RayCast& ray, bool staticOnly ) const -> RayCastHit {
+        class QueryFilter final : public JPH::BodyFilter {
+        public:
+            explicit QueryFilter( bool onlyStatic ) : mStaticOnly{ onlyStatic } {}
+
+            auto ShouldCollideLocked( const JPH::Body& body ) const -> bool override {
+                return !body.IsSensor() && ( !mStaticOnly || body.IsStatic() );
+            }
+
+        private:
+            bool mStaticOnly{};
+        };
+
+        if ( !mSimulationInfo ) {
+            return {};
+        }
+
+        const JPH::RRayCast query{ JPH::RVec3{ GetFloat3F( ray.GetOrigin() ) }, GetFloat3F( ray.GetDirection() ) };
+        const auto& system{ mSimulationInfo->mPhysicsSystem };
+        JPH::RayCastResult hit{};
+
+        if ( !system.GetNarrowPhaseQuery().CastRay( query, hit, {}, {}, QueryFilter{ staticOnly } ) ) {
+            return {};
+        }
+
+        const JPH::BodyLockRead lock{ system.GetBodyLockInterface(), hit.mBodyID };
+
+        if ( !lock.Succeeded() ) {
+            return {};
+        }
+
+        const auto point{ query.GetPointOnRay( hit.mFraction ) };
+        const auto normal{ lock.GetBody().GetWorldSpaceSurfaceNormal( hit.mSubShapeID2, point ) };
+
+        RayCastHit result{};
+        result.SetPosition( { point.GetX(), point.GetY(), point.GetZ() } );
+        result.SetNormal( { normal.GetX(), normal.GetY(), normal.GetZ() } );
+        result.SetFraction( hit.mFraction );
+        result.SetHit( true );
+        return result;
+    }
+
     auto PhysicsWorld::PickSoftBody( const RayCast& ray ) const -> SoftBodyHit {
         const JPH::RRayCast query{ JPH::RVec3{ GetFloat3F( ray.GetOrigin() ) }, GetFloat3F( ray.GetDirection() ) };
         JPH::RayCastResult hit{};

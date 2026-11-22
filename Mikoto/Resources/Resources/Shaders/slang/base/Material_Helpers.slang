@@ -16,6 +16,7 @@
 
 #include "Memory_Helpers.slang"
 #include "SurfaceCoverage_Helpers.slang"
+#include "Checkerboard_Helpers.slang"
 
 // ============================================================================
 // Constants
@@ -83,6 +84,9 @@ struct MaterialParameters {
     int HeightIndex;
     uint HeightUVSet;
     uint2 HeightPadding;
+    float4 CheckerboardColorA;
+    float4 CheckerboardColorB;
+    float4 CheckerboardOffset;
 };
 
 struct MeshParameters {

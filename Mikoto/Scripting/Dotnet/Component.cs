@@ -7,7 +7,8 @@ internal enum ComponentType : uint
     Light = 1,
     Canvas = 2,
     Vehicle = 3,
-    Character = 4
+    Character = 4,
+    Animator = 5
 }
 
 /// <summary>A managed reference to a native component, rather than a copy of its data.</summary>

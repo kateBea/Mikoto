@@ -99,6 +99,9 @@ struct MaterialRecord {
     float4 Optical, Absorption, Scattering;
     float4 HeightMapping;
     int4 HeightInfo;
+    float4 CheckerboardColorA;
+    float4 CheckerboardColorB;
+    float4 CheckerboardOffset;
 };
 
 struct LightRecord {

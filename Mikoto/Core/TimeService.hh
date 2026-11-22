@@ -67,6 +67,10 @@ namespace mikoto::core {
 
         auto Tick() -> void;
 
+        // Share the selected analysis budget between the statistics panel and renderer overlays.
+        auto SetFrameBudget( core::f64 milliseconds ) -> void;
+        MKT_NODISCARD auto GetFrameBudget() const -> core::f64;
+
         MKT_NODISCARD auto GetDefaultUnit() const -> TimeUnit;
         MKT_NODISCARD auto GetTimeStep( TimeUnit unit = TimeUnit::eSeconds) const -> double;
         MKT_NODISCARD auto GetTime( TimeUnit unit = TimeUnit::eSeconds ) const -> double;
@@ -92,6 +96,7 @@ namespace mikoto::core {
         using TimePoint = eastl::chrono::time_point<Clock>;                              /**< Type for a point in time. */
 
     private:
+        core::f64 mFrameBudget{ 1000.0 / 60.0 };
         double mTimeStep{};
         TimePoint mLastFrameTime{};
         TimePoint mInitTimePoint{};

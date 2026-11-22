@@ -1,0 +1,17 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Sign Background",
+  "Material": {
+    "BaseColorFactor": [
+      0.022,
+      0.028,
+      0.035,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.8,
+    "DoubleSided": 0,
+    "AlphaMask": 0
+  }
+}

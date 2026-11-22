@@ -61,6 +61,7 @@ namespace mikoto::material {
           mMetallicFactor{ other.mMetallicFactor },
           mRoughnessFactor{ other.mRoughnessFactor },
           mGlossinessFactor{ other.mGlossinessFactor },
+          mCheckerboard{ other.mCheckerboard },
           mHeightMapping{ other.mHeightMapping },
           mUvTransform{ other.mUvTransform },
           mNormalScale{ other.mNormalScale },
@@ -103,6 +104,7 @@ namespace mikoto::material {
 
         mShadingModel = props.Unlit ? ShadingModel::eUnlit : props.mShadingModel;
         SetSurfaceShading( props.mSurfaceShading );
+        SetCheckerboard( props.mCheckerboard );
         SetDielectric( props.mDielectric );
         SetConductor( props.mConductor );
 
@@ -145,6 +147,15 @@ namespace mikoto::material {
         mTextures.erase( type );
         mStreamedTextures[type] = { asset::AssetRef<asset::Texture>{ path }, {} };
         BumpRevision();
+    }
+
+    auto SurfaceMaterial::SetCheckerboard( const CheckerboardSettings& settings ) -> void {
+        mCheckerboard = settings;
+        BumpRevision();
+    }
+
+    auto SurfaceMaterial::GetCheckerboard() const -> const CheckerboardSettings& {
+        return mCheckerboard;
     }
 
     auto SurfaceMaterial::SetHeightMapping( HeightMappingSettings settings ) -> void {
@@ -1032,6 +1043,7 @@ namespace mikoto::material {
         mRoughnessFactor = eastl::move( value->mRoughnessFactor );
         mGlossinessFactor = eastl::move( value->mGlossinessFactor );
         mUvTransform = value->mUvTransform;
+        mCheckerboard = value->mCheckerboard;
         mHeightMapping = value->mHeightMapping;
         mNormalScale = eastl::move( value->mNormalScale );
         mClearCoatNormalScale = value->mClearCoatNormalScale;
@@ -1087,6 +1099,15 @@ namespace mikoto::material {
 
         for ( core::i32 i{}; i < 4; ++i ) {
             node["UvTransform"].push_back( mUvTransform[i] );
+        }
+
+        node["Checkerboard"]["Enabled"] = mCheckerboard.mEnabled;
+        node["Checkerboard"]["CellSize"] = mCheckerboard.mCellSize;
+
+        for ( core::usize axis{}; axis < 3; ++axis ) {
+            node["Checkerboard"]["ColorA"].push_back( mCheckerboard.mColorA[axis] );
+            node["Checkerboard"]["ColorB"].push_back( mCheckerboard.mColorB[axis] );
+            node["Checkerboard"]["Offset"].push_back( mCheckerboard.mOffset[axis] );
         }
 
         node["HeightMapping"]["Mode"] = static_cast<core::u32>( mHeightMapping.mMode );
@@ -1254,6 +1275,24 @@ namespace mikoto::material {
 
         if ( const auto uv{ node["UvTransform"] }; uv && uv.IsSequence() && uv.size() == 4 ) {
             SetUvTransform( { uv[0].as<float>(), uv[1].as<float>(), uv[2].as<float>(), uv[3].as<float>() } );
+        }
+
+        // Missing settings preserve the appearance of materials saved before this feature.
+        if ( const auto checker{ node["Checkerboard"] } ) {
+            CheckerboardSettings settings{};
+            settings.mEnabled = checker["Enabled"].as<bool>( false );
+            settings.mCellSize = checker["CellSize"].as<core::f32>( 1.0f );
+
+            const auto readColor{ [&]( core::cstr key, core::float3& value ) {
+                if ( const auto entry{ checker[key] }; entry && entry.IsSequence() && entry.size() == 3 ) {
+                    value = { entry[0].as<core::f32>(), entry[1].as<core::f32>(), entry[2].as<core::f32>() };
+                }
+            } };
+
+            readColor( "ColorA", settings.mColorA );
+            readColor( "ColorB", settings.mColorB );
+            readColor( "Offset", settings.mOffset );
+            SetCheckerboard( settings );
         }
 
         if ( const auto height{node["HeightMapping"]} ) {

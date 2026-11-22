@@ -195,7 +195,43 @@ namespace mikoto::editor {
 
     auto DrawMaterialOptics( SurfaceMaterial& material ) -> bool {
         bool changed{};
-        if ( ImGui::TreeNode("Height mapping") ) {
+        if ( ImGui::CollapsingHeader( MKT_LOC( "material_checkerboard" ).c_str() ) ) {
+            auto checker{ material.GetCheckerboard() };
+            bool edited{};
+
+            if ( ImGui::BeginTable( "##Checkerboard", 2, ImGuiTableFlags_SizingStretchSame ) ) {
+                const auto row{ []( core::cstr key ) {
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::TextUnformatted( MKT_LOC( key ).c_str() );
+                    ImGui::TableNextColumn();
+                    ImGui::SetNextItemWidth( -1.0f );
+                } };
+
+                row( "material_checkerboard_enabled" );
+                edited |= imgui::CheckBox( "##CheckerboardEnabled", checker.mEnabled );
+                ImGui::BeginDisabled( !checker.mEnabled );
+                row( "material_checkerboard_cell_size" );
+                edited |= imgui::Slider( "##CheckerboardCellSize", checker.mCellSize, { 0.01f, 10.0f }, "%.2f" );
+                row( "material_checkerboard_color_a" );
+                edited |= ImGui::ColorEdit3( "##CheckerboardColorA", &checker.mColorA.x );
+                row( "material_checkerboard_color_b" );
+                edited |= ImGui::ColorEdit3( "##CheckerboardColorB", &checker.mColorB.x );
+                row( "material_checkerboard_offset" );
+                edited |= ImGui::DragFloat3( "##CheckerboardOffset", &checker.mOffset.x, 0.01f );
+                ImGui::EndDisabled();
+                ImGui::EndTable();
+            }
+
+            if ( edited ) {
+                material.SetCheckerboard( checker );
+                changed = true;
+            }
+        }
+
+        if ( ImGui::CollapsingHeader( "Height mapping" ) ) {
+            ImGui::PushID( "Height mapping" );
             auto height{material.GetHeightMapping()};
             int mode{static_cast<int>(height.mMode)};
             bool edited{ImGui::Combo("Method",&mode,"None\0Bump\0Parallax occlusion\0Displacement\0")};
@@ -224,7 +260,7 @@ namespace mikoto::editor {
             }
             ImGui::TextWrapped("Height is linear grayscale. Displacement moves existing vertices and needs a sufficiently subdivided mesh; it does not alter physics colliders.");
             if ( edited ) { material.SetHeightMapping(height); changed=true; }
-            ImGui::TreePop();
+            ImGui::PopID();
         }
         const auto model{ material.GetShadingModel() };
         if ( model == ShadingModel::eDielectric ) {

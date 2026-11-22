@@ -35,6 +35,7 @@
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Fence.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
 #include <Renderer/Rhi/QueryPool.hh>
 #include <Renderer/Rhi/ShaderTable.hh>
 #include <Renderer/Rhi/GpuAllocator.hh>
@@ -533,6 +534,8 @@ namespace mikoto::renderer::d3d12 {
     };
 
     struct RecordingContext {
+        rhi::CommandListStatistics mStatistics{};
+
         core::u64 mSubmissionID{};
 
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mCommandAllocator{};
@@ -572,6 +575,8 @@ namespace mikoto::renderer::d3d12 {
 
     public:
         explicit CommandList( rhi::IQueue* queue );
+
+        MKT_NODISCARD auto GetStatistics() const -> const rhi::CommandListStatistics& override;
 
         auto Open( const rhi::CommandListBeginDescription& desc ) -> void override;
         auto Close() -> void override;

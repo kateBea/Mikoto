@@ -2371,5 +2371,15 @@
   "particle_animation": "动画",
   "particle_fade_enabled": "淡入淡出",
   "particle_fade_in": "淡入（生命周期％）",
-  "particle_fade_out": "淡出（生命周期％）"
+  "particle_fade_out": "淡出（生命周期％）",
+  "viewport_renderer_info": "渲染器信息",
+  "renderer_info_overlay": "渲染器\nGPU: {}\nCPU: {}\n{:.1f} FPS | {:.2f} ms\n帧预算: {:.2f} ms ({:.0f} FPS)\n通道: {} / {}\n管线: {} | 绑定: {}\n绘制调用: {} | 间接: {}\n调度: {} | 光线: {}\n图像屏障: {}\n缓冲区屏障: {}\n内存屏障: {}\n屏障提交（批次）: {}",
+  "material_checkerboard": "程序化棋盘格",
+  "material_checkerboard_enabled": "启用",
+  "material_checkerboard_cell_size": "单元格大小（世界单位）",
+  "material_checkerboard_color_a": "颜色 A",
+  "material_checkerboard_color_b": "颜色 B",
+  "material_checkerboard_offset": "世界偏移",
+  "world_demo_Animation_Playground": "动画游乐场",
+  "world_demo_Animation_Playground_description": "使用环绕相机探索台阶和不平地面，体验待机、行走与奔跑的交叉淡化、足部 IK、注视与手臂伸展，以及导入角色。"
 }

@@ -37,6 +37,7 @@
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
 #include <Renderer/Core/FrameGraph.hh>
 
 namespace mikoto::renderer {
@@ -140,9 +141,10 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto ImportSampledTexture( rhi::TextureHandle texture ) -> FGTextureHandle;
         MKT_NODISCARD auto UseImportedTexture( FGTextureHandle texture ) -> core::u32;
 
-        auto ResetCallCounts() -> void;
-        auto GetDrawCallCount() const -> core::u32;
-        auto GetDispatchCallCount() const -> core::u32;
+        auto ResetCallCounts( bool newRecording = false ) -> void;
+        MKT_NODISCARD auto GetStatistics() const -> rhi::CommandListStatistics;
+        MKT_NODISCARD auto GetDrawCallCount() const -> core::u32;
+        MKT_NODISCARD auto GetDispatchCallCount() const -> core::u32;
 
         // CPU allocation only: call in a preparation pass, then initialize the
         // complete replacement in a following upload pass. Existing bytes are not copied.
@@ -218,8 +220,7 @@ namespace mikoto::renderer {
         FrameGraphDescriptorAllocator* mDescriptorAllocator{};
 
         FGNodeStatistics* mNodeStatistics{};
-        core::u32 mDrawCallCount{};
-        core::u32 mDispatchCallCount{};
+        rhi::CommandListStatistics mStatisticsBaseline{};
 
         rhi::CommandListHandle mCommands{};
         FGScheduler* mScheduler{};

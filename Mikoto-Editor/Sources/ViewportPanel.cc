@@ -29,6 +29,8 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/SystemStats.hh>
+#include <Core/TimeService.hh>
 #include <Core/RuntimeConsole.hh>
 #include <Core/LocalizationService.hh>
 
@@ -282,7 +284,9 @@ namespace mikoto::editor {
 
         ImGui::SetCursorPos( mStartCursorPos );
 
-        if ( mEnablePerformanceOverlay ) {
+        mEditorState->mEditorRenderer->SetInfoOverlayEnabled( mEnablePerformanceOverlay );
+
+        if ( mEnablePerformanceOverlay && !mEditorState->mEditorRenderer->HasFrameGraph() ) {
             DrawPerformanceOverlay( false );
         }
 
@@ -512,29 +516,27 @@ namespace mikoto::editor {
         if ( imgui::BeginWindow( nodeID.c_str(), nullptr, overlayFlags ) ) {
             ImGui::Text( "%.1f FPS (%.1f ms)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate );
 
-            const scene::SceneStatistics& sceneStatistics{ mEditorState->mActiveScene->GetSceneStats() };
+            if ( !showOnlyFps && mEditorState->mEditorRenderer ) {
+                const auto statistics{ mEditorState->mEditorRenderer->GetStatistics() };
+                const auto& commands{ statistics.mCommands };
+                ImGui::Text( "GPU: %.*s", core::as<int>( statistics.mGraphicsDeviceName.size() ), statistics.mGraphicsDeviceName.data() );
 
-            if ( !showOnlyFps ) {
-                ImGui::Text( MKT_LOC( "viewport_script_count" ).c_str(), sceneStatistics.mScriptCount );
-                ImGui::Text( MKT_LOC( "viewport_renderables_count" ).c_str(), sceneStatistics.mMeshCount );
-
-                if ( const auto* renderer{ mEditorState->mEditorRenderer }; renderer ) {
-                    const auto& instances{ renderer->GetInstanceUploadStatistics() };
-                    const auto& materials{ renderer->GetMaterialUploadStatistics() };
-                    ImGui::Text( MKT_LOC( "viewport_shared_materials" ).c_str(), renderer->GetSharedMaterialCount() );
-                    ImGui::Text( MKT_LOC( "viewport_instance_uploads_records_kib" ).c_str(), instances.mChangedRecords, instances.mBytes / 1024.0 );
-                    ImGui::Text( MKT_LOC( "viewport_material_uploads_records_kib" ).c_str(), materials.mChangedRecords, materials.mBytes / 1024.0 );
-                    ImGui::Text( MKT_LOC( "viewport_scatter_dispatches" ).c_str(), instances.mScatterDispatches + materials.mScatterDispatches );
+                if ( const auto* system{ core::SystemStats::GetPtr() } ) {
+                    const auto cpu{ system->GetCpuName() };
+                    ImGui::Text( "CPU: %.*s", core::as<int>( cpu.size() ), cpu.data() );
                 }
 
-                ImGui::Text( MKT_LOC( "viewport_spot_light_count" ).c_str(), sceneStatistics.mSpotLightCount );
-                ImGui::Text( MKT_LOC( "viewport_point_light_count" ).c_str(), sceneStatistics.mPointLightCount );
-                ImGui::Text( MKT_LOC( "viewport_directional_light_count" ).c_str(), sceneStatistics.mDirectionalLightCount );
+                if ( const auto* time{ core::TimeService::GetPtr() } ) {
+                    ImGui::Text( "Budget: %.2f ms", time->GetFrameBudget() );
+                }
 
-                ImGui::Text( MKT_LOC( "viewport_total_lights" ).c_str(), sceneStatistics.mLightCount );
-                ImGui::Text( MKT_LOC( "viewport_particle_emitters" ).c_str(), sceneStatistics.mParticleEmitterCount );
-                ImGui::Text( MKT_LOC( "viewport_rigid_body_count" ).c_str(), sceneStatistics.mRigidBodyCount );
-                ImGui::Text( MKT_LOC( "viewport_audio_source_count" ).c_str(), sceneStatistics.mAudioSourceCount );
+                ImGui::Text( "Draw calls: %llu", commands.mDrawCallCount );
+                ImGui::Text( "Dispatches: %llu", commands.mDispatchCallCount );
+                ImGui::Text( "Pipeline binds: %llu", commands.mPipelineBindCount );
+                ImGui::Text( "Image barriers: %llu", commands.mBarriers.mImageCount );
+                ImGui::Text( "Buffer barriers: %llu", commands.mBarriers.mBufferCount );
+                ImGui::Text( "Memory barriers: %llu", commands.mBarriers.mMemoryCount );
+                ImGui::Text( "Barrier submissions (batches): %llu", commands.mBarriers.mCallCount );
             }
         }
 
@@ -2489,7 +2491,7 @@ namespace mikoto::editor {
                      &armatureMode, MKT_LOC( "viewport_armature_modes" ).c_str() ) ) {
                 view.mArmatureDebugMode = static_cast<renderer::ArmatureDebugMode>( armatureMode );
             }
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_statistics", "Show statistics" ).c_str(), mEnablePerformanceOverlay );
+            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_renderer_info", "Renderer info" ).c_str(), mEnablePerformanceOverlay );
 
             if ( mEditorState->mEditorRenderer ) {
                 auto& physics{ mEditorState->mEditorRenderer->GetPhysicsDebugSettings() };

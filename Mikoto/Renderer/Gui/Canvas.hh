@@ -39,6 +39,20 @@
 
 namespace mikoto::renderer {
 
+    // Keep scene UI and diagnostics on the same canvas shader layout.
+    struct CanvasQuad {
+        core::float4 mPositions[4]{};
+        core::float4 mColor{};
+        core::float4 mUV{0, 0, 1, 1};
+        core::float2 mSize{};
+        core::f32 mRounding{};
+        core::f32 mStroke{};
+        core::u32 mTexture{};
+        core::u32 mKind{};
+        core::f32 mDistanceRange{};
+        core::f32 mPadding{};
+    };
+
     using CanvasElementId = core::u64;
     inline constexpr CanvasElementId kInvalidCanvasElement{};
 

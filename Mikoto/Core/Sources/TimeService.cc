@@ -195,6 +195,14 @@ namespace mikoto::core {
         }
     }
 
+    auto TimeService::SetFrameBudget( core::f64 milliseconds ) -> void {
+        mFrameBudget = milliseconds;
+    }
+
+    auto TimeService::GetFrameBudget() const -> core::f64 {
+        return mFrameBudget;
+    }
+
     auto TimeService::Shutdown() -> void {
         MKT_BEGIN_PROFILER();
 

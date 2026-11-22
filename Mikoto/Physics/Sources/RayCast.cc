@@ -16,6 +16,38 @@
 
 namespace mikoto::physics {
 
+    auto RayCastHit::SetPosition( const core::float3& position ) -> void {
+        mPosition = position;
+    }
+
+    auto RayCastHit::SetNormal( const core::float3& normal ) -> void {
+        mNormal = normal;
+    }
+
+    auto RayCastHit::SetFraction( core::f32 fraction ) -> void {
+        mFraction = fraction;
+    }
+
+    auto RayCastHit::SetHit( bool hit ) -> void {
+        mHit = hit;
+    }
+
+    auto RayCastHit::GetPosition() const -> core::float3 {
+        return mPosition;
+    }
+
+    auto RayCastHit::GetNormal() const -> core::float3 {
+        return mNormal;
+    }
+
+    auto RayCastHit::GetFraction() const -> core::f32 {
+        return mFraction;
+    }
+
+    auto RayCastHit::HasHit() const -> bool {
+        return mHit;
+    }
+
     RayCast::RayCast( const core::float3& point, const core::float3& direction )
         : mOrigin{ point }, mDirection{ direction } {
     }

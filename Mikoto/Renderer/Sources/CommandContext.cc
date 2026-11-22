@@ -778,7 +778,6 @@ namespace mikoto::renderer {
 
     auto CommandContext::Draw( core::u32 vertexCount, core::u32 instanceCount ) -> void {
         MKT_BEGIN_PROFILER();
-        ++mDrawCallCount;
         renderer::rhi::IPipelineLayout* layout{ mPipelineLayout.GetPtr() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, renderer::rhi::ShaderFlagsBits::All );
         mCommands->Draw( renderer::rhi::DrawArguments{}
@@ -793,7 +792,6 @@ namespace mikoto::renderer {
             return;
         }
 
-        ++mDrawCallCount;// One API submission, possibly containing several indirect draws.
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource resource{ mResourceManager->Get( state.mIndirectBuffer.mHandle ) };
@@ -806,7 +804,6 @@ namespace mikoto::renderer {
 
     auto CommandContext::Dispatch( core::u32 groupX, core::u32 groupY, core::u32 groupZ ) -> void {
         MKT_BEGIN_PROFILER();
-        ++mDispatchCallCount;
         renderer::rhi::IPipelineLayout* layout{ mPipelineLayout.GetPtr() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, renderer::rhi::ShaderFlagsBits::All );
         mCommands->Dispatch( groupX, groupY, groupZ );
@@ -816,7 +813,6 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER();
         mCommands->SetPushConstants( mPipelineLayout.GetPtr(), mPushConstantsData.data(), rhi::kMaxPushConstantSize, rhi::ShaderFlagsBits::All );
         mCommands->DispatchRays( { .mWidth = width, .mHeight = height } );
-        ++mDispatchCallCount;
     }
 
     auto CommandContext::RefreshBufferCaches() -> void {
@@ -988,19 +984,23 @@ namespace mikoto::renderer {
         return *this;
     }
 
-    auto CommandContext::ResetCallCounts() -> void {
+    auto CommandContext::ResetCallCounts( bool newRecording ) -> void {
         MKT_BEGIN_PROFILER();
-        mDrawCallCount = mDispatchCallCount = 0;
+        mStatisticsBaseline = newRecording ? rhi::CommandListStatistics{} : mCommands->GetStatistics();
+    }
+
+    auto CommandContext::GetStatistics() const -> rhi::CommandListStatistics {
+        return mCommands->GetStatistics() - mStatisticsBaseline;
     }
 
     auto CommandContext::GetDrawCallCount() const -> core::u32 {
         MKT_BEGIN_PROFILER();
-        return mDrawCallCount;
+        return core::as<core::u32>( GetStatistics().mDrawCallCount );
     }
 
     auto CommandContext::GetDispatchCallCount() const -> core::u32 {
         MKT_BEGIN_PROFILER();
-        return mDispatchCallCount;
+        return core::as<core::u32>( GetStatistics().mDispatchCallCount );
     }
 
 

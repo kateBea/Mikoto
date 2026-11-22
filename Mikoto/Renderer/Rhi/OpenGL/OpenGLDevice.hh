@@ -31,6 +31,7 @@
 #include <Core/Types.hh>
 
 #include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
 
 namespace mikoto::renderer::opengl {
 
@@ -180,6 +181,10 @@ namespace mikoto::renderer::opengl {
     public:
         explicit CommandList( renderer::rhi::QueueType type, eastl::shared_ptr<DeviceState> state );
 
+        MKT_NODISCARD auto GetStatistics() const -> const rhi::CommandListStatistics& override;
+
+        auto DecodeVideo( const rhi::VideoDecodeDescription& description ) -> void override;
+
         auto Open( const renderer::rhi::CommandListBeginDescription &desc ) -> void override;
 
         auto Close() -> void override;
@@ -282,6 +287,8 @@ namespace mikoto::renderer::opengl {
         eastl::vector<eastl::function<void()>> mCommands{};
 
         // Recording lifecycle.
+        rhi::CommandListStatistics mStatistics{};
+
         bool mRecording{};
         bool mExecutable{};
         bool mInsidePass{};

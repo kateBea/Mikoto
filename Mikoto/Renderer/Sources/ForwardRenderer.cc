@@ -68,6 +68,8 @@ namespace mikoto::renderer {
         }
 
         mState->mVideoModule.RegisterPasses( *mState->mFrameGraph );
+        mState->mDebugPasses.RegisterInfoOverlayPass( *mState->mFrameGraph );
+        mState->mPresentationModule.RegisterTransition( *mState->mFrameGraph, mDevice->SupportsRayTracing() );
         mState->mFrameGraph->Compile();
 
         BindGeometryManagers();
@@ -170,7 +172,6 @@ namespace mikoto::renderer {
         mState->mDebugOverlayModule.RegisterPhysicsDebugger( *mState->mFrameGraph );
         mState->mDebugOverlayModule.RegisterSceneVolumes( *mState->mFrameGraph );
         mState->mDebugPasses.RegisterArmaturePass( *mState->mFrameGraph );
-        mState->mPresentationModule.RegisterTransition( *mState->mFrameGraph, mDevice->SupportsRayTracing() );
     }
 
     auto ForwardRenderer::RegisterRasterPasses() -> void {
@@ -315,7 +316,6 @@ namespace mikoto::renderer {
         mState->mGuiModule.RegisterUploadPass( *mState->mFrameGraph );
         mState->mGuiModule.RegisterRenderPass( *mState->mFrameGraph );
         mState->mTextRendering.RegisterScreenPass( *mState->mFrameGraph );
-        mState->mPresentationModule.RegisterTransition( *mState->mFrameGraph, mDevice->SupportsRayTracing() );
     }
 
     auto ForwardRenderer::BindGeometryManagers() -> void {
@@ -539,6 +539,7 @@ namespace mikoto::renderer {
         mState->mGeometryManagement.SetScene( scene );
         mState->mDebugOverlayModule.SetScene( scene );
         mState->mDebugPasses.SetScene( scene );
+        mState->mDebugPasses.SetInfoOverlayEnabled( mInfoOverlayEnabled && mOverlaysEnabled );
         mState->mTerrainGenerationModule.SetScene( scene );
 
         mState->mOutlineModule.SetEnabled( mOverlaysEnabled && scene != nullptr );
@@ -1171,6 +1172,18 @@ namespace mikoto::renderer {
 
     auto ForwardRenderer::SetCullingDebugCamera( const scene::Camera* camera ) -> void {
         mCullingDebugCamera = camera;
+    }
+
+    auto ForwardRenderer::SetInfoOverlayEnabled( bool enabled ) -> void {
+        mInfoOverlayEnabled = enabled;
+
+        if ( mState ) {
+            mState->mDebugPasses.SetInfoOverlayEnabled( enabled && mOverlaysEnabled );
+        }
+    }
+
+    auto ForwardRenderer::GetStatistics() const -> FrameGraphStatistics {
+        return mState && mState->mFrameGraph ? mState->mFrameGraph->GetStatistics() : FrameGraphStatistics{};
     }
 
     auto ForwardRenderer::SetEditorOverlaysEnabled( bool enabled ) -> void {

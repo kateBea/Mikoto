@@ -165,6 +165,9 @@ namespace mikoto::renderer {
          * @param enabled Whether these editor overlays may be drawn.
          */
         virtual auto SetEditorOverlaysEnabled( bool enabled ) -> void = 0;
+        virtual auto SetInfoOverlayEnabled( bool enabled ) -> void = 0;
+
+        MKT_NODISCARD virtual auto GetStatistics() const -> FrameGraphStatistics = 0;
 
         /** Selects the image orientation used when sampling the output in an editor preview. */
         virtual auto SetOutputForPreview( bool ) -> void {}

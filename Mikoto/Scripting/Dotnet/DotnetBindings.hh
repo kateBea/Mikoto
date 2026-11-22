@@ -66,6 +66,10 @@ namespace mikoto::scripting {
         MKT_NODISCARD static auto HasActiveCallback() -> bool;
 
     private:
+        static auto AnimatorCommand( core::u64 session, core::u64 entity, ManagedAnimatorOperation operation,
+            core::cstr name, ManagedAnimatorRequest* request ) -> core::i32;
+        static auto RaycastStatic( core::u64 session, core::u64 entity, const ManagedVector3* origin,
+            const ManagedVector3* direction, ManagedVector3* position, ManagedVector3* normal ) -> core::i32;
         static auto FindEntity( core::u64 session, core::u64 owner, core::cstr name, core::u64* output ) -> core::i32;
         static auto SetCharacterInputs( core::u64 session, core::u64 entity, const ManagedVector3* velocity, core::f32 jumpSpeed ) -> core::i32;
         static auto GetCharacterGrounded( core::u64 session, core::u64 entity ) -> core::i32;

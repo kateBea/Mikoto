@@ -366,10 +366,15 @@ namespace mikoto::renderer {
             MKT_THROW_RUNTIME_ERROR( "Frame graph must be compiled before execution." );
         }
 
+        mExecutedPassCount = 0;
+        mGraphicsRecordedThisFrame = false;
+        mVideoRecordedThisFrame = false;
+
         // Reset stats
         for ( const auto& [name, node]: mNodeControl->mNodes ) {
             if ( auto* stats = mStatisticsManager->GetNode( name ) ) {
                 stats->mExecutedThisFrame = false;
+                stats->mCommands = {};
                 stats->mDrawCallCount = stats->mDispatchCallCount = 0;
             }
         }
@@ -378,6 +383,7 @@ namespace mikoto::renderer {
         // before any image consumers. Keep the existing
         // single graphics batch for every other pass.
         RecordVideoCommands();
+        mVideoRecordedThisFrame = mScheduler->HasVideoWork();
         RecordGraphicsCommands();
 
         SubmitRecordedCommands();
@@ -405,8 +411,17 @@ namespace mikoto::renderer {
             }
 
             auto& context{ mNodeControl->GetContext( name ) };
-            context.ResetCallCounts();
+            // The first decode may open a new command buffer inside its callback.
+            context.ResetCallCounts( !mScheduler->HasVideoWork() );
             pass.mExecuteCallback( context, mBlackboard );
+            ++mExecutedPassCount;
+
+            auto& statistics{ *mStatisticsManager->GetNode( pass.mName ) };
+            statistics.mCommands = mScheduler->HasVideoWork()
+                ? context.GetStatistics() : rhi::CommandListStatistics{};
+            statistics.mDrawCallCount = core::as<core::u32>( statistics.mCommands.mDrawCallCount );
+            statistics.mDispatchCallCount = core::as<core::u32>( statistics.mCommands.mDispatchCallCount );
+            statistics.mExecutedThisFrame = true;
 
             if ( pass.mExecutionPolicy != FGExecutionPolicy::ePerFrame ) {
                 pass.mIsAlive = false;
@@ -416,6 +431,7 @@ namespace mikoto::renderer {
 
     auto FrameGraph::RecordGraphicsCommands() -> void {
         mGraphicsCommands->Open( { .mScopeName = "TaskGraph Graphics Commands" } );
+        mGraphicsRecordedThisFrame = true;
 
 #if defined( MIKOTO_ENABLE_TRACY )
         mGraphicsCommands->CollectGpuProfile();
@@ -460,12 +476,12 @@ namespace mikoto::renderer {
 #endif
             mGpuProfiler->BeginPass( *mGraphicsCommands, pass.mName );
             const auto& barriers{ mExecutionPlan->mBarriers.at( passName ) };
+            ctx.ResetCallCounts();
             ctx.SubmitBarriers( barriers );
 
             Timer timer{ false };
 
             // Run pass execute callback
-            ctx.ResetCallCounts();
             pass.mExecuteCallback( ctx, mBlackboard );
             mGpuProfiler->EndPass( *mGraphicsCommands );
 #if defined( MIKOTO_ENABLE_TRACY )
@@ -476,6 +492,8 @@ namespace mikoto::renderer {
             FGNodeStatistics& stats{ *mStatisticsManager->GetNode( pass.mName ) };
 
             stats.mLastExecutionTime = elapsed;
+            stats.mCommands = ctx.GetStatistics();
+            ++mExecutedPassCount;
             stats.mDrawCallCount = ctx.GetDrawCallCount();
             stats.mDispatchCallCount = ctx.GetDispatchCallCount();
 
@@ -662,6 +680,38 @@ namespace mikoto::renderer {
         return *mNodeControl;
     }
 
+    auto FrameGraph::GetStatistics() const -> FrameGraphStatistics {
+        FrameGraphStatistics statistics{};
+        statistics.mGraphicsDeviceName = mDevice->GetDeviceName();
+        statistics.mPassCount = core::as<core::u32>( mNodeControl->mNodes.size() );
+        statistics.mExecutedPassCount = mExecutedPassCount;
+
+        if ( mGraphicsRecordedThisFrame ) {
+            statistics.mCommands += mGraphicsCommands->GetStatistics();
+        }
+
+        if ( mVideoRecordedThisFrame ) {
+            statistics.mCommands += mVideoCommands->GetStatistics();
+        }
+
+        for ( const auto& [handle, node]: mNodeControl->mResources ) {
+            switch ( mResourceManager->Get( handle ).mType ) {
+                case FGResourceType::ePipeline:
+                    ++statistics.mPipelineCount;
+                    break;
+                case FGResourceType::eTexture:
+                    ++statistics.mImageCount;
+                    break;
+                case FGResourceType::eBuffer:
+                    ++statistics.mBufferCount;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return statistics;
+    }
     auto FrameGraph::GetStatisticsManager() const -> const FGStatisticsManager& {
         MKT_BEGIN_PROFILER();
         return *mStatisticsManager;

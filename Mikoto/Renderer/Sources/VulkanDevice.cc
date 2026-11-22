@@ -609,6 +609,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::CreateBinarySemaphore() -> BinarySemaphoreHandle {
         MKT_BEGIN_PROFILER();
+
         BinarySemaphoreHandle semaphore{ core::Ref<BinarySemaphore>::New() };
 
         if ( semaphore.IsEmpty() ) {
@@ -1246,6 +1247,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::InitDescriptorAllocator() -> void {
         MKT_BEGIN_PROFILER();
+
         Context* ctx{ core::checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
         mDescriptorAllocatorPool = IDescriptorAllocatorPool::Create( mLogicalDevice, ctx->GetMaxFramesInFlight() );
 
@@ -1275,6 +1277,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::InitDummyResources() -> void {
         MKT_BEGIN_PROFILER();
+
         mDummySampler = CreateSampler( renderer::rhi::SamplerCreateDescription{} );
         mEmptyBindingLayout = CreateBindingLayout( renderer::rhi::BindingLayoutDescription{} );
         mEmptyPipelineLayout = CreatePipelineLayout( renderer::rhi::PipelineLayoutCreateDescription{} );
@@ -1282,6 +1285,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::DestroyDummyResources() -> void {
         MKT_BEGIN_PROFILER();
+
         mDummySampler.Reset();
         mEmptyBindingLayout.Reset();
         mEmptyPipelineLayout.Reset();
@@ -1289,6 +1293,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::SerializePipelineCache() -> void {
         MKT_BEGIN_PROFILER();
+
         core::usize dataSize{};
         vkGetPipelineCacheData( mLogicalDevice, mPipelineCache, MKT_ADDRESSOF( dataSize ), nullptr );
 
@@ -1349,7 +1354,6 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Device::GetDevice() -> VkDevice {
-        MKT_BEGIN_PROFILER();
         return mLogicalDevice;
     }
 
@@ -1362,6 +1366,11 @@ namespace mikoto::renderer::vulkan {
             ( core::f32 )math::random::GetRandomReal( 0.0f, 1.0f ),
             ( core::f32 )math::random::GetRandomReal( 0.0f, 1.0f ),
             0.1f );
+    }
+
+    auto CommandList::GetStatistics() const -> const rhi::CommandListStatistics& {
+        static const rhi::CommandListStatistics empty{};
+        return mRecordingContext.empty() ? empty : mRecordingContext[mRecordingContextIndex].mStatistics;
     }
 
     auto CommandList::Open( const renderer::rhi::CommandListBeginDescription& desc ) -> void {
@@ -1438,6 +1447,7 @@ namespace mikoto::renderer::vulkan {
 #endif
         vkCmdEndDebugUtilsLabelEXT( mCurrentCommandBuffer );
         MKT_VK_CHECK( vkEndCommandBuffer( mCurrentCommandBuffer ) );
+
         mRecording = false;
         mReadyForSubmission = true;
         mBoundRayTracingPipeline = nullptr;
@@ -1474,6 +1484,12 @@ namespace mikoto::renderer::vulkan {
         VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
         dependency.bufferMemoryBarrierCount = 1;
         dependency.pBufferMemoryBarriers = &barrier;
+
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependency.imageMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependency.bufferMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += dependency.memoryBarrierCount;
+        
         vkCmdPipelineBarrier2( mCurrentCommandBuffer, &dependency );
     }
 
@@ -1505,6 +1521,12 @@ namespace mikoto::renderer::vulkan {
         VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
         dependency.bufferMemoryBarrierCount = 1;
         dependency.pBufferMemoryBarriers = &barrier;
+
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependency.imageMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependency.bufferMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += dependency.memoryBarrierCount;
+
         vkCmdPipelineBarrier2( mCurrentCommandBuffer, &dependency );
     }
 
@@ -1549,6 +1571,12 @@ namespace mikoto::renderer::vulkan {
         VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
         dependency.imageMemoryBarrierCount = 1;
         dependency.pImageMemoryBarriers = &barrier;
+
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependency.imageMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependency.bufferMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += dependency.memoryBarrierCount;
+
         vkCmdPipelineBarrier2( mCurrentCommandBuffer, &dependency );
     }
 
@@ -1598,6 +1626,12 @@ namespace mikoto::renderer::vulkan {
         VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
         dependency.imageMemoryBarrierCount = 1;
         dependency.pImageMemoryBarriers = &barrier;
+
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependency.imageMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependency.bufferMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += dependency.memoryBarrierCount;
+
         vkCmdPipelineBarrier2( mCurrentCommandBuffer, &dependency );
     }
 
@@ -1619,6 +1653,7 @@ namespace mikoto::renderer::vulkan {
 
         auto bitstream{ decoder->CreateBitstream( description.mPicture->GetBitstream() ) };
         const auto& bitstreamBuffer{ bitstream->GetBuffer() };
+
         RetainResource( decoder );
         RetainResource( bitstreamBuffer.GetPtr() );
         RetainResource( description.mOutput.GetPtr() );
@@ -1724,6 +1759,10 @@ namespace mikoto::renderer::vulkan {
         depInfo.bufferMemoryBarrierCount = core::as<core::u32>( mBufferBarriers.size() );
         depInfo.pBufferMemoryBarriers = mBufferBarriers.data();
 
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += depInfo.imageMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += depInfo.bufferMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += depInfo.memoryBarrierCount;
         vkCmdPipelineBarrier2( mCurrentCommandBuffer, &depInfo );
 
         mBufferBarriers.clear();
@@ -1770,6 +1809,11 @@ namespace mikoto::renderer::vulkan {
             .bufferMemoryBarrierCount = 1,
             .pBufferMemoryBarriers = MKT_ADDRESSOF( barrier )
         };
+
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependencyInfo.imageMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependencyInfo.bufferMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += dependencyInfo.memoryBarrierCount;
         vkCmdPipelineBarrier2( mCurrentCommandBuffer, MKT_ADDRESSOF( dependencyInfo ) );
 
         if ( newState != renderer::rhi::ResourceStates::eUnknown ) {
@@ -1814,6 +1858,13 @@ namespace mikoto::renderer::vulkan {
             .imageMemoryBarrierCount = 1,
             .pImageMemoryBarriers = MKT_ADDRESSOF( barrier )
         };
+
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
+        
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependencyInfo.imageMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependencyInfo.bufferMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += dependencyInfo.memoryBarrierCount;
+
         vkCmdPipelineBarrier2( mCurrentCommandBuffer, MKT_ADDRESSOF( dependencyInfo ) );
 
         if ( newState != renderer::rhi::ResourceStates::eUnknown ) {
@@ -1849,6 +1900,7 @@ namespace mikoto::renderer::vulkan {
         regions.push_back( pShaderTable->GetRegion( ShaderTable::AddressRegion::eHitGroup ) );
         regions.push_back( pShaderTable->GetRegion( ShaderTable::AddressRegion::eCallable ) );
 
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mDispatchCallCount;
         vkCmdTraceRaysKHR( mCurrentCommandBuffer,
             &regions[0],
             &regions[1],
@@ -1972,6 +2024,10 @@ namespace mikoto::renderer::vulkan {
         dependency.pImageMemoryBarriers = images.data();
 
         if ( dependency.bufferMemoryBarrierCount || dependency.imageMemoryBarrierCount ) {
+            ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
+            mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependency.imageMemoryBarrierCount;
+            mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependency.bufferMemoryBarrierCount;
+            mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += dependency.memoryBarrierCount;
             vkCmdPipelineBarrier2( mCurrentCommandBuffer, &dependency );
         }
     }
@@ -2188,11 +2244,13 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::Draw( const renderer::rhi::DrawArguments& args ) -> void {
         MKT_BEGIN_PROFILER();
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mDrawCallCount;
         vkCmdDraw( mCurrentCommandBuffer, args.mVertexCount, args.mInstanceCount, args.mFirstVertex, args.mFirstInstance );
     }
 
     auto CommandList::DrawIndexed( const renderer::rhi::DrawArguments& args ) -> void {
         MKT_BEGIN_PROFILER();
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mDrawCallCount;
         vkCmdDrawIndexed(
             mCurrentCommandBuffer,
             args.mIndexCount,
@@ -2210,6 +2268,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         Buffer* pIndirectBuffer{ core::checked_cast<Buffer*>( mIndirectBuffer ) };
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mDrawCallCount;
         vkCmdDrawIndirect( mCurrentCommandBuffer,
             *pIndirectBuffer, offset, drawCount, MKT_SIZEOF( VkDrawIndirectCommand ) );
     }
@@ -2222,6 +2281,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         Buffer* pIndirectBuffer{ core::checked_cast<Buffer*>( mIndirectBuffer ) };
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mDrawCallCount;
         vkCmdDrawIndexedIndirect( mCurrentCommandBuffer,
             *pIndirectBuffer, offset, drawCount, MKT_SIZEOF( VkDrawIndexedIndirectCommand ) );
     }
@@ -2333,12 +2393,21 @@ namespace mikoto::renderer::vulkan {
         VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
         dependency.memoryBarrierCount = 1;
         dependency.pMemoryBarriers = &barrier;
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependency.imageMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependency.bufferMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += dependency.memoryBarrierCount;
         vkCmdPipelineBarrier2( mCurrentCommandBuffer, &dependency );
 
         const VkAccelerationStructureBuildRangeInfoKHR *range{ &pAccelStructure->mRange };
         vkCmdBuildAccelerationStructuresKHR( mCurrentCommandBuffer, 1, &build, &range );
 
         // A following TLAS build or ray dispatch must observe these AS writes.
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependency.imageMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependency.bufferMemoryBarrierCount;
+        mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += dependency.memoryBarrierCount;
+
         vkCmdPipelineBarrier2( mCurrentCommandBuffer, &dependency );
 
         pAccelStructure->mBuilt = true;
@@ -2646,6 +2715,7 @@ namespace mikoto::renderer::vulkan {
                 break;
         }
 
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mPipelineBindCount;
         vkCmdBindPipeline( mCurrentCommandBuffer, bindPoint, pipeline->GetNativeHandle( renderer::rhi::ObjectType::Vk_Pipeline ) );
     }
 
@@ -3016,6 +3086,7 @@ namespace mikoto::renderer::vulkan {
             EndRenderPass();
         }
 
+        ++mRecordingContext[mRecordingContextIndex].mStatistics.mDispatchCallCount;
         vkCmdDispatch( mCurrentCommandBuffer, x, y, z );
     }
 
@@ -3328,6 +3399,8 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::ClearState() -> void {
         mIndirectBuffer = nullptr;
+        mRecordingContext[mRecordingContextIndex].mStatistics = {};
+
         ClearState( mRecordingContext[mRecordingContextIndex] );
     }
 
@@ -3340,6 +3413,7 @@ namespace mikoto::renderer::vulkan {
 
         context.mInFlightSubAllocations.clear();
         context.mInFlightResources.clear();
+
 #if defined( MIKOTO_ENABLE_TRACY )
         context.mGpuProfiler.reset();
 #endif

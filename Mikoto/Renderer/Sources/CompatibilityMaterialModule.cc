@@ -51,6 +51,9 @@ namespace mikoto::renderer {
         core::float4 mUVTransform{ 1.0f, 1.0f, 0.0f, 0.0f };
         core::uint4 mUVSets{};
         core::uint4 mMaterial{};
+        core::float4 mCheckerboardColorA{}; // RGB tint, enabled in W.
+        core::float4 mCheckerboardColorB{}; // RGB tint, world-space cell size in W.
+        core::float4 mCheckerboardOffset{};
     };
 
     auto CompatibilityMaterialModule::Initialize( rhi::IGpuDevice* device ) -> void {
@@ -129,6 +132,11 @@ namespace mikoto::renderer {
             parameters.mObject.z = core::as<core::u32>( surface->GetAlphaMask() );
             parameters.mEmission = core::float4{ surface->GetEmissiveFactor() * surface->GetEmissiveStrength(), surface->GetOcclusionStrength() };
             parameters.mUVTransform = surface->GetUvTransform();
+
+            const auto& checker{ surface->GetCheckerboard() };
+            parameters.mCheckerboardColorA = { checker.mColorA, checker.mEnabled ? 1.0f : 0.0f };
+            parameters.mCheckerboardColorB = { checker.mColorB, checker.mCellSize };
+            parameters.mCheckerboardOffset = { checker.mOffset, 0.0f };
             parameters.mUVSets = {
                 core::as<core::u32>( surface->GetBaseColorTextureSet() ),
                 core::as<core::u32>( surface->GetMetallicRoughnessTextureSet() ),

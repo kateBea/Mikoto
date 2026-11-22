@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "Checkerboard_Helpers.slang"
+
 // Decode the glTF surface, then filter hardware intersections for visibility and shadows.
 
 float3 Linear( float3 value ) {
@@ -102,6 +104,12 @@ Surface Evaluate( uint triangle, float2 barycentrics, bool visibilityOnly = fals
     float4 color = a.Color * weights.x + b.Color * weights.y + c.Color * weights.z;
     float4 texel = Map( material.Maps.x, UV( uv, material.UVSets.x ) );
     float4 base = material.Base * float4( Linear( texel.rgb ), texel.a ) * color;
+
+    if ( material.CheckerboardColorA.w != 0.0 ) {
+        // Stochastic camera samples integrate the pattern without raster derivatives.
+        base.rgb *= CheckerboardColor( s.Position, float3( 0.0 ), s.GeometricNormal, material.CheckerboardColorA.rgb,
+            material.CheckerboardColorB, material.CheckerboardOffset.xyz );
+    }
     s.Alpha = saturate( base.a );
     if ( visibilityOnly ) {
         return s;

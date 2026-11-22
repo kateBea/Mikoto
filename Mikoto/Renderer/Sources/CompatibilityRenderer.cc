@@ -182,6 +182,8 @@ namespace mikoto::renderer {
 
         mPasses->mGeometry.ClearDraws();
         commands->Close();
+        mRendererStatistics.mCommands = commands->GetStatistics();
+        mRendererStatistics.mGraphicsDeviceName = mDevice->GetDeviceName();
 
         auto submission{ rhi::SubmitInfo{}.AddCommandList( commands ) };
         RenderSystem::Get()->BatchSubmission( eastl::move( submission ), rhi::QueueType::eGraphics );
@@ -193,6 +195,14 @@ namespace mikoto::renderer {
     }
 
     auto CompatibilityRenderer::SetCullingDebugCamera( const scene::Camera* ) -> void {
+    }
+
+    auto CompatibilityRenderer::SetInfoOverlayEnabled( bool ) -> void {
+        // This renderer has no framegraph; the viewport presents its native counters.
+    }
+
+    auto CompatibilityRenderer::GetStatistics() const -> FrameGraphStatistics {
+        return mRendererStatistics;
     }
 
     auto CompatibilityRenderer::SetEditorOverlaysEnabled( bool enabled ) -> void {

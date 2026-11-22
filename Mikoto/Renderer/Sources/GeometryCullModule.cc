@@ -1186,6 +1186,11 @@ namespace mikoto::renderer {
             material.mHeightMapping = {height.mScale,height.mMidlevel,core::as<float>(height.mMode),core::as<float>(height.mSteps)};
             material.mHeightIndex = textureIndex(material::MapType::eHeight);
             material.mHeightUVSet = height.mUVSet;
+
+            const auto& checker{ pSurfaceMaterial->GetCheckerboard() };
+            material.mCheckerboardColorA = { checker.mColorA, checker.mEnabled ? 1.0f : 0.0f };
+            material.mCheckerboardColorB = { checker.mColorB, checker.mCellSize };
+            material.mCheckerboardOffset = { checker.mOffset, 0.0f };
             material.mClearCoatNormalIndex = textureIndex( material::MapType::eClearCoatNormal );
             material.mOcclusionTextureSet = pSurfaceMaterial->GetOcclusionTextureSet();
             material.mEmissiveTextureSet = pSurfaceMaterial->GetEmissiveTextureSet();

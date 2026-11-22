@@ -24,8 +24,15 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/String.hh>
+#include <Core/LocalizationService.hh>
+#include <Core/SystemStats.hh>
+#include <Core/TimeService.hh>
 
 #include <Assets/Utility.hh>
+#include <Assets/FontFactory.hh>
+
+#include <Text/TextLayout.hh>
 #include <Assets/ImageProcessing.hh>
 #include <Assets/AssetRegistryService.hh>
 
@@ -438,8 +445,215 @@ namespace mikoto::renderer {
             }, false );
     }
 
+    auto DebugModule::SetInfoOverlayEnabled( bool enabled ) -> void {
+        mInfoOverlayEnabled = enabled;
+    }
+
+    auto DebugModule::GatherInfoOverlay( CommandContext& ctx, FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER();
+
+        mInfoQuads.clear();
+
+        if ( !mInfoOverlayEnabled ) {
+            return;
+        }
+
+        if ( mInfoFont.IsEmpty() ) {
+            mInfoFont = asset::AssetRegistryService::Get()->LoadAsset<Font>(
+                filesystem::Path{ "Resources/Fonts/Fira_Sans,Rajdhani/Rajdhani/Rajdhani-Medium.ttf" } );
+        }
+
+        if ( mInfoFont.IsEmpty() ) {
+            return;
+        }
+
+        const auto statistics{ graph.GetStatistics() };
+        const auto& commandsStatistics{ statistics.mCommands };
+
+        const auto frameTime{ core::TimeService::GetPtr()->GetTimeStep( core::TimeUnit::eMilliseconds ) };
+        const auto fps{ frameTime > 0.0 ? 1000.0 / frameTime : 0.0 };
+
+        const auto cpu{ core::SystemStats::GetPtr()->GetCpuName() };
+        const auto budget{ core::TimeService::GetPtr()->GetFrameBudget() };
+
+        // Capture scene work before this overlay's upload and draw add their own commands.
+        const auto contents{ string::Format(
+            fmt::runtime( MKT_LOC( "renderer_info_overlay" ).c_str() ),
+            statistics.mGraphicsDeviceName, cpu, fps, frameTime, budget, 1000.0 / budget,
+            statistics.mExecutedPassCount, statistics.mPassCount,
+            statistics.mPipelineCount, commandsStatistics.mPipelineBindCount,
+            commandsStatistics.mDrawCallCount, commandsStatistics.mIndirectDrawCallCount,
+            commandsStatistics.mDispatchCallCount, commandsStatistics.mRayDispatchCallCount,
+            commandsStatistics.mBarriers.mImageCount, commandsStatistics.mBarriers.mBufferCount,
+            commandsStatistics.mBarriers.mMemoryCount, commandsStatistics.mBarriers.mCallCount ) };
+
+        eastl::vector<core::u32> codepoints{};
+        text::ForEachUtf8CodePoint( contents, [&]( core::u32 point ) {
+            codepoints.push_back( point );
+        } );
+
+        asset::FontFactory::Get()->EnsureGlyphs( *mInfoFont, { codepoints.data(), codepoints.size() } );
+
+        const auto [width, height]{ InferDimensions( mResolution ) };
+
+        // Keep the overlay's apparent size when the render target is scaled
+        // into the viewport, using its 1080p layout as the reference.
+        const auto overlayScale{ core::as<core::f32>( height ) / 1080.0f };
+        const auto layout{ text::LayoutText( *mInfoFont,
+            std::span<const core::u32>{ codepoints.data(), codepoints.size() },
+            { 18.0f * overlayScale, 0, 1.15f, text::Alignment::eLeft, true }, ( kMaxInfoOverlayQuads - 1 ) / 2 ) };
+
+        const auto projection{ text::ScreenTextProjection( width, height ) };
+        const core::float2 padding{ core::float2{ 12.0f, 10.0f } * overlayScale };
+        
+        const auto panelSize{ layout.mMaximum - layout.mMinimum + padding * 2.0f };
+
+        const core::float2 panelOrigin{
+            eastl::max( 8.0f * overlayScale, static_cast<float>( width ) - panelSize.x - 12.0f * overlayScale ),
+            eastl::max( 8.0f * overlayScale, static_cast<float>( height ) - panelSize.y - 12.0f * overlayScale )
+        };
+        const auto textOrigin{ panelOrigin + padding - layout.mMinimum };
+
+        const auto appendQuad{ [&]( core::float2 position, core::float2 size, core::float4 color ) -> CanvasQuad& {
+            auto& quad{ mInfoQuads.emplace_back() };
+            quad.mPositions[0] = projection * core::float4{ position, 0, 1 };
+            quad.mPositions[1] = projection * core::float4{ position + core::float2{ size.x, 0 }, 0, 1 };
+            quad.mPositions[2] = projection * core::float4{ position + size, 0, 1 };
+            quad.mPositions[3] = projection * core::float4{ position + core::float2{ 0, size.y }, 0, 1 };
+            quad.mSize = size;
+            quad.mColor = color;
+            return quad;
+        } };
+
+        appendQuad( panelOrigin, panelSize, { 0.035f, 0.035f, 0.04f, 0.08f } ).mRounding = 4.0f * overlayScale;
+
+        ankerl::unordered_dense::map<const rhi::ITexture*, core::u32> atlasDescriptors{};
+
+        for ( const auto& glyphQuad: layout.mGlyphs ) {
+            const auto& glyph{ mInfoFont->GetGlyph( glyphQuad.mCodepoint ) };
+            const auto atlas{ mInfoFont->GetAtlas( glyph.mAtlasPage ) };
+
+            if ( atlas.IsEmpty() ) {
+                continue;
+            }
+
+            const auto [descriptor, inserted]{ atlasDescriptors.try_emplace( atlas.GetPtr(), 0 ) };
+
+            if ( inserted ) {
+                descriptor->second = ctx.UseImportedTexture( ctx.ImportSampledTexture( atlas ) );
+            }
+
+            const auto bounds{ glyph.mAtlasBounds };
+            
+            auto& quad{ appendQuad( textOrigin + glyphQuad.mPosition, glyphQuad.mSize, { 0.015f, 0.015f, 0.02f, 0.95f } ) };
+            quad.mUV = { bounds.x / atlas->GetWidth(), bounds.w / atlas->GetHeight(),
+                bounds.z / atlas->GetWidth(), bounds.y / atlas->GetHeight() };
+
+            quad.mTexture = descriptor->second;
+            quad.mStroke = 0.65f * overlayScale;
+            quad.mDistanceRange = mInfoFont->GetDistanceRange();
+            quad.mKind = glyph.mImageType == GlyphImageType::eColor ? 3 : 2;
+        }
+
+        // Draw every outline first so neighbouring glyphs cannot cover the light foreground.
+        const auto outlineEnd{ mInfoQuads.size() };
+
+        for ( core::usize index{ 1 }; index < outlineEnd; ++index ) {
+            auto quad{ mInfoQuads[index] };
+            quad.mColor = { 0.92f, 0.92f, 0.92f, 1.0f };
+            quad.mStroke = 0.0f;
+            mInfoQuads.push_back( quad );
+        }
+
+        ctx.CopyBuffer( mInfoBuffer, 0, mInfoQuads.data(), mInfoQuads.size() * sizeof( CanvasQuad ) );
+    }
+
+    auto DebugModule::RegisterInfoOverlayPass( FrameGraph& graph ) -> void {
+        MKT_BEGIN_PROFILER();
+
+        mInfoBuffer = graph.Create( FGBufferDescription{}
+            .SetName( "DebugInfoOverlay_Quads" )
+            .SetElementsSize( kMaxInfoOverlayQuads, sizeof( CanvasQuad ) )
+            .SetUsage( rhi::BufferUsageFlagsBits::Structured | rhi::BufferUsageFlagsBits::CopyDest )
+            .SetHeapType( rhi::HeapType::eDeviceLocal ) );
+
+        const auto sampler{ graph.Create( FGSamplerDescription{}
+            .SetFilter( rhi::SamplerFilter::eLinear )
+            .SetWrap( rhi::SamplerWrapMode::eClampToEdge ) ) };
+
+        const auto pipeline{ graph.Create( FGPipelineDescription{}
+            .SetName( "DebugInfoOverlay" )
+            .SetPipelineType( rhi::PipelineType::eGraphics )
+            .SetTopology( rhi::PrimitiveTopology::eTriangleList )
+            .SetCullMode( rhi::CullMode::eNone )
+            .SetBlendEnable( true )
+            .SetDepthTest( false )
+            .SetDepthWrite( false )
+            .AddColorFormat( rhi::Format::eBGRA8_UNORM )
+            .PushShader( "Canvas_Vert.slang", FGStageType::eVertex )
+            .PushShader( "Canvas_Frag.slang", FGStageType::ePixel ) ) };
+
+        // The upload must follow independent compute/debug branches as well as final-image writers.
+        eastl::vector<eastl::string> precedingPasses{};
+
+        for ( const auto& [name, pass]: graph.GetNodeControl().mNodes ) {
+            precedingPasses.push_back( name );
+        }
+
+        graph.RegisterPass(
+            "DebugInfoOverlay_Upload",
+            FGPassType::eTransfer,
+            [this]( FGNodeBuilder& builder, core::Blackboard& ) {
+                builder.UseResource( mInfoBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+            },
+            [this, &graph]( CommandContext& ctx, core::Blackboard& ) {
+                GatherInfoOverlay( ctx, graph );
+            } );
+
+        auto& upload{ graph.GetNodeControl().mNodes.at( "DebugInfoOverlay_Upload" ) };
+
+        for ( const auto& name: precedingPasses ) {
+            upload.mDependsOn.insert( name );
+        }
+
+        graph.RegisterPass(
+            "DebugOverlayPass",
+            FGPassType::eGraphics,
+            [this]( FGNodeBuilder& builder, core::Blackboard& b ) {
+                builder.UseResource( mInfoBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( mInfoBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( b.Get<PresentationPassData>().mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+            },
+            [this, sampler, pipeline]( CommandContext& ctx, core::Blackboard& b ) {
+                if ( !mInfoOverlayEnabled || mInfoQuads.empty() ) {
+                    return;
+                }
+
+                const auto [width, height]{ InferDimensions( mResolution ) };
+
+                ctx.BeginRender( RenderBeginDescription{}
+                    .SetRenderArea( rhi::Rect{ core::as<core::i32>( width ), core::as<core::i32>( height ) } )
+                    .AddRenderTarget( b.Get<PresentationPassData>().mColorImage, rhi::Color{}, rhi::LoadOp::eLoad ) );
+                ctx.SetViewportState( rhi::ViewportState{}
+                    .AddViewportAndScissorRect( rhi::Viewport( width, height ) ) );
+
+                struct DrawParameters {
+                    SPointer mQuads{};
+                    core::u32 mSampler{};
+                    core::u32 mOffset{};
+                } parameters{
+                    .mQuads = ctx.GetDeviceBufferAddress( mInfoBuffer ),
+                    .mSampler = ctx.PushSampler( sampler )
+                };
+
+                ctx.BindPipeline( pipeline );
+                ctx.PushConstants( parameters );
+                ctx.Draw( 6, core::as<core::u32>( mInfoQuads.size() ) );
+                ctx.EndRender();
+            } );
+    }
     auto DebugModule::RegisterSimpleComputePass( FrameGraph &graph ) -> void {
-        MKT_BEGIN_PROFILER_NAMED();
+        MKT_BEGIN_PROFILER();
 
         struct SimpleCompute {
             FGBufferHandle mComputeBuffer{};

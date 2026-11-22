@@ -35,18 +35,7 @@ namespace mikoto::renderer {
         auto RegisterRenderPass( FrameGraph& graph ) -> void;
 
     private:
-        struct Quad {
-            core::float4 mPositions[4]{};
-            core::float4 mColor{};
-            core::float4 mUV{0, 0, 1, 1};
-            core::float2 mSize{};
-            core::f32 mRounding{};
-            core::f32 mStroke{};
-            core::u32 mTexture{};
-            core::u32 mKind{};
-            core::f32 mDistanceRange{};
-            core::f32 mPadding{};
-        };
+        using Quad = CanvasQuad;
 
         static constexpr core::usize kMaxQuads{ 65536 };
 

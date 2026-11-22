@@ -23,6 +23,7 @@
 #include <Math/Math.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Gui/Canvas.hh>
 
 namespace mikoto::scene {
     class Scene;
@@ -93,10 +94,21 @@ namespace mikoto::renderer {
         auto RegisterTexturePass( FrameGraph& graph ) -> void;
         auto RegisterSimpleComputePass( FrameGraph& graph ) -> void;
 
-    private:
-        auto GatherArmatures() -> void;
+        auto SetInfoOverlayEnabled( bool enabled ) -> void;
+        auto RegisterInfoOverlayPass( FrameGraph& graph ) -> void;
 
     private:
+        auto GatherArmatures() -> void;
+        auto GatherInfoOverlay( CommandContext& ctx, FrameGraph& graph ) -> void;
+
+    private:
+        static constexpr core::usize kMaxInfoOverlayQuads{ 4096 };
+
+        bool mInfoOverlayEnabled{};
+        FontHandle mInfoFont{};
+        FGBufferHandle mInfoBuffer{};
+        eastl::vector<CanvasQuad> mInfoQuads{};
+
         static constexpr core::usize kMaxArmatureBones{ 32'768 };
         
         const scene::Scene* mScene{};

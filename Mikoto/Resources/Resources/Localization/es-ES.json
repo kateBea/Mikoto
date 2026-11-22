@@ -2378,5 +2378,15 @@
   "particle_animation": "Animación",
   "particle_fade_enabled": "Desvanecimiento",
   "particle_fade_in": "Entrada (% de vida)",
-  "particle_fade_out": "Salida (% de vida)"
+  "particle_fade_out": "Salida (% de vida)",
+  "viewport_renderer_info": "Información del renderizador",
+  "renderer_info_overlay": "Renderizador\nGPU: {}\nCPU: {}\n{:.1f} FPS | {:.2f} ms\nPresupuesto: {:.2f} ms ({:.0f} FPS)\nPasadas: {} / {}\nPipelines: {} | enlaces: {}\nLlamadas de dibujo: {} | indirectas: {}\nDespachos: {} | rayos: {}\nBarreras de imagen: {}\nBarreras de búfer: {}\nBarreras de memoria: {}\nEnvíos de barreras (lotes): {}",
+  "material_checkerboard": "Damero procedural",
+  "material_checkerboard_enabled": "Activado",
+  "material_checkerboard_cell_size": "Tamaño de celda (unidades)",
+  "material_checkerboard_color_a": "Color A",
+  "material_checkerboard_color_b": "Color B",
+  "material_checkerboard_offset": "Desplazamiento global",
+  "world_demo_Animation_Playground": "Zona de pruebas de animación",
+  "world_demo_Animation_Playground_description": "Explora escaleras y terreno irregular con una cámara orbital, transiciones entre reposo, marcha y carrera, IK de pies y ejemplos de orientación y alcance."
 }

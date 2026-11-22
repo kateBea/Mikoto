@@ -35,6 +35,8 @@ namespace mikoto::renderer {
         auto SetMainCamera( const scene::SceneCamera* camera ) -> void override;
         auto SetCullingDebugCamera( const scene::Camera* camera ) -> void override;
         auto SetEditorOverlaysEnabled( bool enabled ) -> void override;
+        auto SetInfoOverlayEnabled( bool enabled ) -> void override;
+        MKT_NODISCARD auto GetStatistics() const -> FrameGraphStatistics override;
         auto SetOutputForPreview( bool preview ) -> void override;
         auto SetClearColor( const rhi::Color& color ) -> void override;
 
@@ -97,6 +99,8 @@ namespace mikoto::renderer {
         auto UpdateTargets() -> void;
         MKT_NODISCARD auto RecordScenePass( rhi::ICommandList* commands, const scene::Scene* scene ) -> bool;
         MKT_NODISCARD auto RecordOutputPasses( rhi::ICommandList* commands, bool drawOutline ) -> rhi::TextureHandle;
+
+        FrameGraphStatistics mRendererStatistics{};
 
         rhi::IGpuDevice* mDevice{};
         const scene::SceneCamera* mCamera{};

@@ -961,6 +961,11 @@ namespace mikoto::renderer {
         result.mSpecular = source.GetSpecularFactor();
         result.mUvTransform = source.GetUvTransform();
 
+        const auto& checker{ source.GetCheckerboard() };
+        result.mCheckerboardColorA = { checker.mColorA, checker.mEnabled ? 1.0f : 0.0f };
+        result.mCheckerboardColorB = { checker.mColorB, checker.mCellSize };
+        result.mCheckerboardOffset = { checker.mOffset, 0.0f };
+
         const auto& height{ source.GetHeightMapping() };
         result.mHeightMapping = { height.mScale, height.mMidlevel, as<float>( height.mMode ), as<float>( height.mSteps ) };
         result.mHeightInfo = { materialTextureIndex( material::MapType::eHeight ), as<i32>( height.mUVSet ), 0, 0 };

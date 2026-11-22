@@ -1,0 +1,41 @@
+{
+  "Version": 1,
+  "Project": "Animation Playground",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Animation_Playground.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "PathTracing": false,
+    "RayTracedAmbientOcclusion": false,
+    "SsaoEnabled": true,
+    "ShadowDistance": 70,
+    "BloomEnabled": false
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      18,
+      15,
+      23
+    ],
+    "Direction": [
+      -0.5,
+      -0.4,
+      -0.768
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 60,
+    "NearPlane": 0.05,
+    "FarPlane": 180,
+    "MovementSpeed": 9,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

@@ -60,6 +60,14 @@ namespace mikoto::renderer::d3d11 {
     using namespace mikoto::renderer::rhi;
 
 
+    auto CommandList::GetStatistics() const -> const rhi::CommandListStatistics& {
+        return mStatistics;
+    }
+
+    auto CommandList::DecodeVideo( const rhi::VideoDecodeDescription& ) -> void {
+        MKT_THROW_RUNTIME_ERROR( "Video decoding is not supported by the D3D11 command-list backend." );
+    }
+
     auto CommandList::AcquireResource( const rhi::BufferBarrierDescription &, rhi::IQueue * ) -> void {
         // This backend has no explicit queue-family ownership to transfer.
     }
@@ -599,6 +607,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto CommandList::ClearState() -> void {
+        mStatistics = {};
         MKT_BEGIN_PROFILER();
         mDeviceContextDeferred->ClearState();
         MarkSubmitted();
@@ -730,6 +739,8 @@ namespace mikoto::renderer::d3d11 {
         if ( pipeline->GetPipelineType() != renderer::rhi::PipelineType::eGraphics ) {
             return;
         }
+
+        ++mStatistics.mPipelineBindCount;
 
         GraphicsPipeline *d3d11Pipeline{ core::checked_cast<GraphicsPipeline *>( pipeline ) };
         const auto &description{ d3d11Pipeline->GetDescription() };
@@ -883,6 +894,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto CommandList::Draw( const renderer::rhi::DrawArguments &args ) -> void {
+        ++mStatistics.mDrawCallCount;
         MKT_BEGIN_PROFILER();
         mDeviceContextDeferred->DrawInstanced( args.mVertexCount, args.mInstanceCount, args.mFirstVertex, args.mFirstInstance );
     }
@@ -893,6 +905,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto CommandList::DrawIndexed( const renderer::rhi::DrawArguments &args ) -> void {
+        ++mStatistics.mDrawCallCount;
         MKT_BEGIN_PROFILER();
         mDeviceContextDeferred->DrawIndexedInstanced(
             args.mIndexCount,   // IndexCountPerInstance
@@ -904,12 +917,14 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto CommandList::DrawIndirect( core::u32 offset, core::u32 drawCount ) -> void {
+        ++mStatistics.mDrawCallCount;
         MKT_BEGIN_PROFILER();
         ID3D11Buffer *d3dBuffer{ mCurrentIndirectBuffer->GetNativeHandle( renderer::rhi::ObjectType::D3D11_Buffer ) };
         mDeviceContextDeferred->DrawInstancedIndirect( d3dBuffer, 0 );
     }
 
     auto CommandList::DrawIndexedIndirect( core::u32 offset, core::u32 drawCount ) -> void {
+        ++mStatistics.mDrawCallCount;
         MKT_BEGIN_PROFILER();
         ID3D11Buffer *d3dBuffer{ mCurrentIndirectBuffer->GetNativeHandle( renderer::rhi::ObjectType::D3D11_Buffer ) };
         mDeviceContextDeferred->DrawIndexedInstancedIndirect( d3dBuffer, 0 );
@@ -924,6 +939,7 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto CommandList::Dispatch( core::u32 groupsX, core::u32 groupsY, core::u32 groupsZ ) -> void {
+        ++mStatistics.mDispatchCallCount;
         MKT_BEGIN_PROFILER();
         mDeviceContextDeferred->Dispatch( groupsX, groupsY, groupsZ );
     }

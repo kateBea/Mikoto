@@ -1,0 +1,6396 @@
+{
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "Scene": "Animation Playground",
+  "EnvironmentLightingSource": 0,
+  "ToneMapping": 0,
+  "Objects": [
+    {
+      "ID": 1,
+      "Type": 6,
+      "TagComponent": {
+        "Name": "Orbit camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          3.03,
+          10.17
+        ],
+        "Rotation": [
+          -20,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 60,
+        "Near": 0.05,
+        "Far": 180,
+        "Main": true,
+        "FixedAspect": false,
+        "Viewport": [
+          1920,
+          1080,
+          0
+        ],
+        "ClearFlags": 1,
+        "ClearColor": [
+          0.025,
+          0.035,
+          0.05,
+          1
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1,
+        "Vignette": {
+          "Enabled": false
+        },
+        "SkyboxBlur": 1
+      }
+    },
+    {
+      "ID": 2,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Playground sun",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 0,
+        "Directional": {
+          "Color": [
+            1,
+            0.95,
+            0.87
+          ],
+          "Intensity": 3,
+          "Direction": [
+            0.45,
+            -0.82,
+            -0.35
+          ],
+          "AngularRadius": 0.5,
+          "CastShadows": true
+        }
+      }
+    },
+    {
+      "ID": 3,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Large procedural checkerboard ground",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          -0.25,
+          -1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          36,
+          0.5,
+          32
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 4,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Large procedural checkerboard ground / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 0
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 5,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / step 1",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.1,
+          -2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.2,
+          0.85
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 6,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / step 1 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 7,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / nosing 1",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.20800000000000002,
+          -1.61
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.016,
+          0.035
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 8,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / nosing 1 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 4
+          }
+        }
+      ]
+    },
+    {
+      "ID": 9,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / step 2",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.2,
+          -2.85
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.4,
+          0.85
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 10,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / step 2 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 11,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / nosing 2",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.40800000000000003,
+          -2.46
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.016,
+          0.035
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 12,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / nosing 2 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 4
+          }
+        }
+      ]
+    },
+    {
+      "ID": 13,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / step 3",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.30000000000000004,
+          -3.7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.6000000000000001,
+          0.85
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 14,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / step 3 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 15,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / nosing 3",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.6080000000000001,
+          -3.31
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.016,
+          0.035
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 16,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / nosing 3 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 4
+          }
+        }
+      ]
+    },
+    {
+      "ID": 17,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / step 4",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.4,
+          -4.55
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.8,
+          0.85
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 18,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / step 4 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 19,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / nosing 4",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.808,
+          -4.16
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.016,
+          0.035
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 20,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / nosing 4 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 4
+          }
+        }
+      ]
+    },
+    {
+      "ID": 21,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / step 5",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.5,
+          -5.4
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          1,
+          0.85
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 22,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / step 5 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 23,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / nosing 5",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          1.008,
+          -5.01
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.016,
+          0.035
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 24,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / nosing 5 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 4
+          }
+        }
+      ]
+    },
+    {
+      "ID": 25,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / step 6",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.6000000000000001,
+          -6.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          1.2000000000000002,
+          0.85
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 26,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / step 6 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 27,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / nosing 6",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          1.2080000000000002,
+          -5.86
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.016,
+          0.035
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 28,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / nosing 6 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 4
+          }
+        }
+      ]
+    },
+    {
+      "ID": 29,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / step 7",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.7000000000000001,
+          -7.1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          1.4000000000000001,
+          0.85
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 30,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / step 7 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 31,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / nosing 7",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          1.4080000000000001,
+          -6.71
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.016,
+          0.035
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 32,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / nosing 7 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 4
+          }
+        }
+      ]
+    },
+    {
+      "ID": 33,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / step 8",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.8,
+          -7.95
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          1.6,
+          0.85
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 34,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / step 8 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 35,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Stairs / nosing 8",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          1.608,
+          -7.5600000000000005
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.016,
+          0.035
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 36,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Stairs / nosing 8 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 4
+          }
+        }
+      ]
+    },
+    {
+      "ID": 37,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Upper landing",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.8,
+          -9.55
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          1.6,
+          2.45
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 38,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Upper landing / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 39,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Landing connection",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          3,
+          0.8,
+          -9.55
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2,
+          1.6,
+          2.45
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 40,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Landing connection / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 41,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Return ramp",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          6,
+          0.8,
+          -5.25
+        ],
+        "Rotation": [
+          10.1,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          0.2,
+          9.1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 42,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Return ramp / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 43,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Uneven foot placement 0",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          0.04,
+          1
+        ],
+        "Rotation": [
+          0,
+          0,
+          -3
+        ],
+        "Scale": [
+          3,
+          0.08,
+          0.9
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 44,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Uneven foot placement 0 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 45,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Uneven foot placement 1",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          0.0675,
+          -0.050000000000000044
+        ],
+        "Rotation": [
+          0,
+          0,
+          3
+        ],
+        "Scale": [
+          3,
+          0.135,
+          0.9
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 46,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Uneven foot placement 1 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 47,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Uneven foot placement 2",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          0.095,
+          -1.1
+        ],
+        "Rotation": [
+          0,
+          0,
+          -3
+        ],
+        "Scale": [
+          3,
+          0.19,
+          0.9
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 48,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Uneven foot placement 2 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 49,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Uneven foot placement 3",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          0.04,
+          -2.1500000000000004
+        ],
+        "Rotation": [
+          0,
+          0,
+          3
+        ],
+        "Scale": [
+          3,
+          0.08,
+          0.9
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 50,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Uneven foot placement 3 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 51,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Uneven foot placement 4",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          0.0675,
+          -3.2
+        ],
+        "Rotation": [
+          0,
+          0,
+          -3
+        ],
+        "Scale": [
+          3,
+          0.135,
+          0.9
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 52,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Uneven foot placement 4 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 53,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Uneven foot placement 5",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          0.095,
+          -4.25
+        ],
+        "Rotation": [
+          0,
+          0,
+          3
+        ],
+        "Scale": [
+          3,
+          0.19,
+          0.9
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 54,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Uneven foot placement 5 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 55,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Uneven foot placement 6",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          0.04,
+          -5.300000000000001
+        ],
+        "Rotation": [
+          0,
+          0,
+          -3
+        ],
+        "Scale": [
+          3,
+          0.08,
+          0.9
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 56,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Uneven foot placement 6 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 57,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "STAIRS + FOOT IK sign",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          2.55,
+          -11.1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          5.1,
+          1.3,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 58,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "STAIRS + FOOT IK sign / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 3
+          }
+        }
+      ]
+    },
+    {
+      "ID": 59,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "STAIRS + FOOT IK title",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          2.94,
+          -11.025
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "STAIRS + FOOT IK",
+        "Color": [
+          1,
+          0.72,
+          0.32,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.19,
+        "WorldSize": 0.19,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 60,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "STAIRS + FOOT IK explanation",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          2.58,
+          -11.02
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "Walk up the steps and down the ramp.\nI toggles the native two-bone foot IK.\nChecker size stays constant in world space.",
+        "Color": [
+          0.9,
+          0.94,
+          0.97,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.115,
+        "WorldSize": 0.115,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 61,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "UNEVEN GROUND sign",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          2.55,
+          -7.7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.2,
+          1.3,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 62,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "UNEVEN GROUND sign / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 3
+          }
+        }
+      ]
+    },
+    {
+      "ID": 63,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "UNEVEN GROUND title",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          2.94,
+          -7.625
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "UNEVEN GROUND",
+        "Color": [
+          1,
+          0.72,
+          0.32,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.19,
+        "WorldSize": 0.19,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 64,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "UNEVEN GROUND explanation",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          2.58,
+          -7.62
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "Compare foot placement across low blocks.\nSwinging feet fade out of the constraint.",
+        "Color": [
+          0.9,
+          0.94,
+          0.97,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.115,
+        "WorldSize": 0.115,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 65,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Player",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.05,
+          5
+        ],
+        "Rotation": [
+          0,
+          180,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 145,
+          "Type": 0,
+          "TagComponent": {
+            "Name": "Player visual",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0,
+              0,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": true
+          },
+          "Children": [
+            {
+              "ID": 66,
+              "Type": 5,
+              "TagComponent": {
+                "Name": "Player / Object_6",
+                "Visibility": true
+              },
+              "TransformComponent": {
+                "Local Transform": [
+                  [
+                    0.009948707500316236,
+                    0,
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    0.009948707500316236,
+                    2.2090568264224143e-18,
+                    0
+                  ],
+                  [
+                    0,
+                    -2.2090568264224143e-18,
+                    0.009948707500316236,
+                    0
+                  ],
+                  [
+                    -2.6655413112378242e-8,
+                    0.0032145593396110607,
+                    -0.016524171460887357,
+                    1
+                  ]
+                ],
+                "Uniform Scale": false
+              },
+              "Children": [],
+              "MeshComponent": {
+                "MeshIndex": 0,
+                "ModelPath": "../Assets/Models/PlayerXbot.gltf"
+              },
+              "SkinnedMeshRenderer": {
+                "AnimatorID": 145
+              }
+            },
+            {
+              "ID": 67,
+              "Type": 5,
+              "TagComponent": {
+                "Name": "Player / Object_7",
+                "Visibility": true
+              },
+              "TransformComponent": {
+                "Local Transform": [
+                  [
+                    0.009948707500316236,
+                    0,
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    0.009948707500316236,
+                    2.2090568264224143e-18,
+                    0
+                  ],
+                  [
+                    0,
+                    -2.2090568264224143e-18,
+                    0.009948707500316236,
+                    0
+                  ],
+                  [
+                    -2.6655413112378242e-8,
+                    0.0032145593396110607,
+                    -0.016524171460887357,
+                    1
+                  ]
+                ],
+                "Uniform Scale": false
+              },
+              "Children": [],
+              "MeshComponent": {
+                "MeshIndex": 1,
+                "ModelPath": "../Assets/Models/PlayerXbot.gltf"
+              },
+              "SkinnedMeshRenderer": {
+                "AnimatorID": 145
+              }
+            }
+          ],
+          "AnimatorComponent": {
+            "ID": 145,
+            "ModelPath": "../Assets/Models/PlayerXbot.gltf",
+            "Clip": "Idle",
+            "Playing": true,
+            "ControllerPlaying": false
+          }
+        }
+      ],
+      "CharacterControllerComponent": {
+        "ControllerType": 0,
+        "Radius": 0.26,
+        "HalfHeight": 0.62,
+        "MaxSlopeAngle": 0.85,
+        "MaxStepHeight": 0.3,
+        "MaxStrength": 120,
+        "GravityFactor": 1,
+        "StickToFloor": true,
+        "Enabled": true
+      },
+      "ScriptComponent": {
+        "Language": "CSharp",
+        "ScriptPath": "../Assets/Scripts/CSharp/AnimationPlayground.cs",
+        "ClassName": "AnimationPlaygroundPlayer",
+        "Properties": "{}"
+      }
+    },
+    {
+      "ID": 68,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Start controls",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.03,
+          7.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "ANIMATION PLAYGROUND\nWASD move  |  RMB + mouse orbit  |  Wheel zoom\nShift run  |  Space jump  |  I foot IK  |  R reset",
+        "Color": [
+          0.9,
+          0.94,
+          0.97,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.18,
+        "WorldSize": 0.18,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 69,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Exhibit base -12 -1",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          0.15,
+          -1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          3.8,
+          0.3,
+          3
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 70,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Exhibit base -12 -1 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 2
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 71,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Exhibit base -12 -7",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          0.15,
+          -7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          3.8,
+          0.3,
+          3
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 72,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Exhibit base -12 -7 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 2
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 73,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Exhibit base 12 -1",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          0.15,
+          -1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          3.8,
+          0.3,
+          3
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 74,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Exhibit base 12 -1 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 2
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 75,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Exhibit base 12 -7",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          0.15,
+          -7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          3.8,
+          0.3,
+          3
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 76,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Exhibit base 12 -7 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 2
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 77,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Exhibit base -12 6",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          0.15,
+          6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          3.8,
+          0.3,
+          3
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 78,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Exhibit base -12 6 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 2
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 79,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Exhibit base 12 6",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          0.15,
+          6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          3.8,
+          0.3,
+          3
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 80,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Exhibit base 12 6 / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 2
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 81,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Head aim IK",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          0.3,
+          -1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 82,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Head aim IK / Object_6",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.009948707500316236,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.009948707500316236,
+                2.2090568264224143e-18,
+                0
+              ],
+              [
+                0,
+                -2.2090568264224143e-18,
+                0.009948707500316236,
+                0
+              ],
+              [
+                -2.6655413112378242e-8,
+                0.0032145593396110607,
+                -0.016524171460887357,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Xbot.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 81
+          },
+          "MaterialComponent": {
+            "Reference": 7
+          }
+        },
+        {
+          "ID": 83,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Head aim IK / Object_7",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.009948707500316236,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.009948707500316236,
+                2.2090568264224143e-18,
+                0
+              ],
+              [
+                0,
+                -2.2090568264224143e-18,
+                0.009948707500316236,
+                0
+              ],
+              [
+                -2.6655413112378242e-8,
+                0.0032145593396110607,
+                -0.016524171460887357,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 1,
+            "ModelPath": "../Assets/Models/Xbot.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 81
+          },
+          "MaterialComponent": {
+            "Reference": 7
+          }
+        }
+      ],
+      "AnimatorComponent": {
+        "ID": 81,
+        "ModelPath": "../Assets/Models/Xbot.gltf",
+        "Clip": "Idle",
+        "Playing": true,
+        "ControllerPlaying": false
+      },
+      "ScriptComponent": {
+        "Language": "CSharp",
+        "ScriptPath": "../Assets/Scripts/CSharp/AnimationPlayground.cs",
+        "ClassName": "AnimationPlaygroundExhibit",
+        "Properties": "{\"Mode\":1}"
+      }
+    },
+    {
+      "ID": 84,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Aim target",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          1.9,
+          0.8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.13,
+          0.13,
+          0.13
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 85,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Aim target / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 5
+          }
+        }
+      ]
+    },
+    {
+      "ID": 86,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "AIM IK sign",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          2.55,
+          -2.7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.2,
+          1.3,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 87,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "AIM IK sign / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 3
+          }
+        }
+      ]
+    },
+    {
+      "ID": 88,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "AIM IK title",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          2.94,
+          -2.625
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "AIM IK",
+        "Color": [
+          1,
+          0.72,
+          0.32,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.19,
+        "WorldSize": 0.19,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 89,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "AIM IK explanation",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          2.58,
+          -2.62
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "The head tracks the moving teal target.\nThe idle clip continues under the constraint.",
+        "Color": [
+          0.9,
+          0.94,
+          0.97,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.115,
+        "WorldSize": 0.115,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 90,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Arm reach IK",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          0.3,
+          -7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 91,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Arm reach IK / Object_6",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.009948707500316236,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.009948707500316236,
+                2.2090568264224143e-18,
+                0
+              ],
+              [
+                0,
+                -2.2090568264224143e-18,
+                0.009948707500316236,
+                0
+              ],
+              [
+                -2.6655413112378242e-8,
+                0.0032145593396110607,
+                -0.016524171460887357,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Xbot.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 90
+          },
+          "MaterialComponent": {
+            "Reference": 6
+          }
+        },
+        {
+          "ID": 92,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Arm reach IK / Object_7",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.009948707500316236,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.009948707500316236,
+                2.2090568264224143e-18,
+                0
+              ],
+              [
+                0,
+                -2.2090568264224143e-18,
+                0.009948707500316236,
+                0
+              ],
+              [
+                -2.6655413112378242e-8,
+                0.0032145593396110607,
+                -0.016524171460887357,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 1,
+            "ModelPath": "../Assets/Models/Xbot.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 90
+          },
+          "MaterialComponent": {
+            "Reference": 6
+          }
+        }
+      ],
+      "AnimatorComponent": {
+        "ID": 90,
+        "ModelPath": "../Assets/Models/Xbot.gltf",
+        "Clip": "Idle",
+        "Playing": true,
+        "ControllerPlaying": false
+      },
+      "ScriptComponent": {
+        "Language": "CSharp",
+        "ScriptPath": "../Assets/Scripts/CSharp/AnimationPlayground.cs",
+        "ClassName": "AnimationPlaygroundExhibit",
+        "Properties": "{\"Mode\":2}"
+      }
+    },
+    {
+      "ID": 93,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Reach target",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12.45,
+          1.35,
+          -6.65
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.13,
+          0.13,
+          0.13
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 94,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Reach target / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 5
+          }
+        }
+      ]
+    },
+    {
+      "ID": 95,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "TWO-BONE REACH sign",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          2.55,
+          -8.7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.2,
+          1.3,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 96,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "TWO-BONE REACH sign / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 3
+          }
+        }
+      ]
+    },
+    {
+      "ID": 97,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "TWO-BONE REACH title",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          2.94,
+          -8.625
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "TWO-BONE REACH",
+        "Color": [
+          1,
+          0.72,
+          0.32,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.19,
+        "WorldSize": 0.19,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 98,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "TWO-BONE REACH explanation",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          2.58,
+          -8.62
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "A shoulder, elbow and hand chain\nreaches toward a moving world-space target.",
+        "Color": [
+          0.9,
+          0.94,
+          0.97,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.115,
+        "WorldSize": 0.115,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 99,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Automatic controller crossfades",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          0.3,
+          -1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 100,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Automatic controller crossfades / Object_6",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.009948707500316236,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.009948707500316236,
+                2.2090568264224143e-18,
+                0
+              ],
+              [
+                0,
+                -2.2090568264224143e-18,
+                0.009948707500316236,
+                0
+              ],
+              [
+                -2.6655413112378242e-8,
+                0.0032145593396110607,
+                -0.016524171460887357,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Xbot.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 99
+          },
+          "MaterialComponent": {
+            "Reference": 7
+          }
+        },
+        {
+          "ID": 101,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Automatic controller crossfades / Object_7",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.009948707500316236,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.009948707500316236,
+                2.2090568264224143e-18,
+                0
+              ],
+              [
+                0,
+                -2.2090568264224143e-18,
+                0.009948707500316236,
+                0
+              ],
+              [
+                -2.6655413112378242e-8,
+                0.0032145593396110607,
+                -0.016524171460887357,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 1,
+            "ModelPath": "../Assets/Models/Xbot.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 99
+          },
+          "MaterialComponent": {
+            "Reference": 7
+          }
+        }
+      ],
+      "AnimatorComponent": {
+        "ID": 99,
+        "ModelPath": "../Assets/Models/Xbot.gltf",
+        "Clip": "Idle",
+        "Playing": true,
+        "ControllerPlaying": true,
+        "Controller": "{\"version\":1,\"name\":\"Idle - Walk - Run\",\"next_id\":7,\"default_state\":1,\"parameters\":[],\"states\":[{\"id\":1,\"name\":\"Idle\",\"clip\":\"Idle\",\"x\":0,\"y\":0},{\"id\":2,\"name\":\"Walk\",\"clip\":\"Walking\",\"x\":250,\"y\":0},{\"id\":3,\"name\":\"Run\",\"clip\":\"Running\",\"x\":500,\"y\":0}],\"transitions\":[{\"id\":4,\"from\":1,\"to\":2,\"enabled\":true,\"has_exit_time\":true,\"exit_time\":2,\"blend_duration\":0.35,\"conditions\":[]},{\"id\":5,\"from\":2,\"to\":3,\"enabled\":true,\"has_exit_time\":true,\"exit_time\":2,\"blend_duration\":0.35,\"conditions\":[]},{\"id\":6,\"from\":3,\"to\":1,\"enabled\":true,\"has_exit_time\":true,\"exit_time\":2,\"blend_duration\":0.35,\"conditions\":[]}]}"
+      }
+    },
+    {
+      "ID": 102,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "CONTROLLER + CROSSFADES sign",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          2.55,
+          -2.7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.2,
+          1.3,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 103,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "CONTROLLER + CROSSFADES sign / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 3
+          }
+        }
+      ]
+    },
+    {
+      "ID": 104,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "CONTROLLER + CROSSFADES title",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          2.94,
+          -2.625
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "CONTROLLER + CROSSFADES",
+        "Color": [
+          1,
+          0.72,
+          0.32,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.19,
+        "WorldSize": 0.19,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 105,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "CONTROLLER + CROSSFADES explanation",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          2.58,
+          -2.62
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "Idle, walk and run cycle with exit-time\ntransitions and a 0.35 second crossfade.\nOpen this animator in the Animation Graph.",
+        "Color": [
+          0.9,
+          0.94,
+          0.97,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.115,
+        "WorldSize": 0.115,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 106,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Bee idle",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          0.3,
+          -7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 107,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Bee idle / Object_116",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.0011160548944266,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.0011160548944266,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0.0011160548944266,
+                0
+              ],
+              [
+                0.07789694270214463,
+                0.0014467682623684652,
+                -0.04718628284493891,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Bee.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 106
+          }
+        }
+      ],
+      "AnimatorComponent": {
+        "ID": 106,
+        "ModelPath": "../Assets/Models/Bee.gltf",
+        "Clip": "_bee_idle",
+        "Playing": true,
+        "ControllerPlaying": false
+      }
+    },
+    {
+      "ID": 108,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Bee hover",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          13,
+          1.2,
+          -6.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 109,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Bee hover / Object_116",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.0011160548944266,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.0011160548944266,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0.0011160548944266,
+                0
+              ],
+              [
+                0.07789694270214463,
+                0.0014467682623684652,
+                -0.04718628284493891,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Bee.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 108
+          }
+        }
+      ],
+      "AnimatorComponent": {
+        "ID": 108,
+        "ModelPath": "../Assets/Models/Bee.gltf",
+        "Clip": "_bee_hover",
+        "Playing": true,
+        "ControllerPlaying": false
+      }
+    },
+    {
+      "ID": 110,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "IMPORTED IDLE + HOVER sign",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          2.55,
+          -8.7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.2,
+          1.3,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 111,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "IMPORTED IDLE + HOVER sign / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 3
+          }
+        }
+      ]
+    },
+    {
+      "ID": 112,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "IMPORTED IDLE + HOVER title",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          2.94,
+          -8.625
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "IMPORTED IDLE + HOVER",
+        "Color": [
+          1,
+          0.72,
+          0.32,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.19,
+        "WorldSize": 0.19,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 113,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "IMPORTED IDLE + HOVER explanation",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          2.58,
+          -8.62
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "Two independent animators share a model.\nEach plays a different imported clip.",
+        "Color": [
+          0.9,
+          0.94,
+          0.97,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.115,
+        "WorldSize": 0.115,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 114,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Deadpool YMCA dance",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          0.3,
+          6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 115,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Deadpool YMCA dance / Object_7",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.001828289565739017,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.001828289565739017,
+                4.0596183431307707e-19,
+                0
+              ],
+              [
+                0,
+                -4.0596183431307707e-19,
+                0.001828289565739017,
+                0
+              ],
+              [
+                -4.6629940085481905e-8,
+                0.012081231042256698,
+                -0.01132321278779922,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Deadpool.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 114
+          }
+        },
+        {
+          "ID": 116,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Deadpool YMCA dance / Object_8",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.001828289565739017,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.001828289565739017,
+                4.0596183431307707e-19,
+                0
+              ],
+              [
+                0,
+                -4.0596183431307707e-19,
+                0.001828289565739017,
+                0
+              ],
+              [
+                -4.6629940085481905e-8,
+                0.012081231042256698,
+                -0.01132321278779922,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 1,
+            "ModelPath": "../Assets/Models/Deadpool.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 114
+          }
+        },
+        {
+          "ID": 117,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Deadpool YMCA dance / Object_9",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.001828289565739017,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.001828289565739017,
+                4.0596183431307707e-19,
+                0
+              ],
+              [
+                0,
+                -4.0596183431307707e-19,
+                0.001828289565739017,
+                0
+              ],
+              [
+                -4.6629940085481905e-8,
+                0.012081231042256698,
+                -0.01132321278779922,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 2,
+            "ModelPath": "../Assets/Models/Deadpool.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 114
+          }
+        },
+        {
+          "ID": 118,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Deadpool YMCA dance / Object_10",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.001828289565739017,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.001828289565739017,
+                4.0596183431307707e-19,
+                0
+              ],
+              [
+                0,
+                -4.0596183431307707e-19,
+                0.001828289565739017,
+                0
+              ],
+              [
+                -4.6629940085481905e-8,
+                0.012081231042256698,
+                -0.01132321278779922,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 3,
+            "ModelPath": "../Assets/Models/Deadpool.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 114
+          }
+        },
+        {
+          "ID": 119,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Deadpool YMCA dance / Object_11",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.001828289565739017,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.001828289565739017,
+                4.0596183431307707e-19,
+                0
+              ],
+              [
+                0,
+                -4.0596183431307707e-19,
+                0.001828289565739017,
+                0
+              ],
+              [
+                -4.6629940085481905e-8,
+                0.012081231042256698,
+                -0.01132321278779922,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 4,
+            "ModelPath": "../Assets/Models/Deadpool.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 114
+          }
+        },
+        {
+          "ID": 120,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Deadpool YMCA dance / Object_12",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.001828289565739017,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.001828289565739017,
+                4.0596183431307707e-19,
+                0
+              ],
+              [
+                0,
+                -4.0596183431307707e-19,
+                0.001828289565739017,
+                0
+              ],
+              [
+                -4.6629940085481905e-8,
+                0.012081231042256698,
+                -0.01132321278779922,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 5,
+            "ModelPath": "../Assets/Models/Deadpool.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 114
+          }
+        },
+        {
+          "ID": 121,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Deadpool YMCA dance / Object_13",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.001828289565739017,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.001828289565739017,
+                4.0596183431307707e-19,
+                0
+              ],
+              [
+                0,
+                -4.0596183431307707e-19,
+                0.001828289565739017,
+                0
+              ],
+              [
+                -4.6629940085481905e-8,
+                0.012081231042256698,
+                -0.01132321278779922,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 6,
+            "ModelPath": "../Assets/Models/Deadpool.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 114
+          }
+        },
+        {
+          "ID": 122,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Deadpool YMCA dance / Object_14",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.001828289565739017,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.001828289565739017,
+                4.0596183431307707e-19,
+                0
+              ],
+              [
+                0,
+                -4.0596183431307707e-19,
+                0.001828289565739017,
+                0
+              ],
+              [
+                -4.6629940085481905e-8,
+                0.012081231042256698,
+                -0.01132321278779922,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 7,
+            "ModelPath": "../Assets/Models/Deadpool.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 114
+          }
+        },
+        {
+          "ID": 123,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Deadpool YMCA dance / Object_15",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.001828289565739017,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.001828289565739017,
+                4.0596183431307707e-19,
+                0
+              ],
+              [
+                0,
+                -4.0596183431307707e-19,
+                0.001828289565739017,
+                0
+              ],
+              [
+                -4.6629940085481905e-8,
+                0.012081231042256698,
+                -0.01132321278779922,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 8,
+            "ModelPath": "../Assets/Models/Deadpool.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 114
+          }
+        },
+        {
+          "ID": 124,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Deadpool YMCA dance / Object_16",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.001828289565739017,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.001828289565739017,
+                4.0596183431307707e-19,
+                0
+              ],
+              [
+                0,
+                -4.0596183431307707e-19,
+                0.001828289565739017,
+                0
+              ],
+              [
+                -4.6629940085481905e-8,
+                0.012081231042256698,
+                -0.01132321278779922,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 9,
+            "ModelPath": "../Assets/Models/Deadpool.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 114
+          }
+        }
+      ],
+      "AnimatorComponent": {
+        "ID": 114,
+        "ModelPath": "../Assets/Models/Deadpool.gltf",
+        "Clip": "ymca",
+        "Playing": true,
+        "ControllerPlaying": false
+      }
+    },
+    {
+      "ID": 125,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "SHARED SKINNING sign",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          2.55,
+          4.3
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.2,
+          1.3,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 126,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "SHARED SKINNING sign / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 3
+          }
+        }
+      ]
+    },
+    {
+      "ID": 127,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "SHARED SKINNING title",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          2.94,
+          4.375
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "SHARED SKINNING",
+        "Color": [
+          1,
+          0.72,
+          0.32,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.19,
+        "WorldSize": 0.19,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 128,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "SHARED SKINNING explanation",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          2.58,
+          4.38
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "Deadpool's YMCA dance animates\nmultiple skinned mesh primitives.",
+        "Color": [
+          0.9,
+          0.94,
+          0.97,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.115,
+        "WorldSize": 0.115,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 129,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Miss Galaxy walking",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          0.3,
+          6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 130,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Miss Galaxy walking / Object_82",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.9953597947576361,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                -1.3373540359381642e-7,
+                -0.9953597606879147,
+                0
+              ],
+              [
+                0,
+                0.9953597606879147,
+                -1.3373540359381642e-7,
+                0
+              ],
+              [
+                0.0000014795084900254663,
+                0.005258325907697237,
+                -0.036550763178019856,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/MissGalaxy.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 129
+          }
+        }
+      ],
+      "AnimatorComponent": {
+        "ID": 129,
+        "ModelPath": "../Assets/Models/MissGalaxy.gltf",
+        "Clip": "walking",
+        "Playing": true,
+        "ControllerPlaying": false
+      }
+    },
+    {
+      "ID": 131,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "WALK CYCLE sign",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          2.55,
+          4.3
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.2,
+          1.3,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 132,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "WALK CYCLE sign / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 3
+          }
+        }
+      ]
+    },
+    {
+      "ID": 133,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "WALK CYCLE title",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          2.94,
+          4.375
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "WALK CYCLE",
+        "Color": [
+          1,
+          0.72,
+          0.32,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.19,
+        "WorldSize": 0.19,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 134,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "WALK CYCLE explanation",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          2.58,
+          4.38
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "Miss Galaxy loops her imported walking\nanimation with its original skin and materials.",
+        "Color": [
+          0.9,
+          0.94,
+          0.97,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.115,
+        "WorldSize": 0.115,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 135,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Xbot jump clip exhibit",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -5,
+          0.3,
+          10
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 136,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Xbot jump clip exhibit / Object_6",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.009948707500316236,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.009948707500316236,
+                2.2090568264224143e-18,
+                0
+              ],
+              [
+                0,
+                -2.2090568264224143e-18,
+                0.009948707500316236,
+                0
+              ],
+              [
+                -2.6655413112378242e-8,
+                0.0032145593396110607,
+                -0.016524171460887357,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Xbot.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 135
+          },
+          "MaterialComponent": {
+            "Reference": 7
+          }
+        },
+        {
+          "ID": 137,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Xbot jump clip exhibit / Object_7",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                0.009948707500316236,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0.009948707500316236,
+                2.2090568264224143e-18,
+                0
+              ],
+              [
+                0,
+                -2.2090568264224143e-18,
+                0.009948707500316236,
+                0
+              ],
+              [
+                -2.6655413112378242e-8,
+                0.0032145593396110607,
+                -0.016524171460887357,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 1,
+            "ModelPath": "../Assets/Models/Xbot.gltf"
+          },
+          "SkinnedMeshRenderer": {
+            "AnimatorID": 135
+          },
+          "MaterialComponent": {
+            "Reference": 7
+          }
+        }
+      ],
+      "AnimatorComponent": {
+        "ID": 135,
+        "ModelPath": "../Assets/Models/Xbot.gltf",
+        "Clip": "Jump",
+        "Playing": true,
+        "ControllerPlaying": false
+      }
+    },
+    {
+      "ID": 138,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Jump clip base",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -5,
+          0.15,
+          10
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          3,
+          0.3,
+          2.4
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 139,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Jump clip base / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 2
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "ID": 140,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "AUTHORED JUMP sign",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -5,
+          2.55,
+          8.6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.2,
+          1.3,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 141,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "AUTHORED JUMP sign / Mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Local Transform": [
+              [
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                -1,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1
+              ]
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 3
+          }
+        }
+      ]
+    },
+    {
+      "ID": 142,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "AUTHORED JUMP title",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -5,
+          2.94,
+          8.674999999999999
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "AUTHORED JUMP",
+        "Color": [
+          1,
+          0.72,
+          0.32,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.19,
+        "WorldSize": 0.19,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 143,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "AUTHORED JUMP explanation",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -5,
+          2.58,
+          8.68
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "This exhibit loops the authored jump clip.\nSpace blends into the player jump pose.",
+        "Color": [
+          0.9,
+          0.94,
+          0.97,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.115,
+        "WorldSize": 0.115,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.25,
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf"
+      }
+    },
+    {
+      "ID": 144,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Daylight HDR skybox",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "SkyboxMaterialComponent": {
+        "MaterialPath": "../Assets/Materials/Playground_Environment.mktmtl"
+      }
+    }
+  ],
+  "Materials": [
+    {
+      "MaterialPath": "../Assets/Materials/Checker Ground.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Checker Stairs.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Exhibit Plinth.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Sign Background.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Safety Stripe.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/IK Target.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Xbot Blue.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Xbot Gold.mktmtl"
+    }
+  ],
+  "Atmosphere": {
+    "UseDirectionalLight": true,
+    "GroundHeight": 0,
+    "WorldUnitsPerKilometer": 1000,
+    "MieScale": 1,
+    "GroundAlbedo": 0.17,
+    "AerialPerspective": false
+  }
+}

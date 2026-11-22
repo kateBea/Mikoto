@@ -2371,5 +2371,15 @@
   "particle_animation": "アニメーション",
   "particle_fade_enabled": "フェード",
   "particle_fade_in": "フェードイン（寿命％）",
-  "particle_fade_out": "フェードアウト（寿命％）"
+  "particle_fade_out": "フェードアウト（寿命％）",
+  "viewport_renderer_info": "レンダラー情報",
+  "renderer_info_overlay": "レンダラー\nGPU: {}\nCPU: {}\n{:.1f} FPS | {:.2f} ms\nフレーム予算: {:.2f} ms ({:.0f} FPS)\nパス: {} / {}\nパイプライン: {} | バインド: {}\n描画呼び出し: {} | 間接描画: {}\nディスパッチ: {} | レイ: {}\n画像バリア: {}\nバッファバリア: {}\nメモリバリア: {}\nバリア送信（バッチ）: {}",
+  "material_checkerboard": "プロシージャルチェッカーボード",
+  "material_checkerboard_enabled": "有効",
+  "material_checkerboard_cell_size": "セルサイズ（ワールド単位）",
+  "material_checkerboard_color_a": "色 A",
+  "material_checkerboard_color_b": "色 B",
+  "material_checkerboard_offset": "ワールドオフセット",
+  "world_demo_Animation_Playground": "アニメーションプレイグラウンド",
+  "world_demo_Animation_Playground_description": "周回カメラで階段や凹凸を探索。待機・歩行・走行のクロスフェード、足のIK、注視・腕のリーチ、インポートしたキャラクターを確認できます。"
 }

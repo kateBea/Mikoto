@@ -1,0 +1,17 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Xbot Gold",
+  "Material": {
+    "BaseColorFactor": [
+      0.72,
+      0.43,
+      0.12,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.55,
+    "DoubleSided": 0,
+    "AlphaMask": 0
+  }
+}

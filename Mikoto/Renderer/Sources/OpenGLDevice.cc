@@ -1253,6 +1253,14 @@ namespace mikoto::renderer::opengl {
         Destroy();
     }
 
+    auto CommandList::GetStatistics() const -> const rhi::CommandListStatistics& {
+        return mStatistics;
+    }
+
+    auto CommandList::DecodeVideo( const rhi::VideoDecodeDescription& ) -> void {
+        MKT_THROW_RUNTIME_ERROR( "Video decoding is not supported by the OpenGL command-list backend." );
+    }
+
     auto CommandList::Initialize() -> void {
         mIsAllocated = true;
     }
@@ -1300,6 +1308,7 @@ namespace mikoto::renderer::opengl {
             MKT_THROW_RUNTIME_ERROR( "The previous OpenGL recording has not been submitted." );
         }
 
+        mStatistics = {};
         mCommands.clear();
 
         mBoundPipeline = nullptr;
@@ -1391,6 +1400,9 @@ namespace mikoto::renderer::opengl {
         // OpenGL has no image layouts or queue-family ownership. A full memory
         // barrier makes earlier shader writes visible to subsequent RHI consumers.
         // Keep this conservative until per-access bit mapping is measured.
+        ++mStatistics.mBarriers.mCallCount;
+        ++mStatistics.mBarriers.mMemoryCount;
+
         Record( [] {
             glMemoryBarrier( GL_ALL_BARRIER_BITS );
         } );
@@ -1412,6 +1424,9 @@ namespace mikoto::renderer::opengl {
         }
 
         if ( !desc.mBuffers.empty() || !desc.mTextures.empty() ) {
+            ++mStatistics.mBarriers.mCallCount;
+            ++mStatistics.mBarriers.mMemoryCount;
+
             Record( [] {
                 glMemoryBarrier( GL_ALL_BARRIER_BITS );
             } );
@@ -1425,6 +1440,9 @@ namespace mikoto::renderer::opengl {
         mAutomaticBarriers = enable;
 
         if ( mRecording && enable ) {
+            ++mStatistics.mBarriers.mCallCount;
+            ++mStatistics.mBarriers.mMemoryCount;
+
             Record( [] {
                 glMemoryBarrier( GL_ALL_BARRIER_BITS );
             } );
@@ -1699,6 +1717,13 @@ namespace mikoto::renderer::opengl {
     auto CommandList::BindPipeline( renderer::rhi::IPipeline *pipeline ) -> void {
         auto retained{ Retain<Pipeline>( pipeline ) };
 
+        ++mStatistics.mPipelineBindCount;
+
+        if ( mAutomaticBarriers ) {
+            ++mStatistics.mBarriers.mCallCount;
+            ++mStatistics.mBarriers.mMemoryCount;
+        }
+
         Record( [this, retained] {
             retained->Bind( mVertexArray );
             mBoundPipeline = retained.GetPtr();
@@ -1837,6 +1862,13 @@ namespace mikoto::renderer::opengl {
             MKT_THROW_LOGIC_ERROR( "Draw requires a render pass." );
         }
 
+        ++mStatistics.mDrawCallCount;
+
+        if ( mAutomaticBarriers ) {
+            ++mStatistics.mBarriers.mCallCount;
+            ++mStatistics.mBarriers.mMemoryCount;
+        }
+
         Record( [this, args, automaticBarriers = mAutomaticBarriers] {
             if ( !mHasPipeline || mBoundType != renderer::rhi::PipelineType::eGraphics ) {
                 MKT_THROW_LOGIC_ERROR( "Draw requires a pipeline." );
@@ -1854,6 +1886,13 @@ namespace mikoto::renderer::opengl {
     auto CommandList::DrawIndexed( const renderer::rhi::DrawArguments &args ) -> void {
         if ( !mInsidePass ) {
             MKT_THROW_LOGIC_ERROR( "Draw requires a render pass." );
+        }
+
+        ++mStatistics.mDrawCallCount;
+
+        if ( mAutomaticBarriers ) {
+            ++mStatistics.mBarriers.mCallCount;
+            ++mStatistics.mBarriers.mMemoryCount;
         }
 
         Record( [this, args, automaticBarriers = mAutomaticBarriers] {
@@ -1884,6 +1923,13 @@ namespace mikoto::renderer::opengl {
             MKT_THROW_LOGIC_ERROR( "Indirect draw requires a render pass and aligned offset." );
         }
 
+        ++mStatistics.mDrawCallCount;
+
+        if ( mAutomaticBarriers ) {
+            ++mStatistics.mBarriers.mCallCount;
+            ++mStatistics.mBarriers.mMemoryCount;
+        }
+
         Record( [this, offset, count, automaticBarriers = mAutomaticBarriers] {
             if ( !mHasPipeline || mBoundType != renderer::rhi::PipelineType::eGraphics || !mIndirect ) {
                 MKT_THROW_LOGIC_ERROR( "Indirect draw is missing pipeline/buffer." );
@@ -1905,6 +1951,13 @@ namespace mikoto::renderer::opengl {
     auto CommandList::DrawIndexedIndirect( core::u32 offset, core::u32 count ) -> void {
         if ( !mInsidePass || offset % 4 ) {
             MKT_THROW_LOGIC_ERROR( "Indirect draw requires a render pass and aligned offset." );
+        }
+
+        ++mStatistics.mDrawCallCount;
+
+        if ( mAutomaticBarriers ) {
+            ++mStatistics.mBarriers.mCallCount;
+            ++mStatistics.mBarriers.mMemoryCount;
         }
 
         Record( [this, offset, count, automaticBarriers = mAutomaticBarriers] {
@@ -1936,6 +1989,13 @@ namespace mikoto::renderer::opengl {
     auto CommandList::Dispatch( core::u32 x, core::u32 y, core::u32 z ) -> void {
         if ( mInsidePass ) {
             MKT_THROW_LOGIC_ERROR( "Dispatch cannot run inside a render pass." );
+        }
+
+        ++mStatistics.mDispatchCallCount;
+
+        if ( mAutomaticBarriers ) {
+            ++mStatistics.mBarriers.mCallCount;
+            ++mStatistics.mBarriers.mMemoryCount;
         }
 
         Record( [this, x, y, z, automaticBarriers = mAutomaticBarriers] {

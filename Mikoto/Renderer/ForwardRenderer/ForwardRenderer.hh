@@ -73,6 +73,8 @@ namespace mikoto::renderer {
         auto SetMainCamera( const scene::SceneCamera* camera ) -> void override;
         auto SetCullingDebugCamera( const scene::Camera* camera ) -> void override;
         auto SetEditorOverlaysEnabled( bool enabled ) -> void override;
+        auto SetInfoOverlayEnabled( bool enabled ) -> void override;
+        MKT_NODISCARD auto GetStatistics() const -> FrameGraphStatistics override;
         auto SetClearColor( const rhi::Color& color ) -> void override;
 
         auto SetTonemapType( ToneMapper type ) -> void override;
@@ -274,6 +276,7 @@ namespace mikoto::renderer {
         bool mFogAllocated{};
         bool mRebuildPending{ false };
         bool mOverlaysEnabled{ true };
+        bool mInfoOverlayEnabled{};
         ArmatureDebugMode mArmatureDebugMode{ ArmatureDebugMode::eDisabled };
         bool mEnvironmentEnabled{ true };
         bool mInfiniteGrid{ false };

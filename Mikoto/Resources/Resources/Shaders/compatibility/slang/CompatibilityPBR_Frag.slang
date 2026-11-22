@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "base/CompatibilitySurface.slang"
+#include "../../slang/base/Checkerboard_Helpers.slang"
 #include "base/CompatibilityLighting.slang"
 #include "base/CompatibilityIBL.slang"
 
@@ -89,6 +90,12 @@ float4 main( SurfaceInput input, bool rasterFrontFace : SV_IsFrontFace ) : SV_Ta
     }
 
     base *= draw.BaseColor * input.Color;
+
+    if ( draw.CheckerboardColorA.w != 0.0 ) {
+        base.rgb *= CheckerboardColor( input.WorldPosition, fwidth( input.WorldPosition ),
+            cross( ddx( input.WorldPosition ), ddy( input.WorldPosition ) ),
+            draw.CheckerboardColorA.rgb, draw.CheckerboardColorB, draw.CheckerboardOffset.xyz );
+    }
     float3 normal = SurfaceNormal( input );
     float2 mr = metallicRoughness.Sample( materialSampler, SurfaceUV( input, draw.UVSets.y ) ).bg;
     float ao = occlusion.Sample( materialSampler, SurfaceUV( input, draw.UVSets.w ) ).r;

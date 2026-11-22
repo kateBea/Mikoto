@@ -44,6 +44,7 @@
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/CommandList.hh>
 #include <Renderer/Rhi/ShaderTable.hh>
 #include <Renderer/Core/RenderContext.hh>
 #include <Renderer/Rhi/Vulkan/VulkanBuffer.hh>
@@ -175,6 +176,8 @@ namespace mikoto::renderer::vulkan {
     };
 
     struct RecordingContext {
+        rhi::CommandListStatistics mStatistics{};
+
         core::u64 mSubmissionID{};
         VkCommandPool mCommandPool{};
         VkCommandBuffer mCommandBuffer{};
@@ -195,6 +198,8 @@ namespace mikoto::renderer::vulkan {
     class CommandList final : public rhi::ICommandList {
     public:
         explicit CommandList( rhi::QueueType queueType, rhi::IQueue* queue, core::u32 familyIndex );
+
+        MKT_NODISCARD auto GetStatistics() const -> const rhi::CommandListStatistics& override;
 
         auto Open( const rhi::CommandListBeginDescription& desc ) -> void override;
         auto Close() -> void override;

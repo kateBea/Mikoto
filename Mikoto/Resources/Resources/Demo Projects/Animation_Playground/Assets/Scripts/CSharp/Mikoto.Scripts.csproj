@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/.cache/**;**/bin/**;**/obj/**</DefaultItemExcludes>
+  </PropertyGroup>
+  <!-- The editor supplies the ScriptCore reference for the active engine build. -->
+  <Import Project="Mikoto.ScriptCore.generated.props" />
+</Project>

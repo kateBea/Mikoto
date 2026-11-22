@@ -104,6 +104,9 @@ namespace mikoto::renderer {
         core::i32 mHeightIndex{-1};
         core::u32 mHeightUVSet{};
         core::u32 mHeightPadding[2]{};
+        core::float4 mCheckerboardColorA{}; // RGB tint, enabled in W.
+        core::float4 mCheckerboardColorB{}; // RGB tint, world-space cell size in W.
+        core::float4 mCheckerboardOffset{};
     };
 
     // Geometry information

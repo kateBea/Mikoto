@@ -74,6 +74,15 @@ namespace mikoto::material {
         eHeight,
     };
 
+    // World-space cells keep their size when the same material is used on scaled meshes.
+    struct CheckerboardSettings {
+        bool mEnabled{};
+        core::f32 mCellSize{ 1.0f };
+        core::float3 mColorA{ 10.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f }; // #0A0B0B
+        core::float3 mColorB{ 105.0f / 255.0f, 117.0f / 255.0f, 125.0f / 255.0f }; // #69757D
+        core::float3 mOffset{};
+    };
+
     enum class HeightMappingMode : core::u32 {
         eNone,
         eBump,
@@ -207,6 +216,7 @@ namespace mikoto::material {
         core::f32 GlossinessFactor{ 1.f };
         core::f32 NormalScale{ 1.f };
         core::f32 ClearCoatNormalScale{ 1.f };
+        CheckerboardSettings mCheckerboard{};
         ShadingModel mShadingModel{};
         SurfaceShadingSettings mSurfaceShading{};
         DielectricSettings mDielectric{};
@@ -247,6 +257,7 @@ namespace mikoto::material {
         auto Deserialize( filesystem::FileHandle file ) -> void override;
         auto Serialize( filesystem::FileHandle file ) const -> void override;
 
+        auto SetCheckerboard( const CheckerboardSettings& settings ) -> void;
         auto SetHeightMapping( HeightMappingSettings settings ) -> void;
         auto SetTextureReference( MapType type, const filesystem::Path& path ) -> void;
 
@@ -260,6 +271,7 @@ namespace mikoto::material {
         auto SetTexture( MapType type, const renderer::rhi::TextureHandle& texture ) -> void;
         auto SetTexture( MapType type, const asset::AssetHandle<asset::Texture>& texture ) -> void;
 
+        MKT_NODISCARD auto GetCheckerboard() const -> const CheckerboardSettings&;
         MKT_NODISCARD auto GetHeightImage() const -> asset::ImageHandle;
         MKT_NODISCARD auto GetHeightMapping() const -> const HeightMappingSettings&;
         MKT_NODISCARD auto GetTexturePath( MapType type ) const -> filesystem::Path;
@@ -411,6 +423,7 @@ namespace mikoto::material {
         core::f32 mMetallicFactor{ 1.f };
         core::f32 mRoughnessFactor{ 1.f };
         core::f32 mGlossinessFactor{ 1.f };
+        CheckerboardSettings mCheckerboard{};
         HeightMappingSettings mHeightMapping{};
         mutable std::mutex mHeightImageMutex{};
         mutable filesystem::Path mHeightImagePath{};

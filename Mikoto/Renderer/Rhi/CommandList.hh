@@ -673,18 +673,53 @@ namespace mikoto::renderer::rhi {
         core::u32 mSelfManagedCommandListCount{ 3 };
     };
 
+    struct CommandListStatistics {
+        // Count submitted native barriers,
+        // implicit transitions do not create image/buffer entries.
+        struct BarrierStatistics {
+            core::u64 mImageCount{};
+            core::u64 mBufferCount{};
+            core::u64 mMemoryCount{};
+            core::u64 mCallCount{};
+        };
+
+        // Count recorded API calls; an indirect batch is one draw submission.
+        core::u64 mDrawCallCount{};
+        core::u64 mIndirectDrawCallCount{};
+        core::u64 mDispatchCallCount{};
+        core::u64 mRayDispatchCallCount{};
+        core::u64 mPipelineBindCount{};
+
+        BarrierStatistics mBarriers{};
+    };
+
     class IQueryPool;
     class IAccelerationStructure;
 
     /**
      * Records GPU work for later execution by an @ref IQueue.
      *
-     * Command lists are not thread-safe: one thread may record a given list at a time.
+     * Command lists are not thread-safe: one thread may record to a given list at a time.
      */
     class ICommandList : public DeviceObject {
     public:
-        // Records only; submission and ownership transfers belong to the frame graph.
-        virtual auto DecodeVideo( const VideoDecodeDescription& description ) -> void;
+        /**
+         * @brief Retrieves the counters for the current command-list recording.
+         * @returns Borrowed counters owned by this command list, initially zero.
+         */
+        MKT_NODISCARD virtual auto GetStatistics() const -> const CommandListStatistics& = 0;
+
+
+        /**
+         * @brief Records the decoding of one H.264 picture.
+         * 
+         * @param description Decoder, parsed picture, output and reconstruction surfaces,
+         * reference pictures with their DPB slots, and optional session-reset request.
+         * 
+         * @throws core::RuntimeException If decoding is unsupported, the recording scope
+         * is invalid, or the picture and resources fail backend validation.
+         */
+        virtual auto DecodeVideo( const VideoDecodeDescription& description ) -> void = 0;
 
 
         /**
@@ -1236,6 +1271,11 @@ namespace mikoto::renderer::rhi {
         using DeviceObject::Initialize;
     };
 
+    auto operator+=( CommandListStatistics& total,
+        const CommandListStatistics& statistics ) -> CommandListStatistics&;
+
+    MKT_NODISCARD auto operator-( const CommandListStatistics& current,
+        const CommandListStatistics& previous ) -> CommandListStatistics;
     using CommandListHandle = core::Ref<ICommandList>;
 }
 

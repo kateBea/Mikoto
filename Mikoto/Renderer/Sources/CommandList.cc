@@ -17,7 +17,6 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Profiler.hh>
-#include <Core/Exception.hh>
 
 #include <Logging/Assert.hh>
 
@@ -27,12 +26,40 @@
 #include <Renderer/Rhi/VideoDecoder.hh>
 
 namespace mikoto::renderer::rhi {
-
+    
     using namespace mikoto::core;
     using namespace mikoto::memory;
 
-    auto ICommandList::DecodeVideo( const VideoDecodeDescription& ) -> void {
-        MKT_THROW_RUNTIME_ERROR( "Video decoding is not supported by this command-list backend." );
+    auto operator+=( CommandListStatistics& total,
+        const CommandListStatistics& statistics ) -> CommandListStatistics& {
+        total.mDrawCallCount += statistics.mDrawCallCount;
+        total.mIndirectDrawCallCount += statistics.mIndirectDrawCallCount;
+        total.mDispatchCallCount += statistics.mDispatchCallCount;
+        total.mRayDispatchCallCount += statistics.mRayDispatchCallCount;
+        total.mPipelineBindCount += statistics.mPipelineBindCount;
+        total.mBarriers.mImageCount += statistics.mBarriers.mImageCount;
+        total.mBarriers.mBufferCount += statistics.mBarriers.mBufferCount;
+        total.mBarriers.mMemoryCount += statistics.mBarriers.mMemoryCount;
+        total.mBarriers.mCallCount += statistics.mBarriers.mCallCount;
+
+        return total;
+    }
+
+    auto operator-( const CommandListStatistics& current,
+        const CommandListStatistics& previous ) -> CommandListStatistics {
+        CommandListStatistics difference{};
+
+        difference.mDrawCallCount = current.mDrawCallCount - previous.mDrawCallCount;
+        difference.mIndirectDrawCallCount = current.mIndirectDrawCallCount - previous.mIndirectDrawCallCount;
+        difference.mDispatchCallCount = current.mDispatchCallCount - previous.mDispatchCallCount;
+        difference.mRayDispatchCallCount = current.mRayDispatchCallCount - previous.mRayDispatchCallCount;
+        difference.mPipelineBindCount = current.mPipelineBindCount - previous.mPipelineBindCount;
+        difference.mBarriers.mImageCount = current.mBarriers.mImageCount - previous.mBarriers.mImageCount;
+        difference.mBarriers.mBufferCount = current.mBarriers.mBufferCount - previous.mBarriers.mBufferCount;
+        difference.mBarriers.mMemoryCount = current.mBarriers.mMemoryCount - previous.mBarriers.mMemoryCount;
+        difference.mBarriers.mCallCount = current.mBarriers.mCallCount - previous.mBarriers.mCallCount;
+
+        return difference;
     }
 
     auto CommandListBeginDescription::SetScopeName( eastl::string_view name ) -> CommandListBeginDescription {

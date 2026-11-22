@@ -12,6 +12,7 @@ public sealed class Entity
     private CanvasComponent? _canvas;
     private VehicleComponent? _vehicle;
     private CharacterControllerComponent? _character;
+    private AnimatorComponent? _animator;
     private bool _bound = true;
 
     /// <summary>The native entity identifier.</summary>
@@ -35,6 +36,7 @@ public sealed class Entity
             : typeof(T) == typeof(LightComponent) ? ComponentType.Light
             : typeof(T) == typeof(CanvasComponent) ? ComponentType.Canvas
             : typeof(T) == typeof(VehicleComponent) ? ComponentType.Vehicle
+            : typeof(T) == typeof(AnimatorComponent) ? ComponentType.Animator
             : typeof(T) == typeof(CharacterControllerComponent) ? ComponentType.Character
             : throw new NotSupportedException($"No C# component binding exists for {typeof(T).FullName}.");
 
@@ -47,6 +49,7 @@ public sealed class Entity
             ComponentType.Light => _light ??= new LightComponent(this),
             ComponentType.Canvas => _canvas ??= new CanvasComponent(this),
             ComponentType.Vehicle => _vehicle ??= new VehicleComponent(this),
+            ComponentType.Animator => _animator ??= new AnimatorComponent(this),
             ComponentType.Character => _character ??= new CharacterControllerComponent(this),
             _ => throw new NotSupportedException()
         };
@@ -62,6 +65,19 @@ public sealed class Entity
         EnsureBound();
         ulong id = NativeBridge.FindEntity(_sceneId, Id, name);
         return id == 0 ? null : new Entity(_sceneId, id);
+    }
+
+    /// <summary>Queries static, non-sensor colliders. Direction includes the ray length in world units.</summary>
+    public bool RaycastStatic(Vector3 origin, Vector3 direction, out Vector3 position, out Vector3 normal)
+    {
+        EnsureBound();
+        return NativeBridge.RaycastStatic(_sceneId, Id, origin, direction, out position, out normal);
+    }
+
+    internal void AnimatorCommand(AnimatorOperation operation, string name, ref AnimatorRequest request)
+    {
+        EnsureBound();
+        NativeBridge.AnimatorCommand(_sceneId, Id, operation, name, ref request);
     }
 
     internal void SetVehicleInputs(float throttle, float steering, float brake, float handBrake)

@@ -38,7 +38,8 @@ float4 main( CanvasVaryings input ) : SV_Target0 {
             float distance = max( min( texel.r, texel.g ), min( max( texel.r, texel.g ), texel.b ) );
             float2 unitRange = quad.distanceRange / float2( width, height );
             float range = max( 0.5 * dot( unitRange, 1 / max( fwidth( input.uv ), float2( 1e-8 ) ) ), 1 );
-            color.a *= saturate( range * ( distance - 0.5 ) + 0.5 );
+            // A positive stroke expands the glyph in screen pixels for an outline underlay.
+            color.a *= saturate( range * ( distance - 0.5 ) + 0.5 + quad.stroke );
         } else if ( quad.kind == kCanvasColorGlyphQuad ) {
             color = float4( texel.a > 0 ? texel.rgb / texel.a : float3( 0 ), color.a * texel.a );
         } else {

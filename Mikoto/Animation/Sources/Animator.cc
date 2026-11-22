@@ -28,6 +28,7 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/String.hh>
 
 #include <Logging/Logger.hh>
 
@@ -366,6 +367,17 @@ namespace mikoto::animation {
         return mIsSuspended;
     }
 
+    auto Animator::GetUnconstrainedJointModelMatrices( core::u32 rig ) const -> const eastl::vector<core::float4x4>& {
+        static const eastl::vector<core::float4x4> empty{};
+
+        if ( rig >= mPoses.size() ) {
+            return empty;
+        }
+
+        const auto& pose{ mPoses[rig] };
+        return pose.mUnconstrainedMatrices.empty() ? pose.mFinalMatrices : pose.mUnconstrainedMatrices;
+    }
+
     auto Animator::GetJointModelMatrices( core::u32 rig ) const -> const eastl::vector<core::float4x4>& {
         MKT_BEGIN_PROFILER();
         static const eastl::vector<core::float4x4> empty{};
@@ -411,7 +423,30 @@ namespace mikoto::animation {
 
         const auto* skeleton{ mModel->GetSkeleton( rig ) };
         const auto* joint{ skeleton ? skeleton->FindJoint( name ) : nullptr };
-        return joint ? joint->GetID() : -1;
+
+        if ( joint ) {
+            return joint->GetID();
+        }
+
+        // Assimp adds a node suffix to preserve duplicate names. Authoring scripts
+        // may use the source name only when it resolves to exactly one joint.
+        const auto* runtime{ skeleton ? skeleton->GetOzzSkeleton() : nullptr };
+        const auto prefix{ string::Format( "{}__node_", name ) };
+        core::i32 result{ -1 };
+
+        for ( core::i32 index{}; runtime && index < runtime->num_joints(); ++index ) {
+            const eastl::string_view candidate{ runtime->joint_names()[index] };
+
+            if ( candidate.starts_with( prefix ) ) {
+                if ( result >= 0 ) {
+                    return -1;
+                }
+
+                result = index;
+            }
+        }
+
+        return result;
     }
 
     auto Animator::PlayController() -> bool {
@@ -628,6 +663,21 @@ namespace mikoto::animation {
 
         if ( !model.Run() ) {
             return false;
+        }
+
+        // Ground probes must follow the animated feet, rather than feed last frame's
+        // IK correction back into the next target and gradually pin the walk cycle.
+        if ( !pose.mTwoBoneConstraints.empty() || !pose.mAimConstraints.empty() ) {
+            pose.mUnconstrainedMatrices.resize( pose.mModelMatrices.size() );
+
+            for ( core::usize joint{}; joint < pose.mModelMatrices.size(); ++joint ) {
+                for ( core::i32 column{}; column < 4; ++column ) {
+                    ozz::math::StorePtrU( pose.mModelMatrices[joint].cols[column], &pose.mUnconstrainedMatrices[joint][column][0] );
+                }
+            }
+        } else {
+            // Animators without IK already expose the unmodified pose through their final matrices.
+            pose.mUnconstrainedMatrices.clear();
         }
 
         ApplyInverseKinematics( rig );

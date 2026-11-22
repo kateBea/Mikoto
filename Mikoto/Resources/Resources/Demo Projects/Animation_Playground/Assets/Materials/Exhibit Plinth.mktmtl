@@ -1,0 +1,17 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Exhibit Plinth",
+  "Material": {
+    "BaseColorFactor": [
+      0.1,
+      0.14,
+      0.18,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.8,
+    "DoubleSided": 0,
+    "AlphaMask": 0
+  }
+}

@@ -26,6 +26,9 @@ struct DrawParameters {
     float4 UVTransform;
     uint4 UVSets; // base color, metallic-roughness, normal, occlusion
     uint4 Material; // emissive UV set, face flags, shading model, sRGB formats
+    float4 CheckerboardColorA;
+    float4 CheckerboardColorB;
+    float4 CheckerboardOffset;
 };
 
 [[vk::binding( 1, 0 )]] ConstantBuffer<DrawParameters> draw : register( b1 );

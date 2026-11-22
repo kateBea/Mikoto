@@ -13,7 +13,7 @@ namespace Mikoto.Hosting;
 /// </remarks>
 public static unsafe class NativeBridge
 {
-    private const uint ApiVersion = 9;
+    private const uint ApiVersion = 10;
 
     // Native callbacks and scene sessions are shared across gameplay/compiler services.
     private static readonly object _gate = new();
@@ -75,6 +75,8 @@ public static unsafe class NativeBridge
         public delegate* unmanaged[Cdecl]<int> IsInputFocused;
         public delegate* unmanaged[Cdecl]<int> IsPointerOverInput;
         public delegate* unmanaged[Cdecl]<float*, float*, int> GetMouseScrollDelta;
+        public delegate* unmanaged[Cdecl]<ulong, ulong, AnimatorOperation, byte*, AnimatorRequest*, int> AnimatorCommand;
+        public delegate* unmanaged[Cdecl]<ulong, ulong, Vector3*, Vector3*, Vector3*, Vector3*, int> RaycastStatic;
     }
 
     /// <summary>Matches the C++ ManagedMathApi function table.</summary>
@@ -406,6 +408,7 @@ public static unsafe class NativeBridge
             api->SetCharacterInputs == null || api->GetCharacterGrounded == null ||
             api->IsMouseButtonPressed == null || api->GetMousePosition == null ||
             api->IsInputFocused == null || api->IsPointerOverInput == null || api->GetMouseScrollDelta == null ||
+            api->AnimatorCommand == null || api->RaycastStatic == null ||
             sizeof(Vector2) != 8 || sizeof(Vector3) != 12 || sizeof(Vector4) != 16 ||
             sizeof(Matrix2) != 16 || sizeof(Matrix3) != 36 || sizeof(Matrix4) != 64)
         {
@@ -716,6 +719,29 @@ public static unsafe class NativeBridge
     internal static bool IsInputFocused => _api.IsInputFocused != null && _api.IsInputFocused() != 0;
 
     internal static bool IsPointerOverInput => _api.IsPointerOverInput != null && _api.IsPointerOverInput() != 0;
+
+    internal static void AnimatorCommand(ulong scene, ulong entity, AnimatorOperation operation, string name, ref AnimatorRequest request)
+    {
+        byte[] utf8 = Encoding.UTF8.GetBytes(name + '\0');
+        fixed (byte* text = utf8)
+        fixed (AnimatorRequest* data = &request)
+        {
+            if (_api.AnimatorCommand == null || _api.AnimatorCommand(scene, entity, operation, text, data) == 0)
+                throw new InvalidOperationException("Animator command failed: check the clip, rig and joint indices, and access during a scene callback.");
+        }
+    }
+
+    internal static bool RaycastStatic(ulong scene, ulong entity, Vector3 origin, Vector3 direction, out Vector3 position, out Vector3 normal)
+    {
+        Vector3 hitPosition = default;
+        Vector3 hitNormal = default;
+        int result = _api.RaycastStatic == null ? -1 : _api.RaycastStatic(scene, entity, &origin, &direction, &hitPosition, &hitNormal);
+        if (result < 0)
+            throw new InvalidOperationException("Static raycast requires a live scene callback and finite coordinates.");
+        position = hitPosition;
+        normal = hitNormal;
+        return result != 0;
+    }
 
     internal static Vector2 GetMouseScrollDelta()
     {

@@ -102,11 +102,36 @@ namespace mikoto::scripting {
         eCanvas = 2,
         eVehicle = 3,
         eCharacter = 4,
+        eAnimator = 5,
+    };
+
+    // Keep these operations and fields synchronized with Animation.cs.
+    enum class ManagedAnimatorOperation : core::u32 {
+        eFindJoint,
+        eJointPosition,
+        eCrossFade,
+        eTwoBoneIK,
+        eAimIK
+    };
+
+    struct ManagedAnimatorRequest {
+        core::u32 mRig{};
+        core::i32 mIndex{};
+        core::i32 mStart{ -1 };
+        core::i32 mMiddle{ -1 };
+        core::i32 mEnd{ -1 };
+        ManagedVector3 mTarget{};
+        ManagedVector3 mPole{};
+        ManagedVector3 mAxis{};
+        ManagedVector3 mForward{};
+        ManagedVector3 mUp{};
+        core::f32 mWeight{ 1.0f };
+        core::f32 mDuration{ 0.2f };
     };
 
     struct ManagedNativeApi {
         core::u32 mSize{};
-        core::u32 mVersion{ 9 };
+        core::u32 mVersion{ 10 };
         core::i32 ( *mGetTransform )( core::u64, core::u64, core::i32, ManagedVector3* ){};
         core::i32 ( *mSetTransform )( core::u64, core::u64, core::i32, const ManagedVector3* ){};
         core::i32 ( *mIsKeyPressed )( core::i32 ){};
@@ -136,6 +161,8 @@ namespace mikoto::scripting {
         core::i32 ( *mIsInputFocused )(){};
         core::i32 ( *mIsPointerOverInput )(){};
         core::i32 ( *mGetMouseScrollDelta )( core::f32*, core::f32* ){};
+        core::i32 ( *mAnimatorCommand )( core::u64, core::u64, ManagedAnimatorOperation, core::cstr, ManagedAnimatorRequest* ){};
+        core::i32 ( *mRaycastStatic )( core::u64, core::u64, const ManagedVector3*, const ManagedVector3*, ManagedVector3*, ManagedVector3* ){};
     };
 
     enum class ManagedOperation : core::u32 {

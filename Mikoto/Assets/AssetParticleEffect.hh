@@ -15,6 +15,10 @@
 #ifndef MIKOTO_ASSETS_ASSET_PARTICLE_EFFECT_HH
 #define MIKOTO_ASSETS_ASSET_PARTICLE_EFFECT_HH
 
+#include <EASTL/vector.h>
+
+#include <yaml-cpp/yaml.h>
+
 #include <Assets/Asset.hh>
 
 #include <Renderer/Particle/ParticleEmitter.hh>
@@ -26,18 +30,23 @@ namespace mikoto::asset {
         LoadPriority mPriority{ LoadPriority::eNormal };
     };
 
+    // TODO: Like other assets impleemtn serialization interface (ISerializable)
+    // as all assets can be serialized to disk and deserialized from disk.
     class ParticleEffect final : public core::ReferenceCounted<ParticleEffect> {
     public:
-        explicit ParticleEffect( core::Ref<renderer::ParticleEmitter> resource );
+        explicit ParticleEffect( eastl::vector<renderer::ParticleEmitterHandle> emitters );
 
-        MKT_NODISCARD auto CanEvict() const -> bool;
+        auto Serialize( YAML::Emitter& out, const filesystem::Path& effectFile = {} ) const -> void;
+        MKT_NODISCARD static auto Deserialize( const YAML::Node& node, const filesystem::Path& effectFile = {} ) -> core::Ref<ParticleEffect>;
+
+        MKT_NODISCARD auto GetEmitters() const -> const eastl::vector<renderer::ParticleEmitterHandle>&;
         MKT_NODISCARD auto GetResidentMemoryUsage() const -> AssetMemoryUsage;
-        MKT_NODISCARD auto GetResource() const -> core::Ref<renderer::ParticleEmitter>;
-        MKT_NODISCARD auto GetSettings() const -> const renderer::ParticleEmitterSettings&;
 
     private:
-        core::Ref<renderer::ParticleEmitter> mResource{};
+        eastl::vector<renderer::ParticleEmitterHandle> mEmitters{};
     };
+
+    using ParticleEffectHandle = core::Ref<ParticleEffect>;
 
     template<> struct AssetTraits<ParticleEffect> {
         using Asset = ParticleEffect;
@@ -45,9 +54,5 @@ namespace mikoto::asset {
         static constexpr AssetType kType{ AssetType::eParticle };
     };
 
-    template<>
-    struct AssetTraits<renderer::ParticleEmitter> : public AssetTraits<ParticleEffect> {
-
-    };
 }// namespace mikoto::asset
 #endif// MIKOTO_ASSETS_ASSET_PARTICLE_EFFECT_HH

@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "ParticleMaterial",
+  "Name": "Kenney symbol_02",
+  "Material": {
+    "Color": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "TexturePath": "../../Textures/kenney_particle-pack/PNG (Transparent)/symbol_02.png"
+  }
+}

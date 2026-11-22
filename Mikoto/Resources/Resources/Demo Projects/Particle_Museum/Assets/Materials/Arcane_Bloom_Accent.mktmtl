@@ -1,0 +1,17 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Arcane Bloom Accent",
+  "Material": {
+    "BaseColorFactor": [
+      0.56,
+      0.32,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.72,
+    "AlphaMask": 0,
+    "ShadingModel": 8
+  }
+}

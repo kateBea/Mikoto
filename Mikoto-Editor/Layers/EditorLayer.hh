@@ -178,6 +178,7 @@ namespace mikoto::editor {
         eastl::function<void()> mRequestPlay{};
         eastl::function<void()> mRequestStop{};
         eastl::function<void( const filesystem::Path& )> mOpenParticle{};
+        eastl::function<void( const asset::ParticleEffectHandle& )> mEditParticleEffect{};
         eastl::function<void( const filesystem::Path& )> mOpenScene{};
         eastl::function<void( const filesystem::Path& )> mOpenProject{};
         eastl::function<void( scene::ProjectionType )> mRequestEditorProjection{};

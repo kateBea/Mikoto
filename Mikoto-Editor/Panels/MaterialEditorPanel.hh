@@ -21,6 +21,7 @@
 #include <Renderer/Core/ThumbnailRenderer.hh>
 
 #include <Application/PreviewEnvironment.hh>
+#include <Application/ParticleMaterialPreview.hh>
 #include <Application/MaterialGraphEditor.hh>
 
 #include <Panels/Panel.hh>
@@ -71,6 +72,7 @@ namespace mikoto::editor {
         EditorState* mEditorState{};
         renderer::rhi::IGpuDevice* mDevice{};
         eastl::unique_ptr<renderer::ThumbnailRenderer> mRenderer{};
+        eastl::unique_ptr<ParticleMaterialPreview> mParticlePreview{};
         eastl::shared_ptr<ModelLoad> mModelLoad{};
         core::Ref<material::SurfaceMaterial> mMaterial{};
 
@@ -85,6 +87,7 @@ namespace mikoto::editor {
         renderer::ThumbnailPreviewSettings mPreview{};
 
         PreviewEnvironment mEnvironment{};
+        asset::AssetHandle<asset::Texture> mPreviewEnvironmentAsset{};
         PreviewEnvironment mPostProcessImageLoad{};
         renderer::rhi::TextureHandle mPostProcessImage{};
         eastl::array<char, 256> mName{};
@@ -101,6 +104,9 @@ namespace mikoto::editor {
         bool mAutoRotate{};
         bool mPreviewPending{};
         bool mPreviewDirty{ true };
+        const scene::Scene* mParticleTargetScene{};
+        core::u64 mParticleTargetEntity{};
+        core::usize mParticleTargetEmitter{};
     };
 
 }// namespace mikoto::editor

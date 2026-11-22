@@ -46,13 +46,19 @@ namespace mikoto::editor {
         auto OnRender( core::f32 timeStep ) -> void override;
         /** Opens a saved recipe without retaining pointers into the active scene. */
         auto OpenAsset( const filesystem::Path& path ) -> void;
+        auto EditEffect( const asset::ParticleEffectHandle& effect ) -> void;
 
     private:
         auto InitializePreview() -> void;
         auto DrawToolbar() -> void;
+        auto DrawEmitterPicker() -> void;
+        auto DrawEmitterMaterial() -> void;
         auto DrawPreview( core::f32 timeStep ) -> void;
         auto DrawSettings() -> void;
         auto SetRecipe( renderer::ParticleEmitterSettings settings ) -> void;
+        auto ReplaceEmitter( const renderer::ParticleEmitterSettings& settings, const material::ParticleMaterialHandle& material ) -> void;
+        auto SelectEmitter( core::usize index ) -> void;
+        auto RefreshPreview() -> void;
         auto SaveAsset() -> void;
         auto DrawGraph() -> void;
 
@@ -61,9 +67,11 @@ namespace mikoto::editor {
         eastl::unique_ptr<scene::Scene> mScene{};
         eastl::unique_ptr<renderer::ISceneRenderer> mRenderer{};
         scene::SceneCamera mCamera{};
-        entt::entity mEmitter{ entt::null };
+        entt::entity mSimulator{ entt::null };
         entt::entity mGround{ entt::null };
 
+        eastl::vector<renderer::ParticleEmitterHandle> mEmitters{};
+        core::usize mSelectedEmitter{};
         renderer::ParticleEmitterSettings mSettings{};
         renderer::ParticleSimulationMode mMode{ renderer::ParticleSimulationMode::eCpu };
 

@@ -211,30 +211,30 @@ namespace mikoto::text {
         MKT_BEGIN_PROFILER();
         // Reuse glyph capacity, resetting all other layout state. Final GPU
         // draw data is copied out before another text uses this scratch space.
-        result.glyphs.clear();
-        result.minimum = result.maximum = {};
-        result.missingGlyphs = 0;
-        result.lineCount = 1;
-        result.truncated = false;
-        if ( options.size <= 0.0f || options.lineSpacing <= 0.0f ) {
+        result.mGlyphs.clear();
+        result.mMinimum = result.mMaximum = {};
+        result.mMissingGlyphs = 0;
+        result.mLineCount = 1;
+        result.mTruncated = false;
+        if ( options.mSize <= 0.0f || options.mLineSpacing <= 0.0f ) {
             return;
         }
         core::f64 x{};
-        core::f64 baseline = options.yDown ? font.GetAscender() * options.size : 0.0;
-        const core::f64 lineHeight = font.GetLineHeight() * options.size * options.lineSpacing;
+        core::f64 baseline = options.mYDown ? font.GetAscender() * options.mSize : 0.0;
+        const core::f64 lineHeight = font.GetLineHeight() * options.mSize * options.mLineSpacing;
         const auto* space = font.FindGlyph( ' ' );
-        const core::f64 tabWidth = eastl::max( 0.001, ( space ? space->mAdvanceX : 0.5 ) * options.size * 4.0 );
+        const core::f64 tabWidth = eastl::max( 0.001, ( space ? space->mAdvanceX : 0.5 ) * options.mSize * 4.0 );
         core::usize lineStart{};
         core::u32 previous{};
         bool hasCharacter{};
         const auto finishLine = [&] {
-            const core::f64 width = eastl::max( 0.0, x - ( hasCharacter ? options.letterSpacing : 0.0 ) );
-            const core::f64 offset = options.alignment == Alignment::eCenter ? -width * 0.5 : options.alignment == Alignment::eRight ? -width
+            const core::f64 width = eastl::max( 0.0, x - ( hasCharacter ? options.mLetterSpacing : 0.0 ) );
+            const core::f64 offset = options.mAlignment == Alignment::eCenter ? -width * 0.5 : options.mAlignment == Alignment::eRight ? -width
                                                                                                                                    : 0.0;
-            for ( core::usize i = lineStart; i < result.glyphs.size(); ++i ) {
-                result.glyphs[i].position.x += static_cast<core::f32>( offset );
+            for ( core::usize i = lineStart; i < result.mGlyphs.size(); ++i ) {
+                result.mGlyphs[i].mPosition.x += static_cast<core::f32>( offset );
             }
-            lineStart = result.glyphs.size();
+            lineStart = result.mGlyphs.size();
         };
         for ( core::usize i = 0; i < codepoints.size(); ++i ) {
             auto cp = CodePointValue( codepoints[i] );
@@ -244,10 +244,10 @@ namespace mikoto::text {
                 }
                 finishLine();
                 x = 0.0;
-                baseline += options.yDown ? lineHeight : -lineHeight;
+                baseline += options.mYDown ? lineHeight : -lineHeight;
                 previous = 0;
                 hasCharacter = false;
-                ++result.lineCount;
+                ++result.mLineCount;
                 continue;
             }
 
@@ -295,44 +295,44 @@ namespace mikoto::text {
 
             if ( !glyph ) {
                 glyph = font.GetFallbackGlyph();
-                ++result.missingGlyphs;
+                ++result.mMissingGlyphs;
             }
 
             if ( !glyph ) {
-                x += options.size * 0.5;
+                x += options.mSize * 0.5;
                 previous = 0;
                 continue;
             }
 
             if ( previous && glyph->mImageType == renderer::GlyphImageType::eOutline ) {
-                x += font.GetKerning( previous, glyph->mCodepoint ) * options.size;
+                x += font.GetKerning( previous, glyph->mCodepoint ) * options.mSize;
             }
 
             const auto& bounds = glyph->mPlaneBounds;
-            const core::float2 size{ ( bounds.z - bounds.x ) * options.size, ( bounds.w - bounds.y ) * options.size };
+            const core::float2 size{ ( bounds.z - bounds.x ) * options.mSize, ( bounds.w - bounds.y ) * options.mSize };
             if ( size.x > 0.0f && size.y > 0.0f ) {
-                if ( result.glyphs.size() >= maxGlyphs ) {
-                    result.truncated = true;
+                if ( result.mGlyphs.size() >= maxGlyphs ) {
+                    result.mTruncated = true;
                     break;
                 }
 
-                result.glyphs.push_back( {
+                result.mGlyphs.push_back( {
                     glyph->mCodepoint,
-                    { static_cast<core::f32>( x + bounds.x * options.size ),
-                        static_cast<core::f32>( baseline + ( options.yDown ? -bounds.w : bounds.y ) * options.size ) },
+                    { static_cast<core::f32>( x + bounds.x * options.mSize ),
+                        static_cast<core::f32>( baseline + ( options.mYDown ? -bounds.w : bounds.y ) * options.mSize ) },
                     size } );
             }
-            x += glyph->mAdvanceX * options.size + options.letterSpacing;
+            x += glyph->mAdvanceX * options.mSize + options.mLetterSpacing;
             previous = glyph->mImageType == renderer::GlyphImageType::eOutline ? glyph->mCodepoint : 0;
             hasCharacter = true;
         }
         finishLine();
-        if ( !result.glyphs.empty() ) {
-            result.minimum = result.glyphs.front().position;
-            result.maximum = result.minimum;
-            for ( const auto& glyph: result.glyphs ) {
-                result.minimum = glm::min( result.minimum, glyph.position );
-                result.maximum = glm::max( result.maximum, glyph.position + glyph.size );
+        if ( !result.mGlyphs.empty() ) {
+            result.mMinimum = result.mGlyphs.front().mPosition;
+            result.mMaximum = result.mMinimum;
+            for ( const auto& glyph: result.mGlyphs ) {
+                result.mMinimum = glm::min( result.mMinimum, glyph.mPosition );
+                result.mMaximum = glm::max( result.mMaximum, glyph.mPosition + glyph.mSize );
             }
         }
     }

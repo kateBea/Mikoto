@@ -1,0 +1,23 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Impact Chamber Accent",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      0.35,
+      0.08,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.72,
+    "AlphaMask": 0,
+    "ShadingModel": 8,
+    "EmissiveFactor": [
+      1,
+      0.35,
+      0.08
+    ],
+    "EmissiveStrength": 1.5
+  }
+}

@@ -464,24 +464,50 @@ namespace mikoto::scene {
         }
     }
 
-    auto ParticleEmitterComponent::SetMaterial( material::MaterialHandle particleMaterial ) -> void {
-        if ( !dynamic_cast<material::ParticleMaterial*>( particleMaterial.GetPtr() ) ) {
-            return;
+    ParticleSimulatorComponent::ParticleSimulatorComponent() {
+        SetEffect( asset::ParticleEffectHandle::New(
+            eastl::vector<renderer::ParticleEmitterHandle>{ renderer::ParticleEmitterHandle::New() } ) );
+    }
+
+    auto ParticleSimulatorComponent::SetEffect( asset::ParticleEffectHandle effect ) -> void {
+        eastl::vector<renderer::ParticleEmitterInstance> instances{};
+
+        if ( effect ) {
+            instances.reserve( effect->GetEmitters().size() );
+            for ( const auto& emitter: effect->GetEmitters() ) {
+                instances.emplace_back( emitter );
+            }
         }
 
-        mParticleMaterial = particleMaterial;
+        mEffect = eastl::move( effect );
+        mInstances = eastl::move( instances );
     }
 
-    auto ParticleEmitterComponent::GetMaterial() const -> material::MaterialHandle {
-        return mParticleMaterial;
+    auto ParticleSimulatorComponent::SetEmitter( core::usize index, renderer::ParticleEmitterHandle emitter ) -> void {
+        auto emitters{ mEffect->GetEmitters() };
+        emitters.at( index ) = emitter;
+        mEffect = asset::ParticleEffectHandle::New( eastl::move( emitters ) );
+        mInstances[index].SetEmitter( eastl::move( emitter ) );
     }
 
-    auto ParticleEmitterComponent::GetInstance() -> renderer::ParticleEmitterInstance& {
-        return mInstance;
+    auto ParticleSimulatorComponent::Update( core::f32 timeStep, const core::float4x4& world,
+        core::u64 seed, renderer::ParticleSimulationMode mode ) -> void {
+        for ( auto& instance: mInstances ) {
+            instance.SetSimulationMode( mode );
+            instance.Update( timeStep, world, seed++ );
+        }
     }
 
-    auto ParticleEmitterComponent::GetInstance() const -> const renderer::ParticleEmitterInstance& {
-        return mInstance;
+    auto ParticleSimulatorComponent::GetEffect() const -> const asset::ParticleEffectHandle& {
+        return mEffect;
+    }
+
+    auto ParticleSimulatorComponent::GetInstances() -> eastl::span<renderer::ParticleEmitterInstance> {
+        return { mInstances.data(), mInstances.size() };
+    }
+
+    auto ParticleSimulatorComponent::GetInstances() const -> eastl::span<const renderer::ParticleEmitterInstance> {
+        return { mInstances.data(), mInstances.size() };
     }
 
     CanvasComponent::CanvasComponent( const scene::Camera* camera ) {
@@ -2619,7 +2645,6 @@ namespace mikoto::scene {
         : mAnimatorID{ ID } {
     }
 
-
     auto SkinnedMeshRenderer::SetAnimatorID( core::u64 id ) -> void {
         mAnimatorID = id;
     }
@@ -2628,26 +2653,24 @@ namespace mikoto::scene {
         return mAnimatorID;
     }
 
-
     PostProcessMaterialComponent::PostProcessMaterialComponent( material::MaterialHandle material ) {
-        if ( material ) {
-            SetMaterial( eastl::move( material ) );
+        if ( !material.IsEmpty() ) {
+            mMaterial = eastl::move( material );
         }
         else {
-            SetMaterial( core::Ref<material::PostProcessMaterial>::New() );
+            mMaterial = core::Ref<material::PostProcessMaterial>::New();
         }
     }
 
     auto PostProcessMaterialComponent::SetMaterial( material::MaterialHandle material ) -> void {
         if ( !dynamic_cast<material::PostProcessMaterial*>( material.GetPtr() ) ) {
-            MKT_THROW_INVALID_ARGUMENT( "Post-process components require a post-process material." );
+            return;
         }
 
         mMaterial = eastl::move( material );
     }
 
     auto PostProcessMaterialComponent::GetMaterial() const -> material::MaterialHandle {
-        MKT_BEGIN_PROFILER();
         return mMaterial;
     }
 
@@ -2661,20 +2684,20 @@ namespace mikoto::scene {
 
 
     auto SkyboxMaterialComponent::GetMaterial() const -> material::MaterialHandle {
-        MKT_BEGIN_PROFILER();
         return mMaterial;
     }
 
 
     auto SkyboxMaterialComponent::SetMaterial( material::MaterialHandle material ) -> void {
-        MKT_BEGIN_PROFILER();
+        if ( !dynamic_cast<material::SkyboxMaterial*>( material.GetPtr() ) ) {
+            return;
+        }
+
         mMaterial = material;
     }
 
 
     auto AudioSourceComponent::operator=( const AudioSourceComponent& other ) -> AudioSourceComponent& {
-        MKT_BEGIN_PROFILER();
-
         if ( this != &other ) {
             auto copy = other.mAudioSource ? other.mAudioSource->Clone() : audio::AudioSourceHandle{};
 

@@ -104,12 +104,24 @@ namespace mikoto::renderer {
         return selected;
     }
 
+    static auto GetChromaticOffsetPixels( const material::PostProcessMaterial& material ) -> core::float2 {
+        if ( !material.IsChromaticAberrationEnabled() ) {
+            return {};
+        }
+
+        const auto& settings{ material.GetChromaticAberrationSettings() };
+        const auto radians{ glm::radians( settings.mDirection ) };
+        const core::float2 direction{ glm::cos( radians ), glm::sin( radians ) };
+        return direction * ( settings.mIntensity / glm::max( glm::abs( direction.x ), glm::abs( direction.y ) ) );
+    }
+
     static auto CollectPostProcessMaterials( 
         const Scene* scene, 
         material::PostProcessStage stage,
-        eastl::vector<PostProcessMaterialData>& materials ) -> void 
+        eastl::vector<PostProcessMaterialData>& materials, core::float2& chromaticOffsetPixels ) -> void
     {
         materials.clear();
+        chromaticOffsetPixels = {};
 
         if ( !scene ) {
             return;
@@ -146,6 +158,11 @@ namespace mikoto::renderer {
                 MKT_THROW_RUNTIME_ERROR( "Post-process material stage exceeds its 4096-material buffer capacity." );
             }
 
+            // Sample the scene image once per stage, using stable entity order as with bloom.
+            if ( chromaticOffsetPixels == core::float2{} ) {
+                chromaticOffsetPixels = GetChromaticOffsetPixels( *item.mMaterial );
+            }
+
             materials.push_back( { item.mMaterial->GetTintColor(), item.mMaterial->GetContrast(),
                 item.mMaterial->GetSaturation(), core::as<core::u32>( stage ),
                 item.mFilmGrainAmount } );
@@ -175,6 +192,7 @@ namespace mikoto::renderer {
             .mFilmGrainAmount = material.IsFilmGrainEnabled() ? scene::FilmGrainSettings{}.mAmount : 0.0f
         };
 
+        mPreviewChromaticOffsetPixels = GetChromaticOffsetPixels( material );
         mBloomSettings = material.GetBloomSettings();
         mBloomSettings.mEnabled = material.IsBloomEnabled();
     }
@@ -765,13 +783,15 @@ namespace mikoto::renderer {
                     core::u32 mStage{};
                     core::f32 mElapsedSeconds{};
                     core::u32 mPadding{};
+                    core::float2 mChromaticOffsetPixels{};
                 } parameters{
                     .mMaterials = ctx.GetDeviceBufferAddress( info.mMaterials ),
                     .mSceneImage = ctx.PushTexture_SRV( input ),
                     .mSampler = ctx.PushSampler( info.mSampler ),
                     .mMaterialCount = effects.mVisualizeDepthOfField ? 0u : info.mMaterialCount,
                     .mStage = core::as<core::u32>( stage ),
-                    .mElapsedSeconds = core::as<core::f32>( TimeService::Get()->GetTime() )
+                    .mElapsedSeconds = core::as<core::f32>( TimeService::Get()->GetTime() ),
+                    .mChromaticOffsetPixels = effects.mVisualizeDepthOfField ? core::float2{} : info.mChromaticOffsetPixels
                 };
 
                 ctx.BeginRender( RenderBeginDescription{}
@@ -796,13 +816,15 @@ namespace mikoto::renderer {
 
         if ( mPreviewMaterial ) {
             mPostProcessMaterials.clear();
+            info.mChromaticOffsetPixels = {};
 
             if ( mPreviewMaterial->mStage == core::as<core::u32>( stage ) ) {
                 mPostProcessMaterials.push_back( *mPreviewMaterial );
+                info.mChromaticOffsetPixels = mPreviewChromaticOffsetPixels;
             }
         }
         else {
-            CollectPostProcessMaterials( mScene, stage, mPostProcessMaterials );
+            CollectPostProcessMaterials( mScene, stage, mPostProcessMaterials, info.mChromaticOffsetPixels );
         }
 
         info.mMaterialCount = core::as<core::u32>( mPostProcessMaterials.size() );

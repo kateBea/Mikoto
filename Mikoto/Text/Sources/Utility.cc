@@ -331,12 +331,12 @@ namespace mikoto::text {
 
     auto ScreenTextModel( const ScreenPlacement& placement ) -> core::float4x4 {
         MKT_BEGIN_PROFILER();
-        const float c = glm::cos( placement.rotation );
-        const float s = glm::sin( placement.rotation );
+        const float c = glm::cos( placement.mRotation );
+        const float s = glm::sin( placement.mRotation );
         core::float4x4 result{ 1.0f };
-        result[0] = { c * placement.scale.x, s * placement.scale.x, 0, 0 };
-        result[1] = { -s * placement.scale.y, c * placement.scale.y, 0, 0 };
-        result[3] = { placement.position, 0, 1 };
+        result[0] = { c * placement.mScale.x, s * placement.mScale.x, 0, 0 };
+        result[1] = { -s * placement.mScale.y, c * placement.mScale.y, 0, 0 };
+        result[3] = { placement.mPosition, 0, 1 };
         return result;
     }
 
@@ -363,9 +363,9 @@ namespace mikoto::text {
             return false;
         }
 
-        placement.position = core::float2{ model[3] };
-        placement.scale = { sx, sy };
-        placement.rotation = glm::atan2( model[0][1], model[0][0] );
+        placement.mPosition = core::float2{ model[3] };
+        placement.mScale = { sx, sy };
+        placement.mRotation = glm::atan2( model[0][1], model[0][0] );
         return true;
     }
 

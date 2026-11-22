@@ -35,10 +35,11 @@
 #include <Renderer/Text/Font.hh>
 
 namespace mikoto::text {
+
     struct ScreenPlacement {
-        core::float2 position{ 24.0f, 24.0f };
-        core::float2 scale{ 1.0f, 1.0f };
-        float rotation{};// Clockwise radians in the top-left, Y-down pixel space.
+        core::float2 mPosition{ 24.0f, 24.0f };
+        core::float2 mScale{ 1.0f, 1.0f };
+        core::f32 mRotation{}; // Clockwise radians in the top-left, Y-down pixel space.
     };
 
     enum class Alignment {
@@ -48,26 +49,26 @@ namespace mikoto::text {
     };
 
     struct LayoutOptions {
-        core::f32 size{ 12.0f };
-        core::f32 letterSpacing{};
-        core::f32 lineSpacing{ 1.0f };
-        Alignment alignment{ Alignment::eLeft };
-        bool yDown{};
+        core::f32 mSize{ 12.0f };
+        core::f32 mLetterSpacing{};
+        core::f32 mLineSpacing{ 1.0f };
+        Alignment mAlignment{ Alignment::eLeft };
+        bool mYDown{};
     };
 
     struct GlyphQuad {
-        core::u32 codepoint{};
-        core::float2 position{};
-        core::float2 size{};
+        core::u32 mCodepoint{};
+        core::float2 mPosition{};
+        core::float2 mSize{};
     };
 
     struct TextLayout {
-        eastl::vector<GlyphQuad> glyphs;
-        core::float2 minimum{};
-        core::float2 maximum{};
-        core::usize missingGlyphs{};
-        core::usize lineCount{ 1 };
-        bool truncated{};
+        eastl::vector<GlyphQuad> mGlyphs;
+        core::float2 mMinimum{};
+        core::float2 mMaximum{};
+        core::usize mMissingGlyphs{};
+        core::usize mLineCount{ 1 };
+        bool mTruncated{};
     };
 
 }// namespace mikoto::text

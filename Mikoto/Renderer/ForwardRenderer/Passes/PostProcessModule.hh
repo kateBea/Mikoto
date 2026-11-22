@@ -59,6 +59,7 @@ namespace mikoto::renderer {
         FGSamplerHandle mSampler{};
         FGPipelineHandle mPipeline{};
         core::u32 mMaterialCount{};
+        core::float2 mChromaticOffsetPixels{};
     };
 
     struct PostProcessModuleInfo {
@@ -119,6 +120,7 @@ namespace mikoto::renderer {
          * @param source Optional input override in the stage's color space (HDR before tone mapping).
          * @details Register after the stage's source image has been created. Every active
          * component applies its material in stable entity-ID order, consuming the previous color.
+         * The first enabled chromatic aberration in each stage sets the source image sampling.
          * Register the after stage after camera effects so grain retains its pixel detail.
          */
         auto RegisterPostProcess( FrameGraph& graph,
@@ -148,6 +150,7 @@ namespace mikoto::renderer {
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
         eastl::vector<PostProcessMaterialData> mPostProcessMaterials{};
         eastl::optional<PostProcessMaterialData> mPreviewMaterial{};
+        core::float2 mPreviewChromaticOffsetPixels{};
 
         // Bloom
         BloomSettings mBloomSettings{};

@@ -77,14 +77,10 @@ namespace mikoto::material {
           mTintColor{ other.mTintColor },
           mFilmGrainEnabled{ other.mFilmGrainEnabled },
           mBloom{ other.mBloom },
+          mChromaticAberration{ other.mChromaticAberration },
           mStage{ other.mStage },
           mCategory{ other.mCategory },
-          mGraph{ other.mGraph },
-          mChromaIntensity{ other.mChromaIntensity },
-          mChromaDirection{ other.mChromaDirection },
-          mRedChannelOffset{ other.mRedChannelOffset },
-          mBlueChannelOffset{ other.mBlueChannelOffset },
-          mGreenChannelOffset{ other.mGreenChannelOffset } {
+          mGraph{ other.mGraph } {
     }
 
     PostProcessMaterial::~PostProcessMaterial() {
@@ -220,6 +216,7 @@ namespace mikoto::material {
         mCategory = value->mCategory;
         mFilmGrainEnabled = value->mFilmGrainEnabled;
         mBloom = value->mBloom;
+        mChromaticAberration = value->mChromaticAberration;
     }
 
     auto PostProcessMaterial::SetStage( PostProcessStage stage ) -> void {
@@ -299,6 +296,22 @@ namespace mikoto::material {
         return mBloom;
     }
 
+    auto PostProcessMaterial::SetChromaticAberrationSettings( renderer::ChromaticAberrationSettings settings ) -> void {
+        settings.mIntensity = glm::clamp( settings.mIntensity, 0.0f, renderer::ChromaticAberrationSettings::kMaxIntensity );
+        settings.mDirection = glm::clamp( settings.mDirection, -renderer::ChromaticAberrationSettings::kMaxDirection,
+            renderer::ChromaticAberrationSettings::kMaxDirection );
+        mChromaticAberration = settings;
+    }
+
+    auto PostProcessMaterial::IsChromaticAberrationEnabled() const -> bool {
+        return mCategory == PostProcessMaterialCategory::eBuiltIn && mChromaticAberration.mEnabled &&
+               mChromaticAberration.mIntensity > 0.0f;
+    }
+
+    auto PostProcessMaterial::GetChromaticAberrationSettings() const -> const renderer::ChromaticAberrationSettings& {
+        return mChromaticAberration;
+    }
+
     auto PostProcessMaterial::Evaluate( const core::float3& color ) const -> core::float3 {
         const auto luminance{ glm::dot( color, core::float3{ 0.2126f, 0.7152f, 0.0722f } ) };
         const auto saturated{ glm::mix( core::float3{ luminance }, color, mSaturation ) };
@@ -344,6 +357,11 @@ namespace mikoto::material {
         bloom["Radius"] = mBloom.mRadius;
         data["Bloom"] = bloom;
 
+        auto chromaticAberration{ data["ChromaticAberration"] };
+        chromaticAberration["Enabled"] = mChromaticAberration.mEnabled;
+        chromaticAberration["Intensity"] = mChromaticAberration.mIntensity;
+        chromaticAberration["Direction"] = mChromaticAberration.mDirection;
+
         if ( !GetGraph()->GetNodes().empty() ) {
             data["Graph"] = GetGraph()->Serialize();
         }
@@ -357,7 +375,7 @@ namespace mikoto::material {
         SetContrast( node["Contrast"].as<core::f32>( 1.0f ) );
         SetSaturation( node["Saturation"].as<core::f32>( 1.0f ) );
 
-        // Older assets keep both effects off unless they were explicitly enabled.
+        // Older assets default to disabled effects.
         if ( const auto bloom{ node["Bloom"] } ) {
             SetBloomSettings( renderer::BloomSettings{
                 .mThreshold = bloom["Threshold"].as<core::f32>( mBloom.mThreshold ),
@@ -365,6 +383,14 @@ namespace mikoto::material {
                 .mScatter = bloom["Scatter"].as<core::f32>( mBloom.mScatter ),
                 .mRadius = bloom["Radius"].as<core::f32>( mBloom.mRadius ),
                 .mEnabled = bloom["Enabled"].as<bool>( mBloom.mEnabled )
+            } );
+        }
+
+        if ( const auto chromaticAberration{ node["ChromaticAberration"] } ) {
+            SetChromaticAberrationSettings( renderer::ChromaticAberrationSettings{
+                .mEnabled = chromaticAberration["Enabled"].as<bool>( mChromaticAberration.mEnabled ),
+                .mIntensity = chromaticAberration["Intensity"].as<core::f32>( mChromaticAberration.mIntensity ),
+                .mDirection = chromaticAberration["Direction"].as<core::f32>( mChromaticAberration.mDirection )
             } );
         }
 

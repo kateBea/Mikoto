@@ -1,0 +1,55 @@
+{
+  "ParticleEffect": {
+    "Version": 1,
+    "Emitters": [
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 128,
+          "BurstCount": 4,
+          "Seed": 1021,
+          "EmissionRate": 22,
+          "Lifetime": 1.35,
+          "LifetimeVariation": 0.18,
+          "Speed": 6.4,
+          "SpeedVariation": 0.2,
+          "Radius": 0.08,
+          "ConeAngle": 6,
+          "Direction": [
+            0.3,
+            0.954,
+            0
+          ],
+          "Acceleration": [
+            0,
+            -8.5,
+            0
+          ],
+          "Drag": 0.03,
+          "Duration": 8,
+          "StartSize": 0.35,
+          "EndSize": 0.1,
+          "StartColor": [
+            0.2,
+            1.1,
+            2,
+            0.7
+          ],
+          "EndColor": [
+            0.05,
+            0.2,
+            0.4,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.4
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_trace_06.mktmtl"
+      }
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "ParticleEffect": {
+    "Version": 1,
+    "Emitters": [
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 64,
+          "BurstCount": 4,
+          "Seed": 1127,
+          "EmissionRate": 15,
+          "Lifetime": 0.75,
+          "LifetimeVariation": 0.18,
+          "Speed": 4.2,
+          "SpeedVariation": 0.08,
+          "Radius": 0.05,
+          "ConeAngle": 6,
+          "Direction": [
+            0,
+            1,
+            0
+          ],
+          "Acceleration": [
+            0,
+            0,
+            0
+          ],
+          "Drag": 0.12,
+          "Duration": 8,
+          "StartSize": 0.45,
+          "EndSize": 0.08,
+          "StartColor": [
+            0.1,
+            2.5,
+            5,
+            1
+          ],
+          "EndColor": [
+            2,
+            0.06,
+            3.4,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.65
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_spark_06.mktmtl"
+      }
+    ]
+  }
+}

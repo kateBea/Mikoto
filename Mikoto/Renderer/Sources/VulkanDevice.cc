@@ -3623,8 +3623,10 @@ namespace mikoto::renderer::vulkan {
 
     auto Queue::WaitCompletionValue( core::u64 value ) -> void {
         MKT_BEGIN_PROFILER();
+
         Device* device{ core::checked_cast<Device*>( mDevice ) };
         VkSemaphore semaphore{ mTimelineSemaphore->GetNativeHandle( renderer::rhi::ObjectType::Vk_Semaphore ) };
+
         VkSemaphoreWaitInfo waitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
             .semaphoreCount = 1,
@@ -3637,6 +3639,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Queue::ExecuteCommandLists( SubmitSemaphoresInfo&& submitInfo ) -> core::u64 {
         MKT_BEGIN_PROFILER();
+
         // A frame without an acquired image still needs its completion signal.
         if ( submitInfo.mCommands.empty() && submitInfo.mWaitSemaphores.empty() && submitInfo.mSignalSemaphores.empty() ) {
             return 0;
@@ -3718,20 +3721,16 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Queue::AllocateCmdList( renderer::rhi::QueueType type ) -> renderer::rhi::CommandListHandle {
-        MKT_BEGIN_PROFILER();
         renderer::rhi::CommandListHandle result{ core::Ref<CommandList>::New( type, this, mFamilyIndex ) };
         return result;
     }
 
     Queue::operator core::u32() const {
-        MKT_BEGIN_PROFILER();
         return mFamilyIndex;
     }
 
 
     Queue::~Queue() {
-        MKT_BEGIN_PROFILER();
-
         if ( mIsAllocated ) {
             Destroy();
         }
@@ -3751,27 +3750,22 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Queue::GetCurrentTimeline() -> core::u64 {
-        MKT_BEGIN_PROFILER();
         return mTimelineSemaphore->GetCompletionValue();
     }
 
     auto Queue::GetQueue() const -> VkQueue {
-        MKT_BEGIN_PROFILER();
         return mQueue;
     }
 
     auto Queue::GetQueueIndex() const -> core::u32 {
-        MKT_BEGIN_PROFILER();
         return mQueueIndex;
     }
 
     auto Queue::GetFamilyIndex() const -> core::u32 {
-        MKT_BEGIN_PROFILER();
         return mFamilyIndex;
     }
 
     auto IDescriptorAllocatorPool::Create( const VkDevice& device, core::i32 nFrames ) -> eastl::unique_ptr<IDescriptorAllocatorPool> {
-        MKT_BEGIN_PROFILER();
         auto impl{ eastl::make_unique<DescriptorAllocatorPoolImpl>() };
         impl->mDevice = device;
         impl->mFrameIndex = 0;
@@ -3785,7 +3779,6 @@ namespace mikoto::renderer::vulkan {
     }
 
     DescriptorAllocatorHandle::~DescriptorAllocatorHandle() {
-        MKT_BEGIN_PROFILER();
         auto* implPool{ as<DescriptorAllocatorPoolImpl*>( mOwnerPool ) };
 
         if ( implPool ) {

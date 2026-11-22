@@ -17,13 +17,18 @@
 #include <fstream>
 #include <filesystem>
 
+#include <EASTL/algorithm.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <Core/String.hh>
 #include <Core/Exception.hh>
 #include <Core/LocalizationService.hh>
 
 #include <Filesystem/FileSystem.hh>
+
+#include <Assets/AssetRegistryService.hh>
 
 #include <Material/SkyboxMaterial.hh>
 
@@ -36,6 +41,7 @@
 #include <ImGui/IconsMaterialDesign.h>
 
 #include <Application/PreviewEnvironment.hh>
+#include <Application/ParticleProperties.hh>
 
 #include <Panels/ParticleSimulationPanel.hh>
 
@@ -53,7 +59,8 @@ namespace mikoto::editor {
           mEditorState{ info.mState } {
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_BLUR_ON, mPanelName );
         mPanelIsVisible = false;
-        mGraph.Initialize( mSettings );
+        mEmitters.push_back( ParticleEmitterHandle::New() );
+        SelectEmitter( 0 );
     }
 
     ParticleSimulationPanel::~ParticleSimulationPanel() {
@@ -63,12 +70,13 @@ namespace mikoto::editor {
     }
 
     auto ParticleSimulationPanel::InitializePreview() -> void {
-        // Idle avoids changing the global physics/audio simulation target. Only
-        // this emitter is advanced below, using the same production simulation.
+        // The preview runs its own clocks independently of scene playback.
         mScene = eastl::make_unique<scene::Scene>( "Particle Preview" );
-        auto* emitter{ mScene->CreateEntity( "Preview emitter" ) };
-        mEmitter = emitter->Get();
-        emitter->AddComponent<scene::ParticleEmitterComponent>().GetInstance().SetEmitter( ParticleEmitterHandle::New( mSettings ) );
+        auto* entity{ mScene->CreateEntity( "Preview simulator" ) };
+        mSimulator = entity->Get();
+        entity->AddComponent<scene::ParticleSimulatorComponent>();
+        RefreshPreview();
+
         const auto cube{ mEditorState->GetPrefab( PrefabModelType::eCube ) };
 
         if ( !cube || cube->GetMeshNodeCount() != 1 || cube->GetMeshNode( 0 ).GetCollisionVertices().empty() ) {
@@ -122,62 +130,152 @@ namespace mikoto::editor {
         mRenderer = eastl::move( renderer );
     }
 
-    auto ParticleSimulationPanel::SetRecipe( renderer::ParticleEmitterSettings settings ) -> void {
-        mGraph.mSettings = SanitizeParticleSettings( settings );
+    auto ParticleSimulationPanel::RefreshPreview() -> void {
+        if ( mScene && mSimulator != entt::null ) {
+            auto& simulator{ mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ) };
+            simulator.SetEffect( asset::ParticleEffectHandle::New( mEmitters ) );
+        }
+
+        mElapsed = 0.0f;
+    }
+
+    auto ParticleSimulationPanel::SelectEmitter( core::usize index ) -> void {
+        mSelectedEmitter = index;
+        mSettings = index < mEmitters.size() ? mEmitters[index]->GetSettings() : ParticleEmitterSettings{};
+        mGraph.Initialize( mSettings );
+        mGraphContext.Reset();
+        mGraphRestore = mGraphFit = true;
+        mGraphMessage.clear();
+    }
+
+    auto ParticleSimulationPanel::ReplaceEmitter( const ParticleEmitterSettings& settings, const material::ParticleMaterialHandle& material ) -> void {
+        auto emitter{ ParticleEmitterHandle::New( ParticleEmitterCreateDescription{
+            .mSettings = settings,
+            .mMaterial = material
+        } ) };
+
+        if ( mScene && mSimulator != entt::null ) {
+            mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ).SetEmitter( mSelectedEmitter, emitter );
+        }
+
+        mEmitters[mSelectedEmitter] = eastl::move( emitter );
+        mSettings = mEmitters[mSelectedEmitter]->GetSettings();
+        mUnsaved = true;
+    }
+
+    auto ParticleSimulationPanel::SetRecipe( ParticleEmitterSettings settings ) -> void {
+        settings.Sanitize();
+        mGraph.mSettings = settings;
         const auto compiled{ ParticleGraphCompiler::Compile( mGraph ) };
+
         mGraphMessage = compiled.mMessage;
         mUnsaved = true;
 
-        if ( !compiled.mSuccess ) {
-            return;
+        if ( compiled.mSuccess && mSelectedEmitter < mEmitters.size() ) {
+            ReplaceEmitter( compiled.mSettings, mEmitters[mSelectedEmitter]->GetMaterial() );
+        }
+    }
+
+    auto ParticleSimulationPanel::EditEffect( const asset::ParticleEffectHandle& effect ) -> void {
+        mEmitters.clear();
+        if ( effect ) {
+            mEmitters = effect->GetEmitters();
         }
 
-        mSettings = compiled.mSettings;
-
-        if ( mScene && mEmitter != entt::null ) {
-            mScene->GetRegistry().get<scene::ParticleEmitterComponent>( mEmitter ).GetInstance().SetEmitter( ParticleEmitterHandle::New( mSettings ) );
-        }
-
-        mElapsed = 0;
-        mUnsaved = true;
+        SelectEmitter( 0 );
+        RefreshPreview();
+        mPath = {};
+        mError.clear();
+        mUnsaved = false;
+        SetVisible( true );
     }
 
     auto ParticleSimulationPanel::OpenAsset( const filesystem::Path& path ) -> void {
         try {
-            const auto emitter{ renderer::ParticleEmitter::Load( path ) };
-            mGraph.Initialize( emitter->GetSettings() );
-            mGraphRestore = mGraphFit = true;
-            SetRecipe( emitter->GetSettings() );
+            const auto effect{ asset::AssetRegistryService::Get()->LoadAsset<asset::ParticleEffect>( path ) };
+            if ( !effect ) {
+                MKT_THROW_RUNTIME_ERROR( "Cannot load particle effect." );
+            }
+
+            EditEffect( effect );
             mPath = path;
-            mUnsaved = false;
-            mError.clear();
         } catch ( const std::exception& error ) {
             mError = error.what();
+            SetVisible( true );
         }
-
-        SetVisible( true );
     }
 
     auto ParticleSimulationPanel::SaveAsset() -> void {
-        const auto compiled{ ParticleGraphCompiler::Compile( mGraph ) };
-
-        if ( !compiled.mSuccess ) {
-            mError = compiled.mMessage;
-            return;
+        if ( !mEmitters.empty() ) {
+            const auto compiled{ ParticleGraphCompiler::Compile( mGraph ) };
+            if ( !compiled.mSuccess ) {
+                mError = compiled.mMessage;
+                return;
+            }
         }
 
-        const auto path{ SaveFileDialog( "Emitter.mktpart", { { MKT_LOC( "particle_simulation_particle_emitter" ).c_str(), "mktpart" } } ) };
+        const auto path{ SaveFileDialog( "Effect.mktpart", { { MKT_LOC( "particle_effect_asset" ).c_str(), "mktpart" } } ) };
 
         if ( !path.IsEmpty() ) {
-            ParticleEmitterHandle::New( mSettings )->Save( path );
+            const auto effect{ asset::ParticleEffectHandle::New( mEmitters ) };
+            asset::AssetRegistryService::Get()->SaveParticleEffect( *effect.GetPtr(), path );
             mPath = path;
             mUnsaved = false;
+        }
+    }
+
+    auto ParticleSimulationPanel::DrawEmitterPicker() -> void {
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted( MKT_LOC( "particle_simulation_particle_emitter" ).c_str() );
+        ImGui::SameLine();
+
+        const auto label{ [&]( core::usize index ) {
+            return string::Format( "{} {}", MKT_LOC( "particle_simulation_particle_emitter" ), index + 1 );
+        } };
+
+        ImGui::SetNextItemWidth( ImGui::GetFontSize() * 12.0f );
+        const auto current{ mEmitters.empty() ? MKT_LOC( "particle_effect_no_emitters" ) : label( mSelectedEmitter ) };
+        if ( ImGui::BeginCombo( "##ParticleEmitter", current.c_str() ) ) {
+            for ( core::usize index{}; index < mEmitters.size(); ++index ) {
+                ImGui::PushID( core::as<core::i32>( index ) );
+                if ( ImGui::Selectable( label( index ).c_str(), index == mSelectedEmitter ) ) {
+                    SelectEmitter( index );
+                }
+                ImGui::PopID();
+            }
+
+            ImGui::EndCombo();
+        }
+
+        ImGui::SameLine();
+        if ( ImGui::Button( MKT_LOC( "particle_effect_add_emitter" ).c_str() ) ) {
+            mEmitters.push_back( ParticleEmitterHandle::New() );
+            SelectEmitter( mEmitters.size() - 1 );
+            RefreshPreview();
+            mUnsaved = true;
+        }
+
+        ImGui::SameLine();
+        ImGui::BeginDisabled( mEmitters.empty() );
+        if ( ImGui::Button( MKT_LOC( "particle_effect_remove_emitter" ).c_str() ) ) {
+            mEmitters.erase( mEmitters.begin() + mSelectedEmitter );
+            SelectEmitter( mEmitters.empty() ? 0 : eastl::min( mSelectedEmitter, mEmitters.size() - 1 ) );
+            RefreshPreview();
+            mUnsaved = true;
+        }
+        ImGui::EndDisabled();
+    }
+
+    auto ParticleSimulationPanel::DrawEmitterMaterial() -> void {
+        auto material{ mEmitters[mSelectedEmitter]->GetMaterial() };
+        if ( DrawParticleEmitterMaterial( material, mEditorState->mSandboxMode ) ) {
+            ReplaceEmitter( mSettings, material );
         }
     }
 
     auto ParticleSimulationPanel::DrawToolbar() -> void {
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_load", "Load..." ).c_str() ) ) {
-            const auto path{ OpenFileDialog( { { MKT_LOC( "particle_simulation_particle_emitter" ).c_str(), "mktpart" } } ) };
+            const auto path{ OpenFileDialog( { { MKT_LOC( "particle_effect_asset" ).c_str(), "mktpart" } } ) };
 
             if ( !path.IsEmpty() ) {
                 OpenAsset( path );
@@ -186,6 +284,7 @@ namespace mikoto::editor {
 
         ImGui::SameLine();
 
+        ImGui::BeginDisabled( mEmitters.empty() );
         if ( ImGui::BeginCombo( "##Preset", MKT_LOC( "particle_simulation_presets" ).c_str() ) ) {
             for ( core::i32 preset{}; preset < 4; ++preset ) {
                 const char* names[]{ MKT_LOC( "particle_simulation_default" ).c_str(), "Fountain", "Sparks", "Smoke" };
@@ -228,13 +327,13 @@ namespace mikoto::editor {
                     mGraph.Initialize( settings );
                     mGraphRestore = mGraphFit = true;
                     SetRecipe( settings );
-                    mPath = {};
                 }
             }
 
             ImGui::EndCombo();
         }
 
+        ImGui::EndDisabled();
         ImGui::SameLine();
 
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_save_as", "Save as..." ).c_str() ) ) {
@@ -243,57 +342,70 @@ namespace mikoto::editor {
 
         mEditorState->ValidateSelection();
         auto* selected{ mEditorState->mSelectedEntity };
-        const bool hasEmitter{ selected && selected->HasComponent<scene::ParticleEmitterComponent>() };
+        const bool hasSimulator{ selected && selected->HasComponent<scene::ParticleSimulatorComponent>() };
         ImGui::SameLine();
-        ImGui::BeginDisabled( !hasEmitter );
+        ImGui::BeginDisabled( !hasSimulator );
 
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_copy_selected", "Copy selected" ).c_str() ) ) {
-            const auto& recipe{ selected->GetComponent<scene::ParticleEmitterComponent>().GetInstance().GetEmitter() };
-            SetRecipe( recipe ? recipe->GetSettings() : renderer::ParticleEmitterSettings{} );
-            mPath = {};
+            EditEffect( selected->GetComponent<scene::ParticleSimulatorComponent>().GetEffect() );
         }
 
-        ImGui::EndDisabled();
         ImGui::SameLine();
-        ImGui::BeginDisabled( !hasEmitter || mEditorState->mRuntimeActive );
-
-        if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_apply_to_selected", "Apply to selected" ).c_str() ) && ParticleGraphCompiler::Compile( mGraph ).mSuccess ) {
-            selected->GetComponent<scene::ParticleEmitterComponent>().GetInstance().SetEmitter( ParticleEmitterHandle::New( mSettings ) );
+        if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_apply_to_selected", "Apply to selected" ).c_str() ) ) {
+            auto& simulator{ selected->GetComponent<scene::ParticleSimulatorComponent>() };
+            if ( simulator.GetInstances().size() == mEmitters.size() && simulator.GetEffect() ) {
+                for ( core::usize index{}; index < mEmitters.size(); ++index ) {
+                    if ( simulator.GetEffect()->GetEmitters()[index] != mEmitters[index] ) {
+                        simulator.SetEmitter( index, mEmitters[index] );
+                    }
+                }
+            }
+            else {
+                simulator.SetEffect( asset::ParticleEffectHandle::New( mEmitters ) );
+            }
         }
 
         ImGui::EndDisabled();
-        ImGui::TextDisabled( "%s%s", mPath.IsEmpty() ? MKT_LOC( "particle_simulation_unsaved_emitter" ).c_str() : mPath.GetC_Str(), mUnsaved ? " *" : "" );
+        ImGui::TextDisabled( "%s%s", mPath.IsEmpty() ? MKT_LOC( "particle_effect_unsaved" ).c_str() : mPath.GetC_Str(), mUnsaved ? " *" : "" );
     }
 
     auto ParticleSimulationPanel::DrawPreview( core::f32 timeStep ) -> void {
-        auto& instance{ mScene->GetRegistry().get<scene::ParticleEmitterComponent>( mEmitter ).GetInstance() };
+        auto& simulator{ mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ) };
+        const auto instances{ simulator.GetInstances() };
+        const auto isPlaying{ []( const auto& instance ) { return instance.GetPlayback() == ParticlePlayback::ePlaying; } };
+        const bool playing{ eastl::any_of( instances.begin(), instances.end(), isPlaying ) };
 
-        if ( ImGui::Button( instance.GetPlayback() == renderer::ParticlePlayback::ePlaying ? MKT_LOC( "particle_simulation_pause" ).c_str() : MKT_LOC( "particle_simulation_play" ).c_str() ) ) {
-            if ( instance.GetPlayback() == renderer::ParticlePlayback::ePlaying ) {
-                instance.Pause();
-            }
-            else {
-                instance.Play();
+        if ( ImGui::Button( playing ? MKT_LOC( "particle_simulation_pause" ).c_str() : MKT_LOC( "particle_simulation_play" ).c_str() ) ) {
+            for ( auto& instance: instances ) {
+                if ( playing ) {
+                    if ( isPlaying( instance ) ) {
+                        instance.Pause();
+                    }
+                }
+                else {
+                    instance.Play();
+                }
             }
         }
 
         ImGui::SameLine();
-
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_restart", "Restart" ).c_str() ) ) {
-            instance.Restart();
+            for ( auto& instance: instances ) {
+                instance.Restart();
+            }
             mElapsed = 0;
         }
 
         ImGui::SameLine();
-
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_step", "Step" ).c_str() ) ) {
             mStep = true;
         }
 
         ImGui::SameLine();
-
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_stop", "Stop" ).c_str() ) ) {
-            instance.Stop();
+            for ( auto& instance: instances ) {
+                instance.Stop();
+            }
             mElapsed = 0;
         }
 
@@ -329,21 +441,24 @@ namespace mikoto::editor {
         const core::float3 target{ 0, mTargetHeight, 0 };
         mCamera.LookAt( target + mDistance * core::float3{ glm::sin( yaw ) * glm::cos( pitch ), glm::sin( pitch ), glm::cos( yaw ) * glm::cos( pitch ) }, target );
         mRenderer->SetParticleSimulationMode( mMode );
-        instance.SetSimulationMode( mMode );
-
         if ( mStep ) {
-            instance.Play();
+            for ( auto& instance: instances ) {
+                instance.Play();
+            }
         }
 
-        const core::f32 step{ mStep ? 1.0f / 60.0f : glm::clamp( timeStep, 0.0f, 0.1f ) * mSpeed };
-
-        if ( instance.GetPlayback() == renderer::ParticlePlayback::ePlaying ) {
-            instance.Update( step, core::float4x4{ 1 }, 1 );
+        const auto step{ mStep ? 1.0f / 60.0f : glm::clamp( timeStep, 0.0f, 0.1f ) * mSpeed };
+        simulator.Update( step, core::float4x4{ 1.0f }, 1, mMode );
+        if ( mStep || eastl::any_of( instances.begin(), instances.end(), isPlaying ) ) {
             mElapsed += step;
         }
 
         if ( mStep ) {
-            instance.Pause();
+            for ( auto& instance: instances ) {
+                if ( isPlaying( instance ) ) {
+                    instance.Pause();
+                }
+            }
             mStep = false;
         }
 
@@ -355,10 +470,16 @@ namespace mikoto::editor {
     }
 
     auto ParticleSimulationPanel::DrawSettings() -> void {
+        if ( mEmitters.empty() ) {
+            return;
+        }
+
+        DrawEmitterMaterial();
+
         if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "particle_simulation_info", "Info" ).c_str() ) ) {
             ImGui::TextUnformatted( mMode == renderer::ParticleSimulationMode::eGpu ? MKT_LOC( "particle_simulation_gpu_compute" ).c_str() : MKT_LOC( "particle_simulation_cpu_simulation" ).c_str() );
             ImGui::Text( MKT_LOC( "particle_simulation_preview_time_s" ).c_str(), mElapsed );
-            const auto& instance{ mScene->GetRegistry().get<scene::ParticleEmitterComponent>( mEmitter ).GetInstance() };
+            const auto& instance{ mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ).GetInstances()[mSelectedEmitter] };
 
             if ( mMode == renderer::ParticleSimulationMode::eCpu ) {
                 ImGui::Text( MKT_LOC( "particle_simulation_live_dropped" ).c_str(), instance.GetParticles().size(), instance.GetDroppedParticles() );
@@ -376,75 +497,43 @@ namespace mikoto::editor {
         }
 
         auto settings{ mGraph.mSettings };
-        bool changed{};
         ImGui::SeparatorText( MKT_LOC( "particle_simulation_emitter_stack" ).c_str() );
         ImGui::TextWrapped( MKT_LOC( "particle_simulation_changes_restart_the_preview_apply_explicitly_to_update_a_scene" ).c_str() );
 
-        if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "particle_simulation_emission", "Emission" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
-            core::i32 capacity{ core::as<core::i32>( settings.mMaxParticles ) };
-            core::i32 burst{ core::as<core::i32>( settings.mBurstCount ) };
-            changed |= ImGui::DragInt( imgui::widget::LocalizedLabel( "particle_simulation_capacity", "Capacity" ).c_str(), &capacity, 16, 1, renderer::kMaxEmitterParticles );
-            changed |= ImGui::DragInt( imgui::widget::LocalizedLabel( "particle_simulation_initial_burst", "Initial burst" ).c_str(), &burst, 1, 0, renderer::kMaxEmitterParticles );
-            settings.mMaxParticles = core::as<core::u32>( eastl::max( 1, capacity ) );
-            settings.mBurstCount = core::as<core::u32>( eastl::max( 0, burst ) );
-            changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "particle_simulation_particles_second", "Particles / second" ).c_str(), &settings.mEmissionRate, 1, 0, 100000 );
-            changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "particle_simulation_lifetime", "Lifetime" ).c_str(), &settings.mLifetime, 0.05f, 0.02f, 300 );
-            changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "particle_simulation_lifetime_variation", "Lifetime variation" ).c_str(), &settings.mLifetimeVariation, 0, 0.95f );
-            changed |= imgui::CheckBox( imgui::widget::LocalizedLabel( "particle_simulation_loop", "Loop" ).c_str(), settings.mLooping );
-            changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "particle_simulation_duration", "Duration" ).c_str(), &settings.mDuration, 0.1f, 0.02f, 3600 );
-            changed |= ImGui::InputScalar( imgui::widget::LocalizedLabel( "particle_simulation_seed", "Seed" ).c_str(), ImGuiDataType_U32, &settings.mSeed );
-        }
-
-        if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "particle_simulation_spawn_and_motion", "Spawn and motion" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
-            changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "particle_simulation_radius", "Radius" ).c_str(), &settings.mRadius, 0.01f, 0, 1000 );
-            changed |= ImGui::DragFloat3( imgui::widget::LocalizedLabel( "particle_simulation_direction", "Direction" ).c_str(), &settings.mDirection.x, 0.02f, -1, 1 );
-            changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "particle_simulation_cone_angle", "Cone angle" ).c_str(), &settings.mConeAngle, 0, 180 );
-            changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "particle_simulation_speed", "Speed" ).c_str(), &settings.mSpeed, 0.05f, 0, 1000 );
-            changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "particle_simulation_speed_variation", "Speed variation" ).c_str(), &settings.mSpeedVariation, 0, 1 );
-            changed |= ImGui::DragFloat3( imgui::widget::LocalizedLabel( "particle_simulation_acceleration", "Acceleration" ).c_str(), &settings.mAcceleration.x, 0.05f, -10000, 10000 );
-            changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "particle_simulation_drag", "Drag" ).c_str(), &settings.mDrag, 0.01f, 0, 100 );
-        }
-
-        if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "particle_simulation_appearance_over_lifetime", "Appearance over lifetime" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
-            changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "particle_simulation_start_diameter", "Start diameter" ).c_str(), &settings.mStartSize, 0.01f, 0, 1000 );
-            changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "particle_simulation_end_diameter", "End diameter" ).c_str(), &settings.mEndSize, 0.01f, 0, 1000 );
-            changed |= ImGui::ColorEdit4( imgui::widget::LocalizedLabel( "particle_simulation_start_colour", "Start colour" ).c_str(), &settings.mStartColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float );
-            changed |= ImGui::ColorEdit4( imgui::widget::LocalizedLabel( "particle_simulation_end_colour", "End colour" ).c_str(), &settings.mEndColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float );
-            changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "particle_simulation_angular_speed", "Angular speed" ).c_str(), &settings.mAngularSpeed, 0.05f, -100, 100 );
-            changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "particle_simulation_edge_softness", "Edge softness" ).c_str(), &settings.mSoftness, 0.01f, 1 );
-        }
-
-        if ( changed ) {
+        if ( DrawParticleEmitterSettings( settings ) ) {
             SetRecipe( settings );
         }
 
         if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "particle_simulation_preview_scene", "Preview scene" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
-            core::i32 mode{ mMode == renderer::ParticleSimulationMode::eGpu ? 1 : 0 };
+            if ( BeginParticleSettingsRows( "##PreviewSettings" ) ) {
+                core::i32 mode{ mMode == renderer::ParticleSimulationMode::eGpu ? 1 : 0 };
 
-            if ( ImGui::Combo( imgui::widget::LocalizedLabel( "particle_simulation_simulation", "Simulation" ).c_str(), &mode, MKT_LOC( "particle_simulation_cpu_gpu_compute_experimental" ).c_str() ) ) {
-                mMode = mode ? renderer::ParticleSimulationMode::eGpu : renderer::ParticleSimulationMode::eCpu;
-                mElapsed = 0;
+                if ( ImGui::Combo( ParticleControlRow( "particle_simulation_simulation" ).c_str(), &mode, MKT_LOC( "particle_simulation_cpu_gpu_compute_experimental" ).c_str() ) ) {
+                    mMode = mode ? renderer::ParticleSimulationMode::eGpu : renderer::ParticleSimulationMode::eCpu;
+                    mElapsed = 0;
+                }
+
+                if ( imgui::CheckBox( ParticleControlRow( "particle_simulation_infinite_grid" ), mShowGrid ) ) {
+                    mRenderer->SetEnableInfiniteGrid( mShowGrid );
+                }
+
+                if ( imgui::CheckBox( ParticleControlRow( "particle_simulation_ground" ), mShowGround ) ) {
+                    mScene->GetRegistry().get<scene::TagComponent>( mGround ).SetActive( mShowGround );
+                }
+
+                if ( imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_background_blur" ), &mBlur, 0, 6, "%.2f LOD" ) ) {
+                    mRenderer->SetSkyboxBlur( mBlur );
+                }
+
+                if ( imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_exposure" ), &mExposure, 0.1f, 4, "%.3f" ) ) {
+                    mRenderer->SetExposure( mExposure );
+                }
+
+                imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_orbit_target_height" ), &mTargetHeight, 0, 10, "%.3f" );
+                ImGui::EndTable();
             }
 
             ImGui::TextWrapped( MKT_LOC( "particle_simulation_billboard_discs_the_ground_is_a_visual_reference_not_a" ).c_str() );
-
-            if ( imgui::CheckBox( imgui::widget::LocalizedLabel( "particle_simulation_infinite_grid", "Infinite grid" ).c_str(), mShowGrid ) ) {
-                mRenderer->SetEnableInfiniteGrid( mShowGrid );
-            }
-
-            if ( imgui::CheckBox( imgui::widget::LocalizedLabel( "particle_simulation_ground", "Ground" ).c_str(), mShowGround ) ) {
-                mScene->GetRegistry().get<scene::TagComponent>( mGround ).SetActive( mShowGround );
-            }
-
-            if ( ImGui::SliderFloat( imgui::widget::LocalizedLabel( "particle_simulation_background_blur", "Background blur" ).c_str(), &mBlur, 0, 6, "%.2f LOD" ) ) {
-                mRenderer->SetSkyboxBlur( mBlur );
-            }
-
-            if ( ImGui::SliderFloat( imgui::widget::LocalizedLabel( "particle_simulation_exposure", "Exposure" ).c_str(), &mExposure, 0.1f, 4 ) ) {
-                mRenderer->SetExposure( mExposure );
-            }
-
-            ImGui::SliderFloat( imgui::widget::LocalizedLabel( "particle_simulation_orbit_target_height", "Orbit target height" ).c_str(), &mTargetHeight, 0, 10 );
 
             if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_reset_camera", "Reset camera" ).c_str() ) ) {
                 mYaw = 35;
@@ -744,6 +833,7 @@ namespace mikoto::editor {
                 }
 
                 DrawToolbar();
+                DrawEmitterPicker();
 
                 if ( !mEnvironment.GetError().empty() ) {
                     ImGui::TextWrapped( "%s", mEnvironment.GetError().c_str() );
@@ -798,7 +888,7 @@ namespace mikoto::editor {
                     ImGui::EndChild();
                     ImGui::TableSetColumnIndex( 1 );
 
-                    if ( ImGui::BeginChild( "Particle graph canvas", {}, ImGuiChildFlags_Borders, ImGuiWindowFlags_NoScrollbar ) ) {
+                    if ( ImGui::BeginChild( "Particle graph canvas", {}, ImGuiChildFlags_Borders, ImGuiWindowFlags_NoScrollbar ) && !mEmitters.empty() ) {
                         DrawGraph();
                     }
 

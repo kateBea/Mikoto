@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "ParticleMaterial",
+  "Name": "Kenney blackSmoke19",
+  "Material": {
+    "Color": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "TexturePath": "../../Textures/kenney_smoke-particles/PNG/Black smoke/blackSmoke19.png"
+  }
+}

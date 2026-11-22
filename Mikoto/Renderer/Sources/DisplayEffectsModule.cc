@@ -26,18 +26,40 @@
 
 #include <Math/Math.hh>
 
+#include <Material/PostProcessMaterial.hh>
+
 #include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
 #include <Renderer/ForwardRenderer/Passes/DisplayEffectsModule.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
 
+#include <Scene/Scene.hh>
+#include <Scene/Component.hh>
 #include <Scene/SceneCamera.hh>
 
 namespace mikoto::renderer {
 
     using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;
+
+    static auto HasChromaticAberrationMaterial( const scene::Scene* scene ) -> bool {
+        if ( !scene ) {
+            return false;
+        }
+
+        for ( const auto [entity, tag, component]:
+            scene->GetRegistry().view<scene::TagComponent, scene::PostProcessMaterialComponent>().each() ) {
+            const auto handle{ component.GetMaterial() };
+            const auto* material{ dynamic_cast<const material::PostProcessMaterial*>( handle.GetPtr() ) };
+
+            if ( tag.IsActive() && material && material->IsChromaticAberrationEnabled() ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     // Shared push-constant layout.
     // Keep scalar/array offsets identical to DepthOfField_Helpers.slang.
@@ -67,65 +89,6 @@ namespace mikoto::renderer {
 
     MKT_NODISCARD static auto CreateDepthOfFieldTexture( FrameGraph& graph, core::cstr name, core::u32 width, core::u32 height ) -> FGTextureHandle {
         return graph.Create( FGTextureDescription{}.SetName( name ).SetWidth( width ).SetHeight( height ).SetFormat( rhi::Format::eRGBA16_FLOAT ).SetUsage( rhi::TextureUsageFlagsBits::ShaderResource | rhi::TextureUsageFlagsBits::UnorderedAccess ) );
-    }
-
-    static auto DispatchDepthOfField( CommandContext& ctx, DepthOfFieldParameters parameters,
-        const std::array<FGTextureHandle, 8>& inputs, const std::array<FGTextureHandle, 2>& outputs,
-        FGSamplerHandle sampler, FGPipelineHandle pipeline, core::u32 width, core::u32 height, core::u32 mipLevel = 0 ) -> void {
-        for ( core::usize i{}; i < inputs.size(); ++i ) {
-            if ( inputs[i].mHandle ) {
-                parameters.mInputs[i] = ctx.PushTexture_SRV( inputs[i] );
-            }
-        }
-
-        for ( core::usize i{}; i < outputs.size(); ++i ) {
-            if ( outputs[i].mHandle ) {
-                parameters.mOutputs[i] = ctx.PushTexture_UAV( outputs[i] );
-            }
-        }
-
-        parameters.mSampler = ctx.PushSampler( sampler );
-        parameters.mTargetWidth = width;
-        parameters.mTargetHeight = height;
-        parameters.mMipLevel = mipLevel;
-
-        ctx.BindPipeline( pipeline );
-        ctx.PushConstants( parameters );
-        ctx.Dispatch( ( width + 7 ) / 8, ( height + 7 ) / 8, 1 );
-    }
-
-    static auto RegisterDepthOfFieldCompute( FrameGraph& graph, const eastl::function<DepthOfFieldParameters()>& makeParameters,
-        core::cstr name, core::cstr shader,
-        std::array<FGTextureHandle, 8> inputs, std::array<FGTextureHandle, 2> outputs,
-        FGSamplerHandle sampler, core::u32 width, core::u32 height, core::u32 mipLevel = 0, bool alwaysRun = false ) -> void {
-        const auto pipeline{ graph.Create( FGPipelineDescription{}
-            .SetName( name )
-            .SetPipelineType( rhi::PipelineType::eCompute )
-            .PushShader( shader, FGStageType::eCompute ) ) };
-
-        graph.RegisterPass(
-            name,
-            FGPassType::eCompute,
-            [=]( FGNodeBuilder& builder, core::Blackboard& ) {
-                for ( const auto input: inputs ) {
-                    if ( input.mHandle ) {
-                        builder.UseResource( input, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
-                    }
-                }
-
-                for ( const auto output: outputs ) {
-                    if ( output.mHandle ) {
-                        builder.UseResource( output, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
-                    }
-                }
-            },
-            [=]( CommandContext& ctx, core::Blackboard& ) {
-                const auto parameters{ makeParameters() };
-
-                if ( parameters.mEnabled || alwaysRun ) {
-                    DispatchDepthOfField( ctx, parameters, inputs, outputs, sampler, pipeline, width, height, mipLevel );
-                }
-            } );
     }
 
     DisplayEffectsModule::DisplayEffectsModule( rhi::RenderResolution resolution )
@@ -162,6 +125,7 @@ namespace mikoto::renderer {
         // negative before the focus plane, positive behind it. Half/quarter refer to each dimension.
         auto& info{ graph.GetOrCreate<DisplayEffectsModuleInfo>() };
         const auto [resolutionWidth, resolutionHeight]{ InferDimensions( mResolution ) };
+
         const core::u32 width{ std::max( 1u, static_cast<core::u32>( resolutionWidth ) ) };
         const core::u32 height{ std::max( 1u, static_cast<core::u32>( resolutionHeight ) ) };
         const core::u32 halfWidth{ ( width + 1 ) / 2 };
@@ -170,10 +134,15 @@ namespace mikoto::renderer {
         const core::u32 quarterHeight{ ( halfHeight + 1 ) / 2 };
         const core::u32 tileWidth{ ( halfWidth + 7 ) / 8 };
         const core::u32 tileHeight{ ( halfHeight + 7 ) / 8 };
+
         const auto sceneColor{ graph.GetOrCreate<GeomShadingModuleInfo>().mColorImage };
+
         // This prepass is single-sampled even when the lighting targets use MSAA.
         const auto depth{ graph.GetOrCreate<PrepassModuleInfo>().mPrepassDepthTarget };
-        const auto sampler{ graph.Create( FGSamplerDescription{}.SetName( "DepthOfField_LinearClamp" ).SetFilter( rhi::SamplerFilter::eLinear ).SetWrap( rhi::SamplerWrapMode::eClampToEdge ) ) };
+        const auto sampler{ graph.Create( FGSamplerDescription{}.SetName( "DepthOfField_LinearClamp" )
+            .SetFilter( rhi::SamplerFilter::eLinear )
+            .SetWrap( rhi::SamplerWrapMode::eClampToEdge ) ) };
+
         const auto fullCoC{ CreateDepthOfFieldTexture( graph, "DepthOfField_FullCoC", width, height ) };
         const auto setup{ CreateDepthOfFieldTexture( graph, "DepthOfField_HalfColorCoC", halfWidth, halfHeight ) };
         const auto flattened{ CreateDepthOfFieldTexture( graph, "DepthOfField_TileCoC", tileWidth, tileHeight ) };
@@ -189,6 +158,7 @@ namespace mikoto::renderer {
         const auto background{ CreateDepthOfFieldTexture( graph, "DepthOfField_Background", halfWidth, halfHeight ) };
         const auto backgroundFiltered{ CreateDepthOfFieldTexture( graph, "DepthOfField_BackgroundFiltered", halfWidth, halfHeight ) };
         const auto slightDefocus{ CreateDepthOfFieldTexture( graph, "DepthOfField_SlightDefocus", halfWidth, halfHeight ) };
+
         info.mDepthOfFieldColor = CreateDepthOfFieldTexture( graph, "DepthOfField_Color", width, height );
         info.mVisualizeDepthOfField = false;
 
@@ -224,9 +194,72 @@ namespace mikoto::renderer {
             return parameters;
         } };
 
+        const auto dispatchDepthOfField{ []( CommandContext& ctx, DepthOfFieldParameters parameters,
+            const std::array<FGTextureHandle, 8>& inputs, const std::array<FGTextureHandle, 2>& outputs,
+            FGSamplerHandle sampler, FGPipelineHandle pipeline, core::u32 width, core::u32 height, core::u32 mipLevel = 0 ) -> void {
+            for ( core::usize i{}; i < inputs.size(); ++i ) {
+                if ( inputs[i].mHandle ) {
+                    parameters.mInputs[i] = ctx.PushTexture_SRV( inputs[i] );
+                }
+            }
+
+            for ( core::usize i{}; i < outputs.size(); ++i ) {
+                if ( outputs[i].mHandle ) {
+                    parameters.mOutputs[i] = ctx.PushTexture_UAV( outputs[i] );
+                }
+            }
+
+            parameters.mSampler = ctx.PushSampler( sampler );
+            parameters.mTargetWidth = width;
+            parameters.mTargetHeight = height;
+            parameters.mMipLevel = mipLevel;
+
+            ctx.BindPipeline( pipeline );
+            ctx.PushConstants( parameters );
+            ctx.Dispatch( ( width + 7 ) / 8, ( height + 7 ) / 8, 1 );
+        } };
+
+        const auto registerDepthOfFieldCompute{ [&graph, makeParameters, dispatchDepthOfField](
+            core::cstr name, core::cstr shader,
+            std::array<FGTextureHandle, 8> inputs, std::array<FGTextureHandle, 2> outputs,
+            FGSamplerHandle sampler, core::u32 width, core::u32 height, core::u32 mipLevel = 0, bool alwaysRun = false ) -> void {
+            const auto pipeline{ graph.Create( FGPipelineDescription{}
+                .SetName( name )
+                .SetPipelineType( rhi::PipelineType::eCompute )
+                .PushShader( shader, FGStageType::eCompute ) ) };
+
+            graph.RegisterPass(
+                name,
+                FGPassType::eCompute,
+                [=]( FGNodeBuilder& builder, core::Blackboard& ) {
+                    for ( const auto input: inputs ) {
+                        if ( input.mHandle ) {
+                            builder.UseResource( input, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+                        }
+                    }
+
+                    for ( const auto output: outputs ) {
+                        if ( output.mHandle ) {
+                            builder.UseResource( output, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
+                        }
+                    }
+                },
+                [=]( CommandContext& ctx, core::Blackboard& ) {
+                    const auto parameters{ makeParameters() };
+
+                    if ( parameters.mEnabled || alwaysRun ) {
+                        dispatchDepthOfField( ctx, parameters, inputs, outputs, sampler, pipeline, width, height, mipLevel );
+                    }
+                } );
+        } };
+
         // Setup: full-resolution HDR color + depth + lens settings -> full CoC and half-resolution RGB/CoC.
         // Bilateral downsampling keeps foreground colors from averaging into the background.
-        const auto setupPipeline{ graph.Create( FGPipelineDescription{}.SetName( "DepthOfField_Setup" ).SetPipelineType( rhi::PipelineType::eCompute ).PushShader( "DepthOfFieldSetup_Comp.slang", FGStageType::eCompute ) ) };
+        const auto setupPipeline{ graph.Create( FGPipelineDescription{}
+            .SetName( "DepthOfField_Setup" )
+            .SetPipelineType( rhi::PipelineType::eCompute )
+            .PushShader( "DepthOfFieldSetup_Comp.slang", FGStageType::eCompute ) ) };
+
         graph.RegisterPass(
             "DepthOfField_Setup",
             FGPassType::eCompute,
@@ -241,7 +274,7 @@ namespace mikoto::renderer {
                 blackboard.Get<DisplayEffectsModuleInfo>().mVisualizeDepthOfField = parameters.mVisualize != 0;
 
                 if ( parameters.mEnabled ) {
-                    DispatchDepthOfField( ctx, parameters,
+                    dispatchDepthOfField( ctx, parameters,
                         { sceneColor, depth }, { fullCoC, setup },
                         sampler, setupPipeline, width, height );
                 }
@@ -249,21 +282,21 @@ namespace mikoto::renderer {
 
         // FlattenCoC: half-resolution CoC -> per-8x8-tile foreground/background minimum and maximum CoC.
         // These bounds classify tiles and bound the radius of subsequent gathers.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_FlattenCoC", "DepthOfFieldFlattenCoC_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_FlattenCoC", "DepthOfFieldFlattenCoC_Comp.slang",
             { setup }, { flattened }, sampler, tileWidth * 8, tileHeight * 8 );
 
         // DilateCoCMinMax: local tile bounds -> largest foreground/background radii that can reach each tile.
         // The shader visits the full required neighborhood, so no fixed iteration count limits large blurs.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_DilateCoCMinMax", "DepthOfFieldDilateCoCMinMax_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_DilateCoCMinMax", "DepthOfFieldDilateCoCMinMax_Comp.slang",
             { flattened }, { dilatedMax }, sampler, tileWidth, tileHeight );
 
         // DilateCoCMinAbs: local bounds + expanded radii -> complete bounds including the CoC closest to focus.
         // This distinguishes uniform blur regions from depth discontinuities before choosing a gather mip.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_DilateCoCMinAbs", "DepthOfFieldDilateCoCMinAbs_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_DilateCoCMinAbs", "DepthOfFieldDilateCoCMinAbs_Comp.slang",
             { flattened, dilatedMax }, { dilated }, sampler, tileWidth, tileHeight );
 
         // Downsample: half-resolution RGB/CoC -> quarter-resolution reference for the bilateral mip reduction.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_Downsample", "DepthOfFieldDownsample_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_Downsample", "DepthOfFieldDownsample_Comp.slang",
             { setup }, { quarter }, sampler, quarterWidth, quarterHeight );
 
         // Reduce: half-resolution RGB/CoC + quarter reference -> bilateral color/CoC mip levels.
@@ -276,26 +309,26 @@ namespace mikoto::renderer {
             const auto mipHeight{ std::max( 1u, ( halfHeight + ( 1u << level ) - 1 ) >> level ) };
             const auto name{ string::Format( "DepthOfField_Reduce{}", level ) };
             mips[level] = CreateDepthOfFieldTexture( graph, name.c_str(), mipWidth, mipHeight );
-            RegisterDepthOfFieldCompute( graph, makeParameters, name.c_str(), "DepthOfFieldReduce_Comp.slang",
+            registerDepthOfFieldCompute( name.c_str(), "DepthOfFieldReduce_Comp.slang",
                 { mips[level - 1], quarter }, { mips[level] }, sampler, mipWidth, mipHeight, level );
         }
 
         // BuildBokehLUTScatter: blade count, curvature and rotation -> directional aperture radius/area lookup.
         // Also used by the half-resolution slight-defocus gather, even while sprite scattering is unavailable.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_BuildBokehLUTScatter", "DepthOfFieldBokehLUTScatter_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_BuildBokehLUTScatter", "DepthOfFieldBokehLUTScatter_Comp.slang",
             {}, { scatterLUT }, sampler, 64, 64 );
 
         // BuildBokehLUTGather: aperture parameters -> non-circular sample locations for the gather kernels.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_BuildBokehLUTGather", "DepthOfFieldBokehLUTGather_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_BuildBokehLUTGather", "DepthOfFieldBokehLUTGather_Comp.slang",
             {}, { gatherLUT }, sampler, 64, 64 );
 
         // GatherForeground: bilateral mips + dilated CoC + aperture samples -> premultiplied half-resolution foreground RGBA.
         // Mirrored CoC tests fill gaps within the foreground while alpha records blur coverage.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_GatherForeground", "DepthOfFieldGatherForeground_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_GatherForeground", "DepthOfFieldGatherForeground_Comp.slang",
             { mips[0], mips[1], mips[2], mips[3], dilated, gatherLUT }, { foreground }, sampler, halfWidth, halfHeight );
 
         // PostfilterForeground: noisy foreground RGBA -> component-wise 3x3 median-filtered RGBA.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_PostfilterForeground", "DepthOfFieldPostfilterForeground_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_PostfilterForeground", "DepthOfFieldPostfilterForeground_Comp.slang",
             { foreground }, { foregroundFiltered }, sampler, halfWidth, halfHeight );
 
         // ScatterForeground: would add extracted foreground highlight sprites to the filtered foreground.
@@ -310,17 +343,17 @@ namespace mikoto::renderer {
 
         // GatherHoleFilling: half-resolution RGB/CoC + bounds + foreground coverage -> separate fill color/opacity.
         // Approximate the background exposed at partially covered foreground edges; hidden geometry is unavailable.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_GatherHoleFilling", "DepthOfFieldGatherHoleFilling_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_GatherHoleFilling", "DepthOfFieldGatherHoleFilling_Comp.slang",
             { setup, {}, {}, {}, dilated, gatherLUT, foregroundFiltered }, { holeFilling }, sampler, halfWidth, halfHeight );
 
         // GatherBackground: scene mips + CoC bounds + aperture samples -> premultiplied background RGBA.
         // Descending ring buckets let nearer background samples occlude farther ones.
         // TODO: publish CoC mean/variance for scatter occlusion when that pass is available; allocate no unused target yet.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_GatherBackground", "DepthOfFieldGatherBackground_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_GatherBackground", "DepthOfFieldGatherBackground_Comp.slang",
             { mips[0], mips[1], mips[2], mips[3], dilated, gatherLUT }, { background }, sampler, halfWidth, halfHeight );
 
         // PostfilterBackground: noisy background RGBA -> component-wise 3x3 median-filtered RGBA.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_PostfilterBackground", "DepthOfFieldPostfilterBackground_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_PostfilterBackground", "DepthOfFieldPostfilterBackground_Comp.slang",
             { background }, { backgroundFiltered }, sampler, halfWidth, halfHeight );
 
         // ScatterBackground: would add extracted background sprites, attenuated using the background CoC moments.
@@ -335,16 +368,16 @@ namespace mikoto::renderer {
 
         // GatherSlightDefocus: original half-resolution RGB/CoC + aperture lookup -> local focus color/coverage.
         // A brute-force radius-three kernel supplies bounds for the full-resolution gather in Recombine.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_GatherSlightDefocus", "DepthOfFieldGatherSlightDefocus_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_GatherSlightDefocus", "DepthOfFieldGatherSlightDefocus_Comp.slang",
             { setup, dilated, scatterLUT }, { slightDefocus }, sampler, halfWidth, halfHeight );
 
         // BuildBokehLUTRecombine: aperture parameters -> subpixel aperture distances for the full-resolution focus gather.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_BuildBokehLUTRecombine", "DepthOfFieldBokehLUTRecombine_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_BuildBokehLUTRecombine", "DepthOfFieldBokehLUTRecombine_Comp.slang",
             {}, { recombineLUT }, sampler, 64, 64 );
 
         // Recombine: full scene/CoC + foreground/background/fill/focus layers -> full-resolution HDR color.
         // Use fixed spatial samples because there is no TAA; disabling DoF copies the original scene unchanged.
-        RegisterDepthOfFieldCompute( graph, makeParameters, "DepthOfField_Recombine", "DepthOfFieldRecombine_Comp.slang",
+        registerDepthOfFieldCompute( "DepthOfField_Recombine", "DepthOfFieldRecombine_Comp.slang",
             { sceneColor, fullCoC, foregroundFiltered, backgroundFiltered, holeFilling, slightDefocus, recombineLUT, setup },
             { info.mDepthOfFieldColor }, sampler, width, height, 0, true );
     }
@@ -404,7 +437,10 @@ namespace mikoto::renderer {
             },
             [this, sampler]( CommandContext& ctx, core::Blackboard& blackboard ) {
                 auto& displayEffectsData{ blackboard.Get<DisplayEffectsModuleInfo>() };
-                displayEffectsData.mChromaticAberrationEnabled = mChromaticAberration.mEnabled && mChromaticAberration.mIntensity > 0.0f && !displayEffectsData.mVisualizeDepthOfField;
+                // Older projects keep their renderer-wide effect until an active material supplies it.
+                displayEffectsData.mChromaticAberrationEnabled = mChromaticAberration.mEnabled &&
+                    mChromaticAberration.mIntensity > 0.0f && !displayEffectsData.mVisualizeDepthOfField &&
+                    !HasChromaticAberrationMaterial( mScene );
 
                 if ( !displayEffectsData.mChromaticAberrationEnabled ) {
                     return;
@@ -493,7 +529,7 @@ namespace mikoto::renderer {
         auto& info{ graph.GetOrCreate<DisplayEffectsModuleInfo>() };
 
         /*
-          * Everything can be rendered in a single pass. There is no need to generate
+          * TODO: Everything can be rendered in a single pass. There is no need to generate
           * a separate shape mask beforehand. Instead, the signed distance function (SDF)
           * and smoothstep are evaluated directly in the fragment shader.
           *
@@ -520,6 +556,7 @@ namespace mikoto::renderer {
           *     return float4(result, 1.0);
           * }
           * */
+
         const auto [width, height]{ InferDimensions( mResolution ) };
 
         // https://iquilezles.org/articles/distfunctions/

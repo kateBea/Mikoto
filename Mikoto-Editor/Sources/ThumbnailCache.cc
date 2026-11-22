@@ -169,7 +169,7 @@ namespace mikoto::editor {
         const bool isParticle{ native.extension() == ".mktpart" };
         const bool isAudio{ asset::IsFileAudio( source ) };
         // Regenerate material spheres and models with the tighter camera framing.
-        const core::u32 version{ isMaterial ? 8u : isModel ? 7u : 2u };
+        const core::u32 version{ isMaterial ? 8u : isModel ? 7u : isParticle ? 3u : 2u };
         const filesystem::Path cached{ directory.GetPathTyped<std::filesystem::path>() / string::Format( "{}-{}-v{}-{:016x}.ktx2", isAudio ? "audio" : ( isParticle ? "particle" : ( isMaterial ? "material" : ( isModel ? "gpu" : "texture" ) ) ), compress ? "bc7" : "rgba8", version, hash ).c_str() };
 
         if ( cached.Exists() ) {
@@ -191,7 +191,13 @@ namespace mikoto::editor {
         }
 
         if ( isParticle ) {
-            auto image{ RenderParticlePreview( renderer::ParticleEmitter::Load( source )->GetSettings() ) };
+            const auto effect{ asset::AssetRegistryService::Get()->LoadAsset<asset::ParticleEffect>( source ) };
+
+            if ( !effect ) {
+                MKT_THROW_RUNTIME_ERROR( "Cannot load particle effect thumbnail source." );
+            }
+
+            auto image{ RenderParticlePreview( *effect.GetPtr() ) };
             image = SavePreview( image, cached, compress );
             return { image, asset::ModelHandle{}, cached };
         }
@@ -319,30 +325,43 @@ namespace mikoto::editor {
         return image;
     }
 
-    auto RenderParticlePreview( const ParticleEmitterSettings& settings ) -> asset::ImageHandle {
+    auto RenderParticlePreview( const asset::ParticleEffect& effect ) -> asset::ImageHandle {
         MKT_BEGIN_PROFILER();
 
-        constexpr int size = 512;
-        const auto s{ SanitizeParticleSettings( settings ) };
-        ParticleEmitterInstance instance;
-        instance.SetEmitter( ParticleEmitterHandle::New( s ) );
-        eastl::vector<Particle> snapshot;
+        constexpr core::i32 size{ 512 };
+        eastl::vector<ParticleEmitterInstance> instances{};
+        instances.reserve( effect.GetEmitters().size() );
+
+        for ( const auto& emitter: effect.GetEmitters() ) {
+            instances.emplace_back( emitter );
+        }
+
+        eastl::vector<Particle> snapshot{};
         float best{};
 
-        // Pick a visible sample over a bounded warmup; short one-shot bursts do not
-        // disappear simply because a fixed capture time falls after their lifetime.
-        for ( int frame = 0; frame < 180; ++frame ) {
-            instance.Update( 1.0f / 60.0f, core::float4x4{ 1.0f }, 1 );
+        // Pick a visible sample over a bounded warmup so one-shot bursts
+        // contribute even when they have already drained at the final tick.
+        for ( core::i32 frame{}; frame < 180; ++frame ) {
             float score{};
+            core::u64 seed{ 1 };
 
-            for ( const auto& particle: instance.GetParticles() ) {
-                const float age{ glm::clamp( particle.mAge / particle.mLifetime, 0.0f, 1.0f ) };
-                score += glm::mix( s.mStartColor.a, s.mEndColor.a, age ) * ( 0.2f + age * ( 1 - age ) );
+            for ( auto& instance: instances ) {
+                instance.Update( 1.0f / 60.0f, core::float4x4{ 1.0f }, seed++ );
+                for ( const auto& particle: instance.GetParticles() ) {
+                    const auto age{ glm::clamp( particle.mAge / particle.mLifetime, 0.0f, 1.0f ) };
+                    score += particle.GetColor().a * ( 0.2f + age * ( 1 - age ) );
+                }
             }
 
             if ( score > best ) {
                 best = score;
-                snapshot = instance.GetParticles();
+                snapshot.clear();
+
+                for ( const auto& instance: instances ) {
+                    const auto& particles{ instance.GetParticles() };
+                    const auto count{ eastl::min<core::usize>( particles.size(), kMaxRenderedParticles - snapshot.size() ) };
+                    snapshot.insert( snapshot.end(), particles.begin(), particles.begin() + count );
+                }
             }
         }
 
@@ -353,6 +372,7 @@ namespace mikoto::editor {
             float z;
 
             float r;
+            float softness;
             core::float4 color;
         };
         eastl::vector<Disc> discs;
@@ -364,14 +384,14 @@ namespace mikoto::editor {
 
         for ( const auto& p: snapshot ) {
             const float age{ glm::clamp( p.mAge / p.mLifetime, 0.0f, 1.0f ) };
-            const float radius{ glm::mix( s.mStartSize, s.mEndSize, age ) * .5f };
-            const auto color{ glm::mix( s.mStartColor, s.mEndColor, age ) };
+            const float radius{ glm::mix( p.mStartSize, p.mEndSize, age ) * .5f };
+            const auto color{ p.GetColor() };
 
             if ( radius <= 0 || color.a <= .001f ) {
                 continue;
             }
 
-            Disc d{ glm::dot( p.mPosition, right ), glm::dot( p.mPosition, up ), glm::dot( p.mPosition, forward ), radius, color };
+            Disc d{ glm::dot( p.mPosition, right ), glm::dot( p.mPosition, up ), glm::dot( p.mPosition, forward ), radius, p.mSoftness, color };
             low = glm::min( low, core::float2{ d.x - radius, d.y - radius } );
             high = glm::max( high, core::float2{ d.x + radius, d.y + radius } );
             discs.push_back( d );
@@ -393,7 +413,7 @@ namespace mikoto::editor {
             const int x1{ glm::clamp( int( glm::ceil( x + r ) ), 0, size - 1 ) };
             const int y0{ glm::clamp( int( glm::floor( y - r ) ), 0, size - 1 ) };
             const int y1{ glm::clamp( int( glm::ceil( y + r ) ), 0, size - 1 ) };
-            const float feather{ glm::max( s.mSoftness, 1.0f / r ) };
+            const float feather{ glm::max( d.softness, 1.0f / r ) };
 
             for ( int py = y0; py <= y1; ++py ) {
                 for ( int px = x0; px <= x1; ++px ) {

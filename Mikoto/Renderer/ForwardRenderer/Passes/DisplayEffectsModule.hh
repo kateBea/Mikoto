@@ -20,6 +20,7 @@
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Postprocess/ChromaticAberration.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryCullModule.hh>
 
 #include <Scene/Camera.hh>
@@ -32,12 +33,6 @@ namespace mikoto::renderer {
         eMedium,
         eHigh,
         eCinematic,
-    };
-
-    struct ChromaticAberrationSettings {
-        bool mEnabled{};
-        core::f32 mIntensity{ 3.0f }; // Pixel step between adjacent color channels.
-        core::f32 mDirection{ 45.0f }; // Degrees; diagonal matches the original shader.
     };
 
     struct DisplayEffectsModuleInfo {
@@ -83,14 +78,16 @@ namespace mikoto::renderer {
 
     private:
         const scene::Scene* mScene{};
-        ChromaticAberrationSettings mChromaticAberration{};
-        DepthOfFieldQuality mDepthOfFieldQuality{ DepthOfFieldQuality::eHigh };
-        bool mVisualizeDepthOfField{};
         const scene::Camera* mCamera{};
-
         GeometryCullModule* mGeometryCullModule{};
-
         rhi::RenderResolution mResolution { rhi::RenderResolution::e1080P };
+        
+        // Chromatic aberration
+        ChromaticAberrationSettings mChromaticAberration{};
+        
+        // DoF
+        bool mVisualizeDepthOfField{};
+        DepthOfFieldQuality mDepthOfFieldQuality{ DepthOfFieldQuality::eHigh };
     };
 }// namespace mikoto::renderer
 

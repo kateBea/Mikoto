@@ -197,14 +197,7 @@ namespace mikoto::renderer {
         mState->mParticleSimulation.SetSimulationMode(
             mParticleModeOverride.value_or( particleSystem ? particleSystem->GetSimulationMode() : ParticleSimulationMode::eCpu ) );
 
-        if ( auto* gpuSimulation{ mState->mParticleSimulation.GetGpuSimulation() } ) {
-            gpuSimulation->RegisterParameterUploadPass( *mState->mFrameGraph );
-            gpuSimulation->RegisterSnapshotClearPass( *mState->mFrameGraph );
-            gpuSimulation->RegisterSimulationPass( *mState->mFrameGraph );
-            gpuSimulation->RegisterSortPass( *mState->mFrameGraph );
-        } else {
-            mState->mParticleSimulation.RegisterUploadPass( *mState->mFrameGraph );
-        }
+        mState->mParticleSimulation.RegisterSimulationPasses( *mState->mFrameGraph );
 
         mState->mMousePickingModule.RegisterSelectionBuffer( *mState->mFrameGraph );
 

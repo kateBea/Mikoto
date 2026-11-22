@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "ParticleMaterial",
+  "Name": "Kenney slash_04",
+  "Material": {
+    "Color": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "TexturePath": "../../Textures/kenney_particle-pack/PNG (Transparent)/slash_04.png"
+  }
+}

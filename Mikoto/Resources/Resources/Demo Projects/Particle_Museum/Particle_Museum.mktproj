@@ -1,0 +1,41 @@
+{
+  "Version": 1,
+  "Project": "Particle Museum",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Particle_Museum.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "PathTracing": false,
+    "RayTracedAmbientOcclusion": false,
+    "SsaoEnabled": true,
+    "ShadowDistance": 80,
+    "BloomEnabled": false
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      0,
+      12.5,
+      42
+    ],
+    "Direction": [
+      0,
+      -0.24383935975364732,
+      -0.9698156353838245
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 60,
+    "NearPlane": 0.05,
+    "FarPlane": 230,
+    "MovementSpeed": 12,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Fountain Basin",
+  "Material": {
+    "BaseColorFactor": [
+      0.025,
+      0.075,
+      0.12,
+      1
+    ],
+    "MetallicFactor": 0.4,
+    "RoughnessFactor": 0.2,
+    "AlphaMask": 0
+  }
+}

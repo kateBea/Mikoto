@@ -299,10 +299,10 @@ namespace mikoto::renderer {
                 const auto projection{ world ? camera->GetProjection() : screenProjection };
                 const auto view{ world ? camera->GetViewMatrix() : core::float4x4{ 1.0f } };
 
-                truncated |= layout.truncated;
+                truncated |= layout.mTruncated;
 
-                for ( const auto& quad: layout.glyphs ) {
-                    const auto& glyph = font.GetGlyph( quad.codepoint );
+                for ( const auto& quad: layout.mGlyphs ) {
+                    const auto& glyph = font.GetGlyph( quad.mCodepoint );
                     const auto atlas = font.GetAtlas( glyph.mAtlasPage );
 
                     if ( atlas.IsEmpty() ) {
@@ -321,8 +321,8 @@ namespace mikoto::renderer {
                         .mProjection = projection,
                         .mView = view,
                         .mModel = model,
-                        .mPosition = { quad.position, 0.0f, 1.0f },
-                        .mSize = { quad.size, world ? 1.0f : -1.0f, text.GetSize() },
+                        .mPosition = { quad.mPosition, 0.0f, 1.0f },
+                        .mSize = { quad.mSize, world ? 1.0f : -1.0f, text.GetSize() },
                         .mColor = text.GetRenderColor(),
                         .mTexCoords = { { left, world ? bottom : top },
                             { right, world ? bottom : top },

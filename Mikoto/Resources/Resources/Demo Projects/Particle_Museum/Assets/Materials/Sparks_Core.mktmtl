@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "ParticleMaterial",
+  "Name": "Sparks Core",
+  "Material": {
+    "Color": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "TexturePath": "../Textures/kenney_particle-pack/PNG (Transparent)/muzzle_02.png"
+  }
+}

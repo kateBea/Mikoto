@@ -19,6 +19,8 @@ struct SimulationParameters {
     RWBufferReference<ParticleGpuHeader> mHeaders;
     BufferReference<ParticleEmitterParameters> mEmitters;
     RWBufferReference<ParticleRenderData> mOutput;
+    BufferReference<uint> mIndices;
+    BufferReference<uint> mTextureDescriptors;
     float4x4 mView;
 };
 MKT_DECLARE_PUSH_CONSTANT( SimulationParameters, parameters );
@@ -55,15 +57,30 @@ ParticleGpuState Spawn( ParticleEmitterParameters emitter ) {
     p.mVelocityLifetime.xyz =
             direction * emitter.mLifetimeSpeed.z * ( 1 + ( Random() * 2 - 1 ) * emitter.mLifetimeSpeed.w );
     p.mVelocityLifetime.w = emitter.mLifetimeSpeed.x * ( 1 + ( Random() * 2 - 1 ) * emitter.mLifetimeSpeed.y );
-    p.mRotation.x = Random() * tau;
+    p.mRotationFade = float4( Random() * tau, emitter.mFadeIn, emitter.mFadeOut, 0 );
+    p.mAccelerationDrag = emitter.mAccelerationDrag;
+    p.mSizeRotationSoftness = emitter.mSizeRotationSoftness;
+    p.mStartColor = emitter.mStartColor;
+    p.mEndColor = emitter.mEndColor;
+    p.mTexture.x = emitter.mTextureIndex;
     return p;
 }
 
 void Emit( ParticleEmitterParameters emitter, uint count ) {
     // One lane allocates dead slots in a deterministic order. Integration below
     // is parallel; no atomics, cross-emitter contention or CPU alive-list readback.
+    if ( emitter.mMaxParticles < emitter.mCapacity ) {
+        uint alive = 0;
+        for ( uint i = 0; i < emitter.mCapacity; ++i ) {
+            uint slot = parameters.mIndices[emitter.mOffset + i];
+            alive += parameters.mStates[slot].mVelocityLifetime.w > 0 ? 1u : 0u;
+        }
+
+        count = min( count, emitter.mMaxParticles - min( alive, emitter.mMaxParticles ) );
+    }
+
     for ( uint i = 0; i < emitter.mCapacity && count != 0; ++i ) {
-        uint slot = emitter.mOffset + i;
+        uint slot = parameters.mIndices[emitter.mOffset + i];
         if ( parameters.mStates[slot].mVelocityLifetime.w <= 0 ) {
             parameters.mStates[slot] = Spawn( emitter );
             --count;
@@ -79,18 +96,22 @@ void main( uint3 group : SV_GroupID, uint lane : SV_GroupIndex ) {
         return;
     }
     if ( lane == 0 ) {
-        if ( emitter.mReset != 0 ) {
-            header = ( ParticleGpuHeader )0;
+        header = emitter.mReset != 0 ? ( ParticleGpuHeader )0 : parameters.mHeaders[group.x];
+
+        if ( emitter.mReset != 0 || header.mSeed != emitter.mSeed ) {
+            header.mSeed = emitter.mSeed;
             header.mRandom = max( emitter.mSeed, 1u );
-        } else {
-            header = parameters.mHeaders[group.x];
         }
     }
-    if ( emitter.mReset != 0 ) {
-        for ( uint i = lane; i < emitter.mCapacity; i += 128 ) {
-            parameters.mStates[emitter.mOffset + i] = ( ParticleGpuState )0;
-        }
+
+    // New indices can contain bytes from a retired emitter. Clear those
+    // indices while keeping every existing live particle in its original slot.
+    uint first = emitter.mReset != 0 ? 0 : emitter.mPreviousCapacity;
+    for ( uint i = first + lane; i < emitter.mCapacity; i += 128 ) {
+        uint slot = parameters.mIndices[emitter.mOffset + i];
+        parameters.mStates[slot] = ( ParticleGpuState )0;
     }
+
     AllMemoryBarrierWithGroupSync();
     if ( lane == 0 && header.mInitialized == 0 && emitter.mInitialize != 0 ) {
         header.mInitialized = 1;
@@ -101,20 +122,20 @@ void main( uint3 group : SV_GroupID, uint lane : SV_GroupIndex ) {
     AllMemoryBarrierWithGroupSync();
 
     const float dt = 1.0 / 60.0;
-    const float damping = exp( -emitter.mAccelerationDrag.w * dt );
     for ( uint step = 0; step < emitter.mSteps; ++step ) {
         for ( uint i = lane; i < emitter.mCapacity; i += 128 ) {
-            uint slot = emitter.mOffset + i;
+            uint slot = parameters.mIndices[emitter.mOffset + i];
             ParticleGpuState p = parameters.mStates[slot];
             if ( p.mVelocityLifetime.w > 0 ) {
                 p.mPositionAge.w += dt;
                 if ( p.mPositionAge.w >= p.mVelocityLifetime.w ) {
                     p.mVelocityLifetime.w = 0;
                 } else {
+                    float damping = exp( -p.mAccelerationDrag.w * dt );
                     p.mVelocityLifetime.xyz =
-                            ( p.mVelocityLifetime.xyz + emitter.mAccelerationDrag.xyz * dt ) * damping;
+                            ( p.mVelocityLifetime.xyz + p.mAccelerationDrag.xyz * dt ) * damping;
                     p.mPositionAge.xyz += p.mVelocityLifetime.xyz * dt;
-                    p.mRotation.x += emitter.mSizeRotationSoftness.z * dt;
+                    p.mRotationFade.x += p.mSizeRotationSoftness.z * dt;
                 }
                 parameters.mStates[slot] = p;
             }
@@ -124,7 +145,7 @@ void main( uint3 group : SV_GroupID, uint lane : SV_GroupIndex ) {
         AllMemoryBarrierWithGroupSync();
         if ( lane == 0 ) {
             float emissionTime = emitter.mLooping != 0 ? dt : clamp( emitter.mEmission.z - header.mElapsed, 0.0, dt );
-            header.mElapsed = min( header.mElapsed + dt, emitter.mEmission.z );
+            header.mElapsed += dt;
             if ( emitter.mEmitting != 0 ) {
                 header.mEmissionRemainder += emitter.mEmission.x * emissionTime;
                 uint count = uint( header.mEmissionRemainder );
@@ -140,14 +161,18 @@ void main( uint3 group : SV_GroupID, uint lane : SV_GroupIndex ) {
 
     // Snapshot generation is view-dependent; simulation state remains in world space.
     for ( uint i = lane; i < emitter.mCapacity; i += 128 ) {
-        uint slot = emitter.mOffset + i;
+        uint slot = parameters.mIndices[emitter.mOffset + i];
         ParticleGpuState p = parameters.mStates[slot];
         if ( emitter.mVisible == 0 || p.mVelocityLifetime.w <= 0 ) {
             continue;
         }
         float age = saturate( p.mPositionAge.w / p.mVelocityLifetime.w );
-        float size = lerp( emitter.mSizeRotationSoftness.x, emitter.mSizeRotationSoftness.y, age );
-        float4 color = lerp( emitter.mStartColor, emitter.mEndColor, age );
+        float size = lerp( p.mSizeRotationSoftness.x, p.mSizeRotationSoftness.y, age );
+        float4 color = lerp( p.mStartColor, p.mEndColor, age );
+        // Match Particle::GetColor. Durations belong to each particle's birth settings.
+        float fadeIn = p.mRotationFade.y > 0 ? smoothstep( 0.0, p.mRotationFade.y, age ) : 1.0;
+        float fadeOut = p.mRotationFade.z > 0 ? 1.0 - smoothstep( 1.0 - p.mRotationFade.z, 1.0, age ) : 1.0;
+        color.a *= fadeIn * fadeOut;
         float viewDepth = -mul( parameters.mView, float4( p.mPositionAge.xyz, 1 ) ).z;
         if ( viewDepth <= -size || size <= 0 || color.a <= 0 ) {
             continue;
@@ -155,7 +180,12 @@ void main( uint3 group : SV_GroupID, uint lane : SV_GroupIndex ) {
         ParticleRenderData output;
         output.mPositionSize = float4( p.mPositionAge.xyz, size );
         output.mColor = color;
-        output.mRotationSoftness = float4( p.mRotation.x, emitter.mSizeRotationSoftness.w, viewDepth, float( slot ) );
+        output.mRotationSoftness = float4( p.mRotationFade.x, p.mSizeRotationSoftness.w, viewDepth, float( slot ) );
+        uint descriptor = kInvalidParticleTextureIndex;
+        if ( p.mTexture.x != kInvalidParticleTextureIndex ) {
+            descriptor = parameters.mTextureDescriptors[emitter.mTextureOffset + p.mTexture.x];
+        }
+        output.mTexture = uint4( descriptor, 0, 0, 0 );
         parameters.mOutput[slot] = output;
     }
 }

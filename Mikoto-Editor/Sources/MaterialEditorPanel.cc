@@ -47,6 +47,7 @@
 
 #include <Application/ThumbnailCache.hh>
 #include <Application/MaterialProperties.hh>
+#include <Application/ParticleProperties.hh>
 
 #include <Panels/MaterialEditorPanel.hh>
 
@@ -112,6 +113,7 @@ namespace mikoto::editor {
         mPreviewDirty = true;
         mPreviewPending = false;
         mPreviewTexture.Reset();
+        mParticlePreview.reset();
         mUnsaved = mMaterialResource && material::GetMaterialSourcePath( *mMaterialResource ).IsEmpty();
     }
 
@@ -206,6 +208,7 @@ namespace mikoto::editor {
 
         mPanelIsHovered = ImGui::IsWindowHovered( ImGuiHoveredFlags_ChildWindows );
         mPanelIsFocused = ImGui::IsWindowFocused( ImGuiFocusedFlags_ChildWindows );
+        const bool particlePreview{ dynamic_cast<const material::ParticleMaterial*>( mMaterialResource.GetPtr() ) != nullptr };
         const bool flatPreview{ dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) ||
             dynamic_cast<const material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) };
 
@@ -215,14 +218,18 @@ namespace mikoto::editor {
                     mEnvironment.Request( PreviewEnvironment::StreetPath() );
                 }
 
-                mPreviewDirty |= mEnvironment.Poll( mPreview.mEnvironment );
+                if ( mEnvironment.Poll( mPreviewEnvironmentAsset ) ) {
+                    const auto environment{ mPreviewEnvironmentAsset.GetIfReady() };
+                    mPreview.mEnvironment = environment ? environment->GetResource() : renderer::rhi::TextureHandle{};
+                    mPreviewDirty = true;
+                }
             }
 
-            if ( !flatPreview && !mModelLoad ) {
+            if ( !flatPreview && !particlePreview && !mModelLoad ) {
                 RequestPreviewModel();
             }
 
-            if ( !flatPreview && mModelLoad && !mModel ) {
+            if ( !flatPreview && !particlePreview && mModelLoad && !mModel ) {
                 std::lock_guard lock{ mModelLoad->mMutex };
 
                 if ( mModelLoad->mComplete ) {
@@ -238,7 +245,7 @@ namespace mikoto::editor {
             mError = error.what();
         }
 
-        if ( !flatPreview && !mModel ) {
+        if ( !flatPreview && !particlePreview && !mModel ) {
             ImGui::TextWrapped( "%s", mError.empty() ? MKT_LOC( "material_editor_loading_material_sphere" ).c_str() : mError.c_str() );
 
             if ( !mError.empty() && ImGui::Button( imgui::widget::LocalizedLabel( "material_editor_retry", "Retry" ).c_str() ) ) {
@@ -406,7 +413,37 @@ namespace mikoto::editor {
         auto* selected{ mEditorState ? mEditorState->mSelectedEntity : nullptr };
         material::MaterialHandle selectedMaterial{};
 
-        if ( selected ) {
+        const bool particleMaterial{ dynamic_cast<const material::ParticleMaterial*>( mMaterialResource.GetPtr() ) != nullptr };
+        const bool particleTarget{ selected && selected->HasComponent<scene::ParticleSimulatorComponent>() };
+        if ( particleMaterial && particleTarget ) {
+            const auto entityID{ selected->GetComponent<scene::TagComponent>().GetGuid() };
+            if ( mParticleTargetScene != mEditorState->mActiveScene || mParticleTargetEntity != entityID ) {
+                mParticleTargetScene = mEditorState->mActiveScene;
+                mParticleTargetEntity = entityID;
+                mParticleTargetEmitter = 0;
+            }
+            const auto& simulator{ selected->GetComponent<scene::ParticleSimulatorComponent>() };
+            if ( const auto& effect{ simulator.GetEffect() }; effect && !effect->GetEmitters().empty() ) {
+                const auto& emitters{ effect->GetEmitters() };
+                mParticleTargetEmitter = eastl::min( mParticleTargetEmitter, emitters.size() - 1 );
+                const auto label{ []( core::usize index ) {
+                    return string::Format( "{} {}", MKT_LOC( "particle_simulation_particle_emitter" ), index + 1 );
+                } };
+                ImGui::TextUnformatted( MKT_LOC( "particle_simulation_particle_emitter" ).c_str() );
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth( ImGui::GetFontSize() * 12 );
+                if ( ImGui::BeginCombo( "##MaterialTargetEmitter", label( mParticleTargetEmitter ).c_str() ) ) {
+                    for ( core::usize index{}; index < emitters.size(); ++index ) {
+                        if ( ImGui::Selectable( label( index ).c_str(), index == mParticleTargetEmitter ) ) {
+                            mParticleTargetEmitter = index;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                selectedMaterial = emitters[mParticleTargetEmitter]->GetMaterial();
+            }
+        }
+        else if ( selected ) {
             if ( selected->HasComponent<scene::CloudComponent>() ) {
                 selectedMaterial = selected->GetComponent<scene::CloudComponent>().GetMaterial();
             }
@@ -429,6 +466,8 @@ namespace mikoto::editor {
 
         const bool canApply{ selected && !mEditorState->mRuntimeActive &&
                              ( ( mMaterial && selected->HasComponent<scene::MaterialComponent>() ) ||
+                                 ( particleMaterial && particleTarget &&
+                                     !selected->GetComponent<scene::ParticleSimulatorComponent>().GetInstances().empty() ) ||
                                  ( dynamic_cast<material::VolumeMaterial*>( mMaterialResource.GetPtr() ) &&
                                      ( selected->HasComponent<scene::CloudComponent>() || selected->HasComponent<scene::FogComponent>() ) ) ||
                                  ( dynamic_cast<material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) && selected->HasComponent<scene::PostProcessMaterialComponent>() ) ||
@@ -520,6 +559,15 @@ namespace mikoto::editor {
                 if ( mMaterial ) {
                     selected->GetComponent<scene::MaterialComponent>().SetMaterial( material::SurfaceMaterialHandle::New( *mMaterial ) );
                 }
+                else if ( particleMaterial && particleTarget ) {
+                    auto& simulator{ selected->GetComponent<scene::ParticleSimulatorComponent>() };
+                    const auto emitter{ simulator.GetEffect()->GetEmitters()[mParticleTargetEmitter] };
+                    simulator.SetEmitter( mParticleTargetEmitter, renderer::ParticleEmitterHandle::New(
+                        renderer::ParticleEmitterCreateDescription{
+                            .mSettings = emitter->GetSettings(),
+                            .mMaterial = mMaterialResource.As<material::ParticleMaterial>()
+                        } ) );
+                }
                 else {
                     auto clone{ CloneMaterial( *mMaterialResource ) };
 
@@ -561,11 +609,8 @@ namespace mikoto::editor {
             ImGui::TextWrapped( "%s", MKT_LOC( "volume_preview_help" ).c_str() );
             return;
         }
-        if ( dynamic_cast<ParticleMaterial*>( mMaterialResource.GetPtr() ) ) {
-            ImGui::TextWrapped( MKT_LOC( "material_editor_particle_material_graph_authoring_shader_integration_is_pending_use_particle" ).c_str() );
-            return;
-        }
 
+        const auto* particle{ dynamic_cast<const material::ParticleMaterial*>( mMaterialResource.GetPtr() ) };
         const auto* text{ dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) };
         const auto* post{ dynamic_cast<const material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) };
         const bool meshPreview{ !text && !post };
@@ -605,6 +650,28 @@ namespace mikoto::editor {
 
         try {
             MKT_ASSERT( mRenderer, "Thumbnail renderer for Material Preview is null" );
+            if ( particle ) {
+                if ( !mParticlePreview ) {
+                    mParticlePreview = eastl::make_unique<ParticleMaterialPreview>(
+                        mDevice, mEditorState->GetPrefab( PrefabModelType::eCube ) );
+                }
+                const auto origin{ ImGui::GetCursorScreenPos() };
+                ImGui::InvisibleButton( "##ParticleMaterialPreview", available, ImGuiButtonFlags_MouseButtonLeft );
+                if ( ImGui::IsItemActive() && ImGui::IsMouseDragging( ImGuiMouseButton_Left ) ) {
+                    mPreview.mYaw -= ImGui::GetIO().MouseDelta.x * 0.35f;
+                    mPreview.mPitch = glm::clamp( mPreview.mPitch + ImGui::GetIO().MouseDelta.y * 0.35f, -80.0f, 80.0f );
+                }
+                if ( ImGui::IsItemHovered() ) {
+                    mPreview.mDistance = glm::clamp( mPreview.mDistance - ImGui::GetIO().MouseWheel * 0.3f, 2.0f, 20.0f );
+                }
+                if ( const auto image{ mParticlePreview->Render(
+                    mMaterialResource.As<material::ParticleMaterial>(), mPreview, mPreviewEnvironmentAsset,
+                    timeStep, width, height ) } ) {
+                    ImGui::GetWindowDrawList()->AddImage( imgui::ImGuiService::Get()->GetTextureID( image ),
+                        origin, { origin.x + available.x, origin.y + available.y } );
+                }
+                return;
+            }
 
             if ( post && !mPostProcessImage ) {
                 if ( !mPostProcessImageLoad.IsRequested() ) {
@@ -1189,11 +1256,10 @@ namespace mikoto::editor {
             ImGui::TextWrapped( "%s", MKT_LOC( "material_editor_used_by_msdf_and_slug_text_the_component_tint_multiplies" ).c_str() );
         }
         else if ( auto* particle{ dynamic_cast<ParticleMaterial*>( mMaterialResource.GetPtr() ) } ) {
-            auto color{ particle->GetColor() };
-
-            if ( ImGui::ColorEdit4( imgui::widget::LocalizedLabel( "material_editor_particle_tint", "Particle tint" ).c_str(), &color.x ) ) {
-                particle->SetColor( color );
-                changed = true;
+            try {
+                changed = DrawParticleMaterial( *particle );
+            } catch ( const std::exception& error ) {
+                mError = error.what();
             }
         }
         else if ( auto* post{ dynamic_cast<material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) } ) {
@@ -1240,6 +1306,7 @@ namespace mikoto::editor {
             }
 
             changed |= DrawPostProcessBloom( *post );
+            changed |= DrawPostProcessChromaticAberration( *post );
         }
         else if ( auto* sky{ dynamic_cast<material::SkyboxMaterial*>( mMaterialResource.GetPtr() ) } ) {
             core::i32 type{ static_cast<core::i32>( sky->GetType() ) };

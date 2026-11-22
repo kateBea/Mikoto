@@ -1,0 +1,23 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Light Prism Accent",
+  "Material": {
+    "BaseColorFactor": [
+      0.45,
+      0.6,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.72,
+    "AlphaMask": 0,
+    "ShadingModel": 8,
+    "EmissiveFactor": [
+      0.45,
+      0.6,
+      1
+    ],
+    "EmissiveStrength": 1.5
+  }
+}

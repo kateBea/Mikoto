@@ -112,7 +112,7 @@ namespace mikoto::editor {
             { ICON_MD_AIR, "WindSimulation", entity.HasComponent<scene::WindSimulationComponent>() },
             { ICON_MD_CLOUD, "volume_cloud", entity.HasComponent<scene::CloudComponent>() },
             { ICON_MD_BLUR_ON, "volume_fog", entity.HasComponent<scene::FogComponent>() },
-            { ICON_MD_GRAIN, "inspector_particle_emitter", entity.HasComponent<scene::ParticleEmitterComponent>() },
+            { ICON_MD_GRAIN, "particle_simulator_component", entity.HasComponent<scene::ParticleSimulatorComponent>() },
             { ICON_MD_TEXT_FIELDS, "hierarchy_text", entity.HasComponent<scene::TextComponent>() },
             { ICON_MD_DASHBOARD, "hierarchy_canvas", entity.HasComponent<scene::CanvasComponent>() },
             { ICON_MD_MOVIE, "hierarchy_video", entity.HasComponent<scene::VideoComponent>() },
@@ -158,6 +158,10 @@ namespace mikoto::editor {
             { ICON_MD_WATER_DROP, "WaterVolume", entity.HasComponent<scene::WaterVolumeComponent>() },
         };
 
+        // Material Icons and Font Awesome share private-use code points.
+        // Choose this face explicitly so a light glyph cannot become a plane.
+        auto* interfaceFont{ ImGui::GetFont() };
+        const auto materialIcons{ imgui::ImGuiService::Get()->PushFont( "Resources/ImGui/MaterialIcons-Regular.ttf" ) };
         const core::f32 spacing{ ImGui::GetStyle().ItemInnerSpacing.x };
         core::f32 totalWidth{};
         for ( const auto& icon: icons ) {
@@ -195,9 +199,12 @@ namespace mikoto::editor {
             ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted( icon.mGlyph );
             if ( ImGui::BeginItemTooltip() ) {
-                ImGui::PushStyleColor( ImGuiCol_Text, tooltipTextColor );
-                ImGui::TextUnformatted( MKT_LOC( icon.mLabel ).c_str() );
-                ImGui::PopStyleColor();
+                {
+                    const imgui::ImGuiScopedTextFont textFont{ interfaceFont };
+                    ImGui::PushStyleColor( ImGuiCol_Text, tooltipTextColor );
+                    ImGui::TextUnformatted( MKT_LOC( icon.mLabel ).c_str() );
+                    ImGui::PopStyleColor();
+                }
                 ImGui::EndTooltip();
             }
 
@@ -213,11 +220,17 @@ namespace mikoto::editor {
             ImGui::TextUnformatted( ICON_MD_MORE_HORIZ );
             if ( ImGui::BeginItemTooltip() ) {
                 ImGui::PushStyleColor( ImGuiCol_Text, tooltipTextColor );
-                ImGui::SeparatorText( MKT_LOC( "hierarchy_more_components" ).c_str() );
+                {
+                    const imgui::ImGuiScopedTextFont textFont{ interfaceFont };
+                    ImGui::SeparatorText( MKT_LOC( "hierarchy_more_components" ).c_str() );
+                }
                 for ( ; next < eastl::size( icons ); ++next ) {
                     const auto& icon{ icons[next] };
                     if ( icon.mPresent ) {
-                        ImGui::Text( "%s %s", icon.mGlyph, MKT_LOC( icon.mLabel ).c_str() );
+                        ImGui::TextUnformatted( icon.mGlyph );
+                        ImGui::SameLine();
+                        const imgui::ImGuiScopedTextFont textFont{ interfaceFont };
+                        ImGui::TextUnformatted( MKT_LOC( icon.mLabel ).c_str() );
                     }
                 }
                 ImGui::PopStyleColor();
@@ -864,10 +877,10 @@ namespace mikoto::editor {
 
         ImGui::SameLine();
 
-        const auto height{ ImGui::GetFrameHeight() };
-        const ImVec2 buttonSize{ height, height };
+        const auto buttonHeight{ ImGui::GetFrameHeight() };
+        const ImVec2 buttonSize{ buttonHeight, buttonHeight };
 
-        if ( imgui::widget::ToggleIconButton( "HierarchyFilter", ICON_MD_FILTER_LIST, mTypeFilter != scene::EntityType::eCount, buttonSize ) ) {
+        if ( imgui::widget::ToggleIconButton( "HierarchyFilter", ICON_MD_FILTER_ALT, mTypeFilter != scene::EntityType::eCount, buttonSize ) ) {
             ImGui::OpenPopup( "##HierarchyFilterMenu" );
         }
 
@@ -902,7 +915,7 @@ namespace mikoto::editor {
 
         ImGui::SameLine();
 
-        if ( imgui::widget::ToggleIconButton( "HierarchySort", ICON_MD_SORT_BY_ALPHA, mSortOrder != SortOrder::eIgnore, buttonSize ) ) {
+        if ( imgui::widget::ToggleIconButton( "HierarchySort", ICON_MD_SORT, mSortOrder != SortOrder::eIgnore, buttonSize ) ) {
             ImGui::OpenPopup( "##HierarchySortMenu" );
         }
 

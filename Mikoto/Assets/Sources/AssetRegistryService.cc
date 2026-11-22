@@ -30,6 +30,7 @@
 
 #include <Threading/TaskService.hh>
 
+#include <Filesystem/File.hh>
 #include <Filesystem/FileSystem.hh>
 #include <Filesystem/FileService.hh>
 #include <Filesystem/FileWatcherService.hh>
@@ -49,6 +50,7 @@
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/Particle/ParticleEmitter.hh>
 
 namespace mikoto::asset {
 
@@ -748,6 +750,48 @@ namespace mikoto::asset {
         const auto path{ uri.GetAbsolute() };
         RegisterMetadata( path, AssetType::eMaterial );
         return DeSerializeMaterial( path );
+    }
+
+    auto AssetRegistryService::LoadParticleEffect( const ParticleEffectLoadDescription& description ) -> core::Ref<ParticleEffect> {
+        MKT_BEGIN_PROFILER();
+
+        const filesystem::File file{ description.mPath };
+        const auto root{ YAML::Load( file.GetContentsString().c_str() ) };
+
+        if ( !root.IsMap() ) {
+            MKT_THROW_RUNTIME_ERROR( "Invalid particle effect asset." );
+        }
+
+        if ( const auto effect{ root["ParticleEffect"] } ) {
+            return ParticleEffect::Deserialize( effect, description.mPath );
+        }
+
+        if ( const auto emitter{ root["ParticleEmitter"] } ) {
+            return ParticleEffect::Deserialize( emitter );
+        }
+
+        MKT_THROW_RUNTIME_ERROR( "Missing particle effect data." );
+    }
+
+    auto AssetRegistryService::SaveParticleEffect( const ParticleEffect& effect, const filesystem::Path& path ) -> void {
+        MKT_BEGIN_PROFILER();
+
+        YAML::Emitter out{};
+        out << YAML::BeginMap << YAML::Key << "ParticleEffect" << YAML::Value;
+        effect.Serialize( out, path );
+        out << YAML::EndMap;
+
+        if ( !out.good() ) {
+            MKT_THROW_RUNTIME_ERROR( "Cannot serialize particle effect." );
+        }
+
+        auto file{ filesystem::FileService::Get()->CreateNewFile( path ) };
+        if ( !file ) {
+            MKT_THROW_RUNTIME_ERROR( "Cannot open particle effect file for writing." );
+        }
+
+        file->Write( eastl::string_view{ out.c_str(), out.size() } );
+        mStreamingSystem->GetRegistry<ParticleEffect>().Invalidate( path );
     }
 
     auto AssetRegistryService::CreateAssetCacheFolder( const filesystem::Path& path ) -> void {

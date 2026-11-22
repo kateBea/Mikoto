@@ -466,38 +466,6 @@ namespace mikoto::editor {
                 ImGui::PopID();
             }
 
-            if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "renderer_chromatic_aberration", "Chromatic aberration" ).c_str() ) ) {
-                auto& chromatic{ settings.mChromaticAberration };
-                ImGui::BeginDisabled( settings.mRayTracing.mPathTracingEnabled );
-                if ( BeginRendererRows( "ChromaticAberrationSettings" ) ) {
-                    RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
-                    changed |= imgui::CheckBox( "##renderer_enabled_chromaticaberration", chromatic.mEnabled );
-                    RendererControlRow( MKT_LOC( "renderer_defaults" ).c_str() );
-                    if ( ImGui::SmallButton( imgui::widget::LocalizedLabel( "renderer_reset_chromaticaberration", "Reset##ChromaticAberration" ).c_str() ) ) {
-                        const bool enabled{ chromatic.mEnabled };
-                        chromatic = renderer::ChromaticAberrationSettings{};
-                        chromatic.mEnabled = enabled;
-                        changed = true;
-                    }
-
-                    mikoto::imgui::widget::ItemTooltip( MKT_LOC( "renderer_restore_the_original_three_pixel_diagonal_rgb_separation" ).c_str() );
-
-                    ImGui::BeginDisabled( !chromatic.mEnabled );
-                    RendererControlRow( MKT_LOC( "renderer_channel_offset_px" ).c_str() );
-                    changed |= imgui::Slider( "##renderer_channel_offset_px", chromatic.mIntensity, core::float2{ 0.0f, 32.0f }, "%.2f" );
-                    mikoto::imgui::widget::ItemTooltip( MKT_LOC( "renderer_pixel_step_between_red_green_and_blue_along_the_dominant" ).c_str() );
-                    RendererControlRow( MKT_LOC( "renderer_direction" ).c_str() );
-                    changed |= imgui::Slider( "##renderer_direction", chromatic.mDirection, core::float2{ -180.0f, 180.0f }, MKT_LOC( "renderer_deg" ).c_str() );
-                    mikoto::imgui::widget::ItemTooltip( MKT_LOC( "renderer_45_degrees_original_diagonal_0_horizontal_90_vertical_offsets_are" ).c_str() );
-                    ImGui::EndDisabled();
-
-                    ImGui::EndTable();
-                }
-
-                ImGui::EndDisabled();
-                ImGui::TextWrapped( "%s", MKT_LOC( "renderer_directional_rgb_separation_across_the_whole_image_based_on_the" ).c_str() );
-            }
-
             if ( changed ) {
                 renderer.CancelPick();
                 renderer.ApplySettings( settings );

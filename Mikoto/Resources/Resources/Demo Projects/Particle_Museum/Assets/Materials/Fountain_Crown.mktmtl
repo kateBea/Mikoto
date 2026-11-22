@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "ParticleMaterial",
+  "Name": "Fountain Crown",
+  "Material": {
+    "Color": [
+      0.55,
+      0.85,
+      1,
+      0.75
+    ],
+    "TexturePath": "../Textures/kenney_particle-pack/PNG (Transparent)/trace_06.png"
+  }
+}

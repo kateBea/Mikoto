@@ -1,0 +1,487 @@
+{
+  "ParticleEffect": {
+    "Version": 1,
+    "Emitters": [
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 256,
+          "BurstCount": 4,
+          "Seed": 1000,
+          "EmissionRate": 15,
+          "Lifetime": 1.65,
+          "LifetimeVariation": 0.18,
+          "Speed": 3.1,
+          "SpeedVariation": 0.2,
+          "Radius": 0.8,
+          "ConeAngle": 13,
+          "Direction": [
+            0,
+            1,
+            0
+          ],
+          "Acceleration": [
+            0,
+            0.7,
+            0
+          ],
+          "Drag": 0.2,
+          "Duration": 8,
+          "StartSize": 1.65,
+          "EndSize": 0.45,
+          "StartColor": [
+            3.8,
+            1.1,
+            0.12,
+            0.55
+          ],
+          "EndColor": [
+            1.1,
+            0.07,
+            0.005,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.45
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_fire_01.mktmtl"
+      },
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 256,
+          "BurstCount": 4,
+          "Seed": 1001,
+          "EmissionRate": 15,
+          "Lifetime": 1.65,
+          "LifetimeVariation": 0.18,
+          "Speed": 3.1,
+          "SpeedVariation": 0.2,
+          "Radius": 0.8,
+          "ConeAngle": 13,
+          "Direction": [
+            0,
+            1,
+            0
+          ],
+          "Acceleration": [
+            0,
+            0.7,
+            0
+          ],
+          "Drag": 0.2,
+          "Duration": 8,
+          "StartSize": 1.8299999999999998,
+          "EndSize": 0.45,
+          "StartColor": [
+            3.8,
+            1.1,
+            0.12,
+            0.55
+          ],
+          "EndColor": [
+            1.1,
+            0.07,
+            0.005,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.45
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_fire_02.mktmtl"
+      },
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 256,
+          "BurstCount": 4,
+          "Seed": 1002,
+          "EmissionRate": 15,
+          "Lifetime": 1.65,
+          "LifetimeVariation": 0.18,
+          "Speed": 3.1,
+          "SpeedVariation": 0.2,
+          "Radius": 0.8,
+          "ConeAngle": 13,
+          "Direction": [
+            0,
+            1,
+            0
+          ],
+          "Acceleration": [
+            0,
+            0.7,
+            0
+          ],
+          "Drag": 0.2,
+          "Duration": 8,
+          "StartSize": 2.01,
+          "EndSize": 0.45,
+          "StartColor": [
+            3.8,
+            1.1,
+            0.12,
+            0.55
+          ],
+          "EndColor": [
+            1.1,
+            0.07,
+            0.005,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.45
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_flame_01.mktmtl"
+      },
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 256,
+          "BurstCount": 4,
+          "Seed": 1003,
+          "EmissionRate": 15,
+          "Lifetime": 1.65,
+          "LifetimeVariation": 0.18,
+          "Speed": 3.1,
+          "SpeedVariation": 0.2,
+          "Radius": 0.8,
+          "ConeAngle": 13,
+          "Direction": [
+            0,
+            1,
+            0
+          ],
+          "Acceleration": [
+            0,
+            0.7,
+            0
+          ],
+          "Drag": 0.2,
+          "Duration": 8,
+          "StartSize": 1.65,
+          "EndSize": 0.45,
+          "StartColor": [
+            3.8,
+            1.1,
+            0.12,
+            0.55
+          ],
+          "EndColor": [
+            1.1,
+            0.07,
+            0.005,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.45
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_flame_02.mktmtl"
+      },
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 256,
+          "BurstCount": 4,
+          "Seed": 1004,
+          "EmissionRate": 15,
+          "Lifetime": 1.65,
+          "LifetimeVariation": 0.18,
+          "Speed": 3.1,
+          "SpeedVariation": 0.2,
+          "Radius": 0.8,
+          "ConeAngle": 13,
+          "Direction": [
+            0,
+            1,
+            0
+          ],
+          "Acceleration": [
+            0,
+            0.7,
+            0
+          ],
+          "Drag": 0.2,
+          "Duration": 8,
+          "StartSize": 1.8299999999999998,
+          "EndSize": 0.45,
+          "StartColor": [
+            3.8,
+            1.1,
+            0.12,
+            0.55
+          ],
+          "EndColor": [
+            1.1,
+            0.07,
+            0.005,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.45
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_flame_03.mktmtl"
+      },
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 256,
+          "BurstCount": 4,
+          "Seed": 1005,
+          "EmissionRate": 15,
+          "Lifetime": 1.65,
+          "LifetimeVariation": 0.18,
+          "Speed": 3.1,
+          "SpeedVariation": 0.2,
+          "Radius": 0.8,
+          "ConeAngle": 13,
+          "Direction": [
+            0,
+            1,
+            0
+          ],
+          "Acceleration": [
+            0,
+            0.7,
+            0
+          ],
+          "Drag": 0.2,
+          "Duration": 8,
+          "StartSize": 2.01,
+          "EndSize": 0.45,
+          "StartColor": [
+            3.8,
+            1.1,
+            0.12,
+            0.55
+          ],
+          "EndColor": [
+            1.1,
+            0.07,
+            0.005,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.45
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_flame_04.mktmtl"
+      },
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 256,
+          "BurstCount": 4,
+          "Seed": 1006,
+          "EmissionRate": 15,
+          "Lifetime": 1.65,
+          "LifetimeVariation": 0.18,
+          "Speed": 3.1,
+          "SpeedVariation": 0.2,
+          "Radius": 0.8,
+          "ConeAngle": 13,
+          "Direction": [
+            0,
+            1,
+            0
+          ],
+          "Acceleration": [
+            0,
+            0.7,
+            0
+          ],
+          "Drag": 0.2,
+          "Duration": 8,
+          "StartSize": 1.65,
+          "EndSize": 0.45,
+          "StartColor": [
+            3.8,
+            1.1,
+            0.12,
+            0.55
+          ],
+          "EndColor": [
+            1.1,
+            0.07,
+            0.005,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.45
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_flame_05.mktmtl"
+      },
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 256,
+          "BurstCount": 4,
+          "Seed": 1007,
+          "EmissionRate": 15,
+          "Lifetime": 1.65,
+          "LifetimeVariation": 0.18,
+          "Speed": 3.1,
+          "SpeedVariation": 0.2,
+          "Radius": 0.8,
+          "ConeAngle": 13,
+          "Direction": [
+            0,
+            1,
+            0
+          ],
+          "Acceleration": [
+            0,
+            0.7,
+            0
+          ],
+          "Drag": 0.2,
+          "Duration": 8,
+          "StartSize": 1.8299999999999998,
+          "EndSize": 0.45,
+          "StartColor": [
+            3.8,
+            1.1,
+            0.12,
+            0.55
+          ],
+          "EndColor": [
+            1.1,
+            0.07,
+            0.005,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.45
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_flame_06.mktmtl"
+      },
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 256,
+          "BurstCount": 4,
+          "Seed": 1008,
+          "EmissionRate": 15,
+          "Lifetime": 1.65,
+          "LifetimeVariation": 0.18,
+          "Speed": 3.1,
+          "SpeedVariation": 0.2,
+          "Radius": 0.8,
+          "ConeAngle": 13,
+          "Direction": [
+            0,
+            1,
+            0
+          ],
+          "Acceleration": [
+            0,
+            0.7,
+            0
+          ],
+          "Drag": 0.2,
+          "Duration": 8,
+          "StartSize": 2.01,
+          "EndSize": 0.45,
+          "StartColor": [
+            3.8,
+            1.1,
+            0.12,
+            0.55
+          ],
+          "EndColor": [
+            1.1,
+            0.07,
+            0.005,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.45
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_flame_05_rotated.mktmtl"
+      },
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 256,
+          "BurstCount": 4,
+          "Seed": 1009,
+          "EmissionRate": 15,
+          "Lifetime": 1.65,
+          "LifetimeVariation": 0.18,
+          "Speed": 3.1,
+          "SpeedVariation": 0.2,
+          "Radius": 0.8,
+          "ConeAngle": 13,
+          "Direction": [
+            0,
+            1,
+            0
+          ],
+          "Acceleration": [
+            0,
+            0.7,
+            0
+          ],
+          "Drag": 0.2,
+          "Duration": 8,
+          "StartSize": 1.65,
+          "EndSize": 0.45,
+          "StartColor": [
+            3.8,
+            1.1,
+            0.12,
+            0.55
+          ],
+          "EndColor": [
+            1.1,
+            0.07,
+            0.005,
+            0
+          ],
+          "AngularSpeed": 0.3,
+          "Softness": 0.8,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.08,
+          "FadeOut": 0.45
+        },
+        "MaterialPath": "../Materials/Kenney/Particle_flame_06_rotated.mktmtl"
+      }
+    ]
+  }
+}

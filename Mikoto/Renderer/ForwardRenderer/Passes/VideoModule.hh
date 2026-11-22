@@ -27,6 +27,8 @@
 
 namespace mikoto::renderer {
 
+    // https://github.com/turanszkij/mini_video
+
     class VideoModule final {
     public:
         auto SetCamera( const scene::Camera& camera ) -> void;

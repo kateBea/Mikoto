@@ -1941,9 +1941,9 @@ namespace mikoto::editor {
                             { text.GetSize(), text.GetSpacing(),
                                 text.GetLineSpacing(), core::as<text::Alignment>( text.GetAlignment() ), !text.IsWorldText() } ) };
 
-                        if ( !layout.glyphs.empty() ) {
-                            for ( core::f32 x: { layout.minimum.x, layout.maximum.x } ) {
-                                for ( core::f32 y: { layout.minimum.y, layout.maximum.y } ) {
+                        if ( !layout.mGlyphs.empty() ) {
+                            for ( core::f32 x: { layout.mMinimum.x, layout.mMaximum.x } ) {
+                                for ( core::f32 y: { layout.mMinimum.y, layout.mMaximum.y } ) {
                                     include( core::float3{ relative * core::float4{ x, y, 0, 1 } } );
                                 }
                             }

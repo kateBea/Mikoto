@@ -89,8 +89,10 @@ namespace mikoto::editor {
             ComponentMenuItem<scene::SkinnedMeshRenderer>( *entity, filter, "Skinned Mesh Renderer", "component_menu_skinned_mesh_renderer" );
             ComponentMenuItem<scene::FogComponent>( *entity, filter, "Fog", "component_menu_fog" );
             ComponentMenuItem<scene::CloudComponent>( *entity, filter, "Cloud", "volume_cloud" );
+            ComponentMenuItem<scene::WaterRenderComponent>( *entity, filter, "Water", "component_menu_water" );
+            ComponentMenuItem<scene::WaterSimulationComponent>( *entity, filter, "Water simulation", "water_simulation" );
             ComponentMenuItem<scene::TextureRenderComponent>( *entity, filter, "Texture Render", "component_menu_texture_render" );
-            ComponentMenuItem<scene::ParticleEmitterComponent>( *entity, filter, "Particle emitter", "component_menu_particle_emitter" );
+            ComponentMenuItem<scene::ParticleSimulatorComponent>( *entity, filter, "Particle effect", "particle_effect_asset" );
 
             if ( !filter.IsActive() ) {
                 ImGui::EndMenu();

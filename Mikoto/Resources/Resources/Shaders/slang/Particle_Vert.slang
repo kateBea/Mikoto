@@ -21,6 +21,7 @@
 struct DrawParams {
     Pointer mParticles;
     Pointer mCamera;
+    uint mSampler;
 };
 
 struct VSOutput {
@@ -28,6 +29,7 @@ struct VSOutput {
     float2 Local : TEXCOORD0;
     float4 Color : COLOR0;
     nointerpolation float Softness : TEXCOORD1;
+    nointerpolation uint TextureIndex : TEXCOORD2;
 };
 
 MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
@@ -50,6 +52,7 @@ VSOutput main( uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID ) {
         o.Local = 0;
         o.Color = 0;
         o.Softness = 1;
+        o.TextureIndex = kInvalidParticleTextureIndex;
         return o;
     }
 
@@ -65,6 +68,7 @@ VSOutput main( uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID ) {
     o.Local = local;
     o.Color = p.mColor;
     o.Softness = p.mRotationSoftness.y;
+    o.TextureIndex = p.mTexture.x;
 
     return o;
 }

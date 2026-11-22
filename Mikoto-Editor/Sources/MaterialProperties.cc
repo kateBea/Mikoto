@@ -77,6 +77,59 @@ namespace mikoto::editor {
         return changed;
     }
 
+    auto DrawPostProcessChromaticAberration( material::PostProcessMaterial& material ) -> bool {
+        if ( material.GetCategory() != PostProcessMaterialCategory::eBuiltIn ) {
+            return false;
+        }
+
+        ImGui::SeparatorText( MKT_LOC( "renderer_chromatic_aberration" ).c_str() );
+        ImGui::PushID( "PostProcessChromaticAberration" );
+
+        auto settings{ material.GetChromaticAberrationSettings() };
+        bool changed{ imgui::CheckBox(
+            imgui::widget::LocalizedLabel( "renderer_enabled", "ChromaticAberrationEnabled" ).c_str(), settings.mEnabled ) };
+
+        ImGui::SameLine();
+        if ( ImGui::SmallButton( imgui::widget::LocalizedLabel( "renderer_defaults", "ChromaticAberrationDefaults" ).c_str() ) ) {
+            settings = renderer::ChromaticAberrationSettings{ .mEnabled = settings.mEnabled };
+            changed = true;
+        }
+
+        using renderer::ChromaticAberrationSettings;
+        ImGui::BeginDisabled( !settings.mEnabled );
+
+        if ( ImGui::BeginTable( "##Parameters", 2, ImGuiTableFlags_SizingStretchSame ) ) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted( MKT_LOC( "renderer_channel_offset_px" ).c_str() );
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth( -1.0f );
+            changed |= imgui::Slider( "##Offset", settings.mIntensity, { 0.0f, ChromaticAberrationSettings::kMaxIntensity }, "%.2f" );
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted( MKT_LOC( "renderer_direction" ).c_str() );
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth( -1.0f );
+            changed |= imgui::Slider( "##Direction", settings.mDirection,
+                { -ChromaticAberrationSettings::kMaxDirection, ChromaticAberrationSettings::kMaxDirection },
+                MKT_LOC( "renderer_deg" ).c_str() );
+
+            ImGui::EndTable();
+        }
+
+        ImGui::EndDisabled();
+        ImGui::PopID();
+
+        if ( changed ) {
+            material.SetChromaticAberrationSettings( settings );
+        }
+
+        return changed;
+    }
+
     MKT_NODISCARD static auto PresetCombo( const char* preview, const char* const* keys, u32 count ) -> i32 {
         i32 result{ -1 };
         if ( ImGui::BeginCombo( MKT_LOC( "material_preset" ).c_str(), preview ) ) {

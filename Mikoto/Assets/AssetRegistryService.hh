@@ -45,6 +45,7 @@
 #include <Assets/FontFactory.hh>
 #include <Assets/AssetTexture.hh>
 #include <Assets/ShaderLibrary.hh>
+#include <Assets/AssetParticleEffect.hh>
 #include <Assets/AssetStreamingSystem.hh>
 
 #include <Material/MaterialGraph.hh>
@@ -146,6 +147,7 @@ namespace mikoto::asset {
 
         auto ReloadScriptSource( const filesystem::Path& path ) -> void;
         auto ReloadModel( const AssetRef<Model>& reference ) -> void;
+        auto SaveParticleEffect( const ParticleEffect& effect, const filesystem::Path& path ) -> void;
  
         MKT_NODISCARD auto GetMetadata( AssetID id ) const -> const AssetMetadata *;
 
@@ -352,7 +354,7 @@ namespace mikoto::asset {
                 return core::Ref<T>::New( eastl::move( model ), description );
             } 
             else if constexpr ( eastl::is_same_v<T, ParticleEffect> ) {
-                return core::Ref<T>::New( renderer::ParticleEmitter::Load( description.mPath ) );
+                return LoadParticleEffect( description );
             } 
             else if constexpr ( eastl::is_same_v<T, Skybox> ) {
                 auto material{ LoadMaterial( description.mPath ) };
@@ -385,6 +387,7 @@ namespace mikoto::asset {
         MKT_NODISCARD auto LoadFont( const asset::FontLoadDescription &description ) -> renderer::FontHandle;
 
         MKT_NODISCARD auto LoadMaterial( const filesystem::Path &uri ) -> material::MaterialHandle;
+        MKT_NODISCARD auto LoadParticleEffect( const ParticleEffectLoadDescription& description ) -> core::Ref<ParticleEffect>;
         MKT_NODISCARD auto RegisterMetadata( const filesystem::Path &path, AssetType type ) -> AssetID;
         MKT_NODISCARD auto CreateTextureResource( const filesystem::Path& path ) -> renderer::rhi::TextureHandle;
 

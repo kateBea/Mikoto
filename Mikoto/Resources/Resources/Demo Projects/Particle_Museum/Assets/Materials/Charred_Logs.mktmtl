@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Charred Logs",
+  "Material": {
+    "BaseColorFactor": [
+      0.025,
+      0.018,
+      0.015,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.7,
+    "AlphaMask": 0
+  }
+}

@@ -22,10 +22,30 @@
 #include <Core/Types.hh>
 #include <Core/Resource.hh>
 
-#include <Filesystem/Path.hh>
+#include <Material/ParticleMaterial.hh>
 
 namespace mikoto::renderer {
-    /** @brief Selects where particle state is advanced; both modes draw billboard quads. */
+
+    // https://alextardif.com/Particles.html
+    
+    // https://gdcvault.com/play/1025132/
+    // https://www.gdcvault.com/play/1020002/Advanced-Visual-Effects-with-DirectX
+    
+    // https://wickedengine.net/category/devblog/2017/11/07/gpu-based-particle-simulation/index.html
+    
+    // https://github.com/GPUOpen-LibrariesAndSDKs/GPUParticles11/
+    // https://gpuopen.com/learn/gpuparticles11-directx-11-sdk-sample/
+
+    inline constexpr core::u32 kMaxEmitterParticles{ 16384 };
+    inline constexpr core::u32 kMaxRenderedParticles{ 65536 };
+    inline constexpr core::u32 kInvalidParticleTextureIndex{ 0xffffffffu };
+
+    enum class ParticlePlayback {
+        ePlaying,
+        ePaused,
+        eStopped
+    };
+
     enum class ParticleSimulationMode : core::u8 {
         eCpu,
         eGpu
@@ -38,17 +58,30 @@ namespace mikoto::renderer {
         core::f32 mAge{};
         core::f32 mLifetime{ 1.0f };
         core::f32 mRotation{};
+
+        // Motion and appearance are captured at spawn.
+        core::float3 mAcceleration{};
+        core::f32 mDrag{};
+        core::f32 mAngularSpeed{};
+        core::f32 mSoftness{};
+        core::f32 mFadeIn{};
+        core::f32 mFadeOut{};
+        core::f32 mStartSize{};
+        core::f32 mEndSize{};
+        core::float4 mStartColor{};
+        core::float4 mEndColor{};
+        core::u32 mTextureIndex{ kInvalidParticleTextureIndex };
+
+        MKT_NODISCARD auto GetColor() const -> core::float4;
     };
 
-    // Three float4s form the shared CPU/Slang instance-buffer ABI.
+    // Four vectors form the shared CPU/Slang instance-buffer ABI.
     struct ParticleRenderData {
         core::float4 mPositionSize{};
         core::float4 mColor{};
         core::float4 mRotationSoftness{};
+        glm::uvec4 mTexture{ kInvalidParticleTextureIndex, 0, 0, 0 };
     };
-
-    inline constexpr core::u32 kMaxEmitterParticles{ 16384 };
-    inline constexpr core::u32 kMaxRenderedParticles{ 65536 };
 
     struct ParticleEmitterSettings {
         core::u32 mMaxParticles{ 2048 };
@@ -72,24 +105,31 @@ namespace mikoto::renderer {
         core::f32 mAngularSpeed{ 0.5f };
         core::f32 mSoftness{ 0.8f };
         bool mLooping{ true };
+
+        bool mFadeEnabled{ true };
+        core::f32 mFadeIn{ 0.05f }; // Fraction of particle lifetime.
+        core::f32 mFadeOut{ 0.25f };
+
+        auto Sanitize() -> void;
+        auto Serialize( YAML::Emitter& out ) const -> void;
+        MKT_NODISCARD static auto Deserialize( const YAML::Node& node ) -> ParticleEmitterSettings;
     };
 
-    // Immutable, reusable recipe. Editing creates a new recipe; live simulation
-    // is kept separately so two entities sharing this resource remain independent.
-    /**
-     * @brief Clamps particle settings and replaces invalid values.
-     * @param settings Settings describing the requested operation.
-     * @returns Settings safe for the supported simulation paths.
-     */
-    auto SanitizeParticleSettings( ParticleEmitterSettings settings ) -> ParticleEmitterSettings;
+    struct ParticleEmitterCreateDescription {
+        ParticleEmitterSettings mSettings{};
+        material::ParticleMaterialHandle mMaterial{};
+    };
 
     class ParticleEmitter final : public core::Resource {
     public:
-        explicit ParticleEmitter( ParticleEmitterSettings settings = {} );
+        explicit ParticleEmitter( const ParticleEmitterCreateDescription& description = {} );
+
+        MKT_NODISCARD auto GetSettings() const -> const ParticleEmitterSettings&;
+        MKT_NODISCARD auto GetMaterial() const -> const material::ParticleMaterialHandle&;
+        MKT_NODISCARD auto GetTint() const -> core::float4;
+        MKT_NODISCARD auto GetTexture() const -> rhi::TextureHandle;
+
         ~ParticleEmitter() override;
-        auto GetSettings() const -> const ParticleEmitterSettings&;
-        auto Save( const filesystem::Path& path ) const -> void;
-        static auto Load( const filesystem::Path& path ) -> core::Ref<ParticleEmitter>;
 
     private:
         auto Initialize() -> void override;
@@ -97,68 +137,81 @@ namespace mikoto::renderer {
 
     private:
         ParticleEmitterSettings mSettings{};
+        material::ParticleMaterialHandle mMaterial{};
     };
 
     using ParticleEmitterHandle = core::Ref<ParticleEmitter>;
 
-    enum class ParticlePlayback {
-        ePlaying,
-        ePaused,
-        eStopped
-    };
-
     class ParticleEmitterInstance final {
     public:
-        ParticleEmitterInstance();
+        explicit ParticleEmitterInstance( ParticleEmitterHandle emitter );
 
         ParticleEmitterInstance( const ParticleEmitterInstance& other );
+        ParticleEmitterInstance( ParticleEmitterInstance&& ) noexcept = default;
+
         auto operator=( const ParticleEmitterInstance& other ) -> ParticleEmitterInstance&;
+        auto operator=( ParticleEmitterInstance&& ) noexcept -> ParticleEmitterInstance& = default;
 
-        ParticleEmitterInstance( ParticleEmitterInstance&& ) = default;
-        auto operator=( ParticleEmitterInstance&& ) -> ParticleEmitterInstance& = default;
-
-        auto GetEmitter() const -> const ParticleEmitterHandle&;
-        auto SetEmitter( ParticleEmitterHandle emitter ) -> void;
-        auto GetParticles() const -> const eastl::vector<Particle>&;
-        auto GetPlayback() const -> ParticlePlayback;
-        auto GetDroppedParticles() const -> core::u64;
         auto Play() -> void;
         auto Pause() -> void;
-        auto Stop( bool clear = true ) -> void;
         auto Restart() -> void;
-
-        /** @brief Restarts state when changing backend; no synchronous GPU readback is performed. */
+        auto Stop( bool clear = true ) -> void;
+        // Only future spawns use the replacement recipe.
+        auto SetEmitter( ParticleEmitterHandle emitter ) -> void;
         auto SetSimulationMode( ParticleSimulationMode mode ) -> void;
-
-        MKT_NODISCARD auto GetSimulationMode() const -> ParticleSimulationMode;
-        /** @brief Scene-owned fixed-step clock. Rendering the scene again does not advance it. */
-        MKT_NODISCARD auto GetSimulationTick() const -> core::u64;
-        MKT_NODISCARD auto GetRestartRevision() const -> core::u64;
-        MKT_NODISCARD auto IsEmitting() const -> bool;
         auto Update( core::f32 timeStep, const core::float4x4& world, core::u64 entitySeed ) -> void;
 
+        MKT_NODISCARD auto IsEmitting() const -> bool;
+        MKT_NODISCARD auto GetID() const -> core::u64;
+        MKT_NODISCARD auto GetSimulationTick() const -> core::u64;
+        MKT_NODISCARD auto GetRestartRevision() const -> core::u64;
+        MKT_NODISCARD auto GetSimulationMode() const -> ParticleSimulationMode;
+
+        MKT_NODISCARD auto GetPlayback() const -> ParticlePlayback;
+        MKT_NODISCARD auto GetDroppedParticles() const -> core::u64;
+        MKT_NODISCARD auto GetEmitter() const -> const ParticleEmitterHandle &;
+        MKT_NODISCARD auto GetParticles() const -> const eastl::vector<Particle> &;
+        MKT_NODISCARD auto GetParticleTexture( core::u32 index ) const -> rhi::TextureHandle;
+
     private:
+        MKT_NODISCARD static auto AllocateID() -> core::u64;
         auto Random() -> core::f32;
-        auto Step( core::f32 timeStep, const core::float4x4& world ) -> void;
+        auto BindSpawnTexture() -> void;
         auto Spawn( const core::float4x4& world ) -> void;
-        ParticleEmitterHandle mEmitter{};
+        auto Step( core::f32 timeStep, const core::float4x4& world ) -> void;
+
+    private:
+        struct TextureSlot {
+            rhi::TextureHandle mTexture{};
+            core::u32 mLiveCount{};
+        };
+
         eastl::vector<Particle> mParticles{};
+        eastl::vector<TextureSlot> mTextureSlots{};
+        core::u32 mSpawnTextureIndex{ kInvalidParticleTextureIndex };
+
+        core::u64 mID{ AllocateID() };
+        ParticleEmitterHandle mEmitter{};
         ParticlePlayback mPlayback{ ParticlePlayback::ePlaying };
-        core::f64 mTimeAccumulator{};
-        core::f64 mEmissionAccumulator{};
-        core::f32 mElapsed{};
+
+        core::f32 mElapsed{ 0.0f };
         core::u32 mRandomState{ 1 };
-        core::u64 mDroppedParticles{};
-        bool mStarted{};
-        bool mEmitting{ true };
-        ParticleSimulationMode mSimulationMode{ ParticleSimulationMode::eCpu };
+        core::u32 mAppliedSeed{};
+        core::u64 mDroppedParticles{ 0 };
+        core::f64 mTimeAccumulator{ 0.0f };
+        core::f64 mEmissionAccumulator{ 0.0f };
+
+        core::f32 mDrainTime{};
+        core::f32 mLongestParticleLifetime{};
         core::u64 mSimulationTick{};
         core::u64 mRestartRevision{ 1 };
-        core::f32 mDrainTime{};
+
+        ParticleSimulationMode mSimulationMode{ ParticleSimulationMode::eCpu };
+
+        bool mStarted{ false };
+        bool mEmitting{ true };
     };
 
-    auto SerializeParticleSettings( const ParticleEmitterSettings& settings, YAML::Emitter& out ) -> void;
-    auto DeserializeParticleSettings( const YAML::Node& node ) -> ParticleEmitterSettings;
 }// namespace mikoto::renderer
 
 #endif// MIKOTO_RENDERER_PARTICLE_PARTICLE_EMITTER_HH

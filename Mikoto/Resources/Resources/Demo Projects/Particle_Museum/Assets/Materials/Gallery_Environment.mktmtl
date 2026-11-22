@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SkyboxMaterial",
+  "Name": "Gallery night environment",
+  "Material": {
+    "SkyboxType": 1,
+    "AmbientScale": 1,
+    "Images": [
+      {
+        "Face": -1,
+        "TexturePath": "../Skybox/dikhololo_night_4k.hdr"
+      }
+    ]
+  }
+}

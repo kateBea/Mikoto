@@ -20,6 +20,8 @@
 
 #include <Filesystem/FileService.hh>
 
+#include <Assets/AssetRegistryService.hh>
+
 #include <Material/ParticleMaterial.hh>
 
 namespace mikoto::material {
@@ -63,12 +65,26 @@ namespace mikoto::material {
     ParticleMaterial::ParticleMaterial( const ParticleMaterial& other )
         : mName{ other.mName },
           mColor{ other.mColor },
-          mGraph{ other.mGraph } {
+          mGraph{ other.mGraph },
+          mTexture{ other.mTexture } {
     }
 
     auto ParticleMaterial::SetColor( const core::float4& value ) -> void {
         mColor = glm::max( value, core::float4{ 0 } );
         mColor.a = glm::clamp( value.a, 0.0f, 1.0f );
+    }
+
+    auto ParticleMaterial::SetTexture( asset::AssetHandle<asset::Texture> texture ) -> void {
+        mTexture = eastl::move( texture );
+    }
+
+    auto ParticleMaterial::GetTexture() const -> renderer::rhi::TextureHandle {
+        const auto texture{ mTexture.GetIfReady() };
+        return texture ? texture->GetResource() : renderer::rhi::TextureHandle{};
+    }
+
+    auto ParticleMaterial::GetTexturePath() const -> filesystem::Path {
+        return mTexture.GetRef().GetPath();
     }
 
     auto ParticleMaterial::GetColor() const -> const core::float4& {
@@ -98,9 +114,10 @@ namespace mikoto::material {
             if ( node.IsMap() ) {
                 for ( const auto& entry: node ) {
                     if ( entry.first.as<std::string>() == "TexturePath" ) {
-                        const auto texture{ std::filesystem::absolute( std::filesystem::path{ entry.second.as<std::string>() } ) };
+                        const auto texture{ std::filesystem::absolute( std::filesystem::u8path( entry.second.as<std::string>() ) ) };
                         const auto relative{ texture.lexically_relative( directory ) };
-                        node["TexturePath"] = ( relative.empty() ? texture : relative ).generic_string();
+                        const auto utf8{ ( relative.empty() ? texture : relative ).generic_u8string() };
+                        node["TexturePath"] = std::string{ reinterpret_cast<const char*>( utf8.data() ), utf8.size() };
                     }
                     else {
                         self( self, entry.second );
@@ -177,13 +194,14 @@ namespace mikoto::material {
             if ( node.IsMap() ) {
                 for ( const auto& entry: node ) {
                     if ( entry.first.as<std::string>() == "TexturePath" ) {
-                        std::filesystem::path path{ entry.second.as<std::string>() };
+                        auto path{ std::filesystem::u8path( entry.second.as<std::string>() ) };
 
                         if ( path.is_relative() && version >= 2 ) {
                             path = directory / path;
                         }
 
-                        node["TexturePath"] = path.lexically_normal().string();
+                        const auto utf8{ path.lexically_normal().generic_u8string() };
+                        node["TexturePath"] = std::string{ reinterpret_cast<const char*>( utf8.data() ), utf8.size() };
                     }
                     else {
                         self( self, entry.second );
@@ -207,6 +225,7 @@ namespace mikoto::material {
         mName = eastl::move( value->mName );
         mColor = value->mColor;
         mGraph = eastl::move( value->mGraph );
+        mTexture = eastl::move( value->mTexture );
     }
 
     auto ParticleMaterial::GetName() const -> const eastl::string& {
@@ -226,6 +245,10 @@ namespace mikoto::material {
         YAML::Node data{ YAML::NodeType::Map };
         data["Color"] = WriteColor( GetColor() );
 
+        if ( const auto path{ GetTexturePath() }; !path.IsEmpty() ) {
+            data["TexturePath"] = path.GetC_Str();
+        }
+
         if ( !GetGraph()->GetNodes().empty() ) {
             data["Graph"] = GetGraph()->Serialize();
         }
@@ -237,6 +260,11 @@ namespace mikoto::material {
         MKT_BEGIN_PROFILER();
 
         SetColor( ReadColor( node["Color"] ) );
+
+        if ( const auto path{ node["TexturePath"] } ) {
+            const asset::AssetRef<asset::Texture> reference{ filesystem::Path{ path.as<std::string>().c_str() } };
+            SetTexture( asset::AssetRegistryService::Get()->Request<asset::Texture>( reference ) );
+        }
 
         if ( node["Graph"] ) {
             GetGraph()->Deserialize( node["Graph"] );

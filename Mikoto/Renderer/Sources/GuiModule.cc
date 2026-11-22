@@ -408,14 +408,14 @@ namespace mikoto::renderer {
                     *font, codepoints,
                     { command.mFontSize, 0, 1, text::Alignment::eLeft, true },
                     kMaxQuads - mQuads.size() );
-                truncated |= layout.truncated;
+                truncated |= layout.mTruncated;
 
                 const auto origin = command.mType == CanvasCommandType::eText
                                         ? rect.mPosition
-                                        : rect.mPosition + ( rect.mSize - ( layout.maximum - layout.minimum ) ) * 0.5f - layout.minimum;
+                                        : rect.mPosition + ( rect.mSize - ( layout.mMaximum - layout.mMinimum ) ) * 0.5f - layout.mMinimum;
 
-                for ( const auto& glyphQuad: layout.glyphs ) {
-                    const auto& glyph = font->GetGlyph( glyphQuad.codepoint );
+                for ( const auto& glyphQuad: layout.mGlyphs ) {
+                    const auto& glyph = font->GetGlyph( glyphQuad.mCodepoint );
                     const auto atlas = font->GetAtlas( glyph.mAtlasPage );
 
                     if ( atlas.IsEmpty() ) {
@@ -428,7 +428,7 @@ namespace mikoto::renderer {
                         bounds.z / atlas->GetWidth(), bounds.y / atlas->GetHeight()
                     };
 
-                    emit( { origin + glyphQuad.position, glyphQuad.size },
+                    emit( { origin + glyphQuad.mPosition, glyphQuad.mSize },
                         command.mType == CanvasCommandType::eText ? color : core::float4{ 1, 1, 1, color.a },
                         glyph.mImageType == GlyphImageType::eColor ? 3 : 2, atlas, uv, font->GetDistanceRange() );
                 }

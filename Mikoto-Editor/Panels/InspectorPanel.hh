@@ -84,7 +84,7 @@ namespace mikoto::editor {
         auto DrawVideoComponentTab( scene::Entity& entity ) -> void;
         auto DrawAudioMixerComponentTab( scene::Entity& entity ) -> void;
         auto DrawAudioMixerGroupComponentTab( scene::Entity& entity ) -> void;
-        auto DrawParticleComponentTab( scene::Entity& entity ) -> void;
+        auto DrawParticleSimulatorComponentTab( scene::Entity& entity ) -> void;
         template<typename Component>
         auto DrawVolumeComponentTab( scene::Entity& entity ) -> void;
         auto DrawCameraComponentTab( scene::Entity& entity ) -> void;
@@ -106,6 +106,10 @@ namespace mikoto::editor {
         };
         eastl::vector<MeshTexturePreview> mMeshTexturePreviews{};
         bool mMeshInfoDrawn{};
+
+        const scene::Scene* mParticleScene{};
+        core::u64 mParticleEntity{};
+        core::usize mParticleEmitter{};
 
         struct TextureRenderOptions {
             core::u64 mEntity{};

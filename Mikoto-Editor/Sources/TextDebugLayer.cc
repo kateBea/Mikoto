@@ -122,7 +122,7 @@ namespace mikoto::editor {
             component.SetColor( core::float4{ 0.8f, 0.9f, 1.0f, mOpacity } );
             component.SetOutlineWidth( mOutlineWidth );
             component.SetOutlineColor( mOutlineColor );
-            component.GetScreenPlacement().position = { 16.0f + core::as<core::f32>( column ) * 640.0f, 12.0f - mScroll };
+            component.GetScreenPlacement().mPosition = { 16.0f + core::as<core::f32>( column ) * 640.0f, 12.0f - mScroll };
         }
     }
 

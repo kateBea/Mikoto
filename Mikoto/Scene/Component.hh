@@ -19,6 +19,7 @@
 #include <string>
 
 #include <EASTL/utility.h>
+#include <EASTL/span.h>
 #include <EASTL/array.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
@@ -43,6 +44,7 @@
 #include <Assets/AssetVideo.hh>
 #include <Assets/AssetTexture.hh>
 #include <Assets/AssetSkeleton.hh>
+#include <Assets/AssetParticleEffect.hh>
 #include <Assets/AssetRegistryService.hh>
 
 #include <Material/Material.hh>
@@ -1879,6 +1881,21 @@ namespace mikoto::scene {
         auto operator=( const CloudComponent& other ) -> CloudComponent& = default;
         auto operator=( CloudComponent&& other ) -> CloudComponent& = default;
 
+        auto SetShape( CloudShape shape ) -> void;
+        auto SetBottomAltitude( core::f32 altitude ) -> void;
+        auto SetLayerThickness( core::f32 thickness ) -> void;
+        auto SetDimensions( const core::float3 &dimensions ) -> void;
+        
+        auto SetHorizonRadius( core::f32 radius ) -> void;
+        auto SetDensityMultiplier( core::f32 multiplier ) -> void;
+        auto SetMaterial( material::VolumeMaterialHandle material ) -> void;
+
+        auto SetWindSpeed( core::f32 speed ) -> void;
+        auto SetWindDirection( const core::float2 &direction ) -> void;
+        
+        auto SetCastShadows( bool value ) -> void;
+        auto SetReceiveShadows( bool value ) -> void;
+
         MKT_NODISCARD auto GetShape() const -> CloudShape;
         MKT_NODISCARD auto GetBottomAltitude() const -> core::f32;
         MKT_NODISCARD auto GetLayerThickness() const -> core::f32;
@@ -1890,18 +1907,6 @@ namespace mikoto::scene {
         MKT_NODISCARD auto GetWindSpeed() const -> core::f32;
         MKT_NODISCARD auto IsShadowCaster() const -> bool;
         MKT_NODISCARD auto IsShadowReceiver() const -> bool;
-
-        auto SetShape( CloudShape shape ) -> void;
-        auto SetBottomAltitude( core::f32 altitude ) -> void;
-        auto SetLayerThickness( core::f32 thickness ) -> void;
-        auto SetDimensions( const core::float3& dimensions ) -> void;
-        auto SetHorizonRadius( core::f32 radius ) -> void;
-        auto SetMaterial( material::VolumeMaterialHandle material ) -> void;
-        auto SetDensityMultiplier( core::f32 multiplier ) -> void;
-        auto SetWindDirection( const core::float2& direction ) -> void;
-        auto SetWindSpeed( core::f32 speed ) -> void;
-        auto SetCastShadows( bool value ) -> void;
-        auto SetReceiveShadows( bool value ) -> void;
 
         ~CloudComponent() = default;
 
@@ -1950,10 +1955,14 @@ namespace mikoto::scene {
     private:
         FogShape mShape{ FogShape::eGlobal };
         core::float3 mDimensions{ 100.0f };
-        // A finite world-space sphere bounds global haze and infinite-light connections.
+
+        // A finite world-space sphere bounds 
+        // global haze and infinite-light connections.
         core::f32 mHorizonRadius{ 100000.0f };
-        material::VolumeMaterialHandle mMaterial{};
         core::f32 mDensityMultiplier{ 1.0f };
+
+        material::VolumeMaterialHandle mMaterial{};
+        
         bool mCastShadows{ true };
         bool mReceiveShadows{ true };
     };
@@ -1976,9 +1985,19 @@ namespace mikoto::scene {
         auto operator=( const CameraComponent& other ) -> CameraComponent& = default;
         auto operator=( CameraComponent&& other ) -> CameraComponent& = default;
 
+        auto SetGamma( float gamma ) -> void;
+        auto SetMainCamera( bool main ) -> void;
+        auto SetSkyboxBlur( float value ) -> void;
+        auto SetExposure( float exposure ) -> void;
+        auto SetFixedAspectRatio( bool value ) -> void;
+        
+        auto SetClearFlags( CameraClearFlags bg ) -> void;
+        auto SetClearColor( const renderer::rhi::Color& color ) -> void;
+        
+        auto OnViewportResize( core::f32 width, core::f32 height ) -> void;
+        
         MKT_NODISCARD auto HasCamera() const -> bool;
         MKT_NODISCARD auto IsMainCamera() const -> bool;
-        auto SetMainCamera( bool main ) -> void;
 
         MKT_NODISCARD auto GetCamera() -> SceneCamera&;
         MKT_NODISCARD auto GetCamera() const -> const SceneCamera&;
@@ -1992,14 +2011,6 @@ namespace mikoto::scene {
         MKT_NODISCARD auto GetGamma() const -> float;
         MKT_NODISCARD auto GetExposure() const -> float;
         MKT_NODISCARD auto GetSkyboxBlur() const -> float;
-
-        auto SetGamma( float gamma ) -> void;
-        auto SetSkyboxBlur( float value ) -> void;
-        auto SetExposure( float exposure ) -> void;
-        auto SetFixedAspectRatio( bool value ) -> void;
-        auto OnViewportResize( core::f32 width, core::f32 height ) -> void;
-        auto SetClearFlags( CameraClearFlags bg ) -> void;
-        auto SetClearColor( const renderer::rhi::Color& color ) -> void;
 
         ~CameraComponent() = default;
 
@@ -2018,16 +2029,8 @@ namespace mikoto::scene {
     };
 
 
-    enum class TextAlignment {
-        eLeft,
-        eCenter,
-        eRight
-    };
-
-    enum class TextBackend {
-        eMSDF,
-        eSlug
-    };
+    enum class TextBackend { eMSDF, eSlug };
+    enum class TextAlignment { eLeft, eCenter, eRight };
 
     class TextComponent {
     public:
@@ -2102,27 +2105,31 @@ namespace mikoto::scene {
         MKT_NODISCARD static auto GetMaxLetterSize() -> float;
 
     private:
-        // Preserve UTF-8 for editing/serialization and decode only on edits.
+        renderer::FontHandle mFont{};
+        const Camera *mCamera{ nullptr };
+
+        // Preserve UTF-8 for editing/serialization 
+        // and decode only on edits.
         eastl::string mTextContent{};
         text::UnicodeString mStringContent{};
 
         core::float4 mColor{ 1.0f, 1.0f, 0.4f, 1.0f };
         core::Ref<material::TextMaterial> mMaterial{};
 
-        float mWorldSize{ 1.0f };
+        core::f32 mWorldSize{ 1.0f };
 
-        float mScreenSize{ 32.0f };
-        float mWorldSpacing{};
-        float mScreenSpacing{};
-        text::ScreenPlacement mScreenPlacement{};
-        float mLineSpacing{ 1.0f };
-        TextAlignment mAlignment{ TextAlignment::eLeft };
-        TextBackend mBackend{ TextBackend::eSlug };
+        core::f32 mWorldSpacing{};
+        core::f32 mScreenSpacing{};
+        core::f32 mLineSpacing{ 1.0f };
+        core::f32 mScreenSize{ 32.0f };
+
         core::f32 mOutlineWidth{};
         core::float4 mOutlineColor{ 0, 0, 0, 1 };
 
-        renderer::FontHandle mFont{};
-        const Camera* mCamera{ nullptr };
+        text::ScreenPlacement mScreenPlacement{};
+        
+        TextBackend mBackend{ TextBackend::eSlug };
+        TextAlignment mAlignment{ TextAlignment::eLeft };
 
         bool mIsWorldText{ false };
     };
@@ -2218,10 +2225,11 @@ namespace mikoto::scene {
         auto operator=( const AnimatorComponent& other ) -> AnimatorComponent& = default;
         auto operator=( AnimatorComponent&& other ) -> AnimatorComponent& = default;
 
-        ~AnimatorComponent() = default;
-
         auto SetAnimatorID( core::u64 ID ) -> void;
+        
         MKT_NODISCARD auto GetAnimatorID() const -> core::u64;
+        
+        ~AnimatorComponent() = default;
 
     private:
         core::u64 mAnimatorID{};
@@ -2238,13 +2246,11 @@ namespace mikoto::scene {
         auto operator=( const SkinnedMeshRenderer& other ) -> SkinnedMeshRenderer& = default;
         auto operator=( SkinnedMeshRenderer&& other ) -> SkinnedMeshRenderer& = default;
 
-        ~SkinnedMeshRenderer() = default;
-
-        /** @brief Selects an animator using the same imported model/rig; zero detaches playback.
-         * @param id Animator handle validated by the caller against the mesh's model.
-         */
         auto SetAnimatorID( core::u64 id ) -> void;
+
         MKT_NODISCARD auto GetAnimatorID() const -> core::u64;
+
+        ~SkinnedMeshRenderer() = default;
 
     private:
         core::u64 mAnimatorID{};
@@ -2253,9 +2259,6 @@ namespace mikoto::scene {
 
     class PostProcessMaterialComponent {
     public:
-        /** @brief Assigns a post-process material, or creates a default when empty.
-         * @param material Shared post-process material for this entity.
-         */
         explicit PostProcessMaterialComponent( material::MaterialHandle material = {} );
 
         PostProcessMaterialComponent( const PostProcessMaterialComponent& other ) = default;
@@ -2264,26 +2267,17 @@ namespace mikoto::scene {
         auto operator=( const PostProcessMaterialComponent& other ) -> PostProcessMaterialComponent& = default;
         auto operator=( PostProcessMaterialComponent&& other ) -> PostProcessMaterialComponent& = default;
 
-        /** @brief Gets the material submitted by this component.
-         * @returns A shared handle to the assigned post-process material.
-         */
-        MKT_NODISCARD auto GetMaterial() const -> material::MaterialHandle;
-
-        /** @brief Assigns the material submitted by this component.
-         * @param material Nonempty PostProcessMaterial handle.
-         * @throws core::InvalidArgument If material is empty or has another material type.
-         */
+        auto SetCameraEntityID( core::u64 id ) -> void;
         auto SetMaterial( material::MaterialHandle material ) -> void;
 
-        /** Camera entity supplying grain parameters; zero leaves grain unapplied. */
-        auto SetCameraEntityID( core::u64 id ) -> void;
+        MKT_NODISCARD auto GetMaterial() const -> material::MaterialHandle;
         MKT_NODISCARD auto GetCameraEntityID() const -> core::u64;
 
         ~PostProcessMaterialComponent() = default;
 
     private:
-        material::MaterialHandle mMaterial{};
         core::u64 mCameraEntityID{};
+        material::MaterialHandle mMaterial{};
     };
 
 
@@ -2297,9 +2291,9 @@ namespace mikoto::scene {
         auto operator=( const SkyboxMaterialComponent& other ) -> SkyboxMaterialComponent& = default;
         auto operator=( SkyboxMaterialComponent&& other ) -> SkyboxMaterialComponent& = default;
 
-        MKT_NODISCARD auto GetMaterial() const -> material::MaterialHandle;
-
         auto SetMaterial( material::MaterialHandle material ) -> void;
+
+        MKT_NODISCARD auto GetMaterial() const -> material::MaterialHandle;
 
         ~SkyboxMaterialComponent() = default;
 
@@ -2308,26 +2302,27 @@ namespace mikoto::scene {
     };
 
 
-    class ParticleEmitterComponent {
+    class ParticleSimulatorComponent {
     public:
-        explicit ParticleEmitterComponent() = default;
+        explicit ParticleSimulatorComponent();
 
-        ParticleEmitterComponent( const ParticleEmitterComponent& other ) = default;
-        ParticleEmitterComponent( ParticleEmitterComponent&& other ) = default;
+        ParticleSimulatorComponent( const ParticleSimulatorComponent& other ) = default;
+        ParticleSimulatorComponent( ParticleSimulatorComponent&& other ) noexcept = default;
 
-        auto operator=( const ParticleEmitterComponent& other ) -> ParticleEmitterComponent& = default;
-        auto operator=( ParticleEmitterComponent&& other ) -> ParticleEmitterComponent& = default;
+        auto operator=( const ParticleSimulatorComponent& other ) -> ParticleSimulatorComponent& = default;
+        auto operator=( ParticleSimulatorComponent&& other ) noexcept -> ParticleSimulatorComponent& = default;
 
-        auto SetMaterial( material::MaterialHandle particleMaterial ) -> void;
+        auto SetEffect( asset::ParticleEffectHandle effect ) -> void;
+        auto SetEmitter( core::usize index, renderer::ParticleEmitterHandle emitter ) -> void;
+        auto Update( core::f32 timeStep, const core::float4x4& world, core::u64 seed, renderer::ParticleSimulationMode mode ) -> void;
 
-        MKT_NODISCARD auto GetMaterial() const -> material::MaterialHandle;
-        MKT_NODISCARD auto GetInstance() -> renderer::ParticleEmitterInstance&;
-        MKT_NODISCARD auto GetInstance() const -> const renderer::ParticleEmitterInstance&;
+        MKT_NODISCARD auto GetEffect() const -> const asset::ParticleEffectHandle&;
+        MKT_NODISCARD auto GetInstances() -> eastl::span<renderer::ParticleEmitterInstance>;
+        MKT_NODISCARD auto GetInstances() const -> eastl::span<const renderer::ParticleEmitterInstance>;
 
-        ~ParticleEmitterComponent() = default;
     private:
-        material::MaterialHandle mParticleMaterial{};
-        renderer::ParticleEmitterInstance mInstance{};
+        asset::ParticleEffectHandle mEffect{};
+        eastl::vector<renderer::ParticleEmitterInstance> mInstances{};
     };
 
 

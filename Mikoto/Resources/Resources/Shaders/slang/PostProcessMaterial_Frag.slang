@@ -14,6 +14,7 @@
 
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
+#include "base/ChromaticAberration_Helpers.slang"
 
 // Matches renderer::PostProcessMaterialData. Records compose in stable owner order.
 struct PostProcessMaterialData {
@@ -32,6 +33,7 @@ struct DrawParams {
     uint mStage;
     float mElapsedSeconds;
     uint mPadding;
+    float2 mChromaticOffsetPixels;
 };
 
 MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
@@ -50,7 +52,20 @@ float4 ApplyFilmGrain( float4 color, float2 pixel, float elapsedSeconds, float a
 
 [shader( "fragment" )]
 float4 main( float2 uv : TEXCOORD0, float4 position : SV_Position ) : SV_Target0 {
-    float4 color = textures[parameters.mSceneImage].SampleLevel( samplers[parameters.mSampler], uv, 0 );
+    Texture2D source = textures[parameters.mSceneImage];
+    SamplerState sampler = samplers[parameters.mSampler];
+
+    float4 color;
+    if ( any( parameters.mChromaticOffsetPixels != 0.0f ) ) {
+        uint width, height;
+        source.GetDimensions( width, height );
+        float2 pixelSize = 1.0f / float2( width, height );
+        color = SampleChromaticAberration( source, sampler, uv, pixelSize, parameters.mChromaticOffsetPixels );
+    }
+    else {
+        color = source.SampleLevel( sampler, uv, 0 );
+    }
+
     BufferReference<PostProcessMaterialData> materials = ( BufferReference<PostProcessMaterialData> )parameters.mMaterials;
 
     // Keep the accumulated color in registers: separate draws over the source would overwrite prior materials.

@@ -26,6 +26,7 @@
 #include <Filesystem/Path.hh>
 
 #include <Assets/Image.hh>
+#include <Assets/AssetParticleEffect.hh>
 #include <Assets/AssetRegistryService.hh>
 
 #include <Material/TextMaterial.hh>
@@ -37,8 +38,8 @@
 
 namespace mikoto::editor {
 
-    /** Deterministic CPU emitter snapshot, rasterized with the runtime's soft-disc appearance. */
-    auto RenderParticlePreview( const renderer::ParticleEmitterSettings &settings ) -> asset::ImageHandle;
+    /** Deterministic CPU snapshot of the whole effect with soft-disc billboards. */
+    auto RenderParticlePreview( const asset::ParticleEffect& effect ) -> asset::ImageHandle;
 
 
     /** @brief Mesh used to evaluate surface materials in the preview scene. */

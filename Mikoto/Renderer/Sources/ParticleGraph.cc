@@ -51,7 +51,8 @@ namespace mikoto::renderer {
     }
 
     auto ParticleGraph::Initialize( const ParticleEmitterSettings& settings ) -> void {
-        mSettings = SanitizeParticleSettings( settings );
+        mSettings = settings;
+        mSettings.Sanitize();
         mNodes.clear();
         mLinks.clear();
 
@@ -122,7 +123,7 @@ namespace mikoto::renderer {
         YAML::Node document;
         document["ParticleGraphVersion"] = 1;
         YAML::Emitter emitter;
-        SerializeParticleSettings( mSettings, emitter );
+        mSettings.Serialize( emitter );
         document["Settings"] = YAML::Load( emitter.c_str() );
         document["Nodes"] = YAML::Node( YAML::NodeType::Sequence );
         document["Links"] = YAML::Node( YAML::NodeType::Sequence );
@@ -153,7 +154,7 @@ namespace mikoto::renderer {
             }
 
             ParticleGraph candidate;
-            candidate.mSettings = DeserializeParticleSettings( document["Settings"] );
+            candidate.mSettings = ParticleEmitterSettings::Deserialize( document["Settings"] );
 
             for ( const auto& item: document["Nodes"] ) {
                 if ( !candidate.AddNode( static_cast<ParticleNodeType>( item["Type"].as<unsigned>() ) ) ) {
@@ -191,6 +192,8 @@ namespace mikoto::renderer {
             return { false, {}, "Connect Emission -> Spawn -> Update -> Appearance -> Billboard output. Preview keeps the last valid recipe." };
         }
 
-        return { true, SanitizeParticleSettings( validated.mSettings ), "Compiled to emitter recipe (CPU/GPU)." };
+        auto settings{ validated.mSettings };
+        settings.Sanitize();
+        return { true, settings, "Compiled to emitter recipe (CPU/GPU)." };
     }
 }// namespace mikoto::renderer

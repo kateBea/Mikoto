@@ -289,7 +289,7 @@ namespace mikoto::scene {
 
         auto OnScriptAdded( entt::registry& reg, entt::entity e ) -> void;
         auto OnRigidBodyAdded( entt::registry& reg, entt::entity e ) -> void;
-        auto OnParticleEmitterAdded( entt::registry& reg, entt::entity e ) -> void;
+        auto OnParticleSimulatorAdded( entt::registry& reg, entt::entity e ) -> void;
 
         template<typename Collider>
         auto OnColliderAdded( entt::registry& reg, entt::entity e ) -> void;

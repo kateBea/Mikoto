@@ -27,6 +27,7 @@
 
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Postprocess/Bloom.hh>
+#include <Renderer/Postprocess/ChromaticAberration.hh>
 
 namespace mikoto::material {
 
@@ -70,6 +71,7 @@ namespace mikoto::material {
         auto SetStage( PostProcessStage stage ) -> void;
         auto SetFilmGrainEnabled( bool enabled ) -> void;
         auto SetBloomSettings( renderer::BloomSettings settings ) -> void;
+        auto SetChromaticAberrationSettings( renderer::ChromaticAberrationSettings settings ) -> void;
 
         auto SetName( eastl::string_view newName ) -> void override;
         auto SetCategory( PostProcessMaterialCategory category ) -> void;
@@ -79,6 +81,8 @@ namespace mikoto::material {
         MKT_NODISCARD auto IsFilmGrainEnabled() const -> bool;
         MKT_NODISCARD auto IsBloomEnabled() const -> bool;
         MKT_NODISCARD auto GetBloomSettings() const -> const renderer::BloomSettings&;
+        MKT_NODISCARD auto IsChromaticAberrationEnabled() const -> bool;
+        MKT_NODISCARD auto GetChromaticAberrationSettings() const -> const renderer::ChromaticAberrationSettings&;
         MKT_NODISCARD auto GetStage() const -> PostProcessStage;
 
         MKT_NODISCARD auto GetCategory() const -> PostProcessMaterialCategory;
@@ -97,8 +101,8 @@ namespace mikoto::material {
 
     private:
         // [Internal usage]
-        MKT_NODISCARD auto SerializeProperties() const -> YAML::Node;
         auto RestoreProperties( const YAML::Node& node ) -> void;
+        MKT_NODISCARD auto SerializeProperties() const -> YAML::Node;
 
     private:
         eastl::string mName{};
@@ -108,17 +112,12 @@ namespace mikoto::material {
 
         bool mFilmGrainEnabled{};
         renderer::BloomSettings mBloom{ .mEnabled = false };
+        renderer::ChromaticAberrationSettings mChromaticAberration{};
+
         PostProcessStage mStage{ PostProcessStage::eBeforeToneMapping };
         PostProcessMaterialCategory mCategory{ PostProcessMaterialCategory::eBuiltIn };
 
         PostprocessMaterialGraph mGraph{};
-
-        // Chromatic aberration
-        core::f32 mChromaIntensity{};
-        core::f32 mChromaDirection{};
-        core::f32 mRedChannelOffset{};
-        core::f32 mBlueChannelOffset{};
-        core::f32 mGreenChannelOffset{};
 
         mutable filesystem::Path mSourcePath{};
     };

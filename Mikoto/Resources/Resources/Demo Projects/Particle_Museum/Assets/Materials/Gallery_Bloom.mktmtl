@@ -1,0 +1,32 @@
+{
+  "Version": 2,
+  "Type": "PostProcessMaterial",
+  "Name": "Gallery particle bloom",
+  "Material": {
+    "Contrast": 1,
+    "Saturation": 1,
+    "TintColor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "Stage": 0,
+    "Category": 0,
+    "FilmGrain": {
+      "Enabled": false
+    },
+    "Bloom": {
+      "Enabled": true,
+      "Threshold": 1.2,
+      "Intensity": 0.18,
+      "Scatter": 0.65,
+      "Radius": 1
+    },
+    "ChromaticAberration": {
+      "Enabled": false,
+      "Intensity": 0,
+      "Direction": 0
+    }
+  }
+}

@@ -1357,12 +1357,14 @@ namespace mikoto::scene {
         return result;
     }
 
-    static auto SerializeComponent( const ParticleEmitterComponent& component, YAML::Emitter& emitter ) -> void {
-        const auto& asset{ component.GetInstance().GetEmitter() };
-        // Persist the recipe, not transient positions or time. Play snapshots and
-        // reopened scenes start independent simulations, even without the source asset.
-        renderer::SerializeParticleSettings( asset ? asset->GetSettings() : renderer::ParticleEmitterSettings{},
-            emitter );
+    static auto SerializeComponent( const ParticleSimulatorComponent& component, YAML::Emitter& emitter ) -> void {
+        if ( const auto& effect{ component.GetEffect() } ) {
+            effect->Serialize( emitter );
+        }
+        else {
+            emitter << YAML::BeginMap << YAML::Key << "Version" << YAML::Value << 1
+                << YAML::Key << "Emitters" << YAML::Value << YAML::BeginSeq << YAML::EndSeq << YAML::EndMap;
+        }
     }
 
     static auto SerializeComponent( const AudioListenerComponent& listener, YAML::Emitter& emitter ) -> void {
@@ -1632,9 +1634,9 @@ namespace mikoto::scene {
         emitter << YAML::Key << "ScreenSpacing" << YAML::Value << textComponent.GetSpacing( false );
 
         const auto& screen = textComponent.GetScreenPlacement();
-        emitter << YAML::Key << "ScreenPosition" << YAML::Value << mikoto::core::float3{ screen.position, 0 };
-        emitter << YAML::Key << "ScreenScale" << YAML::Value << mikoto::core::float3{ screen.scale, 1 };
-        emitter << YAML::Key << "ScreenRotation" << YAML::Value << screen.rotation;
+        emitter << YAML::Key << "ScreenPosition" << YAML::Value << mikoto::core::float3{ screen.mPosition, 0 };
+        emitter << YAML::Key << "ScreenScale" << YAML::Value << mikoto::core::float3{ screen.mScale, 1 };
+        emitter << YAML::Key << "ScreenRotation" << YAML::Value << screen.mRotation;
         emitter << YAML::Key << "LineSpacing" << YAML::Value << textComponent.GetLineSpacing();
         emitter << YAML::Key << "Alignment" << YAML::Value << static_cast<int>( textComponent.GetAlignment() );
         emitter << YAML::Key << "Backend" << YAML::Value << static_cast<int>( textComponent.GetBackend() );
@@ -1977,7 +1979,7 @@ namespace mikoto::scene {
         MKT_SERIALIZE_COMPONENT_IF_PRESENT( AudioMixerComponent, "AudioMixerComponent" );
         MKT_SERIALIZE_COMPONENT_IF_PRESENT( AudioMixerGroupComponent, "AudioMixerGroupComponent" );
         MKT_SERIALIZE_COMPONENT_IF_PRESENT( AudioListenerComponent, "AudioListenerComponent" );
-        MKT_SERIALIZE_COMPONENT_IF_PRESENT( ParticleEmitterComponent, "ParticleEmitterComponent" );
+        MKT_SERIALIZE_COMPONENT_IF_PRESENT( ParticleSimulatorComponent, "ParticleSimulatorComponent" );
 
         if ( root->HasComponent<CloudComponent>() ) {
             emitter << YAML::Key << "CloudComponent" << YAML::Value;
@@ -2250,7 +2252,7 @@ namespace mikoto::scene {
             eastl::optional<RigidBodyComponent> mRigidBody{};
             eastl::optional<SphereColliderComponent> mSphere{};
             eastl::optional<AudioListenerComponent> mListener{};
-            eastl::optional<ParticleEmitterSettings> mParticles{};
+            asset::ParticleEffectHandle mParticleEffect{};
             eastl::optional<CloudComponent> mCloud{};
             eastl::optional<FogComponent> mFog{};
             eastl::optional<WaterRenderComponent> mWaterRender{};
@@ -2676,14 +2678,14 @@ namespace mikoto::scene {
                     auto& screenPlacement = record.mText->GetScreenPlacement();
 
                     if ( text["ScreenPosition"] ) {
-                        screenPlacement.position = mikoto::core::float2{ ReadPhysicsVector( text["ScreenPosition"] ) };
+                        screenPlacement.mPosition = mikoto::core::float2{ ReadPhysicsVector( text["ScreenPosition"] ) };
 
                         if ( text["ScreenScale"] ) {
-                            screenPlacement.scale = mikoto::core::float2{ ReadPhysicsVector( text["ScreenScale"] ) };
+                            screenPlacement.mScale = mikoto::core::float2{ ReadPhysicsVector( text["ScreenScale"] ) };
                         }
 
                         if ( text["ScreenRotation"] ) {
-                            screenPlacement.rotation = ReadPhysicsScalar( text["ScreenRotation"], -FLT_MAX, FLT_MAX );
+                            screenPlacement.mRotation = ReadPhysicsScalar( text["ScreenRotation"], -FLT_MAX, FLT_MAX );
                         }
                     }
                     else if ( !record.mText->IsWorldText() ) {
@@ -2837,8 +2839,11 @@ namespace mikoto::scene {
                     }
                 }
 
-                if ( const auto particles{ object["ParticleEmitterComponent"] } ) {
-                    record.mParticles = renderer::DeserializeParticleSettings( particles );
+                if ( const auto effect{ object["ParticleSimulatorComponent"] } ) {
+                    record.mParticleEffect = asset::ParticleEffect::Deserialize( effect );
+                }
+                else if ( const auto legacyEmitter{ object["ParticleEmitterComponent"] } ) {
+                    record.mParticleEffect = asset::ParticleEffect::Deserialize( legacyEmitter );
                 }
 
                 if ( const auto node{ object["LandscapeComponent"] } ) {
@@ -3304,9 +3309,8 @@ namespace mikoto::scene {
                     entity->AddComponent<LandscapeComponent>( *record.mLandscape );
                 }
 
-                if ( record.mParticles ) {
-                    entity->AddComponent<ParticleEmitterComponent>().GetInstance().SetEmitter(
-                        renderer::ParticleEmitterHandle::New( *record.mParticles ) );
+                if ( record.mParticleEffect ) {
+                    entity->AddComponent<ParticleSimulatorComponent>().SetEffect( record.mParticleEffect );
                 }
 
                 if ( record.mCloud ) {
@@ -3495,7 +3499,7 @@ namespace mikoto::scene {
         // Renderer
         mRegistry.on_construct<MeshComponent>().connect<&OnMeshRendererAdded>();
 
-        mRegistry.on_construct<ParticleEmitterComponent>().connect<&Scene::OnParticleEmitterAdded>( this );
+        mRegistry.on_construct<ParticleSimulatorComponent>().connect<&Scene::OnParticleSimulatorAdded>( this );
 
         mRegistry.on_construct<SkyboxMaterialComponent>().connect<&OnSkyboxMaterialAdded>();
 
@@ -3541,7 +3545,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto Scene::OnParticleEmitterAdded( entt::registry&, entt::entity ) -> void {
+    auto Scene::OnParticleSimulatorAdded( entt::registry&, entt::entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         // Clear unregisters the scene. Reusing it, including deserialization,
@@ -4930,7 +4934,7 @@ namespace mikoto::scene {
                 copy.template operator()<AudioMixerGroupComponent>();
                 copy.template operator()<AudioListenerComponent>();
                 // Instance copying shares the recipe but starts with no live particles.
-                copy.template operator()<ParticleEmitterComponent>();
+                copy.template operator()<ParticleSimulatorComponent>();
                 copy.template operator()<CloudComponent>();
                 copy.template operator()<FogComponent>();
                 copy.template operator()<WaterRenderComponent>();

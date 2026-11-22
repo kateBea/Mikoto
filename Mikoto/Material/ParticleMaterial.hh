@@ -26,6 +26,9 @@
 #include <Filesystem/Path.hh>
 #include <Filesystem/File.hh>
 
+#include <Assets/AssetTexture.hh>
+#include <Assets/AssetLoadRegistry.hh>
+
 #include <Material/Material.hh>
 #include <Material/MaterialGraph.hh>
 
@@ -51,8 +54,11 @@ namespace mikoto::material {
 
         auto SetColor( const core::float4& value ) -> void;
         auto SetName( eastl::string_view newName ) -> void override;
+        auto SetTexture( asset::AssetHandle<asset::Texture> texture ) -> void;
 
         MKT_NODISCARD auto GetColor() const -> const core::float4&;
+        MKT_NODISCARD auto GetTexture() const -> renderer::rhi::TextureHandle;
+        MKT_NODISCARD auto GetTexturePath() const -> filesystem::Path;
 
         MKT_NODISCARD auto GetGraph() -> MaterialGraph*;
         MKT_NODISCARD auto GetGraph() const -> const MaterialGraph*;
@@ -70,6 +76,9 @@ namespace mikoto::material {
         eastl::string mName{};
         core::float4 mColor{ 1.0f };
         ParticleMaterialGraph mGraph{};
+
+        // The bilboarded texture.
+        asset::AssetHandle<asset::Texture> mTexture{};
 
         mutable filesystem::Path mSourcePath{};
     };

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <cmath>
+#include <atomic>
 
 #include <EASTL/algorithm.h>
 
@@ -23,14 +24,21 @@
 #include <Core/Profiler.hh>
 #include <Core/Exception.hh>
 
-#include <Filesystem/File.hh>
-#include <Filesystem/FileService.hh>
-
 #include <Renderer/Particle/ParticleEmitter.hh>
 
 namespace mikoto::renderer {
 
-    auto SanitizeParticleSettings( ParticleEmitterSettings s ) -> ParticleEmitterSettings {
+    auto Particle::GetColor() const -> core::float4 {
+        const auto age{ glm::clamp( mAge / mLifetime, 0.0f, 1.0f ) };
+        auto color{ glm::mix( mStartColor, mEndColor, age ) };
+        const auto fadeIn{ mFadeIn > 0.0f ? glm::smoothstep( 0.0f, mFadeIn, age ) : 1.0f };
+        const auto fadeOut{ mFadeOut > 0.0f ? 1.0f - glm::smoothstep( 1.0f - mFadeOut, 1.0f, age ) : 1.0f };
+        color.a *= fadeIn * fadeOut;
+        return color;
+    }
+
+    auto ParticleEmitterSettings::Sanitize() -> void {
+        auto& s{ *this };
         s.mMaxParticles = eastl::clamp( s.mMaxParticles, 1u, kMaxEmitterParticles );
         s.mBurstCount = eastl::min( s.mBurstCount, s.mMaxParticles );
         s.mEmissionRate = eastl::clamp( s.mEmissionRate, 0.0f, 100000.0f );
@@ -60,11 +68,13 @@ namespace mikoto::renderer {
 
         s.mAngularSpeed = eastl::clamp( s.mAngularSpeed, -100.0f, 100.0f );
         s.mSoftness = eastl::clamp( s.mSoftness, 0.01f, 1.0f );
-        return s;
+        s.mFadeIn = eastl::clamp( s.mFadeIn, 0.0f, 1.0f );
+        s.mFadeOut = eastl::clamp( s.mFadeOut, 0.0f, 1.0f );
     }
 
-    auto SerializeParticleSettings( const ParticleEmitterSettings& settings, YAML::Emitter& out ) -> void {
-        const auto s{ SanitizeParticleSettings( settings ) };
+    auto ParticleEmitterSettings::Serialize( YAML::Emitter& out ) const -> void {
+        auto s{ *this };
+        s.Sanitize();
         out << YAML::BeginMap << YAML::Key << "Version" << YAML::Value << 1;
         out << YAML::Key << "MaxParticles" << YAML::Value << s.mMaxParticles;
         out << YAML::Key << "BurstCount" << YAML::Value << s.mBurstCount;
@@ -83,6 +93,9 @@ namespace mikoto::renderer {
         out << YAML::Key << "AngularSpeed" << YAML::Value << s.mAngularSpeed;
         out << YAML::Key << "Softness" << YAML::Value << s.mSoftness;
         out << YAML::Key << "Looping" << YAML::Value << s.mLooping;
+        out << YAML::Key << "FadeEnabled" << YAML::Value << s.mFadeEnabled;
+        out << YAML::Key << "FadeIn" << YAML::Value << s.mFadeIn;
+        out << YAML::Key << "FadeOut" << YAML::Value << s.mFadeOut;
         out << YAML::Key << "Direction" << YAML::Value << YAML::Flow << YAML::BeginSeq;
 
         for ( core::usize i{}; i < 3; ++i ) {
@@ -114,12 +127,15 @@ namespace mikoto::renderer {
         out << YAML::EndMap;
     }
 
-    auto DeserializeParticleSettings( const YAML::Node& node ) -> ParticleEmitterSettings {
+    auto ParticleEmitterSettings::Deserialize( const YAML::Node& node ) -> ParticleEmitterSettings {
         if ( !node.IsMap() || node["Version"].as<core::u32>( 1 ) != 1 ) {
             MKT_THROW_RUNTIME_ERROR( "Unsupported particle emitter format." );
         }
 
         ParticleEmitterSettings s{};
+        s.mFadeEnabled = node["FadeEnabled"].as<bool>( s.mFadeEnabled );
+        s.mFadeIn = node["FadeIn"].as<core::f32>( s.mFadeIn );
+        s.mFadeOut = node["FadeOut"].as<core::f32>( s.mFadeOut );
 
         if ( node["MaxParticles"] ) {
             s.mMaxParticles = node["MaxParticles"].as<core::u32>();
@@ -229,11 +245,14 @@ namespace mikoto::renderer {
             }
         }
 
-        return SanitizeParticleSettings( s );
+        s.Sanitize();
+        return s;
     }
 
-    ParticleEmitter::ParticleEmitter( ParticleEmitterSettings settings )
-        : mSettings{ SanitizeParticleSettings( settings ) } {
+    ParticleEmitter::ParticleEmitter( const ParticleEmitterCreateDescription& description )
+        : mSettings{ description.mSettings },
+          mMaterial{ description.mMaterial } {
+        mSettings.Sanitize();
         Initialize();
     }
 
@@ -255,38 +274,25 @@ namespace mikoto::renderer {
         return mSettings;
     }
 
-    auto ParticleEmitter::Save( const filesystem::Path& path ) const -> void {
-        YAML::Emitter out{};
-        out << YAML::BeginMap << YAML::Key << "ParticleEmitter" << YAML::Value;
-        SerializeParticleSettings( mSettings, out );
-        out << YAML::EndMap;
-
-        if ( !out.good() ) {
-            MKT_THROW_RUNTIME_ERROR( "Cannot serialize particle emitter." );
-        }
-
-        filesystem::FileHandle file{ filesystem::FileService::Get()->CreateNewFile( path ) };
-
-        if ( file.IsEmpty() ) {
-            MKT_THROW_RUNTIME_ERROR( "Cannot open particle emitter file for writing." );
-        }
-
-        file->Write( eastl::string_view{ out.c_str(), out.size() } );
+    auto ParticleEmitter::GetMaterial() const -> const material::ParticleMaterialHandle& {
+        return mMaterial;
     }
 
-    auto ParticleEmitter::Load( const filesystem::Path& path ) -> ParticleEmitterHandle {
-        filesystem::File file{ path };
-        const auto root{ YAML::Load( file.GetContentsString().c_str() ) };
-
-        if ( !root.IsMap() || !root["ParticleEmitter"] ) {
-            MKT_THROW_RUNTIME_ERROR( "Invalid particle emitter asset." );
-        }
-
-        return ParticleEmitterHandle::New( DeserializeParticleSettings( root["ParticleEmitter"] ) );
+    auto ParticleEmitter::GetTint() const -> core::float4 {
+        return mMaterial ? mMaterial->GetColor() : core::float4{ 1.0f };
     }
 
-    ParticleEmitterInstance::ParticleEmitterInstance()
-        : mEmitter{ ParticleEmitterHandle::New() } {
+    auto ParticleEmitter::GetTexture() const -> rhi::TextureHandle {
+        return mMaterial ? mMaterial->GetTexture() : rhi::TextureHandle{};
+    }
+
+    auto ParticleEmitterInstance::AllocateID() -> core::u64 {
+        static std::atomic<core::u64> next{ 1 };
+        return next.fetch_add( 1, std::memory_order_relaxed );
+    }
+
+    ParticleEmitterInstance::ParticleEmitterInstance( ParticleEmitterHandle emitter )
+        : mEmitter{ eastl::move( emitter ) } {
     }
 
     ParticleEmitterInstance::ParticleEmitterInstance( const ParticleEmitterInstance& other )
@@ -302,17 +308,24 @@ namespace mikoto::renderer {
         return *this;
     }
 
+    auto ParticleEmitterInstance::GetID() const -> core::u64 {
+        return mID;
+    }
+
     auto ParticleEmitterInstance::GetEmitter() const -> const ParticleEmitterHandle& {
         return mEmitter;
     }
 
     auto ParticleEmitterInstance::SetEmitter( ParticleEmitterHandle emitter ) -> void {
         mEmitter = eastl::move( emitter );
-        Restart();
     }
 
     auto ParticleEmitterInstance::GetParticles() const -> const eastl::vector<Particle>& {
         return mParticles;
+    }
+
+    auto ParticleEmitterInstance::GetParticleTexture( core::u32 index ) const -> rhi::TextureHandle {
+        return index < mTextureSlots.size() ? mTextureSlots[index].mTexture : rhi::TextureHandle{};
     }
 
     auto ParticleEmitterInstance::GetPlayback() const -> ParticlePlayback {
@@ -344,6 +357,7 @@ namespace mikoto::renderer {
 
         if ( clear ) {
             mParticles.clear();
+            mTextureSlots.clear();
             mTimeAccumulator = 0;
             ++mRestartRevision;
             mSimulationTick = 0;
@@ -354,11 +368,13 @@ namespace mikoto::renderer {
         ++mRestartRevision;
         mSimulationTick = 0;
         mParticles.clear();
+        mTextureSlots.clear();
         mPlayback = ParticlePlayback::ePlaying;
         mTimeAccumulator = 0;
         mEmissionAccumulator = 0;
         mElapsed = 0;
         mDrainTime = 0;
+        mLongestParticleLifetime = 0;
         mDroppedParticles = 0;
         mStarted = false;
         mEmitting = true;
@@ -407,6 +423,34 @@ namespace mikoto::renderer {
         return static_cast<core::f32>( mRandomState >> 8 ) * ( 1.0f / 16777216.0f );
     }
 
+    auto ParticleEmitterInstance::BindSpawnTexture() -> void {
+        const auto texture{ mEmitter->GetTexture() };
+        mSpawnTextureIndex = kInvalidParticleTextureIndex;
+        core::u32 available{ kInvalidParticleTextureIndex };
+
+        for ( core::u32 index{}; index < mTextureSlots.size(); ++index ) {
+            auto& slot{ mTextureSlots[index] };
+
+            if ( texture && slot.mTexture == texture ) {
+                mSpawnTextureIndex = index;
+            }
+            else if ( !slot.mLiveCount ) {
+                slot.mTexture.Reset();
+                available = index;
+            }
+        }
+
+        if ( texture && mSpawnTextureIndex == kInvalidParticleTextureIndex ) {
+            if ( available == kInvalidParticleTextureIndex ) {
+                available = core::as<core::u32>( mTextureSlots.size() );
+                mTextureSlots.emplace_back();
+            }
+
+            mTextureSlots[available].mTexture = texture;
+            mSpawnTextureIndex = available;
+        }
+    }
+
     auto ParticleEmitterInstance::Spawn( const core::float4x4& world ) -> void {
         const auto& s{ mEmitter->GetSettings() };
         const core::f32 phi{ Random() * glm::two_pi<core::f32>() };
@@ -428,11 +472,28 @@ namespace mikoto::renderer {
         p.mVelocity = direction * s.mSpeed * ( 1.0f + ( Random() * 2.0f - 1.0f ) * s.mSpeedVariation );
         p.mLifetime = s.mLifetime * ( 1.0f + ( Random() * 2.0f - 1.0f ) * s.mLifetimeVariation );
         p.mRotation = Random() * glm::two_pi<core::f32>();
+
+        const auto tint{ mEmitter->GetTint() };
+        p.mAcceleration = s.mAcceleration;
+        p.mDrag = s.mDrag;
+        p.mAngularSpeed = s.mAngularSpeed;
+        p.mSoftness = s.mSoftness;
+        // Capture animation at birth so live authoring only changes new particles.
+        p.mFadeIn = s.mFadeEnabled ? s.mFadeIn : 0.0f;
+        p.mFadeOut = s.mFadeEnabled ? s.mFadeOut : 0.0f;
+        p.mStartSize = s.mStartSize;
+        p.mEndSize = s.mEndSize;
+        p.mStartColor = s.mStartColor * tint;
+        p.mEndColor = s.mEndColor * tint;
+        p.mTextureIndex = mSpawnTextureIndex;
+
+        if ( mSpawnTextureIndex != kInvalidParticleTextureIndex ) {
+            ++mTextureSlots[mSpawnTextureIndex].mLiveCount;
+        }
     }
 
     auto ParticleEmitterInstance::Step( core::f32 dt, const core::float4x4& world ) -> void {
         const auto& s{ mEmitter->GetSettings() };
-        const core::f32 damping{ glm::exp( -s.mDrag * dt ) };
         // Swap-remove expired particles. Rendering sorts a separate snapshot, so
         // simulation storage never needs stable ordering or per-particle allocations.
         for ( core::usize i{}; i < mParticles.size(); ) {
@@ -440,19 +501,24 @@ namespace mikoto::renderer {
             p.mAge += dt;
 
             if ( p.mAge >= p.mLifetime ) {
+                if ( p.mTextureIndex != kInvalidParticleTextureIndex ) {
+                    --mTextureSlots[p.mTextureIndex].mLiveCount;
+                }
+
                 p = mParticles.back();
                 mParticles.pop_back();
                 continue;
             }
 
-            p.mVelocity = ( p.mVelocity + s.mAcceleration * dt ) * damping;
+            const core::f32 damping{ glm::exp( -p.mDrag * dt ) };
+            p.mVelocity = ( p.mVelocity + p.mAcceleration * dt ) * damping;
             p.mPosition += p.mVelocity * dt;
-            p.mRotation += s.mAngularSpeed * dt;
+            p.mRotation += p.mAngularSpeed * dt;
             ++i;
         }
 
         const core::f32 emissionTime{ s.mLooping ? dt : eastl::clamp( s.mDuration - mElapsed, 0.0f, dt ) };
-        mElapsed = eastl::min( mElapsed + dt, s.mDuration );
+        mElapsed += dt;
 
         if ( !mEmitting ) {
             return;
@@ -461,7 +527,9 @@ namespace mikoto::renderer {
         mEmissionAccumulator += s.mEmissionRate * emissionTime;
         const auto requested{ static_cast<core::u32>( mEmissionAccumulator ) };
         mEmissionAccumulator -= requested;
-        const auto count{ eastl::min( requested, s.mMaxParticles - static_cast<core::u32>( mParticles.size() ) ) };
+        // Reducing capacity lets existing particles expire naturally.
+        const auto available{ s.mMaxParticles - eastl::min( s.mMaxParticles, core::as<core::u32>( mParticles.size() ) ) };
+        const auto count{ eastl::min( requested, available ) };
         mDroppedParticles += requested - count;
 
         for ( core::u32 i{}; i < count; ++i ) {
@@ -487,30 +555,36 @@ namespace mikoto::renderer {
             while ( mTimeAccumulator >= fixedStep ) {
                 ++mSimulationTick;
                 mTimeAccumulator -= fixedStep;
-                mElapsed = eastl::min( mElapsed + static_cast<core::f32>( fixedStep ), s.mDuration );
-
-                if ( !mEmitting || ( !s.mLooping && mElapsed >= s.mDuration ) ) {
-                    // A conservative lifetime bound ends playback without reading
-                    // the GPU alive count. Pause freezes this clock with simulation.
+                if ( mEmitting && ( s.mLooping || mElapsed < s.mDuration ) ) {
+                    mLongestParticleLifetime = eastl::max( mLongestParticleLifetime, s.mLifetime * ( 1.0f + s.mLifetimeVariation ) );
+                    mDrainTime = 0.0f;
+                }
+                else {
+                    // Older recipes can still have live particles.
                     mDrainTime += static_cast<core::f32>( fixedStep );
                 }
+
+                mElapsed += static_cast<core::f32>( fixedStep );
             }
 
-            if ( mDrainTime >= s.mLifetime * ( 1.0f + s.mLifetimeVariation ) + fixedStep ) {
+            if ( mDrainTime >= mLongestParticleLifetime + fixedStep ) {
                 mPlayback = ParticlePlayback::eStopped;
             }
 
             return;
         }
 
+        BindSpawnTexture();
+
+        const auto seed{ s.mSeed ^ core::as<core::u32>( entitySeed ) ^ core::as<core::u32>( entitySeed >> 32 ) };
+
+        if ( !mStarted || seed != mAppliedSeed ) {
+            mAppliedSeed = seed;
+            mRandomState = eastl::max( seed, 1u );
+        }
+
         if ( !mStarted ) {
             mParticles.reserve( s.mMaxParticles );
-            mRandomState = s.mSeed ^ static_cast<core::u32>( entitySeed ) ^ static_cast<core::u32>( entitySeed >> 32 );
-
-            if ( mRandomState == 0 ) {
-                mRandomState = 1;
-            }
-
             mStarted = true;
 
             if ( mEmitting ) {

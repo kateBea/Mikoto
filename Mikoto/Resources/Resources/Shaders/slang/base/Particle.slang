@@ -15,13 +15,16 @@
 #pragma once
 #include "Memory_Helpers.slang"
 
+static const uint kInvalidParticleTextureIndex = 0xffffffffu;
+
 struct ParticleRenderData {
     float4 mPositionSize;
     float4 mColor;
     float4 mRotationSoftness;
+    uint4 mTexture;
 };
 
-// Matches EmitterParameters in GpuParticleSimulationModule.hh.
+// Matches EmitterParameters in ParticleSimulationModule.hh.
 struct ParticleEmitterParameters {
     float4x4 mWorld;
     float4 mDirectionCone;
@@ -33,13 +36,20 @@ struct ParticleEmitterParameters {
     float4 mEndColor;
     uint mOffset, mCapacity, mSteps, mReset;
     uint mSeed, mBurst, mEmitting, mVisible;
-    uint mLooping, mInitialize, mPadding0, mPadding1;
+    uint mLooping, mInitialize, mMaxParticles, mPreviousCapacity;
+    uint mTextureIndex, mTextureOffset;
+    float mFadeIn, mFadeOut;
 };
 
 struct ParticleGpuState {
     float4 mPositionAge;
     float4 mVelocityLifetime;
-    float4 mRotation;
+    float4 mRotationFade; // Rotation, fade-in fraction, fade-out fraction, reserved.
+    float4 mAccelerationDrag;
+    float4 mSizeRotationSoftness;
+    float4 mStartColor;
+    float4 mEndColor;
+    uint4 mTexture;
 };
 
 struct ParticleGpuHeader {
@@ -47,4 +57,5 @@ struct ParticleGpuHeader {
     float mElapsed;
     float mEmissionRemainder;
     uint mInitialized;
+    uint mSeed;
 };

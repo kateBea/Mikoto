@@ -843,6 +843,10 @@ namespace mikoto::editor {
             mPanelRegistry.Get<ParticleSimulationPanel>()->OpenAsset( path );
         };
 
+        mEditorState->mEditParticleEffect = [this]( const asset::ParticleEffectHandle& effect ) {
+            mPanelRegistry.Get<ParticleSimulationPanel>()->EditEffect( effect );
+        };
+
         mEditorState->mOpenScene = [this]( const filesystem::Path& path ) {
             OpenScene( path );
         };
@@ -2106,7 +2110,10 @@ namespace mikoto::editor {
             }
 
             if ( EditorBeginMenu( imgui::widget::LocalizedLabel( "editor_layer_effects", "Effects" ).c_str() ) ) {
-                if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_particle_system", "Particle System" ).c_str() ) ) { /* Spawn Particles */
+                if ( EditorMenuItem( MKT_LOC( "particle_simulator_component" ).c_str() ) ) {
+                    if ( auto* entity{ mEditorState->mActiveScene->CreateEntity( MKT_LOC( "particle_simulator_component" ) ) } ) {
+                        entity->AddComponent<scene::ParticleSimulatorComponent>();
+                    }
                 }
 
                 if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_line", "Line" ).c_str() ) ) { /* Spawn Line Renderer */
@@ -2377,6 +2384,10 @@ namespace mikoto::editor {
         if ( EditorBeginMenu( imgui::widget::LocalizedLabel( "editor_layer_graphics", "Graphics" ).c_str() ) ) {
             if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_render_pipeline_settings", "Render Pipeline Settings" ).c_str() ) ) {
                 mPanelRegistry.Get<RendererPanel>()->SetVisible( true );
+            }
+
+            if ( EditorMenuItem( MKT_LOC( "particle_simulation_title" ).c_str() ) ) {
+                mPanelRegistry.Get<ParticleSimulationPanel>()->SetVisible( true );
             }
 
             if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_compiler_status_c_shaders", "Compiler Status (C# / Shaders)" ).c_str() ) ) {

@@ -58,12 +58,10 @@ namespace mikoto::renderer {
             // transform edits before spawning world-space particles.
             scene->UpdateWorldTransformations();
 
-            for ( auto [entity, emitter, transform, tag]:
-                scene->GetRegistry().view<scene::ParticleEmitterComponent, scene::TransformComponent, scene::TagComponent>().each() ) {
-                emitter.GetInstance().SetSimulationMode( mSimulationMode );
-
+            for ( auto [entity, simulator, transform, tag]:
+                scene->GetRegistry().view<scene::ParticleSimulatorComponent, scene::TransformComponent, scene::TagComponent>().each() ) {
                 if ( tag.IsActive() ) {
-                    emitter.GetInstance().Update( timeStep, transform.GetWorldTransform(), tag.GetGuid() );
+                    simulator.Update( timeStep, transform.GetWorldTransform(), tag.GetGuid(), mSimulationMode );
                 }
             }
         }

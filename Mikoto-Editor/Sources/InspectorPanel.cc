@@ -84,6 +84,7 @@
 #include <ImGui/IconsMaterialDesign.h>
 
 #include <Application/MaterialProperties.hh>
+#include <Application/ParticleProperties.hh>
 
 #include <Panels/AudioPanel.hh>
 #include <Panels/ComponentMenu.hh>
@@ -2501,9 +2502,9 @@ namespace mikoto::editor {
                                 { text.GetSize(), text.GetSpacing(), text.GetLineSpacing(),
                                     core::as<text::Alignment>( text.GetAlignment() ), false } ) };
 
-                            if ( !layout.glyphs.empty() ) {
-                                for ( const core::f32 x: { layout.minimum.x, layout.maximum.x } ) {
-                                    for ( const core::f32 y: { layout.minimum.y, layout.maximum.y } ) {
+                            if ( !layout.mGlyphs.empty() ) {
+                                for ( const core::f32 x: { layout.mMinimum.x, layout.mMaximum.x } ) {
+                                    for ( const core::f32 y: { layout.mMinimum.y, layout.mMaximum.y } ) {
                                         bounds.Include( core::float3{ relative * core::float4{ x, y, 0.0f, 1.0f } } );
                                     }
                                 }
@@ -3655,8 +3656,8 @@ namespace mikoto::editor {
 
         if ( !text.IsWorldText() ) {
             auto& placement = text.GetScreenPlacement();
-            ImGui::DragFloat2( imgui::widget::LocalizedLabel( "inspector_position_px", "Position (px)" ).c_str(), glm::value_ptr( placement.position ), 1.0f );
-            float angle = glm::degrees( placement.rotation );
+            ImGui::DragFloat2( imgui::widget::LocalizedLabel( "inspector_position_px", "Position (px)" ).c_str(), glm::value_ptr( placement.mPosition ), 1.0f );
+            float angle = glm::degrees( placement.mRotation );
 
             if ( ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_rotation", "Rotation" ).c_str(), &angle, 0.5f ) ) {
                 core::float2 center{};
@@ -3665,19 +3666,19 @@ namespace mikoto::editor {
                     const auto layout{ text::LayoutText( *font, text.GetUnicodeContents(),
                         { text.GetSize(), text.GetSpacing(), text.GetLineSpacing(),
                             core::as<text::Alignment>( text.GetAlignment() ), true } ) };
-                    center = ( layout.minimum + layout.maximum ) * 0.5f;
+                    center = ( layout.mMinimum + layout.mMaximum ) * 0.5f;
                 }
 
                 // Keep the visible center fixed while the layout origin follows its alignment.
                 // Pivot reference: https://www.sfml-dev.org/tutorials/3.0/graphics/transform/#origin
                 const core::float4 pivot{ center, 0.0f, 1.0f };
                 const core::float2 before{ text::ScreenTextModel( placement ) * pivot };
-                placement.rotation = glm::radians( angle );
+                placement.mRotation = glm::radians( angle );
                 const core::float2 after{ text::ScreenTextModel( placement ) * pivot };
-                placement.position += before - after;
+                placement.mPosition += before - after;
             }
 
-            ImGui::DragFloat2( imgui::widget::LocalizedLabel( "inspector_scale", "Scale" ).c_str(), glm::value_ptr( placement.scale ), 0.01f, 0.01f, 100.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp );
+            ImGui::DragFloat2( imgui::widget::LocalizedLabel( "inspector_scale", "Scale" ).c_str(), glm::value_ptr( placement.mScale ), 0.01f, 0.01f, 100.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp );
 
             if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_reset_screen_placement", "Reset screen placement" ).c_str() ) ) {
                 placement = {};
@@ -3747,8 +3748,8 @@ namespace mikoto::editor {
             const auto layout = text::LayoutText( *font, { decoded.data(), decoded.size() },
                 { text.GetSize(), text.GetSpacing(), text.GetLineSpacing(), static_cast<text::Alignment>( text.GetAlignment() ), !text.IsWorldText() } );
 
-            if ( layout.missingGlyphs ) {
-                ImGui::TextWrapped( MKT_LOC( "inspector_characters_have_no_loaded_glyph_new_glyphs_load_when_rendered" ).c_str(), layout.missingGlyphs );
+            if ( layout.mMissingGlyphs ) {
+                ImGui::TextWrapped( MKT_LOC( "inspector_characters_have_no_loaded_glyph_new_glyphs_load_when_rendered" ).c_str(), layout.mMissingGlyphs );
             }
 
             if ( ImGui::TreeNode( imgui::widget::LocalizedLabel( "inspector_atlas_details", "Atlas details" ).c_str() ) ) {
@@ -5016,6 +5017,7 @@ namespace mikoto::editor {
         }
 
         DrawPostProcessBloom( *material );
+        DrawPostProcessChromaticAberration( *material );
 
         ImGui::SeparatorText( MKT_LOC( "post_process_film_grain" ).c_str() );
         bool grainEnabled{ material->IsFilmGrainEnabled() };
@@ -5311,7 +5313,7 @@ namespace mikoto::editor {
         RegisterComponent<scene::VideoComponent>( "Video", &InspectorPanel::DrawVideoComponentTab, "Rendering" );
         RegisterComponent<scene::AudioMixerComponent>( MKT_LOC( "audio_mixer_title" ), &InspectorPanel::DrawAudioMixerComponentTab, "Audio" );
         RegisterComponent<scene::AudioMixerGroupComponent>( MKT_LOC( "audio_group_component" ), &InspectorPanel::DrawAudioMixerGroupComponentTab, "Audio" );
-        RegisterComponent<scene::ParticleEmitterComponent>( MKT_LOC( "inspector_particle_emitter" ).c_str(), &InspectorPanel::DrawParticleComponentTab, "Rendering" );
+        RegisterComponent<scene::ParticleSimulatorComponent>( MKT_LOC( "particle_simulator_component" ).c_str(), &InspectorPanel::DrawParticleSimulatorComponentTab, "Rendering" );
         RegisterComponent<scene::CloudComponent>( MKT_LOC( "volume_cloud" ).c_str(), &InspectorPanel::DrawVolumeComponentTab<scene::CloudComponent>, "Rendering" );
         RegisterComponent<scene::FogComponent>( MKT_LOC( "volume_fog" ).c_str(), &InspectorPanel::DrawVolumeComponentTab<scene::FogComponent>, "Rendering" );
         RegisterComponent<scene::TextureRenderComponent>( MKT_LOC( "texture_render" ).c_str(), &InspectorPanel::DrawTextureRenderComponentTab, "Rendering" );
@@ -5489,128 +5491,159 @@ namespace mikoto::editor {
         ImGui::End();
     }
 
-    auto InspectorPanel::DrawParticleComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawParticleSimulatorComponentTab( scene::Entity& entity ) -> void {
         MKT_BEGIN_PROFILER();
-        using namespace renderer;
-        using namespace filesystem;
-        auto& instance{ entity.GetComponent<scene::ParticleEmitterComponent>().GetInstance() };
-
-        if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_load_emitter", "Load emitter..." ).c_str() ) ) {
-            std::initializer_list<filesystem::FileDialogPair> filters{ { MKT_LOC( "inspector_particle_emitter" ).c_str(), "mktpart" } };
-            const auto path{ OpenFileDialog( filters ) };
-
-            if ( !path.IsEmpty() ) {
+        auto& simulator{ entity.GetComponent<scene::ParticleSimulatorComponent>() };
+        auto& assets{ asset::AssetRegistryService::Get() };
+        const auto filter{ filesystem::FileDialogPair{ MKT_LOC( "particle_effect_asset" ).c_str(), "mktpart" } };
+        bool load{};
+        bool edit{};
+        bool save{};
+        if ( BeginParticleSettingsRows( "##ParticleEffectActions" ) ) {
+            ( void )ParticleControlRow( "particle_effect_asset" );
+            load = ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_load", "Load##ParticleEffect" ).c_str(), { -1, 0 } );
+            ( void )ParticleControlRow( "particle_effect_edit" );
+            edit = ImGui::Button( imgui::widget::LocalizedLabel( "particle_effect_edit", "Edit##ParticleEffect" ).c_str(), { -1, 0 } );
+            ( void )ParticleControlRow( "particle_effect_save" );
+            ImGui::BeginDisabled( !simulator.GetEffect() || mState->mSandboxMode );
+            save = ImGui::Button( imgui::widget::LocalizedLabel( "material_editor_save", "Save##ParticleEffect" ).c_str(), { -1, 0 } );
+            ImGui::EndDisabled();
+            ImGui::EndTable();
+        }
+        if ( load ) {
+            const auto file{ filesystem::OpenFileDialog( { filter } ) };
+            if ( !file.IsEmpty() ) {
                 try {
-                    // Parse completely before replacing the current recipe and particles.
-                    instance.SetEmitter( renderer::ParticleEmitter::Load( path ) );
+                    auto effect{ assets.LoadAsset<asset::ParticleEffect>( file ) };
+                    if ( effect ) {
+                        simulator.SetEffect( eastl::move( effect ) );
+                    }
                 } catch ( const std::exception& error ) {
-                    MKT_CORE_LOGGER_ERROR( "Cannot load particle emitter: {}", error.what() );
+                    MKT_CORE_LOGGER_ERROR( "Cannot load particle effect: {}", error.what() );
+                }
+            }
+        }
+        if ( edit && mState->mEditParticleEffect ) {
+            mState->mEditParticleEffect( simulator.GetEffect() );
+        }
+        if ( save ) {
+            const auto file{ filesystem::SaveFileDialog( "Effect.mktpart", { filter } ) };
+            if ( !file.IsEmpty() ) {
+                try {
+                    assets.SaveParticleEffect( *simulator.GetEffect(), file );
+                } catch ( const std::exception& error ) {
+                    MKT_CORE_LOGGER_ERROR( "Cannot save particle effect: {}", error.what() );
                 }
             }
         }
 
-        ImGui::SameLine();
-        ImGui::BeginDisabled( mState->mSandboxMode );
-
-        if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_save_emitter", "Save emitter..." ).c_str() ) ) {
-            std::initializer_list<filesystem::FileDialogPair> filters{ { MKT_LOC( "inspector_particle_emitter" ).c_str(), "mktpart" } };
-            const auto path{ SaveFileDialog( "Emitter.mktpart", filters ) };
-
-            if ( !path.IsEmpty() && instance.GetEmitter() ) {
-                try {
-                    instance.GetEmitter()->Save( path );
-                } catch ( const std::exception& error ) {
-                    MKT_CORE_LOGGER_ERROR( "Cannot save particle emitter: {}", error.what() );
+        const auto instances{ simulator.GetInstances() };
+        const bool playing{ eastl::any_of( instances.begin(), instances.end(), []( const auto& instance ) {
+            return instance.GetPlayback() == renderer::ParticlePlayback::ePlaying;
+        } ) };
+        if ( BeginParticleSettingsRows( "##ParticlePlayback" ) ) {
+            ( void )ParticleControlRow( "particle_simulation_simulation" );
+            if ( ImGui::Button( playing ? MKT_LOC( "inspector_pause" ).c_str() : MKT_LOC( "inspector_play_resume" ).c_str() ) ) {
+                for ( auto& instance: instances ) {
+                    if ( !playing ) {
+                        instance.Play();
+                    }
+                    else if ( instance.GetPlayback() == renderer::ParticlePlayback::ePlaying ) {
+                        instance.Pause();
+                    }
                 }
             }
-        }
-
-        ImGui::EndDisabled();
-        //ImGui::TextWrapped( MKT_LOC( "inspector_runs_in_simulate_or_play_particles_stay_in_world_space" ).c_str() );
-
-        if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_restart", "Restart" ).c_str() ) ) {
-            instance.Restart();
-        }
-
-        ImGui::SameLine();
-
-        if ( ImGui::Button( instance.GetPlayback() == renderer::ParticlePlayback::ePlaying ? MKT_LOC( "inspector_pause" ).c_str() : MKT_LOC( "inspector_play_resume" ).c_str() ) ) {
-            if ( instance.GetPlayback() != renderer::ParticlePlayback::ePlaying ) {
-                instance.Play();
+            ImGui::SameLine();
+            if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_restart", "Restart##ParticleEffect" ).c_str() ) ) {
+                for ( auto& instance: instances ) {
+                    instance.Restart();
+                }
             }
-            else {
-                instance.Pause();
+            ( void )ParticleControlRow( "particle_simulation_emission" );
+            if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_stop_emitting", "Stop##ParticleEffect" ).c_str() ) ) {
+                for ( auto& instance: instances ) {
+                    instance.Stop( false );
+                }
             }
+            ImGui::SameLine();
+            if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_clear", "Clear##ParticleEffect" ).c_str() ) ) {
+                for ( auto& instance: instances ) {
+                    instance.Stop();
+                }
+            }
+            ImGui::EndTable();
         }
 
-        ImGui::SameLine();
-
-        if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_stop_emitting", "Stop emitting" ).c_str() ) ) {
-            instance.Stop( false );
+        const auto entityID{ entity.GetComponent<scene::TagComponent>().GetGuid() };
+        if ( mParticleScene != mState->mActiveScene || mParticleEntity != entityID ) {
+            mParticleScene = mState->mActiveScene;
+            mParticleEntity = entityID;
+            mParticleEmitter = 0;
         }
 
-        ImGui::SameLine();
-
-        if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_clear", "Clear" ).c_str() ) ) {
-            instance.Stop();
+        const auto effect{ simulator.GetEffect() };
+        if ( !effect ) {
+            return;
         }
 
-        if ( instance.GetSimulationMode() == renderer::ParticleSimulationMode::eGpu ) {
-            ImGui::TextUnformatted( MKT_LOC( "inspector_gpu_simulation_live_dropped_counts_are_not_read_back" ).c_str() );
-        }
-        else {
-            ImGui::Text( MKT_LOC( "inspector_live_dropped_at_capacity" ).c_str(), static_cast<core::u32>( instance.GetParticles().size() ), instance.GetDroppedParticles() );
-        }
+        const auto label{ []( core::usize index ) {
+            return string::Format( "{} {}", MKT_LOC( "particle_simulation_particle_emitter" ), index + 1 );
+        } };
+        const auto& emitters{ effect->GetEmitters() };
+        mParticleEmitter = emitters.empty() ? 0 : eastl::min( mParticleEmitter, emitters.size() - 1 );
 
-        auto s{ instance.GetEmitter() ? instance.GetEmitter()->GetSettings() : renderer::ParticleEmitterSettings{} };
-        bool changed{};
+        ImGui::Separator();
+        if ( BeginParticleSettingsRows( "##InspectorParticleEmitters" ) ) {
+            ( void )ParticleControlRow( "particle_simulation_particle_emitter" );
+            const auto current{ emitters.empty() ? MKT_LOC( "particle_effect_no_emitters" ) : label( mParticleEmitter ) };
+            if ( ImGui::BeginCombo( "##InspectorParticleEmitter", current.c_str() ) ) {
+                for ( core::usize index{}; index < emitters.size(); ++index ) {
+                    if ( ImGui::Selectable( label( index ).c_str(), index == mParticleEmitter ) ) {
+                        mParticleEmitter = index;
+                    }
+                }
+                ImGui::EndCombo();
+            }
 
-        ImGui::SeparatorText( MKT_LOC( "inspector_emission" ).c_str() );
-        core::i32 capacity{ static_cast<core::i32>( s.mMaxParticles ) };
-        core::i32 burst{ static_cast<core::i32>( s.mBurstCount ) };
+            ( void )ParticleControlRow( "particle_effect_emitters" );
+            ImGui::Text( "%zu", simulator.GetInstances().size() );
+            ImGui::SameLine();
+            if ( imgui::widget::ToolbarIconButton( "Add##InspectorEmitter", ICON_MD_ADD, MKT_LOC( "particle_effect_add_emitter" ).c_str() ) ) {
+                auto updated{ emitters };
+                updated.push_back( renderer::ParticleEmitterHandle::New() );
+                mParticleEmitter = updated.size() - 1;
+                simulator.SetEffect( asset::ParticleEffectHandle::New( eastl::move( updated ) ) );
+            }
 
-        if ( ImGui::DragInt( imgui::widget::LocalizedLabel( "inspector_capacity", "Capacity" ).c_str(), &capacity, 16, 1, renderer::kMaxEmitterParticles ) ) {
-            s.mMaxParticles = static_cast<core::u32>( capacity > 0 ? capacity : 1 );
-            changed = true;
-        }
-
-        if ( ImGui::DragInt( imgui::widget::LocalizedLabel( "inspector_initial_burst", "Initial burst" ).c_str(), &burst, 1, 0, renderer::kMaxEmitterParticles ) ) {
-            s.mBurstCount = static_cast<core::u32>( burst > 0 ? burst : 0 );
-            changed = true;
-        }
-
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_particles_second", "Particles / second" ).c_str(), &s.mEmissionRate, 1, 0, 100000 );
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_lifetime_seconds", "Lifetime (seconds)" ).c_str(), &s.mLifetime, 0.05f, 0.02f, 300 );
-        changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_lifetime_variation", "Lifetime variation" ).c_str(), &s.mLifetimeVariation, 0, 0.95f );
-        changed |= imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_loop_emission", "Loop emission" ).c_str(), s.mLooping );
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_duration_non_looping", "Duration (non-looping)" ).c_str(), &s.mDuration, 0.1f, 0.02f, 3600 );
-        changed |= ImGui::InputScalar( imgui::widget::LocalizedLabel( "inspector_random_seed", "Random seed" ).c_str(), ImGuiDataType_U32, &s.mSeed );
-
-        ImGui::SeparatorText( MKT_LOC( "inspector_spawn_and_motion" ).c_str() );
-
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_spawn_radius", "Spawn radius" ).c_str(), &s.mRadius, 0.01f, 0, 1000 );
-        changed |= ImGui::DragFloat3( imgui::widget::LocalizedLabel( "inspector_local_direction", "Local direction" ).c_str(), &s.mDirection.x, 0.02f, -1, 1 );
-        changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_cone_half_angle", "Cone half-angle" ).c_str(), &s.mConeAngle, 0, 180, MKT_LOC( "inspector_degrees" ).c_str() );
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_speed", "Speed" ).c_str(), &s.mSpeed, 0.05f, 0, 1000 );
-        changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_speed_variation", "Speed variation" ).c_str(), &s.mSpeedVariation, 0, 1 );
-        changed |= ImGui::DragFloat3( imgui::widget::LocalizedLabel( "inspector_world_acceleration", "World acceleration" ).c_str(), &s.mAcceleration.x, 0.05f, -10000, 10000 );
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_drag", "Drag" ).c_str(), &s.mDrag, 0.01f, 0, 100 );
-
-        ImGui::SeparatorText( MKT_LOC( "inspector_appearance_over_lifetime" ).c_str() );
-
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_start_diameter", "Start diameter" ).c_str(), &s.mStartSize, 0.01f, 0, 1000 );
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_end_diameter", "End diameter" ).c_str(), &s.mEndSize, 0.01f, 0, 1000 );
-        changed |= ImGui::ColorEdit4( imgui::widget::LocalizedLabel( "inspector_start_color", "Start color" ).c_str(), &s.mStartColor.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR );
-        changed |= ImGui::ColorEdit4( imgui::widget::LocalizedLabel( "inspector_end_color", "End color" ).c_str(), &s.mEndColor.x, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR );
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_angular_speed_rad_s", "Angular speed (rad/s)" ).c_str(), &s.mAngularSpeed, 0.05f, -100, 100 );
-        changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_disc_edge_softness", "Disc edge softness" ).c_str(), &s.mSoftness, 0.01f, 1 );
-
-        if ( changed ) {
-            // Copy-on-edit prevents accidentally changing every entity sharing a recipe.
-            instance.SetEmitter( ParticleEmitterHandle::New( s ) );
+            ImGui::SameLine();
+            ImGui::BeginDisabled( simulator.GetInstances().empty() );
+            if ( imgui::widget::ToolbarIconButton( "Remove##InspectorEmitter", ICON_MD_REMOVE, MKT_LOC( "particle_effect_remove_emitter" ).c_str() ) ) {
+                auto updated{ simulator.GetEffect()->GetEmitters() };
+                updated.erase( updated.begin() + mParticleEmitter );
+                mParticleEmitter = updated.empty() ? 0 : eastl::min( mParticleEmitter, updated.size() - 1 );
+                simulator.SetEffect( asset::ParticleEffectHandle::New( eastl::move( updated ) ) );
+            }
+            ImGui::EndDisabled();
+            ImGui::EndTable();
         }
 
-        ImGui::TextDisabled( MKT_LOC( "inspector_changing_settings_restarts_this_emitter" ).c_str() );
+        if ( simulator.GetInstances().empty() ) {
+            return;
+        }
+
+        const auto emitter{ simulator.GetEffect()->GetEmitters()[mParticleEmitter] };
+        auto settings{ emitter->GetSettings() };
+        auto material{ emitter->GetMaterial() };
+        try {
+            bool changed{ DrawParticleEmitterMaterial( material, mState->mSandboxMode ) };
+            changed |= DrawParticleEmitterSettings( settings );
+            if ( changed ) {
+                simulator.SetEmitter( mParticleEmitter, renderer::ParticleEmitterHandle::New(
+                    renderer::ParticleEmitterCreateDescription{ .mSettings = settings, .mMaterial = material } ) );
+            }
+        } catch ( const std::exception& error ) {
+            MKT_CORE_LOGGER_ERROR( "Cannot edit particle emitter: {}", error.what() );
+        }
     }
 
     auto InspectorPanel::DrawCanvasComponentTab( scene::Entity& entity ) -> void {

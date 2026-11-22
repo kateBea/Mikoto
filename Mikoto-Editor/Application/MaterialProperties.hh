@@ -23,4 +23,5 @@ namespace mikoto::editor {
     auto DrawMaterialOptics( material::SurfaceMaterial& material ) -> bool;
     auto DrawVolumeMaterial( material::VolumeMaterial& material ) -> bool;
     auto DrawPostProcessBloom( material::PostProcessMaterial& material ) -> bool;
+    auto DrawPostProcessChromaticAberration( material::PostProcessMaterial& material ) -> bool;
 }

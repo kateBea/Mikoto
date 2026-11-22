@@ -1,0 +1,23 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Spell Blades Accent",
+  "Material": {
+    "BaseColorFactor": [
+      0.25,
+      1,
+      0.58,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.72,
+    "AlphaMask": 0,
+    "ShadingModel": 8,
+    "EmissiveFactor": [
+      0.25,
+      1,
+      0.58
+    ],
+    "EmissiveStrength": 1.5
+  }
+}

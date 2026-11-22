@@ -14,27 +14,45 @@
 
 #pragma once
 
+#include "base/Particle.slang"
+
+struct DrawParams {
+    Pointer mParticles;
+    Pointer mCamera;
+    uint mSampler;
+};
+
+MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
+MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
+MKT_DECLARE_SAMPLERS samplers;
+
 struct FSInput {
     float4 Position : SV_Position;
     float2 Local : TEXCOORD0;
     float4 Color : COLOR0;
     nointerpolation float Softness : TEXCOORD1;
+    nointerpolation uint TextureIndex : TEXCOORD2;
 };
 
 [shader( "fragment" )]
 float4 main( FSInput input ) : SV_Target0 {
-    float radius = length( input.Local );
+    float4 color = input.Color;
+    if ( input.TextureIndex != kInvalidParticleTextureIndex ) {
+        float2 uv = input.Local * float2( 0.5f, -0.5f ) + 0.5f;
+        const uint index = NonUniformResourceIndex( input.TextureIndex );
+        color *= textures[index].Sample( samplers[parameters.mSampler], uv );
+    }
+    else {
+        // Emitters without a texture keep the soft procedural billboard.
+        float radius = length( input.Local );
+        float feather = max( input.Softness, fwidth( radius ) );
+        color.a *= 1.0f - smoothstep( max( 0.0f, 1.0f - feather ), 1.0f, radius );
+    }
 
-    // Procedural soft disc needs no mandatory sprite asset. Derivatives keep
-    // the edge smooth when the billboard becomes smaller than a few pixels.
-    float feather = max( input.Softness, fwidth( radius ) );
-    float coverage = 1.0f - smoothstep( max( 0.0f, 1.0f - feather ), 1.0f, radius );
-    float alpha = input.Color.a * coverage;
-
-    if ( alpha <= 0.001f ) {
+    if ( color.a <= 0.001f ) {
         discard;
     }
 
     // The RHI uses SRC_ALPHA / ONE_MINUS_SRC_ALPHA: output straight alpha.
-    return float4( input.Color.rgb, alpha );
+    return color;
 }

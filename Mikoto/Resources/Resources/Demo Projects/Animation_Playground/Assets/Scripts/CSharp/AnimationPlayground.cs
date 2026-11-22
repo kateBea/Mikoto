@@ -167,6 +167,8 @@ public sealed class AnimationPlaygroundPlayer : EntityScript
 /// <summary>Supplies targets to the native two-bone solver; it does not implement a second IK solver.</summary>
 internal sealed class PlaygroundFeet
 {
+    private const float PlantedToeOutDegrees = 6.0f;
+    private const float KneeOutDegrees = 12.0f;
     private readonly Entity _entity;
     private readonly AnimatorComponent _animator;
     private readonly TransformComponent _actor;
@@ -281,6 +283,8 @@ internal sealed class PlaygroundFeet
         float influence = enabled ? Math.Clamp((MathF.Max(amount, MathF.Abs(_pelvisOffset)) - 0.004f) / 0.025f, 0, 1) : 0;
         float blend = 1.0f - MathF.Exp(-18.0f * dt);
         Vector3 soleForward = new(0, 0, 1);
+        Vector3 actorLeft = Vector3.Cross(up, heading);
+        float kneeAngle = KneeOutDegrees * (MathF.PI / 180.0f);
 
         for (int i = 0; i < 2; ++i)
         {
@@ -292,17 +296,22 @@ internal sealed class PlaygroundFeet
             Vector3 target = _feet[i] + up * (_terrainOffsets[i] + _clearanceOffset);
             Vector3 posedFoot = _feet[i] + up * (_pelvisOffset + _clearanceOffset);
             Vector3 solvedFoot = posedFoot + (target - posedFoot) * weight;
-            // Both Xbot knees hinge about local -X. Fixing that axis keeps the
-            // thigh from twisting around its length as the ankle reaches a stair.
-            _animator.SetTwoBoneIK(i, _hips[i], _knees[i], _ankles[i], target, heading, weight,
+            // Mirror the bend direction about the character's heading. Both
+            // Xbot knees still hinge about local -X as the ankle reaches the tread.
+            float side = i == 0 ? 1.0f : -1.0f;
+            Vector3 kneePole = heading * MathF.Cos(kneeAngle) + actorLeft * (side * MathF.Sin(kneeAngle));
+            _animator.SetTwoBoneIK(i, _hips[i], _knees[i], _ankles[i], target, kneePole, weight,
                 middleAxis: new Vector3(-1, 0, 0));
 
-            // Xbot's sole faces local +Z. During contact, align it with the
-            // tread, using the same forward heading as the knee.
+            // Turn around the tread normal so the sole stays flush even on a slope.
+            // Xbot faces +Z and its left leg is on the model's +X side.
             Vector3 tangent = (heading - normal * Vector3.Dot(heading, normal)).Normalized();
+            Vector3 left = Vector3.Cross(normal, tangent);
+            float angle = side * PlantedToeOutDegrees * (MathF.PI / 180.0f);
+            Vector3 footHeading = tangent * MathF.Cos(angle) + left * MathF.Sin(angle);
             // Aim IK takes a point. A distant target keeps small differences
             // between the requested and reachable ankle height from pitching the foot.
-            _animator.SetAimIK(i, _ankles[i], solvedFoot + tangent * 10.0f, normal, soleForward, up, weight);
+            _animator.SetAimIK(i, _ankles[i], solvedFoot + footHeading * 10.0f, normal, soleForward, up, weight);
         }
     }
 

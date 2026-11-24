@@ -65,25 +65,6 @@ namespace mikoto::renderer::vulkan {
         bool mSampled{};
     };
 
-    class VideoBitstream final : public rhi::DeviceObject {
-    public:
-        VideoBitstream( const VkVideoProfileInfoKHR& profile, eastl::span<const core::ubyte> bytes, VkDeviceSize alignment );
-
-        MKT_NODISCARD auto GetBuffer() const -> const rhi::BufferHandle&;
-
-        ~VideoBitstream() override;
-
-    private:
-        auto Initialize() -> void override;
-        auto Destroy() -> void override;
-
-        VkVideoDecodeH264ProfileInfoKHR mH264Profile{};
-        VkVideoProfileInfoKHR mProfile{};
-        eastl::vector<core::ubyte> mBytes{};
-
-        rhi::BufferHandle mBuffer{};
-    };
-
     class VideoDecoder final : public rhi::IVideoDecoder {
     public:
         explicit VideoDecoder( const rhi::VideoDecoderDescription& description );
@@ -99,7 +80,8 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetParameters() const -> VkVideoSessionParametersKHR;
         MKT_NODISCARD auto GetExtent() const -> VkExtent2D;
 
-        MKT_NODISCARD auto CreateBitstream( eastl::span<const core::ubyte> bytes ) -> core::Ref<VideoBitstream>;
+        MKT_NODISCARD auto CreateBitstream( eastl::span<const core::ubyte> bytes ) -> rhi::BufferHandle override;
+        MKT_NODISCARD auto GetBitstreamLayout() const -> rhi::VideoBitstreamLayout override;
 
         MKT_NODISCARD auto MatchesConfiguration( const video::H264Picture& picture ) const -> bool;
 

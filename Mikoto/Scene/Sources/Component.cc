@@ -1211,7 +1211,7 @@ namespace mikoto::scene {
         runtime.mElapsed = std::fmod( runtime.mElapsed, interval );
         mCaptureDirty = false;
 
-        // Adapt VideoService's rendering-only material clone: authored assets remain shared.
+        // Use a rendering-only material clone: authored assets remain shared.
         // Viewport-texture reference: https://docs.godotengine.org/en/stable/tutorials/shaders/using_viewport_as_texture.html
         const auto* physical{ dynamic_cast<const material::SurfaceMaterial*>( source.GetPtr() ) };
 
@@ -4468,34 +4468,114 @@ namespace mikoto::scene {
         return mEnabled;
     }
 
-    auto VideoComponent::SetClip( const asset::AssetRef<asset::VideoClip> &clip ) -> void {
+    VideoComponent::VideoComponent( const VideoComponent& other )
+        : core::RevisionTracked{ other }, mPlaybackSettings{ other.mPlaybackSettings },
+          mOutputMap{ other.mOutputMap }, mClip{ other.mClip } {
+    }
+
+    auto VideoComponent::operator=( const VideoComponent& other ) -> VideoComponent& {
+        if ( this != &other ) {
+            ReleasePlayback();
+            core::RevisionTracked::operator=( other );
+            mPlaybackSettings = other.mPlaybackSettings;
+            mOutputMap = other.mOutputMap;
+            mClip = other.mClip;
+        }
+
+        return *this;
+    }
+
+    auto VideoComponent::operator=( VideoComponent&& other ) noexcept -> VideoComponent& {
+        if ( this != &other ) {
+            ReleasePlayback();
+            core::RevisionTracked::operator=( other );
+            mPlaybackSettings = eastl::move( other.mPlaybackSettings );
+            mOutputMap = other.mOutputMap;
+            mClip = eastl::move( other.mClip );
+            mPlayback = eastl::move( other.mPlayback );
+            mRenderData = eastl::move( other.mRenderData );
+        }
+
+        return *this;
+    }
+
+    VideoComponent::~VideoComponent() {
+        ReleasePlayback();
+    }
+
+    auto VideoComponent::SetClip( const asset::AssetRef<asset::VideoClip>& clip ) -> void {
         if ( mClip.GetID() != clip.GetID() ) {
+            ReleasePlayback();
             mClip = clip;
             BumpRevision();
         }
     }
 
-    auto VideoComponent::GetClip() const -> const asset::AssetRef<asset::VideoClip> & {
-        return mClip;
-    }
+    auto VideoComponent::SetPlaybackSettings( const video::PlaybackSettings& settings ) -> void {
+        mPlaybackSettings = settings;
 
-    auto VideoComponent::SetPlaybackSettings( const video::PlaybackSettings &settings ) -> void {
-        mPlayback = settings;
+        if ( mPlayback ) {
+            mPlayback->SetSettings( settings );
+        }
+
         BumpRevision();
     }
 
-    auto VideoComponent::GetPlaybackSettings() const -> const video::PlaybackSettings & {
-        return mPlayback;
-    }
-
-    auto VideoComponent::SetOutputMap( video::OutputMap map ) -> void {
+    auto VideoComponent::SetOutputMap( renderer::VideoOutputMap map ) -> void {
         if ( mOutputMap != map ) {
             mOutputMap = map;
             BumpRevision();
         }
     }
 
-    auto VideoComponent::GetOutputMap() const -> video::OutputMap {
+    auto VideoComponent::UpdatePlayback( f64 timeStep, bool preview, bool active, float3 position ) -> void {
+        if ( !active || !mClip.GetID() ) {
+            ReleasePlayback();
+            return;
+        }
+
+        auto* service{ video::VideoService::GetPtr() };
+
+        if ( !service || !service->IsInitialized() ) {
+            return;
+        }
+
+        if ( !mPlayback || !mPlayback->IsRegistered() || mPlayback->IsPreview() != preview ) {
+            ReleasePlayback();
+            mPlayback = service->RegisterPlayback( mClip, mPlaybackSettings, preview );
+            mRenderData = VideoRenderDataHandle::New( mPlayback );
+        }
+
+        mPlayback->SetPosition( position );
+        service->Update( mPlayback, timeStep );
+    }
+
+    auto VideoComponent::ReleasePlayback() -> void {
+        if ( auto* service{ video::VideoService::GetPtr() }; service && mPlayback ) {
+            service->UnregisterPlayback( mPlayback.GetPtr() );
+        }
+
+        mRenderData.Reset();
+        mPlayback.Reset();
+    }
+
+    auto VideoComponent::GetClip() const -> const asset::AssetRef<asset::VideoClip>& {
+        return mClip;
+    }
+
+    auto VideoComponent::GetPlaybackSettings() const -> const video::PlaybackSettings& {
+        return mPlaybackSettings;
+    }
+
+    auto VideoComponent::GetOutputMap() const -> renderer::VideoOutputMap {
         return mOutputMap;
+    }
+
+    auto VideoComponent::GetPlayback() const -> video::VideoPlaybackHandle {
+        return mPlayback;
+    }
+
+    auto VideoComponent::GetRenderData() const -> VideoRenderDataHandle {
+        return mRenderData;
     }
 }// namespace mikoto::scene

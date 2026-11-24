@@ -24,6 +24,7 @@
 #include <Video/H264Parser.hh>
 
 #include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Buffer.hh>
 
 namespace mikoto::renderer::rhi {
 
@@ -42,9 +43,21 @@ namespace mikoto::renderer::rhi {
         core::Ref<video::H264Picture> mConfiguration{};
     };
 
+    struct VideoBitstreamLayout {
+        core::usize mOffsetAlignment{ 1 };
+        core::usize mSizeAlignment{ 1 };
+        core::u32 mStartCodeSize{ 4 };
+    };
+
     class IVideoDecoder : public DeviceObject {
     public:
         MKT_NODISCARD virtual auto CreateSurface( bool reference ) -> VideoSurfaceHandle = 0;
+
+        /** Uploads a complete, aligned Annex-B stream for reuse by every picture decode. */
+        MKT_NODISCARD virtual auto CreateBitstream( eastl::span<const core::ubyte> bytes ) -> BufferHandle = 0;
+
+        /** Returns the picture alignment and Annex-B start-code size required by this decoder. */
+        MKT_NODISCARD virtual auto GetBitstreamLayout() const -> VideoBitstreamLayout = 0;
 
         MKT_NODISCARD virtual auto GetMaxReferences() const -> core::u32 = 0;
         MKT_NODISCARD virtual auto GetDpbSlotCount() const -> core::u32 = 0;
@@ -66,6 +79,8 @@ namespace mikoto::renderer::rhi {
     struct VideoDecodeDescription {
         VideoDecoderHandle mDecoder{};
         core::Ref<video::H264Picture> mPicture{};
+        BufferHandle mBitstream{};
+        BufferRange mBitstreamRange{};
         VideoSurfaceHandle mOutput{};
         VideoReferencePicture mReconstruction{};
         eastl::fixed_vector<VideoReferencePicture, 16> mReferences{};

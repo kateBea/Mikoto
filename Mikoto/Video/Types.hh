@@ -34,7 +34,6 @@ namespace mikoto::video {
     enum class TrackKind : core::u32 { eVideo, eAudio };
     enum class AudioCodec : core::u32 { eNone, eAac, eUnsupported };
     enum class PlaybackState : core::u32 { eLoading, eStopped, ePlaying, ePaused, eEnded, eFailed };
-    enum class OutputMap : core::u32 { eBaseColor, eEmissive };
 
     struct VideoTrackInfo {
         core::u32 mTrackIndex{};

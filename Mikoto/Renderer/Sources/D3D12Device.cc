@@ -2157,7 +2157,15 @@ namespace mikoto::renderer::d3d12 {
             MKT_THROW_RUNTIME_ERROR( "Video decode operation has missing resources or changed H.264 parameters." );
         }
 
-        auto bitstream{ decoder->CreateBitstream( *description.mPicture ) };
+        const auto& bitstream{ description.mBitstream };
+        const auto& bitstreamRange{ description.mBitstreamRange };
+
+        if ( !bitstream || !bitstreamRange.mByteSize ||
+             bitstreamRange.mByteOffset > bitstream->GetSizeBytes() ||
+             bitstreamRange.mByteSize > bitstream->GetSizeBytes() - bitstreamRange.mByteOffset ) {
+            MKT_THROW_RUNTIME_ERROR( "Video decode requires an uploaded picture range within the clip bitstream." );
+        }
+
         auto outputImage{ description.mOutput->GetImage() };
         auto reconstructionImage{ description.mReconstruction.mSurface->GetImage() };
         RetainResource( decoder );
@@ -2201,15 +2209,16 @@ namespace mikoto::renderer::d3d12 {
 
         for ( usize index{}; index < offsets.size(); ++index ) {
             const auto start{ offsets[index] - static_cast<u32>( index ) };
-            const auto end{ index + 1 < offsets.size() ? offsets[index + 1] - static_cast<u32>( index + 1 ) : static_cast<u32>( bitstream->GetSizeBytes() ) };
+            const auto end{ index + 1 < offsets.size() ? offsets[index + 1] - static_cast<u32>( index + 1 ) : static_cast<u32>( bitstreamRange.mByteSize ) };
             slices[index].BSNALunitDataLocation = start;
             slices[index].SliceBytesInBuffer = end - start;
         }
 
         D3D12_VIDEO_DECODE_INPUT_STREAM_ARGUMENTS input{};
         input.pHeap = decoder->GetHeap();
-        input.CompressedBitstream.pBuffer = *core::checked_cast<Buffer*>( bitstream.GetPtr() );
-        input.CompressedBitstream.Size = bitstream->GetSizeBytes();
+        input.CompressedBitstream.pBuffer = *core::checked_cast<const Buffer*>( bitstream.GetPtr() );
+        input.CompressedBitstream.Offset = bitstreamRange.mByteOffset;
+        input.CompressedBitstream.Size = bitstreamRange.mByteSize;
         input.ReferenceFrames.NumTexture2Ds = static_cast<UINT>( count + 1 );
         input.ReferenceFrames.ppTexture2Ds = references.data();
         input.ReferenceFrames.pSubresources = subresources.data();

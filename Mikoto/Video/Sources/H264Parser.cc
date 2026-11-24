@@ -147,6 +147,7 @@ namespace mikoto::video {
         }
 
         auto picture{ Ref<H264Picture>::New() };
+        picture->mSampleIndex = packet.mSampleIndex;
         picture->mPresentationTime = packet.mPresentationTime;
         picture->mDuration = packet.mDuration;
 
@@ -232,6 +233,10 @@ namespace mikoto::video {
         }
 
         return picture;
+    }
+
+    auto H264Picture::GetSampleIndex() const -> u64 {
+        return mSampleIndex;
     }
 
     auto H264Picture::GetSps() const -> const h264::SPS& {

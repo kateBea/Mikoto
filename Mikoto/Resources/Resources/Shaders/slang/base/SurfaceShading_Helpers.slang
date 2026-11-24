@@ -44,7 +44,8 @@ float SurfaceCoatFresnel( float cosine ) {
 // Layering reference: Khronos KHR_materials_clearcoat (not a glTF importer).
 // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat
 float3 SurfaceDirect( float3 baseLighting, float3 diffuse, float3 f0, float roughness,
-                      float3 n, float3 v, float3 l, uint model, float4 settings, float bands, float visibility = 1.0, float3 coatNormal = float3( 0 ) ) {
+                      float3 n, float3 v, float3 l, uint model, float4 settings, float bands, float visibility = 1.0,
+                      float3 coatNormal = float3( 0 ), float lightWeight = 1.0 ) {
     float nl = saturate( dot( n, l ) );
     if ( model == SURFACE_CLEAR_COAT ) {
         n = dot( coatNormal, coatNormal ) > 0 ? coatNormal : n;
@@ -63,7 +64,7 @@ float3 SurfaceDirect( float3 baseLighting, float3 diffuse, float3 f0, float roug
         float gl = 2 * nl / max( nl + sqrt( a2 + ( 1 - a2 ) * nl * nl ), 1e-6 );
         float coat = weight * distribution * gv * gl * SurfaceCoatFresnel( dot( v, h ) ) / ( 4 * nv );
         float transmission = ( 1 - weight * SurfaceCoatFresnel( nl ) ) * ( 1 - weight * SurfaceCoatFresnel( nv ) );
-        return baseLighting * transmission + coat;
+        return baseLighting * transmission + coat * lightWeight;
     }
     if ( SurfaceStylized( model ) ) {
         // Quantize visible illumination together, rather than multiplying a
@@ -83,7 +84,7 @@ float3 SurfaceDirect( float3 baseLighting, float3 diffuse, float3 f0, float roug
         float gloss = 1 - saturate( roughness );
         float highlight = smoothstep( 0.98 - roughness * 0.25, 0.99 - roughness * 0.25, nh ) * gloss * gloss;
         // No light leaks at the terminator, including threshold == 0.
-        return visibleNl > 0 ? diffuse * ramp / 3.14159265 + f0 * highlight * ramp : float3( 0 );
+        return visibleNl > 0 ? ( diffuse * ramp / 3.14159265 + f0 * highlight * ramp ) * lightWeight : float3( 0 );
     }
     return baseLighting;
 }

@@ -68,6 +68,11 @@ namespace mikoto::renderer {
 
         eastl::array<eastl::array<FGTextureHandle, 6>, kMaxShadowLightsPerType> mPoint{};
         eastl::array<eastl::array<FGTextureHandle, kDirectionalCascades>, kMaxShadowLightsPerType> mDirectional{};
+
+        eastl::array<FGTextureHandle, kMaxShadowLightsPerType> mDirectionalVisibility{};
+        FGTextureHandle mVisibilityDepth{};
+        eastl::array<core::u32, kMaxShadowLightsPerType> mDirectionalRecords{};
+        eastl::array<core::float3, kMaxShadowLightsPerType> mDirectionalToLight{};
     };
 
     class ShadowMappingModule final {
@@ -83,6 +88,7 @@ namespace mikoto::renderer {
         // Configure before graph registration, just like the renderer's resolution.
         auto RegisterUploadPass( FrameGraph& graph ) -> void;
         auto RegisterShadowMaps( FrameGraph& graph ) -> void;
+        auto RegisterDirectionalVisibility( FrameGraph& graph, rhi::RenderResolution resolution ) -> void;
 
         auto SetShadowMapsQuality( ShadowMapQuality quality ) -> void;
         auto SetCascadedShadowsEnabled( bool enabled ) -> void;
@@ -124,18 +130,14 @@ namespace mikoto::renderer {
         auto PointShadowMatrices( core::float3 position, core::f32 radius ) -> eastl::array<core::float4x4, 6>;
         auto SpotShadowMatrix( core::float3 position, core::float3 direction, core::f32 outerCosine, core::f32 radius ) -> core::float4x4;
 
-        // Fit the whole visible range when cascades are disabled, or split it
-        // into four depth ranges. Near ranges get
-        // more shadow texels per world unit, while distant ranges cover more space.
-        // Reconstruct the frustum with Vulkan's forward depth [0,1], fit each slice
-        // in light space, and return orthographic matrices plus camera-depth splits.
-        // The practical split mixes logarithmic (near detail) and uniform spacing
-        // (far coverage). Overlap supports PBR's cross-fade at cascade boundaries.
-        // Quantized radius and light-space texel snapping keep camera translation
-        // from sliding the shadow sample grid across stationary surfaces. Depth
-        // padding includes upstream casters outside the visible camera slice.
+        // Tardif: sphere-fit each frustum slice, keep a square orthographic footprint,
+        // and snap its light-space center to the final projection's texel grid.
+        // Fit in camera space so camera translation cannot change the radius through
+        // world-coordinate cancellation. Overlap supports transitions between cascades.
+        // https://alextardif.com/shadowmapping.html
         auto BuildDirectionalCascades(
-            const core::float4x4 &inverseViewProjection,
+            const core::float4x4& inverseProjection,
+            const core::float4x4& inverseView,
             core::f32 nearPlane, core::f32 farPlane,
             core::float3 direction, core::u32 resolution,
             core::f32 distance = 200.0f ) -> DirectionalCascadeData;

@@ -3543,11 +3543,40 @@ namespace mikoto::editor {
                 }
             }
 
-            LightPropertyRow( "inspector_two_sided" );
-            bool twoSided{ light.IsTwoSided() };
+            if ( light.GetShape() == renderer::AreaLightShape::eTube ) {
+                LightPropertyRow( "inspector_area_light_length" );
+                auto size{ light.GetSize() };
 
-            if ( imgui::CheckBox( "##AreaTwoSided", twoSided ) ) {
-                light.SetTwoSided( twoSided );
+                if ( imgui::widget::CircleSlider( "##AreaLength", &size.x, 0.0f, 50.0f, "%.2f m", false ) ) {
+                    light.SetSize( size );
+                }
+            }
+
+            if ( light.GetShape() == renderer::AreaLightShape::eSphere || light.GetShape() == renderer::AreaLightShape::eTube ) {
+                LightPropertyRow( "inspector_source_radius" );
+                float radius{ light.GetRadius() };
+
+                if ( imgui::widget::CircleSlider( "##AreaRadius", &radius, 0.0f, 10.0f, "%.2f m", false ) ) {
+                    light.SetRadius( radius );
+                }
+            }
+
+            if ( light.GetShape() != renderer::AreaLightShape::eMesh ) {
+                LightPropertyRow( "inspector_area_light_range" );
+                float range{ light.GetRange() };
+
+                if ( imgui::widget::CircleSlider( "##AreaRange", &range, 0.0f, 100.0f, "%.2f m", false ) ) {
+                    light.SetRange( range );
+                }
+            }
+
+            if ( light.GetShape() == renderer::AreaLightShape::eRectangle || light.GetShape() == renderer::AreaLightShape::eMesh ) {
+                LightPropertyRow( "inspector_two_sided" );
+                bool twoSided{ light.IsTwoSided() };
+
+                if ( imgui::CheckBox( "##AreaTwoSided", twoSided ) ) {
+                    light.SetTwoSided( twoSided );
+                }
             }
 
             ImGui::EndTable();
@@ -3986,9 +4015,12 @@ namespace mikoto::editor {
     }
 
     auto InspectorPanel::DrawVideoComponentTab( scene::Entity& entity ) -> void {
+        MKT_BEGIN_PROFILER();
+
         auto& component{ entity.GetComponent<scene::VideoComponent>() };
         eastl::string path{ component.GetClip().GetPath().GetC_Str() };
-        ImGui::SetNextItemWidth( -FLT_MIN );
+
+        ImGui::SetNextItemWidth( -eastl::numeric_limits<core::f32>::min() );
         ImGui::InputText( "##VideoClip", path.data(), path.size() + 1, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll );
 
         if ( ImGui::BeginDragDropTarget() ) {
@@ -4027,12 +4059,10 @@ namespace mikoto::editor {
         int map{ static_cast<int>( component.GetOutputMap() ) };
 
         if ( ImGui::Combo( "Material map", &map, "Base color\0Emissive\0" ) ) {
-            component.SetOutputMap( static_cast<video::OutputMap>( map ) );
+            component.SetOutputMap( static_cast<renderer::VideoOutputMap>( map ) );
         }
 
-        auto* service{ video::VideoService::GetPtr() };
-        auto playback{ service && mState->mActiveScene ? service->GetPlayback( *mState->mActiveScene,
-            entity.GetComponent<scene::TagComponent>().GetGuid() ) : video::VideoPlaybackHandle{} };
+        auto playback{ component.GetPlayback() };
 
         if ( playback ) {
             if ( playback->GetState() == video::PlaybackState::eFailed ) {

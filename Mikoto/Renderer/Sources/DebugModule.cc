@@ -441,6 +441,8 @@ namespace mikoto::renderer {
                     std::memcpy( blob.data(), mappedAddress, totalBytes );
                 }
 
+                // TODO: auto image{ asset::Image::FromPixels( blob.data(), 1920, 1080, asset::ImageFormat::eRGBA8_UINT ) };
+                // image->WriteToFile( "Resources/image.png" );
                 asset::WriteImage( "Resources/image.png", blob.data(), 1920, 1080, asset::ImageFormat::eRGBA8_UINT );
             }, false );
     }

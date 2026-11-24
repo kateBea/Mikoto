@@ -1,15 +1,31 @@
+//    Copyright 2026 ケイト
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Separate plane views use Mikoto's ordinary bindless textures and sampler states.
 // https://docs.vulkan.org/spec/latest/chapters/formats.html#formats-compatible-planes
+
 // YCbCr coefficients/range and inverse transfer function:
 // https://www.itu.int/rec/R-REC-BT.709/en
 // https://www.itu.int/rec/R-REC-BT.601/en
 // https://www.itu.int/rec/R-REC-BT.2020/en
+
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 
+MKT_DECLARE_SAMPLERS samplers;
 MKT_DECLARE_TEXTURE_SRV( Texture2D<float4> ) textures;
 MKT_DECLARE_TEXTURE_UAV( RWTexture2D<float4> ) outputs;
-MKT_DECLARE_SAMPLERS samplers;
 
 struct Parameters {
     uint width;
@@ -21,11 +37,14 @@ struct Parameters {
     uint transfer;
     uint matrix;
     uint fullRange;
+
     uint3 padding;
+
     float4 uvRect;
     float2 chromaOffset;
     float2 padding2;
 };
+
 MKT_DECLARE_PUSH_CONSTANT( Parameters, parameters );
 
 static float LinearizeVideo(float value) {
@@ -44,17 +63,24 @@ void main(uint3 pixel : SV_DispatchThreadID) {
         return;
     }
 
-    const float2 uv = ((float2(pixel.xy) + 0.5) / float2(parameters.width, parameters.height)) * parameters.uvRect.xy + parameters.uvRect.zw;
+    const float2 uv = ((float2(pixel.xy) + 0.5) / 
+        float2(parameters.width, parameters.height)) * 
+        parameters.uvRect.xy + parameters.uvRect.zw;
+
     SamplerState sampleState = samplers[parameters.sampler];
+
     float y = textures[parameters.luma].SampleLevel(sampleState, uv, 0.0).r;
     float2 cbcr = textures[parameters.chroma].SampleLevel(sampleState, uv + parameters.chromaOffset, 0.0).rg;
 
     y = parameters.fullRange != 0 ? y : (y * 255.0 - 16.0) / 219.0;
     cbcr = (cbcr * 255.0 - 128.0) / (parameters.fullRange != 0 ? 255.0 : 224.0);
+
     const float kr = parameters.matrix == 9 ? 0.2627 : (parameters.matrix == 5 || parameters.matrix == 6 ? 0.299 : 0.2126);
     const float kb = parameters.matrix == 9 ? 0.0593 : (parameters.matrix == 5 || parameters.matrix == 6 ? 0.114 : 0.0722);
+
     const float r = y + 2.0 * (1.0 - kr) * cbcr.y;
     const float b = y + 2.0 * (1.0 - kb) * cbcr.x;
     const float g = (y - kr * r - kb * b) / (1.0 - kr - kb);
+    
     outputs[parameters.output][pixel.xy] = float4(LinearizeVideo(r), LinearizeVideo(g), LinearizeVideo(b), 1.0);
 }

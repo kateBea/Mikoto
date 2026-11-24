@@ -69,6 +69,16 @@ void main( uint3 groupID : SV_GroupID,
                 visible = TestSphereAABBPointLight( lights, i, cluster, camera.mViewMatrix );
                 break;
 
+            case LIGHT_TYPE_AREA: {
+                LightInfo light = lights[i];
+                RasterAreaShape shape = (RasterAreaShape)uint( light.Position.w );
+                float extent = shape == RasterAreaShape::eRectangle ? length( float2( light.AreaAxisX.w, light.AreaAxisY.w ) ) :
+                    ( shape == RasterAreaShape::eTube ? light.AreaAxisX.w : 0.0 ) + light.Padding;
+                float3 center = mul( camera.mViewMatrix, float4( light.Position.xyz, 1.0 ) ).xyz;
+                visible = SphereAABBIntersection( center, light.Radius + extent, cluster.mMinPoint.xyz, cluster.mMaxPoint.xyz );
+                break;
+            }
+
             case LIGHT_TYPE_SPOT:
                 visible = TestSpotAABB( lights[i], cluster, camera.mViewMatrix );
                 break;

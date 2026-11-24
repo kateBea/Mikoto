@@ -185,6 +185,14 @@ namespace mikoto::renderer {
         auto UseResource( FGVideoHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void;
         auto UseResource( FGAccelerationStructureHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void;
 
+        /** Declares the current images of a runtime video batch.
+         * The batch handle supplies graph dependencies; the resolver supplies concrete
+         * images immediately before recording this pass's barriers and commands.
+         * Declare multi-planar storage once, rather than its individual sampling views.
+         */
+        auto UseTextures( FGVideoHandle batch, FGPipelineStage stage, FGResourceAccess access,
+            const eastl::function<void( eastl::vector<rhi::TextureHandle>& )>& resolveTextures ) -> void;
+
     private:
         auto UseResource( FGResourceHandle handle, FGPipelineStage stage, FGResourceAccess access, FGResourceType type ) -> void;
         auto TrackRead( FGResourceHandle handle ) -> void;
@@ -332,6 +340,7 @@ namespace mikoto::renderer {
 
         auto RecordVideoCommands() -> void;
         auto RecordGraphicsCommands() -> void;
+        auto SubmitRuntimeTextureBarriers( const FrameGraphPass& pass, CommandContext& context ) -> void;
 
         auto SubmitRecordedCommands() -> void;
 
@@ -344,6 +353,11 @@ namespace mikoto::renderer {
 
             bool mRunsPerFrame{};
             bool mHasBeenRegistered{};
+        };
+
+        struct RuntimeTexture {
+            FGResource mResource{};
+            bool mUsedThisFrame{};
         };
 
     private:
@@ -374,6 +388,7 @@ namespace mikoto::renderer {
         eastl::unique_ptr<FGStatisticsManager> mStatisticsManager{};
 
         eastl::vector<ReadbackTask> mReadbackTasks{};
+        ankerl::unordered_dense::map<const rhi::ITexture*, eastl::unique_ptr<RuntimeTexture>> mRuntimeTextures{};
 
         core::u64 mFenceValue{};
         rhi::FenceHandle mFence{};

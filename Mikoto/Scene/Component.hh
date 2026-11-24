@@ -67,6 +67,7 @@
 #include <Text/TextLayout.hh>
 #include <Text/UnicodeString.hh>
 
+#include <Renderer/Video/Video.hh>
 #include <Renderer/Text/Font.hh>
 #include <Renderer/Core/Light.hh>
 #include <Renderer/Gui/Canvas.hh>
@@ -451,30 +452,34 @@ namespace mikoto::scene {
     };
 
 
-    // Authored video settings only; VideoService owns each runtime player.
+    // Copies carry authoring settings; each scene instance registers its own playback.
     class VideoComponent : public core::RevisionTracked {
     public:
         VideoComponent() = default;
+        VideoComponent( const VideoComponent& other );
+        VideoComponent( VideoComponent&& ) noexcept = default;
+        auto operator=( const VideoComponent& other ) -> VideoComponent&;
+        auto operator=( VideoComponent&& other ) noexcept -> VideoComponent&;
+        ~VideoComponent();
 
-        VideoComponent( const VideoComponent& other ) = default;
-        VideoComponent( VideoComponent&& ) = default;
-
-        auto operator=( VideoComponent&& ) -> VideoComponent& = default;
-        auto operator=( const VideoComponent& other ) -> VideoComponent& = default;
-
-        MKT_NODISCARD auto GetOutputMap() const -> video::OutputMap;
-        MKT_NODISCARD auto GetClip() const -> const asset::AssetRef<asset::VideoClip>&;
-        MKT_NODISCARD auto GetPlaybackSettings() const -> const video::PlaybackSettings&;
-
-        auto SetOutputMap( video::OutputMap map ) -> void;
+        auto SetOutputMap( renderer::VideoOutputMap map ) -> void;
         auto SetClip( const asset::AssetRef<asset::VideoClip>& clip ) -> void;
         auto SetPlaybackSettings( const video::PlaybackSettings& settings ) -> void;
+        auto UpdatePlayback( core::f64 timeStep, bool preview, bool active, core::float3 position ) -> void;
+        auto ReleasePlayback() -> void;
+
+        MKT_NODISCARD auto GetOutputMap() const -> renderer::VideoOutputMap;
+        MKT_NODISCARD auto GetClip() const -> const asset::AssetRef<asset::VideoClip>&;
+        MKT_NODISCARD auto GetPlaybackSettings() const -> const video::PlaybackSettings&;
+        MKT_NODISCARD auto GetPlayback() const -> video::VideoPlaybackHandle;
+        MKT_NODISCARD auto GetRenderData() const -> renderer::VideoRenderDataHandle;
 
     private:
-        video::PlaybackSettings mPlayback{};
-        video::OutputMap mOutputMap{ video::OutputMap::eBaseColor };
-
+        video::PlaybackSettings mPlaybackSettings{};
+        renderer::VideoOutputMap mOutputMap{ renderer::VideoOutputMap::eBaseColor };
         asset::AssetRef<asset::VideoClip> mClip{};
+        video::VideoPlaybackHandle mPlayback{};
+        renderer::VideoRenderDataHandle mRenderData{};
     };
 
 

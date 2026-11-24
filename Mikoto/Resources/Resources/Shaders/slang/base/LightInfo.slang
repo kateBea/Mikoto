@@ -17,7 +17,16 @@
 static const int LIGHT_TYPE_POINT = 1;
 static const int LIGHT_TYPE_SPOT = 2;
 static const int LIGHT_TYPE_DIRECTIONAL = 0;
+static const int LIGHT_TYPE_AREA = 3;
 static const int LIGHT_TYPE_INACTIVE = -1;
+
+// Values preserve renderer::AreaLightShape's serialized rectangle/mesh identities.
+enum class RasterAreaShape : uint {
+    eRectangle = 0,
+    eMesh = 1,
+    eSphere = 2,
+    eTube = 3
+};
 
 struct LightInfo {
     float4 Position;
@@ -35,4 +44,7 @@ struct LightInfo {
     int ShadowIndex;
     uint ShadowSlot;
     float Padding;
+
+    float4 AreaAxisX; // Unit right, half width or tube half length.
+    float4 AreaAxisY; // Unit up, half height. Padding stores the sphere/tube source radius.
 };

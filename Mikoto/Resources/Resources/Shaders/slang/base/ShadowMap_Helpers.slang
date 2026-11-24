@@ -18,7 +18,7 @@ struct ShadowRecord {
     float4x4 ViewProjection[6];
     float4 CascadeSplits;
     float4 PositionRange;
-    uint TextureIDs[6];
+    uint TextureIDs[6]; // Directional: cascades 0..3, filtered visibility 4, camera receiver depth 5.
     uint FaceCount;
     int LightType;
     // xy: constant/slope bias; directional meters, local normalized radius.

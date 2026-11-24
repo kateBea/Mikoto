@@ -99,6 +99,7 @@ namespace mikoto::renderer {
         }
 
         GetGpuDevice()->WaitIdle();
+        mVideoBitstreams.clear();
 
         if ( mImguiService && mEnableImGui ) {
             mImguiService->Shutdown();
@@ -127,8 +128,29 @@ namespace mikoto::renderer {
         mContext->BatchSubmission( eastl::move( submitInfo ), queue );
     }
 
+    auto RenderSystem::AcquireVideoBitstream( const Ref<asset::VideoClip>& clip, rhi::IVideoDecoder* decoder ) -> Ref<VideoBitstream> {
+        const auto found{ mVideoBitstreams.find( clip.GetPtr() ) };
+
+        if ( found != mVideoBitstreams.end() ) {
+            return found->second;
+        }
+
+        auto stream{ VideoBitstream::Create( clip, decoder ) };
+        mVideoBitstreams.emplace( clip.GetPtr(), stream );
+        return stream;
+    }
+
     auto RenderSystem::PrepareFrame() -> void {
         MKT_BEGIN_PROFILER();
+
+        // Submitted command lists retain the underlying buffer until their GPU work completes.
+        for ( auto entry{ mVideoBitstreams.begin() }; entry != mVideoBitstreams.end(); ) {
+            if ( entry->second->GetRefCount() == 1 ) {
+                entry = mVideoBitstreams.erase( entry );
+            } else {
+                ++entry;
+            }
+        }
 
         mContext->PrepareFrame();
 

@@ -181,8 +181,7 @@ namespace mikoto::core {
 
     template<>
     struct ServiceDependencies<video::VideoService>
-        : ServiceDependencySet<ServiceList<renderer::RenderSystem, asset::AssetRegistryService,
-                                           audio::AudioService, threading::TaskService>> {
+        : ServiceDependencySet<ServiceList<asset::AssetRegistryService, audio::AudioService, threading::TaskService>> {
     };
 
     // Destroy scenes while their assets, physics worlds, particles, animators, audio and

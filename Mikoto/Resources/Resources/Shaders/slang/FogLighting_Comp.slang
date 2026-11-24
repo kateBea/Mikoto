@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "Fog_Common.slang"
+#include "base/AreaLighting_Helpers.slang"
 
 // Lighting injection and temporal reprojection reference:
 // https://github.com/godotengine/godot/blob/master/servers/rendering/renderer_rd/shaders/environment/volumetric_fog_process.glsl
@@ -89,6 +90,12 @@
                     attenuation *= saturate( ( dot( -incoming, normalize( light.Direction.xyz ) ) - light.OuterCutOff ) /
                                              max( light.CutOff - light.OuterCutOff, 1e-6 ) );
                 }
+            }
+            if ( light.ActiveLightType == LIGHT_TYPE_AREA ) {
+                // Dominant-direction approximation for volumetric lighting; surface shading uses the full shape below.
+                AreaLightSample area = SampleAreaLight( light, position, incoming, incoming, 1.0 );
+                incoming = area.DiffuseDirection;
+                attenuation = area.Irradiance;
             }
             if ( attenuation <= 0.0 ) {
                 continue;

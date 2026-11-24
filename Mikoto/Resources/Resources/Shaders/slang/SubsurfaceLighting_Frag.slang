@@ -24,6 +24,7 @@
 #include "base/Camera_Helpers.slang"
 #include "base/ClusteringLights_Helpers.slang"
 #include "base/Lighting_Helpers.slang"
+#include "base/AreaLighting_Helpers.slang"
 #include "base/Material_Helpers.slang"
 #include "base/Math_Helpers.slang"
 #include "base/Memory_Helpers.slang"
@@ -450,7 +451,7 @@ float ShadowPCF( uint recordIndex, ShadowMetadata record, uint face, float3 worl
     return sum / 9.0;
 }
 
-float LightShadow( LightInfo light, float3 world, float3 normal, float viewDepth ) {
+float LightShadow( LightInfo light, float3 world, float3 normal, float viewDepth, float3 screenPosition ) {
     if ( light.ShadowIndex < 0 || uint( light.ShadowIndex ) >= parameters.mShadowRecordCount ) {
         return 1;
     }
@@ -463,6 +464,16 @@ float LightShadow( LightInfo light, float3 world, float3 normal, float viewDepth
                                                                      : normalize( light.Position.xyz - world );
     float bias = record.Bias.x + record.Bias.y * ( 1 - saturate( abs( dot( normal, toLight ) ) ) );
     if ( light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL ) {
+        // Tardif's filtered visibility applies only to the camera-depth receiver.
+        // Transparent layers and uncovered MSAA samples retain per-surface shadow comparisons.
+        // https://alextardif.com/shadowmapping.html
+        if ( record.TextureID( 4 ) != 0xffffffffu && record.TextureID( 5 ) != 0xffffffffu ) {
+            int2 pixel = int2( screenPosition.xy );
+            float depth = textures2D[NonUniformResourceIndex( record.TextureID( 5 ) )].Load( int3( pixel, 0 ) ).r;
+            if ( abs( depth - screenPosition.z ) <= 2e-6 ) {
+                return textures2D[NonUniformResourceIndex( record.TextureID( 4 ) )].Load( int3( pixel, 0 ) ).r;
+            }
+        }
         if ( viewDepth <= 0 || viewDepth > record.CascadeSplits.w ) {
             return 1;
         }
@@ -527,6 +538,10 @@ float3 SubsurfaceTransmission( LightInfo light, MaterialParameters material, flo
         float cone = saturate( ( theta - light.OuterCutOff ) / max( light.CutOff - light.OuterCutOff, 1e-6 ) );
         float fade = saturate( 1 - distance / max( light.Radius, 1e-6 ) );
         radiance *= light.Intensity * 1000 * fade * fade * cone;
+    } else if ( light.ActiveLightType == LIGHT_TYPE_AREA ) {
+        // Reuse the back-facing shape integral for the existing artist-thickness approximation.
+        radiance *= light.Intensity * SampleAreaLight( light, world, -normal, l, 1.0 ).Irradiance;
+        back = 1.0;
     }
     return albedo * radiance * material.SubsurfaceTransmission.rgb * back *
         saturate( material.SubsurfaceColorOpacity.rgb ) * saturate( material.Subsurface.y * ( 1 - material.SubsurfaceColorOpacity.a ) );
@@ -755,7 +770,7 @@ FSOutput main( FSInput input ) {
     uint clusterIndex = ComputeTileIndex( input.FragmentViewPos, gridSize, camera.mPlanes.xy, input.ScreenPos,
                                           camera.mScreenDimensions.xy );
 
-    if ( ( !useRayLighting || parameters.mRayDirect == 0xffffffffu ) && clusterIndex < parameters.mClusterBufferSize ) {
+    if ( clusterIndex < parameters.mClusterBufferSize ) {
         // Overflow falls back to the complete list rather than dropping lights.
         ClusterHeader cluster = LoadClusterHeader( clusterBuffer.address, clusterIndex );
         bool overflow = cluster.mPadding[0] != 0;
@@ -767,10 +782,15 @@ FSOutput main( FSInput input ) {
             }
 
             LightInfo light = lightCullingBuffer[lightIndex];
-            if ( light.Direction.w > 0.5 && camera.mAtmosphere != 0 ) {
+            if ( light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL && light.Direction.w > 0.5 && camera.mAtmosphere != 0 ) {
                 AtmosphereData atmosphere = ( ( BufferReference<AtmosphereData> )camera.mAtmosphere )[0];
                 light.Diffuse.xyz = AtmosSurfaceSun( atmosphere, input.FragmentWorldPos,
                     textures2D[camera.mAtmosphereTransmittance], samplers[camera.mAtmosphereSampler] );
+            }
+
+            // Hybrid direct lighting replaces punctual lights only; analytic raster area lights remain additive.
+            if ( useRayLighting && parameters.mRayDirect != 0xffffffffu && light.ActiveLightType != LIGHT_TYPE_AREA ) {
+                continue;
             }
 
             float3 contribution = float3( 0 );
@@ -778,7 +798,7 @@ FSOutput main( FSInput input ) {
 
             bool stylized = SurfaceStylized( shadingModel );
 
-            float visibility = stylized ? LightShadow( light, input.FragmentWorldPos, receiverNormal, -input.FragmentViewPos.z ) : 1.0;
+            float visibility = stylized ? LightShadow( light, input.FragmentWorldPos, receiverNormal, -input.FragmentViewPos.z, input.ScreenPos.xyz ) : 1.0;
             if ( light.ActiveLightType == LIGHT_TYPE_DIRECTIONAL ) {
                 contribution = ComputeDirectionalLightContribution( n, v, light, inputs, lightSpecular, visibility );
             } else if ( light.ActiveLightType == LIGHT_TYPE_POINT ) {
@@ -789,10 +809,20 @@ FSOutput main( FSInput input ) {
 
             lightContribution += SubsurfaceTransmission( light, material, diffuseAlbedo, input.FragmentWorldPos, n );
 
+            if ( light.ActiveLightType == LIGHT_TYPE_AREA ) {
+                AreaSurfaceLighting area = EvaluateAreaLight( light, input.FragmentWorldPos, n, v,
+                    inputs.diffuseColor, inputs.specularEnvironmentR0, inputs.specularEnvironmentR90, inputs.perceptualRoughness );
+                float3 radiance = light.Diffuse.xyz * light.Intensity;
+                contribution = radiance * SurfaceDirect(
+                    area.Diffuse, inputs.diffuseColor, inputs.specularColor, inputs.perceptualRoughness,
+                    n, v, area.Direction, inputs.model, inputs.settings, inputs.bands, visibility, inputs.coatNormal, area.Weight );
+                lightSpecular = radiance * area.Specular;
+            }
+
             // Range, cone and surface-facing tests can eliminate the light.
             // Do not fetch its PCF taps when visibility cannot affect the result.
             if ( any( contribution != float3( 0.0 ) ) || any( lightSpecular != float3( 0.0 ) ) ) {
-                float shadow = stylized ? 1.0 : LightShadow( light, input.FragmentWorldPos, receiverNormal, -input.FragmentViewPos.z );
+                float shadow = stylized ? 1.0 : LightShadow( light, input.FragmentWorldPos, receiverNormal, -input.FragmentViewPos.z, input.ScreenPos.xyz );
                 lightContribution += contribution * shadow;
                 sharpSpecular += lightSpecular * shadow;
             }
@@ -800,7 +830,7 @@ FSOutput main( FSInput input ) {
     }
 
     if ( useRayLighting && parameters.mRayDirect != 0xffffffffu ) {
-        lightContribution = textures2D[parameters.mRayDirect].Load( int3( int2( input.ScreenPos.xy ), 0 ) ).rgb;
+        lightContribution += textures2D[parameters.mRayDirect].Load( int3( int2( input.ScreenPos.xy ), 0 ) ).rgb;
     }
 
     // IBL Contribution

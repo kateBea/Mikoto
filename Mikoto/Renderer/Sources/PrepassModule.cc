@@ -1,4 +1,4 @@
-//    Copyright 2026 ケイト
+//    Copyright 2026 ã‚±ã‚¤ãƒˆ
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -408,8 +408,43 @@ namespace mikoto::renderer {
 
                     break;
                 }
-                // Area emitters need a dedicated rendering path; do not allocate light or shadow slots.
-                case LightType::eAreaLight:
+                case LightType::eAreaLight: {
+                    const auto& area{ lightComp.Get<AreaLight>() };
+
+                    if ( area.GetShape() == AreaLightShape::eMesh || area.GetRange() <= 0 ) {
+                        continue;
+                    }
+
+                    const float3 axisX{ world[0] };
+                    const float3 axisY{ world[1] };
+                    const float lengthX{ glm::length( axisX ) };
+                    const float lengthY{ glm::length( axisY ) };
+                    const float lengthZ{ glm::length( float3{ world[2] } ) };
+                    const float3 cross{ glm::cross( axisX, axisY ) };
+                    const float crossLength{ glm::length( cross ) };
+
+                    if ( lengthX <= 1e-6f || crossLength <= 1e-6f ) {
+                        continue;
+                    }
+
+                    const float3 right{ axisX / lengthX };
+                    const float3 up{ glm::cross( cross / crossLength, right ) };
+                    // Preserve the authored +Z emission side under reflected entity transforms.
+                    const float3 normal{ cross / crossLength * ( glm::determinant( glm::mat3{ world } ) < 0 ? -1.0f : 1.0f ) };
+                    uboLight.mPosition = float4{ position, as<float>( area.GetShape() ) };
+                    uboLight.mDirection = float4{ normal, area.IsTwoSided() ? 1.0f : 0.0f };
+                    uboLight.mDiffuse = float4{ area.GetColor(), 1.0f };
+                    uboLight.mIntensity = area.GetIntensity();
+                    uboLight.mRadius = area.GetRange();
+                    const float sourceScale{ area.GetShape() == AreaLightShape::eTube ?
+                        glm::max( lengthY, lengthZ ) : glm::max( lengthX, glm::max( lengthY, lengthZ ) ) };
+                    uboLight.mPadding = area.GetRadius() * sourceScale;
+                    uboLight.mAreaAxisX = float4{ right, 0.5f * area.GetSize().x * lengthX };
+                    uboLight.mAreaAxisY = float4{ up, 0.5f * area.GetSize().y * glm::abs( glm::dot( axisY, up ) ) };
+                    uboLight.mActiveLightType = as<core::i32>( LightType::eAreaLight );
+                    break;
+                }
+
                 default:
                     continue;
             }
@@ -420,7 +455,7 @@ namespace mikoto::renderer {
 
             const auto type = uboLight.mActiveLightType;
 
-            if ( castsShadows && shadowSlots[type] < kMaxShadowLightsPerType ) {
+            if ( castsShadows && type >= 0 && type < 3 && shadowSlots[type] < kMaxShadowLightsPerType ) {
                 uboLight.mShadowIndex = as<core::i32>( shadowCount++ );
                 uboLight.mShadowSlot = shadowSlots[type]++;
             }

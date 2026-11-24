@@ -192,6 +192,7 @@ namespace mikoto::renderer {
         mState->mRenderPrepass.RegisterGBuffer( *mState->mFrameGraph );
         mState->mShadowMapping.RegisterUploadPass( *mState->mFrameGraph );
         mState->mShadowMapping.RegisterShadowMaps( *mState->mFrameGraph );
+        mState->mShadowMapping.RegisterDirectionalVisibility( *mState->mFrameGraph, mTargetResolution );
         mState->mTerrainGenerationModule.RegisterTerrainGeneration( *mState->mFrameGraph );
 
         const auto* particleSystem{ ParticleSystem::GetPtr() };
@@ -394,16 +395,11 @@ namespace mikoto::renderer {
     auto ForwardRenderer::UpdateRenderRequirements( const scene::Scene* scene ) -> void {
         MKT_BEGIN_PROFILER();
 
-        if ( scene && mMainCamera ) {
-            if ( auto* videos{ video::VideoService::GetPtr() }; videos && videos->IsInitialized() ) {
-                videos->PrepareDecodeWork( *scene );
-                const auto revision{ videos->GetSceneRevision( *scene ) };
+        const auto revision{ mState->mVideoModule.PrepareFrame( mMainCamera ? scene : nullptr ) };
 
-                if ( revision != mVideoRevision ) {
-                    ResetPathAccumulation();
-                    mVideoRevision = revision;
-                }
-            }
+        if ( revision != mVideoRevision ) {
+            ResetPathAccumulation();
+            mVideoRevision = revision;
         }
 
         // Allocate the diffusion working set only for scenes using this model.
@@ -516,11 +512,6 @@ namespace mikoto::renderer {
 
     auto ForwardRenderer::BindSceneToPasses( const scene::Scene* scene ) -> bool {
         MKT_BEGIN_PROFILER();
-
-        if ( scene && mMainCamera ) {
-            mState->mVideoModule.SetScene( *scene );
-            mState->mVideoModule.SetCamera( *mMainCamera );
-        }
 
         if ( !mState->mFrameGraph ) {
             return false;

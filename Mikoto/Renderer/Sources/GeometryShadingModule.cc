@@ -1147,6 +1147,16 @@ namespace mikoto::renderer {
                         builder.UseResource( map, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     }
                 }
+
+                for ( const auto visibility: shadowMapData.mDirectionalVisibility ) {
+                    if ( visibility.mHandle ) {
+                        builder.UseResource( visibility, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    }
+                }
+
+                if ( shadowMapData.mVisibilityDepth.mHandle ) {
+                    builder.UseResource( shadowMapData.mVisibilityDepth, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                }
             },
             [this, pipeline, transparent, subsurface, contour]( CommandContext& ctx, core::Blackboard& blackboard ) -> void {
                 if ( contour && !mGeometryManagement->HasStylizedContours() ) {

@@ -211,6 +211,14 @@ namespace mikoto::renderer {
         return mRadius;
     }
 
+    auto AreaLight::SetRange( float range ) -> void {
+        mRange = eastl::max( range, 0.0f );
+    }
+
+    auto AreaLight::GetRange() const -> float {
+        return mRange;
+    }
+
     auto AreaLight::SetTwoSided( bool twoSided ) -> void {
         mIsTwoSided = twoSided;
     }
@@ -220,7 +228,7 @@ namespace mikoto::renderer {
     }
 
     auto AreaLight::SetShape( AreaLightShape shape ) -> void {
-        mShape = shape <= AreaLightShape::eMesh ? shape : AreaLightShape::eRectangle;
+        mShape = shape <= AreaLightShape::eTube ? shape : AreaLightShape::eRectangle;
     }
 
     auto AreaLight::GetShape() const -> AreaLightShape {

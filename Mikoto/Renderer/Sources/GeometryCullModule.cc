@@ -39,7 +39,7 @@
 #include <Animation/Utility.hh>
 #include <Animation/AnimationSystem.hh>
 
-#include <Video/VideoService.hh>
+#include <Renderer/Video/Video.hh>
 
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryCullModule.hh>
@@ -1426,7 +1426,6 @@ namespace mikoto::renderer {
         }
 
         auto& registry{ mScene->GetRegistry() };
-        auto* videos{ registry.view<scene::VideoComponent>().empty() ? nullptr : video::VideoService::GetPtr() };
         const auto renderables{ registry.view<scene::TagComponent, scene::TransformComponent, scene::MaterialComponent, scene::MeshComponent>() };
         // Reclaim removed/reassigned records before allocation when the table
         // is full. Replacing an entity must not require a spare GPU slot.
@@ -1446,8 +1445,9 @@ namespace mikoto::renderer {
                     mInstanceStates[slot].mLastSeen = mFrame;
                 }
 
-                const auto videoMaterial{ videos && registry.all_of<scene::VideoComponent>( entity )
-                    ? videos->GetMaterialOverride( *mScene, tag.GetGuid() ) : material::MaterialHandle{} };
+                const auto* videoComponent{ registry.try_get<scene::VideoComponent>( entity ) };
+                const auto videoData{ videoComponent ? videoComponent->GetRenderData() : VideoRenderDataHandle{} };
+                const auto videoMaterial{ videoData ? videoData->GetMaterial() : material::MaterialHandle{} };
                 const auto* capture{ registry.try_get<scene::TextureRenderComponent>( entity ) };
                 const auto capturedMaterial{ capture ? capture->GetMaterial() : material::MaterialHandle{} };
                 const auto renderMaterial{ capturedMaterial ? capturedMaterial : videoMaterial ? videoMaterial : material.GetMaterialReference() };
@@ -1543,8 +1543,9 @@ namespace mikoto::renderer {
             }
 
             // Dynamic presentations override rendering while leaving authored material bindings intact.
-            const auto videoMaterial{ videos && registry.all_of<scene::VideoComponent>( entity )
-                ? videos->GetMaterialOverride( *mScene, tagComponent.GetGuid() ) : material::MaterialHandle{} };
+            const auto* videoComponent{ registry.try_get<scene::VideoComponent>( entity ) };
+            const auto videoData{ videoComponent ? videoComponent->GetRenderData() : VideoRenderDataHandle{} };
+            const auto videoMaterial{ videoData ? videoData->GetMaterial() : material::MaterialHandle{} };
             const auto* capture{ registry.try_get<scene::TextureRenderComponent>( entity ) };
             const auto capturedMaterial{ capture ? capture->GetMaterial() : material::MaterialHandle{} };
             const auto renderMaterial{ capturedMaterial ? capturedMaterial : videoMaterial ? videoMaterial : materialComponent.GetMaterialReference() };

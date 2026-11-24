@@ -90,8 +90,6 @@ namespace mikoto::renderer {
 
         auto SetVideoRecording( FGScheduler* scheduler ) -> void;
         auto DecodeVideo( FGVideoHandle handle, const rhi::VideoDecodeDescription& description ) -> void;
-        auto PrepareVideoSampling( rhi::VideoSurfaceHandle surface, rhi::TextureHandle output ) -> void;
-        auto FinishVideoPresentation( rhi::TextureHandle output ) -> void;
 
         auto BeginRender(const RenderBeginDescription & gs ) -> void;
         auto EndRender() -> void;
@@ -206,6 +204,8 @@ namespace mikoto::renderer {
         auto SubmitBarriers(
             const ankerl::unordered_dense::map<FGResourceHandle,
             eastl::pair<eastl::string, FGBarrier>>& barriers ) -> void;
+
+        auto SubmitBarriers( const eastl::vector<eastl::pair<FGResource*, FGBarrier>>& barriers ) -> void;
 
         auto CacheGpuDeviceAddress( FGBufferHandle handle ) -> rhi::DeviceAddress;
 

@@ -428,19 +428,6 @@ namespace mikoto::renderer {
         mCommands->DecodeVideo( description );
     }
 
-    auto CommandContext::PrepareVideoSampling( rhi::VideoSurfaceHandle surface, rhi::TextureHandle output ) -> void {
-        // Transition the complete multi-planar image once; its two plane views share storage.
-        auto image{ surface->GetImage() };
-        mCommands->SetTransition( { image.GetPtr(), rhi::ResourceStates::eShaderResource } );
-        surface->GetLumaImage()->SetResourceState( rhi::ResourceStates::eShaderResource );
-        surface->GetChromaImage()->SetResourceState( rhi::ResourceStates::eShaderResource );
-        mCommands->SetTransition( { output.GetPtr(), rhi::ResourceStates::eUnorderedAccess } );
-    }
-
-    auto CommandContext::FinishVideoPresentation( rhi::TextureHandle output ) -> void {
-        mCommands->SetTransition( { output.GetPtr(), rhi::ResourceStates::eShaderResource } );
-    }
-
     CommandContext::CommandContext( FrameGraphPass* pass, FGResourceManager* resourceManager,
         FrameGraphDescriptorAllocator* descriptorAllocator,
         rhi::PipelineLayoutHandle pipelineLayout, FGStatisticsManager* statsManager )
@@ -625,6 +612,17 @@ namespace mikoto::renderer {
     }
 
     auto CommandContext::SubmitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>>& barriers ) -> void {
+        eastl::vector<eastl::pair<FGResource*, FGBarrier>> resolved{};
+        resolved.reserve( barriers.size() );
+
+        for ( const auto& [resourceID, namedBarrier]: barriers ) {
+            resolved.emplace_back( &mResourceManager->Get( resourceID ), namedBarrier.second );
+        }
+
+        SubmitBarriers( resolved );
+    }
+
+    auto CommandContext::SubmitBarriers( const eastl::vector<eastl::pair<FGResource*, FGBarrier>>& barriers ) -> void {
         MKT_BEGIN_PROFILER();
         RefreshBufferCaches();
 
@@ -642,9 +640,8 @@ namespace mikoto::renderer {
         eastl::fixed_vector<PendingState, 20> pendingStates{};
         pendingStates.reserve( barriers.size() );
 
-        for ( const auto& [resourceID, namedBarrier]: barriers ) {
-            const auto& required{ namedBarrier.second };
-            FGResource& resource{ mResourceManager->Get( resourceID ) };
+        for ( const auto& [entry, required]: barriers ) {
+            FGResource& resource{ *entry };
 
             if ( resource.mType == FGResourceType::eAccelerationStructure || resource.mType == FGResourceType::eVideo ) {
                 // Graph edges order build and trace passes. Native Build records the

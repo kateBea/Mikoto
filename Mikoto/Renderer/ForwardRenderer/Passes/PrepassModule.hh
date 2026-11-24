@@ -67,6 +67,10 @@ namespace mikoto::renderer {
         core::i32 mShadowIndex{ -1 };
         core::u32 mShadowSlot{};
         core::f32 mPadding{};
+
+        // Area basis vectors; w stores half width/length and half height, respectively.
+        core::float4 mAreaAxisX{};
+        core::float4 mAreaAxisY{};
     };
 
     /** Parameters for the normalized sum of successive Perlin noise octaves. */

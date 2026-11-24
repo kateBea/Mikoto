@@ -219,30 +219,30 @@ namespace mikoto::renderer::d3d12 {
         return surface;
     }
 
-    auto VideoDecoder::CreateBitstream( const video::H264Picture& picture ) -> BufferHandle {
-        // DXVA uses three-byte start codes and pads the last slice to 128 bytes.
-        // Drop one leading zero per normalized NAL; offset zero satisfies the input alignment.
-        // https://raw.githubusercontent.com/FFmpeg/FFmpeg/master/libavcodec/dxva2_h264.c (commit_bitstream_and_slice_buffer)
-        const auto bytes{ picture.GetBitstream() };
-        const auto offsets{ picture.GetSliceOffsets() };
-        const usize size{ core::align( bytes.size() - offsets.size(), usize{ 128 } ) };
+    auto VideoDecoder::CreateBitstream( eastl::span<const ubyte> bytes ) -> BufferHandle {
         auto buffer{ mDevice->CreateBuffer( BufferCreateDescription{}
-            .SetName( "D3D12 video bitstream" )
-            .SetByteSize( size )
+            .SetName( "Video clip bitstream" )
+            .SetByteSize( bytes.size() )
             .SetHeapType( HeapType::eUpload )
             .SetCpuAccessType( AccessType::eWrite )
             .SetResourceType( ResourceType::eRawBuffer_SRV )
             .SetBufferUsage( BufferUsageFlagsBits::VideoDecodeSource ) ) };
-        auto* mapped{ static_cast<ubyte*>( mDevice->Map( buffer.GetPtr() ) ) };
-        std::memset( mapped, 0, size );
+        auto* mapped{ mDevice->Map( buffer.GetPtr() ) };
 
-        for ( usize index{}; index < offsets.size(); ++index ) {
-            const usize end{ index + 1 < offsets.size() ? offsets[index + 1] : bytes.size() };
-            std::memcpy( mapped + offsets[index] - index, bytes.data() + offsets[index] + 1, end - offsets[index] - 1 );
+        if ( !mapped ) {
+            MKT_THROW_RUNTIME_ERROR( "Cannot map the video bitstream upload buffer." );
         }
 
+        std::memcpy( mapped, bytes.data(), bytes.size() );
         mDevice->UnMap( buffer.GetPtr() );
         return buffer;
+    }
+
+    auto VideoDecoder::GetBitstreamLayout() const -> VideoBitstreamLayout {
+        // Preserve DXVA's three-byte start codes and 128-byte final-slice padding.
+        // https://raw.githubusercontent.com/FFmpeg/FFmpeg/master/libavcodec/dxva2_h264.c (commit_bitstream_and_slice_buffer)
+        // https://github.com/turanszkij/mini_video/blob/master/mini_video_dx12.cpp
+        return { .mOffsetAlignment = 128, .mSizeAlignment = 128, .mStartCodeSize = 3 };
     }
 
     auto VideoDecoder::MatchesConfiguration( const video::H264Picture& picture ) const -> bool {

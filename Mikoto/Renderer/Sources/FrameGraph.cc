@@ -201,6 +201,18 @@ namespace mikoto::renderer {
         UseResource( handle.mHandle, stage, access, FGResourceType::eVideo );
     }
 
+    auto FGNodeBuilder::UseTextures( FGVideoHandle batch, FGPipelineStage stage, FGResourceAccess access,
+        const eastl::function<void( eastl::vector<rhi::TextureHandle>& )>& resolveTextures ) -> void {
+        if ( !resolveTextures ) {
+            MKT_THROW_INVALID_ARGUMENT( "A runtime texture declaration requires a resolver." );
+        }
+
+        UseResource( batch, stage, access );
+        mGraphNode->mRuntimeTextureUses.push_back( FGRuntimeTextureUse{
+            .mUsage = { .mStages = { stage }, .mAccess = access },
+            .mResolveTextures = resolveTextures } );
+    }
+
     auto FGNodeBuilder::UseResource( FGResourceHandle handle, FGPipelineStage stage, FGResourceAccess access, FGResourceType type ) -> void {
         MKT_BEGIN_PROFILER();
 
@@ -370,6 +382,10 @@ namespace mikoto::renderer {
         mGraphicsRecordedThisFrame = false;
         mVideoRecordedThisFrame = false;
 
+        for ( auto& [texture, entry]: mRuntimeTextures ) {
+            entry->mUsedThisFrame = false;
+        }
+
         // Reset stats
         for ( const auto& [name, node]: mNodeControl->mNodes ) {
             if ( auto* stats = mStatisticsManager->GetNode( name ) ) {
@@ -387,6 +403,17 @@ namespace mikoto::renderer {
         RecordGraphicsCommands();
 
         SubmitRecordedCommands();
+
+        // Keep history for live pictures without retaining every allocation from past seeks.
+        // Native recordings retain the images they reference until their submission completes.
+        for ( auto entry{ mRuntimeTextures.begin() }; entry != mRuntimeTextures.end(); ) {
+            if ( !entry->second->mUsedThisFrame ) {
+                entry = mRuntimeTextures.erase( entry );
+            }
+            else {
+                ++entry;
+            }
+        }
     }
 
     auto FrameGraph::RecordVideoCommands() -> void {
@@ -478,6 +505,7 @@ namespace mikoto::renderer {
             const auto& barriers{ mExecutionPlan->mBarriers.at( passName ) };
             ctx.ResetCallCounts();
             ctx.SubmitBarriers( barriers );
+            SubmitRuntimeTextureBarriers( pass, ctx );
 
             Timer timer{ false };
 
@@ -519,6 +547,64 @@ namespace mikoto::renderer {
 
         mGpuProfiler->EndFrame( *mGraphicsCommands );
         mGraphicsCommands->Close();
+    }
+
+    auto FrameGraph::SubmitRuntimeTextureBarriers( const FrameGraphPass& pass, CommandContext& context ) -> void {
+        if ( pass.mRuntimeTextureUses.empty() ) {
+            return;
+        }
+
+        ankerl::unordered_dense::map<const rhi::ITexture*, FGBarrier> uses{};
+        eastl::vector<rhi::TextureHandle> textures{};
+
+        for ( const auto& declaration: pass.mRuntimeTextureUses ) {
+            textures.clear();
+            declaration.mResolveTextures( textures );
+
+            for ( auto& texture: textures ) {
+                if ( !texture ) {
+                    continue;
+                }
+
+                auto [use, added]{ uses.try_emplace( texture.GetPtr(), FGBarrier{
+                    .mNewStages = declaration.mUsage.mStages,
+                    .mNewAccess = declaration.mUsage.mAccess } ) };
+
+                if ( !added ) {
+                    if ( use->second.mNewAccess != declaration.mUsage.mAccess ||
+                         GetResourceState( use->second.mNewStages.front(), use->second.mNewAccess ) !=
+                             GetResourceState( declaration.mUsage.mStages.front(), declaration.mUsage.mAccess ) ) {
+                        MKT_THROW_RUNTIME_ERROR( "Conflicting runtime texture uses; split the operations into separate passes." );
+                    }
+
+                    for ( const auto stage: declaration.mUsage.mStages ) {
+                        if ( eastl::find( use->second.mNewStages.begin(), use->second.mNewStages.end(), stage ) == use->second.mNewStages.end() ) {
+                            use->second.mNewStages.push_back( stage );
+                        }
+                    }
+                }
+
+                auto& entry{ mRuntimeTextures[texture.GetPtr()] };
+
+                if ( !entry ) {
+                    entry = eastl::make_unique<RuntimeTexture>();
+                    entry->mResource.mResource = texture;
+                    entry->mResource.mType = FGResourceType::eTexture;
+                    entry->mResource.mNeedsRebuild = false;
+                }
+
+                entry->mUsedThisFrame = true;
+            }
+        }
+
+        eastl::vector<eastl::pair<FGResource*, FGBarrier>> barriers{};
+        barriers.reserve( uses.size() );
+
+        for ( const auto& [texture, usage]: uses ) {
+            barriers.emplace_back( &mRuntimeTextures.at( texture )->mResource, usage );
+        }
+
+        context.SubmitBarriers( barriers );
     }
 
     auto FrameGraph::SubmitRecordedCommands() -> void {

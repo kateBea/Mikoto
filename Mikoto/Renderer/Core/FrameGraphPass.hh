@@ -33,6 +33,11 @@
 namespace mikoto::renderer {
     class CommandContext;
 
+    struct FGRuntimeTextureUse {
+        FGResourceTrack mUsage{};
+        eastl::function<void( eastl::vector<rhi::TextureHandle>& )> mResolveTextures{};
+    };
+
     struct FrameGraphPass {
         eastl::string mName{};
         eastl::string mDebugLabel{};
@@ -58,6 +63,7 @@ namespace mikoto::renderer {
         eastl::fixed_vector<eastl::string, kMaxSuccessors> mSuccessors{};
 
         ankerl::unordered_dense::map<FGResourceHandle, FGResourceTrack> mResourceStates{};
+        eastl::vector<FGRuntimeTextureUse> mRuntimeTextureUses{};
 
         core::u32 mInDegree{};
     };

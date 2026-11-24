@@ -158,21 +158,25 @@ namespace mikoto::renderer {
 
     enum class AreaLightShape : core::u8 {
         eRectangle,
-        eMesh
+        eMesh,
+        eSphere,
+        eTube
     };
 
-    // Path tracing only: radiance attached to a rectangle or the entity's mesh hierarchy.
-    // Mesh emitters retain their surface material and emissive texture.
+    // Analytic shapes support raster lighting. Rectangles and mesh hierarchies also
+    // support path tracing; mesh emitters retain their authored emissive textures.
     class AreaLight : public LightObject {
     public:
         explicit AreaLight() = default;
 
         auto SetRadius( float radius ) -> void;
+        auto SetRange( float range ) -> void;
         auto SetTwoSided( bool twoSided ) -> void;
         auto SetSize( const core::float2& size ) -> void;
         auto SetShape( AreaLightShape shape ) -> void;
 
         MKT_NODISCARD auto GetRadius() const -> float;
+        MKT_NODISCARD auto GetRange() const -> float;
         MKT_NODISCARD auto IsTwoSided() const -> bool;
         MKT_NODISCARD auto GetSize() const -> const core::float2&;
         MKT_NODISCARD auto GetShape() const -> AreaLightShape;
@@ -182,6 +186,7 @@ namespace mikoto::renderer {
     private:
         core::float2 mSize{ 1.0f, 1.0f };
         float mRadius{ 0.5f };
+        float mRange{ 10.0f }; // Raster influence distance from the emitting shape, in metres.
 
         bool mIsTwoSided{ false };
         AreaLightShape mShape{ AreaLightShape::eRectangle };

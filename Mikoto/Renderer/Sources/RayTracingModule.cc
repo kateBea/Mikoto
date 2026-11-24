@@ -33,7 +33,7 @@
 #include <Animation/AnimationSystem.hh>
 #include <Animation/SkinningPalette.hh>
 
-#include <Video/VideoService.hh>
+#include <Renderer/Video/Video.hh>
 
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/RayTracing/RayTracing.hh>
@@ -841,7 +841,6 @@ namespace mikoto::renderer {
         }
 
         const auto& registry{ scene.GetRegistry() };
-        auto* videos{ registry.view<scene::VideoComponent>().empty() ? nullptr : video::VideoService::GetPtr() };
 
         for ( const auto [entity, tag, transform, mesh, material]:
             registry.view<scene::TagComponent, scene::TransformComponent, scene::MeshComponent, scene::MaterialComponent>().each() ) {
@@ -850,8 +849,9 @@ namespace mikoto::renderer {
             }
 
             // A camera capture takes precedence over video and the authored material.
-            const auto videoMaterial{ videos && registry.all_of<scene::VideoComponent>( entity )
-                ? videos->GetMaterialOverride( scene, tag.GetGuid() ) : material::MaterialHandle{} };
+            const auto* videoComponent{ registry.try_get<scene::VideoComponent>( entity ) };
+            const auto videoData{ videoComponent ? videoComponent->GetRenderData() : VideoRenderDataHandle{} };
+            const auto videoMaterial{ videoData ? videoData->GetMaterial() : material::MaterialHandle{} };
             const auto* capture{ registry.try_get<scene::TextureRenderComponent>( entity ) };
             const auto capturedMaterial{ capture ? capture->GetMaterial() : material::MaterialHandle{} };
             auto renderMaterial{ capturedMaterial ? capturedMaterial : videoMaterial ? videoMaterial : material.GetMaterialReference() };

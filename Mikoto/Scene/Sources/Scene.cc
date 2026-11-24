@@ -798,6 +798,10 @@ namespace mikoto::scene {
                 item["Radius"] = light.GetRadius();
             }
 
+            if constexpr ( requires { light.GetRange(); } ) {
+                item["Range"] = light.GetRange();
+            }
+
             if constexpr ( requires { light.GetDirection(); } ) {
                 for ( int i = 0; i < 3; ++i ) {
                     item["Direction"].push_back( light.GetDirection()[i] );
@@ -906,11 +910,15 @@ namespace mikoto::scene {
                 if ( const auto shape{ item["Shape"] } ) {
                     const int value{ shape.as<int>() };
 
-                    if ( value < 0 || value > static_cast<int>( renderer::AreaLightShape::eMesh ) ) {
+                    if ( value < 0 || value > static_cast<int>( renderer::AreaLightShape::eTube ) ) {
                         MKT_THROW_RUNTIME_ERROR( "Invalid area light shape." );
                     }
 
                     light.SetShape( static_cast<renderer::AreaLightShape>( value ) );
+                }
+
+                if ( item["Range"] ) {
+                    light.SetRange( scalar( item["Range"] ) );
                 }
 
                 if ( const auto size{ item["Size"] } ) {
@@ -2780,12 +2788,12 @@ namespace mikoto::scene {
 
                     const auto output{ video["OutputMap"].as<core::u32>( 0 ) };
 
-                    if ( output > static_cast<core::u32>( video::OutputMap::eEmissive ) ) {
+                    if ( output > static_cast<core::u32>( renderer::VideoOutputMap::eEmissive ) ) {
                         MKT_THROW_RUNTIME_ERROR( "Invalid video material map." );
                     }
 
                     component.SetPlaybackSettings( settings );
-                    component.SetOutputMap( static_cast<video::OutputMap>( output ) );
+                    component.SetOutputMap( static_cast<renderer::VideoOutputMap>( output ) );
                 }
 
                 if ( const auto capture{ object["TextureRenderComponent"] } ) {
@@ -3659,10 +3667,6 @@ namespace mikoto::scene {
     auto Scene::Clear() -> void {
         MKT_BEGIN_PROFILER();
 
-        if ( auto* videos{ video::VideoService::GetPtr() } ) {
-            videos->ReleaseScene( *this );
-        }
-
         if ( auto* scripting{ scripting::ScriptingService::GetPtr() } ) {
             if ( auto* dotnet{ scripting->GetDotnetScriptingService() } ) {
                 dotnet->Stop( *this );
@@ -3809,8 +3813,8 @@ namespace mikoto::scene {
         }
 
         if ( mSceneState == SceneState::ePlaying ) {
-            if ( auto* videos{ video::VideoService::GetPtr() } ) {
-                videos->ReleaseScene( *this );
+            for ( auto [entity, video]: mRegistry.view<VideoComponent>().each() ) {
+                video.ReleasePlayback();
             }
 
             for ( auto [entity, script]: mRegistry.view<ScriptComponent>().each() ) {
@@ -4034,11 +4038,15 @@ namespace mikoto::scene {
 
         ProcessPendingCommands();
 
-        // Update once per scene: Play advances video; idle and simulation hold a silent poster frame.
-        if ( auto *videovideoServices{ video::VideoService::GetPtr() }; 
-            videovideoServices && videovideoServices->IsInitialized() ) 
-        {
-            videovideoServices->Update( *this, timeStep );
+        // Components register their media player in idle too, allowing silent poster previews.
+        if ( auto* videos{ video::VideoService::GetPtr() }; videos && videos->IsInitialized() ) {
+            videos->Update();
+
+            for ( auto [entity, video, tag]: mRegistry.view<VideoComponent, TagComponent>().each() ) {
+                const auto* transform{ mRegistry.try_get<TransformComponent>( entity ) };
+                const core::float3 position{ transform ? core::float3{ transform->GetWorldTransform()[3] } : core::float3{} };
+                video.UpdatePlayback( timeStep, !IsPlaying(), tag.IsActive(), position );
+            }
         }
 
         if ( mSceneState != SceneState::eIdle ) {

@@ -18,12 +18,11 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <Video/VideoService.hh>
+#include <Renderer/Video/Video.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
 
 #include <Scene/Scene.hh>
-#include <Scene/Camera.hh>
 
 namespace mikoto::renderer {
 
@@ -31,18 +30,24 @@ namespace mikoto::renderer {
 
     class VideoModule final {
     public:
-        auto SetCamera( const scene::Camera& camera ) -> void;
-        auto SetScene( const scene::Scene& scene ) -> void;
+        MKT_NODISCARD auto PrepareFrame( const scene::Scene* scene ) -> core::u64;
         auto RegisterPasses( FrameGraph& graph ) -> void;
 
     private:
+        auto GatherPlaybacks() -> void;
+        auto GatherPresentationTextures( eastl::vector<rhi::TextureHandle>& textures, bool decodedInputs ) const -> void;
+        auto GatherOutputTextures( eastl::vector<rhi::TextureHandle>& textures ) const -> void;
+        auto RecordDecodeWork( CommandContext& context ) -> void;
         auto Present( CommandContext& context ) -> void;
 
     private:
         const scene::Scene* mScene{};
-        const scene::Camera* mCamera{};
+        eastl::vector<VideoRenderDataHandle> mPlaybacks{};
 
+        FGVideoHandle mGathered{};
+        FGVideoHandle mUploaded{};
         FGVideoHandle mDecoded{};
+        FGVideoHandle mConverted{};
         FGVideoHandle mPresented{};
         FGPipelineHandle mPipeline{};
         FGSamplerHandle mSampler{};

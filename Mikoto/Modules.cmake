@@ -30,7 +30,7 @@ set(MIKOTO_RENDERER_REQUIRES Animation Assets ImGui Physics Scene Text)
 set(MIKOTO_SCENE_REQUIRES Animation Assets Audio Material Physics Renderer Scripting Text Video)
 set(MIKOTO_SCRIPTING_REQUIRES Scene)
 set(MIKOTO_TEXT_REQUIRES Renderer)
-set(MIKOTO_VIDEO_REQUIRES Assets Audio Renderer Threading)
+set(MIKOTO_VIDEO_REQUIRES Assets Audio Threading)
 
 # Declare requirements in the consuming application's CMakeLists.txt. The root
 # includes this file and configures applications before add_subdirectory(Mikoto).

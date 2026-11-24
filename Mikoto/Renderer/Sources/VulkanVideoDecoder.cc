@@ -296,52 +296,6 @@ namespace mikoto::renderer::vulkan {
         return mChromaImage;
     }
 
-    VideoBitstream::VideoBitstream( const VkVideoProfileInfoKHR& profile, eastl::span<const ubyte> bytes, VkDeviceSize alignment )
-        : mH264Profile{ *static_cast<const VkVideoDecodeH264ProfileInfoKHR*>( profile.pNext ) }, mProfile{ profile },
-          mBytes{ bytes.begin(), bytes.end() } {
-        mH264Profile.pNext = nullptr;
-        mProfile.pNext = &mH264Profile;
-
-        // Pad the decode range to the device requirement while keeping the tail zeroed.
-        mBytes.resize( static_cast<usize>( ( bytes.size() + alignment - 1 ) / alignment * alignment ), 0 );
-    }
-
-    auto VideoBitstream::Initialize() -> void {
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
-        mBuffer = device->CreateBuffer( BufferCreateDescription{}
-            .SetName( "Video bitstream" )
-            .SetByteSize( mBytes.size() )
-            .SetHeapType( HeapType::eUpload )
-            .SetCpuAccessType( AccessType::eWrite )
-            .SetResourceType( ResourceType::eRawBuffer_SRV )
-            .SetBufferUsage( BufferUsageFlagsBits::VideoDecodeSource ), mProfile );
-
-        // Upload compressed bytes only. Decoded pixels remain on the GPU.
-        auto* mapped{ mDevice->Map( mBuffer.GetPtr() ) };
-
-        if ( !mapped ) {
-            MKT_THROW_RUNTIME_ERROR( "Cannot map the video bitstream upload buffer." );
-        }
-
-        std::memcpy( mapped, mBytes.data(), mBytes.size() );
-        mDevice->UnMap( mBuffer.GetPtr() );
-        mBytes.clear();
-        mIsAllocated = true;
-    }
-
-    auto VideoBitstream::Destroy() -> void {
-        mBuffer.Reset();
-        mIsAllocated = false;
-    }
-
-    VideoBitstream::~VideoBitstream() {
-        Destroy();
-    }
-
-    auto VideoBitstream::GetBuffer() const -> const BufferHandle& {
-        return mBuffer;
-    }
-
     VideoDecoder::VideoDecoder( const VideoDecoderDescription& description )
         : mConfiguration{ description.mConfiguration } {
     }
@@ -357,7 +311,11 @@ namespace mikoto::renderer::vulkan {
 
         mH264Profile = initializers::VideoDecodeH264ProfileInfoKHR();
         mH264Profile.stdProfileIdc = static_cast<StdVideoH264ProfileIdc>( source.profile_idc );
-        mH264Profile.pictureLayout = VK_VIDEO_DECODE_H264_PICTURE_LAYOUT_PROGRESSIVE_KHR;
+        // This profile also accepts progressive frames. Prefer mini_video's layout to
+        // avoid the NVIDIA submit-time crash reproduced with progressive-only sessions.
+        // https://github.com/turanszkij/mini_video/blob/master/mini_video_vulkan.cpp
+        // https://github.khronos.org/Vulkan-Site/features/latest/features/proposals/VK_KHR_video_decode_h264.html#_are_interlaced_frames_supported
+        mH264Profile.pictureLayout = VK_VIDEO_DECODE_H264_PICTURE_LAYOUT_INTERLACED_INTERLEAVED_LINES_BIT_KHR;
 
         mProfile = initializers::VideoProfileInfoKHR();
         mProfile.pNext = &mH264Profile;
@@ -372,7 +330,16 @@ namespace mikoto::renderer::vulkan {
         mCapabilities = initializers::VideoCapabilitiesKHR();
         mCapabilities.pNext = &mDecodeCapabilities;
 
-        MKT_VK_CHECK( vkGetPhysicalDeviceVideoCapabilitiesKHR( device->GetPhysicalDevice()->mPhysicalDevice, &mProfile, &mCapabilities ) );
+        const auto physicalDevice{ device->GetPhysicalDevice()->mPhysicalDevice };
+        auto capabilityResult{ vkGetPhysicalDeviceVideoCapabilitiesKHR( physicalDevice, &mProfile, &mCapabilities ) };
+
+        if ( capabilityResult == VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR ) {
+            // Keep progressive-only implementations usable when interleaved pictures are unavailable.
+            mH264Profile.pictureLayout = VK_VIDEO_DECODE_H264_PICTURE_LAYOUT_PROGRESSIVE_KHR;
+            capabilityResult = vkGetPhysicalDeviceVideoCapabilitiesKHR( physicalDevice, &mProfile, &mCapabilities );
+        }
+
+        MKT_VK_CHECK( capabilityResult );
 
         mExtent = { static_cast<u32>( source.pic_width_in_mbs_minus1 + 1 ) * 16,
             static_cast<u32>( source.pic_height_in_map_units_minus1 + 1 ) * 16 };
@@ -486,10 +453,32 @@ namespace mikoto::renderer::vulkan {
         return surface;
     }
 
-    auto VideoDecoder::CreateBitstream( eastl::span<const ubyte> bytes ) -> Ref<VideoBitstream> {
-        auto stream{ Ref<VideoBitstream>::New( mProfile, bytes, mCapabilities.minBitstreamBufferSizeAlignment ) };
-        static_cast<DeviceObject*>( stream.GetPtr() )->Initialize( mDevice );
-        return stream;
+    auto VideoDecoder::CreateBitstream( eastl::span<const ubyte> bytes ) -> BufferHandle {
+        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto buffer{ device->CreateBuffer( BufferCreateDescription{}
+            .SetName( "Video clip bitstream" )
+            .SetByteSize( bytes.size() )
+            .SetHeapType( HeapType::eUpload )
+            .SetCpuAccessType( AccessType::eWrite )
+            .SetResourceType( ResourceType::eRawBuffer_SRV )
+            .SetBufferUsage( BufferUsageFlagsBits::VideoDecodeSource ), mProfile ) };
+        auto* mapped{ mDevice->Map( buffer.GetPtr() ) };
+
+        if ( !mapped ) {
+            MKT_THROW_RUNTIME_ERROR( "Cannot map the video bitstream upload buffer." );
+        }
+
+        std::memcpy( mapped, bytes.data(), bytes.size() );
+        mDevice->UnMap( buffer.GetPtr() );
+        return buffer;
+    }
+
+    auto VideoDecoder::GetBitstreamLayout() const -> VideoBitstreamLayout {
+        return {
+            .mOffsetAlignment = mCapabilities.minBitstreamBufferOffsetAlignment,
+            .mSizeAlignment = mCapabilities.minBitstreamBufferSizeAlignment,
+            .mStartCodeSize = 4
+        };
     }
 
     auto VideoDecoder::MatchesConfiguration( const video::H264Picture& picture ) const -> bool {

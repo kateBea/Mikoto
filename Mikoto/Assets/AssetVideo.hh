@@ -34,18 +34,21 @@ namespace mikoto::asset {
     public:
         explicit VideoClip( const VideoLoadDescription& description );
 
-        auto GetInfo() const -> const video::ClipInfo&;
-        auto GetPath() const -> const filesystem::Path&;
-        auto GetSamples( video::TrackKind track ) const -> eastl::span<const video::SampleInfo>;
-        auto ReadSample( video::TrackKind track, core::u64 index, video::EncodedPacket& packet ) const -> bool;
-        auto FindRandomAccessSample( core::f64 seconds ) const -> core::u64;
-        auto CanEvict() const -> bool;
-        auto GetResidentMemoryUsage() const -> AssetMemoryUsage;
+        MKT_NODISCARD auto GetInfo() const -> const video::ClipInfo&;
+        MKT_NODISCARD auto GetPath() const -> const filesystem::Path &;
+        MKT_NODISCARD auto GetSamples( video::TrackKind track ) const -> eastl::span<const video::SampleInfo>;
+
+        MKT_NODISCARD auto FindRandomAccessSample( core::f64 seconds ) const -> core::u64;
+        MKT_NODISCARD auto ReadSample( video::TrackKind track, core::u64 index, video::EncodedPacket &packet ) const -> bool;
+
+        MKT_NODISCARD auto CanEvict() const -> bool;
+        MKT_NODISCARD auto GetResidentMemoryUsage() const -> AssetMemoryUsage;
 
     private:
+        video::ClipInfo mInfo{};
         filesystem::Path mPath{};
         eastl::string mSourceBytes{};
-        video::ClipInfo mInfo{};
+
         eastl::vector<video::SampleInfo> mVideoSamples{};
         eastl::vector<video::SampleInfo> mAudioSamples{};
     };

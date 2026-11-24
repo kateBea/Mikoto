@@ -38,6 +38,7 @@ namespace mikoto::video {
         MKT_NODISCARD auto GetSliceOffsets() const -> eastl::span<const core::u32>;
 
         MKT_NODISCARD auto GetBitstream() const -> eastl::span<const core::ubyte>;
+        MKT_NODISCARD auto GetSampleIndex() const -> core::u64;
 
         MKT_NODISCARD auto GetPresentationTime() const -> Timestamp;
 
@@ -55,6 +56,7 @@ namespace mikoto::video {
         eastl::vector<h264::SliceHeader> mSlices{};
         eastl::vector<core::u32> mSliceOffsets{};
         eastl::vector<core::ubyte> mBitstream{};
+        core::u64 mSampleIndex{};
         Timestamp mPresentationTime{};
         Timestamp mDuration{};
         bool mReference{};

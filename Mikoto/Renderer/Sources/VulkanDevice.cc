@@ -1073,6 +1073,12 @@ namespace mikoto::renderer::vulkan {
         mEnabledFeatures.textureCompressionBC = mPhysicalDevice->mFeatures.textureCompressionBC;
         mEnabledFeatures.shaderInt64 = VK_TRUE;
 
+        // Bindless Slang storage images use an unknown SPIR-V image format so one
+        // descriptor array can address R16, R32 and RGBA targets. Enable the supported
+        // formatless-image operations declared by those compute shaders.
+        mEnabledFeatures.shaderStorageImageReadWithoutFormat = mPhysicalDevice->mFeatures.shaderStorageImageReadWithoutFormat;
+        mEnabledFeatures.shaderStorageImageWriteWithoutFormat = mPhysicalDevice->mFeatures.shaderStorageImageWriteWithoutFormat;
+
         // Optional instrumentation must not make devices without these
         // counters fail initialization. The RHI reports the enabled subset.
         mEnabledFeatures.pipelineStatisticsQuery = mPhysicalDevice->mFeatures.pipelineStatisticsQuery;
@@ -1646,13 +1652,19 @@ namespace mikoto::renderer::vulkan {
         auto decoderOwner{ description.mDecoder };
         auto* decoder{ core::checked_cast<VideoDecoder*>( decoderOwner.GetPtr() ) };
 
-        if ( !description.mPicture || !description.mOutput || !description.mReconstruction.mSurface ||
+        if ( !decoder || !description.mPicture || !description.mOutput || !description.mReconstruction.mSurface ||
              !decoder->MatchesConfiguration( *description.mPicture ) ) {
             MKT_THROW_RUNTIME_ERROR( "Video decode operation has missing resources or changed H.264 parameters." );
         }
 
-        auto bitstream{ decoder->CreateBitstream( description.mPicture->GetBitstream() ) };
-        const auto& bitstreamBuffer{ bitstream->GetBuffer() };
+        const auto& bitstreamBuffer{ description.mBitstream };
+        const auto& bitstreamRange{ description.mBitstreamRange };
+
+        if ( !bitstreamBuffer || !bitstreamRange.mByteSize ||
+             bitstreamRange.mByteOffset > bitstreamBuffer->GetSizeBytes() ||
+             bitstreamRange.mByteSize > bitstreamBuffer->GetSizeBytes() - bitstreamRange.mByteOffset ) {
+            MKT_THROW_RUNTIME_ERROR( "Video decode requires an uploaded picture range within the clip bitstream." );
+        }
 
         RetainResource( decoder );
         RetainResource( bitstreamBuffer.GetPtr() );
@@ -1670,6 +1682,7 @@ namespace mikoto::renderer::vulkan {
             const auto& reference{ index == count ? description.mReconstruction : description.mReferences[index] };
             auto image{ reference.mSurface->GetImage() };
             RetainResource( reference.mSurface.GetPtr() );
+
             pictures[index] = initializers::VideoPictureResourceInfoKHR();
             pictures[index].codedExtent = decoder->GetExtent();
             pictures[index].imageViewBinding = image->GetNativeHandle( ObjectType::Vk_ImageView );
@@ -1685,7 +1698,7 @@ namespace mikoto::renderer::vulkan {
             slots[index].pPictureResource = &pictures[index];
         }
 
-        auto begin{ initializers::VideoBeginCodingInfoKHR() };
+        VkVideoBeginCodingInfoKHR begin{ initializers::VideoBeginCodingInfoKHR() };
         begin.videoSession = decoder->GetSession();
         begin.videoSessionParameters = decoder->GetParameters();
         begin.referenceSlotCount = static_cast<u32>( count + 1 );
@@ -1693,12 +1706,13 @@ namespace mikoto::renderer::vulkan {
         vkCmdBeginVideoCodingKHR( mCurrentCommandBuffer, &begin );
 
         if ( description.mResetSession ) {
-            auto reset{ initializers::VideoCodingControlInfoKHR() };
+            VkVideoCodingControlInfoKHR reset{ initializers::VideoCodingControlInfoKHR() };
             reset.flags = VK_VIDEO_CODING_CONTROL_RESET_BIT_KHR;
             vkCmdControlVideoCodingKHR( mCurrentCommandBuffer, &reset );
         }
 
         const auto& slice{ description.mPicture->GetSlices().front() };
+
         StdVideoDecodeH264PictureInfo picture{};
         picture.seq_parameter_set_id = description.mPicture->GetSps().seq_parameter_set_id;
         picture.pic_parameter_set_id = slice.pic_parameter_set_id;
@@ -1708,16 +1722,19 @@ namespace mikoto::renderer::vulkan {
         picture.flags.IdrPicFlag = description.mPicture->IsIdr();
         picture.flags.is_reference = description.mPicture->IsReference();
         picture.flags.is_intra = h264::is_slice_type( slice.slice_type, h264::SH_SLICE_TYPE_I );
-        auto h264Picture{ initializers::VideoDecodeH264PictureInfoKHR() };
+
+        VkVideoDecodeH264PictureInfoKHR h264Picture{ initializers::VideoDecodeH264PictureInfoKHR() };
         h264Picture.pStdPictureInfo = &picture;
         h264Picture.sliceCount = static_cast<u32>( description.mPicture->GetSlices().size() );
         h264Picture.pSliceOffsets = description.mPicture->GetSliceOffsets().data();
 
         auto output{ description.mOutput->GetImage() };
-        auto decode{ initializers::VideoDecodeInfoKHR() };
+
+        VkVideoDecodeInfoKHR decode{ initializers::VideoDecodeInfoKHR() };
         decode.pNext = &h264Picture;
         decode.srcBuffer = bitstreamBuffer->GetNativeHandle( ObjectType::Vk_Buffer );
-        decode.srcBufferRange = bitstreamBuffer->GetSizeBytes();
+        decode.srcBufferOffset = bitstreamRange.mByteOffset;
+        decode.srcBufferRange = bitstreamRange.mByteSize;
         decode.dstPictureResource = initializers::VideoPictureResourceInfoKHR();
         decode.dstPictureResource.codedExtent = decoder->GetExtent();
         decode.dstPictureResource.imageViewBinding = output->GetNativeHandle( ObjectType::Vk_ImageView );
@@ -1728,6 +1745,7 @@ namespace mikoto::renderer::vulkan {
 
         decode.referenceSlotCount = static_cast<u32>( count );
         decode.pReferenceSlots = count ? slots.data() : nullptr;
+
         auto setup{ slots[count] };
         setup.slotIndex = static_cast<i32>( description.mReconstruction.mSlot );
         decode.pSetupReferenceSlot = &setup;

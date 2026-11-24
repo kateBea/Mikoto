@@ -14,6 +14,7 @@
 
 #include "base/Camera_Helpers.slang"
 #include "base/LightInfo.slang"
+#include "base/AreaLighting_Helpers.slang"
 #include "base/Water_Helpers.slang"
 #include "base/Tonemap_Helpers.slang"
 
@@ -134,6 +135,14 @@ float4 main( WaterVaryings input ) : SV_Target0 {
     BufferReference<LightInfo> lights = (BufferReference<LightInfo>)parameters.lights;
     for ( uint i = 0; i < parameters.lightCount; ++i ) {
         LightInfo light = lights[i];
+        if ( light.ActiveLightType == LIGHT_TYPE_AREA ) {
+            AreaSurfaceLighting area = EvaluateAreaLight( light, input.worldPosition, n, v,
+                tint * ( 1.0 - transmission ), float3( f0 ), float3( 1.0 ), roughness );
+            float3 radiance = light.Diffuse.xyz * light.Intensity;
+            color += radiance * ( area.Diffuse + area.Specular );
+            foamLighting += radiance * SampleAreaLight( light, input.worldPosition, n, v, roughness ).Irradiance / PI_Value;
+            continue;
+        }
         if ( light.ActiveLightType < 0 || light.ActiveLightType > LIGHT_TYPE_SPOT ) { continue; }
         float3 l;
         float attenuation = 1;

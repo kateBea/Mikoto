@@ -84,7 +84,8 @@ namespace mikoto::renderer::d3d12 {
         MKT_NODISCARD auto GetHeap() const -> ID3D12VideoDecoderHeap*;
         MKT_NODISCARD auto GetColorSpace() const -> DXGI_COLOR_SPACE_TYPE;
         MKT_NODISCARD auto MatchesConfiguration( const video::H264Picture& picture ) const -> bool;
-        MKT_NODISCARD auto CreateBitstream( const video::H264Picture& picture ) -> rhi::BufferHandle;
+        MKT_NODISCARD auto CreateBitstream( eastl::span<const core::ubyte> bytes ) -> rhi::BufferHandle override;
+        MKT_NODISCARD auto GetBitstreamLayout() const -> rhi::VideoBitstreamLayout override;
         MKT_NODISCARD auto NextFeedbackNumber() -> core::u32;
         ~VideoDecoder() override;
 

@@ -31,6 +31,7 @@
 
 #include <Assets/ShaderLibrary.hh>
 
+#include <Renderer/Video/Video.hh>
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/RenderContext.hh>
@@ -65,6 +66,8 @@ namespace mikoto::renderer {
         auto BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void;
 
         auto PrepareFrame() -> void;
+        MKT_NODISCARD auto AcquireVideoBitstream( const core::Ref<asset::VideoClip>& clip,
+            rhi::IVideoDecoder* decoder ) -> core::Ref<VideoBitstream>;
         auto SubmitFrame() -> void;
 
         // Request presentation to the submitted window if any
@@ -99,6 +102,7 @@ namespace mikoto::renderer {
         renderer::rhi::RefreshRate mRefreshRate{ renderer::rhi::RefreshRate::eSync };
 
         eastl::unique_ptr<RenderContext> mContext{};
+        ankerl::unordered_dense::map<const asset::VideoClip*, core::Ref<VideoBitstream>> mVideoBitstreams{};
         eastl::unique_ptr<imgui::ImGuiService> mImguiService{};
 
         // Shared Slang object graphs are non-reentrant. Every leased slot owns

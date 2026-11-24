@@ -24,6 +24,7 @@
 #include <Logging/Logger.hh>
 
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
 #include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
 #include <Renderer/ForwardRenderer/Passes/ShadowMappingModule.hh>
 
@@ -204,6 +205,164 @@ namespace mikoto::renderer {
             } );
     }
 
+    auto ShadowMappingModule::RegisterDirectionalVisibility( FrameGraph& graph, rhi::RenderResolution resolution ) -> void {
+        // Tardif's screen-space soft-shadow chain, adapted to compute passes and one
+        // visibility image per directional light so shadowing never darkens IBL or other lights.
+        // https://alextardif.com/shadowmapping.html
+        const auto dimensions{ InferDimensions( resolution ) };
+        const core::u32 imageWidth{ as<core::u32>( dimensions.first ) };
+        const core::u32 imageHeight{ as<core::u32>( dimensions.second ) };
+        const auto pipeline{ graph.Create( FGPipelineDescription{}
+            .SetName( "ShadowMaps_VisibilityPipeline" )
+            .SetPipelineType( rhi::PipelineType::eCompute )
+            .PushShader( "ShadowVisibility_Comp.slang", FGStageType::eCompute ) ) };
+
+        enum class VisibilityStage : core::u32 {
+            eEvaluate,
+            eDownsample,
+            eBlurHorizontal,
+            eBlurVertical,
+            eUpsample,
+            eCopyDepth
+        };
+
+        struct VisibilityParameters {
+            core::u64 mCamera{};
+            core::u32 mRecords{};
+            core::u32 mRecord{};
+            core::u32 mDepth{};
+            core::u32 mInput{ ~core::u32{} };
+            core::u32 mOutput{};
+            core::u32 mStage{};
+            core::float3 mToLight{};
+            core::u32 mRawVisibility{ ~core::u32{} };
+        };
+
+        const eastl::array<core::cstr, 5> stageNames{
+            "Visibility", "Downsample", "BlurHorizontal", "BlurVertical", "Upsample"
+        };
+        auto& shadows{ graph.GetOrCreate<ShadowMapInfo>() };
+
+        // Keep a sampled receiver-depth snapshot separate from the later read-only
+        // depth attachment. Material passes can then sample it without changing that attachment's layout.
+        shadows.mVisibilityDepth = graph.Create( FGTextureDescription{}
+            .SetName( "ShadowMaps_ReceiverDepth" )
+            .SetWidth( imageWidth )
+            .SetHeight( imageHeight )
+            .SetFormat( rhi::Format::eR32_FLOAT )
+            .SetUsage( rhi::TextureUsageFlagsBits::ShaderResource | rhi::TextureUsageFlagsBits::UnorderedAccess ) );
+
+        graph.RegisterPass(
+            "ShadowMaps_ReceiverDepth",
+            FGPassType::eCompute,
+            []( FGNodeBuilder& builder, core::Blackboard& b ) {
+                builder.UseResource( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+                builder.UseResource( b.Get<ShadowMapInfo>().mVisibilityDepth, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
+                builder.UseResource( b.Get<ShadowMapInfo>().mRecordsBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+            },
+            [this, pipeline, imageWidth, imageHeight]( CommandContext& ctx, core::Blackboard& b ) {
+                const auto& data{ b.Get<ShadowMapInfo>() };
+
+                if ( !mSoftShadowsEnabled || eastl::all_of( data.mDirectionalRecords.begin(), data.mDirectionalRecords.end(),
+                    []( core::u32 record ) { return record == ~core::u32{}; } ) ) {
+                    return;
+                }
+
+                const VisibilityParameters parameters{
+                    .mDepth = ctx.PushTexture_SRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ),
+                    .mOutput = ctx.PushTexture_UAV( data.mVisibilityDepth ),
+                    .mStage = as<core::u32>( VisibilityStage::eCopyDepth )
+                };
+                ctx.BindPipeline( pipeline );
+                ctx.PushConstants( parameters );
+                ctx.Dispatch( ( imageWidth + 7 ) / 8, ( imageHeight + 7 ) / 8, 1 );
+            } );
+
+        for ( core::u32 light{}; light < kMaxShadowLightsPerType; ++light ) {
+            eastl::array<FGTextureHandle, 5> images{};
+
+            for ( core::u32 index{}; index < images.size(); ++index ) {
+                const bool fullResolution{ index == 0 || index == 4 };
+                const core::u32 width{ fullResolution ? imageWidth : ( imageWidth + 1 ) / 2 };
+                const core::u32 height{ fullResolution ? imageHeight : ( imageHeight + 1 ) / 2 };
+                images[index] = graph.Create( FGTextureDescription{}
+                    .SetName( string::Format( "ShadowMaps_{}_{}", stageNames[index], light ) )
+                    .SetWidth( width )
+                    .SetHeight( height )
+                    .SetFormat( rhi::Format::eR16_FLOAT )
+                    .SetUsage( rhi::TextureUsageFlagsBits::ShaderResource | rhi::TextureUsageFlagsBits::UnorderedAccess ) );
+            }
+
+            shadows.mDirectionalVisibility[light] = images.back();
+
+            for ( core::u32 index{}; index < images.size(); ++index ) {
+                const auto stage{ static_cast<VisibilityStage>( index ) };
+                const auto output{ images[index] };
+                const auto input{ index ? images[index - 1] : FGTextureHandle{} };
+                const auto raw{ images.front() };
+                const bool fullResolution{ index == 0 || index == 4 };
+                const core::u32 width{ fullResolution ? imageWidth : ( imageWidth + 1 ) / 2 };
+                const core::u32 height{ fullResolution ? imageHeight : ( imageHeight + 1 ) / 2 };
+
+                graph.RegisterPass(
+                    string::Format( "ShadowMaps_{}_{}", stageNames[index], light ),
+                    FGPassType::eCompute,
+                    [stage, light, input, raw, output]( FGNodeBuilder& builder, core::Blackboard& b ) {
+                        const auto& data{ b.Get<ShadowMapInfo>() };
+                        builder.UseResource( b.Get<CameraModuleInfo>().mCameraData, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+                        builder.UseResource( data.mVisibilityDepth, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+                        builder.UseResource( output, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
+
+                        if ( stage == VisibilityStage::eEvaluate ) {
+                            builder.UseResource( data.mRecordsBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+
+                            for ( const auto map: data.mDirectional[light] ) {
+                                if ( map.mHandle ) {
+                                    builder.UseResource( map, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+                                }
+                            }
+                        }
+                        else {
+                            builder.UseResource( input, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+
+                            if ( stage == VisibilityStage::eUpsample ) {
+                                builder.UseResource( raw, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+                            }
+                        }
+                    },
+                    [this, stage, light, input, raw, output, pipeline, width, height]( CommandContext& ctx, core::Blackboard& b ) {
+                        const auto& data{ b.Get<ShadowMapInfo>() };
+
+                        if ( !mSoftShadowsEnabled || data.mDirectionalRecords[light] == ~core::u32{} ) {
+                            return;
+                        }
+
+                        VisibilityParameters parameters{
+                            .mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
+                            .mRecords = ctx.PushBuffer_SRV( data.mRecordsBuffer ),
+                            .mRecord = data.mDirectionalRecords[light],
+                            .mDepth = ctx.PushTexture_SRV( data.mVisibilityDepth ),
+                            .mOutput = ctx.PushTexture_UAV( output ),
+                            .mStage = as<core::u32>( stage ),
+                            .mToLight = data.mDirectionalToLight[light]
+                        };
+
+                        if ( input.mHandle ) {
+                            parameters.mInput = ctx.PushTexture_SRV( input );
+                        }
+
+                        if ( stage == VisibilityStage::eUpsample ) {
+                            parameters.mRawVisibility = ctx.PushTexture_SRV( raw );
+                        }
+
+                        ctx.BindPipeline( pipeline );
+                        ctx.PushConstants( parameters );
+                        ctx.Dispatch( ( width + 7 ) / 8, ( height + 7 ) / 8, 1 );
+                    } );
+            }
+        }
+    }
+
     auto ShadowMappingModule::UploadShadowMaps( CommandContext& ctx, core::Blackboard& b ) -> void {
         MKT_BEGIN_PROFILER();
 
@@ -213,6 +372,7 @@ namespace mikoto::renderer {
         mViews.clear();
         mShadowCommands.clear();
         shadows.mRecordCount = 0;
+        shadows.mDirectionalRecords.fill( ~core::u32{} );
         mDiagnostics = {};
 
         if ( !mScene || !lights.mCpuLights ) {
@@ -250,7 +410,7 @@ namespace mikoto::renderer {
                     continue;
                 }
 
-                const auto cascades = BuildDirectionalCascades( glm::inverse( mCamera->GetProjection() * mCamera->GetViewMatrix() ),
+                const auto cascades = BuildDirectionalCascades( glm::inverse( mCamera->GetProjection() ), glm::inverse( mCamera->GetViewMatrix() ),
                     mCamera->GetNearPlane(), mCamera->GetFarPlane(), core::float3( light.mDirection ),
                     mDirectionalSize, mCascadesDistance );
                 record.mCascadeSplits = cascades.splits;
@@ -260,6 +420,14 @@ namespace mikoto::renderer {
                 // cascade in the shader so padded light depth ranges cannot
                 // turn a small precision offset into detached car-sized gaps.
                 record.mBias = { .002f, .008f, 0, 0 };
+                shadows.mDirectionalRecords[slot] = id;
+                shadows.mDirectionalToLight[slot] = -core::float3{ light.mDirection };
+
+                // Cascades occupy slots 0..3. The remaining directional-only slots
+                // publish the filtered visibility and its receiver depth without enlarging draw constants.
+                const auto visibility{ shadows.mDirectionalVisibility[slot] };
+                record.mTextureIDs[4] = mSoftShadowsEnabled && visibility.mHandle ? ctx.PushTexture_SRV( visibility ) : ~core::u32{};
+                record.mTextureIDs[5] = visibility.mHandle ? ctx.PushTexture_SRV( shadows.mVisibilityDepth ) : ~core::u32{};
 
                 for ( core::u32 face = 0; face < mDirectionalCascadeCount; ++face ) {
                     record.mViewProjection[face] = cascades.matrices[face];
@@ -414,7 +582,9 @@ namespace mikoto::renderer {
         return glm::perspectiveRH_ZO( angle * 2, 1.0f, nearPlane, farPlane ) * LightView( position, direction );
     }
 
-    auto ShadowMappingModule::BuildDirectionalCascades( const core::float4x4& inverseViewProjection, core::f32 nearPlane, core::f32 farPlane, core::float3 direction, core::u32 resolution, core::f32 distance ) -> DirectionalCascadeData {
+    auto ShadowMappingModule::BuildDirectionalCascades( const core::float4x4& inverseProjection,
+        const core::float4x4& inverseView, core::f32 nearPlane, core::f32 farPlane,
+        core::float3 direction, core::u32 resolution, core::f32 distance ) -> DirectionalCascadeData {
         MKT_BEGIN_PROFILER();
         DirectionalCascadeData result;
         nearPlane = eastl::max( nearPlane, 1e-4f );
@@ -430,10 +600,13 @@ namespace mikoto::renderer {
         for ( int i = 0; i < 4; ++i ) {
             const core::f32 x = ( i & 1 ) ? 1.0f : -1.0f;
             const core::f32 y = ( i & 2 ) ? 1.0f : -1.0f;
-            const auto a = inverseViewProjection * core::float4{ x, y, 0, 1 };
-            const auto b = inverseViewProjection * core::float4{ x, y, 1, 1 };
+            const auto a = inverseProjection * core::float4{ x, y, 0, 1 };
+            // An interior depth avoids the near-zero homogeneous w of very distant far planes.
+            const auto b = inverseProjection * core::float4{ x, y, 0.5f, 1 };
             nearCorners[i] = core::float3( a ) / a.w;
-            farCorners[i] = core::float3( b ) / b.w;
+            const core::float3 interior{ core::float3( b ) / b.w };
+            const core::float3 ray{ interior - nearCorners[i] };
+            farCorners[i] = nearCorners[i] + ray * ( ( -farPlane - nearCorners[i].z ) / ray.z );
         }
 
         // Fit each split in light space, with overlap for cross-cascade blending.
@@ -464,24 +637,36 @@ namespace mikoto::renderer {
                 radius = eastl::max( radius, glm::length( corner - center ) );
             }
 
-            // Quantize size and translation to stabilize the projection as the camera moves.
+            // Tardif's stable sphere footprint. Radius is measured before the camera's
+            // world transform, so a camera orbit cannot resize the orthographic footprint.
+            // https://alextardif.com/shadowmapping.html
+            // https://therealmjp.github.io/posts/shadow-maps/
             radius = eastl::max( .1f, glm::ceil( radius * 16.0f ) / 16.0f );
-            const core::f32 texel = 2 * radius / eastl::max( resolution, 1u );
-            const auto lightCenter = core::float3( rotation * core::float4( center, 1 ) );
-            const core::f32 x = glm::floor( lightCenter.x / texel ) * texel;
-            const core::f32 y = glm::floor( lightCenter.y / texel ) * texel;
+            const core::f32 mapSize{ as<core::f32>( eastl::max( resolution, 4u ) ) };
+            // Reserve one texel around the fitted sphere BEFORE computing the snap grid.
+            // Padding afterward would make the snap interval differ from the actual texel width.
+            radius *= mapSize / ( mapSize - 2.0f );
+            const core::f32 texel = 2 * radius / mapSize;
+            const auto lightCenter = core::float3( rotation * inverseView * core::float4( center, 1 ) );
+            const core::f32 x = glm::round( lightCenter.x / texel );
+            const core::f32 y = glm::round( lightCenter.y / texel );
             core::f32 zMin = eastl::numeric_limits<core::f32>::max();
             core::f32 zMax = -zMin;
 
             for ( const auto& corner: corners ) {
-                const core::f32 z = ( rotation * core::float4( corner, 1 ) ).z;
+                const core::f32 z = ( rotation * inverseView * core::float4( corner, 1 ) ).z;
                 zMin = eastl::min( zMin, z );
                 zMax = eastl::max( zMax, z );
             }
 
             // Include casters upstream of the receiver slice, including off-screen geometry.
             const core::f32 padding = eastl::max( distance, 10.0f );
-            result.matrices[cascade] = glm::orthoRH_ZO( x - radius - texel, x + radius + texel, y - radius - texel, y + radius + texel, -zMax - padding, -zMin + padding ) * rotation;
+            // Centered bounds avoid cancellation in (x + radius) - (x - radius)
+            // far from the origin. Apply the snapped translation directly in NDC.
+            auto projection{ glm::orthoRH_ZO( -radius, radius, -radius, radius, -zMax - padding, -zMin + padding ) };
+            projection[3].x = -2.0f * x / mapSize;
+            projection[3].y = -2.0f * y / mapSize;
+            result.matrices[cascade] = projection * rotation;
             previous = split;
         }
 

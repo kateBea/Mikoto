@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Viewer teal",
+  "Material": {
+    "BaseColorFactor": [
+      0.09,
+      0.38,
+      0.35,
+      1
+    ],
+    "RoughnessFactor": 0.58
+  }
+}

@@ -1,0 +1,471 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "Mikoto video house display patches"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "Living room 16 by 9 display"
+    },
+    {
+      "mesh": 1,
+      "name": "Curved retro television letterboxed display"
+    },
+    {
+      "mesh": 2,
+      "name": "Curved monitor black bars"
+    },
+    {
+      "mesh": 3,
+      "name": "Curved monitor 16 by 9 display"
+    },
+    {
+      "mesh": 4,
+      "name": "Desktop monitor black bars"
+    },
+    {
+      "mesh": 5,
+      "name": "Desktop monitor 16 by 9 display"
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "DisplayPatches.bin",
+      "byteLength": 29088
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 144,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 144,
+      "byteLength": 144,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 288,
+      "byteLength": 96,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 384,
+      "byteLength": 1548,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1932,
+      "byteLength": 1548,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 3480,
+      "byteLength": 1032,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 4512,
+      "byteLength": 2592,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 7104,
+      "byteLength": 2592,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 9696,
+      "byteLength": 1728,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 11424,
+      "byteLength": 1728,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 13152,
+      "byteLength": 1728,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 14880,
+      "byteLength": 1152,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 16032,
+      "byteLength": 2304,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 18336,
+      "byteLength": 2304,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 20640,
+      "byteLength": 1536,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 22176,
+      "byteLength": 2592,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 24768,
+      "byteLength": 2592,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 27360,
+      "byteLength": 1728,
+      "target": 34962
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 12,
+      "type": "VEC3",
+      "min": [
+        2.00000001490116,
+        -0.9943749970932094,
+        0.002999956573289576
+      ],
+      "max": [
+        3.099999954551458,
+        -0.37562503103991673,
+        0.0030000421599858523
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 12,
+      "type": "VEC3",
+      "min": [
+        0.0,
+        -1.383219409641215e-07,
+        0.9999999999999903
+      ],
+      "max": [
+        0.0,
+        -1.383219409641215e-07,
+        0.9999999999999903
+      ]
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 12,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 129,
+      "type": "VEC3",
+      "min": [
+        -0.27400331029338004,
+        0.14294379319338785,
+        0.06911108390421905
+      ],
+      "max": [
+        0.1875781458509478,
+        0.402549700368094,
+        0.12493928790092917
+      ]
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5126,
+      "count": 129,
+      "type": "VEC3",
+      "min": [
+        -0.18654141346086967,
+        -0.22388032915685735,
+        0.7793432818148011
+      ],
+      "max": [
+        0.6247312850445031,
+        0.22123992825965974,
+        0.9917681115749324
+      ]
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5126,
+      "count": 129,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5126,
+      "count": 216,
+      "type": "VEC3",
+      "min": [
+        -0.7178975899658905,
+        0.12650060448059885,
+        -0.02894528750525973
+      ],
+      "max": [
+        0.4395194013558136,
+        0.47379840961831216,
+        0.10552529696495348
+      ]
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5126,
+      "count": 216,
+      "type": "VEC3",
+      "min": [
+        -0.23736829217738648,
+        0.1686851697767836,
+        0.9566616837518377
+      ],
+      "max": [
+        0.23736829217738648,
+        0.17364816254873625,
+        0.9848077556779535
+      ]
+    },
+    {
+      "bufferView": 8,
+      "componentType": 5126,
+      "count": 216,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 9,
+      "componentType": 5126,
+      "count": 144,
+      "type": "VEC3",
+      "min": [
+        -0.4402836518597062,
+        0.12676069086539885,
+        -0.027470264190876708
+      ],
+      "max": [
+        0.1619054632496293,
+        0.46430422354466694,
+        0.051681094428220185
+      ]
+    },
+    {
+      "bufferView": 10,
+      "componentType": 5126,
+      "count": 144,
+      "type": "VEC3",
+      "min": [
+        -0.11591629690393546,
+        0.17247747578741582,
+        0.9781691363181053
+      ],
+      "max": [
+        0.11591629690393529,
+        0.17364816254873625,
+        0.9848077556779535
+      ]
+    },
+    {
+      "bufferView": 11,
+      "componentType": 5126,
+      "count": 144,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 12,
+      "componentType": 5126,
+      "count": 192,
+      "type": "VEC3",
+      "min": [
+        0.5611925423145294,
+        0.11552003026008606,
+        0.019093502998352052
+      ],
+      "max": [
+        1.2727578580379486,
+        0.4546426236629486,
+        0.019093502998352052
+      ]
+    },
+    {
+      "bufferView": 13,
+      "componentType": 5126,
+      "count": 192,
+      "type": "VEC3",
+      "min": [
+        0.0,
+        -0.0,
+        1.0
+      ],
+      "max": [
+        0.0,
+        -0.0,
+        1.0
+      ]
+    },
+    {
+      "bufferView": 14,
+      "componentType": 5126,
+      "count": 192,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 15,
+      "componentType": 5126,
+      "count": 216,
+      "type": "VEC3",
+      "min": [
+        0.61553289492925,
+        0.11552003026008606,
+        0.02059350299835205
+      ],
+      "max": [
+        1.218417505423228,
+        0.4546426236629486,
+        0.02059350299835205
+      ]
+    },
+    {
+      "bufferView": 16,
+      "componentType": 5126,
+      "count": 216,
+      "type": "VEC3",
+      "min": [
+        0.0,
+        -0.0,
+        1.0
+      ],
+      "max": [
+        0.0,
+        -0.0,
+        1.0
+      ]
+    },
+    {
+      "bufferView": 17,
+      "componentType": 5126,
+      "count": 216,
+      "type": "VEC2"
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Living room 16 by 9 display",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Curved retro television letterboxed display",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 3,
+            "NORMAL": 4,
+            "TEXCOORD_0": 5
+          },
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Curved monitor black bars",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 6,
+            "NORMAL": 7,
+            "TEXCOORD_0": 8
+          },
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Curved monitor 16 by 9 display",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 9,
+            "NORMAL": 10,
+            "TEXCOORD_0": 11
+          },
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Desktop monitor black bars",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 12,
+            "NORMAL": 13,
+            "TEXCOORD_0": 14
+          },
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Desktop monitor 16 by 9 display",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 15,
+            "NORMAL": 16,
+            "TEXCOORD_0": 17
+          },
+          "mode": 4
+        }
+      ]
+    }
+  ]
+}

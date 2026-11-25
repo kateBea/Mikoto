@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town paving joints",
+  "Material": {
+    "BaseColorFactor": [
+      0.22,
+      0.25,
+      0.26,
+      1
+    ],
+    "RoughnessFactor": 0.98
+  }
+}

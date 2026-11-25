@@ -1,0 +1,103 @@
+{
+  "ParticleEffect": {
+    "Version": 1,
+    "Emitters": [
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 96,
+          "BurstCount": 6,
+          "Seed": 1301,
+          "EmissionRate": 4.0,
+          "Lifetime": 6.0,
+          "LifetimeVariation": 0.12,
+          "Speed": 0.35,
+          "SpeedVariation": 0.3,
+          "Radius": 0.7,
+          "ConeAngle": 30,
+          "Direction": [
+            0,
+            -1,
+            0
+          ],
+          "Acceleration": [
+            0.09,
+            -0.12,
+            0.035
+          ],
+          "Drag": 0.17,
+          "Duration": 12,
+          "StartSize": 0.25,
+          "EndSize": 0.2,
+          "StartColor": [
+            1,
+            1,
+            1,
+            0.92
+          ],
+          "EndColor": [
+            1,
+            1,
+            1,
+            0.92
+          ],
+          "AngularSpeed": 1.5,
+          "Softness": 0.03,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.07,
+          "FadeOut": 0.3
+        },
+        "MaterialPath": "../Materials/Lemon leaf billboard.mktmtl"
+      },
+      {
+        "Settings": {
+          "Version": 1,
+          "MaxParticles": 96,
+          "BurstCount": 6,
+          "Seed": 1302,
+          "EmissionRate": 4.0,
+          "Lifetime": 6.0,
+          "LifetimeVariation": 0.12,
+          "Speed": 0.35,
+          "SpeedVariation": 0.3,
+          "Radius": 0.7,
+          "ConeAngle": 30,
+          "Direction": [
+            0,
+            -1,
+            0
+          ],
+          "Acceleration": [
+            0.09,
+            -0.12,
+            0.035
+          ],
+          "Drag": 0.17,
+          "Duration": 12,
+          "StartSize": 0.2,
+          "EndSize": 0.16,
+          "StartColor": [
+            1,
+            0.82,
+            0.48,
+            0.9
+          ],
+          "EndColor": [
+            1,
+            0.82,
+            0.48,
+            0.9
+          ],
+          "AngularSpeed": -1.2,
+          "Softness": 0.03,
+          "Looping": true,
+          "FadeEnabled": true,
+          "FadeIn": 0.07,
+          "FadeOut": 0.3
+        },
+        "MaterialPath": "../Materials/Lemon leaf billboard.mktmtl"
+      }
+    ]
+  }
+}

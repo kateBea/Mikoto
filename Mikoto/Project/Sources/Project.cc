@@ -146,6 +146,19 @@ namespace mikoto::project {
         out << YAML::Key << "PathMaxBounces" << YAML::Value << settings.mRayTracing.mPathMaxBounces;
         out << YAML::Key << "PathMaxSamples" << YAML::Value << settings.mRayTracing.mPathMaxSamples;
 
+        out << YAML::Key << "ScreenSpaceReflections" << YAML::Value << YAML::BeginMap;
+        out << YAML::Key << "Enabled" << YAML::Value << settings.mScreenSpaceReflections.mEnabled;
+        out << YAML::Key << "HalfResolution" << YAML::Value << settings.mScreenSpaceReflections.mHalfResolution;
+        out << YAML::Key << "MaxSteps" << YAML::Value << settings.mScreenSpaceReflections.mMaxSteps;
+        out << YAML::Key << "SpatialSamples" << YAML::Value << settings.mScreenSpaceReflections.mSpatialSamples;
+        out << YAML::Key << "MaxDistance" << YAML::Value << settings.mScreenSpaceReflections.mMaxDistance;
+        out << YAML::Key << "Thickness" << YAML::Value << settings.mScreenSpaceReflections.mThickness;
+        out << YAML::Key << "MaxRoughness" << YAML::Value << settings.mScreenSpaceReflections.mMaxRoughness;
+        out << YAML::Key << "HistoryWeight" << YAML::Value << settings.mScreenSpaceReflections.mHistoryWeight;
+        out << YAML::Key << "SamplingBias" << YAML::Value << settings.mScreenSpaceReflections.mSamplingBias;
+        out << YAML::Key << "Intensity" << YAML::Value << settings.mScreenSpaceReflections.mIntensity;
+        out << YAML::EndMap;
+
         // Persist display effects independently of the lighting technique.
         out << YAML::Key << "SsaoEnabled" << YAML::Value << settings.mSsaoEnabled;
         out << YAML::Key << "SsaoIntensity" << YAML::Value << settings.mSsaoIntensity;
@@ -203,6 +216,21 @@ namespace mikoto::project {
         settings.mRayTracing.mPathSamplesPerFrame = node["PathSamplesPerFrame"].as<unsigned>( settings.mRayTracing.mPathSamplesPerFrame );
         settings.mRayTracing.mPathMaxBounces = node["PathMaxBounces"].as<unsigned>( settings.mRayTracing.mPathMaxBounces );
         settings.mRayTracing.mPathMaxSamples = node["PathMaxSamples"].as<unsigned>( settings.mRayTracing.mPathMaxSamples );
+
+        // Optional for existing projects; hardware RT and path tracing retain precedence.
+        if ( const auto reflections{ node["ScreenSpaceReflections"] }; reflections && reflections.IsMap() ) {
+            auto& values{ settings.mScreenSpaceReflections };
+            values.mEnabled = reflections["Enabled"].as<bool>( values.mEnabled );
+            values.mHalfResolution = reflections["HalfResolution"].as<bool>( values.mHalfResolution );
+            values.mMaxSteps = reflections["MaxSteps"].as<unsigned>( values.mMaxSteps );
+            values.mSpatialSamples = reflections["SpatialSamples"].as<unsigned>( values.mSpatialSamples );
+            values.mMaxDistance = reflections["MaxDistance"].as<float>( values.mMaxDistance );
+            values.mThickness = reflections["Thickness"].as<float>( values.mThickness );
+            values.mMaxRoughness = reflections["MaxRoughness"].as<float>( values.mMaxRoughness );
+            values.mHistoryWeight = reflections["HistoryWeight"].as<float>( values.mHistoryWeight );
+            values.mSamplingBias = reflections["SamplingBias"].as<float>( values.mSamplingBias );
+            values.mIntensity = reflections["Intensity"].as<float>( values.mIntensity );
+        }
 
         settings.mSsaoEnabled = node["SsaoEnabled"].as<bool>( settings.mSsaoEnabled );
         settings.mSsaoIntensity = node["SsaoIntensity"].as<float>( settings.mSsaoIntensity );
@@ -640,7 +668,7 @@ namespace mikoto::project {
                 value.mBloom.mScatter, value.mBloom.mRadius, value.mChromaticAberration.mEnabled,
                 value.mChromaticAberration.mIntensity, value.mChromaticAberration.mDirection,
                 value.mVisualizeCascades, value.mSelectionOutlineWidth, value.mSelectionOutlineColor,
-                value.mVisualizeFrustum );
+                value.mVisualizeFrustum, value.mScreenSpaceReflections );
         } };
 
         if ( persistentFields( mSceneRendererSettings ) != persistentFields( settings ) ) {

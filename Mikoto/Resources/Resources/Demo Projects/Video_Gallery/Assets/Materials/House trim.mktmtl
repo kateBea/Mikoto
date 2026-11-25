@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "House trim",
+  "Material": {
+    "BaseColorFactor": [
+      0.07,
+      0.095,
+      0.12,
+      1
+    ],
+    "RoughnessFactor": 0.55,
+    "MetallicFactor": 0.1
+  }
+}

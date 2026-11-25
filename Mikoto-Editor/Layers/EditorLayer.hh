@@ -83,7 +83,8 @@ namespace mikoto::editor {
 
     enum class ScreenPresentTarget {
         ePanels,
-        eFinalImage
+        eScene,
+        eGame
     };
 
     struct EditorUploadContext {
@@ -196,6 +197,11 @@ namespace mikoto::editor {
         bool mGameCameraFixedAspect{};
         bool mScenePreviewRequested{};
         bool mGamePreviewRequested{};
+
+        // Maximized viewports stay within the editor chrome and keep their docked windows intact.
+        ScreenPresentTarget mScreenPresentTarget{ ScreenPresentTarget::ePanels };
+        ViewportInfo mMaximizedViewport{};
+
         core::float2 mGamePreviewSize{ 1920.0f, 1080.0f };
         scene::SceneCamera* mEditorCamera{};
         renderer::ISceneRenderer* mGameRenderer{};
@@ -404,6 +410,9 @@ namespace mikoto::editor {
          */
         auto DrawRenderOutputMenu() -> void;
 
+        /** @brief Toggles one viewport inside the workspace without changing the saved dock layout. */
+        auto ToggleViewportPresentation( ScreenPresentTarget target ) -> void;
+
         auto UpdateDockSpace() -> void;
         auto DrawMainMenuBar() -> void;
         auto DrawFileMenu() -> void;
@@ -553,7 +562,6 @@ namespace mikoto::editor {
         bool mShowPolygonComplexity{};
         bool mShowPerformanceOverlay{};
 
-        ScreenPresentTarget mScreenPresentTarget{ ScreenPresentTarget::ePanels };
     };
 }// namespace mikoto::editor
 

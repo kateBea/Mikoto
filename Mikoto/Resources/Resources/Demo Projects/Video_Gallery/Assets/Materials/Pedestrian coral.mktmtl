@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Pedestrian coral",
+  "Material": {
+    "BaseColorFactor": [
+      0.68,
+      0.27,
+      0.19,
+      1
+    ],
+    "RoughnessFactor": 0.65
+  }
+}

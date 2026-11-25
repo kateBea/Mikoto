@@ -346,6 +346,44 @@ namespace mikoto::editor {
                 }
             }
 
+            if ( ImGui::CollapsingHeader( MKT_LOC( "renderer_ssr_title" ).c_str() ) ) {
+                const bool replaced{ settings.mRayTracing.mPathTracingEnabled || settings.mRayTracing.mReflectionsEnabled };
+                ImGui::BeginDisabled( replaced );
+                if ( BeginRendererRows( "ScreenSpaceReflectionSettings" ) ) {
+                    auto& reflections{ settings.mScreenSpaceReflections };
+                    RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
+                    changed |= imgui::CheckBox( "##ssr_enabled", reflections.mEnabled );
+                    ImGui::BeginDisabled( !reflections.mEnabled );
+                    RendererControlRow( MKT_LOC( "renderer_ssr_half_resolution" ).c_str() );
+                    changed |= imgui::CheckBox( "##ssr_half_resolution", reflections.mHalfResolution );
+
+                    int steps{ core::as<int>( reflections.mMaxSteps ) };
+                    int samples{ core::as<int>( reflections.mSpatialSamples ) };
+                    RendererControlRow( MKT_LOC( "renderer_ssr_max_steps" ).c_str() );
+                    changed |= ImGui::SliderInt( "##ssr_max_steps", &steps, 16, 256 );
+                    RendererControlRow( MKT_LOC( "renderer_ssr_spatial_samples" ).c_str() );
+                    changed |= ImGui::SliderInt( "##ssr_spatial_samples", &samples, 1, 16 );
+                    reflections.mMaxSteps = core::as<core::u32>( steps );
+                    reflections.mSpatialSamples = core::as<core::u32>( samples );
+                    RendererControlRow( MKT_LOC( "renderer_ssr_max_distance" ).c_str() );
+                    changed |= imgui::Slider( "##ssr_max_distance", reflections.mMaxDistance, core::float2{ 0.1f, 200.0f }, "%.1f m" );
+                    RendererControlRow( MKT_LOC( "renderer_ssr_thickness" ).c_str() );
+                    changed |= imgui::Slider( "##ssr_thickness", reflections.mThickness, core::float2{ 0.005f, 1.0f }, "%.3f m" );
+                    RendererControlRow( MKT_LOC( "renderer_ssr_max_roughness" ).c_str() );
+                    changed |= imgui::Slider( "##ssr_max_roughness", reflections.mMaxRoughness, core::float2{ 0.05f, 1.0f }, "%.2f" );
+                    RendererControlRow( MKT_LOC( "renderer_ssr_history_weight" ).c_str() );
+                    changed |= imgui::Slider( "##ssr_history_weight", reflections.mHistoryWeight, core::float2{ 0.0f, 0.98f }, "%.2f" );
+                    RendererControlRow( MKT_LOC( "renderer_ssr_sampling_bias" ).c_str() );
+                    changed |= imgui::Slider( "##ssr_sampling_bias", reflections.mSamplingBias, core::float2{ 0.0f, 0.9f }, "%.2f" );
+                    RendererControlRow( MKT_LOC( "renderer_intensity" ).c_str() );
+                    changed |= imgui::Slider( "##ssr_intensity", reflections.mIntensity, core::float2{ 0.0f, 1.0f }, "%.2f" );
+                    ImGui::EndDisabled();
+                    ImGui::EndTable();
+                }
+                ImGui::EndDisabled();
+                ImGui::TextWrapped( "%s", MKT_LOC( replaced ? "renderer_ssr_replaced" : "renderer_ssr_help" ).c_str() );
+            }
+
             if ( ImGui::CollapsingHeader( MKT_LOC( "renderer_shadows" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
                 if ( BeginRendererRows( "ShadowSettings" ) ) {
                     int quality{ core::as<int>( settings.mShadowQuality ) };

@@ -45,7 +45,9 @@ namespace mikoto::editor {
         mPanelIsFocused = false;
         mPanelIsHovered = false;
 
-        if ( !mPanelIsVisible ) {
+        const bool maximized{ mState->mScreenPresentTarget == ScreenPresentTarget::eGame };
+
+        if ( !mPanelIsVisible && !maximized ) {
             if ( mState->mActiveScene ) {
                 renderer::CancelCanvasInput( *mState->mActiveScene );
             }
@@ -53,14 +55,31 @@ namespace mikoto::editor {
             return;
         }
 
-        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
-        const bool visible{ imgui::BeginWindow( GetHeaderName().data(), &mPanelIsVisible,
-            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse ) };
-        ImGui::PopStyleVar();
-        mPanelIsFocused = visible && mPanelIsVisible && ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows );
-        mPanelIsHovered = visible && mPanelIsVisible && ImGui::IsWindowHovered();
+        ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
 
-        if ( visible && mPanelIsVisible ) {
+        if ( maximized ) {
+            const auto& bounds{ mState->mMaximizedViewport };
+            ImGui::SetNextWindowPos( { bounds.mX, bounds.mY } );
+            ImGui::SetNextWindowSize( { glm::max( 1.0f, bounds.mWidth ), glm::max( 1.0f, bounds.mHeight ) } );
+            ImGui::SetNextWindowViewport( ImGui::GetMainViewport()->ID );
+            ImGui::SetNextWindowDockID( 0 );
+            windowFlags |= ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                           ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings;
+        }
+
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
+        const bool visible{ imgui::BeginWindow( maximized ? "##MaximizedGame" : GetHeaderName().data(),
+            maximized ? nullptr : &mPanelIsVisible, windowFlags ) };
+        ImGui::PopStyleVar();
+
+        if ( maximized && ImGui::IsWindowAppearing() ) {
+            ImGui::SetWindowFocus();
+        }
+
+        mPanelIsFocused = visible && ( mPanelIsVisible || maximized ) && ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows );
+        mPanelIsHovered = visible && ( mPanelIsVisible || maximized ) && ImGui::IsWindowHovered();
+
+        if ( visible && ( mPanelIsVisible || maximized ) ) {
             if ( !mState->mGameRenderer ) {
                 ImGui::TextWrapped( MKT_LOC( "game_preview_game_scene_rendering_is_unavailable_for_the_current_backend" ).c_str() );
             }

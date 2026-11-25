@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town road paint",
+  "Material": {
+    "BaseColorFactor": [
+      0.82,
+      0.84,
+      0.79,
+      1
+    ],
+    "RoughnessFactor": 0.9
+  }
+}

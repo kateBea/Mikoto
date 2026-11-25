@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town terracotta roof",
+  "Material": {
+    "BaseColorFactor": [
+      0.32,
+      0.13,
+      0.085,
+      1
+    ],
+    "RoughnessFactor": 0.94
+  }
+}

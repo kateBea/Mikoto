@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Pedestrian mint",
+  "Material": {
+    "BaseColorFactor": [
+      0.23,
+      0.47,
+      0.39,
+      1
+    ],
+    "RoughnessFactor": 0.65
+  }
+}

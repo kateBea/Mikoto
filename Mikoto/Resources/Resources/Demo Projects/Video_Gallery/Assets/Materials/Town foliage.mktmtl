@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town foliage",
+  "Material": {
+    "BaseColorFactor": [
+      0.13,
+      0.29,
+      0.11,
+      1
+    ],
+    "RoughnessFactor": 0.97
+  }
+}

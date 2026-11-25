@@ -1,0 +1,28 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Garden grass",
+  "Material": {
+    "BaseColorFactor": [
+      0.72,
+      0.82,
+      0.66,
+      1
+    ],
+    "RoughnessFactor": 0.97,
+    "UvTransform": [
+      10,
+      12,
+      0,
+      0
+    ],
+    "Textures": [
+      {
+        "Map": 1,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../Textures/Grass.png"
+      }
+    ]
+  }
+}

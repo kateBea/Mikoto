@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town concrete",
+  "Material": {
+    "BaseColorFactor": [
+      0.48,
+      0.51,
+      0.52,
+      1
+    ],
+    "RoughnessFactor": 0.94
+  }
+}

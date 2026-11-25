@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Desk oak",
+  "Material": {
+    "BaseColorFactor": [
+      0.26,
+      0.14,
+      0.065,
+      1
+    ],
+    "RoughnessFactor": 0.65
+  }
+}

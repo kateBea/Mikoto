@@ -236,6 +236,10 @@ namespace mikoto::renderer {
         mState->mGeometryShading.RegisterPrefilter( *mState->mFrameGraph );
         mState->mGeometryShading.RegisterIrradiance( *mState->mFrameGraph );
         mState->mGeometryShading.RegisterSkyboxRender( *mState->mFrameGraph );
+        if ( mSettings.mScreenSpaceReflections.mEnabled ) {
+            mState->mIndirectIlluminationModule.SetSettings( mSettings.mScreenSpaceReflections );
+            mState->mIndirectIlluminationModule.RegisterSurfaceTargets( *mState->mFrameGraph, mSettings.mMultisampling );
+        }
         mState->mGeometryShading.RegisterShading( *mState->mFrameGraph );
 
         if ( mSubsurfaceAllocated ) {
@@ -272,6 +276,12 @@ namespace mikoto::renderer {
                 mState->mGeometryShading.RegisterTransparentPass( *mState->mFrameGraph );
                 mState->mGeometryShading.RegisterResolve( *mState->mFrameGraph, true );
             }
+        }
+
+        // The fog/MSAA branch can resolve the opaque target again. Trace only
+        // after its final resolve so a later resolve cannot overwrite reflections.
+        if ( mSettings.mScreenSpaceReflections.mEnabled ) {
+            mState->mIndirectIlluminationModule.RegisterPasses( *mState->mFrameGraph, mSettings.mMultisampling );
         }
 
         mState->mTextRendering.RegisterTextRender( *mState->mFrameGraph );
@@ -587,6 +597,10 @@ namespace mikoto::renderer {
         mState->mTextRendering.SetScene( scene );
         mState->mParticleSimulation.SetScene( scene );
         mState->mDisplayEffectsModule.SetScene( scene );
+
+        mState->mIndirectIlluminationModule.SetSettings( mSettings.mScreenSpaceReflections );
+        mState->mIndirectIlluminationModule.Prepare( scene, mMainCamera,
+            mDevice->SupportsRayTracing() && mSettings.mRayTracing.mReflectionsEnabled );
 
         const bool atmosphereChanged{ mState->mAtmosModule.Prepare( scene, *mState->mFrameGraph ) };
         const bool atmosphereEnabled{ mState->mAtmosModule.IsEnabled() };
@@ -956,6 +970,8 @@ namespace mikoto::renderer {
         settings.mRayTracing.mAmbientOcclusionEnabled &= mDevice->SupportsRayTracing();
 
         mRebuildPending |= settings.mRayTracing.mPathTracingEnabled != mSettings.mRayTracing.mPathTracingEnabled;
+        mRebuildPending |= settings.mScreenSpaceReflections.mEnabled != mSettings.mScreenSpaceReflections.mEnabled;
+        mRebuildPending |= settings.mScreenSpaceReflections.mHalfResolution != mSettings.mScreenSpaceReflections.mHalfResolution;
         mRebuildPending |= settings.mShadowQuality != mSettings.mShadowQuality;
         mRebuildPending |= settings.mCascadedShadowsEnabled != mSettings.mCascadedShadowsEnabled;
 

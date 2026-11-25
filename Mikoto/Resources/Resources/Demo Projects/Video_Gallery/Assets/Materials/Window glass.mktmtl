@@ -1,0 +1,29 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Window glass",
+  "Material": {
+    "BaseColorFactor": [
+      0.65,
+      0.82,
+      0.87,
+      0.16
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.025,
+    "AlphaMask": 2,
+    "ShadingModel": 6,
+    "Dielectric": {
+      "IndexOfRefraction": 1.52,
+      "Transmission": 1,
+      "ThinWalled": true,
+      "AttenuationColor": [
+        1,
+        1,
+        1
+      ],
+      "AttenuationDistance": 1
+    },
+    "DoubleSided": 1
+  }
+}

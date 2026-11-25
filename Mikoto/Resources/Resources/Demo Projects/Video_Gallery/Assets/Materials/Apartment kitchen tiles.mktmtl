@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Apartment kitchen tiles",
+  "Material": {
+    "BaseColorFactor": [
+      0.68,
+      0.71,
+      0.66,
+      1
+    ],
+    "RoughnessFactor": 0.85,
+    "MetallicFactor": 0
+  }
+}

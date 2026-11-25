@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Viewer violet",
+  "Material": {
+    "BaseColorFactor": [
+      0.38,
+      0.22,
+      0.52,
+      1
+    ],
+    "RoughnessFactor": 0.58
+  }
+}

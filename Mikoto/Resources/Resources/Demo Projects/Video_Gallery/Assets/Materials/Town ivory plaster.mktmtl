@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town ivory plaster",
+  "Material": {
+    "BaseColorFactor": [
+      0.79,
+      0.8,
+      0.72,
+      1
+    ],
+    "RoughnessFactor": 0.9
+  }
+}

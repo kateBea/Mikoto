@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Apartment honed stone",
+  "Material": {
+    "BaseColorFactor": [
+      0.12,
+      0.135,
+      0.14,
+      1
+    ],
+    "RoughnessFactor": 0.58,
+    "MetallicFactor": 0
+  }
+}

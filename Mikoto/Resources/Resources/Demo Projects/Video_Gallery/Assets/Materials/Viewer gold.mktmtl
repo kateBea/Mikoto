@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Viewer gold",
+  "Material": {
+    "BaseColorFactor": [
+      0.72,
+      0.43,
+      0.12,
+      1
+    ],
+    "RoughnessFactor": 0.58
+  }
+}

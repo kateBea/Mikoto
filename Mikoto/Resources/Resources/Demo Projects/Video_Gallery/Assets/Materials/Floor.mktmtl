@@ -4,12 +4,33 @@
   "Name": "Floor",
   "Material": {
     "BaseColorFactor": [
-      0.22,
-      0.24,
-      0.28,
+      1,
+      1,
+      1,
       1
     ],
-    "RoughnessFactor": 0.22,
-    "MetallicFactor": 0.15
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.4,
+    "DoubleSided": 0,
+    "AlphaMask": 0,
+    "Checkerboard": {
+      "Enabled": true,
+      "CellSize": 0.5,
+      "ColorA": [
+        0.0392156862745098,
+        0.043137254901960784,
+        0.043137254901960784
+      ],
+      "ColorB": [
+        0.4117647058823529,
+        0.4588235294117647,
+        0.49019607843137253
+      ],
+      "Offset": [
+        0,
+        0,
+        0
+      ]
+    }
   }
 }

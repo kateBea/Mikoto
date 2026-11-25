@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town yellow paint",
+  "Material": {
+    "BaseColorFactor": [
+      0.91,
+      0.62,
+      0.075,
+      1
+    ],
+    "RoughnessFactor": 0.9
+  }
+}

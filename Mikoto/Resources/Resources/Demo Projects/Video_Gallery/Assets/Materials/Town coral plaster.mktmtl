@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town coral plaster",
+  "Material": {
+    "BaseColorFactor": [
+      0.66,
+      0.31,
+      0.23,
+      1
+    ],
+    "RoughnessFactor": 0.9
+  }
+}

@@ -42,6 +42,7 @@
 #include <Renderer/ForwardRenderer/Passes/ShadowMappingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/DisplayEffectsModule.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/IndirectLightingModule.hh>
 
 namespace mikoto::renderer {
 
@@ -76,6 +77,7 @@ namespace mikoto::renderer {
 
     struct SceneRenderSettings {
         RayTracingConfiguration mRayTracing{};
+        ScreenSpaceReflectionSettings mScreenSpaceReflections{};
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
         rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
         ShadowMapQuality mShadowQuality{ ShadowMapQuality::eMedium };

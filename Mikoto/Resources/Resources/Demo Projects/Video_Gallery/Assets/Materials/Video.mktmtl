@@ -14,8 +14,8 @@
       1,
       1
     ],
-    "EmissiveStrength": 1,
-    "RoughnessFactor": 0.75,
-    "DoubleSided": 1
+    "EmissiveStrength": 3,
+    "RoughnessFactor": 0.45,
+    "DoubleSided": 0
   }
 }

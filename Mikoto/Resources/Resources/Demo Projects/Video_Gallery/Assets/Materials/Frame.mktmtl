@@ -4,12 +4,12 @@
   "Name": "Frame",
   "Material": {
     "BaseColorFactor": [
-      0.015,
-      0.02,
-      0.025,
+      0.009,
+      0.012,
+      0.016,
       1
     ],
     "RoughnessFactor": 0.4,
-    "MetallicFactor": 0.5
+    "MetallicFactor": 0.2
   }
 }

@@ -37,6 +37,7 @@
 #include <Renderer/ForwardRenderer/Passes/PostProcessModule.hh>
 #include <Renderer/ForwardRenderer/Passes/ShadowMappingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/IndirectLightingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/SubsurfaceScatteringModule.hh>
 #include <Renderer/ForwardRenderer/Passes/AtmosphericScatteringModule.hh>
 
@@ -1030,6 +1031,7 @@ namespace mikoto::renderer {
         // https://github.khronos.org/Vulkan-Site/tutorial/latest/Building_a_Simple_Engine/Lighting_Materials/04_lighting_implementation.html
 
         auto& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+        const bool captureReflections{ !transparent && !subsurface && !contour && graph.Exists<IndirectLightingModuleInfo>() };
 
         auto pipelineBuilder{ FGPipelineDescription{}
             .SetName( contour ? "Stylized_Contours_Pipeline" : subsurface ? "Subsurface_Lighting_Pipeline"
@@ -1049,11 +1051,15 @@ namespace mikoto::renderer {
             .SetDepthTest( true )
             .PushShader( contour ? "StylizedContour_Vert.slang" : "PBR_MetallicRoughness_Vert.slang", FGStageType::eVertex )
             .PushShader( contour ? "StylizedContour_Frag.slang" : subsurface ? "SubsurfaceLighting_Frag.slang"
-                                                                                 : "PBR_MetallicRoughness_Frag.slang",
+                                                                                 : captureReflections ? "PBR_Reflections_Frag.slang" : "PBR_MetallicRoughness_Frag.slang",
                     FGStageType::ePixel ) };
 
         if ( subsurface ) {
             pipelineBuilder.AddColorFormat( renderer::rhi::Format::eRGBA16_FLOAT ).AddColorFormat( renderer::rhi::Format::eRGBA16_FLOAT ).AddColorFormat( renderer::rhi::Format::eRGBA32_FLOAT );
+        }
+
+        if ( captureReflections ) {
+            pipelineBuilder.AddColorFormat( rhi::Format::eRGBA16_FLOAT ).AddColorFormat( rhi::Format::eRGBA16_FLOAT );
         }
 
         const auto pipeline = graph.Create( pipelineBuilder );
@@ -1067,7 +1073,7 @@ namespace mikoto::renderer {
                                         : transparent  ? "PBR_Transparency"
                                                        : "PBR_Radiance",
             FGPassType::eGraphics,
-            [this, transparent, subsurface, contour]( FGNodeBuilder& builder, core::Blackboard& blackboard ) -> void {
+            [this, transparent, subsurface, contour, captureReflections]( FGNodeBuilder& builder, core::Blackboard& blackboard ) -> void {
                 const auto& shadowMapData{ blackboard.Get<ShadowMapInfo>() };
                 const auto& cameraData{ blackboard.Get<CameraModuleInfo>() };
                 const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
@@ -1111,6 +1117,12 @@ namespace mikoto::renderer {
                     for ( auto target: { sss.mSpecular, sss.mAmbient, sss.mIdentityDepth } ) {
                         builder.UseResource( target, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                     }
+                }
+
+                if ( captureReflections ) {
+                    const auto& reflections{ blackboard.Get<IndirectLightingModuleInfo>() };
+                    builder.UseResource( reflections.mRasterSurfaceResponse, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+                    builder.UseResource( reflections.mRasterEnvironmentSpecular, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 }
 
                 builder.UseResource( subsurface ? prePassData.mPrepassDepthTarget : finalCompData.mRasterDepthImage,
@@ -1158,7 +1170,7 @@ namespace mikoto::renderer {
                     builder.UseResource( shadowMapData.mVisibilityDepth, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 }
             },
-            [this, pipeline, transparent, subsurface, contour]( CommandContext& ctx, core::Blackboard& blackboard ) -> void {
+            [this, pipeline, transparent, subsurface, contour, captureReflections]( CommandContext& ctx, core::Blackboard& blackboard ) -> void {
                 if ( contour && !mGeometryManagement->HasStylizedContours() ) {
                     return;
                 }
@@ -1298,6 +1310,12 @@ namespace mikoto::renderer {
                     for ( auto target: { sss.mSpecular, sss.mAmbient, sss.mIdentityDepth } ) {
                         graphicsState.AddRenderTarget( target, renderer::rhi::Color{ 0, 0, 0, 0 }, renderer::rhi::LoadOp::eClear );
                     }
+                }
+
+                if ( captureReflections ) {
+                    const auto& reflections{ blackboard.Get<IndirectLightingModuleInfo>() };
+                    graphicsState.AddRenderTarget( reflections.mRasterSurfaceResponse, rhi::Color{ 0, 0, 0, 0 }, rhi::LoadOp::eClear );
+                    graphicsState.AddRenderTarget( reflections.mRasterEnvironmentSpecular, rhi::Color{ 0, 0, 0, 0 }, rhi::LoadOp::eClear );
                 }
 
                 ctx.BeginRender( graphicsState );

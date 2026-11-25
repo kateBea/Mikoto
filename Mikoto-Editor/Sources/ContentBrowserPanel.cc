@@ -924,7 +924,8 @@ namespace mikoto::editor {
         renderer::rhi::TextureHandle thumbnail{};
 
         // Use the file icon until a generated preview is available.
-        if ( image || model || audio || material || entry.mType == filesystem::FileType::eMikoto_Particle ) {
+        if ( image || model || audio || material || entry.mType == filesystem::FileType::eMp4 ||
+             entry.mType == filesystem::FileType::eMikoto_Particle ) {
             if ( mThumbnailCache->Contains( entry.mPath ) ) {
                 thumbnail = mThumbnailCache->GetThumbnail( entry.mPath ).mThumbnail;
             }

@@ -1,0 +1,20 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town warm lamps",
+  "Material": {
+    "BaseColorFactor": [
+      0.8,
+      0.72,
+      0.45,
+      1
+    ],
+    "RoughnessFactor": 0.5,
+    "EmissiveFactor": [
+      1,
+      0.79,
+      0.41
+    ],
+    "EmissiveStrength": 2
+  }
+}

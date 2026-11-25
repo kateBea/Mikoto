@@ -66,7 +66,6 @@ namespace mikoto::editor {
         auto SuspendInput() -> void;
 
         auto CancelPicking() -> void;
-        auto UpdateFullscreenPicking() -> void;
 
         auto SetGizmoType( imgui::GizmoType type ) -> void;
         auto SetGizmoMode( imgui::GizmoMode mode ) -> void;
@@ -133,7 +132,7 @@ namespace mikoto::editor {
         auto UpdateMaterialDrop() -> void;
         auto UpdateSceneContextMenu() -> void;
         auto UpdateManipulation() -> void;
-        auto UpdatePicking( bool fullscreen = false ) -> void;
+        auto UpdatePicking() -> void;
 
         auto DrawViewSettings() -> void;
         auto DrawUtilitiesOverlay() -> void;

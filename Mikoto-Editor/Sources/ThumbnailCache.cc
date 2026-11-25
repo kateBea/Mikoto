@@ -48,6 +48,8 @@
 
 #include <Renderer/Particle/ParticleEmitter.hh>
 
+#include <Video/VideoPreview.hh>
+
 #include <Application/ThumbnailCache.hh>
 
 namespace mikoto::editor {
@@ -168,9 +170,12 @@ namespace mikoto::editor {
         const bool isMaterial{ native.extension() == ".mktmtl" };
         const bool isParticle{ native.extension() == ".mktpart" };
         const bool isAudio{ asset::IsFileAudio( source ) };
+        const bool isVideo{ source.GetNormalizedExtension() == "mp4" };
         // Regenerate material spheres and models with the tighter camera framing.
         const core::u32 version{ isMaterial ? 8u : isModel ? 7u : isParticle ? 3u : 2u };
-        const filesystem::Path cached{ directory.GetPathTyped<std::filesystem::path>() / string::Format( "{}-{}-v{}-{:016x}.ktx2", isAudio ? "audio" : ( isParticle ? "particle" : ( isMaterial ? "material" : ( isModel ? "gpu" : "texture" ) ) ), compress ? "bc7" : "rgba8", version, hash ).c_str() };
+        const core::cstr category{ isVideo ? "video" : isAudio ? "audio" : isParticle ? "particle" : isMaterial ? "material" : isModel ? "gpu" : "texture" };
+        const auto filename{ string::Format( "{}-{}-v{}-{:016x}.ktx2", category, compress ? "bc7" : "rgba8", version, hash ) };
+        const filesystem::Path cached{ directory.GetPathTyped<std::filesystem::path>() / filename.c_str() };
 
         if ( cached.Exists() ) {
             try {
@@ -182,6 +187,13 @@ namespace mikoto::editor {
             } catch ( const std::exception& ) {
                 // An interrupted or corrupt cache file can always be rebuilt.
             }
+        }
+
+        if ( isVideo ) {
+            // Decode once on the worker, then reuse the normal aspect-preserving image cache/upload path.
+            auto image{ renderer::ThumbnailRenderer::RenderTexturePreview( video::DecodeVideoPreview( source ), 512, 512 ) };
+            image = SavePreview( image, cached, compress );
+            return { image, asset::ModelHandle{}, cached };
         }
 
         if ( isAudio ) {
@@ -511,8 +523,9 @@ namespace mikoto::editor {
             return GetThumbnail( path );
         }
 
-        if ( asset::IsFileAudio( path ) || asset::IsFileModel( path ) || path.GetPathTyped<std::filesystem::path>().extension() == ".mktmtl" ) {
-            // Audio decoding stays on workers. GPU model submissions are batched
+        if ( asset::IsFileAudio( path ) || path.GetNormalizedExtension() == "mp4" ||
+             asset::IsFileModel( path ) || path.GetPathTyped<std::filesystem::path>().extension() == ".mktmtl" ) {
+            // Audio/video decoding stays on workers. GPU model submissions are batched
             // at frame end, so waiting here would deadlock their submission.
             CreateThumbnailAsync( path );
             return {};

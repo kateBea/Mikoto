@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Pedestrian mustard",
+  "Material": {
+    "BaseColorFactor": [
+      0.68,
+      0.5,
+      0.13,
+      1
+    ],
+    "RoughnessFactor": 0.65
+  }
+}

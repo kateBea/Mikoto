@@ -1,0 +1,8 @@
+Model Information:
+* title:	Generic white digital Projector
+* source:	https://sketchfab.com/3d-models/generic-white-digital-projector-0a314ba660ee405db0df4e0c422fcd12
+* author:	assetfactory (https://sketchfab.com/assetfactory)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works

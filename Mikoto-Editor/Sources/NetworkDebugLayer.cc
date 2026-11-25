@@ -73,7 +73,11 @@ namespace mikoto::editor {
         if ( event.IsType( platform::EventType::KEY_PRESSED_EVENT ) ) {
             const auto &key{ static_cast<const platform::KeyPressedEvent &>( event ) };
 
-            if ( key.GetKeyCode() == platform::KeyCode::Key_F8 ) {
+            const auto modifiers{ key.GetModifiers() & ( platform::ModKey::eControl | platform::ModKey::eShift |
+                                                        platform::ModKey::eAlt | platform::ModKey::eSuper ) };
+
+            if ( key.GetKeyCode() == platform::KeyCode::Key_F8 && !key.IsRepeated() &&
+                 modifiers == ( platform::ModKey::eControl | platform::ModKey::eShift ) ) {
                 mVisible = !mVisible;
                 event.SetHandled( true );
             }
@@ -119,7 +123,7 @@ namespace mikoto::editor {
             return;
         }
 
-        ImGui::TextUnformatted( MKT_LOC( "network_debug_layer_python_http_server_tester_f8_toggles_this_window" ).c_str() );
+        ImGui::TextUnformatted( MKT_LOC( "network_debug_layer_python_http_server_tester_ctrl_shift_f8_toggles_this_window" ).c_str() );
         ImGui::TextDisabled( MKT_LOC( "network_debug_layer_server_py_m_http_server_9000" ).c_str() );
         ImGui::TextWrapped( MKT_LOC( "network_debug_layer_use_localhost_127_0_0_1_or_1_the_server" ).c_str() );
 

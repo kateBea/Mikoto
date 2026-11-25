@@ -66,6 +66,7 @@
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/Gui/CanvasInput.hh>
 
 #include <Scene/Scene.hh>
 #include <Scene/Component.hh>
@@ -437,16 +438,11 @@ namespace mikoto::editor {
         UpdateGameCamera();
         mEditorRenderer->SetCullingDebugCamera( mEditorState->mGameCamera );
 
-        if ( mEditorState->mRuntimeActive && mScreenPresentTarget != ScreenPresentTarget::ePanels ) {
-            scripting::ScriptingService::Get()->SetInputFocus( !ImGui::GetIO().WantTextInput, true );
-        }
-
         UpdateWorkspaceViews( timeStep );
 
-        if ( mScreenPresentTarget == ScreenPresentTarget::ePanels ) {
-            const auto* panel{ mPanelRegistry.Get<ViewportPanel>() };
-            SetCameraCapture( panel && panel->IsCameraNavigating() && !IsWorkspaceBusy() );
-        }
+        const auto* scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
+        SetCameraCapture( mEditorState->mScreenPresentTarget != ScreenPresentTarget::eGame &&
+                          scenePanel && scenePanel->IsCameraNavigating() && !IsWorkspaceBusy() );
 
         if ( mEditorState->mRuntimeActive ) {
             // Let the Game panel route this frame's input before scripts run.
@@ -535,21 +531,30 @@ namespace mikoto::editor {
     auto EditorLayer::UpdateWorkspaceViews( float timeStep ) -> void {
         MKT_BEGIN_PROFILER();
 
-        if ( mScreenPresentTarget == ScreenPresentTarget::ePanels || !mEditorRenderer->IsRenderAvailable() ) {
-            renderer::RenderSystem::Get()->SetPresentTarget( imgui::ImGuiService::Get()->GetFinalComposition() );
+        renderer::RenderSystem::Get()->SetPresentTarget( imgui::ImGuiService::Get()->GetFinalComposition() );
+        UpdateDockSpace();
 
-            UpdateDockSpace();
+        if ( mEditorState->mScreenPresentTarget == ScreenPresentTarget::ePanels ) {
             UpdateDockSpacePanels( timeStep );
-
-            HandleUploadAsset();
-
-            UpdateViewportState( timeStep );
         }
         else {
-            if ( auto* panel{ mPanelRegistry.Get<ViewportPanel>() } ) {
-                panel->UpdateFullscreenPicking();
+            mEditorState->mMaximizedViewport = {
+                mWorkspacePosition.x, mWorkspacePosition.y, mWorkspaceSize.x, mWorkspaceSize.y
+            };
+
+            if ( mEditorState->mScreenPresentTarget == ScreenPresentTarget::eGame ) {
+                mPanelRegistry.Get<ViewportPanel>()->SuspendInput();
+                mPanelRegistry.Get<GamePreviewPanel>()->OnRender( timeStep );
             }
+            else {
+                mPanelRegistry.Get<ViewportPanel>()->OnRender( timeStep );
+            }
+
+            DrawProjectLauncher();
         }
+
+        HandleUploadAsset();
+        UpdateViewportState( timeStep );
     }
 
     auto EditorLayer::RenderWorkspace( float timeStep ) -> void {
@@ -561,11 +566,6 @@ namespace mikoto::editor {
         UpdateGameViewport();
         RenderScene( timeStep );
 
-        // Publish the current final image after rendering; resizing may replace its graph texture.
-        if ( mScreenPresentTarget != ScreenPresentTarget::ePanels && mEditorRenderer->IsRenderAvailable() ) {
-            renderer::RenderSystem::Get()->SetPresentTarget( mEditorState->mFinalComposition );
-        }
-
         RenderGamePreview();
     }
 
@@ -574,11 +574,6 @@ namespace mikoto::editor {
 
         if ( mShowImGuiDebugInfo ) {
             ImGui::ShowMetricsWindow();
-        }
-
-        // Fullscreen presentation skips the dock space, which normally draws confirmations.
-        if ( mScreenPresentTarget != ScreenPresentTarget::ePanels && mEditorRenderer->IsRenderAvailable() ) {
-            DrawProjectLauncher();
         }
 
         DrawWorkspaceProgress();
@@ -671,12 +666,19 @@ namespace mikoto::editor {
             return;
         }
 
-        if ( !mEditorState->HasWorkspace() || mEditorState->mRuntimeActive ) {
+        const auto key{ event.GetKeyCode() };
+        const auto shortcutModifiers{ event.GetModifiers() & ( ModKey::eControl | ModKey::eShift | ModKey::eAlt | ModKey::eSuper ) };
+        const bool viewportShortcut{ ( key == KeyCode::Key_F11 || key == KeyCode::Key_F8 ) && shortcutModifiers == ModKey::eNone };
+
+        if ( viewportShortcut && event.IsRepeated() ) {
             return;
         }
 
-        const auto key{ event.GetKeyCode() };
-        const bool navigationShortcut{ key == KeyCode::Key_F11 || key == KeyCode::Key_F4 || key == KeyCode::Key_F5 };
+        if ( !mEditorState->HasWorkspace() || ( mEditorState->mRuntimeActive && !viewportShortcut ) ) {
+            return;
+        }
+
+        const bool navigationShortcut{ viewportShortcut || key == KeyCode::Key_F4 || key == KeyCode::Key_F5 };
 
         // Function keys remain available while a text widget owns editing shortcuts.
         if ( navigationShortcut || !ImGui::GetIO().WantTextInput ) {
@@ -750,14 +752,9 @@ namespace mikoto::editor {
     auto EditorLayer::HandleCameraButton( MouseButton button, bool pressed ) -> void {
         MKT_BEGIN_PROFILER();
 
-        if ( button != Mouse_Button_Right || !mEditorState->HasWorkspace() ||
-             ( mEditorState->mRuntimeActive && mScreenPresentTarget != ScreenPresentTarget::ePanels ) ) {
-            return;
-        }
-
-        // The docked viewport decides when a right-button gesture starts camera capture.
-        if ( !pressed || mScreenPresentTarget == ScreenPresentTarget::eFinalImage ) {
-            SetCameraCapture( pressed );
+        // ViewportPanel starts capture from its actual image area, including when maximized.
+        if ( button == Mouse_Button_Right && !pressed ) {
+            SetCameraCapture( false );
         }
     }
 
@@ -1265,33 +1262,15 @@ namespace mikoto::editor {
             }
         }, "shortcut_delete_selection" );
 
-        mActionManager->Bind( platform::KeyCode::Key_F11, platform::ModKey::eNone, 
+        mActionManager->Bind( platform::KeyCode::Key_F11, platform::ModKey::eNone,
             [this]() {
-            static eastl::hash_map<Panel*, bool> panelsVisibilityState{};
+                ToggleViewportPresentation( ScreenPresentTarget::eScene );
+            }, "shortcut_toggle_viewport_fullscreen" );
 
-            SetCameraCapture( false );
-            if ( auto* panel{ mPanelRegistry.Get<ViewportPanel>() } ) {
-                panel->SuspendInput();
-                panel->CancelPicking();
-            }
-
-            if ( mScreenPresentTarget == ScreenPresentTarget::ePanels ) {
-                mScreenPresentTarget = ScreenPresentTarget::eFinalImage;
-
-                // Save panel visibility state before hiding them
-                for ( const auto& panel: mPanelRegistry | std::ranges::views::values ) {
-                    panelsVisibilityState[panel.get()] = panel->IsVisible();
-                }
-            }
-            else {
-                mScreenPresentTarget = ScreenPresentTarget::ePanels;
-
-                // Restore panel visibility state
-                for ( const auto& panel: mPanelRegistry | std::ranges::views::values ) {
-                    panel->SetVisible( panelsVisibilityState[panel.get()] );
-                }
-            }
-        }, "shortcut_toggle_viewport_fullscreen" );
+        mActionManager->Bind( platform::KeyCode::Key_F8, platform::ModKey::eNone,
+            [this]() {
+                ToggleViewportPresentation( ScreenPresentTarget::eGame );
+            }, "shortcut_toggle_game_fullscreen" );
 
         mActionManager->Bind( platform::KeyCode::Key_F4, platform::ModKey::eNone, 
             [this]() {
@@ -1318,6 +1297,26 @@ namespace mikoto::editor {
         mEditorState->mRequestStop = [this] {
             mStopRequested = true;
         };
+    }
+
+    auto EditorLayer::ToggleViewportPresentation( ScreenPresentTarget target ) -> void {
+        MKT_BEGIN_PROFILER();
+
+        SetCameraCapture( false );
+
+        if ( auto* panel{ mPanelRegistry.Get<ViewportPanel>() } ) {
+            panel->SuspendInput();
+            panel->CancelPicking();
+        }
+
+        if ( mEditorState->mActiveScene ) {
+            renderer::CancelCanvasInput( *mEditorState->mActiveScene );
+        }
+
+        scripting::ScriptingService::Get()->SetInputFocus( false, false );
+
+        // Visibility and docking belong to the normal windows; maximized copies use separate ImGui IDs.
+        mEditorState->mScreenPresentTarget = mEditorState->mScreenPresentTarget == target ? ScreenPresentTarget::ePanels : target;
     }
 
     auto EditorLayer::UpdateDockSpace() -> void {
@@ -1370,7 +1369,8 @@ namespace mikoto::editor {
                 mResetLayoutRequested = false;
             }
 
-            const ImGuiDockNodeFlags flags{ mEditorState->HasWorkspace() ? ImGuiDockNodeFlags_None : ImGuiDockNodeFlags_KeepAliveOnly };
+            const ImGuiDockNodeFlags flags{ mEditorState->HasWorkspace() && mEditorState->mScreenPresentTarget == ScreenPresentTarget::ePanels
+                                               ? ImGuiDockNodeFlags_None : ImGuiDockNodeFlags_KeepAliveOnly };
             // DockSpace lays out its tabs before the individual panels begin.
             const imgui::ImGuiScopedStyleVar tabPadding{ ImGuiStyleVar_FramePadding, imgui::kWindowTabPadding };
             ImGui::DockSpace( ImGui::GetID( "MikotoDockEditor" ), { 0.0f, 0.0f }, flags );
@@ -2816,11 +2816,8 @@ namespace mikoto::editor {
 
     auto EditorLayer::RenderScene( float ) -> void {
         MKT_BEGIN_PROFILER();
-        // A closed, collapsed, or background-tab Scene panel must not render
-        // another full view behind the Game panel. Direct presentation still
-        // needs this renderer even when no editor viewport is submitted.
-        const bool requested{ mScreenPresentTarget != ScreenPresentTarget::ePanels ||
-                              mEditorState->mScenePreviewRequested };
+        // Only a submitted Scene image needs this renderer; maximized Game uses its own camera/render graph.
+        const bool requested{ mEditorState->mScenePreviewRequested };
 
         if ( requested && mEditorRenderer->IsRenderAvailable() ) {
             mEditorState->ValidateSelection();
@@ -2836,7 +2833,7 @@ namespace mikoto::editor {
             volumes.mSelectedEntity = mEditorState->mSelectedEntityID;
             volumes.mGameViewport = mEditorState->mGamePreviewSize;
             volumes.mLineWidth = view.mLineWidth;
-            mEditorRenderer->SetOutputForPreview( mScreenPresentTarget == ScreenPresentTarget::ePanels );
+            mEditorRenderer->SetOutputForPreview( true );
             mEditorRenderer->Render( mEditorState->mActiveScene );
             mEditorState->mFinalComposition = mEditorRenderer->GetFinalImage();
         }
@@ -2944,19 +2941,8 @@ namespace mikoto::editor {
     auto EditorLayer::UpdateCameraState( float ts ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        if ( mEditorState->mRuntimeActive && mScreenPresentTarget != ScreenPresentTarget::ePanels ) {
-            return;
-        }
-
-        // Set viewport to the currently active window we can either expand
-        // the final composition to occupy the whole screen or just an ImGui viewport
-        if ( mScreenPresentTarget == ScreenPresentTarget::ePanels ) {
-            ViewportPanel* scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
-            mEditorCamera->SetViewportSize( eastl::max( scenePanel->GetWidth(), 1.0f ), eastl::max( scenePanel->GetHeight(), 1.0f ) );
-        }
-        else {
-            mEditorCamera->SetViewportSize( mWindow->GetWidth(), mWindow->GetHeight() );
-        }
+        ViewportPanel* scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
+        mEditorCamera->SetViewportSize( eastl::max( scenePanel->GetWidth(), 1.0f ), eastl::max( scenePanel->GetHeight(), 1.0f ) );
 
         mEditorCamera->Update( ts );
 
@@ -2984,7 +2970,6 @@ namespace mikoto::editor {
         scene::SceneCamera* renderCamera{ mEditorCamera.get() };
         auto& registry{ mEditorState->mActiveScene->GetRegistry() };
         scene::CameraComponent* selectedCamera{};
-        scene::TransformComponent* cameraTransform{};
 
         for ( auto [entity, camera, transform, tag]: registry.view<scene::CameraComponent, scene::TransformComponent, scene::TagComponent>().each() ) {
             if ( !tag.IsActive() || !camera.HasCamera() ) {
@@ -2993,7 +2978,6 @@ namespace mikoto::editor {
 
             if ( !selectedCamera || camera.IsMainCamera() ) {
                 selectedCamera = &camera;
-                cameraTransform = &transform;
             }
 
             if ( camera.IsMainCamera() ) {
@@ -3010,43 +2994,8 @@ namespace mikoto::editor {
             mEditorCamera->SetVignetteSettings( scene::VignetteSettings{} );
         }
 
-        if ( mEditorState->mRuntimeActive && selectedCamera && mScreenPresentTarget != ScreenPresentTarget::ePanels ) {
-            renderCamera = &selectedCamera->GetCamera();
-            mEditorRenderer->SetGamma( selectedCamera->GetGamma() );
-            mEditorRenderer->SetExposure( selectedCamera->GetExposure() );
-            mEditorRenderer->SetSkyboxBlur( selectedCamera->GetSkyboxBlur() );
-            mEditorRenderer->SetClearColor( selectedCamera->GetClearColor() );
-            // Clear color alone does not select the background pass. Apply
-            // the camera's saved mode as well, including after loading a scene.
-            switch ( selectedCamera->GetClearFlags() ) {
-                case scene::CameraClearFlags::eSkybox:
-                    mEditorRenderer->SetRenderBackground( renderer::SceneBackgroundType::eSkybox );
-                    break;
-                case scene::CameraClearFlags::eBlurredSkybox:
-                    mEditorRenderer->SetRenderBackground( renderer::SceneBackgroundType::ePrefilterMap );
-                    break;
-                default:
-                    mEditorRenderer->SetRenderBackground( renderer::SceneBackgroundType::eClearColor );
-                    break;
-            }
-
-            const auto dimensions{ InferDimensions( mEditorState->mResolution ) };
-            selectedCamera->OnViewportResize( dimensions.first, dimensions.second );
-            const auto& world{ cameraTransform->GetWorldTransform() };
-            // View uses the entity pose, with scale removed to avoid distorting
-            // the camera lens. SceneCamera input smoothing is never run in Play.
-            const auto pose{ scene::Camera::ExtractRenderPose( world ) };
-            renderCamera->SetRenderPose( pose );
-        }
-
-        if ( mScreenPresentTarget == ScreenPresentTarget::ePanels ) {
-            ViewportPanel* scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
-            renderCamera->SetViewportSize( glm::max( scenePanel->GetWidth(), 1.0f ),
-                glm::max( scenePanel->GetHeight(), 1.0f ) );
-        }
-        else {
-            renderCamera->SetViewportSize( mWindow->GetWidth(), mWindow->GetHeight() );
-        }
+        ViewportPanel* scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
+        renderCamera->SetViewportSize( glm::max( scenePanel->GetWidth(), 1.0f ), glm::max( scenePanel->GetHeight(), 1.0f ) );
 
         mEditorState->mActiveCamera = renderCamera;
         mEditorRenderer->SetMainCamera( renderCamera );

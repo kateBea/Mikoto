@@ -159,20 +159,37 @@ namespace mikoto::editor {
             mGizmoBoundsRevision = mEditorState->GetRevision();
         }
 
-        if ( !mPanelIsVisible ) {
+        const bool maximized{ mEditorState->mScreenPresentTarget == ScreenPresentTarget::eScene };
+
+        if ( !mPanelIsVisible && !maximized ) {
             SuspendInput();
             return;
         }
 
-        constexpr ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
+        ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
+
+        if ( maximized ) {
+            const auto& bounds{ mEditorState->mMaximizedViewport };
+            ImGui::SetNextWindowPos( { bounds.mX, bounds.mY } );
+            ImGui::SetNextWindowSize( { glm::max( 1.0f, bounds.mWidth ), glm::max( 1.0f, bounds.mHeight ) } );
+            ImGui::SetNextWindowViewport( ImGui::GetMainViewport()->ID );
+            ImGui::SetNextWindowDockID( 0 );
+            windowFlags |= ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                           ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings;
+        }
 
         // Expand scene view to window bounds (no padding)
         imgui::ImGuiScopedStyleVar winPad( ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f } );
 
-        if ( !imgui::BeginWindow( GetHeaderName().data(), MKT_ADDRESSOF( mPanelIsVisible ), windowFlags ) ) {
+        if ( !imgui::BeginWindow( maximized ? "##MaximizedScene" : GetHeaderName().data(),
+                 maximized ? nullptr : MKT_ADDRESSOF( mPanelIsVisible ), windowFlags ) ) {
             SuspendInput();
             ImGui::End();
             return;
+        }
+
+        if ( maximized && ImGui::IsWindowAppearing() ) {
+            ImGui::SetWindowFocus();
         }
 
         // Using the window itself does not work for drag and drop, it does not
@@ -789,31 +806,6 @@ namespace mikoto::editor {
         }
     }
 
-    auto ViewportPanel::UpdateFullscreenPicking() -> void {
-        if ( !mEditorState->HasWorkspace() || ImGui::GetIO().AppFocusLost ) {
-            ReleaseSoftBodyGrab();
-            CancelPicking();
-            return;
-        }
-
-        // Fullscreen presentation omits the toolbar and particle overlay.
-        SetCursorTool( CursorTool::eSelect );
-        ApplyPickingResult();
-
-        // ImGui mouse/viewport coordinates share the same logical space. The
-        // picking module scales this rectangle to the render target's pixels.
-        const auto* viewport{ ImGui::GetMainViewport() };
-        mViewport = ViewportInfo{ .mX = viewport->Pos.x, .mY = viewport->Pos.y, .mWidth = viewport->Size.x, .mHeight = viewport->Size.y };
-        const auto mouse{ ImGui::GetMousePos() };
-        mSceneImageHovered = mouse.x >= mViewport.mX && mouse.y >= mViewport.mY &&
-                             mouse.x < mViewport.mX + mViewport.mWidth && mouse.y < mViewport.mY + mViewport.mHeight;
-
-        // Hidden dock windows can retain hover state from the last panel frame.
-        // Fullscreen has no panel image to occlude; popups and active controls still block input.
-        mPickingBlockedByOverlay = ImGui::IsPopupOpen( nullptr, ImGuiPopupFlags_AnyPopup );
-        UpdatePicking( true );
-    }
-
     auto ViewportPanel::SetCursorTool( CursorTool tool ) -> void {
         if ( mCursorTool == tool ) {
             return;
@@ -962,11 +954,11 @@ namespace mikoto::editor {
         draw->PopClipRect();
     }
 
-    auto ViewportPanel::UpdatePicking( bool fullscreen ) -> void {
+    auto ViewportPanel::UpdatePicking() -> void {
         const auto mouse{ ImGui::GetMousePos() };
         const bool available{ mSceneImageHovered && !mPickingBlockedByOverlay &&
-                              ( fullscreen || ImGui::IsWindowHovered() ) && !ImGui::IsAnyItemActive() &&
-                              ( fullscreen || ( !ImGuizmo::IsOver() && !ImGuizmo::IsUsing() ) ) && !ImGui::GetIO().KeyAlt &&
+                              ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() &&
+                              !ImGuizmo::IsOver() && !ImGuizmo::IsUsing() && !ImGui::GetIO().KeyAlt &&
                               !ImGui::IsMouseDown( ImGuiMouseButton_Right ) && !ImGui::IsMouseDown( ImGuiMouseButton_Middle ) &&
                               !ImGui::GetDragDropPayload() && mEditorState->mEditorRenderer && mEditorState->mActiveScene };
         if ( available && ImGui::IsMouseClicked( ImGuiMouseButton_Left ) ) {

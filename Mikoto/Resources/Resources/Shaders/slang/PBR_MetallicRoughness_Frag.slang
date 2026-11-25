@@ -114,7 +114,7 @@ struct FSInput {
 // Calculation of the lighting contribution from an optional Image Based Light source.
 float3 GetIBLContribution( float NdotV, float3 diffuseColor, float3 specularColor, float perceptualRoughness, float3 n,
                            float3 reflection, Texture2D brdfLut, TextureCube irradianceMap, TextureCube prefilterMap,
-                           SamplerState sampler, bool useRayLighting ) {
+                           SamplerState sampler, bool useRayLighting, out float3 environmentSpecular ) {
     // Avoid rough reflections sample invalid mip levels
     float lod = perceptualRoughness * ( ( parameters.mPrefilterMipLevelsAndSkybox & 0x07ffffffu ) - 1 );
 
@@ -137,7 +137,8 @@ float3 GetIBLContribution( float NdotV, float3 diffuseColor, float3 specularColo
     // Replace only the enabled lobe to avoid counting environment light twice.
     bool rayDiffuse = useRayLighting && ( parameters.mPrefilterMipLevelsAndSkybox & 0x40000000u ) != 0;
     bool raySpecular = useRayLighting && ( parameters.mPrefilterMipLevelsAndSkybox & 0x20000000u ) != 0;
-    return ( rayDiffuse ? float3( 0.0 ) : diffuse ) + ( raySpecular ? float3( 0.0 ) : specular );
+    environmentSpecular = raySpecular ? float3( 0.0 ) : specular;
+    return ( rayDiffuse ? float3( 0.0 ) : diffuse ) + environmentSpecular;
 }
 
 float3 ComputeDirectionalLightContribution( float3 n, float3 v, LightInfo lightInfo, BaseInputs inputs, float visibility = 1.0 ) {
@@ -301,6 +302,10 @@ float3 ComputeSpotLightContribution( float3 n, float3 v, LightInfo lightInfo, Ba
 
 struct FSOutput {
     float4 Color : SV_Target0;
+#if defined( MKT_SSR_CAPTURE )
+    float4 SurfaceResponse : SV_Target1;
+    float4 EnvironmentSpecular : SV_Target2;
+#endif
 };
 
 ShadowMetadata LoadShadowMetadata( uint recordIndex ) {
@@ -853,10 +858,11 @@ FSOutput main( FSInput input ) {
     float coatNdotV = clamp( dot( coatNormal, v ), 0.001, 1.0 );
     float NdotV = clamp( dot( n, v ), 0.001, 1.0 );
     float3 iblLighting = float3( 0.0 );
+    float3 environmentSpecular = float3( 0.0 );
 
     if ( ( parameters.mPrefilterMipLevelsAndSkybox & 0x80000000u ) != 0u ) {
         iblLighting = GetIBLContribution( NdotV, diffuseColor, specularColor, perceptualRoughness, n, reflection,
-                                          brdfLUT, irradianceMap, prefilteredMap, samplerCube, useRayLighting );
+                                          brdfLUT, irradianceMap, prefilteredMap, samplerCube, useRayLighting, environmentSpecular );
         if ( SurfaceStylized( shadingModel ) ) {
             iblLighting = irradianceMap.SampleLevel( samplerCube, n, 0 ).rgb * diffuseColor * parameters.mScaleIblAmbient;
         } else if ( shadingModel == SURFACE_CLEAR_COAT && material.SurfaceShading.x > 0 ) {
@@ -988,6 +994,15 @@ FSOutput main( FSInput input ) {
             color = color * transmittance + radiance;
         }
     }
+#if defined( MKT_SSR_CAPTURE )
+    // Reuse the material's actual split-sum response. Keep multi-lobe clear coat
+    // and stylized shading on their existing environment path until traced per lobe.
+    if ( !SurfaceStylized( shadingModel ) && shadingModel != SURFACE_CLEAR_COAT ) {
+        float2 integratedBrdf = brdfLUT.SampleLevel( samplerCube, float2( NdotV, 1 - perceptualRoughness ), 0 ).rg;
+        output.SurfaceResponse = float4( specularColor * integratedBrdf.x + integratedBrdf.y, perceptualRoughness );
+        output.EnvironmentSpecular = float4( environmentSpecular * ambientOcclusion, 1 );
+    }
+#endif
     output.Color = float4( color, baseColor.a );
 
     return output;

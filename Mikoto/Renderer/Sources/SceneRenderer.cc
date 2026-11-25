@@ -97,6 +97,16 @@ namespace mikoto::renderer {
 
         mRayTracing.Sanitize();
 
+        auto& reflections{ mScreenSpaceReflections };
+        reflections.mMaxSteps = glm::clamp( reflections.mMaxSteps, 16u, 256u );
+        reflections.mSpatialSamples = glm::clamp( reflections.mSpatialSamples, 1u, 16u );
+        reflections.mMaxDistance = glm::clamp( reflections.mMaxDistance, 0.1f, 1000.0f );
+        reflections.mThickness = glm::clamp( reflections.mThickness, 0.005f, 5.0f );
+        reflections.mMaxRoughness = glm::clamp( reflections.mMaxRoughness, 0.05f, 1.0f );
+        reflections.mHistoryWeight = glm::clamp( reflections.mHistoryWeight, 0.0f, 0.98f );
+        reflections.mSamplingBias = glm::clamp( reflections.mSamplingBias, 0.0f, 0.9f );
+        reflections.mIntensity = glm::clamp( reflections.mIntensity, 0.0f, 1.0f );
+
         if ( static_cast<unsigned>( mResolution ) > static_cast<unsigned>( rhi::RenderResolution::e3120P ) ) {
             mResolution = rhi::RenderResolution::e1080P;
         }

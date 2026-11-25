@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Pedestrian lavender",
+  "Material": {
+    "BaseColorFactor": [
+      0.42,
+      0.34,
+      0.55,
+      1
+    ],
+    "RoughnessFactor": 0.65
+  }
+}

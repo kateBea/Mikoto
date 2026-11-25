@@ -1,0 +1,28 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town grass",
+  "Material": {
+    "BaseColorFactor": [
+      0.7,
+      0.82,
+      0.64,
+      1
+    ],
+    "RoughnessFactor": 0.95,
+    "UvTransform": [
+      54,
+      38,
+      0,
+      0
+    ],
+    "Textures": [
+      {
+        "Map": 1,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../Textures/Grass.png"
+      }
+    ]
+  }
+}

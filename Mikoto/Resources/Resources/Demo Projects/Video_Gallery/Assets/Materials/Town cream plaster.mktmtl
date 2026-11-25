@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town cream plaster",
+  "Material": {
+    "BaseColorFactor": [
+      0.77,
+      0.7,
+      0.55,
+      1
+    ],
+    "RoughnessFactor": 0.9
+  }
+}

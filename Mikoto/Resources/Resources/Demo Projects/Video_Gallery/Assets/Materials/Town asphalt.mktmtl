@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town asphalt",
+  "Material": {
+    "BaseColorFactor": [
+      0.045,
+      0.052,
+      0.063,
+      1
+    ],
+    "RoughnessFactor": 0.97
+  }
+}

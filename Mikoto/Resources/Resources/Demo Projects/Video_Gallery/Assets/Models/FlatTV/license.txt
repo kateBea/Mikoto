@@ -1,0 +1,11 @@
+Model Information:
+* title:	TV
+* source:	https://sketchfab.com/3d-models/tv-1b7eff20a86b4cc692bc4222ac1ac252
+* author:	CN Entertainment (https://sketchfab.com/cn-entertainment)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "TV" (https://sketchfab.com/3d-models/tv-1b7eff20a86b4cc692bc4222ac1ac252) by CN Entertainment (https://sketchfab.com/cn-entertainment) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

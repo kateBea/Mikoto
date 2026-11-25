@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Town sage plaster",
+  "Material": {
+    "BaseColorFactor": [
+      0.3,
+      0.45,
+      0.36,
+      1
+    ],
+    "RoughnessFactor": 0.9
+  }
+}
